@@ -60,7 +60,7 @@ def main(unused_argv):
 
   data_store.default_token = access_control.ACLToken(
       username=flags.FLAGS.username or getpass.getuser(),
-      reason=flags.FLAGS.reason or "export")
+      reason=flags.FLAGS.reason)
 
   # If subcommand was specified by the user in the command line,
   # corresponding subparser should have initialized "func" argument

@@ -226,7 +226,6 @@ class ApiGetFlowResultsExportCommandHandler(
     export_command_str = " ".join([
         config_lib.CONFIG["AdminUI.export_command"],
         "--username", utils.ShellQuote(token.username),
-        "--reason", utils.ShellQuote(token.reason),
         "collection_files",
         "--path", utils.ShellQuote(output_urn),
         "--output", "."])

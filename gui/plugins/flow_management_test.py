@@ -235,7 +235,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(
         self.IsTextPresent,
-        "--username test --reason 'Running tests' collection_files "
+        "--username test collection_files "
         "--path aff4:/C.0000000000000001/analysis/FlowWithOneStatEntryResult")
 
   def testExportCommandIsNotDisabledWhenNoResults(self):

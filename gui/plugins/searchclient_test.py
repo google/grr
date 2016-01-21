@@ -251,6 +251,11 @@ class TestNavigatorView(SearchClientTestBase):
     client_obj = aff4.FACTORY.Open(client_id, token=self.token)
     return client_id
 
+  def testReasonIsShown(self):
+    client_id = self.CreateClient()
+    self.Open("/#c=" + str(client_id))
+    self.WaitUntil(self.IsTextPresent, "Access reason: " + self.token.reason)
+
   def testOnlineClientStatus(self):
     client_id = self.CreateClient()
     self.Open("/#c=" + str(client_id))

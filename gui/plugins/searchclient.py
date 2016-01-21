@@ -16,6 +16,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import security as aff4_security
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -396,6 +397,15 @@ class Navigator(renderers.TemplateRenderer):
     self.unauthorized = False
     self.client_id = request.REQ.get("client_id")
     if self.client_id:
+      # If there was an approval with a reason for this client, find it and
+      # and show the reason.
+      try:
+        approved_token = aff4_security.Approval.GetApprovalForObject(
+            rdf_client.ClientURN(self.client_id), token=request.token)
+        self.reason = approved_token.reason
+      except access_control.UnauthorizedAccess as e:
+        pass
+
       client = aff4.FACTORY.Open(self.client_id, token=request.token)
 
       self.hosts.append((self.client_id, client.Get(client.Schema.HOSTNAME)))
@@ -403,13 +413,6 @@ class Navigator(renderers.TemplateRenderer):
       try:
         # Also check for proper access.
         aff4.FACTORY.Open(client.urn.Add("acl_check"), token=request.token)
-
-        # If we acquired a reason while opening the client (this happens
-        # when original token didn't have a reason), then show  the found reason
-        # in the UI.
-        if request.token.reason != self.reason:
-          self.reason = request.token.reason
-
       except access_control.UnauthorizedAccess as e:
         self.unauthorized = True
         self.unauthorized_exception = e

@@ -715,7 +715,7 @@
     {
       "method": "GET",
       "response": {
-        "command": "/usr/bin/grr_export --username test --reason '' collection_files --path aff4:/C.1000000000000000/analysis/ListProcesses/test-42 --output ."
+        "command": "/usr/bin/grr_export --username test collection_files --path aff4:/C.1000000000000000/analysis/ListProcesses/test-42 --output ."
       },
       "test_class": "ApiGetFlowResultsExportCommandHandlerRegressionTest",
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/results/export-command"
