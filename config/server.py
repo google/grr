@@ -244,9 +244,8 @@ config_lib.DEFINE_string(
     " is only scheduled after results are received in the previous poll.")
 
 config_lib.DEFINE_string(
-    "Server.username", None,
-    "System account to run as after initialization for running the server as "
-    "non-root.")
+    "Server.username", 'root',
+    "System account for services to run as after initialization.")
 
 # Email Template Values
 config_lib.DEFINE_string(

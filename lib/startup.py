@@ -106,7 +106,7 @@ def Init():
   ServerLoggingStartupInit()
   registry.Init()
 
-  if config_lib.CONFIG["Server.username"]:
+  if config_lib.CONFIG["Server.username"] != 'root':
     try:
       os.setuid(pwd.getpwnam(config_lib.CONFIG["Server.username"]).pw_uid)
     except (KeyError, OSError):
