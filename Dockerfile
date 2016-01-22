@@ -4,9 +4,10 @@ MAINTAINER Greg Castle github@mailgreg.com
 
 RUN mkdir -p /usr/share/grr/scripts
 COPY scripts/install_script_ubuntu.sh /usr/share/grr/scripts/install_script_ubuntu.sh
+COPY requirements.txt /usr/share/grr/requirements.txt
 ENV UPGRADE=false
 # Install our dependencies, use latest requirements.txt
-RUN bash /usr/share/grr/scripts/install_script_ubuntu.sh -dy -r https://raw.githubusercontent.com/google/grr/master/requirements.txt
+RUN bash /usr/share/grr/scripts/install_script_ubuntu.sh -dy -r /usr/share/grr/requirements.txt
 
 # Download the client templates now to get better caching from Docker.
 WORKDIR /usr/share/grr
@@ -21,9 +22,7 @@ RUN python makefile.py
 
 # Install GRR
 WORKDIR /usr/share/grr
-ENV DOWNLOAD_CLIENT_TEMPLATES=false
-ENV DOCKER=true
-RUN bash scripts/install_server_from_src.sh
+RUN bash scripts/install_server_from_src.sh -d
 
 COPY scripts/docker-entrypoint.sh /
 

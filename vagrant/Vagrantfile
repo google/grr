@@ -1,6 +1,8 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
+GRR_SERVER_DEV_IP = "192.168.1.100"
+
 Vagrant.configure(2) do |config|
 
   config.vm.synced_folder "../", "/grr"
@@ -35,6 +37,15 @@ Vagrant.configure(2) do |config|
     box.vm.provision "shell" do |s|
       s.path = "../scripts/install_script_ubuntu.sh"
       s.args = ["-dy"]
+    end
+  end
+
+  config.vm.define "grr_server_dev" do |box|
+    box.vm.box = "ubuntu/trusty64"
+    box.vm.network "private_network", ip: GRR_SERVER_DEV_IP
+    box.vm.provision "shell" do |s|
+      s.path = "../scripts/install_server_from_src.sh"
+      s.args = ["-l", "-r /grr"]
     end
   end
 
