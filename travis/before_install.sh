@@ -11,6 +11,7 @@ sudo apt-get install -y \
   libfreetype6-dev \
   libpng-dev \
   libprotobuf-dev \
+  libmysqlclient-dev \
   ncurses-dev \
   protobuf-compiler \
   python-dev \

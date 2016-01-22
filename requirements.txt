@@ -42,3 +42,4 @@ wsgiref==0.1.2
 Werkzeug==0.11.3
 GRR-M2Crypto==0.22.4
 pytsk3==20160207.post1
+MySQL-python==1.2.5
