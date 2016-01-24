@@ -6,7 +6,6 @@
 
 import logging
 import Queue
-import re
 import thread
 import threading
 import time
@@ -52,6 +51,7 @@ class MySQLConnection(object):
       self.dbh = self._MakeConnection(database=database_name)
       self.cursor = self.dbh.cursor()
       self.cursor.connection.autocommit(True)
+      self.cursor.execute("SET NAMES binary")
     except MySQLdb.OperationalError as e:
       # Database does not exist
       if "Unknown database" in str(e):
@@ -65,6 +65,7 @@ class MySQLConnection(object):
         self.dbh = self._MakeConnection(database=database_name)
         self.cursor = self.dbh.cursor()
         self.cursor.connection.autocommit(True)
+        self.cursor.execute("SET NAMES binary")
       else:
         raise
 
@@ -266,15 +267,13 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         token, [subject], self.GetRequiredResolveAccess(attribute_prefix))
 
     if isinstance(attribute_prefix, basestring):
-      attribute_regex = [attribute_prefix + ".*"]
-    else:
-      attribute_regex = [prefix + ".*" for prefix in attribute_prefix]
+      attribute_prefix = [attribute_prefix]
 
     results = []
 
-    for regex in attribute_regex:
-      query, args = self._BuildQuery(subject, regex, timestamp, limit,
-                                     is_regex=True)
+    for prefix in attribute_prefix:
+      query, args = self._BuildQuery(subject, prefix, timestamp, limit,
+                                     is_prefix=True)
       rows = self.ExecuteQuery(query, args)
 
       for row in rows:
@@ -284,6 +283,34 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     return results
 
+
+  def _ScanAttribute(self, subject_prefix, attribute, after_urn=None, limit=None, token=None):
+    self.security_manager.CheckDataStoreAccess(token, [subject_prefix],
+                                               "qr")
+    query = """
+    SELECT aff4.value, aff4.timestamp, subjects.subject
+      FROM aff4
+      JOIN subjects ON aff4.subject_hash=subjects.hash
+      JOIN (
+            SELECT subject_hash, MAX(timestamp) timestamp
+            FROM aff4
+            JOIN subjects ON aff4.subject_hash=subjects.hash
+            WHERE aff4.attribute_hash=unhex(md5(%s)) AND subjects.subject like %s
+                  AND subjects.subject > %s
+            GROUP BY subject_hash
+            ) maxtime ON aff4.subject_hash=maxtime.subject_hash AND aff4.timestamp=maxtime.timestamp
+      WHERE aff4.attribute_hash=unhex(md5(%s))
+    """
+    args = [attribute, subject_prefix, after_urn, attribute]
+
+    if limit:
+      query += " LIMIT %s"
+      args.append(limit)
+
+    results = self.ExecuteQuery(query, args)
+    return results
+
+
   def ScanAttributes(self,
                      subject_prefix,
                      attributes,
@@ -291,61 +318,38 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                      max_records=None,
                      token=None,
                      relaxed_order=False):
+    _ = relaxed_order  # Unused
+
     subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
     if subject_prefix[-1] != "/":
       subject_prefix += "/"
+    subject_prefix += "%"
+
     if after_urn:
       after_urn = utils.SmartStr(after_urn)
-    self.security_manager.CheckDataStoreAccess(token, [subject_prefix],
-                                               "qr")
+    else:
+      after_urn = ""
 
-    query = """
-    SELECT t1.subject AS subject,
-           t5.attribute as attribute,
-           t2.value AS value,
-           t2.timestamp AS timestamp
-    FROM subjects AS t1,
-         aff4 AS t2,
-         attributes AS t5,
-         (SELECT t3.subject_hash AS hash,
-                 t3.attribute_hash AS attribute_hash,
-                 MAX(t3.timestamp) AS ts FROM
-            aff4 AS t3, subjects AS t4
-          WHERE t3.subject_hash = t4.hash AND
-                t3.attribute_hash in (%s) AND
-                t4.subject LIKE %%s AND
-                t4.subject > %%s
-          GROUP BY t3.subject_hash, t3.attribute_hash) AS s1
-    WHERE t1.hash = t2.subject_hash AND
-      t2.timestamp = s1.ts AND
-      t2.subject_hash = s1.hash AND
-      t2.attribute_hash = s1.attribute_hash AND
-      t5.hash = s1.attribute_hash
-    ORDER BY t1.subject
-    """ % ",".join(["unhex(md5(%s))"] * len(attributes))
-    args = attributes + [subject_prefix + "%", after_urn or ""]
-    if max_records:
-      query += " LIMIT %s"
-      args += [max_records * len(attributes)]
-    result = self.ExecuteQuery(query, args)
+    results = {}
 
-    current_subject = None
-    current_results = {}
+    for attribute in attributes:
+      attribute_results = self._ScanAttribute(subject_prefix, attribute, after_urn, max_records, token)
+      for row in attribute_results:
+        subject = row["subject"]
+        timestamp = row["timestamp"]
+        value = self._Decode(attribute, row["value"])
+        if subject in results:
+          results[subject][attribute] = (timestamp, value)
+        else:
+          results[subject] = {attribute: (timestamp, value)}
+
     result_count = 0
-    for row in result:
-      current_subject = current_subject or row["subject"]
-      if row["subject"] != current_subject:
-        yield (current_subject, current_results)
-        result_count += 1
-        if max_records and result_count >= max_records:
-          return
-        current_subject = row["subject"]
-        current_results = {}
-      current_results[row["attribute"]] = (row["timestamp"],
-                                           self._Decode(row["attribute"],
-                                                        row["value"]))
-    if current_subject:
-      yield (current_subject, current_results)
+    for subject in sorted(results):
+      yield (subject, results[subject])
+      result_count += 1
+      if max_records and result_count >= max_records:
+        return
+
 
   def MultiSet(self, subject, values, timestamp=None, replace=True, sync=True,
                to_delete=None, token=None):
@@ -592,42 +596,22 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       return value
 
   def _BuildQuery(self, subject, attribute=None, timestamp=None,
-                  limit=None, is_regex=False):
+                  limit=None, is_prefix=False):
     """Build the SELECT query to be executed."""
     args = []
+    subject = utils.SmartUnicode(subject)
     criteria = "WHERE aff4.subject_hash=unhex(md5(%s))"
     args.append(subject)
     sorting = ""
     tables = "FROM aff4"
 
-    subject = utils.SmartUnicode(subject)
-
     # Set fields, tables, and criteria and append args
     if attribute is not None:
-      if is_regex:
+      if is_prefix:
         tables += " JOIN attributes ON aff4.attribute_hash=attributes.hash"
-        regex = re.match(r"(^[a-zA-Z0-9_\- /:]+)(.*)", attribute)
-        if not regex:
-          # If attribute has no prefix just rlike
-          criteria += " AND attributes.attribute rlike %s"
-          args.append(attribute)
-        else:
-          rlike = regex.groups()[1]
-
-          if rlike:
-            # If there is a regex component attempt to replace with like
-            like = regex.groups()[0] + "%"
-            criteria += " AND attributes.attribute like %s"
-            args.append(like)
-
-            # If the regex portion is not a match all regex then add rlike
-            if not (rlike == ".*" or rlike == ".+"):
-              criteria += " AND attributes.attribute rlike %s"
-              args.append(rlike)
-          else:
-            # If no regex component then treat as full attribute
-            criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
-            args.append(attribute)
+        prefix = attribute + "%"
+        criteria += " AND attributes.attribute like %s"
+        args.append(prefix)
       else:
         criteria += " AND aff4.attribute_hash=unhex(md5(%s))"
         args.append(attribute)
@@ -639,7 +623,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       args.append(int(timestamp[1]))
 
     fields = "aff4.value, aff4.timestamp"
-    if is_regex:
+    if is_prefix:
       fields += ", attributes.attribute"
 
     # Modify fields and sorting for timestamps.
@@ -727,7 +711,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     CREATE TABLE IF NOT EXISTS `subjects` (
       hash BINARY(16) PRIMARY KEY NOT NULL,
       subject TEXT CHARACTER SET utf8 NULL,
-      KEY `subject` (`subject`(255))
+      KEY `subject` (`subject`(96))
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT ='Table for storing subjects';
     """)
 
