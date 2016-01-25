@@ -277,7 +277,7 @@ class ApiCreateVfsRefreshOperationHandler(
 
   def Handle(self, args, token=None):
     aff4_path = args.client_id.Add(args.vfs_path)
-    fd = aff4.FACTORY.Open(aff4_path, aff4_type="VFSDirectory", token=token)
+    fd = aff4.FACTORY.Open(aff4_path, token=token)
 
     flow_args = filesystem.RecursiveListDirectoryArgs(
         pathspec=fd.real_pathspec,

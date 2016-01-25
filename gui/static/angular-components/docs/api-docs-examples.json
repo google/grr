@@ -418,7 +418,7 @@
     {
       "method": "POST",
       "response": {
-        "message": "Object aff4:/C.1000000000000000/non/existing is of type AFF4Volume, but required_type is VFSDirectory"
+        "message": "Item has no pathspec."
       },
       "test_class": "ApiCreateVfsRefreshOperationHandlerRegressionTest",
       "url": "/api/clients/C.1000000000000000/vfs-refresh-operations"

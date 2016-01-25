@@ -978,11 +978,8 @@ class GRRFlow(aff4.AFF4Volume):
       # allowed to start it. The fact that we could open the flow object
       # means that we have access to the client (if it's not a global
       # flow).
-      # TODO(user): here we assume that we terminate flows on clients.
-      # Maybe we should infer from the flow's URN whether the flow
-      # was started on a client or globally.
       data_store.DB.security_manager.CheckIfCanStartFlow(
-          token.RealUID(), flow_obj.Name(), with_client_id=True)
+          token, flow_obj.Name(), with_client_id=runner.args.client_id)
 
       runner.Error(reason, status=status)
       runner.Terminate()

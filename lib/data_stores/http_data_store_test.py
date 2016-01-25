@@ -2,7 +2,6 @@
 """Tests the HTTP remote data store abstraction."""
 
 
-import httplib
 import os
 import shutil
 import socket
@@ -99,14 +98,9 @@ def _SetConfig():
   CONFIG_OVERRIDER.Start()
 
 
-def _CloseServer():
-  # Send an exit request.
-  conn = httplib.HTTPConnection("127.0.0.1", PORT[0])
-  conn.request("POST", "/exit")
-  conn.getresponse()
-  conn = httplib.HTTPConnection("127.0.0.1", PORT[1])
-  conn.request("POST", "/exit")
-  conn.getresponse()
+def _CloseServers():
+  # Directly tell both HTTP servers to stop.
+  StoppableHTTPServer.STOP = True
 
 
 def SetupDataStore():
@@ -122,7 +116,7 @@ def SetupDataStore():
     data_store.DB.Initialize()
   except http_data_store.HTTPDataStoreError:
     data_store.DB = None
-    _CloseServer()
+    _CloseServers()
 
 
 def setUpModule():
@@ -130,7 +124,7 @@ def setUpModule():
 
 
 def tearDownModule():
-  _CloseServer()
+  _CloseServers()
   CONFIG_OVERRIDER.Stop()
 
 

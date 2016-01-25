@@ -214,7 +214,7 @@ class GrrRekallSession(session.Session):
   def _HandleRunPluginException(self, ui_renderer, e):
     """Log the exception and raise it."""
     self.logging.error(str(e))
-    raise e
+    raise
 
 
 class WriteRekallProfile(actions.ActionPlugin):

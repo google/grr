@@ -17,7 +17,7 @@ PLAT=amd64
 INSTALL_DIR=${PREFIX}/share/grr
 
 GRR_STABLE_VERSION=0.3.0-7
-GRR_TEST_VERSION=
+GRR_TEST_VERSION=0.3.0-8pre
 SERVER_DEB_STABLE_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/grr-server_
 SERVER_DEB_TEST_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/test-grr-server_
 REQUIREMENTS_URL=https://raw.githubusercontent.com/google/grr/server-0.3.0-7/requirements.txt

@@ -212,7 +212,7 @@ grr_all_files = [grr_artifact_files,
 
 
 setup(name="grr",
-      version="0.3.0-7",
+      version="0.3.0-8pre",
       description="GRR Rapid Response Framework",
       license="Apache License, Version 2.0",
       url="https://github.com/google/grr",

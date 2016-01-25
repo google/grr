@@ -273,6 +273,57 @@ class TestCronView(test_lib.GRRSeleniumTest):
                       "css=grr-cron-jobs-list "
                       "td:contains('OSBreakDown')")
 
+  def testForceRunCronJob(self):
+    with self.ACLChecksDisabled():
+      cronjobs.CRON_MANAGER.EnableJob(
+          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+
+    with test_lib.FakeTime(
+        # 2274264646 corresponds to Sat, 25 Jan 2042 12:10:46 GMT.
+        rdfvalue.RDFDatetime().FromSecondsFromEpoch(2274264646),
+        increment=1e-6):
+      self.Open("/")
+      self.Click("css=a[grrtarget=ManageCron]")
+      self.Click("css=td:contains('OSBreakDown')")
+
+      # Click on Force Run button and check that dialog appears.
+      self.Click("css=button[name=ForceRunCronJob]:not([disabled])")
+      self.WaitUntil(self.IsTextPresent,
+                     "Are you sure you want to RUN this cron job?")
+
+      # Click on "Proceed" and wait for authorization dialog to appear.
+      self.Click("css=button[name=Proceed]")
+      self.WaitUntil(self.IsTextPresent, "Create a new approval")
+
+      self.Click("css=#acl_dialog button[name=Close]")
+      # Wait for dialog to disappear.
+      self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+
+      with self.ACLChecksDisabled():
+        self.GrantCronJobApproval(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+
+      # Click on Force Run button and check that dialog appears.
+      self.Click("css=button[name=ForceRunCronJob]:not([disabled])")
+      self.WaitUntil(self.IsTextPresent,
+                     "Are you sure you want to RUN this cron job?")
+
+      # Click on "Proceed" and wait for success label to appear.
+      # Also check that "Proceed" button gets disabled.
+      self.Click("css=button[name=Proceed]")
+
+      # TODO(user): "RUNd", really? :)
+      self.WaitUntil(self.IsTextPresent, "Cron job was RUNd successfully!")
+      self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
+
+      # Click on "Cancel" and check that dialog disappears.
+      self.Click("css=button[name=Cancel]")
+      self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+
+      # View should be refreshed automatically. The last run date should appear.
+      self.WaitUntil(self.IsElementPresent,
+                     "css=grr-cron-jobs-list "
+                     "tr:contains('OSBreakDown') td:contains('2042')")
+
   def testHuntSchedulingWorksCorrectly(self):
     self.Open("/")
     self.Click("css=a[grrtarget=ManageCron]")

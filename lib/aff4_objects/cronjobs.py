@@ -498,8 +498,7 @@ class CronJob(aff4.AFF4Volume):
     if not self.locked:
       raise aff4.LockError("CronJob must be locked for Run() to be called.")
 
-    if self.KillOldFlows():
-      return
+    self.KillOldFlows()
 
     # If currently running flow has finished, update our state.
     current_flow_urn = self.Get(self.Schema.CURRENT_FLOW_URN)
