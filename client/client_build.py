@@ -145,6 +145,12 @@ parser_build_component.add_argument(
 parser_build_component.add_argument(
     "output", help="Path to store the compiled component.")
 
+parser_build_components = subparsers.add_parser(
+    "build_components", help="Builds all client components.")
+
+parser_build_components.add_argument(
+    "--output", default="", help="Path to store the compiled component.")
+
 args = parser.parse_args()
 
 
@@ -223,6 +229,9 @@ def BuildAndDeployWindows(signer=None):
   timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
   args.package_format = "exe"
 
+  # TODO(user): Build components here.
+  # component.BuildComponents(output_dir=output_dir)
+
   context_orig = SetOSContextFromArgs([])
   # Take a copy of the context list so we can reset back to clean state for each
   # buildanddeploy run
@@ -249,6 +258,8 @@ def BuildAndDeploy(context, signer=None, timestamp=None):
   spec = "_".join((args.platform, args.arch, args.package_format))
   output_dir = os.path.join(config_lib.CONFIG.Get(
       "ClientBuilder.executables_path", context=context), timestamp, spec)
+
+  component.BuildComponents(output_dir=output_dir)
 
   # If we weren't passed a template, build one
   if args.templatedir:
@@ -436,16 +447,11 @@ def main(_):
       BuildAndDeployWindows(signer=signer)
     else:
       BuildAndDeploy(context, signer=signer)
+  elif args.subparser_name == "build_components":
+    component.BuildComponents(output_dir=flags.FLAGS.output)
   elif args.subparser_name == "build_component":
-    setup_file = flags.FLAGS.setup_file
-    client_component = component.BuildComponent(setup_file)
-    output = os.path.join(flags.FLAGS.output, "%s_%s_%s.bin" % (
-        client_component.summary.name, client_component.summary.version,
-        client_component.summary.build_system.signature()))
-
-    with open(output, "wb") as fd:
-      fd.write(client_component.SerializeToString())
-      print "Built component %s" % output
+    component.BuildComponent(flags.FLAGS.setup_file,
+                             output_dir=flags.FLAGS.output)
 
 
 if __name__ == "__main__":

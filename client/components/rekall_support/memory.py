@@ -11,8 +11,8 @@ regions. It is always safe to access all of memory using this handler.
 
 
 from rekall import session
+import rekall_types as rdf_rekall_types
 from grr.client import vfs
-from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -72,3 +72,5 @@ class MemoryVFS(vfs.VFSHandler):
     self.offset += len(result)
 
     return result
+
+vfs.VFS_HANDLERS[MemoryVFS.supported_pathtype] = MemoryVFS

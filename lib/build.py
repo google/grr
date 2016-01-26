@@ -5,7 +5,6 @@ This handles invocations for the build across the supported platforms including
 handling Visual Studio, pyinstaller and other packaging mechanisms.
 """
 import cStringIO
-import errno
 import logging
 import os
 import shutil
@@ -39,17 +38,6 @@ class BuilderBase(object):
     self.context = context or config_lib.CONFIG.context[:]
     self.context = ["ClientBuilder Context"] + self.context
 
-  def EnsureDirExists(self, path):
-    """Equivalent of makedir -p."""
-    try:
-      os.makedirs(path)
-    except OSError as exc:
-      # Necessary so we don't hide other errors such as permission denied.
-      if exc.errno == errno.EEXIST and os.path.isdir(path):
-        pass
-      else:
-        raise
-
   def GenerateDirectory(self, input_dir=None, output_dir=None,
                         replacements=None):
     input_dir = utils.NormalizePath(input_dir)
@@ -62,7 +50,7 @@ class BuilderBase(object):
         out_file = in_file.replace(input_dir, output_dir)
         for (s, replacement) in replacements:
           out_file = out_file.replace(s, replacement)
-        self.EnsureDirExists(os.path.dirname(out_file))
+        utils.EnsureDirExists(os.path.dirname(out_file))
         self.GenerateFile(in_file, out_file)
 
   def GenerateFile(self, input_filename=None, output_filename=None):
@@ -115,7 +103,7 @@ class ClientBuilder(BuilderBase):
     except OSError:
       pass
 
-    self.EnsureDirExists(directory)
+    utils.EnsureDirExists(directory)
 
   def BuildWithPyInstaller(self):
     """Use pyinstaller to build a client package."""
@@ -150,8 +138,10 @@ class ClientBuilder(BuilderBase):
     PyInstallerMain.run(pyi_args=[utils.SmartStr(x) for x in args])
 
     with open(os.path.join(self.output_dir, "build.yaml"), "w") as fd:
-      fd.write("Client.build_environment: %s" %
+      fd.write("Client.build_environment: %s\n" %
                rdf_client.Uname.FromCurrentSystem().signature())
+      fd.write("Client.build_time: '%s'\n" %
+               str(rdfvalue.RDFDatetime().Now()))
 
   def CopyMissingModules(self):
     """Copy any additional DLLs that cant be found."""
@@ -176,7 +166,7 @@ class ClientBuilder(BuilderBase):
     """
     self.template_file = output_file or config_lib.CONFIG.Get(
         "ClientBuilder.template_path", context=self.context)
-    self.EnsureDirExists(os.path.dirname(self.template_file))
+    utils.EnsureDirExists(os.path.dirname(self.template_file))
 
   def MakeZip(self, input_dir, output_file):
     """Creates a ZIP archive of the files in the input directory.
@@ -211,6 +201,10 @@ class ClientDeployer(BuilderBase):
     super(ClientDeployer, self).__init__(context=context)
     self.signer = signer
 
+  def MergeBuildConfig(self, fd=None, data=None):
+    data = config_lib.YamlParser(fd=fd, data=data).RawData()
+    config_lib.CONFIG.MergeData(data)
+
   def GetClientConfig(self, context, validate=True):
     """Generates the client config file for inclusion in deployable binaries."""
     with utils.TempDirectory() as tmp_dir:
@@ -243,12 +237,8 @@ class ClientDeployer(BuilderBase):
 
             new_config.SetRaw(descriptor.name, value)
 
-      new_config.Set("Client.build_time",
+      new_config.Set("Client.deploy_time",
                      str(rdfvalue.RDFDatetime().Now()))
-
-      # Mark the client with the current build environment.
-      new_config.Set("Client.build_environment",
-                     rdf_client.Uname.FromCurrentSystem().signature())
 
       # Update the plugins list in the configuration file. Note that by
       # stripping away directory information, the client will load these from
@@ -294,6 +284,10 @@ class ClientDeployer(BuilderBase):
       if config.Get(bad_opt, context=self.context, default=""):
         errors.append("Client cert in conf, this should be empty at deployment"
                       " %s" % bad_opt)
+
+    if not config.Get("Client.build_environment"):
+      errors.append("Client has no build environment set, "
+                    "components will not work.")
 
     if errors_fatal and errors:
       for error in errors:
@@ -403,6 +397,14 @@ class WindowsClientDeployer(ClientDeployer):
     completed_files.append(bin_name.filename)
     completed_files.append("%s.manifest" % bin_name.filename)
 
+    # Read the build config from the template.
+    for name in z_template.namelist():
+      if os.path.basename(name) == "build.yaml":
+        data = z_template.read(name)
+        self.MergeBuildConfig(data=data)
+        completed_files.append(name)
+        break
+
     # Change the name of the service binary to the configured name.
     service_template = z_template.getinfo("GRRservice.exe")
 
@@ -480,7 +482,7 @@ class WindowsClientDeployer(ClientDeployer):
 
     output_zip.close()
 
-    self.EnsureDirExists(os.path.dirname(output_path))
+    utils.EnsureDirExists(os.path.dirname(output_path))
     with open(output_path, "wb") as fd:
       # First write the installer stub
       stub_data = cStringIO.StringIO()
@@ -541,7 +543,10 @@ class DarwinClientDeployer(ClientDeployer):
                                           context=self.context)
 
     context = self.context + ["Client Context"]
-    self.EnsureDirExists(os.path.dirname(output_path))
+    utils.EnsureDirExists(os.path.dirname(output_path))
+    # On OSX, this never changes.
+    config_lib.CONFIG.Set("Client.build_environment", "__amd64_OSX_Darwin")
+
     client_config_data = self.GetClientConfig(context)
     shutil.copyfile(template_path, output_path)
     zip_file = zipfile.ZipFile(output_path, mode="a")
@@ -570,7 +575,7 @@ class LinuxClientDeployer(ClientDeployer):
       shutil.move(template_binary_dir, "%s-template" % template_binary_dir)
       template_binary_dir = "%s-template" % template_binary_dir
 
-    self.EnsureDirExists(os.path.dirname(target_binary_dir))
+    utils.EnsureDirExists(os.path.dirname(target_binary_dir))
     shutil.move(template_binary_dir, target_binary_dir)
 
     shutil.move(
@@ -587,7 +592,7 @@ class LinuxClientDeployer(ClientDeployer):
         [("grr-client", package_name)])
 
     # Generate directories for the /usr/sbin link.
-    self.EnsureDirExists(os.path.join(
+    utils.EnsureDirExists(os.path.join(
         template_path, "dist/debian/%s/usr/sbin" % package_name))
 
     # Generate the upstart template.
@@ -619,12 +624,16 @@ class LinuxClientDeployer(ClientDeployer):
 
     with utils.TempDirectory() as tmp_dir:
       template_dir = os.path.join(tmp_dir, "dist")
-      self.EnsureDirExists(template_dir)
+      utils.EnsureDirExists(template_dir)
 
       zf = zipfile.ZipFile(template_path)
       for name in zf.namelist():
+        if os.path.basename(name) == "build.yaml":
+          self.MergeBuildConfig(data=zf.read(name))
+          continue
+
         dirname = os.path.dirname(name)
-        self.EnsureDirExists(os.path.join(template_dir, dirname))
+        utils.EnsureDirExists(os.path.join(template_dir, dirname))
         with open(os.path.join(template_dir, name), "wb") as fd:
           fd.write(zf.read(name))
 
@@ -676,7 +685,7 @@ class LinuxClientDeployer(ClientDeployer):
             "ClientBuilder.debian_package_base", context=self.context)
         output_base = config_lib.CONFIG.Get("ClientBuilder.output_basename",
                                             context=self.context)
-        self.EnsureDirExists(os.path.dirname(output_path))
+        utils.EnsureDirExists(os.path.dirname(output_path))
 
         for extension in [".changes", config_lib.CONFIG.Get(
             "ClientBuilder.output_extension", context=self.context)]:
@@ -711,12 +720,15 @@ class CentosClientDeployer(LinuxClientDeployer):
 
     with utils.TempDirectory() as tmp_dir:
       template_dir = os.path.join(tmp_dir, "dist")
-      self.EnsureDirExists(template_dir)
+      utils.EnsureDirExists(template_dir)
 
       zf = zipfile.ZipFile(template_path)
       for name in zf.namelist():
+        if os.path.basename(name) == "build.yaml":
+          self.MergeBuildConfig(data=zf.read(name))
+          continue
         dirname = os.path.dirname(name)
-        self.EnsureDirExists(os.path.join(template_dir, dirname))
+        utils.EnsureDirExists(os.path.join(template_dir, dirname))
         with open(os.path.join(template_dir, name), "wb") as fd:
           fd.write(zf.read(name))
 
@@ -725,16 +737,16 @@ class CentosClientDeployer(LinuxClientDeployer):
       rpm_root_dir = os.path.join(tmp_dir, "rpmbuild")
 
       rpm_build_dir = os.path.join(rpm_root_dir, "BUILD")
-      self.EnsureDirExists(rpm_build_dir)
+      utils.EnsureDirExists(rpm_build_dir)
 
       rpm_buildroot_dir = os.path.join(rpm_root_dir, "BUILDROOT")
-      self.EnsureDirExists(rpm_buildroot_dir)
+      utils.EnsureDirExists(rpm_buildroot_dir)
 
       rpm_rpms_dir = os.path.join(rpm_root_dir, "RPMS")
-      self.EnsureDirExists(rpm_rpms_dir)
+      utils.EnsureDirExists(rpm_rpms_dir)
 
       rpm_specs_dir = os.path.join(rpm_root_dir, "SPECS")
-      self.EnsureDirExists(rpm_specs_dir)
+      utils.EnsureDirExists(rpm_specs_dir)
 
       template_binary_dir = os.path.join(
           tmp_dir, "dist/rpmbuild/grr-client")
@@ -743,7 +755,7 @@ class CentosClientDeployer(LinuxClientDeployer):
           rpm_build_dir, config_lib.CONFIG.Get("ClientBuilder.target_dir",
                                                context=self.context))
 
-      self.EnsureDirExists(os.path.dirname(target_binary_dir))
+      utils.EnsureDirExists(os.path.dirname(target_binary_dir))
       try:
         shutil.rmtree(target_binary_dir)
       except OSError:
@@ -764,7 +776,7 @@ class CentosClientDeployer(LinuxClientDeployer):
       initd_target_filename = os.path.join(
           rpm_build_dir, "etc/init.d", client_name)
 
-      self.EnsureDirExists(os.path.dirname(initd_target_filename))
+      utils.EnsureDirExists(os.path.dirname(initd_target_filename))
       self.GenerateFile(
           os.path.join(tmp_dir, "dist/rpmbuild/grr-client.initd.in"),
           initd_target_filename)
@@ -812,7 +824,7 @@ class CentosClientDeployer(LinuxClientDeployer):
           rpm_rpms_dir, client_arch,
           "%s-%s-1.%s.rpm" % (client_name, client_version, client_arch))
 
-      self.EnsureDirExists(os.path.dirname(output_path))
+      utils.EnsureDirExists(os.path.dirname(output_path))
       shutil.move(rpm_filename, output_path)
 
       logging.info("Created package %s", output_path)

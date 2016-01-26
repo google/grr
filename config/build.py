@@ -387,7 +387,17 @@ config_lib.DEFINE_option(type_info.PathTypeInfo(
     help="The location of the source files."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
-    name="ClientBuilder.executables_dir",
+    name="ClientBuilder.components_source_dir",
+    default="%(ClientBuilder.source)/grr/client/components",
+    help="The directory that contains the component source."))
+
+config_lib.DEFINE_option(type_info.PathTypeInfo(
+    name="ClientBuilder.components_dir", must_exist=False,
+    default="%(ClientBuilder.executables_dir)/components",
+    help="The directory that contains the components."))
+
+config_lib.DEFINE_option(type_info.PathTypeInfo(
+    name="ClientBuilder.executables_dir", must_exist=False,
     default="%(ClientBuilder.source)/grr/executables",
     help="The directory that contains the executables."))
 

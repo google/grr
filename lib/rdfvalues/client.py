@@ -679,7 +679,7 @@ class Uname(structs.RDFProtoStruct):
   @property
   def arch(self):
     """Return a more standard representation of the architecture."""
-    if self.machine in ["x86_64", "AMD64"]:
+    if self.machine in ["x86_64", "AMD64", "i686"]:
       # 32 bit binaries running on AMD64 will still have a i386 arch.
       if self.architecture == "32bit":
         return "i386"

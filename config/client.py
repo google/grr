@@ -35,6 +35,9 @@ config_lib.DEFINE_string("Client.arch", "amd64",
 config_lib.DEFINE_string("Client.build_time", "Unknown",
                          "The time the client was built.")
 
+config_lib.DEFINE_string("Client.deploy_time", "Unknown",
+                         "The time the client was deployed.")
+
 config_lib.DEFINE_string("Client.build_environment", None,
                          "The output of Uname.get_build_system() on the "
                          "system the client was built on.")

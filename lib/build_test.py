@@ -39,7 +39,8 @@ class BuildTests(test_lib.GRRBaseTest):
 
   def testGenClientConfig(self):
     plugins = ["plugin1", "plugin2"]
-    with test_lib.ConfigOverrider({"Client.plugins": plugins}):
+    with test_lib.ConfigOverrider({"Client.plugins": plugins,
+                                   "Client.build_environment": "test_env"}):
 
       deployer = build.ClientDeployer()
       data = deployer.GetClientConfig(["Client Context"], validate=True)
@@ -47,7 +48,7 @@ class BuildTests(test_lib.GRRBaseTest):
       parser = config_lib.YamlParser(data=data)
       raw_data = parser.RawData()
 
-      self.assertIn("Client.build_time", raw_data)
+      self.assertIn("Client.deploy_time", raw_data)
       self.assertIn("Client.plugins", raw_data)
 
       self.assertEqual(raw_data["Client.plugins"], plugins)

@@ -7,6 +7,7 @@ import subprocess
 
 from grr.lib import build
 from grr.lib import config_lib
+from grr.lib import utils
 
 
 class DarwinClientBuilder(build.ClientBuilder):
@@ -49,10 +50,10 @@ class DarwinClientBuilder(build.ClientBuilder):
                                                   self.build_dir)
     out_pmdoc_dir = os.path.join(self.build_dir, "%s.pmdoc" % client_name)
 
-    self.EnsureDirExists(out_build_files_dir)
-    self.EnsureDirExists(out_pmdoc_dir)
-    self.EnsureDirExists(config_lib.CONFIG.Get("ClientBuilder.package_dir",
-                                               context=self.context))
+    utils.EnsureDirExists(out_build_files_dir)
+    utils.EnsureDirExists(out_pmdoc_dir)
+    utils.EnsureDirExists(config_lib.CONFIG.Get("ClientBuilder.package_dir",
+                                                context=self.context))
 
     self.GenerateFile(
         input_filename=os.path.join(build_files_dir, "grr.plist.in"),
@@ -139,7 +140,7 @@ class DarwinClientBuilder(build.ClientBuilder):
 
     print "Copying output to templates location: %s -> %s" % (output_pkg_path,
                                                               output_file)
-    self.EnsureDirExists(os.path.dirname(output_file))
+    utils.EnsureDirExists(os.path.dirname(output_file))
     shutil.copyfile(output_pkg_path, output_file)
 
     # Change the owner, group and permissions of the binaries back.

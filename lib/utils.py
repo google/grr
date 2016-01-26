@@ -5,6 +5,7 @@
 import __builtin__
 import base64
 import copy
+import errno
 import functools
 import os
 import pipes
@@ -1252,3 +1253,15 @@ class DataObject(dict):
       result.append(tmp)
 
     return "{\n%s}\n" % "".join(result)
+
+
+def EnsureDirExists(path):
+  """Equivalent of makedir -p."""
+  try:
+    os.makedirs(path)
+  except OSError as exc:
+    # Necessary so we don't hide other errors such as permission denied.
+    if exc.errno == errno.EEXIST and os.path.isdir(path):
+      pass
+    else:
+      raise

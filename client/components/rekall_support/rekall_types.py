@@ -4,7 +4,8 @@
 
 import zlib
 
-from grr.client.components.rekall_support import rekall_pb2
+import rekall_pb2
+
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import structs as rdf_structs
 

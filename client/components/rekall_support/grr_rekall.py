@@ -26,11 +26,12 @@ from rekall.plugins.renderers import data_export
 from rekall.ui import json_renderer
 # pylint: enable=unused-import
 
+import rekall_types
+
 import logging
 from grr.client import actions
 from grr.client import vfs
 from grr.client.client_actions import tempfiles
-from grr.client.components.rekall_support import rekall_types
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import utils

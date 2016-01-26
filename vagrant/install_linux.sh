@@ -9,7 +9,7 @@ function system_update() {
   if [ $DISTRO == "Ubuntu" ]; then
     apt-get --yes update
     apt-get --yes upgrade
-    apt-get --force-yes --yes install git-core
+    apt-get --force-yes --yes install git-core unzip
   elif [ $DISTRO == "CentOS" ]; then
     # Required for git
     yum install -y epel-release
@@ -204,6 +204,15 @@ function install_pytsk() {
   python2.7 setup.py build
   python2.7 setup.py install
   cd -
+  # Unzip the egg or pyinstaller won't find the extension.
+  EGG=$(find PYTHON_ENV/ -name "pytsk3*.egg")
+  EGG_DIR=$(dirname "$EGG")
+  EGG_BASE=$(basename "$EGG")
+  cd "$EGG_DIR"
+  unzip -o "$EGG_BASE"
+  rm "$EGG_BASE"
+  cd -
+  python2.7 -c "import pytsk3"
 }
 
 

@@ -8,6 +8,7 @@ import zipfile
 
 from grr.lib import build
 from grr.lib import config_lib
+from grr.lib import utils
 
 
 class LinuxClientBuilder(build.ClientBuilder):
@@ -106,14 +107,14 @@ class LinuxClientBuilder(build.ClientBuilder):
 
     # Copy upstart files
     outdir = os.path.join(dpkg_dir, "debian/upstart.in")
-    self.EnsureDirExists(outdir)
+    utils.EnsureDirExists(outdir)
     shutil.copy(
         os.path.join(src_dir, "config/upstart/grr-client.conf"),
         outdir)
 
     # Copy init files
     outdir = os.path.join(dpkg_dir, "debian/initd.in")
-    self.EnsureDirExists(outdir)
+    utils.EnsureDirExists(outdir)
     shutil.copy(
         os.path.join(src_dir, "config/debian/initd/grr-client"),
         outdir)

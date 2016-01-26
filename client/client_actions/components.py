@@ -6,8 +6,8 @@ Client components are managed, versioned modules which can be loaded at runtime.
 import importlib
 import logging
 import os
-import site
 import StringIO
+import sys
 import zipfile
 
 from grr.client import actions
@@ -17,6 +17,74 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 
 
+class Site(object):
+  """A copy of the relevant functions of the site Python package.
+
+  PyInstaller removes site.py and replaces it with its own version for
+  some reason so if we want to use site.addsitedir(), we need to
+  provide it ourselves. This code is basically based on
+
+  https://github.com/python-git/python/blob/715a6e5035bb21ac49382772076ec4c630d6e960/Lib/site.py
+  """
+
+  def MakePath(self, *paths):
+    dir_ = os.path.abspath(os.path.join(*paths))
+    return dir_, os.path.normcase(dir_)
+
+  def InitPathinfo(self):
+    """Return a set containing all existing directory entries from sys.path."""
+    d = set()
+    for dir_ in sys.path:
+      try:
+        if os.path.isdir(dir_):
+          dir_, dircase = self.MakePath(dir_)
+          d.add(dircase)
+      except TypeError:
+        continue
+    return d
+
+  def AddSiteDir(self, sitedir):
+    """Add 'sitedir' argument to sys.path if missing."""
+
+    known_paths = self.InitPathinfo()
+    sitedir, sitedircase = self.MakePath(sitedir)
+
+    if sitedircase not in known_paths:
+      sys.path.append(sitedir)
+    try:
+      names = os.listdir(sitedir)
+    except os.error:
+      return
+    dotpth = os.extsep + "pth"
+    names = [name for name in names if name.endswith(dotpth)]
+    for name in sorted(names):
+      self.AddPackage(sitedir, name, known_paths)
+
+  def AddPackage(self, sitedir, name, known_paths):
+    """Process a .pth file within the site-packages directory."""
+
+    if known_paths is None:
+      self.InitPathinfo()
+
+    fullname = os.path.join(sitedir, name)
+    try:
+      f = open(fullname, "rU")
+    except IOError:
+      return
+    with f:
+      for line in f:
+        if line.startswith("#"):
+          continue
+        if line.startswith(("import ", "import\t")):
+          exec line  # pylint: disable=exec-used
+          continue
+        line = line.rstrip()
+        dir_, dircase = self.MakePath(sitedir, line)
+        if dircase not in known_paths and os.path.exists(dir_):
+          sys.path.append(dir_)
+          known_paths.add(dircase)
+
+
 class LoadComponent(actions.ActionPlugin):
   """Launches an external client action through a component."""
   in_rdfvalue = rdf_client.LoadComponent
@@ -24,9 +92,21 @@ class LoadComponent(actions.ActionPlugin):
 
   def LoadComponent(self, summary):
     """Import all the required modules as specified in the request."""
-    for mod_name in summary.modules:
-      logging.debug("Will import %s", mod_name)
-      importlib.import_module(mod_name)
+    # The GRR client runs in a frozen environment, components
+    # don't. Some libraries change their behavior based on _MEIPASS
+    # being present so we need to remove it while importing components.
+    try:
+      old_meipass = sys._MEIPASS  # pylint: disable=protected-access
+      del sys._MEIPASS
+    except AttributeError:
+      old_meipass = None
+    try:
+      for mod_name in summary.modules:
+        logging.debug("Will import %s", mod_name)
+        importlib.import_module(mod_name)
+    finally:
+      if old_meipass:
+        sys._MEIPASS = old_meipass  # pylint: disable=protected-access
 
   def Run(self, request):
     """Load the component requested.
@@ -68,7 +148,8 @@ class LoadComponent(actions.ActionPlugin):
         summary.name, summary.version)
 
     # Add the component path to the site packages:
-    site.addsitedir(component_path)
+    site = Site()
+    site.AddSiteDir(component_path)
 
     try:
       self.LoadComponent(summary)
@@ -123,7 +204,7 @@ class LoadComponent(actions.ActionPlugin):
     component_zip.extractall(component_path)
 
     # Add the component to the site packages:
-    site.addsitedir(component_path)
+    site.AddSiteDir(component_path)
 
     # If this does not work now, we just fail.
     self.LoadComponent(summary)

@@ -16,6 +16,7 @@ import zipfile
 
 import pip
 
+from grr.lib import config_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -30,7 +31,7 @@ def _PathStartsWithSkippedModules(path, modules):
 SKIPPED_MODULES = [
     "_markerlib", "pip", "setuptools", "wheel",
     "pkg_resources", "easy_install", "python_dateutil", "python-dateutil",
-    "pycrypto", "yaml", "pytz", "six", "PyYAML", "pyyaml",
+    "yaml", "pytz", "six", "PyYAML", "pyyaml",
 
     # This is a core package but it is sometimes installed via pip.
     "argparse",
@@ -111,7 +112,21 @@ def CheckUselessComponentModules(virtualenv_interpreter):
                "with client version (%s):") % (version, client_mod_version)
 
 
-def BuildComponent(setup_path):
+def BuildComponents(output_dir=None):
+
+  components_dir = config_lib.CONFIG["ClientBuilder.components_source_dir"]
+
+  for root, _, files in os.walk(components_dir):
+    if "setup.py" in files:
+      BuildComponent(os.path.join(root, "setup.py"), output_dir=output_dir)
+
+
+def BuildComponent(setup_path, output_dir=None):
+  """Builds a single component."""
+
+  if not output_dir:
+    output_dir = config_lib.CONFIG["ClientBuilder.components_dir"]
+
   # Get component configuration from setup.py.
   module = imp.load_source("setup", setup_path)
   setup_args = module.setup_args
@@ -167,7 +182,7 @@ def BuildComponent(setup_path):
 
     component_archive.close()
 
-    result = rdf_client.ClientComponent(
+    component = rdf_client.ClientComponent(
         summary=rdf_client.ClientComponentSummary(
             name=setup_args["name"],
             version=setup_args["version"],
@@ -177,15 +192,27 @@ def BuildComponent(setup_path):
         )
 
     # Components will be encrypted using AES128CBC
-    result.summary.cipher.SetAlgorithm("AES128CBC")
+    component.summary.cipher.SetAlgorithm("AES128CBC")
 
     # Clear these non important fields about the build box.
-    result.summary.build_system.fqdn = None
-    result.summary.build_system.node = None
-    result.summary.build_system.kernel = None
+    component.summary.build_system.fqdn = None
+    component.summary.build_system.node = None
+    component.summary.build_system.kernel = None
 
-    print result
+    print "Built component:"
+    print component
 
-    result.raw_data = out_fd.getvalue()
+    component.raw_data = out_fd.getvalue()
 
-    return result
+    utils.EnsureDirExists(output_dir)
+
+    output = os.path.join(output_dir, "%s_%s_%s.bin" % (
+        component.summary.name, component.summary.version,
+        component.summary.build_system.signature()))
+
+    with open(output, "wb") as fd:
+      fd.write(component.SerializeToString())
+
+    print "Component saved as %s" % output
+
+    return component

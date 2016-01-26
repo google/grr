@@ -20,8 +20,8 @@ Client.proxy_servers:
 # here:
 Client.version_major: 3
 Client.version_minor: 0
-Client.version_revision: 8
-Client.version_release: 0
+Client.version_revision: 7
+Client.version_release: 1
 
 
 Client.foreman_check_frequency: 600

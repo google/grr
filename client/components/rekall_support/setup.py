@@ -21,6 +21,8 @@ setup_args = dict(
     py_modules=[
         "grr_rekall",
         "memory",
+        "rekall_types",
+        "rekall_pb2",
     ],
     install_requires=[
         "rekall-core >= 1.4.1",

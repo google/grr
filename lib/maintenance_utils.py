@@ -328,8 +328,9 @@ def SignComponent(component_filename, overwrite=False, token=None):
     component_fd.Close()
 
   else:
-    print "Using Stored component summary at %s" % component_urn
-    component.summary = component_summary
+    print "Using seed from stored component summary at %s" % component_urn
+    component.summary.url = component_summary.url
+    component.summary.seed = component_summary.seed
 
   # Sign the component, encrypt it and store it at the static aff4 location.
   signed_component = rdf_crypto.SignedBlob()

@@ -17,7 +17,7 @@ PLAT=amd64
 INSTALL_DIR=${PREFIX}/share/grr
 
 GRR_STABLE_VERSION=0.3.0-7
-GRR_TEST_VERSION=0.3.0-8pre
+GRR_TEST_VERSION=
 SERVER_DEB_STABLE_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/grr-server_
 SERVER_DEB_TEST_BASE_URL=https://googledrive.com/host/0B1wsLqFoT7i2c3F0ZmI1RDJlUEU/test-grr-server_
 REQUIREMENTS_URL=https://raw.githubusercontent.com/google/grr/server-0.3.0-7/requirements.txt
@@ -48,7 +48,7 @@ while getopts "h?ltdyr:" opt; do
         echo " -l Test locally (no download), get deb from current path"
         echo " -t Install the GRR beta testing version"
         echo " -d Only install build dependencies"
-        echo " -r [requirements.txt url] Specify requiremnts.txt"
+        echo " -r [requirements.txt url] Specify requirements.txt"
         echo " -y Don't prompt, i.e. answer yes to everything"
         exit 0
         ;;
