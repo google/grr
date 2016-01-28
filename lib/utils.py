@@ -32,7 +32,11 @@ def Proxy(f):
 
 
 class TempDirectory(object):
-  """A self cleaning temporary directory."""
+  """A self cleaning temporary directory.
+
+  Do not use this function for any client related temporary files! Use
+  the functionality provided by client_actions/tempfiles.py instead.
+  """
 
   def __enter__(self):
     self.name = tempfile.mkdtemp()
@@ -594,7 +598,7 @@ def SmartStr(string):
   Returns:
     an encoded string.
   """
-  if type(string) == unicode:
+  if type(string) == unicode:  # pylint: disable=unidiomatic-typecheck
     return string.encode("utf8", "ignore")
 
   return str(string)
@@ -612,7 +616,7 @@ def SmartUnicode(string):
   Returns:
     a unicode object.
   """
-  if type(string) != unicode:
+  if type(string) != unicode:  # pylint: disable=unidiomatic-typecheck
     try:
       return string.__unicode__()
     except (AttributeError, UnicodeError):

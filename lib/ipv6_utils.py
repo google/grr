@@ -21,8 +21,8 @@ def _RemoveV4Ending(addr_string):
   if match:
     ipv4_addr = ".".join(match.groups()[1:])
     try:
-      socket.inet_aton(ipv4_addr)
-    except socket.error:
+      socket.inet_pton(socket.AF_INET, ipv4_addr)
+    except (socket.error, ValueError):
       raise socket.error("Illegal IPv4 extension: %s" % addr_string)
 
     if int(match.group(2)) == 0:
@@ -125,11 +125,11 @@ def InetNtoA(packed_bytes):
 
   # Detect IPv4 endings
   if hex_encoded.startswith("00000000000000000000ffff"):
-    return "::ffff:" + socket.inet_ntoa(packed_bytes[-4:])
+    return "::ffff:" + socket.inet_ntop(socket.AF_INET, packed_bytes[-4:])
 
   # Detect IPv4 endings. If the first quad is 0, it isn't IPv4.
   if hex_encoded.startswith("0" * 24) and not hex_encoded.startswith("0" * 28):
-    return "::" + socket.inet_ntoa(packed_bytes[-4:])
+    return "::" + socket.inet_ntop(socket.AF_INET, packed_bytes[-4:])
 
   # Split into quads
   chunked = [hex_encoded[i:i + 4] for i in xrange(0, len(hex_encoded), 4)]

@@ -200,6 +200,10 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
       self.assertIn(key, libs)
       self.assertFalse(libs[key].startswith(error_str))
 
+  def _CheckMemory(self):
+    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    self.assertTrue(client.Get(client.Schema.MEMORY_SIZE))
+
   def testInterrogateLinuxWithWtmp(self):
     """Test the Interrogate flow."""
     test_lib.ClientFixture(self.client_id, token=self.token)
@@ -216,7 +220,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
         client_mock = action_mocks.InterrogatedClient(
             "TransferBuffer", "StatFile", "Find", "HashBuffer",
             "ListDirectory", "FingerprintFile", "GetLibraryVersions",
-            "HashFile")
+            "GetMemorySize", "HashFile")
         client_mock.InitializeClient()
 
         for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
@@ -242,6 +246,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
         self._CheckClientKwIndex(["Linux"], 1)
         self._CheckClientKwIndex(["Label2"], 1)
         self._CheckClientLibraries()
+        self._CheckMemory()
 
   def testInterrogateWindows(self):
     """Test the Interrogate flow."""
@@ -255,7 +260,8 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 
         client_mock = action_mocks.InterrogatedClient(
             "TransferBuffer", "StatFile", "Find", "HashBuffer",
-            "ListDirectory", "FingerprintFile", "GetLibraryVersions")
+            "ListDirectory", "FingerprintFile", "GetLibraryVersions",
+            "GetMemorySize")
 
         client_mock.InitializeClient(system="Windows", version="6.1.7600",
                                      kernel="6.1.7601")
@@ -283,6 +289,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
         self._CheckClientKwIndex(["Linux"], 0)
         self._CheckClientKwIndex(["Windows"], 1)
         self._CheckClientKwIndex(["Label2"], 1)
+        self._CheckMemory()
 
 
 def main(argv):

@@ -150,11 +150,11 @@ class ActionTest(test_lib.EmptyActionTest):
       if os.path.basename(result.pathspec.path) == "morenumbers.txt":
         break
 
-    self.assert_(result)
+    self.assertTrue(result)
     self.assertEqual(result.__class__, rdf_client.StatEntry)
     self.assertEqual(result.pathspec.Basename(), "morenumbers.txt")
     self.assertEqual(result.st_size, 3893)
-    self.assert_(stat.S_ISREG(result.st_mode))
+    self.assertTrue(stat.S_ISREG(result.st_mode))
 
   def testIteratedListDirectory(self):
     """Tests iterated listing of directories."""

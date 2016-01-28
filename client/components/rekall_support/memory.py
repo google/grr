@@ -60,8 +60,8 @@ class MemoryVFS(vfs.VFSHandler):
         cr3=self.session.GetParameter("dtb", 0),
         device=self.pathspec)
 
-    for addr, _, length in self.address_space.get_address_ranges():
-      result.runs.Append(offset=addr, length=length)
+    for run in self.address_space.get_address_ranges():
+      result.runs.Append(offset=run.start, length=run.length)
 
     return result
 
@@ -72,5 +72,6 @@ class MemoryVFS(vfs.VFSHandler):
     self.offset += len(result)
 
     return result
+
 
 vfs.VFS_HANDLERS[MemoryVFS.supported_pathtype] = MemoryVFS

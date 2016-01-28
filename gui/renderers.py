@@ -57,13 +57,13 @@ def StringifyJSON(item):
 
     return result
 
-  elif type(item) in (int, long, float):
+  elif type(item) in (int, long, float):  # pylint: disable=unidiomatic-typecheck
     return item
 
   elif item is None:
     return None
 
-  elif type(item) is bool:
+  elif type(item) is bool:  # pylint: disable=unidiomatic-typecheck
     return item
 
   else:

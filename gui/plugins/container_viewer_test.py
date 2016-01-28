@@ -58,7 +58,7 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
     self.Click("css=span[type=subject]:contains(\"FindFlowTest\")")
 
     self.WaitUntil(self.IsElementPresent, "css=td:contains(\"VIEW\")")
-    self.assert_("View details" in self.GetText(
+    self.assertIn("View details", self.GetText(
         "css=a[href=\"#"
         "c=aff4%3A%2FC.0000000000000001&"
         "container=aff4%3A%2FC.0000000000000001%2Fanalysis%2FFindFlowTest&"

@@ -74,6 +74,7 @@ class Interrogate(flow.GRRFlow):
       fd.Set(fd.Schema.PATHSPEC, pathspec)
 
     self.CallClient("GetPlatformInfo", next_state="Platform")
+    self.CallClient("GetMemorySize", next_state="StoreMemorySize")
     self.CallClient("GetInstallDate", next_state="InstallDate")
     self.CallClient("GetClientInfo", next_state="ClientInfo")
     self.CallClient("GetConfiguration", next_state="ClientConfiguration")
@@ -91,6 +92,12 @@ class Interrogate(flow.GRRFlow):
     if self.client:
       self.client.Close()
       self.client = None
+
+  @flow.StateHandler()
+  def StoreMemorySize(self, responses):
+    if not responses.success:
+      return
+    self.client.Set(self.client.Schema.MEMORY_SIZE(responses.First()))
 
   @flow.StateHandler(next_state=["ProcessKnowledgeBase"])
   def Platform(self, responses):

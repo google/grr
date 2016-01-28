@@ -700,7 +700,7 @@ class StatFS(actions.ActionPlugin):
                          progress_callback=self.Progress)
         st = fd.StatFS()
         mount_point = fd.GetMountPoint()
-      except (IOError, OSError), e:
+      except (IOError, OSError) as e:
         self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.IOERROR, e)
         continue
 
@@ -716,3 +716,11 @@ class StatFS(actions.ActionPlugin):
                                  actual_available_allocation_units=st.f_bavail,
                                  unixvolume=unix)
       self.SendReply(result)
+
+
+class GetMemorySize(actions.ActionPlugin):
+  out_rdfvalues = [rdfvalue.ByteSize]
+
+  def Run(self, args):
+    _ = args
+    self.SendReply(rdfvalue.ByteSize(psutil.virtual_memory()[0]))

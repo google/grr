@@ -159,6 +159,10 @@ class VFSGRRClient(standard.VFSDirectory):
         "aff4:hardware_info", rdf_client.HardwareInfo,
         "Various hardware information.", default="")
 
+    MEMORY_SIZE = aff4.Attribute(
+        "aff4:memory_size", rdfvalue.ByteSize,
+        "Amount of memory this client's machine has.")
+
   # Valid client ids
   CLIENT_ID_RE = re.compile(r"^C\.[0-9a-fA-F]{16}$")
 

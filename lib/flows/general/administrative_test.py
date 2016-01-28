@@ -395,7 +395,7 @@ sys.test_code_ran_here = py_args['value']
 
       # Check the command was in the tmp file.
       self.assertTrue(test_lib.Popen.running_args[0].startswith(
-          config_lib.CONFIG["Client.tempdir"]))
+          config_lib.CONFIG["Client.tempdir_roots"][0]))
 
   def testExecuteLargeBinaries(self):
     client_mock = action_mocks.ActionMock("ExecuteBinaryCommand")
@@ -440,7 +440,7 @@ sys.test_code_ran_here = py_args['value']
 
       # Check the command was in the tmp file.
       self.assertTrue(test_lib.Popen.running_args[0].startswith(
-          config_lib.CONFIG["Client.tempdir"]))
+          config_lib.CONFIG["Client.tempdir_roots"][0]))
 
   def testGetClientStats(self):
 

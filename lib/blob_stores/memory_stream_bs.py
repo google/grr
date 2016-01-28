@@ -51,10 +51,12 @@ class MemoryStreamBlobstore(blob_store.Blobstore):
     return res
 
   def ReadBlobs(self, digests, token=None):
-    res = {}
+    res = {digest: None
+           for digest in digests}
     urns = {self._BlobUrn(digest): digest for digest in digests}
 
     fds = aff4.FACTORY.MultiOpen(urns, mode="r", token=token)
+
     for fd in fds:
       res[urns[fd.urn]] = fd.read()
 
@@ -68,7 +70,7 @@ class MemoryStreamBlobstore(blob_store.Blobstore):
     urns = {self._BlobUrn(digest): digest for digest in digests}
 
     existing = aff4.FACTORY.MultiOpen(
-        urns, aff4_type="AFF4MemoryStream", mode="r", token=token)
+        urns, aff4_type="AFF4MemoryStreamBase", mode="r", token=token)
 
     for blob in existing:
       res[urns[blob.urn]] = True

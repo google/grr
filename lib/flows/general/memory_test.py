@@ -10,6 +10,7 @@ import os
 import socket
 import threading
 
+from grr.client.client_actions import tempfiles
 from grr.client.components.rekall_support import grr_rekall_test
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import action_mocks
@@ -93,7 +94,7 @@ class TestMemoryCollector(MemoryTest):
                                                "StatFile", "CopyPathToFile",
                                                "SendFile", "DeleteGRRTempFiles",
                                                "GetConfiguration", "Find",
-                                               "Grep")
+                                               "CheckFreeGRRTempSpace", "Grep")
 
     self.old_driver_flow = flow.GRRFlow.classes["LoadMemoryDriver"]
     flow.GRRFlow.classes["LoadMemoryDriver"] = DummyLoadMemoryDriverFlow
@@ -144,6 +145,37 @@ class TestMemoryCollector(MemoryTest):
 
     fd = aff4.FACTORY.Open(flow_obj.state.downloaded_file, token=self.token)
     self.assertEqual(fd.Read(1024 * 1024), self.memory_dump)
+
+  def testLinuxChecksDiskSpace(self):
+    client = aff4.FACTORY.Create(self.client_id,
+                                 "VFSGRRClient", token=self.token)
+    client.Set(client.Schema.SYSTEM("Linux"))
+    client.Set(client.Schema.MEMORY_SIZE(64 * 1024 * 1024 * 1024))
+    client.Close()
+
+    class LinuxClientMock(action_mocks.ActionMock):
+      """A mock which returns low disk space."""
+
+      def CheckFreeGRRTempSpace(self, _):
+        """Mock out the driver loading code to pass the memory image."""
+        path = tempfiles.GetDefaultGRRTempDirectory()
+        reply = rdf_client.DiskUsage(path=path,
+                                     total=10 * 1024 * 1024 * 1024,
+                                     used=5 * 1024 * 1024 * 1024,
+                                     free=5 * 1024 * 1024 * 1024)
+        return [reply]
+
+    dump_option = memory.MemoryCollectorDumpOption(
+        option_type=memory.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
+        with_local_copy=memory.MemoryCollectorWithLocalCopyDumpOption(
+            check_disk_free_space=True))
+
+    self.client_mock = LinuxClientMock()
+
+    e = self.assertRaises(RuntimeError)
+    with e:
+      self.RunWithDownload(dump_option)
+    self.assertIn("Free space may be too low", str(e.exception))
 
   def testMemoryImageLocalCopyDiskCheck(self):
     dump_option = memory.MemoryCollectorDumpOption(

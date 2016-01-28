@@ -262,7 +262,7 @@ Test Context:
 
   Logging.verbose: false
 
-  Client.tempdir: /tmp/
+  Client.tempdir_roots: ["/tmp/"]
 
   Rekall.profile_server: TestRekallRepositoryProfileServer
   Client.rekall_profile_cache_path: /tmp/rekall_profiles
@@ -276,7 +276,7 @@ Test Context:
     Logging.engines: stderr
 
   Platform:Windows:
-    Client.tempdir: "%(TEMP|env)"
+    Client.tempdir_roots: ["%(TEMP|env)"]
 
     # When debugging it helps to be able to see all output on the console.
     ClientBuilder.console: True

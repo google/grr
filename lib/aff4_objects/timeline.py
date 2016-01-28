@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """A timeline AFF4 object implementation."""
 
 
@@ -92,6 +91,7 @@ class GRRTimeSeries(standard.VFSDirectory):
 
     Args:
        event: An optional event object.
+       **kw: additional keyword args.
     """
     if event is None:
       event = analysis_pb2.Event(**kw)

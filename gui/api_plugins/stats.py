@@ -72,7 +72,9 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
     # Run for a little extra time at the start. This improves the quality of the
     # first data points of counter metrics which don't appear in every interval.
     base_start_time = start_time
+    # pylint: disable=g-no-augmented-assignment
     start_time = start_time - rdfvalue.Duration("10m")
+    # pylint: enable=g-no-augmented-assignment
 
     if end_time <= start_time:
       raise ValueError("End time can't be less than start time.")

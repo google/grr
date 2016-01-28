@@ -86,7 +86,9 @@ class _ActiveCounter(object):
     for label, histogram in histograms.items():
       # Add an additional instance of this histogram (without removing previous
       # instances).
+      # pylint: disable=protected-access
       cron_flow._StatsForLabel(label).AddAttribute(histogram)
+      # pylint: enable=protected-access
 
 
 class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):

@@ -47,10 +47,10 @@ class TestTimelines(test_lib.FlowTestsBaseclass):
 
       for event in events:
         # Check the times are monotonously increasing.
-        self.assert_(event.event.timestamp >= timestamp)
+        self.assertGreaterEqual(event.event.timestamp, timestamp)
         timestamp = event.event.timestamp
 
-        self.assert_("grep" in event.event.stat.pathspec.path)
+        self.assertIn("grep", event.event.stat.pathspec.path)
 
       # 9 files, each having mac times = 27 events.
       self.assertEqual(len(events), 27)

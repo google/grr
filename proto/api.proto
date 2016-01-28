@@ -527,6 +527,27 @@ message ApiListUserCronApprovalsArgs {
     }];
 }
 
+message ApiCreateUserClientApprovalArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional ApiUserClientApproval approval = 2;
+}
+
+message ApiGetUserClientApprovalArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string reason = 2 [(sem_type) = {
+      description: "Approvals are uniquely identified by the user who "
+      "requested them, the client id in question, and the reason for "
+      "access."
+    }];
+};
+
+
 message ApiListUserClientApprovalsArgs {
   optional int64 offset = 1 [(sem_type) = {
       description: "Approvals starting offset."
@@ -608,11 +629,36 @@ message ApiRDFValueCollectionRendererArgs {
 // API entities. These are uses in API calls responses.
 
 message ApiUserClientApproval {
-  optional ApiClient subject = 1;
+  optional ApiClient subject = 1 [(sem_type) = {
+      description: "A client that has to be accessed after this approval "
+      "is granted."
+    }];
 
-  optional string reason = 2;
-  optional bool is_valid = 3;
-  optional string is_valid_message = 4;
+  optional string reason = 2 [(sem_type) = {
+      description: "A reason for accessing the client."
+    }];
+  optional bool is_valid = 3 [(sem_type) = {
+      description: "If True, this approval is still valid. If False, then "
+      "it wasn't approved or got expired."
+    }];
+  optional string is_valid_message = 4 [(sem_type) = {
+      description: "If is_valid is False, is_valid_message will contain "
+      "a human-readable description of why the approval is not valid."
+    }];
+
+  repeated string notified_users = 5 [(sem_type) = {
+      description: "GRR users that will be notified about the approval "
+      "being requested."
+    }];
+  repeated string email_cc_addresses = 6 [(sem_type) = {
+      description: "List of emails used to send a notification to about "
+      "this approval being requested."
+  }];
+
+  repeated string approvers = 7 [(sem_type) = {
+      description: "List of GRR users who granted this approval. Note: this "
+      "list always includes the original approval requestor."
+    }];
 }
 
 message ApiClient {

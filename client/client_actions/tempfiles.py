@@ -13,6 +13,8 @@ import tempfile
 import threading
 
 
+import psutil
+
 from grr.client import actions
 from grr.client import client_utils
 from grr.client.vfs_handlers import files
@@ -36,6 +38,19 @@ class ErrorNotTempFile(Error):
 
 class ErrorNotAFile(Error):
   """Attempt to delete a file that doesn't exist."""
+
+
+def GetDefaultGRRTempDirectory():
+  # Check if any of the roots exists.
+  for candidate_dir in config_lib.CONFIG["Client.tempdir_roots"]:
+    if os.path.isdir(candidate_dir):
+      return os.path.join(
+          candidate_dir, config_lib.CONFIG["Client.grr_tempdir"])
+
+  # If none of the options exist, fall back to the first directory.
+  return os.path.join(
+      config_lib.CONFIG["Client.tempdir_roots"][0],
+      config_lib.CONFIG["Client.grr_tempdir"])
 
 
 def CreateGRRTempFile(directory=None, filename=None, lifetime=0, mode="w+b",
@@ -80,7 +95,7 @@ def CreateGRRTempFile(directory=None, filename=None, lifetime=0, mode="w+b",
     raise ErrorBadPath("Providing both filename and directory name forbidden.")
 
   if not directory:
-    directory = config_lib.CONFIG["Client.tempdir"]
+    directory = GetDefaultGRRTempDirectory()
 
   if not os.path.isabs(directory):
     raise ErrorBadPath("Directory %s is not absolute" % directory)
@@ -151,11 +166,22 @@ def CreateGRRTempFileVFS(directory=None, filename=None, lifetime=0, mode="w+b",
   return fd, pathspec
 
 
+def _CheckIfPathIsValidForDeletion(path, prefix=None, directories=None):
+  if prefix and os.path.basename(path).startswith(prefix):
+    return True
+
+  for directory in directories or []:
+    if os.path.commonprefix([directory, path]) == directory:
+      return True
+  return False
+
+
 def DeleteGRRTempFile(path):
   """Delete a GRR temp file.
 
-  To limit possible damage the path must be absolute and either the file must be
-  within Client.tempdir or the file name must begin with Client.tempfile_prefix.
+  To limit possible damage the path must be absolute and either the
+  file must be within any of the Client.tempdir_roots or the file name
+  must begin with Client.tempfile_prefix.
 
   Args:
     path: path string to file to be deleted.
@@ -166,15 +192,17 @@ def DeleteGRRTempFile(path):
     ErrorNotTempFile: Filename must start with Client.tempfile_prefix.
     ErrorNotAFile: File to delete does not exist.
   """
+
   if not os.path.isabs(path):
     raise ErrorBadPath("Path must be absolute")
 
   prefix = config_lib.CONFIG["Client.tempfile_prefix"]
-  directory = config_lib.CONFIG["Client.tempdir"]
-  if not (os.path.basename(path).startswith(prefix) or
-          os.path.commonprefix([directory, path]) == directory):
-    msg = "Can't delete %s. Filename must start with %s or lie within %s."
-    raise ErrorNotTempFile(msg % (path, prefix, directory))
+  directories = config_lib.CONFIG["Client.tempdir_roots"]
+  if not _CheckIfPathIsValidForDeletion(
+      path, prefix=prefix, directories=directories):
+    msg = ("Can't delete temp file %s. Filename must start with %s "
+           "or lie within any of %s.")
+    raise ErrorNotTempFile(msg % (path, prefix, directories))
 
   if os.path.exists(path):
     # Clear our file handle cache so the file can be deleted.
@@ -209,35 +237,37 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
     # Normalize the path, so DeleteGRRTempFile can correctly check if
     # it is within Client.tempdir.
     if args.path:
-      path = client_utils.CanonicalPathToLocalPath(
-          utils.NormalizePath(args.path))
+      paths = [client_utils.CanonicalPathToLocalPath(
+          utils.NormalizePath(args.path))]
     else:
-      path = config_lib.CONFIG["Client.tempdir"]
+      paths = config_lib.CONFIG["Client.tempdir_roots"]
 
     deleted = []
     errors = []
-    if os.path.isdir(path):
-      for filename in os.listdir(path):
-        abs_filename = os.path.join(path, filename)
+    for path in paths:
+      if os.path.isdir(path):
+        for filename in os.listdir(path):
+          abs_filename = os.path.join(path, filename)
 
-        try:
-          DeleteGRRTempFile(abs_filename)
-          deleted.append(abs_filename)
-        except Exception as e:  # pylint: disable=broad-except
-          # The error we are most likely to get is ErrorNotTempFile but
-          # especially on Windows there might be locking issues that raise
-          # various WindowsErrors so we just catch them all and continue
-          # deleting all other temp files in this directory.
-          errors.append(e)
+          try:
+            DeleteGRRTempFile(abs_filename)
+            deleted.append(abs_filename)
+          except Exception as e:  # pylint: disable=broad-except
+            # The error we are most likely to get is ErrorNotTempFile but
+            # especially on Windows there might be locking issues that raise
+            # various WindowsErrors so we just catch them all and continue
+            # deleting all other temp files in this directory.
+            errors.append(e)
 
-    elif os.path.isfile(path):
-      DeleteGRRTempFile(path)
-      deleted = [path]
+      elif os.path.isfile(path):
+        DeleteGRRTempFile(path)
+        deleted = [path]
 
-    elif not os.path.exists(path):
-      raise ErrorBadPath("File %s does not exist" % path)
-    else:
-      raise ErrorBadPath("Not a regular file or directory: %s" % path)
+      elif path not in config_lib.CONFIG["Client.tempdir_roots"]:
+        if not os.path.exists(path):
+          raise ErrorBadPath("File %s does not exist" % path)
+        else:
+          raise ErrorBadPath("Not a regular file or directory: %s" % path)
 
     reply = ""
     if deleted:
@@ -248,3 +278,17 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
       reply += "\n%s" % errors
 
     self.SendReply(rdf_client.LogMessage(data=reply))
+
+
+class CheckFreeGRRTempSpace(actions.ActionPlugin):
+
+  in_rdfvalue = rdf_paths.PathSpec
+  out_rdfvalues = [rdf_client.DiskUsage]
+
+  def Run(self, args):
+    if args.path:
+      path = args.CollapsePath()
+    else:
+      path = GetDefaultGRRTempDirectory()
+    total, used, free, _ = psutil.disk_usage(path)
+    self.SendReply(path=path, total=total, used=used, free=free)

@@ -306,7 +306,7 @@ class NetworkAddress(structs.RDFProtoStruct):
     else:
       try:
         if self.address_type == NetworkAddress.Family.INET:
-          return socket.inet_ntoa(str(self.packed_bytes))
+          return socket.inet_ntop(socket.AF_INET, str(self.packed_bytes))
         else:
           return ipv6_utils.InetNtoA(str(self.packed_bytes))
       except ValueError as e:
@@ -321,7 +321,7 @@ class NetworkAddress(structs.RDFProtoStruct):
     else:
       # IPv4
       self.address_type = NetworkAddress.Family.INET
-      self.packed_bytes = socket.inet_aton(value)
+      self.packed_bytes = socket.inet_pton(socket.AF_INET, value)
 
 
 class DNSClientConfiguration(structs.RDFProtoStruct):
@@ -396,6 +396,10 @@ class Volume(structs.RDFProtoStruct):
     """Return the best available name for this volume."""
     return (self.name or self.device_path or self.windowsvolume.drive_letter or
             self.unixvolume.mount_point or None)
+
+
+class DiskUsage(structs.RDFProtoStruct):
+  protobuf = sysinfo_pb2.DiskUsage
 
 
 class Volumes(protodict.RDFValueArray):

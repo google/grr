@@ -111,6 +111,9 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
                         test_class=self.__class__.__name__,
                         response=parsed_content)
 
+    if payload:
+      check_result["request_payload"] = payload
+
     stripped_content = http_api.StripTypeInfo(parsed_content)
     if parsed_content != stripped_content:
       check_result["type_stripped_response"] = stripped_content

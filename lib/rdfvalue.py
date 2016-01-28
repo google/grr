@@ -282,6 +282,9 @@ class RDFString(RDFBytes):
   def format(self, *args, **kwargs):  # pylint: disable=invalid-name
     return self._value.format(*args, **kwargs)
 
+  def split(self, *args, **kwargs):  # pylint: disable=invalid-name
+    return self._value.split(*args, **kwargs)
+
   def __unicode__(self):
     return utils.SmartUnicode(self._value)
 

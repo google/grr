@@ -182,37 +182,37 @@ def BuildComponent(setup_path, output_dir=None):
 
     component_archive.close()
 
-    component = rdf_client.ClientComponent(
+    result = rdf_client.ClientComponent(
         summary=rdf_client.ClientComponentSummary(
             name=setup_args["name"],
             version=setup_args["version"],
-            build_system=rdf_client.Uname.FromCurrentSystem(),
             modules=setup_args["py_modules"],
             ),
+        build_system=rdf_client.Uname.FromCurrentSystem(),
         )
 
     # Components will be encrypted using AES128CBC
-    component.summary.cipher.SetAlgorithm("AES128CBC")
+    result.summary.cipher.SetAlgorithm("AES128CBC")
 
     # Clear these non important fields about the build box.
-    component.summary.build_system.fqdn = None
-    component.summary.build_system.node = None
-    component.summary.build_system.kernel = None
+    result.build_system.fqdn = None
+    result.build_system.node = None
+    result.build_system.kernel = None
 
     print "Built component:"
-    print component
+    print result
 
-    component.raw_data = out_fd.getvalue()
+    result.raw_data = out_fd.getvalue()
 
     utils.EnsureDirExists(output_dir)
 
     output = os.path.join(output_dir, "%s_%s_%s.bin" % (
-        component.summary.name, component.summary.version,
-        component.summary.build_system.signature()))
+        result.summary.name, result.summary.version,
+        result.build_system.signature()))
 
     with open(output, "wb") as fd:
-      fd.write(component.SerializeToString())
+      fd.write(result.SerializeToString())
 
     print "Component saved as %s" % output
 
-    return component
+    return result

@@ -58,12 +58,19 @@ class DataServer(object):
     return self.registered
 
   def Matches(self, addr, port):
+    """Tests if add and port correspond to self.Address() / self.Port()."""
     if isinstance(addr, list):
       if self.Address() not in addr:
         return False
     else:
-      # Handle hostnames and IPs
-      if socket.gethostbyname(self.Address()) != socket.gethostbyname(addr):
+      # Handle hostnames and IPs.
+      # TODO(user): Make this work for non IPv4.
+      myip = socket.getaddrinfo(
+          self.Address(), self.Port(), socket.AF_INET, 0,
+          socket.IPPROTO_TCP)[0][4][0]
+      other_ip = socket.getaddrinfo(
+          addr, port, socket.AF_INET, 0, socket.IPPROTO_TCP)[0][4][0]
+      if myip != other_ip:
         return False
     return self.Port() == port
 

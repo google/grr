@@ -93,7 +93,8 @@ Step 4: Finally we build the component binary. This basically installs the
   component into a zip file, and packages it up in a protobuf.
 
 ```
-$ python grr/client/build_client.py --config grr-server.yaml build grr/client/components/rekall_support/setup.py /tmp/rekall_component.bin
+$ python grr/client/build_client.py --config grr-server.yaml build_component \
+  grr/client/components/rekall_support/setup.py /tmp/rekall_component.bin
 Building component grr-rekall, Version 0.1
 Creating Virtual Env /tmp/tmpc8ggGP
 New python executable in /tmp/tmpc8ggGP/bin/python
@@ -142,7 +143,8 @@ Copy the binary file produced in the last step to a system with access to the
 GRR data store, and then sign and upload the component.
 
 ```
-$ python grr/tools/config_updater.py --config grr-server.yaml upload_component /tmp/rekall_component.bin
+$ python grr/tools/config_updater.py --config grr-server.yaml upload_component \
+  /tmp/rekall_component.bin
 Opened component grr-rekall from /tmp/rekall_component.bin
 Storing component summary at aff4:/config/component/grr-rekall_0.1
 Storing signed component at aff4:/web/static/components/9b4b177a56699091/glibc_2.4_x86_64_Ubuntu_Linux

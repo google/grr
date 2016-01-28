@@ -728,7 +728,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
 
       self.assertEqual(email["to"],
                        config_lib.CONFIG["Monitoring.emergency_access_email"])
-      self.assert_(self.token.username in email["message"])
+      self.assertIn(self.token.username, email["message"])
       self.assertEqual(email["from_user"], self.token.username)
 
     # Make sure the token is tagged as an emergency token:

@@ -292,9 +292,8 @@ def SignComponent(component_filename, overwrite=False, token=None):
   print "Opened component %s from %s" % (component.summary.name,
                                          component_filename)
 
-  summary = component.summary
-  client_context = ["Platform:%s" % summary.build_system.system.title(),
-                    "Arch:%s" % summary.build_system.arch]
+  client_context = ["Platform:%s" % component.build_system.system.title(),
+                    "Arch:%s" % component.build_system.arch]
 
   sig_key = config_lib.CONFIG.Get(
       "PrivateKeys.executable_signing_private_key",
@@ -339,8 +338,7 @@ def SignComponent(component_filename, overwrite=False, token=None):
 
   aff4_urn = config_lib.CONFIG.Get(
       "Client.component_aff4_stem", context=client_context).Add(
-          component.summary.seed).Add(
-              component.summary.build_system.signature())
+          component.summary.seed).Add(component.build_system.signature())
 
   print "Storing signed component at %s" % aff4_urn
   with aff4.FACTORY.Create(aff4_urn, "AFF4MemoryStream", token=token) as fd:

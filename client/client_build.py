@@ -21,8 +21,14 @@ from grr.lib import builders
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import startup
-from grr.lib.builders import component
 from grr.lib.builders import signing
+
+try:
+  # pylint: disable=g-import-not-at-top
+  from grr.lib.builders import component
+except ImportError:
+  component = None
+
 
 parser = flags.PARSER
 
@@ -135,21 +141,22 @@ parser_buildanddeploy.add_argument("--templatedir", default="", help="Directory"
 parser_buildanddeploy.add_argument("--debug_build", action="store_true",
                                    default=False, help="Create a debug client.")
 
-parser_build_component = subparsers.add_parser(
-    "build_component", help="Build a client component.")
+if component:
+  parser_build_component = subparsers.add_parser(
+      "build_component", help="Build a client component.")
 
-parser_build_component.add_argument(
-    "setup_file",
-    help="Path to the setup.py file for the component.")
+  parser_build_component.add_argument(
+      "setup_file",
+      help="Path to the setup.py file for the component.")
 
-parser_build_component.add_argument(
-    "output", help="Path to store the compiled component.")
+  parser_build_component.add_argument(
+      "output", help="Path to store the compiled component.")
 
-parser_build_components = subparsers.add_parser(
-    "build_components", help="Builds all client components.")
+  parser_build_components = subparsers.add_parser(
+      "build_components", help="Builds all client components.")
 
-parser_build_components.add_argument(
-    "--output", default="", help="Path to store the compiled component.")
+  parser_build_components.add_argument(
+      "--output", default="", help="Path to store the compiled component.")
 
 args = parser.parse_args()
 
@@ -447,8 +454,10 @@ def main(_):
       BuildAndDeployWindows(signer=signer)
     else:
       BuildAndDeploy(context, signer=signer)
+
   elif args.subparser_name == "build_components":
     component.BuildComponents(output_dir=flags.FLAGS.output)
+
   elif args.subparser_name == "build_component":
     component.BuildComponent(flags.FLAGS.setup_file,
                              output_dir=flags.FLAGS.output)

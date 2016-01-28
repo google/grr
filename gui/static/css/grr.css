@@ -729,6 +729,16 @@ td.lease_available {
   font-weight: normal;
 }
 
+.doc-item .example .request-payload {
+  padding-right: 30em;
+  padding-bottom: 1em;
+}
+
+.doc-item .example .request-payload .method-label {
+  font-size: 90%;
+  font-style: italic;
+}
+
 .grr_aff4_type_header {
   text-align: center;
   font-size: +2ex;

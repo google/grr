@@ -127,11 +127,19 @@ class MemoryCollector(flow.GRRFlow):
       if (self.args.action.action_type !=
           MemoryCollectorAction.Action.DOWNLOAD):
         raise ValueError("Linux only supports downloading memory.")
-      plugin = rekall_types.PluginRequest(plugin="ewfacquire")
-      request = rekall_types.RekallRequest(plugins=[plugin])
-      self.CallFlow("AnalyzeClientMemory", request=request,
-                    max_file_size_download=self.action_options.max_file_size,
-                    next_state="CheckAnalyzeClientMemory")
+      dump_options = self.args.action.download.dump_option
+      memory_size = client.Get(client.Schema.MEMORY_SIZE)
+      if (dump_options.with_local_copy.check_disk_free_space and
+          memory_size):
+        self.state.Register("memory_size", memory_size)
+        self.CallClient("CheckFreeGRRTempSpace",
+                        next_state="CheckFreeSpaceLinux")
+      else:
+        plugin = rekall_types.PluginRequest(plugin="ewfacquire")
+        request = rekall_types.RekallRequest(plugins=[plugin])
+        self.CallFlow("AnalyzeClientMemory", request=request,
+                      max_file_size_download=self.action_options.max_file_size,
+                      next_state="CheckAnalyzeClientMemory")
     else:
       self.CallFlow("LoadMemoryDriver",
                     driver_installer=self.args.driver_installer,
@@ -145,6 +153,26 @@ class MemoryCollector(flow.GRRFlow):
         dump_option.option_type == "WITH_LOCAL_COPY",
         dump_option.with_local_copy.check_disk_free_space])
 
+  @flow.StateHandler(next_state=["CheckAnalyzeClientMemory"])
+  def CheckFreeSpaceLinux(self, responses):
+    if responses.success and responses.First():
+      disk_usage = responses.First()
+      if disk_usage.free < self.state.memory_size:
+        raise flow.FlowError(
+            "Free space may be too low for local copy. Free "
+            "space for path %s is %s bytes. Mem size is: %s "
+            "bytes. Override with check_disk_free_space=False."
+            % (disk_usage.path, disk_usage.free, self.state.memory_size))
+    else:
+      logging.error(
+          "Couldn't determine free disk space for temporary files.")
+
+    plugin = rekall_types.PluginRequest(plugin="ewfacquire")
+    request = rekall_types.RekallRequest(plugins=[plugin])
+    self.CallFlow("AnalyzeClientMemory", request=request,
+                  max_file_size_download=self.action_options.max_file_size,
+                  next_state="CheckAnalyzeClientMemory")
+
   @flow.StateHandler()
   def CheckAnalyzeClientMemory(self, responses):
     if not responses.success:
@@ -153,7 +181,7 @@ class MemoryCollector(flow.GRRFlow):
     self.Log("Memory imaged successfully.")
     self.Status("Memory imaged successfully")
 
-  @flow.StateHandler(next_state=["Filter", "StoreTmpDir", "CheckDiskFree"])
+  @flow.StateHandler(next_state=["Filter", "CheckDiskFree"])
   def StoreMemoryInformation(self, responses):
     if not responses.success:
       raise flow.FlowError("Failed due to no memory driver: %s." %
@@ -163,62 +191,35 @@ class MemoryCollector(flow.GRRFlow):
 
     if self._DiskFreeCheckRequired():
       if self.state.destdir:
-        self.CallStateInline(next_state="CheckDiskFree")
+        self.CallClient("CheckFreeGRRTempSpace",
+                        rdf_paths.PathSpec(path=self.state.destdir),
+                        next_state="CheckDiskFree")
       else:
-        self.CallClient("GetConfiguration", next_state="StoreTmpDir")
+        self.CallClient("CheckFreeGRRTempSpace",
+                        next_state="CheckDiskFree")
     else:
       self.CallStateInline(next_state="Filter")
 
-  @flow.StateHandler(next_state=["CheckDiskFree"])
-  def StoreTmpDir(self, responses):
-    # For local copy we need to know where the file will land to check for
-    # disk free space there. The default is to leave this blank, which will
-    # cause the client to use Client.tempdir
-    if not responses.success:
-      raise flow.FlowError("Couldn't get client config: %s." % responses.status)
-
-    self.state.destdir = responses.First().get("Client.tempdir")
-
-    if not self.state.destdir:
-      # This means Client.tempdir wasn't explicitly defined in the client
-      # config,  so we use the current server value with the right context for
-      # the client instead.  This may differ from the default value deployed
-      # with the client, but it's a fairly safe bet.
-      self.state.destdir = config_lib.CONFIG.Get(
-          "Client.tempdir",
-          context=GetClientContext(self.client_id, self.token))
-
-      if not self.state.destdir:
-        raise flow.FlowError("Couldn't determine Client.tempdir file "
-                             "destination, required for disk free check: %s.")
-
-      self.Log("Couldn't get Client.tempdir from client for disk space check,"
-               "guessing %s from server config", self.state.destdir)
-
-    self.CallFlow("DiskVolumeInfo",
-                  path_list=[self.state.destdir],
-                  next_state="CheckDiskFree")
-
   @flow.StateHandler(next_state=["Filter"])
   def CheckDiskFree(self, responses):
-    if not responses.success or not responses.First():
-      raise flow.FlowError(
-          "Couldn't determine disk free space for path %s" %
-          self.args.action.download.dump_option.with_local_copy.destdir)
+    if responses.success and responses.First():
+      free_space = responses.First().free
 
-    free_space = responses.First().FreeSpaceBytes()
+      mem_size = 0
+      for run in self.state.memory_information.runs:
+        mem_size += run.length
 
-    mem_size = 0
-    for run in self.state.memory_information.runs:
-      mem_size += run.length
-
-    if free_space < mem_size:
-      # We expect that with compression the disk required will be significantly
-      # less, so this ensures there will still be some left once we are done.
-      raise flow.FlowError("Free space may be too low for local copy. Free "
-                           "space on volume %s is %s bytes. Mem size is: %s "
-                           "bytes. Override with check_disk_free_space=False."
-                           % (self.state.destdir, free_space, mem_size))
+      if free_space < mem_size:
+        # We expect that with compression the disk required will be
+        # significantly less, so this ensures there will still be some
+        # left once we are done.
+        raise flow.FlowError("Free space may be too low for local copy. Free "
+                             "space on volume %s is %s bytes. Mem size is: %s "
+                             "bytes. Override with check_disk_free_space=False."
+                             % (self.state.destdir, free_space, mem_size))
+    else:
+      logging.error(
+          "Couldn't determine free disk space for temporary files.")
 
     self.CallStateInline(next_state="Filter")
 

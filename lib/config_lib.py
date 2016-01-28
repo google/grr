@@ -524,9 +524,9 @@ class StringInterpolator(lexer.Lexer):
     # Translate special escapes:
     self.stack[-1] += self.STRING_ESCAPES.get(string, string)
 
-  def Error(self, e):
+  def Error(self, message=None, weight=1):
     """Parse errors are fatal."""
-    raise ConfigFormatError("While parsing %s: %s" % (self.parameter, e))
+    raise ConfigFormatError("While parsing %s: %s" % (self.parameter, message))
 
   def StartExpression(self, **_):
     """Start processing a new expression."""
@@ -1054,13 +1054,14 @@ class GrrConfigManager(object):
         raise ValueError("context should be a list, got %s" % str(context))
 
     calc_context = context
+
+    # Only use the cache if possible.
+    cache_key = (name, tuple(context or ()))
+    if default is utils.NotAValue and cache_key in self.cache:
+      return self.cache[cache_key]
+
     # Use a default global context if context is not provided.
-
     if context is None:
-      # Only use the cache when no special context is specified.
-      if default is utils.NotAValue and name in self.cache:
-        return self.cache[name]
-
       calc_context = self.context
 
     type_info_obj = self.FindTypeInfo(name)
@@ -1094,9 +1095,9 @@ class GrrConfigManager(object):
 
       raise
 
-    # Only use the cache when no special context is specified.
-    if context is None and default is utils.NotAValue:
-      self.cache[name] = return_value
+    # Cache the value for next time.
+    if default is utils.NotAValue:
+      self.cache[cache_key] = return_value
 
     return return_value
 

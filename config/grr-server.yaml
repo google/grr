@@ -271,8 +271,9 @@ Platform:Windows:
 
   # Windows services has an insecure temp directory so we use our installation
   # path.
-  Client.tempdir: |
-    %(install_path)\\Temp
+  Client.tempdir_roots:
+    - "%(install_path)"
+  Client.grr_tempdir: "Temp"
 
   # Older clients have keys in different places.
   Installer.old_key_map: >

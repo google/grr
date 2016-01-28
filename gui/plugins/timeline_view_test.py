@@ -86,7 +86,7 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     self.Click("css=span[type=subject]:contains(\"MAC\")")
 
     self.WaitUntil(self.IsElementPresent, "css=td:contains(\"TIMELINE\")")
-    self.assert_("View details" in self.GetText("css=td div.default_view a"))
+    self.assertIn("View details", self.GetText("css=td div.default_view a"))
 
     self.Click("css=a:contains(\"View details\")")
 

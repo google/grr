@@ -387,7 +387,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
     # This lease time must be small, as the HandleMessageBundles() call failed,
     # the pending client messages must be put back on the queue.
-    self.assert_(lease_time < 1)
+    self.assertLess(lease_time, 1)
 
     # Since the server tried to send it, the ttl must be decremented
     self.assertEqual(tasks[0].task_ttl - new_tasks[0].task_ttl, 1)

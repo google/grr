@@ -24,8 +24,12 @@ setup_args = dict(
         "rekall_types",
         "rekall_pb2",
     ],
+    dependency_links=[
+        ("http://images.rekall-forensic.com/share/rekall-core-1.5.0.tar.gz"
+         "#egg=rekall-core-1.5")
+    ],
     install_requires=[
-        "rekall-core >= 1.4.1",
+        "rekall-core >= 1.5.0",
     ],
     zip_safe=False,
 )

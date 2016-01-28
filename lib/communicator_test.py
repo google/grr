@@ -164,7 +164,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
       self.testCommunications()
       compressed_len = len(self.cipher_text)
 
-      self.assert_(compressed_len < uncompressed_len)
+      self.assertLess(compressed_len, uncompressed_len)
 
     # If we chose a crazy compression scheme, the client should not
     # compress.
@@ -558,7 +558,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.CheckClientQueue()
 
     metric_value = stats.STATS.GetMetricValue("grr_rsa_operations")
-    self.assert_(metric_value > 0)
+    self.assertGreater(metric_value, 0)
 
     for _ in range(100):
       self.SendToServer()

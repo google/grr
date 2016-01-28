@@ -485,7 +485,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         ["(unhex(md5(%s)), %s)"] * (len(attributes_q["args"]) / 2))
     aff4_q["query"] += ", ".join(
         ["(unhex(md5(%s)), unhex(md5(%s)), "
-         "if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s), %s)"] *
+         "if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s), "
+         "unhex(%s))"] *
         (len(aff4_q["args"]) / 5))
 
     return [aff4_q, attributes_q, subjects_q]
@@ -571,13 +572,13 @@ class MySQLAdvancedDataStore(data_store.DataStore):
   def _Encode(self, value):
     """Encode the value for the attribute."""
     try:
-      return buffer(value.SerializeToString())
+      return value.SerializeToString().encode("hex")
     except AttributeError:
       if isinstance(value, (int, long)):
-        return value
+        return str(value).encode("hex")
       else:
         # Types "string" and "bytes" are stored as strings here.
-        return buffer(utils.SmartStr(value))
+        return utils.SmartStr(value).encode("hex")
 
   def _Decode(self, attribute, value):
     required_type = self.attribute_types.get(attribute, "bytes")
@@ -726,7 +727,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     CREATE TABLE IF NOT EXISTS `subjects` (
       hash BINARY(16) PRIMARY KEY NOT NULL,
       subject TEXT CHARACTER SET utf8 NULL,
-      KEY `subject` (`subject`(512))
+      KEY `subject` (`subject`(255))
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COMMENT ='Table for storing subjects';
     """)
 

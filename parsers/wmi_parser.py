@@ -10,7 +10,6 @@ from grr.lib import rdfvalue
 from grr.lib import time_utils
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import wmi as rdf_wmi
 
 
 def BinarySIDtoStringSID(sid):
@@ -60,7 +59,7 @@ def BinarySIDtoStringSID(sid):
       if len(authority) < 4:
         raise ValueError("In binary SID '%s', component %d has been truncated. "
                          "Expected 4 bytes, found %d: (%s)",
-                         ','.join([str(ord(c)) for c in sid]),
+                         ",".join([str(ord(c)) for c in sid]),
                          i, len(authority), authority)
       str_sid_components.append(struct.unpack("<L", authority)[0])
       start += 4
@@ -71,7 +70,7 @@ def BinarySIDtoStringSID(sid):
 class WMIEventConsumerParser(parsers.WMIQueryParser):
   """Base class for WMI EventConsumer Parsers."""
 
-  __abstract = True
+  __abstract = True  # pylint: disable=invalid-name
 
   def Parse(self, query, result, knowledge_base):
     """Parse a WMI Event Consumer."""

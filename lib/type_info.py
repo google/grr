@@ -40,7 +40,7 @@ class TypeInfoObject(object):
   _type = None
 
   def __init__(self, name="", default=None, description="", friendly_name="",
-               hidden=False, help=""):
+               hidden=False, help=""):  # pylint: disable=redefined-builtin
     """Build a TypeInfo type descriptor.
 
     Args:

@@ -73,7 +73,7 @@ class APIACLInit(registry.InitHook):
 def HandleApiCall(handler, args, token=None):
   """Handles API call to a given handlers with given args and token."""
 
-  if not hasattr(handler, "Render"):
+  if not hasattr(handler, "Render") and not hasattr(handler, "Handle"):
     handler = api_call_handler_base.ApiCallHandler.classes[handler]()
 
   # Privileged handlers bypass the approvals model to do things like check flow

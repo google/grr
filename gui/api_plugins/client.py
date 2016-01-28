@@ -11,6 +11,7 @@ from grr.lib import client_index
 from grr.lib import flow
 from grr.lib import utils
 
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
 
 from grr.lib.flows.general import audit
@@ -28,6 +29,42 @@ CATEGORY = "Clients"
 
 class ApiClient(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClient
+
+  def InitFromAff4Object(self, client_obj):
+    self.urn = client_obj.urn
+
+    self.agent_info = client_obj.Get(client_obj.Schema.CLIENT_INFO)
+    self.hardware_info = client_obj.Get(client_obj.Schema.HARDWARE_INFO)
+    self.os_info = rdf_client.Uname(
+        system=client_obj.Get(client_obj.Schema.SYSTEM),
+        node=client_obj.Get(client_obj.Schema.HOSTNAME),
+        release=client_obj.Get(client_obj.Schema.OS_RELEASE),
+        # TODO(user): Check if ProtoString.Validate should be fixed
+        # to do an isinstance() check on a value. Is simple type
+        # equality check used there for performance reasons?
+        version=utils.SmartStr(
+            client_obj.Get(client_obj.Schema.OS_VERSION, "")),
+        kernel=client_obj.Get(client_obj.Schema.KERNEL),
+        machine=client_obj.Get(client_obj.Schema.ARCH),
+        fqdn=client_obj.Get(client_obj.Schema.FQDN),
+        install_date=client_obj.Get(client_obj.Schema.INSTALL_DATE)
+        )
+
+    self.first_seen_at = client_obj.Get(client_obj.Schema.FIRST_SEEN)
+    self.last_seen_at = client_obj.Get(client_obj.Schema.PING)
+    self.last_booted_at = client_obj.Get(client_obj.Schema.LAST_BOOT_TIME)
+    self.last_clock = client_obj.Get(client_obj.Schema.CLOCK)
+    last_crash = client_obj.Get(client_obj.Schema.LAST_CRASH)
+    if last_crash is not None:
+      self.last_crash_at = last_crash.timestamp
+
+    self.labels = client_obj.GetLabels()
+    self.interfaces = client_obj.Get(client_obj.Schema.LAST_INTERFACES)
+    kb = client_obj.Get(client_obj.Schema.KNOWLEDGE_BASE)
+    self.users = kb and kb.users or []
+    self.volumes = client_obj.Get(client_obj.Schema.VOLUMES)
+
+    return self
 
 
 class ApiSearchClientsArgs(rdf_structs.RDFProtoStruct):
@@ -61,7 +98,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
 
     api_clients = []
     for child in result_set:
-      api_clients.append(ApiGetClientHandler.VFSGRRClientToApiClient(child))
+      api_clients.append(ApiClient().InitFromAff4Object(child))
 
     return ApiSearchClientsResult(items=api_clients)
 
@@ -78,57 +115,12 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetClientArgs
   result_type = ApiClient
 
-  @staticmethod
-  def VFSGRRClientToApiClient(client_obj):
-    # TODO(user): Check if ProtoString.Validate should be fixed
-    # to do an isinstance() check on a value. Is simple type
-    # equality check used there for performance reasons?
-    os_version = client_obj.Get(client_obj.Schema.OS_VERSION, "")
-    if os_version is not None:
-      os_version = utils.SmartStr(os_version)
-
-    last_crash_at = None
-    crash = client_obj.Get(client_obj.Schema.LAST_CRASH)
-    if crash is not None:
-      last_crash_at = crash.timestamp
-
-    kb = client_obj.Get(client_obj.Schema.KNOWLEDGE_BASE)
-    users = []
-    if kb:
-      users = kb.users
-
-    return ApiClient(
-        urn=client_obj.urn,
-
-        agent_info=client_obj.Get(client_obj.Schema.CLIENT_INFO),
-        hardware_info=client_obj.Get(client_obj.Schema.HARDWARE_INFO),
-        os_info=rdf_client.Uname(
-            system=client_obj.Get(client_obj.Schema.SYSTEM),
-            node=client_obj.Get(client_obj.Schema.HOSTNAME),
-            release=client_obj.Get(client_obj.Schema.OS_RELEASE),
-            version=os_version,
-            kernel=client_obj.Get(client_obj.Schema.KERNEL),
-            machine=client_obj.Get(client_obj.Schema.ARCH),
-            fqdn=client_obj.Get(client_obj.Schema.FQDN),
-            install_date=client_obj.Get(client_obj.Schema.INSTALL_DATE)
-        ),
-
-        first_seen_at=client_obj.Get(client_obj.Schema.FIRST_SEEN),
-        last_seen_at=client_obj.Get(client_obj.Schema.PING),
-        last_booted_at=client_obj.Get(client_obj.Schema.LAST_BOOT_TIME),
-        last_clock=client_obj.Get(client_obj.Schema.CLOCK),
-        last_crash_at=last_crash_at,
-
-        labels=client_obj.GetLabels(),
-        interfaces=client_obj.Get(client_obj.Schema.LAST_INTERFACES),
-        users=users,
-        volumes=client_obj.Get(client_obj.Schema.VOLUMES))
-
   def Handle(self, args, token=None):
-    client = aff4.FACTORY.Open(args.client_id, aff4_type="VFSGRRClient",
+    client = aff4.FACTORY.Open(args.client_id,
+                               aff4_type=aff4_grr.VFSGRRClient.__name__,
                                token=token)
 
-    return self.VFSGRRClientToApiClient(client)
+    return ApiClient().InitFromAff4Object(client)
 
 
 class ApiAddClientsLabelsArgs(rdf_structs.RDFProtoStruct):
@@ -154,7 +146,8 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
                                   mode="rw",
                                   token=token)
       client_objs = aff4.FACTORY.MultiOpen(
-          args.client_ids, aff4_type="VFSGRRClient", mode="rw", token=token)
+          args.client_ids, aff4_type=aff4_grr.VFSGRRClient.__name__,
+          mode="rw", token=token)
       for client_obj in client_objs:
         client_obj.AddLabels(*args.labels)
         index.AddClient(client_obj)
@@ -204,7 +197,8 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
                                   mode="rw",
                                   token=token)
       client_objs = aff4.FACTORY.MultiOpen(
-          args.client_ids, aff4_type="VFSGRRClient", mode="rw", token=token)
+          args.client_ids, aff4_type=aff4_grr.VFSGRRClient.__name__,
+          mode="rw", token=token)
       for client_obj in client_objs:
         index.RemoveClientLabels(client_obj)
         self.RemoveClientLabels(client_obj, args.labels)

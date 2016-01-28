@@ -204,7 +204,7 @@ class InterrogatedClient(ActionMock):
             rdf_client.NetworkAddress(
                 address_type=rdf_client.NetworkAddress.Family.INET,
                 human_readable="100.100.100.1",
-                packed_bytes=socket.inet_aton("100.100.100.1"),
+                packed_bytes=socket.inet_pton(socket.AF_INET, "100.100.100.1"),
             )]
     )]
 

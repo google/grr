@@ -63,10 +63,16 @@
                 <thead>
                   <th>
                     <grr-api-route value="::example.url"></grr-api-route>
+
                     <div class="pull-right" ng-if="::example.type_stripped_response !== undefined">
                       <input ng-model="example.showTypeStripped" type="checkbox">
                         Show type-stripped response
                       </input>
+                    </div>
+
+                    <div class="request-payload" ng-if="example.request_payload">
+                      <span class="method-label">{$ ::apiCallHandler.methods.join(', ') $} body:</span>
+                      <div class="json pre-scrollable">{$ ::example.request_payload | json:2 $}</div>
                     </div>
                   </th>
                 </thead>

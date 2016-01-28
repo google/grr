@@ -39,8 +39,8 @@ config_lib.DEFINE_string("Client.deploy_time", "Unknown",
                          "The time the client was deployed.")
 
 config_lib.DEFINE_string("Client.build_environment", None,
-                         "The output of Uname.get_build_system() on the "
-                         "system the client was built on.")
+                         "The output of Uname.FromCurrentSystem.signature() "
+                         "on the system the client was built on.")
 
 config_lib.DEFINE_integer("Client.rsa_key_length", 2048,
                           "The key length of the client keys in bits.")
@@ -142,10 +142,15 @@ config_lib.DEFINE_string(
     help="Prefix to use for temp files created by the GRR client.",
     default="tmp%(Client.name)")
 
+config_lib.DEFINE_list(
+    name="Client.tempdir_roots",
+    help="List of temporary directories to use on the client.",
+    default=["/var/tmp/"])
+
 config_lib.DEFINE_string(
-    name="Client.tempdir",
-    help="Default temporary directory to use on the client.",
-    default="/var/tmp/%(Client.name)/")
+    name="Client.grr_tempdir",
+    help="Default subdirectory in the temp directory to use for GRR.",
+    default="%(Client.name)")
 
 config_lib.DEFINE_list(
     name="Client.vfs_virtualroots",

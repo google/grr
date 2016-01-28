@@ -212,7 +212,7 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
                                nanny_controller.GetTransactionLog())
       nanny_controller.CleanTransactionLog()
 
-      self.assert_(nanny_controller.GetTransactionLog() is None)
+      self.assertIsNone(nanny_controller.GetTransactionLog())
 
       nanny_controller.StopNanny()
 

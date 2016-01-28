@@ -554,6 +554,24 @@ message UnixVolume {
 
 }
 
+message DiskUsage {
+  optional string path = 1 [(sem_type) = {
+      description: "Path this information is for.",
+    }];
+
+  optional uint64 total = 2 [(sem_type) = {
+      description: "Total number of bytes available.",
+    }];
+
+  optional uint64 used = 3 [(sem_type) = {
+      description: "Number of bytes used.",
+    }];
+
+  optional uint64 free = 4 [(sem_type) = {
+      description: "Number of free bytes.",
+    }];
+}
+
 // Submitted request for addition to CyBox schema:
 // https://github.com/CybOXProject/schemas/issues/329
 message DNSClientConfiguration {

@@ -175,7 +175,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       # client appropriately.
       self.Send("Enrollment required", status=406)
 
-    except Exception as e:
+    except Exception as e:  # pylint: disable=broad-except
       if flags.FLAGS.debug:
         pdb.post_mortem()
 

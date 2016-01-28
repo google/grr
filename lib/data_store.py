@@ -484,11 +484,11 @@ class DataStore(object):
       ts, v = r[attribute]
       yield (s, ts, v)
 
-  def ReadBlob(self, digest, token=None):
-    return self.blobstore.ReadBlob(digest, token=token)
+  def ReadBlob(self, identifier, token=None):
+    return self.ReadBlobs([identifier], token=token).values()[0]
 
-  def ReadBlobs(self, digests, token=None):
-    return self.blobstore.ReadBlobs(digests, token=token)
+  def ReadBlobs(self, identifiers, token=None):
+    return self.blobstore.ReadBlobs(identifiers, token=token)
 
   def StoreBlob(self, content, token=None):
     return self.blobstore.StoreBlob(content, token=token)
@@ -496,11 +496,11 @@ class DataStore(object):
   def StoreBlobs(self, contents, token=None):
     return self.blobstore.StoreBlobs(contents, token=token)
 
-  def BlobExists(self, digest, token=None):
-    return self.blobstore.BlobExists(digest, token=token)
+  def BlobExists(self, identifier, token=None):
+    return self.BlobsExist([identifier], token=token).values()[0]
 
-  def BlobsExist(self, digests, token=None):
-    return self.blobstore.BlobExists(digests, token=token)
+  def BlobsExist(self, identifiers, token=None):
+    return self.blobstore.BlobsExist(identifiers, token=token)
 
 
 class Transaction(object):

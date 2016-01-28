@@ -112,7 +112,7 @@ class VFSTest(test_lib.GRRBaseTest):
     self.assertTrue(len(current_process.open_files()) - num_open_files < 5)
 
     # Make sure we exceeded the size of the cache.
-    self.assert_(fds > 20)
+    self.assertGreater(fds, 20)
 
   def testFileCasing(self):
     """Test our ability to read the correct casing from filesystem."""
@@ -474,14 +474,14 @@ class VFSTest(test_lib.GRRBaseTest):
       if path.startswith("$"): continue
 
       # Check the time is reasonable
-      self.assert_(f.st_mtime > 10000000)
-      self.assert_(f.st_atime > 10000000)
-      self.assert_(f.st_ctime > 10000000)
+      self.assertGreater(f.st_mtime, 10000000)
+      self.assertGreater(f.st_atime, 10000000)
+      self.assertGreater(f.st_ctime, 10000000)
 
       if path == test_file:
         found = True
         # Make sure its a regular file with the right size
-        self.assert_(stat.S_ISREG(f.st_mode))
+        self.assertTrue(stat.S_ISREG(f.st_mode))
         self.assertEqual(f.st_size, 3893)
 
     self.assertEqual(found, True)

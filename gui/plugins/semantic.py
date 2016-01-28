@@ -312,7 +312,7 @@ class RDFProtoRenderer(RDFValueRenderer):
         except KeyError:
           value = self.FormatFromTemplate(self.translator_error_template,
                                           value=value)
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-except
           logging.warn("Failed to render {0}. Err: {1}".format(name, e))
           value = ""
 
@@ -452,7 +452,7 @@ class DictRenderer(RDFValueRenderer):
       except TypeError:
         rendered_value = self.FormatFromTemplate(self.translator_error_template,
                                                  value=value)
-      except Exception as e:
+      except Exception as e:  # pylint: disable=broad-except
         logging.warn("Failed to render {0}. Err: {1}".format(type(value), e))
 
       if rendered_value is not None:

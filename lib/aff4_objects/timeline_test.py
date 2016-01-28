@@ -40,7 +40,7 @@ class TimelineTest(test_lib.AFF4ObjectTest):
       self.assertEqual(event.timestamp, t)
       count += 1
 
-    self.assert_(fd.Get(fd.Schema.SIZE) > 0)
+    self.assertGreater(fd.Get(fd.Schema.SIZE), 0)
     self.assertEqual(count, len(times))
 
   def testTimeSeriesQuery(self):

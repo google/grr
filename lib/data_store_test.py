@@ -112,7 +112,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     data_store.DB.Set(self.test_row, predicate, value, token=self.token)
     time.sleep(1)
     data_store.DB.Set(self.test_row + "X", predicate, value, token=self.token)
-    (stored_proto, _) = data_store.DB.Resolve(
+    stored_proto, _ = data_store.DB.Resolve(
         self.test_row, predicate, token=self.token)
 
     stored_proto = rdf_flows.GrrMessage(stored_proto)
@@ -127,17 +127,17 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                             "aff4:unknown_attribute": ["hello"]},
                            token=self.token)
 
-    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:size",
-                                        token=self.token)
+    stored, _ = data_store.DB.Resolve(self.test_row, "aff4:size",
+                                      token=self.token)
     self.assertEqual(stored, 1)
 
-    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:stored",
-                                        token=self.token)
+    stored, _ = data_store.DB.Resolve(self.test_row, "aff4:stored",
+                                      token=self.token)
     self.assertEqual(stored, unicode_string)
 
     # Make sure that unknown attributes are stored as bytes.
-    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:unknown_attribute",
-                                        token=self.token)
+    stored, _ = data_store.DB.Resolve(self.test_row, "aff4:unknown_attribute",
+                                      token=self.token)
     self.assertEqual(stored, "hello")
     self.assertEqual(type(stored), str)
 
@@ -147,13 +147,13 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                             "aff4:stored": [(unicode_string, 200)]},
                            token=self.token)
 
-    (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:size",
-                                         token=self.token)
+    stored, ts = data_store.DB.Resolve(self.test_row, "aff4:size",
+                                       token=self.token)
     self.assertEqual(stored, 1)
     self.assertEqual(ts, 100)
 
-    (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:stored",
-                                         token=self.token)
+    stored, ts = data_store.DB.Resolve(self.test_row, "aff4:stored",
+                                       token=self.token)
     self.assertEqual(stored, unicode_string)
     self.assertEqual(ts, 200)
 
@@ -164,14 +164,14 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                             "aff4:stored": [(unicode_string, 200)]},
                            token=self.token)
     end_time = time.time() * 1e6
-    (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:size",
-                                         token=self.token)
+    stored, ts = data_store.DB.Resolve(self.test_row, "aff4:size",
+                                       token=self.token)
     self.assertEqual(stored, 1)
     self.assertGreaterEqual(ts, start_time)
     self.assertLessEqual(ts, end_time)
 
-    (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:stored",
-                                         token=self.token)
+    stored, ts = data_store.DB.Resolve(self.test_row, "aff4:stored",
+                                       token=self.token)
     self.assertEqual(stored, unicode_string)
     self.assertEqual(ts, 200)
 
@@ -188,18 +188,18 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     # Force the flusher thread to flush.
     data_store.DB.flusher_thread.target()
 
-    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:size",
-                                        token=self.token)
+    stored, _ = data_store.DB.Resolve(self.test_row, "aff4:size",
+                                      token=self.token)
     self.assertEqual(stored, 3)
 
-    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:stored",
-                                        token=self.token)
+    stored, _ = data_store.DB.Resolve(self.test_row, "aff4:stored",
+                                      token=self.token)
 
     self.assertEqual(stored, unicode_string)
 
     # Make sure that unknown attributes are stored as bytes.
-    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:unknown_attribute",
-                                        token=self.token)
+    stored, _ = data_store.DB.Resolve(self.test_row, "aff4:unknown_attribute",
+                                      token=self.token)
     self.assertEqual(stored, "hello")
     self.assertEqual(type(stored), str)
 
@@ -211,13 +211,13 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                             "aff4:stored": [("2", 200)]},
                            token=self.token)
 
-    (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:size",
-                                         token=self.token)
+    stored, ts = data_store.DB.Resolve(self.test_row, "aff4:size",
+                                       token=self.token)
     self.assertEqual(stored, 1)
     self.assertEqual(ts, 100)
 
-    (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:stored",
-                                         token=self.token)
+    stored, ts = data_store.DB.Resolve(self.test_row, "aff4:stored",
+                                       token=self.token)
     self.assertEqual(stored, "2")
     self.assertEqual(ts, 200)
 
@@ -233,12 +233,12 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                            token=self.token)
 
     # This should be gone now
-    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:size",
-                                        token=self.token)
+    stored, _ = data_store.DB.Resolve(self.test_row, "aff4:size",
+                                      token=self.token)
     self.assertEqual(stored, None)
 
-    (stored, _) = data_store.DB.Resolve(self.test_row, "aff4:stored",
-                                        token=self.token)
+    stored, _ = data_store.DB.Resolve(self.test_row, "aff4:stored",
+                                      token=self.token)
     self.assertEqual(stored, "2")
 
   def testMultiSet4(self):
@@ -268,8 +268,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                            replace=True,
                            token=self.token)
 
-    (stored, ts) = data_store.DB.Resolve(self.test_row, "aff4:size",
-                                         token=self.token)
+    stored, ts = data_store.DB.Resolve(self.test_row, "aff4:size",
+                                       token=self.token)
     self.assertEqual(stored, 1)
     self.assertEqual(ts, 100)
 
@@ -301,15 +301,15 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     data_store.DB.Set(self.test_row, predicate, "hello", token=self.token)
 
     # Check its there
-    (stored, _) = data_store.DB.Resolve(self.test_row, predicate,
-                                        token=self.token)
+    stored, _ = data_store.DB.Resolve(self.test_row, predicate,
+                                      token=self.token)
 
     self.assertEqual(stored, "hello")
 
     data_store.DB.DeleteAttributes(self.test_row, [predicate], sync=True,
                                    token=self.token)
-    (stored, _) = data_store.DB.Resolve(self.test_row, predicate,
-                                        token=self.token)
+    stored, _ = data_store.DB.Resolve(self.test_row, predicate,
+                                      token=self.token)
 
     self.assertEqual(stored, None)
 
@@ -1035,12 +1035,12 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     start = long(time.time() - 60) * 1e6
     data_store.DB.Set(subject, predicate, "1", token=self.token)
 
-    (stored, ts) = data_store.DB.Resolve(subject, predicate, token=self.token)
+    stored, ts = data_store.DB.Resolve(subject, predicate, token=self.token)
 
     # Check the time is reasonable
     end = long(time.time() + 60) * 1e6
 
-    self.assert_(ts >= start and ts <= end)
+    self.assertTrue(ts >= start and ts <= end)
     self.assertEqual(stored, "1")
 
   def testSpecificTimestamps(self):
@@ -1050,7 +1050,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
     # Check we can specify a timestamp
     data_store.DB.Set(subject, predicate, "2", timestamp=1000, token=self.token)
-    (stored, ts) = data_store.DB.Resolve(subject, predicate, token=self.token)
+    stored, ts = data_store.DB.Resolve(subject, predicate, token=self.token)
 
     # Check the time is reasonable
     self.assertEqual(ts, 1000)
@@ -1192,11 +1192,25 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       self.assertEqual(results[i][1], "Cell " + predicates[i])
       self.assertEqual(results[i][0], predicates[i])
 
+  def testBlobs(self):
+    data = "randomdata" * 50
+
+    identifier = data_store.DB.StoreBlob(data, token=self.token)
+
+    self.assertTrue(data_store.DB.BlobExists(identifier, token=self.token))
+    self.assertEqual(data_store.DB.ReadBlob(identifier, token=self.token), data)
+
+    empty_digest = hashlib.sha256().hexdigest()
+
+    self.assertFalse(data_store.DB.BlobExists(empty_digest, token=self.token))
+    self.assertEqual(data_store.DB.ReadBlob(empty_digest, token=self.token),
+                     None)
+
   def testAFF4Image(self):
     # 500k
     data = "randomdata" * 50 * 1024
 
-    data_store.DB.StoreBlob(data, token=self.token)
+    identifier = data_store.DB.StoreBlob(data, token=self.token)
 
     # Now create the image containing the blob.
     fd = aff4.FACTORY.Create("aff4:/C.1235/image", "HashImage",
@@ -1204,8 +1218,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     fd.SetChunksize(512 * 1024)
     fd.Set(fd.Schema.STAT())
 
-    digest = hashlib.sha256(data).digest()
-    fd.AddBlob(digest, len(data))
+    fd.AddBlob(identifier.decode("hex"), len(data))
     fd.Close(sync=True)
 
     # Chunks are written async, we have to flush here.
@@ -1213,7 +1226,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
     # Check if we can read back the data.
     fd = aff4.FACTORY.Open("aff4:/C.1235/image", token=self.token)
-    self.assertEqual(fd.read(len(data)), data)
+    self.assertEqual(fd.read(len(data)), data,
+                     "Data read back from aff4image doesn't match.")
     fd.Close()
 
   def testDotsInDirectory(self):

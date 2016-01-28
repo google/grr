@@ -1197,11 +1197,6 @@ message ClientComponentSummary {
       description: "The version string of the component."
     }];
 
-  optional Uname build_system = 3 [(sem_type) = {
-      // This should ideally be the same as the client.
-      description: "The platform this component was built on."
-    }];
-
   optional string seed = 4 [(sem_type) = {
       description: "A ramdom seed for this component."
     }];
@@ -1229,6 +1224,11 @@ message ClientComponent {
 
   optional bytes raw_data = 2 [(sem_type) = {
       description: "The raw ZIP file which will be installed. "
+    }];
+
+  optional Uname build_system = 3 [(sem_type) = {
+      // This should ideally be the same as the client.
+      description: "The platform this component was built on."
     }];
 };
 

@@ -569,7 +569,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                  "aff4:/C.0123456789abcdef/foo/bar/hello.txt"]:
       fd = aff4.FACTORY.Open(path, token=self.token)
       last = fd.Get(fd.Schema.LAST)
-      self.assert_(int(last) > 1330354592221974)
+      self.assertGreater(int(last), 1330354592221974)
 
   def testObjectUpgrade(self):
     """Test that we can create a new object of a different type."""

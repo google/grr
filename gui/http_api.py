@@ -398,6 +398,12 @@ class HttpApiInitHook(registry.InitHook):
         api_plugins.stats.ApiGetStatsStoreMetricHandler)
 
     RegisterHttpRouteHandler(
+        "POST", "/api/users/me/approvals/client/<client_id>",
+        api_plugins.user.ApiCreateUserClientApprovalHandler)
+    RegisterHttpRouteHandler(
+        "GET", "/api/users/me/approvals/client/<client_id>/<reason>",
+        api_plugins.user.ApiGetUserClientApprovalHandler)
+    RegisterHttpRouteHandler(
         "GET", "/api/users/me/approvals/client",
         api_plugins.user.ApiListUserClientApprovalsHandler)
     RegisterHttpRouteHandler(

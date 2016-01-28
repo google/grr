@@ -58,6 +58,11 @@ class Approval(aff4.AFF4Object):
                               "Comma separated list of email addresses to "
                               "CC on approval emails.")
 
+    NOTIFIED_USERS = aff4.Attribute("aff4:approval/notified_users",
+                                    rdfvalue.RDFString,
+                                    "Comma-separated list of GRR users "
+                                    "notified about this approval.")
+
   def CheckAccess(self, token):
     """Check that this approval applies to the given token.
 
@@ -204,15 +209,8 @@ class ApprovalWithApproversAndReason(Approval):
       token.is_emergency = True
       return True
 
-    lifetime = rdfvalue.Duration(self.Get(self.Schema.LIFETIME) or
-                                 config_lib.CONFIG["ACL.token_expiry"])
-
     # Check that there are enough approvers.
-    approvers = set()
-    for approver in self.GetValuesForAttribute(self.Schema.APPROVER):
-      if approver.age + lifetime > now:
-        approvers.add(utils.SmartStr(approver))
-
+    approvers = self.GetNonExpiredApprovers()
     if len(approvers) < config_lib.CONFIG["ACL.approvers_required"]:
       raise access_control.UnauthorizedAccess(
           ("Requires %s approvers for access." %
@@ -244,6 +242,25 @@ class ApprovalWithApproversAndReason(Approval):
             requested_access=token.requested_access)
 
     return True
+
+  def GetNonExpiredApprovers(self):
+    """Returns a list of usernames of approvers who approved this approval."""
+
+    lifetime = rdfvalue.Duration(self.Get(self.Schema.LIFETIME) or
+                                 config_lib.CONFIG["ACL.token_expiry"])
+
+    # Check that there are enough approvers.
+    #
+    # TODO(user): approvals have to be opened with
+    # age=aff4.ALL_TIMES because versioning is used to store lists
+    # of approvers. This doesn't seem right and has to be fixed.
+    approvers = set()
+    now = rdfvalue.RDFDatetime().Now()
+    for approver in self.GetValuesForAttribute(self.Schema.APPROVER):
+      if approver.age + lifetime > now:
+        approvers.add(utils.SmartStr(approver))
+
+    return list(approvers)
 
 
 class ClientApproval(ApprovalWithApproversAndReason):
@@ -417,6 +434,9 @@ class RequestApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
         reply_cc = self.args.approver
 
       approval_request.Set(approval_request.Schema.EMAIL_CC(reply_cc))
+
+      approval_request.Set(
+          approval_request.Schema.NOTIFIED_USERS(self.args.approver))
 
       # We add ourselves as an approver as well (The requirement is that we have
       # 2 approvers, so the requester is automatically an approver).
