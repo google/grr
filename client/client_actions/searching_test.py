@@ -178,7 +178,7 @@ class FindTest(test_lib.EmptyActionTest):
       request.iterator = result[1].Copy()
 
     for x, y in zip(all_files, files):
-      self.assertRDFValueEqual(x, y)
+      self.assertRDFValuesEqual(x, y)
 
     # Make sure the iterator is finished
     self.assertEqual(request.iterator.state, rdf_client.Iterator.State.FINISHED)

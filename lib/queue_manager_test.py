@@ -237,7 +237,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
         token=self.token)
 
     decoded = rdf_flows.GrrMessage(value)
-    self.assertRDFValueEqual(decoded, task)
+    self.assertRDFValuesEqual(decoded, task)
     self.assertGreater(ts, 0)
 
     # Get a lease on the task

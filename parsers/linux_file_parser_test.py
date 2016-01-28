@@ -291,7 +291,7 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(expected), len(results))
     for expect, result in zip(expected, results):
-      self.assertRDFValueEqual(expect, result)
+      self.assertRDFValuesEqual(expect, result)
 
   def testSystemAccountAnomaly(self):
     passwd = ["root:x:0:0::/root:/bin/sash",

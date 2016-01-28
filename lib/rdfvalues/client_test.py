@@ -46,14 +46,15 @@ class UserTests(test_base.RDFValueTestCase):
 
     serialized = proto.SerializeToString()
 
-    fast_proto = rdf_client.User(serialized)
+    rdf_from_serialized = rdf_client.User(serialized)
 
-    self.assertEqual(fast_proto.username, proto.username)
-    self.assertEqual(fast_proto.desktop,
+    self.assertEqual(rdf_from_serialized.username, proto.username)
+    self.assertEqual(rdf_from_serialized.desktop,
                      proto.desktop)
 
-    # Serialized RDFValue and protobuf have same fields.
-    self.assertRDFValueEqualToProto(fast_proto, proto)
+    rdf_direct = rdf_client.User(username="user1", desktop="User Desktop 1")
+
+    self.assertRDFValuesEqual(rdf_from_serialized, rdf_direct)
 
   def testTimeEncoding(self):
     fast_proto = rdf_client.User(username="user")

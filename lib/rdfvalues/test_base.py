@@ -187,7 +187,7 @@ class RDFValueTestCase(RDFValueBaseTest):
     self.assertIsInstance(sample, self.rdfvalue_class)
     self.assertIsInstance(value, self.rdfvalue_class)
 
-    self.assertRDFValueEqual(value, sample)
+    self.assertRDFValuesEqual(value, sample)
 
   def testComparisons(self):
     """Checks that object comparisons work."""

@@ -234,7 +234,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
             # original message - so we clear them before comparison.
             message.auth_state = None
             message.source = None
-            self.assertRDFValueEqual(message, message_list.job[i])
+            self.assertRDFValuesEqual(message, message_list.job[i])
           else:
             logging.debug("Message %s: Authstate: %s", i, message.auth_state)
 

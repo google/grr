@@ -896,7 +896,8 @@ def main(unused_argv):
 
   elif flags.FLAGS.subparser_name == "upload_component":
     maintenance_utils.SignComponent(flags.FLAGS.component_filename,
-                                    overwrite=flags.FLAGS.overwrite)
+                                    overwrite=flags.FLAGS.overwrite,
+                                    token=token)
 
   elif flags.FLAGS.subparser_name == "upload_memory_driver":
     client_context = ["Platform:%s" % flags.FLAGS.platform.title(),

@@ -182,7 +182,7 @@ class ActionTest(test_lib.EmptyActionTest):
       # Reset the st_atime in the results to avoid potential flakiness.
       x.st_atime = y.st_atime = 0
 
-      self.assertRDFValueEqual(x, y)
+      self.assertRDFValuesEqual(x, y)
 
   def testSuspendableListDirectory(self):
     request = rdf_client.ListDirRequest()
