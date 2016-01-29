@@ -5,10 +5,10 @@ cd %USERPROFILE%\build\ || echo "Cant switch to build directory" && exit /b 1
 ::avoid any 32-64 contamination.
 call C:\grr\vagrant\windows\32bitenv.bat
 
-rd /q /s openssl-1.0.2e
-7z x -y openssl-1.0.2e.tar
+rd /q /s openssl-1.0.2f
+7z x -y openssl-1.0.2f.tar
 
-cd openssl-1.0.2e
+cd openssl-1.0.2f
 perl Configure VC-WIN32 --prefix=%USERPROFILE%\build\Build-OpenSSL-VC-32
 call ms\do_nasm.bat
 nmake -f ms\ntdll.mak

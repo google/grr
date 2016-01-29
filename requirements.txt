@@ -36,7 +36,6 @@ python-crontab==1.9.2
 python-dateutil==2.3
 pytz==2014.10
 http://images.rekall-forensic.com/share/rekall-core-1.5.0.tar.gz#egg=rekall-core-1.5
-rekall-core==1.4.1
 selenium==2.44.0
 urllib3==1.10
 wsgiref==0.1.2

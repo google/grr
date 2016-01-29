@@ -21,8 +21,8 @@ call refreshenv
 :: openssl.org.  Download over http and use fciv to verify.
 choco install fciv -y || echo "fciv install failed" && exit /b 1
 
-powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('http://www.openssl.org/source/openssl-1.0.2e.tar.gz', 'openssl-1.0.2e.tar.gz')" || echo "Couldn't download openssl" && exit /b 1
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('http://www.openssl.org/source/openssl-1.0.2f.tar.gz', 'openssl-1.0.2f.tar.gz')" || echo "Couldn't download openssl" && exit /b 1
 
-fciv -sha1 openssl-1.0.2e.tar.gz | findstr /C:"2c5691496761cb18f98476eefa4d35c835448fb6" || echo "Bad hash for openssl" && exit /b 1
-7z e -y openssl-1.0.2e.tar.gz
-7z x -y openssl-1.0.2e.tar
+fciv -sha1 openssl-1.0.2f.tar.gz | findstr /C:"2047c592a6e5a42bd37970bdb4a931428110a927" || echo "Bad hash for openssl" && exit /b 1
+7z e -y openssl-1.0.2f.tar.gz
+7z x -y openssl-1.0.2f.tar
