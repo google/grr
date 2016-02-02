@@ -11,7 +11,8 @@ function system_update() {
 function install_homebrew() {
   # Use /dev/null as stdin to disable prompting during install
   ruby -e "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/master/install)" </dev/null
-  brew doctor
+  # Brew doctor complains that you are using an old version of OS X.
+  brew doctor || true
   brew update
   brew install makedepend
 }
@@ -29,32 +30,13 @@ function install_python_deps() {
 
   virtualenv -p /usr/local/bin/python2.7 PYTHON_ENV
   source PYTHON_ENV/bin/activate
-  pip install -r /grr/requirements.txt
+  # Required for M2Crypto in requirements.txt
+  export SWIG_FEATURES="-I/usr/include/x86_64-linux-gnu"
+  pip install -r /grr/client/linux/requirements.txt
 
-  # protobuf uses a fancy egg format which seems to mess up PyInstaller,
-  # resulting in missing the library entirely. I believe the issue is this:
-  # https://github.com/pypa/pip/issues/3#issuecomment-1659959
-  # Using --egg installs it in a way that PyInstaller understands
-  pip install --egg protobuf==2.6.1
-
-  # That isn't even enough, pyinstaller still fails to include it because there
-  # is no __init__.py:
+  # pyinstaller fails to include protobuf because there is no __init__.py:
   # https://github.com/google/protobuf/issues/713
   touch PYTHON_ENV/lib/python2.7/site-packages/google/__init__.py
-}
-
-# Install patched m2crypto, hopefully this patch will eventually be accepted so
-# we don't have to do this and can just add a line to requirements.txt
-# https://github.com/M2Crypto/M2Crypto/pull/16
-function install_m2crypto() {
-  wget --quiet https://pypi.python.org/packages/source/M/M2Crypto/M2Crypto-0.22.3.tar.gz#md5=573f21aaac7d5c9549798e72ffcefedd
-  wget --quiet https://googledrive.com/host/0B1wsLqFoT7i2aW5mWXNDX1NtTnc/m2crypto-0.22.3-fixes.patch
-  tar zxf M2Crypto-0.22.3.tar.gz
-  cd M2Crypto-0.22.3
-  patch -u -p1 < ../m2crypto-0.22.3-fixes.patch
-  python setup.py build
-  python setup.py install
-  cd -
 }
 
 function install_sleuthkit() {
@@ -106,7 +88,6 @@ case $EUID in
     brew install protobuf
     brew install git
     install_python_deps
-    install_m2crypto
     install_sleuthkit
     install_pytsk
     install_yara

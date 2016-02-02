@@ -3,8 +3,6 @@ cd %USERPROFILE%\build\ || echo "Cant switch to build directory" && exit /b 1
 
 ::Install 64 bit openssl.  Expects tar file in cwd. We delete the openssl dir to
 ::avoid any 32-64 contamination.
-call C:\grr\vagrant\windows\64bitenv.bat
-
 rd /q /s openssl-1.0.2f
 7z x -y openssl-1.0.2f.tar
 

@@ -2092,11 +2092,25 @@ class RDFProtoStruct(RDFStruct):
     # Add all dependent files to the pool.
     dependencies = []
     for fd in files.values():
-      fd_proto = descriptor_pb2.FileDescriptorProto()
-      fd.CopyToProto(fd_proto)
-      dependencies.append(fd_proto)
+      dependencies.append(cls._GetFileDescriptorProto(fd))
 
     return file_descriptor, dependencies
+
+  @classmethod
+  def _GetFileDescriptorProto(cls, file_descriptor):
+    """Returns a FileDescriptorProto from a FileDescriptor object."""
+    fd_proto = descriptor_pb2.FileDescriptorProto()
+    file_descriptor.CopyToProto(fd_proto)
+
+    # Due to a bug in the protoc compiler, the serialized protobuf does not
+    # contain the correct file names. The python objects do though, so we need
+    # to correct the produced protobuf.
+    fd_proto.ClearField("dependency")
+
+    for dep in file_descriptor.dependencies:
+      fd_proto.dependency.append(dep.name)
+
+    return fd_proto
 
   def Validate(self):
     """Validates the semantic protobuf for internal consistency.

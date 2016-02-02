@@ -45,7 +45,6 @@ config_lib.CONFIG.DEFINE_context("Debug Context")
 config_lib.CONFIG.DEFINE_context("Test Context")
 
 # Datastores.
-config_lib.CONFIG.DEFINE_context("MongoDataStore")
 config_lib.CONFIG.DEFINE_context("MySQLDataStore")
 
 # Client installer context.

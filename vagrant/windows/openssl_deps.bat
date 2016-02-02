@@ -12,8 +12,8 @@ call refreshenv
 
 :: choco install activeperl is broken, strawberry perl doesn't work with openssl
 :: http://developer.covenanteyes.com/building-openssl-for-visual-studio/
-powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://downloads.activestate.com/ActivePerl/releases/5.20.2.2001/ActivePerl-5.20.2.2001-MSWin32-x86-64int-298913.msi', 'ActivePerl-5.20.2.2001-MSWin32-x86-64int-298913.msi')"
-msiexec /I ActivePerl-5.20.2.2001-MSWin32-x86-64int-298913.msi /q || echo "perl install failed" && exit /b 1
+powershell -NoProfile -ExecutionPolicy unrestricted -Command "(new-object System.Net.WebClient).DownloadFile('https://downloads.activestate.com/ActivePerl/releases/5.22.1.2201/ActivePerl-5.22.1.2201-MSWin32-x86-64int-299574.msi', 'ActivePerl-5.22.1.2201-MSWin32-x86-64int-299574.msi')"
+msiexec /I ActivePerl-5.22.1.2201-MSWin32-x86-64int-299574.msi || echo "perl install failed" && exit /b 1
 SETX /M PATH "%PATH%;%SYSTEMDRIVE%\Perl\bin"
 call refreshenv
 

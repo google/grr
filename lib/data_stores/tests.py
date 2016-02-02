@@ -11,11 +11,6 @@ This module loads and registers all the data store tests.
 from grr.lib.data_stores import fake_data_store_test
 
 try:
-  from grr.lib.data_stores import mysql_data_store_test
-except ImportError:
-  pass
-
-try:
   from grr.lib.data_stores import mysql_advanced_data_store_test
 except ImportError:
   pass

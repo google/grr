@@ -113,7 +113,8 @@ function install_protobuf_libs() {
   ${WGET} https://github.com/google/protobuf/releases/download/v2.6.1/protobuf-2.6.1.tar.gz
   tar zxvf protobuf-2.6.1.tar.gz
   cd protobuf-2.6.1
-  ./configure
+  mkdir /grrbuild
+  ./configure --includedir=/grrbuild
   make -j4
 
   # 32bit CentOS fails 'make check' due to it having an older version of gcc
@@ -152,34 +153,15 @@ function install_python_deps() {
 
   /usr/local/bin/virtualenv -p /usr/local/bin/python2.7 PYTHON_ENV
   source PYTHON_ENV/bin/activate
+
+  # Required for M2Crypto in requirements.txt
+  export SWIG_FEATURES="-I/usr/include/x86_64-linux-gnu"
   pip2.7 install -r /grr/client/linux/requirements.txt
 
-  # protobuf uses a fancy egg format which seems to mess up PyInstaller,
-  # resulting in missing the library entirely. I believe the issue is this:
-  # https://github.com/pypa/pip/issues/3#issuecomment-1659959
-  # Using --egg installs it in a way that PyInstaller understands
-  pip2.7 install --egg protobuf==2.6.1
-
-  # That isn't even enough, pyinstaller still fails to include it because there
-  # is no __init__.py:
+  # pyinstaller fails to include protobuf because there is no __init__.py:
   # https://github.com/google/protobuf/issues/713
   touch PYTHON_ENV/lib/python2.7/site-packages/google/__init__.py
 
-}
-
-# Install patched m2crypto, hopefully this patch will eventually be accepted so
-# we don't have to do this and can just add a line to requirements.txt
-# https://github.com/M2Crypto/M2Crypto/pull/16
-function install_m2crypto() {
-  ${WGET} https://pypi.python.org/packages/source/M/M2Crypto/M2Crypto-0.22.3.tar.gz#md5=573f21aaac7d5c9549798e72ffcefedd
-  ${WGET} https://googledrive.com/host/0B1wsLqFoT7i2aW5mWXNDX1NtTnc/m2crypto-0.22.3-fixes.patch
-  tar zxf M2Crypto-0.22.3.tar.gz
-  cd M2Crypto-0.22.3
-  patch -u -p1 < ../m2crypto-0.22.3-fixes.patch
-  python2.7 setup.py build
-  python2.7 setup.py install
-  cd -
-  python2.7 -c "import M2Crypto"
 }
 
 function install_sleuthkit() {
@@ -232,7 +214,7 @@ function install_packagetools() {
 }
 
 function usage() {
-  echo "Usage: install_linux.sh [DISTRO_NAME]"
+  echo "Usage: install_linux.sh [Ubuntu|CentOS]"
   exit
 }
 
@@ -260,7 +242,6 @@ install_wget
 install_python_from_source
 install_protobuf_libs
 install_python_deps
-install_m2crypto
 install_sleuthkit
 install_pytsk
 # TODO: find a way to install yara on linux that actually works on lucid with

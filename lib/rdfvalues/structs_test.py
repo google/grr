@@ -190,6 +190,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     pool = descriptor_pool.DescriptorPool()
     for file_descriptor in [test_pb_file_descriptor] + deps:
       pool.Add(file_descriptor)
+
     proto_descriptor = pool.FindMessageTypeByName("grr_export.DynamicTypeTest")
     factory = message_factory.MessageFactory()
     proto_class = factory.GetPrototype(proto_descriptor)

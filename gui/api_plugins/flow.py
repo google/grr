@@ -54,7 +54,19 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       return flow_cls.args_type
 
   def InitFromAff4Object(self, flow_obj):
-    self.urn = flow_obj.urn
+    # If the flow object is in fact a symlink, then we want to report the
+    # symlink's URN as a flow's URN. Otherwise you may get unexpected
+    # URNs while listing client's flows. For example, this may happend when
+    # a hunt was running on a client and a flow itself is located in the
+    # hunt's namespace, but was symlinked into the client's namespace:
+    #
+    # aff4:/hunts/H:123456/flows/H:987654 ->
+    #   aff4:/C.0000111122223333/flows/H:987654
+    if hasattr(flow_obj, "symlink_urn"):
+      self.urn = flow_obj.symlink_urn
+    else:
+      self.urn = flow_obj.urn
+
     self.name = flow_obj.state.context.args.flow_name
     self.started_at = flow_obj.state.context.create_time
     self.last_active_at = flow_obj.Get(flow_obj.Schema.LAST)

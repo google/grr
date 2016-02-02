@@ -813,6 +813,25 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     for client_id in self.client_ids[:-1]:
       self.WaitUntilNot(self.IsTextPresent, str(client_id))
 
+  def testShowsResultsTabForIndividualFlowsOnClients(self):
+    with self.ACLChecksDisabled():
+      # Create and run the hunt.
+      self.CreateSampleHunt(stopped=False)
+      client_mock = test_lib.SampleHuntMock(failrate=-1)
+      test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
+
+      self.GrantClientApproval(self.client_ids[0])
+
+    self.Open("/#c=" + self.client_ids[0].Basename())
+    self.Click("css=a:contains('Manage launched flows')")
+
+    self.Click("css=grr-client-flows-list tr:contains('GetFile')")
+    self.Click("css=li[heading=Results]")
+    # This is to check that no exceptions happened when we tried to display
+    # results.
+    # TODO(user): Fail *any* test if we get a 500 in the process.
+    self.WaitUntilNot(self.IsTextPresent, "Loading...")
+
 
 def main(argv):
   # Run the full test suite

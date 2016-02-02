@@ -48,16 +48,20 @@ FlowResultsController.prototype.onFlowUrnChange = function(newValue) {
     return;
   }
 
+  /**
+   * Flow urn is expected to look like:
+   * [aff4:/]C.0000111122223333/flows/F:ABC123
+   */
   var components = newValue.split('/');
   if (components.length == 0) {
-    return;
+    throw new Error('Client\'s flow URN was empty.');
   }
 
   if (components[0] == 'aff4:') {
     components = components.slice(1);
   }
-  if (components.length < 3) {
-    return;
+  if (components.length < 3 || components[1] != 'flows') {
+    throw new Error('Unexpected client\'s flow URN structure: ' + newValue);
   }
 
   var clientId = components[0];

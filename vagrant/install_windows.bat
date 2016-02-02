@@ -46,8 +46,8 @@ cmd /c "C:\grr\vagrant\windows\32bit_virtualenv.bat" || echo "32bit virtualenv f
 cmd /c "C:\grr\vagrant\windows\openssl_deps.bat" || echo "openssl_deps.bat failed" && exit /b 1
 call refreshenv
 
-cmd /c "C:\grr\vagrant\windows\32bitopenssl.bat" || echo "32bitopenssl.bat failed" && exit /b 1
-cmd /c "C:\grr\vagrant\windows\64bitopenssl.bat" || echo "64bitopenssl.bat failed" && exit /b 1
+cmd /c ""C:\grr\vagrant\windows\32bitenv.bat" && C:\grr\vagrant\windows\32bitopenssl.bat" || echo "32bitopenssl.bat failed" && exit /b 1
+cmd /c ""C:\grr\vagrant\windows\64bitenv.bat" && C:\grr\vagrant\windows\64bitopenssl.bat" || echo "64bitopenssl.bat failed" && exit /b 1
 
 cmd /c "C:\grr\vagrant\windows\install_pytsk.bat" || echo "install_pytsk.bat failed" && exit /b 1
 cmd /c "C:\grr\vagrant\windows\install_protobuf.bat" || echo "install_protobuf.bat failed" && exit /b 1

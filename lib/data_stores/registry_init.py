@@ -7,12 +7,6 @@
 from grr.lib.data_stores import fake_data_store
 
 try:
-  from grr.lib.data_stores import mysql_data_store
-except ImportError:
-  # MySql data store not supported.
-  pass
-
-try:
   from grr.lib.data_stores import mysql_advanced_data_store
 except ImportError:
   # MySql Advanced data store not supported.

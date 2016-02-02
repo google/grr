@@ -17,7 +17,15 @@ endif
 PROTOPATH = --proto_path=. --proto_path=.. --proto_path=$(PROTO_SRC_ROOT)
 
 # Make all python/cpp files from any proto files found here.
-all: $(py_files) $(cc_files) $(py_rekall_files)
+all: version_check $(py_files) $(cc_files) $(py_rekall_files)
+
+# The compiler version used to create protos must match the protobuf version in
+# client/*/requirements.txt
+version_check:
+	@if [ "$$($(PROTOC) --version)" != "libprotoc 2.6.1" ]; then \
+	  echo 'Bad proto compiler version, we need 2.6.1'; \
+	  exit 1; \
+	fi
 
 %_pb2.py: %.proto
 	$(PROTOC) --python_out=. $(PROTOPATH) $?
@@ -27,4 +35,4 @@ all: $(py_files) $(cc_files) $(py_rekall_files)
 
 .PHONY: sync clean
 clean:
-	rm -f $(py_files) $(cc_files) $(py_rekall_files)
+	rm -f $(py_files) $(cc_files) $(py_rekall_files) proto/*.pyc proto/*.pb.h

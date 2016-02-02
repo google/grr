@@ -1080,7 +1080,7 @@ class SessionID(RDFURN):
     return RDFURN(self.Basename().split(":")[0])
 
   def FlowName(self):
-    return self.Basename().split(":")[1]
+    return self.Basename().split(":", 1)[1]
 
   def Add(self, path, age=None):
     # Adding to a SessionID results in a normal RDFURN.
@@ -1089,8 +1089,9 @@ class SessionID(RDFURN):
   @classmethod
   def ValidateID(cls, id_str):
     # This check is weaker than it could be because we allow queues called
-    # "DEBUG-user1" and IDs like "TransferStore"
-    allowed_re = re.compile(r"^[-0-9a-zA-Z]+:[0-9a-zA-Z]+$")
+    # "DEBUG-user1" and IDs like "TransferStore". We also have to allow
+    # flows session ids like H:123456:hunt.
+    allowed_re = re.compile(r"^[-0-9a-zA-Z]+:[0-9a-zA-Z]+(:[0-9a-zA-Z]+)?$")
     if not allowed_re.match(id_str):
       raise ValueError("Invalid SessionID")
 

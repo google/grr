@@ -87,10 +87,31 @@ class SessionIDTest(test_base.RDFValueTestCase):
     rdfvalue.SessionID(rdfvalue.RDFURN("aff4:/flows/A:12345678"))
     rdfvalue.SessionID(rdfvalue.RDFURN("aff4:/flows/A:TransferStore"))
     rdfvalue.SessionID(rdfvalue.RDFURN("aff4:/flows/DEBUG-user1:12345678"))
+    rdfvalue.SessionID(rdfvalue.RDFURN("aff4:/flows/DEBUG-user1:12345678:hunt"))
+
+  def testQueueGetterReturnsCorrectValues(self):
+    s = rdfvalue.SessionID("A:12345678")
+    self.assertEqual(s.Queue(), "A")
+
+    s = rdfvalue.SessionID("DEBUG-user1:12345678:hunt")
+    self.assertEqual(s.Queue(), "DEBUG-user1")
+
+  def testFlowNameGetterReturnsCorrectValues(self):
+    s = rdfvalue.SessionID("A:12345678")
+    self.assertEqual(s.FlowName(), "12345678")
+
+    s = rdfvalue.SessionID("DEBUG-user1:12345678:hunt")
+    self.assertEqual(s.FlowName(), "12345678:hunt")
 
   def testBadStructure(self):
     self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
-                      rdfvalue.RDFURN("aff4:/flows/A:123456:78"))
+                      rdfvalue.RDFURN("aff4:/flows/A:123456:1:"))
+    self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
+                      rdfvalue.RDFURN("aff4:/flows/A:123456::"))
+    self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
+                      rdfvalue.RDFURN("aff4:/flows/A:123456:"))
+    self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
+                      rdfvalue.RDFURN("aff4:/flows/A:"))
     self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
                       rdfvalue.RDFURN("aff4:/flows/:"))
 
@@ -101,4 +122,3 @@ class SessionIDTest(test_base.RDFValueTestCase):
   def testBadFlowID(self):
     self.assertRaises(rdfvalue.InitializeError, rdfvalue.SessionID,
                       rdfvalue.RDFURN("aff4:/flows/A:1234567G%sdf"))
-
