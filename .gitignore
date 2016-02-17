@@ -1,7 +1,14 @@
 *.pyc
-proto/*_pb2.py
+*_pb2.py
 *.swp
 *.o
+*.so
 *.pb.cc
 *.pb.h
 *~
+.idea
+build/
+dist/
+artifacts/*.yaml
+grr.egg-info/
+get-pip.py

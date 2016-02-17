@@ -22,7 +22,7 @@ override_dh_auto_test:
 
 override_dh_installinit:
 	dh_installinit
-	INSTALL_PREFIX=debian/grr-server DOWNLOAD_CLIENT_TEMPLATES=false PYTHON_INSTALL=false ./scripts/install_server_from_src.sh
+	./scripts/install_server_from_src.sh -s -i debian/grr-server
 	# Add post installation instructions
 	cat debian/grr-server.postinst.in >> debian/grr-server.postinst.debhelper
 

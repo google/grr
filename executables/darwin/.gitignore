@@ -1,0 +1,5 @@
+templates/grr-client*
+templates/grr_*
+templates/GRR_*
+installers/
+config/

@@ -48,7 +48,7 @@ while getopts "h?ltdyr:" opt; do
         echo " -l Test locally (no download), get deb from current path"
         echo " -t Install the GRR beta testing version"
         echo " -d Only install build dependencies"
-        echo " -r [requirements.txt url] Specify requirements.txt"
+        echo " -r [requirements.txt url or path] Specify requirements.txt"
         echo " -y Don't prompt, i.e. answer yes to everything"
         exit 0
         ;;
@@ -170,13 +170,17 @@ sudo apt-get install -y \
 apt-get --force-yes --yes install python-dev 2>/dev/null
 apt-get --force-yes --yes install libpython-dev 2>/dev/null
 
-run_cmd_confirm wget --quiet https://bootstrap.pypa.io/get-pip.py
+run_cmd_confirm wget -N --quiet https://bootstrap.pypa.io/get-pip.py
 run_cmd_confirm python get-pip.py
-run_cmd_confirm pip install pip --upgrade
 
 header "Installing python dependencies"
-run_cmd_confirm wget --quiet $REQUIREMENTS_URL
-run_cmd_confirm pip install -r requirements.txt
+if [ -f "$REQUIREMENTS_URL" ]
+then
+  run_cmd_confirm pip install -r $REQUIREMENTS_URL
+else
+  run_cmd_confirm wget --quiet $REQUIREMENTS_URL
+  run_cmd_confirm pip install -r requirements.txt
+fi
 
 # Set filehandle max to a high value if it isn't already set.
 if ! grep -Fq "fs.file-max" /etc/sysctl.conf; then
