@@ -1,15 +1,15 @@
 <div class="padded">
-  <grr-form-value value="rules"></grr-form-value>
+  <grr-form-value value="clientRuleSet"></grr-form-value>
 
-  <h3 class="text-center" ng-if="!rules.value.rules ||
-                              rules.value.rules.length == 0">
+  <h3 class="text-center" ng-if="!clientRuleSet.value.rules ||
+                              clientRuleSet.value.rules.length == 0">
     No rules specified!
-    <span ng-if="!rules.value.match_mode.value ||
-                 rules.value.match_mode.value == 'MATCH_ALL'">
+    <span ng-if="!clientRuleSet.value.match_mode.value ||
+                 clientRuleSet.value.match_mode.value == 'MATCH_ALL'">
       The hunt will run on all clients.
     </span>
-    <span ng-if="rules.value.match_mode.value &&
-                 rules.value.match_mode.value == 'MATCH_ANY'">
+    <span ng-if="clientRuleSet.value.match_mode.value &&
+                 clientRuleSet.value.match_mode.value == 'MATCH_ANY'">
       The hunt won't run on any client.
     </span>
   </h3>

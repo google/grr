@@ -1,0 +1,29 @@
+# GRR client approval rules
+#
+# When using the FullAccessControlManager users are required to obtain an
+# approval from another user to access a client. By default any user can approve
+# any client.
+#
+# This file allows you to customize approvals that are required for clients. We
+# specify approvers for labels here such that if a client has labels
+# "legal_approval" and "prod_admin_approval" approvals are required from a user
+# listed in both those label groups.
+#
+# The prod_admin_approval group also requires the requester (i.e. the person who
+# will get access) to also be one of the users listed, AND at least two other
+# people from that group to approve.
+#
+# Examples:
+#
+#label: "legal_approval"
+#users:
+#  - "legal1"
+#  - "legal2"
+#---
+#label: "prod_admin_approval"
+#requester_must_be_authorized: True
+#num_approvers_required: 2
+#users:
+#  - "prod1"
+#  - "prod2"
+#  - "prod3"

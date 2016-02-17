@@ -132,8 +132,10 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     exceptions_by_plugin = {}
     with aff4.FACTORY.OpenWithLock(hunt_results_urn,
                                    aff4_type="HuntResultCollection",
+                                   lease_time=600,
                                    token=self.token) as collection_obj:
       with aff4.FACTORY.OpenWithLock(metadata_urn,
+                                     lease_time=600,
                                      token=self.token) as metadata_obj:
         all_plugins, used_plugins = self.LoadPlugins(metadata_obj)
         num_processed = int(metadata_obj.Get(
@@ -148,6 +150,10 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
               token=self.token)
           num_processed += len(batch)
           self.HeartBeat()
+          collection_obj.UpdateLease(600)
+          metadata_obj.Set(metadata_obj.Schema.NUM_PROCESSED_RESULTS(
+              num_processed))
+          metadata_obj.UpdateLease(600)
           if self.CheckIfRunningTooLong():
             break
         self.FlushPlugins(hunt_urn, used_plugins, exceptions_by_plugin)

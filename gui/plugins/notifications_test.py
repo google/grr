@@ -50,7 +50,7 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     # Have something for us to look at.
     with self.ACLChecksDisabled():
       self.GenerateNotifications()
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
 
   def testNotifications(self):
     """Test the notifications interface."""

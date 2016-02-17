@@ -9,7 +9,7 @@ from grr.lib import flags
 from grr.lib import hunts
 from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import foreman as rdf_foreman
+from grr.server import foreman as rdf_foreman
 
 
 class TestCrashView(test_lib.GRRSeleniumTest):
@@ -27,7 +27,7 @@ class TestCrashView(test_lib.GRRSeleniumTest):
   def testClientCrashedFlow(self):
     with self.ACLChecksDisabled():
       self.SetUpCrashedFlow()
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.Open("/")
 
@@ -126,7 +126,7 @@ class TestCrashView(test_lib.GRRSeleniumTest):
     self.Click("client_query_submit")
 
     with self.ACLChecksDisabled():
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.WaitUntilEqual(u"C.0000000000000001",
                         self.GetText, "css=span[type=subject]")

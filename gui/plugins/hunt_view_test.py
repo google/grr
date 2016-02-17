@@ -27,8 +27,8 @@ from grr.lib.hunts import process_results
 from grr.lib.output_plugins import csv_plugin
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import foreman as rdf_foreman
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import foreman as rdf_foreman
 
 
 class TestHuntView(test_lib.GRRSeleniumTest):
@@ -481,7 +481,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "aff4:/sample/3")
 
     with self.ACLChecksDisabled():
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.Click("link=aff4:/C.0000000000000001/fs/os/c/bin/bash")
     self.WaitUntil(self.IsElementPresent,
@@ -820,7 +820,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       client_mock = test_lib.SampleHuntMock(failrate=-1)
       test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
-      self.GrantClientApproval(self.client_ids[0])
+      self.RequestAndGrantClientApproval(self.client_ids[0])
 
     self.Open("/#c=" + self.client_ids[0].Basename())
     self.Click("css=a:contains('Manage launched flows')")

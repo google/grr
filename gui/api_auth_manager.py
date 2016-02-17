@@ -1,14 +1,15 @@
 #!/usr/bin/env python
-"""An API auth manager."""
+"""API Authorization Manager."""
+
+
 
 import logging
 
-import yaml
 
 from grr.lib import access_control
 from grr.lib import config_lib
-from grr.lib import registry
 from grr.lib import stats
+from grr.lib.authorization import auth_manager
 from grr.lib.rdfvalues import structs
 from grr.proto import api_pb2
 
@@ -18,7 +19,7 @@ class Error(Exception):
 
 
 class InvalidAPIAuthorization(Error):
-  """Used when an invalid API ACL is defined."""
+  """Used when an invalid authorization is defined."""
 
 
 class APIAuthorization(structs.RDFProtoStruct):
@@ -53,96 +54,43 @@ class APIAuthorization(structs.RDFProtoStruct):
   def handler(self, value):
     self.Set("handler", value)
 
-
-class APIAuthorizationImporter(object):
-  """Load API Authorizations from YAML."""
-
-  def __init__(self):
-    self.acl_dict = {}
-
-  def CreateACLs(self, yaml_data):
-    try:
-      raw_list = list(yaml.safe_load_all(yaml_data))
-    except (ValueError, yaml.YAMLError) as e:
-      raise InvalidAPIAuthorization("Invalid YAML: %s" % e)
-
-    logging.debug("Adding %s acls", len(raw_list))
-    for acl in raw_list:
-      api_auth = APIAuthorization(**acl)
-      if api_auth.handler in self.acl_dict:
-        raise InvalidAPIAuthorization(
-            "Duplicate ACLs for %s" % api_auth.handler)
-      self.acl_dict[api_auth.handler] = api_auth
-
-  def GetACLs(self):
-    return self.acl_dict.values()
-
-  def GetACLedHandlers(self):
-    return self.acl_dict.keys()
-
-  def LoadACLsFromFile(self):
-    file_path = config_lib.CONFIG["API.HandlerACLFile"]
-    if file_path:
-      logging.info("Loading acls from %s", file_path)
-      # Deliberately raise if this doesn't exist, we don't want silently ignored
-      # ACLs.
-      with open(file_path, mode="rb") as fh:
-        self.CreateACLs(fh.read(1000000))
+  @property
+  def key(self):
+    return self.Get("handler")
 
 
-class APIAuthorizationManager(object):
-  """Abstract API authorization manager class."""
+class APIAuthorizationManager(auth_manager.AuthorizationManager):
+  """Manages loading API authorizations and enforcing them."""
 
-  __metaclass__ = registry.MetaclassRegistry
-  __abstract = True  # pylint: disable=g-bad-name
+  def Initialize(self):
+    self.api_groups = config_lib.CONFIG["API.access_groups"]
+    self.api_access = config_lib.CONFIG["API.access_groups_label"]
+    self.acled_handlers = []
 
-  def CheckAccess(self, handler_name, username):
-    """Check access against ACL file, if defined.
+    # Authorize the groups that have general access to the API
+    logging.info("Authorizing groups %s for API access %s", self.api_groups,
+                 self.api_access)
+    for group in self.api_groups:
+      self.AuthorizeGroup(group, self.api_access)
 
-    Args:
-      handler_name: string, base name of handler class
-      username: username string
+    if config_lib.CONFIG["API.HandlerACLFile"]:
+      with open(config_lib.CONFIG["API.HandlerACLFile"], mode="rb") as fh:
+        self.CreateAuthorizations(fh.read(), APIAuthorization)
 
-    Raises:
-      access_control.UnauthorizedAccess: if the handler is listed in the ACL
-        file, but the user isn't authorized.
-    """
-    raise NotImplementedError("This requires subclassing.")
+        if not self.GetAllAuthorizationObjects():
+          raise InvalidAPIAuthorization("No entries added from HandlerACLFile.")
 
+      for acl in self.GetAllAuthorizationObjects():
+        # Allow empty acls to act as DenyAll
+        self.DenyAll(acl.handler)
 
-class SimpleAPIAuthorizationManager(APIAuthorizationManager):
-  """Checks API usage against authorized users.
+        for group in acl.groups:
+          self.AuthorizeGroup(group, acl.handler)
 
-  This is a very simple implementation that we expect production installations
-  to override. This manager can only authorize individual users because GRR has
-  no concept of groups. The API authorization format supports groups, your class
-  just needs to have a way to check membership in those groups that should query
-  the canonical source for group membership in your environment (AD, LDAP etc.).
-  """
+        for user in acl.users:
+          self.AuthorizeUser(user, acl.handler)
 
-  def __init__(self):
-    self.auth_import = APIAuthorizationImporter()
-    self.auth_import.LoadACLsFromFile()
-    self.auth_dict = {}
-
-    for acl in self.auth_import.GetACLs():
-      if acl.groups:
-        raise NotImplementedError(
-            "GRR doesn't have in-built groups. Override this class with one "
-            "that can resolve group membership in your environment.")
-
-      user_set = self.auth_dict.setdefault(acl.handler, set())
-      user_set.update(acl.users)
-
-  def ACLedHandlers(self):
-    """List of handlers which are mentioned in the ACL file."""
-    return self.auth_import.GetACLedHandlers()
-
-  def _CheckPermission(self, username, handler_name):
-    """Apply ACLs for specific handlers if they exist."""
-    if handler_name in self.auth_dict:
-      return username in self.auth_dict[handler_name]
-    return True
+        self.acled_handlers.append(acl.handler)
 
   def CheckAccess(self, handler, username):
     """Check access against ACL file, if defined.
@@ -157,8 +105,17 @@ class SimpleAPIAuthorizationManager(APIAuthorizationManager):
       ACL applies.
     """
     handler_name = handler.__class__.__name__
+
+    if (self.api_groups and
+        not self.CheckPermissions(username, self.api_access)):
+      stats.STATS.IncrementCounter("grr_api_auth_fail",
+                                   fields=[handler_name, username])
+      raise access_control.UnauthorizedAccess(
+          "User %s not in groups %s, authorized for %s API access." % (
+              username, self.api_groups, self.api_access))
+
     if handler_name in self.ACLedHandlers():
-      if not self._CheckPermission(username, handler_name):
+      if not self.CheckPermissions(username, handler_name):
         stats.STATS.IncrementCounter("grr_api_auth_fail",
                                      fields=[handler_name, username])
         raise access_control.UnauthorizedAccess(
@@ -173,3 +130,7 @@ class SimpleAPIAuthorizationManager(APIAuthorizationManager):
     logging.debug("Authorizing %s for API %s", username, handler_name)
     stats.STATS.IncrementCounter("grr_api_auth_success",
                                  fields=[handler_name, username])
+
+  def ACLedHandlers(self):
+    return self.acled_handlers
+

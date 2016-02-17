@@ -26,7 +26,6 @@ from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import memory
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -482,27 +481,6 @@ class TestMemoryCollector(MemoryTest):
 class TestMemoryAnalysis(MemoryTest, grr_rekall_test.RekallTestSuite):
   """Tests the memory analysis flows."""
 
-  def testLoadDriverWindows(self):
-    """Tests the memory driver deployment flow."""
-    self.CreateSignedDriver()
-    self.CreateClient()
-
-    # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper("LoadMemoryDriver",
-                                     action_mocks.MemoryClientMock(),
-                                     token=self.token,
-                                     client_id=self.client_id):
-      pass
-
-    device_urn = self.client_id.Add("devices/memory")
-    fd = aff4.FACTORY.Open(device_urn, mode="r", token=self.token)
-    runs = fd.Get(fd.Schema.LAYOUT).runs
-
-    self.assertEqual(runs[0].offset, 0x1000)
-    self.assertEqual(runs[0].length, 0x10000)
-    self.assertEqual(runs[1].offset, 0x20000)
-    self.assertEqual(runs[0].length, 0x10000)
-
   def testScanMemory(self):
     # Use a file in place of a memory image for simplicity
     image_path = os.path.join(self.base_path, "numbers.txt")
@@ -542,50 +520,6 @@ class TestMemoryAnalysis(MemoryTest, grr_rekall_test.RekallTestSuite):
     self.assertEqual(len(fd), 20)
     self.assertEqual(fd[0].offset, 252)
     self.assertEqual(fd[0].data, "\n85\n86\n87\n88\n89\n90\n91\n")
-
-
-class LinuxKcoreMemoryMock(action_mocks.MemoryClientMock):
-  """Mock a linux client with kcore available.
-
-  Validates that the kcore is used.
-  """
-
-  def StatFile(self, list_dir_req):
-    if list_dir_req.pathspec.path == "/proc/kcore":
-      result = rdf_client.StatEntry(pathspec=list_dir_req.pathspec,
-                                    st_mode=400)
-      status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
-      return [result, status]
-    raise IOError("Not found.")
-
-  def RekallAction(self, rekall_request):
-    if rekall_request.device.path != "/proc/kcore":
-      return [rdf_flows.GrrStatus(
-          status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
-          error_message="Should use kcore device when present.")]
-    response = rdf_rekall_types.RekallResponse(json_messages="{}")
-    return [response, rdf_client.Iterator(state="FINISHED")]
-
-
-class TestLinuxMemoryAnalysis(MemoryTest, grr_rekall_test.RekallTestSuite):
-  """Tests the memory analysis flow using kcore."""
-
-  def CreateClient(self):
-    client = aff4.FACTORY.Create(self.client_id,
-                                 "VFSGRRClient", token=self.token)
-    client.Set(client.Schema.SYSTEM("Linux"))
-    client.Close()
-
-  def testAnalyzeClientMemmoryKcore(self):
-    """Tests the selection of /proc/kcore."""
-    self.CreateClient()
-
-    # Run the flow in the simulated way, with kcore present.
-    for _ in test_lib.TestFlowHelper("AnalyzeClientMemory",
-                                     LinuxKcoreMemoryMock(),
-                                     token=self.token,
-                                     client_id=self.client_id):
-      pass
 
 
 class ListVADBinariesActionMock(action_mocks.MemoryClientMock):

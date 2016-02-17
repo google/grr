@@ -13,11 +13,20 @@ from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.authorization import client_approval_auth
 
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import flows_pb2
+
+
+class Error(Exception):
+  """Base exception class."""
+
+
+class ErrorClientDoesNotExist(Error):
+  """Raised when trying to check approvals on non-existent client."""
 
 
 class Approval(aff4.AFF4Object):
@@ -185,6 +194,17 @@ class ApprovalWithApproversAndReason(Approval):
     """
     raise NotImplementedError()
 
+  def GetApprovers(self, now):
+    lifetime = rdfvalue.Duration(self.Get(self.Schema.LIFETIME) or
+                                 config_lib.CONFIG["ACL.token_expiry"])
+
+    # Check that there are enough approvers.
+    approvers = set()
+    for approver in self.GetValuesForAttribute(self.Schema.APPROVER):
+      if approver.age + lifetime > now:
+        approvers.add(utils.SmartStr(approver))
+    return approvers
+
   def CheckAccess(self, token):
     """Enforce a dual approver policy for access."""
     namespace, _ = self.urn.Split(2)
@@ -212,12 +232,12 @@ class ApprovalWithApproversAndReason(Approval):
     # Check that there are enough approvers.
     approvers = self.GetNonExpiredApprovers()
     if len(approvers) < config_lib.CONFIG["ACL.approvers_required"]:
+      msg = ("Requires %s approvers for access." %
+             config_lib.CONFIG["ACL.approvers_required"])
       raise access_control.UnauthorizedAccess(
-          ("Requires %s approvers for access." %
-           config_lib.CONFIG["ACL.approvers_required"]),
-          subject=subject_urn,
-          requested_access=token.requested_access)
+          msg, subject=subject_urn, requested_access=token.requested_access)
 
+    # Check User labels
     if self.checked_approvers_label:
       approvers_with_label = []
 
@@ -285,6 +305,33 @@ class ClientApproval(ApprovalWithApproversAndReason):
     """Infers user name and subject urn from self.urn."""
     _, client_id, user, _ = self.urn.Split(4)
     return (user, rdf_client.ClientURN(client_id))
+
+  def CheckAccess(self, token):
+    super(ClientApproval, self).CheckAccess(token)
+    # If approvers isn't set and super-class checking passed, we're done.
+    if not config_lib.CONFIG["ACL.approvers_config_file"]:
+      return True
+
+    now = rdfvalue.RDFDatetime().Now()
+    approvers = self.GetApprovers(now)
+    requester, client_urn = self.InferUserAndSubjectFromUrn()
+    # Open the client object with superuser privs so we can get the list of
+    # labels
+    try:
+      client_object = aff4.FACTORY.Open(client_urn, mode="r",
+                                        aff4_type="VFSGRRClient",
+                                        token=token.SetUID())
+    except aff4.InstantiationError:
+      raise ErrorClientDoesNotExist("Can't check label approvals on client %s "
+                                    "that doesn't exist" % client_urn)
+
+    client_labels = client_object.Get(client_object.Schema.LABELS, [])
+
+    for label in client_labels:
+      client_approval_auth.CLIENT_APPROVAL_AUTH_MGR.CheckApproversForLabel(
+          token, client_urn, requester, approvers, label.name)
+
+    return True
 
 
 class HuntApproval(ApprovalWithApproversAndReason):
@@ -459,6 +506,9 @@ class RequestApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
                 "Please grant access to %s" % subject_title, self.session_id)
       fd.Close()
 
+    if not config_lib.CONFIG.Get("Email.send_approval_emails"):
+      return
+
     reason = self.CreateReasonHTML(self.args.reason)
 
     template = u"""
@@ -546,6 +596,9 @@ class GrantApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
               "%s has granted you access to %s."
               % (self.token.username, subject_title), self.session_id)
     fd.Close()
+
+    if not config_lib.CONFIG.Get("Email.send_approval_emails"):
+      return
 
     reason = self.CreateReasonHTML(self.args.reason)
 

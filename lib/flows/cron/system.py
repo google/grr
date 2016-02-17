@@ -24,8 +24,8 @@ from grr.lib.aff4_objects import stats as stats_aff4
 from grr.lib.flows.general import discovery as flows_discovery
 from grr.lib.flows.general import endtoend as flows_endtoend
 from grr.lib.hunts import standard as hunts_standard
-from grr.lib.rdfvalues import foreman as rdf_foreman
 from grr.lib.rdfvalues import stats as rdfstats
+from grr.server import foreman as rdf_foreman
 
 
 class _ActiveCounter(object):
@@ -304,6 +304,10 @@ class StatsHuntCronFlow(cronjobs.SystemCronFlow):
   frequency = rdfvalue.Duration("1d")
   # This just starts a hunt, which should be essentially instantantaneous
   lifetime = rdfvalue.Duration("30m")
+
+  # TODO(user): Need to evaluate if this is still wanted, and impact is
+  # reasonable.
+  disabled = True
 
   def GetOutputPlugins(self):
     """Returns list of OutputPluginDescriptor objects to be used in the hunt.

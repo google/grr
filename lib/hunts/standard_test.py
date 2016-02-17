@@ -29,8 +29,8 @@ from grr.lib.flows.general import transfer
 from grr.lib.hunts import process_results
 from grr.lib.hunts import standard
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import foreman as rdf_foreman
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.server import foreman as rdf_foreman
 
 
 class DummyHuntOutputPlugin(output_plugin.OutputPlugin):
@@ -81,6 +81,13 @@ class VerifiableDummyHuntOutputPluginVerfier(
   num_calls = 0
 
   def VerifyHuntOutput(self, plugin, hunt):
+    # Check that we get the plugin object we expected to get.
+    # Actual verifiers implementations don't have to do this check.
+    if not isinstance(plugin, VerifiableDummyHuntOutputPlugin):
+      raise ValueError("Passed plugin must be an "
+                       "VerifiableDummyHuntOutputPlugin, got: " %
+                       plugin.__class__.__name__)
+
     VerifiableDummyHuntOutputPluginVerfier.num_calls += 1
     return output_plugin.OutputPluginVerificationResult(status="SUCCESS",
                                                         status_message="yo")
@@ -100,6 +107,13 @@ class DummyHuntOutputPluginWithRaisingVerifierVerifier(
   plugin_name = DummyHuntOutputPluginWithRaisingVerifier.__name__
 
   def VerifyHuntOutput(self, plugin, hunt):
+    # Check that we get the plugin object we expected to get.
+    # Actual verifiers implementations don't have to do this check.
+    if not isinstance(plugin, DummyHuntOutputPluginWithRaisingVerifier):
+      raise ValueError("Passed plugin must be an "
+                       "VerifiableDummyHuntOutputPlugin, got: " %
+                       plugin.__class__.__name__)
+
     raise RuntimeError("foobar")
 
   def VerifyFlowOutput(self, plugin, hunt):

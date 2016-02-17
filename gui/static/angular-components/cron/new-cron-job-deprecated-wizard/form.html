@@ -1,0 +1,64 @@
+<grr-wizard-form title="Schedule Cron Hunt" on-resolve="onResolve()" on-reject="onReject()">
+
+  <!-- Configure schedule -->
+  <grr-wizard-form-page title="Cron Job properties"
+                        is-valid="controller.huntRunnerArgs.value.regex_rules.length > 0 ||
+                                  controller.huntRunnerArgs.value.integer_rules.length > 0">
+
+    <grr-configure-schedule-page cron-job="cronJob">
+    </grr-configure-schedule-page>
+
+  </grr-wizard-form-page>
+
+  <!-- Configure flow -->
+  <grr-wizard-form-page title="What to run?"
+                        is-valid="controller.genericHuntArgs.value.flow_runner_args.value.flow_name.value">
+
+    <grr-configure-flow-page flow-name="controller.genericHuntArgs.value.flow_runner_args.value.flow_name.value"
+                             flow-arguments="controller.genericHuntArgs.value.flow_args"
+                             hunt-runner-args="controller.huntRunnerArgs">
+    </grr-configure-flow-page>
+
+  </grr-wizard-form-page>
+
+  <!-- Configure output plugins -->
+  <grr-wizard-form-page title="Define Output Processing">
+
+    <grr-configure-output-plugins-page output-plugins="controller.genericHuntArgs.value.output_plugins">
+    </grr-configure-output-plugins-page>
+
+  </grr-wizard-form-page>
+
+  <!-- Configure rules -->
+  <grr-wizard-form-page title="Where to run?" is-valid="controller.huntRunnerArgs.value.regex_rules.length > 0 ||
+                                                        controller.huntRunnerArgs.value.integer_rules.length > 0">
+
+    <grr-configure-deprecated-rules-page
+        regex-rules="controller.huntRunnerArgs.value.regex_rules"
+        integer-rules="controller.huntRunnerArgs.value.integer_rules">
+    </grr-configure-deprecated-rules-page>
+
+  </grr-wizard-form-page>
+
+  <!-- Review -->
+  <grr-wizard-form-page title="Review"
+                        next-button-label="Schedule Hunt">
+
+    <grr-new-cron-job-review-page cron-job="cronJob">
+    </grr-new-cron-job-review-page>
+
+  </grr-wizard-form-page>
+
+  <!-- Submit the hunt and show the status -->
+  <grr-wizard-form-page title="Result"
+                        is-valid="controller.serverResponse != null"
+                        on-show="controller.sendRequest()"
+                        next-button-label="Done"
+                        no-back-button="true">
+
+    <grr-new-cron-job-status-page response="controller.serverResponse">
+    </grr-new-cron-job-status-page>
+
+  </grr-wizard-form-page>
+
+</grr-wizard-form>

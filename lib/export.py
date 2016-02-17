@@ -1176,15 +1176,15 @@ class RekallResponseConverter(ExportConverter):
     """
     if message[0] == self.REKALL_MESSAGE_ROW:
       result = self.HandleTableRow(self.metadata, message)
-      if result:
-        yield result
+      for r in result:
+        yield r
 
   @staticmethod
   def HandleTableRow(unused_metadata, unused_message):
     """Handles a RekallResponse row.
 
     Returns:
-      An RDFType.
+      A generator of RDFTypes.
     """
     raise NotImplementedError()
 
@@ -1458,17 +1458,9 @@ class RekallResponseToExportedRekallProcessConverter(
       if isinstance(trusted_fullpath, basestring):
         result.trusted_fullpath = trusted_fullpath
 
-      return result
+      yield result
     except KeyError:
       return
-
-  def HandleMessage(self, message):
-    """Handles a single Rekall message."""
-
-    if message[0] == "r":
-      result = self.HandleTableRow(self.metadata, message)
-      if result:
-        yield result
 
 
 class ExportedRekallWindowsLoadedModule(rdf_structs.RDFProtoStruct):
@@ -1509,20 +1501,14 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverter(
     except KeyError:
       return
 
-    process = RekallResponseToExportedRekallProcessConverter.HandleTableRow(
+    processes = RekallResponseToExportedRekallProcessConverter.HandleTableRow(
         metadata, message)
-    if process:
-      result.process = process
+    processes = list(processes)
 
-    return result
+    if processes:
+      result.process = processes[0]
 
-  def HandleMessage(self, message):
-    """Handles a single Rekall message."""
-
-    if message[0] == "r":
-      result = self.HandleTableRow(self.metadata, message)
-      if result:
-        yield result
+    yield result
 
 
 class ExportedLinuxSyscallTableEntry(rdf_structs.RDFProtoStruct):
@@ -1535,30 +1521,26 @@ class ExportedLinuxSyscallTableEntryConverter(
 
   input_rdf_type = "RekallResponse"
 
-  def HandleMessage(self, message):
-    """Handles a single Rekall message."""
-
-    if message[0] == "r":
-      result = self.HandleTableRow(self.metadata, message)
-      if result:
-        yield result
-
   @staticmethod
   def HandleTableRow(metadata, message):
     """Handles a table row, converting it if possible."""
 
     row = message[1]
-    try:
-      result = ExportedLinuxSyscallTableEntry(
-          metadata=metadata,
-          table=row["table"],
-          index=row["index"],
-          handler_address=row["address"]["target"],
-          symbol=row["symbol"])
-    except KeyError:
-      return
+    symbols = row.get("symbol", None)
+    if not isinstance(symbols, list):
+      symbols = [symbols]
 
-    return result
+    for symbol in symbols:
+      try:
+        result = ExportedLinuxSyscallTableEntry(
+            metadata=metadata,
+            table=row["table"],
+            index=row["index"],
+            handler_address=row["address"]["target"],
+            symbol=symbol)
+        yield result
+      except KeyError:
+        pass
 
 
 class ExportedRekallLinuxTask(rdf_structs.RDFProtoStruct):
@@ -1585,15 +1567,7 @@ class RekallResponseToExportedRekallLinuxTaskConverter(
     except KeyError:
       return
 
-    return result
-
-  def HandleMessage(self, message):
-    """Handles a single Rekall message."""
-
-    if message[0] == "r":
-      result = self.HandleTableRow(self.metadata, message)
-      if result:
-        yield result
+    yield result
 
 
 class ExportedRekallLinuxTaskOp(rdf_structs.RDFProtoStruct):
@@ -1621,20 +1595,14 @@ class RekallResponseToExportedRekallLinuxTaskOpConverter(
     except KeyError:
       return
 
-    task = RekallResponseToExportedRekallLinuxTaskConverter.HandleTableRow(
+    tasks = RekallResponseToExportedRekallLinuxTaskConverter.HandleTableRow(
         metadata, message)
-    if task:
-      result.task = task
+    tasks = list(tasks)
 
-    return result
+    if tasks:
+      result.task = tasks[0]
 
-  def HandleMessage(self, message):
-    """Handles a single Rekall message."""
-
-    if message[0] == "r":
-      result = self.HandleTableRow(self.metadata, message)
-      if result:
-        yield result
+    yield result
 
 
 class ExportedRekallLinuxProcOp(rdf_structs.RDFProtoStruct):
@@ -1663,15 +1631,7 @@ class RekallResponseToExportedRekallLinuxProcOpConverter(
     except KeyError:
       return
 
-    return result
-
-  def HandleMessage(self, message):
-    """Handles a single Rekall message."""
-
-    if message[0] == "r":
-      result = self.HandleTableRow(self.metadata, message)
-      if result:
-        yield result
+    yield result
 
 
 def GetMetadata(client, token=None):

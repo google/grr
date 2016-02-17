@@ -43,7 +43,7 @@ class TestFileView(FileViewTestBase):
     # Prepare our fixture.
     with self.ACLChecksDisabled():
       self.CreateFileVersions()
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
 
   @staticmethod
   def CreateFileVersions():
@@ -420,7 +420,7 @@ class TestFileView(FileViewTestBase):
           collection_urn, "RDFValueCollection", token=self.token) as fd:
         fd.Add(rdf_client.StatEntry(aff4path="aff4:/some/unique/path"))
 
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Browse Virtual Filesystem')")
@@ -447,7 +447,7 @@ class TestFileView(FileViewTestBase):
           collection_urn, "RDFValueCollection", token=self.token) as fd:
         fd.Add(rdf_client.NetworkConnection(pid=42))
 
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a:contains('Browse Virtual Filesystem')")
@@ -480,7 +480,7 @@ class TestFileView(FileViewTestBase):
           collection_urn, "RDFValueCollection", token=self.token) as fd:
         fd.Add(rdf_client.StatEntry(aff4path="aff4:/some/unique/path"))
 
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.CheckExportTabIsPresent()
 
@@ -492,7 +492,7 @@ class TestFileView(FileViewTestBase):
         fd.Add(file_finder.FileFinderResult(
             stat_entry=rdf_client.StatEntry(aff4path="aff4:/some/unique/path")))
 
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.CheckExportTabIsPresent()
 
@@ -535,7 +535,7 @@ class TestHostInformation(FileViewTestBase):
     self.client_id = "C.0000000000000001"
 
     with self.ACLChecksDisabled():
-      self.GrantClientApproval(self.client_id)
+      self.RequestAndGrantClientApproval(self.client_id)
       with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
         fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.7601"))
 

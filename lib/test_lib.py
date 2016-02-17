@@ -490,26 +490,41 @@ class GRRBaseTest(unittest.TestCase):
     with self.CreateUser(username) as user:
       user.SetLabels("admin", owner="GRR")
 
-  def GrantClientApproval(self, client_id, token=None):
-    token = token or self.token
-
-    # Create the approval and approve it.
+  def RequestClientApproval(self, client_id, token=None, approver="approver"):
+    """Create an approval request to be sent to approver."""
     flow.GRRFlow.StartFlow(client_id=client_id,
                            flow_name="RequestClientApprovalFlow",
                            reason=token.reason,
                            subject_urn=rdf_client.ClientURN(client_id),
-                           approver="approver",
+                           approver=approver,
                            token=token)
 
-    self.CreateAdminUser("approver")
+  def GrantClientApproval(self, client_id, delegate, reason="testing",
+                          approver="approver"):
+    """Grant an approval from approver to delegate.
 
-    approver_token = access_control.ACLToken(username="approver")
+    Args:
+      client_id: ClientURN
+      delegate: username string of the user receiving approval.
+      reason: reason for approval request.
+      approver: username string of the user granting approval.
+    """
+    self.CreateAdminUser(approver)
+
+    approver_token = access_control.ACLToken(username=approver)
     flow.GRRFlow.StartFlow(client_id=client_id,
                            flow_name="GrantClientApprovalFlow",
-                           reason=token.reason,
-                           delegate=token.username,
+                           reason=reason,
+                           delegate=delegate,
                            subject_urn=rdf_client.ClientURN(client_id),
                            token=approver_token)
+
+  def RequestAndGrantClientApproval(self, client_id, token=None,
+                                    approver="approver"):
+    token = token or self.token
+    self.RequestClientApproval(client_id, token=token, approver=approver)
+    self.GrantClientApproval(client_id, token.username, reason=token.reason,
+                             approver=approver)
 
   def GrantHuntApproval(self, hunt_urn, token=None):
     token = token or self.token

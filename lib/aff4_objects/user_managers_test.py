@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 
 
+import os
+
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -14,6 +16,7 @@ from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import user_managers
+from grr.lib.authorization import client_approval_auth
 from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -335,7 +338,7 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest):
                                                 reason="I have one!")
 
     client_id = "aff4:/C.0000000000000001"
-    self.GrantClientApproval(client_id, token=token_with_reason)
+    self.RequestAndGrantClientApproval(client_id, token=token_with_reason)
 
     self.access_manager.CheckClientAccess(token_without_reason, client_id)
     # Check that token's reason got modified in the process:
@@ -502,7 +505,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
                       None, "rw", token)
 
     with test_lib.FakeTime(100.0, increment=1e-3):
-      self.GrantClientApproval(client_id, token)
+      self.RequestAndGrantClientApproval(client_id, token)
 
       # This should work now.
       aff4.FACTORY.Open(urn, mode="rw", token=token)
@@ -528,7 +531,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn,
                       None, "rw", token=token)
 
-    self.GrantClientApproval(client_id, token)
+    self.RequestAndGrantClientApproval(client_id, token)
 
     fd = aff4.FACTORY.Open(urn, None, "rw", token=token)
     fd.Close()
@@ -635,7 +638,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
                       flow_name=test_lib.SendingFlow.__name__,
                       message_count=1, token=token)
 
-    self.GrantClientApproval(client_id, token)
+    self.RequestAndGrantClientApproval(client_id, token)
     sid = flow.GRRFlow.StartFlow(
         client_id=client_id, flow_name=test_lib.SendingFlow.__name__,
         message_count=1, token=token)
@@ -658,7 +661,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     self.assertRaises(access_control.UnauthorizedAccess,
                       aff4.FACTORY.Open, sid, mode="r", token=token)
 
-    self.GrantClientApproval(client_id, token)
+    self.RequestAndGrantClientApproval(client_id, token)
 
     aff4.FACTORY.Open(sid, mode="r", token=token)
 
@@ -668,7 +671,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     token = access_control.ACLToken(username="test", reason="For testing")
     client_id = "C." + "b" * 16
 
-    self.GrantClientApproval(client_id, token)
+    self.RequestAndGrantClientApproval(client_id, token)
 
     sid = flow.GRRFlow.StartFlow(
         client_id=client_id, flow_name=test_lib.SendingFlow.__name__,
@@ -740,7 +743,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
       self.CreateUser("noadmin")
-      self.GrantClientApproval(client_id, token=noadmin_token)
+      self.RequestAndGrantClientApproval(client_id, token=noadmin_token)
 
     with self.assertRaises(access_control.UnauthorizedAccess):
       flow.GRRFlow.StartFlow(flow_name=AdminOnlyFlow.__name__,
@@ -753,7 +756,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
       self.CreateAdminUser("adminuser")
-      self.GrantClientApproval(client_id, token=admin_token)
+      self.RequestAndGrantClientApproval(client_id, token=admin_token)
 
     flow.GRRFlow.StartFlow(flow_name=AdminOnlyFlow.__name__,
                            client_id=client_id, token=admin_token,
@@ -777,7 +780,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
   def testClientFlowWithCategoryCanBeStartedWithClient(self):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
-      self.GrantClientApproval(client_id, token=self.token)
+      self.RequestAndGrantClientApproval(client_id, self.token)
 
     flow.GRRFlow.StartFlow(flow_name=ClientFlowWithCategory.__name__,
                            client_id=client_id, token=self.token, sync=False)
@@ -794,6 +797,162 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
   def testNotEnforcedFlowCanBeStartedGlobally(self):
     flow.GRRFlow.StartFlow(flow_name=NotEnforcedFlow.__name__,
                            token=self.token, sync=False)
+
+
+class ClientApprovalByLabelTests(test_lib.GRRBaseTest):
+  """Integration tests for client approvals by label."""
+
+  install_mock_acl = False
+
+  def setUp(self):
+    super(ClientApprovalByLabelTests, self).setUp()
+
+    # Set up clients and labels before we turn on the FullACM. We need to create
+    # the client because to check labels the client needs to exist.
+    client_ids = self.SetupClients(3)
+    self.client_nolabel = rdf_client.ClientURN(client_ids[0])
+    self.client_legal = rdf_client.ClientURN(client_ids[1])
+    self.client_prod = rdf_client.ClientURN(client_ids[2])
+    with aff4.FACTORY.Open(self.client_legal, aff4_type="VFSGRRClient",
+                           mode="rw", token=self.token) as client_obj:
+      client_obj.AddLabels("legal_approval")
+
+    with aff4.FACTORY.Open(self.client_prod, aff4_type="VFSGRRClient",
+                           mode="rw", token=self.token) as client_obj:
+      client_obj.AddLabels("legal_approval", "prod_admin_approval")
+
+    self.db_manager_stubber = utils.Stubber(
+        data_store.DB, "security_manager",
+        access_control.FullAccessControlManager())
+    self.db_manager_stubber.Start()
+
+    self.approver = test_lib.ConfigOverrider(
+        {"ACL.approvers_config_file": os.path.join(
+            self.base_path, "approvers.yaml")})
+    self.approver.Start()
+
+    # Get a fresh approval manager object and reload with test approvers.
+    self.approval_manager_stubber = utils.Stubber(
+        client_approval_auth, "CLIENT_APPROVAL_AUTH_MGR",
+        client_approval_auth.ClientApprovalAuthorizationManager())
+    self.approval_manager_stubber.Start()
+
+  def tearDown(self):
+    self.db_manager_stubber.Stop()
+    self.approval_manager_stubber.Stop()
+    self.approver.Stop()
+
+  def testClientNoLabels(self):
+    nolabel_urn = self.client_nolabel.Add("/fs")
+    token = access_control.ACLToken(username="test", reason="For testing")
+
+    self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open,
+                      nolabel_urn, aff4_type=None, mode="rw", token=token)
+
+    # approvers.yaml rules don't get checked because this client has no
+    # labels. Regular approvals still required.
+    self.RequestAndGrantClientApproval(self.client_nolabel, token)
+
+    # Check we now have access
+    with aff4.FACTORY.Open(nolabel_urn, aff4_type=None, mode="rw",
+                           token=token):
+      pass
+
+  def testClientApprovalSingleLabel(self):
+    """Client requires an approval from a member of "legal_approval"."""
+    legal_urn = self.client_legal.Add("/fs")
+    token = access_control.ACLToken(username="test", reason="For testing")
+
+    # No approvals yet, this should fail.
+    self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open,
+                      legal_urn, aff4_type=None, mode="rw", token=token)
+
+    self.RequestAndGrantClientApproval(self.client_legal, token)
+    # This approval isn't enough, we need one from legal, so it should still
+    # fail.
+    self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open,
+                      legal_urn, aff4_type=None, mode="rw", token=token)
+
+    # Grant an approval from a user in the legal_approval list in
+    # approvers.yaml
+    self.GrantClientApproval(self.client_legal, token.username,
+                             reason=token.reason, approver="legal1")
+
+    # Check we now have access
+    with aff4.FACTORY.Open(legal_urn, aff4_type=None, mode="rw",
+                           token=token):
+      pass
+
+  def testClientApprovalMultiLabel(self):
+    """Multi-label client approval test.
+
+    This client requires one legal and two prod admin approvals. The requester
+    must also be in the prod admin group.
+    """
+    prod_urn = self.client_prod.Add("/fs")
+    token = access_control.ACLToken(username="prod1", reason="Some emergency")
+
+    # No approvals yet, this should fail.
+    self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open,
+                      prod_urn, aff4_type=None, mode="rw", token=token)
+
+    self.RequestAndGrantClientApproval(self.client_prod, token)
+
+    # This approval from "approver" isn't enough.
+    self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open,
+                      prod_urn, aff4_type=None, mode="rw", token=token)
+
+    # Grant an approval from a user in the legal_approval list in
+    # approvers.yaml
+    self.GrantClientApproval(self.client_prod, token.username,
+                             reason=token.reason, approver="legal1")
+
+    # We have "approver", "legal1": not enough.
+    self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open,
+                      prod_urn, aff4_type=None, mode="rw", token=token)
+
+    # Grant an approval from a user in the prod_admin_approval list in
+    # approvers.yaml
+    self.GrantClientApproval(self.client_prod, token.username,
+                             reason=token.reason, approver="prod2")
+
+    # We have "approver", "legal1", "prod2": not enough.
+    self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open,
+                      prod_urn, aff4_type=None, mode="rw", token=token)
+
+    self.GrantClientApproval(self.client_prod, token.username,
+                             reason=token.reason, approver="prod3")
+
+    # We have "approver", "legal1", "prod2", "prod3": we should have
+    # access.
+    with aff4.FACTORY.Open(prod_urn, aff4_type=None, mode="rw",
+                           token=token):
+      pass
+
+  def testClientApprovalMultiLabelCheckRequester(self):
+    """Requester must be listed as prod_admin_approval in approvals.yaml."""
+    prod_urn = self.client_prod.Add("/fs")
+    token = access_control.ACLToken(username="notprod", reason="cheeky")
+
+    # No approvals yet, this should fail.
+    self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open,
+                      prod_urn, aff4_type=None, mode="rw", token=token)
+
+    # Grant all the necessary approvals
+    self.RequestAndGrantClientApproval(self.client_prod, token)
+    self.GrantClientApproval(self.client_prod, token.username,
+                             reason=token.reason, approver="legal1")
+    self.GrantClientApproval(self.client_prod, token.username,
+                             reason=token.reason, approver="prod2")
+    self.GrantClientApproval(self.client_prod, token.username,
+                             reason=token.reason, approver="prod3")
+
+    # We have "approver", "legal1", "prod2", "prod3" approvals but because
+    # "notprod" user isn't in prod_admin_approval and
+    # requester_must_be_authorized is True it should still fail. This user can
+    # never get a complete approval.
+    self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open,
+                      prod_urn, aff4_type=None, mode="rw", token=token)
 
 
 def main(argv):

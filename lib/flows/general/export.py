@@ -89,7 +89,7 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
 
   args_type = ExportCollectionFilesAsArchiveArgs
 
-  BATCH_SIZE = 1024
+  BATCH_SIZE = 5000
 
   ACL_ENFORCED = False
 
@@ -104,11 +104,12 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
     """Download all files from the collection and deduplicate along the way."""
 
     hashes = set()
+    batch_index = 0
     for fd_urn_batch in utils.Grouper(self.ResultsToUrns(collection),
                                       self.BATCH_SIZE):
-      self.HeartBeat()
 
       for fd in aff4.FACTORY.MultiOpen(fd_urn_batch, token=self.token):
+        self.HeartBeat()
         self.state.total_files += 1
 
         # Any file-like object with data in AFF4 should inherit AFF4Stream.
@@ -127,12 +128,13 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
             st = os.stat_result((0644, 0, 0, 0, 0, 0, fd.size, 0, 0, 0))
             output_writer.WriteFromFD(fd, content_path, st=st)
             hashes.add(sha256_hash)
-            self.Log("Written contents: " + content_path)
 
           up_prefix = "../" * len(fd.urn.Split())
           output_writer.WriteSymlink(up_prefix + content_path, archive_path)
-          self.Log("Written symlink %s -> %s", archive_path,
-                   up_prefix + content_path)
+
+      batch_index += 1
+      self.Log("Processed batch %d (batch size %d).",
+               batch_index, self.BATCH_SIZE)
 
   @flow.StateHandler(next_state="CreateArchive")
   def Start(self):

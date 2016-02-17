@@ -72,7 +72,6 @@ class LoggedACL(object):
 class NullAccessControlManager(access_control.AccessControlManager):
   """An ACL manager which does not enforce any ACLs or check user privilege."""
 
-  # pylint: disable=unused-argument
   def CheckClientAccess(self, token, client_urn):
     """Allow all access."""
     return True
@@ -253,7 +252,7 @@ def CheckFlowAuthorizedLabels(token, flow_name):
 
 
 class BasicAccessControlManager(access_control.AccessControlManager):
-  """Basic ACL manager that does identity and labels checks only.
+  """Basic ACL manager that does identity and user labels checks only.
 
   When accessing clients/hunts/cron jobs/data store, BasicAccessControlManager
   just checks that the token is valid and requested access is valid and,
@@ -669,8 +668,6 @@ class FullAccessControlManager(access_control.AccessControlManager):
       stats.STATS.IncrementCounter("approval_searches",
                                    fields=["with_reason", "data_store"])
       try:
-        # Retrieve the approval object with superuser privileges so we can check
-        # it.
         approval_request = aff4.FACTORY.Open(
             approval_urn, aff4_type=security.Approval.__name__, mode="r",
             token=token, age=aff4.ALL_TIMES)

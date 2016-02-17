@@ -17,11 +17,11 @@ echo "protoc version:"
 protoc --version
 echo "Running make..."
 pwd
-make
+python makefile.py
 
 echo "Compiling artifact files..."
 cd artifacts
 echo "Running make in artifacts dir..."
 pwd
-make
+python makefile.py
 cd -

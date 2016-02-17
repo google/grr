@@ -206,9 +206,9 @@ message User {
 };
 
 
+// Next ID: 33
 message KnowledgeBase {
-
-  repeated User users = 1;
+  repeated User users = 32;
 
   optional string hostname = 2 [(sem_type) = {
       description: "The fully qualified domain name reported by the OS. E.g. "
@@ -301,4 +301,8 @@ message KnowledgeBase {
   optional string domain = 31 [(sem_type) = {
       description: "The domain the machine is connected to. E.g. MICROSOFT.",
     }];
+
+  // This field is deprecated due to a type switch from jobs.User to
+  // knowledge_base.User.
+  repeated bytes DEPRECATED_users = 1;
 }

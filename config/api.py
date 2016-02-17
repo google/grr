@@ -4,9 +4,19 @@
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 
-config_lib.DEFINE_string("API.AuthorizationManager",
-                         "SimpleAPIAuthorizationManager",
-                         "API Authorization manager class to be used")
+config_lib.DEFINE_list("API.access_groups", [],
+                       "Groups allowed to call the AdminUI API. Empty list"
+                       " means anyone can call. Note you MUST replace the "
+                       "lib.authorizations.local.groups.GroupAccess class "
+                       "with a class that can retrieve group information to"
+                       " use this setting.")
+
+config_lib.DEFINE_string("API.access_groups_label", "api_access",
+                         "The access that API.access_groups will be granted. "
+                         "This config option is useful if you have multiple "
+                         "API servers which should be accessed by different "
+                         "API.access_group groups. You likely don't want to "
+                         "change this.")
 
 config_lib.DEFINE_integer("API.DailyFlowRequestLimit", "10",
                           "Number of flows a user can run on a single client "

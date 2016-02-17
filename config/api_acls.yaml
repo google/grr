@@ -4,7 +4,7 @@
 # defined users. If none match, access is denied. Any renderers not listed are
 # available to all authenticated users. Note the format supports groups but
 # you'll need to write your own class to support group expansion, see
-# SimpleAPIAuthorizationManager class documentation.
+# APIAuthorizationManager class documentation.
 #
 # Examples:
 #

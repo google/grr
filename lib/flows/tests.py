@@ -26,6 +26,7 @@ from grr.lib.flows.general import filetypes_test
 from grr.lib.flows.general import find_test
 from grr.lib.flows.general import fingerprint_test
 from grr.lib.flows.general import grep_test
+from grr.lib.flows.general import hardware_test
 from grr.lib.flows.general import memory_test
 from grr.lib.flows.general import network_test
 from grr.lib.flows.general import processes_test

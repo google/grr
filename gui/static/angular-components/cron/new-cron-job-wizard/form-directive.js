@@ -202,13 +202,10 @@ FormController.prototype.onCronJobChange_ = function(newValue) {
   }
 
   var huntRunnerArgs = createHuntFlowArgs['hunt_runner_args']['value'];
-  // Initialize CreateGenericHuntFlowArgs.hunt_runner_args.integer_rules and
-  // regex_rules, if needed.
-  if (angular.isUndefined(huntRunnerArgs['integer_rules'])) {
-   huntRunnerArgs['integer_rules'] = [];
-  }
-  if (angular.isUndefined(huntRunnerArgs['regex_rules'])) {
-    huntRunnerArgs['regex_rules'] = [];
+  // Initialize CreateGenericHuntFlowArgs.hunt_runner_args.client_rule_set
+  if (angular.isUndefined(huntRunnerArgs['client_rule_set'])) {
+    huntRunnerArgs['client_rule_set'] = angular.copy(
+        this.descriptors_['ForemanClientRuleSet']['default']);
   }
 };
 

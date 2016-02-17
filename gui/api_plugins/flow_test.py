@@ -96,6 +96,32 @@ class ApiGetFlowStatusHandlerRegressionTest(
                  replace={flow_id.Basename(): "F:ABCDEF12"})
 
 
+class ApiGetFlowHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiGetFlowHandler."""
+
+  handler = "ApiGetFlowHandler"
+
+  def Run(self):
+    # Fix the time to avoid regressions.
+    with test_lib.FakeTime(42):
+      client_urn = self.SetupClients(1)[0]
+
+      # Delete the certificates as it's being regenerated every time the
+      # client is created.
+      with aff4.FACTORY.Open(client_urn, mode="rw",
+                             token=self.token) as client_obj:
+        client_obj.DeleteAttribute(client_obj.Schema.CERT)
+
+      flow_id = flow.GRRFlow.StartFlow(
+          flow_name=discovery.Interrogate.__name__, client_id=client_urn,
+          token=self.token)
+
+      self.Check("GET", "/api/clients/%s/flows/%s" % (client_urn.Basename(),
+                                                      flow_id.Basename()),
+                 replace={flow_id.Basename(): "F:ABCDEF12"})
+
+
 class ApiListClientFlowsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Test client flows list handler."""

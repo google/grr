@@ -291,6 +291,8 @@ class GetClientStatsAuto(GetClientStats):
   """This class is used to send the reply to a well known flow on the server."""
 
   def Send(self, response):
+    if isinstance(response, rdf_client.ClientStats):
+      response.DownSample()
     self.grr_worker.SendReply(
         response,
         session_id=rdfvalue.SessionID(queue=queues.STATS,

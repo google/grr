@@ -16,7 +16,7 @@ from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.rdfvalues import foreman as rdf_foreman
+from grr.server import foreman as rdf_foreman
 
 
 class TestHuntListener(flow.EventListener):

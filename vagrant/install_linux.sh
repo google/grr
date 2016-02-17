@@ -4,6 +4,7 @@
 # Ubuntu systems as old as Ubuntu Lucid (10.04.4) and CentOS 5.11.
 
 set -e
+set -x
 
 function system_update() {
   if [ $DISTRO == "Ubuntu" ]; then
@@ -143,14 +144,6 @@ function install_python_deps() {
   # get a newer version
   pip2.7 install virtualenv
 
-  if [ $DISTRO == "Ubuntu" ]; then
-    # Required for M2Crypto matplotlib and numpy
-    apt-get --force-yes --yes install swig libpng-dev
-  elif [ $DISTRO == "CentOS" ]; then
-    # Required for matplotlib and numpy
-    yum install -y libpng-devel freetype-devel patch
-  fi
-
   /usr/local/bin/virtualenv -p /usr/local/bin/python2.7 PYTHON_ENV
   source PYTHON_ENV/bin/activate
 
@@ -163,40 +156,6 @@ function install_python_deps() {
   touch PYTHON_ENV/lib/python2.7/site-packages/google/__init__.py
 
 }
-
-function install_sleuthkit() {
-  ${WGET} -O sleuthkit-4.1.3.tar.gz https://sourceforge.net/projects/sleuthkit/files/sleuthkit/4.1.3/sleuthkit-4.1.3.tar.gz/download
-  # Segfault fix: https://github.com/py4n6/pytsk/wiki/Building-SleuthKit
-  ${WGET} https://googledrive.com/host/0B3fBvzttpiiScUxsUm54cG02RDA/tsk4.1.3_external_type.patch
-  tar zxf sleuthkit-4.1.3.tar.gz
-  patch -u -p0 < tsk4.1.3_external_type.patch
-  cd sleuthkit-4.1.3
-  # Exclude some pieces of sleuthkit we don't use
-  ./configure --disable-java --without-libewf --without-afflib
-  make -j4
-  make install
-  ldconfig
-  cd -
-}
-
-function install_pytsk() {
-  ${WGET} https://github.com/py4n6/pytsk/releases/download/20160111.tgz/pytsk-20160111.tgz
-  tar zxf pytsk-20160111.tgz
-  cd pytsk
-  python2.7 setup.py build
-  python2.7 setup.py install
-  cd -
-  # Unzip the egg or pyinstaller won't find the extension.
-  EGG=$(find PYTHON_ENV/ -name "pytsk3*.egg")
-  EGG_DIR=$(dirname "$EGG")
-  EGG_BASE=$(basename "$EGG")
-  cd "$EGG_DIR"
-  unzip -o "$EGG_BASE"
-  rm "$EGG_BASE"
-  cd -
-  python2.7 -c "import pytsk3"
-}
-
 
 # Lucid debhelper is too old to build debs that handle both upstart and init.d
 function install_packagetools() {
@@ -242,10 +201,5 @@ install_wget
 install_python_from_source
 install_protobuf_libs
 install_python_deps
-install_sleuthkit
-install_pytsk
-# TODO: find a way to install yara on linux that actually works on lucid with
-# recent openssl.
-#install_yara
 install_packagetools
 echo "Build environment provisioning complete."

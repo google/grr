@@ -288,9 +288,9 @@ def RepackAllBinaries(upload=False, debug_build=False, token=None):
 
 def SignComponent(component_filename, overwrite=False, token=None):
   """Sign and upload the component to the data store."""
+  print "Signing and uploading component %s" % component_filename
   component = rdf_client.ClientComponent(open(component_filename).read())
-  print "Opened component %s from %s" % (component.summary.name,
-                                         component_filename)
+  print "Opened component %s." % component.summary.name
 
   client_context = ["Platform:%s" % component.build_system.system.title(),
                     "Arch:%s" % component.build_system.arch]
@@ -346,3 +346,18 @@ def SignComponent(component_filename, overwrite=False, token=None):
         signed_component.SerializeToString()))
 
   return component
+
+
+def SignAllComponents(overwrite=False, token=None):
+
+  components_dir = config_lib.CONFIG["ClientBuilder.components_dir"]
+  for root, _, files in os.walk(components_dir):
+    for f in files:
+      if os.path.splitext(f)[1] != ".bin":
+        continue
+
+      component_filename = os.path.join(root, f)
+      try:
+        SignComponent(component_filename, overwrite=overwrite, token=token)
+      except Exception as e:  # pylint: disable=broad-except
+        print "Could not sign component %s: %s" % (component_filename, e)

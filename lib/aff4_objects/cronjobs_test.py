@@ -78,6 +78,12 @@ class DummyStatefulSystemCronJob(cronjobs.StatefulSystemCronFlow):
     self.WriteCronState(state)
 
 
+class DummyDisabledSystemCronJob(DummySystemCronJob):
+  """Disabled system cron job."""
+
+  disabled = True
+
+
 class CronTest(test_lib.AFF4ObjectTest):
   """Tests for cron functionality."""
 
@@ -662,6 +668,20 @@ class CronTest(test_lib.AFF4ObjectTest):
     job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type="CronJob",
                             token=self.token)
     self.assertFalse(job.Get(job.Schema.DISABLED))
+
+  def testSystemCronFlowsWithDisabledAttributeDoNotGetScheduled(self):
+    cronjobs.ScheduleSystemCronFlows(
+        names=[DummyDisabledSystemCronJob.__name__], token=self.token)
+
+    jobs = cronjobs.CRON_MANAGER.ListJobs(token=self.token)
+    dummy_jobs = [j for j in jobs
+                  if j.Basename() == "DummyDisabledSystemCronJob"]
+    self.assertTrue(dummy_jobs)
+
+    # System cron job should be enabled by default.
+    job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type="CronJob",
+                            token=self.token)
+    self.assertTrue(job.Get(job.Schema.DISABLED))
 
   def testSystemCronFlowsMayBeDisabledViaConfig(self):
     with test_lib.ConfigOverrider({

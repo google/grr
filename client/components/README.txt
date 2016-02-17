@@ -93,7 +93,7 @@ Step 4: Finally we build the component binary. This basically installs the
   component into a zip file, and packages it up in a protobuf.
 
 ```
-$ python grr/client/build_client.py --config grr-server.yaml build_component \
+$ python grr/client/client_build.py --config grr-server.yaml build_component \
   grr/client/components/rekall_support/setup.py /tmp/rekall_component.bin
 Building component grr-rekall, Version 0.1
 Creating Virtual Env /tmp/tmpc8ggGP

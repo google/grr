@@ -201,20 +201,29 @@ def GetDeployer(context, signer=None):
 
 
 def GetSigner(context):
-  if args.platform == "windows" and args.subparser_name in ["deploy", "repack",
-                                                            "buildanddeploy"]:
-    print "Enter passphrase for code signing cert:"
-    passwd = getpass.getpass()
-    cert = config_lib.CONFIG.Get(
-        "ClientBuilder.windows_signing_cert", context=context)
-    key = config_lib.CONFIG.Get(
-        "ClientBuilder.windows_signing_key", context=context)
-    app_name = config_lib.CONFIG.Get(
-        "ClientBuilder.windows_signing_application_name", context=context)
-    return signing.WindowsCodeSigner(cert, key, passwd, app_name)
-  else:
-    parser.error("Signing only supported on windows for deploy, repack,"
-                 " buildanddeploy")
+  if args.subparser_name in ["deploy", "repack", "buildanddeploy"]:
+    if args.platform == "windows":
+      print "Enter passphrase for code signing cert:"
+      passwd = getpass.getpass()
+      cert = config_lib.CONFIG.Get(
+          "ClientBuilder.windows_signing_cert", context=context)
+      key = config_lib.CONFIG.Get(
+          "ClientBuilder.windows_signing_key", context=context)
+      app_name = config_lib.CONFIG.Get(
+          "ClientBuilder.windows_signing_application_name", context=context)
+      return signing.WindowsCodeSigner(cert, key, passwd, app_name)
+    elif args.platform == "linux" and args.package_format == "rpm":
+      pub_keyfile = config_lib.CONFIG.Get(
+          "ClientBuilder.rpm_signing_key_public_keyfile", context=context)
+      gpg_name = config_lib.CONFIG.Get(
+          "ClientBuilder.rpm_gpg_name", context=context)
+
+      print "Enter passphrase for code signing key %s:" % (gpg_name)
+      passwd = getpass.getpass()
+      return signing.RPMCodeSigner(passwd, pub_keyfile, gpg_name)
+    else:
+      parser.error("Signing only supported on windows and linux rpms for "
+                   "deploy, repack, buildanddeploy")
 
 
 def TemplateInputFilename(context):
@@ -264,14 +273,13 @@ def BuildAndDeploy(context, signer=None, timestamp=None):
   # Output directory like: 2015-02-13T21:48:47-0800/linux_amd64_deb/
   spec = "_".join((args.platform, args.arch, args.package_format))
   output_dir = os.path.join(config_lib.CONFIG.Get(
-      "ClientBuilder.executables_path", context=context), timestamp, spec)
-
-  component.BuildComponents(output_dir=output_dir)
+      "ClientBuilder.executables_dir", context=context), timestamp, spec)
 
   # If we weren't passed a template, build one
   if args.templatedir:
     template_path = TemplateInputFilename(context)
   else:
+    component.BuildComponents(output_dir=output_dir)
     template_path = os.path.join(output_dir, config_lib.CONFIG.Get(
         "PyInstaller.template_filename", context=context))
     builder_obj = GetBuilder(context)
@@ -437,7 +445,15 @@ def main(_):
   context = flags.FLAGS.context
   context = SetContextFromArgs(context)
   signer = None
+
   if args.sign:
+    if not args.templatedir:
+      raise RuntimeError("Signing must be performed on the host system since "
+                         "that's where the keys are. If you want signed "
+                         "binaries you need to build templates in the vagrant "
+                         "vms then pass the templatedir here to do the repack "
+                         "and sign operation on the host.")
+
     signer = GetSigner(context)
 
   if args.subparser_name == "build":

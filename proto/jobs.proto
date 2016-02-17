@@ -1504,6 +1504,40 @@ message GetClientStatsRequest {
 }
 
 
+// This proto holds rules and the strategy used to evaluate them.
+message ForemanClientRuleSet {
+  enum MatchMode {
+    MATCH_ALL = 0 [(description) = "Match all"];
+    MATCH_ANY = 1 [(description) = "Match any"];
+  }
+
+  // If this is MATCH_ANY then we fire when any rule matches
+  optional MatchMode match_mode = 1 [default=MATCH_ALL];
+
+  repeated ForemanClientRule rules = 2;
+}
+
+// "Base class" proto for foreman client rule protos.
+message ForemanClientRule {
+  option (semantic) = {
+    union_field: "rule_type"
+  };
+
+  enum Type {
+    OS = 0 [(description) = "Operating system"];
+    LABEL = 1 [(description) = "Label"];
+    REGEX = 2 [(description) = "Regex"];
+    INTEGER = 3 [(description) = "Integer"];
+  }
+
+  optional Type rule_type = 1;
+
+  optional ForemanOsClientRule os = 2;
+  optional ForemanLabelClientRule label = 3;
+  optional ForemanRegexClientRule regex = 4;
+  optional ForemanIntegerClientRule integer = 5;
+}
+
 // This rule will fire if the client OS is marked as true in the proto.
 message ForemanOsClientRule {
   optional bool os_windows = 1;
@@ -1552,27 +1586,6 @@ message ForemanIntegerClientRule {
   optional uint64 value = 4;
 }
 
-// "Base class" proto for foreman client rule protos.
-message ForemanClientRule {
-  option (semantic) = {
-    union_field: "rule_type"
-  };
-
-  enum Type {
-    OS = 0 [(description) = "Operating system"];
-    LABEL = 1 [(description) = "Label"];
-    REGEX = 2 [(description) = "Regex"];
-    INTEGER = 3 [(description) = "Integer"];
-  }
-
-  optional Type rule_type = 1;
-
-  optional ForemanOsClientRule os = 2;
-  optional ForemanLabelClientRule label = 3;
-  optional ForemanRegexClientRule regex = 4;
-  optional ForemanIntegerClientRule integer = 5;
-}
-
 // This action happens when the rule fires
 message ForemanRuleAction {
   optional string flow_name = 1;
@@ -1588,18 +1601,6 @@ message ForemanRuleAction {
     }];
   optional uint64 client_limit = 5;
 };
-
-message ForemanClientRuleSet {
-  enum MatchMode {
-    MATCH_ALL = 0 [(description) = "Match all"];
-    MATCH_ANY = 1 [(description) = "Match any"];
-  }
-
-  // If this is MATCH_ANY then we fire when any rule matches
-  optional MatchMode match_mode = 1 [default=MATCH_ALL];
-
-  repeated ForemanClientRule rules = 2;
-}
 
 // [deprecated] The Foreman schedules flows based on these rules firing.
 message ForemanAttributeRegex {
@@ -1643,8 +1644,8 @@ message ForemanRule {
   repeated ForemanAttributeRegex regex_rules = 1;
   repeated ForemanAttributeInteger integer_rules = 2;
 
-  // [NYI] We fire when all these rules match
-  optional ForemanClientRuleSet rules = 7;
+  // We fire when all these rules match
+  optional ForemanClientRuleSet client_rule_set = 7;
 
   // These will all run in case this rule fires
   repeated ForemanRuleAction actions = 3;

@@ -94,9 +94,6 @@ config_lib.DEFINE_semantic(
     rdf_crypto.RDFX509Cert, "Frontend.certificate",
     description="An X509 certificate for the frontend server.")
 
-config_lib.DEFINE_integer("ACL.cache_age", 600, "The number of seconds "
-                          "approval objects live in the cache.")
-
 config_lib.DEFINE_bool("Cron.active", False,
                        "Set to true to run a cron thread on this binary.")
 
@@ -106,19 +103,12 @@ config_lib.DEFINE_list("Cron.enabled_system_jobs", [],
                        "cron flows will be run as system cron jobs. Cannot "
                        "be used together with Cron.disabled_system_jobs.")
 
-config_lib.DEFINE_list("Cron.disabled_system_jobs", ["StatsHuntCronFlow"],
+config_lib.DEFINE_list("Cron.disabled_system_jobs", [],
                        "Normally, all subclasses of SystemCronFlow are "
                        "considered system jobs and run automatically. System "
                        "jobs listed here will not be run. Many system jobs are "
                        "important. Leave empty unless you are sure that you "
                        "know what you are doing.")
-
-config_lib.DEFINE_integer("ACL.approvers_required", 2,
-                          "The number of approvers required for access.")
-
-config_lib.DEFINE_integer("ACL.token_expiry", 7 * 24 * 60 * 60,
-                          "The duration in seconds of a valid approval token. "
-                          "Default of one week.")
 
 config_lib.DEFINE_string("Frontend.bind_address", "::",
                          "The ip address to bind.")
@@ -206,14 +196,18 @@ config_lib.DEFINE_string("AdminUI.new_hunt_wizard.default_output_plugin",
                          "'New Hunt' wizard output plugins selection page.")
 
 config_lib.DEFINE_bool("AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules",
-                       default=False,
+                       default=True,
                        help="If True, the hunt rules configuration UI will put "
-                       "the rules into the 'rules' field of the "
+                       "the rules into the 'client_rule_set' field of the "
                        "'huntRunnerArgs' variable, instead of using "
-                       "'integerRules' and 'regexRules'. Note that further "
-                       "handling this kind of rules is not yet implemented on "
-                       "the server side, so this flag should only be used "
-                       "for testing purposes right now.")
+                       "'integerRules' and 'regexRules'.")
+
+config_lib.DEFINE_bool("AdminUI.new_hunt_wizard."
+                       "use_oo_hunt_rules_in_new_cron_job_wizard",
+                       default=True,
+                       help="This is the same as "
+                       "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules,"
+                       " but regarding the new cron job wizard.")
 
 config_lib.DEFINE_string("Server.master_watcher_class", "DefaultMasterWatcher",
                          "The master watcher class to use.")
@@ -258,6 +252,11 @@ config_lib.DEFINE_string(
     "A single email address or comma separated list of addresses to CC on all "
     "approval emails. Will be added"
     " to all emails and can't be changed or removed by the user.")
+
+config_lib.DEFINE_boolean(
+    "Email.send_approval_emails", True,
+    "Approval emails are sent for approvals in addition to notifications "
+    "in the web UI.")
 
 config_lib.DEFINE_string(
     "Email.approval_optional_cc_address", None,

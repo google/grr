@@ -2,7 +2,10 @@
 """Tests for grr.client.client_actions.grr_rekall."""
 
 
+
 import functools
+import gzip
+import json
 import os
 
 import logging
@@ -20,7 +23,6 @@ from grr.lib.flows.general import memory
 from grr.lib.flows.general import registry
 from grr.lib.flows.general import transfer
 # pylint: enable=unused-import
-from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class RekallTestSuite(test_lib.EmptyActionTest):
@@ -61,28 +63,14 @@ class RekallTestSuite(test_lib.EmptyActionTest):
     with test_lib.ConfigOverrider({"Client.rekall_profile_cache_path":
                                    self.temp_dir}):
       image_path = os.path.join(self.base_path, "win7_trial_64bit.raw")
+      request.device.path = image_path
 
       self.CreateClient()
-      self.CreateSignedDriver()
-
-      class ClientMock(action_mocks.MemoryClientMock):
-        """A mock which returns the image as the driver path."""
-
-        def GetMemoryInformation(self, _):
-          """Mock out the driver loading code to pass the memory image."""
-          reply = rdf_rekall_types.MemoryInformation(
-              device=rdf_paths.PathSpec(
-                  path=image_path,
-                  pathtype=rdf_paths.PathSpec.PathType.OS))
-
-          reply.runs.Append(offset=0, length=1000000000)
-
-          return [reply]
 
       # Allow the real RekallAction to run against the image.
       for _ in test_lib.TestFlowHelper(
           "AnalyzeClientMemory",
-          ClientMock(
+          action_mocks.MemoryClientMock(
               "RekallAction", "WriteRekallProfile", "DeleteGRRTempFiles"
           ),
           token=self.token, client_id=self.client_id,
@@ -93,13 +81,13 @@ class RekallTestSuite(test_lib.EmptyActionTest):
       test_profile_dir = os.path.join(config_lib.CONFIG["Test.data_dir"],
                                       "profiles")
       self.assertEqual(
-          os.stat(os.path.join(self.temp_dir, "v1.0/pe.gz")).st_size,
-          os.stat(os.path.join(test_profile_dir, "v1.0/pe.gz")).st_size)
+          json.load(gzip.open(os.path.join(self.temp_dir, "v1.0/pe.gz"))),
+          json.load(gzip.open(os.path.join(test_profile_dir, "v1.0/pe.gz"))))
 
       p_name = "v1.0/nt/GUID/F8E2A8B5C9B74BF4A6E4A48F180099942.gz"
       self.assertEqual(
-          os.stat(os.path.join(self.temp_dir, p_name)).st_size,
-          os.stat(os.path.join(test_profile_dir, p_name)).st_size)
+          json.load(gzip.open(os.path.join(self.temp_dir, p_name))),
+          json.load(gzip.open(os.path.join(test_profile_dir, p_name))))
 
 
 def RequireTestImage(f):

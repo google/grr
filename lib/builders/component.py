@@ -121,6 +121,14 @@ def BuildComponents(output_dir=None):
       BuildComponent(os.path.join(root, "setup.py"), output_dir=output_dir)
 
 
+def GetVirtualEnvBinary(virtual_env_path, name):
+  interpreter = os.path.join(virtual_env_path, "bin", name)
+  if not os.access(interpreter, os.X_OK):
+    interpreter = os.path.join(virtual_env_path, "Scripts", name)
+
+  return interpreter
+
+
 def BuildComponent(setup_path, output_dir=None):
   """Builds a single component."""
 
@@ -138,10 +146,11 @@ def BuildComponent(setup_path, output_dir=None):
     subprocess.check_call(["virtualenv", tmp_dirname],
                           env=GetCleanEnvironment())
 
-    interpreter = os.path.join(tmp_dirname, "bin/python")
-    if not os.access(interpreter, os.X_OK):
-      interpreter = os.path.join(tmp_dirname, "Scripts/python")
+    subprocess.check_call(
+        [GetVirtualEnvBinary(tmp_dirname, "pip"), "install", "--upgrade",
+         "setuptools"])
 
+    interpreter = GetVirtualEnvBinary(tmp_dirname, "python")
     subprocess.check_call([interpreter, "setup.py", "sdist", "install"],
                           cwd=os.path.dirname(module.__file__),
                           env=GetCleanEnvironment())

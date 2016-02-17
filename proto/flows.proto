@@ -216,8 +216,8 @@ message HuntRunnerArgs {
       "All rules must match."
     }];
 
-  optional ForemanClientRuleSet rules = 18 [(sem_type) = {
-      description: "[NYI] Rules that trigger this hunt."
+  optional ForemanClientRuleSet client_rule_set = 18 [(sem_type) = {
+      description: "Rules that trigger this hunt."
     }];
 
   optional GrrMessage.Priority priority = 5 [(sem_type) = {
@@ -443,7 +443,8 @@ message UpdateConfigurationArgs {
 
 message ExecutePythonHackArgs {
   optional string hack_name = 1 [(sem_type) = {
-      description: "The name of the hack to execute."
+      description: "The path to the hack to execute relative to "
+      "Config.python_hack_root."
     }];
 
   optional Dict py_args = 2 [(sem_type) = {
@@ -1803,4 +1804,16 @@ message DumpProcessMemoryArgs {
     description: "Pause the process while the memory is being collected (use "
                  "with caution).",
   }];
+}
+
+message DumpFlashImageArgs {
+  optional uint32 log_level = 1 [(sem_type) = {
+      description: "Set the log level. If set, the log returned "
+      "will include additional information reported by Chipsec."
+    }];
+  optional uint32 chunk_size = 2 [(sem_type) = {
+      description: "A heartbeat will be emitted every chunk_size."
+      "This could be reduced in case the process times out.",
+      label: ADVANCED,
+    }, default=0x10000];
 }

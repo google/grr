@@ -20,11 +20,11 @@ from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import foreman as rdf_foreman
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
+from grr.server import foreman as rdf_foreman
 
 
 class SpaceSeparatedStringArray(rdfvalue.RDFString):
@@ -466,6 +466,16 @@ class GRRForeman(aff4.AFF4Object):
 
   def _EvaluateRules(self, objects, rule, client_id):
     """Evaluates the rules."""
+    if (rule.integer_rules or rule.regex_rules) and rule.client_rule_set.rules:
+      raise RuntimeError("Both new and deprecated rules are set.")
+
+    if rule.integer_rules or rule.regex_rules:
+      return self._EvaluateDeprecatedRules(objects, rule, client_id)
+
+    return rule.client_rule_set.Evaluate(objects, client_id)
+
+  def _EvaluateDeprecatedRules(self, objects, rule, client_id):
+    """[deprecated] Evaluates the rules."""
     try:
       # Do the attribute regex first.
       for regex_rule in rule.regex_rules:
@@ -568,7 +578,7 @@ class GRRForeman(aff4.AFF4Object):
     except AttributeError:
       last_foreman_run = 0
 
-    latest_rule = max([rule.created for rule in rules])
+    latest_rule = max(rule.created for rule in rules)
 
     if latest_rule <= int(last_foreman_run):
       return 0
@@ -593,11 +603,16 @@ class GRRForeman(aff4.AFF4Object):
         continue
 
       relevant_rules.append(rule)
+
       for regex in rule.regex_rules:
         aff4_object = client_id.Add(regex.path)
         object_urns[str(aff4_object)] = aff4_object
       for int_rule in rule.integer_rules:
         aff4_object = client_id.Add(int_rule.path)
+        object_urns[str(aff4_object)] = aff4_object
+
+      for path in rule.client_rule_set.GetPathsToCheck():
+        aff4_object = client_id.Add(path)
         object_urns[str(aff4_object)] = aff4_object
 
     # Retrieve all aff4 objects we need.

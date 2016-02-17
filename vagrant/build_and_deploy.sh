@@ -34,8 +34,30 @@ if [ "$1" == "windows_7_64" ]; then
     vagrant halt "$1"
   fi
   cd ../../
+  # Repack templates into executables and sign
   PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml --platform windows --sign buildanddeploy --templatedir grr/executables/windows/templates
   cd -
+
+elif [ "$1" == "centos_5.11_64" ] || [ "$1" == "centos_5.11_32" ]; then
+  # Treat RPMs differently because we want to sign them.
+
+  which rpmsign
+  if [ $? -ne 0 ]; then
+    echo "Missing rpmsign, required to sign RPMs."
+    exit 1
+  fi
+
+  vagrant up "$1"
+  vagrant ssh -c "cd /grr/ && PROTO_SRC_ROOT=$PROTO_SRC_INSTALLED make && cd / && source ~/PYTHON_ENV/bin/activate && PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml build" "$1"
+  vagrant ssh -c "cd /grr/ && PROTO_SRC_ROOT=$PROTO_SRC_INSTALLED make && cd / && source ~/PYTHON_ENV/bin/activate && PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml build_components" "$1"
+  if [ $? -eq 0 ]; then
+    vagrant halt "$1"
+  fi
+  cd ../../
+  # Repack templates into executables and sign
+  PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml --platform linux --package_format rpm --sign buildanddeploy --templatedir grr/executables/linux/templates
+  cd -
+
 else
   vagrant up "$1"
   # We need to compile the protos inside the build environment because the host

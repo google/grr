@@ -17,6 +17,7 @@ from grr.lib.rdfvalues import crypto_test
 from grr.lib.rdfvalues import data_store_test
 from grr.lib.rdfvalues import filestore_test
 from grr.lib.rdfvalues import flows_test
+from grr.lib.rdfvalues import foreman_test
 from grr.lib.rdfvalues import paths_test
 from grr.lib.rdfvalues import protodict_test
 from grr.lib.rdfvalues import standard_test

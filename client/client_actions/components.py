@@ -49,7 +49,7 @@ class Site(object):
     known_paths = self.InitPathinfo()
     sitedir, sitedircase = self.MakePath(sitedir)
 
-    if sitedircase not in known_paths:
+    if sitedircase not in known_paths and os.path.exists(sitedir):
       sys.path.append(sitedir)
     try:
       names = os.listdir(sitedir)
@@ -92,21 +92,9 @@ class LoadComponent(actions.ActionPlugin):
 
   def LoadComponent(self, summary):
     """Import all the required modules as specified in the request."""
-    # The GRR client runs in a frozen environment, components
-    # don't. Some libraries change their behavior based on _MEIPASS
-    # being present so we need to remove it while importing components.
-    try:
-      old_meipass = sys._MEIPASS  # pylint: disable=protected-access
-      del sys._MEIPASS
-    except AttributeError:
-      old_meipass = None
-    try:
-      for mod_name in summary.modules:
-        logging.debug("Will import %s", mod_name)
-        importlib.import_module(mod_name)
-    finally:
-      if old_meipass:
-        sys._MEIPASS = old_meipass  # pylint: disable=protected-access
+    for mod_name in summary.modules:
+      logging.debug("Will import %s", mod_name)
+      importlib.import_module(mod_name)
 
   def Run(self, request):
     """Load the component requested.

@@ -5,6 +5,13 @@ goog.provide('grrUi.cron.cronJobsListDirective.CronJobsListDirective');
 
 goog.scope(function() {
 
+/** @const {string} */
+grrUi.cron.cronJobsListDirective.
+    USE_OO_HUNT_RULES_IN_NEW_CRON_JOB_WIZARD_URL = '/config/AdminUI.' +
+    'new_hunt_wizard.use_oo_hunt_rules_in_new_cron_job_wizard';
+var USE_OO_HUNT_RULES_IN_NEW_CRON_JOB_WIZARD_URL =
+    grrUi.cron.cronJobsListDirective.
+    USE_OO_HUNT_RULES_IN_NEW_CRON_JOB_WIZARD_URL;
 
 /**
  * Controller for CronJobsListDirective.
@@ -13,10 +20,11 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
  * @param {!grrUi.core.timeService.TimeService} grrTimeService
+ * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
 grrUi.cron.cronJobsListDirective.CronJobsListController = function(
-    $scope, $modal, grrTimeService) {
+    $scope, $modal, grrTimeService, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -25,6 +33,9 @@ grrUi.cron.cronJobsListDirective.CronJobsListController = function(
 
   /** @private {!grrUi.core.timeService.TimeService} */
   this.timeService_ = grrTimeService;
+
+  /** @private {!grrUi.core.apiService.ApiService} */
+  this.grrApiService_ = grrApiService;
 
   /** @type {!Object<string, Object>} */
   this.cronJobsByUrn = {};
@@ -39,6 +50,18 @@ grrUi.cron.cronJobsListDirective.CronJobsListController = function(
    * @export {function()}
    */
   this.triggerUpdate;
+
+  /** {private} */
+  this.ooCronHuntsEnabled;
+
+  this.grrApiService_.get(USE_OO_HUNT_RULES_IN_NEW_CRON_JOB_WIZARD_URL).
+      then(function(response) {
+    this.ooCronHuntsEnabled = response['data']['value']['value'];
+    if (angular.isString(this.ooCronHuntsEnabled)) {
+      throw new Error('Got a string where boolean/integer was expected.');
+    }
+    this.ooCronHuntsEnabled = Boolean(this.ooCronHuntsEnabled);
+  }.bind(this));
 
   // Push the selection changes back to the scope, so that other UI components
   // can react on the change.
@@ -128,8 +151,11 @@ CronJobsListController.prototype.newCronJob = function() {
   });
   modalScope.result = {};
 
+  var tagName = 'grr-new-cron-job-' +
+      (this.ooCronHuntsEnabled ? '' : 'deprecated-') + 'wizard-form';
+
   var modalInstance = this.modal_.open({
-    template: '<grr-new-cron-job-wizard-form on-resolve="resolve()" ' +
+    template: '<' + tagName + ' on-resolve="resolve()" ' +
         'on-reject="reject()" cron-job="result.cronJob" />',
     scope: modalScope,
     windowClass: 'wide-modal high-modal',

@@ -1262,10 +1262,13 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(DynamicRekallResponseConverterTest, self).setUp()
-
-    self.rekall_session = grr_rekall.GrrRekallSession(action=self)
-    self.renderer = self.rekall_session.GetRenderer()
     self.messages = []
+    inventory = rdf_rekall_types.RekallProfile(
+        name="inventory", data='{"$INVENTORY": {}}', version="1", compression=0)
+
+    self.rekall_session = grr_rekall.GrrRekallSession(
+        action=self, initial_profiles=[inventory])
+    self.renderer = self.rekall_session.GetRenderer()
 
     self.converter = export.DynamicRekallResponseConverter()
 
@@ -1647,7 +1650,61 @@ class ExportedLinuxSyscallTableEntryConverterTest(
         index=198,
         handler_address=281472847827136,
         symbol="linux!SyS_lchown")
+    self.assertEqual(list(converted_values)[0], model)
+
+  def testConvertsSyscallEntriesWithMultipleSymbolNames(self):
+    messages = [[
+        "r",
+        {
+            u"address": {
+                u"id": 33509,
+                u"mro": u"Pointer:NativeType:NumericProxyMixIn:"
+                        "BaseObject:object",
+                u"name": u"Array[354] ",
+                u"offset": 281472854435760,
+                u"target": 281472847114896,
+                u"target_obj": {
+                    u"id": 33516,
+                    u"mro": u"Function:BaseAddressComparisonMixIn:"
+                            "BaseObject:object",
+                    u"name": u"Array[354] ",
+                    u"offset": 281472847114896,
+                    u"type_name": u"Function",
+                    u"vm": u"AMD64PagedMemory"
+                },
+                u"type_name": u"Pointer",
+                u"vm": u"AMD64PagedMemory"
+            },
+            u"highlight": None,
+            u"index": 354,
+            u"symbol": [u"linux!SyS_seccomp", u"linux!sys_seccomp"],
+            u"table": u"ia32_sys_call_table"
+        }
+    ]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="check_syscall", json_messages=json.dumps(messages))
+    metadata = export.ExportedMetadata()
+    converted_values = list(self.converter.Convert(metadata,
+                                                   rekall_response,
+                                                   token=self.token))
+    self.assertEqual(len(converted_values), 2)
+
+    model = export.ExportedLinuxSyscallTableEntry(
+        metadata=metadata,
+        table="ia32_sys_call_table",
+        index=354,
+        handler_address=281472847114896,
+        symbol="linux!SyS_seccomp")
     self.assertEqual(converted_values[0], model)
+
+    model = export.ExportedLinuxSyscallTableEntry(
+        metadata=metadata,
+        table="ia32_sys_call_table",
+        index=354,
+        handler_address=281472847114896,
+        symbol="linux!sys_seccomp")
+    self.assertEqual(converted_values[1], model)
 
   def testIgnoresIncompatibleMessage(self):
     messages = [[

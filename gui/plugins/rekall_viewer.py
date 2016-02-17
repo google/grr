@@ -9,7 +9,7 @@ import json
 import re
 
 from django.utils import html as django_html
-
+from rekall import session
 from rekall.ui import json_renderer
 
 import logging
@@ -123,23 +123,21 @@ class GRRPointerObjectRenderer(GRRRekallViewerObjectRenderer):
 
   def RawHTML(self, item, **_):
     """Renders the object the pointer points to."""
-    return RenderRekallObject(item["target_obj"])
+    return RenderRekallObject(self.renderer, item["target_obj"])
 
 
-def RenderRekallObject(obj, **options):
+def RenderRekallObject(renderer, obj, **options):
   """Renders encoded Rekall object with an appropriate renderer."""
+  object_renderer = json_renderer.JsonObjectRenderer.FromEncoded(
+      obj, renderer)(renderer)
+  return object_renderer.RawHTML(obj, **options)
 
-  renderer = json_renderer.JsonObjectRenderer.FromEncoded(
-      obj, "GRRRekallViewerRenderer")("GRRRekallViewerRenderer")
-  return renderer.RawHTML(obj, **options)
 
-
-def GetRekallObjectSummary(obj):
+def GetRekallObjectSummary(renderer, obj):
   """Returns summary string for a given encoded Rekall object."""
-
-  renderer = json_renderer.JsonObjectRenderer.FromEncoded(
-      obj, "GRRRekallViewerRenderer")("GRRRekallViewerRenderer")
-  return utils.SmartStr(renderer.Summary(obj))
+  object_renderer = json_renderer.JsonObjectRenderer.FromEncoded(
+      obj, renderer)(renderer)
+  return utils.SmartStr(object_renderer.Summary(obj))
 
 
 class RekallTable(renderers.TemplateRenderer):
@@ -175,10 +173,12 @@ class RekallTable(renderers.TemplateRenderer):
 
   def AddRow(self, data):
     row = []
+    renderer = GRRRekallViewerRenderer(session.Session())
+
     for column in self.column_specs:
       column_name = column.get("cname", column.get("name"))
       item = data.get(column_name)
-      row.append(RenderRekallObject(item, **column))
+      row.append(RenderRekallObject(renderer, item, **column))
 
     self.rows.append(row)
 
@@ -272,6 +272,7 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
         return
 
     output_directories = set()
+    renderer = GRRRekallViewerRenderer(session.Session())
 
     for rekall_response in collection:
       for statement in json.loads(rekall_response.json_messages):
@@ -305,7 +306,7 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
             # It's ok to reference args[arg_pos] as FormatCallback is only
             # used in the next re.sub() call and nowhere else.
             arg = args[arg_pos]  # pylint: disable=cell-var-from-loop
-            return GetRekallObjectSummary(arg)
+            return GetRekallObjectSummary(renderer, arg)
 
           rendered_free_text = re.sub(r"\{(\d+)(?:\:.+?\}|\})", FormatCallback,
                                       format_string)

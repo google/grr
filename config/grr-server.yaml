@@ -170,8 +170,6 @@ ClientBuilder Context:
     # This is where the pyinstaller svn checkout lives on the build server.
     PyInstaller.path: C:\\grr_build\\pyinstaller\\pyinstaller.py
 
-    ClientBuilder.make_command: C:\\tools\\cygwin\\bin\\make.exe
-
   # This indicates that we are building a client for debugging.
   DebugClientBuild Context:
 
@@ -352,4 +350,3 @@ Worker Context:
 DataServer Context:
 # By default use an sqlite backend.
   Datastore.implementation: SqliteDataStore
-

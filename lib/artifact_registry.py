@@ -14,6 +14,7 @@ from grr.lib import artifact_utils
 from grr.lib import objectfilter
 from grr.lib import parsers
 from grr.lib import rdfvalue
+from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs
@@ -103,7 +104,7 @@ class ArtifactRegistry(object):
       try:
         artifact_value = Artifact(**artifact_dict)
         valid_artifacts.append(artifact_value)
-      except (TypeError, AttributeError) as e:
+      except (TypeError, AttributeError, type_info.TypeValueError) as e:
         raise ArtifactDefinitionError(
             "Invalid artifact definition for %s: %s" %
             (artifact_dict.get("name"), e))

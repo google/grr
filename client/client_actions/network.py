@@ -40,8 +40,8 @@ class Netstat(actions.ActionPlugin):
           logging.warn("Encountered unknown connection status (%s).",
                        conn.status)
 
-        res.local_address.ip, res.local_address.port = conn.local_address
-        if conn.remote_address:
-          res.remote_address.ip, res.remote_address.port = conn.remote_address
+        res.local_address.ip, res.local_address.port = conn.laddr
+        if conn.raddr:
+          res.remote_address.ip, res.remote_address.port = conn.raddr
 
         self.SendReply(res)

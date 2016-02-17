@@ -1,0 +1,12 @@
+label: "legal_approval"
+users:
+  - "legal1"
+  - "legal2"
+---
+label: "prod_admin_approval"
+requester_must_be_authorized: True
+num_approvers_required: 2
+users:
+  - "prod1"
+  - "prod2"
+  - "prod3"

@@ -2,6 +2,8 @@
 """RDFValues used to communicate with the Rekall memory analysis framework."""
 
 
+import gzip
+import StringIO
 import zlib
 
 import rekall_pb2
@@ -63,3 +65,10 @@ class ZippedJSONBytes(rdfvalue.RDFZippedBytes):
 
 class RekallProfile(rdf_structs.RDFProtoStruct):
   protobuf = rekall_pb2.RekallProfile
+
+  @property
+  def payload(self):
+    if self.compression == "GZIP":
+      return gzip.GzipFile(fileobj=StringIO.StringIO(self.data)).read()
+
+    return self.data

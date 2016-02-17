@@ -60,7 +60,7 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     # Create a new collection
     with self.ACLChecksDisabled():
       self.CreateTimelineFixture()
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
 
   def testTimelineViewer(self):
     # Open the main page

@@ -19,13 +19,14 @@ class MyBuild(build_py):
   def run(self):
     # Compile the protobufs.
     base_dir = os.getcwd()
-    subprocess.check_call(["make"], shell=True)
+    subprocess.check_call(
+        ["python", "makefile.py"], shell=True)
 
     # Sync the artifact repo with upstream. While grr can function with no
     # artifacts, for interrogate to work we need the core artifacts to be
     # present. Retrieving the artifacts requires internet access.
-    os.chdir("artifacts")
-    returncode = subprocess.call(["make"], shell=True)
+    returncode = subprocess.call(
+        ["python", "makefile.py"], cwd="artifacts", shell=True)
 
     if returncode != 0:
       if glob.glob("*.yaml"):

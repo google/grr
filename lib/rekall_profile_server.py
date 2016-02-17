@@ -105,6 +105,7 @@ class RekallRepositoryProfileServer(ProfileServer):
                        profile_data[:100])
     return rdf_rekall_types.RekallProfile(name=profile_name,
                                           version=version,
+                                          compression="GZIP",
                                           data=profile_data)
 
 

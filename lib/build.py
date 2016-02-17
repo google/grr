@@ -17,7 +17,7 @@ import zipfile
 # This is a workaround so we don't need to maintain the whole PyInstaller
 # codebase as a full-fledged dependency.
 try:
-  from PyInstaller import main as PyInstallerMain
+  from PyInstaller import __main__ as PyInstallerMain
 except ImportError:
   # We ignore this failure since most people running the code don't build their
   # own clients and printing an error message causes confusion.  Those building
@@ -74,16 +74,6 @@ class ClientBuilder(BuilderBase):
   operating system.
   """
 
-  def MakeProto(self):
-    """Make sure our protos have been compiled to python libraries."""
-    cmd = [config_lib.CONFIG.Get("ClientBuilder.make_command",
-                                 context=self.context)]
-    cwd = os.path.join(
-        config_lib.CONFIG.Get("ClientBuilder.source", context=self.context),
-        "grr")
-    logging.info("Compiling protos with %s in dir: %s", cmd, cwd)
-    subprocess.check_call(cmd, cwd=cwd)
-
   def MakeBuildDirectory(self):
     """Prepares the build directory."""
     # Create the build directory and let pyinstaller loose on it.
@@ -94,7 +84,6 @@ class ClientBuilder(BuilderBase):
 
     self.CleanDirectory(self.build_dir)
     self.CleanDirectory(self.work_path)
-    self.MakeProto()
 
   def CleanDirectory(self, directory):
     logging.info("Clearing directory %s", directory)
@@ -136,6 +125,15 @@ class ClientBuilder(BuilderBase):
             str(self.spec_file)]
     logging.info("Running pyinstaller: %s", args)
     PyInstallerMain.run(pyi_args=[utils.SmartStr(x) for x in args])
+
+    # Clear out some crud that pyinstaller includes.
+    for path in ["tcl", "tk", "pytz"]:
+      dir_path = os.path.join(self.output_dir, path)
+      try:
+        shutil.rmtree(dir_path)
+        os.mkdir(dir_path)
+      except OSError:
+        pass
 
     with open(os.path.join(self.output_dir, "build.yaml"), "w") as fd:
       fd.write("Client.build_environment: %s\n" %
@@ -375,8 +373,13 @@ class WindowsClientDeployer(ClientDeployer):
     client_bin_name = config_lib.CONFIG.Get(
         "Client.binary_name", context=context)
 
+    extension = ""
+    if ("windows" ==
+        config_lib.CONFIG.Get("Client.platform", context=context)):
+      extension = ".exe"
+
     # The template always has the same binary name.
-    bin_name = z_template.getinfo("grr-client")
+    bin_name = z_template.getinfo("grr-client" + extension)
     bin_dat = cStringIO.StringIO()
     bin_dat.write(z_template.read(bin_name))
 
@@ -707,6 +710,10 @@ class LinuxClientDeployer(ClientDeployer):
 class CentosClientDeployer(LinuxClientDeployer):
   """Repackages Linux RPM templates."""
 
+  def Sign(self, rpm_filename):
+    if self.signer:
+      return self.signer.AddSignatureToRPM(rpm_filename)
+
   def MakeDeployableBinary(self, template_path, output_path=None):
     """This will add the config to the client template and create a .rpm."""
     if output_path is None:
@@ -828,6 +835,7 @@ class CentosClientDeployer(LinuxClientDeployer):
       shutil.move(rpm_filename, output_path)
 
       logging.info("Created package %s", output_path)
+      self.Sign(output_path)
       return output_path
 
 

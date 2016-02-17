@@ -37,7 +37,7 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
   def testArtifactRendering(self):
     self.Open("/")
     with self.ACLChecksDisabled():
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
     self.Open("/")
 
     self.Type("client_query", "C.0000000000000001")

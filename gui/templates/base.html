@@ -5,7 +5,6 @@
 <link rel="stylesheet" type="text/css" href="/static/third-party/third-party.bundle.css?timestamp={{timestamp|escape}}" />
 <script src="/static/third-party/third-party.bundle.js?timestamp={{timestamp|escape}}"></script>
 {% else %}
-<link rel="stylesheet" href="/static/css/smoothness/jquery-ui-1.7.2.custom.css" type="text/css" media="screen" title="smoothness" />
 <link rel="stylesheet" type="text/css" href="/static/third-party/jquery-splitter-1.1/splitter.css" />
 <link rel="stylesheet" type="text/css" href="/static/third-party/bootstrap-1.3/bootstrap.css" media="screen" />
 <link rel="stylesheet" type="text/css" href="static/third-party/angular-ui-select-0.11.2/select.css" />
@@ -48,8 +47,8 @@
   grrUi.templates.module.value('forceCachedTemplates', true);
 </script>
 {% else %}
-<link rel="stylesheet" href="/static/third-party/jstree/themes/default/style.css" type="text/css" />
-<link rel="stylesheet" href="/static/css/grr.css" type="text/css" media="screen" />
+<link rel="stylesheet" type="text/css" href="/static/third-party/jstree/themes/default/style.css" />
+<link rel="stylesheet" type="text/css" href="/static/grr-ui.bundle.css?timestamp={{timestamp|escape}}" />
 <script src="/static/javascript/closure/base.js"></script>
 <script src="/static/javascript/closure/deps.js"></script>
 <script src="/local/static/javascript/closure/deps.js"></script>

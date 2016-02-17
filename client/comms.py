@@ -337,7 +337,7 @@ class HTTPManager(object):
         if self.active_base_url is not None:
           # Propagate 406 immediately without retrying, as 406 is a valid
           # response that inidicate a need for enrollment.
-          if e.code == 406:
+          if getattr(e, "code", None) == 406:
             raise
 
           if self.consecutive_connection_errors >= self.retry_error_limit:

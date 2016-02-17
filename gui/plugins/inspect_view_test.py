@@ -59,14 +59,14 @@ class TestClientLoadView(TestInspectViewBase):
 
   def testNoClientActionIsDisplayed(self):
     with self.ACLChecksDisabled():
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.Open("/#c=C.0000000000000001&main=ClientLoadView")
     self.WaitUntil(self.IsTextPresent, "No actions currently in progress.")
 
   def testNoClientActionIsDisplayedWhenFlowIsStarted(self):
     with self.ACLChecksDisabled():
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.Open("/#c=C.0000000000000001&main=ClientLoadView")
     self.WaitUntil(self.IsTextPresent, "No actions currently in progress.")
@@ -76,7 +76,7 @@ class TestClientLoadView(TestInspectViewBase):
 
   def testClientActionIsDisplayedWhenItReceiveByTheClient(self):
     with self.ACLChecksDisabled():
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
       self.CreateLeasedClientRequest(token=self.token)
 
     self.Open("/#c=C.0000000000000001&main=ClientLoadView")
@@ -90,7 +90,7 @@ class TestDebugClientRequestsView(TestInspectViewBase):
   def testInspect(self):
     """Test the inspect UI."""
     with self.ACLChecksDisabled():
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.Open("/")
 

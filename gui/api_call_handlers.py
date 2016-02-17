@@ -3,8 +3,6 @@
 
 
 
-import logging
-
 
 from grr.gui import api_auth_manager
 from grr.gui import api_call_handler_base
@@ -13,11 +11,6 @@ from grr.gui import api_call_handler_base
 from grr.gui import api_plugins
 # pylint: enable=unused-import
 from grr.gui import api_value_renderers
-# pylint:disable=unused-import
-# Import any local auth_managers.
-from grr.gui import local_auth_managers
-# pylint: enable=unused-import
-from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
@@ -49,7 +42,7 @@ API_AUTH_MGR = None
 
 
 class APIACLInit(registry.InitHook):
-  pre = ["StatsInit"]
+  pre = ["StatsInit", "GroupAccessManagerInit"]
 
   def RunOnce(self):
     stats.STATS.RegisterCounterMetric("grr_api_auth_success",
@@ -58,10 +51,7 @@ class APIACLInit(registry.InitHook):
                                       fields=[("handler", str), ("user", str)])
 
     global API_AUTH_MGR
-    auth_mgr_cls = config_lib.CONFIG["API.AuthorizationManager"]
-    logging.debug("Using API auth manager: %s", auth_mgr_cls)
-    API_AUTH_MGR = api_auth_manager.SimpleAPIAuthorizationManager.classes[
-        auth_mgr_cls]()
+    API_AUTH_MGR = api_auth_manager.APIAuthorizationManager()
 
     # Quickly validate the list of handlers.
     for handler in API_AUTH_MGR.ACLedHandlers():

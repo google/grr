@@ -143,8 +143,12 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
   Note: you need raw access to run this flow as it requires running a worker.
   """
   # Empty token, only works with raw access.
-  token = access_control.ACLToken(username="GRRConsole")
   queue = rdfvalue.RDFURN("DEBUG-%s-" % getpass.getuser())
+  if "token" in kwargs:
+    token = kwargs.pop("token")
+  else:
+    token = access_control.ACLToken(username="GRRConsole")
+
   session_id = flow.GRRFlow.StartFlow(client_id=client_id,
                                       flow_name=flow_name, queue=queue,
                                       token=token, **kwargs)

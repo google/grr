@@ -53,7 +53,6 @@ def InstallerNotifyServer():
       ca_cert=config_lib.CONFIG["CA.certificate"],
       private_key=config_lib.CONFIG.Get("Client.private_key"))
 
-  client.EstablishConnection()
   client.client_worker.SendReply(
       session_id=rdf_flows.FlowSessionID(flow_name="InstallationFailed"),
       message_type=rdf_flows.GrrMessage.Type.STATUS,

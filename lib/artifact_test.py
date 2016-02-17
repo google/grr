@@ -248,7 +248,6 @@ sources:
     content_regex_list: ["stuff"]
 supported_os: [Linux]
 """
-
     with self.assertRaises(artifact_registry.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content, token=self.token)
 
@@ -262,9 +261,44 @@ sources:
     content_regex_list: ["stuff"]
 supported_os: [Linux]
 """
+    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
+      artifact.UploadArtifactYamlFile(content, token=self.token)
+
+  def testUploadArtifactYamlFileMissingNamesAttribute(self):
+    content = """name: BadGroupMissingNames
+doc: broken
+sources:
+- type: ARTIFACT_GROUP
+  attributes:
+    - 'One'
+    - 'Two'
+supported_os: [Linux]
+"""
 
     with self.assertRaises(artifact_registry.ArtifactDefinitionError):
       artifact.UploadArtifactYamlFile(content, token=self.token)
+
+  def testCommandArgumentOrderIsPreserved(self):
+    content = """name: CommandOrder
+doc: here's the doc
+sources:
+- type: COMMAND
+  attributes:
+    args: ["-L", "-v", "-n"]
+    cmd: /sbin/iptables
+supported_os: [Linux]
+"""
+    artifact.UploadArtifactYamlFile(content, token=self.token)
+    artifact_obj = artifact_registry.REGISTRY.GetArtifacts(
+        name_list=["CommandOrder"]).pop()
+    arglist = artifact_obj.sources[0].attributes.get("args")
+    self.assertEqual(arglist, ["-L", "-v", "-n"])
+
+    # Check serialize/deserialize doesn't change order.
+    serialized = artifact_obj.SerializeToString()
+    artifact_obj = artifact_registry.Artifact(serialized)
+    arglist = artifact_obj.sources[0].attributes.get("args")
+    self.assertEqual(arglist, ["-L", "-v", "-n"])
 
 
 class ArtifactFlowLinuxTest(ArtifactTest):

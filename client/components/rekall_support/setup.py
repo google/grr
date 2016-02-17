@@ -4,6 +4,7 @@ __author__ = "Michael Cohen <scudette@gmail.com>"
 
 from setuptools import setup
 
+
 setup_args = dict(
     name="grr-rekall",
     version="0.1",
@@ -25,7 +26,9 @@ setup_args = dict(
         "rekall_pb2",
     ],
     dependency_links=[
-        ("http://images.rekall-forensic.com/share/rekall-core-1.5.0.tar.gz"
+        ("https://storage.googleapis.com/grr_releases/capstone-3.0.4.tar.gz"
+         "#egg=capstone-3.0.4"),
+        ("https://storage.googleapis.com/grr_releases/rekall-core-1.5.0.tar.gz"
          "#egg=rekall-core-1.5")
     ],
     install_requires=[

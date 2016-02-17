@@ -98,17 +98,30 @@ class WindowsClientBuilder(build.ClientBuilder):
                                        default=None, context=self.context)
 
     if vs_arch is None or env_script is None or not os.path.exists(env_script):
-      raise RuntimeError("no such Visual Studio script: %s" % env_script)
+      # Visual Studio is not installed. We just use pre-built binaries in that
+      # case.
+      logging.warn("Visual Studio does not appear to be installed, "
+                   "Falling back to prebuilt GRRNanny binaries."
+                   "If you want to build it you must have VS 2012 installed.")
 
-    subprocess.check_call(
-        "cmd /c \"\"%s\" && msbuild /p:Configuration=%s;Platform=%s\"" % (
-            env_script, build_type, vs_arch), cwd=self.nanny_dir)
+      binaries_dir = config_lib.CONFIG.Get(
+          "ClientBuilder.nanny_prebuilt_binaries", context=self.context)
 
-    # The templates always contain the same filenames - the deploy step might
-    # rename them later.
-    shutil.copy(
-        os.path.join(self.nanny_dir, vs_arch, build_type, "GRRNanny.exe"),
-        os.path.join(self.output_dir, "GRRservice.exe"))
+      shutil.copy(
+          os.path.join(binaries_dir, "GRRNanny_%s.exe" % vs_arch),
+          os.path.join(self.output_dir, "GRRservice.exe"))
+
+    else:
+      # Lets build the nanny with the VS env script.
+      subprocess.check_call(
+          "cmd /c \"\"%s\" && msbuild /p:Configuration=%s;Platform=%s\"" % (
+              env_script, build_type, vs_arch), cwd=self.nanny_dir)
+
+      # The templates always contain the same filenames - the deploy step might
+      # rename them later.
+      shutil.copy(
+          os.path.join(self.nanny_dir, vs_arch, build_type, "GRRNanny.exe"),
+          os.path.join(self.output_dir, "GRRservice.exe"))
 
   def BuildWithPyInstaller(self):
     """Use pyinstaller to build a client package."""

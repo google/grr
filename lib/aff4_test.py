@@ -24,9 +24,9 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.lib.rdfvalues import foreman as rdf_foreman
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.server import foreman as rdf_foreman
 
 
 class MockNotificationRule(aff4.AFF4NotificationRule):

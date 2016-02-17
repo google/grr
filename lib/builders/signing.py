@@ -102,3 +102,45 @@ class WindowsCodeSigner(CodeSigner):
 
     return out_filename
 
+
+class RPMCodeSigner(CodeSigner):
+  """Class to handle signing built RPMs signing."""
+
+  def __init__(self, password, public_key_file, gpg_name):
+    self.password = password
+    self.gpg_name = gpg_name
+    try:
+      subprocess.check_call(["rpm", "--import", public_key_file])
+    except subprocess.CalledProcessError:
+      logging.exception("Couldn't import public key %s" % public_key_file)
+      raise SigningError("Couldn't import public key %s" % public_key_file)
+
+  def AddSignatureToRPM(self, rpm_filename):
+    """Sign RPM with rpmsign."""
+    args = [
+        "--define=%%_gpg_name %s" % self.gpg_name,
+        "--addsign",
+        rpm_filename]
+
+    try:
+      output_log = cStringIO.StringIO()
+      rpmsign = pexpect.spawn("rpmsign", args)
+      # Use logfile_read so we don't get the password we're injecting.
+      rpmsign.logfile_read = output_log
+      rpmsign.expect("Enter pass phrase:")
+      rpmsign.sendline(self.password)
+      rpmsign.wait()
+    except pexpect.ExceptionPexpect:
+      output_log.seek(0)
+      logging.exception(output_log.read())
+      raise
+
+    try:
+      # Expected output is: filename.rpm: rsa sha1 (md5) pgp md5 OK
+      output = subprocess.check_output(["rpm", "--checksig", rpm_filename])
+      if "pgp" not in output:
+        raise SigningError("PGP missing checksig %s" % rpm_filename)
+    except subprocess.CalledProcessError:
+      logging.exception("Bad signature verification on %s" % rpm_filename)
+      raise SigningError("Bad signature verification on %s" % rpm_filename)
+

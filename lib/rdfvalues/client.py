@@ -246,6 +246,12 @@ class KnowledgeBase(structs.RDFProtoStruct):
 
   def GetKbFieldNames(self):
     fields = set(self.type_infos.descriptor_names)
+
+    # DEPRECATED_users field is maintained for backwards compatibility reasons
+    # only, as type of the "users" field has changed from jobs.User to
+    # knowledge_base.User.
+    fields.remove("DEPRECATED_users")
+
     fields.remove("users")
     for field in self.users.type_descriptor.type.type_infos.descriptor_names:
       fields.add("users.%s" % field)
@@ -694,7 +700,8 @@ class Uname(structs.RDFProtoStruct):
 
   def signature(self):
     """Returns a unique string that encapsulates the architecture."""
-    attributes = ["libc_ver", "arch", "release", "system"]
+    # For example: windows_7__amd64
+    attributes = ["system", "release", "libc_ver", "arch"]
     return "_".join([getattr(self, x) for x in attributes])
 
   @classmethod

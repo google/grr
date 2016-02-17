@@ -588,8 +588,9 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
         token=hunt.token)
 
     results = []
-    for plugin_id, (plugin_descriptor, _) in results_metadata.Get(
+    for plugin_id, (plugin_descriptor, plugin_state) in results_metadata.Get(
         results_metadata.Schema.OUTPUT_PLUGINS, {}).items():
+      plugin_obj = plugin_descriptor.GetPluginForState(plugin_state)
 
       plugin_verifiers = plugin_descriptor.GetPluginVerifiers()
       if not plugin_verifiers:
@@ -600,9 +601,7 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
       else:
         new_results = []
         for plugin_verifier in plugin_verifiers:
-          new_results.append(
-              plugin_verifier.VerifyHuntOutput(
-                  plugin_descriptor.plugin_args, hunt))
+          new_results.append(plugin_verifier.VerifyHuntOutput(plugin_obj, hunt))
 
       for result in new_results:
         result.timestamp = rdfvalue.RDFDatetime().Now()

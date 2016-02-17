@@ -15,7 +15,7 @@ grrUi.hunt.newHuntWizard.configureRulesPageDirective
     .ConfigureRulesPageDirective = function() {
   return {
     scope: {
-      rules: '=',
+      clientRuleSet: '=',
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/hunt/new-hunt-wizard/' +

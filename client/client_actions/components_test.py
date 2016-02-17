@@ -66,7 +66,7 @@ class TestComponents(test_lib.EmptyActionTest):
     # version of the component. It is normally populated by the build system but
     # in this test we set it to a known value.
     with test_lib.ConfigOverrider({
-        "Client.build_environment": "glibc_2.4_amd64_Ubuntu_Linux",
+        "Client.build_environment": "Linux_Ubuntu_glibc_2.4_amd64",
         "Client.component_path": os.path.join(self.temp_dir, "components")}):
       self.RunAction("LoadComponent", message,
                      grr_worker=MockClientWorker(self.token))

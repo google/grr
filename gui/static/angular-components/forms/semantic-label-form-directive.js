@@ -29,13 +29,14 @@ grrUi.forms.semanticLabelFormDirective.SemanticLabelFormController = function(
     this.labelsList = response['data']['items'];
 
     this.scope_.$watch('value', function () {
-      var label_name = this.scope_['value']['value']['label_name'];
-      if (angular.isUndefined(label_name)) {
-        label_name = {type: 'unicode'};
+      var value = this.scope_['value']['value'];
+      if (angular.isUndefined(value['label_name'])) {
+        value['label_name'] = {type: 'unicode'};
       }
 
+      var label_name = value['label_name']
       if (angular.isUndefined(label_name.value) && this.labelsList.length > 0) {
-        label_name.value = this.labelsList[0];
+        label_name['value'] = this.labelsList[0]['value']['name']['value'];
       }
     }.bind(this));
   }.bind(this));

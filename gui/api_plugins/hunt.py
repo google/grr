@@ -78,9 +78,9 @@ class ApiGRRHuntRenderer(
           args=hunt.state.args)
 
       try:
-        typed_summary_part["rules"] = runner.args.rules
+        typed_summary_part["client_rule_set"] = runner.args.client_rule_set
       except AttributeError:
-        typed_summary_part["rules"] = []
+        typed_summary_part["client_rule_set"] = []
 
     for k, v in untyped_summary_part.items():
       untyped_summary_part[k] = api_value_renderers.RenderValue(v)

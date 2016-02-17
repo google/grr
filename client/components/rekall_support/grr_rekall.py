@@ -7,7 +7,6 @@ This module implements the Rekall enabled client actions.
 
 
 import logging
-import os
 import pdb
 import sys
 import traceback
@@ -23,6 +22,7 @@ from rekall import plugins
 from rekall import session
 from rekall.plugins.addrspaces import standard
 from rekall.plugins.renderers import data_export
+from rekall.plugins.tools import caching_url_manager
 from rekall.ui import json_renderer
 # pylint: enable=unused-import
 
@@ -34,7 +34,6 @@ from grr.client import vfs
 from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -159,63 +158,41 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
 class GrrRekallSession(session.Session):
   """A GRR Specific Rekall session."""
 
-  def __init__(self, fhandle=None, action=None, **session_args):
-    super(GrrRekallSession, self).__init__(**session_args)
+  def __init__(self, fhandle=None, action=None, initial_profiles=None,
+               **session_args):
+    super(GrrRekallSession, self).__init__(
+        cache_dir=config_lib.CONFIG["Client.rekall_profile_cache_path"])
+
     self.action = action
+
+    # Just hard code the initial repository manager. Note this can be
+    # overwritten later if needed.
+    self._repository_managers = [
+        (None, RekallCachingIOManager(initial_profiles=initial_profiles,
+                                      session=self))]
 
     # Apply default configuration options to the session state, unless
     # explicitly overridden by the session_args.
     with self.state:
+      for k, v in session_args.iteritems():
+        self.state.Set(k, v)
+
       for name, options in config.OPTIONS.args.iteritems():
         # We don't want to override configuration options passed via
         # **session_args.
-        if name not in self.state:
+        if name not in session_args:
           self.state.Set(name, options.get("default"))
 
     # Ensure the action's Progress() method is called when Rekall reports
     # progress.
     self.progress.Register(id(self), lambda *_, **__: self.action.Progress())
 
-  def LoadProfile(self, name, **kw):
-    """Wraps the Rekall profile's LoadProfile to fetch profiles from GRR."""
-    profile = None
-
-    # If the user specified a special profile path we use their choice.
-    try:
-      profile = super(GrrRekallSession, self).LoadProfile(name, **kw)
-    except io_manager.IOManagerError as e:
-      # Currently, Rekall will raise when the repository directory is not
-      # created. This is fine, because we'll create the directory after
-      # WriteRekallProfile runs a few lines later.
-      self.logging.warning(e)
-
-    if profile:
-      return profile
-
-    # Cant load the profile, we need to ask the server for it.
-    self.logging.info("Asking server for profile %s", name)
-    self.action.SendReply(
-        rekall_types.RekallResponse(
-            missing_profile=name,
-            repository_version=constants.PROFILE_REPOSITORY_VERSION,
-        ))
-
-    # Wait for the server to wake us up. When we wake up the server should
-    # have sent the profile over by calling the WriteRekallProfile.
-    self.action.Suspend()
-
-    # Now the server should have sent the data already. We try to load the
-    # profile one more time.
-    return super(GrrRekallSession, self).LoadProfile(name, use_cache=False)
-
   def GetRenderer(self, **kwargs):
     # We will use this renderer to push results to the server.
     return GRRRekallRenderer(rekall_session=self, action=self.action, **kwargs)
 
-  def _HandleRunPluginException(self, ui_renderer, e):
-    """Log the exception and raise it."""
-    self.logging.error(str(e))
-    raise
+# Short term storage for profile data.
+UPLOADED_PROFILES = {}
 
 
 class WriteRekallProfile(actions.ActionPlugin):
@@ -224,30 +201,57 @@ class WriteRekallProfile(actions.ActionPlugin):
   in_rdfvalue = rekall_types.RekallProfile
 
   def Run(self, args):
-    output_filename = utils.JoinPath(
-        config_lib.CONFIG["Client.rekall_profile_cache_path"],
-        args.version, args.name)
-
-    try:
-      os.makedirs(os.path.dirname(output_filename))
-    except OSError:
-      pass
-
-    with open(output_filename + ".gz", "wb") as fd:
-      fd.write(args.data)
+    logging.info("Received profile for %s", args.name)
+    UPLOADED_PROFILES[args.name] = args
 
 
-# TODO(user): Refactor the caching functionality to use Rekall's own caching
-# system.
-class RekallCachingIOManager(io_manager.DirectoryIOManager):
-  order = io_manager.DirectoryIOManager.order - 1
+class RekallIOManager(io_manager.IOManager):
+  """An IO manager to talk with the GRR server."""
 
-  def CheckInventory(self, name):
-    path = self._GetAbsolutePathName(name)
-    result = (os.access(path + ".gz", os.F_OK) or
-              os.access(path, os.F_OK))
+  def GetData(self, name, raw=False, default=None):
+    # Cant load the profile, we need to ask the server for it.
+    self.session.logging.info("Asking server for profile %s", name)
+    UPLOADED_PROFILES.pop(name, None)
+
+    self.session.action.SendReply(
+        rekall_types.RekallResponse(
+            missing_profile=name,
+            repository_version=constants.PROFILE_REPOSITORY_VERSION,
+        ))
+
+    # Wait for the server to wake us up. When we wake up the server should
+    # have sent the profile over by calling the WriteRekallProfile.
+    self.session.action.Suspend()
+
+    # We expect the profile to be here if all went well.
+    result = UPLOADED_PROFILES.get(name, obj.NoneObject()).payload
+    if result:
+      return self.Decoder(result)
 
     return result
+
+  def SetInventory(self, inventory):
+    self._inventory = inventory
+
+
+class RekallCachingIOManager(caching_url_manager.CachingManager):
+  DELEGATE = RekallIOManager
+
+  def __init__(self, initial_profiles, **kwargs):
+    self.initial_profiles = initial_profiles
+    super(RekallCachingIOManager, self).__init__(**kwargs)
+
+  def CheckUpstreamRepository(self):
+    for profile in (self.initial_profiles or []):
+      # Copy the inventory to the remote IO manager.
+      if profile.name == "inventory":
+        self.url_manager.SetInventory(self.Decoder(profile.payload))
+
+      else:
+        # Everything else, save locally to the cache.
+        self.StoreData(profile.name, self.Decoder(profile.payload))
+
+    super(RekallCachingIOManager, self).CheckUpstreamRepository()
 
 
 class RekallAction(actions.SuspendableAction):
@@ -263,13 +267,8 @@ class RekallAction(actions.SuspendableAction):
     if "filename" not in session_args and self.request.device:
       session_args["filename"] = self.request.device.path
 
-    # If the user has not specified a special profile path, we use the local
-    # cache directory.
-    if "repository_path" not in session_args:
-      session_args["repository_path"] = [config_lib.CONFIG[
-          "Client.rekall_profile_cache_path"]]
-
-    rekal_session = GrrRekallSession(action=self, **session_args)
+    rekal_session = GrrRekallSession(
+        action=self, initial_profiles=self.request.profiles, **session_args)
 
     plugin_errors = []
 
@@ -283,6 +282,8 @@ class RekallAction(actions.SuspendableAction):
         logging.error("While running plugin (%s): %s",
                       plugin_request.plugin, tb)
         plugin_errors.append(tb)
+      finally:
+        rekal_session.Flush()
 
     if plugin_errors:
       self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,

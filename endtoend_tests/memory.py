@@ -194,7 +194,8 @@ class TestAnalyzeClientMemoryNonexistantPlugin(AbstractTestAnalyzeClientMemory):
     self.assertEqual(flow_state.context.state.name, "ERROR")
 
   def CheckForInvalidPlugin(self, flow_state):
-    self.assertIn("Invalid Plugin", flow_state.context.backtrace)
+    self.assertIn("invalid plugin",
+                  str(flow_state.context.backtrace).lower())
 
   def CheckFlow(self):
     flow = self.OpenFlow()
@@ -265,3 +266,30 @@ class TestSigScan(AbstractTestAnalyzeClientMemoryWindows):
     self.assertIsInstance(collection, aff4.RDFValueCollection)
     self.assertTrue(any(["Hit in kernel AS:" in response.json_messages
                          for response in list(collection)]))
+
+
+class TestYarascanExists(AbstractTestAnalyzeClientMemory):
+  """Tests the client has been built with yara."""
+  platforms = ["Linux", "Windows", "Darwin"]
+
+  def setUpRequest(self):
+    self.args["request"].plugins = [
+        rdf_rekall_types.PluginRequest(plugin="yarascan")]
+
+  def CheckForError(self, flow_state):
+    # Invoking yarascan without arguments will report an ERROR.
+    self.assertEqual(flow_state.context.state.name, "ERROR")
+
+  def CheckForInvalidPlugin(self, flow_state):
+    # When a plugin doesn't exist, Rekall raises with an "Invalid plugin"
+    self.assertNotIn("invalid plugin",
+                     str(flow_state.context.backtrace).lower())
+    # Yarascan without arguments will generate a PluginError as it requires
+    # arguments.
+    self.assertIn("PluginError", flow_state.context.backtrace)
+
+  def CheckFlow(self):
+    flow = self.OpenFlow()
+    flow_state = flow.Get(flow.SchemaCls.FLOW_STATE)
+    self.CheckForError(flow_state)
+    self.CheckForInvalidPlugin(flow_state)

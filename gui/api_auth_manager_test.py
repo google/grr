@@ -18,10 +18,10 @@ class DummyAuthManagerTestApiHandler(api_call_handler_base.ApiCallHandler):
   pass
 
 
-class SimpleAPIAuthorizationManagerTest(test_lib.GRRBaseTest):
+class APIAuthorizationManagerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
-    super(SimpleAPIAuthorizationManagerTest, self).setUp()
+    super(APIAuthorizationManagerTest, self).setUp()
     self.mock_handler = DummyAuthManagerTestApiHandler()
     self.mock_handler.enabled_by_default = True
 
@@ -32,10 +32,10 @@ class SimpleAPIAuthorizationManagerTest(test_lib.GRRBaseTest):
     self.aclfile_overrider.Start()
 
   def tearDown(self):
-    super(SimpleAPIAuthorizationManagerTest, self).tearDown()
+    super(APIAuthorizationManagerTest, self).tearDown()
     self.aclfile_overrider.Stop()
 
-  def testSimpleAPIAuthorizationManager(self):
+  def testAPIAuthorizationManager(self):
     acls = """
 handler: "DummyAuthManagerTestApiHandler"
 users:
@@ -43,7 +43,7 @@ users:
 - "u2"
 """
     with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
-      auth_mgr = api_auth_manager.SimpleAPIAuthorizationManager()
+      auth_mgr = api_auth_manager.APIAuthorizationManager()
 
     auth_mgr.CheckAccess(self.mock_handler, "u1")
     auth_mgr.CheckAccess(self.mock_handler, "u2")
@@ -55,7 +55,7 @@ users:
 handler: "DummyAuthManagerTestApiHandler"
 """
     with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
-      auth_mgr = api_auth_manager.SimpleAPIAuthorizationManager()
+      auth_mgr = api_auth_manager.APIAuthorizationManager()
 
     with self.assertRaises(access_control.UnauthorizedAccess):
       auth_mgr.CheckAccess(self.mock_handler, "u1")
@@ -63,7 +63,7 @@ handler: "DummyAuthManagerTestApiHandler"
   def testNoACLs(self):
     """All checking is skipped if no API.HandlerACLFile is defined."""
     with test_lib.ConfigOverrider({"API.HandlerACLFile": ""}):
-      auth_mgr = api_auth_manager.SimpleAPIAuthorizationManager()
+      auth_mgr = api_auth_manager.APIAuthorizationManager()
       auth_mgr.CheckAccess(self.mock_handler, "u1")
       bad_handler = mock.MagicMock()
       bad_handler.enabled_by_default = True
@@ -78,12 +78,12 @@ groups: ["g1"]
 """
     with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
       with self.assertRaises(NotImplementedError):
-        api_auth_manager.SimpleAPIAuthorizationManager()
+        api_auth_manager.APIAuthorizationManager()
 
   def testHandleApiCallNotEnabled(self):
     """Raises if no matching ACL and enabled_by_default=False."""
     with test_lib.ConfigOverrider({"API.HandlerACLFile": ""}):
-      auth_mgr = api_auth_manager.SimpleAPIAuthorizationManager()
+      auth_mgr = api_auth_manager.APIAuthorizationManager()
       self.mock_handler.enabled_by_default = False
       with mock.patch.object(api_call_handlers, "API_AUTH_MGR", auth_mgr):
         with self.assertRaises(access_control.UnauthorizedAccess):
@@ -98,7 +98,7 @@ users:
 - "test"
 """
     with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
-      auth_mgr = api_auth_manager.SimpleAPIAuthorizationManager()
+      auth_mgr = api_auth_manager.APIAuthorizationManager()
 
     self.mock_handler.enabled_by_default = False
 
@@ -110,41 +110,6 @@ users:
                                         token=self.token)
 
         self.mock_handler.Handle.assert_called_once_with(None, token=self.token)
-
-
-class APIAuthorizationImporterTest(test_lib.GRRBaseTest):
-
-  def testACLs(self):
-    acls = """
-handler: "DummyAuthManagerTestApiHandler"
-users:
-  - "u1"
-  - "u2"
-groups: ["g1"]
-"""
-    acl_mgr = api_auth_manager.APIAuthorizationImporter()
-    acl_mgr.CreateACLs(acls)
-    self.assertItemsEqual(
-        acl_mgr.acl_dict["DummyAuthManagerTestApiHandler"].users,
-        ["u1", "u2"])
-    self.assertItemsEqual(
-        acl_mgr.acl_dict["DummyAuthManagerTestApiHandler"].groups, ["g1"])
-
-  def testRaiseOnDuplicateACLs(self):
-    acls = """
-handler: "DummyAuthManagerTestApiHandler"
-users:
-  - "u1"
-  - "u2"
-groups: ["g1"]
----
-handler: "DummyAuthManagerTestApiHandler"
-users: ["u3"]
-"""
-
-    acl_mgr = api_auth_manager.APIAuthorizationImporter()
-    with self.assertRaises(api_auth_manager.InvalidAPIAuthorization):
-      acl_mgr.CreateACLs(acls)
 
 
 class APIAuthorizationTest(test_base.RDFValueTestCase):

@@ -289,6 +289,39 @@ class HttpApiInitHook(registry.InitHook):
         "POST", "/api/clients/<client_id>/vfs-refresh-operations",
         api_plugins.client.ApiCreateVfsRefreshOperationHandler)
 
+    RegisterHttpRouteHandler("GET", "/api/clients/<client_id>/flows",
+                             api_plugins.flow.ApiListClientFlowsHandler)
+    RegisterHttpRouteHandler("GET", "/api/clients/<client_id>/flows/<flow_id>",
+                             api_plugins.flow.ApiGetFlowHandler)
+    RegisterHttpRouteHandler("POST", "/api/clients/<client_id>/flows",
+                             api_plugins.flow.ApiCreateFlowHandler)
+    RegisterHttpRouteHandler(
+        "POST",
+        "/api/clients/<client_id>/flows/<flow_id>/actions/cancel",
+        api_plugins.flow.ApiCancelFlowHandler)
+    RegisterHttpRouteHandler(
+        "GET", "/api/clients/<client_id>/flows/<flow_id>/results",
+        api_plugins.flow.ApiListFlowResultsHandler)
+    RegisterHttpRouteHandler(
+        "GET",
+        "/api/clients/<client_id>/flows/<flow_id>/results/export-command",
+        api_plugins.flow.ApiGetFlowResultsExportCommandHandler)
+    RegisterHttpRouteHandler(
+        "POST",
+        "/api/clients/<client_id>/flows/<flow_id>/results/archive-files",
+        api_plugins.flow.ApiArchiveFlowFilesHandler)
+    RegisterHttpRouteHandler(
+        "GET", "/api/clients/<client_id>/flows/<flow_id>/output-plugins",
+        api_plugins.flow.ApiListFlowOutputPluginsHandler)
+    RegisterHttpRouteHandler(
+        "GET", "/api/clients/<client_id>/flows/<flow_id>/"
+        "output-plugins/<plugin_id>/logs",
+        api_plugins.flow.ApiListFlowOutputPluginLogsHandler)
+    RegisterHttpRouteHandler(
+        "GET", "/api/clients/<client_id>/flows/<flow_id>/"
+        "output-plugins/<plugin_id>/errors",
+        api_plugins.flow.ApiListFlowOutputPluginErrorsHandler)
+
     RegisterHttpRouteHandler("GET", "/api/cron-jobs",
                              api_plugins.cron.ApiListCronJobsHandler)
     RegisterHttpRouteHandler("POST", "/api/cron-jobs",
@@ -302,52 +335,24 @@ class HttpApiInitHook(registry.InitHook):
     RegisterHttpRouteHandler("GET", "/api/docs",
                              api_plugins.docs.ApiGetDocsHandler)
 
-    RegisterHttpRouteHandler("GET", "/api/flows/<client_id>/<flow_id>",
-                             api_plugins.flow.ApiGetFlowHandler)
+    # TODO(user): this handler should be merged with ApiGetFlowHandler after
+    # the API-routing and ACLs refactoring.
     RegisterHttpRouteHandler("GET", "/api/flows/<client_id>/<flow_id>/status",
                              api_plugins.flow.ApiGetFlowStatusHandler)
     RegisterHttpRouteHandler("GET", "/api/flows/descriptors",
                              api_plugins.flow.ApiListFlowDescriptorsHandler)
-    RegisterHttpRouteHandler(
-        "GET", "/api/clients/<client_id>/flows/<flow_id>/results",
-        api_plugins.flow.ApiListFlowResultsHandler)
-    RegisterHttpRouteHandler(
-        "GET",
-        "/api/clients/<client_id>/flows/<flow_id>/results/export-command",
-        api_plugins.flow.ApiGetFlowResultsExportCommandHandler)
-    RegisterHttpRouteHandler(
-        "GET", "/api/clients/<client_id>/flows/<flow_id>/output-plugins",
-        api_plugins.flow.ApiListFlowOutputPluginsHandler)
-    RegisterHttpRouteHandler(
-        "GET", "/api/clients/<client_id>/flows/<flow_id>/"
-        "output-plugins/<plugin_id>/logs",
-        api_plugins.flow.ApiListFlowOutputPluginLogsHandler)
-    RegisterHttpRouteHandler(
-        "GET", "/api/clients/<client_id>/flows/<flow_id>/"
-        "output-plugins/<plugin_id>/errors",
-        api_plugins.flow.ApiListFlowOutputPluginErrorsHandler)
-    RegisterHttpRouteHandler("GET", "/api/clients/<client_id>/flows",
-                             api_plugins.flow.ApiListClientFlowsHandler)
+    # TODO(user): an URL for this one doesn't seem entirely correct. Come up
+    # with an URL naming scheme that will separate flows with operations that
+    # can be triggered remotely without authorization.
     RegisterHttpRouteHandler(
         "POST", "/api/clients/<client_id>/flows/remotegetfile",
         api_plugins.flow.ApiStartGetFileOperationHandler)
     # DEPRECATED: This handler is deprecated as the URL breaks REST conventions.
     RegisterHttpRouteHandler("POST", "/api/clients/<client_id>/flows/start",
                              api_plugins.flow.ApiCreateFlowHandler)
-    # This starts client flows.
-    RegisterHttpRouteHandler("POST", "/api/clients/<client_id>/flows",
-                             api_plugins.flow.ApiCreateFlowHandler)
     # This starts global flows.
     RegisterHttpRouteHandler("POST", "/api/flows",
                              api_plugins.flow.ApiCreateFlowHandler)
-    RegisterHttpRouteHandler(
-        "POST",
-        "/api/clients/<client_id>/flows/<flow_id>/actions/cancel",
-        api_plugins.flow.ApiCancelFlowHandler)
-    RegisterHttpRouteHandler(
-        "POST",
-        "/api/clients/<client_id>/flows/<flow_id>/results/archive-files",
-        api_plugins.flow.ApiArchiveFlowFilesHandler)
 
     RegisterHttpRouteHandler(
         "GET", "/api/output-plugins/all",

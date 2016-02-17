@@ -117,7 +117,7 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
   def testShowsClientWithRequestedApproval(self):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
-      self.GrantClientApproval(client_id)
+      self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent,
@@ -128,12 +128,14 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
   def testShowsClientTwiceIfTwoApprovalsWereRequested(self):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
-      self.GrantClientApproval(client_id,
-                               token=access_control.ACLToken(
-                                   username="test", reason="foo-reason"))
-      self.GrantClientApproval(client_id,
-                               token=access_control.ACLToken(
-                                   username="test", reason="bar-reason"))
+      self.RequestAndGrantClientApproval(client_id,
+                                         token=access_control.ACLToken(
+                                             username="test",
+                                             reason="foo-reason"))
+      self.RequestAndGrantClientApproval(client_id,
+                                         token=access_control.ACLToken(
+                                             username="test",
+                                             reason="bar-reason"))
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent,
@@ -149,7 +151,7 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
 
       with test_lib.FakeTime(1000, 1):
         for c in client_ids:
-          self.GrantClientApproval(c)
+          self.RequestAndGrantClientApproval(c)
 
     self.Open("/")
     for c in client_ids[3:]:
@@ -167,7 +169,7 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
   def testValidApprovalIsNotMarked(self):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
-      self.GrantClientApproval(client_id)
+      self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent,
@@ -199,7 +201,7 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
   def testClickingOnApprovalRedirectsToClient(self):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
-      self.GrantClientApproval(client_id)
+      self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/")
     self.Click("css=grr-user-dashboard "
@@ -223,7 +225,7 @@ class TestNavigatorView(SearchClientTestBase):
           client_id, mode="rw", token=self.token) as client_obj:
         client_obj.Set(client_obj.Schema.PING(last_ping))
 
-      self.GrantClientApproval(client_id)
+      self.RequestAndGrantClientApproval(client_id)
 
     client_obj = aff4.FACTORY.Open(client_id, token=self.token)
     return client_id
@@ -246,7 +248,7 @@ class TestNavigatorView(SearchClientTestBase):
                                    actual_available_allocation_units=available)
         client_obj.Set(client_obj.Schema.VOLUMES([volume]))
 
-      self.GrantClientApproval(client_id)
+      self.RequestAndGrantClientApproval(client_id)
 
     client_obj = aff4.FACTORY.Open(client_id, token=self.token)
     return client_id
@@ -319,7 +321,7 @@ class TestNavigatorView(SearchClientTestBase):
     client_id = self.CreateClient(last_ping=timestamp)
     with self.ACLChecksDisabled():
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
-      self.GrantClientApproval(client_id)
+      self.RequestAndGrantClientApproval(client_id)
 
     with test_lib.FakeTime(timestamp):
       self.Open("/#c=" + str(client_id))
@@ -332,7 +334,7 @@ class TestNavigatorView(SearchClientTestBase):
     with self.ACLChecksDisabled():
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("10s"))
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
-      self.GrantClientApproval(client_id)
+      self.RequestAndGrantClientApproval(client_id)
 
     with test_lib.FakeTime(timestamp):
       self.Open("/#c=" + str(client_id))
@@ -346,7 +348,7 @@ class TestNavigatorView(SearchClientTestBase):
     client_id = self.CreateClient(last_ping=timestamp)
     with self.ACLChecksDisabled():
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("8d"))
-      self.GrantClientApproval(client_id)
+      self.RequestAndGrantClientApproval(client_id)
 
     with test_lib.FakeTime(timestamp):
       self.Open("/#c=" + str(client_id))

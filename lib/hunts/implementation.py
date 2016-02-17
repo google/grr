@@ -16,7 +16,6 @@ For this reason a hunt has its own runner - the HuntRunner.
 
 """
 
-import re
 import threading
 
 import logging
@@ -38,12 +37,12 @@ from grr.lib.aff4_objects import sequential_collection
 from grr.lib.hunts import results as hunts_results
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import foreman as rdf_foreman
 from grr.lib.rdfvalues import hunts
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import stats as rdf_stats
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
+from grr.server import foreman as rdf_foreman
 
 
 class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
@@ -301,7 +300,8 @@ class HuntRunner(flow_runner.FlowRunner):
         description="Hunt %s %s" % (self.session_id,
                                     self.args.hunt_name),
         regex_rules=self.args.regex_rules,
-        integer_rules=self.args.integer_rules)
+        integer_rules=self.args.integer_rules,
+        client_rule_set=self.args.client_rule_set)
 
     foreman_rule.actions.Append(hunt_id=self.session_id,
                                 hunt_name=self.args.hunt_name,
@@ -657,7 +657,7 @@ class GRRHunt(flow.GRRFlow):
     cls.FilterArgsFromSemanticProtobuf(runner_args, kwargs)
 
     # Is the required flow a known flow?
-    if (runner_args.hunt_name not in cls.classes and
+    if (runner_args.hunt_name not in cls.classes or
         not aff4.issubclass(cls.classes[runner_args.hunt_name], GRRHunt)):
       raise RuntimeError("Unable to locate hunt %s" % runner_args.hunt_name)
 
@@ -818,89 +818,6 @@ class GRRHunt(flow.GRRFlow):
 
   def Name(self):
     return self.state.context.args.hunt_name
-
-  def CheckClient(self, client):
-    return self.CheckRulesForClient(client, self.state.context.rules)
-
-  @classmethod
-  def CheckRulesForClient(cls, client, rules):
-    for rule in rules:
-      if cls.CheckRule(client, rule):
-        return True
-
-    return False
-
-  @classmethod
-  def CheckRule(cls, client, rule):
-    try:
-      for r in rule.regex_rules:
-        if r.path != "/":
-          continue
-
-        attribute = aff4.Attribute.NAMES[r.attribute_name]
-        value = utils.SmartStr(client.Get(attribute))
-
-        if not re.search(r.attribute_regex, value):
-          return False
-
-      for i in rule.integer_rules:
-        if i.path != "/":
-          continue
-
-        value = int(client.Get(aff4.Attribute.NAMES[i.attribute_name]))
-        op = i.operator
-        if op == rdf_foreman.ForemanAttributeInteger.Operator.LESS_THAN:
-          if value >= i.value:
-            return False
-        elif op == rdf_foreman.ForemanAttributeInteger.Operator.GREATER_THAN:
-          if value <= i.value:
-            return False
-        elif op == rdf_foreman.ForemanAttributeInteger.Operator.EQUAL:
-          if value != i.value:
-            return False
-        else:
-          # Unknown operator.
-          return False
-
-      return True
-
-    except (KeyError, ValueError):
-      return False
-
-  def TestRules(self):
-    """This quickly verifies the ruleset.
-
-    This applies the ruleset to all clients in the db to see how many of them
-    would match the current rules.
-    """
-
-    root = aff4.FACTORY.Open(aff4.ROOT_URN, token=self.token)
-    display_warning = False
-    for rule in self.rules:
-      for r in rule.regex_rules:
-        if r.path != "/":
-          display_warning = True
-      for r in rule.integer_rules:
-        if r.path != "/":
-          display_warning = True
-    if display_warning:
-      logging.info("One or more rules use a relative path under the client, "
-                   "this is not supported so your count may be off.")
-
-    all_clients = 0
-    num_matching_clients = 0
-    matching_clients = []
-    for client in root.OpenChildren(chunk_limit=100000):
-      if client.Get(client.Schema.TYPE) == "VFSGRRClient":
-        all_clients += 1
-        if self.CheckClient(client):
-          num_matching_clients += 1
-          matching_clients.append(utils.SmartUnicode(client.urn))
-
-    logging.info("Out of %d checked clients, %d matched the given rule set.",
-                 all_clients, num_matching_clients)
-    if matching_clients:
-      logging.info("Example matches: %s", str(matching_clients[:3]))
 
   def SetDescription(self, description=None):
     if description:

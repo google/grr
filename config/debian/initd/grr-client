@@ -31,7 +31,8 @@ if type init_is_upstart >/dev/null 2>&1; then
   init_is_upstart && exit 0
 else
   if [ -x /sbin/initctl ] && /sbin/initctl version | /bin/grep -q upstart; then
-    exit 0
+    log_daemon_msg "Upstart is present, this init.d script should not be used."
+    exit 1
   fi
 fi
 

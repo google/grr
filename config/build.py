@@ -172,20 +172,20 @@ VSVersionInfo\(
       StringTable\(
         '040904B0',
         [
-    StringStruct\('CompanyName',
-    "<---------------- Client.company_name ------------------->"\),
+    StringStruct\(u'CompanyName',
+    u"<---------------- Client.company_name ------------------->"\),
 
-    StringStruct\('FileDescription',
-    "<---------------- Client.description ------------------->"\),
+    StringStruct\(u'FileDescription',
+    u"<---------------- Client.description ------------------->"\),
 
-    StringStruct\('FileVersion',
-    "<---------------- Client.version_string ------------------->"\),
+    StringStruct\(u'FileVersion',
+    u"<---------------- Client.version_string ------------------->"\),
 
-    StringStruct\('ProductName',
-    "<---------------- Client.name ------------------->"\),
+    StringStruct\(u'ProductName',
+    u"<---------------- Client.name ------------------->"\),
 
-    StringStruct\('OriginalFilename',
-    "<---------------- ClientBuilder.package_name ------------------->"\),
+    StringStruct\(u'OriginalFilename',
+    u"<---------------- ClientBuilder.package_name ------------------->"\),
         ]\),
     ]\),
   VarFileInfo\([VarStruct\('Translation', [1033, 1200]\)]\)
@@ -234,6 +234,12 @@ config_lib.DEFINE_option(type_info.PathTypeInfo(
     default="%(ClientBuilder.source)/grr/client/nanny/",
     help="Path to the windows nanny VS solution file."))
 
+config_lib.DEFINE_option(type_info.PathTypeInfo(
+    name="ClientBuilder.nanny_prebuilt_binaries", must_exist=False,
+    default="%(ClientBuilder.executables_dir)/%(Client.platform)/",
+    help="Path to the pre-build GRRNanny executables (This will be used "
+    "if there are no VS compilers available)."))
+
 config_lib.DEFINE_choice(
     name="ClientBuilder.build_type",
     default="Release",
@@ -243,11 +249,6 @@ config_lib.DEFINE_choice(
 config_lib.DEFINE_string(name="ClientBuilder.template_extension",
                          default=".zip",
                          help="The extension to appear on templates.")
-
-config_lib.DEFINE_string(
-    "ClientBuilder.make_command",
-    default="make",
-    help="The make command.")
 
 config_lib.DEFINE_string(
     name="PyInstaller.template_basename",
@@ -263,12 +264,12 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.template_path", must_exist=False,
     default=(
-        "%(ClientBuilder.executables_path)/%(Client.platform)/templates/"
+        "%(ClientBuilder.executables_dir)/%(Client.platform)/templates/"
         "%(PyInstaller.template_filename)"),
     help="The full path to the executable template file."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
-    name="ClientBuilder.executables_path", must_exist=False,
+    name="ClientBuilder.executables_dir", must_exist=False,
     default="%(ClientBuilder.source)/grr/executables",
     help="The path to the grr executables directory."))
 
@@ -281,20 +282,20 @@ config_lib.DEFINE_option(type_info.PathTypeInfo(
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.output_path", must_exist=False,
     default=(
-        "%(ClientBuilder.executables_path)/%(Client.platform)"
+        "%(ClientBuilder.executables_dir)/%(Client.platform)"
         "/installers/%(ClientBuilder.output_filename)"),
     help="The full path to the generated installer file."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.generated_config_path", must_exist=False,
     default=(
-        "%(ClientBuilder.executables_path)/%(Client.platform)"
+        "%(ClientBuilder.executables_dir)/%(Client.platform)"
         "/config/%(ClientBuilder.output_basename).yaml"),
     help="The full path to where we write a generated config."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.unzipsfx_stub", must_exist=False,
-    default=("%(ClientBuilder.executables_path)/%(Client.platform)"
+    default=("%(ClientBuilder.executables_dir)/%(Client.platform)"
              "/templates/unzipsfx/unzipsfx-%(Client.arch).exe"),
     help="The full path to the zip self extracting stub."))
 
@@ -396,11 +397,6 @@ config_lib.DEFINE_option(type_info.PathTypeInfo(
     default="%(ClientBuilder.executables_dir)/components",
     help="The directory that contains the components."))
 
-config_lib.DEFINE_option(type_info.PathTypeInfo(
-    name="ClientBuilder.executables_dir", must_exist=False,
-    default="%(ClientBuilder.source)/grr/executables",
-    help="The directory that contains the executables."))
-
 config_lib.DEFINE_string(
     name="ClientBuilder.build_time",
     default=time.ctime(),
@@ -480,6 +476,14 @@ config_lib.DEFINE_multichoice(
 config_lib.DEFINE_list(name="ClientBuilder.BuildTargets", default=[],
                        help="List of context names that should be built by "
                        "buildanddeploy")
+
+config_lib.DEFINE_string("ClientBuilder.rpm_signing_key_public_keyfile",
+                         default="/etc/alternatives/grr_rpm_signing_key",
+                         help="Public key file for post-signing verification.")
+
+config_lib.DEFINE_string("ClientBuilder.rpm_gpg_name",
+                         default="GRR Team",
+                         help="The gpg name should match your gpg key name.")
 
 config_lib.DEFINE_string("ClientBuilder.windows_signing_key",
                          default="/etc/alternatives/grr_windows_signing_key",

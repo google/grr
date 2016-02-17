@@ -88,11 +88,15 @@ def DownloadDir(aff4_path, output_dir, bufsize=8192, preserve_path=True):
         logging.error("Failed to read %s. Err: %s", child.urn, e)
 
 
+def GetToken():
+  user = getpass.getuser()
+  return access_control.ACLToken(username=user)
+
+
 def ListDrivers():
   """Print a list of drivers in the datastore."""
   aff4_paths = set()
-  user = getpass.getuser()
-  token = access_control.ACLToken(username=user)
+  token = GetToken()
   for client_context in [["Platform:Darwin", "Arch:amd64"],
                          ["Platform:Windows", "Arch:i386"],
                          ["Platform:Windows", "Arch:amd64"]]:
@@ -140,11 +144,34 @@ def GetNotifications(user=None, token=None):
   return list(user_obj.Get(user_obj.Schema.PENDING_NOTIFICATIONS))
 
 
-def ApprovalRequest(client_id, reason, approvers, token=None):
-  """Request approval to access a host."""
-  return flow.GRRFlow.StartFlow(client_id=client_id,
-                                flow_name="RequestClientApprovalFlow",
-                                reason=reason, approver=approvers, token=token)
+def ApprovalRequest(client_id, token=None, approver="approver",
+                    reason="testing"):
+  token = token or GetToken()
+  approval_reason = reason or token.reason
+  flow.GRRFlow.StartFlow(client_id=client_id,
+                         flow_name="RequestClientApprovalFlow",
+                         reason=approval_reason,
+                         subject_urn=rdf_client.ClientURN(client_id),
+                         approver=approver,
+                         token=token)
+
+
+# TODO(user): refactor this approval request/grant code into a separate
+# module that can be used by both this and test_lib. Currently duplicated.
+def RequestAndGrantClientApproval(client_id, token=None,
+                                  approver="approver", reason="testing"):
+  token = token or GetToken()
+  ApprovalRequest(client_id, token=token, approver=approver, reason=reason)
+  user = aff4.FACTORY.Create("aff4:/users/%s" % approver, "GRRUser",
+                             token=token.SetUID())
+  user.Flush()
+  approver_token = access_control.ACLToken(username=approver)
+  flow.GRRFlow.StartFlow(client_id=client_id,
+                         flow_name="GrantClientApprovalFlow",
+                         reason=reason,
+                         delegate=token.username,
+                         subject_urn=rdf_client.ClientURN(client_id),
+                         token=approver_token)
 
 
 def ApprovalGrant(token=None):

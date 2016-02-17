@@ -78,7 +78,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     aff4_path = rdfvalue.RDFURN(static_aff4_prefix).Add(path)
     try:
       logging.info("Serving %s", aff4_path)
-      fd = aff4.FACTORY.Open(aff4_path)
+      fd = aff4.FACTORY.Open(aff4_path, token=aff4.FACTORY.root_token)
       while True:
         data = fd.Read(self.AFF4_READ_BLOCK_SIZE)
         if not data:

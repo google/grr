@@ -44,6 +44,7 @@ from grr.lib import type_info_test
 from grr.lib import utils_test
 
 from grr.lib.aff4_objects import tests
+from grr.lib.authorization import tests
 from grr.lib.builders import tests
 from grr.lib.checks import tests
 from grr.lib.data_stores import tests

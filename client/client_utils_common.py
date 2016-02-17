@@ -131,40 +131,39 @@ def IsExecutionWhitelisted(cmd, args):
   """
   if platform.system() == "Windows":
     whitelist = [
-        # Backup commands for getting data that may be hard to process.
+        ("driverquery.exe", ["/v"]),
         ("ipconfig.exe", ["/all"]),
         ("tasklist.exe", ["/SVC"]),
         ("tasklist.exe", ["/v"]),
-        ("driverquery.exe", ["/v"]),
     ]
   elif platform.system() == "Linux":
     whitelist = [
-        ("/bin/sleep", ["10"]),
+        ("/bin/df", []),
         ("/bin/echo", ["1"]),
-        # Backup utilities for getting data that may be hard to process.
-        ("/usr/bin/dpkg", ["--list"]),
         ("/bin/rpm", ["-qa"]),
+        ("/bin/sleep", ["10"]),
         ("/sbin/auditctl", ["-l"]),
         ("/sbin/ifconfig", ["-a"]),
-        ("/bin/df", []),
-        ("/usr/sbin/dmidecode", ["-q"]),
-        ("/usr/sbin/sshd", ["-T"]),
-        ("/usr/bin/who", []),
-        ("/usr/bin/last", []),
+        ("/sbin/iptables", ["-L", "-n", "-v"]),
         ("/sbin/lsmod", []),
+        ("/usr/bin/dpkg", ["--list"]),
+        ("/usr/bin/last", []),
         ("/usr/bin/yum", ["list", "installed", "-q"]),
         ("/usr/bin/yum", ["repolist", "-v", "-q"]),
+        ("/usr/bin/who", []),
+        ("/usr/sbin/dmidecode", ["-q"]),
+        ("/usr/sbin/sshd", ["-T"]),
     ]
   elif platform.system() == "Darwin":
     whitelist = [
+        ("/bin/echo", ["1"]),
         ("/bin/launchctl", ["unload",
                             config_lib.CONFIG["Client.plist_path"]]),
-        ("/bin/echo", ["1"]),
-        ("/usr/sbin/system_profiler", ["-xml", "SPHardwareDataType"]),
-        ("/usr/bin/who", []),
-        ("/usr/bin/last", []),
-        ("/usr/sbin/kextstat", []),
         ("/usr/bin/hdiutil", ["info"]),
+        ("/usr/bin/last", []),
+        ("/usr/bin/who", []),
+        ("/usr/sbin/kextstat", []),
+        ("/usr/sbin/system_profiler", ["-xml", "SPHardwareDataType"]),
     ]
   else:
     whitelist = []

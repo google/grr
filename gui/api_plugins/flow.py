@@ -100,7 +100,10 @@ class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
   """
 
   category = CATEGORY
+
   args_type = ApiGetFlowArgs
+  result_type = ApiFlow
+  strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())

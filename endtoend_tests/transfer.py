@@ -55,7 +55,8 @@ class MultiGetFileTestFlow(flow.GRRFlow):
 
     for response in responses:
       self.CallFlow("FingerprintFile", next_state="MultiGetFile",
-                    pathspec=response.dest_path)
+                    pathspec=response.dest_path,
+                    request_data={"pathspec": response.dest_path})
 
   @flow.StateHandler(next_state="VerifyHashes")
   def MultiGetFile(self, responses):
@@ -67,8 +68,8 @@ class MultiGetFileTestFlow(flow.GRRFlow):
       binary_hash = fd.Get(fd.Schema.HASH)
       hash_digest = str(binary_hash.sha256)
       self.state.client_hashes[str(response.file_urn)] = hash_digest
-
-      self.CallFlow("MultiGetFile", pathspecs=[binary_hash.pathspec],
+      self.CallFlow("MultiGetFile",
+                    pathspecs=[responses.request_data["pathspec"]],
                     next_state="VerifyHashes")
 
   @flow.StateHandler()

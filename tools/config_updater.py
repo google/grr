@@ -321,6 +321,14 @@ parser_upload_component.add_argument(
     "--overwrite", default=False, action="store_true",
     help="Allow overwriting of the component path.")
 
+parser_upload_components = subparsers.add_parser(
+    "upload_components", parents=[],
+    help="Sign and upload all client components.")
+
+parser_upload_components.add_argument(
+    "--overwrite", default=False, action="store_true",
+    help="Allow overwriting of the component path.")
+
 parser_upload_memory_driver = subparsers.add_parser(
     "upload_memory_driver",
     parents=[parser_upload_args, parser_upload_signed_args],
@@ -683,13 +691,17 @@ def ManageBinaries(config=None, token=None):
 
   print "\nStep 5: Repackaging clients with new configuration."
   # We need to update the config to point to the installed templates now.
-  config.Set("ClientBuilder.executables_path", os.path.join(
+  config.Set("ClientBuilder.executables_dir", os.path.join(
       flags.FLAGS.share_dir, "executables"))
 
   # Build debug binaries, then build release binaries.
   maintenance_utils.RepackAllBinaries(upload=True, debug_build=True,
                                       token=token)
   maintenance_utils.RepackAllBinaries(upload=True, token=token)
+
+  print "\nStep 6: Signing and uploading client components."
+
+  maintenance_utils.SignAllComponents(token=token)
 
   print "\nInitialization complete, writing configuration."
   config.Write()
@@ -810,8 +822,8 @@ def main(unused_argv):
     else:
       Initialize(config_lib.CONFIG, token=token)
     return
-  else:
-    startup.Init()
+
+  startup.Init()
 
   try:
     print "Using configuration %s" % config_lib.CONFIG.parser
@@ -898,6 +910,10 @@ def main(unused_argv):
     maintenance_utils.SignComponent(flags.FLAGS.component_filename,
                                     overwrite=flags.FLAGS.overwrite,
                                     token=token)
+
+  elif flags.FLAGS.subparser_name == "upload_components":
+    maintenance_utils.SignAllComponents(
+        overwrite=flags.FLAGS.overwrite, token=token)
 
   elif flags.FLAGS.subparser_name == "upload_memory_driver":
     client_context = ["Platform:%s" % flags.FLAGS.platform.title(),

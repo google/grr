@@ -267,6 +267,11 @@
                     "type": "unicode",
                     "value": "Foobar! (cron)"
                   },
+                  "hunt_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GenericHunt"
+                  },
                   "regex_rules": [
                     {
                       "age": 0,
@@ -349,6 +354,7 @@
           },
           "hunt_runner_args": {
             "description": "Foobar! (cron)",
+            "hunt_name": "GenericHunt",
             "regex_rules": [
               {
                 "attribute_name": "System",
@@ -909,6 +915,63 @@
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest",
       "url": "/api/config/NonExistingOption"
+    }
+  ],
+  "ApiGetFlowHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "age": 0,
+        "type": "ApiFlow",
+        "value": {
+          "args": {
+            "age": 0,
+            "type": "InterrogateArgs",
+            "value": {}
+          },
+          "creator": {
+            "age": 0,
+            "type": "unicode",
+            "value": "test"
+          },
+          "last_active_at": {
+            "age": 42000000,
+            "type": "RDFDatetime",
+            "value": 42000000
+          },
+          "name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "Interrogate"
+          },
+          "started_at": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 42000000
+          },
+          "state": {
+            "age": 0,
+            "type": "EnumNamedValue",
+            "value": "RUNNING"
+          },
+          "urn": {
+            "age": 0,
+            "type": "SessionID",
+            "value": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
+          }
+        }
+      },
+      "test_class": "ApiGetFlowHandlerRegressionTest",
+      "type_stripped_response": {
+        "args": {},
+        "creator": "test",
+        "last_active_at": 42000000,
+        "name": "Interrogate",
+        "started_at": 42000000,
+        "state": "RUNNING",
+        "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
+      },
+      "url": "/api/clients/C.1000000000000000/flows/F:ABCDEF12"
     }
   ],
   "ApiGetFlowResultsExportCommandHandler": [
@@ -2000,6 +2063,11 @@
             "type": "float",
             "value": 0.0
           },
+          "client_rule_set": {
+            "age": 0,
+            "type": "ForemanClientRuleSet",
+            "value": {}
+          },
           "completed_clients_count": {
             "age": 0,
             "type": "long",
@@ -2054,11 +2122,6 @@
               }
             }
           ],
-          "rules": {
-            "age": 0,
-            "type": "ForemanClientRuleSet",
-            "value": {}
-          },
           "state": {
             "age": 0,
             "type": "RDFString",
@@ -3021,6 +3084,7 @@
           },
           "client_limit": 0,
           "client_rate": 0.0,
+          "client_rule_set": {},
           "completed_clients_count": 0,
           "create_time": 42000000,
           "creator": "test",
@@ -3035,7 +3099,6 @@
               "attribute_regex": "GRR"
             }
           ],
-          "rules": {},
           "state": "PAUSED",
           "stats": {
             "network_bytes_sent_stats": {

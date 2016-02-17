@@ -981,8 +981,8 @@ class GRRFlow(aff4.AFF4Volume):
       data_store.DB.security_manager.CheckIfCanStartFlow(
           token, flow_obj.Name(), with_client_id=runner.args.client_id)
 
+      # This calls runner.Terminate to kill the flow
       runner.Error(reason, status=status)
-      runner.Terminate()
 
       flow_obj.Log("Terminated by user {0}. Reason: {1}".format(
           token.username, reason))

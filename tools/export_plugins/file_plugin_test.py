@@ -25,7 +25,8 @@ class FileExportPluginTest(test_lib.GRRBaseTest):
 
     data_store.default_token = access_control.ACLToken(username="user",
                                                        reason="reason")
-    self.GrantClientApproval(self.client_id, token=data_store.default_token)
+    self.RequestAndGrantClientApproval(self.client_id,
+                                       token=data_store.default_token)
 
   def CreateDir(self, dirpath):
     path = self.out.Add(dirpath)

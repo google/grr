@@ -123,7 +123,17 @@ class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
   privileged = True
 
   def Render(self, args, token=None):
-    if args.flow_name and not args.flow_runner_args.flow_name:
+    args.flow_args.hunt_runner_args.hunt_name = "GenericHunt"
+
+    # TODO(user): The following should be asserted in a more elegant way.
+    # Also, it's not clear whether cron job scheduling UI is used often enough
+    # to justify its existence. We should check with opensource users whether
+    # they find this feature useful and if not, deprecate it altogether.
+    if args.flow_name != "CreateAndRunGenericHuntFlow":
+      raise ValueError("Only CreateAndRunGenericHuntFlow flows are supported "
+                       "here (got: %s)." % args.flow_name)
+
+    if not args.flow_runner_args.flow_name:
       args.flow_runner_args.flow_name = args.flow_name
 
     cron_args = aff4_cronjobs.CreateCronJobFlowArgs(

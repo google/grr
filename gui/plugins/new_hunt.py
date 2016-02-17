@@ -19,7 +19,7 @@ from grr.lib import type_info
 from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
 from grr.lib.rdfvalues import aff4_rdfvalues
-from grr.lib.rdfvalues import foreman as rdf_foreman
+from grr.server import foreman as rdf_foreman
 
 
 class HuntArgsParser(object):

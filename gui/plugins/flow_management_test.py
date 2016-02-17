@@ -74,7 +74,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     with self.ACLChecksDisabled():
       self.client_id = rdf_client.ClientURN("C.0000000000000001")
-      self.GrantClientApproval(self.client_id)
+      self.RequestAndGrantClientApproval(self.client_id)
       self.action_mock = action_mocks.ActionMock(
           "TransferBuffer", "StatFile", "HashFile", "HashBuffer")
 

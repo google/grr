@@ -22,7 +22,7 @@ from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.flows.cron import system as cron_system
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import foreman as rdf_foreman
+from grr.server import foreman as rdf_foreman
 
 
 class TestACLWorkflow(test_lib.GRRSeleniumTest):
@@ -156,7 +156,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
       token = access_control.ACLToken(
           username="test",
           reason=test_reason)
-      self.GrantClientApproval("C.0000000000000006", token=token)
+      self.RequestAndGrantClientApproval("C.0000000000000006", token=token)
 
     self.Type("client_query", "C.0000000000000006")
     self.Click("client_query_submit")

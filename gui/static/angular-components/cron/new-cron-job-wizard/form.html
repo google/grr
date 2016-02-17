@@ -1,9 +1,9 @@
 <grr-wizard-form title="Schedule Cron Hunt" on-resolve="onResolve()" on-reject="onReject()">
 
   <!-- Configure schedule -->
-  <grr-wizard-form-page title="Cron Job properties"
-                        is-valid="controller.huntRunnerArgs.value.regex_rules.length > 0 ||
-                                  controller.huntRunnerArgs.value.integer_rules.length > 0">
+  <grr-wizard-form-page
+      title="Cron Job properties"
+      is-valid="controller.huntRunnerArgs.value.client_rule_set">
 
     <grr-configure-schedule-page cron-job="cronJob">
     </grr-configure-schedule-page>
@@ -30,13 +30,11 @@
   </grr-wizard-form-page>
 
   <!-- Configure rules -->
-  <grr-wizard-form-page title="Where to run?" is-valid="controller.huntRunnerArgs.value.regex_rules.length > 0 ||
-                                                        controller.huntRunnerArgs.value.integer_rules.length > 0">
+  <grr-wizard-form-page title="Where to run?">
 
-    <grr-configure-deprecated-rules-page
-        regex-rules="controller.huntRunnerArgs.value.regex_rules"
-        integer-rules="controller.huntRunnerArgs.value.integer_rules">
-    </grr-configure-deprecated-rules-page>
+    <grr-configure-rules-page
+        client-rule-set="controller.huntRunnerArgs.value.client_rule_set">
+    </grr-configure-rules-page>
 
   </grr-wizard-form-page>
 

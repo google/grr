@@ -18,7 +18,6 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
   # Server configuration files do not normally have valid client keys.
   exceptions = [
       "Client.private_key",
-      "ClientBuilder.executables_dir",
       "PrivateKeys.ca_key",
       "PrivateKeys.driver_signing_private_key"
       "PrivateKeys.executable_signing_private_key",

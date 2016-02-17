@@ -17,7 +17,7 @@ RUN bash /usr/share/grr/scripts/download_client_templates.sh
 ADD . /usr/share/grr/
 
 # Compile protos
-RUN make
+RUN python makefile.py
 
 # Install GRR
 WORKDIR /usr/share/grr

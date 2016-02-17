@@ -26,15 +26,6 @@ msiexec /i "python-2.7.11.msi" /passive TARGETDIR="C:\tools\python2-x86_32" || e
 :: This should put git on the path, but it doesn't
 choco install git -y || echo "git install failed" && exit /b 1
 SETX /M PATH "%PATH%;C:\Program Files (x86)\Git\bin"
-:: Kill the broken version of perl that git ships, we install activestate perl
-:: later.  This one doesn't work with openssl.
-del /f /s "C:\Program Files (x86)\Git\bin\perl.exe"
-call refreshenv
-
-:: Currently 3.0.2, good because 3.0.5 breaks M2Crypto
-:: https://github.com/M2Crypto/M2Crypto/issues/24
-choco install swig -y || echo "swig install failed" && exit /b 1
-SETX /M PATH "%PATH%;%ALLUSERSPROFILE%\chocolatey\lib\swig\tools\swigwin-3.0.2"
 call refreshenv
 
 C:\tools\python2\Scripts\pip.exe install virtualenv || echo "virtualenv install failed" && exit /b 1
@@ -43,13 +34,8 @@ C:\tools\python2\Scripts\virtualenv -p C:\tools\python2\python.exe C:\PYTHON_64 
 
 cmd /c "C:\grr\vagrant\windows\32bit_virtualenv.bat" || echo "32bit virtualenv failed" && exit /b 1
 
-cmd /c "C:\grr\vagrant\windows\openssl_deps.bat" || echo "openssl_deps.bat failed" && exit /b 1
 call refreshenv
 
-cmd /c ""C:\grr\vagrant\windows\32bitenv.bat" && C:\grr\vagrant\windows\32bitopenssl.bat" || echo "32bitopenssl.bat failed" && exit /b 1
-cmd /c ""C:\grr\vagrant\windows\64bitenv.bat" && C:\grr\vagrant\windows\64bitopenssl.bat" || echo "64bitopenssl.bat failed" && exit /b 1
-
-cmd /c "C:\grr\vagrant\windows\install_pytsk.bat" || echo "install_pytsk.bat failed" && exit /b 1
 cmd /c "C:\grr\vagrant\windows\install_protobuf.bat" || echo "install_protobuf.bat failed" && exit /b 1
 call refreshenv
 

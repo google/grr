@@ -23,6 +23,7 @@ from grr.lib.flows.general import filetypes
 from grr.lib.flows.general import find
 from grr.lib.flows.general import fingerprint
 from grr.lib.flows.general import grep
+from grr.lib.flows.general import hardware
 
 from grr.lib.flows.general import memory
 from grr.lib.flows.general import network

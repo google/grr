@@ -47,7 +47,7 @@ message RekallRequest {
       description: "These parameters are used to initialize the session.",
     }];
 
-  optional RekallProfile profile_data = 8 [(sem_type) = {
+  repeated RekallProfile profiles = 9 [(sem_type) = {
       description: "Profiles sent by the server to store on the client.",
       label: HIDDEN
     }];
@@ -93,6 +93,15 @@ message RekallProfile {
   optional string version = 3 [(sem_type) = {
       description: "The version of this profile."
     }];
+
+  enum Compression {
+    NONE = 0;
+    GZIP = 1;
+  }
+
+  optional Compression compression = 4 [(sem_type) = {
+      description: "Type of compression carried in the data field."
+    }, default=GZIP];
 }
 
 // The Rekall AnalyzeClientMemory flow.

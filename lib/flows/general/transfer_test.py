@@ -194,6 +194,33 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
     self.CompareFDs(fd1, fd2)
 
+  def testMultiGetFileSetsFileHashAttributeWhenMultipleChunksDownloaded(self):
+    client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
+                                          "StatFile", "HashBuffer")
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        path=os.path.join(self.base_path, "test_img.dd"))
+
+    args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
+    for _ in test_lib.TestFlowHelper("MultiGetFile", client_mock,
+                                     token=self.token,
+                                     client_id=self.client_id, args=args):
+      pass
+
+    # Fix path for Windows testing.
+    pathspec.path = pathspec.path.replace("\\", "/")
+    # Test the AFF4 file that was created.
+    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    fd = aff4.FACTORY.Open(urn, token=self.token)
+    fd_hash = fd.Get(fd.Schema.HASH)
+
+    self.assertTrue(fd_hash)
+
+    h = hashlib.sha256()
+    with open(os.path.join(self.base_path, "test_img.dd")) as model_fd:
+      h.update(model_fd.read())
+    self.assertEqual(fd_hash.sha256, h.digest())
+
   def testMultiGetFileSizeLimit(self):
     client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
                                           "StatFile", "HashBuffer")

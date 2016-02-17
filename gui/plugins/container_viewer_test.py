@@ -35,7 +35,7 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
     # Create a new collection
     with self.ACLChecksDisabled():
       self.CreateCollectionFixture()
-      self.GrantClientApproval("C.0000000000000001")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
 
   def testContainerViewer(self):
     self.Open("/")

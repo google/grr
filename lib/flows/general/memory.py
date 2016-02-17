@@ -9,6 +9,8 @@ performing basic analysis.
 
 import json
 
+from rekall import constants
+
 import logging
 from grr.client.components.rekall_support import rekall_pb2
 from grr.client.components.rekall_support import rekall_types
@@ -671,6 +673,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
 
   @flow.StateHandler(next_state="ComponentLoaded")
   def Start(self):
+    self.state.Register("component_version", None)
     # Load all the components we will be needing on the client.
     self.LoadComponentOnClient(name="grr-rekall", version="0.1",
                                next_state="StartAnalysis")
@@ -681,6 +684,8 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     # components installed.
     if not responses.success:
       self.Log("Component Loading failed: %s" % responses.status.error_message)
+    else:
+      self.state.component_version = responses.First().summary.version
 
     self.CallStateInline(next_state=responses.request_data["next_state"])
 
@@ -699,6 +704,13 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
 
     self.state.Register("rekall_request", self.args.request.Copy())
 
+    # We always push the inventory to the request. This saves a round trip
+    # because the client always needs it (so it can figure out if its cache is
+    # still valid).
+    self.state.rekall_request.profiles.append(
+        self.GetProfileByName(
+            "inventory", constants.PROFILE_REPOSITORY_VERSION))
+
     if self.args.debug_logging:
       self.state.rekall_request.session[
           u"logging_level"] = u"DEBUG"
@@ -713,9 +725,18 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
                       next_state="StoreResults")
       return
 
+    # If this is a new version of the client, just call Rekall directly - no
+    # need to fuss with drivers, Rekall already has all the drivers it needs.
+    if self.state.component_version >= "0.1":
+      self.state.rekall_request.session["live"] = True
+      self.CallClient("RekallAction", self.state.rekall_request,
+                      next_state="StoreResults")
+      return
+
     # If it is a linux client, check for kcore.
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     system = client.Get(client.Schema.SYSTEM)
+
     if self.args.use_kcore_if_present and system == "Linux":
       kcore_pathspec = rdf_paths.PathSpec(
           path="/proc/kcore",
@@ -750,6 +771,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     memory_information = responses.First()
     # Update the device from the result of LoadMemoryDriver.
     self.state.rekall_request.device = memory_information.device
+
     self.CallClient("RekallAction", self.state.rekall_request,
                     next_state="StoreResults")
 
@@ -764,21 +786,13 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     """Stores the results."""
     if not responses.success:
       self.state.plugin_errors.append(unicode(responses.status.error_message))
-      return
+      # Keep processing to read out the debug messages from the json.
 
     self.Log("Rekall returned %s responses." % len(responses))
     for response in responses:
       if response.missing_profile:
-        server_type = config_lib.CONFIG["Rekall.profile_server"]
-        logging.info("Getting missing Rekall profile '%s' from %s",
-                     response.missing_profile, server_type)
-        profile_server = rekall_profile_server.ProfileServer.classes[
-            server_type]()
-        profile = profile_server.GetProfileByName(
-            response.missing_profile,
-            version=response.repository_version
-        )
-
+        profile = self.GetProfileByName(response.missing_profile,
+                                        response.repository_version)
         if profile:
           self.CallClient("WriteRekallProfile", profile,
                           next_state="UpdateProfile")
@@ -813,7 +827,8 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
 
         self.SendReply(response)
 
-    if responses.iterator.state != rdf_client.Iterator.State.FINISHED:
+    if (responses.iterator and   # This will be None if an error occurred.
+        responses.iterator.state != rdf_client.Iterator.State.FINISHED):
       self.state.rekall_request.iterator = responses.iterator
       self.CallClient("RekallAction", self.state.rekall_request,
                       next_state="StoreResults")
@@ -849,6 +864,17 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     if self.runner.output is not None:
       self.Notify("ViewObject", self.runner.output.urn,
                   "Ran analyze client memory")
+
+  def GetProfileByName(self, name, version):
+    """Load the requested profile from the repository."""
+    server_type = config_lib.CONFIG["Rekall.profile_server"]
+    logging.info(
+        "Getting missing Rekall profile '%s' from %s", name, server_type)
+
+    profile_server = rekall_profile_server.ProfileServer.classes[
+        server_type]()
+
+    return profile_server.GetProfileByName(name, version=version)
 
 
 class UnloadMemoryDriver(LoadMemoryDriver):

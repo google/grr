@@ -7,6 +7,7 @@
 from grr.gui import api_test_lib
 
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs
@@ -95,3 +96,11 @@ class ApiCreateCronJobHandlerRegressionTest(
                         }
                     },
                 "description": "Foobar!"}, replace=ReplaceCronJobUrn)
+
+
+def main(argv):
+  test_lib.main(argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

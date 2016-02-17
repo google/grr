@@ -164,6 +164,11 @@ class SystemCronFlow(flow.GRRFlow):
   # behaviour by setting start_time_randomization = False.
   start_time_randomization = True
 
+  # Jobs that are broken, or are under development can be disabled using
+  # the "disabled" attribute. These jobs won't get scheduled automatically,
+  # and will get paused if they were scheduled before.
+  disabled = False
+
   __abstract = True  # pylint: disable=g-bad-name
 
   def WriteState(self):
@@ -270,7 +275,9 @@ def ScheduleSystemCronFlows(names=None, token=None):
       cron_args.lifetime = cls.lifetime
       cron_args.start_time = GetStartTime(cls)
 
-      if config_lib.CONFIG["Cron.enabled_system_jobs"]:
+      if cls.disabled:
+        disabled = True
+      elif config_lib.CONFIG["Cron.enabled_system_jobs"]:
         disabled = name not in config_lib.CONFIG["Cron.enabled_system_jobs"]
       else:
         disabled = name in config_lib.CONFIG["Cron.disabled_system_jobs"]
