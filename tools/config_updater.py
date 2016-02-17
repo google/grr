@@ -509,6 +509,18 @@ well.
     config.Set("Datastore.location", datastore_location)
 
   if datastore == "2":
+    print """\n\n***WARNING***
+
+Do not continue until a MySQL server, version 5.6 or greater, is running and a
+user with the ability to create the GRR database and tables has been created.
+You will need the server, username, password, and database name (if already
+created) to continue. If no database has been created this script will attempt
+to create the necessary database and tables using the credentials provided.
+
+***WARNING***
+"""
+    while raw_input("Are you ready to continue?[Yn]: ").upper() != "Y":
+      pass
     config.Set("Datastore.implementation", "MySQLAdvancedDataStore")
     mysql_host = RetryQuestion("MySQL Host", "^[\\.A-Za-z0-9-]+$",
                                config_lib.CONFIG.Get("Mysql.host"))
@@ -531,16 +543,6 @@ well.
     mysql_password = getpass.getpass(
         prompt="Please enter password for database user %s: " % mysql_username)
     config.Set("Mysql.database_password", mysql_password)
-
-    print """\n\n***WARNING***
-Do not continue until a MySQL 5.6 server is installed and running with a user
-created with the ability to create the GRR database and tables and the Python
-MySQLdb module has been installed on the GRR server.
-
-E.g: apt-get install mysql-server-5.6 python-mysqldb
-"""
-    while raw_input("Are you ready to continue?[yN]: ").upper() != "Y":
-      pass
 
 
 def ConfigureEmails(config):
