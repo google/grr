@@ -96,6 +96,8 @@ if $GRR_INSTALL; then
   # Remove any old installation and install GRR
   rm -rf /usr/lib/python2.7/dist-packages/grr
   rm -rf /usr/local/lib/python2.7/dist-packages/grr
+  rm -rf /usr/lib/python2.7/site-packages/grr
+  rm -rf /usr/local/lib/python2.7/site-packages/grr
   python setup.py build
   python setup.py install
 fi
@@ -106,7 +108,7 @@ header "Install Configuration Files"
 # Set up default configuration
 mkdir -p "$INSTALL_PREFIX/etc/grr"
 
-"$INSTALL_CMD" "$SRC_DIR/config/grr-server.yaml" "$INSTALL_PREFIX/etc/grr/grr-server.yaml"
+$INSTALL_CMD "$SRC_DIR/config/grr-server.yaml" "$INSTALL_PREFIX/etc/grr/grr-server.yaml"
 
 # Set up upstart scripts
 mkdir -p "$INSTALL_PREFIX/etc/default"
@@ -117,7 +119,7 @@ install -p -m644 "$SRC_DIR"/config/upstart/default/grr-* "$INSTALL_PREFIX/etc/de
 for init_script in "$SRC_DIR"/config/upstart/grr-*; do
   init_script_fn=$(basename "${init_script}")
   if [ "$init_script_fn" != 'grr-client.conf' ]; then
-    "$INSTALL_CMD" "${init_script}" "$INSTALL_PREFIX/etc/init/${init_script_fn}"
+    $INSTALL_CMD "${init_script}" "$INSTALL_PREFIX/etc/init/${init_script_fn}"
   fi
 done
 
@@ -146,9 +148,9 @@ if ! $DOCKER; then
 
   # For a dev environment link the share directories to the source directory
   if [ $INSTALL_BIN == "ln" ]; then
-    "$INSTALL_CMD" "$SRC_DIR/executables/" "$INSTALL_PREFIX/usr/share/grr/executables"
-    "$INSTALL_CMD" "$SRC_DIR/scripts/" "$INSTALL_PREFIX/usr/share/grr/scripts"
-    "$INSTALL_CMD" "$SRC_DIR/binaries/" "$INSTALL_PREFIX/usr/share/grr/binaries"
+    $INSTALL_CMD "$SRC_DIR/executables/" "$INSTALL_PREFIX/usr/share/grr/executables"
+    $INSTALL_CMD "$SRC_DIR/scripts/" "$INSTALL_PREFIX/usr/share/grr/scripts"
+    $INSTALL_CMD "$SRC_DIR/binaries/" "$INSTALL_PREFIX/usr/share/grr/binaries"
   else
   # Otherwise copy the files from the source directory to the share directories
     # Copy the templates from the source dir
