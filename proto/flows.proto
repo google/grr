@@ -255,11 +255,12 @@ message HuntRunnerArgs {
 
   optional uint64 client_limit = 10 [(sem_type) = {
       description: "Maximum number of clients participating in the hunt. "
-      "Note that this limit can be overshot by a small number "
-      "of clients if there are multiple workers running. Use "
-      "this only for testing.",
+      "Best practice is for all hunts to use a limit to start with and "
+      "remove it only when client impact has been assessed by looking at "
+      "hunt stats. Note that this limit can be overshot by a small number "
+      "of clients if there are multiple workers running. ",
       friendly_name: "Client Limit",
-    }, default=0];
+    }, default=100];
 
   optional uint64 expiry_time = 11 [(sem_type) = {
       type: "Duration",

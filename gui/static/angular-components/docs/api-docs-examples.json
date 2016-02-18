@@ -2056,7 +2056,7 @@
           "client_limit": {
             "age": 0,
             "type": "long",
-            "value": 0
+            "value": 100
           },
           "client_rate": {
             "age": 0,
@@ -3082,7 +3082,7 @@
               "flow_name": "GetFile"
             }
           },
-          "client_limit": 0,
+          "client_limit": 100,
           "client_rate": 0.0,
           "client_rule_set": {},
           "completed_clients_count": 0,
@@ -8143,7 +8143,7 @@
               "client_limit": {
                 "age": 0,
                 "type": "long",
-                "value": 0
+                "value": 100
               },
               "client_rate": {
                 "age": 0,
@@ -8437,7 +8437,7 @@
               "client_limit": {
                 "age": 0,
                 "type": "long",
-                "value": 0
+                "value": 100
               },
               "client_rate": {
                 "age": 0,
@@ -8557,7 +8557,7 @@
               "metadata:last": 2000000000
             },
             "summary": {
-              "client_limit": 0,
+              "client_limit": 100,
               "client_rate": 0.0,
               "create_time": 2000000000,
               "creator": "test",
@@ -8639,7 +8639,7 @@
               "metadata:last": 1000000000
             },
             "summary": {
-              "client_limit": 0,
+              "client_limit": 100,
               "client_rate": 0.0,
               "create_time": 1000000000,
               "creator": "test",
@@ -8920,7 +8920,7 @@
               "client_limit": {
                 "age": 0,
                 "type": "long",
-                "value": 0
+                "value": 100
               },
               "client_rate": {
                 "age": 0,
@@ -9040,7 +9040,7 @@
               "metadata:last": 2000000000
             },
             "summary": {
-              "client_limit": 0,
+              "client_limit": 100,
               "client_rate": 0.0,
               "create_time": 2000000000,
               "creator": "test",
@@ -9316,7 +9316,7 @@
               "client_limit": {
                 "age": 0,
                 "type": "long",
-                "value": 0
+                "value": 100
               },
               "client_rate": {
                 "age": 0,
@@ -9435,7 +9435,7 @@
               "metadata:last": 1000000000
             },
             "summary": {
-              "client_limit": 0,
+              "client_limit": 100,
               "client_rate": 0.0,
               "create_time": 1000000000,
               "creator": "test",
@@ -11006,7 +11006,7 @@
                 "client_limit": {
                   "age": 0,
                   "type": "long",
-                  "value": 0
+                  "value": 100
                 },
                 "client_rate": {
                   "age": 0,
@@ -11325,7 +11325,7 @@
                 "metadata:last": 42000000
               },
               "summary": {
-                "client_limit": 0,
+                "client_limit": 100,
                 "client_rate": 20,
                 "create_time": 42000000,
                 "creator": "test",

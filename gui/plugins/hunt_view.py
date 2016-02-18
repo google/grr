@@ -512,6 +512,12 @@ class HuntOverviewRenderer(AbstractLogRenderer):
         else:
           self.integer_rules = "None"
 
+        if runner.args.client_rule_set:
+          self.client_rule_set = foreman.RuleArray(
+              runner.args.client_rule_set).RawHTML(request)
+        else:
+          self.client_rule_set = "None"
+
       except IOError:
         self.layout_template = self.error_template
 

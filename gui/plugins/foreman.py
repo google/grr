@@ -21,6 +21,11 @@ class IntegerRuleArray(semantic.RDFValueArrayRenderer):
   proxy_field = "integer_rules"
 
 
+class RuleArray(semantic.RDFProtoRenderer):
+  """Nicely render all the rules."""
+  proxy_field = "client_rule_set"
+
+
 class ActionRuleArray(semantic.RDFValueArrayRenderer):
   """Nicely render all the actions for a rule."""
   proxy_field = "actions"
