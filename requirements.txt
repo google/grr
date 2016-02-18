@@ -35,7 +35,8 @@ pyinstaller==3.1.1
 python-crontab==2.0.1
 python-dateutil==2.4.2
 pytz==2015.7
-http://images.rekall-forensic.com/share/rekall-core-1.5.0.tar.gz#egg=rekall-core-1.5
+https://storage.googleapis.com/grr_releases/rekall-core-1.5.0.tar.gz#egg=rekall-core-1.5
+https://storage.googleapis.com/grr_releases/capstone-3.0.4.tar.gz#egg=capstone-3.0.4
 selenium==2.50.1
 urllib3==1.14
 wsgiref==0.1.2

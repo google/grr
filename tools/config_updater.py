@@ -7,13 +7,14 @@ import ConfigParser
 import getpass
 import json
 import os
+import pwd
 import re
 # importing readline enables the raw_input calls to have history etc.
 import readline  # pylint: disable=unused-import
 import socket
 import sys
 import urlparse
-import pwd
+
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
@@ -402,7 +403,7 @@ def GenerateKeys(config):
   if not hasattr(key_utils, "MakeCACert"):
     parser.error("Generate keys can only run with open source key_utils.")
   if (config.Get("PrivateKeys.server_key", default=None) and
-          not flags.FLAGS.overwrite):
+      not flags.FLAGS.overwrite):
     raise RuntimeError("Config %s already has keys, use --overwrite to "
                        "override." % config.parser)
 
@@ -571,6 +572,7 @@ Address where high priority events such as an emergency ACL bypass are sent.
 
 
 def ConfigureUser(config):
+  """Create Server.username user if necessary."""
   success = False
   username = RetryQuestion("\nGRR Server Username",
                            "^[a-z0-9]+$",
@@ -598,25 +600,24 @@ def ConfigureBaseOptions(config):
   print "We are now going to configure the server using a bunch of questions."
 
   print """\n\n-=GRR Server Username=-
-By default GRR services run as root, however, GRR can be configured to
-switch to a lower privileged user after reading its configuration. 
-Entering a different username here will create that user if it does not
-already exist.
+By default GRR services run as root, however, GRR can be configured to switch to
+a lower privileged user after reading its configuration.  Entering a different
+username here will create that user if it does not already exist.
 
 ***WARNING***
 
-This user will need to be granted the read permissions on SSL keys
-and certificates for the AdminUI if enabled, and read/write 
-permissions on the SQLite datastore path if enabled.
+This user will need to be granted the read permissions on SSL keys and
+certificates for the AdminUI if enabled, and read/write permissions on the
+SQLite datastore path if enabled.
 
 ***WARNING***\n"""
   print "Server Username: %s" % config_lib.CONFIG.Get("Server.username")
   if raw_input("Do you want to keep this configuration? [Yn]: ").upper() == "N":
-      while not ConfigureUser(config):
-        print "Could not find or create user."
-        if raw_input("Try again?[Yn]: ").upper() == "N":
-          print "Using %s" % config_lib.CONFIG.Get("Server.username")
-          break
+    while not ConfigureUser(config):
+      print "Could not find or create user."
+      if raw_input("Try again?[Yn]: ").upper() == "N":
+        print "Using %s" % config_lib.CONFIG.Get("Server.username")
+        break
 
   print """\n\n-=GRR Datastore=-
 For GRR to work each GRR server has to be able to communicate with the
@@ -649,10 +650,10 @@ datastore.  To do this we need to configure a datastore.\n"""
       ConfigureDatastore(config)
 
   print """\n\n-=GRR URLs=-
-For GRR to work each client has to be able to communicate with the
-server. To do this we normally need a public dns name or IP address to
-communicate with. In the standard configuration this will be used to 
-host both the client facing server and the admin user interface.\n"""
+For GRR to work each client has to be able to communicate with the server. To do
+this we normally need a public dns name or IP address to communicate with. In
+the standard configuration this will be used to host both the client facing
+server and the admin user interface.\n"""
 
   existing_ui_urn = config_lib.CONFIG.Get("AdminUI.url", default=None)
   existing_frontend_urn = config_lib.CONFIG.Get("Client.server_urls")

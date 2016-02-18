@@ -16,6 +16,7 @@ from grr.lib.flows.general import processes as flows_processes
 from grr.lib.flows.general import transfer as flows_transfer
 from grr.lib.flows.general import webhistory as flows_webhistory
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
@@ -64,6 +65,19 @@ class FlowWithOneNetworkConnectionResult(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     self.SendReply(rdf_client.NetworkConnection(pid=42))
+
+
+class FlowWithOneHashEntryResult(flow.GRRFlow):
+  """Test flow that calls SendReply once with a HashEntry value."""
+
+  @flow.StateHandler()
+  def Start(self):
+    hash_result = rdf_crypto.Hash(
+        sha256=("9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"
+                "e4f06017acdb5").decode("hex"),
+        sha1="6dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
+        md5="8b0a15eefe63fd41f8dc9dee01c5cf9a".decode("hex"))
+    self.SendReply(hash_result)
 
 
 class TestFlowManagement(test_lib.GRRSeleniumTest):
@@ -237,6 +251,26 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         self.IsTextPresent,
         "--username test collection_files "
         "--path aff4:/C.0000000000000001/analysis/FlowWithOneStatEntryResult")
+
+  def testHashesAreDisplayedCorrectly(self):
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(
+          "FlowWithOneHashEntryResult", self.action_mock,
+          client_id=self.client_id, token=self.token):
+        pass
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('FlowWithOneHashEntryResult')")
+    self.Click("css=li[heading=Results]")
+
+    self.WaitUntil(self.IsTextPresent,
+                   "9e8dc93e150021bb4752029ebbff51394aa36f069cf19901578"
+                   "e4f06017acdb5")
+    self.WaitUntil(self.IsTextPresent,
+                   "6dd6bee591dfcb6d75eb705405302c3eab65e21a")
+    self.WaitUntil(self.IsTextPresent,
+                   "8b0a15eefe63fd41f8dc9dee01c5cf9a")
 
   def testExportCommandIsNotDisabledWhenNoResults(self):
     # RecursiveTestFlow doesn't send any results back.

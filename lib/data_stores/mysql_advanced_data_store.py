@@ -283,10 +283,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     return results
 
-
-  def _ScanAttribute(self, subject_prefix, attribute, after_urn=None, limit=None, token=None):
-    self.security_manager.CheckDataStoreAccess(token, [subject_prefix],
-                                               "qr")
+  def _ScanAttribute(self, subject_prefix, attribute, after_urn=None,
+                     limit=None, token=None):
+    self.security_manager.CheckDataStoreAccess(
+        token, [subject_prefix], "qr")
     query = """
     SELECT aff4.value, aff4.timestamp, subjects.subject
       FROM aff4
@@ -310,7 +310,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     results = self.ExecuteQuery(query, args)
     return results
 
-
   def ScanAttributes(self,
                      subject_prefix,
                      attributes,
@@ -333,7 +332,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     results = {}
 
     for attribute in attributes:
-      attribute_results = self._ScanAttribute(subject_prefix, attribute, after_urn, max_records, token)
+      attribute_results = self._ScanAttribute(
+          subject_prefix, attribute, after_urn, max_records, token)
       for row in attribute_results:
         subject = row["subject"]
         timestamp = row["timestamp"]
@@ -349,7 +349,6 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       result_count += 1
       if max_records and result_count >= max_records:
         return
-
 
   def MultiSet(self, subject, values, timestamp=None, replace=True, sync=True,
                to_delete=None, token=None):

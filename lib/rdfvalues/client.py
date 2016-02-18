@@ -26,6 +26,9 @@ from grr.proto import jobs_pb2
 from grr.proto import knowledge_base_pb2
 from grr.proto import sysinfo_pb2
 
+# ntop does not exist on Windows.
+# pylint: disable=g-socket-inet-aton,g-socket-inet-ntoa
+
 
 class ClientURN(rdfvalue.RDFURN):
   """A client urn has to have a specific form."""
@@ -312,7 +315,7 @@ class NetworkAddress(structs.RDFProtoStruct):
     else:
       try:
         if self.address_type == NetworkAddress.Family.INET:
-          return socket.inet_ntop(socket.AF_INET, str(self.packed_bytes))
+          return socket.inet_ntoa(str(self.packed_bytes))
         else:
           return ipv6_utils.InetNtoA(str(self.packed_bytes))
       except ValueError as e:
@@ -327,7 +330,7 @@ class NetworkAddress(structs.RDFProtoStruct):
     else:
       # IPv4
       self.address_type = NetworkAddress.Family.INET
-      self.packed_bytes = socket.inet_pton(socket.AF_INET, value)
+      self.packed_bytes = socket.inet_aton(value)
 
 
 class DNSClientConfiguration(structs.RDFProtoStruct):

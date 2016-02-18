@@ -1264,7 +1264,10 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     super(DynamicRekallResponseConverterTest, self).setUp()
     self.messages = []
     inventory = rdf_rekall_types.RekallProfile(
-        name="inventory", data='{"$INVENTORY": {}}', version="1", compression=0)
+        name="inventory",
+        data=('{"$INVENTORY": {},'
+              '"$METADATA": {"ProfileClass":"Inventory", "Type":"Inventory"}}'),
+        version="1", compression=0)
 
     self.rekall_session = grr_rekall.GrrRekallSession(
         action=self, initial_profiles=[inventory])

@@ -33,10 +33,10 @@ done
 mkdir -p executables/darwin/templates/
 mkdir -p executables/linux/templates/
 mkdir -p executables/windows/templates/
-wget -N --quiet -P ${DOWNLOAD_DIR}/executables/darwin/templates/ ${CLIENT_TEMPLATE_DIRECTORY}/grr_${CLIENT_TEMPLATE_VERSION}_amd64.pkg.xar
-wget -N --quiet -P ${DOWNLOAD_DIR}/executables/linux/templates/ ${CLIENT_TEMPLATE_DIRECTORY}/grr_${CLIENT_TEMPLATE_VERSION}_amd64.deb.zip
-wget -N --quiet -P ${DOWNLOAD_DIR}/executables/linux/templates/ ${CLIENT_TEMPLATE_DIRECTORY}/grr_${CLIENT_TEMPLATE_VERSION}_i386.deb.zip
-wget -N --quiet -P ${DOWNLOAD_DIR}/executables/linux/templates/ ${CLIENT_TEMPLATE_DIRECTORY}/grr_${CLIENT_TEMPLATE_VERSION}_amd64.rpm.zip
-wget -N --quiet -P ${DOWNLOAD_DIR}/executables/linux/templates/ ${CLIENT_TEMPLATE_DIRECTORY}/grr_${CLIENT_TEMPLATE_VERSION}_i386.rpm.zip
-wget -N --quiet -P ${DOWNLOAD_DIR}/executables/windows/templates/ ${CLIENT_TEMPLATE_DIRECTORY}/GRR_${CLIENT_TEMPLATE_VERSION}_amd64.exe.zip
-wget -N --quiet -P ${DOWNLOAD_DIR}/executables/windows/templates/ ${CLIENT_TEMPLATE_DIRECTORY}/GRR_${CLIENT_TEMPLATE_VERSION}_i386.exe.zip
+wget -N --quiet -P "${DOWNLOAD_DIR}/executables/darwin/templates/" "${CLIENT_TEMPLATE_DIRECTORY}/grr_${CLIENT_TEMPLATE_VERSION}_amd64.pkg.xar"
+wget -N --quiet -P "${DOWNLOAD_DIR}/executables/linux/templates/" "${CLIENT_TEMPLATE_DIRECTORY}/grr_${CLIENT_TEMPLATE_VERSION}_amd64.deb.zip"
+wget -N --quiet -P "${DOWNLOAD_DIR}/executables/linux/templates/" "${CLIENT_TEMPLATE_DIRECTORY}/grr_${CLIENT_TEMPLATE_VERSION}_i386.deb.zip"
+wget -N --quiet -P "${DOWNLOAD_DIR}/executables/linux/templates/" "${CLIENT_TEMPLATE_DIRECTORY}/grr_${CLIENT_TEMPLATE_VERSION}_amd64.rpm.zip"
+wget -N --quiet -P "${DOWNLOAD_DIR}/executables/linux/templates/" "${CLIENT_TEMPLATE_DIRECTORY}/grr_${CLIENT_TEMPLATE_VERSION}_i386.rpm.zip"
+wget -N --quiet -P "${DOWNLOAD_DIR}/executables/windows/templates/" "${CLIENT_TEMPLATE_DIRECTORY}/GRR_${CLIENT_TEMPLATE_VERSION}_amd64.exe.zip"
+wget -N --quiet -P "${DOWNLOAD_DIR}/executables/windows/templates/" "${CLIENT_TEMPLATE_DIRECTORY}/GRR_${CLIENT_TEMPLATE_VERSION}_i386.exe.zip"

@@ -48,8 +48,8 @@ elif [ "$1" == "centos_5.11_64" ] || [ "$1" == "centos_5.11_32" ]; then
   fi
 
   vagrant up "$1"
-  vagrant ssh -c "cd /grr/ && PROTO_SRC_ROOT=$PROTO_SRC_INSTALLED make && cd / && source ~/PYTHON_ENV/bin/activate && PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml build" "$1"
-  vagrant ssh -c "cd /grr/ && PROTO_SRC_ROOT=$PROTO_SRC_INSTALLED make && cd / && source ~/PYTHON_ENV/bin/activate && PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml build_components" "$1"
+  vagrant ssh -c "cd /grr/ && PROTO_SRC_ROOT=$PROTO_SRC_INSTALLED python makefile.py && cd / && source ~/PYTHON_ENV/bin/activate && PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml build" "$1"
+  vagrant ssh -c "cd /grr/ && PROTO_SRC_ROOT=$PROTO_SRC_INSTALLED python makefile.py && cd / && source ~/PYTHON_ENV/bin/activate && PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml build_components" "$1"
   if [ $? -eq 0 ]; then
     vagrant halt "$1"
   fi
@@ -62,7 +62,7 @@ else
   vagrant up "$1"
   # We need to compile the protos inside the build environment because the host
   # may not have the correct proto compiler.
-  vagrant ssh -c "cd /grr/ && PROTO_SRC_ROOT=$PROTO_SRC_INSTALLED make && cd / && source ~/PYTHON_ENV/bin/activate && PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml buildanddeploy" "$1"
+  vagrant ssh -c "cd /grr/ && PROTO_SRC_ROOT=$PROTO_SRC_INSTALLED python makefile.py && cd / && source ~/PYTHON_ENV/bin/activate && PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml buildanddeploy" "$1"
   if [ $? -eq 0 ]; then
     vagrant halt "$1"
   fi

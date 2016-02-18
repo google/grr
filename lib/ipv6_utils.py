@@ -8,6 +8,9 @@ because those functions are not available on windows before python 3.4.
 import re
 import socket
 
+# ntop does not exist on Windows.
+# pylint: disable=g-socket-inet-aton,g-socket-inet-ntoa
+
 
 V4_ENDING = re.compile(r"(?P<v6>.*):(\d+)\.(\d+)\.(\d+)\.(\d+)$")
 ZERO_SEQUENCE = re.compile(r"(?:^|\:)(?:0\:?)+")
@@ -21,7 +24,7 @@ def _RemoveV4Ending(addr_string):
   if match:
     ipv4_addr = ".".join(match.groups()[1:])
     try:
-      socket.inet_pton(socket.AF_INET, ipv4_addr)
+      socket.inet_aton(ipv4_addr)
     except (socket.error, ValueError):
       raise socket.error("Illegal IPv4 extension: %s" % addr_string)
 
@@ -125,11 +128,11 @@ def InetNtoA(packed_bytes):
 
   # Detect IPv4 endings
   if hex_encoded.startswith("00000000000000000000ffff"):
-    return "::ffff:" + socket.inet_ntop(socket.AF_INET, packed_bytes[-4:])
+    return "::ffff:" + socket.inet_ntoa(packed_bytes[-4:])
 
   # Detect IPv4 endings. If the first quad is 0, it isn't IPv4.
   if hex_encoded.startswith("0" * 24) and not hex_encoded.startswith("0" * 28):
-    return "::" + socket.inet_ntop(socket.AF_INET, packed_bytes[-4:])
+    return "::" + socket.inet_ntoa(packed_bytes[-4:])
 
   # Split into quads
   chunked = [hex_encoded[i:i + 4] for i in xrange(0, len(hex_encoded), 4)]

@@ -111,7 +111,7 @@ function run_cmd_confirm()
     echo ""
     read -p "Run ${CMD} [Y/n/a]? " REPLY
     case $REPLY in
-      y|Y|'') run_header ${CMD};;
+      y|Y|'') run_header "${CMD}";;
       a|A) echo "Answering yes from now on"; ALL_YES=1;;
       *) return ;;
     esac
@@ -176,9 +176,9 @@ run_cmd_confirm python get-pip.py
 header "Installing python dependencies"
 if [ -f "$REQUIREMENTS_URL" ]
 then
-  run_cmd_confirm pip install -r $REQUIREMENTS_URL
+  run_cmd_confirm pip install -r "$REQUIREMENTS_URL"
 else
-  run_cmd_confirm wget --quiet $REQUIREMENTS_URL
+  run_cmd_confirm wget --quiet "$REQUIREMENTS_URL"
   run_cmd_confirm pip install -r requirements.txt
 fi
 
@@ -200,10 +200,10 @@ fi
 header "Installing GRR from prebuilt package"
 SERVER_DEB=$(basename ${SERVER_DEB_URL});
 if [ $GRR_LOCAL_TEST = 0 ]; then
-  run_cmd_confirm wget --no-verbose ${SERVER_DEB_URL} -O ${SERVER_DEB};
-  run_cmd_confirm dpkg -i ${SERVER_DEB};
+  run_cmd_confirm wget --no-verbose "${SERVER_DEB_URL}" -O "${SERVER_DEB}";
+  run_cmd_confirm dpkg -i "${SERVER_DEB}";
 else
-  run_cmd_confirm dpkg -i ${SERVER_DEB};
+  run_cmd_confirm dpkg -i "${SERVER_DEB}";
 fi
 
 header "Initialize the configuration, building clients and setting options."
@@ -218,5 +218,5 @@ run_cmd_confirm enable_services grr-http-server
 run_cmd_confirm enable_services grr-ui
 run_cmd_confirm enable_services grr-worker
 
-HOSTNAME=`hostname`
+HOSTNAME=$(hostname)
 header "Install complete. Congratulations. Point your browser at http://${HOSTNAME}:8000"

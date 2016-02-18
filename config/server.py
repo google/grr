@@ -238,7 +238,7 @@ config_lib.DEFINE_string(
     " is only scheduled after results are received in the previous poll.")
 
 config_lib.DEFINE_string(
-    "Server.username", 'root',
+    "Server.username", "root",
     "System account for services to run as after initialization.")
 
 # Email Template Values
