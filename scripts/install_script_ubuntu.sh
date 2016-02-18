@@ -126,18 +126,19 @@ function run_cmd_confirm()
 header "Adding launchpad.net/~gift PPA for m2crypto pytsk dependencies."
 run_cmd_confirm apt-get install -y software-properties-common
 run_cmd_confirm add-apt-repository ppa:gift/dev -y
-run_cmd_confirm apt-get update -q
 
-header "Updating APT and Installing dependencies"
+header "Updating APT."
 run_cmd_confirm apt-get --yes update;
+
 if $UPGRADE; then
+  header "Upgrading existing packages."
   run_cmd_confirm apt-get --yes upgrade;
 fi
 
 header "Installing dependencies."
 # Installing pkg-config is a workaround for this matplotlib problem:
 # https://github.com/matplotlib/matplotlib/issues/3029/
-sudo apt-get install -y \
+apt-get install -y \
   apache2-utils \
   build-essential \
   debhelper \
@@ -150,6 +151,7 @@ sudo apt-get install -y \
   libpng-dev \
   libprotobuf-dev \
   libmysqlclient-dev \
+  libssl-dev \
   ncurses-dev \
   pkg-config \
   prelink \
@@ -172,6 +174,7 @@ apt-get --force-yes --yes install libpython-dev 2>/dev/null
 
 run_cmd_confirm wget -N --quiet https://bootstrap.pypa.io/get-pip.py
 run_cmd_confirm python get-pip.py
+run_cmd_confirm pip install setuptools --upgrade
 
 header "Installing python dependencies"
 if [ -f "$REQUIREMENTS_URL" ]

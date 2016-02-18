@@ -45,7 +45,7 @@ Vagrant.configure(2) do |config|
     box.vm.network "private_network", ip: GRR_SERVER_DEV_IP
     box.vm.provision "shell" do |s|
       s.path = "../scripts/install_server_from_src.sh"
-      s.args = ["-l", "-r /grr"]
+      s.args = ["-l", "-r", "/grr"]
     end
   end
 

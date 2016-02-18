@@ -12,6 +12,7 @@ sudo apt-get install -y \
   libpng-dev \
   libprotobuf-dev \
   libmysqlclient-dev \
+  libssl-dev \
   ncurses-dev \
   protobuf-compiler \
   python-dev \

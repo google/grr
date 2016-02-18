@@ -287,6 +287,12 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                      limit=None, token=None):
     self.security_manager.CheckDataStoreAccess(
         token, [subject_prefix], "qr")
+
+    subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
+    if subject_prefix[-1] != "/":
+      subject_prefix += "/"
+    subject_prefix += "%"
+
     query = """
     SELECT aff4.value, aff4.timestamp, subjects.subject
       FROM aff4
@@ -295,10 +301,12 @@ class MySQLAdvancedDataStore(data_store.DataStore):
             SELECT subject_hash, MAX(timestamp) timestamp
             FROM aff4
             JOIN subjects ON aff4.subject_hash=subjects.hash
-            WHERE aff4.attribute_hash=unhex(md5(%s)) AND subjects.subject like %s
+            WHERE aff4.attribute_hash=unhex(md5(%s))
+                  AND subjects.subject like %s
                   AND subjects.subject > %s
             GROUP BY subject_hash
-            ) maxtime ON aff4.subject_hash=maxtime.subject_hash AND aff4.timestamp=maxtime.timestamp
+            ) maxtime ON aff4.subject_hash=maxtime.subject_hash
+                  AND aff4.timestamp=maxtime.timestamp
       WHERE aff4.attribute_hash=unhex(md5(%s))
     """
     args = [attribute, subject_prefix, after_urn, attribute]
@@ -310,19 +318,9 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     results = self.ExecuteQuery(query, args)
     return results
 
-  def ScanAttributes(self,
-                     subject_prefix,
-                     attributes,
-                     after_urn=None,
-                     max_records=None,
-                     token=None,
-                     relaxed_order=False):
+  def ScanAttributes(self, subject_prefix, attributes, after_urn=None,
+                     max_records=None, token=None, relaxed_order=False):
     _ = relaxed_order  # Unused
-
-    subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
-    if subject_prefix[-1] != "/":
-      subject_prefix += "/"
-    subject_prefix += "%"
 
     if after_urn:
       after_urn = utils.SmartStr(after_urn)
@@ -334,6 +332,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     for attribute in attributes:
       attribute_results = self._ScanAttribute(
           subject_prefix, attribute, after_urn, max_records, token)
+
       for row in attribute_results:
         subject = row["subject"]
         timestamp = row["timestamp"]
