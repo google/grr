@@ -10,7 +10,7 @@ function system_update() {
   if [ $DISTRO == "Ubuntu" ]; then
     apt-get --yes update
     apt-get --yes upgrade
-    apt-get --force-yes --yes install git-core unzip
+    apt-get --force-yes --yes install git-core unzip swig
   elif [ $DISTRO == "CentOS" ]; then
     # Required for git
     yum install -y epel-release

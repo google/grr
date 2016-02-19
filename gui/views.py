@@ -99,8 +99,9 @@ def RenderBinaryDownload(request):
     # Check for path traversals.
     return AccessDenied("Error: Invalid path.")
   filename = aff4_path.Basename()
-  response = http.HttpResponse(content=Generator(),
-                               content_type="binary/octet-stream")
+  response = http.StreamingHttpResponse(
+      streaming_content=Generator(),
+      content_type="binary/octet-stream")
   response["Content-Disposition"] = ("attachment; filename=%s" % filename)
   return response
 
@@ -173,7 +174,8 @@ def RenderGenericRenderer(request):
 
     raise
 
-  if not isinstance(result, http.HttpResponse):
+  if not isinstance(result, (http.HttpResponse,
+                             http.StreamingHttpResponse)):
     raise RuntimeError("Renderer returned invalid response %r" % result)
 
   return result

@@ -128,6 +128,7 @@ message NetworkConnection {
     // psutils later than v1.0 return "NONE" instead of "UNKNOWN" so we
     // support both.
     NONE = 13;
+    CLOSE = 14;
   };
   optional State state = 5 [default = UNKNOWN];
   optional uint32 pid = 6;

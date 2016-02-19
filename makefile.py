@@ -14,11 +14,12 @@ def MakeProto():
   """Make sure our protos have been compiled to python libraries."""
   # Start running from one directory above the grr directory which is found by
   # this scripts's location as __file__.
-  cwd = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+  grr_dir = os.path.dirname(os.path.abspath(__file__))
+  cwd = os.path.abspath(os.path.join(grr_dir, ".."))
 
   # Find all the .proto files.
   protos_to_compile = []
-  for (root, _, files) in os.walk(cwd):
+  for (root, _, files) in os.walk(grr_dir):
     for filename in files:
       full_filename = os.path.join(root, filename)
       if full_filename.endswith(".proto"):

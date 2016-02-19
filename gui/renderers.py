@@ -773,8 +773,9 @@ class TableRenderer(TemplateRenderer):
       # The last chunk
       yield fd.getvalue()
 
-    response = http.HttpResponse(content=Generator(),
-                                 content_type="binary/x-csv")
+    response = http.StreamingHttpResponse(
+        streaming_content=Generator(),
+        content_type="binary/x-csv")
 
     # This must be a string.
     response["Content-Disposition"] = ("attachment; filename=table.csv")

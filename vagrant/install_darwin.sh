@@ -23,6 +23,11 @@ function install_python_deps() {
   sudo -H pip install --upgrade pip
   sudo -H pip install --upgrade virtualenv
 
+  # Required for M2Crypto. Broken on swig 3.0.5:
+  # https://github.com/M2Crypto/M2Crypto/issues/24
+  brew tap homebrew/versions
+  brew install homebrew/versions/swig304
+
   virtualenv -p /usr/local/bin/python2.7 PYTHON_ENV
   source PYTHON_ENV/bin/activate
   # Required for M2Crypto in requirements.txt

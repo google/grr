@@ -132,6 +132,9 @@ class ClientBuilder(BuilderBase):
       try:
         shutil.rmtree(dir_path)
         os.mkdir(dir_path)
+        # Create an empty file so the directories get put in the installers.
+        with open(os.path.join(dir_path, path), "wb"):
+          pass
       except OSError:
         pass
 
@@ -548,8 +551,7 @@ class DarwinClientDeployer(ClientDeployer):
     context = self.context + ["Client Context"]
     utils.EnsureDirExists(os.path.dirname(output_path))
     # On OSX, this never changes.
-    config_lib.CONFIG.Set("Client.build_environment", "__amd64_OSX_Darwin")
-
+    config_lib.CONFIG.Set("Client.build_environment", "Darwin_OSX___amd64")
     client_config_data = self.GetClientConfig(context)
     shutil.copyfile(template_path, output_path)
     zip_file = zipfile.ZipFile(output_path, mode="a")

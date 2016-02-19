@@ -1004,11 +1004,11 @@ As downloaded on {{ this.age|escape }}.<br>
           if filename.lower().endswith(ext):
             filename += ".noexec"
 
-      response = http.HttpResponse(content=Generator(),
-                                   content_type="binary/octet-stream")
+      response = http.StreamingHttpResponse(
+          streaming_content=Generator(),
+          content_type="binary/octet-stream")
       # This must be a string.
       response["Content-Disposition"] = ("attachment; filename=%s" % filename)
-      response["Content-Length"] = len(response.content)
 
       return response
 
