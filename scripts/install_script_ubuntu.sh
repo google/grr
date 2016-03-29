@@ -6,6 +6,8 @@
 # By default this will install into /usr and set the config in
 # /etc/grr/
 #
+set -e
+
 PREFIX=/usr
 
 # If true, do an apt-get upgrade
@@ -125,6 +127,8 @@ function run_cmd_confirm()
 
 header "Adding launchpad.net/~gift PPA for m2crypto pytsk dependencies."
 run_cmd_confirm apt-get install -y software-properties-common
+
+# We're using the dev track to get the proto 2.6.1 package
 run_cmd_confirm add-apt-repository ppa:gift/dev -y
 
 header "Updating APT."
@@ -160,7 +164,7 @@ apt-get install -y \
   python-protobuf \
   python-setuptools \
   python-support \
-  pytsk3 \
+  python-pytsk3 \
   rpm \
   sleuthkit \
   swig \
