@@ -1,0 +1,67 @@
+<div ng-if="huntUrn && !controller.hunt">
+  Loading...
+</div>
+
+<div ng-if="controller.hunt">
+  <button name="ViewHuntDetails" class="btn btn-info"
+          ng-click="controller.showHuntDetails()" >
+    View hunt details
+  </button><br/>
+
+  <dl class="dl-horizontal dl-hunt">
+    <dt>Name</dt>
+    <dd><grr-semantic-value value="controller.hunt.name" /></dd>
+
+    <dt>Hunt ID</dt>
+    <dd>{$ controller.huntId $}</dd>
+
+    <dt>Hunt URN</dt>
+    <dd>{$ controller.hunt.urn $}</dd>
+
+    <dt>Creator</dt>
+    <dd><grr-semantic-value value="controller.hunt.creator" /></dd>
+
+    <dt>Start Time</dt>
+    <dd><grr-timestamp value="controller.hunt.created" /></dd>
+
+    <dt>Expiry Time</dt>
+    <dd><grr-timestamp value="controller.hunt.expires" /></dd>
+
+    <dt>Status</dt>
+    <dd><grr-semantic-value value="controller.hunt.state" /></dd>
+
+    <dt>Client Limit</dt>
+    <dd ng-if="!controller.hunt.client_limit">-</dd>
+    <dd ng-if="controller.hunt.client_limit"><grr-semantic-value value="controller.hunt.client_limit" /></dd>
+
+    <dt>Client Rate (clients/min)</dt>
+    <dd ng-if="!controller.hunt.client_rate">-</dd>
+    <dd ng-if="controller.hunt.client_rate"><grr-semantic-value value="controller.hunt.client_rate" /></dd>
+
+    <dt>Clients Scheduled</dt>
+    <dd><grr-semantic-value value="controller.hunt.all_clients_count" /></dd>
+
+    <dt>Outstanding</dt>
+    <dd><grr-semantic-value value="controller.hunt.remaining_clients_count" /></dd>
+
+    <dt>Completed</dt>
+    <dd><grr-semantic-value value="controller.hunt.completed_clients_count" /></dd>
+
+    <dt>Total CPU seconds used</dt>
+    <dd>{$ controller.hunt.total_cpu_usage | number:2 $}s</dd>
+
+    <dt>Total network traffic</dt>
+    <dd>{$ controller.hunt.total_net_usage | number:0 $}b</dd>
+
+    <span ng-if="controller.hunt.client_rule_set.value">
+      <dt>Client rule set</dt>
+      <dd>
+        <grr-semantic-value value="controller.hunt.client_rule_set" />
+      </dd>
+    </span>
+
+    <dt>Arguments</dt>
+    <dd><grr-semantic-value value="controller.hunt.hunt_args" /></dd>
+  </dl>
+
+</div>

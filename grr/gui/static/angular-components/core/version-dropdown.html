@@ -1,0 +1,6 @@
+<div>
+  <b>Version:</b>
+  <select ng-options="v.value as (v.value | grrTimestamp) for v in controller.versions"
+          ng-model="version" class="form-control version-dropdown">
+  </select>
+</div>

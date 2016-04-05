@@ -1,0 +1,18 @@
+<table class="proto-table no-cell-border full-width">
+  <thead>
+    <tr>
+      <th>Age</th>
+      <th>Client</th>
+      <th>Backtrace</th>
+      <th>Message</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr grr-paged-filtered-table grr-api-items-provider url="::controller.errorsUrl">
+      <td ng-class="::{proto_key: $index % 2 == 0}"><grr-timestamp value="::item.age" /></td>
+      <td ng-class="::{proto_key: $index % 2 == 0}"><grr-client-urn value="::item.value.client_id" /></td>
+      <td ng-class="::{proto_key: $index % 2 == 0}">{$ ::item.value.backtrace.value $}</td>
+      <td ng-class="::{proto_key: $index % 2 == 0}">{$ ::item.value.log_message.value $}</td>
+    </tr>
+  </tbody>
+</table>

@@ -1,0 +1,13 @@
+<ul class="breadcrumb">
+
+  <li ng-repeat="item in controller.items">
+    <a ng-click="controller.selectPath(item.path)">{$ item.name $}</a>
+  </li>
+
+  <li class="active">
+      {$ controller.activeItem $}
+  </li>
+
+  <div class="clearfix"></div>
+
+</ul>

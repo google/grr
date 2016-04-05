@@ -1,0 +1,45 @@
+<div class="padded">
+
+  <div ng-if="!huntUrn">
+    Please select a hunt to see its details here.
+  </div>
+
+  <tabset ng-if="huntUrn && huntUrn == controller.shownHuntUrn">
+    <tab heading="Overview">
+      <grr-hunt-overview hunt-urn="huntUrn"></grr-hunt-overview>
+    </tab>
+
+    <tab heading="Log" select="logTabShown = true">
+      <grr-hunt-log hunt-urn="huntUrn" ng-if="logTabShown"></grr-hunt-log>
+    </tab>
+
+    <tab heading="Errors" select="errorTabShown = true">
+      <grr-hunt-errors hunt-urn="huntUrn" ng-if="errorTabShown"></grr-hunt-errors>
+    </tab>
+
+    <tab heading="Graph" select="graphTabsShown = true">
+      <grr-hunt-graph hunt-urn="huntUrn" ng-if="graphTabsShown"></grr-hunt-graph>
+    </tab>
+
+    <tab heading="Results" select="resultsTabShown = true">
+      <grr-hunt-results hunt-urn="huntUrn" ng-if="resultsTabShown"></grr-hunt-results>
+    </tab>
+
+    <tab heading="Stats" select="statsTabShown = true">
+      <grr-hunt-stats hunt-urn="huntUrn" ng-if="statsTabShown"></grr-hunt-stats>
+    </tab>
+
+    <tab heading="Crashes" select="crashesTabShown = true" >
+      <grr-hunt-crashes hunt-urn="huntUrn" ng-if="crashesTabShown"></grr-hunt-crashes>
+    </tab>
+
+    <tab heading="Outstanding" select="outstandingTabShown = true">
+      <grr-hunt-outstanding-clients hunt-urn="huntUrn" ng-if="outstandingTabShown"></grr-hunt-outstanding-clients>
+    </tab>
+
+    <tab heading="Context Detail" select="contextDetailTabShown = true">
+      <grr-hunt-context hunt-urn="huntUrn" ng-if="contextDetailTabShown"></grr-hunt-context>
+    </tab>
+  </tabset>
+
+</div>

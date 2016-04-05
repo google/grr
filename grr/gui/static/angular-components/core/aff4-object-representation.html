@@ -1,0 +1,68 @@
+<div>
+  <table class="table table-condensed table-bordered full-width">
+
+    <colgroup>
+      <col style="width: 30ex" />
+      <col style="width: 100%" />
+      <col style="width: 30ex" />
+    </colgroup>
+
+    <thead>
+      <tr>
+        <th class="ui-state-default">Attribute</th>
+        <th class="ui-state-default">Value</th>
+        <th class="ui-state-default">Age</th>
+      </tr>
+    </thead>
+
+    <tbody>
+
+      <tr ng-repeat-start="type in ::controller.aff4ObjectRepresentation.types">
+        <td colspan="3" class="grr_aff4_type_header">
+          <b>{$ ::type.value.name.value $}</b>
+        </td>
+      </tr>
+
+      <tr ng-repeat="attribute in ::type.value.attributes" ng-repeat-end>
+
+        <td ng-click="attribute.historical = !attribute.historical">
+          <i class="fa fa-plus" ng-if="attribute.value.values.length > 1 && !attribute.historical"></i>
+          <i class="fa fa-minus" ng-if="attribute.value.values.length > 1 && attribute.historical"></i>
+          <b>{$ ::attribute.value.name.value $}</b>
+        </td>
+
+        <td>
+          <div ng-if="!attribute.historical">
+            <grr-semantic-value value="::attribute.value.values[0].value.value"></grr-semantic-value>
+          </div>
+
+          <!-- Historical view with all previous values and their timestamps. -->
+          <div class="historical" ng-if="attribute.historical">
+            <table class="table table-striped table-condensed table-hover table-bordered full-width">
+              <tr>
+                <th class="ui-state-default">Value</th>
+                <th class="ui-state-default">Age</th>
+              </tr>
+              <tr ng-repeat="historical in ::attribute.value.values">
+                <td>
+                  <grr-semantic-value value="::historical.value.value"></grr-semantic-value>
+                </td>
+                <td>
+                  <grr-timestamp value="::historical.age"></grr-timestamp>
+                </td>
+              </tr>
+            </table>
+          </div>
+        </td>
+
+        <td>
+          <grr-timestamp value="::attribute.value.values[0].age"></grr-timestamp>
+        </td>
+
+      </tr>
+
+    </tbody>
+
+  </table>
+
+</div>

@@ -1,0 +1,354 @@
+# GRR Server configuration file
+# This is the template used in deployment of GRR. It contains the basic
+# elements and test configurations to run the system.
+
+AdminUI.bind: "::"
+
+AdminUI.django_debug: True
+
+AdminUI.webauth_manager: BasicWebAuthManager
+
+API.DefaultRouter: ApiCallRouterWithoutChecks
+
+Client.company_name: GRR Project
+
+Client.description: "%(name) %(platform) %(arch)"
+
+Client.name: GRR
+
+Client.proxy_servers:
+
+# The final version number will be built in the same order as listed
+# here:
+Client.version_major: 3
+Client.version_minor: 1
+Client.version_revision: 0
+Client.version_release: 0
+
+
+Client.foreman_check_frequency: 600
+
+Client.poll_max: 600
+
+# Writeback for server components.
+Config.writeback: "%(Config.directory)/server.local.yaml"
+
+Datastore.security_manager: BasicAccessControlManager
+
+# Logging.domain: example.com
+
+Logging.engines: "stderr,file"
+
+Logging.path: /var/log/grr
+
+Logging.verbose: False
+
+# These must be in the domain specified above as Logging.domain.
+# Monitoring.emergency_access_email: grr-emergency-access@example.com
+# Monitoring.alert_email: grr-monitoring@example.com
+
+AdminUI Context:
+  Logging.filename: "%(Logging.path)/grr-ui.log"
+
+  Monitoring.http_port: 44449
+
+# The client's reported architecture string depends on the Arch context
+Arch:amd64:
+  Client.arch: amd64
+
+Arch:i386:
+  Client.arch: i386
+
+Client Context:
+  # Only the client writes to a writeback location.
+  Config.writeback: /etc/%(Client.name).local.yaml
+
+ClientBuilder Context:
+
+# Include other config files like this. An example buildconfig.yaml is supplied
+# for separating out build configuration.
+  ConfigIncludes:
+    - grr/config/buildconfig.yaml
+
+  Target:Darwin:
+
+    Client.install_path: |
+      /usr/local/lib/%(Client.name)/%(ClientBuilder.output_basename)
+
+    Client.rekall_profile_cache_path: |
+      %(Client.install_path)/rekall_profiles
+
+    ClientBuilder.build_dest: "%(Client.name)-build"
+
+    ClientBuilder.build_root_dir: /Users/%(USER|env)/mac-build
+
+    ClientBuilder.install_dir: "/usr/local/lib/%(Client.name)/%(ClientBuilder.output_basename)"
+
+    # Needed for package maker. Do not touch.
+    ClientBuilder.mangled_output_basename: |
+        %(Client.name)_%(Client.version_major).%(Client.version_minor).%(Client.version_revision)
+
+    ClientBuilder.output_extension: .pkg
+
+    ClientBuilder.package_dir: "%(ClientBuilder.build_root_dir)/%(Client.name)-pkg"
+
+    ClientBuilder.package_maker_organization: com.google.code
+
+    ClientBuilder.package_maker_path: |
+        /Applications/PackageMaker.app/Contents/MacOS/PackageMaker
+
+    ClientBuilder.template_extension: .pkg.xar
+
+    PyInstaller.path: |
+        /Users/%(USER|env)/mac-build/pyinstaller/pyinstaller.py
+
+    PyInstaller.distpath: |
+      /Users/%(USER|env)/mac-dist
+
+  Target:Linux:
+    Client.binary_name: grrd
+
+    Client.install_path: |
+      /usr/lib/%(Client.name)/%(ClientBuilder.output_basename)
+
+    Client.rekall_profile_cache_path: |
+      %(Client.install_path)/rekall_profiles
+
+    Client.name: grr
+
+    ClientBuilder.daemon_link: |
+      /usr/sbin/%(Client.binary_name)
+
+    ClientBuilder.output_extension: .deb
+
+    ClientBuilder.target_dir: |
+      /usr/lib/%(Client.name)/%(ClientBuilder.output_basename)
+
+    ClientBuilder.template_extension: .deb.zip
+
+    Logging.engines: stderr
+
+    ClientBuilder.build_root_dir: /home/%(USER|env)/grr-build
+
+    PyInstaller.distpath: |
+      %(PyInstaller.dpkg_root)/debian/
+
+    PyInstaller.path: |
+      %(ClientBuilder.build_root_dir)/pyinstaller/pyinstaller.py
+
+    Target:LinuxRpm:
+      ClientBuilder.output_extension: .rpm
+
+      ClientBuilder.target_dir: |
+        /usr/lib64/%(Client.name)/%(ClientBuilder.output_basename)
+
+      ClientBuilder.template_extension: .rpm.zip
+
+      Client.install_path: |
+        /usr/lib64/%(Client.name)/%(ClientBuilder.output_basename)
+
+      Client.rekall_profile_cache_path: |
+        %(Client.install_path)/rekall_profiles
+
+  Target:Windows:
+    ClientBuilder.build_root_dir: C:\\grr-build-root
+
+    PyInstaller.build_dir: |
+      %(ClientBuilder.build_root_dir)\\%(ClientBuilder.build_dest)
+
+    PyInstaller.distpath: |
+      C:\\grr-distpath
+
+    PyInstaller.workpath_dir: |
+      %(ClientBuilder.build_root_dir)\\workpath
+
+    ClientBuilder.output_extension: .exe
+
+    ClientBuilder.template_extension: .exe.zip
+
+    ClientBuilder.vs_dir: |
+      %{C:\Program Files (x86)\Microsoft Visual Studio 12.0}
+
+    # This is where the pyinstaller svn checkout lives on the build server.
+    PyInstaller.path: C:\\grr_build\\pyinstaller\\pyinstaller.py
+
+  # This indicates that we are building a client for debugging.
+  DebugClientBuild Context:
+
+    Logging.verbose: True
+
+    ClientBuilder.console: True
+
+    Client.poll_max: 5
+
+    Client.foreman_check_frequency: 30
+
+    Client.rss_max: 4000
+
+    Nanny.unresponsive_kill_period: 3600
+
+    Client.prefix: dbg_
+
+Commandline Context:
+  Logging.engines: stderr
+
+  Logging.verbose: False
+
+ConfigUpdater Context:
+  ConfigUpdater.old_config: /etc/grr/grr-server.conf
+
+Demo Context:
+  Client.control_urls:
+    - http://%(Frontend.bind_address):%(Frontend.bind_port)/control
+
+  Client.poll_max: 5
+
+  # Increase the client memory limit to 4GB.
+  Client.rss_max: 4000
+
+  # Use the FakeDataStore in the demo.
+  Datastore.implementation: FakeDataStore
+
+  Frontend.bind_address: 127.0.0.1
+
+  Frontend.bind_port: 8080
+
+  Logging.filename: "%(Logging.path)/grr-demo.log"
+
+HTTPServer Context:
+  Logging.filename: "%(Logging.path)/grr-http-server.log"
+
+Platform:Darwin:
+  Client.name: grr
+
+  Client.platform: darwin
+
+  Client.plist_filename: "%(Client.plist_label).plist"
+
+  Client.plist_label: "%(Client.plist_label_prefix).google.code.%(Client.name)"
+
+  Client.plist_label_prefix: com
+
+  Client.plist_path: /Library/LaunchDaemons/%(Client.plist_filename)
+
+  Logging.engines: stderr,file,syslog
+
+  Logging.syslog_path: /var/run/syslog
+
+  # Darwin systems have their drivers stored in this part of the config space.
+  MemoryDriver.aff4_paths:
+    - "%(Config.aff4_root)/drivers/osx/memory/pmem-ng-signed"
+
+  MemoryDriver.device_path: /dev/pmem
+
+  Arch:amd64:
+    MemoryDriver.driver_files:
+      - binaries/OSXPMem-ng-signed.tar.gz
+
+Platform:Linux:
+  Client.binary_name: grrd
+
+  Client.platform: linux
+
+  Logging.engines: "stderr,file,syslog"
+
+  Logging.syslog_path: "/dev/log"
+
+  MemoryDriver.device_path: /dev/pmem
+
+Platform:Windows:
+  Client.binary_name: |
+      %(Client.name).exe
+
+  Client.config_hive: HKEY_LOCAL_MACHINE
+
+  Client.config_key: Software\\%(Client.name)
+
+  Client.install_path: |
+    %(SystemRoot|env)\\System32\\%(Client.name)\\%(Client.version_string)
+
+  Client.platform: windows
+
+  # Windows services has an insecure temp directory so we use our installation
+  # path.
+  Client.tempdir_roots:
+    - "%(install_path)"
+  Client.grr_tempdir: "Temp"
+
+  # Older clients have keys in different places.
+  Installer.old_key_map: >
+      %(Client.config_hive)\\%(Client.config_key)\\certificate->Client.private_key,
+      %(Client.config_hive)\\%(Client.config_key)\\Client\\private_key->Client.private_key,
+      %(Client.config_hive)\\%(Client.config_key)\\server_serial_number->Client.server_serial_number
+
+  Logging.engines: file,stderr,event_log
+
+  Logging.filename: |
+    %(path)\\%(Client.name).log
+
+  Logging.path: |
+    %(WINDIR|env)\\System32\\logfiles\\
+
+  MemoryDriver.device_path: \\\\.\\pmem
+
+  MemoryDriver.display_name: grr pmem
+
+  MemoryDriver.service_name: pmem
+
+  Nanny.child_binary: |
+    %(Client.install_path)\\%(Client.binary_name)
+
+  # The nanny is responsible for launching the client with the configuration file.
+  Nanny.child_command_line: |
+    %(child_binary) --config "%(Client.install_path)\\%(Client.binary_name).yaml"
+
+  Nanny.service_binary_name: "%(Client.name)service.exe"
+
+  Nanny.service_description: "%(Client.name) Monitor Service"
+
+  Nanny.service_key: |
+    %(Client.config_key)
+
+  Nanny.service_key_hive: |
+    %(Client.config_hive)
+
+  Nanny.service_name: "%(Client.name) Monitor"
+
+  Arch:amd64:
+    ClientBuilder.vs_arch: x64
+
+    ClientBuilder.vs_env_script: "%(vs_dir)\\VC\\bin\\amd64\\vcvars64.bat"
+
+    MemoryDriver.aff4_paths:
+      - "%(Config.aff4_root)/drivers/windows/memory/winpmem.amd64.sys"
+
+    MemoryDriver.driver_files:
+      - binaries/winpmem_amd64_1.6.1.sys
+
+  # For windows 32 bit clients.
+  Arch:i386:
+    ClientBuilder.vs_arch: Win32
+
+    ClientBuilder.vs_env_script: "%(vs_dir)\\VC\\bin\\vcvars32.bat"
+
+    MemoryDriver.aff4_paths:
+      - "%(Config.aff4_root)/drivers/windows/memory/winpmem.x86.sys"
+
+    MemoryDriver.driver_files:
+      - binaries/winpmem_i386_1.6.1.sys
+
+  Client Context:
+    # This is where the client will write back volatile configuration data. On
+    # windows we write configuration into the registry.
+    Config.writeback: reg://%(Client.config_hive)/%(Client.config_key)
+
+Worker Context:
+  Cron.active: True
+
+  Logging.filename: "%(Logging.path)/grr-worker.log"
+
+# For Test Context, see test_data/grr_test.yaml
+
+DataServer Context:
+# By default use an sqlite backend.
+  Datastore.implementation: SqliteDataStore

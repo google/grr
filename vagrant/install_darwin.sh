@@ -32,7 +32,7 @@ function install_python_deps() {
   source PYTHON_ENV/bin/activate
   # Required for M2Crypto in requirements.txt
   export SWIG_FEATURES="-I/usr/include/x86_64-linux-gnu"
-  pip install -r /grr/client/linux/requirements.txt
+  pip install .
 
   # pyinstaller fails to include protobuf because there is no __init__.py:
   # https://github.com/google/protobuf/issues/713

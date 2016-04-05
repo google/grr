@@ -30,8 +30,8 @@ function system_update() {
 
 # Get a more modern version of openssl than is available on lucid.
 function install_openssl() {
-  SSL_VERSION=1.0.2f
-  SSL_SHA256=932b4ee4def2b434f85435d9e3e19ca8ba99ce9a065a61524b429a9d5e9b2e9c
+  SSL_VERSION=1.0.2g
+  SSL_SHA256=b784b1b3907ce39abf4098702dade6365522a253ad1552e267a9a0e89594aa33
   if [ -x "${WGET}" ]; then
     ${WGET} https://www.openssl.org/source/openssl-${SSL_VERSION}.tar.gz
   else
@@ -45,13 +45,18 @@ function install_openssl() {
   fi
   tar zxf openssl-${SSL_VERSION}.tar.gz
   cd openssl-${SSL_VERSION}
-  ./config -fPIC
+  # We want m2crypto to dynamically link openssl, so we need to build the shared
+  # library. Pyinstaller will ship the lib for us. If we statically link,
+  # selinux policy on centos will break installation.
+  ./config shared -fPIC
   # openssl doesn't play nice with jobserver so no -j4
   make
   make install
   cd -
   echo /usr/local/ssl/lib > /etc/ld.so.conf.d/ssl.conf
-  ln -s /usr/local/ssl/include/openssl/ /usr/include/openssl
+  if [ ! -e /usr/include/openssl ]; then
+    ln -s /usr/local/ssl/include/openssl/ /usr/include/openssl
+  fi;
   ldconfig
   export LDFLAGS='-L/usr/local/ssl/lib'
   export LD_LIBRARY_PATH=${LD_LIBRARY_PATH}:/usr/local/ssl/lib
@@ -80,9 +85,17 @@ function install_wget() {
 function install_python_from_source() {
 
   if [ $DISTRO == "Ubuntu" ]; then
-    # This is essentially "apt-get install build-dep python2.6" but without
+    # This is essentially "apt-get build-dep python2.6|7" but without
     # libssl-dev so we don't end up using the wrong headers
-    apt-get --force-yes --yes install build-essential autoconf automake autotools-dev blt blt-dev cvs debhelper fontconfig-config gdb gettext html2text intltool-debian libbluetooth-dev libbluetooth3 libbz2-dev libcroco3 libdb4.8-dev libexpat1-dev libffi-dev libfile-copy-recursive-perl libfontconfig1 libfontconfig1-dev libfontenc1 libfreetype6-dev libgl1-mesa-dri libgl1-mesa-glx libice6 libjpeg62 liblcms1 libmail-sendmail-perl libncurses5-dev libncursesw5-dev libpaper-utils libpaper1 libpthread-stubs0 libpthread-stubs0-dev libreadline-dev libreadline6-dev libsm6 libsqlite3-dev libsys-hostname-long-perl libxext-dev libxfixes3 libxft-dev libxft2 libxi6 libxinerama1 libxmu6 libxpm4 libxrender-dev libxrender1 libxslt1.1 libxss-dev libxss1 libxt6 libxtst6 libxv1 libxxf86dga1 libxxf86vm1 m4 pkg-config po-debconf python-docutils python-imaging python-jinja2 python-lxml python-pygments python-roman python-sphinx sharutils tcl8.5 tcl8.5-dev tk8.5 tk8.5-dev ttf-dejavu-core update-inetd x11-common x11-utils x11proto-core-dev x11proto-input-dev x11proto-kb-dev x11proto-render-dev x11proto-scrnsaver-dev x11proto-xext-dev xbitmaps xterm xtrans-dev zlib1g-dev libx11-dev libxau-dev libxaw7 libxcb1-dev libxdamage1 libxdmcp-dev zlib1g-dev bzip2 libncurses-dev sqlite3 libgdbm-dev libdb-dev readline-common libpcap-dev
+    codename=$(lsb_release -cs)
+    if [ "${codename}" == "lucid" ]; then
+      apt-get --force-yes --yes install build-essential autoconf automake autotools-dev blt blt-dev cvs debhelper fontconfig-config gdb gettext html2text intltool-debian libbluetooth-dev libbluetooth3 libbz2-dev libcroco3 libdb4.8-dev libexpat1-dev libffi-dev libfile-copy-recursive-perl libfontconfig1 libfontconfig1-dev libfontenc1 libfreetype6-dev libgl1-mesa-dri libgl1-mesa-glx libice6 libjpeg62 liblcms1 libmail-sendmail-perl libncurses5-dev libncursesw5-dev libpaper-utils libpaper1 libpthread-stubs0 libpthread-stubs0-dev libreadline-dev libreadline6-dev libsm6 libsqlite3-dev libsys-hostname-long-perl libxext-dev libxfixes3 libxft-dev libxft2 libxi6 libxinerama1 libxmu6 libxpm4 libxrender-dev libxrender1 libxslt1.1 libxss-dev libxss1 libxt6 libxtst6 libxv1 libxxf86dga1 libxxf86vm1 m4 pkg-config po-debconf python-docutils python-imaging python-jinja2 python-lxml python-pygments python-roman python-sphinx sharutils tcl8.5 tcl8.5-dev tk8.5 tk8.5-dev ttf-dejavu-core update-inetd x11-common x11-utils x11proto-core-dev x11proto-input-dev x11proto-kb-dev x11proto-render-dev x11proto-scrnsaver-dev x11proto-xext-dev xbitmaps xterm xtrans-dev zlib1g-dev libx11-dev libxau-dev libxaw7 libxcb1-dev libxdamage1 libxdmcp-dev zlib1g-dev bzip2 libncurses-dev sqlite3 libgdbm-dev libdb-dev readline-common libpcap-dev
+    elif [ "${codename}" == "precise" ]; then
+      apt-get --force-yes --yes install build-essential autoconf automake autotools-dev blt blt-dev debhelper dh-apparmor diffstat docutils-common gdb gettext help2man html2text intltool-debian libbluetooth-dev libbluetooth3 libbz2-dev libcroco3 libdb5.1-dev libexpat1-dev libffi-dev libfontconfig1-dev libfreetype6-dev libgdbm-dev libgettextpo0 libjs-sphinxdoc libjs-underscore libncursesw5-dev libpthread-stubs0 libpthread-stubs0-dev libreadline-dev libreadline6-dev libsqlite3-dev libtinfo-dev libunistring0 libx11-dev libxau-dev libxcb1-dev libxdmcp-dev libxext-dev libxft-dev libxrender-dev libxss-dev libxss1 m4 pkg-config po-debconf python-docutils python-jinja2 python-markupsafe python-pygments python-roman python-sphinx quilt sharutils sphinx-common tcl8.5 tcl8.5-dev tk8.5 tk8.5-dev x11proto-core-dev x11proto-input-dev x11proto-kb-dev x11proto-render-dev x11proto-scrnsaver-dev x11proto-xext-dev xorg-sgml-doctools xtrans-dev xvfb zlib1g-dev
+    else
+      echo "Only supporting precise and lucid"
+      exit 1
+    fi
   elif [ $DISTRO == "CentOS" ]; then
     yum install -y zlib-devel bzip2-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel
   fi
@@ -114,6 +127,10 @@ function install_protobuf_libs() {
   ${WGET} https://github.com/google/protobuf/releases/download/v2.6.1/protobuf-2.6.1.tar.gz
   tar zxvf protobuf-2.6.1.tar.gz
   cd protobuf-2.6.1
+
+  if [ -e /grrbuild ]; then
+    rm -r /grrbuild
+  fi;
   mkdir /grrbuild
   ./configure --includedir=/grrbuild
   make -j4
@@ -147,9 +164,7 @@ function install_python_deps() {
   /usr/local/bin/virtualenv -p /usr/local/bin/python2.7 PYTHON_ENV
   source PYTHON_ENV/bin/activate
 
-  # Required for M2Crypto in requirements.txt
-  export SWIG_FEATURES="-I/usr/include/x86_64-linux-gnu"
-  pip2.7 install -r /grr/client/linux/requirements.txt
+  pip2.7 install .
 
   # pyinstaller fails to include protobuf because there is no __init__.py:
   # https://github.com/google/protobuf/issues/713
@@ -157,11 +172,19 @@ function install_python_deps() {
 
 }
 
-# Lucid debhelper is too old to build debs that handle both upstart and init.d
+# Lucid debhelper is too old to build debs that handle both upstart, init.d,
+# systemd
 function install_packagetools() {
   if [ $DISTRO == "Ubuntu" ]; then
+    DH_SHA256=fd8d81d71d1bb0ba4b58c517465551231dd60811b98c867e4344bc55ec6a45f2
     apt-get --force-yes --yes install po4a
     ${WGET} http://ftp.debian.org/debian/pool/main/d/debhelper/debhelper_9.20150101.tar.gz
+    RETRIEVED_HASH=$(${WGET} -q -O - http://ftp.debian.org/debian/pool/main/d/debhelper/debhelper_9.20150101.tar.gz | tee debhelper_9.20150101.tar.gz | sha256sum | cut -d' ' -f1)
+    if [ "${RETRIEVED_HASH}" != "${DH_SHA256}" ]; then
+      echo "Bad hash for debhelper_9.20150101.tar.gz, quitting"
+      exit 1
+    fi
+
     tar zxf debhelper_9.20150101.tar.gz
     cd debhelper
     make -j4

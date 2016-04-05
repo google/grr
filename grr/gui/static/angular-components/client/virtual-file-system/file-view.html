@@ -1,0 +1,24 @@
+<div grr-splitter orientation="vertical">
+
+  <div grr-splitter-pane id="main_leftPane" class="leftPane">
+    <grr-file-tree client-id="controller.clientId"
+                   selected-folder-path="controller.selectedFolderPath"
+                   selected-file-path="controller.selectedFilePath" />
+  </div>
+
+  <div grr-splitter-pane id="main_rightPane" class="rightPane">
+    <div grr-splitter orientation="horizontal" class="rightSplitterContainer">
+      <div grr-splitter-pane id="content_rightPane" class="rightTopPane">
+        <grr-file-table client-id="controller.clientId"
+                        selected-folder-path="controller.selectedFolderPath"
+                        selected-file-path="controller.selectedFilePath" />
+      </div>
+      <div grr-splitter-pane id="main_bottomPane" class="rightBottomPane">
+        <grr-file-details client-id="controller.clientId"
+                          selected-folder-path="controller.selectedFolderPath"
+                          selected-file-path="controller.selectedFilePath" />
+      </div>
+    </div>
+  </div>
+
+</div>

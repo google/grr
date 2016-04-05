@@ -1,0 +1,34 @@
+<div>
+
+  <div ng-if="controller.fileDetails.value.last_downloaded">
+    <h4>Hash</h4>
+    <span>
+      <grr-semantic-value value="controller.fileDetails.value.hash" />
+    </span>
+
+    <h4>Last Downloaded</h4>
+    <span>
+      <grr-timestamp value="controller.fileDetails.value.last_downloaded" />
+    </span>
+
+    <h4>Download</h4>
+    <p>
+      <button class="btn btn-default">
+        Download ({$ controller.fileDetails.value.size.value $} bytes)
+      </button>
+    </p>
+    <p>
+      Or by using command line export tool:
+    </p>
+    <div class="monospace">
+      <pre>{$ controller.downloadCommand $}</pre>
+    </div>
+  </div>
+  <hr />
+  <div>
+    <button class="btn btn-default">
+      Get a new Version
+    </button>
+  </div>
+
+</div>

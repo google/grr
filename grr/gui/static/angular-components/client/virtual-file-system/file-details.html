@@ -1,0 +1,70 @@
+<div>
+
+  <div ng-if="!selectedFilePath" class="padded">
+    Please select a file or a folder to see its details here.
+  </div>
+
+  <div ng-if="selectedFilePath" class="padded">
+
+    <grr-breadcrumbs path="selectedFilePath"
+                     on-selected="controller.onBreadCrumbSelected(path)">
+    </grr-breadcrumbs>
+
+    <grr-version-dropdown url="controller.fileVersionUrl"
+                          version="controller.fileVersion">
+    </grr-version-dropdown>
+
+    <h1>{$ controller.selectedFileName $}</h1>
+
+    <tabset>
+
+      <tab heading="Stats"
+           active="controller.showDefaultTab"
+           select="statsTabShown = true"
+           deselect="statsTabShown = false">
+        <grr-file-stats-view client-id="clientId"
+                             file-path="selectedFilePath"
+                             file-version="controller.fileVersion"
+                             ng-if="statsTabShown">
+        </grr-file-stats-view>
+      </tab>
+
+      <tab heading="Download"
+           select="downloadTabShown = true; controller.showDefaultTab = false"
+           deselect="downloadTabShown = false"
+           ng-if="!controller.fileIsDirectory">
+        <div grr-force-refresh refresh-trigger="controller.fileVersion">
+          <grr-legacy-renderer ng-if="downloadTabShown"
+                               renderer="DownloadView"
+                               query-params="{clientId: clientId, aff4_path: controller.downloadAff4Path, age: controller.fileVersion}">
+          </grr-legacy-renderer>
+        </div>
+      </tab>
+
+      <tab heading="TextView"
+           select="textTabShown = true; controller.showDefaultTab = false"
+           deselect="textTabShown = false"
+           ng-if="!controller.fileIsDirectory">
+        <grr-file-text-view client-id="clientId"
+                            file-path="selectedFilePath"
+                            file-version="controller.fileVersion"
+                            ng-if="textTabShown">
+        </grr-file-text-view>
+      </tab>
+
+      <tab heading="HexView"
+           select="hexTabShown = true; controller.showDefaultTab = false"
+           deselect="hexTabShown = false"
+           ng-if="!controller.fileIsDirectory">
+        <grr-file-hex-view client-id="clientId"
+                           file-path="selectedFilePath"
+                           file-version="controller.fileVersion"
+                           ng-if="hexTabShown">
+        </grr-file-hex-view>
+      </tab>
+
+    </tabset>
+
+  </div>
+
+</div>

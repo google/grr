@@ -32,13 +32,6 @@ Vagrant.configure(2) do |config|
     config.vm.box_download_checksum = "d367c306dee30678e512f1d5e8c0717497a60fea846d024b53641318c304af19"
   end
 
-  config.vm.define "ubuntu_trusty64" do |box|
-    box.vm.box = "ubuntu/trusty64"
-    box.vm.provision "shell" do |s|
-      s.path = "../scripts/install_script_ubuntu.sh"
-      s.args = ["-dy"]
-    end
-  end
 
   config.vm.define "grr_server_dev" do |box|
     box.vm.box = "ubuntu/trusty64"
@@ -46,6 +39,13 @@ Vagrant.configure(2) do |config|
     box.vm.provision "shell" do |s|
       s.path = "../scripts/install_server_from_src.sh"
       s.args = ["-l", "-r", "/grr"]
+    end
+  end
+
+  config.vm.define "travis_testing" do |box|
+    box.vm.box = "ubuntu/precise64"
+    box.vm.provision "shell" do |s|
+      s.path = "../travis/run_tests.sh"
     end
   end
 
@@ -59,13 +59,6 @@ Vagrant.configure(2) do |config|
     config.vm.box_download_checksum = "15a36cfe264f3eb58bb9c540d9de5a5a945b8c5162d6fd66b59925ed0a832e86"
   end
 
-  config.vm.define "travis_testing" do |box|
-    box.vm.box = "ubuntu/precise64"
-    box.vm.provision "shell" do |s|
-      s.path = "../travis/run_tests.sh"
-    end
-  end
-
   config.vm.define "ubuntu_lucid64" do |box|
     box.vm.box = "mrgcastle/ubuntu-lucid64"
     box.vm.provision "shell" do |s|
@@ -74,6 +67,30 @@ Vagrant.configure(2) do |config|
     end
     config.vm.box_download_checksum_type = "sha256"
     config.vm.box_download_checksum = "f7d6b78fa492fe964f5ba89702f890b309d97fd0a23aa717f6e138752d2e7a69"
+  end
+
+  config.vm.define "ubuntu_precise32" do |box|
+    box.vm.box = "ubuntu/precise32"
+    box.vm.provision "shell" do |s|
+      s.path = "install_linux.sh"
+      s.args = ["Ubuntu"]
+    end
+  end
+
+  config.vm.define "ubuntu_precise64" do |box|
+    box.vm.box = "ubuntu/precise64"
+    box.vm.provision "shell" do |s|
+      s.path = "install_linux.sh"
+      s.args = ["Ubuntu"]
+    end
+  end
+
+  config.vm.define "ubuntu_trusty64" do |box|
+    box.vm.box = "ubuntu/trusty64"
+    box.vm.provision "shell" do |s|
+      s.path = "../scripts/install_script_ubuntu.sh"
+      s.args = ["-dy"]
+    end
   end
 
   # OS X licensing doesn't allow distribution of VMs, you'll need to build your
@@ -160,13 +177,46 @@ Vagrant.configure(2) do |config|
   end
 
   # Vanilla boxes useful for testing package installs
+  config.vm.define "centos_5.11_32_vanilla" do |box|
+    box.vm.box = "mrgcastle/centos_5.11_32"
+    config.vm.box_download_checksum_type = "sha256"
+    config.vm.box_download_checksum = "15a36cfe264f3eb58bb9c540d9de5a5a945b8c5162d6fd66b59925ed0a832e86"
+  end
+
+  config.vm.define "centos_5.11_64_vanilla" do |box|
+    box.vm.box = "mrgcastle/centos_5.11_64"
+    config.vm.box_download_checksum_type = "sha256"
+    config.vm.box_download_checksum = "d367c306dee30678e512f1d5e8c0717497a60fea846d024b53641318c304af19"
+  end
+
+  config.vm.define "centos_7_vanilla" do |box|
+    box.vm.box = "centos/7"
+  end
+
+  config.vm.define "debian_jessie64_vanilla" do |box|
+    box.vm.box = "debian/jessie64"
+  end
+
+  config.vm.define "ubuntu_lucid64_vanilla" do |box|
+    box.vm.box = "mrgcastle/ubuntu-lucid64"
+    config.vm.box_download_checksum_type = "sha256"
+    config.vm.box_download_checksum = "f7d6b78fa492fe964f5ba89702f890b309d97fd0a23aa717f6e138752d2e7a69"
+  end
+
+  config.vm.define "ubuntu_precise64_vanilla" do |box|
+    box.vm.box = "ubuntu/precise64"
+  end
+
+  config.vm.define "ubuntu_trusty32_vanilla" do |box|
+    box.vm.box = "ubuntu/trusty32"
+  end
 
   config.vm.define "ubuntu_trusty64_vanilla" do |box|
     box.vm.box = "ubuntu/trusty64"
   end
 
-  config.vm.define "debian_jessie64_vanilla" do |box|
-    box.vm.box = "debian/jessie64"
+  config.vm.define "ubuntu_wily64_vanilla" do |box|
+    box.vm.box = "ubuntu/wily64"
   end
 
 end

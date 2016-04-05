@@ -1,0 +1,74 @@
+<div grr-force-refresh refresh-trigger="controller.fileListUrl">
+  <div class="navbar navbar-default">
+    <div class="navbar-inner">
+
+      <div class="navbar-form pull-right">
+        <div class="input-group">
+          <input type="text" class="form-control file-search" placeholder="Search Files"
+                 ng-model="controller.filter" grr-bind-key="controller.updateFilter()">
+          <span class="input-group-btn">
+            <button class="btn btn-default" type="button" ng-click="controller.updateFilter()">
+              <i class="fa fa-filter"></i>
+            </button>
+          </span>
+        </div>
+
+        <button id="refresh-dir" class="btn btn-default"
+                title="Refresh this directory listing."
+                ng-disabled="controller.refreshOperationId"
+                ng-click="controller.refreshDirectory()">
+          <img src="/static/images/stock_refresh.png" class="toolbar_icon" />
+        </button>
+
+        <grr-recursive-list-button client-id="clientId"
+                                   file-path="selectedFolderPath">
+        </grr-recursive-list-button>
+
+        <grr-r-we-owned-button></grr-r-we-owned-button>
+      </div>
+
+      <grr-breadcrumbs path="selectedFolderPath"
+                       on-selected="controller.onBreadCrumbSelected(path)">
+      </grr-breadcrumbs>
+
+    </div>
+  </div>
+
+  <table class="table table-striped table-condensed table-hover table-bordered full-width file-list">
+
+    <thead>
+      <tr>
+        <th>Icon</th>
+        <th>Name</th>
+        <th>Type</th>
+        <th>Size</th>
+        <th>Age</th>
+      </tr>
+    </thead>
+
+    <!-- We need this ng-if to make sure fileListUrl is stable when ApiItemsProvider is called. -->
+    <tbody ng-if="controller.fileListUrl">
+      <tr grr-infinite-table
+          trigger-update="controller.triggerUpdate"
+          grr-api-items-provider
+          query-params="{filter: controller.filter}"
+          url="controller.fileListUrl"
+          ng-click="controller.selectFile(item)"
+          ng-dblclick="controller.selectFolder(item)"
+          ng-class="{'row-selected': item.value.path.value === selectedFilePath}">
+        <td>
+          <img class="grr-icon directory" src="/static/images/directory.png"
+               alt="Directory" title="Directory" ng-if="item.value.is_directory.value">
+          <img class="grr-icon file" src="/static/images/file.png"
+               alt="File Like Object" title="File Like Object" ng-if="!item.value.is_directory.value">
+        </td>
+        <td><grr-semantic-value value="::item.value.name" /></td>
+        <td><grr-semantic-value value="::item.value.type" /></td>
+        <td><grr-semantic-value value="::item.value.size" /></td>
+        <td><grr-timestamp value="::item.age" /></td>
+      </tr>
+    </tbody>
+
+  </table>
+
+</div>

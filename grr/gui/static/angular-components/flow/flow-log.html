@@ -1,0 +1,18 @@
+<table class="proto-table no-cell-border full-width">
+  <thead>
+    <tr>
+      <th>Age</th>
+      <th>Flow Name</th>
+      <th>Flow URN</th>
+      <th>Message</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr grr-paged-filtered-table grr-api-items-provider url="::controller.logsUrl">
+      <td class="table-cell proto_key"><grr-timestamp value="::item.age" /></td>
+      <td class="table-cell proto_key"><grr-semantic-value value="::item.value.flow_name" /></td>
+      <td class="table-cell proto_key"><grr-semantic-value value="::item.value.urn" /></td>
+      <td class="table-cell proto_key"><grr-semantic-value value="::item.value.log_message" /></td>
+    </tr>
+  </tbody>
+</table>

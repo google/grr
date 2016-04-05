@@ -1,0 +1,12 @@
+<div class="padded" ng-if="controller.genericHuntArgs === undefined">
+  Loading...
+</div>
+
+<grr-new-hunt-wizard-form
+   ng-if="controller.genericHuntArgs !== undefined"
+
+   on-resolve="onResolve({huntUrn: huntUrn})"
+   on-reject="onReject()"
+   generic-hunt-args="controller.genericHuntArgs">
+
+</grr-new-hunt-wizard-form>

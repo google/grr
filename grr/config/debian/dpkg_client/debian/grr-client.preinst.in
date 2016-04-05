@@ -1,0 +1,36 @@
+#!/bin/sh
+
+# Remove broken upstart init script links if this is an upgrade and they link to
+# upstart-job. This fixes a problem where init scripts were wrongly linked to
+# upstart-job, like this:
+#
+# /etc/init.d/[clientname] -> /lib/init/upstart-job
+
+# If this fires, it will trigger a dpkg 'config changed' prompt. This prompt can
+# be avoided by using one of the dpkg --force-conf* options, --force-confnew is
+# ideal but --force-confold will just leave the /etc/init.d/[clientname] script
+# missing, which is OK on upstart systems.
+
+set -e
+
+case "$1" in
+  upgrade\)
+    if [ "$\(readlink /etc/init.d/%(ClientBuilder.package_name)\)" = "/lib/init/upstart-job" ]; then
+      # On precise+ we have dpkg-maintscript-helper, so use it.
+      if which dpkg-maintscript-helper >/dev/null 2>&1 && dpkg-maintscript-helper supports rm_conffile; then
+        dpkg-maintscript-helper rm_conffile /etc/init.d/%(ClientBuilder.package_name) 3081~ %(ClientBuilder.package_name) -- "$@"
+        update-rc.d %(ClientBuilder.package_name) remove
+      else
+        rm -f /etc/init.d/%(ClientBuilder.package_name)
+        update-rc.d %(ClientBuilder.package_name) remove
+      fi
+    fi
+  ;;
+
+  *\)
+  ;;
+esac
+
+#DEBHELPER#
+
+exit 0

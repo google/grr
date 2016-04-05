@@ -1,0 +1,61 @@
+<h3>Total number of clients: {$ ::controller.totalClientCount $}</h3>
+
+<h3>User CPU</h3>
+<dl class="dl-horizontal">
+  <dt>User CPU mean</dt>
+  <dd>{$ ::controller.userCpuStats.mean | number:1 $}</dd>
+
+  <dt>User CPU stdev</dt>
+  <dd>{$ ::controller.userCpuStats.stdev | number:1 $}</dd>
+
+  <dt>Clients Histogram</dt>
+  <dd class="histogram">
+    <div class="user-cpu-histogram"></div>
+  </dd>
+</dl>
+
+<h3>System CPU</h3>
+<dl class="dl-horizontal">
+  <dt>System CPU mean</dt>
+  <dd>{$ ::controller.systemCpuStats.mean | number:1 $}</dd>
+
+  <dt>System CPU stdev</dt>
+  <dd>{$ ::controller.systemCpuStats.stdev | number:1 $}</dd>
+
+  <dt>Clients Histogram</dt>
+  <dd class="histogram">
+    <div class="system-cpu-histogram"></div>
+  </dd>
+</dl>
+
+<h3>Network bytes sent</h3>
+<dl class="dl-horizontal">
+  <dt>Network bytes sent mean</dt>
+  <dd>{$ ::controller.networkBytesStats.mean | number:1 $}</dd>
+
+  <dt>Network bytes sent stdev</dt>
+  <dd>{$ ::controller.networkBytesStats.stdev | number:1 $}</dd>
+
+  <dt>Clients Histogram</dt>
+  <dd class="histogram">
+    <div class="network-bytes-histogram"></div>
+  </dd>
+</dl>
+
+<h3>Worst performers</h3>
+<table class="table table-condensed table-striped table-bordered">
+  <thead>
+    <th>Client Id</th>
+    <th>User CPU</th>
+    <th>System CPU</th>
+    <th>Network bytes sent</th>
+  </thead>
+  <tbody>
+    <tr ng-repeat="client in controller.stats.value.worst_performers">
+      <td><grr-semantic-value value="client.value.client_id"></grr-semantic-value></td>
+      <td>{$ ::client.value.cpu_usage.value.user_cpu_time.value | number:1 $}</td>
+      <td>{$ ::client.value.cpu_usage.value.system_cpu_time.value | number:1 $}</td>
+      <td>{$ ::client.value.network_bytes_sent.value $}</td>
+    </tr>
+  </tbody>
+</table>

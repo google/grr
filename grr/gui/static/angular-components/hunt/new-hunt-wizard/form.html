@@ -1,0 +1,63 @@
+<grr-wizard-form title="New Hunt" on-resolve="controller.resolve()" on-reject="onReject()">
+
+  <!-- Configure flow -->
+  <grr-wizard-form-page title="What to run?"
+                        is-valid="genericHuntArgs.value.flow_runner_args.value.flow_name.value">
+
+    <grr-configure-flow-page flow-name="genericHuntArgs.value.flow_runner_args.value.flow_name.value"
+                             flow-arguments="genericHuntArgs.value.flow_args"
+                             hunt-runner-args="huntRunnerArgs">
+    </grr-configure-flow-page>
+
+  </grr-wizard-form-page>
+
+  <!-- Configure output plugins -->
+  <grr-wizard-form-page title="Define Output Processing">
+
+    <grr-configure-output-plugins-page output-plugins="genericHuntArgs.value.output_plugins">
+    </grr-configure-output-plugins-page>
+
+  </grr-wizard-form-page>
+
+  <!-- Configure rules -->
+  <grr-wizard-form-page title="Where to run?"
+      is-valid="controller.useOoHuntRulesDirective ||
+                huntRunnerArgs.value.regex_rules.length > 0 ||
+                huntRunnerArgs.value.integer_rules.length > 0">
+
+    <grr-configure-deprecated-rules-page
+        ng-if="!controller.useOoHuntRulesDirective"
+        regex-rules="huntRunnerArgs.value.regex_rules"
+        integer-rules="huntRunnerArgs.value.integer_rules">
+    </grr-configure-deprecated-rules-page>
+
+    <grr-configure-rules-page
+        ng-if="controller.useOoHuntRulesDirective"
+        client-rule-set="huntRunnerArgs.value.client_rule_set">
+    </grr-configure-rules-page>
+
+  </grr-wizard-form-page>
+
+  <!-- Review -->
+  <grr-wizard-form-page title="Review"
+                        next-button-label="Create Hunt">
+
+    <grr-new-hunt-review-page generic-hunt-args="genericHuntArgs"
+                              hunt-runner-args="huntRunnerArgs">
+    </grr-new-hunt-review-page>
+
+  </grr-wizard-form-page>
+
+  <!-- Submit the hunt and show the status -->
+  <grr-wizard-form-page title="Result"
+                        is-valid="controller.serverResponse != null"
+                        on-show="controller.sendRequest()"
+                        next-button-label="Done"
+                        no-back-button="true">
+
+    <grr-new-hunt-status-page response="controller.serverResponse">
+    </grr-new-hunt-status-page>
+
+  </grr-wizard-form-page>
+
+</grr-wizard-form>

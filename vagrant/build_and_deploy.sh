@@ -55,7 +55,13 @@ elif [ "$1" == "centos_5.11_64" ] || [ "$1" == "centos_5.11_32" ]; then
   fi
   cd ../../
   # Repack templates into executables and sign
-  PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml --platform linux --package_format rpm --sign buildanddeploy --templatedir grr/executables/linux/templates
+  if [ "$1" == "centos_5.11_64" ]; then
+    ARCH=amd64
+  elif [ "$1" == "centos_5.11_32" ]; then
+    ARCH=i386
+  fi;
+
+  PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml --platform linux --arch $ARCH --package_format rpm --sign buildanddeploy --templatedir grr/executables/linux/templates
   cd -
 
 else

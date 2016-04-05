@@ -1,0 +1,34 @@
+<div ng-class="{ 'pending': notification.isPending, 'has-link': notification.link }">
+  <!-- Either the notification is shown as regular link to some source item -->
+  <a ng-if="!notification.isFileDownload" ng-click="controller.openReference()">
+    <div class="notification-icon">
+      <i ng-if="notification.refType === 'DISCOVERY'" class="fa fa-binoculars"></i>
+      <i ng-if="notification.refType === 'HUNT'" class="fa fa-crosshairs"></i>
+      <i ng-if="notification.refType === 'FLOW'" class="fa fa-code-fork"></i>
+      <i ng-if="notification.refType === 'CRON'" class="fa fa-history"></i>
+      <i ng-if="notification.refType === 'VFS'" class="fa fa-hdd-o"></i>
+      <i ng-if="notification.refType === 'FLOW_STATUS'" class="fa fa-bolt"></i>
+      <i ng-if="notification.refType === 'GRANT_ACCESS'" class="fa fa-unlock"></i>
+    </div>
+
+    <div class="notification-content">
+        {$ ::notification.value.message.value $}
+        <grr-timestamp value="::notification.value.timestamp" />
+    </div>
+
+    <div class="no-link-indicator" ng-if="!notification.link">
+        <i class="fa fa-chain-broken"></i> no link
+    </div>
+  </a>
+
+  <!-- Or the notification triggers a file download -->
+  <grr-aff4-download-link ng-if="notification.isFileDownload" aff4-path="notification.path">
+    <div class="notification-icon">
+      <i class="fa fa-download"></i>
+    </div>
+    <div class="notification-content">
+      {$ ::notification.value.message.value $}
+      <grr-timestamp value="::notification.value.timestamp" />
+    </div>
+  </grr-aff4-download-link>
+</div>

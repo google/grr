@@ -1,0 +1,17 @@
+include requirements.txt
+
+recursive-include * *
+recursive-include gui *
+
+recursive-exclude .git *
+recursive-exclude build *
+recursive-exclude dist *
+recursive-exclude vagrant *
+recursive-exclude travis *
+recursive-exclude test_data *
+recursive-exclude executables *.zip
+recursive-exclude executables/windows/installers *.exe
+recursive-exclude executables *.bin
+
+recursive-exclude client/minicomm *
+recursive-exclude * *.pyc

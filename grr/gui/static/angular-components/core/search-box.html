@@ -1,0 +1,25 @@
+<abbr title="Type label: to open a list of possible labels completions.">
+  <a href="/help/{$ controller.contextHelpUrl $}" target="_blank"
+     class="pull-right">
+    <i class="glyphicon glyphicon-question-sign input-append"></i>
+  </a>
+
+  <form class="pull-right client-search-box">
+    <div class="form-group">
+      <div class="input-group">
+        <input id="client_query"
+               type="text" name="q" class="form-control search-query"
+               placeholder="Search Box" ng-model="controller.query"
+               ng-keypress="$event.which == 13 && controller.submitQuery()" />
+        <span class="input-group-btn">
+          <button id="client_query_submit"
+                  type="button"
+                  class="btn btn-default search-query"
+                  ng-click="controller.submitQuery()">
+            <span class="glyphicon glyphicon-search"></span>
+          </button>
+        </span>
+      </div>
+    </div>
+  </form>
+</abbr>

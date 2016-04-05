@@ -1,0 +1,22 @@
+<table class="proto-table no-cell-border full-width">
+  <thead>
+    <tr>
+      <th>Age</th>
+      <th>Client</th>
+      <th>Flow URN</th>
+      <th>Flow Name</th>
+      <th>Message</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr grr-paged-filtered-table page-size="100"
+        grr-api-items-provider url="::controller.logsUrl"
+        transform-items="controller.transformItems(items)">
+      <td ng-class="::{proto_key: item.highlighted}"><grr-timestamp value="::item.age" /></td>
+      <td ng-class="::{proto_key: item.highlighted}"><grr-client-urn value="::item.value.client_id.value" /></td>
+      <td ng-class="::{proto_key: item.highlighted}">{$ ::item.shortUrn.value $}</td>
+      <td ng-class="::{proto_key: item.highlighted}">{$ ::item.value.flow_name.value $}</td>
+      <td ng-class="::{proto_key: item.highlighted}">{$ ::item.value.log_message.value $}</td>
+    </tr>
+  </tbody>
+</table>

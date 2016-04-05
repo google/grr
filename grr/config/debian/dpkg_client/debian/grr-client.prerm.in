@@ -1,0 +1,22 @@
+#!/bin/sh
+
+# Correct a problem with /etc/init.d/%(ClientBuilder.package_name) in package
+# version 3080. The exit 1 in the script broke prerm on upstart systems so the
+# package couldn't be removed or downgraded.
+
+set -e
+
+case "$1" in
+  failed-upgrade\)
+    if [ $2 = "3080-1" ]; then
+      sed -i s'/exit 1/exit 0/g' /etc/init.d/%(ClientBuilder.package_name)
+    fi
+  ;;
+
+  *\)
+  ;;
+esac
+
+#DEBHELPER#
+
+exit 0

@@ -1,0 +1,127 @@
+grr-server (0.3.0-8) unstable; urgency=low
+
+  * Update
+
+ -- GRR development team <grr-dev@googlegroups.com>  Fri, 19 Feb 2016 00:00:00 -0700
+
+grr-server (0.3.0-7) unstable; urgency=low
+
+  * Update
+
+ -- GRR development team <grr-dev@googlegroups.com>  Mon, 20 Jul 2015 13:40:26 -0700
+
+grr-server (0.3.0-6) unstable; urgency=low
+
+  * Update
+
+ -- GRR development team <grr-dev@googlegroups.com>  Wed, 17 Mar 2015 00:00:00 +0100
+
+grr-server (0.3.0-2) unstable; urgency=low
+
+  * Fixed some small client bugs.
+  * Updated GRR to use Rekall v1.0.2, removed Volatility completely.
+
+ -- GRR development team <grr-dev@googlegroups.com>  Wed, 30 Jun 2014 00:00:00 +0100
+
+grr-server (0.3.0-1) unstable; urgency=low
+
+  * Version change to make client versioning easier.
+
+ -- GRR development team <grr-dev@googlegroups.com>  Tue, 26 Jun 2014 11:35:00 +0100
+
+grr-server (0.2.10-1) unstable; urgency=low
+
+  * Update
+
+ -- GRR development team <grr-dev@googlegroups.com>  Tue, 15 Apr 2014 12:08:00 +0100
+
+grr-server (0.2.9-1) unstable; urgency=low
+
+  * Version correction
+
+ -- GRR development team <grr-dev@googlegroups.com>  Fri, 06 Dec 2013 11:13:18 +0100
+
+grr-server (0.2-9) unstable; urgency=low
+
+  * Update
+
+ -- GRR development team <grr-dev@googlegroups.com>  Sun, 20 Oct 2013 12:00:00 +0000
+
+grr-server (0.2-8) unstable; urgency=low
+
+  * Added Windows 32 bit client
+  * Updated deployment documentation
+  * Fix for TSK URN escaping issues
+  * Added support for renaming Windows executables during repacking
+  * Added verbose repacking to make debugging clients easier
+  * Bugfixes
+
+ -- GRR development team <grr-dev@googlegroups.com>  Thu, 4 Apr 2013 12:00:00 +0200
+
+grr-server (0.2-7) unstable; urgency=low
+
+  * Bugfixes for build and deployment
+  * Fixed tests
+  * Added OSX client automatic packaging
+  * Resolved bad log paths for packaged Windows 64 bit client
+  * Fixed mongo index error
+  * Improved logging
+  * Added initctl_switch.sh helper script
+  * Updated winpmem drivers
+
+ -- GRR development team <grr-dev@googlegroups.com>  Thu, 4 Apr 2013 12:00:00 +0200
+
+grr-server (0.2-6) unstable; urgency=low
+
+  * New Bootstrap UI
+  * Expanded Hunt UI for scheduling
+  * Config system complete overhaul
+  * Additional mysql datastore option (currently low performance)
+  * New client builds for OSX and Windows
+  * New pmem memory drivers
+
+ -- GRR development team <grr-dev@googlegroups.com>  Sun, 31 Mar 2013 12:00:00 +0200
+
+grr-server (0.2-5) unstable; urgency=low
+
+  * Numerous bug fixes
+  * Memory drivers now ship included
+  * Volatility integration updates
+  * Hunt scheduling UI v1 ready
+  * Refactor of flow typing system for faster development/testing
+
+ -- GRR development team <grr-dev@googlegroups.com>  Thurs, 31 Oct 2012 12:00:00 +0200
+
+grr-server (0.2-4) unstable; urgency=low
+
+  * Update for memory improvements
+  * Django 1.4 fixes
+  * Numerous bug fixes
+
+ -- GRR development team <grr-dev@googlegroups.com>  Thurs, 31 Oct 2012 12:00:00 +0200
+
+grr-server (0.2-3) unstable; urgency=low
+
+  * Improved build and update mechanisms
+  * Add initial hunt scheduling UI
+  * Compatibility fixes for Django 1.4 including XSRF changes
+  * New flows GetProcessesBinariesVolatility, CacheGrep, Glob, SendFile
+  * Scheduling performance improvements
+  * Numerous bug fixes
+
+ -- GRR development team <grr-dev@googlegroups.com>  Thurs, 31 Oct 2012 12:00:00 +0200
+
+grr-server (0.2-2) unstable; urgency=low
+
+  * Update build and update mechanisms to ease maintenance and install
+  * Include OSX client builds
+  * Add memory driver installation support
+  * Numerous bug fixes
+
+ -- GRR development team <grr-dev@googlegroups.com>  Thurs, 18 Oct 2012 12:00:00 +0200
+
+grr-server (0.2-1) unstable; urgency=low
+
+  * Initial release
+
+ -- GRR development team <grr-dev@googlegroups.com>  Fri, 28 Sep 2012 12:00:00 +0200

@@ -1,0 +1,26 @@
+<div class="fill-parent-no-margins" ng-show="controller.inProgress">
+    Loading...
+</div>
+
+<div ng-hide="controller.inProgress">
+    <table class="grr_flot_graph" ng-show="controller.informationAvailable">
+        <tr>
+            <td></td>
+            <td class="title">Agent Coverage</td>
+        </tr>
+        <tr>
+            <td class="axis-y">Agents</td>
+            <td class="graph-wrapper">
+                <div class="client-completion-graph"></div>
+            </td>
+        </tr>
+        <tr>
+            <td></td>
+            <td class="axis-x">Time (h)</td>
+        </tr>
+    </table>
+
+    <div ng-hide="controller.informationAvailable">
+        No data to graph yet.
+    </div>
+</div>

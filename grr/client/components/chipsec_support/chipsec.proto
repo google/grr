@@ -1,0 +1,32 @@
+syntax = "proto2";
+
+import "grr/proto/semantic.proto";
+import "grr/proto/jobs.proto";
+
+
+message DumpFlashImageRequest {
+  optional uint32 log_level = 1 [(sem_type) = {
+      description: "Set the log level. If set, the log returned "
+      "will include additional information reported by Chipsec."
+    }];
+  optional uint32 chunk_size = 2 [(sem_type) = {
+      description: "A heartbeat will be emitted every chunk_size."
+      "This could be reduced in case the process times out.",
+      label: ADVANCED,
+    }, default=0x10000];
+  optional bool  notify_syslog = 3 [(sem_type) = {
+      description: "If true, a message will be written by the client to the "
+      "syslog before running the action. This can be used for debugging in "
+      "case the client crashes during the image dumping process.",
+    }];
+}
+
+message DumpFlashImageResponse {
+  optional PathSpec path = 1 [(sem_type) = {
+      description: "Temporary path to the flash image.",
+    }];
+  repeated string logs = 2 [(sem_type) = {
+      description: "Extra debug information.",
+    }];
+}
+

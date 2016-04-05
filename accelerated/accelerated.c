@@ -158,6 +158,7 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
   while (length > 0) {
     Py_ssize_t decoded_length = 0;
     unsigned PY_LONG_LONG tag;
+    int tag_type;
 
     // Read the tag off the buffer.
     varint_decode(&tag, buffer, length, &decoded_length);
@@ -168,17 +169,19 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
     length -= decoded_length;
 
     // Handle the tag depending on its type.
-    int tag_type = tag & TAG_TYPE_MASK;
+    tag_type = tag & TAG_TYPE_MASK;
     switch (tag_type) {
       case WIRETYPE_VARINT: {
         // Decode the varint and position ourselves at the next tag.
         Py_ssize_t tag_length = 0;
+        PyObject *entry = NULL;
+
         varint_decode(&tag, buffer, length, &tag_length);
 
         // Create an entry to add to the result set. Note: We use
         // PyTuple_SetItem which steals the references here instead of
         // PyTuple_Pack which does not (meaning its more involved to use).
-        PyObject *entry = PyTuple_New(3);
+        entry = PyTuple_New(3);
         PyTuple_SET_ITEM(
             entry, 0, encoded_tag);
 
@@ -257,6 +260,8 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
         // data.
         Py_ssize_t decoded_length = 0;
         unsigned PY_LONG_LONG data_size;
+        PyObject *entry = NULL;
+
         varint_decode(&data_size, buffer, length, &decoded_length);
 
         // Check that we do not exceed the available buffer here.
@@ -267,7 +272,7 @@ PyObject *py_split_buffer(PyObject *self, PyObject *args, PyObject *kwargs) {
           goto error;
         }
 
-        PyObject *entry = PyTuple_New(3);
+        entry = PyTuple_New(3);
         PyTuple_SET_ITEM(
             entry, 0, encoded_tag);
 

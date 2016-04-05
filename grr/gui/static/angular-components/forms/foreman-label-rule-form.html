@@ -1,0 +1,33 @@
+<div class="form-group">
+  <label class="control-label">Match mode</label>
+  <div class="controls">
+    <grr-form-value value="value.value.match_mode"
+                    metadata="controller.matchModeMetadata" />
+  </div>
+</div>
+
+<div class="form-group">
+  <label class="control-label">Add label</label>
+  <div class="controls">
+    <button class="btn btn-default form-add" ng-click="controller.addLabel()">
+      <i class="glyphicon glyphicon-plus"></i>
+    </button>
+  </div>
+</div>
+
+<div class="form-group" ng-repeat="label_name in value.value.label_names">
+  <label class="control-label">Label name</label>
+  <div class="controls">
+    <select class="form-control select-label" ng-model="label_name.value"
+            ng-options="label.value.name.value as label.value.name.value
+                        for label in controller.labelsList"
+            ng-disabled="!controller.labelsList ||
+                         controller.labelsList.length == 0">
+      <!-- hide the implicit empty option -->
+      <option value="" ng-if="false"></option>
+    </select>
+    <button type="button" class="close remove-label"
+            ng-click="controller.removeLabel($index)"
+            ng-if="value.value.label_names.length > 1">×</button>
+  </div>
+</div>

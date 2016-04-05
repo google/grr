@@ -1,0 +1,13 @@
+<table class="proto_table">
+  <tbody>
+    <tr ng-repeat="keyValuePair in ::value.value.items">
+      <td class="proto_key">
+        {$ ::keyValuePair.value.key.value $}
+      </td>
+
+      <td class="proto_value">
+        <grr-semantic-value value="::keyValuePair.value.value" />
+      </td>
+    </tr>
+  </tbody>
+</table>

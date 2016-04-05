@@ -1,0 +1,13 @@
+[Unit]
+Description=%(Client.description)
+After=syslog.target network.target
+
+[Service]
+Type=simple
+PrivateTmp=true
+Restart=on-failure
+LimitNOFILE=20000
+ExecStart=%(ClientBuilder.daemon_link) --config=%(ClientBuilder.target_dir)/%(ClientBuilder.config_filename)
+
+[Install]
+WantedBy=multi-user.target

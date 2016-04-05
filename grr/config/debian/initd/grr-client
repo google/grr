@@ -1,0 +1,164 @@
+#! /bin/sh
+### BEGIN INIT INFO
+# Provides:          %(Client.binary_name)_client
+# Required-Start:    $network $named $local_fs $syslog
+# Required-Stop:     $network $named $local_fs $syslog
+# Should-Start:
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Description:       %(Client.description)
+### END INIT INFO
+
+PATH="/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin"
+DESC="%(Client.description)"
+NAME="%(Client.name)-client"
+DAEMON="%(ClientBuilder.daemon_link)"
+DAEMON_ARGS="--config=%(ClientBuilder.target_dir)/%(ClientBuilder.config_filename)"
+PIDFILE="/var/run/${NAME}.pid"
+SCRIPTNAME="/etc/init.d/${NAME}"
+
+[ -x "${DAEMON}" ] || exit 0
+
+. /lib/init/vars.sh
+
+# Define various helper functions, needs lsb-base >= 3.2-14
+. /lib/lsb/init-functions
+
+# If upstart or systemd is here, exit and let it handle everything.
+# The init_is_upstart requires lsb-base >= 4.1+Debian3, but we want to be able
+# to run on older systems, so if it isn't present we do the check ourselves.
+if type init_is_upstart >/dev/null 2>&1; then
+  log_daemon_msg "Upstart is present and should be used instead, doing nothing."
+  init_is_upstart && exit 0
+elif [ -x /sbin/initctl ] && /sbin/initctl version | /bin/grep -q upstart; then
+  log_daemon_msg "Upstart is present and should be used instead, doing nothing."
+  exit 0
+elif [ -x /bin/systemctl ]; then
+  log_daemon_msg "Systemd is present and should be used instead, doing nothing."
+  exit 0
+fi
+
+# Parentheses are escaped since they confuse config_lib.InterpolateValue
+
+do_start\(\) {
+	start-stop-daemon --start \
+	--quiet \
+	--test \
+	--make-pidfile \
+	--pidfile ${PIDFILE} \
+	--startas ${DAEMON} -- ${DAEMON_ARGS} || return 1
+
+	start-stop-daemon --start \
+	--quiet \
+	--background \
+	--make-pidfile \
+	--pidfile ${PIDFILE} \
+	--startas ${DAEMON} -- ${DAEMON_ARGS} || return 2
+}
+
+do_stop\(\) {
+	start-stop-daemon --stop \
+	--quiet \
+	--oknodo \
+	--retry=TERM/30/KILL/5 \
+	--pidfile ${PIDFILE}
+
+	RETVAL="$?"
+
+	[ "${RETVAL}" = 2 ] && return 2
+
+	rm -f ${PIDFILE}
+
+	return "${RETVAL}"
+}
+
+do_reload\(\) {
+	start-stop-daemon --stop \
+	--quiet \
+	--pidfile ${PIDFILE} \
+	--signal HUP
+
+	return 0
+}
+
+case "$1" in
+	start\)
+		[ "${VERBOSE}" != no ] && log_daemon_msg "Starting ${DESC}" "${NAME}"
+
+		do_start
+
+		case "$?" in
+			0|1\)
+				[ "${VERBOSE}" != no ] && log_end_msg 0
+				;;
+
+			2\)
+				[ "${VERBOSE}" != no ] && log_end_msg 1
+				;;
+		esac
+		;;
+
+	stop\)
+		[ "${VERBOSE}" != no ] && log_daemon_msg "Stopping ${DESC}" "${NAME}"
+
+		do_stop
+
+		case "$?" in
+			0|1\)
+				[ "${VERBOSE}" != no ] && log_end_msg 0
+				;;
+
+			2\)
+				[ "${VERBOSE}" != no ] && log_end_msg 1
+				;;
+		esac
+		;;
+
+	status\)
+		status_of_proc -p "${PIDFILE}" "${DAEMON}" "${NAME}" && exit 0 || exit $?
+		;;
+
+	reload|force-reload\)
+		log_daemon_msg "Reloading ${DESC}" "${NAME}"
+
+		do_reload
+
+		log_end_msg $?
+		;;
+
+	restart\)
+		log_daemon_msg "Restarting ${DESC}" "${NAME}"
+
+		do_stop
+
+		case "$?" in
+			0|1\)
+				sleep 1
+
+				do_start
+
+				case "$?" in
+					0\)
+						log_end_msg 0
+						;;
+
+					1|2\)
+						log_end_msg 1
+						;;
+				esac
+				;;
+
+			2\)
+				log_end_msg 1
+				;;
+		esac
+		;;
+
+	*\)
+		echo "Usage: ${SCRIPTNAME} {start|stop|status|restart|force-reload|reload}" >&2
+
+		exit 3
+		;;
+esac
+
+:

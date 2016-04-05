@@ -1,0 +1,1833 @@
+
+
+// The following messages are used to start flows in GRR.
+
+syntax = "proto2";
+
+import "grr/proto/jobs.proto";
+import "grr/proto/knowledge_base.proto";
+import "grr/proto/output_plugin.proto";
+import "grr/proto/semantic.proto";
+
+
+// This is the user's access token.
+message ACLToken {
+  optional string username = 1;
+
+  // A reason for access (e.g. case name, investigation id).
+  optional string reason = 2;
+
+  // What kind of access is required? r - read, w - write, x - execute (for
+  // flows)
+  optional string requested_access = 3;
+
+
+  optional uint64 expiry = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When does this token expire?",
+    }];
+
+  // The IP this request originated from as well as proxies on the way.
+  repeated string source_ips = 6;
+
+  // The issuing process.
+  optional string process = 7;
+
+  // Is this action an emergency action?
+  optional bool is_emergency = 8;
+}
+
+message GUISettings {
+  option (semantic) = {
+    description: "User GUI settings and preferences."
+  };
+
+  enum UIMode {
+    BASIC = 0;
+    ADVANCED = 1;
+    DEBUG = 2;
+  }
+
+  optional UIMode mode = 1 [(sem_type) = {
+      description: "User interface mode.",
+    }, default=BASIC];
+
+  optional bool canary_mode = 3 [(sem_type) = {
+      description: "If true, show features that are being canaried."
+    }];
+
+  enum DocsLocation {
+    LOCAL = 0;
+    REMOTE = 1;
+  }
+
+  optional DocsLocation docs_location = 2 [(sem_type) = {
+      description: "Where to serve documentation from."
+    }, default=REMOTE];
+}
+
+
+message FlowRunnerArgs {
+  // Next field ID: 22
+
+  optional GrrMessage.Priority priority = 1 [(sem_type) = {
+      description: "The priority used for this flow.",
+      label: ADVANCED
+    }, default=MEDIUM_PRIORITY];
+
+  optional bool notify_to_user = 2 [(sem_type) = {
+      description: "Should a notification be sent to the initiator.",
+      friendly_name: "Notify at Completion",
+    }, default=true];
+
+  optional bool send_replies = 3 [(sem_type) = {
+      description: "Should send replies back to the parent flow or not.",
+      friendly_name: "Send Replies",
+      label: HIDDEN,
+    }, default=true];
+
+  optional string notification_event = 4 [(sem_type) = {
+      description: "An event listener's event name. An "
+      "event will be published to this listener once the flow finishes.";
+      friendly_name: "Notification Event",
+      label: HIDDEN,
+    }];
+
+  optional string notification_urn = 14 [(sem_type) = {
+      type: "SessionID",
+      description: "The Session ID for the event listener to receive a "
+      "notification when this flow completes.",
+      label: HIDDEN,
+    }];
+
+  optional string client_id = 5 [(sem_type) = {
+      type: "ClientURN",
+      description: "The client id this flow operates on.",
+      label: HIDDEN,
+    }];
+
+  optional string queue = 6 [(sem_type) = {
+      type: "RDFURN",
+      description: "The queue to use for the flow.",
+      label: HIDDEN,
+    }, default="F"];
+
+  optional string event_id = 7 [(sem_type) = {
+      description: "A logging event id for issuing further logs."
+      label: HIDDEN,
+    }];
+
+  optional ACLToken token = 8 [(sem_type) = {
+      description: "The access token to be used for this request.",
+      label: HIDDEN,
+    }];
+
+  optional uint64 cpu_limit = 9 [(sem_type) = {
+      description: "A limit on the client cpu seconds used by this flow.",
+      label: ADVANCED,
+    }, default = 7200];
+
+  optional uint64 network_bytes_limit = 13 [(sem_type) = {
+      description: "A limit on the total traffic used by this flow.",
+      label: ADVANCED,
+    }];
+
+  optional RequestState request_state = 10 [(sem_type) = {
+      description: "The request state of the parent flow.",
+      label: HIDDEN,
+    }];
+
+  optional string flow_name = 11 [(sem_type) = {
+      description: "The name of the class implementing the flow to run.",
+      label: HIDDEN,
+    }];
+
+  optional string base_session_id = 12 [(sem_type) = {
+      type: "RDFURN",
+      description: "The session id for the flow runner. "
+      "If not specified we make one.",
+      label: HIDDEN,
+    }];
+
+  optional uint64 start_time = 15 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Do not process this flow until this time. "
+      "(Implies the flow is run asyncronously.).",
+      label: ADVANCED
+    }];
+
+  optional string output = 16 [(sem_type) = {
+      description: "If set, a relative URN to the client's namespace where "
+      "a collection will be created, and the result will be written to.",
+      label: ADVANCED
+    }, default="analysis/{p}/{u}-{t}"];
+
+  optional string logs_collection_urn = 17 [(sem_type) = {
+      type: "RDFURN",
+      description: "The logs collection to log to for the flow.",
+      label: HIDDEN,
+    }];
+
+  optional bool write_intermediate_results = 18 [(sem_type) = {
+      description: "If true, all child flow results received with sendreply"
+                   " will be written to the the flow's default collection.",
+      label: ADVANCED
+    }, default=false];
+
+  optional bool require_fastpoll = 19 [ default = true, (sem_type) = {
+      description: "This value is passed to the client during CallClient, and "
+                   "by default will cause the client to enter fastpoll after"
+                   "processing the message. Users shouldn't modify this "
+                   "setting.",
+      label: ADVANCED
+    }];
+
+  optional string creator = 20 [(sem_type) = {
+      description: "The creator of this flow or, if this is a child flow, the "
+                   "creator of the parent.",
+      label: HIDDEN,
+    }];
+
+  repeated OutputPluginDescriptor output_plugins = 21 [(sem_type) = {
+      description: "Output plugins used for this flow. These plugins will be "
+                   "applied to flow results as soon as the flow is completed."
+      friendly_name: "Output Plugins",
+      label: HIDDEN,
+    }];
+}
+
+
+message HuntRunnerArgs {
+  optional string hunt_name = 1 [(sem_type) = {
+      description: "The name of the class implementing the hunt to run.",
+    }];
+
+  optional string description = 2 [(sem_type) = {
+      description: "The description of this hunt."
+    }];
+
+  repeated ForemanAttributeRegex regex_rules = 3 [(sem_type) = {
+      description: "[deprecated] Regex rules that trigger this hunt. "
+      "Note that all rules must match."
+    }];
+
+  repeated ForemanAttributeInteger integer_rules = 4 [(sem_type) = {
+      description: "[deprecated] Integer rules that trigger this hunt."
+      "All rules must match."
+    }];
+
+  optional ForemanClientRuleSet client_rule_set = 18 [(sem_type) = {
+      description: "Rules that trigger this hunt."
+    }];
+
+  optional GrrMessage.Priority priority = 5 [(sem_type) = {
+      description: "The priority used for this flow.",
+      label: ADVANCED,
+    }, default=MEDIUM_PRIORITY];
+
+  optional string notification_event = 6 [(sem_type) = {
+      description: "An event name for an event listener. An "
+      "event will be published to this listener once the flow finishes.";
+      friendly_name: "Notification Event",
+      label: HIDDEN,
+    }];
+
+  optional string queue = 7 [(sem_type) = {
+      description: "The queue to use for the hunt.",
+      type: "RDFURN",
+      label: HIDDEN,
+    }, default="H"];
+
+  optional ACLToken token = 8 [(sem_type) = {
+      description: "The access token to be used for this request.",
+      label: HIDDEN,
+    }];
+
+  optional uint64 cpu_limit = 9 [(sem_type) = {
+      description: "A limit on the client cpu seconds used by this flow.",
+      label: ADVANCED,
+    }];
+
+  optional uint64 network_bytes_limit = 13 [(sem_type) = {
+      description: "A limit on the total traffic used by this flow.",
+      label: ADVANCED,
+    }];
+
+  optional uint64 client_limit = 10 [(sem_type) = {
+      description: "Maximum number of clients participating in the hunt. "
+      "Best practice is for all hunts to use a limit to start with and "
+      "remove it only when client impact has been assessed by looking at "
+      "hunt stats. Note that this limit can be overshot by a small number "
+      "of clients if there are multiple workers running. ",
+      friendly_name: "Client Limit",
+    }, default=100];
+
+  optional uint64 expiry_time = 11 [(sem_type) = {
+      type: "Duration",
+      description: "Expiry time for the hunt.",
+      friendly_name: "Expiry Time",
+    }, default=1209600]; // 14 days
+
+  optional float client_rate = 12 [(sem_type) = {
+      description: "The maximum number of clients to engage per minute. "
+      "A rate of 0 means to schedule clients as fast as possible."
+    },
+    // The protobuf library has a small inconsistency and reports a 20.0 as long
+    // (instead of float). We force it to be float here by making it 20.5.
+    default=20.5];
+
+  optional string logs_collection_urn = 14 [(sem_type) = {
+      type: "RDFURN",
+      description: "The logs collection to log to for the hunt.",
+      label: HIDDEN,
+    }];
+
+  optional bool require_fastpoll = 15 [ default = true, (sem_type) = {
+      description: "This value is passed to the client during CallClient, and "
+                   "by default will cause the client to enter fastpoll after"
+                   "processing the message.",
+      label: ADVANCED
+    }];
+
+  optional bool add_foreman_rules = 16 [ default = true, (sem_type) = {
+      description: "Should always be true for user-scheduled hunts. Set to "
+      "false for system-created hunts that use ManuallyScheduleClients.",
+      label: ADVANCED
+    }];
+
+  optional string crash_alert_email = 17 [ (sem_type) = {
+      description: "An email address to send mails to when a client crashes "
+      "during execution of this hunt.",
+      label: ADVANCED
+    }];
+
+};
+
+
+// Various hunts.
+message SampleHuntArgs {
+  optional string filename = 1 [(sem_type) = {
+      description: "evil filename to search for.",
+    }, default="/tmp/evil.txt"];
+}
+
+message FlowRequest {
+  repeated string client_ids = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "The clients to start the flow on.",
+    }];
+
+  optional bytes args = 5 [(sem_type) = {
+      dynamic_type: "GetFlowArgsClass",
+      description: "Args to the flow. These depend on the flow_name parameter."
+      "It is expected that this field contains an instance of flow's arg_type.",
+    }];
+
+  optional FlowRunnerArgs runner_args = 6 [(sem_type) = {
+      description: "Args to the flow runner.",
+    }];
+}
+
+message VariableGenericHuntArgs {
+  repeated FlowRequest flows = 1 [(sem_type) = {
+      description: "A list of requests for starting flows on certain clients.",
+    }];
+
+  repeated OutputPluginDescriptor output_plugins = 2 [(sem_type) = {
+      description: "The output plugins to use for this hunt.",
+    }];
+}
+
+message GenericHuntArgs {
+  optional bytes flow_args = 2 [(sem_type) = {
+      dynamic_type: "GetFlowArgsClass",
+      description: "Arguments to the flow to run. This should be an "
+      "instance of flow.args_type proto.",
+      label: HIDDEN
+    }];
+
+  optional FlowRunnerArgs flow_runner_args = 3 [(sem_type) = {
+      description: "The runner args for launching each flow."
+    }];
+
+  repeated OutputPluginDescriptor output_plugins = 4 [(sem_type) = {
+      description: "The output plugins to use for this hunt.",
+    }];
+
+}
+
+
+// Useful messages.
+
+// Many flows use this reduced version of the GrepSpec.
+message BareGrepSpec {
+  optional uint64 start_offset = 2 [(sem_type) = {
+      description: "Start searching at this file offset.",
+    }, default = 0];
+
+  optional uint64 length = 3 [(sem_type) = {
+      description: "How far (in bytes) into the file to search.",
+    }, default = 10737418240];
+
+  optional string regex = 4 [(sem_type) = {
+      type: "RegularExpression",
+      description: "The regular expression which will be used to search."
+    }];
+
+  optional bytes literal = 5 [(sem_type) = {
+      type: "LiteralExpression",
+      description: "Search for this literal string.",
+    }];
+
+  enum Mode {
+    ALL_HITS = 0;   // Report all hits.
+    FIRST_HIT = 1;  // Stop after one hit.
+  }
+
+  optional Mode mode = 6 [(sem_type) = {
+      description: "When should searching stop? Stop after one hit "
+                   "or search for all?",
+    }, default = ALL_HITS];
+
+  optional uint32 bytes_before = 7 [(sem_type) = {
+      description: "Include this many bytes before the hit.",
+      label: ADVANCED,
+    }, default = 10];
+
+  optional uint32 bytes_after = 8 [(sem_type) = {
+      description: "Include this many bytes after the hit.",
+      label: ADVANCED,
+    }, default = 10];
+
+  optional uint32 xor_in_key = 9 [(sem_type) = {
+      description: "When searching memory we need to ensure we dont "
+      "hit on our own process. This allows us to obfuscate the search "
+      "string in memory to avoid us finding ourselves.",
+      label: ADVANCED
+    }, default = 37];
+
+  optional uint32 xor_out_key = 10 [(sem_type) = {
+      description: "When searching memory we need to ensure we dont "
+      "hit on our own process. This allows us to obfuscate the search "
+      "string in memory to avoid us finding ourselves.",
+      label: ADVANCED
+    }, default = 57];
+}
+
+
+// Various flows.
+
+message CAEnrolerArgs {
+  optional Certificate csr = 1 [(sem_type) = {
+      description: "A Certificate RDFValue with the CSR in it.",
+    }];
+}
+
+message DeleteGRRTempFilesArgs {
+  optional PathSpec pathspec = 1 [(sem_type) = {
+      description: "The pathspec target for deletion."
+      "If path is a directory, look in the top level for filenames "
+      "beginning with Client.tempfile_prefix, and delete them. If path "
+      "is a regular file and starts with Client.tempfile_prefix, delete it.",
+    }];
+}
+
+message UninstallArgs {
+  optional bool kill = 1 [(sem_type) = {
+      description: "Kills the client if set.",
+    }];
+}
+
+
+message UpdateConfigurationArgs {
+  optional Dict config = 1 [(sem_type) = {
+      description: "The config to send to the client."
+    }];
+}
+
+message ExecutePythonHackArgs {
+  optional string hack_name = 1 [(sem_type) = {
+      description: "The path to the hack to execute relative to "
+      "Config.python_hack_root."
+    }];
+
+  optional Dict py_args = 2 [(sem_type) = {
+      description: "Python Hack Arguments."
+    }];
+}
+
+message ExecuteCommandArgs {
+  optional string cmd = 1 [(sem_type) = {
+      description: "",
+    }];
+  optional string command_line = 2 [(sem_type) = {
+      description: "The arguments to the command as a shell command line."
+    }];
+  optional int64 time_limit = 3 [(sem_type) = {
+      description: "The time limit for this execution, -1 means unlimited."
+    }, default=-1];
+}
+
+message OnlineNotificationArgs {
+  optional string email = 1 [(sem_type) = {
+      type: "DomainEmailAddress",
+      description: "Email address to send to. If not set, mail will be sent "
+      "to the logged in user.",
+    }];
+}
+
+message UpdateClientArgs {
+  optional string blob_path = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "An aff4 path to a GRRSignedBlob of a new client version.",
+    }];
+}
+
+message KeepAliveArgs {
+  optional uint64 duration = 1 [(sem_type) = {
+      type: "Duration",
+      description: "Until when should the client stay in the fast poll mode.",
+    }, default=3600];
+}
+
+message TerminateFlowArgs {
+  optional string flow_urn = 1 [(sem_type) = {
+      type: "SessionID",
+      description: "The URN of the flow to terminate.",
+    }];
+
+  optional string reason = 2 [(sem_type) = {
+      description: "Reason for termination.",
+    }];
+}
+
+message LaunchBinaryArgs {
+  optional string binary = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the binary to execute.",
+    }];
+
+  optional string command_line = 2 [(sem_type) = {
+      description: "Binary Arguments as a shell command line.",
+    }];
+}
+
+message WinUserActivityInvestigationArgs {
+  optional string username = 1 [(sem_type) = {
+      description: "The user to target the actions to.",
+    }];
+
+  optional bool get_browser_history = 2 [(sem_type) = {
+      description: "Call each of the browser history flows.",
+    }, default=true];
+
+  optional uint64 recursive_list_homedir = 3 [(sem_type) = {
+      description: "Recursively list the users homedir to this depth.",
+    }, default=5];
+
+  optional uint64 recursive_list_user_registry = 4 [(sem_type) = {
+      description: "Recursively list the users registry hive.",
+    }, default=5];
+
+  repeated string artifact_list = 5 [(sem_type) = {
+      description: "A list of Artifact names.",
+      type: "ArtifactName",
+    }];
+
+  optional bool timeline_collected_data = 6 [(sem_type) = {
+      description: "Once complete create a timeline for the host.",
+    }, default=true];
+
+  optional bool use_tsk = 7 [(sem_type) = {
+      description: "Use raw filesystem access where possible.",
+    }];
+}
+
+
+message ArtifactCollectorFlowArgs {
+  repeated string artifact_list = 1 [(sem_type) = {
+      type: "ArtifactName",
+      description: "A list of Artifact class names.",
+    }];
+
+  optional bool use_tsk = 2 [(sem_type) = {
+      description: "Whether raw filesystem access should be used.",
+    }, default=false];
+
+  optional bool store_results_in_aff4 = 3 [(sem_type) = {
+      description: "Should the collected artifacts be written to the GRR "
+      "AFF4 namespace based on the AFF4->RDF map. Collectors like GetFiles "
+      "and GetRegistryKeys already write their results to the client space "
+      "and only a small number of types are included in the map. Users should "
+      "not enable this in the vast majority of cases.",
+    label: ADVANCED,
+    }, default=false];
+
+  optional bool split_output_by_artifact = 5 [(sem_type) = {
+      description: "If True, use output as a directory and write a separate"
+      " collection for each artifact collected.",
+      label: ADVANCED,
+    }, default=false];
+
+  optional KnowledgeBase knowledge_base = 6 [(sem_type) = {
+      description: "An optional knowledge base to use, if not specified we "
+      "retrieve one from the client object.",
+      label: HIDDEN,
+    }];
+
+  optional bool on_no_results_error = 7 [(sem_type) = {
+      description: "If True, an artifact returning no results will raise a hard"
+      " error. This is useful where you always expect results."
+    }, default=false];
+
+  optional bool apply_parsers = 8 [(sem_type) = {
+      description: "If True, apply any relevant parser to the collected data. "
+      "If False, return the raw collected data e.g Files or Registry Keys.",
+      label: ADVANCED,
+    }, default=true];
+
+  optional uint64 max_file_size = 9 [(sem_type) = {
+      type: "ByteSize",
+      description: "The maximum size of files we will download in bytes,"
+      " 100MB by default.",
+      label: ADVANCED
+    }, default=100000000];
+
+  enum Dependency {
+    USE_CACHED = 0 [(description) = "Use the knowledgebase as a cache. If "
+        "knowledgebase isn't present, a new one will be populated."];
+
+    IGNORE_DEPS = 1 [(description) = "Ignore dependencies."];
+
+    FETCH_NOW = 2 [(description) = "Fetch only required dependencies for this "
+        "artifact"];
+  }
+
+  optional Dependency dependencies = 11 [(sem_type) = {
+      description: "Specifies how dependencies should be handled.",
+      label: ADVANCED,
+    }, default=USE_CACHED];
+
+  optional bool ignore_interpolation_errors = 12 [(sem_type) = {
+      description: "If true, don't die if %%users.homedir%% and similar fail"
+          " to expand. It's common on windows for some user attributes to be"
+          " missing if users have never logged in. Enable this when you have"
+          " multiple artifacts or paths and want to report partial results.",
+    }, default=false];
+}
+
+message ArtifactFilesDownloaderFlowArgs {
+  repeated string artifact_list = 1 [(sem_type) = {
+      type: "ArtifactName",
+      description: "A list of Artifact class names.",
+    }];
+
+  optional bool use_tsk = 2 [(sem_type) = {
+      description: "Whether raw filesystem access should be used.",
+    }, default=false];
+
+  optional uint64 max_file_size = 9 [(sem_type) = {
+      type: "ByteSize",
+      description: "The maximum size of files we will download in bytes,"
+      " 100MB by default.",
+      label: ADVANCED
+    }, default=100000000];
+}
+
+message ArtifactFilesDownloaderResult {
+  optional string original_result_type = 1 [(sem_type) = {
+      description: "Type of the result returned by the artifacts collector."
+    }];
+  optional bytes original_result = 2 [(sem_type) = {
+      dynamic_type: "GetOriginalResultType"
+      description: "Original result returned by the artifacts collector."
+    }];
+
+  optional PathSpec found_pathspec = 3 [(sem_type) = {
+      description: "Pathspecs found in the collected artifacts."
+    }];
+  optional StatEntry downloaded_file = 4 [(sem_type) = {
+      description: "Files that were successfully downloaded using found "
+      "pathspecs."
+    }];
+}
+
+message InterrogateArgs {
+  optional bool lightweight = 1 [(sem_type) = {
+      description: "Perform a light weight version of the interrogate.",
+    }, default=true];
+}
+
+message FingerprintFileArgs {
+  optional PathSpec pathspec = 1 [(sem_type) = {
+      description: "The file path to fingerprint.",
+    }];
+}
+
+message FingerprintFileResult {
+  optional string file_urn= 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the file fingerprinted",
+    }];
+  optional Hash hash_entry = 2 [(sem_type) = {
+      description: "File hash object.",
+    }];
+}
+
+
+message DownloadMemoryImageArgs {
+  optional string destdir = 1 [(sem_type) = {
+      description: "Destination directory on the client for the temporary image. "
+      "Leave blank to use defaults. Parent directories will be created "
+      "if necessary.",
+      label: ADVANCED
+    }];
+
+  optional uint64 offset = 2 [(sem_type) = {
+      description: "Memory offset in bytes",
+      label: ADVANCED,
+      friendly_name: "Starting Offset"
+    }, default=0];
+
+  optional uint64 length = 3 [(sem_type) = {
+      description: "Number of bytes to copy (default 0 copies all memory)",
+      label: ADVANCED,
+      friendly_name: "Length to download"
+    }, default=0];
+
+  optional bool gzip = 4 [(sem_type) = {
+      description: "Gzip temporary image file on the client.",
+      label: ADVANCED
+    }, default=true];
+
+  optional DriverInstallTemplate driver_installer = 5 [(sem_type) = {
+      description: "An optional DriverInstallTemplate proto to control "
+      "driver installation. If not set, the default installation proto will "
+      "be used.",
+      label: HIDDEN
+    }];
+
+  optional bool make_local_copy = 6 [(sem_type) = {
+      description: "Make a local copy of the memory on the client before "
+      "downloading."
+    }, default=true];
+}
+
+message LoadMemoryDriverArgs {
+  optional DriverInstallTemplate driver_installer = 1 [(sem_type) = {
+      description: "An optional DriverInstallTemplate proto to control "
+      "driver installation. If not set, the default installation proto will "
+      "be used.",
+      label: HIDDEN,
+    }];
+
+  optional bool reload_if_loaded = 2 [(sem_type) = {
+      description: "If the driver is already loaded we reload it.",
+      friendly_name: "Force reload of driver."
+    }, default=false];
+}
+
+message ScanMemoryArgs {
+  option (semantic) = {
+    description: "A grep specification which operates only on memory devices."
+  };
+
+  optional BareGrepSpec grep = 1 [(sem_type) = {
+      description: "A grepspec for memory devices."
+    }];
+
+  optional bool also_download = 2 [(sem_type) = {
+      description: "If a match is found, image memory."
+    }];
+}
+
+message SophosCollectorArgs {
+  optional PathSpec.PathType pathtype = 1 [(sem_type) = {
+      description: "The requested path type.",
+    }, default=OS];
+
+}
+
+message MACTimesArgs {
+  optional string path = 1 [(sem_type) = {
+      description: "An AFF path (relative to the client area of the VFS).",
+    }, default="/fs/"];
+
+}
+
+message FileCollectorArgs {
+  repeated FindSpec findspecs = 1 [(sem_type) = {
+      description: "A list of find specifications.",
+    }];
+
+}
+
+message FirefoxHistoryArgs {
+  optional PathSpec.PathType pathtype = 1 [(sem_type) = {
+      description: "Type of path access to use."
+    }, default=OS];
+
+  optional bool get_archive = 2 [(sem_type) = {
+      description: "Should we get Archived History as well (3 months old).",
+    }, default=false];
+
+  optional string username = 3 [(sem_type) = {
+      description: "The user to get history for. If history_path is "
+      "not set this will be used to guess the path to the "
+      "history files. Can be in form DOMAIN\\user."
+    }];
+
+  optional string history_path = 5 [(sem_type) = {
+      description: "Path to a profile directory that contains a History file.",
+    }];
+}
+
+
+message CacheGrepArgs {
+  repeated string grep_users = 1 [(sem_type) = {
+      description: "A list of users to check. Default all users on the system.",
+    }];
+
+  optional PathSpec.PathType pathtype = 2 [(sem_type) = {
+      description: "Type of path access to use."
+    }, default=OS];
+
+  optional string data_regex = 3 [(sem_type) = {
+      type: "RegularExpression",
+      description: "A regular expression to search for.",
+    }];
+
+  optional bool check_chrome = 5 [(sem_type) = {
+      description: "Check Chrome",
+    }, default=true];
+
+  optional bool check_firefox = 6 [(sem_type) = {
+      description: "Check Firefox",
+    }, default=true];
+
+  optional bool check_ie = 7 [(sem_type) = {
+      description: "Check Internet Explorer (Not implemented yet)",
+    }, default=true];
+}
+
+message ListDirectoryArgs {
+  optional PathSpec pathspec = 1 [(sem_type) = {
+      description: "The pathspec for the directory to list."
+    }];
+}
+
+message RecursiveListDirectoryArgs {
+  optional PathSpec pathspec = 1 [(sem_type) = {
+      description: "The pathspec for the directory to list."
+    }];
+
+  optional uint64 max_depth = 2 [(sem_type) = {
+      description: "Maximum recursion depth.",
+    }, default=5];
+}
+
+message FetchBufferForSparseImageArgs {
+  optional string file_urn= 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the sparse image to update",
+    }];
+  optional uint64 length = 2;
+  optional uint64 offset = 3;
+}
+
+message MakeNewAFF4SparseImageArgs {
+  optional PathSpec pathspec = 1;
+  optional uint64 size_threshold = 2;
+}
+
+message UpdateSparseImageChunksArgs {
+  optional string file_urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the sparse image to update",
+    }];
+  repeated uint64 chunks_to_fetch = 2;
+}
+
+message GrepArgs {
+  optional GrepSpec request = 1;
+}
+
+message GlobArgs {
+  repeated string paths = 1 [(sem_type) = {
+      type: "GlobExpression",
+      description: "A list of paths to glob that supports: ** path recursion,"
+          " * wildcards and %% expansions.",
+    }];
+
+  optional PathSpec.PathType pathtype = 2 [(sem_type) = {
+      description: "Type of access to glob in.",
+    }, default=OS];
+
+  optional PathSpec root_path = 3 [(sem_type) = {
+      description: "The root path to begin the glob.  Users should almost never"
+                   " need to change this. root_path.pathtype is unused in"
+                   " favor of pathtype to allow it to be modified by users.",
+      label: ADVANCED;
+    }];
+
+  optional bool no_file_type_check = 4 [(sem_type) = {
+      description: "Work with all kinds of files - not only with regular ones."
+      "NOTE: This is very dangerous and should be used with care, see "
+      "MemoryCollector as an example.",
+      label: HIDDEN,
+    }, default=false];
+
+}
+
+message SearchFileContentArgs {
+  repeated string paths = 1 [(sem_type) = {
+      type: "GlobExpression",
+      description: "A path to glob that supports: ** path recursion, * "
+          "wildcards and %% expansions",
+    }];
+
+  optional PathSpec.PathType pathtype = 2 [(sem_type) = {
+      description: "Type of access to glob in.",
+    }, default=OS];
+
+  optional PathSpec root_path = 5 [(sem_type) = {
+    description: "The root path to begin the glob.  Users should almost never"
+                  " need to change this. root_path.pathtype is unused in"
+                  " favor of pathtype to allow it to be modified by users.",
+    label: ADVANCED;
+  }];
+
+  optional BareGrepSpec grep = 3 [(sem_type) = {
+      friendly_name: "File Content Search",
+      description: "Leave empty to match files by filename only."
+    }];
+
+  optional bool also_download = 4 [(sem_type) = {
+      friendly_name: "Download matching files",
+      description: "If checked, download any matching files."
+    }];
+}
+
+message FindFilesArgs {
+  optional FindSpec findspec = 1 [(sem_type) = {
+      description: "A find operation specification.",
+    }];
+
+  optional uint64 max_results = 3 [(sem_type) = {
+      description: "Maximum number of results to get.",
+      label: ADVANCED;
+    }, default=500];
+
+  optional uint64 iteration_count = 4 [(sem_type) = {
+      description: "Files examined per iteration.",
+      label: ADVANCED
+    }, default=20000];
+}
+
+
+message GetFileArgs {
+  optional PathSpec pathspec = 1 [(sem_type) = {
+      description:"The pathspec for the file to retrieve."
+    }];
+
+  optional uint64 read_length = 2 [(sem_type) = {
+      description: "The amount of data to read from the file. If 0 we use "
+      "the value from a stat call.",
+      label: ADVANCED
+    }, default=0];
+
+  optional bool ignore_stat_failure = 3 [(sem_type) = {
+      description: "Ignore stat failures and try to read anyway. "
+      "Disable for windows devices.",
+      label: ADVANCED,
+    }];
+}
+
+
+message GetMBRArgs {
+  optional uint64 length = 1 [(sem_type) = {
+      description:"The length of the MBR buffer to read.",
+    }, default=4096];
+}
+
+
+message ChromeHistoryArgs {
+  optional PathSpec.PathType pathtype = 1 [(sem_type) = {
+      description: "Type of path access to use."
+    }, default=OS];
+
+  optional bool get_archive = 2 [(sem_type) = {
+      description: "Should we get Archived History as well (3 months old)."
+    }];
+
+  optional string username = 3 [(sem_type) = {
+      description: "The user to get Chrome history for. If history_path is "
+      "not set this will be used to guess the path to the "
+      "history files. Can be in form DOMAIN\\user.",
+    }];
+
+  optional string history_path = 5 [(sem_type) = {
+      description: "Path to a profile directory that contains a History "
+      "file.",
+    }];
+}
+
+message ClientActionArgs {
+  optional string action = 1 [(sem_type) = {
+      description: "The action to execute.",
+    }];
+
+  optional string save_to = 2 [(sem_type) = {
+      description: "If set, interpreted as a path to write pickle "
+      "dumps of responses to."
+    }, default="/tmp"];
+
+  optional bool break_pdb = 3 [(sem_type) = {
+      description: "If True, run pdb.set_trace when responses come back.",
+    }, default=false];
+
+
+  optional bytes action_args = 4 [(sem_type) = {
+      dynamic_type: "GetActionArgsClass",
+      description: "Client action arguments.",
+    }];
+}
+
+message ConsoleDebugFlowArgs {
+  optional string flow = 1 [(sem_type) = {
+      description: "The flow to execute.",
+    }];
+
+  optional string save_to = 2 [(sem_type) = {
+      description: "If not None, interpreted as an path to write pickle "
+      "dumps of responses to."
+    }, default="/tmp"];
+
+  optional bool break_pdb = 3 [(sem_type) = {
+      description: "If True, run pdb.set_trace when responses come back.",
+    }, default=false];
+
+  optional bool print_responses = 4 [(sem_type) = {
+      description: "If True, print each response.",
+    }];
+
+  optional bytes flow_args = 5 [(sem_type) = {
+      dynamic_type: "GetFlowArgsClass",
+      description: "Flow arguments.",
+    }];
+}
+
+// The following messages are for SUID flows which are designed to control
+// access to the datastore.
+
+message CreateGenericHuntFlowArgs {
+  optional HuntRunnerArgs hunt_runner_args = 1;
+  optional GenericHuntArgs hunt_args = 2;
+}
+
+
+message CreateCronJobFlowArgs {
+  optional string description = 1 [(sem_type) = {
+      description: "A human readable description of the cron job."
+    }];
+
+  optional string periodicity = 2 [(sem_type) = {
+      type: "CronSpec",
+      description: "How often to run this hunt."
+    }, default="7d"];
+
+  optional FlowRunnerArgs flow_runner_args = 3;
+  optional bytes flow_args = 4 [(sem_type) = {
+      dynamic_type: "GetFlowArgsClass",
+    }];
+
+  optional bool allow_overruns = 5;
+
+  optional uint64 lifetime = 6 [(sem_type) = {
+      type: "Duration",
+      description: "How long each run of the cron should be allowed to run. "
+      "Runs that exceed lifetime will be killed. This is complimentary but"
+      " different to periodicity e.g. it allows us to run jobs weekly that"
+      " should be killed if they take more than a few hours.",
+    }, default=0];
+
+  optional uint64 start_time = 7 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Time at which this cron should run for the first time."
+      "Specifying this allows us to stagger or randomize cron start times so"
+      " they don't all start at once. Default is to start immediately.",
+    }, default=0];
+
+}
+
+message ModifyHuntFlowArgs {
+  optional string hunt_urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the hunt to pause.",
+    }];
+
+  optional uint64 client_limit = 2;
+
+  optional uint64 expiry_time = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When should this hunt expire?",
+    }];
+}
+
+message ManageCronJobFlowArgs {
+  enum Action {
+    NOOP = 0 [(description) = "Do nothing (but still check "
+              "access permissions.)"];
+
+    DISABLE = 1 [(description) = "Disable ths cron job"];
+
+    ENABLE = 2 [(description) = "Enable the cron job"];
+
+    DELETE = 3 [(description) = "Delete the cron job"];
+
+    RUN = 4 [(description) = "Force the cron job to run now"];
+  }
+
+  optional string urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the cron job"
+    }];
+
+  optional Action action = 2 [default=NOOP];
+}
+
+message PlistValueFilterArgs {
+  optional PlistRequest request = 1 [(sem_type) = {
+      description: "A request for the client to parse a plist file.",
+    }];
+
+}
+
+message RunReportFlowArgs {
+  optional string report_name = 1 [(sem_type) = {
+      type: "ReportName",
+      description: "The name of the report to run.",
+    }];
+  optional string email = 2 [(sem_type) = {
+      type: "DomainEmailAddress",
+      description: "The email address that messages will be sent to.",
+    }];
+}
+
+message EnumerateServicesArgs {
+  optional bool download_binaries = 1 [(sem_type) = {
+      description: "If set, also downloads the binaries.",
+    }, default=true];
+
+  optional PathSpec.PathType pathtype = 3 [(sem_type) = {
+      description: "How to access the filesystem.",
+    }, default=TSK];
+}
+
+message ChromePluginsArgs {
+  optional string path = 1 [(sem_type) = {
+      description: "A path to a Chrome Extensions directory. If not set, "
+      "the path is guessed from the username."
+    }];
+
+  optional PathSpec.PathType pathtype = 2 [(sem_type) = {
+      description: "Access mode",
+    }, default=OS];
+
+  optional string username = 4 [(sem_type) = {
+      description: "The user to get Chrome extensions for.",
+    }];
+
+  optional bool download_files = 5 [(sem_type) = {
+      description: "Should extensions be downloaded?",
+    }, default=false];
+}
+
+// SUID Flows.
+message RequestApprovalWithReasonFlowArgs {
+  optional string reason = 1 [(sem_type) = {
+      description: "Reason for approval",
+    }, default="Unspecified"];
+
+  optional string approver = 2 [(sem_type) = {
+      description: "Approver username",
+    }];
+
+  optional string subject_urn = 3 [(sem_type) = {
+      type: "RDFURN",
+      description: "URN of the object that approval is required for.",
+    }];
+
+  optional string email_cc_address = 4 [(sem_type) = {
+      description: "Email address string to CC on this approval.",
+    }];
+}
+
+message GrantApprovalWithReasonFlowArgs {
+  optional string reason = 1 [(sem_type) = {
+      description: "Reason for approval",
+    }, default="Unspecified"];
+
+  optional string delegate = 2 [(sem_type) = {
+      description: "Delegate username",
+    }];
+
+  optional string subject_urn = 3 [(sem_type) = {
+      type: "RDFURN",
+      description: "URN of the object that approval is required for.",
+    }];
+}
+
+message StartHuntFlowArgs {
+  optional string hunt_urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the hunt to execute.",
+    }];
+}
+
+message DeleteHuntFlowArgs {
+  optional string hunt_urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the hunt to delete.",
+    }];
+}
+
+message StopHuntFlowArgs {
+  optional string hunt_urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the hunt to stop.",
+    }];
+}
+
+message CheckHuntAccessFlowArgs {
+  optional string hunt_urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the hunt to check.",
+    }];
+}
+
+message UpdateVFSFileArgs {
+  optional string vfs_file_urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "VFSFile urn",
+    }];
+
+  optional string attribute = 2 [(sem_type) = {
+      description: "Attribute to update, given as the attribute name "
+      "on the schema class.",
+    }, default="CONTAINS"];
+}
+
+message MultiGetFileArgs {
+  repeated PathSpec pathspecs = 2 [(sem_type) = {
+      description: "Pathspecs of files to be retrieved.",
+    }];
+
+  optional bool use_external_stores = 3 [(sem_type) = {
+      description: "If true, look in any defined external file stores for files"
+      "before downloading them, and offer any new files to external stores."
+      "This should be true unless the external checks are misbehaving.",
+      label: ADVANCED
+    }, default=true];
+
+  optional uint64 file_size = 4 [(sem_type) = {
+      type: "ByteSize",
+      description: "Maximum number of bytes to download in each file.",
+      label: ADVANCED
+    }, default=1000000000]; // 1Gb.
+
+}
+
+message ProcessHuntResultsCronFlowArgs {
+  optional uint64 batch_size = 1 [(sem_type) = {
+      description: "Results will be processed by output plugins in batches "
+      "of this size.",
+      label: ADVANCED
+    }];
+  optional uint64 max_running_time = 2 [(sem_type) = {
+      type: "Duration",
+      description: "ProcessHuntResultsCronFlow will run not much longer than "
+      "max_running_time. It will finish (without an error) even if there are "
+      "still results to process.",
+      label: ADVANCED,
+    }];
+  optional uint64 start_processing_time = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The flow will only process results received after this "
+      "time."
+    }, default=0];
+}
+
+message VerifyHuntOutputPluginsCronFlowArgs {
+  optional uint64 check_range = 1 [(sem_type) = {
+      type: "Duration",
+      description: "Only the hunts that were active within given duration from "
+      "the current moment will be checked."
+      label: ADVANCED,
+    }];
+}
+
+message ListProcessesArgs {
+  optional string filename_regex = 1 [(sem_type) = {
+      type: "RegularExpression",
+      friendly_name: "Filename Regex",
+      description: "Regex used to filter the list of processes.",
+    }, default="."];
+
+  optional bool fetch_binaries = 2 [(sem_type) = {
+      friendly_name: "Fetch Binaries",
+    }, default=false];
+}
+
+message ListVADBinariesArgs {
+  optional string filename_regex = 1 [(sem_type) = {
+      type: "RegularExpression",
+      friendly_name: "Filename Regex",
+      description: "Regex used to filter the list of binaries.",
+    }, default="."];
+
+  optional bool fetch_binaries = 2 [(sem_type) = {
+      friendly_name: "Fetch Binaries",
+    }, default=false];
+}
+
+message FileFinderModificationTimeCondition {
+  optional uint64 min_last_modified_time = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File must be modified after this time."
+    }, default=0];
+
+  optional uint64 max_last_modified_time = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File must be modified before this time (default=heat "
+                   "death of the universe)."
+    }, default = 9223372036854775807];
+}
+
+message FileFinderAccessTimeCondition {
+  optional uint64 min_last_access_time = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File must be accessed after this time."
+    }, default=0];
+
+  optional uint64 max_last_access_time = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File must be accessed before this time (default=heat "
+                   "death of the universe)."
+    }, default = 9223372036854775807];
+}
+
+message FileFinderInodeChangeTimeCondition {
+  optional uint64 min_last_inode_change_time = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File's inode must be changed after this time."
+    }, default=0];
+
+  optional uint64 max_last_inode_change_time = 6 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "File's must be changed before this time (default=heat "
+                   "death of the universe)."
+    }, default = 9223372036854775807];
+}
+
+message FileFinderSizeCondition {
+  optional uint64 min_file_size = 11 [(sem_type) = {
+      description: "Minimum file size in bytes."
+    }, default = 0];
+
+  optional uint64 max_file_size = 12 [(sem_type) = {
+      description: "Maximum file size in bytes "
+      "(default=20MB)."
+    }, default = 20000000];
+
+}
+
+message FileFinderContentsRegexMatchCondition {
+
+  enum Mode {
+    ALL_HITS = 0;   // Report all hits.
+    FIRST_HIT = 1;  // Stop after one hit.
+  }
+
+  optional string regex = 4 [(sem_type) = {
+      type: "RegularExpression",
+      description: "The regular expression which will be used to search."
+    }];
+
+  optional Mode mode = 6 [(sem_type) = {
+      description: "When should searching stop? Stop after one hit "
+                   "or search for all?",
+    }, default = FIRST_HIT];
+
+  optional uint32 bytes_before = 7 [(sem_type) = {
+      description: "Include this many bytes before the hit.",
+      label: ADVANCED,
+    }, default = 0];
+
+  optional uint32 bytes_after = 8 [(sem_type) = {
+      description: "Include this many bytes after the hit.",
+      label: ADVANCED,
+    }, default = 0];
+
+  optional uint64 start_offset = 2 [(sem_type) = {
+      description: "Start searching at this file offset.",
+      label: ADVANCED,
+    }, default = 0];
+
+  optional uint64 length = 3 [(sem_type) = {
+      description: "How far (in bytes) into the file to search. Default=20MB.",
+    }, default = 20000000];
+}
+
+
+message FileFinderContentsLiteralMatchCondition {
+
+  enum Mode {
+    ALL_HITS = 0;   // Report all hits.
+    FIRST_HIT = 1;  // Stop after one hit.
+  }
+
+  optional bytes literal = 5 [(sem_type) = {
+      type: "LiteralExpression",
+      description: "Search for this literal string.",
+    }];
+
+  optional Mode mode = 6 [(sem_type) = {
+      description: "When should searching stop? Stop after one hit "
+                   "or search for all?",
+    }, default = FIRST_HIT];
+
+  optional uint64 start_offset = 2 [(sem_type) = {
+      description: "Start searching at this file offset.",
+      label: ADVANCED,
+    }, default = 0];
+
+  optional uint64 length = 3 [(sem_type) = {
+      description: "How far (in bytes) into the file to search. Default=20MB",
+      label: ADVANCED,
+    }, default = 20000000];
+
+  optional uint32 bytes_before = 7 [(sem_type) = {
+      description: "Include this many bytes before the hit.",
+      label: ADVANCED,
+    }, default = 0];
+
+  optional uint32 bytes_after = 8 [(sem_type) = {
+      description: "Include this many bytes after the hit.",
+      label: ADVANCED,
+    }, default = 0];
+
+  optional uint32 xor_in_key = 9 [(sem_type) = {
+      description: "When searching memory we need to ensure we dont "
+      "hit on our own process. This allows us to obfuscate the search "
+      "string in memory to avoid us finding ourselves.",
+      label: ADVANCED
+    }, default = 0];
+
+  optional uint32 xor_out_key = 10 [(sem_type) = {
+      description: "When searching memory we need to ensure we dont "
+      "hit on our own process. This allows us to obfuscate the search "
+      "string in memory to avoid us finding ourselves.",
+      label: ADVANCED
+    }, default = 0];
+}
+
+message FileFinderCondition {
+  option (semantic) = {
+    union_field: "condition_type"
+  };
+
+  enum Type {
+    MODIFICATION_TIME = 0 [(description) = "Modification time"];
+    ACCESS_TIME = 1 [(description) = "Access time"];
+    INODE_CHANGE_TIME = 2 [(description) = "Inode change time"];
+    SIZE = 3 [(description) = "File size"];
+    CONTENTS_REGEX_MATCH = 4 [(description) = "Contents regex match"];
+    CONTENTS_LITERAL_MATCH = 5 [(description) = "Contents literal match"];
+  }
+
+  optional Type condition_type = 1 [(sem_type) = {
+      description: "Condition type",
+      friendly_name: "Condition type"
+    }];
+  optional FileFinderModificationTimeCondition modification_time = 2;
+  optional FileFinderAccessTimeCondition access_time = 3;
+  optional FileFinderInodeChangeTimeCondition inode_change_time = 4;
+  optional FileFinderSizeCondition size = 5;
+  optional FileFinderContentsRegexMatchCondition contents_regex_match = 6;
+  optional FileFinderContentsLiteralMatchCondition contents_literal_match = 7;
+}
+
+message FileFinderDownloadActionOptions {
+  optional uint64 max_size = 5 [(sem_type) = {
+      type: "ByteSize",
+      description: "The maximum size of files we will download.",
+      label: ADVANCED
+    }, default=100000000];
+
+  optional bool use_external_stores = 6 [(sem_type) = {
+      description: "If true, look in any defined external file stores for "
+      "files before downloading them, and offer any new files to external "
+      "stores. This should be true unless the external checks are misbehaving.",
+      label: ADVANCED
+    }, default=true];
+}
+
+message FileFinderAction {
+  option (semantic) = {
+    union_field: "action_type"
+  };
+
+  enum Action {
+    STAT = 0 [(description) = "Stat"];
+
+    HASH = 1 [(description) = "Hash"];
+
+    DOWNLOAD = 2 [(description) = "Download"];
+  }
+
+  optional Action action_type = 1 [default = STAT, (sem_type) = {
+      friendly_name: "Action",
+      description: "Action to apply to found files"
+    }];
+  optional FileFinderDownloadActionOptions download = 2;
+}
+
+message FileFinderArgs {
+  repeated string paths = 1 [(sem_type) = {
+      type: "GlobExpression",
+      description: "A path to glob that can contain %% "
+      "expansions.",
+    }];
+
+  optional PathSpec.PathType pathtype = 2 [(sem_type) = {
+      description: "Path type to glob in.",
+    }, default=OS];
+
+  optional uint64 file_size = 3 [(sem_type) = {
+      type: "ByteSize",
+      description: "Maximum number of bytes to download in each file.",
+      label: ADVANCED
+    }, default=1000000000]; // 1GB
+
+  repeated FileFinderCondition conditions = 5 [(sem_type) = {
+      description: "These conditions will be applied to all files that match"
+                   " the path arguments.",
+    }];
+
+  optional FileFinderAction action = 6;
+
+  optional bool no_file_type_check = 7 [(sem_type) = {
+      description: "Work with all kinds of files - not only with regular ones."
+      "NOTE: This is very dangerous and should be used with care, see "
+      "MemoryCollector as an example.",
+      label: HIDDEN,
+    }, default=false];
+}
+
+message FileFinderResult {
+  optional StatEntry stat_entry = 1;
+  repeated BufferReference matches = 2;
+  optional Hash hash_entry = 3;
+}
+
+message FileReference {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "The client id the file lives on.",
+    }];
+  repeated PathSpec pathspecs = 2 [(sem_type) = {
+      description: "The paths to the files.",
+    }];
+  repeated bytes sha256_hashes = 3 [(sem_type) = {
+      type: "HashDigest",
+      description: "A SHA256 hash digest for each file."
+    }];
+}
+
+message RegistryFinderCondition {
+  option (semantic) = {
+    union_field: "condition_type"
+  };
+
+  enum Type {
+    VALUE_LITERAL_MATCH = 0 [(description) = "Value literal match"];
+    VALUE_REGEX_MATCH = 1 [(description) = "Value regex match"];
+    MODIFICATION_TIME = 2 [(description) = "Modification time"];
+    SIZE = 3 [(description) = "Value size"];
+  }
+
+  optional Type condition_type = 1;
+
+  optional FileFinderContentsLiteralMatchCondition value_literal_match = 2;
+  optional FileFinderContentsRegexMatchCondition value_regex_match = 3;
+  optional FileFinderModificationTimeCondition modification_time = 4;
+  optional FileFinderSizeCondition size = 5;
+}
+
+message RegistryFinderArgs {
+  repeated string keys_paths = 1 [(sem_type) = {
+      type: "GlobExpression",
+      description: "Glob expression for registry keys to be retrieved."
+    }];
+
+  repeated RegistryFinderCondition conditions = 2 [(sem_type) = {
+    description: "These conditions will be applied to all items that match"
+                  " the keys path arguments.",
+    }];
+}
+
+message MemoryCollectorCondition {
+  option (semantic) = {
+    union_field: "condition_type"
+  };
+
+  enum Type {
+    LITERAL_MATCH = 1 [(description) = "Literal match"];
+    REGEX_MATCH = 2 [(description) = "Regex match"];
+  }
+
+  optional Type condition_type = 1 [default = LITERAL_MATCH];
+  optional FileFinderContentsLiteralMatchCondition literal_match = 2;
+  optional FileFinderContentsRegexMatchCondition regex_match = 3;
+}
+
+message MemoryCollectorWithoutLocalCopyDumpOption {
+}
+
+message MemoryCollectorWithLocalCopyDumpOption {
+  optional string destdir = 1 [(sem_type) = {
+      description: "Destination directory on the client for the temporary "
+      "image. Leave blank to use defaults. Parent directories will be "
+      "created if necessary.",
+      label: ADVANCED
+    }];
+
+  optional uint64 offset = 2 [(sem_type) = {
+      description: "Memory offset in bytes",
+      label: ADVANCED,
+      friendly_name: "Starting Offset"
+    }, default=0];
+
+  optional uint64 length = 3 [(sem_type) = {
+      description: "Number of bytes to copy (default 0 copies all memory)",
+      label: ADVANCED,
+      friendly_name: "Length to download"
+    }, default=0];
+
+  optional bool gzip = 4 [(sem_type) = {
+      description: "Gzip temporary image file on the client.",
+      label: ADVANCED
+    }, default=true];
+
+  optional bool check_disk_free_space = 5 [(sem_type) = {
+      description: "If true, check for available disk space before doing a "
+      "local copy. Ignored if the dump option isn't local copy.",
+      label: ADVANCED
+    }, default=true];
+
+}
+
+message MemoryCollectorDumpOption {
+  option (semantic) = {
+    union_field: "option_type"
+  };
+
+  enum Option {
+    WITHOUT_LOCAL_COPY = 0 [(description) = "Don't create local copy"];
+    WITH_LOCAL_COPY = 1 [(description) = "Create local copy first"];
+  }
+
+  optional Option option_type = 1 [default = WITHOUT_LOCAL_COPY, (sem_type) = {
+      friendly_name: "Dump option",
+      description: "How to do the dump"
+    }];
+  optional MemoryCollectorWithoutLocalCopyDumpOption without_local_copy = 2;
+  optional MemoryCollectorWithLocalCopyDumpOption with_local_copy = 3;
+}
+
+message MemoryCollectorDownloadAction {
+  optional MemoryCollectorDumpOption dump_option = 1 [(sem_type) = {
+      description: "Memory dump options."
+    }];
+
+  optional uint64 max_file_size = 2 [(sem_type) = {
+    description: "Maximum length to read off the dumped memory file (in bytes)."
+  }, default=35433480192];  // 33 Gb
+}
+
+message MemoryCollectorSendToSocketAction {
+  optional MemoryCollectorDumpOption dump_option = 1 [(sem_type) = {
+      description: "Memory dump options."
+    }];
+
+  optional NetworkAddress.Family address_family = 2 [(sem_type) = {
+      description: "address family to use (AF_INET or AF_INET6).",
+    }, default=INET];
+
+  optional string host = 3 [(sem_type) = {
+      description: "Hostname or IP to send the file to.",
+    }];
+
+  optional uint64 port = 4 [(sem_type) = {
+      description: "Port number on the listening server.",
+    }, default=12345];
+
+  optional bytes key = 5 [(sem_type) = {
+      type: "AutoGeneratedAES128Key",
+      description: "An encryption key given in hex representation.",
+    }];
+
+  optional bytes iv = 6 [(sem_type) = {
+      type: "AutoGeneratedAES128Key",
+      description: "The iv for AES, also given in hex representation.",
+    }];
+}
+
+message MemoryCollectorAction {
+  option (semantic) = {
+    union_field: "action_type"
+  };
+
+  enum Action {
+    NONE = 0 [(description) = "None (just report conditions matches)"];
+    DOWNLOAD = 1 [(description) = "Download"];
+    SEND_TO_SOCKET = 2 [(description) = "Send memory dump to socket"];
+  }
+
+  optional Action action_type = 1 [default = DOWNLOAD, (sem_type) = {
+      friendly_name: "Action",
+      description: "What to do with the memory"
+    }];
+  optional MemoryCollectorDownloadAction download = 2;
+  optional MemoryCollectorSendToSocketAction send_to_socket = 3;
+}
+
+message MemoryCollectorArgs {
+  repeated MemoryCollectorCondition conditions = 1;
+  optional MemoryCollectorAction action = 2;
+
+  optional DriverInstallTemplate driver_installer = 5 [(sem_type) = {
+      description: "An optional DriverInstallTemplate proto to control "
+      "driver installation. If not set, the default installation proto will "
+      "be used.",
+      label: HIDDEN
+    }];
+}
+
+message CollectArtifactDependenciesArgs {
+  repeated string artifact_list = 1 [(sem_type) = {
+      description: "A list of Artifact names to collect dependencies for.",
+      type: "ArtifactName",
+    }];
+}
+
+message ArtifactFallbackCollectorArgs {
+  optional string artifact_name = 1 [(sem_type) = {
+      description: "Name of the artifact using this fallback.",
+      type: "ArtifactName",
+    }];
+}
+
+message KnowledgeBaseInitializationArgs {
+  optional bool require_complete = 1 [(sem_type) = {
+      description: "If true require all dependencies to be complete.  "
+      "Raise if any are missing.",
+    }, default=true];
+
+  optional bool lightweight = 2 [(sem_type) = {
+      description: "If true skip all heavyweight artifacts defined in "
+      "Artifacts.knowledge_base_heavyweight.",
+    }, default=true];
+}
+
+message ExportCollectionFilesAsArchiveArgs {
+  optional string collection_urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The URN of the collection to be exported."
+    }];
+
+  optional string target_file_prefix = 2 [(sem_type) = {
+      description: "Prefix used in generated file name."
+    }];
+
+  optional string notification_message = 3 [(sem_type) = {
+      description: "Message that will be used to notify the user via GRR "
+      "notifications system and as a subject of a notification email."
+    }];
+
+  enum ArchiveFormat {
+    ZIP = 0;
+    TAR_GZ = 1;
+  }
+  optional ArchiveFormat format = 4 [(sem_type) = {
+      description: "Archive format.",
+    }, default=ZIP];
+}
+
+message EndToEndTestFlowArgs {
+  repeated string test_names = 1 [(sem_type) = {
+      description: "List of endtoend test classes to run. If none are specifed,"
+      " run all automated endtoend tests.",
+    }];
+}
+
+message DiskVolumeInfoArgs {
+  repeated string path_list = 1 [(sem_type) = {
+      description: "List of paths.",
+    }];
+
+  optional PathSpec.PathType pathtype = 2 [(sem_type) = {
+      description: "Type of path. Only OS is currently supported.",
+      label: HIDDEN
+    }, default=OS];
+}
+
+message CheckFlowArgs {
+  repeated string only_os = 1 [(sem_type) = {
+      description: "Limit checks to hosts of OS type(s) [Linux|OSX|Windows]",
+      label: ADVANCED
+    }];
+  repeated string only_cpe = 2 [(sem_type) = {
+      description: "Limit checks to hosts with cpe strings.",
+      label: ADVANCED
+    }];
+  repeated string only_label = 3 [(sem_type) = {
+      description: "Limit checks to hosts with label strings.",
+      label: ADVANCED
+    }];
+  repeated uint64 max_findings = 4 [(sem_type) = {
+      description: "Summarize checks with more than N individual findings.",
+      label: ADVANCED
+    }];
+  repeated string restrict_checks = 5 [(sem_type) = {
+      description: "Only run checks with the specified check_ids.",
+    }];
+}
+
+message DumpProcessMemoryArgs {
+  repeated int32 pids = 1 [(sem_type) = {
+    description: "Dump memory from process whose pid is included in the list.",
+  }];
+  optional bool pause = 2 [(sem_type) = {
+    description: "Pause the process while the memory is being collected (use "
+                 "with caution).",
+  }];
+}
+
+message DumpFlashImageArgs {
+  optional uint32 log_level = 1 [(sem_type) = {
+      description: "Set the log level. If set, the log returned "
+      "will include additional information reported by Chipsec."
+    }];
+  optional uint32 chunk_size = 2 [(sem_type) = {
+      description: "A heartbeat will be emitted every chunk_size."
+      "This could be reduced in case the process times out.",
+      label: ADVANCED,
+    }, default=0x10000];
+  optional bool  notify_syslog = 3 [(sem_type) = {
+      description: "If true, a message will be written by the client to the "
+      "syslog before running the action. This can be used for debugging in "
+      "case the client crashes during the image dumping process.",
+    }];
+}

@@ -1,0 +1,26 @@
+# GRR API authorization rules
+#
+# Note that the order of routers here is important. Rules will be applied
+# in order from top to bottom until the first one matches. If there are
+# no matches, API.DefaultRouter will be used (points by default to the
+# ApiDisabledCallRouter).
+#
+# Therefore the routers should generally be sorted in the descending order
+# from the most privileged to the least privileged. This way, if the user
+# matches more than one rule, the more privileged rule will always match first.
+#
+# The only exception to this principle is when there are rules that work as
+# exceptions, i.e. "user X has to have limited access, no matter what". Rules
+# of this kind should be in the head of the rules list.
+#
+# Example:
+
+# router: "ApiCallRobotRouter"
+# users:
+#   - "user1"
+#   - "user2"
+# router: "ApiCallRouterWithApprovalChecksWithoutRobotAccess"
+# users:
+#   - "userFoo"
+#   - "userBar"
+

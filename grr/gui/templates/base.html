@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en" lang="en" ng-app="grrUi" ng-controller="GrrUiAppController">
+<head>
+{% if use_precompiled_js %}
+<link rel="stylesheet" type="text/css" href="/static/third-party/third-party.bundle.css?timestamp={{timestamp|escape}}" />
+<script src="/static/third-party/third-party.bundle.js?timestamp={{timestamp|escape}}"></script>
+{% else %}
+<link rel="stylesheet" type="text/css" href="/static/third-party/jquery-splitter-1.1/splitter.css" />
+<link rel="stylesheet" type="text/css" href="/static/third-party/bootstrap-1.3/bootstrap.css" media="screen" />
+<link rel="stylesheet" type="text/css" href="static/third-party/angular-ui-select-0.11.2/select.css" />
+
+<script src="/static/third-party/jquery-2.0.3/jquery-2.0.3.js"></script>
+<script src="/static/third-party/jquery_migrate.js"></script>
+<script src="/static/third-party/jquery-ui-1.8.1.custom.js"></script>
+<script src="/static/third-party/jquery-timeentry-1.3.0/jquery.timeentry.js"></script>
+<script src="/static/third-party/jstree/jstree.js"></script>
+<script src="/static/third-party/jquery-splitter-1.1/jquery.splitter.js"></script>
+<script src="/static/third-party/flot-0.8.3/jquery.flot.js"></script>
+<script src="/static/third-party/flot-0.8.3/jquery.flot.resize.js"></script>
+<script src="/static/third-party/flot-0.8.3/jquery.flot.pie.js"></script>
+<script src="/static/third-party/flot-0.8.3/jquery.flot.stack.js"></script>
+<script src="/static/third-party/flot-0.8.3/jquery.flot.navigate.js"></script>
+<script src="/static/third-party/flot-0.8.3/jquery.flot.time.js"></script>
+<script src="/static/third-party/moment/moment.js"></script>
+<script src="/static/third-party/bootstrap-1.3/bootstrap.js"></script>
+
+<script src="/static/third-party/angular-1.4/angular.js"></script>
+<script src="/static/third-party/angular-1.4/angular-animate.js"></script>
+<script src="/static/third-party/angular-1.4/angular-cookies.js"></script>
+<script src="/static/third-party/angular-1.4/angular-resource.js"></script>
+<script src="/static/third-party/bootstrap-ui-0.12.0.js"></script>
+<script src="static/third-party/angular-ui-select-0.11.2/select.js"></script>
+{% endif %}
+
+{% if use_precompiled_js %}
+<link rel="stylesheet" type="text/css" href="/static/grr-ui.bundle.css?timestamp={{timestamp|escape}}" />
+<script type="text/javascript">
+  var CLOSURE_NO_DEPS = true;
+</script>
+<script src="/static/grr-ui.bundle.js?timestamp={{timestamp|escape}}"></script>
+
+<!-- This makes sure templates are loaded from the JS bundle. -->
+<script>
+  goog.require('grrUi.templates.module');
+</script>
+<script>
+  grrUi.templates.module.value('forceCachedTemplates', true);
+</script>
+{% else %}
+<link rel="stylesheet" type="text/css" href="/static/third-party/jstree/themes/default/style.css" />
+<link rel="stylesheet" type="text/css" href="/static/third-party/font-awesome/font-awesome.css" />
+<link rel="stylesheet" type="text/css" href="/static/grr-ui.bundle.css?timestamp={{timestamp|escape}}" />
+<script src="/static/javascript/closure/base.js"></script>
+<script src="/static/javascript/closure/deps.js"></script>
+<script src="/local/static/javascript/closure/deps.js"></script>
+
+<!-- This bootstraps the applications and makes sure templates are loaded
+     from standalone html files. -->
+<script>
+  goog.require('grrUi.appController.module');
+  goog.require('grrUiLocal.local.module');
+
+  goog.require('grrUi.templates.module');
+</script>
+<script>
+  grrUi.templates.module.value('forceUncachedTemplates', true);
+</script>
+{% endif %}
+
+<link rel="shortcut icon" href="/static/images/favicon.png" />
+
+<title>{% block title %}{{page_title|escape}}{% endblock %}</title>
+</head>
+<body id="body">
+  <div id="ACL"></div>
+  <div class="navbar navbar-default navbar-fixed-top" id="header">
+    <div class="navbar-inner">
+      <div class="container-fluid">
+        <a href="/"><img class="grr-logo" src="/static/images/grr_logo_real_sm.png" /></a>
+        <div class="navbar-brand">{{heading|escape}}</div>
+
+        <div class="nav pull-left">
+          <grr-user-label class="navbar-text"></grr-user-label>
+        </div>
+        <div class="pull-right navbar-form">
+          <grr-user-settings-button></grr-user-settings-button>
+        </div>
+        <div class="pull-right navbar-form">
+          <grr-user-notification-button></grr-user-notification-button>
+        </div>
+        <div id="search_container" class="pull-right navbar-form">
+          <grr-search-box></grr-search-box>
+        </div>
+        <grr-live-clock></grr-live-clock>
+      </div>
+    </div>
+  </div>
+
+  <div id="content">
+  </div>
+
+  <div class="navbar navbar-default navbar-fixed-bottom" id="footer">
+    <div class="navbar-inner">
+      <a class="brand"></a>
+      <ul class="nav navbar-nav pull-left">
+        <li>
+          <div class="navbar-form">
+            <grr-loading-indicator />
+          </div>
+          <div class="navbar-form">
+            <grr-server-error-button />
+          </div>
+        </li>
+        <li class="divider-vertical"></li>
+        <li>
+          <grr-server-error-preview />
+        </li>
+      </ul>
+
+      <ul class="nav navbar-nav pull-right">
+        <li><a onclick="grr.loadFromHash('main=ApiDocumentation')">API</a></li>
+        <li><a href="{{help_url|escape}}" target="_blank">Help</a></li>
+        <li><a href="{{report_url|escape}}" target="_blank">Report a problem</a></li>
+      </ul>
+
+    </div>
+  </div>
+  <div id="error_action" style="display: none"></div>
+  <div id="backtrace" class="modal wide-modal" tabindex="-1" role="dialog" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <button type="button" class="close" data-dismiss="modal" aria-hidden="true">×</button>
+          <h3>Modal header</h3>
+        </div>
+        <div class="modal-body"><pre></pre></div>
+        <div class="modal-footer">
+          <button class="btn" data-dismiss="modal" aria-hidden="true">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="/static/javascript/grr.js?timestamp={{timestamp|escape}}"></script>
+  <script src="/static/javascript/renderers.js?timestamp={{timestamp|escape}}"></script>
+  {% for renderer in renderers_js %}
+  <script src="/static/javascript/plugins/{{renderer|escape}}?timestamp={{timestamp|escape}}">
+  </script>
+  {% endfor %}
+  <script type="text/javascript">
+    grr.layout("ContentView", "content");
+    grr.layout("ACLDialog", "ACL");
+    grr.enableSearchHelp($("input#client_query"));
+  </script>
+</body>
+</html>
