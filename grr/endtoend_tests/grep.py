@@ -7,23 +7,6 @@ from grr.lib import aff4
 from grr.lib.rdfvalues import client as rdf_client
 
 
-class TestSearchFiles(base.AutomatedTest):
-  """Test SearchFileContent."""
-  platforms = ["Linux"]
-  flow = "SearchFileContent"
-  test_output_path = "analysis/SearchFiles/testing"
-  args = {"output": test_output_path,
-          "paths": ["/bin/ls*"],
-          "also_download": True}
-
-  def CheckFlow(self):
-    results = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
-                                token=self.token)
-    self.assertGreater(len(results), 1)
-    for result in results:
-      self.assertTrue(result.pathspec.path.startswith("/bin/ls"))
-
-
 class TestSearchFilesGrep(base.AutomatedTest):
   """Test SearchFileContent with grep."""
   platforms = ["Linux"]
@@ -37,7 +20,7 @@ class TestSearchFilesGrep(base.AutomatedTest):
   def CheckFlow(self):
     results = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
                                 token=self.token)
-    self.assertGreater(len(results), 1)
+    self.assertGreaterEqual(len(results), 1)
     for result in results:
       self.assertTrue("ELF" in result.data)
       self.assertTrue("ls" in result.pathspec.path)

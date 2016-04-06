@@ -81,6 +81,9 @@ subparsers = parser.add_subparsers(
 parser_build = subparsers.add_parser(
     "build", help="Build a client from source.")
 
+parser_build.add_argument("--output", default=None,
+                          help="The path to write the output template.")
+
 parser_repack = subparsers.add_parser(
     "repack", help="Repack a zip file into an installer (Only useful when "
     "signing).")
@@ -457,8 +460,13 @@ def main(_):
     signer = GetSigner(context)
 
   if args.subparser_name == "build":
+    template_path = None
+    if flags.FLAGS.output:
+      template_path = os.path.join(flags.FLAGS.output, config_lib.CONFIG.Get(
+          "PyInstaller.template_filename", context=context))
+
     builder_obj = GetBuilder(context)
-    builder_obj.MakeExecutableTemplate()
+    builder_obj.MakeExecutableTemplate(output_file=template_path)
   elif args.subparser_name == "repack":
     Repack(context, signer=signer)
   elif args.subparser_name == "deploy":

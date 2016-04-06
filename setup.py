@@ -60,27 +60,12 @@ CONFIG_FILE = "%(CONFIG_FILE)s"
 
 
 setup_args = dict(
-    name="grr",
-    version="0.3.1",
+    name="grr-response-core",
+    version="3.1.0pre1",
     description="GRR Rapid Response",
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",
     packages=find_packages(),
-    entry_points={
-        "console_scripts": [
-            "grr_console = grr.lib.distro_entry:Console",
-            "grr_config_updater = grr.lib.distro_entry:ConfigUpdater",
-            "grr_front_end = grr.lib.distro_entry:GrrFrontEnd",
-            "grr_server = grr.lib.distro_entry:GrrServer",
-            "grr_end_to_end_tests = grr.lib.distro_entry:EndToEndTests",
-            "grr_export = grr.lib.distro_entry:Export",
-            "grr_client = grr.lib.distro_entry:Client",
-            "grr_client_build = grr.lib.distro_entry:ClientBuild",
-            "grr_worker = grr.lib.distro_entry:Worker",
-            "grr_admin_ui = grr.lib.distro_entry:AdminUI",
-            "grr_fuse = grr.lib.distro_entry:GRRFuse",
-        ]
-    },
     zip_safe=False,
     include_package_data=True,
     ext_modules=[
@@ -94,17 +79,11 @@ setup_args = dict(
         "install": Install,
     },
     install_requires=[
-        "Django==1.8.3",
         "GRR-M2Crypto==0.22.6.post2",
         "PyYAML==3.11",
-        "Werkzeug==0.11.3",
         "binplist==0.1.4",
-        "google-api-python-client==1.4.2",
         "ipaddr==2.1.11",
         "ipython==4.1.1",
-        "matplotlib==1.5.1",
-        "mock==1.3.0",
-        "mox==0.5.3",
         "pexpect==4.0.1",
         "portpicker==1.1.1",
         "psutil==4.0.0",
@@ -115,19 +94,30 @@ setup_args = dict(
         "python-dateutil==2.4.2",
         "pytsk3==20160226",
         "pytz==2015.7",
-        "selenium==2.50.1",
         "urllib3==1.14",
-        "wsgiref==0.1.2",
-
         "protobuf==2.6.1",
-        "rekall-core>=1.5.0.post4",
     ],
     extras_require={
         # This is an optional component. Install to get MySQL data
         # store support:
-        # pip install grr[MySQLDataStore]
+        # pip install grr-response[MySQLDataStore]
         "MySQLDataStore": [
             "MySQL-python==1.2.5"
+        ],
+
+        "test": [
+            "mock==1.3.0",
+            "mox==0.5.3",
+        ],
+
+        "Server": [
+            "wsgiref==0.1.2",
+            "Werkzeug==0.11.3",
+            "Django==1.8.3",
+            "matplotlib==1.5.1",
+            "rekall-core>=1.5.0.post4",
+            "selenium==2.50.1",
+            "google-api-python-client==1.4.2",
         ],
 
         # The following requirements are needed in Windows.

@@ -349,7 +349,7 @@ class ApiGetPendingUserNotificationsResult(rdf_structs.RDFProtoStruct):
 
 class ApiGetPendingUserNotificationsHandler(
     api_call_handler_base.ApiCallHandler):
-  """Returns the of pending notifications for the current user."""
+  """Returns pending notifications for the current user."""
 
   category = CATEGORY
   args_type = ApiGetPendingUserNotificationsArgs

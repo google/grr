@@ -83,6 +83,10 @@ class HuntResultQueue(aff4_queue.Queue):
     """Delete hunt notifications."""
     with aff4.FACTORY.OpenWithLock(RESULT_NOTIFICATION_QUEUE,
                                    aff4_type="HuntResultQueue",
+                                   lease_time=200,
+                                   blocking=True,
+                                   blocking_sleep_interval=15,
+                                   blocking_lock_timeout=1200,
                                    token=token) as queue:
       queue.DeleteRecords(record_ids)
 

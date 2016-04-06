@@ -100,9 +100,9 @@ function install_python_from_source() {
     yum install -y zlib-devel bzip2-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel
   fi
 
-  ${WGET} https://www.python.org/ftp/python/2.7.9/Python-2.7.9.tgz
-  tar zxvf Python-2.7.9.tgz
-  cd Python-2.7.9
+  ${WGET} https://www.python.org/ftp/python/2.7.11/Python-2.7.11.tgz
+  tar zxvf Python-2.7.11.tgz
+  cd Python-2.7.11
 
   # --enabled-shared for better performance, discussed in some detail here:
   # https://code.google.com/p/modwsgi/wiki/InstallationIssues
@@ -118,34 +118,6 @@ function install_python_from_source() {
 
   # Check we got SSL built, python build considers it non-fatal.
   python2.7 -c "import ssl"
-}
-
-# Get a newer protobuf library than what lucid has. Just installing the python
-# package isn't enough because we need the compiler and associated libraries.
-# This version needs to stay in sync with the requirements.txt python version.
-function install_protobuf_libs() {
-  ${WGET} https://github.com/google/protobuf/releases/download/v2.6.1/protobuf-2.6.1.tar.gz
-  tar zxvf protobuf-2.6.1.tar.gz
-  cd protobuf-2.6.1
-
-  if [ -e /grrbuild ]; then
-    rm -r /grrbuild
-  fi;
-  mkdir /grrbuild
-  ./configure --includedir=/grrbuild
-  make -j4
-
-  # 32bit CentOS fails 'make check' due to it having an older version of gcc
-  # with this issue:
-  # https://gcc.gnu.org/bugzilla/show_bug.cgi?id=13358
-  if [ $DISTRO == "CentOS" ] && [ $(uname -m) != 'x86_64' ]; then
-    make install
-  else
-    make check -j4
-    make install
-  fi
-  ldconfig
-  cd -
 }
 
 # Install our python dependencies into a virtualenv that uses the new python
@@ -164,12 +136,13 @@ function install_python_deps() {
   /usr/local/bin/virtualenv -p /usr/local/bin/python2.7 PYTHON_ENV
   source PYTHON_ENV/bin/activate
 
-  pip2.7 install .
+  # We need grr-reponse-client to get the grr_client_build entrypoint
+  pip2.7 install /grr/ /grr/grr/config/grr-response-client/
 
   # pyinstaller fails to include protobuf because there is no __init__.py:
   # https://github.com/google/protobuf/issues/713
   touch PYTHON_ENV/lib/python2.7/site-packages/google/__init__.py
-
+  chown -R vagrant PYTHON_ENV
 }
 
 # Lucid debhelper is too old to build debs that handle both upstart, init.d,
@@ -222,7 +195,6 @@ system_update
 install_openssl
 install_wget
 install_python_from_source
-install_protobuf_libs
 install_python_deps
 install_packagetools
 echo "Build environment provisioning complete."

@@ -20,7 +20,7 @@ sudo apt-get install -y \
   python-pip \
   python-protobuf \
   python-support \
-  pytsk3 \
+  python-pytsk3 \
   sleuthkit \
   swig
 

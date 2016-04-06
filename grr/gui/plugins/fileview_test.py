@@ -266,7 +266,7 @@ class TestFileView(FileViewTestBase):
     # Go to the flow management screen.
     self.Click("css=a:contains('Manage launched flows')")
 
-    self.Click("css=grr-flows-list tr:visible:nth(1)")
+    self.Click("css=grr-flows-list tr:contains('RecursiveListDirectory')")
     self.WaitUntilContains("RecursiveListDirectory", self.GetText,
                            "css=#main_bottomPane")
     self.WaitUntilContains(

@@ -30,8 +30,8 @@ def GetDistroDefaults():
       return DISTRO_DEFAULTS["debian"]
     if distribution in ["red hat enterprise linux server", "centos linux"]:
       return DISTRO_DEFAULTS["redhat"]
-  else:
-    return {"flag_defaults": {}, "config_opts": {}}
+
+  return {"flag_defaults": {}, "config_opts": {}}
 
 
 def SetConfigOptions():
