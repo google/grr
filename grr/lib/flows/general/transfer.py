@@ -45,12 +45,6 @@ class GetFile(flow.GRRFlow):
 
   args_type = GetFileArgs
 
-  class SchemaCls(flow.GRRFlow.SchemaCls):
-    PROGRESS_GRAPH = aff4.Attribute(
-        "aff4:progress", rdf_flows.ProgressGraph,
-        "Show a button to generate a progress graph for this flow.",
-        default="")
-
   # We have a maximum of this many chunk reads outstanding (about 10mb)
   WINDOW_SIZE = 200
   CHUNK_SIZE = 512 * 1024

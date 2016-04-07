@@ -2,10 +2,8 @@
 """GUI elements allowing launching and management of flows."""
 
 import os
-import StringIO
 
 
-from grr.gui import plot_lib
 from grr.gui import renderers
 from grr.gui.plugins import crash_view
 from grr.gui.plugins import fileview
@@ -835,46 +833,6 @@ class ClientCrashesRenderer(crash_view.ClientCrashCollectionRenderer):
     client_id = request.REQ.get("client_id")
     self.crashes_urn = rdf_client.ClientURN(client_id).Add("crashes")
     super(ClientCrashesRenderer, self).Layout(request, response)
-
-
-class ProgressGraphRenderer(renderers.ImageDownloadRenderer):
-
-  def Content(self, request, _):
-    """Generates the actual image to display."""
-    flow_id = request.REQ.get("flow_id")
-    flow_obj = aff4.FACTORY.Open(flow_id, age=aff4.ALL_TIMES,
-                                 token=request.token)
-
-    log = list(flow_obj.GetValuesForAttribute(flow_obj.Schema.LOG))
-
-    create_time = flow_obj.state.context.create_time / 1000000
-
-    plot_data = [(int(x.age) / 1000000, int(str(x).split(" ")[1]))
-                 for x in log if "bytes" in str(x)]
-    plot_data.append((create_time, 0))
-
-    plot_data = sorted([(x - create_time, y) for (x, y) in plot_data])
-
-    x = [a for (a, b) in plot_data]
-    y = [b for (a, b) in plot_data]
-
-    params = {"backend": "png"}
-
-    plot_lib.plt.rcParams.update(params)
-    plot_lib.plt.figure(1)
-    plot_lib.plt.clf()
-
-    plot_lib.plt.plot(x, y)
-    plot_lib.plt.title("Progress for flow %s" % flow_id)
-    plot_lib.plt.xlabel("Time (s)")
-    plot_lib.plt.ylabel("Bytes downloaded")
-    plot_lib.plt.grid(True)
-
-    buf = StringIO.StringIO()
-    plot_lib.plt.savefig(buf)
-    buf.seek(0)
-
-    return buf.read()
 
 
 class GlobalLaunchFlows(renderers.AngularDirectiveRenderer):

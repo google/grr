@@ -5,13 +5,11 @@
 
 
 import collections as py_collections
-import StringIO
 import urllib
 
 
 import logging
 
-from grr.gui import plot_lib
 from grr.gui import renderers
 from grr.gui.plugins import fileview
 from grr.gui.plugins import foreman
@@ -635,85 +633,6 @@ No data to graph yet.
     response = super(HuntClientGraphRenderer, self).Layout(request, response)
     return self.CallJavascript(response, "HuntClientGraphRenderer.Layout",
                                hunt_id=self.hunt_id)
-
-
-class HuntClientCompletionGraphRenderer(renderers.ImageDownloadRenderer):
-
-  def Content(self, request, _):
-    """Generates the actual image to display."""
-    hunt_id = request.REQ.get("hunt_id")
-    hunt = aff4.FACTORY.Open(hunt_id, aff4_type="GRRHunt", token=request.token)
-    clients_by_status = hunt.GetClientsByStatus()
-
-    cl = clients_by_status["STARTED"]
-    fi = clients_by_status["COMPLETED"]
-
-    cdict = {}
-    for c in cl:
-      cdict.setdefault(c, []).append(c.age)
-
-    fdict = {}
-    for c in fi:
-      fdict.setdefault(c, []).append(c.age)
-
-    cl_age = [int(min(x) / 1e6) for x in cdict.values()]
-    fi_age = [int(min(x) / 1e6) for x in fdict.values()]
-
-    cl_hist = {}
-    fi_hist = {}
-
-    for age in cl_age:
-      cl_hist.setdefault(age, 0)
-      cl_hist[age] += 1
-
-    for age in fi_age:
-      fi_hist.setdefault(age, 0)
-      fi_hist[age] += 1
-
-    t0 = min(cl_age) - 1
-    times = [t0]
-    cl = [0]
-    fi = [0]
-
-    all_times = set(cl_age) | set(fi_age)
-    cl_count = 0
-    fi_count = 0
-
-    for time in sorted(all_times):
-      # Check if there is a datapoint one second earlier, add one if not.
-      if times[-1] != time - 1:
-        times.append(time)
-        cl.append(cl_count)
-        fi.append(fi_count)
-
-      cl_count += cl_hist.get(time, 0)
-      fi_count += fi_hist.get(time, 0)
-
-      times.append(time)
-      cl.append(cl_count)
-      fi.append(fi_count)
-
-    # Convert to hours, starting from 0.
-    times = [(t - t0) / 3600.0 for t in times]
-
-    params = {"backend": "png"}
-
-    plot_lib.plt.rcParams.update(params)
-    plot_lib.plt.figure(1)
-    plot_lib.plt.clf()
-
-    plot_lib.plt.plot(times, cl, label="Agents issued.")
-    plot_lib.plt.plot(times, fi, label="Agents completed.")
-    plot_lib.plt.title("Agent Coverage")
-    plot_lib.plt.xlabel("Time (h)")
-    plot_lib.plt.ylabel(r"Agents")
-    plot_lib.plt.grid(True)
-    plot_lib.plt.legend(loc=4)
-    buf = StringIO.StringIO()
-    plot_lib.plt.savefig(buf)
-    buf.seek(0)
-
-    return buf.read()
 
 
 class HuntHostInformationRenderer(fileview.AFF4Stats):

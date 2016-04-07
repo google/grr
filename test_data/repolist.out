@@ -1,0 +1,27 @@
+Configuration file /etc/yum/pluginconf.d/rhnplugin.conf not found
+Unable to find configuration file for plugin rhnplugin
+Not loading "rhnplugin" plugin, as it is disabled
+Loading "security" plugin
+Config time: 0.114
+Yum Version: 12.1.43
+Setting up Package Sacks
+pkgsack time: 0.281
+Repo-id      : rhel
+Repo-name    : rhel repo
+Repo-revision: 1
+Repo-updated : Sun Mar 15 08:51:32
+Repo-pkgs    : 12
+Repo-size    : 8 GB
+Repo-baseurl : http://rhel/repo
+Repo-expire  : 1200 second(s) (last: Mon Apr  1 20:30:02 2016)
+
+Repo-id      : rhel
+Repo-name    : rhel repo
+Repo-revision: 1
+Repo-updated : Sun Mar 15 08:51:32
+Repo-pkgs    : 12
+Repo-size    : 8 GB
+Repo-baseurl : http://rhel/repo
+Repo-expire  : 1200 second(s) (last: Mon Apr  1 20:30:02 2016)
+
+repolist: 16,276

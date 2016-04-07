@@ -67,13 +67,14 @@ class HuntResultQueue(aff4_queue.Queue):
     results = []
     with aff4.FACTORY.OpenWithLock(RESULT_NOTIFICATION_QUEUE,
                                    aff4_type="HuntResultQueue",
-                                   lease_time=lease_time,
+                                   lease_time=300,
                                    blocking=True,
                                    blocking_sleep_interval=15,
                                    blocking_lock_timeout=600,
                                    token=token) as queue:
       for record_id, value in queue.ClaimRecords(record_filter=f.FilterRecord,
                                                  start_time=start_time,
+                                                 timeout=lease_time,
                                                  limit=100000):
         results.append((record_id, value.timestamp, value.suffix))
     return (f.collection, results)
@@ -81,13 +82,9 @@ class HuntResultQueue(aff4_queue.Queue):
   @classmethod
   def DeleteNotifications(cls, record_ids, token=None):
     """Delete hunt notifications."""
-    with aff4.FACTORY.OpenWithLock(RESULT_NOTIFICATION_QUEUE,
-                                   aff4_type="HuntResultQueue",
-                                   lease_time=200,
-                                   blocking=True,
-                                   blocking_sleep_interval=15,
-                                   blocking_lock_timeout=1200,
-                                   token=token) as queue:
+    with aff4.FACTORY.Open(RESULT_NOTIFICATION_QUEUE,
+                           aff4_type="HuntResultQueue",
+                           token=token) as queue:
       queue.DeleteRecords(record_ids)
 
 

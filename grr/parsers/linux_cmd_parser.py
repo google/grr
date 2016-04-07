@@ -13,7 +13,7 @@ from grr.lib.rdfvalues import client as rdf_client
 
 
 # TODO(user): Extend this to resolve repo/publisher to its baseurl.
-class YumCmdParser(parsers.CommandParser):
+class YumListCmdParser(parsers.CommandParser):
   """Parser for yum list output. Yields SoftwarePackage rdfvalues.
 
   We read the output of yum rather than rpm because it has publishers, and we
@@ -40,6 +40,51 @@ class YumCmdParser(parsers.CommandParser):
                                        version=version,
                                        architecture=arch,
                                        install_state=status)
+
+
+class YumRepolistCmdParser(parsers.CommandParser):
+  """Parser for yum repolist output. Yields PackageRepository.
+
+  Parse all enabled repositories as output by yum repolist -q -v.
+  """
+
+  output_types = ["PackageRepository"]
+  supported_artifacts = []
+
+  def _re_compile(self, search_str):
+    return re.compile(r"%s\s*: ([0-9a-zA-Z-\s./#_=:\(\)]*)" % (search_str))
+
+  def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
+            knowledge_base):
+    """Parse the yum repolist output."""
+    _ = stderr, time_taken, args, knowledge_base  # Unused.
+    self.CheckReturn(cmd, return_val)
+    output = iter(stdout.splitlines())
+
+    repo_regexes = {
+        "name": self._re_compile("Repo-name"),
+        "revision": self._re_compile("Repo-revision"),
+        "last_update": self._re_compile("Repo-updated"),
+        "num_packages": self._re_compile("Repo-pkgs"),
+        "size": self._re_compile("Repo-size"),
+        "baseurl": self._re_compile("Repo-baseurl"),
+        "timeout": self._re_compile("Repo-expire")
+    }
+
+    repo_id_re = self._re_compile("Repo-id")
+    for line in output:
+      match = repo_id_re.match(line)
+      if match:
+        repo_info = rdf_client.PackageRepository()
+        setattr(repo_info, "id", match.group(1).strip())
+        while line:
+          for attr, regex in repo_regexes.iteritems():
+            match = regex.match(line)
+            if match:
+              setattr(repo_info, attr, match.group(1).strip())
+              break
+          line = output.next()
+        yield repo_info
 
 
 class RpmCmdParser(parsers.CommandParser):
@@ -340,4 +385,4 @@ class PsCmdParser(parsers.CommandParser):
         yield process
       except ValueError:
         logging.warn("Unparsable line found for %s %s:\n"
-                     "  %s" % (cmd, args, line))
+                     "  %s", cmd, args, line)

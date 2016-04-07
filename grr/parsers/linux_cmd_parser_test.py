@@ -18,9 +18,9 @@ from grr.parsers import linux_cmd_parser
 class LinuxCmdParserTest(test_lib.GRRBaseTest):
   """Test parsing of linux command output."""
 
-  def testYumCmdParser(self):
+  def testYumListCmdParser(self):
     """Ensure we can extract packages from yum output."""
-    parser = linux_cmd_parser.YumCmdParser()
+    parser = linux_cmd_parser.YumListCmdParser()
     content = open(os.path.join(self.base_path, "yum.out")).read()
     out = list(parser.Parse("/usr/bin/yum", ["list installed -q"], content, "",
                             0, 5, None))
@@ -29,6 +29,25 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     self.assertEqual(out[0].name, "ConsoleKit")
     self.assertEqual(out[0].architecture, "x86_64")
     self.assertEqual(out[0].publisher, "@base")
+
+  def testYumRepolistCmdParser(self):
+    """Test to see if we can get data from yum repolist output."""
+    parser = linux_cmd_parser.YumRepolistCmdParser()
+    content = open(os.path.join(self.base_path, "repolist.out")).read()
+    repolist = list(parser.Parse(
+        "/usr/bin/yum", ["repolist", "-v", "-q"], content, "", 0, 5, None))
+    self.assertTrue(isinstance(repolist[0], rdf_client.PackageRepository))
+
+    self.assertEqual(repolist[0].id, "rhel")
+    self.assertEqual(repolist[0].name, "rhel repo")
+    self.assertEqual(repolist[0].revision, "1")
+    self.assertEqual(repolist[0].last_update, "Sun Mar 15 08:51:32")
+    self.assertEqual(repolist[0].num_packages, "12")
+    self.assertEqual(repolist[0].size, "8 GB")
+    self.assertEqual(repolist[0].baseurl, "http://rhel/repo")
+    self.assertEqual(repolist[0].timeout,
+                     "1200 second(s) (last: Mon Apr  1 20:30:02 2016)")
+    self.assertEqual(len(repolist), 2)
 
   def testRpmCmdParser(self):
     """Ensure we can extract packages from rpm output."""

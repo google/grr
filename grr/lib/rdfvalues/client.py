@@ -153,6 +153,14 @@ class FolderInformation(structs.RDFProtoStruct):
   protobuf = jobs_pb2.FolderInformation
 
 
+class PackageRepository(structs.RDFProtoStruct):
+  """Description of the configured repositories (Yum etc).
+
+  Describes the configured software package repositories.
+  """
+  protobuf = sysinfo_pb2.PackageRepository
+
+
 class ManagementAgent(structs.RDFProtoStruct):
   """Description of the running management agent (puppet etc).
 

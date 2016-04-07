@@ -52,18 +52,6 @@ grr.Renderer('RDFValueArrayRenderer', {
 });
 
 
-grr.Renderer('ProgressButtonRenderer', {
-  Layout: function(state) {
-    var unique = state.unique;
-    var flow_id = state.flow_id;
-
-    var button = $('#' + unique).button();
-    grr.downloadHandler(button, {flow_id: flow_id}, false,
-                        '/render/Download/ProgressGraphRenderer');
-  }
-});
-
-
 grr.Renderer('AES128KeyFormRenderer', {
   Layout: function(state) {
     var prefix = state.prefix;

@@ -8,6 +8,41 @@ import "grr/proto/jobs.proto";
 import "grr/proto/semantic.proto";
 
 
+message PackageRepository {
+  optional string id = 1 [(sem_type) = {
+      description: "Repository id (as referenced by client)",
+    }];
+
+  optional string name = 2 [(sem_type) = {
+      description: "Repository name (human readable name)",
+    }];
+
+  optional string revision = 3 [(sem_type) = {
+      description: "Repository revision (typically timestamp)",
+    }];
+
+  optional string last_update = 4 [(sem_type) = {
+      description: "Repository last updated date & time",
+    }];
+
+  optional string  num_packages = 5 [(sem_type) = {
+      description: "Number of packages in repository",
+    }];
+
+  optional string size = 6 [(sem_type) = {
+      description: "Repository size (arbitrary SI units)",
+    }];
+
+  optional string baseurl = 7 [(sem_type) = {
+      description: "Repository baseurl",
+    }];
+
+  optional string timeout = 8 [(sem_type) = {
+      description: "Repository metadata expiration timeout",
+    }];
+}
+
+
 // Describes the type of management agent (puppet etc),
 // as well as the most recent run time
 message ManagementAgent {

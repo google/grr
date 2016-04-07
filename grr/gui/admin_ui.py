@@ -13,7 +13,6 @@ import ipaddr
 # pylint: disable=unused-import,g-bad-import-order
 from grr.gui import django_lib
 from grr.lib import server_plugins
-from grr.gui import plot_lib
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import config_lib

@@ -332,7 +332,3 @@ class ClientCommunication(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.ClientCommunication
 
   num_messages = 0
-
-
-class ProgressGraph(rdfvalue.RDFString):
-  """A class that renders a button to show a progress graph."""

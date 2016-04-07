@@ -175,9 +175,6 @@ class Queue(aff4.AFF4Object):
       LockError: If the queue is not locked.
 
     """
-    if not self.locked:
-      raise aff4.LockError("Queue must be locked to refresh claims.")
-
     expiration = rdfvalue.RDFDatetime().Now() + rdfvalue.Duration(timeout)
     with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
       for subject in ids:
@@ -194,9 +191,6 @@ class Queue(aff4.AFF4Object):
     Raises:
       LockError: If the queue is not locked.
     """
-    if not self.locked:
-      raise aff4.LockError("Queue must be locked to delete records.")
-
     data_store.DB.MultiDeleteAttributes(ids,
                                         [self.LOCK_ATTRIBUTE,
                                          self.VALUE_ATTRIBUTE],
@@ -217,8 +211,6 @@ class Queue(aff4.AFF4Object):
     Raises:
       LockError: If the queue is not locked.
     """
-    if not self.locked:
-      raise aff4.LockError("Queue must be locked to release records.")
     data_store.DB.MultiDeleteAttributes(ids,
                                         [self.LOCK_ATTRIBUTE],
                                         token=self.token)

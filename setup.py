@@ -114,7 +114,6 @@ setup_args = dict(
             "wsgiref==0.1.2",
             "Werkzeug==0.11.3",
             "Django==1.8.3",
-            "matplotlib==1.5.1",
             "rekall-core>=1.5.0.post4",
             "selenium==2.50.1",
             "google-api-python-client==1.4.2",

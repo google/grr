@@ -529,26 +529,6 @@ class RDFValueCollectionRenderer(renderers.TableRenderer):
         request, response)
 
 
-class ProgressButtonRenderer(RDFValueRenderer):
-  """Renders a button that shows a progress graph."""
-
-  # This specifies the name of the RDFValue object we will render.
-  classname = "ProgressGraph"
-
-  layout_template = renderers.Template("""
-Open a graph showing the download progress in a new window:
-<button id="{{ unique|escape }}">
- Generate
-</button>
-""")
-
-  def Layout(self, request, response):
-    self.flow_id = request.REQ.get("flow")
-    response = super(ProgressButtonRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "ProgressButtonRenderer.Layout",
-                               flow_id=self.flow_id)
-
-
 class FlowStateRenderer(DictRenderer):
   """A Flow state is similar to a dict."""
   classname = "FlowState"
