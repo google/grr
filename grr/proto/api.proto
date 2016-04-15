@@ -470,6 +470,16 @@ message ApiListHuntResultsArgs {
     }];
 };
 
+message ApiListHuntResultsResult {
+  repeated ApiHuntResult items = 1 [(sem_type) = {
+      description: "Hunt results."
+    }];
+
+  optional int64 total_count = 2 [(sem_type) = {
+    description: "Total count of items."
+  }];
+}
+
 message ApiGetHuntResultsExportCommandArgs {
   optional string hunt_id = 1 [(sem_type) = {
       description: "Hunt id."
@@ -526,6 +536,25 @@ message ApiGetHuntFilesArchiveArgs {
     }];
   optional ArchiveFormat archive_format = 3;
 };
+
+message ApiGetHuntFileArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id.",
+      type: "SessionID"
+    }];
+  optional string client_id = 2 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional uint64 timestamp = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp of the result in the collection."
+    }];
+  optional string vfs_path = 4 [(sem_type) = {
+      description: "AFF4 path to the file to be downloaded",
+      type: "RDFURN"
+    }];
+}
 
 message ApiGetHuntStatsArgs {
   optional string hunt_id = 1 [(sem_type) = {
@@ -1044,6 +1073,25 @@ message ApiHunt {
     }];
 }
 
+message ApiHuntResult {
+  optional string client_id = 2 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional AnyValue payload = 3 [(sem_type) = {
+      description: "Result payload.",
+      dynamic_type: "GetPayloadClass"
+    }];
+  optional string payload_type = 4 [(sem_type) = {
+      description: "Type of the payload."
+    }];
+  optional uint64 timestamp = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp indicating when result was written to the data "
+      "store."
+    }];
+}
+
 message ApiCronJob {
   enum State {
     ENABLED = 0;
@@ -1348,15 +1396,6 @@ message ApiGetFileBlobArgs {
     }];
 }
 
-message ApiGetFileBlobResult {
-  optional bytes content = 1 [(sem_type) = {
-      description: "The content of the file."
-    }];
-  optional int64 total_size = 2 [(sem_type) = {
-      description: "The total size of the file in byte."
-    }];
-}
-
 message ApiGetFileVersionTimesArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
@@ -1438,6 +1477,13 @@ message ApiGetPendingUserNotificationsCountResult {
 message ApiGetUserInfoResult {
   optional string username = 1 [(sem_type) = {
       description: "The name of the user."
+    }];
+}
+
+message ApiDeletePendingUserNotificationArgs {
+  optional uint64 timestamp = 1 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The timestamp of the notification to delete."
     }];
 }
 

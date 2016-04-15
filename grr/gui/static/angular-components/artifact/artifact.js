@@ -4,6 +4,7 @@ goog.provide('grrUi.artifact.module');
 
 
 goog.require('grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorDirective');
+goog.require('grrUi.artifact.artifactDialogService.ArtifactDialogService');
 goog.require('grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewDirective');
 goog.require('grrUi.artifact.artifactsListFormDirective.ArtifactsListFormDirective');
 goog.require('grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogDirective');
@@ -45,6 +46,9 @@ grrUi.artifact.module.directive(
         .directive_name,
     grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective);
 
+grrUi.core.module.service(
+    grrUi.artifact.artifactDialogService.ArtifactDialogService.service_name,
+    grrUi.artifact.artifactDialogService.ArtifactDialogService);
 
 grrUi.artifact.module.run(
     function(grrSemanticRepeatedFormDirectivesRegistryService) {

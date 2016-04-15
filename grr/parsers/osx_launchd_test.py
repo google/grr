@@ -4,11 +4,11 @@
 
 
 from grr.lib import flags
+from grr.lib import osx_launchd as testdata
 from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import osx_launchd
-from grr.test_data import osx_launchd as testdata
 
 
 class OSXLaunchdJobDictTest(test_lib.GRRBaseTest):

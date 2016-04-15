@@ -1,21 +1,14 @@
 #!/usr/bin/env python
 """Configuration parameters for the artifact subsystem."""
 
-import os
-
 from grr.lib import config_lib
 
 
 config_lib.DEFINE_list(
     "Artifacts.artifact_dirs",
-    [
-        os.path.normpath(os.path.dirname(__file__) + "/../../grr/artifacts"),
-        os.path.normpath(
-            os.path.dirname(__file__) + "/../../grr/artifacts/" +
-            "flow_templates"),
-        os.path.normpath(
-            os.path.dirname(__file__) +
-            "/../../grr/artifacts/local")],
+    ["%(grr/artifacts|resource)",
+     "%(grr/artifacts/flow_templates|resource)",
+     "%(grr/artifacts/local|resource)"],
     "A list directories to load artifacts from.")
 
 config_lib.DEFINE_list("Artifacts.knowledge_base",

@@ -12,17 +12,17 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
+ * @param {!grrUi.client.clientDialogService.ClientDialogService} grrClientDialogService
  * @ngInject
  */
 grrUi.client.clientsListDirective.ClientsListController = function(
-    $scope, $modal) {
+    $scope, grrClientDialogService) {
 
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!angularUi.$modal} */
-  this.modal_ = $modal;
+  /** @private {!grrUi.client.clientDialogService.ClientDialogService} */
+  this.grrClientDialogService_ = grrClientDialogService;
 
   /**
    * This variable is bound to grr-infinite-table's trigger-update attribute
@@ -149,35 +149,16 @@ ClientsListController.prototype.showLabelsDialog = function(action) {
     }
   }
 
-  var modalScope = this.scope_.$new();
-  modalScope.clients = clients;
-
-  var modalInstance;
+  var result;
   if (action == 'add') {
-    modalInstance = this.modal_.open({
-      template: '<grr-add-clients-labels-dialog ' +
-          'clients="clients" ' +
-          'close="$close()" ' +
-          'dismiss="$dismiss()" />',
-      scope: modalScope
-    });
+    result = this.grrClientDialogService_.openAddClientLabels(clients);
   } else if (action == 'remove') {
-    modalInstance = this.modal_.open({
-      template: '<grr-remove-clients-labels-dialog ' +
-          'clients="clients" ' +
-          'close="$close()" ' +
-          'dismiss="$dismiss()" />',
-      scope: modalScope
-    });
+    result = this.grrClientDialogService_.openRemoveClientLabels(clients);
   } else {
     throw Error('Unexpected action: ' + action);
   }
 
-  this.scope_.$on('$destroy', function() {
-    modalScope.$destroy();
-  });
-
-  modalInstance.result.then(function resolve() {
+  result.then(function resolve() {
     this.triggerUpdate();
   }.bind(this), function dismiss() {
     // Do nothing.
@@ -191,7 +172,6 @@ ClientsListController.prototype.showLabelsDialog = function(action) {
  */
 ClientsListController.prototype.clientsQueryUrl =
     '/clients';
-
 
 
 /**

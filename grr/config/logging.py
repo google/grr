@@ -17,7 +17,7 @@ config_lib.DEFINE_list("Logging.engines", ["stderr"],
 config_lib.DEFINE_bool("Logging.verbose", False,
                        help="If true log more verbosely.")
 
-config_lib.DEFINE_string("Logging.path", "%(TEMP|env)/tmp/",
+config_lib.DEFINE_string("Logging.path", "%(Config.prefix)/var/log/",
                          help="Path to log file directory.")
 
 config_lib.DEFINE_string("Logging.syslog_path", "/dev/log",

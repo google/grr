@@ -6,12 +6,12 @@ import socket
 from grr.client import actions
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import client_fixture
 from grr.lib import config_lib
 from grr.lib import worker_mocks
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.test_data import client_fixture
 
 
 class ActionMock(object):

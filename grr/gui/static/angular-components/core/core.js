@@ -12,6 +12,8 @@ goog.require('grrUi.core.basenameFilter.BasenameFilter');
 goog.require('grrUi.core.bindKeyDirective.BindKeyDirective');
 goog.require('grrUi.core.bytesToHexFilter.BytesToHexFilter');
 goog.require('grrUi.core.clockDirective.ClockDirective');
+goog.require('grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective');
+goog.require('grrUi.core.dialogService.DialogService');
 goog.require('grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesDirective');
 goog.require('grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter');
 goog.require('grrUi.core.forceRefreshDirective.ForceRefreshDirective');
@@ -131,6 +133,9 @@ grrUi.core.module.directive(
     grrUi.core.wizardFormPageDirective.WizardFormPageDirective.directive_name,
     grrUi.core.wizardFormPageDirective.WizardFormPageDirective);
 grrUi.core.module.directive(
+    grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective.directive_name,
+    grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective);
+grrUi.core.module.directive(
     grrUi.core.searchBoxDirective.SearchBoxDirective.directive_name,
     grrUi.core.searchBoxDirective.SearchBoxDirective);
 grrUi.core.module.directive(
@@ -150,8 +155,12 @@ grrUi.core.module.service(
     grrUi.core.timeService.TimeService.service_name,
     grrUi.core.timeService.TimeService);
 grrUi.core.module.service(
+    grrUi.core.dialogService.DialogService.service_name,
+    grrUi.core.dialogService.DialogService);
+grrUi.core.module.service(
     grrUi.core.loadingIndicatorService.LoadingIndicatorService.service_name,
     grrUi.core.loadingIndicatorService.LoadingIndicatorService);
+
 
 grrUi.core.module.filter(grrUi.core.basenameFilter.BasenameFilter.filter_name,
                          grrUi.core.basenameFilter.BasenameFilter);

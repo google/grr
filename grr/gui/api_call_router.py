@@ -231,7 +231,7 @@ class ApiCallRouter(object):
 
   @Category("Vfs")
   @ArgsType(api_vfs.ApiGetFileBlobArgs)
-  @ResultType(api_vfs.ApiGetFileBlobResult)
+  @ResultBinaryStream()
   @Http("GET", "/api/clients/<client_id>/vfs-blob/<path:file_path>")
   def GetFileBlob(self, args, token=None):
     raise NotImplementedError()
@@ -427,6 +427,7 @@ class ApiCallRouter(object):
 
   @Category("Hunts")
   @ArgsType(api_hunt.ApiListHuntResultsArgs)
+  @ResultType(api_hunt.ApiListHuntResultsResult)
   @Http("GET", "/api/hunts/<hunt_id>/results")
   def ListHuntResults(self, args, token=None):
     raise NotImplementedError()
@@ -504,6 +505,14 @@ class ApiCallRouter(object):
   def GetHuntFilesArchive(self, args, token=None):
     raise NotImplementedError()
 
+  @Category("Hunts")
+  @ArgsType(api_hunt.ApiGetHuntFileArgs)
+  @ResultBinaryStream()
+  @Http("GET",
+        "/api/hunts/<hunt_id>/results/clients/<client_id>/fs/<path:vfs_path>")
+  def GetHuntFile(self, args, token=None):
+    raise NotImplementedError()
+
   # Stats metrics methods.
   # =====================
   #
@@ -575,6 +584,12 @@ class ApiCallRouter(object):
   @ResultType(api_user.ApiGetPendingUserNotificationsResult)
   @Http("GET", "/api/users/me/notifications/pending")
   def GetPendingUserNotifications(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("User")
+  @ArgsType(api_user.ApiDeletePendingUserNotificationArgs)
+  @Http("DELETE", "/api/users/me/notifications/pending/<timestamp>")
+  def DeletePendingUserNotification(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")

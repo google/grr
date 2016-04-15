@@ -218,24 +218,62 @@ class ApiGetFileTextHandlerRegressionTest(
                str(self.time_1.AsMicroSecondsFromEpoch()))
 
 
-class ApiGetFileBlobHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
-
-  handler = "ApiGetFileBlobHandler"
+class ApiGetFileBlobHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
 
   def setUp(self):
-    super(ApiGetFileBlobHandlerRegressionTest, self).setUp()
+    super(ApiGetFileBlobHandlerTest, self).setUp()
+    self.handler = vfs_plugin.ApiGetFileBlobHandler()
     self.client_id = self.SetupClients(1)[0]
     self.file_path = "fs/os/c/Downloads/a.txt"
     self.CreateFileVersions(self.client_id, self.file_path)
 
-  def Run(self):
-    base_url = "/api/clients/%s/vfs-blob/%s" % (self.client_id.Basename(),
-                                                self.file_path)
-    self.Check("GET", base_url)
-    self.Check("GET", base_url + "?offset=3&length=2")
-    self.Check("GET", base_url + "?timestamp=" +
-               str(self.time_1.AsMicroSecondsFromEpoch()))
+  def testNewestFileContentIsReturnedByDefault(self):
+    args = vfs_plugin.ApiGetFileBlobArgs(
+        client_id=self.client_id, file_path=self.file_path)
+    result = self.handler.Handle(args, token=self.token)
+
+    self.assertTrue(hasattr(result, "GenerateContent"))
+    self.assertEqual(next(result.GenerateContent()), "Goodbye World")
+
+  def testOffsetAndLengthRestrictResult(self):
+    args = vfs_plugin.ApiGetFileBlobArgs(
+        client_id=self.client_id, file_path=self.file_path,
+        offset=2, length=3)
+    result = self.handler.Handle(args, token=self.token)
+
+    self.assertTrue(hasattr(result, "GenerateContent"))
+    self.assertEqual(next(result.GenerateContent()), "odb")
+
+  def testReturnsOlderVersionIfTimestampIsSupplied(self):
+    args = vfs_plugin.ApiGetFileBlobArgs(
+        client_id=self.client_id, file_path=self.file_path,
+        timestamp=self.time_1)
+    result = self.handler.Handle(args, token=self.token)
+
+    self.assertTrue(hasattr(result, "GenerateContent"))
+    self.assertEqual(next(result.GenerateContent()), "Hello World")
+
+  def testLargeFileIsReturnedInMultipleChunks(self):
+    chars = ["a", "b", "x"]
+    huge_file_path = "fs/os/c/Downloads/huge.txt"
+
+    # Overwrite CHUNK_SIZE in handler for smaller test streams.
+    self.handler.CHUNK_SIZE = 5
+
+    # Create a file that requires several chunks to load.
+    with aff4.FACTORY.Create(self.client_id.Add(huge_file_path),
+                             "AFF4MemoryStream", mode="w",
+                             token=self.token) as fd:
+      for char in chars:
+        fd.Write(char * self.handler.CHUNK_SIZE)
+
+    args = vfs_plugin.ApiGetFileBlobArgs(
+        client_id=self.client_id, file_path=huge_file_path)
+    result = self.handler.Handle(args, token=self.token)
+
+    self.assertTrue(hasattr(result, "GenerateContent"))
+    for chunk, char in zip(result.GenerateContent(), chars):
+      self.assertEqual(chunk, char * self.handler.CHUNK_SIZE)
 
 
 class ApiGetFileVersionTimesHandlerRegressionTest(

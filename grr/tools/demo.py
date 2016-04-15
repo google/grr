@@ -2,7 +2,6 @@
 """This is a single binary demo program."""
 
 
-import os
 import threading
 
 
@@ -22,8 +21,6 @@ from grr.worker import worker
 
 def main(argv):
   """Sets up all the component in their own threads."""
-  flags.FLAGS.config = config_lib.CONFIG["Test.config"]
-
   config_lib.CONFIG.AddContext(
       "Demo Context",
       "The demo runs all functions in a single process using the "
@@ -32,9 +29,11 @@ def main(argv):
   config_lib.CONFIG.AddContext(
       "Test Context", "Context applied when we run tests.")
 
-  flags.FLAGS.config = config_lib.CONFIG["Test.config"]
-  flags.FLAGS.secondary_configs = [
-      os.path.join(config_lib.CONFIG["Test.data_dir"], "grr_test.yaml")]
+  flags.FLAGS.config = config_lib.Resource().Filter(
+      "grr/config/grr-server.yaml")
+
+  flags.FLAGS.secondary_configs = [config_lib.Resource().Filter(
+      "test_data/grr_test.yaml")]
 
   startup.Init()
 

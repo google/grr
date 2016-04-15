@@ -15,7 +15,7 @@ class ResourceNotFoundError(Error):
 class ApiBinaryStream(object):
   """Object to be returned from streaming API methods."""
 
-  def __init__(self, filename, content_generator=None):
+  def __init__(self, filename, content_generator=None, content_length=None):
     """ApiBinaryStream constructor.
 
     Args:
@@ -23,11 +23,13 @@ class ApiBinaryStream(object):
           file.
       content_generator: A generator that yields byte chunks (of any size) to
           be streamed to the user.
+      content_length: The length of the stream, if known upfront.
 
     Raises:
       ValueError: if content_generator is None.
     """
     self.filename = filename
+    self.content_length = content_length
 
     if content_generator is None:
       raise ValueError("content_generator can't be None")

@@ -7,6 +7,8 @@ This handles opening and parsing of config files.
 import collections
 import ConfigParser
 import errno
+import importlib
+import inspect
 import os
 import pickle
 import platform
@@ -15,6 +17,9 @@ import StringIO
 import sys
 import urlparse
 import zipfile
+
+
+import pkg_resources
 
 import yaml
 
@@ -27,8 +32,11 @@ from grr.lib import type_info
 from grr.lib import utils
 
 
+# Default is set in distro_entry.py to be taken from package resource.
 flags.DEFINE_string("config", None,
-                    "Primary Configuration file to use.")
+                    "Primary Configuration file to use. This is normally "
+                    "taken from the installed package and should rarely "
+                    "be specified.")
 
 flags.DEFINE_list("secondary_configs", [],
                   "Secondary configuration files to load (These override "
@@ -177,7 +185,83 @@ class Flags(ConfigFilter):
       raise FilterError(e)
 
 
+class Resource(ConfigFilter):
+  """Locates a GRR resource that is shipped with the GRR package."""
+  name = "resource"
+  package = "grr-response-core"
+
+  def _GetPkgResources(self, target, package):
+    requirement = pkg_resources.Requirement.parse(package)
+    try:
+      return pkg_resources.resource_filename(requirement, target)
+    except pkg_resources.DistributionNotFound:
+      # It may be that the working set is not in sync (e.g. if sys.path was
+      # manipulated). Try to reload it just in case.
+      pkg_resources.working_set = pkg_resources.WorkingSet()
+      try:
+        return pkg_resources.resource_filename(requirement, target)
+      except pkg_resources.DistributionNotFound:
+        return None
+
+  def Filter(self, filename):
+    """Use pkg_resources to find the path to the required resource."""
+    target = self._GetPkgResources(filename, self.package)
+    if target and os.access(target, os.R_OK):
+      return target
+
+    # Installing from wheel places data_files relative to sys.prefix and not
+    # site-packages. If we can not find in site-packages, check sys.prefix
+    # instead.
+    # http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/#data-files
+    target = os.path.join(sys.prefix, filename)
+    if target and os.access(target, os.R_OK):
+      return target
+
+    raise IOError("Unable to find resource %s" % filename)
+
+
+
+class TemplateResource(Resource):
+  """Locates a GRR resource that is shipped with the GRR package."""
+  name = "template-resource"
+  package = "grr-response-templates"
+
+
+class ModulePath(ConfigFilter):
+  """Locate the path to the specified module.
+
+  Note: A module is either a python file (with a .py extension) or a directory
+  with a __init__.py inside it. It is not the same as a resource (See Resource
+  above) since a module will be installed somewhere you can import it from.
+
+  Caveat: This will raise if the module is not a physically present on disk
+  (e.g. pyinstaller bundle).
+  """
+  name = "module_path"
+
+  def Filter(self, name):
+    try:
+      module = importlib.import_module(name)
+    except ImportError:
+      message = (
+          "Config parameter module_path expansion %r can not be imported." %
+          name)
+
+      # This exception will typically be caught by the expansion engine and
+      # be silently swallowed.
+      logging.error(message)
+      raise FilterError(message)
+
+    result = inspect.getfile(module)
+
+    if os.path.basename(result).startswith("__init__."):
+      result = os.path.dirname(result)
+
+    return result
+
+
 class GRRConfigParser(object):
+
   """The base class for all GRR configuration parsers."""
   __metaclass__ = registry.MetaclassRegistry
 
@@ -495,7 +579,7 @@ class StringInterpolator(lexer.Lexer):
 
       # Expansion sequence is %(....)
       lexer.Token(None, r"\%\(", "StartExpression", None),
-      lexer.Token(None, r"\|([a-zA-Z_]+)\)", "Filter", None),
+      lexer.Token(None, r"\|([a-zA-Z_-]+)\)", "Filter", None),
       lexer.Token(None, r"\)", "ExpandArg", None),
 
       # Glob up as much data as possible to increase efficiency here.

@@ -4,9 +4,9 @@
 import socket
 
 from grr.lib import flags
+from grr.lib import ipv6_addresses
 from grr.lib import ipv6_utils
 from grr.lib import test_lib
-from grr.test_data import ipv6_addresses
 
 
 class Ipv6UtilsTest(test_lib.GRRBaseTest):

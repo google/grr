@@ -126,89 +126,6 @@ config_lib.DEFINE_integer("Frontend.message_expiry_time", 600,
                           "Maximum time messages remain valid within the "
                           "system.")
 
-# The Admin UI web application.
-config_lib.DEFINE_integer("AdminUI.port", 8000, "port to listen on")
-
-config_lib.DEFINE_string("AdminUI.bind", "::", "interface to bind to.")
-
-config_lib.DEFINE_string(
-    "AdminUI.webauth_manager", "NullWebAuthManager",
-    "The web auth manager for controlling access to the UI.")
-
-config_lib.DEFINE_bool("AdminUI.django_debug", True,
-                       "Turn on to add django debugging")
-
-config_lib.DEFINE_string(
-    "AdminUI.django_secret_key", "CHANGE_ME",
-    "This is a secret key that should be set in the server "
-    "config. It is used in XSRF and session protection.")
-
-config_lib.DEFINE_list(
-    "AdminUI.django_allowed_hosts", ["*"],
-    "Set the django ALLOWED_HOSTS parameter. "
-    "See https://docs.djangoproject.com/en/1.5/ref/settings/#allowed-hosts")
-
-config_lib.DEFINE_bool("AdminUI.enable_ssl", False,
-                       "Turn on SSL. This needs AdminUI.ssl_cert to be set.")
-
-config_lib.DEFINE_string("AdminUI.ssl_cert_file", "",
-                         "The SSL certificate to use.")
-
-config_lib.DEFINE_string(
-    "AdminUI.ssl_key_file", None,
-    "The SSL key to use. The key may also be part of the cert file, in which "
-    "case this can be omitted.")
-
-config_lib.DEFINE_string("AdminUI.url", "http://localhost:8000/",
-                         "The direct external URL for the user interface.")
-
-config_lib.DEFINE_bool("AdminUI.use_precompiled_js", False,
-                       "If True - use Closure-compiled JS bundle. This flag "
-                       "is experimental and is not properly supported yet.")
-
-config_lib.DEFINE_string("AdminUI.export_command",
-                         "/usr/bin/grr_export",
-                         "Command to show in the fileview for downloading the "
-                         "files from the command line.")
-
-config_lib.DEFINE_string("AdminUI.page_title",
-                         "GRR Admin Console",
-                         "Page title of the Admin UI.")
-
-config_lib.DEFINE_string("AdminUI.heading", "",
-                         "Dashboard heading displayed in the Admin UI.")
-
-config_lib.DEFINE_string("AdminUI.report_url",
-                         "https://github.com/google/grr/issues",
-                         "URL of the 'Report a problem' link.")
-
-config_lib.DEFINE_string("AdminUI.help_url",
-                         "/help/index.html",
-                         "URL of the 'Help' link.")
-
-config_lib.DEFINE_string("AdminUI.github_docs_location",
-                         "https://github.com/google/grr-doc/blob/master",
-                         "Base path for GitHub-hosted GRR documentation. ")
-
-config_lib.DEFINE_string("AdminUI.new_hunt_wizard.default_output_plugin",
-                         None,
-                         "Output plugin that will be added by default in the "
-                         "'New Hunt' wizard output plugins selection page.")
-
-config_lib.DEFINE_bool("AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules",
-                       default=True,
-                       help="If True, the hunt rules configuration UI will put "
-                       "the rules into the 'client_rule_set' field of the "
-                       "'huntRunnerArgs' variable, instead of using "
-                       "'integerRules' and 'regexRules'.")
-
-config_lib.DEFINE_bool("AdminUI.new_hunt_wizard."
-                       "use_oo_hunt_rules_in_new_cron_job_wizard",
-                       default=True,
-                       help="This is the same as "
-                       "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules,"
-                       " but regarding the new cron job wizard.")
-
 config_lib.DEFINE_string("Server.master_watcher_class", "DefaultMasterWatcher",
                          "The master watcher class to use.")
 
@@ -238,8 +155,11 @@ config_lib.DEFINE_string(
     " is only scheduled after results are received in the previous poll.")
 
 config_lib.DEFINE_string(
-    "Server.username", "root",
-    "System account for services to run as after initialization.")
+    "Server.username", None,
+    "System account for services to run as after initialization. Note that "
+    "GRR must be running as root first before being able to switch to another "
+    "username. You would normally only need this if you want to bind to a low "
+    "port for some reason.")
 
 # Email Template Values
 config_lib.DEFINE_string(

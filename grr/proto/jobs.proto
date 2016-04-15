@@ -630,8 +630,12 @@ message Flow {
 };
 
 message CpuSeconds {
-  optional float user_cpu_time = 1;
-  optional float system_cpu_time = 2;
+  optional float user_cpu_time = 1 [(sem_type) = {
+      friendly_name: "User cpu seconds used",
+    }];
+  optional float system_cpu_time = 2 [(sem_type) = {
+      friendly_name: "System cpu seconds used",
+    }];
 }
 
 message CpuSample {

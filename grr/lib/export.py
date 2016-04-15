@@ -8,6 +8,7 @@ easily be written to a relational database or just to a set of files.
 
 import hashlib
 import json
+import re
 import stat
 import time
 
@@ -1359,8 +1360,10 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
 
     return output_class
 
-  def _GetOutputClass(self, plugin_name, tables):
-    output_class_name = "RekallExport_" + plugin_name
+  def _GetOutputClass(self, plugin_name, metadata, tables):
+    source_name = "_".join([re.sub("[^0-9a-zA-Z]", "_", x)
+                            for x in metadata.source_urn.Split()])
+    output_class_name = "RekallExport_" + source_name + "_" + plugin_name
 
     try:
       return DynamicRekallResponseConverter.OUTPUT_CLASSES[output_class_name]
@@ -1412,7 +1415,8 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
         tables.append(message[1])
 
     # Generate output class based on all table definitions.
-    output_class = self._GetOutputClass(self.rekall_response.plugin, tables)
+    output_class = self._GetOutputClass(
+        self.rekall_response.plugin, self.metadata, tables)
 
     # Fill generated output class instances with values from every row.
     for message in parsed_messages:

@@ -12,7 +12,6 @@ goog.require('grrUi.semantic.dataObjectDirective.DataObjectDirective');
 goog.require('grrUi.semantic.dictDirective.DictDirective');
 goog.require('grrUi.semantic.durationDirective.DurationDirective');
 goog.require('grrUi.semantic.encryptionKeyDirective.EncryptionKeyDirective');
-goog.require('grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective');
 goog.require('grrUi.semantic.hashDigestDirective.HashDigestDirective');
 goog.require('grrUi.semantic.jsonDirective.JsonDirective');
 goog.require('grrUi.semantic.macAddressDirective.MacAddressDirective');
@@ -20,6 +19,7 @@ goog.require('grrUi.semantic.networkAddressDirective.NetworkAddressDirective');
 goog.require('grrUi.semantic.objectLabelDirective.ObjectLabelDirective');
 goog.require('grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective');
 goog.require('grrUi.semantic.primitiveDirective.PrimitiveDirective');
+goog.require('grrUi.semantic.pseudo.module');
 goog.require('grrUi.semantic.semanticProtoDirective.SemanticProtoDirective');
 goog.require('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
 goog.require('grrUi.semantic.statModeDirective.StatModeDirective');
@@ -34,14 +34,12 @@ goog.require('grrUi.semantic.urnDirective.UrnDirective');
  */
 grrUi.semantic.module = angular.module('grrUi.semantic',
                                        [grrUi.core.module.name,
+                                        grrUi.semantic.pseudo.module.name,
                                         'ui.bootstrap']);
 
 grrUi.semantic.module.directive(
     grrUi.semantic.bytesDirective.BytesDirective.directive_name,
     grrUi.semantic.bytesDirective.BytesDirective);
-grrUi.semantic.module.directive(
-    grrUi.semantic.hashDigestDirective.HashDigestDirective.directive_name,
-    grrUi.semantic.hashDigestDirective.HashDigestDirective);
 grrUi.semantic.module.directive(
     grrUi.semantic.clientUrnDirective.ClientUrnDirective.directive_name,
     grrUi.semantic.clientUrnDirective.ClientUrnDirective);
@@ -58,8 +56,8 @@ grrUi.semantic.module.directive(
     grrUi.semantic.encryptionKeyDirective.EncryptionKeyDirective.directive_name,
     grrUi.semantic.encryptionKeyDirective.EncryptionKeyDirective);
 grrUi.semantic.module.directive(
-    grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective.directive_name,
-    grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective);
+    grrUi.semantic.hashDigestDirective.HashDigestDirective.directive_name,
+    grrUi.semantic.hashDigestDirective.HashDigestDirective);
 grrUi.semantic.module.directive(
     grrUi.semantic.jsonDirective.JsonDirective.directive_name,
     grrUi.semantic.jsonDirective.JsonDirective);
@@ -111,9 +109,6 @@ grrUi.semantic.module.run(function(grrSemanticValueDirectivesRegistryService) {
       grrUi.semantic.bytesDirective.BytesDirective.semantic_type,
       grrUi.semantic.bytesDirective.BytesDirective);
   registry.registerDirective(
-      grrUi.semantic.hashDigestDirective.HashDigestDirective.semantic_type,
-      grrUi.semantic.hashDigestDirective.HashDigestDirective);
-  registry.registerDirective(
       grrUi.semantic.clientUrnDirective.ClientUrnDirective.semantic_type,
       grrUi.semantic.clientUrnDirective.ClientUrnDirective);
   registry.registerDirective(
@@ -133,9 +128,8 @@ grrUi.semantic.module.run(function(grrSemanticValueDirectivesRegistryService) {
           .semantic_type,
       grrUi.semantic.encryptionKeyDirective.EncryptionKeyDirective);
   registry.registerDirective(
-      grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective
-          .semantic_type,
-      grrUi.semantic.fetchMoreLinkDirective.FetchMoreLinkDirective);
+      grrUi.semantic.hashDigestDirective.HashDigestDirective.semantic_type,
+      grrUi.semantic.hashDigestDirective.HashDigestDirective);
   registry.registerDirective(
       grrUi.semantic.jsonDirective.JsonDirective.semantic_type,
       grrUi.semantic.jsonDirective.JsonDirective);

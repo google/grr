@@ -1,0 +1,39 @@
+#!/bin/bash
+
+# The main entry point to all GRR tools for debian installations. This simple
+# script sources the main debian configuration file at /etc/default/grr and
+# appends all its parameters to the specific grr tools used.
+
+# The main use case is to provide a single point where users may switch GRR
+# installations. For example a common use case is to install an updated GRR
+# installation from source:
+
+# virtualenv /My/Virtual/Environment
+# source /My/Virtual/Environment/bin/activate
+# git clone https://github.com/google/grr.git
+# cd grr
+# pip install -e .
+
+# Now simply edit /etc/default/grr and set GRR_PREFIX=/My/Virtual/Environment
+# and all scripts will automatically invoke the new GRR from the new virtual
+# environment.
+
+GLOBAL_DEFAULT_FILE="/etc/default/grr"
+
+# Load the global default file for the location of the GRR virtual env.
+. ${GLOBAL_DEFAULT_FILE}
+
+# All GRR entry points will use this name.
+NAME=$(basename "$0")
+
+if ! [ -x "${GRR_PREFIX}" ] ; then
+  echo "Can not find GRR's virtual env location. Please adjust the GRR_PREFIX location in ${GLOBAL_DEFAULT_FILE}."
+  exit 1
+fi
+
+# Run the script.
+# $@ is expanded specially and should be quoted:
+# http://www.gnu.org/software/bash/manual/bash.html#Special-Parameters
+# GRR_EXTRA_ARGS needs to remain unquoted so the arguments are passed separately
+# rather than as one big string.
+"${GRR_PREFIX}/bin/${NAME}" ${GRR_EXTRA_ARGS} "${@}"

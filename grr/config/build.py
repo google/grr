@@ -7,7 +7,6 @@ from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import type_info
 
-
 # Windows Memory driver information.
 config_lib.DEFINE_string("MemoryDriver.driver_service_name",
                          "Pmem",
@@ -105,7 +104,8 @@ config_lib.DEFINE_string(
 import os
 
 # By default build in one dir mode.
-client_path = os.path.join\(r"%(%(ClientBuilder.source)|fixpathsep)", "grr", "client", "client.py"\)
+client_path = r"%(%(grr.client.client|module_path)|fixpathsep)"
+
 a = Analysis\(
     [client_path],
     hiddenimports=[],
@@ -195,7 +195,7 @@ VSVersionInfo\(
 
 config_lib.DEFINE_bytes(
     "PyInstaller.icon",
-    "%(%(ClientBuilder.source)/grr/gui/static/images/grr.ico|file)",
+    "%(%(grr/gui/static/images/grr.ico|resource)|file)",
     "The icon file contents to use for building the client.")
 
 config_lib.DEFINE_string(
@@ -231,7 +231,7 @@ config_lib.DEFINE_bool(
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.nanny_source_dir", must_exist=True,
-    default="%(ClientBuilder.source)/grr/client/nanny/",
+    default="%(grr.client|module_path)/nanny/",
     help="Path to the windows nanny VS solution file."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
@@ -263,14 +263,13 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.template_path", must_exist=False,
-    default=(
-        "%(ClientBuilder.executables_dir)/%(Client.platform)/templates/"
-        "%(PyInstaller.template_filename)"),
-    help="The full path to the executable template file."))
+    default=("%(grr-response-templates|template-resource)/"
+             "templates/%(PyInstaller.template_filename)"),
+    help="The full path to the executable template files."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.executables_dir", must_exist=False,
-    default="%(ClientBuilder.source)/grr/executables",
+    default="%(executables|resource)",
     help="The path to the grr executables directory."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
@@ -381,20 +380,14 @@ config_lib.DEFINE_string(
     default="%(Client.name)",
     help="The debian package name.")
 
-
-config_lib.DEFINE_option(type_info.PathTypeInfo(
-    name="ClientBuilder.source", must_exist=False,
-    default=os.path.normpath(__file__ + "/../../.."),
-    help="The location of the source files."))
-
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.components_source_dir",
-    default="%(ClientBuilder.source)/grr/client/components",
+    default="%(grr.client.components|module_path)",
     help="The directory that contains the component source."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.components_dir", must_exist=False,
-    default="%(ClientBuilder.executables_dir)/components",
+    default="%(grr-response-templates|template-resource)/components",
     help="The directory that contains the components."))
 
 config_lib.DEFINE_string(

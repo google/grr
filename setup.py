@@ -12,6 +12,15 @@ from setuptools.command.install import install
 from setuptools.command.sdist import sdist
 
 
+def find_data_files(source):
+  result = []
+  for directory, _, files in os.walk(source):
+    files = [os.path.join(directory, x) for x in files]
+    result.append((directory, files))
+
+  return result
+
+
 class Sdist(sdist):
 
   def run(self):
@@ -59,9 +68,19 @@ CONFIG_FILE = "%(CONFIG_FILE)s"
     install.run(self)
 
 
+data_files = (find_data_files("docs") +
+              find_data_files("executables") +
+              find_data_files("scripts") +
+              find_data_files("test_data") +
+              find_data_files("grr/artifacts") +
+              find_data_files("grr/checks") +
+              find_data_files("grr/gui/static") +
+              find_data_files("grr/gui/local/static"))
+
+
 setup_args = dict(
     name="grr-response-core",
-    version="3.1.0pre1",
+    version="3.1.0pre2",
     description="GRR Rapid Response",
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",
@@ -85,6 +104,7 @@ setup_args = dict(
         "ipaddr==2.1.11",
         "ipython==4.1.1",
         "pexpect==4.0.1",
+        "pip>=8.1.1,<9",
         "portpicker==1.1.1",
         "psutil==4.0.0",
         "pyaml==15.8.2",
@@ -108,14 +128,15 @@ setup_args = dict(
         "test": [
             "mock==1.3.0",
             "mox==0.5.3",
+            "selenium==2.50.1",
         ],
 
         "Server": [
             "wsgiref==0.1.2",
             "Werkzeug==0.11.3",
             "Django==1.8.3",
+            "oauth2client==1.5.2",
             "rekall-core>=1.5.0.post4",
-            "selenium==2.50.1",
             "google-api-python-client==1.4.2",
         ],
 
@@ -125,6 +146,9 @@ setup_args = dict(
             "pypiwin32==219",
         ],
     },
+
+    # Data files used by GRR. Access these via the config_lib "resource" filter.
+    data_files=data_files
 )
 
 setup(**setup_args)

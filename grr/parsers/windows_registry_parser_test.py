@@ -47,6 +47,8 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
     service_keys = [
         ("%s/ACPI/Type" % hklm, 1, dword),
         ("%s/ACPI/Start" % hklm, 0, dword),
+        # This one is broken, the parser should just ignore it.
+        ("%s/notarealservice" % hklm, 3, dword),
         ("%s/ACPI/ErrorControl" % hklm, 3, dword),
         ("%s/ACPI/ImagePath" % hklm, "system32\\drivers\\ACPI.sys", reg_str),
         ("%s/ACPI/DisplayName" % hklm, "Microsoft ACPI Driver", reg_str),

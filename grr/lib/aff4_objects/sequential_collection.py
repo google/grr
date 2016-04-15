@@ -192,6 +192,18 @@ class SequentialCollection(aff4.AFF4Object):
     for _, item in self.Scan():
       yield item
 
+  def OnDelete(self, deletion_pool=None):
+    pool = data_store.DB.GetMutationPool(self.token)
+    for subject, _, _ in data_store.DB.ScanAttribute(
+        self.urn.Add("Results"),
+        self.ATTRIBUTE,
+        token=self.token):
+      pool.DeleteSubject(subject)
+      if pool.Size() > 50000:
+        pool.Flush()
+    pool.Flush()
+    super(SequentialCollection, self).OnDelete(deletion_pool=deletion_pool)
+
 
 class BackgroundIndexUpdater(object):
   """Updates IndexedSequentialCollection objects in the background."""

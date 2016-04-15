@@ -327,10 +327,6 @@ class ApiGetFileBlobArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiGetFileBlobArgs
 
 
-class ApiGetFileBlobResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetFileBlobResult
-
-
 class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
                             Aff4FileReaderMixin):
   """Retrieves the byte content for a given file."""
@@ -338,8 +334,12 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
   category = CATEGORY
 
   args_type = ApiGetFileBlobArgs
-  result_type = ApiGetFileBlobResult
-  chunk_size = 1024 * 1024
+  CHUNK_SIZE = 1024 * 1024 * 4
+
+  def _GenerateFile(self, aff4_stream, offset, length):
+    aff4_stream.Seek(offset)
+    for start in range(offset, offset + length, self.CHUNK_SIZE):
+      yield aff4_stream.Read(min(self.CHUNK_SIZE, offset + length - start))
 
   def Handle(self, args, token=None):
     if not args.timestamp:
@@ -351,11 +351,18 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
                                  aff4_type="AFF4Stream", mode="r",
                                  age=age, token=token)
 
-    byte_content = self.Read(file_obj, args.offset, args.length)
+    total_size = self.GetTotalSize(file_obj)
+    if not args.length:
+      args.length = total_size - args.offset
+    else:
+      # Make sure args.length is in the allowed range.
+      args.length = min(abs(args.length), total_size - args.offset)
 
-    return ApiGetFileBlobResult(
-        total_size=self.GetTotalSize(file_obj),
-        content=byte_content)
+    generator = self._GenerateFile(file_obj, args.offset, args.length)
+
+    return api_call_handler_base.ApiBinaryStream(
+        filename=file_obj.urn.Basename(), content_generator=generator,
+        content_length=args.length)
 
 
 class ApiGetFileVersionTimesArgs(rdf_structs.RDFProtoStruct):

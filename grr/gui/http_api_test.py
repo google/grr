@@ -76,7 +76,7 @@ class SampleStreamingHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, unused_args, token=None):
     return api_call_handler_base.ApiBinaryStream(
-        "test.ext", content_generator=self._Generate())
+        "test.ext", content_generator=self._Generate(), content_length=1337)
 
 
 class TestHttpApiRouter(api_call_router.ApiCallRouter):
@@ -253,8 +253,18 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
   def testBinaryStreamIsCorrectlyStreamedViaGetMethod(self):
     response = self._RenderResponse(
         self._CreateRequest("GET", "/test_sample/streaming"))
+
+    headers = dict(response.items())
     self.assertEqual(list(response.streaming_content),
                      ["foo", "bar", "blah"])
+    self.assertEqual(headers["Content-Length"], "1337")
+
+  def testBinaryStreamReturnsContentLengthViaHeadMethod(self):
+    response = self._RenderResponse(
+        self._CreateRequest("HEAD", "/test_sample/streaming"))
+
+    headers = dict(response.items())
+    self.assertEqual(headers["Content-Length"], "1337")
 
   def testQueryParamsArePassedIntoHandlerArgs(self):
     response = self._RenderResponse(

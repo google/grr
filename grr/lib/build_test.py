@@ -32,7 +32,7 @@ class BuildTests(test_lib.GRRBaseTest):
           os.chmod(os.path.join(root, this_dir),
                    stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
 
-      with test_lib.ConfigOverrider({"ClientBuilder.source": tmp_dir}):
+      with test_lib.ConfigOverrider({"ClientBuilder.executables_dir": new_dir}):
         # If this doesn't raise, it means that there were either no templates,
         # or all of them were repacked successfully.
         maintenance_utils.RepackAllBinaries()

@@ -1540,35 +1540,6 @@
       "url": "/api/config/NonExistingOption"
     }
   ],
-  "ApiGetFileBlobHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "content": "Goodbye World",
-        "total_size": 13
-      },
-      "test_class": "ApiGetFileBlobHandlerRegressionTest",
-      "url": "/api/clients/C.1000000000000000/vfs-blob/fs/os/c/Downloads/a.txt"
-    },
-    {
-      "method": "GET",
-      "response": {
-        "content": "db",
-        "total_size": 13
-      },
-      "test_class": "ApiGetFileBlobHandlerRegressionTest",
-      "url": "/api/clients/C.1000000000000000/vfs-blob/fs/os/c/Downloads/a.txt?offset=3&length=2"
-    },
-    {
-      "method": "GET",
-      "response": {
-        "content": "Hello World",
-        "total_size": 11
-      },
-      "test_class": "ApiGetFileBlobHandlerRegressionTest",
-      "url": "/api/clients/C.1000000000000000/vfs-blob/fs/os/c/Downloads/a.txt?timestamp=86400000042"
-    }
-  ],
   "ApiGetFileDownloadCommandHandler": [
     {
       "method": "GET",
@@ -8553,6 +8524,198 @@
         "total_count": 1
       },
       "url": "/api/hunts/H:123456/output-plugins"
+    }
+  ],
+  "ApiListHuntResultsHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiHuntResult",
+            "value": {
+              "payload": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "blah1"
+              },
+              "payload_type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "RDFString"
+              },
+              "timestamp": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 2000000
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiHuntResult",
+            "value": {
+              "payload": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "blah2-foo"
+              },
+              "payload_type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "RDFString"
+              },
+              "timestamp": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 43000000
+              }
+            }
+          }
+        ],
+        "total_count": 2
+      },
+      "test_class": "ApiListHuntResultsRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "payload": "blah1",
+            "payload_type": "RDFString",
+            "timestamp": 2000000
+          },
+          {
+            "payload": "blah2-foo",
+            "payload_type": "RDFString",
+            "timestamp": 43000000
+          }
+        ],
+        "total_count": 2
+      },
+      "url": "/api/hunts/H:123456/results"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiHuntResult",
+            "value": {
+              "payload": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "blah1"
+              },
+              "payload_type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "RDFString"
+              },
+              "timestamp": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 2000000
+              }
+            }
+          }
+        ],
+        "total_count": 2
+      },
+      "test_class": "ApiListHuntResultsRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "payload": "blah1",
+            "payload_type": "RDFString",
+            "timestamp": 2000000
+          }
+        ],
+        "total_count": 2
+      },
+      "url": "/api/hunts/H:123456/results?count=1"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiHuntResult",
+            "value": {
+              "payload": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "blah2-foo"
+              },
+              "payload_type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "RDFString"
+              },
+              "timestamp": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 43000000
+              }
+            }
+          }
+        ],
+        "total_count": 2
+      },
+      "test_class": "ApiListHuntResultsRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "payload": "blah2-foo",
+            "payload_type": "RDFString",
+            "timestamp": 43000000
+          }
+        ],
+        "total_count": 2
+      },
+      "url": "/api/hunts/H:123456/results?offset=1&count=1"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiHuntResult",
+            "value": {
+              "payload": {
+                "age": 0,
+                "type": "RDFString",
+                "value": "blah2-foo"
+              },
+              "payload_type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "RDFString"
+              },
+              "timestamp": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 43000000
+              }
+            }
+          }
+        ],
+        "total_count": 2
+      },
+      "test_class": "ApiListHuntResultsRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "payload": "blah2-foo",
+            "payload_type": "RDFString",
+            "timestamp": 43000000
+          }
+        ],
+        "total_count": 2
+      },
+      "url": "/api/hunts/H:123456/results?filter=foo"
     }
   ],
   "ApiListHuntsHandler": [

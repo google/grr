@@ -5,7 +5,6 @@ goog.provide('grrUi.core.apiService.ApiService');
 goog.scope(function() {
 
 
-
 /**
  * Service for doing GRR API calls.
  *
@@ -39,15 +38,16 @@ var ApiService = grrUi.core.apiService.ApiService;
  */
 ApiService.service_name = 'grrApiService';
 
-
 /**
- * Fetches data for a given API url via HTTP GET method.
+ * Fetches data for a given API url via the specified HTTP method.
  *
- * @param {string} apiPath API path to triigger/
+ * @param {string} method The HTTP method to use, e.g. HEAD, GET, etc.
+ * @param {string} apiPath API path to trigger/
  * @param {Object<string, string>=} opt_params Query parameters.
  * @return {!angular.$q.Promise} Promise that resolves to the result.
+ * @private
  */
-ApiService.prototype.get = function(apiPath, opt_params) {
+ApiService.prototype.sendRequest_ = function(method, apiPath, opt_params) {
   var requestParams = angular.extend({}, opt_params);
   if (grr.state.reason) {
     requestParams.reason = grr.state.reason;
@@ -55,7 +55,10 @@ ApiService.prototype.get = function(apiPath, opt_params) {
 
   var loadingKey = this.grrLoadingIndicatorService_.startLoading();
   var url = '/api/' + apiPath.replace(/^\//, '');
-  var promise = this.http_.get(url, {
+
+  var promise = /** @type {function(Object)} */ (this.http_)({
+    method: method,
+    url: url,
     params: requestParams
   });
   return promise.finally(function() {
@@ -64,9 +67,31 @@ ApiService.prototype.get = function(apiPath, opt_params) {
 };
 
 /**
+ * Fetches data for a given API url via HTTP HEAD method.
+ *
+ * @param {string} apiPath API path to trigger/
+ * @param {Object<string, string>=} opt_params Query parameters.
+ * @return {!angular.$q.Promise} Promise that resolves to the result.
+ */
+ApiService.prototype.head = function(apiPath, opt_params) {
+  return this.sendRequest_("HEAD", apiPath, opt_params);
+};
+
+/**
+ * Fetches data for a given API url via HTTP GET method.
+ *
+ * @param {string} apiPath API path to trigger/
+ * @param {Object<string, string>=} opt_params Query parameters.
+ * @return {!angular.$q.Promise} Promise that resolves to the result.
+ */
+ApiService.prototype.get = function(apiPath, opt_params) {
+  return this.sendRequest_("GET", apiPath, opt_params);
+};
+
+/**
  * Initiates a file download via HTTP GET method.
  *
- * @param {string} apiPath API path to triigger/
+ * @param {string} apiPath API path to trigger/
  * @param {Object<string, string>=} opt_params Query parameters.
  * @return {!angular.$q.Promise} Promise that resolves to the download status.
  */

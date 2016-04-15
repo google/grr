@@ -11,6 +11,7 @@ from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import artifact_utils
+from grr.lib import client_fixture
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
@@ -25,7 +26,6 @@ from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.test_data import client_fixture
 
 # pylint: mode=test
 

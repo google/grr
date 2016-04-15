@@ -7,14 +7,16 @@ import ConfigParser
 import getpass
 import json
 import os
-import pwd
+
 import re
 # importing readline enables the raw_input calls to have history etc.
 import readline  # pylint: disable=unused-import
 import socket
+import subprocess
 import sys
 import urlparse
 
+import pkg_resources
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.lib import server_plugins
@@ -58,9 +60,6 @@ subparsers = parser.add_subparsers(
     title="subcommands", dest="subparser_name", description="valid subcommands")
 
 # Subparsers.
-parser_memory = subparsers.add_parser(
-    "load_memory_drivers", help="Load memory drivers from disk to database.")
-
 parser_generate_keys = subparsers.add_parser(
     "generate_keys", help="Generate crypto keys in the configuration.")
 
@@ -342,41 +341,11 @@ parser_upload_components.add_argument(
     "--overwrite", default=False, action="store_true",
     help="Allow overwriting of the component path.")
 
-parser_upload_memory_driver = subparsers.add_parser(
-    "upload_memory_driver",
-    parents=[parser_upload_args, parser_upload_signed_args],
-    help="Sign and upload a memory driver for a specific platform.")
-
-
-def LoadMemoryDrivers(grr_dir, token=None):
-  """Load memory drivers from disk to database."""
-  for client_context in [["Platform:Darwin", "Arch:amd64"],
-                         ["Platform:Windows", "Arch:i386"],
-                         ["Platform:Windows", "Arch:amd64"]]:
-    file_paths = config_lib.CONFIG.Get(
-        "MemoryDriver.driver_files", context=client_context)
-    aff4_paths = config_lib.CONFIG.Get(
-        "MemoryDriver.aff4_paths", context=client_context)
-    if len(file_paths) != len(aff4_paths):
-      print "Length mismatch:"
-      print "%s.", file_paths
-      print "%s.", aff4_paths
-      raise RuntimeError("Could not find all files/aff4 paths.")
-
-    for file_path, aff4_path in zip(file_paths, aff4_paths):
-      f_path = os.path.join(grr_dir, file_path)
-      print "Signing and uploading %s to %s" % (f_path, aff4_path)
-      up_path = maintenance_utils.UploadSignedDriverBlob(
-          open(f_path).read(), aff4_path=aff4_path,
-          client_context=client_context, token=token)
-      print "uploaded %s" % up_path
-
 
 def ImportConfig(filename, config):
   """Reads an old config file and imports keys and user accounts."""
   sections_to_import = ["PrivateKeys"]
-  entries_to_import = ["Client.driver_signing_public_key",
-                       "Client.executable_signing_public_key",
+  entries_to_import = ["Client.executable_signing_public_key",
                        "CA.certificate",
                        "Frontend.certificate"]
   options_imported = 0
@@ -425,11 +394,6 @@ def GenerateKeys(config):
   priv_key, pub_key = key_utils.GenerateRSAKey(key_length=length)
   config.Set("PrivateKeys.executable_signing_private_key", priv_key)
   config.Set("Client.executable_signing_public_key", pub_key)
-
-  print "Generating driver signing key"
-  priv_key, pub_key = key_utils.GenerateRSAKey(key_length=length)
-  config.Set("PrivateKeys.driver_signing_private_key", priv_key)
-  config.Set("Client.driver_signing_public_key", pub_key)
 
   print "Generating CA keys"
   ca_cert, ca_pk, _ = key_utils.MakeCACert(bits=length)
@@ -517,9 +481,9 @@ well.
   if datastore == "1":
     config.Set("Datastore.implementation", "SqliteDataStore")
     datastore_location = RetryQuestion(
-        "Datastore Location", "^/[A-Za-z0-9/.-]+$",
-        config_lib.CONFIG.Get("Datastore.location"))
-    config.Set("Datastore.location", datastore_location)
+        "Datastore Location", ".*", config_lib.CONFIG.Get("Datastore.location"))
+    if datastore_location:
+      config.Set("Datastore.location", datastore_location)
 
   if datastore == "2":
     print """\n\n***WARNING***
@@ -583,53 +547,10 @@ Address where high priority events such as an emergency ACL bypass are sent.
   config.Set("Monitoring.emergency_access_email", emergency_email)
 
 
-def ConfigureUser(config):
-  """Create Server.username user if necessary."""
-  success = False
-  username = RetryQuestion("\nGRR Server Username",
-                           "^[a-z0-9]+$",
-                           config_lib.CONFIG.Get("Server.username"))
-
-  try:
-    pwd.getpwnam(username)
-    print "User %s exists. Continuing..." % username
-    success = True
-  except KeyError:
-    user_create_error = os.system('useradd -r %s -M -d /nonexistant -s '
-                                  '/bin/false -c "GRR Server"' % username)
-    if not user_create_error:
-      print "User %s created. Continuing..." % username
-      success = True
-
-  if success:
-    config.Set("Server.username", username)
-  return success
-
-
 def ConfigureBaseOptions(config):
   """Configure the basic options required to run the server."""
 
   print "We are now going to configure the server using a bunch of questions."
-
-  print """\n\n-=GRR Server Username=-
-By default GRR services run as root, however, GRR can be configured to switch to
-a lower privileged user after reading its configuration.  Entering a different
-username here will create that user if it does not already exist.
-
-***WARNING***
-
-This user will need to be granted the read permissions on SSL keys and
-certificates for the AdminUI if enabled, and read/write permissions on the
-SQLite datastore path if enabled.
-
-***WARNING***\n"""
-  print "Server Username: %s" % config_lib.CONFIG.Get("Server.username")
-  if raw_input("Do you want to keep this configuration? [Yn]: ").upper() == "N":
-    while not ConfigureUser(config):
-      print "Could not find or create user."
-      if raw_input("Try again?[Yn]: ").upper() == "N":
-        print "Using %s" % config_lib.CONFIG.Get("Server.username")
-        break
 
   print """\n\n-=GRR Datastore=-
 For GRR to work each GRR server has to be able to communicate with the
@@ -741,16 +662,29 @@ def AddUsers(token=None):
         UpdateUser("admin", password=True, add_labels=["admin"], token=token)
 
 
+def InstallTemplatePackage():
+  virtualenv_bin = os.path.dirname(sys.executable)
+  pip = "%s/pip" % virtualenv_bin
+  # Install the GRR server component to satisfy the dependency below.
+  major_minor_version = ".".join(
+      pkg_resources.get_distribution(
+          "grr-response-core").version.split(".")[0:2])
+  # Note that this version spec requires a recent version of pip
+  subprocess.check_call(
+      [sys.executable, pip, "install", "--upgrade", "-f",
+       "https://storage.googleapis.com/releases.grr-response.com/index.html",
+       "grr-response-templates==%s.*" % major_minor_version])
+
+
 def ManageBinaries(config=None, token=None):
-  """Load memory drivers and repack templates into installers."""
+  """Repack templates into installers."""
+  print ("\nStep 5: Installing template package and repackaging clients with"
+         " new configuration.")
 
-  print "\nStep 4: Uploading Memory Drivers to the Database"
-  LoadMemoryDrivers(flags.FLAGS.share_dir, token=token)
-
-  print "\nStep 5: Repackaging clients with new configuration."
-  # We need to update the config to point to the installed templates now.
-  config.Set("ClientBuilder.executables_dir", os.path.join(
-      flags.FLAGS.share_dir, "executables"))
+  if ((raw_input(
+      "Download and upgrade client templates? You can skip this if "
+      "templates are already installed. [Yn]: ").upper() or "Y") == "Y"):
+    InstallTemplatePackage()
 
   # Build debug binaries, then build release binaries.
   maintenance_utils.RepackAllBinaries(upload=True, debug_build=True,
@@ -769,7 +703,7 @@ def ManageBinaries(config=None, token=None):
 def Initialize(config=None, token=None):
   """Initialize or update a GRR configuration."""
 
-  print "Checking write access on config %s" % config.parser
+  print "Checking write access on config %s" % config["Config.writeback"]
   if not os.access(config.parser.filename, os.W_OK):
     raise IOError("Config not writeable (need sudo?)")
 
@@ -889,10 +823,7 @@ def main(unused_argv):
   except AttributeError:
     raise RuntimeError("No valid config specified.")
 
-  if flags.FLAGS.subparser_name == "load_memory_drivers":
-    LoadMemoryDrivers(flags.FLAGS.share_dir, token=token)
-
-  elif flags.FLAGS.subparser_name == "generate_keys":
+  if flags.FLAGS.subparser_name == "generate_keys":
     try:
       GenerateKeys(config_lib.CONFIG)
     except RuntimeError, e:
@@ -977,22 +908,6 @@ def main(unused_argv):
   elif flags.FLAGS.subparser_name == "upload_components":
     maintenance_utils.SignAllComponents(
         overwrite=flags.FLAGS.overwrite, token=token)
-
-  elif flags.FLAGS.subparser_name == "upload_memory_driver":
-    client_context = ["Platform:%s" % flags.FLAGS.platform.title(),
-                      "Arch:%s" % flags.FLAGS.arch]
-    content = open(flags.FLAGS.file).read(1024 * 1024 * 30)
-
-    if flags.FLAGS.dest_path:
-      uploaded = maintenance_utils.UploadSignedDriverBlob(
-          content, aff4_path=flags.FLAGS.dest_path,
-          client_context=client_context, token=token)
-
-    else:
-      uploaded = maintenance_utils.UploadSignedDriverBlob(
-          content, client_context=client_context, token=token)
-
-    print "Uploaded to %s" % uploaded
 
   elif flags.FLAGS.subparser_name == "set_var":
     config = config_lib.CONFIG

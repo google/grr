@@ -8,6 +8,9 @@
 import os
 import traceback
 
+
+import mock
+
 from grr.gui import api_call_handler_utils
 from grr.gui import runtests_test
 
@@ -23,6 +26,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.flows.general import collectors
+from grr.lib.flows.general import export as flow_export
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import transfer
 from grr.lib.hunts import process_results
@@ -545,6 +549,117 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Network bytes sent stdev")
     self.WaitUntil(self.IsTextPresent, "8.6")
 
+  def testDoesNotShowPerFileDownloadButtonForNonExportableRDFValues(self):
+    values = [rdf_client.Process(pid=1),
+              rdf_client.Process(pid=42423)]
+
+    with self.ACLChecksDisabled():
+      self.CreateGenericHuntWithCollection(values=values)
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=li[heading=Results]")
+
+    self.WaitUntil(self.IsTextPresent, "42423")
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=grr-results-collection grr-downloadable-urn button")
+
+  def testShowsPerFileDownloadButtonForFileFinderHunt(self):
+    with self.ACLChecksDisabled():
+      client_id = self.SetupClients(1)[0]
+    stat_entry = rdf_client.StatEntry(aff4path=client_id.Add("fs/os/foo/bar"))
+    values = [file_finder.FileFinderResult(stat_entry=stat_entry)]
+
+    with self.ACLChecksDisabled():
+      self.CreateGenericHuntWithCollection(values=values)
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=li[heading=Results]")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-results-collection grr-downloadable-urn button")
+
+  def testShowsPerFileDownloadButtonForArtifactDownloaderHunt(self):
+    with self.ACLChecksDisabled():
+      client_id = self.SetupClients(1)[0]
+    stat_entry = rdf_client.StatEntry(aff4path=client_id.Add("fs/os/foo/bar"))
+    values = [collectors.ArtifactFilesDownloaderResult(
+        downloaded_file=stat_entry)]
+
+    with self.ACLChecksDisabled():
+      self.CreateGenericHuntWithCollection(values=values)
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=li[heading=Results]")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-results-collection grr-downloadable-urn button")
+
+  def _CreateHuntWithDownloadedFile(self):
+    with self.ACLChecksDisabled():
+      hunt = self.CreateSampleHunt(
+          path=os.path.join(self.base_path, "test.plist"),
+          client_count=1)
+
+      action_mock = action_mocks.ActionMock(
+          "TransferBuffer", "StatFile", "HashFile", "HashBuffer")
+      test_lib.TestHuntHelper(action_mock, self.client_ids, False,
+                              self.token)
+
+      return hunt
+
+  def testHuntAuthorizationIsRequiredToDownloadSingleHuntFile(self):
+    self._CreateHuntWithDownloadedFile()
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=li[heading=Results]")
+    self.Click("css=grr-results-collection grr-downloadable-urn button")
+
+    self.WaitUntil(self.IsTextPresent, "Create a new approval request")
+
+  def testDownloadsSingleHuntFileIfAuthorizationIsPresent(self):
+    hunt = self._CreateHuntWithDownloadedFile()
+    with self.ACLChecksDisabled():
+      results = aff4.FACTORY.Open(hunt.urn.Add("Results"), token=self.token)
+      fd = aff4.FACTORY.Open(flow_export.CollectionItemToAff4Path(results[0]),
+                             token=self.token)
+
+      self.GrantHuntApproval(hunt.urn)
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=li[heading=Results]")
+
+    with mock.patch.object(fd.__class__, "Read") as mock_obj:
+      self.Click("css=grr-results-collection grr-downloadable-urn button")
+      self.WaitUntil(lambda: mock_obj.called)
+
+  def testDisplaysErrorMessageIfSingleHuntFileCanNotBeRead(self):
+    hunt = self._CreateHuntWithDownloadedFile()
+    with self.ACLChecksDisabled():
+      results = aff4.FACTORY.Open(hunt.urn.Add("Results"), token=self.token)
+      aff4_path = flow_export.CollectionItemToAff4Path(results[0])
+      with aff4.FACTORY.Create(aff4_path, aff4_type=aff4.AFF4Volume.__name__,
+                               token=self.token) as _:
+        pass
+
+      self.GrantHuntApproval(hunt.urn)
+
+    self.Open("/")
+    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=td:contains('GenericHunt')")
+    self.Click("css=li[heading=Results]")
+    self.Click("css=grr-results-collection grr-downloadable-urn button")
+    self.WaitUntil(self.IsTextPresent, "Couldn't download the file.")
+
   def testDoesNotShowGenerateArchiveButtonForNonExportableRDFValues(self):
     values = [rdf_client.Process(pid=1),
               rdf_client.Process(pid=42423)]
@@ -639,14 +754,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Generation has started")
 
   def testShowsNotificationWhenArchiveGenerationIsDone(self):
+    hunt = self._CreateHuntWithDownloadedFile()
     with self.ACLChecksDisabled():
-      hunt = self.CreateSampleHunt(
-          path=os.path.join(self.base_path, "test.plist"))
-
-      action_mock = action_mocks.ActionMock(
-          "TransferBuffer", "StatFile", "HashFile", "HashBuffer")
-      test_lib.TestHuntHelper(action_mock, self.client_ids, False,
-                              self.token)
       self.GrantHuntApproval(hunt.urn)
 
     self.Open("/")
@@ -663,14 +772,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
                       "terminated due to error")
 
   def testShowsErrorMessageIfArchiveStreamingFailsBeforeFirstChunkIsSent(self):
+    hunt = self._CreateHuntWithDownloadedFile()
     with self.ACLChecksDisabled():
-      hunt = self.CreateSampleHunt(
-          path=os.path.join(self.base_path, "test.plist"))
-
-      action_mock = action_mocks.ActionMock(
-          "TransferBuffer", "StatFile", "HashFile", "HashBuffer")
-      test_lib.TestHuntHelper(action_mock, self.client_ids, False,
-                              self.token)
       self.GrantHuntApproval(hunt.urn)
 
     def RaisingStub(*unused_args, **unused_kwargs):
@@ -689,14 +792,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
                      "Archive generation failed for hunt")
 
   def testShowsNotificationIfArchiveStreamingFailsInProgress(self):
+    hunt = self._CreateHuntWithDownloadedFile()
     with self.ACLChecksDisabled():
-      hunt = self.CreateSampleHunt(
-          path=os.path.join(self.base_path, "test.plist"))
-
-      action_mock = action_mocks.ActionMock(
-          "TransferBuffer", "StatFile", "HashFile", "HashBuffer")
-      test_lib.TestHuntHelper(action_mock, self.client_ids, False,
-                              self.token)
       self.GrantHuntApproval(hunt.urn)
 
     def RaisingStub(*unused_args, **unused_kwargs):

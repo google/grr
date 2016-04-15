@@ -25,21 +25,9 @@ Client.version_minor: 1
 Client.version_revision: 0
 Client.version_release: 0
 
-
-Client.foreman_check_frequency: 600
-
-Client.poll_max: 600
-
-# Writeback for server components.
-Config.writeback: "%(Config.directory)/server.local.yaml"
-
 Datastore.security_manager: BasicAccessControlManager
 
-# Logging.domain: example.com
-
 Logging.engines: "stderr,file"
-
-Logging.path: /var/log/grr
 
 Logging.verbose: False
 
@@ -59,11 +47,10 @@ Arch:amd64:
 Arch:i386:
   Client.arch: i386
 
-Client Context:
-  # Only the client writes to a writeback location.
-  Config.writeback: /etc/%(Client.name).local.yaml
-
 ClientBuilder Context:
+  Client.foreman_check_frequency: 600
+
+  Client.poll_max: 600
 
 # Include other config files like this. An example buildconfig.yaml is supplied
 # for separating out build configuration.
@@ -105,11 +92,15 @@ ClientBuilder Context:
     PyInstaller.distpath: |
       /Users/%(USER|env)/mac-dist
 
+    Config.writeback: /etc/%(Client.name).local.yaml
+
   Target:Linux:
     Client.binary_name: grrd
 
     Client.install_path: |
       /usr/lib/%(Client.name)/%(ClientBuilder.output_basename)
+
+    Config.writeback: /etc/%(Client.name).local.yaml
 
     Client.rekall_profile_cache_path: |
       %(Client.install_path)/rekall_profiles
@@ -239,12 +230,6 @@ Platform:Darwin:
   MemoryDriver.aff4_paths:
     - "%(Config.aff4_root)/drivers/osx/memory/pmem-ng-signed"
 
-  MemoryDriver.device_path: /dev/pmem
-
-  Arch:amd64:
-    MemoryDriver.driver_files:
-      - binaries/OSXPMem-ng-signed.tar.gz
-
 Platform:Linux:
   Client.binary_name: grrd
 
@@ -253,8 +238,6 @@ Platform:Linux:
   Logging.engines: "stderr,file,syslog"
 
   Logging.syslog_path: "/dev/log"
-
-  MemoryDriver.device_path: /dev/pmem
 
 Platform:Windows:
   Client.binary_name: |
@@ -288,12 +271,6 @@ Platform:Windows:
 
   Logging.path: |
     %(WINDIR|env)\\System32\\logfiles\\
-
-  MemoryDriver.device_path: \\\\.\\pmem
-
-  MemoryDriver.display_name: grr pmem
-
-  MemoryDriver.service_name: pmem
 
   Nanny.child_binary: |
     %(Client.install_path)\\%(Client.binary_name)

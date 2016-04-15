@@ -47,3 +47,23 @@ class PamConfigEntry(structs.RDFProtoStruct):
 class PamConfig(structs.RDFProtoStruct):
   """An RDFValue representation of an entire PAM configuration."""
   protobuf = config_file_pb2.PamConfig
+
+
+class SudoersAlias(structs.RDFProtoStruct):
+  """An RDFValue representation of a sudoers alias."""
+  protobuf = config_file_pb2.SudoersAlias
+
+
+class SudoersDefault(structs.RDFProtoStruct):
+  """An RDFValue representation of a sudoers default."""
+  protobuf = config_file_pb2.SudoersDefault
+
+
+class SudoersEntry(structs.RDFProtoStruct):
+  """An RDFValue representation of a sudoers file command list entry."""
+  protobuf = config_file_pb2.SudoersEntry
+
+
+class SudoersConfig(structs.RDFProtoStruct):
+  """An RDFValue representation of a sudoers config file."""
+  protobuf = config_file_pb2.SudoersConfig

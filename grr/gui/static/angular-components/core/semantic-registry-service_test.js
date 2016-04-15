@@ -6,10 +6,14 @@ goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
 goog.scope(function() {
 
 describe('Semantic registry', function() {
-  var testRegistry;
+  var $rootScope, $q, grrReflectionService, testRegistry;
 
   beforeEach(module(grrUi.core.module.name));
   beforeEach(inject(function($injector) {
+    $rootScope = $injector.get('$rootScope');
+    $q = $injector.get('$q');
+    grrReflectionService = $injector.get('grrReflectionService');
+
     testRegistry = $injector.instantiate(
         grrUi.core.semanticRegistry.SemanticRegistryService, {});
   }));
@@ -41,6 +45,41 @@ describe('Semantic registry', function() {
            ['SomeChildType', 'SomeParentType']);
        expect(foundDirective).toBe(directive1);
      });
+
+  describe('findDirectiveByType', function() {
+    it('returns registered directive without using reflection', function(
+        done) {
+      testRegistry.registerDirective('SomeType', Object);
+      var promise = testRegistry.findDirectiveForType(
+          'SomeType');
+      promise.then(function(value) {
+        expect(value).toBe(Object);
+        done();
+      });
+      $rootScope.$apply();
+    });
+
+    it('queries reflection service for MRO if type unregistered', function(
+        done) {
+      testRegistry.registerDirective('SomeParentType', Object);
+
+      var deferred = $q.defer();
+      deferred.resolve({
+        mro: ['SomeChildType', 'SomeParentType']
+      });
+      grrReflectionService.getRDFValueDescriptor = jasmine.createSpy(
+          'getRDFValueDescriptor').and.returnValue(deferred.promise);
+
+      var promise = testRegistry.findDirectiveForType(
+          'SomeChildType');
+      promise.then(function(value) {
+        expect(grrReflectionService.getRDFValueDescriptor).toHaveBeenCalled();
+        expect(value).toBe(Object);
+        done();
+      });
+      $rootScope.$apply();
+    });
+  });
 });
 
 });  // goog.scope

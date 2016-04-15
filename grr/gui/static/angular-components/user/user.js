@@ -5,6 +5,7 @@ goog.provide('grrUi.user.module');
 goog.require('grrUi.core.module');
 goog.require('grrUi.forms.module');
 goog.require('grrUi.user.userDashboardDirective.UserDashboardDirective');
+goog.require('grrUi.user.userDesktopNotificationsDirective.UserDesktopNotificationsDirective');
 goog.require('grrUi.user.userLabelDirective.UserLabelDirective');
 goog.require('grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective');
 goog.require('grrUi.user.userNotificationDialogDirective.UserNotificationDialogDirective');
@@ -23,6 +24,9 @@ grrUi.user.module.directive(
     grrUi.user.userDashboardDirective.UserDashboardDirective
         .directive_name,
     grrUi.user.userDashboardDirective.UserDashboardDirective);
+grrUi.core.module.directive(
+    grrUi.user.userDesktopNotificationsDirective.UserDesktopNotificationsDirective.directive_name,
+    grrUi.user.userDesktopNotificationsDirective.UserDesktopNotificationsDirective);
 grrUi.core.module.directive(
     grrUi.user.userLabelDirective.UserLabelDirective.directive_name,
     grrUi.user.userLabelDirective.UserLabelDirective);

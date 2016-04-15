@@ -5,6 +5,7 @@
 from grr.endtoend_tests import base
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import client_fixture
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
@@ -14,7 +15,6 @@ from grr.lib.flows.general import endtoend as endtoend_flows
 from grr.lib.flows.general import endtoend_test
 from grr.lib.rdfvalues import client as client_rdf
 from grr.lib.rdfvalues import flows
-from grr.test_data import client_fixture
 
 
 class SystemCronFlowTest(test_lib.FlowTestsBaseclass):

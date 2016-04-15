@@ -356,7 +356,7 @@ class ApiGetPendingUserNotificationsHandler(
   result_type = ApiGetPendingUserNotificationsResult
 
   def Handle(self, args, token=None):
-    """Fetches the pending notification count."""
+    """Fetches the pending notifications."""
 
     user_record = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(token.username), aff4_type="GRRUser",
@@ -369,6 +369,25 @@ class ApiGetPendingUserNotificationsHandler(
               if n.timestamp > args.timestamp]
 
     return ApiGetPendingUserNotificationsResult(items=result)
+
+
+class ApiDeletePendingUserNotificationArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiDeletePendingUserNotificationArgs
+
+
+class ApiDeletePendingUserNotificationHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Removes the pending notification with the given timestamp."""
+
+  category = CATEGORY
+  args_type = ApiDeletePendingUserNotificationArgs
+
+  def Handle(self, args, token=None):
+    """Deletes the notification from the pending notifications."""
+    with aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(token.username), aff4_type="GRRUser",
+        mode="rw", token=token) as user_record:
+      user_record.DeletePendingNotification(args.timestamp)
 
 
 class ApiGetAndResetUserNotificationsArgs(rdf_structs.RDFProtoStruct):

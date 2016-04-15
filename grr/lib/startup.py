@@ -106,15 +106,18 @@ def Init():
   ServerLoggingStartupInit()
   registry.Init()
 
-  if config_lib.CONFIG["Server.username"] != "root":
+  INIT_RAN = True
+
+
+def DropPrivileges():
+  """Attempt to drop privileges if required."""
+  if config_lib.CONFIG["Server.username"]:
     try:
       os.setuid(pwd.getpwnam(config_lib.CONFIG["Server.username"]).pw_uid)
     except (KeyError, OSError):
       logging.exception("Unable to switch to user %s",
                         config_lib.CONFIG["Server.username"])
       raise
-
-  INIT_RAN = True
 
 
 def TestInit():
@@ -126,9 +129,11 @@ def TestInit():
   if stats.STATS is None:
     stats.STATS = stats.StatsCollector()
 
-  flags.FLAGS.config = config_lib.CONFIG["Test.config"]
-  flags.FLAGS.secondary_configs = [
-      os.path.join(config_lib.CONFIG["Test.data_dir"], "grr_test.yaml")]
+  flags.FLAGS.config = config_lib.Resource().Filter(
+      "grr/config/grr-server.yaml")
+
+  flags.FLAGS.secondary_configs = [config_lib.Resource().Filter(
+      "test_data/grr_test.yaml")]
 
   # We are running a test so let the config system know that.
   config_lib.CONFIG.AddContext(

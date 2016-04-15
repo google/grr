@@ -697,13 +697,13 @@ class TestHostTable(SearchClientTestBase):
 
     # Check that all 3 client ids are shown in the dialog.
     self.WaitUntil(self.IsVisible,
-                   "css=div[name=AddClientsLabelsDialog]:"
+                   "css=*[name=AddClientsLabelsDialog]:"
                    "contains('C.0000000000000001')")
     self.WaitUntil(self.IsVisible,
-                   "css=div[name=AddClientsLabelsDialog]:"
+                   "css=*[name=AddClientsLabelsDialog]:"
                    "contains('C.0000000000000003')")
     self.WaitUntil(self.IsVisible,
-                   "css=div[name=AddClientsLabelsDialog]:"
+                   "css=*[name=AddClientsLabelsDialog]:"
                    "contains('C.0000000000000007')")
 
   def testAddClientsLabelsDialogShowsErrorWhenAddingLabelWithComma(self):
@@ -715,14 +715,14 @@ class TestHostTable(SearchClientTestBase):
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Type label name
-    self.Type("css=div[name=AddClientsLabelsDialog] input[name=labelBox]",
+    self.Type("css=*[name=AddClientsLabelsDialog] input[name=labelBox]",
               "a,b")
 
     # Click proceed and check that error message is displayed and that
     # dialog is not going away.
-    self.Click("css=div[name=AddClientsLabelsDialog] button[name=Proceed]")
+    self.Click("css=*[name=AddClientsLabelsDialog] button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Label name can only contain")
-    self.WaitUntil(self.IsVisible, "css=div[name=AddClientsLabelsDialog]")
+    self.WaitUntil(self.IsVisible, "css=*[name=AddClientsLabelsDialog]")
 
   def testLabelIsAppliedCorrectlyViaAddClientsLabelsDialog(self):
     self.Open("/#main=HostTable")
@@ -733,21 +733,21 @@ class TestHostTable(SearchClientTestBase):
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Type label name.
-    self.Type("css=div[name=AddClientsLabelsDialog] input[name=labelBox]",
+    self.Type("css=*[name=AddClientsLabelsDialog] input[name=labelBox]",
               "issue 42")
 
     # Click proceed and check that success message is displayed and that
     # proceed button is replaced with close button.
-    self.Click("css=div[name=AddClientsLabelsDialog] button[name=Proceed]")
+    self.Click("css=*[name=AddClientsLabelsDialog] button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Label was successfully added")
     self.WaitUntilNot(self.IsVisible,
-                      "css=div[name=AddClientsLabelsDialog] "
+                      "css=*[name=AddClientsLabelsDialog] "
                       "button[name=Proceed]")
 
     # Click on "Close" button and check that dialog has disappeared.
-    self.Click("css=div[name=AddClientsLabelsDialog] button[name=Close]")
+    self.Click("css=*[name=AddClientsLabelsDialog] button[name=Close]")
     self.WaitUntilNot(self.IsVisible,
-                      "css=div[name=AddClientsLabelsDialog]")
+                      "css=*[name=AddClientsLabelsDialog]")
 
     # Check that label has appeared in the clients list.
     self.WaitUntil(self.IsVisible,
@@ -765,21 +765,21 @@ class TestHostTable(SearchClientTestBase):
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Type label name.
-    self.Type("css=div[name=AddClientsLabelsDialog] input[name=labelBox]",
+    self.Type("css=*[name=AddClientsLabelsDialog] input[name=labelBox]",
               "issue 42")
 
     # Click proceed and check that success message is displayed and that
     # proceed button is replaced with close button.
-    self.Click("css=div[name=AddClientsLabelsDialog] button[name=Proceed]")
+    self.Click("css=*[name=AddClientsLabelsDialog] button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Label was successfully added")
     self.WaitUntilNot(self.IsVisible,
-                      "css=div[name=AddClientsLabelsDialog] "
+                      "css=*[name=AddClientsLabelsDialog] "
                       "button[name=Proceed]")
 
     # Click on "Close" button and check that dialog has disappeared.
-    self.Click("css=div[name=AddClientsLabelsDialog] button[name=Close]")
+    self.Click("css=*[name=AddClientsLabelsDialog] button[name=Close]")
     self.WaitUntilNot(self.IsVisible,
-                      "css=div[name=AddClientsLabelsDialog]")
+                      "css=*[name=AddClientsLabelsDialog]")
 
     # Search using the new label and check that the labeled clients are shown.
     self.Open("/#main=HostTable&q=label:\"issue 42\"")
@@ -795,7 +795,7 @@ class TestHostTable(SearchClientTestBase):
     # The label should already be prefilled in the dropdown.
     self.WaitUntil(self.IsTextPresent, "issue 42")
 
-    self.Click("css=div[name=RemoveClientsLabelsDialog] button[name=Proceed]")
+    self.Click("css=*[name=RemoveClientsLabelsDialog] button[name=Proceed]")
 
     # Open client search with label and check that labeled client is not shown
     # anymore.
@@ -814,9 +814,9 @@ class TestHostTable(SearchClientTestBase):
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Click on "Cancel" button and check that dialog has disappeared.
-    self.Click("css=div[name=AddClientsLabelsDialog] button[name=Cancel]")
+    self.Click("css=*[name=AddClientsLabelsDialog] button[name=Cancel]")
     self.WaitUntilNot(self.IsVisible,
-                      "css=div[name=AddClientsLabelsDialog]")
+                      "css=*[name=AddClientsLabelsDialog]")
 
     # Ensure that checkbox is still checked
     self.WaitUntil(self.IsVisible,
@@ -832,10 +832,10 @@ class TestHostTable(SearchClientTestBase):
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Type label name, click on "Proceed" and "Close" buttons.
-    self.Type("css=div[name=AddClientsLabelsDialog] input[name=labelBox]",
+    self.Type("css=*[name=AddClientsLabelsDialog] input[name=labelBox]",
               "issue 42")
-    self.Click("css=div[name=AddClientsLabelsDialog] button[name=Proceed]")
-    self.Click("css=div[name=AddClientsLabelsDialog] button[name=Close]")
+    self.Click("css=*[name=AddClientsLabelsDialog] button[name=Proceed]")
+    self.Click("css=*[name=AddClientsLabelsDialog] button[name=Close]")
 
     # Ensure that checkbox is not checked anymore.
     self.WaitUntil(self.IsVisible,
@@ -899,13 +899,13 @@ class TestHostTable(SearchClientTestBase):
 
     # Check that client ids are shown in the dialog.
     self.WaitUntil(self.IsVisible,
-                   "css=div[name=AddClientsLabelsDialog]:"
+                   "css=*[name=AddClientsLabelsDialog]:"
                    "contains('C.0000000000000001')")
     self.WaitUntil(self.IsVisible,
-                   "css=div[name=AddClientsLabelsDialog]:"
+                   "css=*[name=AddClientsLabelsDialog]:"
                    "contains('C.0000000000000004')")
     self.WaitUntil(self.IsVisible,
-                   "css=div[name=AddClientsLabelsDialog]:"
+                   "css=*[name=AddClientsLabelsDialog]:"
                    "contains('C.0000000000000007')")
 
 

@@ -98,6 +98,13 @@ SemanticRegistryService.prototype.findDirectiveForMro = function(mro) {
  * @export
  */
 SemanticRegistryService.prototype.findDirectiveForType = function(type) {
+  // If we have an exact match, no need for the MRO check.
+  if (angular.isDefined(this.directivesByType_[type])) {
+    var deferred = this.q_.defer();
+    deferred.resolve(this.directivesByType_[type]);
+    return deferred.promise;
+  }
+
   var handleDescriptor = function(descriptor) {
     var directive = this.findDirectiveForMro(descriptor['mro']);
     if (angular.isDefined(directive)) {

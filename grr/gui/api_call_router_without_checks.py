@@ -201,6 +201,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def GetHuntFilesArchive(self, args, token=None):
     return api_hunt.ApiGetHuntFilesArchiveHandler()
 
+  def GetHuntFile(self, args, token=None):
+    return api_hunt.ApiGetHuntFileHandler()
+
   # Stats metrics methods.
   # =====================
   #
@@ -239,6 +242,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
 
   def GetPendingUserNotifications(self, args, token=None):
     return api_user.ApiGetPendingUserNotificationsHandler()
+
+  def DeletePendingUserNotification(self, args, token=None):
+    return api_user.ApiDeletePendingUserNotificationHandler()
 
   def GetAndResetUserNotifications(self, args, token=None):
     return api_user.ApiGetAndResetUserNotificationsHandler()

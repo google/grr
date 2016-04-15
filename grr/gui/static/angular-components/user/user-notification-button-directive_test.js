@@ -28,16 +28,16 @@ describe('User notification button directive', function() {
     return element;
   };
 
-  var mockApiServiceReponse = function(value){
+  var mockApiServiceResponse = function(value){
     spyOn(grrApiService, 'get').and.callFake(function() {
       var deferred = $q.defer();
       deferred.resolve({ data: { count: value }});
       return deferred.promise;
     });
-  }
+  };
 
   it('fetches pending notifications count and displays an info-styled button on 0', function() {
-    mockApiServiceReponse(0);
+    mockApiServiceResponse(0);
 
     var element = render();
     $interval.flush(FETCH_INTERVAL);
@@ -47,7 +47,7 @@ describe('User notification button directive', function() {
   });
 
   it('non-zero notifications count is shown as danger-styled button', function() {
-    mockApiServiceReponse(5);
+    mockApiServiceResponse(5);
 
     var element = render();
     $interval.flush(FETCH_INTERVAL);

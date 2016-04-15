@@ -26,7 +26,7 @@ setup(
         ]
     },
     install_requires=[
-        "grr-response-core[Server,test]",
+        "grr-response-core[Server]",
         "grr-response-client",
     ],
 

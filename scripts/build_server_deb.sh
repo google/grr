@@ -7,12 +7,18 @@ if [[ "$CURDIR" != "grr" || ! -e "setup.py" ]]; then
   exit 1
 fi
 
-sudo rm -rf ./debian
-sudo cp -r config/debian/dpkg_server ./debian
-cd proto && make
-cd -
+SOURCE=$PWD
+
+# Build the deb in a standalone directory outside the package tree.
+mkdir -p build
+cd build
+rm -rf ./debian ./build ./dist
+cp -r "$SOURCE/grr/config/debian/dpkg_server" ./debian
+cp debian/setup.py .
 
 # Internet access is required to download the latest artifacts
-cd artifacts && make
+dpkg-buildpackage -rfakeroot
+
+# Tear down the build directory.
 cd -
-sudo dpkg-buildpackage -rfakeroot
+rm -rf build

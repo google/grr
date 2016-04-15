@@ -209,11 +209,17 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
         self.router.CreateGlobalFlow, "CheckIfCanStartFlow", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
-      "GetHuntFilesArchive"
+      "GetHuntFilesArchive",
+      "GetHuntFile"
   ])
 
   def testGetHuntFilesArchiveIsAccessChecked(self):
     args = api_hunt.ApiGetHuntFilesArchiveArgs(hunt_id="H:123456")
+    self.CheckMethodIsAccessChecked(
+        self.router.GetHuntFilesArchive, "CheckHuntAccess", args=args)
+
+  def testGetHuntFileIsAccessChecked(self):
+    args = api_hunt.ApiGetHuntFileArgs(hunt_id="H:123456")
     self.CheckMethodIsAccessChecked(
         self.router.GetHuntFilesArchive, "CheckHuntAccess", args=args)
 

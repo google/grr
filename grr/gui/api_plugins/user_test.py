@@ -12,6 +12,7 @@ from grr.lib import email_alerts
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import hunts
+from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 
@@ -503,6 +504,97 @@ class ApiGetPendingUserNotificationsHandlerRegressionTest(
     base_url = "/api/users/me/notifications/pending"
     self.Check("GET", base_url)
     self.Check("GET", base_url + "?timestamp=43000000")
+
+
+class ApiDeletePendingUserNotificationHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiDeletePendingUserNotificationHandler."""
+
+  TIME_0 = rdfvalue.RDFDatetime(42 * rdfvalue.MICROSECONDS)
+  TIME_1 = TIME_0 + rdfvalue.Duration("1d")
+  TIME_2 = TIME_1 + rdfvalue.Duration("1d")
+
+  def setUp(self):
+    super(ApiDeletePendingUserNotificationHandlerTest, self).setUp()
+    self.handler = user_plugin.ApiDeletePendingUserNotificationHandler()
+    self.client_id = self.SetupClients(1)[0]
+
+    with test_lib.FakeTime(self.TIME_0):
+      self._SendNotification(notification_type="Discovery",
+                             subject=str(self.client_id),
+                             message="<some message>",
+                             client_id=self.client_id)
+
+      self._SendNotification(notification_type="Discovery",
+                             subject=str(self.client_id),
+                             message="<some message with identical time>",
+                             client_id=self.client_id)
+
+    with test_lib.FakeTime(self.TIME_1):
+      self._SendNotification(notification_type="ViewObject",
+                             subject=str(self.client_id),
+                             message="<some other message>",
+                             client_id=self.client_id)
+
+  def _GetNotifications(self):
+    user_record = aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(self.token.username),
+        aff4_type="GRRUser", mode="r", token=self.token)
+
+    pending = user_record.Get(user_record.Schema.PENDING_NOTIFICATIONS)
+    shown = user_record.Get(user_record.Schema.SHOWN_NOTIFICATIONS)
+    return (pending, shown)
+
+  def testDeletesFromPendingAndAddsToShown(self):
+    # Check that there are three pending notifications and no shown ones yet.
+    (pending, shown) = self._GetNotifications()
+    self.assertEqual(len(pending), 3)
+    self.assertEqual(len(shown), 0)
+
+    # Delete a pending notification.
+    args = user_plugin.ApiDeletePendingUserNotificationArgs(
+        timestamp=self.TIME_1)
+    self.handler.Handle(args, token=self.token)
+
+    # After the deletion, two notifications should be pending and one shown.
+    (pending, shown) = self._GetNotifications()
+    self.assertEqual(len(pending), 2)
+    self.assertEqual(len(shown), 1)
+    self.assertTrue("<some other message>" in shown[0].message)
+    self.assertEqual(shown[0].timestamp, self.TIME_1)
+
+  def testRaisesOnDeletingMultipleNotifications(self):
+    # Check that there are three pending notifications and no shown ones yet.
+    (pending, shown) = self._GetNotifications()
+    self.assertEqual(len(pending), 3)
+    self.assertEqual(len(shown), 0)
+
+    # Delete all pending notifications on TIME_0.
+    args = user_plugin.ApiDeletePendingUserNotificationArgs(
+        timestamp=self.TIME_0)
+    with self.assertRaises(aff4_users.UniqueKeyError):
+      self.handler.Handle(args, token=self.token)
+
+    # Check that the notifications were not changed in the process.
+    (pending, shown) = self._GetNotifications()
+    self.assertEqual(len(pending), 3)
+    self.assertEqual(len(shown), 0)
+
+  def testUnknownTimestampIsIgnored(self):
+    # Check that there are three pending notifications and no shown ones yet.
+    (pending, shown) = self._GetNotifications()
+    self.assertEqual(len(pending), 3)
+    self.assertEqual(len(shown), 0)
+
+    # A timestamp not matching any pending notifications does not change any of
+    # the collections.
+    args = user_plugin.ApiDeletePendingUserNotificationArgs(
+        timestamp=self.TIME_2)
+    self.handler.Handle(args, token=self.token)
+
+    # We should still have the same number of pending and shown notifications.
+    (pending, shown) = self._GetNotifications()
+    self.assertEqual(len(pending), 3)
+    self.assertEqual(len(shown), 0)
 
 
 class ApiGetAndResetUserNotificationsHandlerRegressionTest(

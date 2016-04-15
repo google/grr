@@ -14,12 +14,11 @@ goog.scope(function() {
  * @constructor
  * @ngInject
  */
-grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorController =
-    function($scope) {
-
+grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 };
+
 var ArtifactDescriptorController =
     grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorController;
 
@@ -32,8 +31,7 @@ var ArtifactDescriptorController =
  * @ngInject
  * @export
  */
-grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorDirective =
-    function() {
+grrUi.artifact.artifactDescriptorDirective.ArtifactDescriptorDirective = function() {
   return {
     scope: {
       value: '=',

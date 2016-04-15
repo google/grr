@@ -2,14 +2,14 @@
 # debian/rules that uses debhelper >= 8.
 
 # Uncomment this to turn on verbose mode.
-# export DH_VERBOSE=1
+export DH_VERBOSE=1
 
 # This has to be exported to make some magic below work.
 export DH_OPTIONS
-
+export DH_VIRTUALENV_INSTALL_ROOT=/usr/share/
 
 %:
-	dh $@
+	dh $@  --with python-virtualenv
 
 dh_python2:
 
@@ -22,9 +22,11 @@ override_dh_auto_test:
 
 override_dh_installinit:
 	dh_installinit
-	./scripts/install_server_from_src.sh -s -i debian/grr-server
+	bash ../scripts/install_server_from_src.sh -r .. -i debian/grr-server
 	# Add post installation instructions
 	cat debian/grr-server.postinst.in >> debian/grr-server.postinst.debhelper
+
+override_dh_installdocs:
 
 override_dh_installmenu:
 
@@ -53,3 +55,8 @@ override_dh_gconf:
 override_dh_icons:
 
 override_dh_perl:
+
+override_dh_virtualenv:
+	dh_virtualenv --preinstall 'setuptools>20' --preinstall 'pip>=8.1.1,<9' --preinstall 'wheel'
+
+

@@ -174,8 +174,7 @@ SemanticValueController.prototype.onValueChange = function() {
       var continuation = value.slice(10);
       this.scope_.repeatedValue = value.slice(0, 10);
       this.scope_.repeatedValue.push({
-        type: 'FetchMoreLink',
-        mro: ['FetchMoreLink'],
+        type: '__FetchMoreLink',
         value: continuation
       });
     } else {

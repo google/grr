@@ -12,21 +12,21 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
  * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!grrUi.artifact.artifactDialogService.ArtifactDialogService} grrArtifactDialogService
  * @ngInject
  */
 grrUi.artifact.artifactManagerViewDirective.ArtifactManagerViewController =
-    function($scope, $modal, grrApiService) {
+    function($scope, grrApiService, grrArtifactDialogService) {
 
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!angularUi.$modal} */
-  this.modal_ = $modal;
-
  /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
+
+  /** @private {!grrUi.artifact.artifactDialogService.ArtifactDialogService} */
+  this.grrArtifactDialogService_ = grrArtifactDialogService;
 
   /**
    * This variable is bound to grr-infinite-table's trigger-update attribute
@@ -101,13 +101,8 @@ ArtifactManagerViewController.prototype.selectAll = function() {
  * @export
  */
 ArtifactManagerViewController.prototype.upload = function() {
-  var modalInstance = this.modal_.open({
-    template: '<grr-upload-artifact-dialog close="$close()" ' +
-        'dismiss="$dismiss()" />',
-    scope: this.scope_
-  });
-
-  modalInstance.result.then(function resolve() {
+  var result = this.grrArtifactDialogService_.openUploadArtifact();
+  result.then(function resolve() {
     this.triggerUpdate();
   }.bind(this));
 };
@@ -119,26 +114,15 @@ ArtifactManagerViewController.prototype.upload = function() {
  * @export
  */
 ArtifactManagerViewController.prototype.deleteSelected = function() {
-  var modalScope = this.scope_.$new();
-  this.scope_.$on('$destroy', function() {
-    modalScope.$destroy();
-  });
-
   var namesToDelete = [];
   for (var name in this.selectedDescriptors) {
     if (this.selectedDescriptors[name]) {
       namesToDelete.push(name);
     }
   }
-  modalScope.names = namesToDelete;
 
-  var modalInstance = this.modal_.open({
-    template: '<grr-delete-artifacts-dialog close="$close()" ' +
-        'dismiss="$dismiss()" names="names" />',
-    scope: modalScope
-  });
-
-  modalInstance.result.then(function resolve() {
+  var result = this.grrArtifactDialogService_.openDeleteArtifacts(namesToDelete);
+  result.then(function resolve() {
     this.selectedDescriptors = {};
     this.numSelectedDescriptors = 0;
     this.triggerUpdate();

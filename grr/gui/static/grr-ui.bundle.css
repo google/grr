@@ -26,7 +26,8 @@ grr-file-hex-view table .offset {
 grr-file-hex-view table td {
   vertical-align: top !important; }
 grr-file-hex-view table .data {
-  padding-left: 2ex; }
+  padding-left: 2ex;
+  white-space: nowrap; }
 grr-file-hex-view .no-content {
   text-align: center;
   margin-top: 50px;

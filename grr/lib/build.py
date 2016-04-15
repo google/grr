@@ -264,16 +264,13 @@ class ClientDeployer(BuilderBase):
       if not url.startswith("http"):
         errors.append("Bad Client.server_urls specified %s" % url)
 
-    keys = ["Client.executable_signing_public_key",
-            "Client.driver_signing_public_key"]
-    for key in keys:
-      key_data = config.GetRaw(key, default=None, context=self.context)
-      if key_data is None:
-        errors.append("Missing private %s." % key)
-        continue
-
-      if not key_data.startswith("-----BEGIN PUBLIC"):
-        errors.append("Invalid private %s" % key)
+    key_data = config.GetRaw("Client.executable_signing_public_key",
+                             default=None, context=self.context)
+    if key_data is None:
+      errors.append("Missing Client.executable_signing_public_key.")
+    elif not key_data.startswith("-----BEGIN PUBLIC"):
+      errors.append(
+          "Invalid Client.executable_signing_public_key: %s" % key_data)
 
     certificate = config.GetRaw("CA.certificate", default=None,
                                 context=self.context)
@@ -689,7 +686,7 @@ class LinuxClientDeployer(ClientDeployer):
 
       try:
         os.chdir(template_dir)
-        command = [buildpackage_binary, "-d", "-b", "-a%s" % arch]
+        command = [buildpackage_binary, "-uc", "-d", "-b", "-a%s" % arch]
 
         try:
           subprocess.check_output(command, stderr=subprocess.STDOUT)

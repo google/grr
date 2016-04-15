@@ -229,7 +229,8 @@ def RenderHelp(request, path, document_root=None, content_type=None):
         static_handler_components[0:-1]))
     static_handler = getattr(static_handler_module,
                              static_handler_components[-1])
-    return static_handler(request, path, document_root=urls.help_root)
+    return static_handler(
+        request, path, document_root=config_lib.CONFIG["AdminUI.help_root"])
 
 
 def BuildToken(request, execution_time):

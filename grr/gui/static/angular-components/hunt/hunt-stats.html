@@ -1,6 +1,6 @@
 <h3>Total number of clients: {$ ::controller.totalClientCount $}</h3>
 
-<h3>User CPU</h3>
+<h3>User CPU seconds</h3>
 <dl class="dl-horizontal">
   <dt>User CPU mean</dt>
   <dd>{$ ::controller.userCpuStats.mean | number:1 $}</dd>
@@ -14,7 +14,7 @@
   </dd>
 </dl>
 
-<h3>System CPU</h3>
+<h3>System CPU seconds</h3>
 <dl class="dl-horizontal">
   <dt>System CPU mean</dt>
   <dd>{$ ::controller.systemCpuStats.mean | number:1 $}</dd>
@@ -46,8 +46,8 @@
 <table class="table table-condensed table-striped table-bordered">
   <thead>
     <th>Client Id</th>
-    <th>User CPU</th>
-    <th>System CPU</th>
+    <th>User CPU seconds</th>
+    <th>System CPU seconds</th>
     <th>Network bytes sent</th>
   </thead>
   <tbody>

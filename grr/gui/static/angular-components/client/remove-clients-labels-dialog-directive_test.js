@@ -11,6 +11,8 @@ describe('remove clients labels dialog', function() {
 
   beforeEach(module('/static/angular-components/client/' +
       'remove-clients-labels-dialog.html'));
+  beforeEach(module('/static/angular-components/core/' +
+      'confirmation-dialog.html'));
   // TODO(user): get rid of references to nested directives
   // templates in tests that do not test these nested directives. I.e. here
   // grr-client-urn directive is used and its template has to be
@@ -33,13 +35,11 @@ describe('remove clients labels dialog', function() {
 
   var renderTestTemplate = function(clients) {
     $rootScope.clients = clients;
-    $rootScope.onClose = closeSpy;
-    $rootScope.onDismiss = dismissSpy;
+    $rootScope.$close = closeSpy;
+    $rootScope.$dismiss = dismissSpy;
 
     var template = '<grr-remove-clients-labels-dialog ' +
-        'clients="clients" ' +
-        'close="onClose()" ' +
-        'dismiss="onDismiss()" />';
+        'clients="clients" />';
 
     var element = $compile(template)($rootScope);
     $rootScope.$apply();

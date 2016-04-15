@@ -70,6 +70,22 @@ class SequentialCollectionTest(test_lib.AFF4ObjectTest):
       self.assertEqual(even_results[0], 0)
       self.assertEqual(even_results[49], 98)
 
+  def testDelete(self):
+    with aff4.FACTORY.Create("aff4:/sequential_collection/testDelete",
+                             "TestSequentialCollection",
+                             token=self.token) as collection:
+      for i in range(100):
+        collection.Add(rdfvalue.RDFInteger(i))
+
+    aff4.FACTORY.Delete("aff4:/sequential_collection/testDelete",
+                        token=self.token)
+
+    with aff4.FACTORY.Create("aff4:/sequential_collection/testDelete",
+                             "TestSequentialCollection",
+                             token=self.token) as collection:
+      for _ in collection.Scan():
+        self.fail("Deleted and recreated SequentialCollection should be empty")
+
 
 class TestIndexedSequentialCollection(
     sequential_collection.IndexedSequentialCollection):

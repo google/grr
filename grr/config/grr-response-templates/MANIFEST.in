@@ -1,0 +1,3 @@
+recursive-include components *.bin
+recursive-include templates *.zip
+recursive-include templates *.xar

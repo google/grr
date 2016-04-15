@@ -56,6 +56,7 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_registry
+from grr.lib import client_fixture
 from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -105,7 +106,7 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import tests_pb2
-from grr.test_data import client_fixture
+
 
 flags.DEFINE_list("tests", None,
                   help=("Test module to run. If not specified we run"
@@ -956,10 +957,19 @@ class FakeTime(object):
       return self.time
 
     time.time = Time
+
+    self.old_strftime = time.strftime
+
+    def Strftime(form, t=time.localtime(Time())):
+      return self.old_strftime(form, t)
+
+    time.strftime = Strftime
+
     return self
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     time.time = self.old_time
+    time.strftime = self.old_strftime
 
 
 class FakeDateTimeUTC(object):

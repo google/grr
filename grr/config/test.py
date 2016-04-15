@@ -1,23 +1,16 @@
 #!/usr/bin/env python
 """Configuration parameters for the test subsystem."""
-import os
 from grr.lib import config_lib
 
 # Default for running in the current directory
 config_lib.DEFINE_constant_string(
-    "Test.srcdir",
-    os.path.normpath(os.path.dirname(__file__) + "/../.."),
+    "Test.srcdir", "%(grr|module_path)/../",
     "The directory containing the source code.")
 
 config_lib.DEFINE_constant_string(
     "Test.data_dir",
-    default="%(Test.srcdir)/grr/test_data",
+    default="%(test_data|resource)",
     help="The directory where test data exist.")
-
-config_lib.DEFINE_constant_string(
-    "Test.config",
-    default="%(Test.srcdir)/grr/config/grr-server.yaml",
-    help="The path where the test configuration file exists.")
 
 config_lib.DEFINE_constant_string(
     "Test.additional_test_config",

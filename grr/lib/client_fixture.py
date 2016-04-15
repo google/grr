@@ -7,7 +7,7 @@
 # For VFSGRRClient, etc. pylint: disable=unused-import
 from grr.lib.aff4_objects import aff4_grr as _
 # pylint: enable=unused-import
-from grr.lib.rdfvalues import client as _
+
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
 

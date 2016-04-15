@@ -93,18 +93,25 @@ FileHexViewController.prototype.fetchText_ = function() {
   var fileVersion = this.scope_['fileVersion'];
 
   var url = 'clients/' + clientId + '/vfs-blob/' + filePath;
-  var params = {};
-  params['offset'] = this.offset_;
-  params['length'] = this.chunkSize_;
+  var headParams = {};
   if (fileVersion) {
-    params['timestamp'] = fileVersion;
+    headParams['timestamp'] = fileVersion;
   }
 
-  this.grrApiService_.get(url, params).then(function(response) {
-    this.parseFileContentToHexRepresentation_(response.data['content']);
-
-    var total_size = response.data['total_size'];
+  // We first need to get the content length via HEAD, passing no offset and no length.
+  this.grrApiService_.head(url, headParams).then(function(response) {
+    var total_size = response.headers('Content-Length');
     this.pageCount = Math.ceil(total_size / this.chunkSize_);
+
+    var params = {};
+    params['offset'] = this.offset_;
+    params['length'] = this.chunkSize_;
+    if (fileVersion) {
+      params['timestamp'] = fileVersion;
+    }
+    return this.grrApiService_.get(url, params);
+  }.bind(this)).then(function(response) {
+    this.parseFileContentToHexRepresentation_(response.data);
   }.bind(this));
 };
 

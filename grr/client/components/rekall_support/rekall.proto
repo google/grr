@@ -53,7 +53,7 @@ message RekallRequest {
     }];
 }
 
-// Next field: 8
+// Next field: 9
 message RekallResponse {
   // Deprecated. Anything written in this field will be compressed and placed
   // into the compressed_json_messages field upon serialization.
@@ -79,6 +79,11 @@ message RekallResponse {
   optional string repository_version = 6 [(sem_type) = {
       description: "The version of the repository we want to use."
     }, default="v1.0"];
+
+  repeated string downloaded_files = 8 [(sem_type) = {
+      description: "A list of downloaded files.",
+      type: "RDFURN",
+    }];
 }
 
 message RekallProfile {

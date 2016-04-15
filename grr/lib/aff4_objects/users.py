@@ -16,6 +16,14 @@ from grr.proto import flows_pb2
 from grr.proto import jobs_pb2
 
 
+class Error(Exception):
+  pass
+
+
+class UniqueKeyError(Error):
+  pass
+
+
 class GlobalNotification(rdf_structs.RDFProtoStruct):
   """Global notification shown to all the users of GRR."""
 
@@ -196,6 +204,38 @@ class GRRUser(aff4.AFF4Object):
       pending.Pop(0)
 
     self.Set(self.Schema.PENDING_NOTIFICATIONS, pending)
+
+  def DeletePendingNotification(self, timestamp):
+    """Deletes the pending notification with the given timestamp.
+
+    Args:
+      timestamp: The timestamp of the notification. Assumed to be unique.
+
+    Raises:
+      UniqueKeyError: Raised if multiple notifications have the timestamp.
+    """
+    shown_notifications = self.Get(self.Schema.SHOWN_NOTIFICATIONS)
+    if not shown_notifications:
+      shown_notifications = self.Schema.SHOWN_NOTIFICATIONS()
+
+    pending = self.Get(self.Schema.PENDING_NOTIFICATIONS)
+    if not pending:
+      return
+
+    # Remove all notifications with the given timestamp from pending
+    # and add them to the shown notifications.
+    delete_count = 0
+    for idx in reversed(range(0, len(pending))):
+      if pending[idx].timestamp == timestamp:
+        shown_notifications.Append(pending[idx])
+        pending.Pop(idx)
+        delete_count += 1
+
+    if delete_count > 1:
+      raise UniqueKeyError("Multiple notifications at %s" % timestamp)
+
+    self.Set(self.Schema.PENDING_NOTIFICATIONS, pending)
+    self.Set(self.Schema.SHOWN_NOTIFICATIONS, shown_notifications)
 
   def ShowNotifications(self, reset=True):
     """A generator of current notifications."""

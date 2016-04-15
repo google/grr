@@ -11,52 +11,55 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
+ * @param {!angular.$q} $q
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogController =
-    function($scope, grrApiService) {
-      /** @private {!angular.Scope} */
-      this.scope_ = $scope;
+grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogController = function($scope, $q, grrApiService) {
+  /** @private {!angular.Scope} */
+  this.scope_ = $scope;
 
-      /** @private {!grrUi.core.apiService.ApiService} */
-      this.grrApiService_ = grrApiService;
+  /** @private {!angular.$q} */
+  this.q_ = $q;
 
-      /** @export {?string} */
-      this.labelName;
+  /** @private {!grrUi.core.apiService.ApiService} */
+  this.grrApiService_ = grrApiService;
 
-      /** @export {?string} */
-      this.error;
-
-      /** @export {?string} */
-      this.success;
-    };
+  /** @export {?string} */
+  this.labelName;
+};
 
 var AddClientsLabelsDialogController =
-    grrUi.client.addClientsLabelsDialogDirective
-    .AddClientsLabelsDialogController;
+    grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogController;
 
 
 /**
  * Sends /label/add request to the server.
  *
+ * @return {!angular.$q.Promise} A promise indicating success or failure.
  * @export
  */
 AddClientsLabelsDialogController.prototype.proceed = function() {
   var clients = [];
-  angular.forEach(this.scope_.clients, function(clientObj) {
+  angular.forEach(this.scope_['clients'], function(clientObj) {
     clients.push(clientObj['value']['urn']['value']);
   });
 
-  this.grrApiService_.post(
-      '/clients/labels/add',
-      {client_ids: clients, labels: [this.labelName]}).then(
-          function success() {
-            this.success = 'Label was successfully added.';
-          }.bind(this),
-          function failure(response) {
-            this.error = response.data.message;
-          }.bind(this));
+  var deferred = this.q_.defer();
+  var url = '/clients/labels/add';
+  var params = {
+    client_ids: clients,
+    labels: [this.labelName]
+  };
+  this.grrApiService_.post(url, params).then(
+    function success() {
+      deferred.resolve('Label was successfully added.');
+    }.bind(this),
+    function failure(response) {
+      deferred.reject(response.data.message);
+    }.bind(this));
+
+  return deferred.promise;
 };
 
 
@@ -65,21 +68,18 @@ AddClientsLabelsDialogController.prototype.proceed = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective =
-    function() {
-      return {
-        scope: {
-          clients: '=',
-          dismiss: '&',
-          close: '&'
-        },
-        restrict: 'E',
-        templateUrl: '/static/angular-components/client/' +
-            'add-clients-labels-dialog.html',
-        controller: AddClientsLabelsDialogController,
-        controllerAs: 'controller'
-      };
-    };
+grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective = function() {
+  return {
+    scope: {
+      clients: '='
+    },
+    restrict: 'E',
+    templateUrl: '/static/angular-components/client/' +
+        'add-clients-labels-dialog.html',
+    controller: AddClientsLabelsDialogController,
+    controllerAs: 'controller'
+  };
+};
 
 
 /**

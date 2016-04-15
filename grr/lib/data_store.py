@@ -142,6 +142,10 @@ class MutationPool(object):
   def __exit__(self, unused_type, unused_value, unused_traceback):
     self.Flush()
 
+  def Size(self):
+    return (len(self.delete_subject_requests) + len(self.set_requests) +
+            len(self.delete_attributes_requests))
+
 
 class DataStore(object):
   """Abstract database access."""

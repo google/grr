@@ -286,6 +286,9 @@ class HttpRequestHandler(object):
     response["Content-Disposition"] = ("attachment; filename=%s" %
                                        binary_stream.filename)
 
+    if binary_stream.content_length:
+      response["Content-Length"] = binary_stream.content_length
+
     return response
 
   def _GetArgsFromRequest(self, request, method_metadata, route_args):
@@ -392,7 +395,17 @@ class HttpRequestHandler(object):
       # HEAD method is only used for checking the ACLs for particular API
       # methods.
       if request.method == "HEAD":
-        return self._BuildResponse(200, {"status": "OK"})
+        # If the request would return a stream, we add the Content-Length
+        # header to the response.
+        if (method_metadata.result_type ==
+            method_metadata.BINARY_STREAM_RESULT_TYPE):
+          binary_stream = handler.Handle(args, token=token)
+          headers = None
+          if binary_stream.content_length:
+            headers = {"Content-Length": binary_stream.content_length}
+          return self._BuildResponse(200, {"status": "OK"}, headers)
+        else:
+          return self._BuildResponse(200, {"status": "OK"})
 
       if (method_metadata.result_type ==
           method_metadata.BINARY_STREAM_RESULT_TYPE):

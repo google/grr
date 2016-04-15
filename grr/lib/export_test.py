@@ -1278,8 +1278,7 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
   def SendReply(self, response_msg):
     self.messages.append(response_msg)
 
-  def setUp(self):
-    super(DynamicRekallResponseConverterTest, self).setUp()
+  def _ResetState(self):
     self.messages = []
     inventory = rdf_rekall_types.RekallProfile(
         name="inventory",
@@ -1293,6 +1292,10 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
 
     self.converter = export.DynamicRekallResponseConverter()
 
+  def setUp(self):
+    super(DynamicRekallResponseConverterTest, self).setUp()
+    self._ResetState()
+
   def testSingleTableIsExported(self):
     self.renderer.start(plugin_name="sample")
     self.renderer.table_header([("Offset", "offset", ""),
@@ -1304,13 +1307,13 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(self.messages), 1)
 
-    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
-                                                   self.messages[0],
-                                                   token=self.token))
+    converted_values = list(self.converter.Convert(
+        export.ExportedMetadata(source_urn="aff4:/foo/bar"),
+        self.messages[0], token=self.token))
 
     self.assertEqual(len(converted_values), 1)
     self.assertEqual(converted_values[0].__class__.__name__,
-                     "RekallExport_sample")
+                     "RekallExport_foo_bar_sample")
     self.assertEqual(converted_values[0].offset, "42")
     self.assertEqual(converted_values[0].hex, "0x0")
     self.assertEqual(converted_values[0].data, "data")
@@ -1324,9 +1327,9 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.renderer.table_row(42, "0x0", "data")
     self.renderer.flush()
 
-    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
-                                                   self.messages[0],
-                                                   token=self.token))
+    converted_values = list(self.converter.Convert(
+        export.ExportedMetadata(source_urn="aff4:/foo/bar"),
+        self.messages[0], token=self.token))
     self.assertEqual(len(converted_values), 1)
     self.assertFalse(converted_values[0].HasField("section_name"))
 
@@ -1340,9 +1343,9 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.renderer.table_row(42, "0x0", "data")
     self.renderer.flush()
 
-    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
-                                                   self.messages[0],
-                                                   token=self.token))
+    converted_values = list(self.converter.Convert(
+        export.ExportedMetadata(source_urn="aff4:/foo/bar"),
+        self.messages[0], token=self.token))
     self.assertEqual(len(converted_values), 1)
     self.assertEqual(converted_values[0].section_name,
                      "some section")
@@ -1361,19 +1364,18 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.renderer.table_row(43, "0x1", "otherdata")
     self.renderer.flush()
 
-    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
-                                                   self.messages[0],
-                                                   token=self.token))
-
+    converted_values = list(self.converter.Convert(
+        export.ExportedMetadata(source_urn="aff4:/foo/bar"),
+        self.messages[0], token=self.token))
     self.assertEqual(len(converted_values), 2)
     self.assertEqual(converted_values[0].__class__.__name__,
-                     "RekallExport_sample")
+                     "RekallExport_foo_bar_sample")
     self.assertEqual(converted_values[0].offset, "42")
     self.assertEqual(converted_values[0].hex, "0x0")
     self.assertEqual(converted_values[0].data, "data")
 
     self.assertEqual(converted_values[1].__class__.__name__,
-                     "RekallExport_sample")
+                     "RekallExport_foo_bar_sample")
     self.assertEqual(converted_values[1].offset, "43")
     self.assertEqual(converted_values[1].hex, "0x1")
     self.assertEqual(converted_values[1].data, "otherdata")
@@ -1395,9 +1397,9 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.renderer.table_row(43, "0x1", "otherdata")
     self.renderer.flush()
 
-    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
-                                                   self.messages[0],
-                                                   token=self.token))
+    converted_values = list(self.converter.Convert(
+        export.ExportedMetadata(source_urn="aff4:/foo/bar"),
+        self.messages[0], token=self.token))
     self.assertEqual(converted_values[0].section_name, "some section")
     self.assertEqual(converted_values[1].section_name, "some other section")
 
@@ -1439,9 +1441,9 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     rekall_response = rdf_rekall_types.RekallResponse(
         plugin="object_renderer_sample", json_messages=json.dumps(messages),
         json_context_messages=json.dumps([]))
-    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
-                                                   rekall_response,
-                                                   token=self.token))
+    converted_values = list(self.converter.Convert(
+        export.ExportedMetadata(source_urn="aff4:/foo/bar"),
+        rekall_response, token=self.token))
     self.assertEqual(len(converted_values), 1)
     self.assertEqual(converted_values[0].Address, "0x2a")
     self.assertEqual(converted_values[0].Pointer, "0x0000000000002b")
@@ -1457,6 +1459,41 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.assertEqual(converted_values[0]._EPROCESS, "System (4)")
     self.assertEqual(converted_values[0].int, "42")
     self.assertEqual(converted_values[0].str, "some string")
+
+  def testSamePluginWithDifferentColumnsIsExportedCorrectly(self):
+    self.renderer.start(plugin_name="sample")
+    self.renderer.table_header([("a", "a", "")])
+    self.renderer.table_row(42)
+    self.renderer.flush()
+    self.assertEqual(len(self.messages), 1)
+
+    converted_values = list(self.converter.Convert(
+        export.ExportedMetadata(source_urn="aff4:/foo/bar1"),
+        self.messages[0], token=self.token))
+
+    self.assertEqual(len(converted_values), 1)
+    self.assertEqual(converted_values[0].__class__.__name__,
+                     "RekallExport_foo_bar1_sample")
+    self.assertEqual(converted_values[0].a, "42")
+
+    self._ResetState()
+
+    self.renderer.start(plugin_name="sample")
+    self.renderer.table_header([("b", "b", "")])
+    self.renderer.table_row(43)
+    self.renderer.flush()
+    self.assertEqual(len(self.messages), 1)
+
+    converted_values = list(self.converter.Convert(
+        # It's important for the source_urn to be different as we rely on
+        # different source_urns to generate different class names.
+        export.ExportedMetadata(source_urn="aff4:/foo/bar2"),
+        self.messages[0], token=self.token))
+
+    self.assertEqual(len(converted_values), 1)
+    self.assertEqual(converted_values[0].__class__.__name__,
+                     "RekallExport_foo_bar2_sample")
+    self.assertEqual(converted_values[0].b, "43")
 
 
 class RekallResponseToExportedRekallProcessConverterTest(test_lib.GRRBaseTest):

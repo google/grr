@@ -12,14 +12,16 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
+ * @param {!angular.$q} $q
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogController =
-    function($scope, grrApiService) {
-
+grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogController = function($scope, $q, grrApiService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
+
+  /** @private {!angular.$q} */
+  this.q_ = $q;
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
@@ -29,13 +31,8 @@ grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogController =
 
   /** @export {boolean} */
   this.inProgress = false;
-
-  /** @export {?string} */
-  this.error;
-
-  /** @export {?string} */
-  this.success;
 };
+
 var UploadArtifactDialogController =
     grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogController;
 
@@ -56,19 +53,23 @@ UploadArtifactDialogController.prototype.onFileSet = function(files) {
  * Sends /artifacts/upload request to the server with an attached
  * artifact file.
  *
+ * @return {!angular.$q.Promise} A promise indicating success or failure.
  * @export
  */
 UploadArtifactDialogController.prototype.proceed = function() {
-  this.inProgress = true;
+  var deferred = this.q_.defer();
 
+  this.inProgress = true;
   this.grrApiService_.post(
-      '/artifacts/upload', {}, false, {'artifact': this.file}).then(
-          function success() {
-            this.success = 'Artifact was successfully uploaded.';
-          }.bind(this),
-          function failure(response) {
-            this.error = response.data.message;
-          }.bind(this));
+    '/artifacts/upload', {}, false, {'artifact': this.file}).then(
+      function success() {
+        deferred.resolve('Artifact was successfully uploaded.');
+      }.bind(this),
+      function failure(response) {
+        deferred.reject(response.data.message);
+      }.bind(this));
+
+  return deferred.promise;
 };
 
 
@@ -77,20 +78,17 @@ UploadArtifactDialogController.prototype.proceed = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective =
-    function() {
-      return {
-        scope: {
-          dismiss: '&',
-          close: '&'
-        },
-        restrict: 'E',
-        templateUrl: '/static/angular-components/artifact/' +
-            'upload-artifact-dialog.html',
-        controller: UploadArtifactDialogController,
-        controllerAs: 'controller'
-      };
-    };
+grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogDirective = function() {
+  return {
+    scope: {
+    },
+    restrict: 'E',
+    templateUrl: '/static/angular-components/artifact/' +
+        'upload-artifact-dialog.html',
+    controller: UploadArtifactDialogController,
+    controllerAs: 'controller'
+  };
+};
 
 
 /**

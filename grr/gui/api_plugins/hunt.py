@@ -23,6 +23,9 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import users as aff4_users
+
+from grr.lib.flows.general import export
+
 from grr.lib.hunts import implementation
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import stats as stats_rdf
@@ -38,6 +41,10 @@ HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
 
 class HuntNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when a hunt could not be found."""
+
+
+class HuntFileNotFoundError(api_call_handler_base.ResourceNotFoundError):
+  """Raised when a hunt file could not be found."""
 
 
 class ApiHunt(rdf_structs.RDFProtoStruct):
@@ -93,6 +100,21 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
       self.hunt_args = hunt.state.args
       self.hunt_runner_args = context.args
       self.client_rule_set = runner.args.client_rule_set
+
+    return self
+
+
+class ApiHuntResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiHuntResult
+
+  def GetPayloadClass(self):
+    return rdfvalue.RDFValue.classes[self.payload_type]
+
+  def InitFromGrrMessage(self, message):
+    self.client_id = message.source
+    self.payload_type = message.payload.__class__.__name__
+    self.payload = message.payload
+    self.timestamp = message.age
 
     return self
 
@@ -321,22 +343,28 @@ class ApiListHuntResultsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListHuntResultsArgs
 
 
+class ApiListHuntResultsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntResultsResult
+
+
 class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
   """Renders hunt results."""
 
   category = CATEGORY
   args_type = ApiListHuntResultsArgs
+  result_type = ApiListHuntResultsResult
 
-  def Render(self, args, token=None):
-    results = aff4.FACTORY.Open(
+  def Handle(self, args, token=None):
+    results_collection = aff4.FACTORY.Open(
         HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Results"), mode="r",
         token=token)
+    items = api_call_handler_utils.FilterAff4Collection(
+        results_collection, args.offset, args.count, args.filter)
+    wrapped_items = [ApiHuntResult().InitFromGrrMessage(item)
+                     for item in items]
 
-    return api_aff4_object_renderers.RenderAFF4Object(
-        results,
-        [api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
-            offset=args.offset, count=args.count, filter=args.filter,
-            with_total_count=True)])
+    return ApiListHuntResultsResult(
+        items=wrapped_items, total_count=len(results_collection))
 
 
 class ApiListHuntCrashesArgs(rdf_structs.RDFProtoStruct):
@@ -774,6 +802,85 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     return api_call_handler_base.ApiBinaryStream(
         target_file_prefix + file_extension,
         content_generator=content_generator)
+
+
+class ApiGetHuntFileArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetHuntFileArgs
+
+
+class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
+  """Downloads a file referenced in the hunt results."""
+
+  category = CATEGORY
+  args_type = ApiGetHuntFileArgs
+
+  MAX_RECORDS_TO_CHECK = 100
+  CHUNK_SIZE = 1024 * 1024 * 4
+
+  def _GenerateFile(self, aff4_stream):
+    while True:
+      chunk = aff4_stream.Read(self.CHUNK_SIZE)
+      if chunk:
+        yield chunk
+      else:
+        break
+
+  def Handle(self, args, token=None):
+    if not args.hunt_id:
+      raise ValueError("hunt_id can't be None")
+
+    if not args.client_id:
+      raise ValueError("client_id can't be None")
+
+    if not args.vfs_path:
+      raise ValueError("vfs_path can't be None")
+
+    if not args.timestamp:
+      raise ValueError("timestamp can't be None")
+
+    hunt_results_urn = rdfvalue.RDFURN("aff4:/hunts").Add(
+        args.hunt_id.Basename()).Add("Results")
+    results = aff4.FACTORY.Open(hunt_results_urn,
+                                aff4_type="HuntResultCollection", token=token)
+
+    expected_aff4_path = args.client_id.Add("fs").Add(args.vfs_path.Path())
+    # TODO(user): should after_tiestamp be strictly less than the desired
+    # timestamp.
+    timestamp = rdfvalue.RDFDatetime(int(args.timestamp) - 1)
+
+    # If the entry corresponding to a given path is not found within
+    # MAX_RECORDS_TO_CHECK from a given timestamp, we report a 404.
+    for _, item in results.Scan(
+        after_timestamp=timestamp.AsMicroSecondsFromEpoch(),
+        max_records=self.MAX_RECORDS_TO_CHECK):
+      try:
+        aff4_path = export.CollectionItemToAff4Path(item)
+      except export.ItemNotExportableError:
+        continue
+
+      if aff4_path != expected_aff4_path:
+        continue
+
+      try:
+        aff4_stream = aff4.FACTORY.Open(aff4_path, aff4_type="AFF4Stream",
+                                        token=token)
+        if not aff4_stream.GetContentAge():
+          break
+
+        return api_call_handler_base.ApiBinaryStream(
+            "%s_%s" % (args.client_id.Basename(),
+                       utils.SmartStr(aff4_path.Basename())),
+            content_generator=self._GenerateFile(aff4_stream),
+            content_length=len(aff4_stream))
+      except aff4.InstantiationError:
+        break
+
+    raise HuntFileNotFoundError("File %s with timestamp %s and client %s "
+                                "wasn't found among the results of hunt %s" % (
+                                    utils.SmartStr(args.vfs_path),
+                                    utils.SmartStr(args.timestamp),
+                                    utils.SmartStr(args.client_id),
+                                    utils.SmartStr(args.hunt_id)))
 
 
 class ApiGetHuntStatsArgs(rdf_structs.RDFProtoStruct):

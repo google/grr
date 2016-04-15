@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.wmi_parser."""
 
+from grr.lib import client_fixture
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
@@ -8,7 +9,6 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import wmi as rdf_wmi
 from grr.parsers import wmi_parser
-from grr.test_data import client_fixture
 
 
 class WMIParserTest(test_lib.FlowTestsBaseclass):

@@ -893,3 +893,153 @@ class NtpdParser(parsers.FileParser, FieldParser):
     for s, f in zip(stats, file_objects):
       for rslt in self.Parse(s, f, knowledge_base):
         yield rslt
+
+
+class SudoersParser(parsers.FileParser, FieldParser):
+  """Parser for privileged configuration files such as sudoers and pam.d/su."""
+  output_types = ["SudoersConfig"]
+  supported_artifacts = ["UnixSudoersConfiguration"]
+
+  # Regex to remove comments from the file. The first group in the OR condition
+  # handles comments that cover a full line, while also ignoring #include(dir).
+  # The second group in the OR condition handles comments that begin partways
+  # through a line, without matching UIDs or GIDs which are specified with # in
+  # the format.
+  # TODO(user): this regex fails to match '#32 users', but handles quite a
+  # lot else.
+  # TODO(user): this should be rewritten as a proper lexer
+  COMMENTS_RE = re.compile(r"(#(?!include(?:dir)?\s+)\D+?$)", re.MULTILINE)
+
+  ALIAS_TYPES = {"User_Alias": rdf_config_file.SudoersAlias.Type.USER,
+                 "Runas_Alias": rdf_config_file.SudoersAlias.Type.RUNAS,
+                 "Host_Alias": rdf_config_file.SudoersAlias.Type.HOST,
+                 "Cmnd_Alias": rdf_config_file.SudoersAlias.Type.CMD}
+  ALIAS_FIELDS = {"User_Alias": "users",
+                  "Runas_Alias": "runas",
+                  "Host_Alias": "hosts",
+                  "Cmnd_Alias": "cmds"}
+  DEFAULTS_KEY = "Defaults"
+  INCLUDE_KEYS = ["#include", "#includedir"]
+
+  def __init__(self, *args, **kwargs):
+    kwargs["comments"] = []
+    super(SudoersParser, self).__init__(*args, **kwargs)
+
+  def _ExtractList(self, fields, ignores=(",",), terminators=()):
+    """Extract a list from the given fields."""
+    extracted = []
+    i = 0
+    for i, field in enumerate(fields):
+      # Space-separated comma; ignore, but this is not a finished list.
+      # Similar for any other specified ignores (eg, equals sign).
+      if field in ignores:
+        continue
+
+      # However, some fields are specifically meant to terminate iteration.
+      if field in terminators:
+        break
+
+      extracted.append(field.strip("".join(ignores)))
+      # Check for continuation; this will either be a trailing comma or the
+      # next field after this one being a comma. The lookahead here is a bit
+      # nasty.
+      if not (field.endswith(",") or
+              set(fields[i + 1:i + 2]).intersection(ignores)):
+        break
+
+    return extracted, fields[i + 1:]
+
+  def _ParseSudoersEntry(self, entry, sudoers_config):
+    """Parse an entry and add it to the given SudoersConfig rdfvalue."""
+
+    key = entry[0]
+    if key in SudoersParser.ALIAS_TYPES.keys():
+      # Alias.
+      alias_entry = rdf_config_file.SudoersAlias(
+          type=SudoersParser.ALIAS_TYPES.get(key), name=entry[1])
+
+      # Members of this alias, comma-separated.
+      members, _ = self._ExtractList(entry[2:], ignores=(",", "="))
+      field = SudoersParser.ALIAS_FIELDS.get(key)
+      getattr(alias_entry, field).Extend(members)
+
+      sudoers_config.aliases.append(alias_entry)
+    elif key.startswith(SudoersParser.DEFAULTS_KEY):
+      # Default.
+      # Identify scope if one exists (Defaults<scope> ...)
+      scope = None
+      if len(key) > len(SudoersParser.DEFAULTS_KEY):
+        scope = key[len(SudoersParser.DEFAULTS_KEY) + 1:]
+
+      # There can be multiple defaults on a line, for the one scope.
+      entry = entry[1:]
+      defaults, _ = self._ExtractList(entry)
+      for default in defaults:
+        default_entry = rdf_config_file.SudoersDefault(scope=scope)
+
+        # Extract key name and value(s).
+        default_name = default
+        value = []
+        if "=" in default_name:
+          default_name, remainder = default_name.split("=", 1)
+          value = [remainder]
+        default_entry.name = default_name
+        if entry:
+          default_entry.value = " ".join(value)
+
+        sudoers_config.defaults.append(default_entry)
+    elif key in SudoersParser.INCLUDE_KEYS:
+      # TODO(user): make #includedir more obvious in the RDFValue somewhere
+      target = " ".join(entry[1:])
+      sudoers_config.includes.append(target)
+    else:
+      users, entry = self._ExtractList(entry)
+      hosts, entry = self._ExtractList(entry, terminators=("=",))
+
+      # Remove = from <user> <host> = <specs>
+      if entry[0] == "=":
+        entry = entry[1:]
+
+      # Command specification.
+      sudoers_entry = rdf_config_file.SudoersEntry(users=users, hosts=hosts,
+                                                   cmdspec=entry)
+
+      sudoers_config.entries.append(sudoers_entry)
+
+  def _Preprocess(self, data):
+    """Preprocess the given data, ready for parsing."""
+    # Add whitespace to line continuations.
+    data = data.replace(":\\", ": \\")
+
+    # Strip comments manually because sudoers has multiple meanings for '#'.
+    data = SudoersParser.COMMENTS_RE.sub("", data)
+    return data
+
+  def Parse(self, unused_stat, file_obj, unused_knowledge_base):
+    self.ParseEntries(self._Preprocess(file_obj.read()))
+    result = rdf_config_file.SudoersConfig()
+    for entry in self.entries:
+      # Handle multiple entries in one line, eg:
+      # foo bar : baz
+      # ... would become ...
+      # [[foo, bar], [foo, baz]]
+      key = entry[0]
+      nested_entries = []
+      if ":" not in entry:
+        nested_entries = [entry]
+      else:
+        runner = []
+        for field in entry:
+          if field == ":":
+            nested_entries.append(runner)
+            runner = [key]
+            continue
+
+          runner.append(field)
+
+        nested_entries.append(runner)
+
+      for nested_entry in nested_entries:
+        self._ParseSudoersEntry(nested_entry, result)
+
+    yield result

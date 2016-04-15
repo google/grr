@@ -63,6 +63,7 @@ def main(_):
 
   sa = server.socket.getsockname()
   logging.info("Serving %s on %s port %d ...", proto, sa[0], sa[1])
+  startup.DropPrivileges()
 
   server.serve_forever()
 

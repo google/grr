@@ -17,8 +17,6 @@ class DarwinClientBuilder(build.ClientBuilder):
     """Initialize the Mac OS X client builder."""
     super(DarwinClientBuilder, self).__init__(context=context)
     self.context.append("Target:Darwin")
-    self.build_src_dir = os.path.join(config_lib.CONFIG.Get(
-        "ClientBuilder.source", context=self.context), "grr")
     self.pkg_dir = config_lib.CONFIG.Get(
         "ClientBuilder.package_dir", context=self.context)
 
@@ -38,16 +36,17 @@ class DarwinClientBuilder(build.ClientBuilder):
   # WARNING: change with care since the PackageMaker files are fragile!
   def BuildInstallerPkg(self, output_file):
     """Builds a package (.pkg) using PackageMaker."""
-    build_files_dir = os.path.join(self.build_src_dir,
-                                   "config", "macosx", "client")
+    build_files_dir = config_lib.Resource().Filter(
+        "grr/config/macosx/client")
+
     pmdoc_dir = os.path.join(build_files_dir, "grr.pmdoc")
 
     client_name = config_lib.CONFIG.Get("Client.name", context=self.context)
     plist_name = config_lib.CONFIG.Get("Client.plist_filename",
                                        context=self.context)
 
-    out_build_files_dir = build_files_dir.replace(self.build_src_dir,
-                                                  self.build_dir)
+    out_build_files_dir = build_files_dir.replace(
+        config_lib.Resource().Filter("grr"), self.build_dir)
     out_pmdoc_dir = os.path.join(self.build_dir, "%s.pmdoc" % client_name)
 
     utils.EnsureDirExists(out_build_files_dir)

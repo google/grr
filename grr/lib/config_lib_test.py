@@ -195,7 +195,21 @@ class ConfigLibTest(test_lib.GRRBaseTest):
 
   def testInit(self):
     """Testing initialization of a ConfigManager."""
-    conf = config_lib.CONFIG
+    conf = config_lib.GrrConfigManager()
+    conf.DEFINE_string("MemoryDriver.device_path", "Default Value", "Help")
+    conf.DEFINE_context("Platform:Windows")
+    conf.DEFINE_context("Client Context")
+    conf.DEFINE_context("Platform:Linux")
+
+    data = r"""
+Platform:Linux:
+    MemoryDriver.device_path: /dev/pmem
+
+Platform:Windows:
+    MemoryDriver.device_path: \\\\.\\pmem
+"""
+
+    conf.Initialize(parser=config_lib.YamlParser, data=data)
 
     # Check that the linux client have a different value from the windows
     # client.

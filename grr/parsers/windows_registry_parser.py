@@ -253,7 +253,10 @@ class WinServicesParser(parsers.RegistryValueParser):
     return self.service_re.match(path).group(1)
 
   def _GetKeyName(self, path):
-    return self.service_re.match(path).group(3).lower()
+    key_name = self.service_re.match(path).group(3)
+    if key_name is None:
+      return None
+    return key_name.lower()
 
   def ParseMultiple(self, stats, knowledge_base):
     """Parse Service registry keys and return WindowsServiceInformation."""

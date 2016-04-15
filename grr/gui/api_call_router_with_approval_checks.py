@@ -324,10 +324,20 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     return self.delegate.CreateHunt(args, token=token)
 
   def GetHuntFilesArchive(self, args, token=None):
-    # TODO(user): introduce a special type for hunt ids and hunt ids.
+    # TODO(user): introduce a special type for hunt ids and use
+    # to check the correctness of args.hunt_id. Currently args.hunt_id accepts
+    # any URN, whereas we want it to accept only hunt ids, i.e. H:123456.
     self.CheckHuntAccess(rdfvalue.RDFURN(args.hunt_id).Basename(), token=token)
 
     return self.delegate.GetHuntFilesArchive(args, token=token)
+
+  def GetHuntFile(self, args, token=None):
+    # TODO(user): introduce a special type for hunt ids and use
+    # to check the correctness of args.hunt_id. Currently args.hunt_id accepts
+    # any URN, whereas we want it to accept only hunt ids, i.e. H:123456.
+    self.CheckHuntAccess(rdfvalue.RDFURN(args.hunt_id).Basename(), token=token)
+
+    return self.delegate.GetHuntFile(args, token=token)
 
   # Stats metrics methods.
   # =====================
@@ -388,6 +398,12 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     # Everybody can get their own pending notifications count.
 
     return self.delegate.GetPendingUserNotifications(
+        args, token=token)
+
+  def DeletePendingUserNotification(self, args, token=None):
+    # Everybody can get their own pending notifications count.
+
+    return self.delegate.DeletePendingUserNotification(
         args, token=token)
 
   def GetAndResetUserNotifications(self, args, token=None):

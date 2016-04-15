@@ -11,36 +11,32 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
+ * @param {!angular.$q} $q
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
-grrUi.client.removeClientsLabelsDialogDirective
-    .RemoveClientsLabelsDialogController =
-    function($scope, grrApiService) {
-      /** @private {!angular.Scope} */
-      this.scope_ = $scope;
+grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogController =
+    function($scope, $q, grrApiService) {
+  /** @private {!angular.Scope} */
+  this.scope_ = $scope;
 
-      /** @private {!grrUi.core.apiService.ApiService} */
-      this.grrApiService_ = grrApiService;
+  /** @private {!angular.$q} */
+  this.q_ = $q;
 
-      /** @export {Array<string>} */
-      this.availableLabels = [];
+  /** @private {!grrUi.core.apiService.ApiService} */
+  this.grrApiService_ = grrApiService;
 
-      /** @export {?string} */
-      this.labelName;
+  /** @export {Array<string>} */
+  this.availableLabels = [];
 
-      /** @export {?string} */
-      this.error;
+  /** @export {?string} */
+  this.labelName;
 
-      /** @export {?string} */
-      this.success;
-
-      this.scope_.$watch('clients', this.onClientsChange_.bind(this));
-    };
+  this.scope_.$watch('clients', this.onClientsChange_.bind(this));
+};
 
 var RemoveClientsLabelsDialogController =
-    grrUi.client.removeClientsLabelsDialogDirective
-    .RemoveClientsLabelsDialogController;
+  grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogController;
 
 
 /**
@@ -50,8 +46,7 @@ var RemoveClientsLabelsDialogController =
  * @param {Array<Object>} newValue Updated list of clients.
  * @private
  */
-RemoveClientsLabelsDialogController.prototype.onClientsChange_ = function(
-    newValue) {
+RemoveClientsLabelsDialogController.prototype.onClientsChange_ = function(newValue) {
   var labelsSet = {};
 
   if (angular.isDefined(newValue)) {
@@ -81,23 +76,29 @@ RemoveClientsLabelsDialogController.prototype.onClientsChange_ = function(
  * Sends /clients/labels/remove request to the server with the list of
  * clients and labels to be removed.
  *
+ * @return {!angular.$q.Promise} A promise indicating success or failure.
  * @export
  */
 RemoveClientsLabelsDialogController.prototype.proceed = function() {
   var clients = [];
-  angular.forEach(this.scope_.clients, function(clientObj) {
+  angular.forEach(this.scope_['clients'], function(clientObj) {
     clients.push(clientObj['value']['urn']['value']);
   });
 
-  this.grrApiService_.post(
-      '/clients/labels/remove',
-      {client_ids: clients, labels: [this.labelName]}).then(
-          function success() {
-            this.success = 'Label was successfully removed.';
-          }.bind(this),
-          function failure(response) {
-            this.error = response.data.message;
-          }.bind(this));
+  var deferred = this.q_.defer();
+  var url = '/clients/labels/remove';
+  var params = {
+    client_ids: clients,
+    labels: [this.labelName]
+  };
+  this.grrApiService_.post(url, params).then(
+    function success() {
+      deferred.resolve('Label was successfully removed.');
+    }.bind(this),
+    function failure(response) {
+      deferred.reject(response.data.message);
+    }.bind(this));
+  return deferred.promise;
 };
 
 
@@ -106,21 +107,18 @@ RemoveClientsLabelsDialogController.prototype.proceed = function() {
  *
  * @return {!angular.Directive} Directive definition object.
  */
-grrUi.client.removeClientsLabelsDialogDirective
-    .RemoveClientsLabelsDialogDirective = function() {
-      return {
-        scope: {
-          clients: '=',
-          dismiss: '&',
-          close: '&'
-        },
-        restrict: 'E',
-        templateUrl: '/static/angular-components/client/' +
-            'remove-clients-labels-dialog.html',
-        controller: RemoveClientsLabelsDialogController,
-        controllerAs: 'controller'
-      };
-    };
+grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogDirective = function() {
+  return {
+    scope: {
+      clients: '='
+    },
+    restrict: 'E',
+    templateUrl: '/static/angular-components/client/' +
+        'remove-clients-labels-dialog.html',
+    controller: RemoveClientsLabelsDialogController,
+    controllerAs: 'controller'
+  };
+};
 
 
 /**
@@ -129,8 +127,7 @@ grrUi.client.removeClientsLabelsDialogDirective
  * @const
  * @export
  */
-grrUi.client.removeClientsLabelsDialogDirective
-    .RemoveClientsLabelsDialogDirective
+grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabelsDialogDirective
     .directive_name = 'grrRemoveClientsLabelsDialog';
 
 

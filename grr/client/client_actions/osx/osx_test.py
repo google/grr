@@ -15,9 +15,8 @@ import mox
 
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import osx_launchd as testdata
 from grr.lib import test_lib
-
-from grr.test_data import osx_launchd as testdata
 
 
 class OSXClientTests(test_lib.OSSpecificClientTests):

@@ -658,6 +658,149 @@ class NtpParserTests(test_lib.GRRBaseTest):
     self.assertTrue(results.config["auth"])
 
 
+class SudoersParserTest(test_lib.GRRBaseTest):
+  """Test the sudoers parser."""
+
+  def testIncludes(self):
+    test_data = r"""
+    # general comment
+    #include a  # end of line comment
+    #includedir b
+    #includeis now a comment
+    """
+    contents = StringIO.StringIO(test_data)
+    config = config_file.SudoersParser()
+    result = list(config.Parse(None, contents, None))
+
+    self.assertListEqual(list(result[0].includes), ["a", "b"])
+    self.assertEmpty(list(result[0].entries))
+
+  def testParseAliases(self):
+    test_data = r"""
+    User_Alias basic = a , b, c
+    User_Alias left = a, b, c :\
+               right = d, e, f
+    User_Alias complex = #1000, %group, %#1001, %:nonunix, %:#1002
+    """
+    contents = StringIO.StringIO(test_data)
+    config = config_file.SudoersParser()
+    result = list(config.Parse(None, contents, None))
+
+    golden = {
+        "aliases": [
+            {
+                "name": "basic",
+                "type": "USER",
+                "users": ["a", "b", "c"],
+            },
+            {
+                "name": "left",
+                "type": "USER",
+                "users": ["a", "b", "c"],
+            },
+            {
+                "name": "right",
+                "type": "USER",
+                "users": ["d", "e", "f"],
+            },
+            {
+                "name": "complex",
+                "type": "USER",
+                "users": ["#1000", "%group", "%#1001", "%:nonunix", "%:#1002"],
+            },
+        ],
+    }
+
+    self.assertDictEqual(result[0].ToPrimitiveDict(), golden)
+
+  def testDefaults(self):
+    test_data = r"""
+    Defaults               syslog=auth
+    Defaults>root          !set_logname
+    Defaults:FULLTIMERS    !lecture
+    Defaults@SERVERS       log_year, logfile=/var/log/sudo.log
+    """
+    contents = StringIO.StringIO(test_data)
+    config = config_file.SudoersParser()
+    result = list(config.Parse(None, contents, None))
+
+    golden = {
+        "defaults": [
+            {
+                "name": "syslog",
+                "value": "auth",
+            },
+            {
+                "scope": "root",
+                "name": "!set_logname",
+                "value": "",
+            },
+            {
+                "scope": "FULLTIMERS",
+                "name": "!lecture",
+                "value": "",
+            },
+            # 4th entry is split into two, for each option.
+            {
+                "scope": "SERVERS",
+                "name": "log_year",
+                "value": "",
+            },
+            {
+                "scope": "SERVERS",
+                "name": "logfile",
+                "value": "/var/log/sudo.log",
+            },
+        ],
+    }
+
+    self.assertDictEqual(result[0].ToPrimitiveDict(), golden)
+
+  def testSpecs(self):
+    test_data = r"""
+    # user specs
+    root        ALL = (ALL) ALL
+    %wheel      ALL = (ALL) ALL
+    bob     SPARC = (OP) ALL : SGI = (OP) ALL
+    fred        ALL = (DB) NOPASSWD: ALL
+    """
+    contents = StringIO.StringIO(test_data)
+    config = config_file.SudoersParser()
+    result = list(config.Parse(None, contents, None))
+
+    golden = {
+        "entries": [
+            {
+                "users": ["root"],
+                "hosts": ["ALL"],
+                "cmdspec": ["(ALL)", "ALL"],
+            },
+            {
+                "users": ["%wheel"],
+                "hosts": ["ALL"],
+                "cmdspec": ["(ALL)", "ALL"],
+            },
+            {
+                "users": ["bob"],
+                "hosts": ["SPARC"],
+                "cmdspec": ["(OP)", "ALL"],
+            },
+            {
+                "users": ["bob"],
+                "hosts": ["SGI"],
+                "cmdspec": ["(OP)", "ALL"],
+            },
+            {
+                "users": ["fred"],
+                "hosts": ["ALL"],
+                "cmdspec": ["(DB)", "NOPASSWD:", "ALL"],
+            },
+        ],
+    }
+
+    self.assertDictEqual(result[0].ToPrimitiveDict(), golden)
+
+
 def main(args):
   test_lib.main(args)
 

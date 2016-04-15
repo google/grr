@@ -250,6 +250,8 @@ def main(unused_argv):
 
   httpd = CreateServer()
 
+  startup.DropPrivileges()
+
   try:
     httpd.serve_forever()
   except KeyboardInterrupt:

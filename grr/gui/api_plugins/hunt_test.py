@@ -25,11 +25,14 @@ from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.hunts import process_results
+from grr.lib.hunts import results as hunt_results
 from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class ApiListHuntsHandlerTest(test_lib.GRRBaseTest,
@@ -196,6 +199,35 @@ class ApiListHuntsHandlerRegressionTest(
     self.Check("GET", "/api/hunts?offset=1&count=1", replace=replace)
 
 
+class ApiListHuntResultsRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+
+  handler = "ApiListHuntResultsHandler"
+
+  def Run(self):
+    hunt_urn = rdfvalue.RDFURN("aff4:/hunts/H:123456")
+    results_urn = hunt_urn.Add("Results")
+
+    with aff4.FACTORY.Create(
+        results_urn, aff4_type=hunt_results.HuntResultCollection.__name__,
+        token=self.token) as results:
+
+      result = rdf_flows.GrrMessage(
+          payload=rdfvalue.RDFString("blah1"),
+          age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+      results.Add(result, timestamp=result.age + rdfvalue.Duration("1s"))
+
+      result = rdf_flows.GrrMessage(
+          payload=rdfvalue.RDFString("blah2-foo"),
+          age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+      results.Add(result, timestamp=result.age + rdfvalue.Duration("1s"))
+
+    self.Check("GET", "/api/hunts/H:123456/results")
+    self.Check("GET", "/api/hunts/H:123456/results?count=1")
+    self.Check("GET", "/api/hunts/H:123456/results?offset=1&count=1")
+    self.Check("GET", "/api/hunts/H:123456/results?filter=foo")
+
+
 class ApiGetHuntHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
@@ -340,6 +372,167 @@ class ApiGetHuntFilesArchiveHandlerTest(
         self.assertEqual(manifest["failed_files"], 0)
         self.assertEqual(manifest["processed_files"], 10)
         self.assertEqual(manifest["skipped_files"], 0)
+
+
+class ApiGetHuntFileHandlerTest(
+    test_lib.GRRBaseTest, standard_test.StandardHuntTestMixin):
+
+  def setUp(self):
+    super(ApiGetHuntFileHandlerTest, self).setUp()
+
+    self.handler = hunt_plugin.ApiGetHuntFileHandler()
+
+    self.file_path = os.path.join(self.base_path, "test.plist")
+    self.hunt = hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        flow_runner_args=flow_runner.FlowRunnerArgs(
+            flow_name=file_finder.FileFinder.__name__),
+        flow_args=file_finder.FileFinderArgs(
+            paths=[self.file_path],
+            action=file_finder.FileFinderAction(action_type="DOWNLOAD"),
+        ),
+        client_rate=0, token=self.token)
+    self.hunt.Run()
+
+    self.results_urn = self.hunt.state.context.results_collection_urn
+    self.aff4_file_path = rdfvalue.RDFURN("os").Add(self.file_path)
+
+    self.client_id = self.SetupClients(1)[0]
+    self.AssignTasksToClients(client_ids=[self.client_id])
+    action_mock = action_mocks.ActionMock(
+        "TransferBuffer", "StatFile", "HashFile", "HashBuffer")
+    test_lib.TestHuntHelper(action_mock, [self.client_id], token=self.token)
+
+  def testRaisesIfOneOfArgumentAttributesIsNone(self):
+    model_args = hunt_plugin.ApiGetHuntFileArgs(
+        hunt_id=self.hunt.urn.Basename(),
+        client_id=self.client_id,
+        vfs_path=self.aff4_file_path,
+        timestamp=rdfvalue.RDFDatetime().Now())
+
+    with self.assertRaises(ValueError):
+      args = model_args.Copy()
+      args.hunt_id = None
+      self.handler.Handle(args)
+
+    with self.assertRaises(ValueError):
+      args = model_args.Copy()
+      args.client_id = None
+      self.handler.Handle(args)
+
+    with self.assertRaises(ValueError):
+      args = model_args.Copy()
+      args.vfs_path = None
+      self.handler.Handle(args)
+
+    with self.assertRaises(ValueError):
+      args = model_args.Copy()
+      args.timestamp = None
+      self.handler.Handle(args)
+
+  def testRaisesIfResultIsBeforeTimestamp(self):
+    results = aff4.FACTORY.Open(self.results_urn, token=self.token)
+
+    args = hunt_plugin.ApiGetHuntFileArgs(
+        hunt_id=self.hunt.urn.Basename(),
+        client_id=self.client_id,
+        vfs_path=self.aff4_file_path,
+        timestamp=results[0].age + rdfvalue.Duration("1s"))
+    with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
+      self.handler.Handle(args, token=self.token)
+
+  def _FillInStubResults(self):
+    original_results = aff4.FACTORY.Open(self.results_urn, token=self.token)
+    original_result = original_results[0]
+
+    with aff4.FACTORY.Create(self.results_urn, aff4_type="HuntResultCollection",
+                             mode="rw", token=self.token) as new_results:
+      for i in range(self.handler.MAX_RECORDS_TO_CHECK):
+        wrong_result = rdf_flows.GrrMessage(
+            payload=rdfvalue.RDFString("foo/bar"),
+            age=(original_result.age - (
+                self.handler.MAX_RECORDS_TO_CHECK - i + 1) *
+                 rdfvalue.Duration("1s")))
+        new_results.Add(wrong_result, timestamp=wrong_result.age)
+
+    return original_result
+
+  def testRaisesIfResultIsAfterMaxRecordsAfterTimestamp(self):
+    original_result = self._FillInStubResults()
+
+    args = hunt_plugin.ApiGetHuntFileArgs(
+        hunt_id=self.hunt.urn.Basename(),
+        client_id=self.client_id,
+        vfs_path=self.aff4_file_path,
+        timestamp=original_result.age -
+        (self.handler.MAX_RECORDS_TO_CHECK + 1) * rdfvalue.Duration("1s"))
+
+    with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
+      self.handler.Handle(args, token=self.token)
+
+  def testReturnsResultIfWithinMaxRecordsAfterTimestamp(self):
+    original_result = self._FillInStubResults()
+
+    args = hunt_plugin.ApiGetHuntFileArgs(
+        hunt_id=self.hunt.urn.Basename(),
+        client_id=self.client_id,
+        vfs_path=self.aff4_file_path,
+        timestamp=original_result.age -
+        self.handler.MAX_RECORDS_TO_CHECK * rdfvalue.Duration("1s"))
+
+    self.handler.Handle(args, token=self.token)
+
+  def testRaisesIfResultFileIsNotStream(self):
+    original_results = aff4.FACTORY.Open(self.results_urn, token=self.token)
+    original_result = original_results[0]
+
+    with aff4.FACTORY.Create(original_result.payload.stat_entry.aff4path,
+                             aff4_type=aff4.AFF4Volume.__name__,
+                             token=self.token) as _:
+      pass
+
+    args = hunt_plugin.ApiGetHuntFileArgs(
+        hunt_id=self.hunt.urn.Basename(),
+        client_id=self.client_id,
+        vfs_path=self.aff4_file_path,
+        timestamp=original_result.age)
+
+    with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
+      self.handler.Handle(args, token=self.token)
+
+  def testRaisesIfResultIsEmptyStream(self):
+    original_results = aff4.FACTORY.Open(self.results_urn, token=self.token)
+    original_result = original_results[0]
+
+    aff4.FACTORY.Delete(original_result.payload.stat_entry.aff4path,
+                        token=self.token)
+    with aff4.FACTORY.Create(original_result.payload.stat_entry.aff4path,
+                             aff4_type=aff4_grr.VFSFile.__name__,
+                             token=self.token) as _:
+      pass
+
+    args = hunt_plugin.ApiGetHuntFileArgs(
+        hunt_id=self.hunt.urn.Basename(),
+        client_id=self.client_id,
+        vfs_path=self.aff4_file_path,
+        timestamp=original_result.age)
+
+    with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
+      self.handler.Handle(args, token=self.token)
+
+  def testReturnsBinaryStreamIfResultFound(self):
+    results = aff4.FACTORY.Open(self.results_urn, token=self.token)
+
+    args = hunt_plugin.ApiGetHuntFileArgs(
+        hunt_id=self.hunt.urn.Basename(),
+        client_id=self.client_id,
+        vfs_path=self.aff4_file_path,
+        timestamp=results[0].age)
+
+    result = self.handler.Handle(args, token=self.token)
+    self.assertTrue(hasattr(result, "GenerateContent"))
+    self.assertEqual(result.content_length,
+                     results[0].payload.stat_entry.st_size)
 
 
 class ApiListHuntCrashesHandlerRegressionTest(
