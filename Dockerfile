@@ -2,27 +2,33 @@
 FROM ubuntu:latest
 MAINTAINER Greg Castle github@mailgreg.com
 
-RUN mkdir -p /usr/share/grr/scripts
-COPY scripts/install_script_ubuntu.sh /usr/share/grr/scripts/install_script_ubuntu.sh
-COPY requirements.txt /usr/share/grr/requirements.txt
-ENV UPGRADE=false
-# Install our dependencies, use latest requirements.txt
-RUN bash /usr/share/grr/scripts/install_script_ubuntu.sh -dy -r /usr/share/grr/requirements.txt
+RUN apt-get update && \
+  apt-get install -y \
+  debhelper \
+  dpkg-dev \
+  libssl-dev \
+  python-dev \
+  python-pip \
+  rpm \
+  wget \
+  zip && \
+  pip install --upgrade pip && \
+  pip install virtualenv && \
+  pip install setuptools --upgrade && \
+  virtualenv /usr/share/grr-server
 
-# Download the client templates now to get better caching from Docker.
-WORKDIR /usr/share/grr
-COPY scripts/download_client_templates.sh /usr/share/grr/scripts/download_client_templates.sh
-RUN bash /usr/share/grr/scripts/download_client_templates.sh
+# Pull dependencies and templates from pypi so docker can cache them.
+RUN . /usr/share/grr-server/bin/activate && \
+pip install --pre grr-response-server && \
+pip install -f https://storage.googleapis.com/releases.grr-response.com/index.html grr-response-templates
 
-# Copy the GRR code over
-ADD . /usr/share/grr/
+# Copy the GRR code over.
+ADD . /usr/src/grr/
 
-# Compile protos
-RUN python makefile.py
-
-# Install GRR
-WORKDIR /usr/share/grr
-RUN bash scripts/install_server_from_src.sh -d
+# Now install the current version over the top.
+RUN . /usr/share/grr-server/bin/activate && \
+pip install --force-reinstall -e /usr/src/grr/ && \
+pip install --force-reinstall -e /usr/src/grr/grr/config/grr-response-server
 
 COPY scripts/docker-entrypoint.sh /
 

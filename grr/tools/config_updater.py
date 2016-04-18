@@ -681,7 +681,7 @@ def ManageBinaries(config=None, token=None):
   print ("\nStep 5: Installing template package and repackaging clients with"
          " new configuration.")
 
-  if ((raw_input(
+  if flags.FLAGS.noprompt or ((raw_input(
       "Download and upgrade client templates? You can skip this if "
       "templates are already installed. [Yn]: ").upper() or "Y") == "Y"):
     InstallTemplatePackage()

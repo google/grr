@@ -219,11 +219,12 @@ run_cmd_confirm grr_config_updater initialize
 header "Enable grr services to start automatically on boot"
 run_cmd_confirm . /usr/share/grr/scripts/shell_helpers.sh
 
-# These lines can be replaced with grr_enable_all once we have built a new
-# server package.
-run_cmd_confirm enable_services grr-http-server
-run_cmd_confirm enable_services grr-ui
-run_cmd_confirm enable_services grr-worker
+# This is a temporary hack to workaround
+# https://github.com/google/grr/issues/353 which will go away once 3.1.0 is
+# fully released.
+enable_services grr-http-server || enable_services grr-http-server || true
+enable_services grr-ui || enable_services grr-ui || true
+enable_services grr-worker || enable_services grr-worker || true
 
 HOSTNAME=$(hostname)
 header "Install complete. Congratulations. Point your browser at http://${HOSTNAME}:8000"

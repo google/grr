@@ -47,6 +47,12 @@ Arch:amd64:
 Arch:i386:
   Client.arch: i386
 
+# When GRR is installed globally, we use the following global location for the
+# configuration writeback. Otherwise the writeback is written into the
+# virtualenv.
+Global Install Context:
+  Config.writeback: /etc/grr/server.local.yaml
+
 ClientBuilder Context:
   Client.foreman_check_frequency: 600
 

@@ -13,4 +13,4 @@ GRR_PREFIX=/usr/share/grr-server/
 # will write local configuration changes into a private location within the
 # virtualenv (this way you can have multiple different GRR installations running
 # at the same time).
-GRR_EXTRA_ARGS="-p Config.writeback=/etc/grr/server.local.yaml"
+GRR_EXTRA_ARGS=(--context 'Global Install Context')

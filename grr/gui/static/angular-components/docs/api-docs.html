@@ -35,6 +35,14 @@
       <p>
         <samp>/api/hunts?offset=100&amp;count=20&amp;<strong>strip_type_info=1</strong></samp><br>
       </p>
+
+      <h4>XSSI protection</h4>
+      <p>
+        To prevent against Cross Site Script Inclusion (XSSI) attacks, the JSON response body starts with a magic prefix line that must be stripped before feeding the rest of the response body to a JSON parser:
+      </p>
+      <p>
+        <samp>)]}'<br>[ ... valid JSON ... ]</samp><br>
+      </p>
       <br/>
 
       <div class="panel panel-default doc-item-category"

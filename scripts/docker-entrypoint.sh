@@ -8,7 +8,7 @@ set -e
 
 run_component() {
   COMPONENT=$1; shift
-  ${DAEMON} --start_${COMPONENT} --disallow_missing_config_definitions --config=/etc/grr/grr-server.yaml "$@"
+  grr_server "--start_${COMPONENT}" --disallow_missing_config_definitions "$@"
 }
 
 initialize() {
@@ -23,9 +23,9 @@ initialize() {
 }
 
 APPLICATION=$1;
+VIRTUALENV="/usr/share/grr-server/"
 if [ ${APPLICATION} = 'grr' ]; then
-  DAEMON="/usr/bin/grr_server"
-  [ -x "${DAEMON}" ] || DAEMON="/usr/local/bin/grr_server"
+  source "${VIRTUALENV}/bin/activate"
 
   if [ "$#" -eq 1 ]; then
     # Run all components in the same container. This is only useful for
