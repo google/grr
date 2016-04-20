@@ -5,7 +5,7 @@
 import os
 import StringIO
 import tarfile
-import time
+import threading
 import zipfile
 
 
@@ -75,32 +75,49 @@ class StoreTests(test_lib.GRRBaseTest):
     self.assertEqual(results, range(0, 5))
 
   def test05TimeBasedCache(self):
-    original_time = time.time
-
-    # Mock the time.time function
-    time.time = lambda: 100
 
     key = "key"
-
     tested_cache = utils.TimeBasedCache(max_age=50)
+    with test_lib.FakeTime(100):
 
-    # Stop the housekeeper thread - we test it explicitely here
-    tested_cache.exit = True
-    tested_cache.Put(key, "hello")
+      # Stop the housekeeper thread - we test it explicitely here
+      tested_cache.exit = True
+      tested_cache.Put(key, "hello")
 
-    self.assertEqual(tested_cache.Get(key), "hello")
+      self.assertEqual(tested_cache.Get(key), "hello")
 
-    # Fast forward time
-    time.time = lambda: 160
+    with test_lib.FakeTime(160):
 
-    # Force the housekeeper to run
-    tested_cache.house_keeper_thread.target()
+      # Force the housekeeper to run
+      tested_cache.house_keeper_thread.target()
 
-    # This should now be expired
-    self.assertRaises(KeyError, tested_cache.Get, key)
+      # This should now be expired
+      self.assertRaises(KeyError, tested_cache.Get, key)
 
-    # Fix up the mock
-    time.time = original_time
+  def testTimeBasedCacheSingleThread(self):
+
+    utils.TimeBasedCache()
+    num_threads = threading.active_count()
+    utils.TimeBasedCache()
+    self.assertEqual(threading.active_count(), num_threads)
+
+  def testWeakRefSet(self):
+
+    c1 = utils.TimeBasedCache()
+    c2 = utils.TimeBasedCache()
+
+    self.assertIn(c1, utils.TimeBasedCache.active_caches)
+    self.assertIn(c2, utils.TimeBasedCache.active_caches)
+
+    l = len(utils.TimeBasedCache.active_caches)
+
+    del c1
+
+    # This should work even though the weak ref to c1 should be gone.
+    utils.TimeBasedCache.house_keeper_thread.target()
+
+    # Make sure it's actually gone.
+    self.assertLess(len(utils.TimeBasedCache.active_caches), l)
 
 
 class UtilsTest(test_lib.GRRBaseTest):

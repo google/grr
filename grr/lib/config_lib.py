@@ -257,6 +257,10 @@ class ModulePath(ConfigFilter):
     if os.path.basename(result).startswith("__init__."):
       result = os.path.dirname(result)
 
+    # Sometimes __file__ points at a .pyc file, when we really mean the .py.
+    elif result.endswith(".pyc"):
+      result = result[:-4] + ".py"
+
     return result
 
 

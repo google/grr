@@ -18,7 +18,6 @@ from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.flows.general import file_finder as flows_file_finder
-from grr.lib.flows.general import memory as flows_memory
 from grr.lib.flows.general import registry as flows_registry
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -898,32 +897,6 @@ class FileFinderConditionListFormRenderer(forms.RepeatedFieldFormRenderer):
 class FileFinderActionFormRenderer(forms.UnionMultiFormRenderer):
   """Renders a file finder action selector."""
   type = flows_file_finder.FileFinderAction
-  union_by_field = "action_type"
-
-
-class MemoryCollectorConditionFormRenderer(forms.UnionMultiFormRenderer):
-  """Renders a single option in a list of conditions."""
-  type = flows_memory.MemoryCollectorCondition
-  union_by_field = "condition_type"
-
-
-class MemoryCollectorConditionListFormRenderer(forms.RepeatedFieldFormRenderer):
-  """Renders multiple conditions. Doesn't display a "default" condition."""
-  type = flows_memory.MemoryCollectorCondition
-
-  # We want list of conditions to be empty by default.
-  add_element_on_first_show = False
-
-
-class MemoryCollectorDumpOptionFormRenderer(forms.UnionMultiFormRenderer):
-  """Renders a memory collector dump option selector."""
-  type = flows_memory.MemoryCollectorDumpOption
-  union_by_field = "option_type"
-
-
-class MemoryCollectorActionFormRenderer(forms.UnionMultiFormRenderer):
-  """Renders a memory collector action selector."""
-  type = flows_memory.MemoryCollectorAction
   union_by_field = "action_type"
 
 

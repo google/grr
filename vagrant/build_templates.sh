@@ -20,8 +20,8 @@ if [ "$1" == "windows_7_64" ]; then
   fi
 else
   vagrant up "$1"
-  vagrant ssh -c "source ~/PYTHON_ENV/bin/activate && grr_client_build --config=/grr/grr/config/grr-server.yaml build --output /grr/grr/executables/" "$1"
-  vagrant ssh -c "source ~/PYTHON_ENV/bin/activate && grr_client_build --config=/grr/grr/config/grr-server.yaml build_components --output /grr/grr/executables/components" "$1"
+  vagrant ssh -c "source ~/PYTHON_ENV/bin/activate && grr_client_build --config=/grr/install_data/etc/grr-server.yaml build --output /grr/grr/executables/" "$1"
+  vagrant ssh -c "source ~/PYTHON_ENV/bin/activate && grr_client_build --config=/grr/install_data/etc/grr-server.yaml build_components --output /grr/grr/executables/components" "$1"
 
   if [ $? -eq 0 ]; then
     vagrant halt "$1"

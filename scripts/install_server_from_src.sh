@@ -3,7 +3,7 @@
 # This script will install GRR server dependencies and components from source.
 
 # It is called in four ways:
-# config/debian/dpkg_server/rules
+# install_data/debian/dpkg_server/rules
 # Dockerfile
 # Vagrantfile for grr_server_dev
 # directly when installing GRR from src
@@ -64,9 +64,11 @@ header "Install Configuration Files"
 # Set up default configuration
 mkdir -p "$INSTALL_PREFIX/etc/grr"
 
-# This file is not actually used. It is put here just for reference. GRR will
-# always access the target of the symlink directly.
-ln -s /usr/share/grr-server/lib/python2.7/site-packages/grr/config/grr-server.yaml "$INSTALL_PREFIX/etc/grr/grr-server.yaml"
+# When installed globally the config files are copied to the global
+# configuration directory.
+for f in "$SRC_DIR/install_data/etc/*.yaml"; do
+  $INSTALL_CMD $f  "$INSTALL_PREFIX/etc/grr/"
+done
 
 # Install all the script entry points in /usr/bin/.
 mkdir -p "$INSTALL_PREFIX/usr/bin/"
@@ -82,13 +84,10 @@ $INSTALL_CMD $LAUNCHER "$INSTALL_PREFIX/usr/bin/grr_fuse"
 mkdir -p "$INSTALL_PREFIX/etc/default"
 mkdir -p "$INSTALL_PREFIX/etc/init"
 
-$INSTALL_CMD "$SRC_DIR"/grr/config/upstart/default/grr* "$INSTALL_PREFIX/etc/default"
+$INSTALL_CMD "$SRC_DIR"/install_data/debian/dpkg_server/upstart/default/grr* "$INSTALL_PREFIX/etc/default"
 
-for init_script in "$SRC_DIR"/grr/config/upstart/grr-*; do
-  init_script_fn=$(basename "${init_script}")
-  if [ "$init_script_fn" != 'grr-client.conf' ]; then
-    $INSTALL_CMD "${init_script}" "$INSTALL_PREFIX/etc/init/${init_script_fn}"
-  fi
+for init_script in "$SRC_DIR"/install_data/debian/dpkg_server/upstart/grr-*; do
+  $INSTALL_CMD "${init_script}" "$INSTALL_PREFIX/etc/init/"
 done
 
 # Set up log directory

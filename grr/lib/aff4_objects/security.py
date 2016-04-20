@@ -309,7 +309,7 @@ class ClientApproval(ApprovalWithApproversAndReason):
   def CheckAccess(self, token):
     super(ClientApproval, self).CheckAccess(token)
     # If approvers isn't set and super-class checking passed, we're done.
-    if not config_lib.CONFIG["ACL.approvers_config_file"]:
+    if not client_approval_auth.CLIENT_APPROVAL_AUTH_MGR.IsActive():
       return True
 
     now = rdfvalue.RDFDatetime().Now()

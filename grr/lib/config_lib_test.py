@@ -425,8 +425,8 @@ Section1.test: 2
     conf = config_lib.CONFIG.MakeNewConfig()
 
     # Check our actual config validates
-    configpath = os.path.normpath(
-        os.path.dirname(__file__) + "/../config/grr-server.yaml")
+    configpath = config_lib.Resource().Filter(
+        "install_data/etc/grr-server.yaml")
     conf.Initialize(filename=configpath)
 
   def _DefineStringName(self, conf, name):

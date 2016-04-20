@@ -17,7 +17,6 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import build
 from grr.lib import config_lib
-from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import collects
 from grr.lib.builders import signing
@@ -71,69 +70,6 @@ def UploadSignedConfigBlob(content, aff4_path, client_context=None,
   logging.info("Uploaded to %s", urn)
 
 
-def UploadSignedDriverBlob(content, aff4_path=None, client_context=None,
-                           install_request=None, token=None):
-  """Upload a signed blob into the datastore.
-
-  Args:
-    content: Content of the driver file to upload.
-
-    aff4_path: aff4 path to upload to. If not specified, we use the config to
-      figure out where it goes.
-
-    client_context: The configuration contexts to use.
-
-    install_request: A DriverInstallRequest rdfvalue describing the installation
-      parameters for this driver. If None these are read from the config.
-
-    token: A security token.
-
-  Returns:
-    String containing path the file was written to.
-
-  Raises:
-    IOError: On failure to write.
-  """
-  sig_key = config_lib.CONFIG.Get("PrivateKeys.driver_signing_private_key",
-                                  context=client_context)
-
-  ver_key = config_lib.CONFIG.Get("Client.driver_signing_public_key",
-                                  context=client_context)
-
-  if aff4_path is None:
-    aff4_paths = config_lib.CONFIG.Get("MemoryDriver.aff4_paths",
-                                       context=client_context)
-    if not aff4_paths:
-      raise IOError("Could not determine driver location.")
-    if len(aff4_paths) > 1:
-      logging.info("Possible driver locations: %s", aff4_paths)
-      raise IOError("Ambiguous driver location, please specify.")
-    aff4_path = aff4_paths[0]
-
-  blob_rdf = rdf_crypto.SignedBlob()
-  blob_rdf.Sign(content, sig_key, ver_key, prompt=True)
-
-  with aff4.FACTORY.Create(
-      aff4_path, "GRRMemoryDriver", mode="w", token=token) as fd:
-    fd.Add(blob_rdf)
-
-    if install_request is None:
-      # Create install_request from the configuration.
-      install_request = rdf_client.DriverInstallTemplate(
-          device_path=config_lib.CONFIG.Get(
-              "MemoryDriver.device_path", context=client_context),
-          driver_display_name=config_lib.CONFIG.Get(
-              "MemoryDriver.driver_display_name", context=client_context),
-          driver_name=config_lib.CONFIG.Get(
-              "MemoryDriver.driver_service_name", context=client_context))
-
-    fd.Set(fd.Schema.INSTALLATION(install_request))
-
-  logging.info("Uploaded to %s", fd.urn)
-
-  return fd.urn
-
-
 def GetConfigBinaryPathType(aff4_path):
   """Take an aff4_path and return type or None.
 
@@ -146,9 +82,7 @@ def GetConfigBinaryPathType(aff4_path):
   if not aff4_path.Path().startswith("/config"):
     return
   components = aff4_path.RelativeName("aff4:/config").split("/")
-  if components[0] == "drivers" and components[1] in SUPPORTED_PLATFORMS:
-    return "GRRMemoryDriver"
-  elif components[0] == "executables" and components[1] in SUPPORTED_PLATFORMS:
+  if components[0] == "executables" and components[1] in SUPPORTED_PLATFORMS:
     return "GRRSignedBlob"
   elif components[0] == "python_hacks":
     return "GRRSignedBlob"
@@ -163,15 +97,6 @@ def CreateBinaryConfigPaths(token=None):
   try:
     # We weren't already initialized, create all directories we will need.
     for platform in SUPPORTED_PLATFORMS:
-      for arch in SUPPORTED_ARCHITECTURES:
-        client_context = ["Platform:%s" % platform.title(),
-                          "Arch:%s" % arch]
-
-        aff4_paths = config_lib.CONFIG.Get("MemoryDriver.aff4_paths",
-                                           context=client_context)
-        for aff4_path in aff4_paths:
-          required_urns.add(rdfvalue.RDFURN(aff4_path).Dirname())
-
       required_urns.add("aff4:/config/executables/%s/agentupdates" % platform)
       required_urns.add("aff4:/config/executables/%s/installers" % platform)
 

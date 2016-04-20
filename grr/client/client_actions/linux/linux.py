@@ -4,19 +4,13 @@
 
 import ctypes
 import ctypes.util
-import logging
 import os
 import pwd
-import stat
-import subprocess
-import tempfile
 import time
 
 from grr.client import actions
 from grr.client import client_utils_common
 from grr.client.client_actions import standard
-from grr.client.client_actions.linux import ko_patcher
-from grr.lib import config_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -328,108 +322,6 @@ class Uninstall(actions.ActionPlugin):
 
   def Run(self, unused_arg):
     raise RuntimeError("Not implemented")
-
-
-class UninstallDriver(actions.ActionPlugin):
-  """Unloads a memory driver.
-
-  Note that only drivers with a signature that validates with
-  client_config.DRIVER_SIGNING_CERT can be uninstalled.
-  """
-
-  in_rdfvalue = rdf_client.DriverInstallTemplate
-
-  @staticmethod
-  def UninstallDriver(driver_name):
-    """Unloads the driver.
-
-    Args:
-      driver_name: Name of the driver.
-
-    Raises:
-      OSError: On failure to uninstall.
-    """
-    cmd = ["/sbin/rmmod", driver_name]
-
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    p.communicate()
-    exit_status = p.returncode
-    logging.info("Unloading driver finished, status: %d.", exit_status)
-    if exit_status != 0:
-      raise OSError("Failed to unload driver.")
-
-  def Run(self, args):
-    """Unloads a driver."""
-    self.SyncTransactionLog()
-
-    # This will raise if the signature is bad.
-    args.driver.Verify(config_lib.CONFIG["Client.driver_signing_public_key"])
-
-    # Do the unload and let exceptions pass through.
-    self.UninstallDriver(args.driver_name)
-
-
-class InstallDriver(UninstallDriver):
-  """Installs a driver.
-
-  Note that only drivers with a signature that validates with
-  client_config.DRIVER_SIGNING_CERT can be loaded.
-  """
-
-  @staticmethod
-  def InstallDriver(driver_path):
-    """Loads a driver and starts it."""
-
-    cmd = ["/sbin/insmod", driver_path]
-
-    p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-    p.communicate()
-    exit_status = p.returncode
-    logging.info("Loading driver finished, status: %d.", exit_status)
-    if exit_status != 0:
-      raise OSError("Failed to load driver, may already be installed.")
-
-  def Run(self, args):
-    """Initializes the driver."""
-    # This action might crash the box so we need to flush the
-    # transaction log.
-    self.SyncTransactionLog()
-
-    # This will raise if the signature is bad.
-    args.driver.Verify(config_lib.CONFIG["Client.driver_signing_public_key"])
-
-    if args.force_reload:
-      try:
-        self.UninstallDriver(args.driver_name)
-      except OSError:
-        logging.warning("Failed to unload driver.")
-
-    try:
-      fd = tempfile.NamedTemporaryFile()
-      data = args.driver.data
-      if args.mode >= rdf_client.DriverInstallTemplate.RewriteMode.ENABLE:
-        force = args.mode == rdf_client.DriverInstallTemplate.RewriteMode.FORCE
-        data = ko_patcher.KernelObjectPatcher().Patch(data, force_patch=force)
-      fd.write(data)
-      fd.flush()
-    except IOError, e:
-      raise IOError("Failed to write driver file %s" % e)
-
-    try:
-      # Let exceptions pass through.
-      self.InstallDriver(fd.name)
-
-      try:
-        line = open("/sys/class/misc/%s/dev" % args.driver_name, "r").read(
-            ).rstrip()
-        major, minor = line.split(":")
-        os.mknod(args.path, stat.S_IFCHR | 0600,
-                 os.makedev(int(major), int(minor)))
-      except (IOError, OSError):
-        pass
-
-    finally:
-      fd.close()
 
 
 class UpdateAgent(standard.ExecuteBinaryCommand):

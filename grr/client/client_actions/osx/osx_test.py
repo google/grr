@@ -7,13 +7,11 @@
 
 
 
-import glob
 import os
 
 import mock
 import mox
 
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import osx_launchd as testdata
 from grr.lib import test_lib
@@ -64,32 +62,6 @@ class OSXFilesystemTests(OSXClientTests):
     self.assertEqual(results[2].f_fstypename, "autofs")
     self.assertEqual(results[2].f_mntonname, "/auto")
     self.assertEqual(results[2].f_mntfromname, "map auto.auto")
-
-
-class OSXDriverTests(OSXClientTests):
-  """Test reading osx file system."""
-
-  def setUp(self):
-    super(OSXDriverTests, self).setUp()
-    self.mox = mox.Mox()
-    self.mox.StubOutWithMock(self.osx.client_utils_osx, "InstallDriver")
-
-    path = os.path.join(config_lib.CONFIG["Test.srcdir"],
-                        "grr/binaries/OSXPMem*.tar.gz")
-    self.drivers = glob.glob(path)
-
-  def tearDown(self):
-    super(OSXDriverTests, self).tearDown()
-    self.mox.UnsetStubs()
-
-  def testFindKext(self):
-    action = self.osx.InstallDriver("")
-    kext_path = os.path.join(self.temp_dir, "testing/something/blah.kext")
-    os.makedirs(kext_path)
-    self.assertEqual(action._FindKext(self.temp_dir), kext_path)
-    os.makedirs(os.path.join(self.temp_dir, "testing/no/kext/here"))
-    self.assertRaises(RuntimeError, action._FindKext,
-                      os.path.join(self.temp_dir, "testing/no"))
 
 
 class OSXEnumerateRunningServicesTest(OSXClientTests):

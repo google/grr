@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Test client utility functions."""
 
 
@@ -18,6 +17,7 @@ from grr.client import client_utils_linux
 from grr.client import client_utils_osx
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -168,20 +168,18 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
 
   def testLinuxNanny(self):
     """Tests the linux nanny."""
+    # Starting nannies is disabled in tests. For this one we need it.
+    self.nanny_stubber.Stop()
     self.exit_called = False
 
-    # Mock out the exit call.
-    old_exit = os._exit
-    try:
+    def MockExit(value):
+      self.exit_called = value
+      # Kill the nanny thread.
+      raise RuntimeError("Nannythread exiting.")
+
+    with utils.Stubber(os, "_exit", MockExit):
       nanny_controller = client_utils_linux.NannyController()
       nanny_controller.StartNanny(unresponsive_kill_period=0.5)
-
-      def MockExit(value):
-        self.exit_called = value
-        # Kill the nanny thread.
-        raise RuntimeError("Nannythread exiting.")
-
-      os._exit = MockExit
 
       for _ in range(10):
         # Unfortunately we really need to sleep because we cant mock out
@@ -196,9 +194,6 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
       self.assertEqual(self.exit_called, -1)
 
       nanny_controller.StopNanny()
-
-    finally:
-      os._exit = old_exit
 
   def testLinuxNannyLog(self):
     """Tests the linux nanny transaction log."""

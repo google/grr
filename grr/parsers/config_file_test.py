@@ -673,7 +673,7 @@ class SudoersParserTest(test_lib.GRRBaseTest):
     result = list(config.Parse(None, contents, None))
 
     self.assertListEqual(list(result[0].includes), ["a", "b"])
-    self.assertEmpty(list(result[0].entries))
+    self.assertListEqual(list(result[0].entries), [])
 
   def testParseAliases(self):
     test_data = r"""

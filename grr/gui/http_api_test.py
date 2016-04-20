@@ -79,6 +79,21 @@ class SampleStreamingHandler(api_call_handler_base.ApiCallHandler):
         "test.ext", content_generator=self._Generate(), content_length=1337)
 
 
+class SampleDeleteHandlerArgs(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.SampleDeleteHandlerArgs
+
+
+class SampleDeleteHandler(api_call_handler_base.ApiCallHandler):
+
+  args_type = SampleDeleteHandlerArgs
+
+  def Render(self, args, token=None):
+    return {
+        "method": "DELETE",
+        "resource": args.resource_id
+    }
+
+
 class TestHttpApiRouter(api_call_router.ApiCallRouter):
   """Test router with custom methods."""
 
@@ -106,6 +121,11 @@ class TestHttpApiRouter(api_call_router.ApiCallRouter):
   })
   def SampleGetWithAdditionalArgs(self, args, token=None):
     return SampleGetHandlerWithAdditionalArgs()
+
+  @api_call_router.Http("DELETE", "/test_resource/<resource_id>")
+  @api_call_router.ArgsType(SampleDeleteHandlerArgs)
+  def SampleDelete(self, args, token=None):
+    return SampleDeleteHandler()
 
 
 class RouterMatcherTest(test_lib.GRRBaseTest):
@@ -180,7 +200,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
         "SERVER_PORT": 1234
     }
     request.user = "test"
-    if method in ["GET", "HEAD"]:
+    if method in ["GET", "HEAD", "DELETE"]:
       request.GET = query_parameters
     request.META = {}
 
@@ -320,6 +340,16 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
         {"method": "GET",
          "path": "some/path",
          "foo": "42"})
+
+  def testRendersDeleteHandlerCorrectly(self):
+    response = self._RenderResponse(
+        self._CreateRequest("DELETE", "/test_resource/R:123456"))
+
+    self.assertEqual(
+        json.loads(response.content),
+        {"method": "DELETE",
+         "resource": "R:123456"})
+    self.assertEqual(response.status_code, 200)
 
 
 def main(argv):

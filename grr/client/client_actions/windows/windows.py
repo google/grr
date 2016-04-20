@@ -10,18 +10,14 @@ libs/server_stubs.py
 import binascii
 import ctypes
 import logging
-import os
-import tempfile
 import _winreg
 
 import pythoncom
-import pywintypes
 import win32api
 import win32com.client
 import win32file
 import win32service
 import win32serviceutil
-import winerror
 import wmi
 
 from grr.client import actions
@@ -36,8 +32,6 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 # These properties are included with nearly every WMI object and use space.
 IGNORE_PROPS = ["CSCreationClassName", "CreationClassName", "OSName",
                 "OSCreationClassName", "WindowsVersion", "CSName"]
-
-DRIVER_MAX_SIZE = 1024 * 1024 * 20  # 20MB
 
 
 def UnicodeFromCodePage(string):
@@ -210,132 +204,6 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
   except pythoncom.com_error as e:
     raise RuntimeError("WMI query data error on query \'%s\' err was %s" %
                        (e, query))
-
-
-def CtlCode(device_type, function, method, access):
-  """Prepare an IO control code."""
-  return (device_type << 16) | (access << 14) | (function << 2) | method
-
-
-# IOCTLS for interacting with the driver.
-INFO_IOCTRL = CtlCode(0x22, 0x100, 0, 3)  # Get information.
-CTRL_IOCTRL = CtlCode(0x22, 0x101, 0, 3)  # Set acquisition modes.
-
-
-class UninstallDriver(actions.ActionPlugin):
-  """Unloads and deletes a memory driver.
-
-  Note that only drivers with a signature that validates with
-  Client.driver_signing_public_key can be uninstalled.
-  """
-
-  in_rdfvalue = rdf_client.DriverInstallTemplate
-
-  @staticmethod
-  def UninstallDriver(driver_path, service_name, delete_file=False):
-    """Unloads the driver and delete the driver file.
-
-    Args:
-      driver_path: Full path name to the driver file.
-      service_name: Name of the service the driver is loaded as.
-      delete_file: Should we delete the driver file after removing the service.
-
-    Raises:
-      OSError: On failure to uninstall or delete.
-    """
-
-    try:
-      win32serviceutil.StopService(service_name)
-    except pywintypes.error as e:
-      if e[0] not in [winerror.ERROR_SERVICE_NOT_ACTIVE,
-                      winerror.ERROR_SERVICE_DOES_NOT_EXIST]:
-        raise OSError("Could not stop service: {0}".format(e))
-
-    try:
-      win32serviceutil.RemoveService(service_name)
-    except pywintypes.error as e:
-      if e[0] != winerror.ERROR_SERVICE_DOES_NOT_EXIST:
-        raise OSError("Could not remove service: {0}".format(e))
-
-    if delete_file:
-      try:
-        if os.path.exists(driver_path):
-          os.remove(driver_path)
-      except (OSError, IOError) as e:
-        raise OSError("Driver deletion failed: " + str(e))
-
-  def Run(self, args):
-    """Unloads a driver."""
-    # This is kind of lame because we dont really check the driver is
-    # the same as the one that we are going to uninstall.
-    args.driver.Verify(config_lib.CONFIG["Client.driver_signing_public_key"])
-
-    self.UninstallDriver(driver_path=None, service_name=args.driver_name,
-                         delete_file=False)
-
-
-class InstallDriver(UninstallDriver):
-  """Installs a driver.
-
-  Note that only drivers with a signature that validates with
-  Client.driver_signing_public_key can be loaded.
-  """
-  in_rdfvalue = rdf_client.DriverInstallTemplate
-
-  @staticmethod
-  def InstallDriver(driver_path, service_name, driver_display_name):
-    """Loads a driver and start it."""
-    hscm = win32service.OpenSCManager(None, None,
-                                      win32service.SC_MANAGER_ALL_ACCESS)
-    try:
-      win32service.CreateService(hscm,
-                                 service_name,
-                                 driver_display_name,
-                                 win32service.SERVICE_ALL_ACCESS,
-                                 win32service.SERVICE_KERNEL_DRIVER,
-                                 win32service.SERVICE_DEMAND_START,
-                                 win32service.SERVICE_ERROR_IGNORE,
-                                 driver_path,
-                                 None,  # No load ordering
-                                 0,     # No Tag identifier
-                                 None,  # Service deps
-                                 None,  # User name
-                                 None)  # Password
-      win32serviceutil.StartService(service_name)
-    except pywintypes.error as e:
-      # The following errors are expected:
-      if e[0] not in [winerror.ERROR_SERVICE_EXISTS,
-                      winerror.ERROR_SERVICE_MARKED_FOR_DELETE]:
-        raise RuntimeError("StartService failure: {0}".format(e))
-
-  def Run(self, args):
-    """Initializes the driver."""
-    self.SyncTransactionLog()
-
-    # This will raise if the signature is bad.
-    args.driver.Verify(config_lib.CONFIG["Client.driver_signing_public_key"])
-
-    if args.force_reload:
-      try:
-        self.UninstallDriver(None, args.driver_name, delete_file=False)
-      except Exception as e:  # pylint: disable=broad-except
-        logging.debug("Error uninstalling driver: %s", e)
-
-    path_handle, path_name = tempfile.mkstemp(suffix=".sys")
-    try:
-      # TODO(user): Ensure we have lock here, no races
-      logging.info("Writing driver to %s", path_name)
-
-      # Note permissions default to global read, user only write.
-      try:
-        os.write(path_handle, args.driver.data)
-      finally:
-        os.close(path_handle)
-
-      self.InstallDriver(path_name, args.driver_name, args.driver_display_name)
-
-    finally:
-      os.unlink(path_name)
 
 
 class UpdateAgent(standard.ExecuteBinaryCommand):

@@ -100,28 +100,28 @@ class LinuxClientBuilder(build.ClientBuilder):
 
     # Copy files needed for dpkg-buildpackage.
     shutil.copytree(
-        config_lib.Resource().Filter("grr/config/debian/dpkg_client/debian"),
+        config_lib.Resource().Filter("install_data/debian/dpkg_client/debian"),
         os.path.join(dpkg_dir, "debian/debian.in"))
 
     # Copy upstart files
     outdir = os.path.join(dpkg_dir, "debian/upstart.in")
     utils.EnsureDirExists(outdir)
     shutil.copy(
-        config_lib.Resource().Filter("grr/config/upstart/grr-client.conf"),
+        config_lib.Resource().Filter(
+            "install_data/debian/dpkg_client/upstart/grr-client.conf"),
         outdir)
 
     # Copy init files
     outdir = os.path.join(dpkg_dir, "debian/initd.in")
     utils.EnsureDirExists(outdir)
-    shutil.copy(
-        config_lib.Resource().Filter("grr/config/debian/initd/grr-client"),
-        outdir)
+    shutil.copy(config_lib.Resource().Filter(
+        "install_data/debian/dpkg_client/initd/grr-client"), outdir)
 
     # Copy systemd files
     outdir = os.path.join(dpkg_dir, "debian/systemd.in")
     utils.EnsureDirExists(outdir)
     shutil.copy(
-        config_lib.Resource().Filter("grr/config/systemd/grr-client.service"),
+        config_lib.Resource().Filter("install_data/systemd/grr-client.service"),
         outdir)
 
   def MakeZip(self, input_dir, output_file):
@@ -157,8 +157,8 @@ class CentosClientBuilder(LinuxClientBuilder):
         os.path.join(build_dir, "debian"),
         os.path.join(build_dir, "rpmbuild"))
     shutil.copy(
-        config_lib.Resource().Filter("grr/config/centos/grr.spec.in"),
+        config_lib.Resource().Filter("install_data/centos/grr.spec.in"),
         os.path.join(build_dir, "rpmbuild/grr.spec.in"))
     shutil.copy(
-        config_lib.Resource().Filter("grr/config/centos/grr-client.initd.in"),
+        config_lib.Resource().Filter("install_data/centos/grr-client.initd.in"),
         os.path.join(build_dir, "rpmbuild/grr-client.initd.in"))

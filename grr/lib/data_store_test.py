@@ -1645,6 +1645,7 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
   The CSV output filename will be printed in a log message at the end of the
   test.
   """
+  labels = ["large"]
 
   # What we consider as a big number of attributes.
   BIG_NUM_ATTRIBUTES = 1000
@@ -2109,6 +2110,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
   """
   queue = rdfvalue.RDFURN("BENCHMARK")
   units = "s"
+  labels = ["large"]
 
   def setUp(self):
     super(DataStoreBenchmarks, self).setUp()

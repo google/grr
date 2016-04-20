@@ -689,7 +689,7 @@ class RecursiveListButtonRenderer(renderers.AngularSpanDirectiveRenderer):
       vfs_path = aff4_path.RelativeName(client_id)
 
       self.directive_args["client-id"] = client_id
-      self.directive_args["vfs-path"] = vfs_path
+      self.directive_args["file-path"] = vfs_path
 
     return super(RecursiveListButtonRenderer, self).Layout(request, response)
 

@@ -77,6 +77,10 @@ class ClientApprovalAuthorizationManager(
   def Initialize(self):
     self.LoadApprovals()
 
+  def IsActive(self):
+    """Does this manager have any rules loaded?"""
+    return bool(self.reader.auth_objects)
+
   def LoadApprovals(self, yaml_data=None):
     self.reader = auth_manager.AuthorizationReader()
 
@@ -84,14 +88,9 @@ class ClientApprovalAuthorizationManager(
     if yaml_data:
       self.reader.CreateAuthorizations(yaml_data, ClientApprovalAuthorization)
     else:
-      if not config_lib.CONFIG["ACL.approvers_config_file"]:
-        return
       with open(
           config_lib.CONFIG["ACL.approvers_config_file"], mode="rb") as fh:
         self.reader.CreateAuthorizations(fh.read(), ClientApprovalAuthorization)
-
-    if not self.reader.GetAllAuthorizationObjects():
-      raise ErrorInvalidApprovers("No client approvals added.")
 
     for approval_spec in self.reader.GetAllAuthorizationObjects():
       for group in approval_spec.groups:

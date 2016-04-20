@@ -13,7 +13,7 @@ grr_config_updater.py add_user --username=<username>
 then enter a password for the user when prompted.
 
 python grr/tools/grr_server.py \
-    --config grr/config/grr_test.yaml
+    --config grr/install_data/etc/grr-server.yaml
 """
 
 

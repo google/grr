@@ -534,7 +534,7 @@ class GRRFuse(GRRFuseDatastoreOnly):
 def Usage():
   print "Needs at least --mountpoint"
   print ("e.g. \n python grr/tools/fuse_mount.py "
-         "--config=grr/config/grr-server.yaml "
+         "--config=install_data/etc/grr-server.yaml "
          "--mountpoint=/home/%s/mntpoint"
          % getpass.getuser())
 

@@ -51,17 +51,39 @@ class ViewsInit(registry.InitHook):
 @csrf.ensure_csrf_cookie     # Set the csrf cookie on the homepage.
 def Homepage(request):
   """Basic handler to render the index page."""
+  # DEPRECATED: renderers are now legacy, so just hardcoding the list
+  # of JS files here (it's not going to expand).
+  #
   # We build a list of all js files to include by looking at the list
   # of renderers modules. JS files are always named in accordance with
   # renderers modules names. I.e. if there's a renderers package called
   # grr.gui.plugins.acl_manager, we expect a js files called acl_manager.js.
-  renderers_js_files = set()
-  for cls in renderers.Renderer.classes.values():
-    if aff4.issubclass(cls, renderers.Renderer) and cls.__module__:
-      module_components = cls.__module__.split(".")
-      # Only include files corresponding to renderers in "plugins" package.
-      if module_components[-2] == "plugins":
-        renderers_js_files.add(module_components[-1] + ".js")
+  renderers_js_files = set([
+      "acl_manager.js",
+      "artifact_view.js",
+      "configuration_view.js",
+      "container_viewer.js",
+      "crash_view.js",
+      "cron_view.js",
+      "fileview.js",
+      "fileview_widgets.js",
+      "flow_management.js",
+      "foreman.js",
+      "forms.js",
+      "hunt_view.js",
+      "inspect_view.js",
+      "new_hunt.js",
+      "notifications.js",
+      "rekall_viewer.js",
+      "reports_view.js",
+      "searchclient.js",
+      "semantic.js",
+      "server_load_view.js",
+      "statistics.js",
+      "timeline_view.js",
+      "usage.js",
+      "wizards.js"
+  ])
 
   create_time = psutil.Process(os.getpid()).create_time()
   context = {"page_title": config_lib.CONFIG["AdminUI.page_title"],

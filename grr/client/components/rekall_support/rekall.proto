@@ -8,6 +8,7 @@ import "grr/proto/semantic.proto";
 import "grr/proto/jobs.proto";
 
 
+// Next field ID: 4
 message MemoryInformation {
   option (semantic) = {
     description: "Describe the memory geometry."
@@ -18,6 +19,7 @@ message MemoryInformation {
   optional uint64 cr3 = 3;
 }
 
+// Next field ID: 4
 message PluginRequest {
   optional string plugin = 2 [(sem_type) = {
       description: "The plugin name to run.",
@@ -29,6 +31,7 @@ message PluginRequest {
 }
 
 // Issue a request for Rekall memory analysis.
+// Next field ID: 10
 message RekallRequest {
   optional Iterator iterator = 1 [(sem_type) = {
       label: HIDDEN
@@ -86,6 +89,7 @@ message RekallResponse {
     }];
 }
 
+// Next field ID: 5
 message RekallProfile {
   optional string name = 1 [(sem_type) = {
       description: "The name of this profile."
@@ -110,21 +114,11 @@ message RekallProfile {
 }
 
 // The Rekall AnalyzeClientMemory flow.
+// Next field ID: 6
 message AnalyzeClientMemoryArgs {
-  optional DriverInstallTemplate driver_installer = 1 [(sem_type) = {
-      description: "An optional DriverInstallTemplate proto to control "
-      "driver installation. If not set, the default installation proto will "
-      "be used.",
-      label: HIDDEN,
-    }];
-
   optional RekallRequest request = 2 [(sem_type) = {
       description: "A request for the client's Rekall subsystem.",
     }];
-  optional bool use_kcore_if_present = 3 [(sem_type) = {
-      description: "Use /proc/kcore if present. Only affects linux clients.",
-      friendly_name: "Enable kcore scanning."
-    }, default=true];
 
   optional bool debug_logging = 4 [(sem_type) = {
       description: "Use DEBUG level logging.",

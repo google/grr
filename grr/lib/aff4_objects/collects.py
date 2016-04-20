@@ -432,17 +432,6 @@ class GRRSignedBlob(aff4.AFF4Stream):
     self.fd.seek(offset, whence)
 
 
-class GRRMemoryDriver(GRRSignedBlob):
-  """A driver for acquiring memory."""
-
-  class SchemaCls(GRRSignedBlob.SchemaCls):
-    INSTALLATION = aff4.Attribute(
-        "aff4:driver/installation", rdf_client.DriverInstallTemplate,
-        "The driver installation control protobuf.", "installation",
-        default=rdf_client.DriverInstallTemplate(
-            driver_name="pmem", device_path=r"\\.\pmem"))
-
-
 class GrepResultsCollection(RDFValueCollection):
   """A collection of grep results."""
   _rdf_type = rdf_client.BufferReference

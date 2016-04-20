@@ -13,7 +13,7 @@ SOURCE=$PWD
 mkdir -p build
 cd build
 rm -rf ./debian ./build ./dist
-cp -r "$SOURCE/grr/config/debian/dpkg_server" ./debian
+cp -r "$SOURCE/install_data/debian/dpkg_server" ./debian
 cp debian/setup.py .
 
 # Internet access is required to download the latest artifacts

@@ -7,39 +7,19 @@ import copy
 import gzip
 import json
 import os
-import socket
-import threading
 
 from grr.client.client_actions import tempfiles
-from grr.client.components.rekall_support import grr_rekall_test
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import filesystem
-from grr.lib.flows.general import memory
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
-
-
-class DummyLoadMemoryDriverFlow(flow.GRRFlow):
-  args_type = memory.LoadMemoryDriverArgs
-
-  @flow.StateHandler()
-  def Start(self):
-    self.SendReply(rdf_rekall_types.MemoryInformation(
-        device=rdf_paths.PathSpec(
-            path=os.path.join(config_lib.CONFIG["Test.data_dir"],
-                              "searching/auth.log"),
-            pathtype=rdf_paths.PathSpec.PathType.OS),
-        runs=[rdf_client.BufferReference(length=638976, offset=5),
-              rdf_client.BufferReference(length=145184, offset=643074)]))
 
 
 class DummyDiskVolumeInfo(flow.GRRFlow):
@@ -68,6 +48,37 @@ class MemoryTest(test_lib.FlowTestsBaseclass):
     test_lib.WriteComponent(token=self.token)
 
 
+class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
+
+  def __init__(self):
+    # Use this file as the mock memory image.
+    self.memory_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                                    "searching/auth.log")
+
+    # The data in the file.
+    with open(self.memory_file, "r") as f:
+      self.memory_dump = f.read()
+
+    super(MemoryCollectorClientMock, self).__init__(
+        "TransferBuffer", "StatFile", "Find", "HashBuffer", "FingerprintFile",
+        "ListDirectory", "WmiQuery", "HashFile", "LoadComponent")
+
+  def DeleteGRRTempFiles(self, request):
+    self.delete_request = request
+
+    return []
+
+  def RekallAction(self, request):
+    self.rekall_request = request
+
+    # Pretend Rekall returned the memory file.
+    return [rdf_rekall_types.RekallResponse(
+        json_messages="""
+        [["file",{"path": "%s", "pathtype": "TMPFILE"}]]
+        """ % self.memory_file,
+        plugin="aff4acquire"), rdf_client.Iterator(state="FINISHED")]
+
+
 class TestMemoryCollector(MemoryTest):
   """Tests the MemoryCollector flow."""
 
@@ -85,70 +96,48 @@ class TestMemoryCollector(MemoryTest):
       self.memory_dump = f.read()
     self.assertTrue(self.memory_dump)
 
-    self.client_mock = action_mocks.ActionMock("TransferBuffer", "HashBuffer",
-                                               "StatFile", "CopyPathToFile",
-                                               "SendFile", "DeleteGRRTempFiles",
-                                               "GetConfiguration", "Find",
-                                               "CheckFreeGRRTempSpace", "Grep")
+    self.client_mock = MemoryCollectorClientMock()
 
-    self.old_driver_flow = flow.GRRFlow.classes["LoadMemoryDriver"]
-    flow.GRRFlow.classes["LoadMemoryDriver"] = DummyLoadMemoryDriverFlow
+    # Ensure there is some data in the memory dump.
+    self.assertTrue(self.client_mock.memory_dump)
+
     self.old_diskvolume_flow = flow.GRRFlow.classes["DiskVolumeInfo"]
     flow.GRRFlow.classes["DiskVolumeInfo"] = DummyDiskVolumeInfo
 
-    self.vfs_overrider = test_lib.VFSOverrider(
-        rdf_paths.PathSpec.PathType.MEMORY, test_lib.FakeTestDataVFSHandler)
-    self.vfs_overrider.Start()
-
   def tearDown(self):
     super(TestMemoryCollector, self).tearDown()
-    flow.GRRFlow.classes["LoadMemoryDriver"] = self.old_driver_flow
     flow.GRRFlow.classes["DiskVolumeInfo"] = self.old_diskvolume_flow
-    self.vfs_overrider.Stop()
 
-  def RunWithDownload(self, dump_option, conditions=None):
-    download_action = memory.MemoryCollectorDownloadAction(
-        dump_option=dump_option)
-
-    flow_urn = flow.GRRFlow.StartFlow(
+  def RunWithDownload(self):
+    self.flow_urn = flow.GRRFlow.StartFlow(
         client_id=self.client_id, flow_name="MemoryCollector",
-        conditions=conditions or [],
-        action=memory.MemoryCollectorAction(
-            action_type=memory.MemoryCollectorAction.Action.DOWNLOAD,
-            download=download_action
-        ), token=self.token, output=self.output_path)
+        token=self.token, output=self.output_path)
 
     for _ in test_lib.TestFlowHelper(
-        flow_urn, self.client_mock,
+        self.flow_urn, self.client_mock,
         client_id=self.client_id,
         token=self.token):
       pass
 
-    return aff4.FACTORY.Open(flow_urn, token=self.token)
+    return aff4.FACTORY.Open(self.flow_urn, token=self.token)
 
   def testMemoryImageLocalCopyDownload(self):
-    dump_option = memory.MemoryCollectorDumpOption(
-        option_type=memory.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=memory.MemoryCollectorWithLocalCopyDumpOption(
-            gzip=False, check_disk_free_space=False))
+    flow_obj = self.RunWithDownload()
 
-    flow_obj = self.RunWithDownload(dump_option)
-    self.assertTrue(flow_obj.state.memory_src_path is not None)
-    self.assertEqual(
-        flow_obj.state.downloaded_file,
-        self.client_id.Add("temp").Add(flow_obj.state.memory_src_path.path))
+    self.assertEqual(flow_obj.state.output_urn,
+                     self.client_id.Add("temp").Add(self.memory_file))
 
-    fd = aff4.FACTORY.Open(flow_obj.state.downloaded_file, token=self.token)
+    fd = aff4.FACTORY.Open(flow_obj.state.output_urn, token=self.token)
     self.assertEqual(fd.Read(1024 * 1024), self.memory_dump)
 
-  def testLinuxChecksDiskSpace(self):
+  def testChecksDiskSpace(self):
     client = aff4.FACTORY.Create(self.client_id,
                                  "VFSGRRClient", token=self.token)
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Set(client.Schema.MEMORY_SIZE(64 * 1024 * 1024 * 1024))
     client.Close()
 
-    class LinuxClientMock(action_mocks.ActionMock):
+    class ClientMock(MemoryCollectorClientMock):
       """A mock which returns low disk space."""
 
       def CheckFreeGRRTempSpace(self, _):
@@ -160,362 +149,17 @@ class TestMemoryCollector(MemoryTest):
                                      free=5 * 1024 * 1024 * 1024)
         return [reply]
 
-    dump_option = memory.MemoryCollectorDumpOption(
-        option_type=memory.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=memory.MemoryCollectorWithLocalCopyDumpOption(
-            check_disk_free_space=True))
-
-    self.client_mock = LinuxClientMock()
+    self.client_mock = ClientMock()
 
     e = self.assertRaises(RuntimeError)
     with e:
-      self.RunWithDownload(dump_option)
+      self.RunWithDownload()
+
     self.assertIn("Free space may be too low", str(e.exception))
 
-  def testMemoryImageLocalCopyDiskCheck(self):
-    dump_option = memory.MemoryCollectorDumpOption(
-        option_type=memory.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=memory.MemoryCollectorWithLocalCopyDumpOption(
-            gzip=False))
-
-    flow_obj = self.RunWithDownload(dump_option)
-    self.assertTrue(flow_obj.state.memory_src_path is not None)
-    self.assertEqual(
-        flow_obj.state.downloaded_file,
-        self.client_id.Add("temp").Add(flow_obj.state.memory_src_path.path))
-
-    fd = aff4.FACTORY.Open(flow_obj.state.downloaded_file, token=self.token)
-    self.assertEqual(fd.Read(1024 * 1024), self.memory_dump)
-
-  def testMemoryImageLocalCopyNoSpace(self):
-    dump_option = memory.MemoryCollectorDumpOption(
-        option_type=memory.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=memory.MemoryCollectorWithLocalCopyDumpOption(
-            gzip=False, destdir="/opt/tmp/testing"))
-
-    self.assertRaises(RuntimeError, self.RunWithDownload, dump_option)
-
-  def testMemoryImageLocalCopyDownloadWithOffsetAndLength(self):
-    dump_option = memory.MemoryCollectorDumpOption(
-        option_type=memory.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=memory.MemoryCollectorWithLocalCopyDumpOption(
-            offset=10, length=42, gzip=False))
-
-    flow_obj = self.RunWithDownload(dump_option)
-    self.assertTrue(flow_obj.state.memory_src_path is not None)
-    self.assertEqual(
-        flow_obj.state.downloaded_file,
-        self.client_id.Add("temp").Add(flow_obj.state.memory_src_path.path))
-
-    fd = aff4.FACTORY.Open(flow_obj.state.downloaded_file, token=self.token)
-    self.assertEqual(fd.Read(1024 * 1024), self.memory_dump[10:52])
-
-  def testMemoryImageWithoutLocalCopyDownload(self):
-    dump_option = memory.MemoryCollectorDumpOption(
-        option_type="WITHOUT_LOCAL_COPY")
-
-    flow_obj = self.RunWithDownload(dump_option)
-    self.assertEqual(flow_obj.state.memory_src_path.path, self.memory_file)
-    self.assertEqual(
-        flow_obj.state.downloaded_file,
-        self.client_id.Add("fs/os").Add(flow_obj.state.memory_src_path.path))
-
-    fd = aff4.FACTORY.Open(flow_obj.state.downloaded_file, token=self.token)
-    self.assertEqual(fd.Read(1024 * 1024), self.memory_dump)
-
-  def RunWithSendToSocket(self, dump_option, conditions=None):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind((socket.gethostname(), 0))
-    port = sock.getsockname()[1]
-
-    send_to_socket_action = memory.MemoryCollectorSendToSocketAction(
-        host=socket.gethostname(),
-        port=port,
-        key=self.key,
-        iv=self.iv,
-        dump_option=dump_option)
-
-    flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="MemoryCollector",
-        conditions=conditions or [],
-        action=memory.MemoryCollectorAction(
-            action_type=memory.MemoryCollectorAction.Action.SEND_TO_SOCKET,
-            send_to_socket=send_to_socket_action),
-        token=self.token, output=self.output_path)
-
-    socket_data = []
-
-    def ReadFromSocket():
-      sock.listen(1)
-      client_socket, _ = sock.accept()
-      while 1:
-        data = client_socket.recv(1024)
-        if not data: break
-        socket_data.append(data)
-      client_socket.close()
-      sock.close()
-    thread = threading.Thread(target=ReadFromSocket)
-    thread.daemon = True
-    thread.start()
-
-    for _ in test_lib.TestFlowHelper(
-        flow_urn, self.client_mock, client_id=self.client_id, token=self.token):
-      pass
-    thread.join()
-
-    encrypted_data = "".join(socket_data)
-    # Data should be encrypted, so they're not equal
-    self.assertNotEqual(encrypted_data, self.memory_dump)
-
-    cipher = rdf_crypto.AES128CBCCipher(
-        key=self.key,
-        iv=self.iv,
-        mode=rdf_crypto.AES128CBCCipher.OP_DECRYPT)
-    decrypted_data = cipher.Update(encrypted_data) + cipher.Final()
-
-    return flow_urn, encrypted_data, decrypted_data
-
-  def testMemoryImageLocalCopySendToSocket(self):
-    dump_option = memory.MemoryCollectorDumpOption(
-        option_type=memory.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=memory.MemoryCollectorWithLocalCopyDumpOption(
-            gzip=False))
-    flow_urn, encrypted, decrypted = self.RunWithSendToSocket(dump_option)
-
-    flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
-    # There was a local file, so dest_path should not be empty
-    self.assertTrue(flow_obj.state.memory_src_path is not None)
-
-    # Data should be encrypted, so they're not equal
-    self.assertNotEqual(encrypted, self.memory_dump)
-    # Decrypted data should be equal to the memory dump
-    self.assertEqual(decrypted, self.memory_dump)
-
-  def testMemoryImageLocalCopySendToSocketWithOffsetAndLength(self):
-    dump_option = memory.MemoryCollectorDumpOption(
-        option_type=memory.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=memory.MemoryCollectorWithLocalCopyDumpOption(
-            offset=10, length=42, gzip=False))
-    flow_urn, encrypted, decrypted = self.RunWithSendToSocket(dump_option)
-
-    flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
-    # There was a local file, so dest_path should not be empty
-    self.assertTrue(flow_obj.state.memory_src_path is not None)
-
-    # Data should be encrypted, so they're not equal
-    self.assertNotEqual(encrypted, self.memory_dump)
-    # Decrypted data should be equal to the memory dump
-    self.assertEqual(decrypted, self.memory_dump[10:52])
-
-  def testMemoryImageWithoutLocalCopySendToSocket(self):
-    dump_option = memory.MemoryCollectorDumpOption(
-        option_type="WITHOUT_LOCAL_COPY")
-    (flow_urn, encrypted, decrypted) = self.RunWithSendToSocket(dump_option)
-
-    flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
-    # There was a local file, so dest_path should not be empty
-    self.assertTrue(flow_obj.state.memory_src_path is not None)
-
-    # Data should be encrypted, so they're not equal
-    self.assertNotEqual(encrypted, self.memory_dump)
-    # Decrypted data should be equal to the memory dump
-    self.assertEqual(decrypted, self.memory_dump)
-
-  def RunWithNoAction(self, conditions=None):
-    flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="MemoryCollector",
-        conditions=conditions or [],
-        action=memory.MemoryCollectorAction(
-            action_type=memory.MemoryCollectorAction.Action.NONE),
-        token=self.token, output=self.output_path)
-
-    for _ in test_lib.TestFlowHelper(
-        flow_urn, self.client_mock, client_id=self.client_id, token=self.token):
-      pass
-
-    return aff4.FACTORY.Open(flow_urn, token=self.token)
-
-  def testMemoryImageLiteralMatchConditionWithNoAction(self):
-    literal_condition = memory.MemoryCollectorCondition(
-        condition_type=memory.MemoryCollectorCondition.Type.LITERAL_MATCH,
-        literal_match=file_finder.FileFinderContentsLiteralMatchCondition(
-            mode=
-            file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
-            bytes_before=10,
-            bytes_after=10,
-            literal="session opened for user dearjohn"))
-
-    self.RunWithNoAction(conditions=[literal_condition])
-
-    output = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                               aff4_type="RDFValueCollection",
-                               token=self.token)
-    self.assertEqual(len(output), 1)
-    self.assertEqual(output[0].offset, 350)
-    self.assertEqual(output[0].length, 52)
-    self.assertEqual(output[0].data, "session): session opened for user "
-                     "dearjohn by (uid=0")
-
-  def testMemoryImageRegexMatchConditionWithNoAction(self):
-    regex_condition = memory.MemoryCollectorCondition(
-        condition_type=memory.MemoryCollectorCondition.Type.REGEX_MATCH,
-        regex_match=file_finder.FileFinderContentsRegexMatchCondition(
-            mode=
-            file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
-            bytes_before=10,
-            bytes_after=10,
-            regex="session opened for user .*?john"))
-
-    self.RunWithNoAction(conditions=[regex_condition])
-
-    output = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                               aff4_type="RDFValueCollection",
-                               token=self.token)
-    self.assertEqual(len(output), 1)
-    self.assertEqual(output[0].offset, 350)
-    self.assertEqual(output[0].length, 52)
-    self.assertEqual(output[0].data, "session): session opened for user "
-                     "dearjohn by (uid=0")
-
-  def testMemoryImageLiteralMatchConditionWithDownloadAction(self):
-    literal_condition = memory.MemoryCollectorCondition(
-        condition_type=memory.MemoryCollectorCondition.Type.LITERAL_MATCH,
-        literal_match=file_finder.FileFinderContentsLiteralMatchCondition(
-            mode=
-            file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
-            bytes_before=10,
-            bytes_after=10,
-            literal="session opened for user dearjohn"))
-    dump_option = memory.MemoryCollectorDumpOption(
-        option_type=memory.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=memory.MemoryCollectorWithLocalCopyDumpOption(
-            gzip=False))
-    flow_obj = self.RunWithDownload(dump_option, conditions=[literal_condition])
-
-    # Check that matches are in the collection
-    output = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                               aff4_type="RDFValueCollection",
-                               token=self.token)
-    # First item of the collection is the BufferReference, second is the
-    # path of the downloaded
-    self.assertEqual(len(output), 2)
-    self.assertEqual(output[0].offset, 350)
-    self.assertEqual(output[0].length, 52)
-    self.assertEqual(output[0].data, "session): session opened for user "
-                     "dearjohn by (uid=0")
-    self.assertTrue(isinstance(output[1], rdf_client.StatEntry))
-
-    self.assertTrue(flow_obj.state.memory_src_path is not None)
-    self.assertEqual(
-        flow_obj.state.downloaded_file,
-        self.client_id.Add("temp").Add(flow_obj.state.memory_src_path.path))
-
-    fd = aff4.FACTORY.Open(flow_obj.state.downloaded_file, token=self.token)
-    self.assertEqual(fd.Read(1024 * 1024), self.memory_dump)
-
-  def testDoesNothingWhenConditionDoesNotMatch(self):
-    literal_condition = memory.MemoryCollectorCondition(
-        condition_type=memory.MemoryCollectorCondition.Type.LITERAL_MATCH,
-        literal_match=file_finder.FileFinderContentsLiteralMatchCondition(
-            mode=
-            file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
-            bytes_before=10,
-            bytes_after=10,
-            literal="session opened for user foobar"))
-    dump_option = memory.MemoryCollectorDumpOption(
-        option_type=memory.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=memory.MemoryCollectorWithLocalCopyDumpOption(
-            gzip=False))
-    flow_obj = self.RunWithDownload(dump_option, conditions=[literal_condition])
-
-    # Check that there are no matches
-    with self.assertRaises(aff4.InstantiationError):
-      aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                        aff4_type="RDFValueCollection",
-                        token=self.token)
-
-    # Assert nothing got downloaded
-    self.assertTrue("dest_path" not in flow_obj.state)
-    self.assertTrue("downloaded_file" not in flow_obj.state)
-
-  def testMemoryImageLiteralMatchConditionWithSendToSocketAction(self):
-    literal_condition = memory.MemoryCollectorCondition(
-        condition_type=memory.MemoryCollectorCondition.Type.LITERAL_MATCH,
-        literal_match=file_finder.FileFinderContentsLiteralMatchCondition(
-            mode=
-            file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
-            bytes_before=10,
-            bytes_after=10,
-            literal="session opened for user dearjohn"))
-    dump_option = memory.MemoryCollectorDumpOption(
-        option_type=memory.MemoryCollectorDumpOption.Option.WITH_LOCAL_COPY,
-        with_local_copy=memory.MemoryCollectorWithLocalCopyDumpOption(
-            gzip=False))
-    flow_urn, encrypted, decrypted = self.RunWithSendToSocket(
-        dump_option, conditions=[literal_condition])
-
-    # Check that matches are in the collection
-    output = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                               aff4_type="RDFValueCollection",
-                               token=self.token)
-    self.assertEqual(len(output), 1)
-    self.assertEqual(output[0].offset, 350)
-    self.assertEqual(output[0].length, 52)
-    self.assertEqual(output[0].data, "session): session opened for user "
-                     "dearjohn by (uid=0")
-
-    flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
-    # There was a local file, so dest_path should not be empty
-    self.assertTrue(flow_obj.state.memory_src_path is not None)
-
-    # Data should be encrypted, so they're not equal
-    self.assertNotEqual(encrypted, self.memory_dump)
-    # Decrypted data should be equal to the memory dump
-    self.assertEqual(decrypted, self.memory_dump)
-
-
-class TestMemoryAnalysis(MemoryTest, grr_rekall_test.RekallTestSuite):
-  """Tests the memory analysis flows."""
-
-  def testScanMemory(self):
-    # Use a file in place of a memory image for simplicity
-    image_path = os.path.join(self.base_path, "numbers.txt")
-
-    self.CreateClient()
-    self.CreateSignedDriver()
-
-    class ClientMock(action_mocks.MemoryClientMock):
-      """A mock which returns the image as the driver path."""
-
-      def GetMemoryInformation(self, _):
-        """Mock out the driver loading code to pass the memory image."""
-        reply = rdf_rekall_types.MemoryInformation(
-            device=rdf_paths.PathSpec(
-                path=image_path,
-                pathtype=rdf_paths.PathSpec.PathType.OS))
-
-        reply.runs.Append(offset=0, length=1000000000)
-
-        return [reply]
-
-    args = dict(grep=rdf_client.BareGrepSpec(
-        literal="88",
-        mode="ALL_HITS",
-    ),
-                output="analysis/grep/testing")
-
-    # Run the flow.
-    for _ in test_lib.TestFlowHelper(
-        "ScanMemory", ClientMock("Grep"), client_id=self.client_id,
-        token=self.token, **args):
-      pass
-
-    fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("/analysis/grep/testing"),
-        token=self.token)
-    self.assertEqual(len(fd), 20)
-    self.assertEqual(fd[0].offset, 252)
-    self.assertEqual(fd[0].data, "\n85\n86\n87\n88\n89\n90\n91\n")
+    # Make sure the flow didnt actually download anything.
+    flow_obj = aff4.FACTORY.Open(self.flow_urn, token=self.token)
+    self.assertEqual(flow_obj.state.output_urn, None)
 
 
 class ListVADBinariesActionMock(action_mocks.MemoryClientMock):
@@ -576,13 +220,8 @@ class ListVADBinariesTest(MemoryTest):
     fd.Set(kb)
     fd.Close()
 
-    self.old_driver_flow = flow.GRRFlow.classes["LoadMemoryDriver"]
-    flow.GRRFlow.classes["LoadMemoryDriver"] = DummyLoadMemoryDriverFlow
-
   def tearDown(self):
     super(ListVADBinariesTest, self).tearDown()
-
-    flow.GRRFlow.classes["LoadMemoryDriver"] = self.old_driver_flow
     self.os_overrider.Stop()
     self.reg_overrider.Stop()
 

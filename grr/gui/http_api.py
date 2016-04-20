@@ -155,7 +155,8 @@ class HttpRequestHandler(object):
   def BuildToken(request, execution_time):
     """Build an ACLToken from the request."""
 
-    if request.method in ["GET", "HEAD"]:
+    # The request.GET dictionary will also be filled on HEAD and DELETE calls.
+    if request.method in ["GET", "HEAD", "DELETE"]:
       reason = request.GET.get("reason", "")
     elif request.method == "POST":
       # The header X-GRR-REASON is set in api-service.js, which django converts
@@ -294,7 +295,7 @@ class HttpRequestHandler(object):
   def _GetArgsFromRequest(self, request, method_metadata, route_args):
     """Builds args struct out of HTTP request."""
 
-    if request.method in ["GET", "HEAD"]:
+    if request.method in ["GET", "HEAD", "DELETE"]:
       if method_metadata.args_type:
         unprocessed_request = request.GET
         if hasattr(unprocessed_request, "dict"):

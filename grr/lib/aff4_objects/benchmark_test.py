@@ -11,6 +11,7 @@ from grr.lib.rdfvalues import client as rdf_client
 
 class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
   """Test performance of the AFF4 subsystem."""
+  labels = ["large"]
 
   REPEATS = 50
 

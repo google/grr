@@ -11,6 +11,7 @@ import "grr/proto/semantic.proto";
 
 
 // This is the user's access token.
+// Next field: 9
 message ACLToken {
   optional string username = 1;
 
@@ -37,6 +38,7 @@ message ACLToken {
   optional bool is_emergency = 8;
 }
 
+// Next field: 4
 message GUISettings {
   option (semantic) = {
     description: "User GUI settings and preferences."
@@ -67,9 +69,8 @@ message GUISettings {
 }
 
 
+// Next field: 22
 message FlowRunnerArgs {
-  // Next field ID: 22
-
   optional GrrMessage.Priority priority = 1 [(sem_type) = {
       description: "The priority used for this flow.",
       label: ADVANCED
@@ -196,7 +197,7 @@ message FlowRunnerArgs {
     }];
 }
 
-
+// Next field ID: 22
 message HuntRunnerArgs {
   optional string hunt_name = 1 [(sem_type) = {
       description: "The name of the class implementing the hunt to run.",
@@ -305,12 +306,14 @@ message HuntRunnerArgs {
 
 
 // Various hunts.
+// Next field ID: 2
 message SampleHuntArgs {
   optional string filename = 1 [(sem_type) = {
       description: "evil filename to search for.",
     }, default="/tmp/evil.txt"];
 }
 
+// Next field ID: 7
 message FlowRequest {
   repeated string client_ids = 1 [(sem_type) = {
       type: "ClientURN",
@@ -328,6 +331,7 @@ message FlowRequest {
     }];
 }
 
+// Next field ID: 3
 message VariableGenericHuntArgs {
   repeated FlowRequest flows = 1 [(sem_type) = {
       description: "A list of requests for starting flows on certain clients.",
@@ -338,6 +342,7 @@ message VariableGenericHuntArgs {
     }];
 }
 
+// Next field ID: 5
 message GenericHuntArgs {
   optional bytes flow_args = 2 [(sem_type) = {
       dynamic_type: "GetFlowArgsClass",
@@ -360,6 +365,7 @@ message GenericHuntArgs {
 // Useful messages.
 
 // Many flows use this reduced version of the GrepSpec.
+// Next field ID: 11
 message BareGrepSpec {
   optional uint64 start_offset = 2 [(sem_type) = {
       description: "Start searching at this file offset.",
@@ -417,12 +423,14 @@ message BareGrepSpec {
 
 // Various flows.
 
+// Next field ID: 2
 message CAEnrolerArgs {
   optional Certificate csr = 1 [(sem_type) = {
       description: "A Certificate RDFValue with the CSR in it.",
     }];
 }
 
+// Next field ID: 2
 message DeleteGRRTempFilesArgs {
   optional PathSpec pathspec = 1 [(sem_type) = {
       description: "The pathspec target for deletion."
@@ -432,19 +440,21 @@ message DeleteGRRTempFilesArgs {
     }];
 }
 
+// Next field ID: 2
 message UninstallArgs {
   optional bool kill = 1 [(sem_type) = {
       description: "Kills the client if set.",
     }];
 }
 
-
+// Next field ID: 2
 message UpdateConfigurationArgs {
   optional Dict config = 1 [(sem_type) = {
       description: "The config to send to the client."
     }];
 }
 
+// Next field ID: 3
 message ExecutePythonHackArgs {
   optional string hack_name = 1 [(sem_type) = {
       description: "The path to the hack to execute relative to "
@@ -456,6 +466,7 @@ message ExecutePythonHackArgs {
     }];
 }
 
+// Next field ID: 4
 message ExecuteCommandArgs {
   optional string cmd = 1 [(sem_type) = {
       description: "",
@@ -468,6 +479,7 @@ message ExecuteCommandArgs {
     }, default=-1];
 }
 
+// Next field ID: 2
 message OnlineNotificationArgs {
   optional string email = 1 [(sem_type) = {
       type: "DomainEmailAddress",
@@ -476,6 +488,7 @@ message OnlineNotificationArgs {
     }];
 }
 
+// Next field ID: 2
 message UpdateClientArgs {
   optional string blob_path = 1 [(sem_type) = {
       type: "RDFURN",
@@ -483,6 +496,7 @@ message UpdateClientArgs {
     }];
 }
 
+// Next field ID: 2
 message KeepAliveArgs {
   optional uint64 duration = 1 [(sem_type) = {
       type: "Duration",
@@ -490,6 +504,7 @@ message KeepAliveArgs {
     }, default=3600];
 }
 
+// Next field ID: 3
 message TerminateFlowArgs {
   optional string flow_urn = 1 [(sem_type) = {
       type: "SessionID",
@@ -501,6 +516,8 @@ message TerminateFlowArgs {
     }];
 }
 
+
+// Next field ID: 3
 message LaunchBinaryArgs {
   optional string binary = 1 [(sem_type) = {
       type: "RDFURN",
@@ -512,6 +529,7 @@ message LaunchBinaryArgs {
     }];
 }
 
+// Next field ID: 8
 message WinUserActivityInvestigationArgs {
   optional string username = 1 [(sem_type) = {
       description: "The user to target the actions to.",
@@ -543,7 +561,7 @@ message WinUserActivityInvestigationArgs {
     }];
 }
 
-
+// Next field ID: 13
 message ArtifactCollectorFlowArgs {
   repeated string artifact_list = 1 [(sem_type) = {
       type: "ArtifactName",
@@ -616,6 +634,7 @@ message ArtifactCollectorFlowArgs {
     }, default=false];
 }
 
+// Next field ID: 10
 message ArtifactFilesDownloaderFlowArgs {
   repeated string artifact_list = 1 [(sem_type) = {
       type: "ArtifactName",
@@ -634,6 +653,7 @@ message ArtifactFilesDownloaderFlowArgs {
     }, default=100000000];
 }
 
+// Next field ID: 5
 message ArtifactFilesDownloaderResult {
   optional string original_result_type = 1 [(sem_type) = {
       description: "Type of the result returned by the artifacts collector."
@@ -652,18 +672,21 @@ message ArtifactFilesDownloaderResult {
     }];
 }
 
+// Next field ID: 2
 message InterrogateArgs {
   optional bool lightweight = 1 [(sem_type) = {
       description: "Perform a light weight version of the interrogate.",
     }, default=true];
 }
 
+// Next field ID: 2
 message FingerprintFileArgs {
   optional PathSpec pathspec = 1 [(sem_type) = {
       description: "The file path to fingerprint.",
     }];
 }
 
+// Next field ID: 3
 message FingerprintFileResult {
   optional string file_urn= 1 [(sem_type) = {
       type: "RDFURN",
@@ -674,73 +697,7 @@ message FingerprintFileResult {
     }];
 }
 
-
-message DownloadMemoryImageArgs {
-  optional string destdir = 1 [(sem_type) = {
-      description: "Destination directory on the client for the temporary image. "
-      "Leave blank to use defaults. Parent directories will be created "
-      "if necessary.",
-      label: ADVANCED
-    }];
-
-  optional uint64 offset = 2 [(sem_type) = {
-      description: "Memory offset in bytes",
-      label: ADVANCED,
-      friendly_name: "Starting Offset"
-    }, default=0];
-
-  optional uint64 length = 3 [(sem_type) = {
-      description: "Number of bytes to copy (default 0 copies all memory)",
-      label: ADVANCED,
-      friendly_name: "Length to download"
-    }, default=0];
-
-  optional bool gzip = 4 [(sem_type) = {
-      description: "Gzip temporary image file on the client.",
-      label: ADVANCED
-    }, default=true];
-
-  optional DriverInstallTemplate driver_installer = 5 [(sem_type) = {
-      description: "An optional DriverInstallTemplate proto to control "
-      "driver installation. If not set, the default installation proto will "
-      "be used.",
-      label: HIDDEN
-    }];
-
-  optional bool make_local_copy = 6 [(sem_type) = {
-      description: "Make a local copy of the memory on the client before "
-      "downloading."
-    }, default=true];
-}
-
-message LoadMemoryDriverArgs {
-  optional DriverInstallTemplate driver_installer = 1 [(sem_type) = {
-      description: "An optional DriverInstallTemplate proto to control "
-      "driver installation. If not set, the default installation proto will "
-      "be used.",
-      label: HIDDEN,
-    }];
-
-  optional bool reload_if_loaded = 2 [(sem_type) = {
-      description: "If the driver is already loaded we reload it.",
-      friendly_name: "Force reload of driver."
-    }, default=false];
-}
-
-message ScanMemoryArgs {
-  option (semantic) = {
-    description: "A grep specification which operates only on memory devices."
-  };
-
-  optional BareGrepSpec grep = 1 [(sem_type) = {
-      description: "A grepspec for memory devices."
-    }];
-
-  optional bool also_download = 2 [(sem_type) = {
-      description: "If a match is found, image memory."
-    }];
-}
-
+// Next field ID: 2
 message SophosCollectorArgs {
   optional PathSpec.PathType pathtype = 1 [(sem_type) = {
       description: "The requested path type.",
@@ -748,6 +705,7 @@ message SophosCollectorArgs {
 
 }
 
+// Next field ID: 2
 message MACTimesArgs {
   optional string path = 1 [(sem_type) = {
       description: "An AFF path (relative to the client area of the VFS).",
@@ -755,6 +713,7 @@ message MACTimesArgs {
 
 }
 
+// Next field ID: 2
 message FileCollectorArgs {
   repeated FindSpec findspecs = 1 [(sem_type) = {
       description: "A list of find specifications.",
@@ -762,6 +721,7 @@ message FileCollectorArgs {
 
 }
 
+// Next field ID: 6
 message FirefoxHistoryArgs {
   optional PathSpec.PathType pathtype = 1 [(sem_type) = {
       description: "Type of path access to use."
@@ -783,6 +743,7 @@ message FirefoxHistoryArgs {
 }
 
 
+// Next field ID: 8
 message CacheGrepArgs {
   repeated string grep_users = 1 [(sem_type) = {
       description: "A list of users to check. Default all users on the system.",
@@ -810,12 +771,14 @@ message CacheGrepArgs {
     }, default=true];
 }
 
+// Next field ID: 2
 message ListDirectoryArgs {
   optional PathSpec pathspec = 1 [(sem_type) = {
       description: "The pathspec for the directory to list."
     }];
 }
 
+// Next field ID: 3
 message RecursiveListDirectoryArgs {
   optional PathSpec pathspec = 1 [(sem_type) = {
       description: "The pathspec for the directory to list."
@@ -826,6 +789,7 @@ message RecursiveListDirectoryArgs {
     }, default=5];
 }
 
+// Next field ID: 4
 message FetchBufferForSparseImageArgs {
   optional string file_urn= 1 [(sem_type) = {
       type: "RDFURN",
@@ -835,11 +799,13 @@ message FetchBufferForSparseImageArgs {
   optional uint64 offset = 3;
 }
 
+// Next field ID: 3
 message MakeNewAFF4SparseImageArgs {
   optional PathSpec pathspec = 1;
   optional uint64 size_threshold = 2;
 }
 
+// Next field ID: 3
 message UpdateSparseImageChunksArgs {
   optional string file_urn = 1 [(sem_type) = {
       type: "RDFURN",
@@ -848,10 +814,12 @@ message UpdateSparseImageChunksArgs {
   repeated uint64 chunks_to_fetch = 2;
 }
 
+// Next field ID: 2
 message GrepArgs {
   optional GrepSpec request = 1;
 }
 
+// Next field ID: 5
 message GlobArgs {
   repeated string paths = 1 [(sem_type) = {
       type: "GlobExpression",
@@ -879,6 +847,7 @@ message GlobArgs {
 
 }
 
+// Next field ID: 6
 message SearchFileContentArgs {
   repeated string paths = 1 [(sem_type) = {
       type: "GlobExpression",
@@ -908,6 +877,7 @@ message SearchFileContentArgs {
     }];
 }
 
+// Next field ID: 5
 message FindFilesArgs {
   optional FindSpec findspec = 1 [(sem_type) = {
       description: "A find operation specification.",
@@ -924,7 +894,7 @@ message FindFilesArgs {
     }, default=20000];
 }
 
-
+// Next field ID: 4
 message GetFileArgs {
   optional PathSpec pathspec = 1 [(sem_type) = {
       description:"The pathspec for the file to retrieve."
@@ -943,14 +913,14 @@ message GetFileArgs {
     }];
 }
 
-
+// Next field ID: 2
 message GetMBRArgs {
   optional uint64 length = 1 [(sem_type) = {
       description:"The length of the MBR buffer to read.",
     }, default=4096];
 }
 
-
+// Next field ID: 6
 message ChromeHistoryArgs {
   optional PathSpec.PathType pathtype = 1 [(sem_type) = {
       description: "Type of path access to use."
@@ -972,6 +942,7 @@ message ChromeHistoryArgs {
     }];
 }
 
+// Next field ID: 5
 message ClientActionArgs {
   optional string action = 1 [(sem_type) = {
       description: "The action to execute.",
@@ -993,6 +964,7 @@ message ClientActionArgs {
     }];
 }
 
+// Next field ID: 6
 message ConsoleDebugFlowArgs {
   optional string flow = 1 [(sem_type) = {
       description: "The flow to execute.",
@@ -1020,12 +992,13 @@ message ConsoleDebugFlowArgs {
 // The following messages are for SUID flows which are designed to control
 // access to the datastore.
 
+// Next field ID: 3
 message CreateGenericHuntFlowArgs {
   optional HuntRunnerArgs hunt_runner_args = 1;
   optional GenericHuntArgs hunt_args = 2;
 }
 
-
+// Next field ID: 8
 message CreateCronJobFlowArgs {
   optional string description = 1 [(sem_type) = {
       description: "A human readable description of the cron job."
@@ -1060,6 +1033,7 @@ message CreateCronJobFlowArgs {
 
 }
 
+// Next field ID: 4
 message ModifyHuntFlowArgs {
   optional string hunt_urn = 1 [(sem_type) = {
       type: "RDFURN",
@@ -1074,6 +1048,7 @@ message ModifyHuntFlowArgs {
     }];
 }
 
+// Next field ID: 3
 message ManageCronJobFlowArgs {
   enum Action {
     NOOP = 0 [(description) = "Do nothing (but still check "
@@ -1096,6 +1071,7 @@ message ManageCronJobFlowArgs {
   optional Action action = 2 [default=NOOP];
 }
 
+// Next field ID: 2
 message PlistValueFilterArgs {
   optional PlistRequest request = 1 [(sem_type) = {
       description: "A request for the client to parse a plist file.",
@@ -1103,6 +1079,7 @@ message PlistValueFilterArgs {
 
 }
 
+// Next field ID: 3
 message RunReportFlowArgs {
   optional string report_name = 1 [(sem_type) = {
       type: "ReportName",
@@ -1114,6 +1091,7 @@ message RunReportFlowArgs {
     }];
 }
 
+// Next field ID: 4
 message EnumerateServicesArgs {
   optional bool download_binaries = 1 [(sem_type) = {
       description: "If set, also downloads the binaries.",
@@ -1124,6 +1102,7 @@ message EnumerateServicesArgs {
     }, default=TSK];
 }
 
+// Next field ID: 6
 message ChromePluginsArgs {
   optional string path = 1 [(sem_type) = {
       description: "A path to a Chrome Extensions directory. If not set, "
@@ -1144,6 +1123,7 @@ message ChromePluginsArgs {
 }
 
 // SUID Flows.
+// Next field ID: 5
 message RequestApprovalWithReasonFlowArgs {
   optional string reason = 1 [(sem_type) = {
       description: "Reason for approval",
@@ -1163,6 +1143,7 @@ message RequestApprovalWithReasonFlowArgs {
     }];
 }
 
+// Next field ID: 4
 message GrantApprovalWithReasonFlowArgs {
   optional string reason = 1 [(sem_type) = {
       description: "Reason for approval",
@@ -1178,6 +1159,7 @@ message GrantApprovalWithReasonFlowArgs {
     }];
 }
 
+// Next field ID: 2
 message StartHuntFlowArgs {
   optional string hunt_urn = 1 [(sem_type) = {
       type: "RDFURN",
@@ -1185,6 +1167,7 @@ message StartHuntFlowArgs {
     }];
 }
 
+// Next field ID: 2
 message DeleteHuntFlowArgs {
   optional string hunt_urn = 1 [(sem_type) = {
       type: "RDFURN",
@@ -1192,6 +1175,7 @@ message DeleteHuntFlowArgs {
     }];
 }
 
+// Next field ID: 2
 message StopHuntFlowArgs {
   optional string hunt_urn = 1 [(sem_type) = {
       type: "RDFURN",
@@ -1199,6 +1183,7 @@ message StopHuntFlowArgs {
     }];
 }
 
+// Next field ID: 2
 message CheckHuntAccessFlowArgs {
   optional string hunt_urn = 1 [(sem_type) = {
       type: "RDFURN",
@@ -1206,6 +1191,7 @@ message CheckHuntAccessFlowArgs {
     }];
 }
 
+// Next field ID: 3
 message UpdateVFSFileArgs {
   optional string vfs_file_urn = 1 [(sem_type) = {
       type: "RDFURN",
@@ -1218,6 +1204,7 @@ message UpdateVFSFileArgs {
     }, default="CONTAINS"];
 }
 
+// Next field ID: 5
 message MultiGetFileArgs {
   repeated PathSpec pathspecs = 2 [(sem_type) = {
       description: "Pathspecs of files to be retrieved.",
@@ -1238,6 +1225,7 @@ message MultiGetFileArgs {
 
 }
 
+// Next field ID: 6
 message ProcessHuntResultsCronFlowArgs {
   optional uint64 batch_size = 1 [(sem_type) = {
       description: "Results will be processed by output plugins in batches "
@@ -1258,6 +1246,7 @@ message ProcessHuntResultsCronFlowArgs {
     }, default=0];
 }
 
+// Next field ID: 2
 message VerifyHuntOutputPluginsCronFlowArgs {
   optional uint64 check_range = 1 [(sem_type) = {
       type: "Duration",
@@ -1267,6 +1256,7 @@ message VerifyHuntOutputPluginsCronFlowArgs {
     }];
 }
 
+// Next field ID: 3
 message ListProcessesArgs {
   optional string filename_regex = 1 [(sem_type) = {
       type: "RegularExpression",
@@ -1279,6 +1269,7 @@ message ListProcessesArgs {
     }, default=false];
 }
 
+// Next field ID: 3
 message ListVADBinariesArgs {
   optional string filename_regex = 1 [(sem_type) = {
       type: "RegularExpression",
@@ -1291,6 +1282,7 @@ message ListVADBinariesArgs {
     }, default=false];
 }
 
+// Next field ID: 7
 message FileFinderModificationTimeCondition {
   optional uint64 min_last_modified_time = 5 [(sem_type) = {
       type: "RDFDatetime",
@@ -1304,6 +1296,7 @@ message FileFinderModificationTimeCondition {
     }, default = 9223372036854775807];
 }
 
+// Next field ID: 7
 message FileFinderAccessTimeCondition {
   optional uint64 min_last_access_time = 5 [(sem_type) = {
       type: "RDFDatetime",
@@ -1317,6 +1310,7 @@ message FileFinderAccessTimeCondition {
     }, default = 9223372036854775807];
 }
 
+// Next field ID: 7
 message FileFinderInodeChangeTimeCondition {
   optional uint64 min_last_inode_change_time = 5 [(sem_type) = {
       type: "RDFDatetime",
@@ -1330,6 +1324,7 @@ message FileFinderInodeChangeTimeCondition {
     }, default = 9223372036854775807];
 }
 
+// Next field ID: 13
 message FileFinderSizeCondition {
   optional uint64 min_file_size = 11 [(sem_type) = {
       description: "Minimum file size in bytes."
@@ -1342,6 +1337,7 @@ message FileFinderSizeCondition {
 
 }
 
+// Next field ID: 9
 message FileFinderContentsRegexMatchCondition {
 
   enum Mode {
@@ -1379,7 +1375,7 @@ message FileFinderContentsRegexMatchCondition {
     }, default = 20000000];
 }
 
-
+// Next field ID: 11
 message FileFinderContentsLiteralMatchCondition {
 
   enum Mode {
@@ -1432,6 +1428,7 @@ message FileFinderContentsLiteralMatchCondition {
     }, default = 0];
 }
 
+// Next field ID: 8
 message FileFinderCondition {
   option (semantic) = {
     union_field: "condition_type"
@@ -1458,6 +1455,7 @@ message FileFinderCondition {
   optional FileFinderContentsLiteralMatchCondition contents_literal_match = 7;
 }
 
+// Next field ID: 7
 message FileFinderDownloadActionOptions {
   optional uint64 max_size = 5 [(sem_type) = {
       type: "ByteSize",
@@ -1473,6 +1471,7 @@ message FileFinderDownloadActionOptions {
     }, default=true];
 }
 
+// Next field ID: 3
 message FileFinderAction {
   option (semantic) = {
     union_field: "action_type"
@@ -1493,6 +1492,7 @@ message FileFinderAction {
   optional FileFinderDownloadActionOptions download = 2;
 }
 
+// Next field ID: 8
 message FileFinderArgs {
   repeated string paths = 1 [(sem_type) = {
       type: "GlobExpression",
@@ -1525,12 +1525,14 @@ message FileFinderArgs {
     }, default=false];
 }
 
+// Next field ID: 4
 message FileFinderResult {
   optional StatEntry stat_entry = 1;
   repeated BufferReference matches = 2;
   optional Hash hash_entry = 3;
 }
 
+// Next field ID: 4
 message FileReference {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
@@ -1545,6 +1547,7 @@ message FileReference {
     }];
 }
 
+// Next field ID: 6
 message RegistryFinderCondition {
   option (semantic) = {
     union_field: "condition_type"
@@ -1565,6 +1568,7 @@ message RegistryFinderCondition {
   optional FileFinderSizeCondition size = 5;
 }
 
+// Next field ID: 3
 message RegistryFinderArgs {
   repeated string keys_paths = 1 [(sem_type) = {
       type: "GlobExpression",
@@ -1577,144 +1581,20 @@ message RegistryFinderArgs {
     }];
 }
 
-message MemoryCollectorCondition {
-  option (semantic) = {
-    union_field: "condition_type"
-  };
+// Next field: 9
+message MemoryCollectorArgs {
+  optional uint64 max_file_size = 7 [(sem_type) = {
+    description: "Maximum length to read off the dumped memory file (in bytes)."
+  }, default=35433480192];  // 33 Gb
 
-  enum Type {
-    LITERAL_MATCH = 1 [(description) = "Literal match"];
-    REGEX_MATCH = 2 [(description) = "Regex match"];
-  }
-
-  optional Type condition_type = 1 [default = LITERAL_MATCH];
-  optional FileFinderContentsLiteralMatchCondition literal_match = 2;
-  optional FileFinderContentsRegexMatchCondition regex_match = 3;
-}
-
-message MemoryCollectorWithoutLocalCopyDumpOption {
-}
-
-message MemoryCollectorWithLocalCopyDumpOption {
-  optional string destdir = 1 [(sem_type) = {
-      description: "Destination directory on the client for the temporary "
-      "image. Leave blank to use defaults. Parent directories will be "
-      "created if necessary.",
-      label: ADVANCED
-    }];
-
-  optional uint64 offset = 2 [(sem_type) = {
-      description: "Memory offset in bytes",
-      label: ADVANCED,
-      friendly_name: "Starting Offset"
-    }, default=0];
-
-  optional uint64 length = 3 [(sem_type) = {
-      description: "Number of bytes to copy (default 0 copies all memory)",
-      label: ADVANCED,
-      friendly_name: "Length to download"
-    }, default=0];
-
-  optional bool gzip = 4 [(sem_type) = {
-      description: "Gzip temporary image file on the client.",
-      label: ADVANCED
-    }, default=true];
-
-  optional bool check_disk_free_space = 5 [(sem_type) = {
+  optional bool check_disk_free_space = 8 [(sem_type) = {
       description: "If true, check for available disk space before doing a "
       "local copy. Ignored if the dump option isn't local copy.",
       label: ADVANCED
     }, default=true];
-
 }
 
-message MemoryCollectorDumpOption {
-  option (semantic) = {
-    union_field: "option_type"
-  };
-
-  enum Option {
-    WITHOUT_LOCAL_COPY = 0 [(description) = "Don't create local copy"];
-    WITH_LOCAL_COPY = 1 [(description) = "Create local copy first"];
-  }
-
-  optional Option option_type = 1 [default = WITHOUT_LOCAL_COPY, (sem_type) = {
-      friendly_name: "Dump option",
-      description: "How to do the dump"
-    }];
-  optional MemoryCollectorWithoutLocalCopyDumpOption without_local_copy = 2;
-  optional MemoryCollectorWithLocalCopyDumpOption with_local_copy = 3;
-}
-
-message MemoryCollectorDownloadAction {
-  optional MemoryCollectorDumpOption dump_option = 1 [(sem_type) = {
-      description: "Memory dump options."
-    }];
-
-  optional uint64 max_file_size = 2 [(sem_type) = {
-    description: "Maximum length to read off the dumped memory file (in bytes)."
-  }, default=35433480192];  // 33 Gb
-}
-
-message MemoryCollectorSendToSocketAction {
-  optional MemoryCollectorDumpOption dump_option = 1 [(sem_type) = {
-      description: "Memory dump options."
-    }];
-
-  optional NetworkAddress.Family address_family = 2 [(sem_type) = {
-      description: "address family to use (AF_INET or AF_INET6).",
-    }, default=INET];
-
-  optional string host = 3 [(sem_type) = {
-      description: "Hostname or IP to send the file to.",
-    }];
-
-  optional uint64 port = 4 [(sem_type) = {
-      description: "Port number on the listening server.",
-    }, default=12345];
-
-  optional bytes key = 5 [(sem_type) = {
-      type: "AutoGeneratedAES128Key",
-      description: "An encryption key given in hex representation.",
-    }];
-
-  optional bytes iv = 6 [(sem_type) = {
-      type: "AutoGeneratedAES128Key",
-      description: "The iv for AES, also given in hex representation.",
-    }];
-}
-
-message MemoryCollectorAction {
-  option (semantic) = {
-    union_field: "action_type"
-  };
-
-  enum Action {
-    NONE = 0 [(description) = "None (just report conditions matches)"];
-    DOWNLOAD = 1 [(description) = "Download"];
-    SEND_TO_SOCKET = 2 [(description) = "Send memory dump to socket"];
-  }
-
-  optional Action action_type = 1 [default = DOWNLOAD, (sem_type) = {
-      friendly_name: "Action",
-      description: "What to do with the memory"
-    }];
-  optional MemoryCollectorDownloadAction download = 2;
-  optional MemoryCollectorSendToSocketAction send_to_socket = 3;
-}
-
-message MemoryCollectorArgs {
-  repeated MemoryCollectorCondition conditions = 1;
-  optional MemoryCollectorAction action = 2;
-
-  optional DriverInstallTemplate driver_installer = 5 [(sem_type) = {
-      description: "An optional DriverInstallTemplate proto to control "
-      "driver installation. If not set, the default installation proto will "
-      "be used.",
-      label: HIDDEN
-    }];
-}
-
+// Next field ID: 2
 message CollectArtifactDependenciesArgs {
   repeated string artifact_list = 1 [(sem_type) = {
       description: "A list of Artifact names to collect dependencies for.",
@@ -1722,6 +1602,7 @@ message CollectArtifactDependenciesArgs {
     }];
 }
 
+// Next field ID: 2
 message ArtifactFallbackCollectorArgs {
   optional string artifact_name = 1 [(sem_type) = {
       description: "Name of the artifact using this fallback.",
@@ -1729,6 +1610,7 @@ message ArtifactFallbackCollectorArgs {
     }];
 }
 
+// Next field ID: 3
 message KnowledgeBaseInitializationArgs {
   optional bool require_complete = 1 [(sem_type) = {
       description: "If true require all dependencies to be complete.  "
@@ -1741,6 +1623,7 @@ message KnowledgeBaseInitializationArgs {
     }, default=true];
 }
 
+// Next field ID: 5
 message ExportCollectionFilesAsArchiveArgs {
   optional string collection_urn = 1 [(sem_type) = {
       type: "RDFURN",
@@ -1765,6 +1648,7 @@ message ExportCollectionFilesAsArchiveArgs {
     }, default=ZIP];
 }
 
+// Next field ID: 2
 message EndToEndTestFlowArgs {
   repeated string test_names = 1 [(sem_type) = {
       description: "List of endtoend test classes to run. If none are specifed,"
@@ -1772,6 +1656,7 @@ message EndToEndTestFlowArgs {
     }];
 }
 
+// Next field ID: 3
 message DiskVolumeInfoArgs {
   repeated string path_list = 1 [(sem_type) = {
       description: "List of paths.",
@@ -1783,6 +1668,7 @@ message DiskVolumeInfoArgs {
     }, default=OS];
 }
 
+// Next field ID: 6
 message CheckFlowArgs {
   repeated string only_os = 1 [(sem_type) = {
       description: "Limit checks to hosts of OS type(s) [Linux|OSX|Windows]",
@@ -1805,6 +1691,7 @@ message CheckFlowArgs {
     }];
 }
 
+// Next field ID: 3
 message DumpProcessMemoryArgs {
   repeated int32 pids = 1 [(sem_type) = {
     description: "Dump memory from process whose pid is included in the list.",
@@ -1815,6 +1702,7 @@ message DumpProcessMemoryArgs {
   }];
 }
 
+// Next field ID: 4
 message DumpFlashImageArgs {
   optional uint32 log_level = 1 [(sem_type) = {
       description: "Set the log level. If set, the log returned "

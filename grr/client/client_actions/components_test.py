@@ -6,13 +6,12 @@
 This test can be used to ensure that a component is self contained by replacing
 the component in grr/test_data/ with the real component.
 """
-import inspect
 import os
+import StringIO
+import zipfile
 
 from grr.client import comms
-from grr.client.components.rekall_support import grr_rekall
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
@@ -36,27 +35,31 @@ class MockClientWorker(object):
 
 
 class TestComponents(test_lib.EmptyActionTest):
+  """Test the ability to load arbitrary components."""
+
+  # This component will leave its mark on the os module when imported.
+  component_payload = """
+import os
+os._grr_component_was_here = True
+"""
 
   def setUp(self):
     super(TestComponents, self).setUp()
-    self.component = test_lib.WriteComponent(token=self.token)
 
-    # The Rekall component will bring in all these new objects. Since the rekall
-    # component code is already loaded when the component is re-imported, Rekall
-    # will complain about duplicate definitions. We cheat by clearing the Rekall
-    # registry first.
+    # Create a mock component.
+    fp = StringIO.StringIO()
+    new_zip_file = zipfile.ZipFile(fp, mode="w")
+    new_zip_file.writestr("mock_mod.py", self.component_payload)
+    new_zip_file.close()
 
-    # Note that the new component should re-register its own handlers for these
-    # objects which is how we verify the component has been properly installed.
-    grr_rekall.GRRObjectRenderer.classes.clear()
-    grr_rekall.RekallCachingIOManager.classes.clear()
-    grr_rekall.GrrRekallSession.classes.clear()
-    grr_rekall.GRRRekallRenderer.classes.clear()
+    self.component = test_lib.WriteComponent(
+        name="mock_component", version="1.0",
+        token=self.token, modules=["mock_mod"],
+        raw_data=fp.getvalue())
 
   def testComponentLoading(self):
     """Ensure we can load the component."""
-    message = rdf_client.LoadComponent(
-        summary=self.component.summary)
+    message = rdf_client.LoadComponent(summary=self.component.summary)
 
     # The client uses its build_environment configuration to call the correct
     # version of the component. It is normally populated by the build system but
@@ -67,15 +70,8 @@ class TestComponents(test_lib.EmptyActionTest):
       self.RunAction("LoadComponent", message,
                      grr_worker=MockClientWorker(self.token))
 
-      # We get the path where the client action is actually loaded from.
-      client_action_path = inspect.getsourcefile(
-          grr_rekall.GRRObjectRenderer.classes["GRRObjectRenderer"])
-
-      # Now we need to make sure this is coming from the component, rather than
-      # the source tree.
-      self.assertTrue(config_lib.CONFIG["Client.component_path"] in
-                      client_action_path)
-      self.assertTrue("grr-rekall/0.1/" in client_action_path)
+      # Make sure that the component was loaded.
+      self.assertTrue(getattr(os, "_grr_component_was_here", False))
 
 
 def main(argv):

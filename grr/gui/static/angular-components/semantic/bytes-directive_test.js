@@ -1,11 +1,15 @@
 'use strict';
 
 goog.require('grrUi.semantic.module');
+goog.require('grrUi.tests.browserTrigger');
 goog.require('grrUi.tests.module');
+
+var browserTrigger = grrUi.tests.browserTrigger;
 
 describe('bytes directive', function() {
   var $compile, $rootScope;
 
+  beforeEach(module('/static/angular-components/semantic/bytes.html'));
   beforeEach(module(grrUi.semantic.module.name));
   beforeEach(module(grrUi.tests.module.name));
 
@@ -52,4 +56,18 @@ describe('bytes directive', function() {
     expect(element.text()).toContain('foo\\x0d\\xc8');
   });
 
+  it('hides content behind a link if its longer than 1024 bytes', function() {
+    var value = {
+      type: 'RDFBytes',
+      value: Array(1025).join('-')
+    };
+
+    var element = renderTestTemplate(value);
+    expect(element.text()).not.toMatch(/base64decodeerror.*:--/);
+    expect(element.text()).toContain('Show bytes...');
+
+    browserTrigger($('a', element), 'click');
+    expect(element.text()).toMatch(/base64decodeerror.*:--/);
+    expect(element.text()).not.toContain('Show bytes...');
+  });
 });

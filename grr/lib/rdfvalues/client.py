@@ -541,14 +541,6 @@ class ClientStats(structs.RDFProtoStruct):
     return result
 
 
-class DriverInstallTemplate(structs.RDFProtoStruct):
-  """Driver specific information controlling default installation.
-
-  This is sent to the client to instruct the client how to install this driver.
-  """
-  protobuf = jobs_pb2.DriverInstallTemplate
-
-
 class BufferReference(structs.RDFProtoStruct):
   """Stores information about a buffer in a file on the client."""
   protobuf = jobs_pb2.BufferReference

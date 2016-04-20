@@ -19,6 +19,7 @@ import tarfile
 import tempfile
 import threading
 import time
+import weakref
 import zipfile
 import zlib
 
@@ -342,6 +343,9 @@ class FastStore(object):
 class TimeBasedCache(FastStore):
   """A Cache which expires based on time."""
 
+  active_caches = None
+  house_keeper_thread = None
+
   def __init__(self, max_size=10, max_age=600):
     """Constructor.
 
@@ -364,23 +368,30 @@ class TimeBasedCache(FastStore):
 
       now = time.time()
 
-      # Only expunge while holding the lock on the data store.
-      with self.lock:
-        # We need to take a copy of the value list because we are changing this
-        # dict during the iteration.
-        for node in self._hash.values():
-          timestamp, obj = node.data
+      for cache in TimeBasedCache.active_caches:
+        # Only expunge while holding the lock on the data store.
+        with cache.lock:
+          # pylint: disable=protected-access
+          # We need to take a copy of the value list because we are changing
+          # this dict during the iteration.
+          for node in cache._hash.values():
+            timestamp, obj = node.data
 
-          # Expire the object if it is too old.
-          if timestamp + self.max_age < now:
-            self.KillObject(obj)
+            # Expire the object if it is too old.
+            if timestamp + cache.max_age < now:
+              cache.KillObject(obj)
 
-            self._age.Unlink(node)
-            self._hash.pop(node.key, None)
+              cache._age.Unlink(node)
+              cache._hash.pop(node.key, None)
+          # pylint: enable=protected-access
 
-    # This thread is designed to never finish.
-    self.house_keeper_thread = InterruptableThread(target=HouseKeeper)
-    self.house_keeper_thread.start()
+    if not TimeBasedCache.house_keeper_thread:
+      TimeBasedCache.active_caches = weakref.WeakSet()
+      # This thread is designed to never finish.
+      TimeBasedCache.house_keeper_thread = InterruptableThread(
+          target=HouseKeeper)
+      TimeBasedCache.house_keeper_thread.start()
+    TimeBasedCache.active_caches.add(self)
 
   @Synchronized
   def Get(self, key):

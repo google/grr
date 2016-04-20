@@ -56,7 +56,7 @@ def SetConfigOptions():
 
   else:
     flag_defaults["config"] = config_lib.Resource().Filter(
-        "grr/config/grr-server.yaml")
+        "install_data/etc/grr-server.yaml")
 
   for option, value in config_opts.items():
     config_lib.CONFIG.Set(option, value)

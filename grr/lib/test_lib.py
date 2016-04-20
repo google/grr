@@ -39,6 +39,7 @@ from grr import config as _
 # pylint: enable=unused-import
 
 from grr.client import actions
+from grr.client import client_utils_linux
 from grr.client import comms
 # pylint: disable=unused-import
 from grr.client import local as _
@@ -367,7 +368,13 @@ class GRRBaseTest(unittest.TestCase):
         (email.utils, "make_msgid", lambda: "<message id stub>"))
     self.mail_stubber.Start()
 
+    self.nanny_stubber = utils.Stubber(
+        client_utils_linux.NannyController, "StartNanny",
+        lambda unresponsive_kill_period=None, nanny_logfile=None: True)
+    self.nanny_stubber.Start()
+
   def tearDown(self):
+    self.nanny_stubber.Stop()
     self.mail_stubber.Stop()
 
     logging.info("Completed test: %s.%s (%.4fs)",
@@ -460,7 +467,7 @@ class GRRBaseTest(unittest.TestCase):
         raise
       except unittest.SkipTest:
         result.addSkip(self, sys.exc_info())
-      except Exception:
+      except Exception:  # pylint: disable=broad-except
         # Break into interactive debugger on test failure.
         if flags.FLAGS.debug:
           pdb.post_mortem()
@@ -471,7 +478,7 @@ class GRRBaseTest(unittest.TestCase):
         self.tearDown()
       except KeyboardInterrupt:
         raise
-      except Exception:
+      except Exception:  # pylint: disable=broad-except
         # Break into interactive debugger on test failure.
         if flags.FLAGS.debug:
           pdb.post_mortem()
@@ -696,14 +703,6 @@ class GRRBaseTest(unittest.TestCase):
     subject = request.get_subject()
     cn = rdf_client.ClientURN(subject.as_text().split("=")[-1])
     return flow_obj.MakeCert(cn, request)
-
-  def CreateSignedDriver(self):
-    client_context = ["Platform:Windows", "Arch:amd64"]
-    # Make sure there is a signed driver for our client.
-    driver_path = maintenance_utils.UploadSignedDriverBlob(
-        "MZ Driveeerrrrrr", client_context=client_context,
-        token=self.token)
-    logging.info("Wrote signed driver to %s", driver_path)
 
   def _SendNotification(self, notification_type, subject, message,
                         client_id="aff4:/C.0000000000000001"):
@@ -1081,7 +1080,7 @@ class GRRSeleniumTest(GRRBaseTest):
     return ACLChecksDisabledContextManager()
 
   def WaitUntil(self, condition_cb, *args):
-    for _ in range(int(self.duration / self.sleep_time)):
+    for _ in xrange(int(self.duration / self.sleep_time)):
       try:
         res = condition_cb(*args)
         if res:
@@ -1098,7 +1097,7 @@ class GRRSeleniumTest(GRRBaseTest):
                        self.driver.find_element_by_tag_name("body").text)
 
   def ClickUntil(self, target, condition_cb, *args):
-    for _ in range(int(self.duration / self.sleep_time)):
+    for _ in xrange(int(self.duration / self.sleep_time)):
       try:
         res = condition_cb(*args)
         if res:
@@ -1328,7 +1327,7 @@ class GRRSeleniumTest(GRRBaseTest):
     return len(self.driver.find_elements_by_css_selector(target[4:]))
 
   def WaitUntilEqual(self, target, condition_cb, *args):
-    for _ in range(int(self.duration / self.sleep_time)):
+    for _ in xrange(int(self.duration / self.sleep_time)):
       try:
         if condition_cb(*args) == target:
           return True
@@ -1347,7 +1346,7 @@ class GRRSeleniumTest(GRRBaseTest):
     data = ""
     target = utils.SmartUnicode(target)
 
-    for _ in range(int(self.duration / self.sleep_time)):
+    for _ in xrange(int(self.duration / self.sleep_time)):
       try:
         data = condition_cb(*args)
         if target in data:
@@ -1398,6 +1397,7 @@ class AFF4ObjectTest(GRRBaseTest):
 class MicroBenchmarks(GRRBaseTest):
   """This base class created the GRR benchmarks."""
   __metaclass__ = registry.MetaclassRegistry
+  labels = ["large"]
 
   units = "us"
 
@@ -2529,7 +2529,8 @@ class OSSpecificClientTests(EmptyActionTest):
     self.binary_command_stubber.Stop()
 
 
-def WriteComponent(name="grr-rekall", version="0.3", modules=None, token=None):
+def WriteComponent(name="grr-rekall", version="0.3", modules=None, token=None,
+                   raw_data=""):
   """Create a fake component."""
   components_base = "grr.client.components.rekall_support."
   if modules is None:
@@ -2537,7 +2538,7 @@ def WriteComponent(name="grr-rekall", version="0.3", modules=None, token=None):
     # because tests aready include the component compiled in and so do not need
     # to pack and unpack it.
     modules = [components_base + "grr_rekall"]
-  result = rdf_client.ClientComponent(raw_data="")
+  result = rdf_client.ClientComponent(raw_data=raw_data)
   result.build_system = result.build_system.FromCurrentSystem()
   result.summary.modules = modules
   result.summary.name = name
@@ -2548,9 +2549,7 @@ def WriteComponent(name="grr-rekall", version="0.3", modules=None, token=None):
     with open(os.path.join(tmp_dir, "component"), "wb") as fd:
       fd.write(result.SerializeToString())
 
-    maintenance_utils.SignComponent(fd.name, token=token)
-
-  return result
+    return maintenance_utils.SignComponent(fd.name, token=token)
 
 
 class CanaryModeOverrider(object):

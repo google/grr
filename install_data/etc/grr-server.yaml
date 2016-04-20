@@ -51,7 +51,7 @@ Arch:i386:
 # configuration writeback. Otherwise the writeback is written into the
 # virtualenv.
 Global Install Context:
-  Config.writeback: /etc/grr/server.local.yaml
+  Config.directory: /etc/grr/
 
 ClientBuilder Context:
   Client.foreman_check_frequency: 600
@@ -61,7 +61,7 @@ ClientBuilder Context:
 # Include other config files like this. An example buildconfig.yaml is supplied
 # for separating out build configuration.
   ConfigIncludes:
-    - grr/config/buildconfig.yaml
+    - "%(Config.directory)/buildconfig.yaml"
 
   Target:Darwin:
 

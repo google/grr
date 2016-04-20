@@ -120,8 +120,7 @@ class ConfigDescriptionColumn(renderers.TableColumn):
   def __init__(self, **kwargs):
     # The below is a set of attributes, we'll try each of them until one works
     # for the details column.
-    self.attrs = [aff4.Attribute.GetAttributeByName("installation"),
-                  aff4.Attribute.GetAttributeByName("size")]
+    self.attrs = [aff4.Attribute.GetAttributeByName("size")]
     super(ConfigDescriptionColumn, self).__init__(name="Details", **kwargs)
 
   def AddRowFromFd(self, index, fd):
@@ -202,19 +201,14 @@ class ConfigBinaryUploadHandler(fileview.UploadHandler):
     """Handle the upload via ajax."""
     try:
       self.uploaded_file = request.FILES.items()[0][1]
-      self.dest_path, aff4_type = self.GetFilePath(request)
+      self.dest_path, _ = self.GetFilePath(request)
 
       content = StringIO.StringIO()
       for chunk in self.uploaded_file.chunks():
         content.write(chunk)
 
-      if aff4_type == "GRRMemoryDriver":
-        # TODO(user): Add support for driver parameters.
-        self.dest_path = maintenance_utils.UploadSignedDriverBlob(
-            content.getvalue(), aff4_path=self.dest_path, token=request.token)
-      else:
-        self.dest_path = maintenance_utils.UploadSignedConfigBlob(
-            content.getvalue(), aff4_path=self.dest_path, token=request.token)
+      self.dest_path = maintenance_utils.UploadSignedConfigBlob(
+          content.getvalue(), aff4_path=self.dest_path, token=request.token)
 
       return renderers.TemplateRenderer.Layout(self, request, response,
                                                self.success_template)

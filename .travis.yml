@@ -1,8 +1,23 @@
-virtualenv:
-  system_site_packages: true
 language: python
+sudo: false
+cache:
+  directories:
+    - $HOME/.cache/pip
+    - $HOME/protobuf
 python:
   - "2.7"
-before_install: /bin/bash travis/before_install.sh
-install: /bin/bash travis/install.sh
-script: /bin/bash run_tests.sh
+before_install: /bin/bash travis/install_protobuf.sh
+install:
+  - pip install --upgrade pip wheel
+  - pip install -e .[Server,test]
+  - pip install -e grr/config/grr-response-server/
+  - PROTOC="${HOME}/protobuf/bin/protoc" python makefile.py
+  - cd grr/artifacts && python makefile.py && cd -
+script: python run_tests.py --processes=2
+addons:
+  apt:
+    packages:
+    - libssl-dev
+    - python-dev
+
+

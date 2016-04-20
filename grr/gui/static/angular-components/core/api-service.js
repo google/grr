@@ -89,6 +89,17 @@ ApiService.prototype.get = function(apiPath, opt_params) {
 };
 
 /**
+ * Deletes the resource behind a given API url via HTTP DELETE method.
+ *
+ * @param {string} apiPath API path to trigger/
+ * @param {Object<string, string>=} opt_params Query parameters.
+ * @return {!angular.$q.Promise} Promise that resolves to the result.
+ */
+ApiService.prototype.delete = function(apiPath, opt_params) {
+  return this.sendRequest_("DELETE", apiPath, opt_params);
+};
+
+/**
  * Initiates a file download via HTTP GET method.
  *
  * @param {string} apiPath API path to trigger/
@@ -286,6 +297,5 @@ ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
     }.bind(this));
   }
 };
-
 
 });  // goog.scope

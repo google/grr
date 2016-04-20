@@ -17,6 +17,14 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     api_call_router.ApiCallRouter):
   """Router that uses approvals-based ACL checks."""
 
+  full_access_control_manager = None
+
+  def _GetFullAccessControlManager(self):
+    cls = ApiCallRouterWithApprovalChecksWithoutRobotAccess
+    if cls.full_access_control_manager is None:
+      cls.full_access_control_manager = user_managers.FullAccessControlManager()
+    return cls.full_access_control_manager
+
   def CheckClientAccess(self, client_id, token=None):
     self.legacy_manager.CheckClientAccess(token.RealUID(), client_id)
 
@@ -40,7 +48,7 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     super(ApiCallRouterWithApprovalChecksWithoutRobotAccess, self).__init__()
 
     if not legacy_manager:
-      legacy_manager = user_managers.FullAccessControlManager()
+      legacy_manager = self._GetFullAccessControlManager()
     self.legacy_manager = legacy_manager
 
     if not delegate:

@@ -130,7 +130,7 @@ def TestInit():
     stats.STATS = stats.StatsCollector()
 
   flags.FLAGS.config = config_lib.Resource().Filter(
-      "grr/config/grr-server.yaml")
+      "install_data/etc/grr-server.yaml")
 
   flags.FLAGS.secondary_configs = [config_lib.Resource().Filter(
       "test_data/grr_test.yaml")]

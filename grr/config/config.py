@@ -6,7 +6,7 @@ from grr.lib import config_lib
 config_lib.DEFINE_string("Config.prefix", "%(grr|resource)",
                          "Prefix directory for general file storage.")
 
-config_lib.DEFINE_string("Config.directory", "%(grr/config|resource)",
+config_lib.DEFINE_string("Config.directory", "%(install_data/etc|resource)",
                          "Directory for grr server config files.")
 
 config_lib.DEFINE_string("Config.writeback",

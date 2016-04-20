@@ -3,6 +3,9 @@
 goog.provide('grrUi.user.userDesktopNotificationsDirective.UserDesktopNotificationsController');
 goog.provide('grrUi.user.userDesktopNotificationsDirective.UserDesktopNotificationsDirective');
 
+goog.require('grrUi.user.userNotificationItemDirective.annotateApiNotification');
+goog.require('grrUi.user.userNotificationItemDirective.openReference');
+
 
 goog.scope(function() {
 
@@ -21,6 +24,7 @@ var MAX_DISPLAYED_NOTIFICATIONS = 2;
  *
  * @param {!angular.Scope} $scope
  * @param {!angular.$interval} $interval
+ * @param {!angular.$window} $window
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @param {!grrUi.core.timeService.TimeService} grrTimeService
  * @constructor
@@ -28,7 +32,7 @@ var MAX_DISPLAYED_NOTIFICATIONS = 2;
  */
 grrUi.user.userDesktopNotificationsDirective.
     UserDesktopNotificationsController =
-    function($scope, $interval, grrApiService, grrTimeService) {
+    function($scope, $interval, $window, grrApiService, grrTimeService) {
 
   if (!Notification) {
     return;  // Nothing to do here..
@@ -39,6 +43,9 @@ grrUi.user.userDesktopNotificationsDirective.
 
   /** @private {!angular.$interval} */
   this.interval_ = $interval;
+
+  /** @private {!angular.$window} */
+  this.window_ = $window;
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
@@ -67,18 +74,21 @@ var UserDesktopNotificationsController = grrUi.user.
  *
  * @param {string} title The dislayed notification's title.
  * @param {string} body The dislayed notification's body text.
+ * @param {string} tag A string that uniquely identifies the notification across
+                       browser windows.
  * @param {function()=} opt_onclick Optional on notification click callback.
  * @return {Object} Generated Notification instance.
  */
 UserDesktopNotificationsController.prototype.notify_ = function(
-    title, body, opt_onclick) {
+    title, body, tag, opt_onclick) {
   var notification = new Notification(title, {
-    icon: 'static/images/grr_logo_notification.png',
     body: body,
+    icon: 'static/images/grr_logo_notification.png',
+    tag: tag,
   });
 
   notification.onclick = function() {
-    window.focus();
+    this.window_.focus();
     notification.close();
 
     if (angular.isDefined(opt_onclick)) {
@@ -123,7 +133,20 @@ UserDesktopNotificationsController.prototype.
     }
 
     for (var i = 0; i < items.length; ++i) {
-      this.notify_('GRR', items[i]['value']['message']['value']);
+      var item = items[i];
+      grrUi.user.userNotificationItemDirective.annotateApiNotification(
+          item, this.grrApiService_);
+
+      this.notify_('GRR',
+                   item['value']['message']['value'],
+                   'GRR' + item['value']['timestamp']['value'],
+                   function() {
+        this.grrApiService_.delete('users/me/notifications/pending/' +
+                                   item['value']['timestamp']['value']);
+
+        grrUi.user.userNotificationItemDirective.openReference(
+            item, this.window_);
+      }.bind(this));
     }
   }.bind(this));
 };

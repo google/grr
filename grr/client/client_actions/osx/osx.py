@@ -12,9 +12,7 @@ import logging
 import os
 import re
 import shutil
-import StringIO
 import sys
-import tarfile
 
 
 import pytsk3
@@ -26,7 +24,6 @@ from grr.client.client_actions import standard
 from grr.client.osx.objc import ServiceManagement
 
 from grr.lib import config_lib
-from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.parsers import osx_launchd
@@ -347,73 +344,6 @@ class Uninstall(actions.ActionPlugin):
       shutil.rmtree(directory, ignore_errors=True)
 
     self.SendReply(string=msg)
-
-
-class InstallDriver(actions.ActionPlugin):
-  """Installs a driver.
-
-  Note that only drivers with a signature that validates with
-  client_config.DRIVER_SIGNING_CERT can be loaded.
-  """
-  in_rdfvalue = rdf_client.DriverInstallTemplate
-
-  def _FindKext(self, path):
-    """Find the .kext directory under path.
-
-    Args:
-      path: path string to search
-    Returns:
-      kext directory path string or raises if not found.
-    Raises:
-      RuntimeError: if there is no kext under the path.
-    """
-    for directory, _, _ in os.walk(path):
-      if directory.endswith(".kext"):
-        return directory
-    raise RuntimeError("No .kext directory under %s" % path)
-
-  def Run(self, args):
-    """Initializes the driver."""
-    # This action might crash the box so we need to flush the transaction log.
-    self.SyncTransactionLog()
-
-    if not args.driver:
-      raise IOError("No driver supplied.")
-
-    pub_key = config_lib.CONFIG.Get("Client.driver_signing_public_key")
-
-    if not args.driver.Verify(pub_key):
-      raise OSError("Driver signature signing failure.")
-
-    if args.force_reload:
-      client_utils_osx.UninstallDriver(args.driver_name)
-    # Wrap the tarball in a file like object for tarfile to handle it.
-    driver_buf = StringIO.StringIO(args.driver.data)
-    # Unpack it to a temporary directory.
-    with utils.TempDirectory() as kext_tmp_dir:
-      driver_archive = tarfile.open(fileobj=driver_buf, mode="r:gz")
-      driver_archive.extractall(kext_tmp_dir)
-      # Now load it.
-      kext_path = self._FindKext(kext_tmp_dir)
-      logging.debug("Loading kext %s", kext_path)
-      client_utils_osx.InstallDriver(kext_path)
-
-
-class UninstallDriver(actions.ActionPlugin):
-  """Unloads a memory driver.
-
-  Only if the request contains a valid signature the driver will be uninstalled.
-  """
-
-  in_rdfvalue = rdf_client.DriverInstallTemplate
-
-  def Run(self, args):
-    """Unloads a driver."""
-    pub_key = config_lib.CONFIG["Client.driver_signing_public_key"]
-    if not args.driver.Verify(pub_key):
-      raise OSError("Driver signature signing failure.")
-    # Unload the driver and pass exceptions through
-    client_utils_osx.UninstallDriver(args.driver_name)
 
 
 class UpdateAgent(standard.ExecuteBinaryCommand):

@@ -34,6 +34,57 @@ def DateTimeString(t):
   return t.Format("%Y-%m-%d %H:%M:%S")
 
 
+class TestLegacyFileView(FileViewTestBase):
+  """Test the fileview interface."""
+
+  def setUp(self):
+    super(TestLegacyFileView, self).setUp()
+    # Prepare our fixture.
+    with self.ACLChecksDisabled():
+      self.RequestAndGrantClientApproval("C.0000000000000001")
+
+  def testRecursiveListDirectory(self):
+    """Tests that Recursive Refresh button triggers correct flow."""
+    self.Open("/")
+
+    self.Type("client_query", "C.0000000000000001")
+    self.Click("client_query_submit")
+
+    self.WaitUntilEqual(u"C.0000000000000001",
+                        self.GetText, "css=span[type=subject]")
+
+    # Choose client 1
+    self.Click("css=td:contains('0001')")
+
+    # Go to Browse VFS
+    self.Click("css=a:contains('Browse Virtual Filesystem')")
+    self.Click("css=#_fs i.jstree-icon")
+    self.Click("css=#_fs-os i.jstree-icon")
+    self.Click("link=c")
+
+    # Perform recursive refresh
+    self.Click("css=button[name=RecursiveRefresh]")
+
+    self.WaitUntil(self.IsTextPresent, "Recursive Refresh")
+    self.WaitUntil(self.IsTextPresent, "Max depth")
+
+    self.Type("css=label:contains('Max depth') ~ * input", "423")
+    self.Click("css=button[name=Proceed]")
+
+    self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
+    self.Click("css=button[name=Close]")
+
+    # Go to "Manage Flows" tab and check that RecursiveListDirectory flow has
+    # been created.
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=td:contains('RecursiveListDirectory')")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=.tab-content td.proto_value:contains('/c')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=.tab-content td.proto_value:contains(423)")
+
+
 class TestFileView(FileViewTestBase):
   """Test the fileview interface."""
 

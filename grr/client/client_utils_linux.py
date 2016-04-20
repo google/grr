@@ -6,7 +6,6 @@
 
 import locale
 import os
-import subprocess
 import sys
 import threading
 import time
@@ -168,7 +167,7 @@ class NannyThread(threading.Thread):
 
     """
     time.sleep(seconds - int(seconds))
-    for _ in range(int(seconds)):
+    for _ in xrange(int(seconds)):
       time.sleep(1)
 
   def Stop(self):
@@ -192,7 +191,7 @@ class NannyController(object):
 
   # Nanny should be a global singleton thread.
   nanny = None
-
+  nanny_logfile = None
   max_log_size = 100000000
 
   def StartNanny(self, unresponsive_kill_period=None, nanny_logfile=None):
@@ -202,8 +201,7 @@ class NannyController(object):
         unresponsive_kill_period = config_lib.CONFIG[
             "Nanny.unresponsive_kill_period"]
 
-      NannyController.nanny_logfile = (nanny_logfile or
-                                       config_lib.CONFIG["Nanny.logfile"])
+      NannyController.nanny_logfile = nanny_logfile
       NannyController.nanny = NannyThread(unresponsive_kill_period)
       NannyController.nanny.start()
 
@@ -217,6 +215,9 @@ class NannyController(object):
     if self.nanny:
       self.nanny.Heartbeat()
 
+  def _GetLogFilename(self):
+    return self.nanny_logfile or config_lib.CONFIG["Nanny.logfile"]
+
   def WriteTransactionLog(self, grr_message):
     """Write the message into the transaction log."""
     try:
@@ -225,7 +226,7 @@ class NannyController(object):
       grr_message = str(grr_message)
 
     try:
-      with open(self.nanny_logfile, "w") as fd:
+      with open(self._GetLogFilename(), "w") as fd:
         fd.write(grr_message)
     except (IOError, OSError):
       pass
@@ -237,7 +238,7 @@ class NannyController(object):
   def CleanTransactionLog(self):
     """Wipes the transaction log."""
     try:
-      with open(self.nanny_logfile, "w") as fd:
+      with open(self._GetLogFilename(), "w") as fd:
         fd.write("")
     except (IOError, OSError):
       pass
@@ -245,7 +246,7 @@ class NannyController(object):
   def GetTransactionLog(self):
     """Return a GrrMessage instance from the transaction log or None."""
     try:
-      with open(self.nanny_logfile, "r") as fd:
+      with open(self._GetLogFilename(), "r") as fd:
         data = fd.read(self.max_log_size)
     except (IOError, OSError):
       return
@@ -270,38 +271,6 @@ class NannyController(object):
         return fd.read(self.max_log_size)
     except (IOError, OSError):
       return None
-
-
-def InstallDriver(driver_path):
-  """Loads a driver and starts it."""
-
-  cmd = ["/sbin/insmod", driver_path]
-
-  p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-  p.communicate()
-  exit_status = p.returncode
-  logging.info("Loading driver finished, status: %d.", exit_status)
-  if exit_status != 0:
-    raise OSError("Failed to load driver, may already be installed.")
-
-
-def UninstallDriver(driver_name):
-  """Unloads the driver.
-
-  Args:
-    driver_name: Name of the driver.
-
-  Raises:
-    OSError: On failure to uninstall.
-  """
-  cmd = ["/sbin/rmmod", driver_name]
-
-  p = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-  p.communicate()
-  exit_status = p.returncode
-  logging.info("Unloading driver finished, status: %d.", exit_status)
-  if exit_status != 0:
-    raise OSError("Failed to unload driver.")
 
 
 def KeepAlive():

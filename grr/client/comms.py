@@ -364,7 +364,7 @@ class HTTPManager(object):
     time.sleep(timeout - int(timeout))
 
     # Split a long sleep interval into 1 second intervals so we can heartbeat.
-    for _ in range(int(timeout)):
+    for _ in xrange(int(timeout)):
       time.sleep(1)
 
       if self.heart_beat_cb:
@@ -397,7 +397,7 @@ class Timer(object):
     time.sleep(self.sleep_time - int(self.sleep_time))
 
     # Split a long sleep interval into 1 second intervals so we can heartbeat.
-    for _ in range(int(self.sleep_time)):
+    for _ in xrange(int(self.sleep_time)):
       time.sleep(1)
 
       if self.heart_beat_cb:
@@ -512,7 +512,7 @@ class GRRClientWorker(object):
     time.sleep(timeout - int(timeout))
 
     # Split a long sleep interval into 1 second intervals so we can heartbeat.
-    for _ in range(int(timeout)):
+    for _ in xrange(int(timeout)):
       time.sleep(1)
 
       self.nanny_controller.Heartbeat()
@@ -915,7 +915,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     time.sleep(timeout - int(timeout))
 
     # Split a long sleep interval into 1 second intervals so we can heartbeat.
-    for _ in range(int(timeout)):
+    for _ in xrange(int(timeout)):
       time.sleep(1)
       # If the output queue is full, we are ready to do a post - no
       # point in waiting.

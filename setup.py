@@ -70,6 +70,7 @@ CONFIG_FILE = "%(CONFIG_FILE)s"
 
 data_files = (find_data_files("docs") +
               find_data_files("executables") +
+              find_data_files("install_data") +
               find_data_files("scripts") +
               find_data_files("test_data") +
               find_data_files("grr/artifacts") +

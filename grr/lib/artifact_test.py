@@ -410,7 +410,6 @@ class ArtifactFlowWindowsTest(ArtifactTest):
     """Check we can run Rekall based artifacts."""
     test_lib.WriteComponent(token=self.token)
 
-    self.CreateSignedDriver()
     fd = self.RunCollectorAndGetCollection(
         ["RekallPsList"], RekallMock(
             self.client_id, "rekall_pslist_result.dat.gz"))
@@ -430,7 +429,6 @@ class ArtifactFlowWindowsTest(ArtifactTest):
           os="Windows",
           environ_systemdrive=r"c:"))
 
-    self.CreateSignedDriver()
     fd = self.RunCollectorAndGetCollection(
         ["FullVADBinaryList"], RekallMock(
             self.client_id, "rekall_vad_result.dat.gz"))
