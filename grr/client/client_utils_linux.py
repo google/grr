@@ -225,11 +225,21 @@ class NannyController(object):
     except AttributeError:
       grr_message = str(grr_message)
 
+    logfile = self._GetLogFilename()
+
     try:
-      with open(self._GetLogFilename(), "w") as fd:
+      with open(logfile, "w") as fd:
         fd.write(grr_message)
     except (IOError, OSError):
-      pass
+      # Check if we're missing directories and try to create them.
+      if not os.path.isdir(os.path.dirname(logfile)):
+        try:
+          os.makedirs(os.path.dirname(logfile))
+          with open(logfile, "w") as fd:
+            fd.write(grr_message)
+        except (IOError, OSError):
+          logging.exception("Couldn't write nanny transaction log to %s",
+                            logfile)
 
   def SyncTransactionLog(self):
     # Not implemented on Linux.
