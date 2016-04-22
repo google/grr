@@ -417,6 +417,20 @@ Section1.test: 2
     with self.assertRaises(config_lib.MissingConfigDefinitionError):
       conf.Initialize(parser=config_lib.YamlParser, data=data)
 
+  def testBadFilterRaises(self):
+    """Checks that bad filter directive raise."""
+    conf = config_lib.GrrConfigManager()
+    conf.DEFINE_string("Section1.foo6", "%(somefile@somepackage|resource)",
+                       "test")
+    conf.DEFINE_string("Section1.foo1", "%(Section1.foo6)/bar", "test")
+    conf.Initialize(data="")
+
+    with self.assertRaises(config_lib.InterpolationError) as context:
+      _ = conf["Section1.foo1"]
+
+    # Make sure the stringified exception explains the full interpolation chain.
+    self.assertTrue("%(Section1.foo6)/bar" in str(context.exception))
+
   @flags.FlagOverrider(disallow_missing_config_definitions=True)
   def testConfigOptionsDefined(self):
     """Test that all config options in use are defined."""

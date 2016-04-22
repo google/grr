@@ -33,7 +33,7 @@ def main(argv):
       "install_data/etc/grr-server.yaml")
 
   flags.FLAGS.secondary_configs = [config_lib.Resource().Filter(
-      "test_data/grr_test.yaml")]
+      "test_data/grr_test.yaml@grr-response-test")]
 
   startup.Init()
 

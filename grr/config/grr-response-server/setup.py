@@ -26,15 +26,21 @@ setup(
         ]
     },
     install_requires=[
-        "grr-response-core[Server]",
+        "Django==1.8.3",
+        "google-api-python-client==1.4.2",
+        "grr-response-core",
         "grr-response-client",
+        "oauth2client==1.5.2",
+        "rekall-core>=1.5.0.post4",
+        "Werkzeug==0.11.3",
+        "wsgiref==0.1.2",
     ],
 
     extras_require={
         # This is an optional component. Install to get MySQL data
         # store support:
-        # pip install grr-response[MySQLDataStore]
-        "MySQLDataStore": [
+        # pip install grr-response[mysqldatastore]
+        "mysqldatastore": [
             "MySQL-python==1.2.5"
         ],
     }

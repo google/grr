@@ -78,7 +78,15 @@ class UnknownOption(Error, KeyError):
   """Raised when an unknown option was requested."""
 
 
-class FilterError(Error):
+class InterpolationError(Error):
+  """Raised when a config object failed to interpolate."""
+
+  def AddContext(self, message):
+    self.message += " " + message
+    self.args = (self.message,)
+
+
+class FilterError(InterpolationError):
   """Raised when a filter fails to perform its function."""
 
 
@@ -186,9 +194,13 @@ class Flags(ConfigFilter):
 
 
 class Resource(ConfigFilter):
-  """Locates a GRR resource that is shipped with the GRR package."""
+  """Locates a GRR resource that is shipped with the GRR package.
+
+  The format of the directive is "path/to/resource@package_name". If
+  package_name is not provided we use grr-resource-core by default.
+  """
   name = "resource"
-  package = "grr-response-core"
+  default_package = "grr-response-core"
 
   def _GetPkgResources(self, target, package):
     requirement = pkg_resources.Requirement.parse(package)
@@ -201,11 +213,17 @@ class Resource(ConfigFilter):
       try:
         return pkg_resources.resource_filename(requirement, target)
       except pkg_resources.DistributionNotFound:
+        logging.error("Distribution %s not found. Is it installed?", package)
         return None
 
-  def Filter(self, filename):
+  def Filter(self, filename_spec):
     """Use pkg_resources to find the path to the required resource."""
-    target = self._GetPkgResources(filename, self.package)
+    package = self.default_package
+    filename = filename_spec
+    if "@" in filename_spec:
+      filename, package = filename_spec.split("@", 1)
+
+    target = self._GetPkgResources(filename, package)
     if target and os.access(target, os.R_OK):
       return target
 
@@ -217,14 +235,9 @@ class Resource(ConfigFilter):
     if target and os.access(target, os.R_OK):
       return target
 
-    raise IOError("Unable to find resource %s" % filename)
+    raise FilterError("Unable to find resource %s while interpolating: " %
+                      filename_spec)
 
-
-
-class TemplateResource(Resource):
-  """Locates a GRR resource that is shipped with the GRR package."""
-  name = "template-resource"
-  package = "grr-response-templates"
 
 
 class ModulePath(ConfigFilter):
@@ -1290,9 +1303,13 @@ class GrrConfigManager(object):
     """Interpolate the value and parse it with the appropriate type."""
     # It is only possible to interpolate strings...
     if isinstance(value, basestring):
-      value = StringInterpolator(
-          value, self, default_section=default_section,
-          parameter=type_info_obj.name, context=context).Parse()
+      try:
+        value = StringInterpolator(
+            value, self, default_section=default_section,
+            parameter=type_info_obj.name, context=context).Parse()
+      except InterpolationError as e:
+        e.AddContext(value)
+        raise
 
       # Parse the data from the string.
       value = type_info_obj.FromString(value)

@@ -26,6 +26,7 @@ import urlparse
 
 from M2Crypto import X509
 import mock
+import pkg_resources
 
 from selenium.common import exceptions
 from selenium.webdriver.common import action_chains
@@ -2040,6 +2041,30 @@ def FilterFixture(fixture=None, regex="."):
       result.append((path, attributes))
 
   return result
+
+
+def RequiresPackage(package_name):
+  """Skip this test if required package isn't present.
+
+  Note this will only work in opensource testing where we actually have
+  packages.
+
+  Args:
+    package_name: string
+  Returns:
+    Decorator function
+  """
+  def Decorator(test_function):
+    @functools.wraps(test_function)
+    def Wrapper(*args, **kwargs):
+      try:
+        pkg_resources.get_distribution(package_name)
+      except pkg_resources.DistributionNotFound:
+        raise unittest.SkipTest(
+            "Skipping, package %s not installed" % package_name)
+      return test_function(*args, **kwargs)
+    return Wrapper
+  return Decorator
 
 
 def SetLabel(*labels):

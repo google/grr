@@ -133,7 +133,7 @@ def TestInit():
       "install_data/etc/grr-server.yaml")
 
   flags.FLAGS.secondary_configs = [config_lib.Resource().Filter(
-      "test_data/grr_test.yaml")]
+      "test_data/grr_test.yaml@grr-response-test")]
 
   # We are running a test so let the config system know that.
   config_lib.CONFIG.AddContext(

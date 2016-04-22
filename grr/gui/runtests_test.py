@@ -58,5 +58,11 @@ def main(argv):
   # Run the full test suite
   SeleniumTestProgram(argv=argv, testLoader=SeleniumTestLoader())
 
-if __name__ == "__main__":
+
+def DistEntry():
+  """The main entry point for packages."""
   flags.StartMain(main)
+
+
+if __name__ == "__main__":
+  DistEntry()

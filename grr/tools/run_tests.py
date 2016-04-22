@@ -221,15 +221,19 @@ def main(argv=None):
       start = time.time()
       labels = set(flags.FLAGS.labels)
 
+      skipped_tests = 0
       for name, cls in test_lib.GRRBaseTest.classes.items():
         if name.startswith("_"):
           continue
 
         if labels and not DoesTestHaveLabels(cls, labels):
+          print "Skipping test %s due to labels" % name
+          skipped_tests += 1
           continue
 
         if name in flags.FLAGS.exclude_tests:
           print "Skipping test %s" % name
+          skipped_tests += 1
           continue
 
         result_filename = os.path.join(temp_dir, name)
@@ -263,9 +267,10 @@ def main(argv=None):
       passed_tests = [p for p in processes.values() if p["exit_code"] == 0]
       failed_tests = [p for p in processes.values() if p["exit_code"] != 0]
 
-      print "\nRan %s tests in %0.2f sec, %s tests passed, %s tests failed." % (
-          len(processes), time.time() - start, len(passed_tests),
-          len(failed_tests))
+      print ("\nRan %s tests in %0.2f sec, %s tests passed, %s tests failed"
+             ", %s skipped.") % (
+                 len(processes), time.time() - start, len(passed_tests),
+                 len(failed_tests), skipped_tests)
 
       if failed_tests:
         colorizer = Colorizer()
@@ -276,5 +281,11 @@ def main(argv=None):
 
         sys.exit(-1)
 
-if __name__ == "__main__":
+
+def DistEntry():
+  """This is called from the package entry point."""
   flags.StartMain(main)
+
+
+if __name__ == "__main__":
+  DistEntry()

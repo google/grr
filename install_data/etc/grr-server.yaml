@@ -232,10 +232,6 @@ Platform:Darwin:
 
   Logging.syslog_path: /var/run/syslog
 
-  # Darwin systems have their drivers stored in this part of the config space.
-  MemoryDriver.aff4_paths:
-    - "%(Config.aff4_root)/drivers/osx/memory/pmem-ng-signed"
-
 Platform:Linux:
   Client.binary_name: grrd
 
@@ -302,23 +298,11 @@ Platform:Windows:
 
     ClientBuilder.vs_env_script: "%(vs_dir)\\VC\\bin\\amd64\\vcvars64.bat"
 
-    MemoryDriver.aff4_paths:
-      - "%(Config.aff4_root)/drivers/windows/memory/winpmem.amd64.sys"
-
-    MemoryDriver.driver_files:
-      - binaries/winpmem_amd64_1.6.1.sys
-
   # For windows 32 bit clients.
   Arch:i386:
     ClientBuilder.vs_arch: Win32
 
     ClientBuilder.vs_env_script: "%(vs_dir)\\VC\\bin\\vcvars32.bat"
-
-    MemoryDriver.aff4_paths:
-      - "%(Config.aff4_root)/drivers/windows/memory/winpmem.x86.sys"
-
-    MemoryDriver.driver_files:
-      - binaries/winpmem_i386_1.6.1.sys
 
   Client Context:
     # This is where the client will write back volatile configuration data. On
@@ -330,7 +314,8 @@ Worker Context:
 
   Logging.filename: "%(Logging.path)/grr-worker.log"
 
-# For Test Context, see test_data/grr_test.yaml
+# For Test Context, see test_data/grr_test.yaml in the grr-response-test
+# package.
 
 DataServer Context:
 # By default use an sqlite backend.

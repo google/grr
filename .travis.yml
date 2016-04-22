@@ -9,11 +9,12 @@ python:
 before_install: /bin/bash travis/install_protobuf.sh
 install:
   - pip install --upgrade pip wheel
-  - pip install -e .[Server,test]
+  - pip install -e .
   - pip install -e grr/config/grr-response-server/
+  - pip install -e grr/config/grr-response-test/
   - PROTOC="${HOME}/protobuf/bin/protoc" python makefile.py
   - cd grr/artifacts && python makefile.py && cd -
-script: python run_tests.py --processes=2
+script: grr_run_tests --processes=2
 addons:
   apt:
     packages:

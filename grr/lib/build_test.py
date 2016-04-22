@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """Tests for building and repacking clients."""
+import glob
 import os
 import shutil
-import stat
 
 from grr.lib import build
 from grr.lib import config_lib
@@ -17,25 +17,36 @@ class BuildTests(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(BuildTests, self).setUp()
-    self.executables_dir = os.path.join(config_lib.CONFIG["Test.srcdir"],
-                                        "grr", "executables")
+    self.executables_dir = config_lib.Resource().Filter("executables")
 
+  @test_lib.RequiresPackage("grr-response-templates")
   def testRepackAll(self):
-    """Testing repacking all binaries."""
+    """Test repacking all binaries."""
     with utils.TempDirectory() as tmp_dir:
       new_dir = os.path.join(tmp_dir, "grr", "executables")
+      os.makedirs(new_dir)
 
-      # Copy templates and ensure our resulting directory is writeable.
-      shutil.copytree(self.executables_dir, new_dir)
-      for root, dirs, _ in os.walk(new_dir):
-        for this_dir in dirs:
-          os.chmod(os.path.join(root, this_dir),
-                   stat.S_IRUSR | stat.S_IWUSR | stat.S_IXUSR)
+      # Copy unzipsfx so it can be used in repacking/
+      shutil.copy(os.path.join(
+          self.executables_dir, "windows/templates/unzipsfx/unzipsfx-i386.exe"),
+                  new_dir)
+      shutil.copy(os.path.join(
+          self.executables_dir,
+          "windows/templates/unzipsfx/unzipsfx-amd64.exe"), new_dir)
 
       with test_lib.ConfigOverrider({"ClientBuilder.executables_dir": new_dir}):
-        # If this doesn't raise, it means that there were either no templates,
-        # or all of them were repacked successfully.
-        maintenance_utils.RepackAllBinaries()
+        with test_lib.ConfigOverrider(
+            {"ClientBuilder.unzipsfx_stub_dir": new_dir}):
+          maintenance_utils.RepackAllBinaries()
+
+      self.assertEqual(len(glob.glob(
+          os.path.join(new_dir, "linux/installers/*.deb"))), 2)
+      self.assertEqual(len(glob.glob(os.path.join(
+          new_dir, "linux/installers/*.rpm"))), 2)
+      self.assertEqual(len(glob.glob(os.path.join(
+          new_dir, "windows/installers/*.exe"))), 2)
+      self.assertEqual(len(glob.glob(os.path.join(
+          new_dir, "darwin/installers/*.pkg"))), 1)
 
   def testGenClientConfig(self):
     plugins = ["plugin1", "plugin2"]

@@ -25,10 +25,11 @@ class Install(install):
 
     # Install the GRR server component to satisfy the dependency below.
     subprocess.check_call(
-        [sys.executable, pip, "install", ".[Server]"],
+        [sys.executable, pip, "install", "."],
         cwd=working_directory)
 
-    # Install the grr-response-server metapackage to get all the entry points.
+    # Install the grr-response-server metapackage to get the remaining
+    # dependencies and the entry points.
     subprocess.check_call(
         [sys.executable, pip, "install", "."],
         cwd=working_directory + "/grr/config/grr-response-server/")

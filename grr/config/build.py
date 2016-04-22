@@ -7,32 +7,6 @@ from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import type_info
 
-# Windows Memory driver information.
-config_lib.DEFINE_string("MemoryDriver.driver_service_name",
-                         "Pmem",
-                         "The SCCM service name for the driver.")
-
-config_lib.DEFINE_string("MemoryDriver.driver_display_name",
-                         "%(Client.name) Pmem",
-                         "The SCCM display name for the driver.")
-
-config_lib.DEFINE_list("MemoryDriver.driver_files", [],
-                       "The default drivers to use.")
-
-config_lib.DEFINE_list("MemoryDriver.aff4_paths", [],
-                       "The AFF4 paths to the driver objects.")
-
-config_lib.DEFINE_string("MemoryDriver.device_path", r"\\\\.\\pmem",
-                         "The device path which the client will open after "
-                         "installing this driver.")
-
-config_lib.DEFINE_string("MemoryDriver.service_name", "pmem",
-                         "The name of the service created for "
-                         "the driver (Windows).")
-
-config_lib.DEFINE_string("MemoryDriver.display_name", "%(service_name)",
-                         "The display name of the service created for "
-                         "the driver (Windows).")
 
 config_lib.DEFINE_option(type_info.RDFValueType(
     rdfclass=rdfvalue.RDFURN,
@@ -263,7 +237,7 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.template_path", must_exist=False,
-    default=("%(grr-response-templates|template-resource)/"
+    default=("%(grr-response-templates@grr-response-templates|resource)/"
              "templates/%(PyInstaller.template_filename)"),
     help="The full path to the executable template files."))
 
@@ -293,9 +267,14 @@ config_lib.DEFINE_option(type_info.PathTypeInfo(
     help="The full path to where we write a generated config."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
-    name="ClientBuilder.unzipsfx_stub", must_exist=False,
+    name="ClientBuilder.unzipsfx_stub_dir", must_exist=False,
     default=("%(ClientBuilder.executables_dir)/%(Client.platform)"
-             "/templates/unzipsfx/unzipsfx-%(Client.arch).exe"),
+             "/templates/unzipsfx"),
+    help="The directory that contains the zip self extracting stub."))
+
+config_lib.DEFINE_option(type_info.PathTypeInfo(
+    name="ClientBuilder.unzipsfx_stub", must_exist=False,
+    default=("%(ClientBuilder.unzipsfx_stub_dir)/unzipsfx-%(Client.arch).exe"),
     help="The full path to the zip self extracting stub."))
 
 config_lib.DEFINE_string(
@@ -387,7 +366,8 @@ config_lib.DEFINE_option(type_info.PathTypeInfo(
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.components_dir", must_exist=False,
-    default="%(grr-response-templates|template-resource)/components",
+    default=("%(grr-response-templates@grr-response-templates|resource)"
+             "/components"),
     help="The directory that contains the components."))
 
 config_lib.DEFINE_string(

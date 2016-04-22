@@ -63,9 +63,10 @@ os._grr_component_was_here = True
 
     # The client uses its build_environment configuration to call the correct
     # version of the component. It is normally populated by the build system but
-    # in this test we set it to a known value.
+    # in this test we set it to a known value which is the same as we created
+    # earlier.
     with test_lib.ConfigOverrider({
-        "Client.build_environment": "Linux_Ubuntu_glibc_2.4_amd64",
+        "Client.build_environment": self.component.build_system.signature(),
         "Client.component_path": os.path.join(self.temp_dir, "components")}):
       self.RunAction("LoadComponent", message,
                      grr_worker=MockClientWorker(self.token))

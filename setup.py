@@ -72,7 +72,6 @@ data_files = (find_data_files("docs") +
               find_data_files("executables") +
               find_data_files("install_data") +
               find_data_files("scripts") +
-              find_data_files("test_data") +
               find_data_files("grr/artifacts") +
               find_data_files("grr/checks") +
               find_data_files("grr/gui/static") +
@@ -119,28 +118,6 @@ setup_args = dict(
         "protobuf==2.6.1",
     ],
     extras_require={
-        # This is an optional component. Install to get MySQL data
-        # store support:
-        # pip install grr-response[MySQLDataStore]
-        "MySQLDataStore": [
-            "MySQL-python==1.2.5"
-        ],
-
-        "test": [
-            "mock==1.3.0",
-            "mox==0.5.3",
-            "selenium==2.50.1",
-        ],
-
-        "Server": [
-            "wsgiref==0.1.2",
-            "Werkzeug==0.11.3",
-            "Django==1.8.3",
-            "oauth2client==1.5.2",
-            "rekall-core>=1.5.0.post4",
-            "google-api-python-client==1.4.2",
-        ],
-
         # The following requirements are needed in Windows.
         ':sys_platform=="win32"': [
             "WMI==1.4.9",

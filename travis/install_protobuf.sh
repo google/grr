@@ -7,9 +7,14 @@ set -e
 VERSION=2.6.1
 
 if [ ! -d "$HOME/protobuf/lib" ]; then
+  # CWD is grr src checked out by travis.
+  cwd=$(pwd)
+  cd "${HOME}"
   wget "https://github.com/google/protobuf/releases/download/v${VERSION}/protobuf-${VERSION}.tar.gz"
   tar -xzvf "protobuf-${VERSION}.tar.gz"
-  cd "protobuf-${VERSION}" && ./configure --prefix="$HOME/protobuf" && make && make install
+  cd "protobuf-${VERSION}"
+  ./configure --prefix="$HOME/protobuf" && make && make install
+  cd "${cwd}"
 else
-  echo "Using cached proto directory $HOME/protobuf."
+  echo "Using cached proto directory $HOME/protobuf"
 fi

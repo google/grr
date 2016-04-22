@@ -24,8 +24,9 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
       "PrivateKeys.server_key",
       ]
 
-  disabled_filters = [
-  ]
+  # For all the resource filters to work you need the grr-response-templates
+  # package, which is big.
+  disabled_filters = ["resource", "file"]
 
   def ValidateConfig(self, config_file=None):
     """Iterate over all the sections in the config file and validate them."""

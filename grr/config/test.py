@@ -9,7 +9,7 @@ config_lib.DEFINE_constant_string(
 
 config_lib.DEFINE_constant_string(
     "Test.data_dir",
-    default="%(test_data|resource)",
+    default="%(test_data@grr-response-test|resource)",
     help="The directory where test data exist.")
 
 config_lib.DEFINE_constant_string(
