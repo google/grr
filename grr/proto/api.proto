@@ -31,30 +31,6 @@ message ApiAuthorization {
     }];
 }
 
-message ApiCallAdditionalArgs {
-  optional string name = 1;
-  optional string type = 2;
-  optional bytes args = 3 [(sem_type) = {
-      dynamic_type: "GetArgsClass"
-    }];
-}
-
-message ApiGetAff4ObjectArgs {
-  optional string aff4_path = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "Path of the object to be rendered."
-    }];
-
-  repeated ApiCallAdditionalArgs additional_args = 2;
-}
-
-message ApiGetAff4IndexArgs {
-  optional string aff4_path = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "Path of the object to be rendered."
-    }];
-}
-
 message ApiSearchClientsArgs {
   optional string query = 1 [(sem_type) = {
       description: "Search query string. See here for syntax: "
@@ -146,6 +122,15 @@ message ApiListFlowResultsArgs {
       description: "Return only results whose string representation "
       "contains given substring."
     }];
+}
+
+message ApiListFlowResultsResult {
+  repeated ApiFlowResult items = 1 [(sem_type) = {
+      description: "The flwo results."
+    }];
+   optional int64 total_count = 2 [(sem_type) = {
+      description: "Total count of items."
+   }];
 }
 
 message ApiListFlowLogsArgs {
@@ -697,6 +682,11 @@ message ApiListCronJobsArgs {
     }];
 };
 
+message ApiDeleteCronJobArgs {
+  optional string cron_job_id = 1 [(sem_type) = {
+      description: "The id of the cron job."
+    }];
+};
 
 // Next field number: 8
 message ApiGetStatsStoreMetricArgs {
@@ -781,6 +771,10 @@ message ApiListUserHuntApprovalsArgs {
     }];
 }
 
+message ApiListUserHuntApprovalsResult {
+  repeated ApiUserHuntApproval items = 1;
+}
+
 message ApiListUserCronApprovalsArgs {
   optional int64 offset = 1 [(sem_type) = {
       description: "Approvals starting offset."
@@ -788,6 +782,10 @@ message ApiListUserCronApprovalsArgs {
   optional int64 count = 2 [(sem_type) = {
       description: "Number of approvals to fetch."
     }];
+}
+
+message ApiListUserCronApprovalsResult {
+  repeated ApiUserCronApproval items = 1;
 }
 
 message ApiCreateUserClientApprovalArgs {
@@ -890,6 +888,72 @@ message ApiRDFValueCollectionRendererArgs {
 
 
 // API entities. These are uses in API calls responses.
+
+message ApiUserHuntApproval {
+  optional ApiHunt subject = 1 [(sem_type) = {
+      description: "A hunt that has to be accessed after this approval "
+      "is granted."
+    }];
+
+  optional string reason = 2 [(sem_type) = {
+      description: "A reason for accessing the hunt."
+    }];
+  optional bool is_valid = 3 [(sem_type) = {
+      description: "If True, this approval is still valid. If False, then "
+      "it wasn't approved or got expired."
+    }];
+  optional string is_valid_message = 4 [(sem_type) = {
+      description: "If is_valid is False, is_valid_message will contain "
+      "a human-readable description of why the approval is not valid."
+    }];
+
+  repeated string notified_users = 5 [(sem_type) = {
+      description: "GRR users that will be notified about the approval "
+      "being requested."
+    }];
+  repeated string email_cc_addresses = 6 [(sem_type) = {
+      description: "List of emails used to send a notification to about "
+      "this approval being requested."
+  }];
+
+  repeated string approvers = 7 [(sem_type) = {
+      description: "List of GRR users who granted this approval. Note: this "
+      "list always includes the original approval requestor."
+    }];
+}
+
+message ApiUserCronApproval {
+  optional ApiCronJob subject = 1 [(sem_type) = {
+      description: "A cron job that has to be accessed after this approval "
+      "is granted."
+    }];
+
+  optional string reason = 2 [(sem_type) = {
+      description: "A reason for accessing the cron job."
+    }];
+  optional bool is_valid = 3 [(sem_type) = {
+      description: "If True, this approval is still valid. If False, then "
+      "it wasn't approved or got expired."
+    }];
+  optional string is_valid_message = 4 [(sem_type) = {
+      description: "If is_valid is False, is_valid_message will contain "
+      "a human-readable description of why the approval is not valid."
+    }];
+
+  repeated string notified_users = 5 [(sem_type) = {
+      description: "GRR users that will be notified about the approval "
+      "being requested."
+    }];
+  repeated string email_cc_addresses = 6 [(sem_type) = {
+      description: "List of emails used to send a notification to about "
+      "this approval being requested."
+  }];
+
+  repeated string approvers = 7 [(sem_type) = {
+      description: "List of GRR users who granted this approval. Note: this "
+      "list always includes the original approval requestor."
+    }];
+}
 
 message ApiUserClientApproval {
   optional ApiClient subject = 1 [(sem_type) = {
@@ -1001,6 +1065,21 @@ message ApiFlow {
 
   repeated ApiFlow nested_flows = 9 [(sem_type) = {
       description: "Nested flows started by this flow."
+    }];
+}
+
+message ApiFlowResult {
+  optional AnyValue payload = 1 [(sem_type) = {
+      description: "Result payload.",
+      dynamic_type: "GetPayloadClass"
+    }];
+  optional string payload_type = 2 [(sem_type) = {
+      description: "Type of the payload."
+    }];
+  optional uint64 timestamp = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp indicating when result was written to the data "
+      "store."
     }];
 }
 
@@ -1442,6 +1521,51 @@ message ApiCreateVfsRefreshOperationArgs {
     }];
   optional bool notify_user = 4  [(sem_type) = {
       description: "Whether the operation should notify the user or not.",
+    }];
+}
+
+message ApiGetVfsTimelineArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "File path."
+    }];
+}
+
+message ApiGetVfsTimelineResult {
+  repeated ApiVfsTimelineItem items = 1 [(sem_type) = {
+      description: "The event items."
+    }];
+}
+
+message ApiGetVfsTimelineAsCsvArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "File path."
+    }];
+}
+
+message ApiVfsTimelineItem {
+  enum FileActionType {
+    MODIFICATION = 0;
+    ACCESS = 1;
+    METADATA_CHANGED = 2;
+  }
+
+  optional uint64 timestamp = 1 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The event timestamp."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "File path."
+    }];
+  optional FileActionType action = 3 [(sem_type) = {
+      description: "File action type."
     }];
 }
 

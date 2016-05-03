@@ -74,6 +74,10 @@ class ConfigWriteError(Error):
   """Raised when we failed to update the config."""
 
 
+class ConfigFileNotFound(IOError, Error):
+  """Raised when a config file was expected but was not found."""
+
+
 class UnknownOption(Error, KeyError):
   """Raised when an unknown option was requested."""
 
@@ -453,11 +457,6 @@ class YamlParser(GRRConfigParser):
       data = yaml.safe_load(fd) or OrderedYamlDict()
     elif filename:
       data = self._LoadYamlByName(filename) or OrderedYamlDict()
-    for include in data.pop("ConfigIncludes", []):
-      path = os.path.join(os.path.dirname(filename), include)
-      parser_cls = GrrConfigManager.GetParserFromFilename(path)
-      parser = parser_cls(filename=path)
-      data.update(parser.RawData())
 
     return data
 
@@ -474,6 +473,7 @@ class YamlParser(GRRConfigParser):
 
     elif filename:
       self.filename = filename
+
       try:
         self.parsed = self._ParseYaml(filename=filename) or OrderedYamlDict()
       except IOError as e:
@@ -703,6 +703,7 @@ class GrrConfigManager(object):
     self.context = []
     self.raw_data = OrderedYamlDict()
     self.validated = set()
+    self.files = []
     self.writeback = None
     self.writeback_data = OrderedYamlDict()
     self.global_override = dict()
@@ -721,6 +722,22 @@ class GrrConfigManager(object):
     self.FlushCache()
 
     self.initialized = False
+    self.DeclareBuiltIns()
+
+  def DeclareBuiltIns(self):
+    """Declare built in options internal to the config system."""
+    self.DEFINE_list("Config.includes", [],
+                     "List of additional config files to include. Files are "
+                     "processed recursively depth-first, later values "
+                     "override earlier ones.")
+
+  def __str__(self):
+    # List all the files we read from.
+    message = ""
+    for filename in self.files:
+      message += " file=\"%s\" " % filename
+
+    return "<%s %s>" % (self.__class__.__name__, message)
 
   def FlushCache(self):
     self.cache = {}
@@ -1000,14 +1017,15 @@ class GrrConfigManager(object):
         if isinstance(v, basestring):
           v = v.strip()
 
-        if k in self.constants:
+        # If we are already initialized and someone tries to modify a constant
+        # value (e.g. via Set()), break loudly.
+        if self.initialized and k in self.constants:
           raise ConstModificationError(
               "Attempting to modify constant value %s" % k)
 
         raw_data[k] = v
 
-  @classmethod
-  def GetParserFromFilename(cls, path):
+  def GetParserFromFilename(self, path):
     """Returns the appropriate parser class from the filename url."""
     # Find the configuration parser.
     url = urlparse.urlparse(path, scheme="file")
@@ -1022,7 +1040,7 @@ class GrrConfigManager(object):
 
     return ConfigFileParser
 
-  def LoadSecondaryConfig(self, url):
+  def LoadSecondaryConfig(self, url=None, parser=None):
     """Loads an additional configuration file.
 
     The configuration system has the concept of a single Primary configuration
@@ -1038,14 +1056,46 @@ class GrrConfigManager(object):
            example file:///etc/grr.conf
            or reg://HKEY_LOCAL_MACHINE/Software/GRR.
 
+      parser: An optional parser can be given. In this case, the parser's data
+           will be loaded directly.
+
     Returns:
       The parser used to parse this configuration source.
-    """
-    parser_cls = self.GetParserFromFilename(url)
-    parser = parser_cls(filename=url)
-    logging.info("Loading configuration from %s", url)
 
-    self.MergeData(parser.RawData())
+    Raises:
+      ConfigFileNotFound: If a specified included file was not found.
+
+    """
+    if url:
+      # Maintain a stack of config file locations in loaded order.
+      self.files.append(url)
+
+      parsed_url = urlparse.urlparse(url, scheme="file")
+
+      parser_cls = self.GetParserFromFilename(url)
+      parser = parser_cls(filename=url)
+      logging.info("Loading configuration from %s", url)
+
+    clone = self.MakeNewConfig()
+    clone.MergeData(parser.RawData())
+    clone.initialized = True
+
+    for url_to_load in clone["Config.includes"]:
+      # If we are loading a file url and the url to load is a file url it might
+      # be specified relative to this config file.
+      parsed_url_to_load = urlparse.urlparse(url_to_load, scheme="file")
+      if (url and parsed_url.scheme == "file" and
+          parsed_url_to_load.scheme == "file"):
+        url_to_load = os.path.join(
+            os.path.dirname(parsed_url.path), parsed_url_to_load.path)
+
+      clone_parser = clone.LoadSecondaryConfig(url_to_load)
+      # If an include file is specified but it was not found, raise an error.
+      if not clone_parser.parsed:
+        raise ConfigFileNotFound("Unable to load include file %s" % url_to_load)
+
+    self.MergeData(clone.raw_data)
+    self.files.extend(clone.files)
 
     return parser
 
@@ -1086,8 +1136,7 @@ class GrrConfigManager(object):
       self.initialized = False
 
     if fd is not None:
-      self.parser = parser(fd=fd)
-      self.MergeData(self.parser.RawData())
+      self.parser = self.LoadSecondaryConfig(parser=parser(fd=fd))
 
     elif filename is not None:
       self.parser = self.LoadSecondaryConfig(filename)
@@ -1096,8 +1145,7 @@ class GrrConfigManager(object):
             "Unable to parse config file %s" % filename)
 
     elif data is not None:
-      self.parser = parser(data=data)
-      self.MergeData(self.parser.RawData())
+      self.parser = self.LoadSecondaryConfig(parser=parser(data=data))
 
     elif must_exist:
       raise RuntimeError("Registry path not provided.")
@@ -1352,37 +1400,49 @@ class GrrConfigManager(object):
     return False
 
   # pylint: disable=g-bad-name,redefined-builtin
-  def DEFINE_bool(self, name, default, help):
+  def DEFINE_bool(self, name, default, help, constant=False):
     """A helper for defining boolean options."""
-    self.AddOption(type_info.Bool(name=name, default=default,
-                                  description=help))
+    self.AddOption(
+        type_info.Bool(name=name, default=default,
+                       description=help),
+        constant=constant)
 
-  def DEFINE_float(self, name, default, help):
+  def DEFINE_float(self, name, default, help, constant=False):
     """A helper for defining float options."""
-    self.AddOption(type_info.Float(name=name, default=default,
-                                   description=help))
+    self.AddOption(
+        type_info.Float(name=name, default=default,
+                        description=help),
+        constant=constant)
 
-  def DEFINE_integer(self, name, default, help):
+  def DEFINE_integer(self, name, default, help, constant=False):
     """A helper for defining integer options."""
-    self.AddOption(type_info.Integer(name=name, default=default,
-                                     description=help))
+    self.AddOption(
+        type_info.Integer(name=name, default=default,
+                          description=help),
+        constant=constant)
 
-  def DEFINE_string(self, name, default, help):
+  def DEFINE_string(self, name, default, help, constant=False):
     """A helper for defining string options."""
-    self.AddOption(type_info.String(name=name, default=default or "",
-                                    description=help))
+    self.AddOption(
+        type_info.String(name=name, default=default or "",
+                         description=help),
+        constant=constant)
 
-  def DEFINE_integer_list(self, name, default, help):
+  def DEFINE_integer_list(self, name, default, help, constant=False):
     """A helper for defining lists of integer options."""
-    self.AddOption(type_info.List(name=name, default=default,
-                                  description=help,
-                                  validator=type_info.Integer()))
+    self.AddOption(
+        type_info.List(name=name, default=default,
+                       description=help,
+                       validator=type_info.Integer()),
+        constant=constant)
 
-  def DEFINE_list(self, name, default, help):
+  def DEFINE_list(self, name, default, help, constant=False):
     """A helper for defining lists of strings options."""
-    self.AddOption(type_info.List(name=name, default=default,
-                                  description=help,
-                                  validator=type_info.String()))
+    self.AddOption(
+        type_info.List(name=name, default=default,
+                       description=help,
+                       validator=type_info.String()),
+        constant=constant)
 
   def DEFINE_constant_string(self, name, default, help):
     """A helper for defining constant strings."""

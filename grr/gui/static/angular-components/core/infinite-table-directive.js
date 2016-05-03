@@ -7,7 +7,6 @@ goog.provide('grrUi.core.infiniteTableDirective.InfiniteTableDirective');
 goog.scope(function() {
 
 
-
 /**
  * Controller for InfiniteTableDirective.
  *
@@ -72,6 +71,11 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
   this.showUntilPage = 0;
 
   /**
+   * @export {string}
+   */
+  this.filterValue;
+
+  /**
    * True, if there's a request currently in progress.
    * @export {boolean}
    */
@@ -110,6 +114,10 @@ grrUi.core.infiniteTableDirective.InfiniteTableController = function(
   this.scope_.$on('$destroy', function() {
     this.interval_.cancel(timer);
   }.bind(this));
+
+  // Whenever the filter changes, we need to refetch the items and start from
+  // page 1.
+  this.scope_.$watch(this.attrs_['filterValue'], this.onFilterChange_.bind(this));
 };
 
 var InfiniteTableController =
@@ -160,6 +168,20 @@ InfiniteTableController.prototype.triggerUpdate = function() {
   this.rootElement.html(InfiniteTableController.LOADING_TEMPLATE);
 };
 
+/**
+ * When the filter value changes, we need to get the items again and start
+ * from the beginning.
+ *
+ * @param {string} newFilterValue The new filter value.
+ * @private
+ */
+InfiniteTableController.prototype.onFilterChange_ = function(newFilterValue) {
+  if (newFilterValue !== this.filterValue) {
+    this.filterValue = newFilterValue;
+    this.triggerUpdate();
+  }
+};
+
 
 /**
  * Checks if "table loading..." element is visible and calls
@@ -195,9 +217,16 @@ InfiniteTableController.prototype.checkIfTableLoadingIsVisible_ = function() {
  */
 InfiniteTableController.prototype.tableLoadingElementWasShown_ = function() {
   this.requestInProgress = true;
-  this.itemsProvider.fetchItems(
-      this.currentPage * this.pageSize, this.pageSize).then(
-      this.onItemsFetched_.bind(this));
+  if (!this.filterValue) {
+    this.itemsProvider.fetchItems(
+        this.currentPage * this.pageSize,
+        this.pageSize).then(this.onItemsFetched_.bind(this));
+  } else {
+    this.itemsProvider.fetchFilteredItems(
+        this.filterValue,
+        this.currentPage * this.pageSize,
+        this.pageSize).then(this.onItemsFetched_.bind(this));
+  }
 };
 
 
@@ -241,8 +270,7 @@ grrUi.core.infiniteTableDirective.InfiniteTableDirective = function() {
     terminal: true,
     require: ['grrInfiniteTable',
               '?grrMemoryItemsProvider',
-              '?grrApiItemsProvider',
-              '?grrAff4ItemsProvider'],
+              '?grrApiItemsProvider'],
     controller: InfiniteTableController,
     link: function(scope, element, attrs, controllers) {
       var providerController = undefined;

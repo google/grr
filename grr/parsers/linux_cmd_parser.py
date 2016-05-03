@@ -140,8 +140,20 @@ class DpkgCmdParser(parsers.CommandParser):
       remaining_lines = stdout.splitlines()[i + 1:]
       for i, line in enumerate(remaining_lines):
         cols = line.split(None, len(column_lengths))
-        # Installed, Name, Version, Architecture, Description
-        status, name, version, arch, desc = cols
+
+        # The status column is ignored in column_lengths.
+        if len(column_lengths) == 4:
+          # Installed, Name, Version, Architecture, Description
+          status, name, version, arch, desc = cols
+        elif len(column_lengths) == 3:
+          # Older versions of dpkg don't print Architecture
+          status, name, version, desc = cols
+          arch = None
+        else:
+          raise RuntimeError(
+              "Bad number of columns in dpkg --list output: %s" % len(
+                  column_lengths))
+
         # Status is potentially 3 columns, but always at least two, desired and
         # actual state. We only care about actual state.
         if status[1] == "i":

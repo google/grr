@@ -6,7 +6,11 @@ goog.provide('grrUi.user.userNotificationButtonDirective.UserNotificationButtonD
 
 goog.scope(function() {
 
-var FETCH_INTERVAL = 60000;
+var SECOND = 1000;
+
+// This interval will be used by the notification button and the desktop
+// notifications directive to refetch the notifications.
+var FETCH_INTERVAL = 10 * SECOND;
 
 
 /**
@@ -107,6 +111,14 @@ var UserNotificationButtonDirective =
  * @export
  */
 UserNotificationButtonDirective.directive_name = 'grrUserNotificationButton';
+
+/**
+ * Notification fetch interval.
+ *
+ * @const
+ * @export
+ */
+UserNotificationButtonDirective.fetch_interval = FETCH_INTERVAL;
 
 
 });  // goog.scope

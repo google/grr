@@ -19,6 +19,7 @@ setup(
         ]
     },
     install_requires=[
+        "pyinstaller==3.1.1",
         "grr-response-core",
     ],
 )

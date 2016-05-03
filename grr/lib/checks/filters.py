@@ -149,9 +149,8 @@ class Filter(object):
       filt_cls = cls.GetPlugin(filter_name)
     except KeyError:
       raise DefinitionError("Filter %s does not exist." % filter_name)
-    # Return an initialized filter, after initializing it in cls.filters if it
-    # doesn't exist.
-    return cls.filters.setdefault(filter_name, filt_cls())
+
+    return filt_cls()
 
   def ParseObjs(self, *args):
     raise NotImplementedError("Filter needs to have a ParseObjs method.")

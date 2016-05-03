@@ -6,8 +6,6 @@
 import inspect
 
 
-from grr.gui import api_aff4_object_renderers
-from grr.gui.api_plugins import aff4 as api_aff4
 from grr.gui.api_plugins import artifact as api_artifact
 from grr.gui.api_plugins import client as api_client
 from grr.gui.api_plugins import config as api_config
@@ -54,17 +52,6 @@ class ArgsType(object):
     return func
 
 
-class AdditionalArgsTypes(object):
-  """Decorator that specific additional args type of an API method."""
-
-  def __init__(self, additional_args_types):
-    self.additional_args_types = additional_args_types
-
-  def __call__(self, func):
-    func.__additional_args_types__ = self.additional_args_types
-    return func
-
-
 class ResultType(object):
   """Decorator that specifies the result type of an API method."""
 
@@ -100,11 +87,10 @@ class RouterMethodMetadata(object):
 
   BINARY_STREAM_RESULT_TYPE = "BinaryStream"
 
-  def __init__(self, name, args_type=None, additional_args_types=None,
-               result_type=None, category=None, http_methods=None):
+  def __init__(self, name, args_type=None, result_type=None, category=None,
+               http_methods=None):
     self.name = name
     self.args_type = args_type
-    self.additional_args_types = additional_args_types
     self.result_type = result_type
     self.category = category
     self.http_methods = http_methods or set()
@@ -135,33 +121,11 @@ class ApiCallRouter(object):
         result[name] = RouterMethodMetadata(
             name=name,
             args_type=getattr(cls_method, "__args_type__", None),
-            additional_args_types=getattr(
-                cls_method, "__additional_args_types__", None),
             result_type=getattr(cls_method, "__result_type__", None),
             category=getattr(cls_method, "__category__", None),
             http_methods=getattr(cls_method, "__http_methods__", set()))
 
     return result
-
-  # AFF4 access methods.
-  # ===================
-  #
-  # NOTE: These are likely to be deprecated soon in favor
-  # of more narrow-scoped VFS access methods.
-  @Category("AFF4")
-  @ArgsType(api_aff4.ApiGetAff4ObjectArgs)
-  @AdditionalArgsTypes({
-      "RDFValueCollection":
-      api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs})
-  @Http("GET", "/api/aff4/<path:aff4_path>")
-  def GetAff4Object(self, args, token=None):
-    raise NotImplementedError()
-
-  @Category("AFF4")
-  @ArgsType(api_aff4.ApiGetAff4IndexArgs)
-  @Http("GET", "/api/aff4-index/<path:aff4_path>")
-  def GetAff4Index(self, args, token=None):
-    raise NotImplementedError()
 
   # Artifacts methods.
   # =================
@@ -265,6 +229,22 @@ class ApiCallRouter(object):
   def GetVfsRefreshOperationState(self, args, token=None):
     raise NotImplementedError()
 
+  @Category("Vfs")
+  @ArgsType(api_vfs.ApiGetVfsTimelineArgs)
+  @ResultType(api_vfs.ApiGetVfsTimelineResult)
+  @Http("GET",
+        "/api/clients/<client_id>/vfs-timeline/<path:file_path>")
+  def GetVfsTimeline(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("Vfs")
+  @ArgsType(api_vfs.ApiGetVfsTimelineAsCsvArgs)
+  @ResultBinaryStream()
+  @Http("GET",
+        "/api/clients/<client_id>/vfs-timeline-csv/<path:file_path>")
+  def GetVfsTimelineAsCsv(self, args, token=None):
+    raise NotImplementedError()
+
   # Clients labels methods.
   # ======================
   #
@@ -325,6 +305,7 @@ class ApiCallRouter(object):
 
   @Category("Flows")
   @ArgsType(api_flow.ApiListFlowResultsArgs)
+  @ResultType(api_flow.ApiListFlowResultsResult)
   @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/results")
   def ListFlowResults(self, args, token=None):
     raise NotImplementedError()
@@ -395,6 +376,12 @@ class ApiCallRouter(object):
   @ArgsType(api_cron.ApiCronJob)
   @Http("POST", "/api/cron-jobs")
   def CreateCronJob(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("Cron")
+  @ArgsType(api_cron.ApiDeleteCronJobArgs)
+  @Http("POST", "/api/cron-jobs/<cron_job_id>/actions/delete")
+  def DeleteCronJob(self, args, token=None):
     raise NotImplementedError()
 
   # Hunts methods.
@@ -554,12 +541,14 @@ class ApiCallRouter(object):
 
   @Category("User")
   @ArgsType(api_user.ApiListUserHuntApprovalsArgs)
+  @ResultType(api_user.ApiListUserHuntApprovalsResult)
   @Http("GET", "/api/users/me/approvals/hunt")
   def ListUserHuntApprovals(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
   @ArgsType(api_user.ApiListUserCronApprovalsArgs)
+  @ResultType(api_user.ApiListUserCronApprovalsResult)
   @Http("GET", "/api/users/me/approvals/cron")
   def ListUserCronApprovals(self, args, token=None):
     raise NotImplementedError()

@@ -1,18 +1,9 @@
 <div grr-force-refresh refresh-trigger="controller.fileListUrl">
 
   <div class="navbar navbar-default">
-    <div class="navbar-inner">
 
-      <div class="navbar-form pull-right">
-        <div class="input-group">
-          <input type="text" class="form-control file-search" placeholder="Search Files"
-                 ng-model="controller.filter" grr-bind-key="controller.updateFilter()">
-          <span class="input-group-btn">
-            <button class="btn btn-default" type="button" ng-click="controller.updateFilter()">
-              <i class="fa fa-filter"></i>
-            </button>
-          </span>
-        </div>
+    <div class="navbar-inner">
+      <div class="navbar-form pull-left">
 
         <button id="refresh-dir" class="btn btn-default"
                 title="Refresh this directory listing."
@@ -21,21 +12,56 @@
           <img src="/static/images/stock_refresh.png" class="toolbar_icon" />
         </button>
 
-        <grr-recursive-list-button client-id="clientId"
-                                   file-path="selectedFolderPath">
+        <grr-recursive-list-button client-id="controller.fileContext.clientId"
+                                   file-path="controller.fileContext.selectedFolderPath"
+                                   class="space-right">
         </grr-recursive-list-button>
 
-        <grr-r-we-owned-button></grr-r-we-owned-button>
+        <button name="downloadTimeline" class="btn btn-default space-right"
+                title="Download the timeline for this directory."
+                ng-click="controller.downloadTimeline()">
+          <i class="fa fa-history"></i>
+          <i class="fa fa-arrow-circle-down annotation"></i>
+        </button>
+
+        <div class="input-group large">
+          <input type="text" class="form-control file-search" placeholder="Filter Items"
+                 ng-model="controller.filterEditedValue" grr-bind-key="controller.updateFilter()">
+          <span class="input-group-btn">
+            <button class="btn btn-default" type="button" ng-click="controller.updateFilter()">
+              <i class="fa fa-filter"></i>
+            </button>
+          </span>
+        </div>
+
       </div>
 
-      <grr-breadcrumbs path="selectedFolderPath"
-                       on-selected="controller.onBreadCrumbSelected(path)">
-      </grr-breadcrumbs>
+      <div class="navbar-form pull-right">
+
+        <grr-r-we-owned-button class="space-right"></grr-r-we-owned-button>
+
+        <div class="btn-group" data-toggle="buttons">
+          <label class="btn btn-default active"
+                 ng-click="controller.showFileList = true">
+            <input type="radio" name="show-client-details" checked>
+            <i class="fa fa-list"></i> File list
+          </label>
+          <label class="btn btn-default"
+                 ng-click="controller.showFileList = false">
+            <input type="radio" name="show-client-details">
+            <i class="fa fa-history"></i> Timeline
+          </label>
+        </div>
+      </div>
 
     </div>
+
   </div>
 
-  <table class="table table-striped table-condensed table-hover table-bordered full-width file-list">
+  <grr-breadcrumbs path="controller.fileContext.selectedFolderPath"></grr-breadcrumbs>
+
+  <table class="table table-striped table-condensed table-hover table-bordered full-width file-list"
+         ng-if="controller.showFileList">
 
     <thead>
       <tr>
@@ -50,13 +76,13 @@
     <!-- We need this ng-if to make sure fileListUrl is stable when ApiItemsProvider is called. -->
     <tbody ng-if="controller.fileListUrl">
       <tr grr-infinite-table
+          filter-value="controller.filterValue"
           trigger-update="controller.triggerUpdate"
           grr-api-items-provider
-          query-params="{filter: controller.filter}"
           url="controller.fileListUrl"
           ng-click="controller.selectFile(item)"
           ng-dblclick="controller.selectFolder(item)"
-          ng-class="{'row-selected': item.value.path.value === selectedFilePath}">
+          ng-class="{'row-selected': item.value.path.value === controller.fileContext.selectedFilePath}">
         <td>
           <img class="grr-icon directory" src="/static/images/directory.png"
                alt="Directory" title="Directory" ng-if="item.value.is_directory.value">
@@ -71,5 +97,9 @@
     </tbody>
 
   </table>
+
+  <grr-file-timeline ng-if="!controller.showFileList"
+                     filter-value="controller.filterValue">
+  </grr-file-timeline>
 
 </div>

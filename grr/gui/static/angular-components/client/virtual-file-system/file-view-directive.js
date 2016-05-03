@@ -89,6 +89,9 @@ grrUi.client.virtualFileSystem.fileViewDirective.FileViewController = function(
   /** @type {string} */
   this.selectedFilePath;
 
+  /** @type {number} */
+  this.fileVersion;
+
   /** @type {string} */
   this.clientId;
 

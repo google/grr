@@ -96,12 +96,6 @@ message SampleGetHandlerArgs {
   optional string foo = 2;
 }
 
-message SampleGetHandlerWithAdditionalArgsArgs {
-  optional string path = 1;
-  optional string foo = 2;
-  repeated ApiCallAdditionalArgs additional_args = 3;
-}
-
 message ApiRDFProtoStructRendererSample {
   optional uint64 index = 1 [(sem_type) = {
       description: "Sample index."
@@ -114,4 +108,3 @@ message ApiRDFProtoStructRendererSample {
 message SampleDeleteHandlerArgs {
   optional string resource_id = 1;
 }
-

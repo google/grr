@@ -38,7 +38,7 @@ describe('confirmation dialog directive', function() {
     var title = 'Test Title';
     var message = 'Test Content Message';
     var element = render(title, message);
-    expect(element.find('.modal-header h4').text().trim()).toBe(title);
+    expect(element.find('.modal-header h3').text().trim()).toBe(title);
     expect(element.find('.modal-body').text().trim()).toContain(message);
   });
 

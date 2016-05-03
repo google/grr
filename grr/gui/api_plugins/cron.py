@@ -37,52 +37,51 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
 
+  def _GetCronJobState(self, cron_job):
+    """Returns state (as ApiCronJob.State) of an AFF4 cron job object."""
+    if cron_job.Get(cron_job.Schema.DISABLED):
+      return ApiCronJob.State.DISABLED
+    else:
+      return ApiCronJob.State.ENABLED
 
-def GetCronJobState(cron_job):
-  """Returns state (as ApiCronJob.State) of an AFF4 cron job object."""
-  if cron_job.Get(cron_job.Schema.DISABLED):
-    return ApiCronJob.State.DISABLED
-  else:
-    return ApiCronJob.State.ENABLED
+  def _IsCronJobFailing(self, cron_job):
+    """Returns True if there are more than 1 failures during last 4 runs."""
+    statuses = itertools.islice(
+        cron_job.GetValuesForAttribute(cron_job.Schema.LAST_RUN_STATUS), 0, 4)
 
+    failures_count = 0
+    for status in statuses:
+      if status.status != grr_rdf.CronJobRunStatus.Status.OK:
+        failures_count += 1
 
-def IsCronJobFailing(cron_job):
-  """Returns True if there are more than 1 failures during last 4 runs."""
-  statuses = itertools.islice(
-      cron_job.GetValuesForAttribute(cron_job.Schema.LAST_RUN_STATUS), 0, 4)
+    return failures_count >= 2
 
-  failures_count = 0
-  for status in statuses:
-    if status.status != grr_rdf.CronJobRunStatus.Status.OK:
-      failures_count += 1
+  def InitFromAff4Object(self, cron_job):
+    cron_args = cron_job.Get(cron_job.Schema.CRON_ARGS)
 
-  return failures_count >= 2
+    api_cron_job = ApiCronJob(urn=cron_job.urn,
+                              description=cron_args.description,
+                              flow_name=cron_args.flow_runner_args.flow_name,
+                              flow_runner_args=cron_args.flow_runner_args,
+                              periodicity=cron_args.periodicity,
+                              lifetime=cron_args.lifetime,
+                              allow_overruns=cron_args.allow_overruns,
+                              state=self._GetCronJobState(cron_job),
+                              last_run_time=cron_job.Get(
+                                  cron_job.Schema.LAST_RUN_TIME))
 
+    if cron_job.age_policy == aff4.ALL_TIMES:
+      api_cron_job.is_failing = self._IsCronJobFailing(cron_job)
 
-def CronJobToApiCronJob(cron_job):
-  """Converts AFF4 CronJob to api-friendly ApiCronJob."""
-  cron_args = cron_job.Get(cron_job.Schema.CRON_ARGS)
+    try:
+      api_cron_job.flow_args = cron_args.flow_args
+    except ValueError:
+      # If args class name has changed, ValueError will be raised. Handling
+      # this gracefully - we should still try to display some useful info
+      # about the flow.
+      pass
 
-  api_cron_job = ApiCronJob(urn=cron_job.urn,
-                            description=cron_args.description,
-                            flow_name=cron_args.flow_runner_args.flow_name,
-                            flow_runner_args=cron_args.flow_runner_args,
-                            periodicity=cron_args.periodicity,
-                            lifetime=cron_args.lifetime,
-                            allow_overruns=cron_args.allow_overruns,
-                            state=GetCronJobState(cron_job),
-                            last_run_time=cron_job.Get(
-                                cron_job.Schema.LAST_RUN_TIME),
-                            is_failing=IsCronJobFailing(cron_job))
-  try:
-    api_cron_job.flow_args = cron_args.flow_args
-  except ValueError:
-    # If args class name has changed, ValueError will be raised. Handling
-    # this gracefully - we should still try to display some useful info
-    # about the flow.
-    pass
-
-  return api_cron_job
+    return api_cron_job
 
 
 class ApiListCronJobsArgs(rdf_structs.RDFProtoStruct):
@@ -106,7 +105,8 @@ class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
     cron_jobs = aff4.FACTORY.MultiOpen(
         cron_jobs_urns, aff4_type="CronJob", token=token, age=aff4.ALL_TIMES)
 
-    items = [CronJobToApiCronJob(cron_job) for cron_job in cron_jobs]
+    items = [ApiCronJob().InitFromAff4Object(cron_job)
+             for cron_job in cron_jobs]
     items.sort(key=lambda item: item.urn)
     result = dict(offset=args.offset,
                   count=len(items),
@@ -148,6 +148,22 @@ class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
 
     fd = aff4.FACTORY.Open(urn, aff4_type="CronJob", token=token,
                            age=aff4.ALL_TIMES)
-    api_cron_job = CronJobToApiCronJob(fd)
+    api_cron_job = ApiCronJob().InitFromAff4Object(fd)
 
     return api_value_renderers.RenderValue(api_cron_job)
+
+
+class ApiDeleteCronJobArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiDeleteCronJobArgs
+
+
+class ApiDeleteCronJobHandler(api_call_handler_base.ApiCallHandler):
+  """Deletes a given cron job."""
+
+  category = CATEGORY
+  args_type = ApiDeleteCronJobArgs
+
+  def Handle(self, args, token=None):
+    cron_job_urn = aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(
+        args.cron_job_id)
+    aff4_cronjobs.CRON_MANAGER.DeleteJob(cron_job_urn, token=token)

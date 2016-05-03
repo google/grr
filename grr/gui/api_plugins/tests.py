@@ -4,7 +4,6 @@
 
 
 # These need to register plugins so, pylint: disable=unused-import
-from grr.gui.api_plugins import aff4_test
 from grr.gui.api_plugins import artifact_test
 from grr.gui.api_plugins import client_test
 from grr.gui.api_plugins import config_test

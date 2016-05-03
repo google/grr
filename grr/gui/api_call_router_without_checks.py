@@ -5,7 +5,6 @@
 
 from grr.gui import api_call_router
 
-from grr.gui.api_plugins import aff4 as api_aff4
 from grr.gui.api_plugins import artifact as api_artifact
 from grr.gui.api_plugins import client as api_client
 from grr.gui.api_plugins import config as api_config
@@ -22,17 +21,6 @@ from grr.gui.api_plugins import vfs as api_vfs
 
 class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   """Router that does no ACL checks whatsoever."""
-
-  # AFF4 access methods.
-  # ===================
-  #
-  # NOTE: These are likely to be deprecated soon in favor
-  # of more narrow-scoped VFS access methods.
-  def GetAff4Object(self, args, token=None):
-    return api_aff4.ApiGetAff4ObjectHandler()
-
-  def GetAff4Index(self, args, token=None):
-    return api_aff4.ApiGetAff4IndexHandler()
 
   # Artifacts methods.
   # =================
@@ -82,6 +70,12 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
 
   def GetVfsRefreshOperationState(self, args, token=None):
     return api_vfs.GetVfsRefreshOperationStateHandler()
+
+  def GetVfsTimeline(self, args, token=None):
+    return api_vfs.ApiGetVfsTimelineHandler()
+
+  def GetVfsTimelineAsCsv(self, args, token=None):
+    return api_vfs.ApiGetVfsTimelineAsCsvHandler()
 
   # Clients labels methods.
   # ======================
@@ -149,6 +143,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
 
   def CreateCronJob(self, args, token=None):
     return api_cron.ApiCreateCronJobHandler()
+
+  def DeleteCronJob(self, args, token=None):
+    return api_cron.ApiDeleteCronJobHandler()
 
   # Hunts methods.
   # =============

@@ -223,11 +223,6 @@ config_lib.DEFINE_integer("StatsStore.ttl", default=60 * 60 * 24 * 3,
                           help="Maximum lifetime (in seconds) of data in the "
                           "stats store. Default is three days.")
 
-config_lib.DEFINE_list("ConfigIncludes", [],
-                       "List of additional config files to include. Files are "
-                       "processed recursively depth-first, later values "
-                       "override earlier ones.")
-
 config_lib.DEFINE_bool("AdminUI.allow_hunt_results_delete", default=False,
                        help="If True, hunts with results can be deleted "
                        "when the delete hunt button is used. Enable with "

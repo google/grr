@@ -23,7 +23,10 @@ grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewController = fu
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
-  /** @type {string} */
+  /** @type {!grrUi.client.virtualFileSystem.fileContextDirective.FileContextController} */
+  this.fileContext;
+
+  /** @type {?string} */
   this.fileContent;
 
   /** @type {string} */
@@ -38,14 +41,13 @@ grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewController = fu
   /** @private {number} */
   this.chunkSize_ = 10000;
 
-  this.scope_.$watchGroup(['clientId', 'filePath', 'fileVersion'],
-      this.onDirectiveArgumentsChange_.bind(this));
-  this.scope_.$watch(function() {
-    return this.encoding;
-  }.bind(this), this.onEncodingChange_.bind(this));
-  this.scope_.$watch(function() {
-    return this.page;
-  }.bind(this), this.onPageChange_.bind(this));
+  this.scope_.$watchGroup(['controller.fileContext.clientId',
+                           'controller.fileContext.selectedFilePath',
+                           'controller.fileContext.selectedFileVersion'],
+      this.onContextChange_.bind(this));
+
+  this.scope_.$watch('controller.encoding', this.onEncodingChange_.bind(this));
+  this.scope_.$watch('controller.page', this.onPageChange_.bind(this));
 };
 
 var FileTextViewController =
@@ -57,9 +59,9 @@ var FileTextViewController =
  *
  * @private
  */
-FileTextViewController.prototype.onDirectiveArgumentsChange_ = function() {
-  var clientId = this.scope_['clientId'];
-  var filePath = this.scope_['filePath'];
+FileTextViewController.prototype.onContextChange_ = function() {
+  var clientId = this.fileContext['clientId'];
+  var filePath = this.fileContext['selectedFilePath'];
 
   if (angular.isDefined(clientId) && angular.isDefined(filePath)) {
     this.fetchText_();
@@ -96,9 +98,9 @@ FileTextViewController.prototype.onEncodingChange_ = function(encoding, oldEncod
  * @private
  */
 FileTextViewController.prototype.fetchText_ = function() {
-  var clientId = this.scope_['clientId'];
-  var filePath = this.scope_['filePath'];
-  var fileVersion = this.scope_['fileVersion'];
+  var clientId = this.fileContext['clientId'];
+  var filePath = this.fileContext['selectedFilePath'];
+  var fileVersion = this.fileContext['selectedFileVersion'];
   var offset = (this.page - 1) * this.chunkSize_;
 
   var url = 'clients/' + clientId + '/vfs-text/' + filePath;
@@ -115,6 +117,8 @@ FileTextViewController.prototype.fetchText_ = function() {
 
     var total_size = response.data['total_size'];
     this.pageCount = Math.ceil(total_size / this.chunkSize_);
+  }.bind(this), function() {
+    this.fileContent = null;
   }.bind(this));
 };
 
@@ -126,14 +130,14 @@ FileTextViewController.prototype.fetchText_ = function() {
 grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewDirective = function() {
   return {
     restrict: 'E',
-    scope: {
-      clientId: '=',
-      filePath: '=',
-      fileVersion: '='
-    },
+    scope: {},
+    require: '^grrFileContext',
     templateUrl: '/static/angular-components/client/virtual-file-system/file-text-view.html',
     controller: FileTextViewController,
-    controllerAs: 'controller'
+    controllerAs: 'controller',
+    link: function(scope, element, attrs, fileContextController) {
+      scope.controller.fileContext = fileContextController;
+    }
   };
 };
 

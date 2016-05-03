@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """API handler for rendering API docs."""
 
-from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_handler_base
 
 
@@ -54,10 +53,6 @@ class ApiGetDocsHandler(api_call_handler_base.ApiCallHandler):
     return result
 
   def Render(self, unused_args, token=None):
-    object_renderers = (api_aff4_object_renderers.ApiAFF4ObjectRenderer.
-                        classes.values())
-
     return dict(
-        api_call_handlers=self.RenderApiCallHandlers(),
-        api_object_renderers=self.RenderApiObjectRenderers(object_renderers)
+        api_call_handlers=self.RenderApiCallHandlers()
         )

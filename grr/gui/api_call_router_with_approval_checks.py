@@ -33,7 +33,7 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     self.legacy_manager.CheckHuntAccess(token.RealUID(), hunt_urn)
 
   def CheckCronJobAccess(self, cron_job_id, token=None):
-    cron_job_urn = cronjobs.CRON_JOBS_PATH.Add(cron_job_id)
+    cron_job_urn = cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(cron_job_id)
     self.legacy_manager.CheckCronJobAccess(token.RealUID(), cron_job_urn)
 
   def CheckIfCanStartClientFlow(self, flow_name, token=None):
@@ -54,23 +54,6 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     if not delegate:
       delegate = api_call_router_without_checks.ApiCallRouterWithoutChecks()
     self.delegate = delegate
-
-  # AFF4 access methods.
-  # ===================
-  #
-  # NOTE: These are likely to be deprecated soon in favor
-  # of more narrow-scoped VFS access methods.
-  def GetAff4Object(self, args, token=None):
-    self.legacy_manager.CheckDataStoreAccess(
-        token.RealUID(), [args.aff4_path], "r")
-
-    return self.delegate.GetAff4Object(args, token=token)
-
-  def GetAff4Index(self, args, token=None):
-    self.legacy_manager.CheckDataStoreAccess(
-        token.RealUID(), [args.aff4_path], "q")
-
-    return self.delegate.GetAff4Index(args, token=token)
 
   # Artifacts methods.
   # =================
@@ -147,6 +130,16 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     # operations started by him- or herself.
 
     return self.delegate.GetVfsRefreshOperationState(args, token=token)
+
+  def GetVfsTimeline(self, args, token=None):
+    self.CheckClientAccess(args.client_id, token=token)
+
+    return self.delegate.GetVfsTimeline(args, token=token)
+
+  def GetVfsTimelineAsCsv(self, args, token=None):
+    self.CheckClientAccess(args.client_id, token=token)
+
+    return self.delegate.GetVfsTimelineAsCsv(args, token=token)
 
   # Clients labels methods.
   # ======================
@@ -252,6 +245,11 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     # Everybody can create a cron job.
 
     return self.delegate.CreateCronJob(args, token=token)
+
+  def DeleteCronJob(self, args, token=None):
+    self.CheckCronJobAccess(args.cron_job_id, token=token)
+
+    return self.delegate.DeleteCronJob(args, token=token)
 
   # Hunts methods.
   # =============

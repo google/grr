@@ -3,11 +3,15 @@
 goog.provide('grrUi.client.virtualFileSystem.fileTableDirective.FileTableController');
 goog.provide('grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective');
 goog.require('grrUi.client.virtualFileSystem.events');
+goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
 
 goog.scope(function() {
 
 var REFRESH_FOLDER_EVENT =
     grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT;
+
+var ERROR_EVENT_NAME =
+    grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective.error_event_name;
 
 var OPERATION_POLL_INTERVAL = 1000;
 
@@ -36,6 +40,9 @@ grrUi.client.virtualFileSystem.fileTableDirective.FileTableController = function
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
+  /** @type {boolean} */
+  this.showFileList = true;
+
   /** @type {string} */
   this.fileListUrl;
 
@@ -45,8 +52,23 @@ grrUi.client.virtualFileSystem.fileTableDirective.FileTableController = function
   /** @private {!angular.$q.Promise} */
   this.refreshOperationInterval_;
 
-  /** @type {string} */
-  this.filter;
+  /** @private {string} */
+  this.lastSelectedFolderPath_;
+
+  /**
+   * Used for UI binding with a filter edit field.
+   * @export {string}
+   */
+  this.filterEditedValue = '';
+
+  /**
+   * Currently used filter value.
+   * @export {string}
+   */
+  this.filterValue = '';
+
+  /** @type {!grrUi.client.virtualFileSystem.fileContextDirective.FileContextController} */
+  this.fileContext;
 
   /**
    * This variable is set to a function by the infinite-table-directive
@@ -56,11 +78,12 @@ grrUi.client.virtualFileSystem.fileTableDirective.FileTableController = function
    */
   this.triggerUpdate;
 
-  this.scope_.$watchGroup(['clientId', 'selectedFolderPath'],
-      this.onDirectiveArgumentsChange_.bind(this));
-
   this.scope_.$on(REFRESH_FOLDER_EVENT,
       this.onFolderRefreshEvent_.bind(this));
+
+  this.scope_.$watchGroup(['controller.fileContext.clientId',
+                           'controller.fileContext.selectedFolderPath'],
+      this.onContextChange_.bind(this));
 };
 
 var FileTableController =
@@ -72,12 +95,17 @@ var FileTableController =
  *
  * @private
  */
-FileTableController.prototype.onDirectiveArgumentsChange_ = function() {
-  var selectedFolderPath = this.scope_['selectedFolderPath'];
-  var clientId = this.scope_['clientId'];
+FileTableController.prototype.onContextChange_ = function() {
+  var clientId = this.fileContext['clientId'];
+  var selectedFolderPath = this.fileContext['selectedFolderPath'];
 
   this.filter = '';
   this.fileListUrl = 'clients/' + clientId + '/vfs-index/' + selectedFolderPath;
+
+  if (!this.showFileList && this.lastSelectedFolderPath_ !== selectedFolderPath) {
+    this.showFileList = true;
+  }
+  this.lastSelectedFolderPath_ = selectedFolderPath;
 
   // Required to trigger an update even if the selectedFolderPath changes to the same value.
   if (this.triggerUpdate) {
@@ -97,35 +125,24 @@ FileTableController.prototype.onFolderRefreshEvent_ = function() {
 };
 
 /**
- * Is triggered whenever an breadcrumb item was selected.
- *
- * @param {string} path
- * @export
- */
-FileTableController.prototype.onBreadCrumbSelected = function(path) {
-  this.scope_['selectedFolderPath'] = path;
-  this.scope_['selectedFilePath'] = path;
-};
-
-/**
- * Selects a file by raising a FILE_SELECTION_CHANGED event.
+ * Selects a file by setting it as selected in the context.
  *
  * @param {Object} file
  * @export
  */
 FileTableController.prototype.selectFile = function(file) {
-  this.scope_['selectedFilePath'] = file['value']['path']['value'];
+  this.fileContext.selectFile(file['value']['path']['value']);
 };
 
 /**
- * Selects a folder by raising a FOLDER_SELECTION_CHANGED event.
+ * Selects a folder by setting it as selected in the context.
  *
  * @param {Object} file
  * @export
  */
 FileTableController.prototype.selectFolder = function(file) {
   if (file && file['value']['is_directory']['value']) {
-    this.scope_['selectedFolderPath'] = file['value']['path']['value'];
+    this.fileContext.selectFolder(file['value']['path']['value']);
   }
 };
 
@@ -135,8 +152,8 @@ FileTableController.prototype.selectFolder = function(file) {
  * @export
  */
 FileTableController.prototype.refreshDirectory = function() {
-  var clientId = this.scope_['clientId'];
-  var selectedFolderPath = this.scope_['selectedFolderPath'];
+  var clientId = this.fileContext['clientId'];
+  var selectedFolderPath = this.fileContext['selectedFolderPath'];
   var url = 'clients/' + clientId + '/vfs-refresh-operations';
 
   var refreshOperation = {
@@ -174,8 +191,8 @@ FileTableController.prototype.monitorRefreshOperation_ = function() {
  * @private
  */
 FileTableController.prototype.pollRefreshOperationState_ = function() {
-  var clientId = this.scope_['clientId'];
-  var selectedFolderPath = this.scope_['selectedFolderPath'];
+  var clientId = this.fileContext['clientId'];
+  var selectedFolderPath = this.fileContext['selectedFolderPath'];
   var url = 'clients/' + clientId + '/vfs-refresh-operations/' + this.refreshOperationId;
 
   this.grrApiService_.get(url).then(
@@ -200,7 +217,30 @@ FileTableController.prototype.pollRefreshOperationState_ = function() {
  * @export
  */
 FileTableController.prototype.updateFilter = function() {
-  this.triggerUpdate();
+  this.filterValue = this.filterEditedValue;
+};
+
+/**
+ * Downloads the timeline for the current directory.
+ *
+ * @export
+ */
+FileTableController.prototype.downloadTimeline = function() {
+  var clientId = this.fileContext['clientId'];
+  var selectedFolderPath = this.fileContext['selectedFolderPath'];
+
+  var url = 'clients/' + clientId + '/vfs-timeline-csv/' + selectedFolderPath;
+  this.grrApiService_.downloadFile(url).then(
+      function success() {}.bind(this),
+      function failure(response) {
+        if (angular.isUndefined(response.status)) {
+          this.rootScope_.$broadcast(
+              ERROR_EVENT_NAME, {
+                message: 'Couldn\'t export the timeline.'
+              });
+        }
+      }.bind(this)
+  );
 };
 
 
@@ -211,14 +251,14 @@ FileTableController.prototype.updateFilter = function() {
 grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective = function() {
   return {
     restrict: 'E',
-    scope: {
-      clientId: '=',
-      selectedFolderPath: '=',
-      selectedFilePath: '='
-    },
+    scope: {},
+    require: '^grrFileContext',
     templateUrl: '/static/angular-components/client/virtual-file-system/file-table.html',
     controller: FileTableController,
-    controllerAs: 'controller'
+    controllerAs: 'controller',
+    link: function(scope, element, attrs, fileContextController) {
+      scope.controller.fileContext = fileContextController;
+    }
   };
 };
 

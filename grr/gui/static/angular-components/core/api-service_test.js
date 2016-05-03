@@ -1,5 +1,6 @@
 'use strict';
 
+goog.require('grrUi.core.apiService.stripTypeInfo');
 goog.require('grrUi.core.module');
 
 var grr = grr || {};
@@ -23,6 +24,8 @@ describe('API service', function() {
   });
 
   describe('stripTypeInfo() method', function() {
+    var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
+
     it('converts richly typed primitive into a primitive value', function() {
       var richData = {
         'age': 0,
@@ -34,7 +37,7 @@ describe('API service', function() {
         'value': 'label2'
       };
 
-      expect(grrApiService.stripTypeInfo(richData)).toEqual('label2');
+      expect(stripTypeInfo(richData)).toEqual('label2');
     });
 
     it('converts typed structure into a primitive dictionary', function() {
@@ -62,7 +65,7 @@ describe('API service', function() {
         }
       };
 
-      expect(grrApiService.stripTypeInfo(richData)).toEqual({'name': 'label2'});
+      expect(stripTypeInfo(richData)).toEqual({'name': 'label2'});
     });
 
     it('converts richly typed list into list of primitives', function() {
@@ -88,8 +91,8 @@ describe('API service', function() {
       ];
 
 
-      expect(grrApiService.stripTypeInfo(richData)).toEqual(
-          ['label2', 'label3']);
+      expect(stripTypeInfo(richData)).toEqual(
+        ['label2', 'label3']);
     });
 
     it('converts list structure field into list of primitives', function() {
@@ -129,7 +132,7 @@ describe('API service', function() {
         }
       };
 
-      expect(grrApiService.stripTypeInfo(richData)).toEqual({
+      expect(stripTypeInfo(richData)).toEqual({
         'name': ['label2', 'label3']
       });
     });

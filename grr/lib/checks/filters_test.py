@@ -360,18 +360,21 @@ class FilterRegistryTests(test_lib.GRRBaseTest):
     filters.Filter.filters = {}
 
     filt = filters.Filter.GetFilter("Filter")
+
     # It should be the right type of filter.
     # And should be in the registry already.
     self.assertIsInstance(filt, filters.Filter)
-    self.assertEqual(filt, filters.Filter.GetFilter("Filter"))
+
+    # The registry must never give the same object to multiple callers.
+    self.assertNotEqual(filt, filters.Filter.GetFilter("Filter"))
 
     filt = filters.Filter.GetFilter("ObjectFilter")
     self.assertIsInstance(filt, filters.ObjectFilter)
-    self.assertEqual(filt, filters.Filter.GetFilter("ObjectFilter"))
+    self.assertNotEqual(filt, filters.Filter.GetFilter("ObjectFilter"))
 
     filt = filters.Filter.GetFilter("RDFFilter")
     self.assertIsInstance(filt, filters.RDFFilter)
-    self.assertEqual(filt, filters.Filter.GetFilter("RDFFilter"))
+    self.assertNotEqual(filt, filters.Filter.GetFilter("RDFFilter"))
 
     filters.Filter.filters = {}
     self.assertRaises(filters.DefinitionError, filters.Filter.GetFilter, "???")

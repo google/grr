@@ -31,7 +31,8 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 # Properties to remove from results sent to the server.
 # These properties are included with nearly every WMI object and use space.
 IGNORE_PROPS = ["CSCreationClassName", "CreationClassName", "OSName",
-                "OSCreationClassName", "WindowsVersion", "CSName"]
+                "OSCreationClassName", "WindowsVersion", "CSName",
+                "__NAMESPACE", "__SERVER", "__PATH"]
 
 
 def UnicodeFromCodePage(string):
@@ -193,7 +194,9 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
   try:
     for result in query_results:
       response = rdf_protodict.Dict()
-      for prop in result.Properties_:
+      properties = list(result.Properties_) + list(result.SystemProperties_)
+
+      for prop in properties:
         if prop.Name not in IGNORE_PROPS:
           # Protodict can handle most of the types we care about, but we may
           # get some objects that we don't know how to serialize, so we tell the

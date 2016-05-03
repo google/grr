@@ -23,6 +23,9 @@ grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewController = func
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
+  /** @type {!grrUi.client.virtualFileSystem.fileContextDirective.FileContextController} */
+  this.fileContext;
+
   /** @type {Array} */
   this.hexDataRows;
 
@@ -44,11 +47,12 @@ grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewController = func
   /** @private {number} */
   this.chunkSize_ = (this.rows_) * this.columns_;
 
-  this.scope_.$watchGroup(['clientId', 'filePath', 'fileVersion'],
-      this.onDirectiveArgumentsChange_.bind(this));
-  this.scope_.$watch(function() {
-    return this.page;
-  }.bind(this), this.onPageChange_.bind(this));
+  this.scope_.$watchGroup(['controller.fileContext.clientId',
+                           'controller.fileContext.selectedFilePath',
+                           'controller.fileContext.selectedFileVersion'],
+      this.onContextChange_.bind(this));
+
+  this.scope_.$watch('controller.page', this.onPageChange_.bind(this));
 };
 
 var FileHexViewController =
@@ -60,9 +64,9 @@ var FileHexViewController =
  *
  * @private
  */
-FileHexViewController.prototype.onDirectiveArgumentsChange_ = function() {
-  var clientId = this.scope_['clientId'];
-  var filePath = this.scope_['filePath'];
+FileHexViewController.prototype.onContextChange_ = function() {
+  var clientId = this.fileContext['clientId'];
+  var filePath = this.fileContext['selectedFilePath'];
 
   if (angular.isDefined(clientId) && angular.isDefined(filePath)) {
     this.fetchText_();
@@ -88,9 +92,9 @@ FileHexViewController.prototype.onPageChange_ = function(page, oldPage) {
  * @private
  */
 FileHexViewController.prototype.fetchText_ = function() {
-  var clientId = this.scope_['clientId'];
-  var filePath = this.scope_['filePath'];
-  var fileVersion = this.scope_['fileVersion'];
+  var clientId = this.fileContext['clientId'];
+  var filePath = this.fileContext['selectedFilePath'];
+  var fileVersion = this.fileContext['selectedFileVersion'];
 
   var url = 'clients/' + clientId + '/vfs-blob/' + filePath;
   var headParams = {};
@@ -112,11 +116,14 @@ FileHexViewController.prototype.fetchText_ = function() {
     return this.grrApiService_.get(url, params);
   }.bind(this)).then(function(response) {
     this.parseFileContentToHexRepresentation_(response.data);
+  }.bind(this), function() {
+    this.hexDataRows = null;
   }.bind(this));
 };
 
 /**
  * Parses the string response to a representation better suited for display.
+ *
  * @param {string} fileContent The file content as string.
  * @private
  */
@@ -138,19 +145,20 @@ FileHexViewController.prototype.parseFileContentToHexRepresentation_ = function(
 
 /**
  * FileHexViewDirective definition.
+ *
  * @return {angular.Directive} Directive definition object.
  */
 grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewDirective = function() {
   return {
     restrict: 'E',
-    scope: {
-      clientId: '=',
-      filePath: '=',
-      fileVersion: '='
-    },
+    scope: {},
+    require: '^grrFileContext',
     templateUrl: '/static/angular-components/client/virtual-file-system/file-hex-view.html',
     controller: FileHexViewController,
-    controllerAs: 'controller'
+    controllerAs: 'controller',
+    link: function(scope, element, attrs, fileContextController) {
+      scope.controller.fileContext = fileContextController;
+    }
   };
 };
 

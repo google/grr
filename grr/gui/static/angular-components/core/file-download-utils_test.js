@@ -58,30 +58,30 @@ describe('fileDownloadUtils', function() {
           'aff4:/foo/bar');
     });
 
-    it('extracts urn recursively from GrrMessage', function() {
-      var grrMessage = {
+    it('extracts urn recursively from ApiFlowResult', function() {
+      var apiFlowResult = {
         value: {
           payload: angular.copy(statEntry)
         },
-        type: 'GrrMessage'
+        type: 'ApiFlowResult'
       };
-      expect(getFileUrnFromValue(grrMessage)).toBe('aff4:/foo/bar');
+      expect(getFileUrnFromValue(apiFlowResult)).toBe('aff4:/foo/bar');
 
-      grrMessage = {
+      apiFlowResult = {
         value: {
           payload: angular.copy(fileFinderResult)
         },
-        type: 'GrrMessage'
+        type: 'ApiFlowResult'
       };
-      expect(getFileUrnFromValue(grrMessage)).toBe('aff4:/foo/bar');
+      expect(getFileUrnFromValue(apiFlowResult)).toBe('aff4:/foo/bar');
 
-      grrMessage = {
+      apiFlowResult = {
         value: {
           payload: angular.copy(artifactFilesDownloaderResult)
         },
-        type: 'GrrMessage'
+        type: 'ApiFlowResult'
       };
-      expect(getFileUrnFromValue(grrMessage)).toBe('aff4:/foo/bar');
+      expect(getFileUrnFromValue(apiFlowResult)).toBe('aff4:/foo/bar');
     });
 
     it('extracts urn recursively from ApiHuntResult', function() {
@@ -114,14 +114,14 @@ describe('fileDownloadUtils', function() {
       expect(getFileUrnFromValue(rdfstring)).toBe(null);
     });
 
-    it('returns null for other types wrapped in GrrMessage', function() {
-      var grrMessage = {
+    it('returns null for other types wrapped in ApiFlowResult', function() {
+      var apiFlowResult = {
         value: {
           payload: angular.copy(rdfstring)
         },
-        type: 'GrrMessage'
+        type: 'ApiFlowResult'
       };
-      expect(getFileUrnFromValue(grrMessage)).toBe(null);
+      expect(getFileUrnFromValue(apiFlowResult)).toBe(null);
     });
 
     it('returns null for other types wrapped in ApiHuntResult', function() {
@@ -194,16 +194,16 @@ describe('fileDownloadUtils', function() {
       });
     });
 
-    it('replaces aff4path recursively in GrrMessage', function() {
-      var grrMessage = {
+    it('replaces aff4path recursively in ApiFlowResult', function() {
+      var apiFlowResult = {
         value: {
           payload: angular.copy(statEntry)
         },
-        type: 'GrrMessage'
+        type: 'ApiFlowResult'
       };
-      expect(makeValueDownloadable(grrMessage, downloadUrl, downloadParams))
+      expect(makeValueDownloadable(apiFlowResult, downloadUrl, downloadParams))
           .toBe(true);
-      expect(grrMessage.value.payload.value.aff4path).toEqual({
+      expect(apiFlowResult.value.payload.value.aff4path).toEqual({
         downloadUrl: downloadUrl,
         downloadParams: downloadParams,
         originalValue: statEntry.value.aff4path,
@@ -234,14 +234,14 @@ describe('fileDownloadUtils', function() {
           .toBe(false);
     });
 
-    it('does nothing for other types wrapped in GrrMessage', function() {
-      var grrMessage = {
+    it('does nothing for other types wrapped in ApiFlowResult', function() {
+      var apiFlowResult = {
         value: {
           payload: angular.copy(rdfstring)
         },
-        type: 'GrrMessage'
+        type: 'ApiFlowResult'
       };
-      expect(makeValueDownloadable(grrMessage, downloadUrl, downloadParams))
+      expect(makeValueDownloadable(apiFlowResult, downloadUrl, downloadParams))
           .toBe(false);
     });
 

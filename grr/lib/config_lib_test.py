@@ -384,9 +384,8 @@ interpolated = %(%(Section1.foobar)|lower)Y
     self.assertEqual(conf["Section3.interpolated"], "xY")
 
   def testConstants(self):
-    """Test that we can add options."""
+    """Test that we can not modify constant values during runtime."""
     conf = config_lib.GrrConfigManager()
-    conf.initialized = False
 
     conf.DEFINE_constant_string("Section1.const", "test", "A test string.")
 
@@ -398,13 +397,15 @@ interpolated = %(%(Section1.foobar)|lower)Y
 const = New string
 """
 
-    # Modification of constant values is an error.
+    # Modifying a constant value in the config file is OK.
+    conf.Initialize(data=data)
+
+    # Once the config file is loaded and initialized, modification of constant
+    # values is an error.
     self.assertRaises(config_lib.ConstModificationError, conf.Set,
                       "Section1.const", "New string")
     self.assertRaises(config_lib.ConstModificationError, conf.SetRaw,
                       "Section1.const", "New string")
-    self.assertRaises(config_lib.ConstModificationError, conf.Initialize,
-                      data=data)
 
   @flags.FlagOverrider(disallow_missing_config_definitions=True)
   def testBadConfigRaises(self):
@@ -570,6 +571,7 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     conf.DEFINE_bool("SecondaryFileIncluded", False, "A string")
     conf.DEFINE_bool("TertiaryFileIncluded", False, "A string")
     conf.DEFINE_integer("Section1.int", 0, "An integer")
+    conf.DEFINE_context("Client Context")
     return conf
 
   def _CheckConf(self, conf):
@@ -579,7 +581,7 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
 
   def testConfigFileInclusion(self):
     one = r"""
-ConfigIncludes:
+Config.includes:
   - 2.yaml
 
 Section1.int: 1
@@ -587,7 +589,7 @@ Section1.int: 1
     two = r"""
 SecondaryFileIncluded: true
 Section1.int: 2
-ConfigIncludes:
+Config.includes:
   - subdir/3.yaml
 """
     three = r"""
@@ -615,22 +617,56 @@ Section1.int: 3
       conf.Initialize(parser=config_lib.YamlParser, filename=configone)
       self._CheckConf(conf)
 
-      # If we don't get a filename or a handle with a .name we look in the cwd
-      # for the specified path, check this works.
-      olddir = os.getcwd()
-      os.chdir(temp_dir)
-
-      # Using fd with no fd.name
+      # Using fd with no fd.name should raise because there is no way to resolve
+      # the relative path.
       conf = self._GetNewConf()
       fd = StringIO.StringIO(one)
-      conf.Initialize(parser=config_lib.YamlParser, fd=fd)
-      self._CheckConf(conf)
+      self.assertRaises(config_lib.ConfigFileNotFound,
+                        conf.Initialize, parser=config_lib.YamlParser, fd=fd)
 
       # Using data
       conf = self._GetNewConf()
-      conf.Initialize(parser=config_lib.YamlParser, data=one)
-      self._CheckConf(conf)
-      os.chdir(olddir)
+      self.assertRaises(config_lib.ConfigFileNotFound,
+                        conf.Initialize, parser=config_lib.YamlParser, data=one)
+
+  def testConfigFileInclusionWithContext(self):
+    one = r"""
+Client Context:
+  Config.includes:
+    - 2.yaml
+
+Section1.int: 1
+"""
+    two = r"""
+Section1.int: 2
+SecondaryFileIncluded: true
+"""
+    with utils.TempDirectory() as temp_dir:
+      configone = os.path.join(temp_dir, "1.yaml")
+      configtwo = os.path.join(temp_dir, "2.yaml")
+      with open(configone, "wb") as fd:
+        fd.write(one)
+
+      with open(configtwo, "wb") as fd:
+        fd.write(two)
+
+      # Without specifying the context the includes are not processed.
+      conf = self._GetNewConf()
+      conf.Initialize(parser=config_lib.YamlParser, filename=configone)
+      self.assertEqual(conf["Section1.int"], 1)
+
+      # Only one config is loaded.
+      self.assertEqual(conf.files, [configone])
+
+      # Now we specify the context.
+      conf = self._GetNewConf()
+      conf.AddContext("Client Context")
+      conf.Initialize(parser=config_lib.YamlParser, filename=configone)
+
+      # Both config files were loaded. Note that load order is important and
+      # well defined.
+      self.assertEqual(conf.files, [configone, configtwo])
+      self.assertEqual(conf["Section1.int"], 2)
 
   def testMatchBuildContext(self):
     context = """

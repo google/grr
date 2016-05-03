@@ -1,0 +1,44 @@
+# A Docker container that builds the server deb.
+# Template release for grr-responses-templates must be done before building the
+# server deb.
+#
+# Deb files are written to /output. Build and then copy the deb out:
+#  docker build -t build_package -f docker/Dockerfile.build_server_deb .
+#  docker run --rm --entrypoint cat build_package \
+#    /output/grr-server_3.1.0-2_amd64.deb > /tmp/grr-server_3.1.0-2_amd64.deb
+
+# Building on xenial gets us Python 2.7.11
+FROM ubuntu:xenial
+MAINTAINER Greg Castle github@mailgreg.com
+
+RUN apt-get update && \
+  apt-get install -y \
+  debhelper \
+  dh-virtualenv \
+  dpkg-dev \
+  libssl-dev \
+  python2.7-dev \
+  python-pip \
+  rpm \
+  wget \
+  zip && \
+  pip install --upgrade pip && \
+  pip install virtualenv && \
+  pip install --upgrade setuptools && \
+  virtualenv /tmp/grr-env
+
+# Pull dependencies and templates from pypi and build wheels into a temp
+# virtualenv. All we are doing here is populating the pip cache so it can be
+# cached by docker and make the server build go fast.
+RUN . /tmp/grr-env/bin/activate && \
+pip install wheel && \
+pip install --pre grr-response-server && \
+pip install -f https://storage.googleapis.com/releases.grr-response.com/index.html grr-response-templates && \
+deactivate
+
+# Copy the GRR code over and build the deb. This will create a fresh virtualenv
+# and install from src, but re-use the precompiled wheels via pip and docker
+# caching.
+ADD . /usr/src/grr/
+WORKDIR /usr/src/grr
+RUN scripts/build_server_deb.sh

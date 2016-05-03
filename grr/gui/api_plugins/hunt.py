@@ -7,7 +7,6 @@ import operator
 
 import logging
 
-from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_handler_utils
 from grr.gui import api_value_renderers
@@ -117,65 +116,6 @@ class ApiHuntResult(rdf_structs.RDFProtoStruct):
     self.timestamp = message.age
 
     return self
-
-
-class ApiGRRHuntRendererArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGRRHuntRendererArgs
-
-
-class ApiGRRHuntRenderer(
-    api_aff4_object_renderers.ApiAFF4ObjectRendererBase):
-  """Renderer for GRRHunt objects."""
-
-  aff4_type = "GRRHunt"
-  args_type = ApiGRRHuntRendererArgs
-
-  def RenderObject(self, hunt, args):
-    runner = hunt.GetRunner()
-    context = runner.context
-
-    untyped_summary_part = dict(
-        state=hunt.Get(hunt.Schema.STATE),
-        hunt_name=context.args.hunt_name,
-        create_time=context.create_time,
-        expires=context.expires,
-        client_limit=context.args.client_limit,
-        client_rate=context.args.client_rate,
-        creator=context.creator,
-        description=context.args.description)
-    typed_summary_part = {}
-
-    if args.with_full_summary:
-      all_clients_count, completed_clients_count, _ = hunt.GetClientsCounts()
-
-      untyped_summary_part.update(dict(
-          stats=context.usage_stats,
-          all_clients_count=all_clients_count,
-          completed_clients_count=completed_clients_count,
-          outstanding_clients_count=(
-              all_clients_count - completed_clients_count)))
-
-      typed_summary_part = dict(
-          regex_rules=runner.args.regex_rules or [],
-          integer_rules=runner.args.integer_rules or [],
-          args=hunt.state.args)
-
-      try:
-        typed_summary_part["client_rule_set"] = runner.args.client_rule_set
-      except AttributeError:
-        typed_summary_part["client_rule_set"] = []
-
-    for k, v in untyped_summary_part.items():
-      untyped_summary_part[k] = api_value_renderers.RenderValue(v)
-
-    for k, v in typed_summary_part.items():
-      typed_summary_part[k] = api_value_renderers.RenderValue(v)
-
-    rendered_object = {
-        "summary": dict(untyped_summary_part.items() +
-                        typed_summary_part.items())
-    }
-    return rendered_object
 
 
 class ApiListHuntsArgs(rdf_structs.RDFProtoStruct):

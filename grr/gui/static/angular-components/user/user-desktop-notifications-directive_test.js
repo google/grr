@@ -2,12 +2,14 @@
 
 goog.require('grrUi.tests.module');
 goog.require('grrUi.user.module');
+goog.require('grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective');
 
 
 describe('User desktop notifications directive', function() {
   var $q, $compile, $rootScope, $interval, $window, grrApiService;
 
-  var FETCH_INTERVAL = 10000;
+  var FETCH_INTERVAL =
+      grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective.fetch_interval;
 
   beforeEach(module(grrUi.user.module.name));
   beforeEach(module(grrUi.tests.module.name));

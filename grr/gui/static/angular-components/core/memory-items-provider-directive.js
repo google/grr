@@ -94,13 +94,14 @@ MemoryItemsProviderController.prototype.fetchItems = function(
  */
 MemoryItemsProviderController.prototype.fetchFilteredItems = function(
     filter, offset, count) {
+  filter = filter.toLowerCase();
 
   var items = this.items_;
   var deferred = this.q_.defer();
 
   var filteredItems = [];
   angular.forEach(items, function(item) {
-    if (JSON.stringify(item).indexOf(filter) != -1) {
+    if (JSON.stringify(item).toLowerCase().indexOf(filter) != -1) {
       filteredItems.push(item);
     }
   });

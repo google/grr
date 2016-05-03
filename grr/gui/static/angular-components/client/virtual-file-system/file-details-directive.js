@@ -24,26 +24,22 @@ grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsController = func
   /** @type {string} */
   this.selectedFileName;
 
-  /** @type {Object} */
-  this.fileDetails;
-
   /** @type {string} */
   this.fileVersionUrl;
 
-  /** @type {number} */
-  this.fileVersion;
+  /** @type {!grrUi.client.virtualFileSystem.fileContextDirective.FileContextController} */
+  this.fileContext;
 
   /** @type {boolean} */
   this.fileIsDirectory;
 
-  /** @type {boolean} */
-  this.showDefaultTab;
+  /** @type {Object} */
+  this.downloadQueryParams;
 
-  /** @type {string} */
-  this.downloadAff4Path;
-
-  this.scope_.$watchGroup(['clientId', 'selectedFilePath'],
-      this.onDirectiveArgumentsChange_.bind(this));
+  this.scope_.$watchGroup(['controller.fileContext.clientId',
+                           'controller.fileContext.selectedFilePath',
+                           'controller.fileContext.selectedFileVersion'],
+      this.onContextChange_.bind(this));
 };
 
 var FileDetailsController =
@@ -51,20 +47,15 @@ var FileDetailsController =
 
 
 /**
- * Is triggered whenever the client id or the selected folder path changes.
+ * Is triggered whenever the file context changes.
  *
  * @private
  */
-FileDetailsController.prototype.onDirectiveArgumentsChange_ = function(){
-  var clientId = this.scope_['clientId'];
-  var selectedFilePath = this.scope_['selectedFilePath'];
+FileDetailsController.prototype.onContextChange_ = function(){
+  var clientId = this.fileContext['clientId'];
+  var selectedFilePath = this.fileContext['selectedFilePath'];
 
   if (angular.isDefined(clientId) && angular.isDefined(selectedFilePath)) {
-    var components = selectedFilePath.split('/');
-    this.selectedFileName = components[components.length - 1];
-
-    this.fileVersionUrl = 'clients/' + clientId + '/vfs-version-times/' + selectedFilePath;
-    this.showDefaultTab = true;
     this.fetchFileDetails_();
   }
 };
@@ -75,27 +66,61 @@ FileDetailsController.prototype.onDirectiveArgumentsChange_ = function(){
  * @private
  */
 FileDetailsController.prototype.fetchFileDetails_ = function() {
-  var clientId = this.scope_['clientId'];
-  var selectedFilePath = this.scope_['selectedFilePath'];
-  var url = 'clients/' + clientId + '/vfs-details/' + selectedFilePath;
+  var clientId = this.fileContext['clientId'];
+  var selectedFilePath = this.fileContext['selectedFilePath'];
+  var fileVersion = this.fileContext['selectedFileVersion'];
 
-  this.grrApiService_.get(url).then(function(response) {
-    this.fileDetails = response.data['file'];
-    this.fileVersion = this.fileDetails['age'];
-    this.fileIsDirectory = this.fileDetails['value']['is_directory']['value'];
-    this.downloadAff4Path = 'aff4:/' + clientId + '/' + selectedFilePath;
-  }.bind(this));
+  var url = 'clients/' + clientId + '/vfs-details/' + selectedFilePath;
+  var params = {};
+  if (fileVersion) {
+    params['timestamp'] = fileVersion;
+  }
+
+  this.grrApiService_.get(url, params).then(
+      this.onFileDetailsFetched_.bind(this));
 };
 
 /**
- * Is triggered whenever an breadcrumb item was selected.
+ * Called when the file details were fetched.
  *
- * @param {string} path
- * @export
+ * @param {Object} response
+ * @private
  */
-FileDetailsController.prototype.onBreadCrumbSelected = function(path) {
-  this.scope_['selectedFolderPath'] = path;
-  this.scope_['selectedFilePath'] = path;
+FileDetailsController.prototype.onFileDetailsFetched_ = function(response) {
+  var clientId = this.fileContext['clientId'];
+  var selectedFilePath = this.fileContext['selectedFilePath'];
+  var fileVersion = this.fileContext['selectedFileVersion'];
+  var fileDetails = response.data['file'];
+
+  // If the scope changes very often, we send several vfs-details requests. They will
+  // be resolved in various order, so we should ignore all of them except the ones
+  // relevant for the latest selection.
+  if (this.targetsCurrentSelection_(fileDetails)) {
+    this.fileVersionUrl = 'clients/' + clientId + '/vfs-version-times/' + selectedFilePath;
+    this.fileIsDirectory = fileDetails['value']['is_directory']['value'];
+    this.fileContext['selectedFileVersion'] = fileVersion || fileDetails['age'];
+
+    this.downloadQueryParams = {
+      clientId: clientId,
+      aff4_path: 'aff4:/' + clientId + '/' + selectedFilePath,
+      age: this.fileContext['selectedFileVersion']
+    };
+
+    var components = selectedFilePath.split('/');
+    this.selectedFileName = components[components.length - 1];
+  }
+};
+
+/**
+ * Checks whether the path in the file details and the currently selected file path match.
+ *
+ * @param {Object} fileDetails The details of the currently fetched file.
+ * @return {boolean} True if the file details target the current selection, false otherwise.
+ * @private
+ */
+FileDetailsController.prototype.targetsCurrentSelection_ = function(fileDetails) {
+  var selectedFilePath = this.fileContext['selectedFilePath'];
+  return fileDetails['value']['path']['value'] === selectedFilePath;
 };
 
 /**
@@ -106,14 +131,14 @@ FileDetailsController.prototype.onBreadCrumbSelected = function(path) {
 grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective = function() {
   return {
     restrict: 'E',
-    scope: {
-      clientId: '=',
-      selectedFilePath: '=',
-      selectedFolderPath: '='
-    },
+    scope: {},
+    require: '^grrFileContext',
     templateUrl: '/static/angular-components/client/virtual-file-system/file-details.html',
     controller: FileDetailsController,
-    controllerAs: 'controller'
+    controllerAs: 'controller',
+    link: function(scope, element, attrs, fileContextController) {
+      scope.controller.fileContext = fileContextController;
+    }
   };
 };
 

@@ -385,8 +385,7 @@ grrUi.core.pagedFilteredTableDirective.PagedFilteredTableDirective =
     priority: 1000,
     terminal: true,
     require: ['?grrMemoryItemsProvider',
-              '?grrApiItemsProvider',
-              '?grrAff4ItemsProvider'],
+              '?grrApiItemsProvider'],
     controller: PagedFilteredTableController,
     controllerAs: 'controller',
     link: function(scope, element, attrs, controllers) {

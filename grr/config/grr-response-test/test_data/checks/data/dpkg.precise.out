@@ -1,0 +1,35 @@
+Desired=Unknown/Install/Remove/Purge/Hold
+| Status=Not/Inst/Conf-files/Unpacked/halF-conf/Half-inst/trig-aWait/Trig-pend
+|/ Err?=(none)/Reinst-required (Status,Err: uppercase=bad)
+||/ Name                        Version                      Description
++++-===========================-============================-======================================================================
+ii  adduser                     3.113ubuntu2                 add and remove users and groups
+ii  apt                         0.8.16~exp12ubuntu10.26      commandline package manager
+ii  base-files                  6.5ubuntu6.8                 Debian base system miscellaneous files
+ii  base-passwd                 3.5.24                       Debian base system master password and group files
+ii  bash                        4.2-2ubuntu2.6               GNU Bourne Again SHell
+ii  bsdutils                    1:2.20.1-1ubuntu3.1          Basic utilities from 4.4BSD-Lite
+ii  busybox-initramfs           1:1.18.5-1ubuntu4.1          Standalone shell setup for initramfs
+ii  coreutils                   8.13-3ubuntu3.3              GNU core utilities
+ii  cpio                        2.11-7ubuntu3.2              GNU cpio -- a program to manage archives of files
+ii  dash                        0.5.7-2ubuntu2               POSIX-compliant shell
+ii  debconf                     1.5.42ubuntu1                Debian configuration management system
+ii  debianutils                 4.2.1ubuntu2                 Miscellaneous utilities specific to Debian
+ii  diffutils                   1:3.2-1ubuntu1               File comparison utilities
+ii  dpkg                        1.16.1.2ubuntu7.7            Debian package management system
+ii  e2fslibs                    1.42-1ubuntu2.3              ext2/ext3/ext4 file system libraries
+ii  e2fsprogs                   1.42-1ubuntu2.3              ext2/ext3/ext4 file system utilities
+ii  findutils                   4.4.2-4ubuntu1               utilities for finding files--find, xargs
+ii  gcc-4.6-base                4.6.3-1ubuntu5               GCC, the GNU Compiler Collection (base package)
+ii  gnupg                       1.4.11-3ubuntu2.9            GNU privacy guard - a free PGP replacement
+ii  gpgv                        1.4.11-3ubuntu2.9            GNU privacy guard - signature verification tool
+ii  grep                        2.10-1                       GNU grep, egrep and fgrep
+ii  gzip                        1.4-1ubuntu2                 GNU compression utilities
+ii  hostname                    3.06ubuntu1                  utility to set/show the host name or domain name
+ii  ifupdown                    0.7~beta2ubuntu11.1          high level tools to configure network interfaces
+ii  initramfs-tools             0.99ubuntu13.5               tools for generating an initramfs
+ii  initramfs-tools-bin         0.99ubuntu13.5               binaries used by initramfs-tools
+ii  initscripts                 2.88dsf-13.10ubuntu11.1      scripts for initializing and shutting down the system
+ii  insserv                     1.14.0-2.1ubuntu2            Tool to organize boot sequence using LSB init.d script dependencies
+ii  iproute                     20111117-1ubuntu2.3          networking and traffic control tools
+ii  klibc-utils                 1.5.25-1ubuntu2              small utilities built with klibc for early boot

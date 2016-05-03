@@ -2,10 +2,11 @@
 
 goog.provide('grrUi.flow.startFlowFormDirective.StartFlowFormController');
 goog.provide('grrUi.flow.startFlowFormDirective.StartFlowFormDirective');
+goog.require('grrUi.core.apiService.stripTypeInfo');
 
 goog.scope(function() {
 
-
+var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 /**
  * Controller for StartFlowFormDirective.
@@ -108,8 +109,8 @@ StartFlowFormController.prototype.onLaunchButtonClick = function() {
 StartFlowFormController.prototype.startGlobalFlow_ = function() {
   this.grrApiService_.post('/flows', {
     flow: {
-      runner_args: this.grrApiService_.stripTypeInfo(this.flowRunnerArguments),
-      args: this.grrApiService_.stripTypeInfo(this.flowArguments)
+      runner_args: stripTypeInfo(this.flowRunnerArguments),
+      args: stripTypeInfo(this.flowArguments)
     }
   }).then(function success(response) {
     this.responseData = response['data'];
@@ -136,8 +137,8 @@ StartFlowFormController.prototype.startClientFlow_ = function() {
 
   this.grrApiService_.post('/clients/' + clientId + '/flows', {
     flow: {
-      runner_args: this.grrApiService_.stripTypeInfo(this.flowRunnerArguments),
-      args: this.grrApiService_.stripTypeInfo(this.flowArguments)
+      runner_args: stripTypeInfo(this.flowRunnerArguments),
+      args: stripTypeInfo(this.flowArguments)
     }
   }).then(function success(response) {
     this.responseData = response['data'];

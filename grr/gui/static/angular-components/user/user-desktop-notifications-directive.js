@@ -3,6 +3,7 @@
 goog.provide('grrUi.user.userDesktopNotificationsDirective.UserDesktopNotificationsController');
 goog.provide('grrUi.user.userDesktopNotificationsDirective.UserDesktopNotificationsDirective');
 
+goog.require('grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective');
 goog.require('grrUi.user.userNotificationItemDirective.annotateApiNotification');
 goog.require('grrUi.user.userNotificationItemDirective.openReference');
 
@@ -15,7 +16,9 @@ document.addEventListener('DOMContentLoaded', function() {
   }
 });
 
-var FETCH_INTERVAL = 10000;  // 10 sec
+var FETCH_INTERVAL =
+    grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective.fetch_interval;
+
 var MAX_DISPLAYED_NOTIFICATIONS = 2;
 
 
@@ -134,8 +137,9 @@ UserDesktopNotificationsController.prototype.
 
     for (var i = 0; i < items.length; ++i) {
       var item = items[i];
+
       grrUi.user.userNotificationItemDirective.annotateApiNotification(
-          item, this.grrApiService_);
+          item);
 
       this.notify_('GRR',
                    item['value']['message']['value'],

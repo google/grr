@@ -819,7 +819,7 @@ def main(unused_argv):
   startup.Init()
 
   try:
-    print "Using configuration %s" % config_lib.CONFIG.parser
+    print "Using configuration %s" % config_lib.CONFIG
   except AttributeError:
     raise RuntimeError("No valid config specified.")
 

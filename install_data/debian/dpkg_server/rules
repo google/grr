@@ -22,7 +22,7 @@ override_dh_auto_test:
 
 override_dh_installinit:
 	dh_installinit
-	bash ../scripts/install_server_from_src.sh -r .. -i debian/grr-server
+	bash grr/scripts/install_server_from_src.sh -r grr/ -i debian/grr-server
 	# Add post installation instructions
 	cat debian/grr-server.postinst.in >> debian/grr-server.postinst.debhelper
 

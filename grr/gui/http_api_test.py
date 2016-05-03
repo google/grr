@@ -8,7 +8,6 @@
 import json
 import urllib2
 
-from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_router
 from grr.gui import http_api
@@ -35,36 +34,6 @@ class SampleGetHandler(api_call_handler_base.ApiCallHandler):
         "path": args.path,
         "foo": args.foo
     }
-
-
-class SampleGetHandlerWithAdditionalArgsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = tests_pb2.SampleGetHandlerWithAdditionalArgsArgs
-
-
-class SampleGetHandlerWithAdditionalArgs(
-    api_call_handler_base.ApiCallHandler):
-
-  args_type = SampleGetHandlerWithAdditionalArgsArgs
-  additional_args_types = {
-      "AFF4Object": api_aff4_object_renderers.ApiAFF4ObjectRendererArgs,
-      "RDFValueCollection": (api_aff4_object_renderers.
-                             ApiRDFValueCollectionRendererArgs)
-  }
-
-  def Render(self, args, token=None):
-    result = {
-        "method": "GET",
-        "path": args.path,
-        "foo": args.foo
-    }
-
-    if args.additional_args:
-      rendered_additional_args = []
-      for arg in args.additional_args:
-        rendered_additional_args.append(str(arg))
-      result["additional_args"] = rendered_additional_args
-
-    return result
 
 
 class SampleStreamingHandler(api_call_handler_base.ApiCallHandler):
@@ -111,16 +80,6 @@ class TestHttpApiRouter(api_call_router.ApiCallRouter):
   @api_call_router.ResultBinaryStream()
   def SampleStreamingGet(self, args, token=None):
     return SampleStreamingHandler()
-
-  @api_call_router.Http("GET", "/test_sample_with_additional_args/<path:path>")
-  @api_call_router.ArgsType(SampleGetHandlerWithAdditionalArgsArgs)
-  @api_call_router.AdditionalArgsTypes({
-      "AFF4Object": api_aff4_object_renderers.ApiAFF4ObjectRendererArgs,
-      "RDFValueCollection": (api_aff4_object_renderers.
-                             ApiRDFValueCollectionRendererArgs)
-  })
-  def SampleGetWithAdditionalArgs(self, args, token=None):
-    return SampleGetHandlerWithAdditionalArgs()
 
   @api_call_router.Http("DELETE", "/test_resource/<resource_id>")
   @api_call_router.ArgsType(SampleDeleteHandlerArgs)
@@ -305,41 +264,6 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
         {"method": "GET",
          "path": "some/path",
          "foo": ""})
-
-  def testAdditionalArgumentsAreParsedCorrectly(self):
-    additional_args = self.request_handler.FillAdditionalArgsFromRequest(
-        {
-            "AFF4Object.limit_lists": "10",
-            "RDFValueCollection.with_total_count": "1"
-        }, {
-            "AFF4Object": api_aff4_object_renderers.ApiAFF4ObjectRendererArgs,
-            "RDFValueCollection":
-            api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs
-        })
-    additional_args = sorted(additional_args, key=lambda x: x.name)
-
-    self.assertListEqual(
-        [x.name for x in additional_args],
-        ["AFF4Object", "RDFValueCollection"])
-    self.assertListEqual(
-        [x.type for x in additional_args],
-        ["ApiAFF4ObjectRendererArgs", "ApiRDFValueCollectionRendererArgs"])
-    self.assertListEqual(
-        [x.args for x in additional_args],
-        [api_aff4_object_renderers.ApiAFF4ObjectRendererArgs(limit_lists=10),
-         api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
-             with_total_count=True)])
-
-  def testAdditionalArgumentsAreFoundAndPassedToTheHandler(self):
-    response = self._RenderResponse(
-        self._CreateRequest("GET",
-                            "/test_sample_with_additional_args/some/path",
-                            query_parameters={"foo": "42"}))
-    self.assertEqual(
-        json.loads(response.content),
-        {"method": "GET",
-         "path": "some/path",
-         "foo": "42"})
 
   def testRendersDeleteHandlerCorrectly(self):
     response = self._RenderResponse(

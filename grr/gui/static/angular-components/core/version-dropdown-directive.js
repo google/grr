@@ -26,7 +26,15 @@ grrUi.core.versionDropdownDirective.VersionDropdownController = function(
   /** @type {Array} */
   this.versions;
 
+  /** @type {?string} */
+  this.version;
+
+  /** @private {boolean} */
+  this.updateInProgress_ = false;
+
   this.scope_.$watch('url', this.onDirectiveArgumentsChange_.bind(this));
+  this.scope_.$watch('version', this.onScopeVersionChange_.bind(this));
+  this.scope_.$watch('controller.version', this.onControllerVersionChange_.bind(this));
 };
 
 var VersionDropdownController =
@@ -43,12 +51,61 @@ VersionDropdownController.prototype.onDirectiveArgumentsChange_ = function() {
   var responseField = this.scope_['responseField'] || 'times';
 
   if (angular.isDefined(url)) {
-    this.grrApiService_.get(url).then(function(response) {
+    this.updateInProgress_ = true;
+    this.grrApiService_.get(url).then(function success(response) {
       this.versions = response['data'][responseField];
+      this.updateInProgress_ = false;
+    }.bind(this), function failure(response) {
+      this.updateInProgress_ = false;
     }.bind(this));
   }
 };
 
+/**
+ * Handles changes to the scope version.
+ *
+ * @private
+ */
+VersionDropdownController.prototype.onScopeVersionChange_ = function() {
+  // To use <options> with ng-repeat, we need to operate on string values within this directive.
+  this.version = this.scope_['version'] ? this.scope_['version'].toString() : null;
+};
+
+/**
+ * Handles changes to the controller version.
+ *
+ * @private
+ */
+VersionDropdownController.prototype.onControllerVersionChange_ = function() {
+  // Since we cannot use ng-options, we need to convert the string selection to a number.
+  this.scope_['version'] = this.version ? parseInt(this.version, 10) : null;
+};
+
+/**
+ * Checks whether a version is the currently selected one.
+ *
+ * @param {number} value The number representation of a version.
+ * @return {boolean} True if the latest item is selected, false otherwise.
+ * @export
+ */
+VersionDropdownController.prototype.isSelected = function(value) {
+  return value === parseInt(this.version, 10);
+};
+
+/**
+ * Checks whether the latest item is selected or not.
+ *
+ * @return {boolean} True if the latest item is selected, false otherwise.
+ * @export
+ */
+VersionDropdownController.prototype.isLatestSelected = function() {
+  if (this.updateInProgress_){
+    return true; // As we do not know about the elements that will be returned,
+                 // we assume we have the latest version.
+  }
+  return !this.versions || this.versions.length === 0 || !this.scope_['version']
+      || this.scope_['version'] === this.versions[0].value;
+};
 
 /**
  * VersionDropdownDirective definition.
@@ -67,7 +124,6 @@ grrUi.core.versionDropdownDirective.VersionDropdownDirective = function() {
     controllerAs: 'controller'
   };
 };
-
 
 /**
  * Name of the directive in Angular.

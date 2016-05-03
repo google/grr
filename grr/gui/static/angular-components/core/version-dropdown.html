@@ -1,6 +1,28 @@
 <div>
+
   <b>Version:</b>
-  <select ng-options="v.value as (v.value | grrTimestamp) for v in controller.versions"
-          ng-model="version" class="form-control version-dropdown">
+  <select ng-model="controller.version"
+          ng-disabled="!controller.versions.length"
+          class="form-control version-dropdown">
+
+    <!-- We cannot use ng-options here, since it does not set the selected attribute. -->
+    <option ng-repeat="v in controller.versions"
+            ng-selected="controller.isSelected(v.value)"
+            value="{$ v.value $}">
+      {$ v.value | grrTimestamp $}
+    </option>
+
+    <option ng-if="!controller.versions.length"
+            ng-selected="!controller.versions.length"
+            value="">
+      No versions available.
+    </option>
+
   </select>
+
+  <!-- Indicate that we are not showing the latest item. -->
+  <div class="newer-version-hint" ng-if="!controller.isLatestSelected()">
+    Newer Version available.
+  </div>
+
 </div>

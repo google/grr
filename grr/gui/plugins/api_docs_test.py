@@ -40,15 +40,6 @@ class TestAPIDocs(test_lib.GRRSeleniumTest):
         "start=42000000&end=3600000000")
     self.WaitUntil(self.IsTextPresent, 'metric_name": "sample_counter"')
 
-  def testAff4ObjectRenderersDocsAreShown(self):
-    self.Open("/#main=ApiDocumentation")
-
-    # Check that header is shown.
-    self.WaitUntil(self.IsElementPresent, "css=p.lead:contains('AFF4Object')")
-
-    # Check that query parameters are described.
-    self.WaitUntil(self.IsTextPresent, "AFF4Object.limit_lists")
-
 
 def main(argv):
   # Run the full test suite

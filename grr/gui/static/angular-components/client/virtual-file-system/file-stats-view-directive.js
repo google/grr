@@ -23,11 +23,16 @@ grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewController = 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
+  /** @type {!grrUi.client.virtualFileSystem.fileContextDirective.FileContextController} */
+  this.fileContext;
+
   /** @type {Object} */
   this.details;
 
-  this.scope_.$watchGroup(['clientId', 'filePath', 'fileVersion'],
-      this.onDirectiveArgumentsChange_.bind(this));
+  this.scope_.$watchGroup(['controller.fileContext.clientId',
+                           'controller.fileContext.selectedFilePath',
+                           'controller.fileContext.selectedFileVersion'],
+      this.onContextChange_.bind(this));
 };
 
 var FileStatsViewController =
@@ -39,10 +44,10 @@ var FileStatsViewController =
  *
  * @private
  */
-FileStatsViewController.prototype.onDirectiveArgumentsChange_ = function() {
-  var clientId = this.scope_['clientId'];
-  var filePath = this.scope_['filePath'];
-  var fileVersion = this.scope_['fileVersion'];
+FileStatsViewController.prototype.onContextChange_ = function() {
+  var clientId = this.fileContext['clientId'];
+  var filePath = this.fileContext['selectedFilePath'];
+  var fileVersion = this.fileContext['selectedFileVersion'];
 
   if (angular.isDefined(clientId) && angular.isDefined(filePath)) {
     var fileDetailsUrl = 'clients/' + clientId + '/vfs-details/' + filePath;
@@ -65,14 +70,14 @@ FileStatsViewController.prototype.onDirectiveArgumentsChange_ = function() {
 grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewDirective = function() {
   return {
     restrict: 'E',
-    scope: {
-      clientId: '=',
-      filePath: '=',
-      fileVersion: '='
-    },
+    scope: {},
+    require: '^grrFileContext',
     templateUrl: '/static/angular-components/client/virtual-file-system/file-stats-view.html',
     controller: FileStatsViewController,
-    controllerAs: 'controller'
+    controllerAs: 'controller',
+    link: function(scope, element, attrs, fileContextController) {
+      scope.controller.fileContext = fileContextController;
+    }
   };
 };
 

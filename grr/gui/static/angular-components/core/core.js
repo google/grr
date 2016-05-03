@@ -3,9 +3,7 @@
 goog.provide('grrUi.core.module');
 
 goog.require('grrUi.core.aff4DownloadLinkDirective.Aff4DownloadLinkDirective');
-goog.require('grrUi.core.aff4ItemsProviderDirective.Aff4ItemsProviderDirective');
 goog.require('grrUi.core.aff4ObjectRepresentationDirective.Aff4ObjectRepresentationDirective');
-goog.require('grrUi.core.aff4Service.Aff4Service');
 goog.require('grrUi.core.apiItemsProviderDirective.ApiItemsProviderDirective');
 goog.require('grrUi.core.apiService.ApiService');
 goog.require('grrUi.core.basenameFilter.BasenameFilter');
@@ -63,10 +61,6 @@ grrUi.core.module.directive(
         ApiItemsProviderDirective.directive_name,
     grrUi.core.apiItemsProviderDirective.ApiItemsProviderDirective);
 grrUi.core.module.directive(
-    grrUi.core.aff4ItemsProviderDirective.
-        Aff4ItemsProviderDirective.directive_name,
-    grrUi.core.aff4ItemsProviderDirective.Aff4ItemsProviderDirective);
-grrUi.core.module.directive(
     grrUi.core.bindKeyDirective.BindKeyDirective.directive_name,
     grrUi.core.bindKeyDirective.BindKeyDirective);
 grrUi.core.module.directive(
@@ -102,9 +96,6 @@ grrUi.core.module.directive(
 grrUi.core.module.directive(
     grrUi.core.infiniteTableDirective.InfiniteTableDirective.directive_name,
     grrUi.core.infiniteTableDirective.InfiniteTableDirective);
-grrUi.core.module.service(
-    grrUi.core.aff4Service.Aff4Service.service_name,
-    grrUi.core.aff4Service.Aff4Service);
 grrUi.core.module.service(
     grrUi.core.apiService.ApiService.service_name,
     grrUi.core.apiService.ApiService);
@@ -186,4 +177,3 @@ grrUi.core.module.config(function($httpProvider){
         grrUi.core.serverErrorInterceptorFactory.ServerErrorInterceptorFactory.factory_name
     );
 });
-

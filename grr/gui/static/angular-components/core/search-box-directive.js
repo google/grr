@@ -36,7 +36,9 @@ grrUi.core.searchBoxDirective.SearchBoxController = function(
   /** @export {string} */
   this.query = '';
 
-  // TODO(user): refactor completer into proper Angular directive.
+  /** @export {Array} */
+  this.labels = [];
+
   this.grrApiService_.get('/clients/labels').then(this.onGetLabels_.bind(this));
 };
 
@@ -51,27 +53,9 @@ var SearchBoxController =
  * @private
  */
 SearchBoxController.prototype.onGetLabels_ = function(response) {
-  var labels = {};
-  angular.forEach(response['data']['labels'], function(label) {
-    labels[label['value']['name']['value']] = 'X';
-  });
-
-  var intervalPromise = this.interval_(function() {
-    var inputBox = $(this.element_).find('[name=q]');
-    if (inputBox) {
-      // TODO(user): convert completer into a proper Angular directive.
-      grr.labels_completer.Completer(inputBox, Object.keys(labels), /label:/);
-
-      if (grr.hash.main == 'HostTable' && grr.hash.q) {
-        this.query = grr.hash.q;
-        grr.layout('HostTable', 'main', {q: grr.hash.q});
-      } else {
-        inputBox.focus();
-      }
-
-      this.interval_.cancel(intervalPromise);
-    }
-  }.bind(this), 500, 10);
+  angular.forEach(response['data']['items'], function(label) {
+    this.labels.push('label:' + label['value']['name']['value']);
+  }.bind(this));
 };
 
 

@@ -9,7 +9,7 @@ import mock
 
 from grr.gui import api_call_router_with_approval_checks as api_router
 
-from grr.gui.api_plugins import aff4 as api_aff4
+from grr.gui.api_plugins import cron as api_cron
 from grr.gui.api_plugins import flow as api_flow
 from grr.gui.api_plugins import hunt as api_hunt
 from grr.gui.api_plugins import vfs as api_vfs
@@ -85,19 +85,6 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     self.legacy_manager_mock.reset_mock()
 
   ACCESS_CHECKED_METHODS.extend([
-      "GetAff4Object",
-      "GetAff4Index"
-  ])
-
-  def testAff4MethodsAreAccessChecked(self):
-    args = api_aff4.ApiGetAff4ObjectArgs(aff4_path="aff4:/foo/bar")
-
-    self.CheckMethodIsAccessChecked(
-        self.router.GetAff4Object, "CheckDataStoreAccess", args=args)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetAff4Index, "CheckDataStoreAccess", args=args)
-
-  ACCESS_CHECKED_METHODS.extend([
       "CreateVfsRefreshOperation",
       "GetFileDetails",
       "GetFileList",
@@ -105,7 +92,9 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
       "GetFileBlob",
       "GetFileVersionTimes",
       "GetFileDownloadCommand",
-      "CreateVfsRefreshOperation"
+      "CreateVfsRefreshOperation",
+      "GetVfsTimeline",
+      "GetVfsTimelineAsCsv"
   ])
 
   def testVfsMethodsAreAccessChecked(self):
@@ -136,6 +125,14 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     args = api_vfs.ApiCreateVfsRefreshOperationArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
         self.router.CreateVfsRefreshOperation, "CheckClientAccess", args=args)
+
+    args = api_vfs.ApiGetVfsTimelineArgs(client_id=self.client_id)
+    self.CheckMethodIsAccessChecked(
+        self.router.GetVfsTimeline, "CheckClientAccess", args=args)
+
+    args = api_vfs.ApiGetVfsTimelineAsCsvArgs(client_id=self.client_id)
+    self.CheckMethodIsAccessChecked(
+        self.router.GetVfsTimelineAsCsv, "CheckClientAccess", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
       "ListClientFlows",
@@ -207,6 +204,15 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
         flow=api_flow.ApiFlow(name="ListProcesses"))
     self.CheckMethodIsAccessChecked(
         self.router.CreateGlobalFlow, "CheckIfCanStartFlow", args=args)
+
+  ACCESS_CHECKED_METHODS.extend([
+      "DeleteCronJob"
+  ])
+
+  def testCronJobMethodsAreAccessChecked(self):
+    args = api_cron.ApiDeleteCronJobArgs(cron_job_id="TestCronJob")
+    self.CheckMethodIsAccessChecked(
+        self.router.DeleteCronJob, "CheckCronJobAccess", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
       "GetHuntFilesArchive",

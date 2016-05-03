@@ -136,7 +136,8 @@ function install_python_deps() {
   /usr/local/bin/virtualenv -p /usr/local/bin/python2.7 PYTHON_ENV
   source PYTHON_ENV/bin/activate
 
-  # We need grr-reponse-client to get the grr_client_build entrypoint
+  # We need grr-reponse-client to get the grr_client_build entrypoint and
+  # pyinstaller.
   pip2.7 install /grr/ /grr/grr/config/grr-response-client/
 
   # pyinstaller fails to include protobuf because there is no __init__.py:

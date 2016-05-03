@@ -4,7 +4,6 @@
 import itertools
 import urlparse
 
-from grr.gui import api_aff4_object_renderers
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_handler_utils
 from grr.gui import api_value_renderers
@@ -17,6 +16,7 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import flow_runner
+from grr.lib import rdfvalue
 from grr.lib import throttle
 from grr.lib import utils
 from grr.lib.aff4_objects import users as aff4_users
@@ -83,6 +83,20 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       # this gracefully - we should still try to display some useful info
       # about the flow.
       pass
+
+    return self
+
+
+class ApiFlowResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiFlowResult
+
+  def GetPayloadClass(self):
+    return rdfvalue.RDFValue.classes[self.payload_type]
+
+  def InitFromRdfValue(self, value):
+    self.payload_type = value.__class__.__name__
+    self.payload = value
+    self.timestamp = value.age
 
     return self
 
@@ -199,25 +213,33 @@ class ApiListFlowResultsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListFlowResultsArgs
 
 
+class ApiListFlowResultsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListFlowResultsResult
+
+
 class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
   """Renders results of a given flow."""
 
   category = CATEGORY
   args_type = ApiListFlowResultsArgs
+  result_type = ApiListFlowResultsResult
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
     flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow", mode="r",
                                  token=token)
 
     output_urn = flow_obj.GetRunner().output_urn
+    # TODO(user): RDFValueCollection is a deprecated type.
     output_collection = aff4.FACTORY.Create(
         output_urn, aff4_type="RDFValueCollection", mode="r", token=token)
-    return api_aff4_object_renderers.RenderAFF4Object(
-        output_collection,
-        [api_aff4_object_renderers.ApiRDFValueCollectionRendererArgs(
-            offset=args.offset, count=args.count, filter=args.filter,
-            with_total_count=True)])
+
+    items = api_call_handler_utils.FilterAff4Collection(
+        output_collection, args.offset, args.count, args.filter)
+    wrapped_items = [ApiFlowResult().InitFromRdfValue(item)
+                     for item in items]
+    return ApiListFlowResultsResult(
+        items=wrapped_items, total_count=len(output_collection))
 
 
 class ApiListFlowLogsArgs(rdf_structs.RDFProtoStruct):

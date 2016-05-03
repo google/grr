@@ -484,6 +484,154 @@ class TestFileView(FileViewTestBase):
                    "css=#content_rightPane .breadcrumb li:contains('os')")
 
 
+class TestTimeline(FileViewTestBase):
+  """Test the timeline view interface."""
+
+  TIMELINE_ITEMS_PER_FILE = 3
+
+  def setUp(self):
+    super(TestTimeline, self).setUp()
+    # Prepare our fixture.
+    with self.ACLChecksDisabled():
+      self.CreateFileWithTimeline(
+          "aff4:/C.0000000000000001/fs/os/c/proc/changed.txt")
+      self.CreateFileWithTimeline(
+          "aff4:/C.0000000000000001/fs/os/c/proc/other.txt")
+      self.RequestAndGrantClientApproval("C.0000000000000001")
+
+      self.canary_override = test_lib.CanaryModeOverrider(
+          self.token, target_canary_mode=True)
+      self.canary_override.Start()
+
+  def tearDown(self):
+    super(TestTimeline, self).tearDown()
+    with self.ACLChecksDisabled():
+      self.canary_override.Stop()
+
+  @staticmethod
+  def CreateFileWithTimeline(file_path):
+    """Add a file with timeline."""
+    token = access_control.ACLToken(username="test")
+
+    # Add a version of the file at TIME_0. Since we write all MAC times,
+    # this will result in three timeline items.
+    with test_lib.FakeTime(TIME_0):
+      with aff4.FACTORY.Create(file_path, "VFSAnalysisFile", mode="w",
+                               token=token) as fd:
+        stats = rdf_client.StatEntry(
+            st_atime=TIME_0.AsSecondsFromEpoch() + 1000,
+            st_mtime=TIME_0.AsSecondsFromEpoch(),
+            st_ctime=TIME_0.AsSecondsFromEpoch() - 1000)
+        fd.Set(fd.Schema.STAT, stats)
+
+    # Add a version with a stat entry, but without timestamps.
+    with test_lib.FakeTime(TIME_1):
+      with aff4.FACTORY.Create(file_path, "VFSAnalysisFile", mode="w",
+                               token=token) as fd:
+        stats = rdf_client.StatEntry(st_ino=99)
+        fd.Set(fd.Schema.STAT, stats)
+
+  def testTimelineContainsAllChangesForDirectory(self):
+    # Open VFS view for client 1 on a specific location.
+    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
+              "&t=_fs-os-c-proc")
+    self.Click("css=.btn:contains('Timeline')")
+
+    # We need to have one entry per timestamp per file.
+    self.WaitUntilEqual(2*self.TIMELINE_ITEMS_PER_FILE,
+                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+
+  def testTimelineShowsClosestFileVersionOnFileSelection(self):
+    # Open VFS view for client 1 on a specific location.
+    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
+              "&t=_fs-os-c-proc")
+    self.Click("css=.btn:contains('Timeline')")
+
+    # The first item has the latest time, so the version dropdown should not
+    # show a hint.
+    self.Click("css=grr-file-timeline table td:contains('changed.txt'):first")
+    self.WaitUntilContains("changed.txt", self.GetText,
+                           "css=div#main_bottomPane h1")
+    self.WaitUntilContains(DateString(TIME_1), self.GetText,
+                           "css=.version-dropdown > option[selected]")
+
+    # The last timeline item for changed.txt has a timestamp before TIME_0,
+    # which is the first available file version.
+    self.Click("css=grr-file-timeline table tr "
+               "td:contains('changed.txt'):last")
+    self.WaitUntilContains("changed.txt", self.GetText,
+                           "css=div#main_bottomPane h1")
+    self.WaitUntilContains(DateString(TIME_0), self.GetText,
+                           "css=.version-dropdown > option[selected]")
+    self.WaitUntilContains("Newer Version available.", self.GetText,
+                           "css=grr-file-details")
+
+  def testSearchInputFiltersTimeline(self):
+    # Open VFS view for client 1 on a specific location.
+    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
+              "&t=_fs-os-c-proc")
+    self.Click("css=.btn:contains('Timeline')")
+
+    # Wait until the UI finished loading.
+    self.WaitUntilEqual(2*self.TIMELINE_ITEMS_PER_FILE,
+                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+
+    # Search for one file.
+    self.Type("css=input.file-search", "changed.txt", end_with_enter=True)
+    self.WaitUntilEqual(self.TIMELINE_ITEMS_PER_FILE,
+                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+
+    # Search both files.
+    self.Type("css=input.file-search", ".txt", end_with_enter=True)
+    self.WaitUntilEqual(2*self.TIMELINE_ITEMS_PER_FILE,
+                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+
+  def testSearchInputAllowsFilteringTimelineByActionType(self):
+    # Open VFS view for client 1 on a specific location.
+    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
+              "&t=_fs-os-c-proc")
+    self.Click("css=.btn:contains('Timeline')")
+
+    # Wait until the UI finished loading.
+    self.WaitUntilEqual(2*self.TIMELINE_ITEMS_PER_FILE,
+                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+
+    # Search for "changed" will return timeline items for files having "changed"
+    # in their names (i.e. all items for changed.txt) plus any items with a
+    # methadata change action (i.e. one action on other.txt).
+    self.Type("css=input.file-search", "changed", end_with_enter=True)
+    self.WaitUntilEqual(self.TIMELINE_ITEMS_PER_FILE + 1,
+                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+
+    # Search for items with file modifications, i.e. one for each file.
+    self.Type("css=input.file-search", "modif", end_with_enter=True)
+    self.WaitUntilEqual(2, self.GetCssCount, "css=grr-file-timeline tbody tr")
+
+  def testClickingOnTreeNodeRefrehsesTimeline(self):
+    # Open VFS view for client 1 on a specific location.
+    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
+              "&t=_fs-os-c-proc")
+    self.Click("css=.btn:contains('Timeline')")
+
+    # Wait until the UI finished loading.
+    self.WaitUntilEqual(2*self.TIMELINE_ITEMS_PER_FILE,
+                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+
+    # Add a new file with several versions.
+    with self.ACLChecksDisabled():
+      self.CreateFileWithTimeline(
+          "aff4:/C.0000000000000001/fs/os/c/proc/newly_added.txt")
+
+    # Click on tree again.
+    self.Click("link=proc")
+
+    # Wait until the UI finished loading.
+    self.WaitUntilEqual(3*self.TIMELINE_ITEMS_PER_FILE,
+                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-file-timeline td:contains('newly_added.txt')")
+
+
 class TestHostInformation(FileViewTestBase):
   """Test the host information interface."""
 

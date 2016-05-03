@@ -215,6 +215,10 @@ class ExportConverter(object):
       return results
 
 
+class AutoExportedProtoStruct(rdf_structs.RDFProtoStruct):
+  """Special base class for auto-exported values."""
+
+
 class DataAgnosticExportConverter(ExportConverter):
   """Export converter that yields flattened versions of passed values.
 
@@ -243,7 +247,7 @@ class DataAgnosticExportConverter(ExportConverter):
           setattr(self, desc.name, getattr(value_to_flatten, desc.name))
 
     output_class = type(self.ExportedClassNameForValue(value),
-                        (rdf_structs.RDFProtoStruct,),
+                        (AutoExportedProtoStruct,),
                         dict(Flatten=Flatten))
 
     # Metadata is always the first field of exported data.

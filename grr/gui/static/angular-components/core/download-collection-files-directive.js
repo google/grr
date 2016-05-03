@@ -16,7 +16,7 @@ goog.scope(function() {
  */
 grrUi.core.downloadCollectionFilesDirective.valuePointsToFile = function(
     value) {
-  if (value['type'] == 'GrrMessage') {
+  if (value['type'] == 'ApiFlowResult' || value['type'] == 'ApiHuntResult') {
     value = value['value']['payload'];
   }
 

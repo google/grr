@@ -249,6 +249,9 @@ class File(vfs.VFSHandler):
       path_dev = self._GetDevice(path)
 
     for root, dirs, files in os.walk(self.path):
+      dirs.sort()
+      files.sort()
+
       root_depth = self._GetDepth(root)
 
       if not cross_devs and self._GetDevice(root) != path_dev:

@@ -95,26 +95,6 @@
               </table>
             </div>
 
-            <div ng-if="apiCallHandler.handler == 'ApiGetAff4ObjectHandler'">
-              <p>
-                When using <strong>/api/aff4/...</strong> API, set of accepted query parameters changes
-                depending on the type of the accessed objects.
-              </p>
-              <p>
-                You can influence the output by providing object-type-specific query parameters.
-                Below is the list of such parameters, grouped by object types.
-              </p>
-
-              <div class="doc-item"
-                   ng-repeat="(name, apiObjectRenderer) in ::controller.apiObjectRenderers"
-                   ng-if="::apiObjectRenderer.args_type.length > 0">
-                <p class="lead">{$ ::name $}</p>
-                <grr-api-query-spec prefix="::name + '.'"
-                                    args-type="::apiObjectRenderer.args_type"
-                                    no-header />
-              </div>
-            </div>
-
           </div>
         </div>
 

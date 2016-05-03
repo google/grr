@@ -19,8 +19,7 @@ class ApiGetRDFValueDescriptorHandlerRegressionTest(
 
   def Run(self):
     self.Check("GET", "/api/reflection/rdfvalue/Duration")
-    self.Check("GET", "/api/reflection/rdfvalue/"
-               "ApiRDFValueCollectionRendererArgs")
+    self.Check("GET", "/api/reflection/rdfvalue/ApiFlow")
 
 
 class ApiGetRDFValueDescriptorHandlerTest(test_lib.GRRBaseTest):

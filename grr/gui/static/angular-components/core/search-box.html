@@ -7,10 +7,12 @@
   <form class="pull-right client-search-box">
     <div class="form-group">
       <div class="input-group">
-        <input id="client_query"
+        <input id="client_query" autocomplete="off"
                type="text" name="q" class="form-control search-query"
                placeholder="Search Box" ng-model="controller.query"
-               ng-keypress="$event.which == 13 && controller.submitQuery()" />
+               ng-keypress="$event.which == 13 && controller.submitQuery()"
+               typeahead="label for label in controller.labels | filter:$viewValue | limitTo:8"
+               typeahead-min-length="3" typeahead-focus-first="false" />
         <span class="input-group-btn">
           <button id="client_query_submit"
                   type="button"

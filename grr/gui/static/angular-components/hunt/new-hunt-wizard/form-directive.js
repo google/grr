@@ -4,6 +4,7 @@ goog.provide('grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL');
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.FormController');
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.FormDirective');
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.USE_OO_HUNT_RULES_URL');
+goog.require('grrUi.core.apiService.stripTypeInfo');
 
 goog.scope(function() {
 
@@ -18,6 +19,8 @@ grrUi.hunt.newHuntWizard.formDirective.USE_OO_HUNT_RULES_URL = '/config/' +
     'AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules';
 var USE_OO_HUNT_RULES_URL =
     grrUi.hunt.newHuntWizard.formDirective.USE_OO_HUNT_RULES_URL;
+
+var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 /**
  * Controller for FormDirective.
@@ -186,10 +189,8 @@ FormController.prototype.onHuntRunnerArgsChange_ = function(newValue) {
  */
 FormController.prototype.sendRequest = function() {
   this.grrApiService_.post('/hunts/create', {
-    hunt_runner_args: this.grrApiService_.stripTypeInfo(
-        this.scope_['huntRunnerArgs']),
-    hunt_args: this.grrApiService_.stripTypeInfo(
-        this.scope_['genericHuntArgs'])
+    hunt_runner_args: stripTypeInfo(this.scope_['huntRunnerArgs']),
+    hunt_args: stripTypeInfo(this.scope_['genericHuntArgs'])
   }).then(function resolve(response) {
     this.serverResponse = response;
   }.bind(this), function reject(response) {

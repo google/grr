@@ -258,11 +258,11 @@ class TestCronView(test_lib.GRRSeleniumTest):
     # Also check that "Proceed" button gets disabled.
     self.Click("css=button[name=Proceed]")
 
-    self.WaitUntil(self.IsTextPresent, "Cron job was DELETEd successfully!")
+    self.WaitUntil(self.IsTextPresent, "Cron job was deleted successfully!")
     self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
-    # Click on "Cancel" and check that dialog disappears.
-    self.Click("css=button[name=Cancel]")
+    # Click on "Close" and check that dialog disappears.
+    self.Click("css=button[name=Close]")
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     # View should be refreshed automatically.

@@ -20,7 +20,6 @@ import logging
 
 from grr.gui import api_auth_manager
 from grr.gui import api_call_handler_base
-from grr.gui import api_call_handlers
 from grr.gui import api_call_router
 from grr.gui import api_value_renderers
 from grr.lib import access_control
@@ -185,37 +184,6 @@ class HttpRequestHandler(object):
     return token
 
   @staticmethod
-  def FillAdditionalArgsFromRequest(request, supported_types):
-    """Creates arguments objects from a given request dictionary."""
-
-    results = {}
-    for key, value in request.items():
-      try:
-        request_arg_type, request_attr = key.split(".", 1)
-      except ValueError:
-        continue
-
-      arg_class = None
-      for key, supported_type in supported_types.items():
-        if key == request_arg_type:
-          arg_class = supported_type
-
-      if arg_class:
-        if request_arg_type not in results:
-          results[request_arg_type] = arg_class()
-
-        results[request_arg_type].Set(request_attr, value)
-
-    results_list = []
-    for name, arg_obj in results.items():
-      additional_args = api_call_handlers.ApiCallAdditionalArgs(
-          name=name, type=supported_types[name].__name__)
-      additional_args.args = arg_obj
-      results_list.append(additional_args)
-
-    return results_list
-
-  @staticmethod
   def CallApiHandler(handler, args, token=None):
     """Handles API call to a given handler with given args and token."""
 
@@ -307,21 +275,6 @@ class HttpRequestHandler(object):
             args.Set(type_info.name, route_args[type_info.name])
           elif type_info.name in unprocessed_request:
             args.Set(type_info.name, unprocessed_request[type_info.name])
-
-        if method_metadata.additional_args_types:
-          if not hasattr(args, "additional_args"):
-            raise AdditionalArgsProcessingError(
-                "Router method %s defines additional arguments types "
-                "but its arguments object does not have "
-                "'additional_args' field." % method_metadata.name)
-
-          if hasattr(method_metadata.additional_args_types, "__call__"):
-            additional_args_types = method_metadata.additional_args_types()
-          else:
-            additional_args_types = method_metadata.additional_args_types
-
-          args.additional_args = self.FillAdditionalArgsFromRequest(
-              unprocessed_request, additional_args_types)
 
       else:
         args = None

@@ -97,6 +97,23 @@ describe('memory items provider directive', function() {
     expect(items).toEqual({items: ['barfoo'], offset: 2});
   });
 
+  it('ignores case when filtering strings', function() {
+    var controller = getController(['FOO', 'Bar', 'fooBar', 'barfoo']);
+    var items;
+
+    controller.fetchFilteredItems('foo', 0, 10).then(function(resultItems) {
+      items = resultItems;
+    });
+    $rootScope.$apply();  // process promises
+    expect(items).toEqual({items: ['FOO', 'fooBar', 'barfoo'], offset: 0});
+
+    controller.fetchFilteredItems('BAR', 0, 10).then(function(resultItems) {
+      items = resultItems;
+    });
+    $rootScope.$apply();  // process promises
+    expect(items).toEqual({items: ['Bar', 'fooBar', 'barfoo'], offset: 0});
+  });
+
   it('fetches ranges of filtered dictionaries', function() {
     var controller = getController([{message: 'foo'},
                                     {message: 'bar'},

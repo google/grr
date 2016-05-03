@@ -23,7 +23,7 @@ fileDownloadUtils.getFileUrnFromValue = function(value) {
     return null;
   }
 
-  if (value['type'] == 'GrrMessage' || value['type'] == 'ApiHuntResult') {
+  if (value['type'] == 'ApiFlowResult' || value['type'] == 'ApiHuntResult') {
     value = value['value']['payload'];
   }
 
@@ -75,7 +75,7 @@ fileDownloadUtils.makeValueDownloadable = function(
     return false;
   }
 
-  if (value['type'] === 'GrrMessage' || value['type'] === 'ApiHuntResult') {
+  if (value['type'] === 'ApiFlowResult' || value['type'] === 'ApiHuntResult') {
     value = value['value']['payload'];
   }
 

@@ -1078,6 +1078,19 @@ class TestClientSearch(SearchClientTestBase,
 
     self._WaitForSearchResults(target_count=0)
 
+  def testSearchingForLabelOpensTypeAheadDropdown(self):
+    self.Open("/")
+
+    self.Type("client_query", text="common_")
+    self.WaitUntilEqual(1, self.GetCssCount,
+                        "css=grr-search-box ul.dropdown-menu li")
+
+    # If the popup is visible, check that clicking it will change the search
+    # input.
+    self.Click("css=grr-search-box ul.dropdown-menu li")
+    self.WaitUntilEqual("label:common_test_label", self.GetValue,
+                        "css=#client_query")
+
 
 def main(argv):
   # Run the full test suite

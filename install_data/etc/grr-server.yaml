@@ -60,10 +60,15 @@ ClientBuilder Context:
 
 # Include other config files like this. An example buildconfig.yaml is supplied
 # for separating out build configuration.
-  ConfigIncludes:
+  Config.includes:
     - "%(Config.directory)/buildconfig.yaml"
 
   Target:Darwin:
+
+    # The build system generates a build.yaml file with information about the
+    # build. It is placed right next to this file.
+    Config.includes:
+      - build.yaml
 
     Client.install_path: |
       /usr/local/lib/%(Client.name)/%(ClientBuilder.output_basename)
@@ -101,6 +106,9 @@ ClientBuilder Context:
     Config.writeback: /etc/%(Client.name).local.yaml
 
   Target:Linux:
+    Config.includes:
+      - build.yaml
+
     Client.binary_name: grrd
 
     Client.install_path: |
@@ -148,6 +156,9 @@ ClientBuilder Context:
         %(Client.install_path)/rekall_profiles
 
   Target:Windows:
+    Config.includes:
+      - build.yaml
+
     ClientBuilder.build_root_dir: C:\\grr-build-root
 
     PyInstaller.build_dir: |
@@ -278,7 +289,7 @@ Platform:Windows:
     %(Client.install_path)\\%(Client.binary_name)
 
   # The nanny is responsible for launching the client with the configuration file.
-  Nanny.child_command_line: |
+  Nanny.child_command_line: >-
     %(child_binary) --config "%(Client.install_path)\\%(Client.binary_name).yaml"
 
   Nanny.service_binary_name: "%(Client.name)service.exe"

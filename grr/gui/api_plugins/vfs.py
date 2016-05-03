@@ -1,22 +1,30 @@
 #!/usr/bin/env python
 """API handlers for dealing with files in a client's virtual file system."""
 
+import csv
 import re
+import StringIO
 
 from grr.gui import api_call_handler_base
 
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.flows.general import filesystem
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
 
 CATEGORY = "Files"
+
+
+class FileContentNotFoundError(api_call_handler_base.ResourceNotFoundError):
+  """Raised when the content for a specific file could not be found."""
 
 
 class VfsRefreshOperationNotFoundError(
@@ -296,9 +304,21 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
     else:
       age = rdfvalue.RDFDatetime(args.timestamp)
 
-    file_obj = aff4.FACTORY.Open(args.client_id.Add(args.file_path),
-                                 aff4_type="AFF4Stream", mode="r",
-                                 age=age, token=token)
+    try:
+      file_obj = aff4.FACTORY.Open(args.client_id.Add(args.file_path),
+                                   aff4_type="AFF4Stream", mode="r",
+                                   age=age, token=token)
+
+      file_content_missing = (not file_obj.GetContentAge())
+    except aff4.InstantiationError:
+      file_content_missing = True
+
+    if file_content_missing:
+      raise FileContentNotFoundError(
+          "File %s with timestamp %s wasn't found on client %s" % (
+              utils.SmartStr(args.file_path),
+              utils.SmartStr(args.timestamp),
+              utils.SmartStr(args.client_id)))
 
     byte_content = self.Read(file_obj, args.offset, args.length)
 
@@ -347,9 +367,21 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
     else:
       age = rdfvalue.RDFDatetime(args.timestamp)
 
-    file_obj = aff4.FACTORY.Open(args.client_id.Add(args.file_path),
-                                 aff4_type="AFF4Stream", mode="r",
-                                 age=age, token=token)
+    try:
+      file_obj = aff4.FACTORY.Open(args.client_id.Add(args.file_path),
+                                   aff4_type="AFF4Stream", mode="r",
+                                   age=age, token=token)
+
+      file_content_missing = (not file_obj.GetContentAge())
+    except aff4.InstantiationError:
+      file_content_missing = True
+
+    if file_content_missing:
+      raise FileContentNotFoundError(
+          "File %s with timestamp %s wasn't found on client %s" % (
+              utils.SmartStr(args.file_path),
+              utils.SmartStr(args.timestamp),
+              utils.SmartStr(args.client_id)))
 
     total_size = self.GetTotalSize(file_obj)
     if not args.length:
@@ -388,7 +420,7 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
     type_values = list(fd.GetValuesForAttribute(fd.Schema.TYPE))
 
     return ApiGetFileVersionTimesResult(
-        times=[t.age for t in type_values])
+        times=sorted([t.age for t in type_values], reverse=True))
 
 
 class ApiGetFileDownloadCommandArgs(rdf_structs.RDFProtoStruct):
@@ -516,4 +548,119 @@ class GetVfsRefreshOperationStateHandler(
       result.state = ApiGetVfsRefreshOperationStateResult.State.RUNNING
 
     return result
+
+
+class ApiGetVfsTimelineArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetVfsTimelineArgs
+
+
+class ApiGetVfsTimelineResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetVfsTimelineResult
+
+
+class ApiVfsTimelineItem(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiVfsTimelineItem
+
+
+class ApiGetVfsTimelineHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Retrieves the timeline for a given file path."""
+
+  category = CATEGORY
+  args_type = ApiGetVfsTimelineArgs
+  result_type = ApiGetVfsTimelineResult
+
+  def Handle(self, args, token=None):
+    folder_urn = args.client_id.Add(args.file_path)
+    items = self.GetTimelineItems(folder_urn, token=token)
+    return ApiGetVfsTimelineResult(items=items)
+
+  @staticmethod
+  def GetTimelineItems(folder_urn, token=None):
+    """Retrieves the timeline items for a given folder.
+
+    The timeline consists of items indicating a state change of a file. To
+    construct the timeline, MAC times are used. Whenever a timestamp on a
+    file changes, a corresponding timeline item is created.
+
+    Args:
+      folder_urn: The urn of the target folder.
+      token: The user token.
+
+    Returns:
+      A list of timeline items, each consisting of a file path, a timestamp
+      and an action describing the nature of the file change.
+    """
+    child_urns = []
+    for _, children in aff4.FACTORY.RecursiveMultiListChildren(
+        folder_urn, token=token):
+      child_urns.extend(children)
+
+    # Get the stats attributes for all clients.
+    attribute = aff4.Attribute.GetAttributeByName("stat")
+
+    items = []
+    for subject, values in data_store.DB.MultiResolvePrefix(
+        child_urns, attribute.predicate, token=token):
+      for _, serialized, _ in values:
+        stat = rdf_client.StatEntry(serialized)
+
+        # Add a new event for each MAC time if it exists.
+        for c in "mac":
+          timestamp = getattr(stat, "st_%stime" % c)
+          if timestamp is not None:
+            item = ApiVfsTimelineItem()
+            item.timestamp = timestamp * 1000000
+
+            # Remove aff4:/<client_id> to have a more concise path to the
+            # subject.
+            item.file_path = "/".join(subject.split("/")[2:])
+            if c == "m":
+              item.action = ApiVfsTimelineItem.FileActionType.MODIFICATION
+            elif c == "a":
+              item.action = ApiVfsTimelineItem.FileActionType.ACCESS
+            elif c == "c":
+              item.action = ApiVfsTimelineItem.FileActionType.METADATA_CHANGED
+
+            items.append(item)
+
+    return sorted(items, key=lambda x: x.timestamp, reverse=True)
+
+
+class ApiGetVfsTimelineAsCsvArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetVfsTimelineAsCsvArgs
+
+
+class ApiGetVfsTimelineAsCsvHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Exports the timeline for a given file path."""
+
+  category = CATEGORY
+  args_type = ApiGetVfsTimelineAsCsvArgs
+  CHUNK_SIZE = 1000
+
+  def _GenerateExport(self, items):
+    fd = StringIO.StringIO()
+    writer = csv.writer(fd)
+
+    # Write header. Since we do not stick to a specific timeline format, we
+    # can export a format suited for TimeSketch import.
+    writer.writerow(["Timestamp", "Datetime", "Message", "Timestamp_desc"])
+
+    for start in range(0, len(items), self.CHUNK_SIZE):
+      for item in items[start:start+self.CHUNK_SIZE]:
+        writer.writerow([item.timestamp.AsMicroSecondsFromEpoch(),
+                         item.timestamp, item.file_path, item.action])
+
+      yield fd.getvalue()
+      fd.truncate(size=0)
+
+  def Handle(self, args, token=None):
+    folder_urn = args.client_id.Add(args.file_path)
+    items = ApiGetVfsTimelineHandler.GetTimelineItems(folder_urn, token=token)
+
+    return api_call_handler_base.ApiBinaryStream(
+        "%s_%s_timeline" % (args.client_id.Basename(),
+                            utils.SmartStr(folder_urn.Basename())),
+        content_generator=self._GenerateExport(items))
 

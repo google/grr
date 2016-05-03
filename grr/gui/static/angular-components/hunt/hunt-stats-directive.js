@@ -2,9 +2,11 @@
 
 goog.provide('grrUi.hunt.huntStatsDirective.HuntStatsController');
 goog.provide('grrUi.hunt.huntStatsDirective.HuntStatsDirective');
+goog.require('grrUi.core.apiService.stripTypeInfo');
 
 goog.scope(function() {
 
+var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 /**
  * Controller for HuntStatsDirective.
@@ -65,7 +67,7 @@ HuntStatsController.prototype.onHuntUrnChange_ = function(huntUrn) {
   this.grrApiService_.get(url).then(function success(response) {
     this.stats = response.data['stats'];
 
-    var strippedStats = this.grrApiService_.stripTypeInfo(this.stats);
+    var strippedStats = stripTypeInfo(this.stats);
     this.userCpuStats = this.parseStats_(strippedStats['user_cpu_stats'], null);
     this.systemCpuStats = this.parseStats_(strippedStats['system_cpu_stats'], null);
     this.networkBytesStats = this.parseStats_(strippedStats['network_bytes_sent_stats'], this.formatBytes_);

@@ -1,8 +1,67 @@
 'use strict';
 
 goog.provide('grrUi.core.apiService.ApiService');
+goog.provide('grrUi.core.apiService.stripTypeInfo');
 
 goog.scope(function() {
+
+/**
+ * Strips type information from a JSON-encoded RDFValue.
+ * This may be useful when sending values edited with forms back to the
+ * server. Values edited by semantic forms will have rich type information
+ * in them, while server will be expecting stripped down version of the
+ * same data.
+ *
+ * For example, this is the value that may be produced by the form:
+ * {
+ *     "age": 0,
+ *     "mro": [
+ *       "AFF4ObjectLabel",
+ *       "RDFProtoStruct",
+ *       "RDFStruct",
+ *       "RDFValue",
+ *       "object"
+ *     ],
+ *     "type": "AFF4ObjectLabel",
+ *     "value": {
+ *       "name": {
+ *         "age": 0,
+ *         "mro": [
+ *           "unicode",
+ *           "basestring",
+ *           "object"
+ *         ],
+ *        "type": "unicode",
+ *        "value": "label2"
+ *       },
+ *    }
+ * }
+ *
+ * While the server expects this:
+ * { "name": "label2" }
+ *
+ *
+ * @param {*} richlyTypedValue JSON-encoded RDFValue with rich type information.
+ * @return {*} Same RDFValue but with all type information stripped.
+ */
+grrUi.core.apiService.stripTypeInfo = function(richlyTypedValue) {
+  var recursiveStrip = function(value) {
+    if (angular.isArray(value)) {
+      value = value.map(recursiveStrip);
+    } else if (angular.isDefined(value.value)) {
+      value = value.value;
+      if (angular.isObject(value)) {
+        for (var k in value) {
+          value[k] = recursiveStrip(value[k]);
+        }
+      }
+    }
+    return value;
+  };
+
+  return recursiveStrip(angular.copy(richlyTypedValue));
+};
+var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 
 /**
@@ -61,6 +120,7 @@ ApiService.prototype.sendRequest_ = function(method, apiPath, opt_params) {
     url: url,
     params: requestParams
   });
+
   return promise.finally(function() {
     this.grrLoadingIndicatorService_.stopLoading(loadingKey);
   }.bind(this));
@@ -168,64 +228,6 @@ ApiService.prototype.downloadFile = function(apiPath, opt_params) {
 
 
 /**
- * Strips type information from a JSON-encoded RDFValue.
- * This may be useful when sending values edited with forms back to the
- * server. Values edited by semantic forms will have rich type information
- * in them, while server will be expecting stripped down version of the
- * same data.
- *
- * For example, this is the value that may be produced by the form:
- * {
- *     "age": 0,
- *     "mro": [
- *       "AFF4ObjectLabel",
- *       "RDFProtoStruct",
- *       "RDFStruct",
- *       "RDFValue",
- *       "object"
- *     ],
- *     "type": "AFF4ObjectLabel",
- *     "value": {
- *       "name": {
- *         "age": 0,
- *         "mro": [
- *           "unicode",
- *           "basestring",
- *           "object"
- *         ],
- *        "type": "unicode",
- *        "value": "label2"
- *       },
- *    }
- * }
- *
- * While the server expects this:
- * { "name": "label2" }
- *
- *
- * @param {*} richlyTypedValue JSON-encoded RDFValue with rich type information.
- * @return {*} Same RDFValue but with all type information stripped.
- */
-ApiService.prototype.stripTypeInfo = function(richlyTypedValue) {
-  var recursiveStrip = function(value) {
-    if (angular.isArray(value)) {
-      value = value.map(recursiveStrip);
-    } else if (angular.isDefined(value.value)) {
-      value = value.value;
-      if (angular.isObject(value)) {
-        for (var k in value) {
-          value[k] = recursiveStrip(value[k]);
-        }
-      }
-    }
-    return value;
-  };
-
-  return recursiveStrip(angular.copy(richlyTypedValue));
-};
-
-
-/**
  * Sends POST request to the server.
  *
  * @param {string} apiPath API path to trigger.
@@ -249,28 +251,18 @@ ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
   opt_params = opt_params || {};
 
   if (opt_stripTypeInfo) {
-    opt_params = /** @type {Object<string, string>} */ (this.stripTypeInfo(
+    opt_params = /** @type {Object<string, string>} */ (stripTypeInfo(
         opt_params));
   }
 
-  var loadingKey = this.grrLoadingIndicatorService_.startLoading();
+  var request;
   if (angular.equals(opt_files || {}, {})) {
-    var request = {
+    request = {
       method: 'POST',
       url: '/api/' + apiPath.replace(/^\//, ''),
-      data: opt_params
+      data: opt_params,
+      headers: {}
     };
-    if (grr.state.reason) {
-      request.headers = {
-        'X-GRR-REASON': encodeURIComponent(grr.state.reason)
-      };
-    }
-
-    var promise = /** @type {function(Object)} */ (this.http_)(request);
-    return promise.then(function(response) {
-      this.grrLoadingIndicatorService_.stopLoading(loadingKey);
-      return response;
-    }.bind(this));
   } else {
     var fd = new FormData();
     angular.forEach(/** @type {Object} */(opt_files), function(value, key) {
@@ -278,7 +270,7 @@ ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
     }.bind(this));
     fd.append('_params_', angular.toJson(opt_params || {}));
 
-    var request = {
+    request = {
       method: 'POST',
       url: '/api/' + apiPath.replace(/^\//, ''),
       data: fd,
@@ -287,15 +279,17 @@ ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
         'Content-Type': undefined
       }
     };
-    if (grr.state.reason) {
-      request.headers['X-GRR-REASON'] = encodeURIComponent(grr.state.reason);
-    }
-
-    var promise = /** @type {function(Object)} */ (this.http_)(request);
-    return promise.finally(function() {
-      this.grrLoadingIndicatorService_.stopLoading(loadingKey);
-    }.bind(this));
   }
+
+  if (grr.state.reason) {
+    request.headers['X-GRR-REASON'] = encodeURIComponent(grr.state.reason);
+  }
+
+  var loadingKey = this.grrLoadingIndicatorService_.startLoading();
+  var promise = /** @type {function(Object)} */ (this.http_)(request);
+  return promise.finally(function() {
+    this.grrLoadingIndicatorService_.stopLoading(loadingKey);
+  }.bind(this));
 };
 
 });  // goog.scope

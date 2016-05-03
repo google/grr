@@ -16,8 +16,11 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 
+from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
 from grr.lib.aff4_objects import security as aff4_security
 from grr.lib.aff4_objects import users as aff4_users
+
+from grr.lib.hunts import standard
 
 
 class ApiGetUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
@@ -277,21 +280,21 @@ class ApiListUserHuntApprovalsHandlerTest(test_lib.GRRBaseTest):
     self.handler = user_plugin.ApiListUserHuntApprovalsHandler()
 
   def testRendersRequestedHuntAppoval(self):
-    hunt_urn = aff4.ROOT_URN.Add("hunts").Add("H:ABCD1234")
-    with aff4.FACTORY.Create(hunt_urn, aff4_type="AFF4Volume",
-                             token=self.token) as _:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__,
+        token=self.token) as hunt:
       pass
 
     flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
                            reason=self.token.reason,
-                           subject_urn=hunt_urn,
+                           subject_urn=hunt.urn,
                            approver="approver",
                            token=self.token)
 
     args = user_plugin.ApiListUserHuntApprovalsArgs()
-    result = self.handler.Render(args, token=self.token)
+    result = self.handler.Handle(args, token=self.token)
 
-    self.assertEqual(len(result["items"]), 1)
+    self.assertEqual(len(result.items), 1)
 
 
 class ApiListUserCronApprovalsHandlerTest(test_lib.GRRBaseTest):
@@ -302,21 +305,22 @@ class ApiListUserCronApprovalsHandlerTest(test_lib.GRRBaseTest):
     self.handler = user_plugin.ApiListUserCronApprovalsHandler()
 
   def testRendersRequestedCronJobApproval(self):
-    cron_urn = aff4.ROOT_URN.Add("cron").Add("CronJobFoo")
-    with aff4.FACTORY.Create(cron_urn, aff4_type="AFF4Volume",
-                             token=self.token) as _:
-      pass
+    cron_manager = aff4_cronjobs.CronManager()
+    cron_args = aff4_cronjobs.CreateCronJobFlowArgs(periodicity="1d",
+                                                    allow_overruns=False)
+    cron_job_urn = cron_manager.ScheduleFlow(cron_args=cron_args,
+                                             token=self.token)
 
     flow.GRRFlow.StartFlow(flow_name="RequestCronJobApprovalFlow",
                            reason=self.token.reason,
-                           subject_urn=cron_urn,
+                           subject_urn=cron_job_urn,
                            approver="approver",
                            token=self.token)
 
     args = user_plugin.ApiListUserCronApprovalsArgs()
-    result = self.handler.Render(args, token=self.token)
+    result = self.handler.Handle(args, token=self.token)
 
-    self.assertEqual(len(result["items"]), 1)
+    self.assertEqual(len(result.items), 1)
 
 
 class ApiListUserClientApprovalsHandlerRegressionTest(

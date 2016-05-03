@@ -89,6 +89,17 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     self.assertTrue(isinstance(out[1], rdf_client.SoftwarePackage))
     self.assertTrue(out[0].name, "acpi-support-base")
 
+  def testDpkgCmdParserPrecise(self):
+    """Ensure we can extract packages from dpkg output on ubuntu precise."""
+    parser = linux_cmd_parser.DpkgCmdParser()
+    content = open(os.path.join(self.base_path,
+                                "checks/data/dpkg.precise.out")).read()
+    out = list(parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5,
+                            None))
+    self.assertEqual(len(out), 30)
+    self.assertTrue(isinstance(out[1], rdf_client.SoftwarePackage))
+    self.assertTrue(out[0].name, "adduser")
+
   def testDmidecodeParser(self):
     """Test to see if we can get data from dmidecode output."""
     parser = linux_cmd_parser.DmidecodeCmdParser()

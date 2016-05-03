@@ -4,12 +4,14 @@ goog.provide('grrUi.client.virtualFileSystem.module');
 
 goog.require('grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsDirective');
 goog.require('grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirective');
+goog.require('grrUi.client.virtualFileSystem.fileContextDirective.FileContextDirective');
 goog.require('grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective');
 goog.require('grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewDirective');
 goog.require('grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewDirective');
 goog.require('grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewDirective');
 goog.require('grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective');
 goog.require('grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewDirective');
+goog.require('grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineDirective');
 goog.require('grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeDirective');
 goog.require('grrUi.client.virtualFileSystem.fileViewDirective.FileViewDirective');
 goog.require('grrUi.client.virtualFileSystem.rWeOwnedButtonDirective.RWeOwnedButtonDirective');
@@ -32,6 +34,9 @@ grrUi.client.virtualFileSystem.module.directive(
     grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirective.directive_name,
     grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirective);
 grrUi.client.virtualFileSystem.module.directive(
+    grrUi.client.virtualFileSystem.fileContextDirective.FileContextDirective.directive_name,
+    grrUi.client.virtualFileSystem.fileContextDirective.FileContextDirective);
+grrUi.client.virtualFileSystem.module.directive(
     grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective.directive_name,
     grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective);
 grrUi.client.virtualFileSystem.module.directive(
@@ -46,6 +51,9 @@ grrUi.client.virtualFileSystem.module.directive(
 grrUi.client.virtualFileSystem.module.directive(
     grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective.directive_name,
     grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective);
+grrUi.client.virtualFileSystem.module.directive(
+    grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineDirective.directive_name,
+    grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineDirective);
 grrUi.client.virtualFileSystem.module.directive(
     grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewDirective.directive_name,
     grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewDirective);

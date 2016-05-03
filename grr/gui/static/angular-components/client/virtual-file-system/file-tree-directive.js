@@ -45,11 +45,15 @@ grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeController = function(
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
-  this.scope_.$watch('clientId',
-      this.onClientIdChange_.bind(this));
-  this.scope_.$watch('selectedFolderPath',
-      this.onSelectedFolderPathChange_.bind(this));
+  /** @type {!grrUi.client.virtualFileSystem.fileContextDirective.FileContextController} */
+  this.fileContext;
+
   this.scope_.$on(REFRESH_FOLDER_EVENT,
+      this.onSelectedFolderPathChange_.bind(this));
+
+  this.scope_.$watch('controller.fileContext.clientId',
+      this.onClientIdChange_.bind(this));
+  this.scope_.$watch('controller.fileContext.selectedFolderPath',
       this.onSelectedFolderPathChange_.bind(this));
 };
 
@@ -63,7 +67,7 @@ var FileTreeController =
  * @private
  */
 FileTreeController.prototype.onClientIdChange_ = function() {
-  if (angular.isDefined(this.scope_['clientId'])) {
+  if (angular.isDefined(this.fileContext['clientId'])) {
     this.initTree_();
   }
 };
@@ -91,11 +95,10 @@ FileTreeController.prototype.initTree_ = function() {
     var selectionId = data.selected[0];
     var folderPath = getFilePath(selectionId);
 
-    if (this.scope_['selectedFolderPath'] == folderPath) {
+    if (this.fileContext['selectedFolderPath'] == folderPath) {
       this.rootScope_.$broadcast(REFRESH_FOLDER_EVENT, folderPath);
     } else {
-      this.scope_['selectedFolderPath'] = folderPath;
-      this.scope_['selectedFilePath'] = folderPath;
+      this.fileContext.selectFolder(folderPath);
     }
 
     // This is needed so that when user clicks on an already opened node,
@@ -105,7 +108,7 @@ FileTreeController.prototype.initTree_ = function() {
   }.bind(this));
 
   this.treeElement_.bind("loaded.jstree", function () {
-    var selectedFolderPath = this.scope_['selectedFolderPath'];
+    var selectedFolderPath = this.fileContext['selectedFolderPath'];
     if (selectedFolderPath) {
       this.expandToFolder_(selectedFolderPath);
     }
@@ -125,7 +128,7 @@ FileTreeController.prototype.initTree_ = function() {
  * @private
  */
 FileTreeController.prototype.getChildFiles_ = function(folderPath) {
-  var clientId_ = this.scope_['clientId'];
+  var clientId_ = this.fileContext['clientId'];
   var url = 'clients/' + clientId_ + '/vfs-index/' + folderPath;
   var params = { directories_only: 1 };
 
@@ -164,7 +167,7 @@ FileTreeController.prototype.parseFileResponse_ = function(response) {
  * @private
  */
 FileTreeController.prototype.onSelectedFolderPathChange_ = function() {
-  var selectedFolderPath = this.scope_['selectedFolderPath'];
+  var selectedFolderPath = this.fileContext['selectedFolderPath'];
   this.expandToFolder_(selectedFolderPath);
 };
 
@@ -212,14 +215,14 @@ FileTreeController.prototype.expandToFolder_ = function(folderPath) {
 grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeDirective = function() {
   return {
     restrict: 'E',
-    scope: {
-      clientId: '=',
-      selectedFolderPath: '=',
-      selectedFilePath: '='
-    },
+    scope: {},
+    require: '^grrFileContext',
     templateUrl: '/static/angular-components/client/virtual-file-system/file-tree.html',
     controller: FileTreeController,
-    controllerAs: 'controller'
+    controllerAs: 'controller',
+    link: function(scope, element, attrs, fileContextController) {
+      scope.controller.fileContext = fileContextController;
+    }
   };
 };
 

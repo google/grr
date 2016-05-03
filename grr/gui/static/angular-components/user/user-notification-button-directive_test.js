@@ -2,12 +2,14 @@
 
 goog.require('grrUi.tests.module');
 goog.require('grrUi.user.module');
+goog.require('grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective');
 
 
 describe('User notification button directive', function() {
   var $q, $compile, $rootScope, $interval, grrApiService;
 
-  var FETCH_INTERVAL = 60000;
+  var FETCH_INTERVAL =
+      grrUi.user.userNotificationButtonDirective.UserNotificationButtonDirective.fetch_interval;
 
   beforeEach(module('/static/angular-components/user/user-notification-button.html'));
   beforeEach(module(grrUi.user.module.name));

@@ -20,6 +20,9 @@ grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewControl
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
+  /** @type {!grrUi.client.virtualFileSystem.fileContextDirective.FileContextController} */
+  this.fileContext;
+
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
@@ -29,8 +32,10 @@ grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewControl
   /** @type {Object} */
   this.fileDetails;
 
-  this.scope_.$watchGroup(['clientId', 'filePath'],
-      this.onDirectiveArgumentsChange_.bind(this));
+  this.scope_.$watchGroup(['controller.fileContext.clientId',
+                           'controller.fileContext.selectedFilePath',
+                           'controller.fileContext.selectedFileVersion'],
+      this.onContextChange_.bind(this));
 };
 
 var FileDownloadViewController =
@@ -42,9 +47,10 @@ var FileDownloadViewController =
  *
  * @private
  */
-FileDownloadViewController.prototype.onDirectiveArgumentsChange_ = function() {
-  var clientId = this.scope_['clientId'];
-  var filePath = this.scope_['filePath'];
+FileDownloadViewController.prototype.onContextChange_ = function() {
+  var clientId = this.fileContext['clientId'];
+  var filePath = this.fileContext['selectedFilePath'];
+  // TODO(user): Add version.
 
   if (angular.isDefined(clientId) && angular.isDefined(filePath)) {
 
@@ -69,14 +75,14 @@ FileDownloadViewController.prototype.onDirectiveArgumentsChange_ = function() {
 grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewDirective = function() {
   return {
     restrict: 'E',
-    scope: {
-      clientId: '=',
-      filePath: '=',
-      fileVersion: '='
-    },
+    scope: {},
+    require: '^grrFileContext',
     templateUrl: '/static/angular-components/client/virtual-file-system/file-download-view.html',
     controller: FileDownloadViewController,
-    controllerAs: 'controller'
+    controllerAs: 'controller',
+    link: function(scope, element, attrs, fileContextController) {
+      scope.controller.fileContext = fileContextController;
+    }
   };
 };
 

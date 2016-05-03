@@ -2,13 +2,16 @@
 
 goog.provide('grrUi.user.userNotificationItemDirective.UserNotificationItemController');
 goog.provide('grrUi.user.userNotificationItemDirective.UserNotificationItemDirective');
-
 goog.provide('grrUi.user.userNotificationItemDirective.annotateApiNotification');
 goog.provide('grrUi.user.userNotificationItemDirective.openReference');
+goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
+goog.require('grrUi.core.apiService.stripTypeInfo');
 
 goog.scope(function() {
 
 var module = grrUi.user.userNotificationItemDirective;
+var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
+var getFileId = grrUi.client.virtualFileSystem.fileViewDirective.getFileId;
 
 /**
  * Opens the reference of a notification.
@@ -31,11 +34,10 @@ var openReference = module.openReference;
  * Prepares the notification for displaying.
  *
  * @param {Object} notification
- * @param {!grrUi.core.apiService.ApiService} grrApiService
  */
 grrUi.user.userNotificationItemDirective.annotateApiNotification =
-    function(notification, grrApiService) {
-  var urlParams = getUrlParameters_(notification, grrApiService);
+    function(notification) {
+  var urlParams = getUrlParameters_(notification);
   notification['isPending'] = notification['value']['is_pending']['value'];
   if (urlParams) {
     notification['link'] = $.param(urlParams);
@@ -52,22 +54,23 @@ var annotateApiNotification = module.annotateApiNotification;
 /**
  * Creates a link for the notification.
  *
- * @param {Object} fullNotification
- * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {Object} notification The notification.
  * @return {Object<string, string>} The URL parameters for the given
  *                                  notification.
  * @private
  */
-var getUrlParameters_ = function(fullNotification, grrApiService) {
-  var notification = grrApiService.stripTypeInfo(fullNotification);
-  var reference = notification['reference'];
-  var referenceType = reference['type'];
-  if (!referenceType) {
+var getUrlParameters_ = function(notification) {
+  var strippedNotification = stripTypeInfo(notification);
+  if (!strippedNotification['reference'] ||
+      !strippedNotification['reference']['type']){
     return null;
   }
 
+  var reference = strippedNotification['reference'];
+  var referenceType = reference['type'];
   var referenceDetails = reference[referenceType.toLowerCase()];
   var urlParameters = {};
+
   if (referenceType === 'DISCOVERY') {
       urlParameters['c'] = referenceDetails['client_id'];
       urlParameters['main'] = 'HostInformation';
@@ -87,7 +90,7 @@ var getUrlParameters_ = function(fullNotification, grrApiService) {
   } else if (referenceType === 'VFS') {
       urlParameters['c'] = referenceDetails['client_id'];
       urlParameters['aff4_path'] = referenceDetails['vfs_path'];
-      urlParameters['t'] = createTreeString_(referenceDetails['vfs_path']);
+      urlParameters['t'] = getFileIdFromFullPath_(referenceDetails['vfs_path']);
       urlParameters['main'] = 'VirtualFileSystemView';
   } else if (referenceType === 'FLOW_STATUS') {
       urlParameters['flow'] = referenceDetails['flow_urn'];
@@ -101,32 +104,15 @@ var getUrlParameters_ = function(fullNotification, grrApiService) {
 };
 
 /**
- * Creates a tree string for a notification containing a VFS path.
+ * Gets the file id for the full vfs path, which includes aff4:/<client>/.
  *
- * @param {string} vfsPath
- * @return {string} The tree string for the given VFS path.
+ * @param {string} vfsPath The full vfs path.
+ * @return {string} The file id for the given VFS path.
  * @private
  */
-var createTreeString_ = function(vfsPath) {
-  // The directory path looks like aff4:/<client>/<path>/<path>/...
+var getFileIdFromFullPath_ = function(vfsPath) {
   var components = vfsPath.split('/').slice(2, -1);
-  var result = components.map(replaceInvalidChars_);
-  return '_' + result.join('-');
-};
-
-/**
- * Replaces all non-alphanumeric characters with their hex representation.
- *
- * @param {string} item
- * @returns {string} item with all non-alphanumeric characters replaced with
- *                   their hex representation.
- * @private
- */
-var replaceInvalidChars_ = function(item) {
-  return item.replace(/[^a-zA-Z0-9]/g, function(invChar) {
-    var hex = invChar.charCodeAt(0).toString(16);
-    return '_' + hex.toUpperCase();
-  });
+  return getFileId(components.join('/'));
 };
 
 
@@ -135,20 +121,16 @@ var replaceInvalidChars_ = function(item) {
  *
  * @param {!angular.Scope} $scope
  * @param {!angular.$window} $window
- * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @constructor
  * @ngInject
  */
 module.UserNotificationItemController =
-  function($scope, $window, grrApiService) {
+  function($scope, $window) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
   /** @private {!angular.$window} */
   this.window_ = $window;
-
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
 
   this.scope_.$watch('notification', this.onNotificationChanged_.bind(this));
 };
@@ -160,12 +142,11 @@ var UserNotificationItemController = module.UserNotificationItemController;
  * Prepares the notification for displaying.
  *
  * @param {Object} notification
- * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @private
  */
 UserNotificationItemController.prototype.onNotificationChanged_ = function(
-    notification, grrApiService) {
-  annotateApiNotification(notification, this.grrApiService_);
+    notification) {
+  annotateApiNotification(notification);
 };
 
 /**

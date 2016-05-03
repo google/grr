@@ -14,6 +14,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.flows.general import filesystem
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class VfsTestMixin(object):
@@ -493,6 +494,88 @@ class GetVfsRefreshOperationStateHandlerRegressionTest(
                "/api/clients/%s/vfs-refresh-operations/%s" % (
                    self.client_id.Basename(), self.unknown_flow_id),
                replace={self.unknown_flow_id: "W:ABCDEF"})
+
+
+class VfsTimelineTestMixin(object):
+  """A helper mixin providing methods to prepare timelines for testing.
+  """
+
+  def SetupTestTimeline(self):
+    self.client_id = self.SetupClients(1)[0]
+    test_lib.ClientFixture(self.client_id, token=self.token)
+
+    # Choose some directory with pathspec in the ClientFixture.
+    self.folder_path = "fs/os/Users/Shared"
+    self.file_path = self.folder_path + "/a.txt"
+
+    file_urn = self.client_id.Add(self.file_path)
+    for i in range(0, 5):
+      with test_lib.FakeTime(i):
+        with aff4.FACTORY.Create(file_urn, "VFSAnalysisFile", mode="w",
+                                 token=self.token) as fd:
+          stats = rdf_client.StatEntry(
+              st_mtime=rdfvalue.RDFDatetimeSeconds().Now())
+          fd.Set(fd.Schema.STAT, stats)
+
+
+class ApiGetVfsTimelineAsCsvHandlerTest(
+    test_lib.GRRBaseTest, VfsTimelineTestMixin):
+
+  def setUp(self):
+    super(ApiGetVfsTimelineAsCsvHandlerTest, self).setUp()
+    self.handler = vfs_plugin.ApiGetVfsTimelineAsCsvHandler()
+    self.SetupTestTimeline()
+
+  def testTimelineIsReturnedInChunks(self):
+    # Change chunk size to see if the handler behaves correctly.
+    self.handler.CHUNK_SIZE = 1
+
+    args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
+        client_id=self.client_id, file_path=self.folder_path)
+    result = self.handler.Handle(args, token=self.token)
+
+    # Check rows returned correctly.
+    self.assertTrue(hasattr(result, "GenerateContent"))
+    for i in reversed(range(0, 5)):
+      with test_lib.FakeTime(i):
+        next_chunk = next(result.GenerateContent()).strip()
+
+        timestamp = rdfvalue.RDFDatetime().Now()
+        if i == 4:  # The first row includes the column headings.
+          self.assertEqual(next_chunk,
+                           "Timestamp,Datetime,Message,Timestamp_desc\r\n"
+                           "%d,%s,%s,MODIFICATION" % (
+                               timestamp.AsMicroSecondsFromEpoch(),
+                               str(timestamp), self.file_path))
+        else:
+          self.assertEqual(next_chunk,
+                           "%d,%s,%s,MODIFICATION" % (
+                               timestamp.AsMicroSecondsFromEpoch(),
+                               str(timestamp), self.file_path))
+
+  def testEmptyTimelineIsReturnedOnNonexistantPath(self):
+    args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
+        client_id=self.client_id, file_path="non-existant/file/path")
+    result = self.handler.Handle(args, token=self.token)
+
+    self.assertTrue(hasattr(result, "GenerateContent"))
+    with self.assertRaises(StopIteration):
+      next(result.GenerateContent())
+
+
+class ApiGetVfsTimelineHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest, VfsTimelineTestMixin):
+  """Regression test for ApiGetVfsTimelineHandler."""
+
+  handler = "ApiGetVfsTimelineHandler"
+
+  def setUp(self):
+    super(ApiGetVfsTimelineHandlerRegressionTest, self).setUp()
+    self.SetupTestTimeline()
+
+  def Run(self):
+    self.Check("GET", "/api/clients/%s/vfs-timeline/%s" % (
+        self.client_id.Basename(), self.folder_path))
 
 
 def main(argv):

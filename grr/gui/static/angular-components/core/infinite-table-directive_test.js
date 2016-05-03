@@ -23,14 +23,17 @@ describe('infinite table', function() {
     $(document.body).html('');
   });
 
-  var render = function(items, noDomAppend) {
+  var render = function(items, noDomAppend, filterValue) {
     $rootScope.testItems = items;
+    if (filterValue) {
+      $rootScope.filterValue = filterValue;
+    }
 
     // We render the infinite table with grr-memory-items-provider.
     // While it means that this unit test actually depends on the working
     // code of grr-memory-items-provider (which is tested separately),
     // this seems to be the easiest/most reasonable way to test that
-    // grr-paged-filtered-table is working correctly. Mocking out
+    // grr-infinite-table is working correctly. Mocking out
     // items providers would require writing code that's almost
     // equal to grr-memory-items-provider code.
     var template =
@@ -38,9 +41,10 @@ describe('infinite table', function() {
         '<table>' +
         '<tbody>' +
         '<tr grr-infinite-table grr-memory-items-provider ' +
-        'items="testItems" page-size="5">' +
-        '<td>{$ item.timestamp $}</td>' +
-        '<td>{$ item.message $}</td>' +
+        '    items="testItems" page-size="5"' +
+        '    filter-value="filterValue">' +
+        '  <td>{$ item.timestamp $}</td>' +
+        '  <td>{$ item.message $}</td>' +
         '</tr>' +
         '</tbody' +
         '</table>' +
@@ -113,5 +117,26 @@ describe('infinite table', function() {
         toBe(1);
     expect($('table tr:eq(1) td:eq(1):contains(bar)', element).length).
         toBe(1);
+  });
+
+  it('applies the filter when a filter value is set', function() {
+    var element = render([{timestamp: 42, message: 'foo'},
+                          {timestamp: 43, message: 'bar'}], false, 'foo');
+
+    expect($('table', element).length).toBe(1);
+    expect($('table tr', element).length).toBe(1);
+
+    expect($('table tr:eq(0) td:eq(0):contains(42)', element).length).
+        toBe(1);
+    expect($('table tr:eq(0) td:eq(1):contains(foo)', element).length).
+        toBe(1);
+  });
+
+  it('shows an empty table when the filter removes all items', function() {
+    var element = render([{timestamp: 42, message: 'foo'},
+                          {timestamp: 43, message: 'bar'}], false, 'xxx');
+
+    expect($('table', element).length).toBe(1);
+    expect($('table tr', element).length).toBe(0);
   });
 });

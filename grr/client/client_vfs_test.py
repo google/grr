@@ -558,20 +558,10 @@ class VFSTest(test_lib.GRRBaseTest):
     # Multiple separators are redundant
     self.assertEqual(directory._GetDepth("/////foo///bar//////baz//"), 3)
 
-    def Normalize(generator):
-      """Normalize lists to be sorted for stable comparison."""
-      result = []
-      for row in generator:
-        row[1].sort()
-        row[2].sort()
-        result.append(row)
-
-      return result
-
     # Test the whole thing
-    walk_tups_0 = Normalize(directory.RecursiveListNames())
-    walk_tups_1 = Normalize(directory.RecursiveListNames(depth=1))
-    walk_tups_inf = Normalize(directory.RecursiveListNames(depth=float("inf")))
+    walk_tups_0 = list(directory.RecursiveListNames())
+    walk_tups_1 = list(directory.RecursiveListNames(depth=1))
+    walk_tups_inf = list(directory.RecursiveListNames(depth=float("inf")))
 
     self.assertEqual(walk_tups_0, [(path, ["b"], [])])
     self.assertEqual(walk_tups_1, [

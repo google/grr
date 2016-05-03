@@ -19,7 +19,7 @@ class Install(install):
   """This installs into the deb package's virtual env."""
 
   def run(self):
-    working_directory = os.path.abspath(os.getcwd() + "/../")
+    working_directory = os.path.abspath(os.getcwd() + "/grr")
     virtualenv_bin = os.path.dirname(sys.executable)
     pip = "%s/pip" % virtualenv_bin
 
@@ -45,6 +45,7 @@ class Install(install):
 
 
 setup_args = dict(
+    name="grr-deb-build",
     cmdclass={
         "install": Install,
     },

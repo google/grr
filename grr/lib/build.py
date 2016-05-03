@@ -202,10 +202,6 @@ class ClientDeployer(BuilderBase):
     super(ClientDeployer, self).__init__(context=context)
     self.signer = signer
 
-  def MergeBuildConfig(self, fd=None, data=None):
-    data = config_lib.YamlParser(fd=fd, data=data).RawData()
-    config_lib.CONFIG.MergeData(data)
-
   def GetClientConfig(self, context, validate=True):
     """Generates the client config file for inclusion in deployable binaries."""
     with utils.TempDirectory() as tmp_dir:
@@ -282,10 +278,6 @@ class ClientDeployer(BuilderBase):
       if config.Get(bad_opt, context=self.context, default=""):
         errors.append("Client cert in conf, this should be empty at deployment"
                       " %s" % bad_opt)
-
-    if not config.Get("Client.build_environment"):
-      errors.append("Client has no build environment set, "
-                    "components will not work.")
 
     if errors_fatal and errors:
       for error in errors:
@@ -405,14 +397,6 @@ class WindowsClientDeployer(ClientDeployer):
                   "%s.manifest" % client_bin_name)
     completed_files.append(bin_name.filename)
     completed_files.append("%s.manifest" % bin_name.filename)
-
-    # Read the build config from the template.
-    for name in z_template.namelist():
-      if os.path.basename(name) == "build.yaml":
-        data = z_template.read(name)
-        self.MergeBuildConfig(data=data)
-        completed_files.append(name)
-        break
 
     # Change the name of the service binary to the configured name.
     service_template = z_template.getinfo("GRRservice.exe")
@@ -553,8 +537,7 @@ class DarwinClientDeployer(ClientDeployer):
 
     context = self.context + ["Client Context"]
     utils.EnsureDirExists(os.path.dirname(output_path))
-    # On OSX, this never changes.
-    config_lib.CONFIG.Set("Client.build_environment", "Darwin_OSX___amd64")
+
     client_config_data = self.GetClientConfig(context)
     shutil.copyfile(template_path, output_path)
     zip_file = zipfile.ZipFile(output_path, mode="a")
@@ -643,10 +626,6 @@ class LinuxClientDeployer(ClientDeployer):
 
       zf = zipfile.ZipFile(template_path)
       for name in zf.namelist():
-        if os.path.basename(name) == "build.yaml":
-          self.MergeBuildConfig(data=zf.read(name))
-          continue
-
         dirname = os.path.dirname(name)
         utils.EnsureDirExists(os.path.join(template_dir, dirname))
         with open(os.path.join(template_dir, name), "wb") as fd:
@@ -743,9 +722,6 @@ class CentosClientDeployer(LinuxClientDeployer):
 
       zf = zipfile.ZipFile(template_path)
       for name in zf.namelist():
-        if os.path.basename(name) == "build.yaml":
-          self.MergeBuildConfig(data=zf.read(name))
-          continue
         dirname = os.path.dirname(name)
         utils.EnsureDirExists(os.path.join(template_dir, dirname))
         with open(os.path.join(template_dir, name), "wb") as fd:

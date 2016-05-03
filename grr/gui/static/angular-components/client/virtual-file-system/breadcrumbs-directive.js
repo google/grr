@@ -57,15 +57,12 @@ BreadcrumbsController.prototype.onPathChange_ = function() {
 };
 
 /**
- * Selects a path by calling the directive's callback method.
+ * Selects a path by assigning it to the scope..
  *
  * @export
  */
 BreadcrumbsController.prototype.selectPath = function(path) {
-  var callback = this.scope_['onSelected'];
-  if (callback) {
-    callback({path: path.substring(1)}); // Remove leading slash.
-  }
+  this.scope_['path'] = path.substring(1); // Remove leading '/'.
 };
 
 /**
@@ -76,8 +73,7 @@ grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsDirective = funct
   return {
     restrict: 'E',
     scope: {
-      path: '=',
-      onSelected: '&'
+      path: '='
     },
     templateUrl: '/static/angular-components/client/virtual-file-system/breadcrumbs.html',
     controller: BreadcrumbsController,

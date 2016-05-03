@@ -2,7 +2,10 @@
 grr-artifacts-list-form div.input-group {
   width: 100% !important; }
 
-grr-file-details .breadcrumb {
+grr-breadcrumbs ul.breadcrumb {
+  padding: 0 15px; }
+
+grr-file-details ul.breadcrumb {
   margin: 0;
   padding: 0;
   background: #fff; }
@@ -45,8 +48,26 @@ grr-file-text-view .no-content {
   font-size: 2.0em;
   color: #e0e0e0; }
 
+grr-file-timeline tr.timeline-refresh-indicator td {
+  text-align: center;
+  padding: 50px;
+  background: #fff;
+  border: 0; }
+grr-file-timeline tr.timeline-refresh-indicator div {
+  margin-top: 10px; }
+
 grr-download-collection-files .export-command {
   margin-top: 1em; }
+
+grr-version-dropdown {
+  position: relative; }
+  grr-version-dropdown .newer-version-hint {
+    position: absolute;
+    text-align: center;
+    left: 0;
+    right: 0;
+    font-size: .9em;
+    background-color: #f9edbe; }
 
 grr-start-flow-view .rightTopPane {
   width: 100%;
@@ -172,6 +193,8 @@ table td {
 table tr.row_selected td,
 table tr.row-selected td {
   background-color: #d9edf7 !important; }
+table tr.highlighted td {
+  background-color: #e3fbde; }
 table tr.config_modified {
   color: #471ecb; }
 table.fixed-layout {
@@ -195,12 +218,30 @@ td.slider_area {
   padding-left: 2ex;
   padding-right: 2ex; }
 
-button.btn i {
-  padding: 2px;
-  font-size: 1.3em; }
+button.btn,
+label.btn {
+  position: relative; }
+  button.btn i,
+  label.btn i {
+    padding: 2px;
+    font-size: 1.3em; }
+    button.btn i.annotation,
+    label.btn i.annotation {
+      position: absolute;
+      font-size: 1.0em;
+      bottom: 2px;
+      right: 4px;
+      color: #2aabd2;
+      opacity: .8; }
+
+.input-group.large input.form-control {
+  height: 32px;
+  line-height: 32px; }
 
 .navbar {
   margin-bottom: 0; }
+  .navbar .space-right {
+    margin-right: 10px; }
 
 .navbar-brand {
   font-size: 20px;
