@@ -2,7 +2,6 @@
 """Register gui tests."""
 
 # Registering tests so pylint: disable=unused-import
-from grr.gui import api_aff4_object_renderers_test
 from grr.gui import api_auth_manager_test
 from grr.gui import api_call_handler_utils_test
 from grr.gui import api_call_router_test
