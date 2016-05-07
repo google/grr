@@ -1,10 +1,14 @@
 'use strict';
 
 goog.require('grrUi.core.module');
+goog.require('grrUi.core.versionDropdownDirective.VersionDropdownDirective');
 goog.require('grrUi.tests.module');
 
 describe('version dropdown directive', function () {
   var $compile, $rootScope, $scope, $q, grrApiService;
+
+  var REFRESH_VERSIONS_EVENT =
+      grrUi.core.versionDropdownDirective.VersionDropdownDirective.refresh_versions_event;
 
   beforeEach(module('/static/angular-components/core/version-dropdown.html'));
   beforeEach(module(grrUi.core.module.name));
@@ -101,6 +105,28 @@ describe('version dropdown directive', function () {
     var element = render('some/url', 42);
     expect(element.find('select[disabled]').length).toBe(1);
     expect(element.find('option[selected]').text().trim()).toBe('No versions available.');
+    expect($scope.version.data).toBe(42); // It does not change the model.
+  });
+
+  it('should fetch versions again when a REFRESH_VERSIONS_EVENT is broadcasted', function () {
+    var items = [];
+    mockApiService({
+      'some/url': items
+    });
+
+    var element = render('some/url', 42);
+    expect(element.find('select[disabled]').length).toBe(1);
+    expect(element.find('option[selected]').text().trim()).toBe('No versions available.');
+
+    // Broadcast REFRESH_VERSIONS_EVENT and check that there are options now.
+    items.push({value: 10});
+    items.push({value: 42});
+    $rootScope.$broadcast(REFRESH_VERSIONS_EVENT, {});
+    $rootScope.$apply();
+
+    expect(element.find('select[disabled]').length).toBe(0);
+    expect(element.find('option').length).toBe(2);
+    expect(element.find('option[selected]').val()).toBe('42');
     expect($scope.version.data).toBe(42); // It does not change the model.
   });
 

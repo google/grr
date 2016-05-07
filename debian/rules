@@ -9,7 +9,7 @@ export DH_OPTIONS
 export DH_VIRTUALENV_INSTALL_ROOT=/usr/share/
 
 %:
-	dh $@  --with python-virtualenv
+	dh $@  --with python-virtualenv,systemd
 
 dh_python2:
 
@@ -22,7 +22,7 @@ override_dh_auto_test:
 
 override_dh_installinit:
 	dh_installinit
-	bash grr/scripts/install_server_from_src.sh -r grr/ -i debian/grr-server
+	bash scripts/install_server_from_src.sh -i debian/grr-server
 	# Add post installation instructions
 	cat debian/grr-server.postinst.in >> debian/grr-server.postinst.debhelper
 
@@ -56,7 +56,12 @@ override_dh_icons:
 
 override_dh_perl:
 
+# For pre-release testing add:
+# --extra-index-url https://testpypi.python.org/simple/
+#  and upload your GRR packages to the testpypi instance.
+# We could leave this in permanently but you would have to be careful to make
+# sure no later-versioned packages were present on the test instance while
+# building final release.
 override_dh_virtualenv:
-	dh_virtualenv --preinstall 'setuptools>20' --preinstall 'pip>=8.1.1,<9' --preinstall 'wheel'
-
+	dh_virtualenv --extra-pip-arg '-f' --extra-pip-arg 'https://storage.googleapis.com/releases.grr-response.com/index.html' --python python2.7 --preinstall 'setuptools>20' --preinstall 'pip>=8.1.1,<9' --preinstall 'wheel' --preinstall 'grr-response-templates' --preinstall 'grr-response-server'
 

@@ -13,6 +13,14 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
+class Error(Exception):
+  pass
+
+
+class MissingBlobsError(aff4.MissingChunksError):
+  pass
+
+
 class VFSDirectory(aff4.AFF4Volume):
   """This represents a directory from the client."""
   default_container = "VFSDirectory"
@@ -94,6 +102,64 @@ class BlobImage(aff4.AFF4ImageBase):
 
   # How many chunks we read ahead
   _READAHEAD = 5
+
+  @classmethod
+  def _GenerateChunkIds(cls, fds):
+    for fd in fds:
+      fd.index.seek(0)
+      while True:
+        chunk_id = fd.index.read(cls._HASH_SIZE)
+        if not chunk_id:
+          break
+        yield chunk_id.encode("hex"), fd
+
+  MULTI_STREAM_CHUNKS_READ_AHEAD = 1000
+
+  @classmethod
+  def _MultiStream(cls, fds):
+    """Effectively streams data from multiple opened BlobImage objects.
+
+    Args:
+      fds: A list of opened AFF4Stream (or AFF4Stream descendants) objects.
+
+    Yields:
+      Tuples (chunk, fd, exception) where chunk is a binary blob of data and fd
+      is an object from the fds argument.
+
+      If one or more chunks are missing, exception is a MissingBlobsError object
+      and chunk is None. _MultiStream does its best to skip the file entirely if
+      one of its chunks is missing, but in case of very large files it's still
+      possible to yield a truncated file.
+    """
+
+    broken_fds = set()
+    missing_blobs_fd_pairs = []
+    for chunk_fd_pairs in utils.Grouper(
+        cls._GenerateChunkIds(fds), cls.MULTI_STREAM_CHUNKS_READ_AHEAD):
+      results_map = data_store.DB.ReadBlobs(
+          dict(chunk_fd_pairs).keys(), token=fds[0].token)
+
+      for chunk_id, fd in chunk_fd_pairs:
+        if chunk_id not in results_map or results_map[chunk_id] is None:
+          missing_blobs_fd_pairs.append((chunk_id, fd))
+          broken_fds.add(fd)
+
+      for chunk, fd in chunk_fd_pairs:
+        if fd in broken_fds:
+          continue
+
+        yield fd, results_map[chunk], None
+
+    if missing_blobs_fd_pairs:
+      missing_blobs_by_fd = {}
+      for chunk_id, fd in missing_blobs_fd_pairs:
+        missing_blobs_by_fd.setdefault(fd, []).append(chunk_id)
+
+      for fd, missing_blobs in missing_blobs_by_fd.iteritems():
+        e = MissingBlobsError("%d missing blobs (multi-stream)" %
+                              len(missing_blobs),
+                              missing_chunks=missing_blobs)
+        yield fd, None, e
 
   def Initialize(self):
     super(BlobImage, self).Initialize()

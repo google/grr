@@ -10,6 +10,9 @@ goog.scope(function() {
 var REFRESH_FOLDER_EVENT =
     grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT;
 
+var REFRESH_FILE_EVENT =
+    grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT;
+
 var ERROR_EVENT_NAME =
     grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective.error_event_name;
 
@@ -79,7 +82,9 @@ grrUi.client.virtualFileSystem.fileTableDirective.FileTableController = function
   this.triggerUpdate;
 
   this.scope_.$on(REFRESH_FOLDER_EVENT,
-      this.onFolderRefreshEvent_.bind(this));
+      this.refreshFolder_.bind(this));
+  this.scope_.$on(REFRESH_FILE_EVENT,
+      this.refreshFolder_.bind(this));
 
   this.scope_.$watchGroup(['controller.fileContext.clientId',
                            'controller.fileContext.selectedFolderPath'],
@@ -118,7 +123,7 @@ FileTableController.prototype.onContextChange_ = function() {
  *
  * @private
  */
-FileTableController.prototype.onFolderRefreshEvent_ = function() {
+FileTableController.prototype.refreshFolder_ = function() {
   if (this.triggerUpdate) {
     this.triggerUpdate();
   }

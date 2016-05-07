@@ -141,6 +141,17 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.GetVfsTimelineAsCsv(args, token=token)
 
+  def UpdateVfsFileContent(self, args, token=None):
+    self.CheckClientAccess(args.client_id, token=token)
+
+    return self.delegate.UpdateVfsFileContent(args, token=token)
+
+  def GetVfsFileContentUpdateState(self, args, token=None):
+    # No ACL checks are required here, since the user can only check
+    # operations started by him- or herself.
+
+    return self.delegate.GetVfsFileContentUpdateState(args, token=token)
+
   # Clients labels methods.
   # ======================
   #

@@ -12,6 +12,9 @@ goog.scope(function() {
 var REFRESH_FOLDER_EVENT = "RefreshFolderEvent";
 grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT = REFRESH_FOLDER_EVENT;
 
+var REFRESH_FILE_EVENT = "RefreshFileEvent";
+grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT = REFRESH_FILE_EVENT;
+
 
 var module = grrUi.client.virtualFileSystem.fileViewDirective;
 
@@ -37,32 +40,6 @@ module.replaceInvalidChars_ = function(item){
   return item.replace(/[^a-zA-Z0-9]/g, function(invChar){
     var hex = invChar.charCodeAt(0).toString(16);
     return '_' + hex.toUpperCase();
-  });
-};
-
-/**
- * Converts given fileId to a filePath.
- *
- * @param {string} fileId The id to a file.
- * @return {string} The path of the file derived from the id.
- * @export
- */
-module.getFilePath = function(fileId){
-  var components = fileId.substring(1).split('-');
-  var result = components.map(module.replaceEscapedChars_);
-  return result.join('/');
-};
-
-/**
- * Replaces the escaped chars with their string value.
- * @param {string} item
- * @return {string} A string having all escaped chars replaced by their original meaning.
- * @private
- */
-module.replaceEscapedChars_ = function(item){
-  return item.replace(/_[0-9A-Z]{2}/g, function(escChar){
-    var charCode = parseInt(escChar.substring(1), 16);
-    return String.fromCharCode(charCode);
   });
 };
 
@@ -95,15 +72,9 @@ grrUi.client.virtualFileSystem.fileViewDirective.FileViewController = function(
   /** @type {string} */
   this.clientId;
 
-  if (grr.hash.t) {
-    var folderPath = module.getFilePath(grr.hash.t);
-    this.selectedFolderPath = folderPath;
-  }
-
   this.scope_.$watch('clientId', this.onClientIdChange_.bind(this));
-  this.scope_.$watch(function(){
-    return this.selectedFolderPath;
-  }.bind(this), this.onSelectedFolderPathChange_.bind(this));
+  this.scope_.$watch('controller.selectedFolderPath',
+      this.onSelectedFolderPathChange_.bind(this));
 };
 
 var FileViewController =

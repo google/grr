@@ -1,11 +1,13 @@
-<div>
+<div grr-force-refresh refresh-trigger="controller.fileContext.fileVersion">
 
-  <div ng-if="controller.fileDetails.value.last_downloaded">
+  <div ng-if="controller.fileDetails.value.hash">
     <h4>Hash</h4>
     <span>
       <grr-semantic-value value="controller.fileDetails.value.hash" />
     </span>
+  </div>
 
+  <div ng-if="controller.fileDetails.value.last_downloaded">
     <h4>Last Downloaded</h4>
     <span>
       <grr-timestamp value="controller.fileDetails.value.last_downloaded" />
@@ -13,7 +15,8 @@
 
     <h4>Download</h4>
     <p>
-      <button class="btn btn-default">
+      <button class="btn btn-default"
+              ng-click="controller.downloadFile()">
         Download ({$ controller.fileDetails.value.size.value $} bytes)
       </button>
     </p>
@@ -23,10 +26,15 @@
     <div class="monospace">
       <pre>{$ controller.downloadCommand $}</pre>
     </div>
+    <hr />
   </div>
-  <hr />
+
   <div>
-    <button class="btn btn-default">
+    <button class="btn btn-default"
+            ng-click="controller.updateFile()"
+            ng-disabled="controller.updateInProgress">
+      <i class="fa fa-refresh"
+         ng-class="{'fa-spin': controller.updateInProgress}"></i>
       Get a new Version
     </button>
   </div>

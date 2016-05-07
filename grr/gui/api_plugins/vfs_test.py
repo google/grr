@@ -14,7 +14,9 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.flows.general import filesystem
+from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class VfsTestMixin(object):
@@ -47,6 +49,17 @@ class VfsTestMixin(object):
     return flow.GRRFlow.StartFlow(
         client_id=client_id,
         flow_name="RecursiveListDirectory",
+        args=flow_args,
+        token=token)
+
+  def CreateMultiGetFileFlow(self, client_id, file_path, token):
+    pathspec = rdf_paths.PathSpec(
+        path=file_path, pathtype=rdf_paths.PathSpec.PathType.OS)
+    flow_args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
+
+    return flow.GRRFlow.StartFlow(
+        client_id=client_id,
+        flow_name="MultiGetFile",
         args=flow_args,
         token=token)
 
@@ -496,6 +509,156 @@ class GetVfsRefreshOperationStateHandlerRegressionTest(
                replace={self.unknown_flow_id: "W:ABCDEF"})
 
 
+class ApiUpdateVfsFileContentHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiUpdateVfsFileContentHandler."""
+
+  def setUp(self):
+    super(ApiUpdateVfsFileContentHandlerTest, self).setUp()
+    self.handler = vfs_plugin.ApiUpdateVfsFileContentHandler()
+    self.client_id = self.SetupClients(1)[0]
+    self.file_path = "fs/os/c/bin/bash"
+
+  def testHandlerStartsFlow(self):
+    test_lib.ClientFixture(self.client_id, token=self.token)
+
+    args = vfs_plugin.ApiUpdateVfsFileContentArgs(
+        client_id=self.client_id, file_path=self.file_path)
+    result = self.handler.Handle(args, token=self.token)
+
+    # Check returned operation_id to references a MultiGetFile flow.
+    flow_obj = aff4.FACTORY.Open(result.operation_id, token=self.token)
+    self.assertEqual(flow_obj.Get(flow_obj.Schema.TYPE),
+                     "MultiGetFile")
+
+
+class ApiUpdateVfsFileContentHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiUpdateVfsFileContentHandler."""
+
+  handler = "ApiUpdateVfsFileContentHandler"
+
+  def setUp(self):
+    super(ApiUpdateVfsFileContentHandlerRegressionTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+    self.file_path = "fs/os/c/bin/bash"
+
+  def Run(self):
+    test_lib.ClientFixture(self.client_id, token=self.token)
+
+    def ReplaceFlowId():
+      flows_dir_fd = aff4.FACTORY.Open(self.client_id.Add("flows"),
+                                       token=self.token)
+      flow_urn = list(flows_dir_fd.ListChildren())[0]
+      return {flow_urn.Basename(): "W:ABCDEF"}
+
+    url = "/api/clients/%s/vfs-update" % self.client_id.Basename()
+    with test_lib.FakeTime(42):
+      self.Check("POST", url,
+                 {"file_path": self.file_path},
+                 replace=ReplaceFlowId)
+
+
+class ApiGetVfsFileContentUpdateStateHandlerTest(test_lib.GRRBaseTest,
+                                                 VfsTestMixin):
+  """Test for ApiGetVfsFileContentUpdateStateHandler."""
+
+  def setUp(self):
+    super(ApiGetVfsFileContentUpdateStateHandlerTest, self).setUp()
+    self.handler = vfs_plugin.ApiGetVfsFileContentUpdateStateHandler()
+    self.client_id = self.SetupClients(1)[0]
+
+  def testHandlerReturnsCorrectStateForFlow(self):
+    # Create a mock refresh operation.
+    self.flow_urn = self.CreateMultiGetFileFlow(
+        self.client_id, file_path="fs/os/c/bin/bash", token=self.token)
+
+    args = vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
+        operation_id=str(self.flow_urn))
+
+    # Flow was started and should be running.
+    result = self.handler.Handle(args, token=self.token)
+    self.assertEqual(result.state, "RUNNING")
+
+    # Terminate flow.
+    with aff4.FACTORY.Open(self.flow_urn, aff4_type="GRRFlow", mode="rw",
+                           token=self.token) as flow_obj:
+      flow_obj.GetRunner().Error("Fake error")
+
+    # Recheck status and see if it changed.
+    result = self.handler.Handle(args, token=self.token)
+    self.assertEqual(result.state, "FINISHED")
+
+  def testHandlerRaisesOnArbitraryFlowId(self):
+    # Create a mock flow.
+    self.flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
+                                           flow_name="Interrogate",
+                                           token=self.token)
+
+    args = vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
+        operation_id=str(self.flow_urn))
+
+    # Our mock flow is not a MultiGetFile flow, so an error should be raised.
+    with self.assertRaises(vfs_plugin.VfsFileContentUpdateNotFoundError):
+      self.handler.Handle(args, token=self.token)
+
+  def testHandlerThrowsExceptionOnUnknownFlowId(self):
+    # Create args with an operation id not referencing any flow.
+    args = vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
+        operation_id="F:12345678")
+
+    # Our mock flow can't be read, so an error should be raised.
+    with self.assertRaises(vfs_plugin.VfsFileContentUpdateNotFoundError):
+      self.handler.Handle(args, token=self.token)
+
+
+class GetVfsFileContentUpdateStateHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
+  """Regression test for GetVfsFileContentUpdateStateHandler."""
+
+  handler = "GetVfsFileContentUpdateStateHandler"
+
+  def setUp(self):
+    super(GetVfsFileContentUpdateStateHandlerRegressionTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+
+  def Run(self):
+    # Create a running mock refresh operation.
+    self.running_flow_urn = self.CreateMultiGetFileFlow(
+        self.client_id, file_path="fs/os/c/bin/bash", token=self.token)
+
+    # Create a mock refresh operation and complete it.
+    self.finished_flow_urn = self.CreateMultiGetFileFlow(
+        self.client_id, file_path="fs/os/c/bin/bash", token=self.token)
+    with aff4.FACTORY.Open(self.finished_flow_urn, aff4_type="GRRFlow",
+                           mode="rw", token=self.token) as flow_obj:
+      flow_obj.GetRunner().Error("Fake error")
+
+    # Create an arbitrary flow to check on 404s.
+    self.non_update_flow_urn = flow.GRRFlow.StartFlow(
+        client_id=self.client_id, flow_name="Interrogate", token=self.token)
+
+    # Unkonwn flow ids should also cause 404s.
+    self.unknown_flow_id = "F:12345678"
+
+    # Check both operations.
+    self.Check("GET",
+               "/api/clients/%s/vfs-update/%s" % (
+                   self.client_id.Basename(), str(self.running_flow_urn)),
+               replace={self.running_flow_urn.Basename(): "W:ABCDEF"})
+    self.Check("GET",
+               "/api/clients/%s/vfs-update/%s" % (
+                   self.client_id.Basename(), str(self.finished_flow_urn)),
+               replace={self.finished_flow_urn.Basename(): "W:ABCDEF"})
+    self.Check("GET",
+               "/api/clients/%s/vfs-update/%s" % (
+                   self.client_id.Basename(), str(self.non_update_flow_urn)),
+               replace={self.non_update_flow_urn.Basename(): "W:ABCDEF"})
+    self.Check("GET",
+               "/api/clients/%s/vfs-update/%s" % (
+                   self.client_id.Basename(), self.unknown_flow_id),
+               replace={self.unknown_flow_id: "W:ABCDEF"})
+
+
 class VfsTimelineTestMixin(object):
   """A helper mixin providing methods to prepare timelines for testing.
   """
@@ -539,7 +702,6 @@ class ApiGetVfsTimelineAsCsvHandlerTest(
     for i in reversed(range(0, 5)):
       with test_lib.FakeTime(i):
         next_chunk = next(result.GenerateContent()).strip()
-
         timestamp = rdfvalue.RDFDatetime().Now()
         if i == 4:  # The first row includes the column headings.
           self.assertEqual(next_chunk,

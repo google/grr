@@ -126,6 +126,10 @@ config_lib.DEFINE_integer("Frontend.message_expiry_time", 600,
                           "Maximum time messages remain valid within the "
                           "system.")
 
+config_lib.DEFINE_string("Server.initialized", False,
+                         "True once config_updater initialize has been "
+                         "run at least once.")
+
 config_lib.DEFINE_string("Server.master_watcher_class", "DefaultMasterWatcher",
                          "The master watcher class to use.")
 

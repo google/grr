@@ -393,15 +393,14 @@ class VFSFile(VFSAnalysisFile):
 
   def Update(self, attribute=None, priority=None):
     """Update an attribute from the client."""
-    if attribute == self.Schema.CONTENT:
-      # List the directory on the client
-      currently_running = self.Get(self.Schema.CONTENT_LOCK)
+    # List the directory on the client
+    currently_running = self.Get(self.Schema.CONTENT_LOCK)
 
-      # Is this flow still active?
-      if currently_running:
-        flow_obj = aff4.FACTORY.Open(currently_running, token=self.token)
-        if flow_obj.IsRunning():
-          return
+    # Is this flow still active?
+    if currently_running:
+      flow_obj = aff4.FACTORY.Open(currently_running, token=self.token)
+      if flow_obj and flow_obj.GetRunner().IsRunning():
+        return
 
     # The client_id is the first element of the URN
     client_id = self.urn.Path().split("/", 2)[1]

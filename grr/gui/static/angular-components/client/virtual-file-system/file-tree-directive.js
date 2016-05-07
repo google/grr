@@ -4,7 +4,6 @@ goog.provide('grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeControlle
 goog.provide('grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeDirective');
 goog.require('grrUi.client.virtualFileSystem.events');
 goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
-goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFilePath');
 
 goog.scope(function() {
 
@@ -13,9 +12,6 @@ var REFRESH_FOLDER_EVENT =
 
 /** @type {function(string): string} */
 var getFileId = grrUi.client.virtualFileSystem.fileViewDirective.getFileId;
-
-/** @type {function(string): string} */
-var getFilePath = grrUi.client.virtualFileSystem.fileViewDirective.getFilePath;
 
 
 /**
@@ -93,7 +89,8 @@ FileTreeController.prototype.initTree_ = function() {
 
   this.treeElement_.on("changed.jstree", function (e, data) {
     var selectionId = data.selected[0];
-    var folderPath = getFilePath(selectionId);
+    var node = this.treeElement_.jstree('get_node', selectionId);
+    var folderPath = node.data.path;
 
     if (this.fileContext['selectedFolderPath'] == folderPath) {
       this.rootScope_.$broadcast(REFRESH_FOLDER_EVENT, folderPath);
@@ -107,10 +104,14 @@ FileTreeController.prototype.initTree_ = function() {
     treeInstance['refresh_node'](data.node);
   }.bind(this));
 
-  this.treeElement_.bind("loaded.jstree", function () {
+  this.treeElement_.on("loaded.jstree", function () {
     var selectedFolderPath = this.fileContext['selectedFolderPath'];
     if (selectedFolderPath) {
-      this.expandToFolder_(selectedFolderPath);
+      this.expandToFolder_(getFileId(selectedFolderPath));
+    } else {
+      if (grr.hash.t) {
+        this.expandToFolder_(grr.hash.t);
+      }
     }
   }.bind(this));
 
@@ -168,21 +169,22 @@ FileTreeController.prototype.parseFileResponse_ = function(response) {
  */
 FileTreeController.prototype.onSelectedFolderPathChange_ = function() {
   var selectedFolderPath = this.fileContext['selectedFolderPath'];
-  this.expandToFolder_(selectedFolderPath);
+  if (selectedFolderPath) {
+    this.expandToFolder_(getFileId(selectedFolderPath));
+  }
 };
 
 /**
  * Selects a folder defined by the given path. If the path is not available, it selects the
  * closest parent folder.
- * @param {string} folderPath The path of the folder to select.
+ * @param {string} folderId The id of the folder to select.
  * @private
  */
-FileTreeController.prototype.expandToFolder_ = function(folderPath) {
-  if (!folderPath) {
+FileTreeController.prototype.expandToFolder_ = function(folderId) {
+  if (!folderId) {
     return;
   }
   var element = this.treeElement_;
-  var folderId = getFileId(folderPath);
   var parts = folderId.split('-');
 
   var cb = function(i, prev_node) {

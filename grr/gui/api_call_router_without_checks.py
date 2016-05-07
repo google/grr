@@ -77,6 +77,12 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def GetVfsTimelineAsCsv(self, args, token=None):
     return api_vfs.ApiGetVfsTimelineAsCsvHandler()
 
+  def UpdateVfsFileContent(self, args, token=None):
+    return api_vfs.ApiUpdateVfsFileContentHandler()
+
+  def GetVfsFileContentUpdateState(self, args, token=None):
+    return api_vfs.ApiGetVfsFileContentUpdateStateHandler()
+
   # Clients labels methods.
   # ======================
   #

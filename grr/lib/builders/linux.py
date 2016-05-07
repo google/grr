@@ -121,7 +121,8 @@ class LinuxClientBuilder(build.ClientBuilder):
     outdir = os.path.join(dpkg_dir, "debian/systemd.in")
     utils.EnsureDirExists(outdir)
     shutil.copy(
-        config_lib.Resource().Filter("install_data/systemd/grr-client.service"),
+        config_lib.Resource().Filter(
+            "install_data/systemd/client/grr-client.service"),
         outdir)
 
   def MakeZip(self, input_dir, output_file):

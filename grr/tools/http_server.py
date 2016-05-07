@@ -228,6 +228,8 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 def CreateServer(frontend=None):
   server_address = (config_lib.CONFIG["Frontend.bind_address"],
                     config_lib.CONFIG["Frontend.bind_port"])
+  # TODO(user) catch port in use exception and increment up to a new config
+  # variable Frontend.bind_port_max_add
   httpd = GRRHTTPServer(server_address, GRRHTTPServerHandler, frontend=frontend)
 
   sa = httpd.socket.getsockname()

@@ -10,12 +10,10 @@ import functools
 import itertools
 import os
 import pdb
+import platform
 import re
 import shutil
-import signal
 import socket
-import StringIO
-import subprocess
 import sys
 import tempfile
 import time
@@ -119,10 +117,6 @@ flags.DEFINE_list("labels", ["small"],
 
 class Error(Exception):
   """Test base error."""
-
-
-class TimeoutError(Error):
-  """Used when command line invocations time out."""
 
 
 class ClientActionRunnerArgs(rdf_structs.RDFProtoStruct):
@@ -624,77 +618,6 @@ class GRRBaseTest(unittest.TestCase):
     for i in range(nr_clients):
       client_id = rdf_client.ClientURN("C.1%015d" % i)
       data_store.DB.DeleteSubject(client_id, token=self.token)
-
-  def RunForTimeWithNoExceptions(self, cmd, argv, timeout=10, should_exit=False,
-                                 check_exit_code=False):
-    """Run a command line argument and check for python exceptions raised.
-
-    Args:
-      cmd: The command to run as a string.
-      argv: The args.
-      timeout: How long to let the command run before terminating.
-      should_exit: If True we will raise if the command hasn't exited after
-          the specified timeout.
-      check_exit_code: If True and should_exit is True, we'll check that the
-          exit code was 0 and raise if it isn't.
-
-    Raises:
-      RuntimeError: On any errors.
-    """
-    def HandleTimeout(unused_signum, unused_frame):
-      raise TimeoutError()
-
-    exited = False
-    proc = None
-    try:
-      logging.info("Running : %s", [cmd] + argv)
-      proc = subprocess.Popen([cmd] + argv, stdout=subprocess.PIPE,
-                              stderr=subprocess.STDOUT, bufsize=1)
-      signal.signal(signal.SIGALRM, HandleTimeout)
-      signal.alarm(timeout)
-
-      stdout = StringIO.StringIO()
-
-      while True:
-        proc.poll()
-        # Iterate through the output so that we get the output data even if we
-        # kill the process.
-        for line in proc.stdout.readline():
-          stdout.write(line)
-        if proc.returncode is not None:
-          exited = True
-          break
-
-    except TimeoutError:
-      pass  # We expect timeouts.
-
-    finally:
-      signal.alarm(0)
-      try:
-        if proc:
-          proc.kill()
-      except OSError:
-        pass  # Could already be dead.
-
-    proc.stdout.flush()
-    stdout.write(proc.stdout.read())  # Collect any remaining output.
-
-    if "Traceback (" in stdout.getvalue():
-      raise RuntimeError("Exception found in stderr of binary Stderr:\n###\n%s"
-                         "###\nCmd: %s" % (stdout.getvalue(), cmd))
-
-    if should_exit and not exited:
-      raise RuntimeError("Bin: %s got timeout when when executing, expected "
-                         "exit. \n%s\n" % (stdout.getvalue(), cmd))
-
-    if not should_exit and exited:
-      raise RuntimeError("Bin: %s exited, but should have stayed running.\n%s\n"
-                         % (stdout.getvalue(), cmd))
-
-    if should_exit and check_exit_code:
-      if proc.returncode != 0:
-        raise RuntimeError("Bin: %s should have returned exit code 0 but got "
-                           "%s" % (cmd, proc.returncode))
 
   def ClientCertFromPrivateKey(self, private_key):
     communicator = comms.ClientCommunicator(private_key=private_key)
@@ -2564,7 +2487,15 @@ def WriteComponent(name="grr-rekall", version="0.3", modules=None, token=None,
     # to pack and unpack it.
     modules = [components_base + "grr_rekall"]
   result = rdf_client.ClientComponent(raw_data=raw_data)
-  result.build_system = result.build_system.FromCurrentSystem()
+
+  # libc_ver is broken so we need to work around it. It assumes that
+  # there is always a sys.executable and just raises if there
+  # isn't. For some environments this assumption is not true at all so
+  # we just make it return a "sane" value in tests. In the end, this
+  # function scans the interpreter binary for some magic regex so it
+  # would be best not to use it at all.
+  with utils.Stubber(platform, "libc_ver", lambda: ("glibc", "2.3")):
+    result.build_system = result.build_system.FromCurrentSystem()
   result.summary.modules = modules
   result.summary.name = name
   result.summary.version = version

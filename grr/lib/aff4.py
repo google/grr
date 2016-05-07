@@ -68,6 +68,13 @@ class BadGetAttributeError(Exception):
   pass
 
 
+class MissingChunksError(Exception):
+
+  def __init__(self, message, missing_chunks=None):
+    super(MissingChunksError, self).__init__(message)
+    self.missing_chunks = missing_chunks or []
+
+
 class DeletionPool(object):
   """Pool used to optimize deletion of large object hierarchies."""
 
@@ -937,11 +944,12 @@ class Factory(object):
 
     logging.debug(
         u"Found %d objects to remove when removing %s",
-        len(marked_urns), urns)
+        len(marked_urns), utils.SmartUnicode(urns))
 
     logging.debug(
         u"Removing %d root objects when removing %s: %s",
-        len(marked_root_urns), urns, marked_root_urns)
+        len(marked_root_urns), utils.SmartUnicode(urns),
+        utils.SmartUnicode(marked_root_urns))
 
     for root in marked_root_urns:
       # Only the index of the parent object should be updated. Everything
@@ -2501,6 +2509,60 @@ class AFF4Stream(AFF4Object):
                      "Hash object containing all known hash digests for"
                      " the object.")
 
+  MULTI_STREAM_CHUNK_SIZE = 1024 * 1024 * 8
+
+  @classmethod
+  def _MultiStream(cls, fds):
+    """Method overriden by subclasses to optimize the MultiStream behavior."""
+    for fd in fds:
+      fd.Seek(0)
+      while True:
+        chunk = fd.Read(cls.MULTI_STREAM_CHUNK_SIZE)
+        if not chunk:
+          break
+        yield fd, chunk, None
+
+  @classmethod
+  def MultiStream(cls, fds):
+    """Effectively streams data from multiple opened AFF4Stream objects.
+
+    Args:
+      fds: A list of opened AFF4Stream (or AFF4Stream descendants) objects.
+
+    Yields:
+      Tuples (chunk, fd) where chunk is a binary blob of data and fd is an
+      object from the fds argument. Chunks within one file are not shuffled:
+      every file's chunks are yielded in order and the file is never truncated.
+
+      The files themselves are grouped by their type and the order of the
+      groups is non-deterministic. The order of the files within a single
+      type group is the same as in the fds argument.
+
+    Raises:
+      ValueError: If one of items in the fds list is not an AFF4Stream.
+
+      MissingChunksError: if one or more chunks are missing. This exception
+      is only raised after all the files are read and their respective chunks
+      are yielded. MultiStream does its best to skip the file entirely if
+      one of its chunks is missing, but in case of very large files it's still
+      possible to yield a truncated file.
+    """
+    for fd in fds:
+      if not isinstance(fd, AFF4Stream):
+        raise ValueError("All object to be streamed have to inherit from "
+                         "AFF4Stream (found one inheriting from %s)." % (
+                             fd.__class__.__name__))
+
+    classes_map = {}
+    for fd in fds:
+      classes_map.setdefault(fd.__class__, []).append(fd)
+
+    for fd_class, fds in classes_map.items():
+      # pylint: disable=protected-access
+      for fd, chunk, exception in fd_class._MultiStream(fds):
+        yield fd, chunk, exception
+      # pylint: enable=protected-access
+
   def __len__(self):
     return self.size
 
@@ -2686,6 +2748,9 @@ class AFF4ImageBase(AFF4Stream):
   # Subclasses should set the name of the type of stream to use for chunks.
   STREAM_TYPE = None
 
+  # How many chunks should be cached.
+  LOOK_AHEAD = 10
+
   class SchemaCls(AFF4Stream.SchemaCls):
     _CHUNKSIZE = Attribute("aff4:chunksize", rdfvalue.RDFInteger,
                            "Total size of each chunk.", default=64 * 1024)
@@ -2697,6 +2762,60 @@ class AFF4ImageBase(AFF4Stream):
     CONTENT_LAST = Attribute("metadata:content_last", rdfvalue.RDFDatetime,
                              "The last time any content was written.",
                              creates_new_object_version=False)
+
+  @classmethod
+  def _GenerateChunkPaths(cls, fds):
+    for fd in fds:
+      num_chunks = fd.size / fd.chunksize + 1
+      for chunk in xrange(num_chunks):
+        yield fd.urn.Add(fd.CHUNK_ID_TEMPLATE % chunk), fd
+
+  MULTI_STREAM_CHUNKS_READ_AHEAD = 1000
+
+  @classmethod
+  def _MultiStream(cls, fds):
+    """Effectively streams data from multiple opened AFF4ImageBase objects.
+
+    Args:
+      fds: A list of opened AFF4Stream (or AFF4Stream descendants) objects.
+
+    Yields:
+      Tuples (chunk, fd, exception) where chunk is a binary blob of data and fd
+      is an object from the fds argument.
+
+      If one or more chunks are missing, exception will be a MissingChunksError
+      while chunk will be None. _MultiStream does its best to skip the file
+      entirely if one of its chunks is missing, but in case of very large files
+      it's still possible to yield a truncated file.
+    """
+
+    missing_chunks_by_fd = {}
+    for chunk_fd_pairs in utils.Grouper(
+        cls._GenerateChunkPaths(fds), cls.MULTI_STREAM_CHUNKS_READ_AHEAD):
+
+      chunks_map = dict(chunk_fd_pairs)
+      contents_map = {}
+      for chunk_fd in FACTORY.MultiOpen(chunks_map, mode="r",
+                                        token=fds[0].token):
+        if isinstance(chunk_fd, AFF4Stream):
+          fd = chunks_map[chunk_fd.urn]
+          contents_map[chunk_fd.urn] = chunk_fd.read()
+
+      for chunk_urn, fd in chunk_fd_pairs:
+        if chunk_urn not in contents_map or not contents_map[chunk_urn]:
+          missing_chunks_by_fd.setdefault(fd, []).append(chunk_urn)
+
+      for chunk_urn, fd in chunk_fd_pairs:
+        if fd in missing_chunks_by_fd:
+          continue
+
+        yield fd, contents_map[chunk_urn], []
+
+    for fd, missing_chunks in missing_chunks_by_fd.iteritems():
+      e = MissingChunksError("%d missing chunks (multi-stream)." %
+                             len(missing_chunks),
+                             missing_chunks=missing_chunks)
+      yield fd, None, e
 
   def Initialize(self):
     """Build a cache for our chunks."""
@@ -2804,7 +2923,7 @@ class AFF4ImageBase(AFF4Stream):
     # the data store already, we read ahead to reduce round trips.
 
     missing_chunks = []
-    for chunk_number in range(chunk, chunk + 10):
+    for chunk_number in range(chunk, chunk + self.LOOK_AHEAD):
       if chunk_number not in self.chunk_cache:
         missing_chunks.append(chunk_number)
 

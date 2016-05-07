@@ -22,7 +22,7 @@ def find_data_files(source):
 
 setup(
     name="grr-response-test",
-    version="3.1.0",
+    version="3.1.0post1",
     description="The GRR Rapid Response test suite.",
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",
@@ -30,7 +30,7 @@ setup(
         "mock==1.3.0",
         "mox==0.5.3",
         "selenium==2.50.1",
-        "grr-response-server",
+        "grr-response-server==3.1.*",
     ],
     data_files=find_data_files("test_data"),
     entry_points={

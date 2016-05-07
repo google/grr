@@ -29,13 +29,15 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     super(CollectionArchiveGeneratorTest, self).setUp()
 
     path1 = "aff4:/C.0000000000000000/fs/os/foo/bar/hello1.txt"
-    with aff4.FACTORY.Create(path1, "AFF4MemoryStream", token=self.token) as fd:
+    with aff4.FACTORY.Create(path1, aff4.AFF4MemoryStream.__name__,
+                             token=self.token) as fd:
       fd.Write("hello1")
       fd.Set(fd.Schema.HASH,
              rdf_crypto.Hash(sha256=hashlib.sha256("hello1").digest()))
 
     path2 = u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
-    with aff4.FACTORY.Create(path2, "AFF4MemoryStream", token=self.token) as fd:
+    with aff4.FACTORY.Create(path2, aff4.AFF4MemoryStream.__name__,
+                             token=self.token) as fd:
       fd.Write("hello2")
       fd.Set(fd.Schema.HASH,
              rdf_crypto.Hash(sha256=hashlib.sha256("hello2").digest()))
@@ -187,6 +189,56 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
                            "skipped_files": 0,
                            "failed_files": 0
                        })
+
+  def testCorrectlyAccountsForFailedFiles(self):
+    path2 = u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
+    with aff4.FACTORY.Create(path2, aff4.AFF4Image.__name__,
+                             token=self.token) as fd:
+      fd.Write("hello2")
+
+    # Delete a single chunk
+    aff4.FACTORY.Delete("aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
+                        "/0000000000", token=self.token)
+
+    _, fd_path = self._GenerateArchive(
+        self.stat_entries,
+        archive_format=api_call_handler_utils.CollectionArchiveGenerator.ZIP)
+
+    zip_fd = zipfile.ZipFile(fd_path)
+    names = sorted(zip_fd.namelist())
+
+    link1_name = "test_prefix/C.0000000000000000/fs/os/foo/bar/hello1.txt"
+    link2_name = ("test_prefix/C.0000000000000000/fs/os/foo/bar/"
+                  "中国新闻网新闻中.txt")
+    link1_dest = ("test_prefix/hashes/91e9240f415223982edc345532630710"
+                  "e94a7f52cd5f48f5ee1afc555078f0ab")
+    manifest_name = "test_prefix/MANIFEST"
+
+    # Link 2 should be present, but the contents should be missing.
+    self.assertEqual(names, sorted([link1_name, link1_dest, link2_name,
+                                    manifest_name]))
+
+    link_info = zip_fd.getinfo(link1_name)
+    self.assertEqual(link_info.external_attr, (0644 | 0120000) << 16)
+    self.assertEqual(link_info.create_system, 3)
+
+    link_contents = zip_fd.read(link1_name)
+    self.assertEqual(link_contents, "../../../../../../" + link1_dest)
+
+    dest_contents = zip_fd.read(link1_dest)
+    self.assertEqual(dest_contents, "hello1")
+
+    manifest = yaml.safe_load(zip_fd.read(manifest_name))
+    self.assertEqual(manifest, {
+        "description": "Test description",
+        "processed_files": 2,
+        "archived_files": 1,
+        "skipped_files": 0,
+        "failed_files": 1,
+        "failed_files_list": [
+            u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
+        ]
+    })
 
 
 class FilterAff4CollectionTest(test_lib.GRRBaseTest):

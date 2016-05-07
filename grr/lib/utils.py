@@ -943,6 +943,15 @@ class StreamingZipGenerator(object):
                                    allowZip64=True)
     self._compression = compression
 
+    self._ResetState()
+
+  def _ResetState(self):
+    self.cur_zinfo = None
+    self.cur_file_size = 0
+    self.cur_compress_size = 0
+    self.cur_cmpr = None
+    self.cur_crc = 0
+
   def __enter__(self):
     return self
 
@@ -1026,6 +1035,103 @@ class StreamingZipGenerator(object):
 
     return self._stream.GetValueAndReset()
 
+  def WriteFileHeader(self, arcname=None, compress_type=None, st=None):
+    """Writes a file header."""
+
+    if not self._stream:
+      raise ArchiveAlreadyClosedError(
+          "Attempting to write to a ZIP archive that was already closed.")
+
+    self.cur_zinfo = self._GenerateZipInfo(
+        arcname=arcname, compress_type=compress_type, st=st)
+    self.cur_file_size = 0
+    self.cur_compress_size = 0
+
+    if self.cur_zinfo.compress_type == zipfile.ZIP_DEFLATED:
+      self.cur_cmpr = zlib.compressobj(zlib.Z_DEFAULT_COMPRESSION,
+                                       zlib.DEFLATED, -15)
+    else:
+      self.cur_cmpr = None
+
+    self.cur_crc = 0
+
+    if not self._stream:
+      raise ArchiveAlreadyClosedError(
+          "Attempting to write to a ZIP archive that was already closed.")
+
+    self.cur_zinfo.header_offset = self._stream.tell()
+    # Call _writeCheck(self.cur_zinfo) to do sanity checking on zinfo structure
+    # that we've constructed.
+    self._zip_fd._writecheck(self.cur_zinfo)  # pylint: disable=protected-access
+    # Mark ZipFile as dirty. We have to keep self._zip_fd's internal state
+    # coherent so that it behaves correctly when close() is called.
+    self._zip_fd._didModify = True   # pylint: disable=protected-access
+
+    # Write FileHeader now. It's incomplete, but CRC and uncompressed/compressed
+    # sized will be written later in data descriptor.
+    self._stream.write(self.cur_zinfo.FileHeader())
+
+    return self._stream.GetValueAndReset()
+
+  def WriteFileChunk(self, chunk):
+    """Writes file chunk."""
+
+    if not self._stream:
+      raise ArchiveAlreadyClosedError(
+          "Attempting to write to a ZIP archive that was already closed.")
+
+    self.cur_file_size += len(chunk)
+    self.cur_crc = zipfile.crc32(chunk, self.cur_crc) & 0xffffffff
+
+    if self.cur_cmpr:
+      chunk = self.cur_cmpr.compress(chunk)
+      self.cur_compress_size += len(chunk)
+
+    self._stream.write(chunk)
+    return self._stream.GetValueAndReset()
+
+  def WriteFileFooter(self):
+    """Writes the file footer (finished the file)."""
+
+    if not self._stream:
+      raise ArchiveAlreadyClosedError(
+          "Attempting to write to a ZIP archive that was already closed.")
+
+    if self.cur_cmpr:
+      buf = self.cur_cmpr.flush()
+      self.cur_compress_size += len(buf)
+      self.cur_zinfo.compress_size = self.cur_compress_size
+
+      self._stream.write(buf)
+    else:
+      self.cur_zinfo.compress_size = self.cur_file_size
+
+    self.cur_zinfo.CRC = self.cur_crc
+    self.cur_zinfo.file_size = self.cur_file_size
+
+    # Writing data descriptor ZIP64-way by default. We never know how large
+    # the archive may become as we're generating it dynamically.
+    #
+    # crc-32                          8 bytes (little endian)
+    # compressed size                 8 bytes (little endian)
+    # uncompressed size               8 bytes (little endian)
+    self._stream.write(struct.pack("<LLL", self.cur_crc,
+                                   self.cur_compress_size,
+                                   self.cur_file_size))
+
+    # Register the file in the zip file, so that central directory gets
+    # written correctly.
+    self._zip_fd.filelist.append(self.cur_zinfo)
+    self._zip_fd.NameToInfo[self.cur_zinfo.filename] = self.cur_zinfo
+
+    self._ResetState()
+
+    return self._stream.GetValueAndReset()
+
+  @property
+  def is_file_write_in_progress(self):
+    return self.cur_zinfo
+
   def WriteFromFD(self, src_fd, arcname=None, compress_type=None, st=None):
     """Write a zip member from a file like object.
 
@@ -1041,79 +1147,16 @@ class StreamingZipGenerator(object):
     Yields:
       Chunks of binary data.
     """
-    zinfo = self._GenerateZipInfo(arcname=arcname, compress_type=compress_type,
-                                  st=st)
-
-    crc = 0
-    compress_size = 0
-
-    if not self._stream:
-      raise ArchiveAlreadyClosedError(
-          "Attempting to write to a ZIP archive that was already closed.")
-
-    zinfo.header_offset = self._stream.tell()
-    # Call _writeCheck(zinfo) to do sanity checking on zinfo structure that
-    # we've constructed.
-    self._zip_fd._writecheck(zinfo)  # pylint: disable=protected-access
-    # Mark ZipFile as dirty. We have to keep self._zip_fd's internal state
-    # coherent so that it behaves correctly when close() is called.
-    self._zip_fd._didModify = True   # pylint: disable=protected-access
-
-    # Write FileHeader now. It's incomplete, but CRC and uncompressed/compressed
-    # sized will be written later in data descriptor.
-    self._stream.write(zinfo.FileHeader())
-
-    if zinfo.compress_type == zipfile.ZIP_DEFLATED:
-      cmpr = zlib.compressobj(zlib.Z_DEFAULT_COMPRESSION,
-                              zlib.DEFLATED, -15)
-    else:
-      cmpr = None
-
-    file_size = 0
-    chunk_size = 0
+    yield self.WriteFileHeader(arcname=arcname, compress_type=compress_type,
+                               st=st)
     while 1:
-      buf = src_fd.read(1024 * 8)
+      buf = src_fd.read(1024 * 1024)
       if not buf:
         break
-      file_size += len(buf)
-      chunk_size += len(buf)
-      crc = zipfile.crc32(buf, crc) & 0xffffffff
 
-      if cmpr:
-        buf = cmpr.compress(buf)
-        compress_size += len(buf)
+      yield self.WriteFileChunk(buf)
 
-      self._stream.write(buf)
-      if chunk_size > self.FILE_CHUNK_SIZE:
-        yield self._stream.GetValueAndReset()
-        chunk_size = 0
-
-    if cmpr:
-      buf = cmpr.flush()
-      compress_size += len(buf)
-      zinfo.compress_size = compress_size
-
-      self._stream.write(buf)
-    else:
-      zinfo.compress_size = file_size
-
-    zinfo.CRC = crc
-    zinfo.file_size = file_size
-
-    # Writing data descriptor ZIP64-way by default. We never know how large
-    # the archive may become as we're generating it dynamically.
-    #
-    # crc-32                          8 bytes (little endian)
-    # compressed size                 8 bytes (little endian)
-    # uncompressed size               8 bytes (little endian)
-    self._stream.write(struct.pack("<LLL", crc, compress_size, file_size))
-
-    # Register the file in the zip file, so that central directory gets
-    # written correctly.
-    self._zip_fd.filelist.append(zinfo)
-    self._zip_fd.NameToInfo[zinfo.filename] = zinfo
-
-    yield self._stream.GetValueAndReset()
+    yield self.WriteFileFooter()
 
   def Close(self):
     self._zip_fd.close()
@@ -1197,6 +1240,12 @@ class StreamingTarGenerator(object):
     self._tar_fd = tarfile.open(mode="w:gz", fileobj=self._stream,
                                 encoding="utf-8")
 
+    self._ResetState()
+
+  def _ResetState(self):
+    self.cur_file_size = 0
+    self.cur_info = None
+
   def __enter__(self):
     return self
 
@@ -1225,6 +1274,54 @@ class StreamingTarGenerator(object):
     self._tar_fd.addfile(info)
     return self._stream.GetValueAndReset()
 
+  def WriteFileHeader(self, arcname=None, st=None):
+    """Writes file header."""
+
+    if st is None:
+      raise ValueError("Stat object can't be None.")
+
+    self.cur_file_size = 0
+
+    self.cur_info = self._tar_fd.tarinfo()
+    self.cur_info.tarfile = self._tar_fd
+    self.cur_info.type = tarfile.REGTYPE
+    self.cur_info.name = SmartStr(arcname)
+    self.cur_info.size = st.st_size
+    self.cur_info.mode = st.st_mode
+    self.cur_info.mtime = st.st_mtime or time.time()
+
+    self._tar_fd.addfile(self.cur_info)
+
+    return self._stream.GetValueAndReset()
+
+  def WriteFileChunk(self, chunk):
+    """Writes file chunk."""
+
+    self._tar_fd.fileobj.write(chunk)
+    self.cur_file_size += len(chunk)
+    return self._stream.GetValueAndReset()
+
+  def WriteFileFooter(self):
+    """Writes file footer (finishes the file)."""
+
+    if self.cur_file_size != self.cur_info.size:
+      raise IOError("Incorrect file size: st_size=%d, but written %d bytes." % (
+          self.cur_info.size, self.cur_file_size))
+
+    blocks, remainder = divmod(self.cur_file_size, tarfile.BLOCKSIZE)
+    if remainder > 0:
+      self._tar_fd.fileobj.write(tarfile.NUL * (tarfile.BLOCKSIZE - remainder))
+      blocks += 1
+    self._tar_fd.offset += blocks * tarfile.BLOCKSIZE
+
+    self._ResetState()
+
+    return self._stream.GetValueAndReset()
+
+  @property
+  def is_file_write_in_progress(self):
+    return self.cur_info
+
   def WriteFromFD(self, src_fd, arcname=None, st=None):
     """Write an archive member from a file like object.
 
@@ -1243,48 +1340,15 @@ class StreamingTarGenerator(object):
       Chunks of binary data.
     """
 
-    if st is None:
-      raise ValueError("Stat object can't be None.")
+    yield self.WriteFileHeader(arcname=arcname, st=st)
 
-    info = self._tar_fd.tarinfo()
-    info.tarfile = self._tar_fd
-    info.type = tarfile.REGTYPE
-    info.name = SmartStr(arcname)
-    info.size = st.st_size
-    info.mode = st.st_mode
-    info.mtime = st.st_mtime or time.time()
-
-    self._tar_fd.addfile(info)
-
-    # NOTE: The code below is hackish in a way that it relies on public, but not
-    # documented members of TarFile objects. Unfortunately, this is the easiest
-    # way to implement chunk-by-chunk addition of files to tar archives.
-    chunk_size = 0
-    file_size = 0
     while 1:
-      buf = src_fd.read(1024 * 16)
+      buf = src_fd.read(1024 * 1024)
       if not buf:
         break
-      self._tar_fd.fileobj.write(buf)
+      yield self.WriteFileChunk(buf)
 
-      chunk_size += len(buf)
-      file_size += len(buf)
-
-      if chunk_size > self.FILE_CHUNK_SIZE:
-        yield self._stream.GetValueAndReset()
-        chunk_size = 0
-
-    if file_size != st.st_size:
-      raise IOError("Incorrect file size: st_size=%d, but written %d bytes." % (
-          st.st_size, file_size))
-
-    blocks, remainder = divmod(file_size, tarfile.BLOCKSIZE)
-    if remainder > 0:
-      self._tar_fd.fileobj.write(tarfile.NUL * (tarfile.BLOCKSIZE - remainder))
-      blocks += 1
-    self._tar_fd.offset += blocks * tarfile.BLOCKSIZE
-
-    yield self._stream.GetValueAndReset()
+    yield self.WriteFileFooter()
 
   @property
   def output_size(self):

@@ -7,23 +7,20 @@
 # The main use case is to provide a single point where users may switch GRR
 # installations. For example a common use case is to install an updated GRR
 # installation from source:
+# https://github.com/google/grr-doc/blob/master/installfrompip.adoc#installing-grr-server-for-dev-ie-tracking-head
 
-# virtualenv /My/Virtual/Environment
-# source /My/Virtual/Environment/bin/activate
-# git clone https://github.com/google/grr.git
-# cd grr
-# pip install -e .
+# While this could be handled by systemd drop-in overrides for the services, we
+# would need to do something for the other components (grr_config_updater,
+# grr_console etc.). So we wrap grr_server (which is itself a wrapper), so that
+# we can have a single configuration point for everything.
 
-# Now simply edit /etc/default/grr and set GRR_PREFIX=/My/Virtual/Environment
-# and all scripts will automatically invoke the new GRR from the new virtual
-# environment.
-
-GLOBAL_DEFAULT_FILE="/etc/default/grr"
+GLOBAL_DEFAULT_FILE="/etc/default/grr-server"
 
 # Load the global default file for the location of the GRR virtual env.
 . ${GLOBAL_DEFAULT_FILE}
 
-# All GRR entry points will use this name.
+# NAME will be: grr_server, grr_config_updater, grr_console, grr_export,
+# grr_fuse, or similar.
 NAME=$(basename "$0")
 
 if ! [ -x "${GRR_PREFIX}" ] ; then

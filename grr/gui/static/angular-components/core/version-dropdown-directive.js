@@ -6,6 +6,8 @@ goog.provide('grrUi.core.versionDropdownDirective.VersionDropdownDirective');
 
 goog.scope(function() {
 
+var REFRESH_VERSIONS_EVENT = "RefreshVersionsEvent";
+
 
 /**
  * Controller for VersionDropdownDirective.
@@ -35,6 +37,8 @@ grrUi.core.versionDropdownDirective.VersionDropdownController = function(
   this.scope_.$watch('url', this.onDirectiveArgumentsChange_.bind(this));
   this.scope_.$watch('version', this.onScopeVersionChange_.bind(this));
   this.scope_.$watch('controller.version', this.onControllerVersionChange_.bind(this));
+
+  this.scope_.$on(REFRESH_VERSIONS_EVENT, this.fetchVersions_.bind(this));
 };
 
 var VersionDropdownController =
@@ -47,6 +51,15 @@ var VersionDropdownController =
  * @private
  */
 VersionDropdownController.prototype.onDirectiveArgumentsChange_ = function() {
+  this.fetchVersions_();
+};
+
+/**
+ * Fetches the versions.
+ *
+ * @private
+ */
+VersionDropdownController.prototype.fetchVersions_ = function() {
   var url = this.scope_['url'];
   var responseField = this.scope_['responseField'] || 'times';
 
@@ -133,5 +146,8 @@ grrUi.core.versionDropdownDirective.VersionDropdownDirective = function() {
  */
 grrUi.core.versionDropdownDirective.VersionDropdownDirective.directive_name =
     'grrVersionDropdown';
+
+grrUi.core.versionDropdownDirective.VersionDropdownDirective.refresh_versions_event =
+    REFRESH_VERSIONS_EVENT;
 
 });  // goog.scope

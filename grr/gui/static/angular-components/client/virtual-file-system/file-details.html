@@ -28,10 +28,7 @@
            deselect="downloadTabShown = false"
            ng-if="!controller.fileIsDirectory">
         <div grr-force-refresh refresh-trigger="controller.downloadQueryParams.age">
-          <grr-legacy-renderer ng-if="downloadTabShown"
-                               renderer="DownloadView"
-                               query-params="controller.downloadQueryParams">
-          </grr-legacy-renderer>
+          <grr-file-download-view ng-if="downloadTabShown"></grr-file-download-view>
         </div>
       </tab>
 

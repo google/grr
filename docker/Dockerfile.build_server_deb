@@ -2,20 +2,27 @@
 # Template release for grr-responses-templates must be done before building the
 # server deb.
 #
-# Deb files are written to /output. Build and then copy the deb out:
-#  docker build -t build_package -f docker/Dockerfile.build_server_deb .
-#  docker run --rm --entrypoint cat build_package \
-#    /output/grr-server_3.1.0-2_amd64.deb > /tmp/grr-server_3.1.0-2_amd64.deb
+# See here for build instructions:
+# https://github.com/google/grr-doc/blob/master/admin.adoc#building-the-server-debian-package
 
 # Building on xenial gets us Python 2.7.11
 FROM ubuntu:xenial
 MAINTAINER Greg Castle github@mailgreg.com
 
+# The 32bit libs listed here are required for PyInstaller, which isn't used on
+# the server but picked up by the deb library checker as missing. PyInstaller is
+# a client python package dependency and we need that package for the
+# ClientBuild entry point for repacking. Disabling the library check might
+# result in missing something important. Adding the build deps here seems like
+# the least bad option.
 RUN apt-get update && \
   apt-get install -y \
   debhelper \
+  dh-systemd \
   dh-virtualenv \
   dpkg-dev \
+  lib32z1 \
+  libc6-i386 \
   libssl-dev \
   python2.7-dev \
   python-pip \
@@ -39,6 +46,11 @@ deactivate
 # Copy the GRR code over and build the deb. This will create a fresh virtualenv
 # and install from src, but re-use the precompiled wheels via pip and docker
 # caching.
-ADD . /usr/src/grr/
+COPY . /usr/src/grr/
 WORKDIR /usr/src/grr
-RUN scripts/build_server_deb.sh
+
+# You may see SyntaxError: invalid syntax from pexpect, this seems to be
+# harmless since this code is only used when building clients from source:
+# https://github.com/pexpect/pexpect/issues/220
+# https://bugs.launchpad.net/ubuntu/+source/ubuntu-make/+bug/1507871
+RUN dpkg-buildpackage -us -uc

@@ -2,18 +2,7 @@
 # Copyright 2012 Google Inc. All Rights Reserved.
 """This is a single binary that runs all the GRR components.
 
-This binary can be used to very easily start up all the different components
-of GRR at the same time. For performance reasons, the different parts
-should usually be run in different processes for best results but to get
-a quick idea how GRR works, this helper program can show very quick results.
-
-The minimal command line to start up everything is:
-
-grr_config_updater.py add_user --username=<username>
-then enter a password for the user when prompted.
-
-python grr/tools/grr_server.py \
-    --config grr/install_data/etc/grr-server.yaml
+To use this entry point you must run "grr_config_updater initialize" first.
 """
 
 
@@ -29,41 +18,41 @@ from grr.tools import http_server
 from grr.worker import worker
 
 
-flags.DEFINE_bool("start_worker", False,
-                  "Start the server as worker.")
-
-flags.DEFINE_bool("start_http_server", False,
-                  "Start the server as HTTP server.")
-
-flags.DEFINE_bool("start_ui", False,
-                  "Start the server as user interface.")
-
-flags.DEFINE_bool("start_dataserver", False,
-                  "Start the dataserver.")
+flags.DEFINE_string("component", None,
+                    "Component to start: [http_server|ui|worker|dataserver].")
 
 
 def main(argv):
   """Sets up all the component in their own threads."""
 
+  # We use .startswith so that multiple copies of services can easily be
+  # created using systemd as worker1 worker2 ... worker25 etc.
+
   # Start as a worker.
-  if flags.FLAGS.start_worker:
+  if flags.FLAGS.component.startswith("worker"):
     worker.main([argv])
 
   # Start as a HTTP server that clients communicate with.
-  elif flags.FLAGS.start_http_server:
+  elif flags.FLAGS.component.startswith("http_server"):
     http_server.main([argv])
 
   # Start as an AdminUI.
-  elif flags.FLAGS.start_ui:
+  elif flags.FLAGS.component.startswith("ui"):
     admin_ui.main([argv])
 
-  # Start as the data server.
-  elif flags.FLAGS.start_dataserver:
+  # Start as the data server master. There can only be one master
+  elif flags.FLAGS.component == "dataserver_master":
+    flags.FLAGS.master = True
+    data_server.main([argv])
+
+  # Start dataserver slave
+  elif flags.FLAGS.component.startswith("dataserver_slave"):
     data_server.main([argv])
 
   # If no flags were set then raise.
   else:
-    raise RuntimeError("No component specified to start")
+    raise RuntimeError("No valid component specified. Got: "
+                       "%s." % flags.FLAGS.component)
 
 
 if __name__ == "__main__":

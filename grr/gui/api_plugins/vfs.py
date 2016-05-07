@@ -15,6 +15,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
@@ -30,6 +31,11 @@ class FileContentNotFoundError(api_call_handler_base.ResourceNotFoundError):
 class VfsRefreshOperationNotFoundError(
     api_call_handler_base.ResourceNotFoundError):
   """Raised when a vfs refresh operation could not be found."""
+
+
+class VfsFileContentUpdateNotFoundError(
+    api_call_handler_base.ResourceNotFoundError):
+  """Raised when a file content update operation could not be found."""
 
 
 class ApiFile(rdf_structs.RDFProtoStruct):
@@ -51,7 +57,10 @@ class ApiFile(rdf_structs.RDFProtoStruct):
     self.size = file_obj.Get(file_obj.Schema.SIZE)
     self.is_directory = "Container" in file_obj.behaviours
     self.hash = file_obj.Get(file_obj.Schema.HASH, None)
-    self.last_downloaded = 0  # TODO(user): add method to Schema here
+
+    content_last = file_obj.Get(file_obj.Schema.CONTENT_LAST)
+    if content_last:
+      self.last_downloaded = content_last
 
     type_obj = file_obj.Get(file_obj.Schema.TYPE)
     if type_obj is not None:
@@ -663,4 +672,73 @@ class ApiGetVfsTimelineAsCsvHandler(
         "%s_%s_timeline" % (args.client_id.Basename(),
                             utils.SmartStr(folder_urn.Basename())),
         content_generator=self._GenerateExport(items))
+
+
+class ApiUpdateVfsFileContentArgs(rdf_structs.RDFProtoStruct):
+  """Arguments for updating a VFS file."""
+  protobuf = api_pb2.ApiUpdateVfsFileContentArgs
+
+
+class ApiUpdateVfsFileContentResult(rdf_structs.RDFProtoStruct):
+  """Can be immediately returned to poll the status."""
+  protobuf = api_pb2.ApiUpdateVfsFileContentResult
+
+
+class ApiUpdateVfsFileContentHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Creates a file update operation for a given VFS file.
+
+  Triggers a flow to refresh a given VFS file. The refresh status
+  can be monitored by polling the operation id.
+  """
+
+  category = CATEGORY
+  args_type = ApiUpdateVfsFileContentArgs
+  result_type = ApiUpdateVfsFileContentResult
+
+  def Handle(self, args, token=None):
+    aff4_path = args.client_id.Add(args.file_path)
+    fd = aff4.FACTORY.Open(aff4_path, aff4_type="VFSFile", mode="rw",
+                           token=token)
+    flow_urn = fd.Update(priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
+
+    return ApiUpdateVfsFileContentResult(operation_id=str(flow_urn))
+
+
+class ApiGetVfsFileContentUpdateStateArgs(rdf_structs.RDFProtoStruct):
+  """Arguments for checking a file content update operation."""
+  protobuf = api_pb2.ApiGetVfsFileContentUpdateStateArgs
+
+
+class ApiGetVfsFileContentUpdateStateResult(rdf_structs.RDFProtoStruct):
+  """Indicates the state of a file content update operation."""
+  protobuf = api_pb2.ApiGetVfsFileContentUpdateStateResult
+
+
+class ApiGetVfsFileContentUpdateStateHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Retrieves the state of the update operation specified."""
+
+  category = CATEGORY
+  args_type = ApiGetVfsFileContentUpdateStateArgs
+  result_type = ApiGetVfsFileContentUpdateStateResult
+
+  def Handle(self, args, token=None):
+    try:
+      flow_obj = aff4.FACTORY.Open(args.operation_id,
+                                   aff4_type="MultiGetFile",
+                                   token=token)
+      complete = not flow_obj.GetRunner().IsRunning()
+    except aff4.InstantiationError:
+      raise VfsFileContentUpdateNotFoundError(
+          "Operation with id %s not found" % args.operation_id)
+
+    result = ApiGetVfsFileContentUpdateStateResult()
+    if complete:
+      result.state = ApiGetVfsFileContentUpdateStateResult.State.FINISHED
+    else:
+      result.state = ApiGetVfsFileContentUpdateStateResult.State.RUNNING
+
+    return result
+
 

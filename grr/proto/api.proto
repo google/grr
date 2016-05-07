@@ -1592,6 +1592,39 @@ message ApiGetVfsRefreshOperationStateResult {
     }];
 }
 
+message ApiUpdateVfsFileContentArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "AFF4 path of a VFS file to be refreshed."
+    }];
+}
+
+message ApiUpdateVfsFileContentResult {
+  optional string operation_id = 1 [(sem_type) = {
+      description: "The id of the update operation."
+    }];
+}
+
+message ApiGetVfsFileContentUpdateStateArgs {
+  optional string operation_id = 1 [(sem_type) = {
+      description: "The id of the update operation."
+    }];
+}
+
+message ApiGetVfsFileContentUpdateStateResult {
+  enum State {
+    RUNNING = 0;
+    FINISHED = 1;
+  }
+
+  optional State state = 1 [(sem_type) = {
+      description: "The state of the update operation."
+    }];
+}
+
 message ApiGetPendingUserNotificationsCountResult {
   optional int64 count = 1 [(sem_type) = {
       description: "Number of pending notifications."

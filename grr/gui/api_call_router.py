@@ -245,6 +245,20 @@ class ApiCallRouter(object):
   def GetVfsTimelineAsCsv(self, args, token=None):
     raise NotImplementedError()
 
+  @Category("Vfs")
+  @ArgsType(api_vfs.ApiUpdateVfsFileContentArgs)
+  @ResultType(api_vfs.ApiUpdateVfsFileContentResult)
+  @Http("POST", "/api/clients/<client_id>/vfs-update")
+  def UpdateVfsFileContent(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("Vfs")
+  @ArgsType(api_vfs.ApiGetVfsFileContentUpdateStateArgs)
+  @ResultType(api_vfs.ApiGetVfsFileContentUpdateStateResult)
+  @Http("GET", "/api/clients/<client_id>/vfs-update/<path:operation_id>")
+  def GetVfsFileContentUpdateState(self, args, token=None):
+    raise NotImplementedError()
+
   # Clients labels methods.
   # ======================
   #

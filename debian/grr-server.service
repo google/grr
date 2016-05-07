@@ -1,0 +1,17 @@
+# This service is actually a systemd target, but we are using a service since
+# targets cannot be reloaded and we may want to implement reload in the future.
+
+[Unit]
+Description=GRR Service
+After=syslog.target network.target
+Documentation=https://github.com/google/grr
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecReload=/bin/systemctl --no-block reload grr-server@ui.service grr-server@http_server.service grr-server@worker.service grr-server@worker2.service
+ExecStart=/bin/systemctl --no-block start grr-server@ui.service grr-server@http_server.service grr-server@worker.service grr-server@worker2.service
+ExecStop=/bin/systemctl --no-block stop grr-server@ui.service grr-server@http_server.service grr-server@worker.service grr-server@worker2.service
+
+[Install]
+WantedBy=multi-user.target

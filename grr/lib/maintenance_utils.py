@@ -153,9 +153,6 @@ def RepackAllBinaries(upload=False, debug_build=False, token=None):
   built = []
 
   base_context = ["ClientBuilder Context"]
-  if debug_build:
-    base_context += ["DebugClientBuild Context"]
-
   clients_to_repack = [
       (["Target:Windows", "Platform:Windows", "Arch:amd64"],
        build.WindowsClientDeployer),
@@ -171,6 +168,15 @@ def RepackAllBinaries(upload=False, debug_build=False, token=None):
        build.CentosClientDeployer),
       (["Target:Darwin", "Platform:Darwin", "Arch:amd64"],
        build.DarwinClientDeployer)]
+
+  if debug_build:
+    base_context += ["DebugClientBuild Context"]
+    # Debug builds only make sense for windows.
+    clients_to_repack = [
+        (["Target:Windows", "Platform:Windows", "Arch:amd64"],
+         build.WindowsClientDeployer),
+        (["Target:Windows", "Platform:Windows", "Arch:i386"],
+         build.WindowsClientDeployer)]
 
   msg = "Will repack the following clients "
   if debug_build:

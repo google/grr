@@ -1462,11 +1462,6 @@
                 "type": "RDFBool",
                 "value": false
               },
-              "last_downloaded": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 0
-              },
               "name": {
                 "age": 0,
                 "type": "unicode",
@@ -1498,11 +1493,6 @@
                 "type": "RDFBool",
                 "value": false
               },
-              "last_downloaded": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 0
-              },
               "name": {
                 "age": 0,
                 "type": "unicode",
@@ -1532,7 +1522,6 @@
         "items": [
           {
             "is_directory": false,
-            "last_downloaded": 0,
             "name": "bash",
             "path": "fs/tsk/c/bin/bash",
             "size": 11,
@@ -1540,7 +1529,6 @@
           },
           {
             "is_directory": false,
-            "last_downloaded": 0,
             "name": "rbash",
             "path": "fs/tsk/c/bin/rbash",
             "size": 11,
@@ -10544,6 +10532,53 @@
         "status_url": "http://localhost:8000/api/flows/C.1000000000000000/W:ABCDEF/status"
       },
       "url": "/api/clients/C.1000000000000000/flows/remotegetfile"
+    }
+  ],
+  "ApiUpdateVfsFileContentHandler": [
+    {
+      "method": "POST",
+      "request_payload": {
+        "file_path": "fs/os/c/bin/bash"
+      },
+      "response": {
+        "operation_id": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+      },
+      "test_class": "ApiUpdateVfsFileContentHandlerRegressionTest",
+      "url": "/api/clients/C.1000000000000000/vfs-update"
+    }
+  ],
+  "GetVfsFileContentUpdateStateHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "state": "RUNNING"
+      },
+      "test_class": "GetVfsFileContentUpdateStateHandlerRegressionTest",
+      "url": "/api/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "state": "FINISHED"
+      },
+      "test_class": "GetVfsFileContentUpdateStateHandlerRegressionTest",
+      "url": "/api/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "message": "Operation with id aff4:/C.1000000000000000/flows/W:ABCDEF not found"
+      },
+      "test_class": "GetVfsFileContentUpdateStateHandlerRegressionTest",
+      "url": "/api/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "message": "Operation with id W:ABCDEF not found"
+      },
+      "test_class": "GetVfsFileContentUpdateStateHandlerRegressionTest",
+      "url": "/api/clients/C.1000000000000000/vfs-update/W:ABCDEF"
     }
   ],
   "GetVfsRefreshOperationStateHandler": [

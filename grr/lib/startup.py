@@ -106,6 +106,14 @@ def Init():
   ServerLoggingStartupInit()
   registry.Init()
 
+  # Exempt config updater from this check because it is the one responsible for
+  # setting the variable.
+  if not config_lib.CONFIG.ContextApplied("ConfigUpdater Context"):
+    if not config_lib.CONFIG.Get("Server.initialized"):
+      raise RuntimeError("Config not initialized, run \"grr_config_updater"
+                         " initialize\". If the server is already configured,"
+                         " add \"Server.initialized: True\" to your config.")
+
   INIT_RAN = True
 
 

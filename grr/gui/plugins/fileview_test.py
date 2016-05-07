@@ -5,7 +5,9 @@
 
 
 
+from grr.gui import api_call_handler_base
 from grr.gui import runtests_test
+from grr.gui.api_plugins import vfs as api_vfs
 
 from grr.lib import access_control
 from grr.lib import action_mocks
@@ -92,7 +94,7 @@ class TestFileView(FileViewTestBase):
     super(TestFileView, self).setUp()
     # Prepare our fixture.
     with self.ACLChecksDisabled():
-      self.CreateFileVersions()
+      self._CreateFileVersions()
       self.RequestAndGrantClientApproval("C.0000000000000001")
 
       self.canary_override = test_lib.CanaryModeOverrider(
@@ -104,36 +106,26 @@ class TestFileView(FileViewTestBase):
     with self.ACLChecksDisabled():
       self.canary_override.Stop()
 
-  @staticmethod
-  def CreateFileVersions():
-    """Add a new version for a file."""
-    with test_lib.FakeTime(TIME_1):
-      token = access_control.ACLToken(username="test")
-      # This file already exists in the fixture at TIME_0, we write a later
-      # version.
-      fd = aff4.FACTORY.Create(
-          "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
-          "AFF4MemoryStream", mode="w", token=token)
-      fd.Write("Hello World")
-      fd.Close()
+  def _CreateFileVersions(self):
+    """Add new versions for a file."""
+    # This file already exists in the fixture at TIME_0, we write a later
+    # version.
+    token = access_control.ACLToken(username="test")
+    self._CreateFileVersion("aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
+                            "Hello World", timestamp=TIME_1, token=token)
+    self._CreateFileVersion("aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
+                            "Goodbye World", timestamp=TIME_2, token=token)
 
-    # An another version, even later.
-    with test_lib.FakeTime(TIME_2):
-      fd = aff4.FACTORY.Create(
-          "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
-          "AFF4MemoryStream", mode="w", token=token)
-      fd.Write("Goodbye World")
-      fd.Close()
+  def _CreateFileVersion(self, path, content, timestamp, token=None):
+    """Add a new version for a file."""
+    with test_lib.FakeTime(timestamp):
+      with aff4.FACTORY.Create(path, aff4_type="VFSFile", mode="w",
+                               token=token) as fd:
+        fd.Write(content)
+        fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime().Now())
 
   def testVersionDropDownChangesFileContentAndDownloads(self):
     """Test the fileview interface."""
-
-    # This is ugly :( Django gets confused when you import in the wrong order
-    # though and fileview imports the Django http module so we have to delay
-    # import until the Django server is properly set up.
-    # pylint: disable=g-import-not-at-top
-    from grr.gui.plugins import fileview
-    # pylint: enable=g-import-not-at-top
 
     # Set up multiple version for an attribute on the client for tests.
     with self.ACLChecksDisabled():
@@ -186,20 +178,22 @@ class TestFileView(FileViewTestBase):
 
     downloaded_files = []
 
-    def FakeDownload(unused_self, request, _):
-      aff4_path = request.REQ.get("aff4_path")
-      age = rdfvalue.RDFDatetime(request.REQ.get("age")) or aff4.NEWEST_TIME
+    def FakeDownloadHandle(unused_self, args, token=None):
+      _ = token  # Avoid unused variable linter warnings.
+      aff4_path = args.client_id.Add(args.file_path)
+      age = args.timestamp or aff4.NEWEST_TIME
       downloaded_files.append((aff4_path, age))
 
-      return fileview.http.HttpResponse(
-          content="<script>window.close()</script>")
+      return api_call_handler_base.ApiBinaryStream(
+          filename=aff4_path.Basename(), content_generator=xrange(42))
 
-    with utils.Stubber(fileview.DownloadView, "Download", FakeDownload):
+    with utils.Stubber(api_vfs.ApiGetFileBlobHandler, "Handle",
+                       FakeDownloadHandle):
       # Try to download the file.
       self.Click("css=li[heading=Download]")
 
-      self.WaitUntil(self.IsTextPresent,
-                     "As downloaded on %s" % DateTimeString(TIME_2))
+      self.WaitUntilContains(DateTimeString(TIME_2), self.GetText,
+                             "css=grr-file-download-view")
       self.Click("css=button:contains(\"Download\")")
 
       # Select the previous version.
@@ -207,24 +201,26 @@ class TestFileView(FileViewTestBase):
                  DateString(TIME_1))
 
       # Now we should have a different time.
-      self.WaitUntil(self.IsTextPresent,
-                     "As downloaded on %s" % DateTimeString(TIME_1))
+      self.WaitUntilContains(DateTimeString(TIME_1), self.GetText,
+                             "css=grr-file-download-view")
       self.Click("css=button:contains(\"Download\")")
 
       self.WaitUntil(self.IsElementPresent, "css=li[heading=TextView]")
 
-      self.WaitUntil(lambda: len(downloaded_files) == 2)
+      # the FakeDownloadHandle method was actually called four times, since
+      # a file download first sends a HEAD request to check user access.
+      self.WaitUntil(lambda: len(downloaded_files) == 4)
 
     # Both files should be the same...
     self.assertEqual(downloaded_files[0][0],
                      u"aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt")
-    self.assertEqual(downloaded_files[1][0],
+    self.assertEqual(downloaded_files[2][0],
                      u"aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt")
     # But from different times. The downloaded file timestamp is only accurate
     # to the nearest second.
     self.assertAlmostEqual(downloaded_files[0][1], TIME_2,
                            delta=rdfvalue.Duration("1s"))
-    self.assertAlmostEqual(downloaded_files[1][1], TIME_1,
+    self.assertAlmostEqual(downloaded_files[2][1], TIME_1,
                            delta=rdfvalue.Duration("1s"))
 
     self.Click("css=li[heading=TextView]")
@@ -233,6 +229,82 @@ class TestFileView(FileViewTestBase):
     # it.
     self.WaitUntilContains("Hello World", self.GetText,
                            "css=div.monospace pre")
+
+  def testRefreshFileStartsFlow(self):
+    self.Open("/")
+
+    self.Type("client_query", "C.0000000000000001")
+    self.Click("client_query_submit")
+
+    self.WaitUntilEqual(u"C.0000000000000001",
+                        self.GetText, "css=span[type=subject]")
+
+    # Choose client 1.
+    self.Click("css=td:contains('0001')")
+
+    # Go to Browse VFS.
+    self.Click("css=a:contains('Browse Virtual Filesystem')")
+
+    self.Click("css=#_fs i.jstree-icon")
+    self.Click("css=#_fs-os i.jstree-icon")
+    self.Click("css=#_fs-os-c i.jstree-icon")
+
+    # Test file versioning.
+    self.WaitUntil(self.IsElementPresent, "css=#_fs-os-c-Downloads")
+    self.Click("link=Downloads")
+
+    # Select a file and start a flow by requesting a newer version.
+    self.Click("css=tr:contains(\"a.txt\")")
+    self.Click("css=li[heading=Download]")
+    self.Click("css=button:contains(\"Get a new Version\")")
+
+    # Create a new file version (that would have been created by the flow
+    # otherwise) and finish the flow.
+    with self.ACLChecksDisabled():
+      client_id = rdf_client.ClientURN("C.0000000000000001")
+
+      fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+      flows = list(fd.ListChildren())
+
+      client_mock = action_mocks.ActionMock("StatFile", "HashFile",
+                                            "FingerprintFile")
+      for flow_urn in flows:
+        for _ in test_lib.TestFlowHelper(
+            flow_urn, client_mock, client_id=client_id, token=self.token,
+            check_flow_errors=False):
+          pass
+
+      # Extract the timestamp of the newest version and update its content.
+      with aff4.FACTORY.Open(
+          "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
+          aff4_type="VFSFile", mode="rw", token=self.token) as fd:
+        newest_file_version = fd.Get(fd.Schema.TYPE).age
+        fd.Write("The newest version!")
+
+    # Once the flow has finished, the file view should update and select the
+    # newly created, latest version of the file.
+    self.WaitUntilContains(DateString(newest_file_version), self.GetText,
+                           "css=.version-dropdown > option[selected]")
+
+    # The file table should also update and display the new timestamp.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-file-table tbody > tr td:contains(\"%s\")" % (
+                       DateString(newest_file_version)))
+
+    # Make sure the file content has changed.
+    self.Click("css=li[heading=TextView]")
+    self.WaitUntilContains("The newest version!", self.GetText,
+                           "css=div.monospace pre")
+
+    # Go to the flow management screen and check that there was a new flow.
+    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=grr-flows-list tr:contains('MultiGetFile')")
+    self.WaitUntilContains("MultiGetFile", self.GetText,
+                           "css=#main_bottomPane")
+    self.WaitUntilContains(
+        "c/Downloads/a.txt", self.GetText,
+        "css=#main_bottomPane table > tbody td.proto_key:contains(\"Path\") "
+        "~ td.proto_value")
 
   def testUnicodeContentIsShownInTree(self):
     # Open VFS view for client 1 on a specific location.
@@ -246,7 +318,7 @@ class TestFileView(FileViewTestBase):
     self.Click(u"css=tr:contains(\"中.txt\")")
     self.Click("css=li[heading=Download]")
 
-    self.WaitUntil(self.IsTextPresent, u"fs/os/c/Downloads/中国新闻网新闻中.txt")
+    self.WaitUntil(self.IsTextPresent, u"中国新闻网新闻中.txt")
 
     # Test the hex viewer.
     self.Click("css=#_fs-os-proc i.jstree-icon")
@@ -259,6 +331,14 @@ class TestFileView(FileViewTestBase):
 
     self.WaitUntilEqual("lshello world'-l", self.GetText,
                         "css=table.content-area tr:first td")
+
+  def testFolderPathCanContainUnicodeCharacters(self):
+    # Open VFS view for client 1 on a location containing unicode characters.
+    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView&t=_fs-os-c"
+              "-_4E2D_56FD_65B0_95FB_7F51_65B0_95FB_4E2D")
+
+    # Check that the correct file is listed.
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains(\"bzcmp\")")
 
   def testSearchInputFiltersFileList(self):
     # Open VFS view for client 1.
@@ -535,6 +615,7 @@ class TestTimeline(FileViewTestBase):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
               "&t=_fs-os-c-proc")
+    self.WaitUntilEqual(2, self.GetCssCount, "css=.file-list tbody tr")
     self.Click("css=.btn:contains('Timeline')")
 
     # We need to have one entry per timestamp per file.
@@ -545,6 +626,7 @@ class TestTimeline(FileViewTestBase):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
               "&t=_fs-os-c-proc")
+    self.WaitUntilEqual(2, self.GetCssCount, "css=.file-list tbody tr")
     self.Click("css=.btn:contains('Timeline')")
 
     # The first item has the latest time, so the version dropdown should not
@@ -570,6 +652,7 @@ class TestTimeline(FileViewTestBase):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
               "&t=_fs-os-c-proc")
+    self.WaitUntilEqual(2, self.GetCssCount, "css=.file-list tbody tr")
     self.Click("css=.btn:contains('Timeline')")
 
     # Wait until the UI finished loading.
@@ -590,6 +673,7 @@ class TestTimeline(FileViewTestBase):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
               "&t=_fs-os-c-proc")
+    self.WaitUntilEqual(2, self.GetCssCount, "css=.file-list tbody tr")
     self.Click("css=.btn:contains('Timeline')")
 
     # Wait until the UI finished loading.
@@ -611,6 +695,7 @@ class TestTimeline(FileViewTestBase):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
               "&t=_fs-os-c-proc")
+    self.WaitUntilEqual(2, self.GetCssCount, "css=.file-list tbody tr")
     self.Click("css=.btn:contains('Timeline')")
 
     # Wait until the UI finished loading.

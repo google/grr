@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -e
+
+case "$1" in
+    configure)
+      if [ "$DEBIAN_FRONTEND" != noninteractive ]; then
+
+        echo "#################################################################"
+        echo "Running grr_config_updater initialize"
+        echo "To avoid this prompting, set DEBIAN_FRONTEND=noninteractive"
+        echo "#################################################################"
+
+        grr_config_updater initialize
+      fi
+
+      # Set filehandle max to a high value if it isn't already set.
+      if ! grep -Fq "fs.file-max" /etc/sysctl.conf; then
+        echo "Increasing our filehandle limit (for SQLite datastore)."
+        echo "fs.file-max = 1048576" >> /etc/sysctl.conf
+        sysctl -p
+      fi
+      echo "Filehandle limit now: $(cat /proc/sys/fs/file-max)"
+esac
+
+echo "#################################################################"
+echo "Install complete."
+echo "If upgrading, make sure you read the release notes:"
+echo "https://github.com/google/grr-doc/blob/master/releasenotes.adoc"
+echo "#################################################################"

@@ -21,7 +21,7 @@ config_lib.DEFINE_string("AdminUI.local_document_root",
 
 config_lib.DEFINE_string("AdminUI.help_root",
                          "%(docs|resource)",
-                         "The main path to the static HTML pages.")
+                         "The main path to the locally cached documentation.")
 
 config_lib.DEFINE_string(
     "AdminUI.webauth_manager", "NullWebAuthManager",

@@ -22,7 +22,7 @@ class YumListCmdParser(parsers.CommandParser):
   """
 
   output_types = ["SoftwarePackage"]
-  supported_artifacts = []
+  supported_artifacts = ["RedhatYumPackagesList"]
 
   def Parse(self, cmd, args, stdout, stderr, return_val, time_taken,
             knowledge_base):
@@ -49,7 +49,7 @@ class YumRepolistCmdParser(parsers.CommandParser):
   """
 
   output_types = ["PackageRepository"]
-  supported_artifacts = []
+  supported_artifacts = ["RedhatYumRepoList"]
 
   def _re_compile(self, search_str):
     return re.compile(r"%s\s*: ([0-9a-zA-Z-\s./#_=:\(\)]*)" % (search_str))

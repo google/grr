@@ -31,6 +31,9 @@ class Sdist(sdist):
     # Sync the artifact repo with upstream for distribution.
     subprocess.check_call(["python", "makefile.py"], cwd="grr/artifacts")
 
+    # Download the docs so they are available offline.
+    subprocess.check_call(["python", "makefile.py"], cwd="docs")
+
     sdist.run(self)
 
 
@@ -80,7 +83,7 @@ data_files = (find_data_files("docs") +
 
 setup_args = dict(
     name="grr-response-core",
-    version="3.1.0pre2",
+    version="3.1.0",
     description="GRR Rapid Response",
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",

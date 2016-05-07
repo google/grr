@@ -8,7 +8,7 @@ from setuptools import setup
 
 setup(
     name="grr-response-server",
-    version="3.1.0",
+    version="3.1.0post1",
     description="The GRR Rapid Response Server.",
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",
@@ -28,8 +28,8 @@ setup(
     install_requires=[
         "Django==1.8.3",
         "google-api-python-client==1.4.2",
-        "grr-response-core",
-        "grr-response-client",
+        "grr-response-core==3.1.*",
+        "grr-response-client==3.1.*",
         "oauth2client==1.5.2",
         "pexpect==4.0.1",
         "portpicker==1.1.1",

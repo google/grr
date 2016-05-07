@@ -166,6 +166,25 @@ Extra Context:
     self.assertEqual(conf.Get("Section1.test"), 2)
     self.assertEqual(conf.Get("Section1.test2"), 9)
 
+  def testContextApplied(self):
+    conf = config_lib.GrrConfigManager()
+
+    conf.DEFINE_integer("Section1.test", 0, "An integer")
+    conf.DEFINE_context("Client Context")
+    conf.DEFINE_context("Unused Context")
+    conf.Initialize(parser=config_lib.YamlParser, data="""
+Client Context:
+  Section1.test: 6
+""")
+
+    # Should be defaults, no contexts added
+    self.assertFalse(conf.ContextApplied("Client Context"))
+    self.assertFalse(conf.ContextApplied("Unused Context"))
+
+    conf.AddContext("Client Context")
+    self.assertTrue(conf.ContextApplied("Client Context"))
+    self.assertFalse(conf.ContextApplied("Unused Context"))
+
   def testBackslashes(self):
     conf = config_lib.GrrConfigManager()
 

@@ -95,12 +95,15 @@ setup_args = dict(
     name="grr-response-templates",
     version="3.1.0post1",
     description="GRR Rapid Response client templates and components.",
+    long_description=("This PyPi package is just a placeholder. The package"
+                      " itself is too large to distribute on PyPi so it is "
+                      "available from google cloud storage. See"
+                      " https://github.com/google/grr-doc/blob/master/"
+                      "installfrompip.adoc for installation instructions."),
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",
     data_files=(find_data_files("components", prefix="grr-response-templates") +
                 find_data_files("templates", prefix="grr-response-templates")),
-    download_url=("https://storage.googleapis.com/releases.grr-response.com/"
-                  "grr-response-templates-3.1.0post1.tar.gz"),
     cmdclass={
         "sdist": Sdist,
     })

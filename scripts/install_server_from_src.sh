@@ -1,12 +1,8 @@
 #!/bin/bash
 
 # This script will install GRR server dependencies and components from source.
-
-# It is called in four ways:
-# install_data/debian/dpkg_server/rules
-# Dockerfile
-# Vagrantfile for grr_server_dev
-# directly when installing GRR from src
+# It is called by install_data/debian/dpkg_server/rules when building the deb
+# package.
 
 set -e
 
@@ -80,28 +76,12 @@ $INSTALL_CMD $LAUNCHER "$INSTALL_PREFIX/usr/bin/grr_server"
 $INSTALL_CMD $LAUNCHER "$INSTALL_PREFIX/usr/bin/grr_export"
 $INSTALL_CMD $LAUNCHER "$INSTALL_PREFIX/usr/bin/grr_fuse"
 
-# Set up upstart scripts
-mkdir -p "$INSTALL_PREFIX/etc/default"
-mkdir -p "$INSTALL_PREFIX/etc/init"
-
-$INSTALL_CMD "$SRC_DIR"/install_data/debian/dpkg_server/upstart/default/grr* "$INSTALL_PREFIX/etc/default"
-
-for init_script in "$SRC_DIR"/install_data/debian/dpkg_server/upstart/grr-*; do
-  $INSTALL_CMD "${init_script}" "$INSTALL_PREFIX/etc/init/"
-done
+# dh_installinit doesn't cater for systemd template files. The
+# service target is installed by dh_installinit we just need to copy over the
+# template.
+$INSTALL_CMD "$SRC_DIR/debian/grr-server@.service" "$INSTALL_PREFIX/lib/systemd/system/"
 
 # Set up log directory
 mkdir -p "$INSTALL_PREFIX"/var/log/grr
 
-echo "#################################################################"
-echo "Install complete"
-echo ""
-echo "Next steps if new install:"
-echo "   (Optional) Install/Configure MySQL"
-echo "   sudo grr_config_updater initialize"
-echo "   source ${INSTALL_PREFIX}/usr/share/grr/scripts/shell_helpers.sh"
-echo "   grr_enable_all"
-echo ""
-echo "If upgrading see:"
-echo "https://github.com/google/grr-doc/blob/master/releasenotes.adoc"
-echo "#################################################################"
+header "Install Complete"

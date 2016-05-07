@@ -8,7 +8,8 @@ goog.scope(function() {
 
 var REFRESH_FOLDER_EVENT =
     grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT;
-
+var REFRESH_FILE_EVENT =
+    grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT;
 
 /**
  * Controller for FileTimelineDirective.
@@ -45,6 +46,8 @@ grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineController = fu
   this.triggerUpdate;
 
   this.scope_.$on(REFRESH_FOLDER_EVENT,
+      this.refreshTimeline_.bind(this));
+  this.scope_.$on(REFRESH_FILE_EVENT,
       this.refreshTimeline_.bind(this));
 
   this.scope_.$watchGroup(['controller.fileContext.clientId',

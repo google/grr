@@ -860,6 +860,10 @@ class GrrConfigManager(object):
 
     self.FlushCache()
 
+  def ContextApplied(self, context_string):
+    """Return true if the context is applied."""
+    return context_string in self.context
+
   def RemoveContext(self, context_string):
     if context_string in self.context:
       self.context.remove(context_string)

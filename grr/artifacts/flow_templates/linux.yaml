@@ -56,6 +56,16 @@ sources:
 labels: [Software]
 supported_os: [Linux]
 ---
+name: RedhatYumRepoList
+doc: Linux output of yum repolist -q -a.
+sources:
+- type: COMMAND
+  attributes:
+    args: ["repolist", "-v", "-q"]
+    cmd: /usr/bin/yum
+labels: [Software]
+supported_os: [Linux]
+---
 name: DebianPackagesList
 doc: Linux output of dpkg --list.
 sources:

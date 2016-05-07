@@ -1,0 +1,17 @@
+[Unit]
+Description=GRR %I
+PartOf=grr-server.service
+ReloadPropagatedFrom=grr-server.service
+After=syslog.target network.target
+Documentation=https://github.com/google/grr
+
+[Service]
+Type=simple
+PrivateTmp=true
+Restart=on-failure
+Environment="MPLCONFIGDIR=/var/run/grr/tmp/%i" "PYTHON_EGG_CACHE=/var/run/grr/tmp/%i"
+ExecStartPre=/bin/mkdir -p /var/run/grr/tmp/%i
+ExecStart=/usr/bin/grr_server --component %i --disallow_missing_config_definitions
+
+[Install]
+WantedBy=multi-user.target

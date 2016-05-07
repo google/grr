@@ -94,7 +94,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
       "GetFileDownloadCommand",
       "CreateVfsRefreshOperation",
       "GetVfsTimeline",
-      "GetVfsTimelineAsCsv"
+      "GetVfsTimelineAsCsv",
+      "UpdateVfsFileContent"
   ])
 
   def testVfsMethodsAreAccessChecked(self):
@@ -133,6 +134,10 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     args = api_vfs.ApiGetVfsTimelineAsCsvArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
         self.router.GetVfsTimelineAsCsv, "CheckClientAccess", args=args)
+
+    args = api_vfs.ApiUpdateVfsFileContentArgs(client_id=self.client_id)
+    self.CheckMethodIsAccessChecked(
+        self.router.UpdateVfsFileContent, "CheckClientAccess", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
       "ListClientFlows",

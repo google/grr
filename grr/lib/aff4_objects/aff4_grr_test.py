@@ -4,11 +4,13 @@
 
 import time
 
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -125,6 +127,77 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
     # The age of the content should still be the same.
     self.assertEqual(int(fd.GetContentAge()), 101000000)
+
+  def testVFSFileStartsOnlyOneMultiGetFileFlowOnUpdate(self):
+    """File updates should only start one MultiGetFile at any point in time."""
+    client_id = self.SetupClients(1)[0]
+    test_lib.ClientFixture(client_id, token=self.token)
+    # We need to choose a file path having a pathsepc.
+    path = "fs/os/c/bin/bash"
+
+    with aff4.FACTORY.Create(
+        client_id.Add(path), aff4_type=aff4_grr.VFSFile.__name__, mode="rw",
+        token=self.token) as file_fd:
+      # Starts a MultiGetFile flow.
+      file_fd.Update()
+
+    # Check that there is exactly one flow on the client.
+    flows_fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+    flows = list(flows_fd.ListChildren())
+    self.assertEqual(len(flows), 1)
+
+    # The flow is the MultiGetFile flow holding the lock on the file.
+    flow_obj = aff4.FACTORY.Open(flows[0], token=self.token)
+    self.assertEqual(flow_obj.Get(flow_obj.Schema.TYPE), "MultiGetFile")
+    self.assertEqual(flow_obj.urn, file_fd.Get(file_fd.Schema.CONTENT_LOCK))
+
+    # Since there is already a running flow having the lock on the file,
+    # this call shouldn't do anything.
+    file_fd.Update()
+
+    # There should still be only one flow on the client.
+    flows_fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+    flows = list(flows_fd.ListChildren())
+    self.assertEqual(len(flows), 1)
+
+  def testVFSFileStartsNewMultiGetFileWhenLockingFlowHasFinished(self):
+    """A new MultiFileGet can be started when the locking flow has finished."""
+    client_id = self.SetupClients(1)[0]
+    test_lib.ClientFixture(client_id, token=self.token)
+    # We need to choose a file path having a pathsepc.
+    path = "fs/os/c/bin/bash"
+
+    with aff4.FACTORY.Create(
+        client_id.Add(path), aff4_type=aff4_grr.VFSFile.__name__, mode="rw",
+        token=self.token) as file_fd:
+      # Starts a MultiGetFile flow.
+      first_update_flow_urn = file_fd.Update()
+
+    # Check that there is exactly one flow on the client.
+    flows_fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+    flows = list(flows_fd.ListChildren())
+    self.assertEqual(len(flows), 1)
+
+    # Finish the flow holding the lock.
+    client_mock = action_mocks.ActionMock()
+    for _ in test_lib.TestFlowHelper(
+        flows[0], client_mock, client_id=client_id, token=self.token):
+      pass
+
+    # The flow holding the lock has finished, so Update() should start a new
+    # flow.
+    second_update_flow_urn = file_fd.Update()
+
+    # There should be two flows now.
+    flows_fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+    flows = list(flows_fd.ListChildren())
+    self.assertEqual(len(flows), 2)
+
+    # Make sure that each Update() started a new flow and that the second flow
+    # is holding the lock.
+    self.assertNotEqual(first_update_flow_urn, second_update_flow_urn)
+    self.assertEqual(second_update_flow_urn,
+                     file_fd.Get(file_fd.Schema.CONTENT_LOCK))
 
   def testGetClientSummary(self):
     hostname = "test"

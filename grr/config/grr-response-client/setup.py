@@ -3,12 +3,15 @@
 
 This is just a meta-package which pulls in the minimal requirements to create a
 client.
+
+This package needs to stay simple so that it can be installed on windows and
+ancient versions of linux to build clients.
 """
 from setuptools import setup
 
 setup(
     name="grr-response-client",
-    version="3.1.0",
+    version="3.1.0post1",
     description="The GRR Rapid Response client.",
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",
@@ -20,6 +23,6 @@ setup(
     },
     install_requires=[
         "pyinstaller==3.1.1",
-        "grr-response-core",
+        "grr-response-core==3.1.*",
     ],
 )

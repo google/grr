@@ -639,6 +639,7 @@ server and the admin user interface.\n"""
                  " [Yn]: ").upper() == "N":
       ConfigureEmails(config)
 
+  config.Set("Server.initialized", True)
   config.Write()
   print ("Configuration parameters set. You can edit these in %s" %
          config_lib.CONFIG.Get("Config.writeback"))
@@ -778,6 +779,7 @@ def InitializeNoPrompt(config=None, token=None):
   print "Setting configuration as:\n\n%s" % config_dict
   for key, value in config_dict.iteritems():
     config.Set(key, value)
+  config.Set("Server.initialized", True)
   config.Write()
 
   print ("Configuration parameters set. You can edit these in %s" %

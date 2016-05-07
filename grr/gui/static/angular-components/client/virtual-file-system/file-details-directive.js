@@ -2,8 +2,17 @@
 
 goog.provide('grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsController');
 goog.provide('grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective');
+goog.require('grrUi.client.virtualFileSystem.events');
+goog.require('grrUi.core.versionDropdownDirective.VersionDropdownDirective');
+
 
 goog.scope(function() {
+
+var REFRESH_FILE_EVENT =
+    grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT;
+
+var REFRESH_VERSIONS_EVENT =
+    grrUi.core.versionDropdownDirective.VersionDropdownDirective.refresh_versions_event;
 
 /**
  * Controller for FileDetailsDirective.
@@ -35,6 +44,9 @@ grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsController = func
 
   /** @type {Object} */
   this.downloadQueryParams;
+
+  this.scope_.$on(REFRESH_FILE_EVENT,
+      this.refreshFile_.bind(this));
 
   this.scope_.$watchGroup(['controller.fileContext.clientId',
                            'controller.fileContext.selectedFilePath',
@@ -109,6 +121,17 @@ FileDetailsController.prototype.onFileDetailsFetched_ = function(response) {
     var components = selectedFilePath.split('/');
     this.selectedFileName = components[components.length - 1];
   }
+};
+
+/**
+ * Refreshes the file by fetching the file details with the latest version.
+ *
+ * @private
+ */
+FileDetailsController.prototype.refreshFile_ = function() {
+  this.fileContext['selectedFileVersion'] = null;
+  this.scope_.$broadcast(REFRESH_VERSIONS_EVENT, {});
+  this.fetchFileDetails_();
 };
 
 /**

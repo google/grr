@@ -13,6 +13,8 @@ import zipfile
 
 import yaml
 
+import logging
+
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -68,7 +70,7 @@ class CollectionArchiveGenerator(object):
 
     self.total_files = 0
     self.archived_files = 0
-    self.failed_files = 0
+    self.failed_files = []
 
   @property
   def output_size(self):
@@ -89,9 +91,12 @@ class CollectionArchiveGenerator(object):
         "description": self.description,
         "processed_files": self.total_files,
         "archived_files": self.archived_files,
-        "skipped_files": self.total_files - self.archived_files,
-        "failed_files": self.failed_files
+        "skipped_files": (self.total_files - self.archived_files -
+                          len(self.failed_files)),
+        "failed_files": len(self.failed_files)
     }
+    if self.failed_files:
+      manifest["failed_files_list"] = self.failed_files
 
     manifest_fd = cStringIO.StringIO()
     if self.total_files != self.archived_files:
@@ -123,6 +128,7 @@ class CollectionArchiveGenerator(object):
     for fd_urn_batch in utils.Grouper(self._ItemsToUrns(collection),
                                       self.BATCH_SIZE):
 
+      fds_to_write = {}
       for fd in aff4.FACTORY.MultiOpen(fd_urn_batch, token=token):
         self.total_files += 1
 
@@ -140,19 +146,35 @@ class CollectionArchiveGenerator(object):
             # Make sure size of the original file is passed. It's required
             # when output_writer is StreamingTarWriter.
             st = os.stat_result((0644, 0, 0, 0, 0, 0, fd.size, 0, 0, 0))
-            try:
-              for chunk in self.archive_generator.WriteFromFD(fd, content_path,
-                                                              st=st):
-                yield chunk
-
-              hashes.add(sha256_hash)
-            except Exception:  # pylint: disable=broad-except
-              self.failed_files += 1
-              continue
+            fds_to_write[fd] = (content_path, st)
+            hashes.add(sha256_hash)
 
           up_prefix = "../" * len(fd.urn.Split())
           yield self.archive_generator.WriteSymlink(up_prefix + content_path,
                                                     archive_path)
+
+      if fds_to_write:
+        prev_fd = None
+        for fd, chunk, exception in aff4.AFF4Stream.MultiStream(fds_to_write):
+          if exception:
+            logging.exception(exception)
+
+            self.archived_files -= 1
+            self.failed_files.append(utils.SmartUnicode(fd.urn))
+            continue
+
+          if prev_fd != fd:
+            if prev_fd:
+              yield self.archive_generator.WriteFileFooter()
+            prev_fd = fd
+
+            content_path, st = fds_to_write[fd]
+            yield self.archive_generator.WriteFileHeader(content_path, st=st)
+
+          yield self.archive_generator.WriteFileChunk(chunk)
+
+        if self.archive_generator.is_file_write_in_progress:
+          yield self.archive_generator.WriteFileFooter()
 
     for chunk in self._WriteDescription():
       yield chunk

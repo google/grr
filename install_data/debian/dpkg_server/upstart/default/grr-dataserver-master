@@ -1,5 +1,0 @@
-# Configuration file for dataserver master start-up script
-
-# Start the dataserver master
-START="no";
-
