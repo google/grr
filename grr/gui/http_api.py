@@ -197,7 +197,7 @@ class HttpRequestHandler(object):
     if expected_type is None:
       expected_type = None.__class__
 
-    if result.__class__.__name__ != expected_type.__name__:
+    if result.__class__ != expected_type:
       raise UnexpectedResultTypeError("Expected %s, but got %s." % (
           expected_type.__name__, result.__class__.__name__))
 
@@ -345,6 +345,23 @@ class HttpRequestHandler(object):
       # does not raise), then handlers run without further ACL checks (they're
       # free to do some in their own implementations, though).
       handler = getattr(router, method_metadata.name)(args, token=token)
+
+      if handler.args_type != method_metadata.args_type:
+        raise RuntimeError("Handler args type doesn't match "
+                           "method args type: %s vs %s" % (
+                               handler.args_type,
+                               method_metadata.args_type))
+
+      binary_result_type = (api_call_router.RouterMethodMetadata
+                            .BINARY_STREAM_RESULT_TYPE)
+
+      if (handler.result_type != method_metadata.result_type and
+          not (handler.result_type is None and
+               method_metadata.result_type == binary_result_type)):
+        raise RuntimeError("Handler result type doesn't match "
+                           "method result type: %s vs %s" % (
+                               handler.result_type,
+                               method_metadata.result_type))
 
       # HEAD method is only used for checking the ACLs for particular API
       # methods.

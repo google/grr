@@ -5,7 +5,7 @@
 <p>This is a read-only view of the frontend configuration. Blue values have
 been changed from the default settings.</p>
 
-<section ng-repeat="(section_name, section) in ::ctrl.items">
+<section ng-repeat="(section_name, section) in ::controller.items">
   <h3>{$ ::section_name $}</h3>
 
   <table class="table table-condensed table-bordered table-striped full-width fixed-layout">
@@ -16,13 +16,13 @@ been changed from the default settings.</p>
 
   <tbody class="TableBody">
     <tr ng-repeat="(name, config) in ::section"
-        ng-class="::{warning: config.type == 'redacted'}">
+        ng-class="::{warning: config.value.is_redacted.value}">
       <td>{$ name $}</td>
       <td>
-        <div ng-if="::(config.type == 'redacted')">(redacted)</div>
-        <grr-semantic-value value="::config.value"></grr-semantic-value>
+        <div ng-if="::config.value.is_redacted.value">(redacted)</div>
+        <grr-semantic-value value="::config.value.value"></grr-semantic-value>
         <div ng-if="::config.is_expanded">
-          <em>(expanded from {$ ::config.raw_value $})</em>
+          <em>(expanded from {$ ::config.value.raw_value $})</em>
         </div>
       </td>
     </tr>

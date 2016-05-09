@@ -7,6 +7,8 @@ import math
 import time
 
 
+import mock
+
 import logging
 
 from grr.lib import access_control
@@ -46,6 +48,15 @@ class FailingDummyHuntOutputPlugin(output_plugin.OutputPlugin):
 
   def ProcessResponses(self, unused_responses):
     raise RuntimeError("Oh no!")
+
+
+class FailingInFlushDummyHuntOutputPlugin(output_plugin.OutputPlugin):
+
+  def ProcessResponses(self, unused_responses):
+    pass
+
+  def Flush(self):
+    raise RuntimeError("Flush, oh no!")
 
 
 class StatefulDummyHuntOutputPlugin(output_plugin.OutputPlugin):
@@ -511,6 +522,48 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.assertEqual(items[1].plugin_descriptor, failing_plugin_descriptor)
     self.assertEqual(items[1].summary, "Oh no!")
 
+  def testOutputPluginFlushErrorIsLoggedProperly(self):
+    failing_plugin_descriptor = output_plugin.OutputPluginDescriptor(
+        plugin_name="FailingInFlushDummyHuntOutputPlugin")
+    hunt_urn = self.StartHunt(output_plugins=[
+        failing_plugin_descriptor
+    ])
+
+    # Run the hunt and process output plugins.
+    self.AssignTasksToClients(self.client_ids)
+    self.RunHunt(failrate=-1)
+    try:
+      self.ProcessHuntOutputPlugins()
+    except process_results.ResultsProcessingError:
+      pass
+
+    hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
+    status_collection = aff4.FACTORY.Open(
+        hunt.output_plugins_status_collection_urn,
+        token=self.token)
+    errors_collection = aff4.FACTORY.Open(
+        hunt.output_plugins_errors_collection_urn,
+        token=self.token)
+
+    self.assertEqual(len(errors_collection), 1)
+    self.assertEqual(len(status_collection), 1)
+
+    self.assertEqual(errors_collection[0].status, "ERROR")
+    self.assertEqual(errors_collection[0].batch_index, 0)
+    self.assertEqual(errors_collection[0].batch_size, 10)
+    self.assertEqual(errors_collection[0].plugin_descriptor,
+                     failing_plugin_descriptor)
+    self.assertEqual(errors_collection[0].summary, "Flush, oh no!")
+
+    items = sorted(status_collection,
+                   key=lambda x: x.plugin_descriptor.plugin_name)
+
+    self.assertEqual(items[0].status, "ERROR")
+    self.assertEqual(items[0].batch_index, 0)
+    self.assertEqual(items[0].batch_size, 10)
+    self.assertEqual(items[0].plugin_descriptor, failing_plugin_descriptor)
+    self.assertEqual(items[0].summary, "Flush, oh no!")
+
   def testFailingOutputPluginDoesNotAffectOtherOutputPlugins(self):
     self.StartHunt(output_plugins=[
         output_plugin.OutputPluginDescriptor(
@@ -560,6 +613,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     # ProcessHuntResultsCronFlow.
     try:
       self.ProcessHuntOutputPlugins()
+
+      # We shouldn't get here.
+      self.fail()
     except process_results.ResultsProcessingError as e:
       self.assertEqual(len(e.exceptions_by_hunt), 1)
       self.assertTrue(hunt_urn in e.exceptions_by_hunt)
@@ -571,6 +627,91 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       self.assertEqual(e.exceptions_by_hunt[hunt_urn][
           failing_plugin_descriptor][0].message,
                        "Oh no!")
+
+  @mock.patch.object(FailingDummyHuntOutputPlugin, "ProcessResponses",
+                     side_effect=RuntimeError("Oh, no"))
+  def testResultsAreNotProcessedAgainAfterPluginFailure(
+      self, process_responses_mock):
+    failing_plugin_descriptor = output_plugin.OutputPluginDescriptor(
+        plugin_name="FailingDummyHuntOutputPlugin")
+    self.StartHunt(output_plugins=[
+        failing_plugin_descriptor
+    ])
+
+    self.AssignTasksToClients()
+    self.RunHunt(failrate=-1)
+
+    # Process hunt results.
+    try:
+      self.ProcessHuntOutputPlugins()
+    except process_results.ResultsProcessingError:
+      pass
+    self.assertEqual(process_responses_mock.call_count, 1)
+
+    self.ProcessHuntOutputPlugins()
+    # Check that call count hasn't changed.
+    self.assertEqual(process_responses_mock.call_count, 1)
+
+  def testUpdatesStatsCounterOnSuccess(self):
+    failing_plugin_descriptor = output_plugin.OutputPluginDescriptor(
+        plugin_name="DummyHuntOutputPlugin")
+    self.StartHunt(output_plugins=[
+        failing_plugin_descriptor
+    ])
+
+    prev_success_count = stats.STATS.GetMetricValue(
+        "hunt_results_ran_through_plugin",
+        fields=["DummyHuntOutputPlugin"])
+    prev_errors_count = stats.STATS.GetMetricValue(
+        "hunt_output_plugin_errors",
+        fields=["DummyHuntOutputPlugin"])
+
+    self.AssignTasksToClients()
+    self.RunHunt(failrate=-1)
+    self.ProcessHuntOutputPlugins()
+
+    success_count = stats.STATS.GetMetricValue(
+        "hunt_results_ran_through_plugin",
+        fields=["DummyHuntOutputPlugin"])
+    errors_count = stats.STATS.GetMetricValue(
+        "hunt_output_plugin_errors",
+        fields=["DummyHuntOutputPlugin"])
+
+    # 1 result for each client makes it 10 results.
+    self.assertEqual(success_count - prev_success_count, 10)
+
+    self.assertEqual(errors_count - prev_errors_count, 0)
+
+  def testUpdatesStatsCounterOnFailure(self):
+    failing_plugin_descriptor = output_plugin.OutputPluginDescriptor(
+        plugin_name="FailingDummyHuntOutputPlugin")
+    self.StartHunt(output_plugins=[
+        failing_plugin_descriptor
+    ])
+
+    prev_success_count = stats.STATS.GetMetricValue(
+        "hunt_results_ran_through_plugin",
+        fields=["FailingDummyHuntOutputPlugin"])
+    prev_errors_count = stats.STATS.GetMetricValue(
+        "hunt_output_plugin_errors",
+        fields=["FailingDummyHuntOutputPlugin"])
+
+    self.AssignTasksToClients()
+    self.RunHunt(failrate=-1)
+    try:
+      self.ProcessHuntOutputPlugins()
+    except process_results.ResultsProcessingError:
+      pass
+
+    success_count = stats.STATS.GetMetricValue(
+        "hunt_results_ran_through_plugin",
+        fields=["FailingDummyHuntOutputPlugin"])
+    errors_count = stats.STATS.GetMetricValue(
+        "hunt_output_plugin_errors",
+        fields=["FailingDummyHuntOutputPlugin"])
+
+    self.assertEqual(success_count - prev_success_count, 0)
+    self.assertEqual(errors_count - prev_errors_count, 1)
 
   def testOutputPluginsMaintainState(self):
     self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(

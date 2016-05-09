@@ -2,9 +2,10 @@
 """API handlers for accessing config."""
 
 from grr.gui import api_call_handler_base
-from grr.gui import api_value_renderers
+from grr.gui import api_call_handler_utils
 
 from grr.lib import config_lib
+from grr.lib import rdfvalue
 from grr.lib import type_info
 
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -14,45 +15,69 @@ from grr.proto import api_pb2
 
 CATEGORY = "Settings"
 
+# TODO(user): sensitivity of config options and sections should
+# probably be defined together with the options themselves. Keeping
+# the list of redacted options and settings here may lead to scenario
+# when new sensitive option is added, but these lists are not updated.
 REDACTED_OPTIONS = ["AdminUI.django_secret_key", "Mysql.database_password",
                     "Worker.smtp_password"]
 REDACTED_SECTIONS = ["PrivateKeys", "Users"]
 
 
-def RenderConfigOption(name):
-  """Renders config option with a given name."""
+class ApiConfigOption(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiConfigOption
 
-  option_value = config_lib.CONFIG.Get(name)
-  raw_value = config_lib.CONFIG.GetRaw(name)
+  def GetValueClass(self):
+    return rdfvalue.RDFValue.classes.get(self.type)
 
-  # TODO(user): implement proper is_default detection.
-  is_default = False
-  # TODO(user): implement proper interpolation detection.
-  is_expanded = False
+  def InitFromConfigOption(self, name):
+    self.name = name
 
-  if isinstance(option_value, str):
-    raw_value = option_value = None
-    value_type = "binary"
-  else:
-    value_type = "plain"
-    option_value = api_value_renderers.RenderValue(option_value)
+    for section in REDACTED_SECTIONS:
+      if name.lower().startswith(section.lower() + "."):
+        self.is_redacted = True
+        return self
 
-  return dict(raw_value=raw_value,
-              value=option_value,
-              is_expanded=is_expanded,
-              is_default=is_default,
-              type=value_type)
+    for option in REDACTED_OPTIONS:
+      if name.lower() == option.lower():
+        self.is_redacted = True
+        return self
+
+    try:
+      config_value = config_lib.CONFIG.Get(name)
+    except (config_lib.Error, type_info.TypeValueError):
+      self.is_invalid = True
+      return self
+
+    if config_value is not None:
+      # TODO(user): this is a bit of a hack as we're reusing the logic
+      # from ApiDataObjectKeyValuePair. We should probably abstract this
+      # away into a separate function, so that we don't have to create
+      # an ApiDataObjectKeyValuePair object.
+      kv_pair = api_call_handler_utils.ApiDataObjectKeyValuePair()
+      kv_pair.InitFromKeyValue(name, config_value)
+
+      self.is_invalid = kv_pair.invalid
+      if not self.is_invalid:
+        self.type = kv_pair.type
+        self.value = kv_pair.value
+
+    return self
+
+
+class ApiConfigSection(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiConfigSection
+
+
+class ApiGetConfigResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetConfigResult
 
 
 class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
   """Renders GRR's server configuration."""
 
   category = CATEGORY
-
-  def _IsBadSection(self, section):
-    for bad_section in REDACTED_SECTIONS:
-      if section.lower().startswith(bad_section.lower()):
-        return True
+  result_type = ApiGetConfigResult
 
   def _ListParametersInSection(self, section):
     for descriptor in sorted(config_lib.CONFIG.type_infos,
@@ -60,7 +85,7 @@ class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
       if descriptor.section == section:
         yield descriptor.name
 
-  def Render(self, unused_args, token=None):
+  def Handle(self, unused_args, token=None):
     """Build the data structure representing the config."""
 
     sections = {}
@@ -68,26 +93,24 @@ class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
       if descriptor.section in sections:
         continue
 
-      is_bad_section = self._IsBadSection(descriptor.section)
-
       section_data = {}
-
       for parameter in self._ListParametersInSection(descriptor.section):
-        try:
-          if parameter in REDACTED_OPTIONS or is_bad_section:
-            parameter_data = {"type": "redacted"}
-          else:
-            parameter_data = RenderConfigOption(parameter)
-
-        except (config_lib.Error, type_info.TypeValueError) as e:
-          parameter_data = {"type": "error",
-                            "error_message": str(e)}
-
-        section_data[parameter] = parameter_data
+        section_data[parameter] = ApiConfigOption().InitFromConfigOption(
+            parameter)
 
       sections[descriptor.section] = section_data
 
-    return sections
+    result = ApiGetConfigResult()
+    for section_name in sorted(sections):
+      section = sections[section_name]
+
+      api_section = ApiConfigSection(name=section_name)
+      api_section.options = []
+      for param_name in sorted(section):
+        api_section.options.append(section[param_name])
+      result.sections.append(api_section)
+
+    return result
 
 
 class ApiGetConfigOptionArgs(rdf_structs.RDFProtoStruct):
@@ -99,29 +122,12 @@ class ApiGetConfigOptionHandler(api_call_handler_base.ApiCallHandler):
 
   category = CATEGORY
   args_type = ApiGetConfigOptionArgs
+  result_type = ApiConfigOption
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     """Renders specified config option."""
 
     if not args.name:
       raise ValueError("Name not specified.")
 
-    redacted = False
-
-    for section in REDACTED_SECTIONS:
-      if args.name.startswith(section + "."):
-        redacted = True
-        break
-
-    for option in REDACTED_OPTIONS:
-      if args.name == option:
-        redacted = True
-        break
-
-    if redacted:
-      return dict(status="OK",
-                  type="redacted")
-    else:
-      rendered_option = RenderConfigOption(args.name)
-      return dict(status="OK",
-                  **rendered_option)
+    return ApiConfigOption().InitFromConfigOption(args.name)

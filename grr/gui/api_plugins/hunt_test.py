@@ -43,7 +43,7 @@ class ApiListHuntsHandlerTest(test_lib.GRRBaseTest,
     super(ApiListHuntsHandlerTest, self).setUp()
     self.handler = hunt_plugin.ApiListHuntsHandler()
 
-  def testRendersListOfHuntObjects(self):
+  def testHandlesListOfHuntObjects(self):
     for i in range(10):
       self.CreateHunt(description="hunt_%d" % i)
 
@@ -69,7 +69,7 @@ class ApiListHuntsHandlerTest(test_lib.GRRBaseTest,
     for index, expected_time in enumerate(reversed(range(1, 11))):
       self.assertEqual(create_times[index], expected_time * 1000000000)
 
-  def testRendersSubrangeOfListOfHuntObjects(self):
+  def testHandlesSubrangeOfListOfHuntObjects(self):
     for i in range(1, 11):
       with test_lib.FakeTime(i * 1000):
         self.CreateHunt(description="hunt_%d" % i)
@@ -683,61 +683,51 @@ class ApiListHuntOutputPluginLogsHandlerTest(
 
   def testReturnsLogsWhenJustOnePlugin(self):
     hunt_urn = self.RunHuntWithOutputPlugins([self.output_plugins[0]])
-    result = self.handler.Render(
+    result = self.handler.Handle(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_urn.Basename(),
             plugin_id=DummyHuntTestOutputPlugin.__name__ + "_0"),
         token=self.token)
 
-    self.assertEqual(result["count"], 5)
-    self.assertEqual(result["total_count"], 5)
-    self.assertEqual(len(result["items"]), 5)
-    for item in result["items"]:
-      self.assertEqual("foo",
-                       item["value"]["plugin_descriptor"]
-                       ["value"]["plugin_args"]
-                       ["value"]["filename_regex"]["value"])
+    self.assertEqual(result.total_count, 5)
+    self.assertEqual(len(result.items), 5)
+    for item in result.items:
+      self.assertEqual("foo", item.plugin_descriptor.plugin_args.filename_regex)
 
   def testReturnsLogsWhenMultiplePlugins(self):
     hunt_urn = self.RunHuntWithOutputPlugins(self.output_plugins)
-    result = self.handler.Render(
+    result = self.handler.Handle(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_urn.Basename(),
             plugin_id=DummyHuntTestOutputPlugin.__name__ + "_1"),
         token=self.token)
 
-    self.assertEqual(result["count"], 5)
-    self.assertEqual(result["total_count"], 5)
-    self.assertEqual(len(result["items"]), 5)
-    for item in result["items"]:
-      self.assertEqual("bar",
-                       item["value"]["plugin_descriptor"]
-                       ["value"]["plugin_args"]
-                       ["value"]["filename_regex"]["value"])
+    self.assertEqual(result.total_count, 5)
+    self.assertEqual(len(result.items), 5)
+    for item in result.items:
+      self.assertEqual("bar", item.plugin_descriptor.plugin_args.filename_regex)
 
   def testSlicesLogsWhenJustOnePlugin(self):
     hunt_urn = self.RunHuntWithOutputPlugins([self.output_plugins[0]])
-    result = self.handler.Render(
+    result = self.handler.Handle(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_urn.Basename(), offset=2, count=2,
             plugin_id=DummyHuntTestOutputPlugin.__name__ + "_0"),
         token=self.token)
 
-    self.assertEqual(result["count"], 2)
-    self.assertEqual(result["total_count"], 5)
-    self.assertEqual(len(result["items"]), 2)
+    self.assertEqual(result.total_count, 5)
+    self.assertEqual(len(result.items), 2)
 
   def testSlicesLogsWhenMultiplePlugins(self):
     hunt_urn = self.RunHuntWithOutputPlugins(self.output_plugins)
-    result = self.handler.Render(
+    result = self.handler.Handle(
         hunt_plugin.ApiListHuntOutputPluginLogsArgs(
             hunt_id=hunt_urn.Basename(), offset=2, count=2,
             plugin_id=DummyHuntTestOutputPlugin.__name__ + "_1"),
         token=self.token)
 
-    self.assertEqual(result["count"], 2)
-    self.assertEqual(result["total_count"], 5)
-    self.assertEqual(len(result["items"]), 2)
+    self.assertEqual(result.total_count, 5)
+    self.assertEqual(len(result.items), 2)
 
 
 class ApiListHuntOutputPluginLogsHandlerRegressionTest(

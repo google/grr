@@ -210,7 +210,7 @@ FormController.prototype.sendRequest = function() {
 FormController.prototype.resolve = function() {
   var onResolve = this.scope_['onResolve'];
   if (onResolve && this.serverResponse) {
-    var huntUrn = this.serverResponse['data']['hunt_id']['value'];
+    var huntUrn = this.serverResponse['data']['value']['urn']['value'];
     onResolve({huntUrn: huntUrn});
   }
 };

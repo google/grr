@@ -26,8 +26,9 @@ grrUi.hunt.newHuntWizard.configureFlowPageDirective
       return;
     }
 
-    this.scope_.flowName = flowDescriptor['name'];
-    this.scope_['flowArguments'] = angular.copy(flowDescriptor['default_args']);
+    this.scope_.flowName = flowDescriptor['value']['name']['value'];
+    this.scope_['flowArguments'] = angular.copy(
+        flowDescriptor['value']['default_args']);
   }.bind(this));
 };
 var ConfigureFlowPageController =

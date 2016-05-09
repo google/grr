@@ -132,6 +132,7 @@ class ApiCallRouter(object):
   #
   @Category("Artifacts")
   @ArgsType(api_artifact.ApiListArtifactsArgs)
+  @ResultType(api_artifact.ApiListArtifactsResult)
   @Http("GET", "/api/artifacts")
   def ListArtifacts(self, args, token=None):
     raise NotImplementedError()
@@ -160,7 +161,7 @@ class ApiCallRouter(object):
 
   @Category("Clients")
   @ArgsType(api_client.ApiGetClientArgs)
-  @ResultType(api_client.ApiClient)
+  @ResultType(api_client.ApiGetClientResult)
   @Http("GET", "/api/clients/<client_id>")
   def GetClient(self, args, token=None):
     raise NotImplementedError()
@@ -326,6 +327,7 @@ class ApiCallRouter(object):
 
   @Category("Flows")
   @ArgsType(api_flow.ApiGetFlowResultsExportCommandArgs)
+  @ResultType(api_flow.ApiGetFlowResultsExportCommandResult)
   @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/results/"
         "export-command")
   def GetFlowResultsExportCommand(self, args, token=None):
@@ -348,6 +350,7 @@ class ApiCallRouter(object):
 
   @Category("Flows")
   @ArgsType(api_flow.ApiListFlowOutputPluginLogsArgs)
+  @ResultType(api_flow.ApiListFlowOutputPluginLogsResult)
   @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/"
         "output-plugins/<plugin_id>/logs")
   def ListFlowOutputPluginLogs(self, args, token=None):
@@ -355,6 +358,7 @@ class ApiCallRouter(object):
 
   @Category("Flows")
   @ArgsType(api_flow.ApiListFlowOutputPluginErrorsArgs)
+  @ResultType(api_flow.ApiListFlowOutputPluginErrorsResult)
   @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/"
         "output-plugins/<plugin_id>/errors")
   def ListFlowOutputPluginErrors(self, args, token=None):
@@ -382,12 +386,14 @@ class ApiCallRouter(object):
   #
   @Category("Cron")
   @ArgsType(api_cron.ApiListCronJobsArgs)
+  @ResultType(api_cron.ApiListCronJobsResult)
   @Http("GET", "/api/cron-jobs")
   def ListCronJobs(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Cron")
   @ArgsType(api_cron.ApiCronJob)
+  @ResultType(api_cron.ApiCronJob)
   @Http("POST", "/api/cron-jobs")
   def CreateCronJob(self, args, token=None):
     raise NotImplementedError()
@@ -403,24 +409,28 @@ class ApiCallRouter(object):
   #
   @Category("Hunts")
   @ArgsType(api_hunt.ApiListHuntsArgs)
+  @ResultType(api_hunt.ApiListHuntsResult)
   @Http("GET", "/api/hunts")
   def ListHunts(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Hunts")
   @ArgsType(api_hunt.ApiGetHuntArgs)
+  @ResultType(api_hunt.ApiHunt)
   @Http("GET", "/api/hunts/<hunt_id>")
   def GetHunt(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Hunts")
   @ArgsType(api_hunt.ApiListHuntErrorsArgs)
+  @ResultType(api_hunt.ApiListHuntErrorsResult)
   @Http("GET", "/api/hunts/<hunt_id>/errors")
   def ListHuntErrors(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Hunts")
   @ArgsType(api_hunt.ApiListHuntLogsArgs)
+  @ResultType(api_hunt.ApiListHuntLogsResult)
   # TODO(user): change "log" to "logs"
   @Http("GET", "/api/hunts/<hunt_id>/log")
   def ListHuntLogs(self, args, token=None):
@@ -435,36 +445,42 @@ class ApiCallRouter(object):
 
   @Category("Hunts")
   @ArgsType(api_hunt.ApiGetHuntResultsExportCommandArgs)
+  @ResultType(api_hunt.ApiGetHuntResultsExportCommandResult)
   @Http("GET", "/api/hunts/<hunt_id>/results/export-command")
   def GetHuntResultsExportCommand(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Hunts")
   @ArgsType(api_hunt.ApiListHuntOutputPluginsArgs)
+  @ResultType(api_hunt.ApiListHuntOutputPluginsResult)
   @Http("GET", "/api/hunts/<hunt_id>/output-plugins")
   def ListHuntOutputPlugins(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Hunts")
   @ArgsType(api_hunt.ApiListHuntOutputPluginLogsArgs)
+  @ResultType(api_hunt.ApiListHuntOutputPluginLogsResult)
   @Http("GET", "/api/hunts/<hunt_id>/output-plugins/<plugin_id>/logs")
   def ListHuntOutputPluginLogs(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Hunts")
   @ArgsType(api_hunt.ApiListHuntOutputPluginErrorsArgs)
+  @ResultType(api_hunt.ApiListHuntOutputPluginErrorsResult)
   @Http("GET", "/api/hunts/<hunt_id>/output-plugins/<plugin_id>/errors")
   def ListHuntOutputPluginErrors(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Hunts")
   @ArgsType(api_hunt.ApiListHuntCrashesArgs)
+  @ResultType(api_hunt.ApiListHuntCrashesResult)
   @Http("GET", "/api/hunts/<hunt_id>/crashes")
   def ListHuntCrashes(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Hunts")
   @ArgsType(api_hunt.ApiGetClientCompletionStatsArgs)
+  @ResultType(api_hunt.ApiGetClientCompletionStatsResult)
   @Http("GET", "/api/hunts/<hunt_id>/client-completion-stats")
   # TODO(user): maybe rename to GetHuntClientCompletionStats.
   def GetClientCompletionStats(self, args, token=None):
@@ -493,6 +509,7 @@ class ApiCallRouter(object):
 
   @Category("Hunts")
   @ArgsType(api_hunt.ApiCreateHuntArgs)
+  @ResultType(api_hunt.ApiHunt)
   @Http("POST", "/api/hunts")
   # TODO(user): deprecate old URL
   @Http("POST", "/api/hunts/create")
@@ -617,12 +634,14 @@ class ApiCallRouter(object):
   # ==============
   #
   @Category("Settings")
+  @ResultType(api_config.ApiGetConfigResult)
   @Http("GET", "/api/config")
   def GetConfig(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Settings")
   @ArgsType(api_config.ApiGetConfigOptionArgs)
+  @ResultType(api_config.ApiConfigOption)
   @Http("GET", "/api/config/<name>")
   def GetConfigOption(self, args, token=None):
     raise NotImplementedError()
@@ -638,6 +657,7 @@ class ApiCallRouter(object):
 
   @Category("Reflection")
   @ArgsType(api_flow.ApiListFlowDescriptorsArgs)
+  @ResultType(api_flow.ApiListFlowDescriptorsResult)
   @Http("GET", "/api/flows/descriptors")
   def ListFlowDescriptors(self, args, token=None):
     raise NotImplementedError()

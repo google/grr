@@ -92,8 +92,50 @@ describe('flow descriptors tree directive', function() {
 
     deferred.resolve({
       data: {
-        'Category foo': [],
-        'Category bar': []
+        items: [
+          {
+            type: 'ApiFlowDescriptor',
+            value: {
+              category: {
+                type: 'RDFString',
+                value: 'Category foo'
+              },
+              name: {
+                type: 'RDFString',
+                value: 'foo'
+              },
+              friendly_name: {
+                type: 'RDFString',
+                value: 'friendly foo'
+              },
+              behaviours: [{
+                type: 'RDFString',
+                value: 'BASIC'
+              }]
+            }
+          },
+          {
+            type: 'ApiFlowDescriptor',
+            value: {
+              category: {
+                type: 'RDFString',
+                value: 'Category bar'
+              },
+              name: {
+                type: 'RDFString',
+                value: 'bar'
+              },
+              friendly_name: {
+                type: 'RDFString',
+                value: 'friendly bar'
+              },
+              behaviours: [{
+                type: 'RDFString',
+                value: 'BASIC'
+              }]
+            }
+          }
+        ]
       }
     });
 
@@ -118,11 +160,27 @@ describe('flow descriptors tree directive', function() {
 
     deferred.resolve({
       data: {
-        'Category 1': [
+        items: [
           {
-            name: 'foo',
-            friendly_name: 'friendly foo',
-            behaviours: ['BASIC']
+            type: 'ApiFlowDescriptor',
+            value: {
+              category: {
+                type: 'RDFString',
+                value: 'Category foo'
+              },
+              name: {
+                type: 'RDFString',
+                value: 'foo'
+              },
+              friendly_name: {
+                type: 'RDFString',
+                value: 'friendly foo'
+              },
+              behaviours: [{
+                type: 'RDFString',
+                value: 'BASIC'
+              }]
+            }
           }
         ],
       }
@@ -151,16 +209,48 @@ describe('flow descriptors tree directive', function() {
     var deferred = $q.defer();
     deferred.resolve({
       data: {
-        'Category 1': [
+        items: [
           {
-            name: 'foo',
-            friendly_name: 'friendly foo',
-            behaviours: ['BASIC']
+            type: 'ApiFlowDescriptor',
+            value: {
+              category: {
+                type: 'RDFString',
+                value: 'Category foo'
+              },
+              name: {
+                type: 'RDFString',
+                value: 'foo'
+              },
+              friendly_name: {
+                type: 'RDFString',
+                value: 'friendly foo'
+              },
+              behaviours: [{
+                type: 'RDFString',
+                value: 'BASIC'
+              }]
+            }
           },
           {
-            name: 'bar',
-            friendly_name: 'friendly bar',
-            behaviours: ['ADVANCED']
+            type: 'ApiFlowDescriptor',
+            value: {
+              category: {
+                type: 'RDFString',
+                value: 'Category bar'
+              },
+              name: {
+                type: 'RDFString',
+                value: 'bar'
+              },
+              friendly_name: {
+                type: 'RDFString',
+                value: 'friendly bar'
+              },
+              behaviours: [{
+                type: 'RDFString',
+                value: 'ADVANCED'
+              }]
+            }
           }
         ],
       }
@@ -198,11 +288,27 @@ describe('flow descriptors tree directive', function() {
 
       deferred.resolve({
         data: {
-          'Category 1': [
+          items: [
             {
-              name: 'foo',
-              friendly_name: 'friendly foo',
-              behaviours: ['BASIC']
+              type: 'ApiFlowDescriptor',
+              value: {
+                category: {
+                  type: 'RDFString',
+                  value: 'Category 1'
+                },
+                name: {
+                  type: 'RDFString',
+                  value: 'foo'
+                },
+                friendly_name: {
+                  type: 'RDFString',
+                  value: 'friendly foo'
+                },
+                behaviours: [{
+                  type: 'RDFString',
+                value: 'BASIC'
+                }]
+              }
             }
           ],
         }
@@ -224,9 +330,25 @@ describe('flow descriptors tree directive', function() {
       $rootScope.$apply();
 
       expect($rootScope.selectedDescriptor.value).toEqual({
-        name: 'foo',
-        friendly_name: 'friendly foo',
-        behaviours: ['BASIC']
+        type: 'ApiFlowDescriptor',
+        value: {
+          category: {
+            type: 'RDFString',
+            value: 'Category 1'
+          },
+          name: {
+            type: 'RDFString',
+            value: 'foo'
+          },
+          friendly_name: {
+            type: 'RDFString',
+            value: 'friendly foo'
+          },
+          behaviours: [{
+            type: 'RDFString',
+            value: 'BASIC'
+          }]
+        }
       });
     });
   });

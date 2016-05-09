@@ -116,7 +116,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.Click("link=" + flows_processes.ListProcesses.__name__)
     self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
 
-    self.WaitUntil(self.IsTextPresent, "Prototype: ListProcesses")
+    self.WaitUntil(self.IsTextPresent, "List running processes on a system.")
 
     self.Click("css=button.Launch")
     self.WaitUntil(self.IsTextPresent, "Launched Flow ListProcesses")

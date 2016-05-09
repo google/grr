@@ -71,11 +71,17 @@ describe('start flow form directive', function() {
   var renderTestTemplate = function() {
     $rootScope.clientId = 'C.0000111122223333';
     $rootScope.descriptor = {
-      name: 'FooFlow',
-      default_args: {
-        type: 'FooFlowArgs',
-        value: {
-          foo: 'bar'
+      type: 'ApiFlowDescriptor',
+      value: {
+        name: {
+          type: 'RDFString',
+          value: 'FooFlow'
+        },
+        default_args: {
+          type: 'FooFlowArgs',
+          value: {
+            foo: 'bar'
+          }
         }
       }
     };
@@ -93,7 +99,7 @@ describe('start flow form directive', function() {
     var directive = element.find('grr-form-value:nth(0)');
 
     expect(directive.scope().$eval(directive.attr('value'))).toEqual(
-        $rootScope.descriptor.default_args);
+        $rootScope.descriptor['value']['default_args']);
   });
 
   it('shows flow runner arguments form', function() {
@@ -104,7 +110,10 @@ describe('start flow form directive', function() {
     expect(directive.scope().$eval(directive.attr('value'))).toEqual({
       type: 'FlowRunnerArgs',
       value: {
-        flow_name: 'FooFlow',
+        flow_name: {
+          value: 'FooFlow',
+          type: 'RDFString'
+        },
         output_plugins: [],
         foo: 'bar'
       }

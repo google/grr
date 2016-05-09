@@ -42,14 +42,14 @@ Please Select a flow to launch from the tree on the left.
 <div class="padded" ng-if="controller.requestSent">
   <div ng-if="!controller.responseData && !controller.responseError">
     <progressbar class="progress-striped active" max="100" value="50">
-      Launching flow {$ descriptor['name'] $}...
+      Launching flow {$ descriptor['value']['name']['value'] $}...
     </progressbar>
   </div>
 
   <div class="panel panel-default" ng-if="controller.responseData">
     <div class="panel-body">
       <p>
-        Launched Flow {$ descriptor['name'] $}:
+        Launched Flow {$ descriptor['value']['name']['value'] $}:
       </p>
       <p>
         <grr-semantic-value value="controller.responseData"></grr-semantic-value>

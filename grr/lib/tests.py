@@ -54,5 +54,4 @@ from grr.lib.hunts import tests
 from grr.lib.local import tests
 from grr.lib.output_plugins import tests
 from grr.lib.rdfvalues import tests
-from grr.tools import entry_point_test
 # pylint: enable=unused-import

@@ -84,72 +84,38 @@ class ApiGetConfigHandlerTest(test_lib.GRRBaseTest):
                               (config, "Get", mock["Get"]),
                               (config, "type_infos", mock["type_infos"]))
 
-  def _RenderConfig(self, sections):
+  def _HandleConfig(self, sections):
     with self._ConfigStub(sections):
       mock_request = utils.DataObject()
-      rendering = self.handler.Render(mock_request)
+      result = self.handler.Handle(mock_request)
 
-    return rendering
+    return result
 
-  def _assertRendersConfig(self, sections, expected_rendering):
-    actual_rendering = self._RenderConfig(sections)
-    self.assertEquals(actual_rendering, expected_rendering)
+  def _assertHandlesConfig(self, sections, expected_result):
+    actual_result = self._HandleConfig(sections)
+    self.assertEquals(actual_result, expected_result)
 
-  def testRendersEmptyConfig(self):
-    self._assertRendersConfig(None, {})
+  def testHandlesEmptyConfig(self):
+    self._assertHandlesConfig(None, config_plugin.ApiGetConfigResult())
 
-  def testRendersEmptySection(self):
-    self._assertRendersConfig({"section": {}}, {})
+  def testHandlesEmptySection(self):
+    self._assertHandlesConfig({"section": {}},
+                              config_plugin.ApiGetConfigResult())
 
-  def testRendersSetting(self):
+  def testHandlesConfigOption(self):
     input_dict = {"section": {"parameter": {"value": u"value",
                                             "raw_value": u"value"}}}
-    output_dict = {
-        "section": {
-            "section.parameter": {
-                "value": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": u"value"
-                    },
-                "is_default": False,
-                "is_expanded": False,
-                "raw_value": u"value",
-                "type": "plain"
-                }
-            }
-        }
-    self._assertRendersConfig(input_dict, output_dict)
-
-  def testAlwaysReportsIsDefaultAsFalse(self):
-    input_dict = {"section": {"parameter": {"default_value": u"value"}}}
-    rendering = self._RenderConfig(input_dict)
-    self.assertFalse(rendering["section"]["section.parameter"]["is_default"])
-
-  def testRendersBinary(self):
-    input_dict = {"section": {"parameter": {"value": "value\xff",
-                                            "raw_value": "value\xff"}}}
-    rendering = self._RenderConfig(input_dict)
-    self.assertEquals(rendering["section"]["section.parameter"]["type"],
-                      "binary")
+    result = self._HandleConfig(input_dict)
+    self.assertEqual(len(result.sections), 1)
+    self.assertEqual(len(result.sections[0].options), 1)
+    self.assertEqual(result.sections[0].options[0].name, "section.parameter")
+    self.assertEqual(result.sections[0].options[0].value, "value")
 
   def testRendersRedacted(self):
     input_dict = {"Mysql": {"database_password": {"value": u"secret",
                                                   "raw_value": u"secret"}}}
-    rendering = self._RenderConfig(input_dict)
-    self.assertEquals(rendering["Mysql"]["Mysql.database_password"]["type"],
-                      "redacted")
-
-  def testAlwaysReportsIsExpandedAsFalse(self):
-    input_dict = {"section": {"parameter": {"value": u"%(answer)",
-                                            "raw_value": u"fourty-two"}}}
-    rendering = self._RenderConfig(input_dict)
-    self.assertFalse(rendering["section"]["section.parameter"]["is_expanded"])
-
-    input_dict = {"section": {"parameter": {"value": u"fourty-two",
-                                            "raw_value": u"fourty-two"}}}
-    rendering = self._RenderConfig(input_dict)
-    self.assertFalse(rendering["section"]["section.parameter"]["is_expanded"])
+    result = self._HandleConfig(input_dict)
+    self.assertTrue(result.sections[0].options[0].is_redacted)
 
 
 class ApiGetConfigHandlerRegressionTest(
@@ -194,18 +160,19 @@ class ApiGetConfigOptionHandlerTest(test_lib.GRRBaseTest):
                               (config, "Get", mock["Get"]),
                               (config, "type_infos", mock["type_infos"]))
 
-  def _RenderConfigOption(self, stub_sections, name):
+  def _HandleConfigOption(self, stub_sections, name):
     with self._ConfigStub(stub_sections):
-      rendering = self.handler.Render(
+      result = self.handler.Handle(
           config_plugin.ApiGetConfigOptionArgs(name=name))
 
-    return rendering
+    return result
 
   def testRendersRedacted(self):
     input_dict = {"Mysql": {"database_password": {"value": u"secret",
                                                   "raw_value": u"secret"}}}
-    rendering = self._RenderConfigOption(input_dict, "Mysql.database_password")
-    self.assertEquals(rendering, dict(status="OK", type="redacted"))
+    result = self._HandleConfigOption(input_dict, "Mysql.database_password")
+    self.assertEqual(result.name, "Mysql.database_password")
+    self.assertTrue(result.is_redacted)
 
 
 class ApiGetConfigOptionHandlerRegressionTest(

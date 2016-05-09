@@ -3,7 +3,6 @@
     {
       "method": "GET",
       "response": {
-        "count": 1,
         "items": [
           {
             "age": 0,
@@ -100,12 +99,10 @@
             }
           }
         ],
-        "offset": 0,
         "total_count": 1
       },
       "test_class": "ArtifactHandlerRegressionTest",
       "type_stripped_response": {
-        "count": 1,
         "items": [
           {
             "artifact": {
@@ -142,7 +139,6 @@
             "path_dependencies": []
           }
         ],
-        "offset": 0,
         "total_count": 1
       },
       "url": "/api/artifacts"
@@ -1329,73 +1325,188 @@
     {
       "method": "GET",
       "response": {
-        "Config": {
-          "Config.includes": {
-            "is_default": false,
-            "is_expanded": false,
-            "raw_value": [],
-            "type": "plain",
-            "value": []
-          }
-        },
-        "SectionBar": {
-          "SectionBar.sample_list_option": {
-            "is_default": false,
-            "is_expanded": false,
-            "raw_value": [],
-            "type": "plain",
-            "value": []
-          },
-          "SectionBar.sample_string_option": {
-            "is_default": false,
-            "is_expanded": false,
-            "raw_value": "%(sAmPlE|lower)",
-            "type": "plain",
+        "sections": [
+          {
+            "age": 0,
+            "type": "ApiConfigSection",
             "value": {
-              "age": 0,
-              "type": "unicode",
-              "value": "sample"
-            }
-          }
-        },
-        "SectionFoo": {
-          "SectionFoo.sample_boolean_option": {
-            "is_default": false,
-            "is_expanded": false,
-            "raw_value": true,
-            "type": "plain",
-            "value": {
-              "age": 0,
-              "type": "long",
-              "value": 1
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Config"
+              },
+              "options": [
+                {
+                  "age": 0,
+                  "type": "ApiConfigOption",
+                  "value": {
+                    "is_invalid": {
+                      "age": 0,
+                      "type": "RDFBool",
+                      "value": true
+                    },
+                    "name": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "Config.includes"
+                    }
+                  }
+                }
+              ]
             }
           },
-          "SectionFoo.sample_integer_option": {
-            "is_default": false,
-            "is_expanded": false,
-            "raw_value": 42,
-            "type": "plain",
+          {
+            "age": 0,
+            "type": "ApiConfigSection",
             "value": {
-              "age": 0,
-              "type": "long",
-              "value": 42
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "SectionBar"
+              },
+              "options": [
+                {
+                  "age": 0,
+                  "type": "ApiConfigOption",
+                  "value": {
+                    "is_invalid": {
+                      "age": 0,
+                      "type": "RDFBool",
+                      "value": true
+                    },
+                    "name": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "SectionBar.sample_list_option"
+                    }
+                  }
+                },
+                {
+                  "age": 0,
+                  "type": "ApiConfigOption",
+                  "value": {
+                    "is_invalid": {
+                      "age": 0,
+                      "type": "RDFBool",
+                      "value": false
+                    },
+                    "name": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "SectionBar.sample_string_option"
+                    },
+                    "type": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "RDFString"
+                    },
+                    "value": {
+                      "age": 0,
+                      "type": "RDFString",
+                      "value": "sample"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiConfigSection",
+            "value": {
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "SectionFoo"
+              },
+              "options": [
+                {
+                  "age": 0,
+                  "type": "ApiConfigOption",
+                  "value": {
+                    "is_invalid": {
+                      "age": 0,
+                      "type": "RDFBool",
+                      "value": false
+                    },
+                    "name": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "SectionFoo.sample_boolean_option"
+                    },
+                    "type": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "RDFInteger"
+                    },
+                    "value": {
+                      "age": 0,
+                      "type": "RDFInteger",
+                      "value": 1
+                    }
+                  }
+                },
+                {
+                  "age": 0,
+                  "type": "ApiConfigOption",
+                  "value": {
+                    "is_invalid": {
+                      "age": 0,
+                      "type": "RDFBool",
+                      "value": false
+                    },
+                    "name": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "SectionFoo.sample_integer_option"
+                    },
+                    "type": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "RDFInteger"
+                    },
+                    "value": {
+                      "age": 0,
+                      "type": "RDFInteger",
+                      "value": 42
+                    }
+                  }
+                }
+              ]
             }
           }
-        }
+        ]
       },
       "test_class": "ApiGetConfigHandlerRegressionTest",
       "type_stripped_response": {
-        "Config": {
-          "Config.includes": []
-        },
-        "SectionBar": {
-          "SectionBar.sample_list_option": [],
-          "SectionBar.sample_string_option": "sample"
-        },
-        "SectionFoo": {
-          "SectionFoo.sample_boolean_option": 1,
-          "SectionFoo.sample_integer_option": 42
-        }
+        "sections": [
+          {
+            "name": "Config",
+            "options": [
+              {
+                "is_invalid": true,
+                "name": "Config.includes"
+              }
+            ]
+          },
+          {
+            "name": "SectionBar",
+            "options": [
+              {
+                "is_invalid": true,
+                "name": "SectionBar.sample_list_option"
+              },
+              "sample"
+            ]
+          },
+          {
+            "name": "SectionFoo",
+            "options": [
+              1,
+              42
+            ]
+          }
+        ]
       },
       "url": "/api/config"
     }
@@ -1404,14 +1515,12 @@
     {
       "method": "GET",
       "response": {
-        "is_default": false,
-        "is_expanded": false,
-        "raw_value": "",
-        "status": "OK",
-        "type": "plain",
+        "is_invalid": false,
+        "name": "SectionFoo.sample_string_option",
+        "type": "RDFString",
         "value": {
           "age": 0,
-          "type": "unicode",
+          "type": "RDFString",
           "value": ""
         }
       },
@@ -1422,8 +1531,8 @@
     {
       "method": "GET",
       "response": {
-        "status": "OK",
-        "type": "redacted"
+        "is_redacted": true,
+        "name": "Mysql.database_password"
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest",
       "url": "/api/config/Mysql.database_password"
@@ -1431,8 +1540,8 @@
     {
       "method": "GET",
       "response": {
-        "message": "u'Option NonExistingOption not defined.'",
-        "traceBack": "<traceback content>"
+        "is_invalid": true,
+        "name": "NonExistingOption"
       },
       "test_class": "ApiGetConfigOptionHandlerRegressionTest",
       "url": "/api/config/NonExistingOption"
@@ -6552,7 +6661,6 @@
     {
       "method": "GET",
       "response": {
-        "count": 3,
         "items": [
           {
             "age": 0,
@@ -6746,11 +6854,10 @@
             }
           }
         ],
-        "offset": 0
+        "total_count": 3
       },
       "test_class": "ApiListCronJobsHandlerRegressionTest",
       "type_stripped_response": {
-        "count": 3,
         "items": [
           {
             "allow_overruns": false,
@@ -6796,7 +6903,7 @@
             "urn": "aff4:/cron/OSBreakDown"
           }
         ],
-        "offset": 0
+        "total_count": 3
       },
       "url": "/api/cron-jobs"
     }
@@ -6805,126 +6912,169 @@
     {
       "method": "GET",
       "response": {
-        "Filesystem": [
+        "items": [
           {
-            "args_type": "FileFinderArgs",
-            "behaviours": [
-              "ADVANCED",
-              "BASIC",
-              "Client Flow"
-            ],
-            "default_args": {
-              "age": 0,
-              "type": "FileFinderArgs",
-              "value": {
-                "paths": [
-                  {
-                    "age": 0,
-                    "type": "GlobExpression",
-                    "value": "c:\\windows\\system32\\notepad.*"
-                  }
-                ]
+            "age": 0,
+            "type": "ApiFlowDescriptor",
+            "value": {
+              "args_type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "FileFinderArgs"
+              },
+              "behaviours": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "ADVANCED"
+                },
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "BASIC"
+                },
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "Client Flow"
+                }
+              ],
+              "category": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Filesystem"
+              },
+              "default_args": {
+                "age": 0,
+                "type": "FileFinderArgs",
+                "value": {
+                  "paths": [
+                    {
+                      "age": 0,
+                      "type": "GlobExpression",
+                      "value": "c:\\windows\\system32\\notepad.*"
+                    }
+                  ]
+                }
+              },
+              "doc": {
+                "age": 0,
+                "type": "unicode",
+                "value": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, file_size=file_size, conditions=conditions, action=action, no_file_type_check=no_file_type_check)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    file_size\n      description: Maximum number of bytes to download in each file.\n      type: ByteSize\n      default: 1000000000\n\n    no_file_type_check\n      description: Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n"
+              },
+              "friendly_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "File Finder"
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "FileFinder"
               }
-            },
-            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, file_size=file_size, conditions=conditions, action=action, no_file_type_check=no_file_type_check)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    file_size\n      description: Maximum number of bytes to download in each file.\n      type: ByteSize\n      default: 1000000000\n\n    no_file_type_check\n      description: Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n",
-            "friendly_name": "File Finder",
-            "name": "FileFinder",
-            "prototype": "FileFinder(paths, pathtype, file_size, conditions, action, no_file_type_check)",
-            "states": [
-              [
-                "End",
-                "",
-                "End"
-              ],
-              [
-                "ProcessGrep",
-                "",
-                "End"
-              ],
-              [
-                "Start",
-                "Issue the find request.",
-                "End"
-              ]
-            ]
-          }
-        ],
-        "Processes": [
+            }
+          },
           {
-            "args_type": "ListProcessesArgs",
-            "behaviours": [
-              "ADVANCED",
-              "BASIC",
-              "Client Flow"
-            ],
-            "default_args": {
-              "age": 0,
-              "type": "ListProcessesArgs",
-              "value": {}
-            },
-            "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries)\n\n  Args:\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n",
-            "friendly_name": null,
-            "name": "ListProcesses",
-            "prototype": "ListProcesses(filename_regex, fetch_binaries)",
-            "states": [
-              [
-                "End",
-                "Save the results collection and update the notification line.",
-                "End"
+            "age": 0,
+            "type": "ApiFlowDescriptor",
+            "value": {
+              "args_type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListProcessesArgs"
+              },
+              "behaviours": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "ADVANCED"
+                },
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "BASIC"
+                },
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "Client Flow"
+                }
               ],
-              [
-                "HandleDownloadedFiles",
-                "Handle success/failure of the FileFinder flow.",
-                "End"
-              ],
-              [
-                "IterateProcesses",
-                "This stores the processes.",
-                "HandleDownloadedFiles"
-              ],
-              [
-                "Start",
-                "Start processing.",
-                "IterateProcesses"
-              ]
-            ]
-          }
-        ],
-        "Reporting": [
+              "category": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Processes"
+              },
+              "default_args": {
+                "age": 0,
+                "type": "ListProcessesArgs",
+                "value": {}
+              },
+              "doc": {
+                "age": 0,
+                "type": "unicode",
+                "value": "List running processes on a system.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries)\n\n  Args:\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n"
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListProcesses"
+              }
+            }
+          },
           {
-            "args_type": "RunReportFlowArgs",
-            "behaviours": [
-              "ADVANCED",
-              "BASIC",
-              "Global Flow"
-            ],
-            "default_args": {
-              "age": 0,
-              "type": "RunReportFlowArgs",
-              "value": {}
-            },
-            "doc": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n",
-            "friendly_name": null,
-            "name": "RunReport",
-            "prototype": "RunReport(report_name, email)",
-            "states": [
-              [
-                "RunReport",
-                "Run the report.",
-                "EmailReport"
+            "age": 0,
+            "type": "ApiFlowDescriptor",
+            "value": {
+              "args_type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "RunReportFlowArgs"
+              },
+              "behaviours": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "ADVANCED"
+                },
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "BASIC"
+                },
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "Global Flow"
+                }
               ],
-              [
-                "Start",
-                "",
-                "RunReport"
-              ]
-            ]
+              "category": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Reporting"
+              },
+              "default_args": {
+                "age": 0,
+                "type": "RunReportFlowArgs",
+                "value": {}
+              },
+              "doc": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n"
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "RunReport"
+              }
+            }
           }
         ]
       },
       "test_class": "ApiListFlowDescriptorsHandlerRegressionTest",
       "type_stripped_response": {
-        "Filesystem": [
+        "items": [
           {
             "args_type": "FileFinderArgs",
             "behaviours": [
@@ -6932,6 +7082,7 @@
               "BASIC",
               "Client Flow"
             ],
+            "category": "Filesystem",
             "default_args": {
               "paths": [
                 "c:\\windows\\system32\\notepad.*"
@@ -6939,28 +7090,8 @@
             },
             "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, file_size=file_size, conditions=conditions, action=action, no_file_type_check=no_file_type_check)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    file_size\n      description: Maximum number of bytes to download in each file.\n      type: ByteSize\n      default: 1000000000\n\n    no_file_type_check\n      description: Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n",
             "friendly_name": "File Finder",
-            "name": "FileFinder",
-            "prototype": "FileFinder(paths, pathtype, file_size, conditions, action, no_file_type_check)",
-            "states": [
-              [
-                "End",
-                "",
-                "End"
-              ],
-              [
-                "ProcessGrep",
-                "",
-                "End"
-              ],
-              [
-                "Start",
-                "Issue the find request.",
-                "End"
-              ]
-            ]
-          }
-        ],
-        "Processes": [
+            "name": "FileFinder"
+          },
           {
             "args_type": "ListProcessesArgs",
             "behaviours": [
@@ -6968,36 +7099,11 @@
               "BASIC",
               "Client Flow"
             ],
+            "category": "Processes",
             "default_args": {},
             "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries)\n\n  Args:\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n",
-            "friendly_name": null,
-            "name": "ListProcesses",
-            "prototype": "ListProcesses(filename_regex, fetch_binaries)",
-            "states": [
-              [
-                "End",
-                "Save the results collection and update the notification line.",
-                "End"
-              ],
-              [
-                "HandleDownloadedFiles",
-                "Handle success/failure of the FileFinder flow.",
-                "End"
-              ],
-              [
-                "IterateProcesses",
-                "This stores the processes.",
-                "HandleDownloadedFiles"
-              ],
-              [
-                "Start",
-                "Start processing.",
-                "IterateProcesses"
-              ]
-            ]
-          }
-        ],
-        "Reporting": [
+            "name": "ListProcesses"
+          },
           {
             "args_type": "RunReportFlowArgs",
             "behaviours": [
@@ -7005,23 +7111,10 @@
               "BASIC",
               "Global Flow"
             ],
+            "category": "Reporting",
             "default_args": {},
             "doc": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n",
-            "friendly_name": null,
-            "name": "RunReport",
-            "prototype": "RunReport(report_name, email)",
-            "states": [
-              [
-                "RunReport",
-                "Run the report.",
-                "EmailReport"
-              ],
-              [
-                "Start",
-                "",
-                "RunReport"
-              ]
-            ]
+            "name": "RunReport"
           }
         ]
       },
@@ -7030,95 +7123,121 @@
     {
       "method": "GET",
       "response": {
-        "Filesystem": [
+        "items": [
           {
-            "args_type": "FileFinderArgs",
-            "behaviours": [
-              "ADVANCED",
-              "BASIC",
-              "Client Flow"
-            ],
-            "default_args": {
-              "age": 0,
-              "type": "FileFinderArgs",
-              "value": {
-                "paths": [
-                  {
-                    "age": 0,
-                    "type": "GlobExpression",
-                    "value": "c:\\windows\\system32\\notepad.*"
-                  }
-                ]
+            "age": 0,
+            "type": "ApiFlowDescriptor",
+            "value": {
+              "args_type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "FileFinderArgs"
+              },
+              "behaviours": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "ADVANCED"
+                },
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "BASIC"
+                },
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "Client Flow"
+                }
+              ],
+              "category": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Filesystem"
+              },
+              "default_args": {
+                "age": 0,
+                "type": "FileFinderArgs",
+                "value": {
+                  "paths": [
+                    {
+                      "age": 0,
+                      "type": "GlobExpression",
+                      "value": "c:\\windows\\system32\\notepad.*"
+                    }
+                  ]
+                }
+              },
+              "doc": {
+                "age": 0,
+                "type": "unicode",
+                "value": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, file_size=file_size, conditions=conditions, action=action, no_file_type_check=no_file_type_check)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    file_size\n      description: Maximum number of bytes to download in each file.\n      type: ByteSize\n      default: 1000000000\n\n    no_file_type_check\n      description: Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n"
+              },
+              "friendly_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "File Finder"
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "FileFinder"
               }
-            },
-            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, file_size=file_size, conditions=conditions, action=action, no_file_type_check=no_file_type_check)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    file_size\n      description: Maximum number of bytes to download in each file.\n      type: ByteSize\n      default: 1000000000\n\n    no_file_type_check\n      description: Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n",
-            "friendly_name": "File Finder",
-            "name": "FileFinder",
-            "prototype": "FileFinder(paths, pathtype, file_size, conditions, action, no_file_type_check)",
-            "states": [
-              [
-                "End",
-                "",
-                "End"
-              ],
-              [
-                "ProcessGrep",
-                "",
-                "End"
-              ],
-              [
-                "Start",
-                "Issue the find request.",
-                "End"
-              ]
-            ]
-          }
-        ],
-        "Processes": [
+            }
+          },
           {
-            "args_type": "ListProcessesArgs",
-            "behaviours": [
-              "ADVANCED",
-              "BASIC",
-              "Client Flow"
-            ],
-            "default_args": {
-              "age": 0,
-              "type": "ListProcessesArgs",
-              "value": {}
-            },
-            "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries)\n\n  Args:\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n",
-            "friendly_name": null,
-            "name": "ListProcesses",
-            "prototype": "ListProcesses(filename_regex, fetch_binaries)",
-            "states": [
-              [
-                "End",
-                "Save the results collection and update the notification line.",
-                "End"
+            "age": 0,
+            "type": "ApiFlowDescriptor",
+            "value": {
+              "args_type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListProcessesArgs"
+              },
+              "behaviours": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "ADVANCED"
+                },
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "BASIC"
+                },
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "Client Flow"
+                }
               ],
-              [
-                "HandleDownloadedFiles",
-                "Handle success/failure of the FileFinder flow.",
-                "End"
-              ],
-              [
-                "IterateProcesses",
-                "This stores the processes.",
-                "HandleDownloadedFiles"
-              ],
-              [
-                "Start",
-                "Start processing.",
-                "IterateProcesses"
-              ]
-            ]
+              "category": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Processes"
+              },
+              "default_args": {
+                "age": 0,
+                "type": "ListProcessesArgs",
+                "value": {}
+              },
+              "doc": {
+                "age": 0,
+                "type": "unicode",
+                "value": "List running processes on a system.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries)\n\n  Args:\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n"
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListProcesses"
+              }
+            }
           }
         ]
       },
       "test_class": "ApiListFlowDescriptorsHandlerRegressionTest",
       "type_stripped_response": {
-        "Filesystem": [
+        "items": [
           {
             "args_type": "FileFinderArgs",
             "behaviours": [
@@ -7126,6 +7245,7 @@
               "BASIC",
               "Client Flow"
             ],
+            "category": "Filesystem",
             "default_args": {
               "paths": [
                 "c:\\windows\\system32\\notepad.*"
@@ -7133,28 +7253,8 @@
             },
             "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, file_size=file_size, conditions=conditions, action=action, no_file_type_check=no_file_type_check)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    file_size\n      description: Maximum number of bytes to download in each file.\n      type: ByteSize\n      default: 1000000000\n\n    no_file_type_check\n      description: Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n",
             "friendly_name": "File Finder",
-            "name": "FileFinder",
-            "prototype": "FileFinder(paths, pathtype, file_size, conditions, action, no_file_type_check)",
-            "states": [
-              [
-                "End",
-                "",
-                "End"
-              ],
-              [
-                "ProcessGrep",
-                "",
-                "End"
-              ],
-              [
-                "Start",
-                "Issue the find request.",
-                "End"
-              ]
-            ]
-          }
-        ],
-        "Processes": [
+            "name": "FileFinder"
+          },
           {
             "args_type": "ListProcessesArgs",
             "behaviours": [
@@ -7162,33 +7262,10 @@
               "BASIC",
               "Client Flow"
             ],
+            "category": "Processes",
             "default_args": {},
             "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries)\n\n  Args:\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n",
-            "friendly_name": null,
-            "name": "ListProcesses",
-            "prototype": "ListProcesses(filename_regex, fetch_binaries)",
-            "states": [
-              [
-                "End",
-                "Save the results collection and update the notification line.",
-                "End"
-              ],
-              [
-                "HandleDownloadedFiles",
-                "Handle success/failure of the FileFinder flow.",
-                "End"
-              ],
-              [
-                "IterateProcesses",
-                "This stores the processes.",
-                "HandleDownloadedFiles"
-              ],
-              [
-                "Start",
-                "Start processing.",
-                "IterateProcesses"
-              ]
-            ]
+            "name": "ListProcesses"
           }
         ]
       },
@@ -7197,41 +7274,60 @@
     {
       "method": "GET",
       "response": {
-        "Reporting": [
+        "items": [
           {
-            "args_type": "RunReportFlowArgs",
-            "behaviours": [
-              "ADVANCED",
-              "BASIC",
-              "Global Flow"
-            ],
-            "default_args": {
-              "age": 0,
-              "type": "RunReportFlowArgs",
-              "value": {}
-            },
-            "doc": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n",
-            "friendly_name": null,
-            "name": "RunReport",
-            "prototype": "RunReport(report_name, email)",
-            "states": [
-              [
-                "RunReport",
-                "Run the report.",
-                "EmailReport"
+            "age": 0,
+            "type": "ApiFlowDescriptor",
+            "value": {
+              "args_type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "RunReportFlowArgs"
+              },
+              "behaviours": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "ADVANCED"
+                },
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "BASIC"
+                },
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "Global Flow"
+                }
               ],
-              [
-                "Start",
-                "",
-                "RunReport"
-              ]
-            ]
+              "category": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Reporting"
+              },
+              "default_args": {
+                "age": 0,
+                "type": "RunReportFlowArgs",
+                "value": {}
+              },
+              "doc": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n"
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "RunReport"
+              }
+            }
           }
         ]
       },
       "test_class": "ApiListFlowDescriptorsHandlerRegressionTest",
       "type_stripped_response": {
-        "Reporting": [
+        "items": [
           {
             "args_type": "RunReportFlowArgs",
             "behaviours": [
@@ -7239,23 +7335,10 @@
               "BASIC",
               "Global Flow"
             ],
+            "category": "Reporting",
             "default_args": {},
             "doc": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n",
-            "friendly_name": null,
-            "name": "RunReport",
-            "prototype": "RunReport(report_name, email)",
-            "states": [
-              [
-                "RunReport",
-                "Run the report.",
-                "EmailReport"
-              ],
-              [
-                "Start",
-                "",
-                "RunReport"
-              ]
-            ]
+            "name": "RunReport"
           }
         ]
       },
@@ -7266,7 +7349,6 @@
     {
       "method": "GET",
       "response": {
-        "count": 1,
         "items": [
           {
             "age": 0,
@@ -7301,12 +7383,10 @@
             }
           }
         ],
-        "offset": 0,
         "total_count": 1
       },
       "test_class": "ApiListFlowOutputPluginErrorsHandlerRegressionTest",
       "type_stripped_response": {
-        "count": 1,
         "items": [
           {
             "batch_size": 1,
@@ -7317,7 +7397,6 @@
             "summary": "Oh no!"
           }
         ],
-        "offset": 0,
         "total_count": 1
       },
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/output-plugins/FailingDummyHuntOutputPlugin_0/errors"
@@ -7327,7 +7406,6 @@
     {
       "method": "GET",
       "response": {
-        "count": 1,
         "items": [
           {
             "age": 0,
@@ -7373,12 +7451,10 @@
             }
           }
         ],
-        "offset": 0,
         "total_count": 1
       },
       "test_class": "ApiListFlowOutputPluginLogsHandlerRegressionTest",
       "type_stripped_response": {
-        "count": 1,
         "items": [
           {
             "batch_size": 1,
@@ -7392,7 +7468,6 @@
             "status": "SUCCESS"
           }
         ],
-        "offset": 0,
         "total_count": 1
       },
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/output-plugins/EmailOutputPlugin_0/logs"
@@ -8280,7 +8355,6 @@
     {
       "method": "GET",
       "response": {
-        "count": 2,
         "items": [
           {
             "age": 100042000000,
@@ -8347,12 +8421,10 @@
             }
           }
         ],
-        "offset": 0,
         "total_count": 2
       },
       "test_class": "ApiListHuntOutputPluginErrorsHandlerRegressionTest",
       "type_stripped_response": {
-        "count": 2,
         "items": [
           {
             "batch_size": 1,
@@ -8371,7 +8443,6 @@
             "summary": "Oh no!"
           }
         ],
-        "offset": 0,
         "total_count": 2
       },
       "url": "/api/hunts/H:123456/output-plugins/FailingDummyHuntOutputPlugin_0/errors"
@@ -8381,7 +8452,6 @@
     {
       "method": "GET",
       "response": {
-        "count": 2,
         "items": [
           {
             "age": 100042000000,
@@ -8470,12 +8540,10 @@
             }
           }
         ],
-        "offset": 0,
         "total_count": 2
       },
       "test_class": "ApiListHuntOutputPluginLogsHandlerRegressionTest",
       "type_stripped_response": {
-        "count": 2,
         "items": [
           {
             "batch_size": 1,
@@ -8500,7 +8568,6 @@
             "status": "SUCCESS"
           }
         ],
-        "offset": 0,
         "total_count": 2
       },
       "url": "/api/hunts/H:123456/output-plugins/DummyHuntTestOutputPlugin_0/logs"
@@ -8510,7 +8577,6 @@
     {
       "method": "GET",
       "response": {
-        "count": 1,
         "items": [
           {
             "age": 0,
@@ -8599,12 +8665,10 @@
             }
           }
         ],
-        "offset": 0,
         "total_count": 1
       },
       "test_class": "ApiListHuntOutputPluginsHandlerRegressionTest",
       "type_stripped_response": {
-        "count": 1,
         "items": [
           {
             "id": "DummyHuntTestOutputPlugin_0",
@@ -8629,7 +8693,6 @@
             }
           }
         ],
-        "offset": 0,
         "total_count": 1
       },
       "url": "/api/hunts/H:123456/output-plugins"

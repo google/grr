@@ -18,11 +18,19 @@ var directive = grrUi.config.configViewDirective;
  * @ngInject
  */
 directive.ConfigViewController = function($scope, $http) {
-  var ctrl = this;
+  $http.get('/api/config').success(function(config) {
+    this.items = {};
 
-  $http.get('/api/config').success(function(items) {
-    ctrl.items = items;
-  });
+    angular.forEach(config['sections'], function(section) {
+      var sectionName = section['value']['name']['value'];
+      var sectionOptions = section['value']['options'];
+
+      this.items[sectionName] = {};
+      angular.forEach(sectionOptions, function(option) {
+        this.items[sectionName][option['value']['name']['value']] = option;
+      }.bind(this));
+    }.bind(this));
+  }.bind(this));
 };
 var ConfigViewController = directive.ConfigViewController;
 
@@ -37,7 +45,7 @@ directive.ConfigViewDirective = function() {
     scope: {},
     templateUrl: '/static/angular-components/config/config-view.html',
     controller: ConfigViewController,
-    controllerAs: 'ctrl'
+    controllerAs: 'controller'
   };
 };
 

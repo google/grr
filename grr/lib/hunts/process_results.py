@@ -80,6 +80,8 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     for plugin_def, plugin in plugins:
       try:
         plugin.ProcessResponses(results)
+        plugin.Flush()
+
         plugin_status = output_plugin.OutputPluginBatchProcessingStatus(
             plugin_descriptor=plugin_def,
             status="SUCCESS",
@@ -89,7 +91,12 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
                                      fields=[plugin_def.plugin_name])
 
       except Exception as e:  # pylint: disable=broad-except
-        logging.exception(e)
+        logging.exception("Error processing hunt results: hunt %s, "
+                          "plugin %s", hunt_urn, utils.SmartStr(plugin))
+        self.Log("Error processing hunt results (hunt %s, "
+                 "plugin %s): %s" % (hunt_urn, utils.SmartStr(plugin), e))
+        stats.STATS.IncrementCounter("hunt_output_plugin_errors",
+                                     fields=[plugin_def.plugin_name])
 
         plugin_status = output_plugin.OutputPluginBatchProcessingStatus(
             plugin_descriptor=plugin_def,
@@ -109,17 +116,6 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
             "PluginStatusCollection",
             mode="w",
             token=self.token).Add(plugin_status)
-
-  def FlushPlugins(self, hunt_urn, plugins, exceptions_by_plugin):
-    for plugin_def, plugin in plugins:
-      try:
-        plugin.Flush()
-      except Exception as e:  # pylint: disable=broad-except
-        logging.exception("Error flushing hunt results: hunt %s, "
-                          "plugin %s", hunt_urn, str(plugin))
-        self.Log("Error processing hunt results (hunt %s, "
-                 "plugin %s): %s" % (hunt_urn, str(plugin), e))
-        exceptions_by_plugin.setdefault(plugin_def, []).append(e)
 
   def ProcessOneHunt(self, exceptions_by_hunt):
     """Reads results for one hunt and process them."""
@@ -166,14 +162,16 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
           if self.CheckIfRunningTooLong():
             logging.warning("Run too long, stopping.")
             break
-        self.FlushPlugins(hunt_urn, used_plugins, exceptions_by_plugin)
+
         metadata_obj.Set(metadata_obj.Schema.OUTPUT_PLUGINS(all_plugins))
         metadata_obj.Set(metadata_obj.Schema.NUM_PROCESSED_RESULTS(
             num_processed))
+
     if exceptions_by_plugin:
       for plugin, exceptions in exceptions_by_plugin.items():
         exceptions_by_hunt.setdefault(hunt_urn, {}).setdefault(
             plugin, []).extend(exceptions)
+
     logging.debug("Processed %d results.", num_processed_for_hunt)
     return len(results)
 
@@ -185,10 +183,12 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     if not self.state.args.max_running_time:
       self.state.args.max_running_time = rdfvalue.Duration("%ds" % int(
           ProcessHuntResultCollectionsCronFlow.lifetime.seconds * 0.6))
+
     while not self.CheckIfRunningTooLong():
       count = self.ProcessOneHunt(exceptions_by_hunt)
       if not count:
         break
+
     if exceptions_by_hunt:
       e = ResultsProcessingError()
       for hunt_urn, exceptions_by_plugin in exceptions_by_hunt.items():

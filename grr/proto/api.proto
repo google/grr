@@ -5,6 +5,7 @@
 syntax = "proto2";
 
 import "grr/proto/analysis.proto";
+import "grr/proto/artifact.proto";
 import "grr/proto/flows.proto";
 import "grr/proto/jobs.proto";
 import "grr/proto/knowledge_base.proto";
@@ -126,7 +127,7 @@ message ApiListFlowResultsArgs {
 
 message ApiListFlowResultsResult {
   repeated ApiFlowResult items = 1 [(sem_type) = {
-      description: "The flwo results."
+      description: "The flow results."
     }];
    optional int64 total_count = 2 [(sem_type) = {
       description: "Total count of items."
@@ -174,6 +175,12 @@ message ApiGetFlowResultsExportCommandArgs {
     }];
 }
 
+message ApiGetFlowResultsExportCommandResult {
+  optional string command = 1 [(sem_type) = {
+      description: "Export command for flow results."
+    }];
+}
+
 message ApiListFlowOutputPluginsArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
@@ -210,6 +217,17 @@ message ApiListFlowOutputPluginLogsArgs {
     }];
 }
 
+message ApiListFlowOutputPluginLogsResult {
+  repeated OutputPluginBatchProcessingStatus items = 1 [(sem_type) = {
+      description: "Log entries."
+    }];
+
+  optional int64 total_count = 2 [(sem_type) = {
+    description: "Total count of items."
+  }];
+}
+
+
 message ApiListFlowOutputPluginErrorsArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
@@ -229,6 +247,16 @@ message ApiListFlowOutputPluginErrorsArgs {
   optional int64 count = 5 [(sem_type) = {
       description: "Max number of errors."
     }];
+}
+
+message ApiListFlowOutputPluginErrorsResult {
+  repeated OutputPluginBatchProcessingStatus items = 1 [(sem_type) = {
+      description: "Errors entries."
+    }];
+
+  optional int64 total_count = 2 [(sem_type) = {
+    description: "Total count of items."
+  }];
 }
 
 message ApiGetFlowFilesArchiveArgs {
@@ -258,6 +286,10 @@ message ApiListFlowDescriptorsArgs {
       "only."
     }];
 };
+
+message ApiListFlowDescriptorsResult {
+  repeated ApiFlowDescriptor items = 1;
+}
 
 message ApiListClientFlowsArgs {
   optional string client_id = 1 [(sem_type) = {
@@ -471,11 +503,26 @@ message ApiGetHuntResultsExportCommandArgs {
     }];
 };
 
+message ApiGetHuntResultsExportCommandResult {
+  optional string command = 1 [(sem_type) = {
+      description: "Command that may be used to export hunt results."
+    }];
+}
+
 message ApiListHuntOutputPluginsArgs {
   optional string hunt_id = 1 [(sem_type) = {
       description: "Hunt id."
     }];
 };
+
+message ApiListHuntOutputPluginsResult {
+  repeated ApiOutputPlugin items = 1;
+
+  optional int64 total_count = 2 [(sem_type) = {
+    description: "Total count of items."
+  }];
+};
+
 
 message ApiListHuntOutputPluginLogsArgs {
   optional string hunt_id = 1 [(sem_type) = {
@@ -493,6 +540,16 @@ message ApiListHuntOutputPluginLogsArgs {
     }];
 };
 
+message ApiListHuntOutputPluginLogsResult {
+  repeated OutputPluginBatchProcessingStatus items = 1 [(sem_type) = {
+      description: "Log entries."
+    }];
+
+  optional int64 total_count = 2 [(sem_type) = {
+    description: "Total count of items."
+  }];
+}
+
 message ApiListHuntOutputPluginErrorsArgs {
   optional string hunt_id = 1 [(sem_type) = {
       description: "Hunt id."
@@ -508,6 +565,17 @@ message ApiListHuntOutputPluginErrorsArgs {
       description: "Number of errors messages to fetch."
     }];
 };
+
+message ApiListHuntOutputPluginErrorsResult {
+  repeated OutputPluginBatchProcessingStatus items = 1 [(sem_type) = {
+      description: "Errors entries."
+    }];
+
+  optional int64 total_count = 2 [(sem_type) = {
+    description: "Total count of items."
+  }];
+}
+
 
 message ApiGetHuntFilesArchiveArgs {
   enum ArchiveFormat {
@@ -682,6 +750,15 @@ message ApiListCronJobsArgs {
     }];
 };
 
+message ApiListCronJobsResult {
+  repeated ApiCronJob items = 1 [(sem_type) = {
+      description: "Cron jobs."
+    }];
+   optional int64 total_count = 2 [(sem_type) = {
+      description: "Total count of items."
+   }];
+}
+
 message ApiDeleteCronJobArgs {
   optional string cron_job_id = 1 [(sem_type) = {
       description: "The id of the cron job."
@@ -744,6 +821,15 @@ message ApiListArtifactsArgs {
     }];
 }
 
+message ApiListArtifactsResult {
+  repeated ArtifactDescriptor items = 1 [(sem_type) = {
+      description: "The flwo results."
+    }];
+   optional int64 total_count = 2 [(sem_type) = {
+      description: "Total count of items."
+   }];
+};
+
 message ApiUploadArtifactArgs {
   optional bytes artifact = 1 [(sem_type) = {
       description: "Artifact YAML definition."
@@ -754,6 +840,10 @@ message ApiDeleteArtifactsArgs {
   repeated string names = 1 [(sem_type) = {
       description: "Names of the artifacts to be deleted."
     }];
+}
+
+message ApiGetConfigResult {
+  repeated ApiConfigSection sections = 1;
 }
 
 message ApiGetConfigOptionArgs {
@@ -888,6 +978,55 @@ message ApiRDFValueCollectionRendererArgs {
 
 
 // API entities. These are uses in API calls responses.
+
+message ApiConfigOption {
+  optional string name = 1;
+  optional bool is_redacted = 2;
+
+  optional AnyValue value = 3 [(sem_type) = {
+      description: "Config option value.",
+      dynamic_type: "GetValueClass"
+    }];
+  optional string type = 4 [(sem_type) = {
+      description: "The type of the value."
+    }];
+  optional bool is_invalid = 5 [(sem_type) = {
+      description: "Whether the value could be successfully serialized "
+      "to the protobuf serialization format."
+    }];
+}
+
+message ApiConfigSection {
+  optional string name = 1;
+  repeated ApiConfigOption options = 2;
+}
+
+message ApiFlowDescriptor {
+  optional string name = 1 [(sem_type) = {
+      description: "Flow name as registered in GRR."
+    }];
+  optional string friendly_name = 2 [(sem_type) = {
+      description: "Friendly flow name."
+    }];
+  optional string category = 3 [(sem_type) = {
+      description: "Flow category."
+    }];
+  optional string doc = 4 [(sem_type) = {
+      description: "Flow documentation string."
+    }];
+
+  optional string args_type = 5 [(sem_type) = {
+      description: "Flow arguments type name."
+    }];
+  optional AnyValue default_args = 6 [(sem_type) = {
+      description: "Default flow arguments.",
+      dynamic_type: "GetDefaultArgsClass"
+    }];
+
+  repeated string behaviours = 7 [(sem_type) = {
+      description: "Flow behaviours."
+    }];
+}
 
 message ApiUserHuntApproval {
   optional ApiHunt subject = 1 [(sem_type) = {

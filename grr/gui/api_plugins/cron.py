@@ -4,7 +4,6 @@
 import itertools
 
 from grr.gui import api_call_handler_base
-from grr.gui import api_value_renderers
 
 from grr.lib import aff4
 from grr.lib import flow
@@ -88,30 +87,34 @@ class ApiListCronJobsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListCronJobsArgs
 
 
+class ApiListCronJobsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListCronJobsResult
+
+
 class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
   """Lists flows launched on a given client."""
 
   category = CATEGORY
   args_type = ApiListCronJobsArgs
+  result_type = ApiListCronJobsResult
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     if not args.count:
       stop = None
     else:
       stop = args.offset + args.count
 
-    cron_jobs_urns = list(itertools.islice(
-        aff4_cronjobs.CRON_MANAGER.ListJobs(token=token), args.offset, stop))
+    all_jobs_urns = list(aff4_cronjobs.CRON_MANAGER.ListJobs(token=token))
+    cron_jobs_urns = all_jobs_urns[args.offset:stop]
     cron_jobs = aff4.FACTORY.MultiOpen(
         cron_jobs_urns, aff4_type="CronJob", token=token, age=aff4.ALL_TIMES)
 
     items = [ApiCronJob().InitFromAff4Object(cron_job)
              for cron_job in cron_jobs]
     items.sort(key=lambda item: item.urn)
-    result = dict(offset=args.offset,
-                  count=len(items),
-                  items=api_value_renderers.RenderValue(items))
-    return result
+
+    return ApiListCronJobsResult(items=items,
+                                 total_count=len(all_jobs_urns))
 
 
 class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
@@ -119,10 +122,12 @@ class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
 
   category = CATEGORY
   args_type = ApiCronJob
+  result_type = ApiCronJob
+  strip_json_root_fields_types = False
 
   privileged = True
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     args.flow_args.hunt_runner_args.hunt_name = "GenericHunt"
 
     # TODO(user): The following should be asserted in a more elegant way.
@@ -148,9 +153,8 @@ class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
 
     fd = aff4.FACTORY.Open(urn, aff4_type="CronJob", token=token,
                            age=aff4.ALL_TIMES)
-    api_cron_job = ApiCronJob().InitFromAff4Object(fd)
 
-    return api_value_renderers.RenderValue(api_cron_job)
+    return ApiCronJob().InitFromAff4Object(fd)
 
 
 class ApiDeleteCronJobArgs(rdf_structs.RDFProtoStruct):

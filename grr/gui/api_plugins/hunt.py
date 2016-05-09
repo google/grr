@@ -9,7 +9,6 @@ import logging
 
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_handler_utils
-from grr.gui import api_value_renderers
 from grr.gui.api_plugins import output_plugin as api_output_plugin
 
 from grr.lib import aff4
@@ -133,7 +132,7 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListHuntsArgs
   result_type = ApiListHuntsResult
 
-  def _RenderHuntList(self, hunt_list):
+  def _BuildHuntList(self, hunt_list):
     hunt_list = sorted(hunt_list, reverse=True,
                        key=lambda hunt: hunt.GetRunner().context.create_time)
 
@@ -180,7 +179,7 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
     else:
       return None
 
-  def RenderNonFiltered(self, args, token):
+  def HandleNonFiltered(self, args, token):
     fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=token)
     children = list(fd.ListChildren())
     total_count = len(children)
@@ -198,9 +197,9 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
       hunt_list.append(hunt)
 
     return ApiListHuntsResult(total_count=total_count,
-                              items=self._RenderHuntList(hunt_list))
+                              items=self._BuildHuntList(hunt_list))
 
-  def RenderFiltered(self, filter_func, args, token):
+  def HandleFiltered(self, filter_func, args, token):
     fd = aff4.FACTORY.Open("aff4:/hunts", mode="r", token=token)
     children = list(fd.ListChildren())
     children.sort(key=operator.attrgetter("age"), reverse=True)
@@ -240,21 +239,21 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
       if args.count and len(hunt_list) >= args.count:
         break
 
-    return ApiListHuntsResult(items=self._RenderHuntList(hunt_list))
+    return ApiListHuntsResult(items=self._BuildHuntList(hunt_list))
 
   def Handle(self, args, token=None):
     filter_func = self._BuildFilter(args, token)
     if not filter_func and args.active_within:
       # If no filters except for "active_within" were specified, just use
       # a stub filter function that always returns True. Filtering by
-      # active_within is done by RenderFiltered code before other filters
+      # active_within is done by HandleFiltered code before other filters
       # are applied.
       filter_func = lambda x: True
 
     if filter_func:
-      return self.RenderFiltered(filter_func, args, token)
+      return self.HandleFiltered(filter_func, args, token)
     else:
-      return self.RenderNonFiltered(args, token)
+      return self.HandleNonFiltered(args, token)
 
 
 class ApiGetHuntArgs(rdf_structs.RDFProtoStruct):
@@ -343,14 +342,19 @@ class ApiGetHuntResultsExportCommandArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiGetHuntResultsExportCommandArgs
 
 
+class ApiGetHuntResultsExportCommandResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetHuntResultsExportCommandResult
+
+
 class ApiGetHuntResultsExportCommandHandler(
     api_call_handler_base.ApiCallHandler):
   """Renders GRR export tool command line that exports hunt results."""
 
   category = CATEGORY
   args_type = ApiGetHuntResultsExportCommandArgs
+  result_type = ApiGetHuntResultsExportCommandResult
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     results_path = HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Results")
 
     export_command_str = " ".join([
@@ -362,11 +366,15 @@ class ApiGetHuntResultsExportCommandHandler(
         "--path", utils.ShellQuote(results_path),
         "--output", "."])
 
-    return dict(command=export_command_str)
+    return ApiGetHuntResultsExportCommandResult(command=export_command_str)
 
 
 class ApiListHuntOutputPluginsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListHuntOutputPluginsArgs
+
+
+class ApiListHuntOutputPluginsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntOutputPluginsResult
 
 
 class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
@@ -374,8 +382,9 @@ class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
 
   category = CATEGORY
   args_type = ApiListHuntOutputPluginsArgs
+  result_type = ApiListHuntOutputPluginsResult
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     metadata = aff4.FACTORY.Create(
         HUNTS_ROOT_PATH.Add(args.hunt_id).Add("ResultsMetadata"), mode="r",
         aff4_type="HuntResultsMetadata", token=token)
@@ -389,8 +398,9 @@ class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
           state=plugin_state)
       result.append(api_plugin)
 
-    return dict(offset=0, count=len(result), total_count=len(result),
-                items=api_value_renderers.RenderValue(result))
+    return ApiListHuntOutputPluginsResult(
+        items=result,
+        total_count=len(result))
 
 
 class ApiListHuntOutputPluginLogsHandlerBase(
@@ -402,7 +412,7 @@ class ApiListHuntOutputPluginLogsHandlerBase(
   collection_name = None
   category = CATEGORY
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     if not self.collection_name:
       raise ValueError("collection_name can't be None")
 
@@ -438,14 +448,16 @@ class ApiListHuntOutputPluginLogsHandlerBase(
       if args.count:
         logs = logs[:args.count]
 
-    return dict(offset=args.offset,
-                count=len(logs),
-                total_count=total_count,
-                items=api_value_renderers.RenderValue(logs))
+    return self.result_type(total_count=total_count,
+                            items=logs)
 
 
 class ApiListHuntOutputPluginLogsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListHuntOutputPluginLogsArgs
+
+
+class ApiListHuntOutputPluginLogsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntOutputPluginLogsResult
 
 
 class ApiListHuntOutputPluginLogsHandler(
@@ -454,10 +466,15 @@ class ApiListHuntOutputPluginLogsHandler(
 
   collection_name = "OutputPluginsStatus"
   args_type = ApiListHuntOutputPluginLogsArgs
+  result_type = ApiListHuntOutputPluginLogsResult
 
 
 class ApiListHuntOutputPluginErrorsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListHuntOutputPluginErrorsArgs
+
+
+class ApiListHuntOutputPluginErrorsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntOutputPluginErrorsResult
 
 
 class ApiListHuntOutputPluginErrorsHandler(
@@ -466,6 +483,7 @@ class ApiListHuntOutputPluginErrorsHandler(
 
   collection_name = "OutputPluginsErrors"
   args_type = ApiListHuntOutputPluginErrorsArgs
+  result_type = ApiListHuntOutputPluginErrorsResult
 
 
 class ApiListHuntLogsArgs(rdf_structs.RDFProtoStruct):
@@ -681,6 +699,8 @@ class ApiGetHuntFilesArchiveArgs(rdf_structs.RDFProtoStruct):
 
 class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   """Generates archive with all files referenced in flow's results."""
+
+  args_type = ApiGetHuntFilesArchiveArgs
 
   def _WrapContentGenerator(self, generator, collection, args, token=None):
     user = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(token.username),
@@ -986,13 +1006,15 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
 
   category = CATEGORY
   args_type = ApiCreateHuntArgs
+  result_type = ApiHunt
+  strip_json_root_fields_types = False
 
   # Anyone should be able to create a hunt (permissions are required to
   # actually start it) so marking this handler as privileged to turn off
   # ACL checks.
   privileged = True
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     """Creates a new hunt."""
 
     # We only create generic hunts with /hunts/create requests.
@@ -1011,8 +1033,4 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
                    token.username, hunt.state.args.flow_runner_args.flow_name,
                    hunt.urn)
 
-      return dict(
-          status="OK",
-          hunt_id=api_value_renderers.RenderValue(hunt.urn),
-          hunt_args=api_value_renderers.RenderValue(hunt.state.args),
-          hunt_runner_args=api_value_renderers.RenderValue(hunt.runner.args))
+      return ApiHunt().InitFromAff4Object(hunt, with_full_summary=True)

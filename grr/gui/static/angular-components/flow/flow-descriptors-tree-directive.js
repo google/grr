@@ -2,10 +2,12 @@
 
 goog.provide('grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeController');
 goog.provide('grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirective');
+goog.require('grrUi.core.apiService.stripTypeInfo');
 
 goog.scope(function() {
 
 
+var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 /**
  * Controller for FlowDescriptorsTreeDirective.
@@ -27,7 +29,7 @@ grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeController =
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
-  /** @type {!Object} */
+  /** @type {!Object<string, Array<Object>>} */
   this.flowsDescriptors;
 
   /** @type {!Object} */
@@ -67,8 +69,31 @@ FlowDescriptorsTreeController.prototype.onFlowTypeChange_ = function(newValue) {
 
   this.grrApiService_.get('/flows/descriptors', params).then(
       function(response) {
-        this.flowsDescriptors = response.data;
+        this.flowsDescriptors = this.groupDescriptorsByCategory_(
+            response['data']['items']);
       }.bind(this));
+};
+
+
+/**
+ * Converts flow descriptors list to a dictionary where descriptors are grouped
+ * by category.
+ *
+ * @param {Array<Object>} items List of descriptors to convert.
+ * @return {!Object<string, Array<Object>>} Dictionary with descriptors grouped
+ *     by category.
+ * @private
+ */
+FlowDescriptorsTreeController.prototype.groupDescriptorsByCategory_ =
+    function(items) {
+  var result = {};
+  angular.forEach(items, function(item) {
+    var category = item['value']['category']['value'];
+    result[category] = result[category] || [];
+    result[category].push(item);
+  }.bind(this));
+
+  return result;
 };
 
 
@@ -106,6 +131,9 @@ FlowDescriptorsTreeController.prototype.onDescriptorsOrSettingsChange_ =
     };
 
     var descriptors = this.flowsDescriptors[category].sort(function(a, b) {
+      a = stripTypeInfo(a);
+      b = stripTypeInfo(b);
+
       var aName = a['friendly_name'] || a['name'];
       var bName = b['friendly_name'] || b['name'];
 
@@ -118,15 +146,19 @@ FlowDescriptorsTreeController.prototype.onDescriptorsOrSettingsChange_ =
       }
     });
     angular.forEach(descriptors, function(descriptor) {
+      var strippedDescriptor = stripTypeInfo(descriptor);
+
       // Filter out flows that don't support display mode selected by
       // the user.
-      if (mode == 'DEBUG' || descriptor['behaviours'].indexOf(mode) != -1) {
+      if (mode == 'DEBUG' ||
+          strippedDescriptor['behaviours'].indexOf(mode) != -1) {
 
         categoryNode['children'].push({
           data: {descriptor: descriptor},
           // Id is needed for Selenium tests backwards compatibility.
-          li_attr: {id: '_' + category + '-' + descriptor['name']},
-          text: descriptor['friendly_name'] || descriptor['name'],
+          li_attr: {id: '_' + category + '-' + strippedDescriptor['name']},
+          text: (strippedDescriptor['friendly_name'] ||
+              strippedDescriptor['name']),
           icon: 'file'
         });
       }

@@ -2,13 +2,11 @@
 """API handlers for accessing artifacts."""
 
 from grr.gui import api_call_handler_base
-from grr.gui import api_value_renderers
 
 from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import parsers
-from grr.lib import utils
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
@@ -21,13 +19,18 @@ class ApiListArtifactsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListArtifactsArgs
 
 
+class ApiListArtifactsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListArtifactsResult
+
+
 class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
   """Renders available artifacts definitions."""
 
   category = CATEGORY
   args_type = ApiListArtifactsArgs
+  result_type = ApiListArtifactsResult
 
-  def RenderArtifacts(self, artifacts):
+  def BuildArtifactDescriptors(self, artifacts):
     result = []
     for artifact_val in artifacts:
       descriptor = artifact_registry.ArtifactDescriptor(
@@ -45,11 +48,11 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
                 output_types=processor.output_types,
                 description=processor.GetDescription()))
 
-      result.append(api_value_renderers.RenderValue(descriptor))
+      result.append(descriptor)
 
     return result
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     """Get available artifact information for rendering."""
 
     # Get all artifacts that aren't Bootstrap and aren't the base class.
@@ -63,12 +66,9 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
     else:
       artifacts = artifacts[args.offset:]
 
-    rendered_artifacts = self.RenderArtifacts(artifacts)
-
-    return dict(total_count=total_count,
-                offset=args.offset,
-                count=len(rendered_artifacts),
-                items=rendered_artifacts)
+    descriptors = self.BuildArtifactDescriptors(artifacts)
+    return ApiListArtifactsResult(items=descriptors,
+                                  total_count=total_count)
 
 
 class ApiUploadArtifactArgs(rdf_structs.RDFProtoStruct):
@@ -81,9 +81,8 @@ class ApiUploadArtifactHandler(api_call_handler_base.ApiCallHandler):
   category = CATEGORY
   args_type = ApiUploadArtifactArgs
 
-  def Render(self, args, token=None):
-    urn = artifact.UploadArtifactYamlFile(args.artifact, token=token)
-    return dict(status="OK", urn=utils.SmartStr(urn))
+  def Handle(self, args, token=None):
+    artifact.UploadArtifactYamlFile(args.artifact, token=token)
 
 
 class ApiDeleteArtifactsArgs(rdf_structs.RDFProtoStruct):
@@ -96,7 +95,7 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
   category = CATEGORY
   args_type = ApiDeleteArtifactsArgs
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     artifacts = sorted(artifact_registry.REGISTRY.GetArtifacts(
         reload_datastore_artifacts=True))
 
@@ -142,5 +141,3 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
 
     for artifact_value in to_delete:
       artifact_registry.REGISTRY.UnregisterArtifact(artifact_value)
-
-    return dict(status="OK")

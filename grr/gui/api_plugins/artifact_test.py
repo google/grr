@@ -24,37 +24,38 @@ class ApiListArtifactsHandlerTest(test_lib.FlowTestsBaseclass):
                                        "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
-  def _renderEmptyArtifacts(self):
+  def _handleEmptyArtifacts(self):
     artifact_registry.REGISTRY.ClearSources()
-    return self.handler.Render(self.handler.args_type(), token=self.token)
+    return self.handler.Handle(self.handler.args_type(), token=self.token)
 
   def testNoArtifacts(self):
-    rendering = self._renderEmptyArtifacts()
-    self.assertEqual(rendering,
-                     {"count": 0, "items": [], "offset": 0, "total_count": 0})
+    result = self._handleEmptyArtifacts()
+    self.assertEqual(result.total_count, 0)
+    self.assertEqual(result.items, [])
 
-  def _renderTestArtifacts(self):
-    return self.handler.Render(self.handler.args_type(), token=self.token)
+  def _handleTestArtifacts(self):
+    return self.handler.Handle(self.handler.args_type(), token=self.token)
 
   def testPrepackagedArtifacts(self):
-    rendering = self._renderTestArtifacts()
+    result = self._handleTestArtifacts()
 
-    # we know there are some prepackaged artifacts
-    self.assertTrue(rendering)
+    # Some artifacts are guaratneed to be returned, as they're defined in
+    # the test_data/artifacts/test_artifacts.json.
+    self.assertTrue(result.total_count)
 
-    # test for a prepackaged artifact we know to exist
-    for item in rendering["items"]:
-      if item["value"]["artifact"]["value"]["name"]["value"] == "FakeArtifact":
-        fake_artifact = item["value"]
+    # Check that FakeArtifact artifact exists. It's guaranteed to exist, since
+    # it's defined in test_data/artifacts/test_artifacts.json.
+    for item in result.items:
+      if item.artifact.name == "FakeArtifact":
+        fake_artifact = item
 
     self.assertTrue(fake_artifact)
-    self.assertIn("is_custom", fake_artifact)
-    self.assertFalse(fake_artifact["is_custom"]["value"])
+    self.assertTrue(fake_artifact.HasField("is_custom"))
+    self.assertFalse(fake_artifact.is_custom)
 
-    for required_key in ("doc",
-                         "labels",
-                         "supported_os"):
-      self.assertIn(required_key, fake_artifact["artifact"]["value"])
+    self.assertTrue(fake_artifact.artifact.doc)
+    self.assertTrue(fake_artifact.artifact.labels)
+    self.assertTrue(fake_artifact.artifact.supported_os)
 
 
 class ArtifactHandlerRegressionTest(
@@ -91,8 +92,7 @@ class ApiDeleteArtifactsHandlerTest(test_lib.GRRBaseTest):
 
     args = self.handler.args_type(names=["TestFilesArtifact",
                                          "WMIActiveScriptEventConsumer"])
-    response = self.handler.Render(args, token=self.token)
-    self.assertEqual(response, dict(status="OK"))
+    self.handler.Handle(args, token=self.token)
 
     new_count = len(artifact_registry.REGISTRY.GetArtifacts())
 
@@ -103,14 +103,14 @@ class ApiDeleteArtifactsHandlerTest(test_lib.GRRBaseTest):
     self.UploadTestArtifacts()
     args = self.handler.args_type(names=["TestAggregationArtifact"])
     with self.assertRaises(ValueError):
-      self.handler.Render(args, token=self.token)
+      self.handler.Handle(args, token=self.token)
 
   def testDeleteNonExistentArtifact(self):
     self.UploadTestArtifacts()
     args = self.handler.args_type(names=["NonExistentArtifact"])
     e = self.assertRaises(ValueError)
     with e:
-      self.handler.Render(args, token=self.token)
+      self.handler.Handle(args, token=self.token)
     self.assertEqual(str(e.exception),
                      "Artifact(s) to delete (NonExistentArtifact) not found.")
 

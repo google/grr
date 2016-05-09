@@ -29,6 +29,29 @@ from grr.proto import api_pb2
 CATEGORY = "Flows"
 
 
+class ApiFlowDescriptor(rdf_structs.RDFProtoStruct):
+  """Descriptor containing information about a flow class."""
+
+  protobuf = api_pb2.ApiFlowDescriptor
+
+  def GetDefaultArgsClass(self):
+    return rdfvalue.RDFValue.classes.get(self.args_type)
+
+  def InitFromFlowClass(self, flow_cls, token=None):
+    if not token:
+      raise ValueError("token can't be None")
+
+    self.name = flow_cls.__name__
+    self.friendly_name = flow_cls.friendly_name
+    self.category = flow_cls.category.strip("/")
+    self.doc = flow_cls.__doc__
+    self.args_type = flow_cls.args_type.__name__
+    self.default_args = flow_cls.GetDefaultArgs(token=token)
+    self.behaviours = sorted(flow_cls.behaviours)
+
+    return self
+
+
 class ApiFlow(rdf_structs.RDFProtoStruct):
   """ApiFlow is used when rendering responses.
 
@@ -275,14 +298,19 @@ class ApiGetFlowResultsExportCommandArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiGetFlowResultsExportCommandArgs
 
 
+class ApiGetFlowResultsExportCommandResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetFlowResultsExportCommandResult
+
+
 class ApiGetFlowResultsExportCommandHandler(
     api_call_handler_base.ApiCallHandler):
   """Renders GRR export tool command line that exports flow results."""
 
   category = CATEGORY
   args_type = ApiGetFlowResultsExportCommandArgs
+  result_type = ApiGetFlowResultsExportCommandResult
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
     flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow", mode="r",
                                  token=token)
@@ -295,7 +323,7 @@ class ApiGetFlowResultsExportCommandHandler(
         "--path", utils.ShellQuote(output_urn),
         "--output", "."])
 
-    return dict(command=export_command_str)
+    return ApiGetFlowResultsExportCommandResult(command=export_command_str)
 
 
 class ApiGetFlowFilesArchiveArgs(rdf_structs.RDFProtoStruct):
@@ -304,6 +332,8 @@ class ApiGetFlowFilesArchiveArgs(rdf_structs.RDFProtoStruct):
 
 class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   """Generates archive with all files referenced in flow's results."""
+
+  args_type = ApiGetFlowFilesArchiveArgs
 
   def _WrapContentGenerator(self, generator, collection, args, token=None):
     user = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(token.username),
@@ -425,7 +455,7 @@ class ApiListFlowOutputPluginLogsHandlerBase(
   attribute_name = None
   category = CATEGORY
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     if not self.attribute_name:
       raise ValueError("attribute_name can't be None")
 
@@ -461,14 +491,16 @@ class ApiListFlowOutputPluginLogsHandlerBase(
     logs_collection = found_state.get(self.attribute_name, [])
     sliced_collection = logs_collection[args.offset:stop]
 
-    return dict(offset=args.offset,
-                count=len(sliced_collection),
-                total_count=len(logs_collection),
-                items=api_value_renderers.RenderValue(sliced_collection))
+    return self.result_type(total_count=len(logs_collection),
+                            items=sliced_collection)
 
 
 class ApiListFlowOutputPluginLogsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListFlowOutputPluginLogsArgs
+
+
+class ApiListFlowOutputPluginLogsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListFlowOutputPluginLogsResult
 
 
 class ApiListFlowOutputPluginLogsHandler(
@@ -477,10 +509,15 @@ class ApiListFlowOutputPluginLogsHandler(
 
   attribute_name = "logs"
   args_type = ApiListFlowOutputPluginLogsArgs
+  result_type = ApiListFlowOutputPluginLogsResult
 
 
 class ApiListFlowOutputPluginErrorsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListFlowOutputPluginErrorsArgs
+
+
+class ApiListFlowOutputPluginErrorsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListFlowOutputPluginErrorsResult
 
 
 class ApiListFlowOutputPluginErrorsHandler(
@@ -489,6 +526,7 @@ class ApiListFlowOutputPluginErrorsHandler(
 
   attribute_name = "errors"
   args_type = ApiListFlowOutputPluginErrorsArgs
+  result_type = ApiListFlowOutputPluginErrorsResult
 
 
 class ApiListClientFlowsArgs(rdf_structs.RDFProtoStruct):
@@ -700,11 +738,16 @@ class ApiListFlowDescriptorsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListFlowDescriptorsArgs
 
 
+class ApiListFlowDescriptorsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListFlowDescriptorsResult
+
+
 class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
   """Renders all available flows descriptors."""
 
   category = CATEGORY
   args_type = ApiListFlowDescriptorsArgs
+  result_type = ApiListFlowDescriptorsResult
 
   client_flow_behavior = flow.FlowBehaviour("Client Flow")
   global_flow_behavior = flow.FlowBehaviour("Global Flow")
@@ -717,11 +760,10 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
     else:
       raise ValueError("Unexpected flow type: " + str(flow_type))
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     """Renders list of descriptors for all the flows."""
 
-    result = {}
-
+    result = []
     for name in sorted(flow.GRRFlow.classes.keys()):
       cls = flow.GRRFlow.classes[name]
 
@@ -762,41 +804,6 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
       elif not (can_be_started_on_client or can_be_started_globally):
         continue
 
-      states = []
+      result.append(ApiFlowDescriptor().InitFromFlowClass(cls, token=token))
 
-      # Fill in information about each state
-      for state_method in cls.__dict__.values():
-        try:
-          next_states = state_method.next_states
-
-          # Only show the first line of the doc string.
-          try:
-            func_doc = state_method.func_doc.split("\n")[0].strip()
-          except AttributeError:
-            func_doc = ""
-          states.append((state_method.func_name,
-                         func_doc, ", ".join(next_states)))
-        except AttributeError:
-          pass
-
-      states = sorted(states, key=lambda x: x[0])
-
-      # Now fill in information about each arg to this flow.
-      prototypes = []
-      for type_descriptor in cls.args_type.type_infos:
-        if not type_descriptor.hidden:
-          prototypes.append("%s" % (type_descriptor.name))
-      prototype = "%s(%s)" % (cls.__name__, ", ".join(prototypes))
-
-      flow_descriptor = dict(name=name,
-                             friendly_name=cls.friendly_name,
-                             doc=cls.__doc__,
-                             prototype=prototype,
-                             states=states,
-                             behaviours=sorted(cls.behaviours),
-                             args_type=cls.args_type.__name__,
-                             default_args=api_value_renderers.RenderValue(
-                                 cls.GetDefaultArgs(token=token)))
-      result.setdefault(cls.category.strip("/"), []).append(flow_descriptor)
-
-    return result
+    return ApiListFlowDescriptorsResult(items=result)
