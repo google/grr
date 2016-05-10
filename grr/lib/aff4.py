@@ -2809,7 +2809,7 @@ class AFF4ImageBase(AFF4Stream):
         if fd in missing_chunks_by_fd:
           continue
 
-        yield fd, contents_map[chunk_urn], []
+        yield fd, contents_map[chunk_urn], None
 
     for fd, missing_chunks in missing_chunks_by_fd.iteritems():
       e = MissingChunksError("%d missing chunks (multi-stream)." %

@@ -46,7 +46,7 @@ class ObjectWithLockProtectedAttribute(aff4.AFF4Volume):
                                       lock_protected=False)
 
 
-class DeletionPoolTest(test_lib.GRRBaseTest):
+class DeletionPoolTest(test_lib.AFF4ObjectTest):
   """Tests for DeletionPool class."""
 
   def setUp(self):
@@ -302,7 +302,7 @@ class DeletionPoolTest(test_lib.GRRBaseTest):
 
 
 @mock.patch.object(aff4.AFF4Stream, "MULTI_STREAM_CHUNK_SIZE", 10)
-class AFF4MemoryStreamTest(test_lib.GRRBaseTest):
+class AFF4MemoryStreamTest(test_lib.AFF4ObjectTest):
   """Tests for AFF4MemoryStream class."""
 
   # Tests below effectively test default AFF4Stream._MultiStream implementation.
@@ -316,8 +316,8 @@ class AFF4MemoryStreamTest(test_lib.GRRBaseTest):
     chunks_fds = list(aff4.AFF4Stream.MultiStream([fd]))
 
     self.assertEqual(len(chunks_fds), 1)
-    self.assertEqual(chunks_fds[0][0], "123456789")
-    self.assertIs(chunks_fds[0][1], fd)
+    self.assertEqual(chunks_fds[0][1], "123456789")
+    self.assertIs(chunks_fds[0][0], fd)
 
   def testMultiStreamStreamsSinglfeFileWithTwoChunks(self):
     with aff4.FACTORY.Create("aff4:/foo",
@@ -336,11 +336,11 @@ class AFF4MemoryStreamTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(chunks_fds), 2)
 
-    self.assertEqual(chunks_fds[0][0], "123456789")
-    self.assertIs(chunks_fds[0][1], fd1)
+    self.assertEqual(chunks_fds[0][1], "123456789")
+    self.assertIs(chunks_fds[0][0], fd1)
 
-    self.assertEqual(chunks_fds[1][0], "abcd")
-    self.assertIs(chunks_fds[1][1], fd2)
+    self.assertEqual(chunks_fds[1][1], "abcd")
+    self.assertIs(chunks_fds[1][0], fd2)
 
   def testMultiStreamStreamsTwoFilesWithTwoChunksInEach(self):
     with aff4.FACTORY.Create("aff4:/foo",
@@ -359,20 +359,20 @@ class AFF4MemoryStreamTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(chunks_fds), 4)
 
-    self.assertEqual(chunks_fds[0][0], "*" * 10)
-    self.assertIs(chunks_fds[0][1], fd1)
+    self.assertEqual(chunks_fds[0][1], "*" * 10)
+    self.assertIs(chunks_fds[0][0], fd1)
 
-    self.assertEqual(chunks_fds[1][0], "123456789")
-    self.assertIs(chunks_fds[1][1], fd1)
+    self.assertEqual(chunks_fds[1][1], "123456789")
+    self.assertIs(chunks_fds[1][0], fd1)
 
-    self.assertEqual(chunks_fds[2][0], "*" * 10)
-    self.assertIs(chunks_fds[2][1], fd2)
+    self.assertEqual(chunks_fds[2][1], "*" * 10)
+    self.assertIs(chunks_fds[2][0], fd2)
 
-    self.assertEqual(chunks_fds[3][0], "abcd")
-    self.assertIs(chunks_fds[3][1], fd2)
+    self.assertEqual(chunks_fds[3][1], "abcd")
+    self.assertIs(chunks_fds[3][0], fd2)
 
 
-class AFF4ImageTest(test_lib.GRRBaseTest):
+class AFF4ImageTest(test_lib.AFF4ObjectTest):
   """Tests for AFF4Image class."""
 
   # Tests below effectively test AFF4ImageBase._MultiStream implementation.
@@ -387,8 +387,8 @@ class AFF4ImageTest(test_lib.GRRBaseTest):
     chunks_fds = list(aff4.AFF4Stream.MultiStream([fd]))
 
     self.assertEqual(len(chunks_fds), 1)
-    self.assertEqual(chunks_fds[0][0], "123456789")
-    self.assertIs(chunks_fds[0][1], fd)
+    self.assertEqual(chunks_fds[0][1], "123456789")
+    self.assertIs(chunks_fds[0][0], fd)
 
   def testMultiStreamStreamsSinglfeFileWithTwoChunks(self):
     with aff4.FACTORY.Create("aff4:/foo",
@@ -409,11 +409,11 @@ class AFF4ImageTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(chunks_fds), 2)
 
-    self.assertEqual(chunks_fds[0][0], "123456789")
-    self.assertIs(chunks_fds[0][1], fd1)
+    self.assertEqual(chunks_fds[0][1], "123456789")
+    self.assertIs(chunks_fds[0][0], fd1)
 
-    self.assertEqual(chunks_fds[1][0], "abcd")
-    self.assertIs(chunks_fds[1][1], fd2)
+    self.assertEqual(chunks_fds[1][1], "abcd")
+    self.assertIs(chunks_fds[1][0], fd2)
 
   def testMultiStreamStreamsTwoFilesWithTwoChunksInEach(self):
     with aff4.FACTORY.Create("aff4:/foo",
@@ -434,17 +434,17 @@ class AFF4ImageTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(chunks_fds), 4)
 
-    self.assertEqual(chunks_fds[0][0], "*" * 10)
-    self.assertIs(chunks_fds[0][1], fd1)
+    self.assertEqual(chunks_fds[0][1], "*" * 10)
+    self.assertIs(chunks_fds[0][0], fd1)
 
-    self.assertEqual(chunks_fds[1][0], "123456789")
-    self.assertIs(chunks_fds[1][1], fd1)
+    self.assertEqual(chunks_fds[1][1], "123456789")
+    self.assertIs(chunks_fds[1][0], fd1)
 
-    self.assertEqual(chunks_fds[2][0], "*" * 10)
-    self.assertIs(chunks_fds[2][1], fd2)
+    self.assertEqual(chunks_fds[2][1], "*" * 10)
+    self.assertIs(chunks_fds[2][0], fd2)
 
-    self.assertEqual(chunks_fds[3][0], "abcd")
-    self.assertIs(chunks_fds[3][1], fd2)
+    self.assertEqual(chunks_fds[3][1], "abcd")
+    self.assertIs(chunks_fds[3][0], fd2)
 
   def testMultiStreamChunkIsMissing(self):
     with aff4.FACTORY.Create("aff4:/foo",
@@ -457,8 +457,8 @@ class AFF4ImageTest(test_lib.GRRBaseTest):
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     received_fd, chunk, e = list(aff4.AFF4Stream.MultiStream([fd]))[0]
-    self.assertNotNone(e)
-    self.assertNone(chunk)
+    self.assertIsNotNone(e)
+    self.assertIsNone(chunk)
     self.assertEqual(received_fd, fd)
     self.assertEqual(e.missing_chunks, ["aff4:/foo/0000000000"])
 
@@ -475,7 +475,7 @@ class AFF4ImageTest(test_lib.GRRBaseTest):
     count = 0
 
     for _, _, e in aff4.AFF4Stream.MultiStream([fd]):
-      if e:
+      if e is None:
         count += 1
 
     self.assertEqual(count, 0)
@@ -492,11 +492,15 @@ class AFF4ImageTest(test_lib.GRRBaseTest):
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     content = []
-    with self.assertRaises(aff4.MissingChunksError):
-      for chunk, fd in aff4.AFF4Stream.MultiStream([fd]):
+    got_exception = False
+    for fd, chunk, e in aff4.AFF4Stream.MultiStream([fd]):
+      if e is None:
         content.append(chunk)
+      else:
+        got_exception = True
 
     self.assertEqual(content, ["*" * 10])
+    self.assertTrue(got_exception)
 
   @mock.patch.object(aff4.AFF4Image, "MULTI_STREAM_CHUNKS_READ_AHEAD", 1)
   def testMultiStreamSkipsBigFileIfFirstChunkIsMissing(self):
@@ -510,15 +514,15 @@ class AFF4ImageTest(test_lib.GRRBaseTest):
 
     fd = aff4.FACTORY.Open("aff4:/foo", token=self.token)
     count = 0
-    with self.assertRaises(aff4.MissingChunksError):
-      for _, _ in aff4.AFF4Stream.MultiStream([fd]):
+    for _, _, e in aff4.AFF4Stream.MultiStream([fd]):
+      if e is None:
         count += 1
 
     self.assertEqual(count, 0)
 
 
 @mock.patch.object(aff4.AFF4Stream, "MULTI_STREAM_CHUNK_SIZE", 10)
-class AFF4StreamTest(test_lib.GRRBaseTest):
+class AFF4StreamTest(test_lib.AFF4ObjectTest):
 
   def testMultiStreamStreamsObjectsOfVariousTypes(self):
     with aff4.FACTORY.Create("aff4:/foo",
@@ -542,20 +546,20 @@ class AFF4StreamTest(test_lib.GRRBaseTest):
     # by file type and the order of these groups is random (although the order
     # of files within each group is the same as in files list passed to the
     # MultiStream call).
-    if chunks_fds[0][1] == fd2:
+    if chunks_fds[0][0] == fd2:
       chunks_fds = chunks_fds[2:] + chunks_fds[:2]
 
-    self.assertEqual(chunks_fds[0][0], "*" * 10)
-    self.assertIs(chunks_fds[0][1], fd1)
+    self.assertEqual(chunks_fds[0][1], "*" * 10)
+    self.assertIs(chunks_fds[0][0], fd1)
 
-    self.assertEqual(chunks_fds[1][0], "123456789")
-    self.assertIs(chunks_fds[1][1], fd1)
+    self.assertEqual(chunks_fds[1][1], "123456789")
+    self.assertIs(chunks_fds[1][0], fd1)
 
-    self.assertEqual(chunks_fds[2][0], "*" * 10)
-    self.assertIs(chunks_fds[2][1], fd2)
+    self.assertEqual(chunks_fds[2][1], "*" * 10)
+    self.assertIs(chunks_fds[2][0], fd2)
 
-    self.assertEqual(chunks_fds[3][0], "abcd")
-    self.assertIs(chunks_fds[3][1], fd2)
+    self.assertEqual(chunks_fds[3][1], "abcd")
+    self.assertIs(chunks_fds[3][0], fd2)
 
 
 class AFF4Tests(test_lib.AFF4ObjectTest):

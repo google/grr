@@ -226,11 +226,23 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
 
 
 def CreateServer(frontend=None):
-  server_address = (config_lib.CONFIG["Frontend.bind_address"],
-                    config_lib.CONFIG["Frontend.bind_port"])
-  # TODO(user) catch port in use exception and increment up to a new config
-  # variable Frontend.bind_port_max_add
-  httpd = GRRHTTPServer(server_address, GRRHTTPServerHandler, frontend=frontend)
+  """Start frontend http server."""
+  max_port = config_lib.CONFIG.Get("Frontend.port_max",
+                                   config_lib.CONFIG["Frontend.bind_port"])
+
+  for port in range(config_lib.CONFIG["Frontend.bind_port"], max_port + 1):
+
+    server_address = (config_lib.CONFIG["Frontend.bind_address"],
+                      port)
+    try:
+      httpd = GRRHTTPServer(server_address, GRRHTTPServerHandler,
+                            frontend=frontend)
+      break
+    except socket.error as e:
+      if e.errno == socket.errno.EADDRINUSE and port < max_port:
+        logging.info("Port %s in use, trying %s", port, port + 1)
+      else:
+        raise
 
   sa = httpd.socket.getsockname()
   logging.info("Serving HTTP on %s port %d ...", sa[0], sa[1])

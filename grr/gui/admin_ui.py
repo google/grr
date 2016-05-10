@@ -38,11 +38,22 @@ def main(_):
     # Address looks like an IPv4 address.
     ThreadingDjango.address_family = socket.AF_INET
 
-  # Make a simple reference implementation WSGI server
-  server = simple_server.make_server(bind_address,
-                                     config_lib.CONFIG["AdminUI.port"],
-                                     django_lib.GetWSGIHandler(),
-                                     server_class=ThreadingDjango)
+  max_port = config_lib.CONFIG.Get("AdminUI.port_max",
+                                   config_lib.CONFIG["AdminUI.port"])
+
+  for port in range(config_lib.CONFIG["AdminUI.port"], max_port + 1):
+    # Make a simple reference implementation WSGI server
+    try:
+      server = simple_server.make_server(bind_address,
+                                         port,
+                                         django_lib.GetWSGIHandler(),
+                                         server_class=ThreadingDjango)
+      break
+    except socket.error as e:
+      if e.errno == socket.errno.EADDRINUSE and port < max_port:
+        logging.info("Port %s in use, trying %s", port, port + 1)
+      else:
+        raise
 
   proto = "HTTP"
 

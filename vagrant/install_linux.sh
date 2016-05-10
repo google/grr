@@ -30,8 +30,8 @@ function system_update() {
 
 # Get a more modern version of openssl than is available on lucid.
 function install_openssl() {
-  SSL_VERSION=1.0.2g
-  SSL_SHA256=b784b1b3907ce39abf4098702dade6365522a253ad1552e267a9a0e89594aa33
+  SSL_VERSION=1.0.2h
+  SSL_SHA256=1d4007e53aad94a5b2002fe045ee7bb0b3d98f1a47f8b2bc851dcd1c74332919
   if [ -x "${WGET}" ]; then
     ${WGET} https://www.openssl.org/source/openssl-${SSL_VERSION}.tar.gz
   else

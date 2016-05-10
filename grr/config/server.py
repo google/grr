@@ -115,6 +115,11 @@ config_lib.DEFINE_string("Frontend.bind_address", "::",
 
 config_lib.DEFINE_integer("Frontend.bind_port", 8080, "The port to bind.")
 
+config_lib.DEFINE_integer("Frontend.port_max", None,
+                          "If set and Frontend.bind_port is in use, attempt to "
+                          "use ports between Frontend.bind_port and "
+                          "Frontend.port_max.")
+
 config_lib.DEFINE_integer("Frontend.max_queue_size", 500,
                           "Maximum number of messages to queue for the client.")
 

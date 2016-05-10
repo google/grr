@@ -1,5 +1,6 @@
 # A Docker container capable of running all GRR components.
-FROM ubuntu:latest
+# Xenial has the correct version of the protobuf compiler (2.6.1).
+FROM ubuntu:xenial
 MAINTAINER Greg Castle github@mailgreg.com
 
 RUN apt-get update && \
@@ -7,6 +8,7 @@ RUN apt-get update && \
   debhelper \
   dpkg-dev \
   libssl-dev \
+  protobuf-compiler \
   python-dev \
   python-pip \
   rpm \

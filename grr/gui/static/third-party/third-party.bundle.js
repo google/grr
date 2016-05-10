@@ -1210,10 +1210,8 @@ if (goog.DEPENDENCIES_ENABLED) {
         }
       }
 
-      var isOldIE = goog.IS_OLD_IE_;
-
       if (opt_sourceText === undefined) {
-        if (!isOldIE) {
+        if (!goog.IS_OLD_IE_) {
           if (goog.ENABLE_CHROME_APP_SAFE_SCRIPT_LOADING) {
             goog.appendScriptSrcNode_(src);
           } else {
@@ -1428,8 +1426,7 @@ goog.retrieveAndExecModule_ = function(src) {
 
     if (scriptText != null) {
       var execModuleScript = goog.wrapModule_(src, scriptText);
-      var isOldIE = goog.IS_OLD_IE_;
-      if (isOldIE) {
+      if (goog.IS_OLD_IE_) {
         goog.dependencies_.deferred[originalPath] = execModuleScript;
         goog.queuedModules_.push(originalPath);
       } else {
@@ -58320,7 +58317,7 @@ angular.module('ngResource', ['ng']).
 		 * specifies the jstree version in use
 		 * @name $.jstree.version
 		 */
-		version : '3.3.0',
+		version : '3.3.1',
 		/**
 		 * holds all the default options used when creating new instances
 		 * @name $.jstree.defaults
@@ -58881,7 +58878,7 @@ angular.module('ngResource', ['ng']).
 								e.type = "click";
 								$(e.currentTarget).trigger(e);
 								break;
-							case 37: // right
+							case 37: // left
 								e.preventDefault();
 								if(this.is_open(e.currentTarget)) {
 									this.close_node(e.currentTarget);
@@ -58896,7 +58893,7 @@ angular.module('ngResource', ['ng']).
 								o = this.get_prev_dom(e.currentTarget);
 								if(o && o.length) { o.children('.jstree-anchor').focus(); }
 								break;
-							case 39: // left
+							case 39: // right
 								e.preventDefault();
 								if(this.is_closed(e.currentTarget)) {
 									this.open_node(e.currentTarget, function (o) { this.get_node(o, true).children('.jstree-anchor').focus(); });
@@ -58939,6 +58936,7 @@ angular.module('ngResource', ['ng']).
 									this.delete_node(o);
 								}
 								break;
+
 							*/
 						}
 					}, this))
@@ -59479,7 +59477,9 @@ angular.module('ngResource', ['ng']).
 						dom.addClass('jstree-leaf');
 					}
 					else {
-						dom.addClass(obj.state.opened ? 'jstree-open' : 'jstree-closed');
+						if (obj.id !== '#') {
+							dom.addClass(obj.state.opened ? 'jstree-open' : 'jstree-closed');
+						}
 					}
 				}
 				dom.removeClass("jstree-loading").attr('aria-busy',false);
@@ -60815,7 +60815,9 @@ angular.module('ngResource', ['ng']).
 							.children(".jstree-children").stop(true, true)
 								.slideDown(animation, function () {
 									this.style.display = "";
-									t.trigger("after_open", { "node" : obj });
+									if (t.element) {
+										t.trigger("after_open", { "node" : obj });
+									}
 								});
 					}
 				}
@@ -60927,7 +60929,9 @@ angular.module('ngResource', ['ng']).
 						.children(".jstree-children").stop(true, true).slideUp(animation, function () {
 							this.style.display = "";
 							d.children('.jstree-children').remove();
-							t.trigger("after_close", { "node" : obj });
+							if (t.element) {
+								t.trigger("after_close", { "node" : obj });
+							}
 						});
 				}
 			}
@@ -64020,6 +64024,9 @@ angular.module('ngResource', ['ng']).
 			var last_ts = 0, cto = null, ex, ey;
 			this.element
 				.on("contextmenu.jstree", ".jstree-anchor", $.proxy(function (e, data) {
+						if (e.target.tagName.toLowerCase() === 'input') {
+							return;
+						}
 						e.preventDefault();
 						last_ts = e.ctrlKey ? +new Date() : 0;
 						if(data || cto) {
@@ -65330,13 +65337,17 @@ angular.module('ngResource', ['ng']).
 			this.element
 				.on("search.jstree", $.proxy(function (e, data) {
 						if(this._data.search.som && data.res.length) {
-							var m = this._model.data, i, j, p = [];
+							var m = this._model.data, i, j, p = [], k, l;
 							for(i = 0, j = data.res.length; i < j; i++) {
 								if(m[data.res[i]] && !m[data.res[i]].state.hidden) {
 									p.push(data.res[i]);
 									p = p.concat(m[data.res[i]].parents);
 									if(this._data.search.smc) {
-										p = p.concat(m[data.res[i]].children_d);
+										for (k = 0, l = m[data.res[i]].children_d.length; k < l; k++) {
+											if (m[m[data.res[i]].children_d[k]] && !m[m[data.res[i]].children_d[k]].state.hidden) {
+												p.push(m[data.res[i]].children_d[k]);
+											}
+										}
 									}
 								}
 							}
@@ -65427,7 +65438,7 @@ angular.module('ngResource', ['ng']).
 			f = new $.vakata.search(str, true, { caseSensitive : s.case_sensitive, fuzzy : s.fuzzy });
 			$.each(m[inside ? inside : $.jstree.root].children_d, function (ii, i) {
 				var v = m[i];
-				if(v.text && (!s.search_leaves_only || (v.state.loaded && v.children.length === 0)) && ( (s.search_callback && s.search_callback.call(this, str, v)) || (!s.search_callback && f.search(v.text).isMatch) ) ) {
+				if(v.text && !v.state.hidden && (!s.search_leaves_only || (v.state.loaded && v.children.length === 0)) && ( (s.search_callback && s.search_callback.call(this, str, v)) || (!s.search_callback && f.search(v.text).isMatch) ) ) {
 					r.push(i);
 					p = p.concat(v.parents);
 				}
@@ -66401,6 +66412,7 @@ angular.module('ngResource', ['ng']).
 	}
 
 })(jQuery);
+
 
 //third_party/javascript/jquery_ui/v1_8_1/jquery-ui-1.8.1.custom.js
 /*!

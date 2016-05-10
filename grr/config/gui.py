@@ -4,7 +4,12 @@
 from grr.lib import config_lib
 
 # The Admin UI web application.
-config_lib.DEFINE_integer("AdminUI.port", 8081, "port to listen on")
+config_lib.DEFINE_integer("AdminUI.port", 8000, "port to listen on")
+
+config_lib.DEFINE_integer("AdminUI.port_max", None,
+                          "If set and AdminUI.port is in use, attempt to "
+                          "use ports between AdminUI.port and "
+                          "AdminUI.port_max.")
 
 # Override this if you want to access admin ui extenally. Make sure it is
 # secured (i.e. AdminUI.webauth_manager is not NullWebAuthManager)!

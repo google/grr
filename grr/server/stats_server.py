@@ -7,6 +7,7 @@ import BaseHTTPServer
 
 import collections
 import json
+import socket
 import threading
 
 
@@ -70,8 +71,27 @@ class StatsServer(object):
     self.port = port
 
   def Start(self):
-    server = BaseHTTPServer.HTTPServer(("", self.port),
-                                       StatsServerHandler)
+    """Start HTTPServer."""
+    # Use the same number of available ports as the adminui is using. If we
+    # have 10 available for adminui we will need 10 for the stats server.
+    adminui_max_port = config_lib.CONFIG.Get("AdminUI.port_max",
+                                             config_lib.CONFIG["AdminUI.port"])
+
+    additional_ports = adminui_max_port - config_lib.CONFIG["AdminUI.port"]
+    max_port = self.port + additional_ports
+
+    for port in range(self.port, max_port + 1):
+      # Make a simple reference implementation WSGI server
+      try:
+        server = BaseHTTPServer.HTTPServer(("", port),
+                                           StatsServerHandler)
+        break
+      except socket.error as e:
+        if e.errno == socket.errno.EADDRINUSE and port < max_port:
+          logging.info("Port %s in use, trying %s", port, port + 1)
+        else:
+          raise
+
     server_thread = threading.Thread(target=server.serve_forever)
     server_thread.daemon = True
     server_thread.start()

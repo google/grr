@@ -8,6 +8,7 @@ import os
 import subprocess
 
 from setuptools import find_packages, setup, Extension
+from setuptools.command.develop import develop
 from setuptools.command.install import install
 from setuptools.command.sdist import sdist
 
@@ -21,19 +22,29 @@ def find_data_files(source):
   return result
 
 
-class Sdist(sdist):
+def run_make_files(make_docs=False):
+  # Compile the protobufs.
+  subprocess.check_call(["python", "makefile.py"])
 
-  def run(self):
-    # Compile the protobufs.
-    base_dir = os.getcwd()
-    subprocess.check_call(["python", "makefile.py"])
+  # Sync the artifact repo with upstream for distribution.
+  subprocess.check_call(["python", "makefile.py"], cwd="grr/artifacts")
 
-    # Sync the artifact repo with upstream for distribution.
-    subprocess.check_call(["python", "makefile.py"], cwd="grr/artifacts")
-
+  if make_docs:
     # Download the docs so they are available offline.
     subprocess.check_call(["python", "makefile.py"], cwd="docs")
 
+
+class Develop(develop):
+
+  def run(self):
+    run_make_files()
+    develop.run(self)
+
+
+class Sdist(sdist):
+
+  def run(self):
+    run_make_files(make_docs=True)
     sdist.run(self)
 
 
@@ -97,8 +108,9 @@ setup_args = dict(
         )
     ],
     cmdclass={
-        "sdist": Sdist,
+        "develop": Develop,
         "install": Install,
+        "sdist": Sdist,
     },
     install_requires=[
         "GRR-M2Crypto==0.22.6.post2",
