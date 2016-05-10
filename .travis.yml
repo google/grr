@@ -7,12 +7,14 @@ cache:
 python:
   - "2.7"
 before_install: /bin/bash travis/install_protobuf.sh
+env:
+  - PROTOC="${HOME}/protobuf/bin/protoc"
 install:
   - pip install --upgrade pip wheel
   - pip install -e .
   - pip install -e grr/config/grr-response-server/
   - pip install -e grr/config/grr-response-test/
-  - PROTOC="${HOME}/protobuf/bin/protoc" python makefile.py
+  - python makefile.py
   - cd grr/artifacts && python makefile.py && cd -
 script: grr_run_tests --processes=2
 addons:
