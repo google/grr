@@ -50,7 +50,7 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('0001')")
 
     # Go to Browse VFS
-    self.Click("css=a:contains('Browse Virtual Filesystem')")
+    self.Click("css=a[grrtarget='client.vfs']")
 
     # Navigate to the analysis directory
     self.Click("link=analysis")
@@ -116,7 +116,7 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
 
     # We should have exactly 1 file
     self.assertEqual(
-        1, self.GetCssCount("css=.containerFileTable  tbody > tr"))
+        1, self.GetCssCount("css=.containerFileTable tbody > tr"))
 
 
 def main(argv):

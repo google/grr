@@ -50,15 +50,19 @@ module.replaceInvalidChars_ = function(item){
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
 grrUi.client.virtualFileSystem.fileViewDirective.FileViewController = function(
-    $scope, grrApiService) {
+    $scope, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
+
+  /** @private {!grrUi.routing.routingService.RoutingService} */
+  this.grrRoutingService_ = grrRoutingService;
 
   /** @type {string} */
   this.selectedFolderPath;
@@ -72,7 +76,9 @@ grrUi.client.virtualFileSystem.fileViewDirective.FileViewController = function(
   /** @type {string} */
   this.clientId;
 
-  this.scope_.$watch('clientId', this.onClientIdChange_.bind(this));
+  this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'clientId',
+      this.onClientIdChange_.bind(this));
+
   this.scope_.$watch('controller.selectedFolderPath',
       this.onSelectedFolderPathChange_.bind(this));
 };
@@ -82,20 +88,13 @@ var FileViewController =
 
 
 /**
- * Handles changes of clientId binding.
+ * Handles changes of the state params.
  *
+ * @param {string} clientId The new value for the client id.
  * @private
  */
-FileViewController.prototype.onClientIdChange_ = function() {
-  var clientId = this.scope_['clientId'];
-
-  if (angular.isDefined(clientId)) {
-    if (clientId.indexOf('aff4') === 0) {
-      this.clientId = clientId.split('/')[1];
-    } else {
-      this.clientId = clientId;
-    }
-  }
+FileViewController.prototype.onClientIdChange_ = function(clientId) {
+  this.clientId = clientId;
 };
 
 /**
@@ -105,7 +104,7 @@ FileViewController.prototype.onClientIdChange_ = function() {
 FileViewController.prototype.onSelectedFolderPathChange_ = function() {
   if (this.selectedFolderPath) {
     var folderId = module.getFileId(this.selectedFolderPath);
-    grr.publish('hash_state', 't', folderId);
+    this.grrRoutingService_.go('client.vfs', {folder: folderId});
   }
 };
 
@@ -117,9 +116,7 @@ FileViewController.prototype.onSelectedFolderPathChange_ = function() {
 grrUi.client.virtualFileSystem.fileViewDirective.FileViewDirective = function() {
   return {
     restrict: 'E',
-    scope: {
-      clientId: '=',
-    },
+    scope: {},
     templateUrl: '/static/angular-components/client/virtual-file-system/file-view.html',
     controller: FileViewController,
     controllerAs: 'controller'

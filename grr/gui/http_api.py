@@ -330,6 +330,8 @@ class HttpRequestHandler(object):
 
     except ApiCallRouterNotFoundError as e:
       return self._BuildResponse(404, dict(message=e.message))
+    except werkzeug_exceptions.MethodNotAllowed as e:
+      return self._BuildResponse(405, dict(message=e.message))
     except Error as e:
       return self._BuildResponse(500, dict(message=str(e),
                                            traceBack=traceback.format_exc()))

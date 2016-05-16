@@ -17,6 +17,8 @@
 	<true/>
 	<key>RunAtLoad</key>
 	<true/>
+	<key>ThrottleInterval</key>
+	<integer>120</integer>
 	<key>ServiceDescription</key>
 	<string>%(Client.name)</string>
 	<key>StandardOutPath</key>

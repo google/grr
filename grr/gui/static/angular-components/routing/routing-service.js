@@ -1,0 +1,104 @@
+'use strict';
+
+goog.provide('grrUi.routing.routingService.RoutingService');
+
+goog.scope(function() {
+
+
+/**
+ * Service for wrapping AngularUI Router. Some relevant features are only
+ * in AngularUI Router 1.0+. This service mimics these features and can
+ * be replaed after upgrading AngularUI Router.
+ *
+ * @param {!ui.router.$state} $state
+ * @constructor
+ * @ngInject
+ * @export
+ */
+grrUi.routing.routingService.RoutingService = function($state) {
+  /** @private {!ui.router.$state} */
+  this.state_ = $state;
+};
+var RoutingService = grrUi.routing.routingService.RoutingService;
+
+
+/**
+ * Name of the service in Angular.
+ */
+RoutingService.service_name = 'grrRoutingService';
+
+/**
+ * Performes a state transition to a target state.
+ *
+ * Remarks: This method uses the notify option to control whether state change
+ * events should be fired. If notify is set to false, no events will be fired
+ * and existing directives are not replaced. Instead, these directives can
+ * listen to changes in the state params and update to the new URL. This is the
+ * wanted behavior if the target state and the current state are identical and
+ * only param values changed. If notify is set to true, the regular UI router
+ * behavior is executed and will lead to a full reload of the target state (and
+ * parent states, if necessary).
+ *
+ * @param {string} targetState The state to transition to.
+ * @param {Object=} opt_params An optional dictionary of state parameters.
+ * @return {!angular.$q.Promise} Promise that resolves to the result.
+ * @export
+ */
+RoutingService.prototype.go = function(targetState, opt_params) {
+  var currentState = this.state_.current.name;
+  return this.state_.go(targetState, opt_params,
+                        {notify: currentState !== targetState});
+};
+
+/**
+ * Adds a watcher for one or more parameters. If any of the parameters change,
+ * the callback is called. The callback will be called with the new value(s)
+ * of the watched parameter(s) and a dictionary holding all param values,
+ * not only the watched ones.
+ *
+ * @param {!angular.Scope} scope The scope on which to register the watcher.
+ * @param {string|Array<string>} paramNames The name of the parameter.
+ * @param {function(?, Object=)} callback The callback.
+ * @return {function()} A de-registration function for this listener.
+ * @export
+ */
+RoutingService.prototype.uiOnParamsChanged = function(scope, paramNames, callback) {
+  if (!angular.isArray(paramNames)) {
+    // We were passed a string rather than an array. Wrap the single string in
+    // an array and proceed as normal.
+    var paramName = paramNames;
+    paramNames = /** @type {!Array} */ ([paramName]);
+  }
+
+  return scope.$watchCollection(function() {
+    return paramNames.map(function(paramName) {
+      return this.state_.params[paramName];
+    }.bind(this));
+  }.bind(this), function(newValues, oldValues) {
+    if (newValues.length === 1) {
+      callback(newValues[0], this.state_.params);
+    } else {
+      callback(newValues, this.state_.params);
+    }
+  }.bind(this));
+};
+
+/**
+ * Adds a watcher, which is called whenever a state change occured.
+ *
+ * @param {!angular.Scope} scope The scope on which to register the watcher.
+ * @param {function(string, Object=)} callback The callback.
+ * @return {function()} A de-registration function for this listener.
+ * @export
+ */
+RoutingService.prototype.onStateChange = function(scope, callback) {
+  // Call immediately for intialization.
+  callback(this.state_.current.name, this.state_.params);
+
+  return scope.$on('$locationChangeSuccess', function() {
+    callback(this.state_.current.name, this.state_.params);
+  }.bind(this));
+};
+
+
+});  // goog.scope

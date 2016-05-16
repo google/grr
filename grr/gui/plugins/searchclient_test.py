@@ -17,7 +17,6 @@ from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib import utils
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
@@ -210,8 +209,8 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
                "div[name=RecentlyAccessedClients] "
                "tr:contains('%s')" % client_id.Basename())
 
-    self.WaitUntil(self.IsTextPresent, "VFSGRRClient")
-    self.WaitUntil(self.IsTextPresent, utils.SmartStr(client_id))
+    self.WaitUntil(self.IsTextPresent, "Host-0")
+    self.WaitUntil(self.IsTextPresent, client_id.Basename())
 
 
 class TestNavigatorView(SearchClientTestBase):
@@ -325,25 +324,23 @@ class TestNavigatorView(SearchClientTestBase):
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
       self.RequestAndGrantClientApproval(client_id)
 
-    with test_lib.FakeTime(timestamp):
-      self.Open("/#c=" + str(client_id))
-      self.WaitUntil(self.IsTextPresent, "Last crash")
-      self.WaitUntil(self.IsTextPresent, "5 seconds ago")
+    self.Open("/#c=" + str(client_id))
+    self.WaitUntil(self.IsTextPresent, "Last crash")
+    self.WaitUntilContains("seconds", self.GetText,
+                           "css=grr-client-summary .last-crash")
 
   def testOnlyTheLatestCrashIsDisplayed(self):
     timestamp = rdfvalue.RDFDatetime().Now()
     client_id = self.CreateClient(last_ping=timestamp)
     with self.ACLChecksDisabled():
-      self.RecordCrash(client_id, timestamp - rdfvalue.Duration("10s"))
+      self.RecordCrash(client_id, timestamp - rdfvalue.Duration("2h"))
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
       self.RequestAndGrantClientApproval(client_id)
 
-    with test_lib.FakeTime(timestamp):
-      self.Open("/#c=" + str(client_id))
-      self.WaitUntil(self.IsTextPresent, "Last crash")
-      self.WaitUntil(self.IsTextPresent, "5 seconds ago")
-      # This one is not displayed, because it exceeds the limit.
-      self.WaitUntilNot(self.IsTextPresent, "10 seconds ago")
+    self.Open("/#c=" + str(client_id))
+    self.WaitUntil(self.IsTextPresent, "Last crash")
+    self.WaitUntilContains("seconds", self.GetText,
+                           "css=grr-client-summary .last-crash")
 
   def testOnlyCrashesHappenedInPastWeekAreDisplayed(self):
     timestamp = rdfvalue.RDFDatetime().Now()
@@ -352,12 +349,10 @@ class TestNavigatorView(SearchClientTestBase):
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("8d"))
       self.RequestAndGrantClientApproval(client_id)
 
-    with test_lib.FakeTime(timestamp):
-      self.Open("/#c=" + str(client_id))
-      self.WaitUntil(self.IsTextPresent, "Host-0")
-      # This one is not displayed, because it happened more than 24 hours ago.
-      self.WaitUntilNot(self.IsTextPresent, "Last crash")
-      self.WaitUntilNot(self.IsTextPresent, "8 days ago")
+    self.Open("/#c=" + str(client_id))
+    self.WaitUntil(self.IsTextPresent, "Host-0")
+    # This one is not displayed, because it happened more than 24 hours ago.
+    self.WaitUntilNot(self.IsTextPresent, "Last crash")
 
   def testCrashIconDoesNotAppearInClientSearchWhenClientDidNotCrash(self):
     client_id = self.CreateClient()
@@ -592,7 +587,7 @@ class TestContentView(SearchClientTestBase):
     self.WaitUntil(self.IsElementPresent, "client_query")
     self.WaitUntilNot(self.IsTextPresent, "Houston, Houston, we have a prob...")
 
-    self.Click("css=a[grrtarget=GlobalLaunchFlows]")
+    self.Click("css=a[grrtarget=globalFlows]")
     self.Click("css=#_Administrative")
     self.Click("link=SetGlobalNotification")
 

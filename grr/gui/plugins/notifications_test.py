@@ -94,11 +94,17 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     self.ClickUntil("css=td:contains('File fetch completed')",
                     self.IsElementPresent, "css=li[id=_fs-os-proc-10]")
 
-    self.WaitUntilEqual("Browse Virtual Filesystem",
-                        self.GetText, "css=li[class='active']")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=li.active a[grrtarget='client.vfs']")
 
     # The tree is opened to the correct place
     self.WaitUntil(self.IsElementPresent, "css=li[id=_fs-os-proc-10]")
+
+    # TODO(user): We should not need to click on the file here again. This
+    # is only required since we need to support both legacy and Angular VFS
+    # implementation. Once we deprecated the legacy implementation, this line
+    # can be removed.
+    self.Click("css=td:contains(exe)")
 
     # The stats pane shows the target file
     self.WaitUntilContains(
@@ -116,9 +122,8 @@ class TestNotifications(test_lib.GRRSeleniumTest):
                     self.IsTextPresent, "Flow Information")
 
     # The navigation bar should manage the flows
-    self.WaitUntilEqual(
-        "Manage launched flows",
-        self.GetText, "css=li[class='active']")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=li.active a[grrtarget='client.flows']")
 
     # The stats pane shows the relevant flow
     self.WaitUntilContains(

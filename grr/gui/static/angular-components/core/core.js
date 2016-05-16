@@ -15,6 +15,7 @@ goog.require('grrUi.core.dialogService.DialogService');
 goog.require('grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesDirective');
 goog.require('grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter');
 goog.require('grrUi.core.forceRefreshDirective.ForceRefreshDirective');
+goog.require('grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective');
 goog.require('grrUi.core.hexNumberFilter.HexNumberFilter');
 goog.require('grrUi.core.infiniteTableDirective.InfiniteTableDirective');
 goog.require('grrUi.core.legacyRendererDirective.LegacyRendererDirective');
@@ -138,6 +139,9 @@ grrUi.core.module.directive(
 grrUi.core.module.directive(
     grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewDirective.directive_name,
     grrUi.core.serverErrorPreviewDirective.ServerErrorPreviewDirective);
+grrUi.core.module.directive(
+    grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective.directive_name,
+    grrUi.core.globalNotificationsDirective.GlobalNotificationsDirective);
 
 grrUi.core.module.service(
     grrUi.core.reflectionService.ReflectionService.service_name,

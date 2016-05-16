@@ -94,8 +94,24 @@ def Homepage(request):
                  "AdminUI.use_precompiled_js"],
              "renderers_js": renderers_js_files,
              "timestamp": create_time}
-  return shortcuts.render_to_response(
+  response = shortcuts.render_to_response(
       "base.html", context, context_instance=template.RequestContext(request))
+
+  # Check if we need to set the canary_mode cookie.
+  request.REQ = request.GET.dict()
+  request.token = BuildToken(request, 60)
+  user_record = aff4.FACTORY.Create(
+      aff4.ROOT_URN.Add("users").Add(request.user), aff4_type="GRRUser",
+      mode="r", token=request.token)
+  canary_mode = user_record.Get(
+      user_record.Schema.GUI_SETTINGS).canary_mode
+
+  if canary_mode:
+    response.set_cookie("canary_mode", "true")
+  else:
+    response.delete_cookie("canary_mode")
+
+  return response
 
 
 @webauth.SecurityCheck

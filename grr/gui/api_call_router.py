@@ -166,6 +166,34 @@ class ApiCallRouter(object):
   def GetClient(self, args, token=None):
     raise NotImplementedError()
 
+  @Category("Clients")
+  @ArgsType(api_client.ApiGetClientVersionTimesArgs)
+  @ResultType(api_client.ApiGetClientVersionTimesResult)
+  @Http("GET", "/api/clients/<client_id>/version-times")
+  def GetClientVersionTimes(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("Clients")
+  @ArgsType(api_client.ApiInterrogateClientArgs)
+  @ResultType(api_client.ApiInterrogateClientResult)
+  @Http("POST", "/api/clients/<client_id>/actions/interrogate")
+  def InterrogateClient(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("Clients")
+  @ArgsType(api_client.ApiGetInterrogateOperationStateArgs)
+  @ResultType(api_client.ApiGetInterrogateOperationStateResult)
+  @Http("GET",
+        "/api/clients/<client_id>/actions/interrogate/<path:operation_id>")
+  def GetInterrogateOperationState(self, args, token=None):
+    raise NotImplementedError()
+
+  @ArgsType(api_client.ApiGetLastClientIPAddressArgs)
+  @ResultType(api_client.ApiGetLastClientIPAddressResult)
+  @Http("GET", "/api/clients/<client_id>/last-ip")
+  def GetLastClientIPAddress(self, args, token=None):
+    raise NotImplementedError()
+
   # Virtual file system methods.
   # ===========================
   #
@@ -567,6 +595,7 @@ class ApiCallRouter(object):
   @ArgsType(api_user.ApiListUserClientApprovalsArgs)
   @ResultType(api_user.ApiListUserClientApprovalsResult)
   @Http("GET", "/api/users/me/approvals/client")
+  @Http("GET", "/api/users/me/approvals/client/<client_id>")
   def ListUserClientApprovals(self, args, token=None):
     raise NotImplementedError()
 
@@ -628,6 +657,18 @@ class ApiCallRouter(object):
   @ArgsType(aff4_users.GUISettings)
   @Http("POST", "/api/users/me/settings")
   def UpdateUserSettings(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("User")
+  @ResultType(api_user.ApiGetPendingGlobalNotificationsResult)
+  @Http("GET", "/api/users/me/notifications/pending/global")
+  def GetPendingGlobalNotifications(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("User")
+  @ArgsType(api_user.ApiDeletePendingGlobalNotificationArgs)
+  @Http("DELETE", "/api/users/me/notifications/pending/global/<type>")
+  def DeletePendingGlobalNotification(self, args, token=None):
     raise NotImplementedError()
 
   # Config methods.

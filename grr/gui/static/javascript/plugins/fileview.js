@@ -64,10 +64,6 @@ grr.Renderer('AbstractFileTable', {
       });
       grr.state.tree_path = aff4_path;
 
-      // If the user really clicked the tree, we reset the hash
-      if (update_hash != 'no_hash') {
-        grr.publish('hash_state', 'tb', undefined);
-      }
     }, unique);
 
     // Allow the table content to be restored from the hash.
@@ -150,7 +146,6 @@ grr.Renderer('Toolbar', {
       $('#path_' + path_index).click(function() {
         grr.publish('tree_select', fullpath);
         grr.publish('file_select', fullpath);
-        grr.publish('hash_state', 't', fullpath_id);
       });
     }
     for (var i = 0; i < state.paths.length; ++i) {

@@ -15,30 +15,17 @@ goog.scope(function() {
  * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
  * @ngInject
  */
-grrUi.hunt.huntsListDirective.HuntsListController = function($scope, $modal) {
+grrUi.hunt.huntsListDirective.HuntsListController = function(
+    $scope, $modal) {
   // Injected dependencies.
 
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @type {string} */
-  this.scope_.selectedHuntUrn;
-
   /** @private {!angularUi.$modal} */
   this.modal_ = $modal;
 
   // Internal state.
-
-  /**
-   * Selected item in the list.
-   * @export {?string}
-   */
-  this.selectedHuntUrn;
-
-  // TODO(user): use Angular service for this.
-  if (angular.isDefined(grr.hash.hunt_id)) {
-    this.selectedHuntUrn = grr.hash.hunt_id;
-  }
 
   /**
    * Dictionary with hunts as values and urns as keys. Used to find currently
@@ -60,15 +47,6 @@ grrUi.hunt.huntsListDirective.HuntsListController = function($scope, $modal) {
    * @export {function()}
    */
   this.triggerUpdate;
-
-  // Push the selection changes back to the scope, so that other UI components
-  // can react on the change.
-  this.scope_.$watch('ctrl.selectedHuntUrn', function() {
-    this.scope_.selectedHuntUrn = this.selectedHuntUrn;
-
-    // TODO(user): use Angular service for this.
-    grr.publish('hash_state', 'hunt_id', this.selectedHuntUrn);
-  }.bind(this));
 };
 
 var HuntsListController = grrUi.hunt.huntsListDirective.HuntsListController;
@@ -89,7 +67,7 @@ HuntsListController.prototype.huntsUrl = '/hunts';
  * @suppress {missingProperties} For items, as they crom from JSON response.
  */
 HuntsListController.prototype.selectItem = function(item) {
-  this.selectedHuntUrn = item.value.urn.value;
+  this.scope_['selectedHuntUrn'] = item.value.urn.value;
 };
 
 
@@ -132,7 +110,7 @@ HuntsListController.prototype.newHunt = function() {
 HuntsListController.prototype.runHunt = function() {
   var modalInstance = this.modal_.open({
     template: '<grr-legacy-renderer renderer="RunHuntConfirmationDialog" ' +
-        'query-params="{hunt_id: ctrl.selectedHuntUrn}" />',
+        'query-params="{hunt_id: selectedHuntUrn}" />',
     scope: this.scope_
   });
 
@@ -155,7 +133,7 @@ HuntsListController.prototype.runHunt = function() {
 HuntsListController.prototype.stopHunt = function() {
   var modalInstance = this.modal_.open({
     template: '<grr-legacy-renderer renderer="StopHuntConfirmationDialog" ' +
-        'query-params="{hunt_id: ctrl.selectedHuntUrn}" />',
+        'query-params="{hunt_id: selectedHuntUrn}" />',
     scope: this.scope_
   });
 
@@ -178,7 +156,7 @@ HuntsListController.prototype.stopHunt = function() {
 HuntsListController.prototype.modifyHunt = function() {
   var modalInstance = this.modal_.open({
     template: '<grr-legacy-renderer renderer="ModifyHuntDialog" ' +
-        'query-params="{hunt_id: ctrl.selectedHuntUrn}" />',
+        'query-params="{hunt_id: selectedHuntUrn}" />',
     scope: this.scope_
   });
 
@@ -201,7 +179,7 @@ HuntsListController.prototype.modifyHunt = function() {
  */
 HuntsListController.prototype.copyHunt = function() {
   var modalScope = this.scope_.$new();
-  modalScope.huntUrn = this.selectedHuntUrn;
+  modalScope.huntUrn = this.scope_['selectedHuntUrn'];
   modalScope.resolve = function() {
     modalInstance.close();
   };
@@ -234,7 +212,7 @@ HuntsListController.prototype.copyHunt = function() {
 HuntsListController.prototype.deleteHunt = function() {
   var modalInstance = this.modal_.open({
     template: '<grr-legacy-renderer renderer="DeleteHuntDialog" ' +
-        'query-params="{hunt_id: ctrl.selectedHuntUrn}" />',
+        'query-params="{hunt_id: selectedHuntUrn}" />',
     scope: this.scope_
   });
 
@@ -242,10 +220,8 @@ HuntsListController.prototype.deleteHunt = function() {
   // Doing so only to maintain compatibility with legacy GRR code.
   // Remove as soon as legacy GRR code is removed.
   modalInstance.result.then(function resolve() {
-    this.selectedHuntUrn = null;
     this.triggerUpdate();
   }.bind(this), function dismiss() {
-    this.selectedHuntUrn = null;
     this.triggerUpdate();
   }.bind(this));
 };
@@ -284,7 +260,7 @@ grrUi.hunt.huntsListDirective.HuntsListDirective = function() {
     restrict: 'E',
     templateUrl: '/static/angular-components/hunt/hunts-list.html',
     controller: HuntsListController,
-    controllerAs: 'ctrl'
+    controllerAs: 'controller'
   };
 };
 

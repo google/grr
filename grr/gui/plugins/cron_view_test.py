@@ -45,7 +45,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.Open("/")
 
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageCron]")
+    self.Click("css=a[grrtarget=crons]")
 
     # Table should contain Last Run
     self.WaitUntil(self.IsTextPresent, "Last Run")
@@ -66,14 +66,14 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.Open("/")
 
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageCron]")
+    self.Click("css=a[grrtarget=crons]")
 
     self.WaitUntil(self.IsTextPresent,
                    "Please select a cron job to see the details.")
 
   def testShowsCronJobDetailsOnClick(self):
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageCron]")
+    self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDown')")
 
     # Tabs should appear in the bottom pane
@@ -104,7 +104,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
           rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageCron]")
+    self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDown')")
 
     self.assertTrue(self.IsElementPresent(
@@ -120,7 +120,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
           rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageCron]")
+    self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDown')")
 
     self.assertTrue(self.IsElementPresent(
@@ -136,7 +136,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
           rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageCron]")
+    self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDown')")
 
     # Click on Enable button and check that dialog appears.
@@ -184,7 +184,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
           rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageCron]")
+    self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDown')")
 
     # Click on Enable button and check that dialog appears.
@@ -230,7 +230,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
           rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageCron]")
+    self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDown')")
 
     # Click on Delete button and check that dialog appears.
@@ -283,7 +283,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
         rdfvalue.RDFDatetime().FromSecondsFromEpoch(2274264646),
         increment=1e-6):
       self.Open("/")
-      self.Click("css=a[grrtarget=ManageCron]")
+      self.Click("css=a[grrtarget=crons]")
       self.Click("css=td:contains('OSBreakDown')")
 
       # Click on Force Run button and check that dialog appears.
@@ -326,7 +326,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
   def testHuntSchedulingWorksCorrectly(self):
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageCron]")
+    self.Click("css=a[grrtarget=crons]")
 
     self.Click("css=button[name=ScheduleHuntCronJob]")
     self.WaitUntil(self.IsTextPresent, "Cron Job properties")
@@ -437,7 +437,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
         "AdminUI.new_hunt_wizard.use_oo_hunt_rules_in_new_cron_job_wizard":
         False}):
       self.Open("/")
-      self.Click("css=a[grrtarget=ManageCron]")
+      self.Click("css=a[grrtarget=crons]")
 
       self.Click("css=button[name=ScheduleHuntCronJob]")
       self.WaitUntil(self.IsTextPresent, "Cron Job properties")
@@ -567,7 +567,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.Open("/")
 
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageCron]")
+    self.Click("css=a[grrtarget=crons]")
 
     # OSBreakDown's row should have a 'warn' class
     self.WaitUntil(self.IsElementPresent,
@@ -585,7 +585,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.Open("/")
 
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageCron]")
+    self.Click("css=a[grrtarget=crons]")
 
     # OSBreakDown's row should have an 'error' class
     self.WaitUntil(self.IsElementPresent,

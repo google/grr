@@ -66,7 +66,9 @@ SplitterController.prototype.link = function() {
 
   var splitterOptions = {
     animSpeed: 50,
-    closeableto: closeableTo
+    closeableto: closeableTo,
+    minAsize: this.scope_['minLeftPaneSize'] || 0,
+    maxAsize: this.scope_['maxLeftPaneSize'] || 3000
   };
 
   if (this.scope_.orientation === 'horizontal') {
@@ -83,7 +85,8 @@ SplitterController.prototype.link = function() {
   // Wait until DOM updates so that splitter is applied to a div that
   // has a meaningful width and height. Give up after 5 attempts.
   var count = 0;
-  var stop = this.interval_(function() {
+  var stop;
+  var registerSplitter = function() {
     if ($(this.element_).width() > 0 &&
         $(this.element_).height() > 0 ||
         count > 5) {
@@ -92,7 +95,9 @@ SplitterController.prototype.link = function() {
     } else {
       count += 1;
     }
-  }.bind(this), 100);
+  }.bind(this);
+  stop = this.interval_(registerSplitter, 100);
+  registerSplitter();
 
   this.element_.on('$destroy', function() {
     this.interval_.cancel(stop);
@@ -112,7 +117,9 @@ grrUi.core.splitterDirective.SplitterDirective = function() {
   return {
     scope: {
       orientation: '@',
-      closeableTo: '@'
+      closeableTo: '@',
+      minLeftPaneSize: '@',
+      maxLeftPaneSize: '@'
     },
     restrict: 'EA',
     transclude: true,

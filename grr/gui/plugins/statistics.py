@@ -111,7 +111,7 @@ class StatsTree(renderers.TreeRenderer):
         elements = filter(None, category_name[len(path):].split("/"))
 
         # Do not allow duplicates
-        if elements[0] in self: continue
+        if elements and elements[0] in self: continue
 
         if len(elements) > 1:
           self.AddElement(elements[0], "branch")

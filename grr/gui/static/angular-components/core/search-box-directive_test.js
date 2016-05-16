@@ -4,10 +4,9 @@ goog.require('grrUi.core.module');
 goog.require('grrUi.tests.module');
 
 var browserTrigger = grrUi.tests.browserTrigger;
-var browserTrigger = grrUi.tests.browserTrigger;
 
 describe('search box directive', function() {
-  var $compile, $rootScope, $scope, $q, grrApiService;
+  var $compile, $rootScope, $scope, $q, grrApiService, grrRoutingService;
 
   beforeEach(module('/static/angular-components/core/search-box.html'));
   beforeEach(module(grrUi.core.module.name));
@@ -19,12 +18,7 @@ describe('search box directive', function() {
     $scope = $rootScope.$new();
     $q = $injector.get('$q');
     grrApiService = $injector.get('grrApiService');
-
-    // Create global grr mock to varify that the correct events are issued.
-    window.grr = {
-      publish: function() { },
-      layout: function() { }
-    };
+    grrRoutingService = $injector.get('grrRoutingService');
   }));
 
   var render = function() {
@@ -69,26 +63,24 @@ describe('search box directive', function() {
 
   it('should invoke client search on arbitrary input', function() {
     mockApiServiceReponse();
-    spyOn(grr, 'publish');
+    spyOn(grrRoutingService, 'go');
 
     var element = render();
     triggerSearch(element, 'test query');
 
     expect(grrApiService.get).toHaveBeenCalledWith('/clients/labels');
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'main', 'HostTable');
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'q', 'test query');
+    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {q: 'test query'});
   });
 
   it('should invoke client search on ENTER in input', function() {
     mockApiServiceReponse();
-    spyOn(grr, 'publish');
+    spyOn(grrRoutingService, 'go');
 
     var element = render();
     triggerSearchByKeyboard(element, 'test query');
 
     expect(grrApiService.get).toHaveBeenCalledWith('/clients/labels');
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'main', 'HostTable');
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'q', 'test query');
+    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {q: 'test query'});
   });
 
   it('should request hunt details if a hunt id is detected', function() {
@@ -103,31 +95,29 @@ describe('search box directive', function() {
     mockApiServiceReponse({
       'hunts/H:12345678': { urn: 'aff4:/H:12345678' }
     });
-    spyOn(grr, 'publish');
+    spyOn(grrRoutingService, 'go');
 
     var element = render();
     triggerSearch(element, 'H:12345678');
 
     expect(grrApiService.get).toHaveBeenCalledWith('hunts/H:12345678');
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'main', 'ManageHunts');
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'hunt_id', 'aff4:/H:12345678');
+    expect(grrRoutingService.go).toHaveBeenCalledWith('hunts', {huntId: 'H:12345678'});
   });
 
   it('should fall back to regular client search if no hunt was found', function() {
     mockApiServiceReponse(/* No param for HUNT url, so service call will be rejected. */);
-    spyOn(grr, 'publish');
+    spyOn(grrRoutingService, 'go');
 
     var element = render();
     triggerSearch(element, 'H:12345678');
 
     expect(grrApiService.get).toHaveBeenCalledWith('hunts/H:12345678');
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'main', 'HostTable');
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'q', 'H:12345678');
+    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {q: 'H:12345678'});
   });
 
   it('should check that potential hunt ids cannot start with search keywords', function() {
     mockApiServiceReponse();
-    spyOn(grr, 'publish');
+    spyOn(grrRoutingService, 'go');
 
     var element = render();
     triggerSearch(element, 'HOST:12345678');
@@ -139,22 +129,20 @@ describe('search box directive', function() {
 
     // None of the above calls should have triggered a hunt details call, since they are
     // all search keywords.
-    expect(grr.publish).not.toHaveBeenCalledWith('hash_state', 'main', 'ManageHunts');
-    expect(grr.publish).not.toHaveBeenCalledWith('hash_state', 'hunt_id', 'aff4:/HOST:12345678');
-    expect(grr.publish).not.toHaveBeenCalledWith('hash_state', 'hunt_id', 'aff4:/FQDN:12345678');
-    expect(grr.publish).not.toHaveBeenCalledWith('hash_state', 'hunt_id', 'aff4:/MAC:12345678');
-    expect(grr.publish).not.toHaveBeenCalledWith('hash_state', 'hunt_id', 'aff4:/IP:12345678');
-    expect(grr.publish).not.toHaveBeenCalledWith('hash_state', 'hunt_id', 'aff4:/USER:12345678');
-    expect(grr.publish).not.toHaveBeenCalledWith('hash_state', 'hunt_id', 'aff4:/LABEL:12345678');
+    expect(grrRoutingService.go).not.toHaveBeenCalledWith('hunts', {huntId: 'HOST:12345678'});
+    expect(grrRoutingService.go).not.toHaveBeenCalledWith('hunts', {huntId: 'FQDN:12345678'});
+    expect(grrRoutingService.go).not.toHaveBeenCalledWith('hunts', {huntId: 'MAC:12345678'});
+    expect(grrRoutingService.go).not.toHaveBeenCalledWith('hunts', {huntId: 'IP:12345678'});
+    expect(grrRoutingService.go).not.toHaveBeenCalledWith('hunts', {huntId: 'USER:12345678'});
+    expect(grrRoutingService.go).not.toHaveBeenCalledWith('hunts', {huntId: 'LABEL:12345678'});
 
     // Instead, only client searches should have been issued.
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'main', 'HostTable');
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'q', 'HOST:12345678');
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'q', 'FQDN:12345678');
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'q', 'MAC:12345678');
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'q', 'IP:12345678');
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'q', 'USER:12345678');
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 'q', 'LABEL:12345678');
+    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {q: 'HOST:12345678'});
+    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {q: 'FQDN:12345678'});
+    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {q: 'MAC:12345678'});
+    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {q: 'IP:12345678'});
+    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {q: 'USER:12345678'});
+    expect(grrRoutingService.go).toHaveBeenCalledWith('search', {q: 'LABEL:12345678'});
   });
 
 });

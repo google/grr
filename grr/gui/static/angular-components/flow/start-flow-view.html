@@ -1,20 +1,20 @@
 <div grr-splitter orientation="vertical" class="rightSplitterContainer" closeable-to="0">
 
   <div grr-splitter-pane id="main_leftPane" class="leftPane">
-    <grr-flow-descriptors-tree flow-type="flowType"
-                               selected-descriptor="selection.flowDescriptor" />
+    <grr-flow-descriptors-tree flow-type="controller.flowType"
+                               selected-descriptor="controller.selection.flowDescriptor" />
   </div>
 
   <div grr-splitter-pane id="main_rightPane" class="rightPane no-overflow">
     <div grr-splitter orientation="horizontal" class="rightSplitterContainer" closeable-to="100">
 
       <div grr-splitter-pane id="main_rightTopPane" class="rightTopPane">
-        <grr-start-flow-form client-id="clientId"
-                             descriptor="selection.flowDescriptor" />
+        <grr-start-flow-form client-id="controller.clientId"
+                             descriptor="controller.selection.flowDescriptor" />
       </div>
 
       <div grr-splitter-pane id="main_rightBottomPane" class="rightBottomPane">
-        <grr-flow-info descriptor="selection.flowDescriptor" />
+        <grr-flow-info descriptor="controller.selection.flowDescriptor" />
       </div>
 
     </div>

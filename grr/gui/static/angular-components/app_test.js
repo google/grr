@@ -15,6 +15,22 @@ grrUi.tests.module.config(function($interpolateProvider) {
 
 beforeEach(function() {
   module('grrUi.tests');
+
+  // We provide a general mock for grrRoutingService here. This mock can be
+  // injected in any test via $inject. We do this since we want to test
+  // directives in isolation without routing. Furthermore, the grrUi.routing
+  // module runs init routines during configuration. We do not want them to
+  // interfere with directive tests.
+  var grrRoutingServiceMock = {
+    go: function(state, params) {},
+    uiOnParamsChanged: function(scope, paramNames, callback) {},
+    onStateChange: function(scope, callback) {}
+  };
+  module(function($provide) {
+    $provide.factory('grrRoutingService', function() {
+      return grrRoutingServiceMock;
+    });
+  });
 });
 
 

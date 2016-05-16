@@ -1,0 +1,15 @@
+<div ng-if="controller.loaded">
+  <div grr-splitter orientation="vertical" class="rightSplitterContainer">
+
+    <div grr-splitter-pane id="main_leftPane" class="leftPane">
+      <grr-legacy-renderer renderer="StatsTree"
+                           query-params="{t: controller.selection}" />
+    </div>
+
+    <div grr-splitter-pane id="main_rightPane" class="rightPane">
+      <grr-legacy-renderer renderer="ReportRenderer"
+                           query-params="{t: controller.selection}" />
+    </div>
+
+  </div>
+</div>

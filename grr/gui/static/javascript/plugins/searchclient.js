@@ -90,7 +90,6 @@ grr.labels_completer.Completer = function(element, completions, split_term) {
   });
 };
 
-
 grr.Renderer('ContentView', {
   Layout: function(state) {
     var global_notification_poll_time = state.global_notification_poll_time;

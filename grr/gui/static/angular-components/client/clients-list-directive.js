@@ -13,13 +13,17 @@ goog.scope(function() {
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!grrUi.client.clientDialogService.ClientDialogService} grrClientDialogService
+ * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
 grrUi.client.clientsListDirective.ClientsListController = function(
-    $scope, grrClientDialogService) {
+    $scope, grrClientDialogService, grrRoutingService) {
 
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
+
+  /** @private {!grrUi.routing.routingService.RoutingService} */
+  this.grrRoutingService_ = grrRoutingService;
 
   /** @private {!grrUi.client.clientDialogService.ClientDialogService} */
   this.grrClientDialogService_ = grrClientDialogService;
@@ -44,12 +48,29 @@ grrUi.client.clientsListDirective.ClientsListController = function(
   /** @export {number} */
   this.numSelectedClients = 0;
 
-  this.scope_.$watch('query', this.triggerUpdate);
+  /** @export {string} */
+  this.query;
+
+  this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'q',
+      this.onQueryChange_.bind(this));
 };
 
 var ClientsListController = grrUi.client.clientsListDirective
     .ClientsListController;
 
+
+/**
+ * Handles changes to the query.
+ *
+ * @param {string} query The new value for the q param.
+ * @private
+ */
+ClientsListController.prototype.onQueryChange_ = function(query) {
+  this.query = query;
+  if (this.triggerUpdate) {
+    this.triggerUpdate();
+  }
+};
 
 /**
  * Handles a click on a table row.
@@ -58,16 +79,8 @@ var ClientsListController = grrUi.client.clientsListDirective
  * @export
  */
 ClientsListController.prototype.onClientClick = function(client) {
-  grr.state.client_id = client['value']['urn']['value'];
-
-  grr.publish('hash_state', 'c', client['value']['urn']['value']);
-
-  // Clear the authorization for new clients.
-  grr.publish('hash_state', 'reason', '');
-  grr.state.reason = '';
-
-  grr.publish('hash_state', 'main', null);
-  grr.publish('client_selection', client['value']['urn']['value']);
+  var clientId = client['value']['urn']['value'].split('/')[1];
+  this.grrRoutingService_.go('client', {clientId: clientId});
 };
 
 
@@ -181,9 +194,7 @@ ClientsListController.prototype.clientsQueryUrl =
  */
 grrUi.client.clientsListDirective.ClientsListDirective = function() {
   return {
-    scope: {
-      query: '='
-    },
+    scope: {},
     restrict: 'E',
     templateUrl: '/static/angular-components/client/clients-list.html',
     controller: ClientsListController,

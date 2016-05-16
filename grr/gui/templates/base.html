@@ -68,7 +68,19 @@
     </div>
   </div>
 
+  <!-- This element contains the navigator and the main content- -->
   <div id="content">
+    <grr-global-notifications></grr-global-notifications>
+
+    <div grr-splitter orientation="vertical" min-left-pane-size="230" max-left-pane-size="230">
+      <div grr-splitter-pane id="content_leftPane" class="leftPane">
+        <grr-navigator></grr-navigator>
+      </div>
+
+      <div grr-splitter-pane id="content_rightPane" class="rightPane">
+        <div ui-view></div>
+      </div>
+    </div>
   </div>
 
   <div class="navbar navbar-default navbar-fixed-bottom" id="footer">
@@ -92,7 +104,7 @@
       </ul>
 
       <ul class="nav navbar-nav pull-right">
-        <li><a onclick="grr.loadFromHash('main=ApiDocumentation')">API</a></li>
+        <li><a ui-sref="apiDocs">API</a></li>
         <li><a href="{{help_url|escape}}" target="_blank">Help</a></li>
         <li><a href="{{report_url|escape}}" target="_blank">Report a problem</a></li>
       </ul>
@@ -122,9 +134,7 @@
   </script>
   {% endfor %}
   <script type="text/javascript">
-    grr.layout("ContentView", "content");
     grr.layout("ACLDialog", "ACL");
-    grr.enableSearchHelp($("input#client_query"));
   </script>
 </body>
 </html>

@@ -45,32 +45,16 @@ class TestStats(test_lib.GRRSeleniumTest):
     Unfortunately this test is pretty lame because we can not look into the
     canvas object with selenium.
     """
-    self.Open("/")
-
-    # Make sure the foreman is not there (we are not admin yet)
-    self.Click("css=a[href=#ManagementAdvanced]")
-    self.WaitUntil(self.IsTextPresent, "All Clients Crashes")
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=a[grrtarget=ReadOnlyForemanRuleTable]")
-
     # Make "test" user an admin
     with self.ACLChecksDisabled():
       self.CreateAdminUser("test")
 
     self.Open("/")
 
-    # Make sure that now we can see this option.
-    self.Click("css=a[href=#ManagementAdvanced]")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=a[grrtarget=ReadOnlyForemanRuleTable]")
-
     # Go to Statistics
-    self.Click("css=a:contains('Statistics')")
-
+    self.Click("css=a[grrtarget=stats]")
     self.Click("css=#_Clients i.jstree-icon")
-
     self.Click("css=#_Clients-All i.jstree-icon")
-
     self.Click("css=#_Clients-All-OS_20Breakdown i.jstree-icon")
 
     self.WaitUntil(self.IsElementPresent,

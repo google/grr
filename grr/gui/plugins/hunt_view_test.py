@@ -138,7 +138,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # Open up and click on View Hunts.
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
 
     # Select a Hunt.
@@ -163,7 +163,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
 
     # Select a Hunt.
@@ -187,7 +187,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
 
     # Select a Hunt.
@@ -211,7 +211,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
 
     # Select a Hunt.
@@ -264,7 +264,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
 
     # Select a Hunt.
@@ -318,7 +318,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
 
     # Select a Hunt.
@@ -378,7 +378,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
 
     # Select a Hunt.
@@ -438,7 +438,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # Open up and click on View Hunts then the first Hunt.
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
 
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
     self.Click("css=td:contains('GenericHunt')")
@@ -478,7 +478,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # Open up and click on View Hunts then the first Hunt.
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
 
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
     self.Click("css=td:contains('GenericHunt')")
@@ -494,7 +494,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
 
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
     self.Click("css=td:contains('GenericHunt')")
@@ -520,7 +520,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
 
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
     self.Click("css=td:contains('GenericHunt')")
@@ -557,7 +557,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
 
@@ -575,7 +575,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
 
@@ -593,7 +593,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
 
@@ -617,7 +617,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self._CreateHuntWithDownloadedFile()
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
     self.Click("css=grr-results-collection grr-downloadable-urn button")
@@ -634,7 +634,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       self.GrantHuntApproval(hunt.urn)
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
 
@@ -654,7 +654,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       self.GrantHuntApproval(hunt.urn)
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
     self.Click("css=grr-results-collection grr-downloadable-urn button")
@@ -668,7 +668,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
 
@@ -681,7 +681,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       self.CreateGenericHuntWithCollection([])
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
 
@@ -697,7 +697,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
 
@@ -713,7 +713,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
 
@@ -728,7 +728,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       self.CreateGenericHuntWithCollection(values=values)
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
     self.Click("css=button.DownloadButton")
@@ -744,7 +744,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       self.GrantHuntApproval(hunt_urn)
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
     self.Click("css=button.DownloadButton")
@@ -759,7 +759,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       self.GrantHuntApproval(hunt.urn)
 
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.Click("css=td:contains('GenericHunt')")
     self.Click("css=li[heading=Results]")
     self.Click("css=button.DownloadButton")
@@ -782,7 +782,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     with utils.Stubber(api_call_handler_utils.CollectionArchiveGenerator,
                        "Generate", RaisingStub):
       self.Open("/")
-      self.Click("css=a[grrtarget=ManageHunts]")
+      self.Click("css=a[grrtarget=hunts]")
       self.Click("css=td:contains('GenericHunt')")
       self.Click("css=li[heading=Results]")
       self.Click("css=button.DownloadButton")
@@ -804,7 +804,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     with utils.Stubber(api_call_handler_utils.CollectionArchiveGenerator,
                        "Generate", RaisingStub):
       self.Open("/")
-      self.Click("css=a[grrtarget=ManageHunts]")
+      self.Click("css=a[grrtarget=hunts]")
       self.Click("css=td:contains('GenericHunt')")
       self.Click("css=li[heading=Results]")
       self.Click("css=button.DownloadButton")

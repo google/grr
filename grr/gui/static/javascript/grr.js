@@ -58,8 +58,6 @@ grr.init = function() {
     } else {
       delete(grr.hash[key]);
     }
-
-    window.location.hash = $.param(grr.hash);
   }, 'body');
 
   grr.subscribe('grr_messages', function(serverError) {
@@ -234,7 +232,7 @@ grr.grrTree = function(renderer, unique_id, opt_publishEvent, opt_state,
   /* Each node that is opened will update the hash */
   tree.on('select_node.jstree', function(e, data) {
     var selected_id = data.node.id;
-    grr.publish('hash_state', 't', selected_id);
+    grr.broadcastAngularEvent('grrTreeSelectionChanged', selected_id);
   });
 
   /* We do not want jstree to cache the leafs when a tree is closed. */
@@ -276,12 +274,12 @@ grr.openTree = function(tree, nodeId) {
       } else {
         // Ultimate node, when its done we want to select it
         tree.jstree('select_node', node, 'no_hash');
-        grr.publish('hash_state', 't', node.attr('id'));
+        grr.broadcastAngularEvent('grrTreeSelectionChanged', node.attr('id'));
       }
     } else if (prev_node) {
       // If node can't be found, finish by selecting previous successful one
       tree.jstree('select_node', prev_node, 'no_hash');
-      grr.publish('hash_state', 't', prev_node.attr('id'));
+      grr.broadcastAngularEvent('grrTreeSelectionChanged', prev_node.attr('id'));
     }
   };
 
@@ -322,7 +320,7 @@ grr.subscribe = function(name, handle, domId) {
   grr.queue_[queue_name] = new_queue;
 
   if (new_queue.length > 5) {
-    alert('Queue ' + queue_name + ' seems full');
+    //alert('Queue ' + queue_name + ' seems full');
   }
 };
 
@@ -1003,7 +1001,7 @@ grr.update_form = function(formId, state) {
  * @return {Object} an associative array of encoded values.
  */
 grr.parseHashState = function(hash) {
-  if (hash === undefined) {
+  if (!hash) {
     hash = window.location.hash;
   }
 
@@ -1016,7 +1014,7 @@ grr.parseHashState = function(hash) {
 
   for (var i = 0; i < parts.length; i++) {
     var kv = parts[i].split('=');
-    if (kv[0]) {
+    if (kv[0] && kv[1]) {
       result[kv[0]] = decodeURIComponent(kv[1].replace(/\+/g, ' ') || '');
     }
   }
@@ -1049,20 +1047,12 @@ grr.installNavigationActions = function() {
 /**
  * Load the main content pane from the hash provided.
  *
- * @param {string} hash to load from. If null, use the current window hash.
+ * @param {string=} opt_hash to load from. If null, use the current window hash.
  */
-grr.loadFromHash = function(hash) {
-  /* Close the notification dialog. */
-  $('#notification_dialog').modal('hide');
-
-  if (hash) {
-    window.location.hash = hash;
+grr.loadFromHash = function(opt_hash) {
+  if (opt_hash) {
+    window.location.hash = opt_hash;
   }
-
-  grr.hash = grr.parseHashState(hash);
-  $.extend(grr.state, grr.hash);
-
-  grr.layout('ContentView', 'content');
 };
 
 /**

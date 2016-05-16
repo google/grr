@@ -59,7 +59,7 @@ class TestLegacyFileView(FileViewTestBase):
     self.Click("css=td:contains('0001')")
 
     # Go to Browse VFS
-    self.Click("css=a:contains('Browse Virtual Filesystem')")
+    self.Click("css=a[grrtarget='client.vfs']")
     self.Click("css=#_fs i.jstree-icon")
     self.Click("css=#_fs-os i.jstree-icon")
     self.Click("link=c")
@@ -78,7 +78,7 @@ class TestLegacyFileView(FileViewTestBase):
 
     # Go to "Manage Flows" tab and check that RecursiveListDirectory flow has
     # been created.
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('RecursiveListDirectory')")
 
     self.WaitUntil(self.IsElementPresent,
@@ -150,7 +150,7 @@ class TestFileView(FileViewTestBase):
     self.Click("css=td:contains('0001')")
 
     # Go to Browse VFS.
-    self.Click("css=a:contains('Browse Virtual Filesystem')")
+    self.Click("css=a[grrtarget='client.vfs']")
 
     self.Click("css=#_fs i.jstree-icon")
     self.Click("css=#_fs-os i.jstree-icon")
@@ -395,7 +395,7 @@ class TestFileView(FileViewTestBase):
     self.Click("css=button#refresh-dir")
 
     # Go to the flow management screen.
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
 
     self.Click("css=grr-flows-list tr:contains('RecursiveListDirectory')")
     self.WaitUntilContains("RecursiveListDirectory", self.GetText,
@@ -436,7 +436,7 @@ class TestFileView(FileViewTestBase):
     self.Click("css=td:contains('0001')")
 
     # Go to Browse VFS
-    self.Click("css=a:contains('Browse Virtual Filesystem')")
+    self.Click("css=a[grrtarget='client.vfs']")
     self.Click("css=#_fs i.jstree-icon")
     self.Click("css=#_fs-os i.jstree-icon")
     self.Click("link=c")
@@ -477,7 +477,7 @@ class TestFileView(FileViewTestBase):
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView")
 
     # Go to Browse VFS
-    self.Click("css=a:contains('Browse Virtual Filesystem')")
+    self.Click("css=a[grrtarget='client.vfs']")
     self.Click("css=#_fs i.jstree-icon")
     self.Click("css=#_fs-os i.jstree-icon")
     self.Click("link=c")
@@ -507,7 +507,7 @@ class TestFileView(FileViewTestBase):
     self.Click("css=td:contains('0001')")
 
     # Go to Browse VFS
-    self.Click("css=a:contains('Browse Virtual Filesystem')")
+    self.Click("css=a[grrtarget='client.vfs']")
     self.Click("css=#_fs i.jstree-icon")
     self.Click("css=#_fs-os i.jstree-icon")
     self.Click("link=c")
@@ -526,7 +526,7 @@ class TestFileView(FileViewTestBase):
 
     # Go to "Manage Flows" tab and check that RecursiveListDirectory flow has
     # been created.
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('RecursiveListDirectory')")
 
     self.WaitUntil(self.IsElementPresent,
@@ -547,7 +547,7 @@ class TestFileView(FileViewTestBase):
 
     # Choose client 1 and go to 'Browse Virtual Filesystem'
     self.Click("css=td:contains('0001')")
-    self.Click("css=a:contains('Browse Virtual Filesystem')")
+    self.Click("css=a[grrtarget='client.vfs']")
     self.Click("link=fs")
 
     # Now click on "os" inside the table. Tree shouldn't get updated,
@@ -726,21 +726,85 @@ class TestHostInformation(FileViewTestBase):
 
     with self.ACLChecksDisabled():
       self.RequestAndGrantClientApproval(self.client_id)
-      with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
-        fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.7601"))
 
-  def testClickingOnPlusOpensHistoricalAttributes(self):
-    """Test the fileview interface."""
+      with test_lib.FakeTime(TIME_0):
+        with aff4.FACTORY.Open(self.client_id, mode="rw",
+                               token=self.token) as fd:
+          fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.7000"))
+          fd.Set(fd.Schema.HOSTNAME("Hostname T0"))
 
+      with test_lib.FakeTime(TIME_1):
+        with aff4.FACTORY.Open(self.client_id, mode="rw",
+                               token=self.token) as fd:
+          fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.8000"))
+          fd.Set(fd.Schema.HOSTNAME("Hostname T1"))
+
+      with test_lib.FakeTime(TIME_2):
+        with aff4.FACTORY.Open(self.client_id, mode="rw",
+                               token=self.token) as fd:
+          fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("7.0.0000"))
+          fd.Set(fd.Schema.HOSTNAME("Hostname T2"))
+
+  def testClickingOnInterrogateStartsInterrogateFlow(self):
     self.Open("/#c=" + self.client_id)
-    self.WaitUntil(self.IsTextPresent, "VFSGRRClient")
 
-    # 7601 is the latest so it should be visible.
-    self.WaitUntil(self.IsTextPresent, "6.1.7601")
+    # A click on the Interrogate button starts a flow, disables the button and
+    # shows a loading icon within the button.
+    self.Click("css=button:contains('Interrogate')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button:contains('Interrogate')[disabled]")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button:contains('Interrogate') i")
 
-    # We click on '+' and should see the historical value.
-    self.Click("css=td.attribute_opener[attribute=OS_VERSION]")
-    self.WaitUntil(self.IsTextPresent, "6.1.7600")
+    # Get the started flow and finish it, this will re-enable the button.
+    with self.ACLChecksDisabled():
+      client_id = rdf_client.ClientURN(self.client_id)
+
+      fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+      flows = list(fd.ListChildren())
+
+      client_mock = action_mocks.ActionMock()
+      for flow_urn in flows:
+        for _ in test_lib.TestFlowHelper(
+            flow_urn, client_mock, client_id=client_id, token=self.token,
+            check_flow_errors=False):
+          pass
+
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=button:contains('Interrogate')[disabled]")
+
+    # Check if an Interrogate flow was started.
+    self.Click("css=a[grrtarget='client.flows']")
+    self.Click("css=td:contains('Interrogate')")
+    self.WaitUntilContains("Interrogate", self.GetText,
+                           "css=table td.proto_key:contains('Flow name') "
+                           "~ td.proto_value")
+
+  def testChangingVersionDropdownChangesClientInformation(self):
+    self.Open("/#c=" + self.client_id)
+
+    # Check that the newest version is selected.
+    self.WaitUntilContains(DateString(TIME_2), self.GetText,
+                           "css=.version-dropdown > option[selected]")
+    self.WaitUntil(self.IsTextPresent, "Hostname T2")
+
+    self.Click("css=select.version-dropdown > option:contains(\"%s\")" %
+               DateString(TIME_1))
+    self.WaitUntil(self.IsTextPresent, "Hostname T1")
+    self.WaitUntil(self.IsTextPresent, "6.1.8000")
+    self.WaitUntil(self.IsTextPresent, "Newer Version available")
+
+    # Also the details show the selected version.
+    self.Click("css=label:contains('Full details')")
+    self.WaitUntil(self.IsTextPresent, "Hostname T1")
+    self.WaitUntil(self.IsTextPresent, "6.1.8000")
+
+    # Check that changing the version does not change the view, i.e. that
+    # we are still in the full details view.
+    self.Click("css=select.version-dropdown > option:contains(\"%s\")" %
+               DateString(TIME_0))
+    self.WaitUntil(self.IsTextPresent, "Hostname T0")
+    self.WaitUntil(self.IsTextPresent, "6.1.7000")
 
 
 def main(argv):

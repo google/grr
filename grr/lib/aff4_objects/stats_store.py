@@ -698,7 +698,7 @@ class StatsStoreInit(registry.InitHook):
     """Initializes StatsStore and StatsStoreWorker."""
 
     # SetUID is required to create and write to aff4:/stats_store
-    token = access_control.ACLToken(username="grr-stats-store").SetUID()
+    token = access_control.ACLToken(username="GRRStatsStore").SetUID()
 
     global STATS_STORE
     STATS_STORE = aff4.FACTORY.Create(None, "StatsStore", mode="w", token=token)

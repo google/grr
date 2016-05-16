@@ -42,9 +42,19 @@ class Develop(develop):
 
 
 class Sdist(sdist):
+  """Build sdist."""
+
+  user_options = install.user_options + [
+      ("no-make-docs", None,
+       "Don't build ascii docs when building the sdist."),
+  ]
+
+  def initialize_options(self):
+    self.no_make_docs = None
+    sdist.initialize_options(self)
 
   def run(self):
-    run_make_files(make_docs=True)
+    run_make_files(make_docs=not self.no_make_docs)
     sdist.run(self)
 
 

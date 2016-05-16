@@ -159,20 +159,20 @@ Cron Job Access Request created. Please try again once an approval is granted.
     super(CronJobApprovalRequestRenderer, self).Layout(request, response)
 
 
-class ClientApprovalDetailsRenderer(fileview.HostInformation):
+class ClientApprovalDetailsRenderer(fileview.AFF4Stats):
   """Renders details of the client approval."""
 
   # Do not show in the navigation menu.
   behaviours = frozenset([])
+  css_class = "TableBody"
 
-  def Layout(self, request, response):
+  def Layout(self, request, response, client_id=None):
     acl = request.REQ.get("acl", "")
     _, client_id, _ = rdfvalue.RDFURN(acl).Split(3)
+    urn = rdf_client.ClientURN(client_id)
 
-    # We skip the direct super class to avoid the access control check.
-    super(fileview.HostInformation, self).Layout(
-        request, response, client_id=client_id,
-        aff4_path=rdf_client.ClientURN(client_id))
+    return super(ClientApprovalDetailsRenderer, self).Layout(
+        request, response, client_id=client_id, aff4_path=urn)
 
 
 class HuntApprovalDetailsRenderer(hunt_view.HuntOverviewRenderer):

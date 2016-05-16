@@ -1262,25 +1262,19 @@ class AFF4Stats(renderers.TemplateRenderer):
     return classes
 
 
-class HostInformation(AFF4Stats):
+class HostInformation(renderers.AngularDirectiveRenderer):
   """View information about the host."""
-  description = "Host Information"
   behaviours = frozenset(["Host"])
   order = 0
-  css_class = "TableBody"
+  description = "Host Info"
 
-  def Layout(self, request, response, client_id=None):
-    client_id = client_id or request.REQ.get("client_id")
-    urn = rdf_client.ClientURN(client_id)
+  directive = "grr-host-info"
 
-    # This verifies we have auth for deep client paths. If this raises, we
-    # force the auth screen.
-    aff4.FACTORY.Open(rdfvalue.RDFURN(urn).Add("CheckAuth"),
-                      token=request.token, mode="r")
-
-    return super(HostInformation, self).Layout(request, response,
-                                               client_id=client_id,
-                                               aff4_path=urn)
+  def Layout(self, request, response):
+    self.directive_args = {}
+    self.directive_args["client-id"] = request.REQ.get(
+        "client_id").split("/")[-1]
+    return super(HostInformation, self).Layout(request, response)
 
 
 class AFF4ObjectRenderer(renderers.TemplateRenderer):
@@ -1307,6 +1301,7 @@ class AFF4ObjectRenderer(renderers.TemplateRenderer):
     subrenderer = FileViewTabs
     client_id = request.REQ.get("client_id")
     aff4_path = request.REQ.get("aff4_path", client_id)
+
     if not aff4_path:
       raise RuntimeError("No valid aff4 path or client id provided")
 

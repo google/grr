@@ -10,15 +10,19 @@ goog.provide('grrUi.user.userDashboardDirective.UserDashboardDirective');
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
 grrUi.user.userDashboardDirective.UserDashboardController = function(
-    $scope, grrApiService) {
+    $scope, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
+
+  /** @private {!grrUi.routing.routingService.RoutingService} */
+  this.grrRoutingService_ = grrRoutingService;
 
   /** @type {Array<Object>} */
   this.clientApprovals;
@@ -64,17 +68,8 @@ UserDashboardController.prototype.onHunts_ = function(response) {
  * @export
  */
 UserDashboardController.prototype.onClientClicked = function(clientUrn) {
-  // TODO(user): abstract this code away into a service.
-  grr.state.client_id = clientUrn;
-
-  grr.publish('hash_state', 'c', clientUrn);
-
-  // Clear the authorization for new clients.
-  grr.publish('hash_state', 'reason', '');
-  grr.state.reason = '';
-
-  grr.publish('hash_state', 'main', null);
-  grr.publish('client_selection', clientUrn);
+  var clientId = clientUrn.split('/')[1];
+  this.grrRoutingService_.go('client', {clientId: clientId});
 };
 
 /**
@@ -84,9 +79,8 @@ UserDashboardController.prototype.onClientClicked = function(clientUrn) {
  * @export
  */
 UserDashboardController.prototype.onHuntClicked = function(hunt) {
-  grr.publish('hash_state', 'hunt_id', hunt['value']['urn']['value']);
-  grr.publish('hash_state', 'main', 'ManageHunts');
-  grr.publish('hunt_selection', hunt['value']['urn']['value']);
+  var huntId = hunt['value']['urn']['value'].split('/')[2];
+  this.grrRoutingService_.go('hunts', {huntId: huntId});
 };
 
 

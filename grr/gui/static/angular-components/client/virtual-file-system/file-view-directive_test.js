@@ -24,7 +24,7 @@ describe('file view directive', function() {
     });
   });
 
-  var $q, $compile, $rootScope, grrApiService;
+  var $q, $compile, $rootScope, grrApiService, grrRoutingService;
 
   beforeEach(module('/static/angular-components/client/virtual-file-system/file-view.html'));
   beforeEach(module(grrUi.client.virtualFileSystem.module.name));
@@ -38,12 +38,7 @@ describe('file view directive', function() {
     $q = $injector.get('$q');
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
-
-    // Create global grr mock to varify that the correct events are issued.
-    window.grr = {
-      publish: function() {},
-      hash: {}
-    };
+    grrRoutingService = $injector.get('grrRoutingService');
   }));
 
   var render = function(clientId) {
@@ -58,7 +53,7 @@ describe('file view directive', function() {
   };
 
   it('changes global hash_state when the selected folder changes', function() {
-    spyOn(grr, 'publish');
+    spyOn(grrRoutingService, 'go');
 
     var element = render('C.0000111122223333');
     var controller = element.controller('grrFileView');
@@ -67,6 +62,7 @@ describe('file view directive', function() {
     controller.selectedFolderPath = "some/sample/folder";
     $rootScope.$apply();
 
-    expect(grr.publish).toHaveBeenCalledWith('hash_state', 't', '_some-sample-folder');
+    expect(grrRoutingService.go).toHaveBeenCalledWith('client.vfs',
+                                                      {folder: '_some-sample-folder'});
   });
 });

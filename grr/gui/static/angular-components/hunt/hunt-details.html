@@ -1,0 +1,15 @@
+<div ng-if="controller.huntUrn">
+  <div grr-splitter orientation="horizontal" class="rightSplitterContainer">
+
+    <div grr-splitter-pane id="content_rightPane" class="rightTopPane">
+      <grr-legacy-renderer renderer="HuntClientTableRenderer"
+                           query-params="{hunt_id: controller.huntUrn}" />
+    </div>
+
+    <div grr-splitter-pane id="main_bottomPane" class="rightBottomPane">
+      <grr-legacy-renderer renderer="HuntClientViewTabs"
+                           query-params="{hunt_id: controller.huntUrn}" />
+    </div>
+
+  </div>
+</div>

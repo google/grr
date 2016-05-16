@@ -1,0 +1,23 @@
+<div id="global-notification"
+     ng-if="controller.globalNotifications.length">
+
+  <div class="alert alert-block"
+       ng-repeat="notification in controller.globalNotifications"
+       ng-init="notifType = notification.value.type.value"
+       ng-class="{'alert-info': notifType === 'INFO', 'alert-warning': notifType === 'WARNING', 'alert-error': notifType === 'ERROR'}">
+
+    <button type="button" class="close"
+            ng-click="controller.deleteGlobalNotification(notification)">&times;</button>
+    <h4>
+      {$ notification.value.header.value $}
+    </h4>
+    <p>
+      {$ notification.value.content.value $}
+    </p>
+    <div ng-if="notification.value.link">
+      <a ng-href="{$ notification.value.link.value $}" target="_blank">More...</a>
+    </div>
+
+  </div>
+
+</div>

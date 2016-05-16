@@ -31,6 +31,7 @@ from grr.lib import flags
 from grr.lib import key_utils
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
+from grr.lib import rekall_profile_server
 from grr.lib import startup
 from grr.lib import utils
 from grr.lib.aff4_objects import users
@@ -340,6 +341,12 @@ parser_upload_components = subparsers.add_parser(
 parser_upload_components.add_argument(
     "--overwrite", default=False, action="store_true",
     help="Allow overwriting of the component path.")
+
+
+subparsers.add_parser(
+    "download_missing_rekall_profiles", parents=[],
+    help="Downloads all Rekall profiles from the repository that are not "
+    "currently present in the database.")
 
 
 def ImportConfig(filename, config):
@@ -934,6 +941,11 @@ def main(unused_argv):
           overwrite=flags.FLAGS.overwrite)
     except artifact_registry.ArtifactDefinitionError as e:
       print "Error %s. You may need to set --overwrite." % e
+
+  elif flags.FLAGS.subparser_name == "download_missing_rekall_profiles":
+    print "Downloading missing Rekall profiles."
+    s = rekall_profile_server.GRRRekallProfileServer()
+    s.GetMissingProfiles()
 
 if __name__ == "__main__":
   flags.StartMain(main)

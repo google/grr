@@ -35,9 +35,10 @@ function install_openssl() {
   if [ -x "${WGET}" ]; then
     ${WGET} https://www.openssl.org/source/openssl-${SSL_VERSION}.tar.gz
   else
-    # wget on CentOS 5.11 can't establish an SSL connection to openssl.org. So
-    # we use HTTP and verify hash.
-    RETRIEVED_HASH=$(wget -q -O - http://www.openssl.org/source/openssl-${SSL_VERSION}.tar.gz | tee openssl-${SSL_VERSION}.tar.gz | sha256sum | cut -d' ' -f1)
+    # wget on CentOS 5.11 and Ubuntu lucid can't establish an SSL connection to
+    # openssl.org because everything before TLSv1.1 is explicitly dropped. So
+    # we use a HTTP mirror and verify hash.
+    RETRIEVED_HASH=$(wget -q -O - http://mirror.switch.ch/ftp/mirror/openssl/source/openssl-${SSL_VERSION}.tar.gz | tee openssl-${SSL_VERSION}.tar.gz | sha256sum | cut -d' ' -f1)
     if [ "${RETRIEVED_HASH}" != "${SSL_SHA256}" ]; then
       echo "Bad hash for openssl-${SSL_VERSION}.tar.gz, quitting"
       exit 1

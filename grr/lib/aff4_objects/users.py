@@ -149,7 +149,7 @@ class GRRUser(aff4.AFF4Object):
   """An AFF4 object modeling a GRR User."""
 
   SYSTEM_USERS = set(["GRRWorker", "GRRCron", "GRRSystem", "GRRFrontEnd",
-                      "GRRConsole", "GRRArtifactRegistry"])
+                      "GRRConsole", "GRRArtifactRegistry", "GRRStatsStore"])
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     """Schema for GRRUser."""

@@ -37,7 +37,7 @@ class DarwinClientBuilder(build.ClientBuilder):
   def BuildInstallerPkg(self, output_file):
     """Builds a package (.pkg) using PackageMaker."""
     build_files_dir = config_lib.Resource().Filter(
-        "grr/config/macosx/client")
+        "grr/install_data/macosx/client")
 
     pmdoc_dir = os.path.join(build_files_dir, "grr.pmdoc")
 

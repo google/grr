@@ -22,10 +22,11 @@ var getFileId = grrUi.client.virtualFileSystem.fileViewDirective.getFileId;
  * @param {!angular.Scope} $scope
  * @param {!angular.jQuery} $element
  * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
 grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeController = function(
-    $rootScope, $scope, $element, grrApiService) {
+    $rootScope, $scope, $element, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.rootScope_ = $rootScope;
 
@@ -41,11 +42,20 @@ grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeController = function(
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
+  /** @private {!grrUi.routing.routingService.RoutingService} */
+  this.grrRoutingService_ = grrRoutingService;
+
   /** @type {!grrUi.client.virtualFileSystem.fileContextDirective.FileContextController} */
   this.fileContext;
 
+  /** @private {string} */
+  this.initialFolderId_;
+
   this.scope_.$on(REFRESH_FOLDER_EVENT,
       this.onSelectedFolderPathChange_.bind(this));
+
+  this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'folder',
+      this.onSelectedFolderIdChange_.bind(this));
 
   this.scope_.$watch('controller.fileContext.clientId',
       this.onClientIdChange_.bind(this));
@@ -109,8 +119,8 @@ FileTreeController.prototype.initTree_ = function() {
     if (selectedFolderPath) {
       this.expandToFolder_(getFileId(selectedFolderPath));
     } else {
-      if (grr.hash.t) {
-        this.expandToFolder_(grr.hash.t);
+      if (this.initialFolderId_) {
+        this.expandToFolder_(this.initialFolderId_);
       }
     }
   }.bind(this));
@@ -164,7 +174,22 @@ FileTreeController.prototype.parseFileResponse_ = function(response) {
 };
 
 /**
- * Is triggered whenever the selected folder path changes.
+ * Is triggered whenever the selected folder id state param changes. This should
+ * only impact the current display during initalization of the tree. All later
+ * changes are propagated via the fileContext.
+ *
+ * @param {string} folderId The id of the selected folder.
+ * @private
+ */
+FileTreeController.prototype.onSelectedFolderIdChange_ = function(folderId) {
+  if (folderId && !this.fileContext.selectedFolderPath) {
+    this.initialFolderId_ = folderId;
+    this.expandToFolder_(folderId);
+  }
+};
+
+/**
+ * Is triggered whenever the selected folder path changes
  * @private
  */
 FileTreeController.prototype.onSelectedFolderPathChange_ = function() {

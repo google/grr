@@ -1,8 +1,53 @@
 'use strict';
 
+goog.provide('grrUi.flow.startFlowViewDirective.StartFlowViewController');
 goog.provide('grrUi.flow.startFlowViewDirective.StartFlowViewDirective');
 
 goog.scope(function() {
+
+
+/**
+ * Controller for StartFlowViewDirective.
+ *
+ * @param {!angular.Scope} $scope
+ * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
+ * @constructor
+ * @ngInject
+ */
+grrUi.flow.startFlowViewDirective.StartFlowViewController = function(
+    $scope, grrRoutingService) {
+  /** @private {!angular.Scope} */
+  this.scope_ = $scope;
+
+  /** @private {!grrUi.routing.routingService.RoutingService} */
+  this.grrRoutingService_ = grrRoutingService;
+
+  /** @type {string} */
+  this.cliendId;
+
+  /** @type {string} */
+  this.flowType;
+
+  /** @type {Object} */
+  this.selection = {};
+
+  this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'clientId',
+      this.onClientIdChange_.bind(this));
+};
+var StartFlowViewController =
+    grrUi.flow.startFlowViewDirective.StartFlowViewController;
+
+
+/**
+ * Handles changes to the client id state param.
+ *
+ * @param {string} clientId The new value for the client id.
+ * @private
+ */
+StartFlowViewController.prototype.onClientIdChange_ = function(clientId) {
+  this.clientId = clientId;
+  this.flowType = clientId ? 'CLIENT' : 'GLOBAL';
+};
 
 
 /**
@@ -12,15 +57,11 @@ goog.scope(function() {
  */
 grrUi.flow.startFlowViewDirective.StartFlowViewDirective = function() {
   return {
+    scope: {},
     restrict: 'E',
-    scope: {
-      flowType: '=',
-      clientId: '='
-    },
     templateUrl: '/static/angular-components/flow/start-flow-view.html',
-    link: function(scope) {
-      scope.selection = {};
-    }
+    controller: StartFlowViewController,
+    controllerAs: 'controller'
   };
 };
 

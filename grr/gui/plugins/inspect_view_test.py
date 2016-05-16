@@ -103,7 +103,7 @@ class TestDebugClientRequestsView(TestInspectViewBase):
     # Choose client 1
     self.Click("css=td:contains('0001')")
 
-    self.Click("css=a[grrtarget=LaunchFlows]")
+    self.Click("css=a[grrtarget='client.launchFlows']")
     self.Click("css=#_Administrative i")
 
     self.Click("css=a:contains(Interrogate)")
@@ -111,9 +111,9 @@ class TestDebugClientRequestsView(TestInspectViewBase):
     self.Click("css=button.Launch")
 
     # Open the "Advanced" dropdown.
-    self.Click("css=a[href='#HostAdvanced']")
+    self.Click("css=li#HostAdvanced > a")
     # Click on the "Debug client requests".
-    self.Click("css=a[grrtarget=DebugClientRequestsView]")
+    self.Click("css=a[grrtarget='client.debugRequests']")
 
     self.WaitUntil(self.IsElementPresent, "css=td:contains(GetPlatformInfo)")
 

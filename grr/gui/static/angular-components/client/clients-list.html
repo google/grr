@@ -4,13 +4,13 @@
             ng-disabled="controller.numSelectedClients == 0"
             ng-click="controller.showLabelsDialog('add')"
             name="AddLabels">
-      <img src="/static/images/label-add.png" class="toolbar_icon"></img>
+      <img src="/static/images/label-add.png" class="toolbar_icon" />
     </button>
     <button title="Remove Labels" class="btn btn-default"
             ng-disabled="controller.numSelectedClients == 0"
             ng-click="controller.showLabelsDialog('remove')"
             name="RemoveLabels">
-      <img src="/static/images/label-remove.png" class="toolbar_icon"></img>
+      <img src="/static/images/label-remove.png" class="toolbar_icon" />
     </button>
   </li>
 </ul>
@@ -50,7 +50,7 @@
   </thead>
   <tbody>
     <tr grr-infinite-table grr-api-items-provider
-        query-params="{query: query}"
+        query-params="{query: controller.query}"
         url="controller.clientsQueryUrl"
         transform-items="controller.onClientsFetched(items)"
         trigger-update="controller.triggerUpdate"

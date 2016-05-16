@@ -7,6 +7,7 @@ client.
 This package needs to stay simple so that it can be installed on windows and
 ancient versions of linux to build clients.
 """
+import platform
 from setuptools import setup
 
 setup(
@@ -21,8 +22,11 @@ setup(
             "grr_client_build = grr.lib.distro_entry:ClientBuild",
         ]
     },
+    # We need pyinstaller 3.2 for centos but it's broken on windows.
+    # https://github.com/google/grr/issues/367
     install_requires=[
-        "pyinstaller==3.1.1",
         "grr-response-core==3.1.*",
-    ],
+    ] + (["pyinstaller==3.2"] if (
+        platform.linux_distribution()[0] == "CentOS") else [
+            "pyinstaller==3.1.1"]),
 )

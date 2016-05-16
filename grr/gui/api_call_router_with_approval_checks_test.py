@@ -9,6 +9,7 @@ import mock
 
 from grr.gui import api_call_router_with_approval_checks as api_router
 
+from grr.gui.api_plugins import client as api_client
 from grr.gui.api_plugins import cron as api_cron
 from grr.gui.api_plugins import flow as api_flow
 from grr.gui.api_plugins import hunt as api_hunt
@@ -83,6 +84,15 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
 
     self.delegate_mock.reset_mock()
     self.legacy_manager_mock.reset_mock()
+
+  ACCESS_CHECKED_METHODS.extend([
+      "InterrogateClient"
+  ])
+
+  def testClientMethodsAreAccessChecked(self):
+    args = api_client.ApiInterrogateClientArgs(client_id=self.client_id)
+    self.CheckMethodIsAccessChecked(
+        self.router.InterrogateClient, "CheckClientAccess", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
       "CreateVfsRefreshOperation",

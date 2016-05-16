@@ -496,7 +496,7 @@
             "value": "really important reason!"
           },
           "subject": {
-            "age": 0,
+            "age": 42000000,
             "type": "ApiClient",
             "value": {
               "agent_info": {
@@ -1245,7 +1245,7 @@
       "method": "GET",
       "response": {
         "client": {
-          "age": 0,
+          "age": 42000000,
           "type": "ApiClient",
           "value": {
             "agent_info": {
@@ -3577,6 +3577,115 @@
         }
       },
       "url": "/api/hunts/H:123456/stats"
+    }
+  ],
+  "ApiGetLastClientIPAddressHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "info": "Internal IP address.",
+        "ip": "192.168.100.42",
+        "status": "INTERNAL"
+      },
+      "test_class": "ApiGetLastClientIPAddressHandlerRegressionTest",
+      "url": "/api/clients/C.1000000000000000/last-ip"
+    }
+  ],
+  "ApiGetPendingGlobalNotificationsHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "GlobalNotification",
+            "value": {
+              "duration": {
+                "age": 0,
+                "type": "Duration",
+                "value": 1209600
+              },
+              "header": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Nothing to worry about!"
+              },
+              "link": {
+                "age": 0,
+                "type": "unicode",
+                "value": "http://www.google.com"
+              },
+              "show_from": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "type": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "INFO"
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "GlobalNotification",
+            "value": {
+              "content": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Houston, Houston, we have a prob..."
+              },
+              "duration": {
+                "age": 0,
+                "type": "Duration",
+                "value": 1209600
+              },
+              "header": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Oh no, we're doomed!"
+              },
+              "link": {
+                "age": 0,
+                "type": "unicode",
+                "value": "http://www.google.com"
+              },
+              "show_from": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "type": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "ERROR"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiGetPendingGlobalNotificationsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "duration": 1209600,
+            "header": "Nothing to worry about!",
+            "link": "http://www.google.com",
+            "show_from": 0,
+            "type": "INFO"
+          },
+          {
+            "content": "Houston, Houston, we have a prob...",
+            "duration": 1209600,
+            "header": "Oh no, we're doomed!",
+            "link": "http://www.google.com",
+            "show_from": 0,
+            "type": "ERROR"
+          }
+        ]
+      },
+      "url": "/api/users/me/notifications/pending/global"
     }
   ],
   "ApiGetPendingUserNotificationsCountHandler": [
@@ -6119,7 +6228,7 @@
             "value": "foo"
           },
           "subject": {
-            "age": 0,
+            "age": 42000000,
             "type": "ApiClient",
             "value": {
               "agent_info": {
@@ -6242,7 +6351,7 @@
             "value": "bar"
           },
           "subject": {
-            "age": 0,
+            "age": 42000000,
             "type": "ApiClient",
             "value": {
               "agent_info": {
@@ -9990,7 +10099,7 @@
                 "value": "Running tests"
               },
               "subject": {
-                "age": 0,
+                "age": 42000000,
                 "type": "ApiClient",
                 "value": {
                   "agent_info": {
@@ -10081,7 +10190,7 @@
                 "value": "Running tests"
               },
               "subject": {
-                "age": 0,
+                "age": 42000000,
                 "type": "ApiClient",
                 "value": {
                   "agent_info": {
@@ -10199,6 +10308,137 @@
         ]
       },
       "url": "/api/users/me/approvals/client"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiUserClientApproval",
+            "value": {
+              "approvers": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "test"
+                }
+              ],
+              "email_cc_addresses": [],
+              "is_valid": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "is_valid_message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Requires 2 approvers for access."
+              },
+              "notified_users": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "approver"
+                }
+              ],
+              "reason": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Running tests"
+              },
+              "subject": {
+                "age": 42000000,
+                "type": "ApiClient",
+                "value": {
+                  "agent_info": {
+                    "age": 42000000,
+                    "type": "ClientInformation",
+                    "value": {
+                      "client_name": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "GRR Monitor"
+                      }
+                    }
+                  },
+                  "hardware_info": {
+                    "age": 0,
+                    "type": "HardwareInfo",
+                    "value": {}
+                  },
+                  "labels": [],
+                  "last_seen_at": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 42000000
+                  },
+                  "os_info": {
+                    "age": 0,
+                    "type": "Uname",
+                    "value": {
+                      "fqdn": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Host-0.example.com"
+                      },
+                      "node": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Host-0"
+                      },
+                      "version": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": ""
+                      }
+                    }
+                  },
+                  "urn": {
+                    "age": 0,
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "users": []
+                }
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListUserClientApprovalsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "approvers": [
+              "test"
+            ],
+            "email_cc_addresses": [],
+            "is_valid": false,
+            "is_valid_message": "Requires 2 approvers for access.",
+            "notified_users": [
+              "approver"
+            ],
+            "reason": "Running tests",
+            "subject": {
+              "agent_info": {
+                "client_name": "GRR Monitor"
+              },
+              "hardware_info": {},
+              "labels": [],
+              "last_seen_at": 42000000,
+              "os_info": {
+                "fqdn": "Host-0.example.com",
+                "node": "Host-0",
+                "version": ""
+              },
+              "urn": "aff4:/C.1000000000000000",
+              "users": []
+            }
+          }
+        ]
+      },
+      "url": "/api/users/me/approvals/client/C.1000000000000000"
     }
   ],
   "ApiListUserHuntApprovalsHandler": [
@@ -10369,7 +10609,7 @@
       "response": {
         "items": [
           {
-            "age": 0,
+            "age": 42000000,
             "type": "ApiClient",
             "value": {
               "agent_info": {

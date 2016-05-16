@@ -42,12 +42,18 @@ class LoggedACL(object):
     def Decorated(this, token, *args, **kwargs):
       try:
         result = func(this, token, *args, **kwargs)
+        if (self.access_type == "data_store_access" and
+            token and
+            token.username in aff4.GRRUser.SYSTEM_USERS):
+          # Logging internal system database access is noisy and useless.
+          return result
         logging.debug(u"%s GRANTED by %s to %s%s (%s, %s) with reason: %s",
                       utils.SmartUnicode(self.access_type),
                       utils.SmartUnicode(this.__class__.__name__),
                       utils.SmartUnicode(token and token.username),
-                      utils.SmartUnicode(
-                          token and token.supervisor and " (supervisor)" or ""),
+                      utils.SmartUnicode(token and
+                                         token.supervisor and
+                                         " (supervisor)" or ""),
                       utils.SmartUnicode(args),
                       utils.SmartUnicode(kwargs),
                       utils.SmartUnicode(token and token.reason))
@@ -768,7 +774,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
             can_start_flow(flow_name) and
             CheckFlowAuthorizedLabels(token, flow_name)))
 
-  @LoggedACL("can_start_flow")
+  @LoggedACL("data_store_access")
   @stats.Timed("acl_check_time", fields=["data_store_access"])
   def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
     """Allow all access if token and requested access are valid."""

@@ -1,6 +1,8 @@
 #!/usr/bin/env python
 """API handlers for user-related data and actions."""
 
+import functools
+
 from grr.gui import api_call_handler_base
 from grr.gui import api_value_renderers
 
@@ -27,6 +29,11 @@ from grr.proto import api_pb2
 
 
 CATEGORY = "User"
+
+
+class GlobalNotificationNotFoundError(
+    api_call_handler_base.ResourceNotFoundError):
+  """Raised when a specific global notification could not be found."""
 
 
 def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
@@ -168,7 +175,21 @@ class ApiListUserApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
 
   category = CATEGORY
 
-  def _GetApprovals(self, approval_type, offset, count, token=None):
+  def _GetApprovals(self, approval_type, offset, count, filter_func=None,
+                    token=None):
+    """Gets all approvals for a given user and approval type.
+
+    Args:
+      approval_type: The type of approvals to get.
+      offset: The starting index within the collection.
+      count: The number of items to return.
+      filter_func: A predicate function, returning True if a specific approval
+        should be included in the result and False otherwise.
+      token: The token identifying the user.
+
+    Returns:
+      A list of approvals of the given approval type.
+    """
     approvals_base_urn = aff4.ROOT_URN.Add("users").Add(token.username).Add(
         "approvals").Add(approval_type)
 
@@ -183,25 +204,29 @@ class ApiListUserApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
       approvals_urns.append(subject)
 
     approvals_urns.sort(key=lambda x: x.age, reverse=True)
-    if count:
-      right_edge = offset + count
-    else:
-      right_edge = len(approvals_urns)
-    approvals_urns = approvals_urns[offset:right_edge]
-
     approvals = list(aff4.FACTORY.MultiOpen(
         approvals_urns, mode="r", aff4_type=aff4_security.Approval.__name__,
         age=aff4.ALL_TIMES, token=token))
     approvals_by_urn = {}
     for approval in approvals:
-      approvals_by_urn[approval.symlink_urn
-                       or approval.urn] = approval
+      approvals_by_urn[approval.symlink_urn or approval.urn] = approval
+
+    cur_offset = 0
     sorted_approvals = []
     for approval_urn in approvals_urns:
       try:
-        sorted_approvals.append(approvals_by_urn[approval_urn])
+        approval = approvals_by_urn[approval_urn]
       except KeyError:
-        pass
+        continue
+
+      if filter_func is not None and not filter_func(approval):
+        continue
+      cur_offset += 1
+      if cur_offset < offset:
+        continue
+      if count and len(sorted_approvals) >= count:
+        break
+      sorted_approvals.append(approval)
 
     subjects_urns = [a.Get(a.Schema.SUBJECT) for a in approvals]
     subjects_by_urn = {}
@@ -243,9 +268,50 @@ class ApiListUserClientApprovalsHandler(ApiListUserApprovalsHandlerBase):
     return ApiUserClientApproval().InitFromAff4Object(
         approval_obj, approval_subject_obj=subject)
 
+  def _CheckClientId(self, client_id, approval):
+    subject = approval.Get(approval.Schema.SUBJECT)
+    return subject.Basename() == client_id
+
+  def _CheckState(self, state, approval):
+    try:
+      approval.CheckAccess(approval.token)
+      is_valid = True
+    except access_control.UnauthorizedAccess:
+      is_valid = False
+
+    if state == ApiListUserClientApprovalsArgs.State.VALID:
+      return is_valid
+
+    if state == ApiListUserClientApprovalsArgs.State.INVALID:
+      return not is_valid
+
+  def _BuildFilter(self, args):
+    filters = []
+
+    if args.client_id:
+      filters.append(functools.partial(self._CheckClientId, args.client_id))
+
+    if args.state:
+      filters.append(functools.partial(self._CheckState, args.state))
+
+    if filters:
+      def Filter(approval):
+        for f in filters:
+          if not f(approval):
+            return False
+
+        return True
+
+      return Filter
+    else:
+      return lambda approval: True  # Accept all by default.
+
   def Handle(self, args, token=None):
+    filter_func = self._BuildFilter(args)
+
     approvals, subjects_by_urn = self._GetApprovals(
-        "client", args.offset, args.count, token=token)
+        "client", args.offset, args.count, filter_func=filter_func,
+        token=token)
     return ApiListUserClientApprovalsResult(
         items=self._HandleApprovals(approvals, subjects_by_urn,
                                     self._ApprovalToApiApproval))
@@ -622,3 +688,54 @@ class ApiGetAndResetUserNotificationsHandler(
 
     return ApiGetAndResetUserNotificationsResult(
         items=result, total_count=total_count)
+
+
+class ApiGetPendingGlobalNotificationsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetPendingGlobalNotificationsResult
+
+
+class ApiGetPendingGlobalNotificationsHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Returns the pending global notifications for the current user."""
+
+  category = CATEGORY
+  result_type = ApiGetPendingGlobalNotificationsResult
+
+  def Handle(self, args, token=None):
+    """Fetches the list of pending global notifications."""
+
+    user_record = aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(token.username), aff4_type="GRRUser",
+        mode="r", token=token)
+
+    notifications = user_record.GetPendingGlobalNotifications()
+
+    return ApiGetPendingGlobalNotificationsResult(items=notifications)
+
+
+class ApiDeletePendingGlobalNotificationArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiDeletePendingGlobalNotificationArgs
+
+
+class ApiDeletePendingGlobalNotificationHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Deletes the global notification from the list of unseen notifications."""
+
+  category = CATEGORY
+  args_type = ApiDeletePendingGlobalNotificationArgs
+
+  def Handle(self, args, token=None):
+    """Marks the given global notification as seen."""
+
+    with aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(token.username), aff4_type="GRRUser",
+        mode="rw", token=token) as user_record:
+
+      notifications = user_record.GetPendingGlobalNotifications()
+      for notif in notifications:
+        if notif.type == args.type:
+          user_record.MarkGlobalNotificationAsShown(notif)
+          return
+
+    raise GlobalNotificationNotFoundError()
+

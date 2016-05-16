@@ -7,7 +7,6 @@ goog.provide('grrUi.hunt.huntInspectorDirective.huntInspectorController');
 goog.scope(function() {
 
 
-
 /**
  * Controller for HuntInspectorDirective.
  *
@@ -20,11 +19,13 @@ grrUi.hunt.huntInspectorDirective.huntInspectorController = function($scope) {
   this.scope_ = $scope;
 
   /** @type {string} */
-  this.scope_.huntUrn;
+  this.shownHuntUrn;
 
-  this.shownHuntUrn = undefined;
+  /** @type {string} */
+  this.activeTab;
 
-  this.scope_.$watch('huntUrn', this.onHuntUrnChange.bind(this));
+  this.scope_.$watchGroup(['huntUrn', 'activeTab'], this.onDirectiveArgumentsChange_.bind(this));
+  this.scope_.$watch('controller.activeTab', this.onTabChange_.bind(this));
 };
 
 var HuntInspectorController =
@@ -33,14 +34,35 @@ var HuntInspectorController =
 
 /**
  * Handles huntUrn scope attribute changes.
+ *
+ * @private
  */
-HuntInspectorController.prototype.onHuntUrnChange = function() {
+HuntInspectorController.prototype.onDirectiveArgumentsChange_ = function() {
+  // AngularUI Bootstrap does not support expressions in the tab.active attribute,
+  // so we need to set an attribute on the controller to be able to use active
+  // on a tab like active="controller['errors']".
+  var tabName = this.scope_['activeTab'];
+  this[tabName] = true;
+
   // Doing this asynchronously so that ng-if clause in the template gets
   // triggered. This ensures that new hunt information gets properly
   // rerendered.
   this.scope_.$evalAsync(function() {
-    this.shownHuntUrn = this.scope_.huntUrn;
+    this.shownHuntUrn = this.scope_['huntUrn'];
   }.bind(this));
+};
+
+/**
+ * Handles huntUrn scope attribute changes.
+ *
+ * @param {string} newValue
+ * @param {string} oldValue
+ * @private
+ */
+HuntInspectorController.prototype.onTabChange_ = function(newValue, oldValue) {
+  if (newValue !== oldValue) {
+    this.scope_['activeTab'] = this.activeTab;
+  }
 };
 
 
@@ -52,7 +74,8 @@ HuntInspectorController.prototype.onHuntUrnChange = function() {
 grrUi.hunt.huntInspectorDirective.HuntInspectorDirective = function() {
   return {
     scope: {
-      huntUrn: '='
+      huntUrn: '=',
+      activeTab: '=?'
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/hunt/hunt-inspector.html',

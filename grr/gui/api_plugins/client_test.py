@@ -183,6 +183,47 @@ class ApiGetClientHandlerRegressionTest(
     self.Check("GET", "/api/clients/%s" % client_ids[0].Basename())
 
 
+class ApiInterrogateClientHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiInterrogateClientHandler."""
+
+  def setUp(self):
+    super(ApiInterrogateClientHandlerTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+    self.handler = client_plugin.ApiInterrogateClientHandler()
+
+  def testInterrogateFlowIsStarted(self):
+    flows_fd = aff4.FACTORY.Open(self.client_id.Add("flows"),
+                                 token=self.token)
+    flows_urns = list(flows_fd.ListChildren())
+    self.assertEqual(len(flows_urns), 0)
+
+    args = client_plugin.ApiInterrogateClientArgs(client_id=self.client_id)
+    result = self.handler.Handle(args, token=self.token)
+
+    flows_fd = aff4.FACTORY.Open(self.client_id.Add("flows"),
+                                 token=self.token)
+    flows_urns = list(flows_fd.ListChildren())
+    self.assertEqual(len(flows_urns), 1)
+    self.assertEqual(str(flows_urns[0]), result.operation_id)
+
+
+class ApiGetLastClientIPAddressHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+
+  handler = "ApiGetLastClientIPAddressHandler"
+
+  def Run(self):
+    # Fix the time to avoid regressions.
+    with test_lib.FakeTime(42):
+      client_id = self.SetupClients(1)[0]
+
+      with aff4.FACTORY.Open(client_id, mode="rw",
+                             token=self.token) as grr_client:
+        grr_client.Set(grr_client.Schema.CLIENT_IP("192.168.100.42"))
+
+    self.Check("GET", "/api/clients/%s/last-ip" % client_id.Basename())
+
+
 class ApiListClientsLabelsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
 

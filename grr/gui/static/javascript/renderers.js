@@ -188,9 +188,6 @@ grr.Renderer('TabLayout', {
       if ($(this).hasClass('disabled')) return false;
 
       var renderer = this.attributes['renderer'].value;
-      if (tab_hash) {
-        grr.publish('hash_state', tab_hash, renderer);
-      }
 
       // Make a new div to accept the content of the tab rather than drawing
       // directly on the content area. This prevents spurious drawings due to

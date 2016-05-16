@@ -1,0 +1,29 @@
+<div>
+  <div class="client-name">
+    <span ng-if="client.value.os_info.value.fqdn">
+      {$ client.value.os_info.value.fqdn.value $}
+    </span>
+    <span ng-if="!client.value.os_info.value.fqdn">
+      {$ client.value.urn.value $}
+    </span>
+  </div>
+  <div class="approval-reason" ng-if="controller.approvalReason">
+    Access reason: {$ controller.approvalReason $}
+  </div>
+  <div class="client-status">
+    Status:
+    <grr-client-status-icons client="client"></grr-client-status-icons>
+    {$ (client.value.last_seen_at.value | grrTimeSince) $}
+  </div>
+  <span ng-if="controller.crashTime != null" class="last-crash">
+    <strong>Last crash:</strong><br/>
+    {$ (controller.crashTime | grrTimeSince) $}
+  </span>
+  <div class="client-ip-info">
+    <img ng-if="controller.lastIP.status === 'UNKNOWN'" class="grr-icon-small vertical_aligned" src="/static/images/ip_unknown.png">
+    <img ng-if="controller.lastIP.status === 'INTERNAL'" class="grr-icon-small vertical_aligned" src="/static/images/ip_internal.png">
+    <img ng-if="controller.lastIP.status === 'EXTERNAL'" class="grr-icon-small vertical_aligned" src="/static/images/ip_external.png">
+    <img ng-if="controller.lastIP.status === 'VPN'" class="grr-icon-small vertical_aligned" src="/static/images/ip_unknown.png">
+    {$ controller.lastIP.info $}
+  </div>
+</div>

@@ -9,6 +9,8 @@ from grr.gui import api_call_handler_base
 from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import flow
+from grr.lib import ip_resolver
+from grr.lib import rdfvalue
 from grr.lib import utils
 
 from grr.lib.aff4_objects import aff4_grr
@@ -24,6 +26,11 @@ from grr.proto import api_pb2
 
 
 CATEGORY = "Clients"
+
+
+class InterrogateOperationNotFoundError(
+    api_call_handler_base.ResourceNotFoundError):
+  """Raised when an interrogate operation could not be found."""
 
 
 class ApiClient(rdf_structs.RDFProtoStruct):
@@ -62,6 +69,10 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     kb = client_obj.Get(client_obj.Schema.KNOWLEDGE_BASE)
     self.users = kb and kb.users or []
     self.volumes = client_obj.Get(client_obj.Schema.VOLUMES)
+
+    type_obj = client_obj.Get(client_obj.Schema.TYPE)
+    if type_obj:
+      self.age = type_obj.age
 
     return self
 
@@ -119,12 +130,128 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetClientResult
 
   def Handle(self, args, token=None):
+    if not args.timestamp:
+      age = rdfvalue.RDFDatetime().Now()
+    else:
+      age = rdfvalue.RDFDatetime(args.timestamp)
+
+    client = aff4.FACTORY.Open(args.client_id,
+                               aff4_type=aff4_grr.VFSGRRClient.__name__,
+                               age=age, token=token)
+
+    return ApiGetClientResult(
+        client=ApiClient().InitFromAff4Object(client))
+
+
+class ApiGetClientVersionTimesArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetClientVersionTimesArgs
+
+
+class ApiGetClientVersionTimesResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetClientVersionTimesResult
+
+
+class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
+  """Retrieves a list of versions for the given client."""
+
+  category = CATEGORY
+
+  args_type = ApiGetClientVersionTimesArgs
+  result_type = ApiGetClientVersionTimesResult
+
+  def Handle(self, args, token=None):
+    fd = aff4.FACTORY.Open(args.client_id, mode="r", age=aff4.ALL_TIMES,
+                           token=token)
+
+    type_values = list(fd.GetValuesForAttribute(fd.Schema.TYPE))
+    times = sorted([t.age for t in type_values], reverse=True)
+
+    return ApiGetClientVersionTimesResult(times=times)
+
+
+class ApiInterrogateClientArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiInterrogateClientArgs
+
+
+class ApiInterrogateClientResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiInterrogateClientResult
+
+
+class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
+  """Interrogates the given client."""
+
+  category = CATEGORY
+  args_type = ApiInterrogateClientArgs
+  result_type = ApiInterrogateClientResult
+
+  def Handle(self, args, token=None):
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=args.client_id, flow_name="Interrogate", token=token)
+
+    return ApiInterrogateClientResult(operation_id=str(flow_urn))
+
+
+class ApiGetInterrogateOperationStateArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetInterrogateOperationStateArgs
+
+
+class ApiGetInterrogateOperationStateResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetInterrogateOperationStateResult
+
+
+class ApiGetInterrogateOperationStateHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Retrieves the state of the interrogate operation."""
+
+  category = CATEGORY
+  args_type = ApiGetInterrogateOperationStateArgs
+  result_type = ApiGetInterrogateOperationStateResult
+
+  def Handle(self, args, token=None):
+    try:
+      flow_obj = aff4.FACTORY.Open(args.operation_id,
+                                   aff4_type="Interrogate",
+                                   token=token)
+
+      complete = not flow_obj.GetRunner().IsRunning()
+    except aff4.InstantiationError:
+      raise InterrogateOperationNotFoundError(
+          "Operation with id %s not found" % args.operation_id)
+
+    result = ApiGetInterrogateOperationStateResult()
+    if complete:
+      result.state = ApiGetInterrogateOperationStateResult.State.FINISHED
+    else:
+      result.state = ApiGetInterrogateOperationStateResult.State.RUNNING
+
+    return result
+
+
+class ApiGetLastClientIPAddressArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetLastClientIPAddressArgs
+
+
+class ApiGetLastClientIPAddressResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetLastClientIPAddressResult
+
+
+class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
+  """Retrieves the last ip a client used for communication with the server."""
+
+  category = CATEGORY
+
+  args_type = ApiGetLastClientIPAddressArgs
+  result_type = ApiGetLastClientIPAddressResult
+
+  def Handle(self, args, token=None):
     client = aff4.FACTORY.Open(args.client_id,
                                aff4_type=aff4_grr.VFSGRRClient.__name__,
                                token=token)
 
-    return ApiGetClientResult(
-        client=ApiClient().InitFromAff4Object(client))
+    ip = client.Get(client.Schema.CLIENT_IP)
+    status, info = ip_resolver.IP_RESOLVER.RetrieveIPInfo(ip)
+
+    return ApiGetLastClientIPAddressResult(ip=ip, info=info, status=status)
 
 
 class ApiAddClientsLabelsArgs(rdf_structs.RDFProtoStruct):

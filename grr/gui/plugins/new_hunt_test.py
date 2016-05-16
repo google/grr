@@ -88,8 +88,8 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     # Open up and click on View Hunts.
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.WaitUntil(self.IsElementPresent, "css=a[grrtarget=ManageHunts]")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.WaitUntil(self.IsElementPresent, "css=a[grrtarget=hunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsElementPresent, "css=button[name=NewHunt]")
 
     # Open up "New Hunt" wizard
@@ -324,8 +324,8 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
       # Open up and click on View Hunts.
       self.Open("/")
       self.WaitUntil(self.IsElementPresent, "client_query")
-      self.WaitUntil(self.IsElementPresent, "css=a[grrtarget=ManageHunts]")
-      self.Click("css=a[grrtarget=ManageHunts]")
+      self.WaitUntil(self.IsElementPresent, "css=a[grrtarget=hunts]")
+      self.Click("css=a[grrtarget=hunts]")
       self.WaitUntil(self.IsElementPresent, "css=button[name=NewHunt]")
 
       # Open up "New Hunt" wizard
@@ -525,7 +525,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     # Open up and click on View Hunts.
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
 
     # Open up "New Hunt" wizard
     self.Click("css=button[name=NewHunt]")

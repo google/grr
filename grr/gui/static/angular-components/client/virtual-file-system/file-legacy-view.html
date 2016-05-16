@@ -1,0 +1,8 @@
+<div ng-if="controller.clientUrn">
+<!--
+  VirtualFileSystemView is a renderer deciding whether to show the legacy VFS or the
+  Angular one. Which implementation is shown depends on the canary mode.
+-->
+  <grr-legacy-renderer renderer="VirtualFileSystemView"
+      query-params="{client_id: controller.clientUrn, aff4_path: controller.aff4Path}" />
+</div>

@@ -55,11 +55,85 @@ message ApiGetClientArgs {
       type: "ClientURN",
       description: "Client id."
     }];
+  optional uint64 timestamp = 2 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp of the client."
+    }];
 }
 
 message ApiGetClientResult {
   optional ApiClient client = 1 [(sem_type) = {
       description: "The client."
+    }];
+}
+
+message ApiGetClientVersionTimesArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+}
+
+message ApiGetClientVersionTimesResult {
+  repeated uint64 times = 1 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "The list of version times."
+    }];
+}
+
+message ApiInterrogateClientArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+}
+
+message ApiInterrogateClientResult {
+  optional string operation_id = 1 [(sem_type) = {
+      description: "The id of the interrogate operation."
+    }];
+}
+
+message ApiGetInterrogateOperationStateArgs {
+  optional string operation_id = 1 [(sem_type) = {
+      description: "The id of the interrogate operation."
+    }];
+}
+
+message ApiGetInterrogateOperationStateResult {
+  enum State {
+    RUNNING = 0;
+    FINISHED = 1;
+  }
+
+  optional State state = 1 [(sem_type) = {
+      description: "The state of the interrogate operation."
+    }];
+}
+
+message ApiGetLastClientIPAddressArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+}
+
+message ApiGetLastClientIPAddressResult {
+  enum Status {
+    UNKNOWN = 0;
+    INTERNAL = 1;
+    EXTERNAL = 2;
+    VPN = 3;
+  }
+
+  optional string ip = 1 [(sem_type) = {
+      description: "The ip the client used for the latest communication."
+    }];
+  optional string info = 2 [(sem_type) = {
+      description: "Additional info about the ip address."
+    }];
+  optional Status status = 3 [(sem_type) = {
+      description: "The status of the ip address."
     }];
 }
 
@@ -900,11 +974,24 @@ message ApiGetUserClientApprovalArgs {
 
 
 message ApiListUserClientApprovalsArgs {
+  enum State {
+    ANY = 0;
+    VALID = 1;
+    INVALID = 2;
+  };
+
   optional int64 offset = 1 [(sem_type) = {
       description: "Approvals starting offset."
     }];
   optional int64 count = 2 [(sem_type) = {
       description: "Number of approvals to fetch."
+    }];
+  optional string client_id = 3 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional State state = 4 [(sem_type) = {
+      description: "The state of approvals to fetch."
     }];
 }
 
@@ -1162,6 +1249,10 @@ message ApiClient {
   repeated Interface interfaces = 12;
   repeated User users = 13;
   repeated Volume volumes = 14;
+  optional uint64 age = 15 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Age of the client information."
+    }];
 }
 
 message ApiFlow {
@@ -1951,3 +2042,16 @@ message ApiNotificationGrantAccessReference {
       description: "The acl granted."
     }];
 }
+
+message ApiGetPendingGlobalNotificationsResult {
+  repeated GlobalNotification items = 1 [(sem_type) = {
+      description: "The list of pending global notifications."
+    }];
+}
+
+message ApiDeletePendingGlobalNotificationArgs {
+  optional GlobalNotification.Type type = 1 [(sem_type) = {
+      description: "The type of the global notification to delete."
+    }];
+}
+

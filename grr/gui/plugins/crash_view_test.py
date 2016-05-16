@@ -39,9 +39,8 @@ class TestCrashView(test_lib.GRRSeleniumTest):
 
     # Choose client 1
     self.Click("css=td:contains('0001')")
-    self.WaitUntil(self.IsTextPresent, "VFSGRRClient")
-
-    self.Click("css=a:contains('Manage launched flows')")
+    self.WaitUntil(self.IsTextPresent, "HostC.0000000000000001")
+    self.Click("css=a[grrtarget='client.flows']")
     self.WaitUntil(self.IsTextPresent, "FlowWithOneClientRequest")
 
     # Check that skull icon is in place.
@@ -60,7 +59,7 @@ class TestCrashView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Advanced")
 
     # Open the "Advanced" dropdown.
-    self.Click("css=a[href='#ManagementAdvanced']")
+    self.Click("css=li#ManagementAdvanced > a")
     self.WaitUntil(self.IsVisible, "css=a:contains('All Clients Crashes')")
     # Check that needed data are displayed.
     self.Click("css=a:contains('All Clients Crashes')")
@@ -101,16 +100,16 @@ class TestCrashView(test_lib.GRRSeleniumTest):
     self.Open("/")
 
     # Open the "Advanced" dropdown.
-    self.Click("css=a[href='#ManagementAdvanced']")
-    self.WaitUntil(self.IsVisible, "css=a[grrtarget=GlobalCrashesRenderer]")
+    self.Click("css=li#ManagementAdvanced > a")
+    self.WaitUntil(self.IsVisible, "css=a[grrtarget=clientCrashes]")
 
     # Check that all crashed are registered in "All Clients Crashes"
-    self.Click("css=a[grrtarget=GlobalCrashesRenderer]")
+    self.Click("css=a[grrtarget=clientCrashes]")
     self.WaitUntil(self.AllTextsPresent,
                    [client_id for client_id in client_ids])
 
     # Go to hunt manager and select a hunt.
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
     self.Click("css=td:contains('SampleHunt')")
 
@@ -131,13 +130,13 @@ class TestCrashView(test_lib.GRRSeleniumTest):
     self.WaitUntilEqual(u"C.0000000000000001",
                         self.GetText, "css=span[type=subject]")
     self.Click("css=td:contains('0001')")
-    self.WaitUntil(self.IsTextPresent, "VFSGRRClient")
+    self.WaitUntil(self.IsTextPresent, "HostC.0000000000000001")
 
     # Open the "Advanced" dropdown.
-    self.Click("css=a[href='#HostAdvanced']")
-    self.WaitUntil(self.IsVisible, "css=a[grrtarget=ClientCrashesRenderer]")
+    self.Click("css=li#HostAdvanced > a")
+    self.WaitUntil(self.IsVisible, "css=a[grrtarget='client.crashes']")
     # Select list of crashes.
-    self.Click("css=a[grrtarget=ClientCrashesRenderer]")
+    self.Click("css=a[grrtarget='client.crashes']")
 
     self.WaitUntil(self.AllTextsPresent, [
         "C.0000000000000001",
@@ -153,7 +152,7 @@ class TestCrashView(test_lib.GRRSeleniumTest):
     self.Open("/")
 
     # Go to hunt manager, select a hunt, open "Crashes" tab.
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
     self.Click("css=td:contains('SampleHunt')")
     self.Click("css=li[heading=Crashes]")

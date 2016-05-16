@@ -253,23 +253,122 @@ class ApiCreateUserClientApprovalHandlerRegressionTest(
 class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
   """Test for ApiListUserApprovalsHandler."""
 
+  CLIENT_COUNT = 5
+
   def setUp(self):
     super(ApiListUserClientApprovalsHandlerTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
     self.handler = user_plugin.ApiListUserClientApprovalsHandler()
+    self.client_ids = self.SetupClients(self.CLIENT_COUNT)
+
+  def _RequestClientApprovals(self):
+    for client_id in self.client_ids:
+      self.RequestClientApproval(client_id, token=self.token)
 
   def testRendersRequestedClientApprovals(self):
-    flow.GRRFlow.StartFlow(client_id=self.client_id,
-                           flow_name="RequestClientApprovalFlow",
-                           reason=self.token.reason,
-                           subject_urn=self.client_id,
-                           approver="approver",
-                           token=self.token)
+    self._RequestClientApprovals()
 
     args = user_plugin.ApiListUserClientApprovalsArgs()
     result = self.handler.Handle(args, token=self.token)
 
+    # All approvals should be returned.
+    self.assertEqual(len(result.items), self.CLIENT_COUNT)
+
+  def testFiltersApprovalsByClientId(self):
+    client_id = self.client_ids[0]
+
+    self._RequestClientApprovals()
+
+    # Get approvals for a specific client. There should be exactly one.
+    args = user_plugin.ApiListUserClientApprovalsArgs(client_id=client_id)
+    result = self.handler.Handle(args, token=self.token)
+
     self.assertEqual(len(result.items), 1)
+    self.assertEqual(result.items[0].subject.urn, client_id)
+
+  def testFiltersApprovalsByInvalidState(self):
+    self._RequestClientApprovals()
+
+    # We only requested approvals so far, so all of them should be invalid.
+    args = user_plugin.ApiListUserClientApprovalsArgs(
+        state=user_plugin.ApiListUserClientApprovalsArgs.State.INVALID)
+    result = self.handler.Handle(args, token=self.token)
+
+    self.assertEqual(len(result.items), self.CLIENT_COUNT)
+
+    # Grant access to one client. Now all but one should be invalid.
+    self.GrantClientApproval(self.client_ids[0], self.token.username,
+                             reason=self.token.reason)
+    result = self.handler.Handle(args, token=self.token)
+    self.assertEqual(len(result.items), self.CLIENT_COUNT-1)
+
+  def testFiltersApprovalsByValidState(self):
+    self._RequestClientApprovals()
+
+    # We only requested approvals so far, so none of them is valid.
+    args = user_plugin.ApiListUserClientApprovalsArgs(
+        state=user_plugin.ApiListUserClientApprovalsArgs.State.VALID)
+    result = self.handler.Handle(args, token=self.token)
+
+    # We do not have any approved approvals yet.
+    self.assertEqual(len(result.items), 0)
+
+    # Grant access to one client. Now exactly one approval should be valid.
+    self.GrantClientApproval(self.client_ids[0], self.token.username,
+                             reason=self.token.reason)
+    result = self.handler.Handle(args, token=self.token)
+    self.assertEqual(len(result.items), 1)
+    self.assertEqual(result.items[0].subject.urn, self.client_ids[0])
+
+  def testFiltersApprovalsByClientIdAndState(self):
+    client_id = self.client_ids[0]
+
+    self._RequestClientApprovals()
+
+    # Grant approval to a certain client.
+    self.GrantClientApproval(client_id, self.token.username,
+                             reason=self.token.reason)
+
+    args = user_plugin.ApiListUserClientApprovalsArgs(
+        client_id=client_id,
+        state=user_plugin.ApiListUserClientApprovalsArgs.State.VALID)
+    result = self.handler.Handle(args, token=self.token)
+
+    # We have a valid approval for the requested client.
+    self.assertEqual(len(result.items), 1)
+
+    args.state = user_plugin.ApiListUserClientApprovalsArgs.State.INVALID
+    result = self.handler.Handle(args, token=self.token)
+
+    # However, we do not have any invalid approvals for the client.
+    self.assertEqual(len(result.items), 0)
+
+  def testFilterConsidersOffsetAndCount(self):
+    client_id = self.client_ids[0]
+
+    # Create five approval requests without granting them.
+    for i in range(10):
+      with test_lib.FakeTime(42 + i):
+        self.token.reason = "Request reason %d" % i
+        self.RequestClientApproval(client_id, token=self.token)
+
+    args = user_plugin.ApiListUserClientApprovalsArgs(
+        client_id=client_id, offset=0, count=5)
+    result = self.handler.Handle(args, token=self.token)
+
+    # Approvals are returned newest to oldest, so the first five approvals
+    # have reason 9 to 5.
+    self.assertEqual(len(result.items), 5)
+    for item, i in zip(result.items, reversed(range(6, 10))):
+      self.assertEqual(item.reason, "Request reason %d" % i)
+
+    # When no count is specified, take all items from offset to the end.
+    args = user_plugin.ApiListUserClientApprovalsArgs(
+        client_id=client_id, offset=7)
+    result = self.handler.Handle(args, token=self.token)
+
+    self.assertEqual(len(result.items), 4)
+    for item, i in zip(result.items, reversed(range(0, 4))):
+      self.assertEqual(item.reason, "Request reason %d" % i)
 
 
 class ApiListUserHuntApprovalsHandlerTest(test_lib.GRRBaseTest):
@@ -368,6 +467,8 @@ class ApiListUserClientApprovalsHandlerRegressionTest(
 
     with test_lib.FakeTime(126):
       self.Check("GET", "/api/users/me/approvals/client")
+      self.Check("GET", "/api/users/me/approvals/client/%s" % (
+          clients[0].Basename()))
 
 
 class ApiListUserHuntApprovalsHandlerRegressionTest(
@@ -630,6 +731,129 @@ class ApiGetAndResetUserNotificationsHandlerRegressionTest(
     # But not anymore in these requests.
     self.Check("POST", "/api/users/me/notifications?offset=1&count=1")
     self.Check("POST", "/api/users/me/notifications?filter=other")
+
+
+class ApiGetPendingGlobalNotificationsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiGetPendingGlobalNotificationsHandler."""
+
+  handler = "ApiGetPendingGlobalNotificationsHandler"
+
+  # Global notifications are only shown in a certain time interval. By default,
+  # this is from the moment they are created until two weeks later. Create
+  # a notification that is too old to be returned and two valid ones.
+  NOW = rdfvalue.RDFDatetime().Now()
+  TIME_TOO_EARLY = NOW - rdfvalue.Duration("4w")
+  TIME_0 = NOW - rdfvalue.Duration("12h")
+  TIME_1 = NOW - rdfvalue.Duration("1h")
+
+  def setUp(self):
+    super(ApiGetPendingGlobalNotificationsHandlerRegressionTest, self).setUp()
+
+  def Run(self):
+    with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
+                             aff4_type="GlobalNotificationStorage",
+                             mode="rw", token=self.token) as storage:
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.ERROR,
+              header="Oh no, we're doomed!",
+              content="Houston, Houston, we have a prob...",
+              link="http://www.google.com",
+              show_from=self.TIME_0
+          ))
+
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.INFO,
+              header="Nothing to worry about!",
+              link="http://www.google.com",
+              show_from=self.TIME_1
+          ))
+
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.WARNING,
+              header="Nothing to worry, we won't see this!",
+              link="http://www.google.com",
+              show_from=self.TIME_TOO_EARLY
+          ))
+
+    replace = {("%d" % self.TIME_0.AsMicroSecondsFromEpoch()): "0",
+               ("%d" % self.TIME_1.AsMicroSecondsFromEpoch()): "0"}
+
+    self.Check("GET", "/api/users/me/notifications/pending/global",
+               replace=replace)
+
+
+class ApiDeletePendingGlobalNotificationHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiDeletePendingGlobalNotificationHandler."""
+
+  def setUp(self):
+    super(ApiDeletePendingGlobalNotificationHandlerTest, self).setUp()
+    self.handler = user_plugin.ApiDeletePendingGlobalNotificationHandler()
+
+    with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
+                             aff4_type="GlobalNotificationStorage",
+                             mode="rw", token=self.token) as storage:
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.ERROR,
+              header="Oh no, we're doomed!",
+              content="Houston, Houston, we have a prob...",
+              link="http://www.google.com"
+          ))
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.INFO,
+              header="Nothing to worry about!",
+              link="http://www.google.com"
+          ))
+
+  def _GetGlobalNotifications(self):
+    user_record = aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(self.token.username),
+        aff4_type="GRRUser", mode="r", token=self.token)
+
+    pending = user_record.GetPendingGlobalNotifications()
+    shown = list(user_record.Get(
+        user_record.Schema.SHOWN_GLOBAL_NOTIFICATIONS))
+    return (pending, shown)
+
+  def testDeletesFromPendingAndAddsToShown(self):
+    # Check that there are two pending notifications and no shown ones yet.
+    (pending, shown) = self._GetGlobalNotifications()
+    self.assertEqual(len(pending), 2)
+    self.assertEqual(len(shown), 0)
+
+    # Delete one of the pending notifications.
+    args = user_plugin.ApiDeletePendingGlobalNotificationArgs(
+        type=aff4_users.GlobalNotification.Type.INFO)
+    self.handler.Handle(args, token=self.token)
+
+    # After the deletion, one notification should be pending and one shown.
+    (pending, shown) = self._GetGlobalNotifications()
+    self.assertEqual(len(pending), 1)
+    self.assertEqual(len(shown), 1)
+    self.assertEqual(pending[0].header, "Oh no, we're doomed!")
+    self.assertEqual(shown[0].header, "Nothing to worry about!")
+
+  def testRaisesOnDeletingNonExistingNotification(self):
+    # Check that there are two pending notifications and no shown ones yet.
+    (pending, shown) = self._GetGlobalNotifications()
+    self.assertEqual(len(pending), 2)
+    self.assertEqual(len(shown), 0)
+
+    # Delete a non-existing pending notification.
+    args = user_plugin.ApiDeletePendingGlobalNotificationArgs(
+        type=aff4_users.GlobalNotification.Type.WARNING)
+    with self.assertRaises(user_plugin.GlobalNotificationNotFoundError):
+      self.handler.Handle(args, token=self.token)
+
+    # Check that the notifications were not changed in the process.
+    (pending, shown) = self._GetGlobalNotifications()
+    self.assertEqual(len(pending), 2)
+    self.assertEqual(len(shown), 0)
 
 
 def main(argv):

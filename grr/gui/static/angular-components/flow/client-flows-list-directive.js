@@ -15,10 +15,11 @@ goog.scope(function() {
  * @param {!angular.$timeout} $timeout
  * @param {!angularUi.$modal} $modal
  * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
 grrUi.flow.clientFlowsListDirective.ClientFlowsListController = function(
-    $scope, $timeout, $modal, grrApiService) {
+    $scope, $timeout, $modal, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -30,6 +31,9 @@ grrUi.flow.clientFlowsListDirective.ClientFlowsListController = function(
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
+
+  /** @private {!grrUi.routing.routingService.RoutingService} */
+  this.grrRoutingService_ = grrRoutingService;
 
   /** @type {?string} */
   this.flowsUrl;
@@ -118,9 +122,8 @@ ClientFlowsListController.prototype.createHuntFromFlow = function() {
     size: 'lg'
   });
   modalInstance.result.then(function resolve() {
-    grr.publish('hash_state', 'hunt_id', huntUrn);
-    grr.publish('hash_state', 'main', 'ManageHunts');
-    grr.publish('hunt_selection', huntUrn);
+    var huntId = huntUrn.split('/')[2];
+    this.grrRoutingService_.go('hunts', {huntId: huntId});
   }.bind(this));
 };
 

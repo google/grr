@@ -109,9 +109,9 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('0001')")
 
     # First screen should be the Host Information already.
-    self.WaitUntil(self.IsTextPresent, "VFSGRRClient")
+    self.WaitUntil(self.IsTextPresent, "HostC.0000000000000001")
 
-    self.Click("css=a[grrtarget=LaunchFlows]")
+    self.Click("css=a[grrtarget='client.launchFlows']")
     self.Click("css=#_Processes")
     self.Click("link=" + flows_processes.ListProcesses.__name__)
     self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
@@ -150,7 +150,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
           flow_name=RecursiveTestFlow.__name__,
           token=self.token)
 
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
 
     # Some rows are present in the DOM but hidden because parent flow row
     # wasn't expanded yet. Due to this, we have to explicitly filter rows
@@ -188,7 +188,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         pass
 
     self.Open("/#c=C.0000000000000001")
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneLogStatement')")
     self.Click("css=li[heading=Log]")
 
@@ -203,7 +203,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
           pass
 
     self.Open("/#c=C.0000000000000001")
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneLogStatement')")
     self.Click("css=li[heading=Log]")
 
@@ -217,7 +217,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         pass
 
     self.Open("/#c=C.0000000000000001")
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
     self.Click("css=li[heading=Results]")
 
@@ -230,7 +230,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
                              token=self.token)
 
     self.Open("/#c=" + self.client_id.Basename())
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
     self.Click("css=li[heading=Results]")
 
@@ -245,7 +245,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         pass
 
     self.Open("/#c=C.0000000000000001")
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneStatEntryResult')")
     self.Click("css=li[heading=Results]")
     self.Click("link=Show GRR export tool command")
@@ -263,7 +263,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         pass
 
     self.Open("/#c=C.0000000000000001")
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneHashEntryResult')")
     self.Click("css=li[heading=Results]")
 
@@ -284,7 +284,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         pass
 
     self.Open("/#c=C.0000000000000001")
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('RecursiveTestFlow')")
     self.Click("css=li[heading=Results]")
     self.WaitUntil(self.IsElementPresent,
@@ -299,7 +299,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         pass
 
     self.Open("/#c=C.0000000000000001")
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneNetworkConnectionResult')")
     self.Click("css=li[heading=Results]")
     self.WaitUntil(self.IsElementPresent,
@@ -321,7 +321,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.WaitUntilEqual(u"C.0000000000000001",
                         self.GetText, "css=span[type=subject]")
     self.Click("css=td:contains('0001')")
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
 
     self.Click("css=td:contains('RecursiveTestFlow')")
     self.Click("css=button[name=cancel_flow]")
@@ -336,7 +336,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     self.Open("/")
 
-    self.Click("css=a[grrtarget=GlobalLaunchFlows]")
+    self.Click("css=a[grrtarget=globalFlows]")
     self.Click("css=#_Reporting")
 
     self.assertEqual("RunReport", self.GetText("link=RunReport"))
@@ -351,7 +351,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         pass
 
     self.Open("/#c=C.0000000000000001")
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('FlowWithOneNetworkConnectionResult')")
     self.Click("link=Results")
 
@@ -367,7 +367,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         pass
 
     self.Open("/#c=C.0000000000000001")
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('RecursiveTestFlow')")
     self.Click("link=Results")
 
@@ -386,7 +386,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         pass
 
     self.Open("/#c=C.0000000000000001")
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('GetFile')")
     self.Click("link=Results")
 
@@ -404,7 +404,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         pass
 
     self.Open("/#c=C.0000000000000001")
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('GetFile')")
     self.Click("link=Results")
     self.Click("css=button.DownloadButton")
@@ -430,7 +430,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     self.Open("/#c=C.0000000000000001")
 
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('GetFile')")
     self.Click("link=Results")
     self.Click("css=button.DownloadButton")
@@ -460,7 +460,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
                        "Generate", RaisingStub):
       self.Open("/#c=C.0000000000000001")
 
-      self.Click("css=a:contains('Manage launched flows')")
+      self.Click("css=a[grrtarget='client.flows']")
       self.Click("css=td:contains('GetFile')")
       self.Click("link=Results")
       self.Click("css=button.DownloadButton")
@@ -494,7 +494,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
                        "Generate", RaisingStub):
       self.Open("/#c=C.0000000000000001")
 
-      self.Click("css=a:contains('Manage launched flows')")
+      self.Click("css=a[grrtarget='client.flows']")
       self.Click("css=td:contains('GetFile')")
       self.Click("link=Results")
       self.Click("css=button.DownloadButton")
@@ -525,7 +525,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     # Navigate to client and select newly created flow.
     self.Open("/#c=C.0000000000000001")
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
     self.Click("css=td:contains('ListProcesses')")
 
     # Open wizard and check if flow arguments are copied.
@@ -564,9 +564,8 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
                            token=self.token)
 
     # Open client and find the flow.
-    self.Open("/")
     self.Open("/#c=C.0000000000000001")
-    self.Click("css=a:contains('Manage launched flows')")
+    self.Click("css=a[grrtarget='client.flows']")
 
     # No flow selected, so the button should be disabled.
     self.WaitUntil(self.IsElementPresent,

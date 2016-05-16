@@ -4,7 +4,7 @@ goog.require('grrUi.client.module');
 goog.require('grrUi.tests.module');
 
 describe('clients list', function() {
-  var $q, $compile, $rootScope, $interval, grrApiService;
+  var $q, $compile, $rootScope, $interval, grrApiService, grrRoutingService;
   var grrReflectionService;
 
   beforeEach(module('/static/angular-components/client/clients-list.html'));
@@ -21,6 +21,7 @@ describe('clients list', function() {
     $interval = $injector.get('$interval');
     grrApiService = $injector.get('grrApiService');
     grrReflectionService = $injector.get('grrReflectionService');
+    grrRoutingService = $injector.get('grrRoutingService');
 
     grrReflectionService.getRDFValueDescriptor = function(valueType) {
       var deferred = $q.defer();
@@ -38,9 +39,7 @@ describe('clients list', function() {
   });
 
   var render = function(query) {
-    $rootScope.query = query;
-
-    var template = '<grr-clients-list query="query" />';
+    var template = '<grr-clients-list />';
     var element = $compile(template)($rootScope);
     $rootScope.$apply();
 
@@ -50,12 +49,25 @@ describe('clients list', function() {
     return element;
   };
 
+  var mockApiService = function(value) {
+    if (value) {
+      spyOn(grrApiService, 'get').and.returnValue($q.when({ data: value }));
+    } else {
+      spyOn(grrApiService, 'get').and.returnValue($q.defer().promise);
+    }
+  };
+
+  var mockRoutingService = function(query) {
+    spyOn(grrRoutingService, 'uiOnParamsChanged').and.callFake(function(s, p, cb) {
+      cb(query);
+    });
+  };
+
   it('sends request with a query to the server', function() {
-    var deferred = $q.defer();
-    spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
+    mockApiService();
+    mockRoutingService('.');
 
-    var element = render('.');
-
+    var element = render();
     expect(grrApiService.get).toHaveBeenCalledWith(
         '/clients', {
           query: '.',
@@ -146,11 +158,10 @@ describe('clients list', function() {
       ]
     };
 
-    var deferred = $q.defer();
-    deferred.resolve({ data: clientsResponse });
-    spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
+    mockApiService(clientsResponse);
+    mockRoutingService('.');
 
-    var element = render('.');
+    var element = render();
     // Check that grrClientStatusIcons directive is rendered. It means
     // that the row with a client info got rendered correctly.
     expect($('grr-client-status-icons', element).length).toBe(1);
@@ -190,11 +201,10 @@ describe('clients list', function() {
       ]
     };
 
-    var deferred = $q.defer();
-    deferred.resolve({ data: clientsResponse });
-    spyOn(grrApiService, 'get').and.returnValue(deferred.promise);
+    mockApiService(clientsResponse);
+    mockRoutingService('.');
 
-    var element = render('.');
+    var element = render();
     var macTableColumn = $('th:contains(MAC)', element).index();
     var macCell = $('tr td', element)[macTableColumn];
     var macDirective = $('grr-semantic-value', macCell);

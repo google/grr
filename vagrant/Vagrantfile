@@ -77,10 +77,14 @@ Vagrant.configure(2) do |config|
   # OS X licensing doesn't allow distribution of VMs, you'll need to build your
   # own base VM, see:
   # https://github.com/google/grr-doc/blob/master/osxclient.adoc
+  #
+  # "vagrant up" is broken for this box because the provider specified here
+  # isn't respected:
+  # https://github.com/mitchellh/vagrant/issues/4654
+  #
+  # workaround: "vagrant up --provider vmware_fusion OS_X_10.8.5"
   config.vm.define "OS_X_10.8.5" do |box|
     box.vm.box = "OS_X_10.8.5"
-    # Random keypair generation and insertion doesn't work on OS X
-    box.ssh.insert_key = false
     box.vm.provider "vmware_fusion" do |v|
       v.vmx["memsize"] = "4096"
       v.vmx["numvcpus"] = "2"

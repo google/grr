@@ -43,6 +43,18 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def GetClient(self, args, token=None):
     return api_client.ApiGetClientHandler()
 
+  def GetClientVersionTimes(self, args, token=None):
+    return api_client.ApiGetClientVersionTimesHandler()
+
+  def InterrogateClient(self, args, token=None):
+    return api_client.ApiInterrogateClientHandler()
+
+  def GetInterrogateOperationState(self, args, token=None):
+    return api_client.ApiGetInterrogateOperationStateHandler()
+
+  def GetLastClientIPAddress(self, args, token=None):
+    return api_client.ApiGetLastClientIPAddressHandler()
+
   # Virtual file system methods.
   # ============================
   #
@@ -257,6 +269,12 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
 
   def UpdateUserSettings(self, args, token=None):
     return api_user.ApiUpdateUserSettingsHandler()
+
+  def GetPendingGlobalNotifications(self, args, token=None):
+    return api_user.ApiGetPendingGlobalNotificationsHandler()
+
+  def DeletePendingGlobalNotification(self, args, token=None):
+    return api_user.ApiDeletePendingGlobalNotificationHandler()
 
   # Config methods.
   # ==============

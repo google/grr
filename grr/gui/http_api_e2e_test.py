@@ -145,6 +145,19 @@ class CSRFProtectionTest(test_lib.GRRBaseTest):
     # Assert XSSI protection is in place.
     self.assertEquals(response.text[:5], ")]}'\n")
 
+  def testHEADRequestForGETUrlWithoutCSRFTokenSucceeds(self):
+    response = requests.head(self.base_url + "/api/config")
+    self.assertEquals(response.status_code, 200)
+
+  def testHEADRequestNotEnabledForPOSTUrls(self):
+    response = requests.head(self.base_url + "/api/clients/labels/add")
+    self.assertEquals(response.status_code, 405)
+
+  def testHEADRequestNotEnabledForDeleteUrls(self):
+    response = requests.head(
+        self.base_url + "/api/users/me/notifications/pending/0")
+    self.assertEquals(response.status_code, 405)
+
   def testPOSTRequestWithoutCSRFTokenFails(self):
     data = {
         "client_ids": ["C.0000000000000000"],
@@ -157,7 +170,26 @@ class CSRFProtectionTest(test_lib.GRRBaseTest):
     self.assertEquals(response.status_code, 403)
     self.assertTrue("CSRF" in response.text)
 
-  def testPOSTRequestWithCSRFTokenSucceeds(self):
+  def testPOSTRequestWithCSRFTokenInCookiesAndNotInHeadersFails(self):
+    # Fetch csrf token from the cookie set on the main page.
+    index_response = requests.get(self.base_url)
+    csrf_token = index_response.cookies.get("csrftoken")
+
+    data = {
+        "client_ids": ["C.0000000000000000"],
+        "labels": ["foo", "bar"]
+        }
+    cookies = {
+        "csrftoken": csrf_token
+        }
+
+    response = requests.post(self.base_url + "/api/clients/labels/add",
+                             data=json.dumps(data), cookies=cookies)
+
+    self.assertEquals(response.status_code, 403)
+    self.assertTrue("CSRF" in response.text)
+
+  def testPOSTRequestWithCSRFTokenInHeadersAndCookiesSucceeds(self):
     # Fetch csrf token from the cookie set on the main page.
     index_response = requests.get(self.base_url)
     csrf_token = index_response.cookies.get("csrftoken")
@@ -177,6 +209,48 @@ class CSRFProtectionTest(test_lib.GRRBaseTest):
     response = requests.post(self.base_url + "/api/clients/labels/add",
                              headers=headers, data=json.dumps(data),
                              cookies=cookies)
+    self.assertEquals(response.status_code, 200)
+
+  def testDELETERequestWithoutCSRFTokenFails(self):
+    response = requests.delete(
+        self.base_url + "/api/users/me/notifications/pending/0")
+
+    self.assertEquals(response.status_code, 403)
+    self.assertTrue("CSRF" in response.text)
+
+  def testDELETERequestWithCSRFTokenInCookiesAndNotInHeadersFails(self):
+    # Fetch csrf token from the cookie set on the main page.
+    index_response = requests.get(self.base_url)
+    csrf_token = index_response.cookies.get("csrftoken")
+
+    cookies = {
+        "csrftoken": csrf_token
+        }
+
+    response = requests.delete(
+        self.base_url + "/api/users/me/notifications/pending/0",
+        cookies=cookies)
+
+    self.assertEquals(response.status_code, 403)
+    self.assertTrue("CSRF" in response.text)
+
+  def testDELETERequestWithCSRFTokenInCookiesAndHeadersSucceeds(self):
+    # Fetch csrf token from the cookie set on the main page.
+    index_response = requests.get(self.base_url)
+    csrf_token = index_response.cookies.get("csrftoken")
+
+    headers = {
+        "x-csrftoken": csrf_token,
+        "x-requested-with": "XMLHttpRequest"
+        }
+    cookies = {
+        "csrftoken": csrf_token
+        }
+
+    response = requests.delete(
+        self.base_url + "/api/users/me/notifications/pending/0",
+        headers=headers, cookies=cookies)
+
     self.assertEquals(response.status_code, 200)
 
 

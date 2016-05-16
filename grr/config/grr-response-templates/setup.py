@@ -93,7 +93,7 @@ def find_data_files(source, prefix=None):
 
 setup_args = dict(
     name="grr-response-templates",
-    version="3.1.0post1",
+    version="3.1.0post2",
     description="GRR Rapid Response client templates and components.",
     long_description=("This PyPi package is just a placeholder. The package"
                       " itself is too large to distribute on PyPi so it is "

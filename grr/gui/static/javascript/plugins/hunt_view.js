@@ -29,7 +29,6 @@ grr.Renderer('HuntClientTableRenderer', {
     if (!grr.state.hunt_id) {
       // Refresh the page with the hunt_id from the hash.
       grr.state.hunt_id = grr.hash.hunt_id;
-      grr.layout('ContentView', 'content', grr.state);
     }
 
     // Add click handler to the backlink.

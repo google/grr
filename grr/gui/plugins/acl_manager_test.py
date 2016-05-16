@@ -69,7 +69,9 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Choose client 1
     self.Click("css=td:contains('0001')")
 
-    # This should be rejected now and a form request is made.
+    # We do not have an approval, so we need to request one.
+    self.WaitUntil(self.IsElementPresent, "css=div.no-approval")
+    self.Click("css=button[name=requestApproval]")
     self.WaitUntil(self.IsElementPresent,
                    "css=h3:contains('Create a new approval')")
 
@@ -130,8 +132,8 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.ClickUntilNotVisible(
         "css=td:contains('grant access to GRR client')")
 
-    self.WaitUntilContains("This approval has already been granted!",
-                           self.GetText, "css=div#main")
+    self.WaitUntil(self.IsTextPresent,
+                   "This approval has already been granted!")
 
     # Try again:
     self.Open("/")
@@ -171,7 +173,6 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # By now we should have a recent reason set, let's see if it shows up in the
     # ACL dialog.
-
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
@@ -181,7 +182,15 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Choose client 1
     self.Click("css=td:contains('0001')")
 
-    # This should be rejected now and a form request is made.
+    # We do not have an approval, so check that the hint is shown, that the
+    # interrogate button is disabled and that the menu is disabled.
+    self.WaitUntil(self.IsElementPresent, "css=div.no-approval")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button:contains('Interrogate')[disabled]")
+    self.WaitUntil(self.IsElementPresent, "css=a.nav-link.disabled")
+
+    # Request an approval.
+    self.Click("css=button[name=requestApproval]")
     self.WaitUntil(self.IsElementPresent,
                    "css=h3:contains('Create a new approval')")
 
@@ -227,7 +236,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Open up and click on View Hunts.
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
 
     # Select a Hunt.
@@ -342,12 +351,13 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.ClickUntilNotVisible(
         "css=td:contains('Please grant access to hunt')")
 
-    self.WaitUntilContains("This approval has already been granted!",
-                           self.GetText, "css=div#main")
+    self.WaitUntil(self.IsTextPresent,
+                   "This approval has already been granted!")
+
     # And try again
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
 
     # Select and run SampleHunt.
@@ -403,7 +413,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageHunts]")
+    self.Click("css=a[grrtarget=hunts]")
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
 
     #
@@ -519,7 +529,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Open up and click on Cron Job Viewer.
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.Click("css=a[grrtarget=ManageCron]")
+    self.Click("css=a[grrtarget=crons]")
 
     # Select a cron job
     self.Click("css=td:contains('OSBreakDown')")
@@ -623,7 +633,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # And try again
     self.Open("/")
-    self.Click("css=a[grrtarget=ManageCron]")
+    self.Click("css=a[grrtarget=crons]")
 
     # Select and enable OSBreakDown cron job.
     self.Click("css=td:contains('OSBreakDown')")

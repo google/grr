@@ -13,10 +13,11 @@ goog.scope(function() {
  * @constructor
  * @param {!angular.Scope} $scope
  * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
 grrUi.hunt.huntOverviewDirective.HuntOverviewController =
-    function($scope, grrApiService) {
+    function($scope, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -25,6 +26,9 @@ grrUi.hunt.huntOverviewDirective.HuntOverviewController =
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
+
+  /** @private {!grrUi.routing.routingService.RoutingService} */
+  this.grrRoutingService_ = grrRoutingService;
 
   /** @export {Object} */
   this.hunt;
@@ -74,11 +78,8 @@ HuntOverviewController.prototype.onHuntFetched = function(response) {
  * Loads a 'hunt details' page after the 'View Hunt Details' link is clicked.
  */
 HuntOverviewController.prototype.showHuntDetails = function() {
-  var queryParams = {
-    main: 'ManageHuntsClientView',
-    hunt_id: this.scope_.huntUrn
-  };
-  grr.loadFromHash($.param(queryParams));
+  var huntId = this.scope_.huntUrn.split('/')[2];
+  this.grrRoutingService_.go('huntDetails', {huntId: huntId});
 };
 
 

@@ -4,10 +4,12 @@ goog.provide('grrUi.client.virtualFileSystem.module');
 
 goog.require('grrUi.client.virtualFileSystem.breadcrumbsDirective.BreadcrumbsDirective');
 goog.require('grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirective');
+goog.require('grrUi.client.virtualFileSystem.fileContainerViewDirective.FileContainerViewDirective');
 goog.require('grrUi.client.virtualFileSystem.fileContextDirective.FileContextDirective');
 goog.require('grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective');
 goog.require('grrUi.client.virtualFileSystem.fileDownloadViewDirective.FileDownloadViewDirective');
 goog.require('grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewDirective');
+goog.require('grrUi.client.virtualFileSystem.fileLegacyViewDirective.FileLegacyViewDirective');
 goog.require('grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewDirective');
 goog.require('grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective');
 goog.require('grrUi.client.virtualFileSystem.fileTextViewDirective.FileTextViewDirective');
@@ -34,6 +36,9 @@ grrUi.client.virtualFileSystem.module.directive(
     grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirective.directive_name,
     grrUi.client.virtualFileSystem.encodingsDropdownDirective.EncodingsDropdownDirective);
 grrUi.client.virtualFileSystem.module.directive(
+    grrUi.client.virtualFileSystem.fileContainerViewDirective.FileContainerViewDirective.directive_name,
+    grrUi.client.virtualFileSystem.fileContainerViewDirective.FileContainerViewDirective);
+grrUi.client.virtualFileSystem.module.directive(
     grrUi.client.virtualFileSystem.fileContextDirective.FileContextDirective.directive_name,
     grrUi.client.virtualFileSystem.fileContextDirective.FileContextDirective);
 grrUi.client.virtualFileSystem.module.directive(
@@ -45,6 +50,9 @@ grrUi.client.virtualFileSystem.module.directive(
 grrUi.client.virtualFileSystem.module.directive(
     grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewDirective.directive_name,
     grrUi.client.virtualFileSystem.fileHexViewDirective.FileHexViewDirective);
+grrUi.client.virtualFileSystem.module.directive(
+    grrUi.client.virtualFileSystem.fileLegacyViewDirective.FileLegacyViewDirective.directive_name,
+    grrUi.client.virtualFileSystem.fileLegacyViewDirective.FileLegacyViewDirective);
 grrUi.client.virtualFileSystem.module.directive(
     grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewDirective.directive_name,
     grrUi.client.virtualFileSystem.fileStatsViewDirective.FileStatsViewDirective);

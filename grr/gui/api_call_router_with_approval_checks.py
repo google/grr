@@ -86,6 +86,27 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.GetClient(args, token=token)
 
+  def GetClientVersionTimes(self, args, token=None):
+    # Everybody is allowed to get the versions of a particular client.
+
+    return self.delegate.GetClientVersionTimes(args, token=token)
+
+  def InterrogateClient(self, args, token=None):
+    self.CheckClientAccess(args.client_id, token=token)
+
+    return self.delegate.InterrogateClient(args, token=token)
+
+  def GetInterrogateOperationState(self, args, token=None):
+    # No ACL checks are required here, since the user can only check
+    # operations started by him- or herself.
+
+    return self.delegate.GetInterrogateOperationState(args, token=token)
+
+  def GetLastClientIPAddress(self, args, token=None):
+    # Everybody is allowed to get the last ip address of a particular client.
+
+    return self.delegate.GetLastClientIPAddress(args, token=token)
+
   # Virtual file system methods.
   # ============================
   #
@@ -437,6 +458,16 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     # Everybody can update their own user settings.
 
     return self.delegate.UpdateUserSettings(args, token=token)
+
+  def GetPendingGlobalNotifications(self, args, token=None):
+    # Everybody can get their global pending notifications.
+
+    return self.delegate.GetPendingGlobalNotifications(args, token=token)
+
+  def DeletePendingGlobalNotification(self, args, token=None):
+    # Everybody can delete their global pending notifications.
+
+    return self.delegate.DeletePendingGlobalNotification(args, token=token)
 
   # Config methods.
   # ==============

@@ -11,27 +11,46 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
+ * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
 grrUi.flow.clientFlowsViewDirective.ClientFlowsViewController = function(
-    $scope) {
+    $scope, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
+
+  /** @private {!grrUi.routing.routingService.RoutingService} */
+  this.grrRoutingService_ = grrRoutingService;
+
+  /** @type {string} */
+  this.clientId;
 
   /** @type {string} */
   this.selectedFlowUrn;
 
-  // TODO(user): use Angular service for this.
-  if (angular.isDefined(grr.hash.flow)) {
-    this.selectedFlowUrn = grr.hash.flow;
-  }
-
   this.scope_.$watch('controller.selectedFlowUrn',
                      this.onSelectedFlowUrnChange_.bind(this));
+
+  this.grrRoutingService_.uiOnParamsChanged(this.scope_,
+      ['clientId', 'flowId'], this.onParamsChange_.bind(this));
 };
 var ClientFlowsViewController =
     grrUi.flow.clientFlowsViewDirective.ClientFlowsViewController;
 
+
+/**
+ * Handles changes to the client id state param.
+ *
+ * @param {Array} newValues The new values for the watched params.
+ * @param {Object=} opt_stateParams A dictionary of all state params and their values.
+ * @private
+ */
+ClientFlowsViewController.prototype.onParamsChange_ = function(newValues, opt_stateParams) {
+  this.clientId = opt_stateParams['clientId'];
+  if (opt_stateParams['flowId']) {
+    this.selectedFlowUrn = 'aff4:/' + opt_stateParams['clientId'] + '/flows/'+ opt_stateParams['flowId'];
+  }
+};
 
 /**
  * Handles selectedFlowUrn binding changes.
@@ -42,8 +61,8 @@ var ClientFlowsViewController =
 ClientFlowsViewController.prototype.onSelectedFlowUrnChange_ = function(
     newValue) {
   if (angular.isDefined(newValue)) {
-    // TODO(user): use Angular service for this.
-    grr.publish('hash_state', 'flow', this.selectedFlowUrn);
+    var flowId = this.selectedFlowUrn.split('/')[3];
+    this.grrRoutingService_.go('client.flows', {flowId: flowId});
   }
 };
 

@@ -16,10 +16,11 @@ var SEARCH_KEYWORDS = ['host', 'mac', 'ip', 'user', 'label'];
  * @param {!angular.jQuery} $element
  * @param {!angular.$interval} $interval
  * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
 grrUi.core.searchBoxDirective.SearchBoxController = function(
-    $scope, $element, $interval, grrApiService) {
+    $scope, $element, $interval, grrApiService, grrRoutingService) {
 
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
@@ -32,6 +33,9 @@ grrUi.core.searchBoxDirective.SearchBoxController = function(
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
+
+  /** @private {!grrUi.routing.routingService.RoutingService} */
+  this.grrRoutingService_ = grrRoutingService;
 
   /** @export {string} */
   this.query = '';
@@ -70,9 +74,7 @@ SearchBoxController.prototype.submitQuery = function() {
   } else if (this.isHuntId_(this.query)) {
     this.checkHunt_(this.query);
   } else {
-    grr.publish('hash_state', 'main', 'HostTable');
-    grr.publish('hash_state', 'q', this.query);
-    grr.layout('HostTable', 'main', {q: this.query});
+    this.grrRoutingService_.go('search', {q: this.query});
   }
 };
 
@@ -117,15 +119,12 @@ SearchBoxController.prototype.checkHunt_ = function(huntId) {
   this.grrApiService_.get('hunts/' + huntId).then(
     function success(response) {
       var huntUrn = response.data['urn'];
-      grr.publish('hash_state', 'hunt_id', huntUrn);
-      grr.publish('hash_state', 'main', 'ManageHunts');
-      grr.publish('hunt_selection', huntUrn);
+      var huntId = huntUrn.split('/')[1];
+      this.grrRoutingService_.go('hunts', {huntId: huntId});
     }.bind(this),
     function error() {
       // Hunt not found, revert to regular client search.
-      grr.publish('hash_state', 'main', 'HostTable');
-      grr.publish('hash_state', 'q', this.query);
-      grr.layout('HostTable', 'main', {q: this.query});
+      this.grrRoutingService_.go('search', {q: this.query});
     }.bind(this)
   );
 };

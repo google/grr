@@ -1,0 +1,109 @@
+<div id="navigator">
+
+  <section ng-if="controller.clientId && !controller.client">
+    Loading...
+  </section>
+
+  <!-- Client overview and links for client navigation -->
+  <section ng-if="controller.client">
+    <!-- Client overview-->
+    <grr-client-summary client="controller.client"></grr-client-summary>
+
+    <!-- Client links -->
+    <ul class="nav nav-list">
+      <li grr-nav-link state="client.hostInfo"
+          params="{clientId: controller.clientId}"
+          disabled="!controller.hasApproval">
+        Host Information
+      </li>
+      <li grr-nav-link state="client.launchFlows"
+          params="{clientId: controller.clientId}"
+          disabled="!controller.hasApproval">
+        Start new flows
+      </li>
+      <li grr-nav-link state="client.vfs"
+          params="{clientId: controller.clientId}"
+          disabled="!controller.hasApproval">
+        Browse Virtual Filesystem
+      </li>
+      <li grr-nav-link state="client.flows"
+          params="{clientId: controller.clientId}"
+          disabled="!controller.hasApproval">
+        Manage launched flows
+      </li>
+
+      <li id="HostAdvanced" grr-nav-dropdown title="Advanced">
+        <ul class="nav nav-list">
+          <li grr-nav-link state="client.crashes"
+              params="{clientId: controller.clientId}"
+              disabled="!controller.hasApproval">
+            Crashes
+          </li>
+          <li grr-nav-link state="client.debugRequests"
+              params="{clientId: controller.clientId}"
+              disabled="!controller.hasApproval">
+            Debug Client Requests
+          </li>
+          <li grr-nav-link state="client.load"
+              params="{clientId: controller.clientId}"
+              disabled="!controller.hasApproval">
+            Current Client Load
+          </li>
+          <li grr-nav-link state="client.stats"
+              params="{clientId: controller.clientId}"
+              disabled="!controller.hasApproval">
+            Client Performance Stats
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <!-- Management links -->
+  <section>
+    <h1>Management</h1>
+
+    <ul class="nav nav-list">
+      <li grr-nav-link state="crons">
+        Cron Job Viewer
+      </li>
+      <li grr-nav-link state="hunts">
+        Hunt Manager
+      </li>
+      <li grr-nav-link state="stats">
+        Show Statistics
+      </li>
+      <li grr-nav-link state="globalFlows">
+        Start Global Flows
+      </li>
+
+      <li id="ManagementAdvanced" grr-nav-dropdown title="Advanced">
+        <ul class="nav nav-list">
+          <li grr-nav-link state="serverLoad">
+            Server Load
+          </li>
+          <li grr-nav-link state="clientCrashes">
+            All Clients Crashes
+          </li>
+        </ul>
+      </li>
+    </ul>
+  </section>
+
+  <!-- Configuration links -->
+  <section>
+    <h1>Configuration</h1>
+
+    <ul class="nav nav-list">
+      <li grr-nav-link state="manageBinaries">
+        Manage Binaries
+      </li>
+      <li grr-nav-link state="config">
+        Settings
+      </li>
+      <li grr-nav-link state="artifacts">
+        Artifact Manager
+      </li>
+    </ul>
+  </section>
+</div>

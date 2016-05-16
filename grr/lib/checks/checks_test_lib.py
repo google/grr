@@ -74,8 +74,8 @@ class HostCheckTest(test_lib.GRRBaseTest):
       raise test_lib.Error("Missing test data: %s" % file_name)
     return path
 
-  @classmethod
-  def SetKnowledgeBase(cls, hostname="test.example.com", host_os="Linux",
+  @staticmethod
+  def SetKnowledgeBase(hostname="test.example.com", host_os="Linux",
                        host_data=None):
     """Generates a KnowledgeBase entry in the host_data used by checks."""
     if not host_data:
@@ -215,9 +215,9 @@ class HostCheckTest(test_lib.GRRBaseTest):
         host_data = self._AddToHostData(host_data, artifact, sources, parser)
     return self.RunChecks(host_data)
 
-  def GenProcessData(self, processes):
+  def GenProcessData(self, processes, **kwargs):
     """Create some process-based host data."""
-    host_data = self.SetKnowledgeBase()
+    host_data = self.SetKnowledgeBase(**kwargs)
     data = []
     for (name, pid, cmdline) in processes:
       data.append(rdf_client.Process(name=name, pid=pid, cmdline=cmdline))

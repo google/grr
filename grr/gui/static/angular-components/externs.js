@@ -20,9 +20,9 @@ var grr = {};
 
 
 /**
- * @param {string} hash
+ * @param {string=} opt_hash
  */
-grr.loadFromHash = function(hash) {};
+grr.loadFromHash = function(opt_hash) {};
 
 
 /**
@@ -73,6 +73,13 @@ grr.hash;
  * @type {Object<string, string>}
  */
 grr.state;
+
+
+/**
+ * @param {string} hash
+ * @return {Object}
+ */
+grr.parseHashState = function(hash) {};
 
 
 /**
@@ -154,3 +161,230 @@ moment.duration = function(n, opt_unit) {};
  * }}
  */
 moment.Duration;
+
+
+/**
+ * Angular UI definitions.
+ */
+
+
+/**
+ * Suppresses the compiler warning when multiple externs files declare the
+ * ui namespace.
+ * @suppress {duplicate}
+ * @noalias
+ */
+var ui = {};
+
+
+/**
+ * @type {Object}
+ * @const
+ */
+ui.router = {};
+
+
+/**
+ * @typedef {{
+ *   params: Object,
+ *   current: !ui.router.State,
+ *   transition: ?angular.$q.Promise,
+ *   get: function(...),
+ *   go: function(...),
+ *   href: function(...),
+ *   includes: function(...),
+ *   is: function(...),
+ *   reload: function(...),
+ *   transitionTo: function(...)
+ * }}
+ */
+ui.router.$state;
+
+
+/**
+ * @type {ui.router.State}
+ */
+ui.router.$state.current;
+
+
+/**
+ * @type {Object}
+ */
+ui.router.$state.params;
+
+
+/**
+ * @type {?angular.$q.Promise}
+ */
+ui.router.$state.transition;
+
+
+/**
+ * @param {?string|Object=} opt_stateOrName
+ * @param {?string|Object=} opt_context
+ * @return {Object|Array}
+ */
+ui.router.$state.get = function(opt_stateOrName, opt_context) {};
+
+/**
+ * @typedef {{
+ *   location: (boolean|string|undefined),
+ *   inherit: (boolean|undefined),
+ *   relative: (Object|undefined),
+ *   notify: (boolean|undefined),
+ *   reload: (boolean|undefined)
+ * }}
+ */
+ui.router.$state.GoOptions_;
+
+/**
+ * @param {string} to
+ * @param {Object=} opt_params
+ * @param {(ui.router.$state.GoOptions_|Object)=} opt_options
+ * @return {angular.$q.Promise}
+ */
+ui.router.$state.go = function(to, opt_params, opt_options) {};
+
+
+/**
+ * @param {?string|Object} stateOrName
+ * @param {Object=} opt_params
+ * @param {Object=} opt_options
+ * @return {string} compiled state url
+ */
+ui.router.$state.href = function(stateOrName, opt_params, opt_options) {};
+
+
+/**
+ * @param {?string} stateOrName
+ * @param {Object=} opt_params
+ * @param {Object=} opt_options
+ */
+ui.router.$state.includes = function(stateOrName, opt_params, opt_options) {};
+
+
+/**
+ * @param {?string|Object} stateOrName
+ * @param {Object=} opt_params
+ * @param {Object=} opt_options
+ * @return {boolean}
+ */
+ui.router.$state.is = function(stateOrName, opt_params, opt_options) {};
+
+
+/**
+ * @return {angular.$q.Promise}
+ */
+ui.router.$state.reload = function() {};
+
+
+/**
+ * @param {string} to
+ * @param {Object=} opt_toParams
+ * @param {Object=} opt_options
+ */
+ui.router.$state.transitionTo = function(to, opt_toParams, opt_options) {};
+
+
+/**
+ * @typedef {Object.<string, string>}
+ */
+ui.router.$stateParams;
+
+
+/**
+ * This is the object that the ui-router passes to callback functions listening
+ * on ui router events such as {@code $stateChangeStart} or
+ * {@code $stateChangeError} as the {@code toState} and {@code fromState}.
+ * Example:
+ * $rootScope.$on('$stateChangeStart', function(
+ *     event, toState, toParams, fromState, fromParams){ ... });
+ *
+ * @typedef {{
+ *     'abstract': (boolean|undefined),
+ *     controller: (string|Function|undefined),
+ *     controllerAs: (string|undefined),
+ *     controllerProvider: (Function|undefined),
+ *     data: (Object|undefined),
+ *     name: string,
+ *     onEnter: (Object|undefined),
+ *     onExit: (Object|undefined),
+ *     params: (Object|undefined),
+ *     reloadOnSearch: (boolean|undefined),
+ *     resolve: (Object.<string, !Function>|undefined),
+ *     template: (string|Function|undefined),
+ *     templateUrl: (string|Function|undefined),
+ *     templateProvider: (Function|undefined),
+ *     url: (string|undefined),
+ *     views: (Object|undefined)
+ * }}
+ */
+ui.router.State;
+
+
+
+/**
+ * @constructor
+ */
+ui.router.$urlMatcherFactory = function() {};
+
+
+
+/**
+ * @constructor
+ * @param {!ui.router.$urlMatcherFactory} $urlMatcherFactory
+ */
+ui.router.$urlRouterProvider = function($urlMatcherFactory) {};
+
+
+/**
+ * @param {string|RegExp} url
+ * @param {string|function(...)|Array.<!Object>} route
+ */
+ui.router.$urlRouterProvider.prototype.when = function(url, route) {};
+
+
+/**
+ * @param {string|function(...)} path
+ */
+ui.router.$urlRouterProvider.prototype.otherwise = function(path) {};
+
+
+/**
+ * @param {function(...)} rule
+ */
+ui.router.$urlRouterProvider.prototype.rule = function(rule) {};
+
+
+/**
+ * Defers URL interception.
+ */
+ui.router.$urlRouterProvider.prototype.deferIntercept = function() {};
+
+/**
+ * Syncs the $urlRouterProvider with the URL.
+ */
+ui.router.$urlRouterProvider.prototype.sync = function() {};
+
+/**
+ * Re-attaches the $urlRouterProvider to listen for changes in the URL.
+ */
+ui.router.$urlRouterProvider.prototype.listen = function() {};
+
+
+/**
+ * @constructor
+ * @param {!ui.router.$urlRouterProvider} $urlRouterProvider
+ * @param {!ui.router.$urlMatcherFactory} $urlMatcherFactory
+ * @param {!angular.$locationProvider} $locationProvider
+ */
+ui.router.$stateProvider = function(
+    $urlRouterProvider, $urlMatcherFactory, $locationProvider) {};
+
+
+/**
+ * @param {!string} name
+ * @param {Object} definition
+ * @return {!ui.router.$stateProvider}
+ */
+ui.router.$stateProvider.prototype.state = function(name, definition) {};

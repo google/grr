@@ -49,8 +49,8 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains('0001')")
 
     # First screen should be the Host Information already.
-    self.WaitUntil(self.IsTextPresent, "VFSGRRClient")
-    self.Click("css=a[grrtarget=LaunchFlows]")
+    self.WaitUntil(self.IsTextPresent, "HostC.0000000000000001")
+    self.Click("css=a[grrtarget='client.launchFlows']")
     self.Click("css=#_Collectors")
 
     self.assertEqual("ArtifactCollectorFlow",
