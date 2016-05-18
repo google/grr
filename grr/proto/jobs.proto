@@ -970,6 +970,11 @@ message Uname {
       "different from the machine architecture in the case of a 32 bit binary "
       "running on a 64 bit system)",
     }];
+
+  optional string pep425tag = 11 [(sem_type) = {
+      description: "The unique signature of this python system (as defined by "
+      "PEP425 tags).",
+    }];
 };
 
 message FolderInformation {

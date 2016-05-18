@@ -110,8 +110,10 @@ SearchBoxController.prototype.isHuntId_ = function(input) {
 };
 
 /**
- * Tries to retrieve the hunt details of a given hunt id. If successfull, forwards
- * the user to the hunt details. If not successfull, performs a regular client search.
+ * Tries to retrieve the hunt details of a given hunt id. If successful,
+ * forwards the user to the hunt details. If not successful, performs a
+ * regular client search.
+ *
  * @param {string} huntId The id of the hunt to check for existance.
  * @private
  */
@@ -119,7 +121,8 @@ SearchBoxController.prototype.checkHunt_ = function(huntId) {
   this.grrApiService_.get('hunts/' + huntId).then(
     function success(response) {
       var huntUrn = response.data['urn'];
-      var huntId = huntUrn.split('/')[1];
+      var components = huntUrn.split('/');
+      var huntId = components[components.length - 1];
       this.grrRoutingService_.go('hunts', {huntId: huntId});
     }.bind(this),
     function error() {

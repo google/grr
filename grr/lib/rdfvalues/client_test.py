@@ -185,3 +185,23 @@ class NetworkAddressTests(test_base.RDFValueTestCase):
                        address)
 
       self.CheckRDFValue(self.rdfvalue_class(sample), sample)
+
+
+class UnameTests(test_base.RDFValueTestCase):
+  """Test the Uname."""
+
+  rdfvalue_class = rdf_client.Uname
+
+  def GenerateSample(self, number=0):
+    # Make the hostname slighly different for comparison tests.
+    result = self.rdfvalue_class.FromCurrentSystem()
+    result.node += str(number)
+    return result
+
+  def testSignature(self):
+    sample = self.GenerateSample()
+    self.assertEqual(sample.signature(), sample.pep425tag)
+
+    # We do not support old protos without a signature.
+    sample.pep425tag = None
+    self.assertRaises(ValueError, sample.signature)

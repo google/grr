@@ -104,7 +104,7 @@ class ClientTestBase(unittest.TestCase):
 
   def runTest(self):
     if self.client_min_version:
-      target_client = aff4.FACTORY.Open(self.client_id)
+      target_client = aff4.FACTORY.Open(self.client_id, token=self.token)
       client_info = target_client.Get(target_client.Schema.CLIENT_INFO)
       if client_info.client_version < self.client_min_version:
         message = "Skipping version %s less than client_min_version: %s" % (

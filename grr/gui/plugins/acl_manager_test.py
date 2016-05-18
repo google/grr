@@ -25,6 +25,62 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.server import foreman as rdf_foreman
 
 
+class TestWorkflowWithoutApprovals(test_lib.GRRSeleniumTest):
+  """Tests acl policies when approvals system is not used."""
+
+  def setUp(self):
+    super(TestWorkflowWithoutApprovals, self).setUp()
+    self.UninstallACLChecks()
+
+  def testHostInformationDoesNotAskForApproval(self):
+    self.Open("/#/clients/C.0000000000000001")
+
+    # Make sure "Host Information" tab got shown.
+    self.WaitUntil(self.IsTextPresent, "Last Local Clock")
+    self.WaitUntil(self.IsTextPresent, "GRR Client Version")
+
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=h3:contains('Create a new approval')")
+
+  def testBrowseVirtualFileSystemDoesNotAskForApproval(self):
+    self.Open("/#/clients/C.0000000000000001")
+
+    # Clicking on the navigator link explicitly to make sure it's not disabled.
+    self.Click("css=a[grrtarget='client.vfs']")
+
+    # Make sure "Browse Virtual Filesystem" pane is displayed.
+    self.WaitUntil(self.IsTextPresent, "stat.st_size")
+
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=h3:contains('Create a new approval')")
+
+  def testStartFlowDoesNotAskForApproval(self):
+    self.Open("/#/clients/C.0000000000000001")
+
+    # Clicking on the navigator link explicitly to make sure it's not disabled.
+    self.Click("css=a[grrtarget='client.launchFlows']")
+
+    # Make sure "Start new flows" pane is displayed.
+    self.WaitUntil(self.IsTextPresent,
+                   "Please Select a flow to launch")
+
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=h3:contains('Create a new approval')")
+
+  def testManageLaunchedFlowsDoesNotAskForApproval(self):
+    self.Open("/#/clients/C.0000000000000001")
+
+    # Clicking on the navigator link explicitly to make sure it's not disabled.
+    self.Click("css=a[grrtarget='client.flows']")
+
+    # Make sure "Manage launched flows" pane is displayed.
+    self.WaitUntil(self.IsTextPresent,
+                   "Please select a flow to see its details here.")
+
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=h3:contains('Create a new approval')")
+
+
 class TestACLWorkflow(test_lib.GRRSeleniumTest):
   """Tests the access control workflow."""
 
@@ -56,6 +112,34 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
         pass
       time.sleep(sleep_time)
     self.fail("Notification for user %s never sent." % user)
+
+  def testNavigatorLinksDisabledForClientWithoutApproval(self):
+    self.Open("/#/clients/C.0000000000000001?navigator-test")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=a[grrtarget='client.vfs'].disabled")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=a[grrtarget='client.launchFlows'].disabled")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=a[grrtarget='client.flows'].disabled")
+
+    # Only the "Host Information" navigation link should be active.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=a[grrtarget='client.hostInfo']:not(.disabled)")
+
+  def testApprovalNotificationIsShownInHostInfoForUnapprovedClient(self):
+    self.Open("/#/clients/C.0000000000000001")
+
+    self.WaitUntil(self.IsTextPresent,
+                   "You do not have an approval for this client.")
+
+  def testClickingOnRequestApprovalShowsApprovalDialog(self):
+    self.Open("/#/clients/C.0000000000000001")
+
+    self.Click("css=button[name=requestApproval]")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=h3:contains('Create a new approval')")
 
   def testClientACLWorkflow(self):
     self.Open("/")

@@ -34,7 +34,7 @@ grrUi.sidebar.navigatorDirective.NavigatorController = function(
   this.clientId;
 
   /** @type {boolean} */
-  this.hasApproval = false;
+  this.hasClientAccess = false;
 
   // Subscribe to legacy grr events to be notified on client change.
   this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'clientId',
@@ -77,7 +77,7 @@ NavigatorController.prototype.onClientSelectionChange_ = function(clientId) {
 
   var url = 'clients/' + clientId;
   this.grrApiService_.get(url).then(this.onClientDetailsFetched_.bind(this));
-  this.fetchClientApproval_();
+  this.checkClientAccess_();
 };
 
 /**
@@ -91,16 +91,18 @@ NavigatorController.prototype.onClientDetailsFetched_ = function(response) {
 };
 
 /**
- * Fetches the client approval.
+ * Checks client access.
  *
  * @private
  */
-NavigatorController.prototype.fetchClientApproval_ = function() {
-  var approvalUrl = 'users/me/approvals/client/' + this.clientId;
-  this.grrApiService_.get(approvalUrl).then(function(response) {
-    var approvals = response.data['items'];
-    this.hasApproval = approvals && approvals.length;
-  }.bind(this));
+NavigatorController.prototype.checkClientAccess_ = function() {
+  this.grrApiService_.head('clients/' + this.clientId + '/flows').then(
+      function resolve() {
+        this.hasClientAccess = true;
+      }.bind(this),
+      function reject() {
+        this.hasClientAccess = false;
+      }.bind(this));
 };
 
 

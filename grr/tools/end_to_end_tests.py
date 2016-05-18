@@ -47,6 +47,11 @@ def RunEndToEndTests():
   token = access_control.ACLToken(username="GRREndToEndTest",
                                   reason="Running end to end client tests.")
 
+  # We need this for the launchbinary test
+  with aff4.FACTORY.Create("aff4:/users/GRREndToEndTest", "GRRUser", mode="rw",
+                           token=token) as test_user:
+    test_user.AddLabels("admin")
+
   client_id_set = base.GetClientTestTargets(
       client_ids=flags.FLAGS.client_ids,
       hostnames=flags.FLAGS.hostnames,

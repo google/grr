@@ -104,7 +104,7 @@ data_files = (find_data_files("docs") +
 
 setup_args = dict(
     name="grr-response-core",
-    version="3.1.0",
+    version="3.1.0pre3",
     description="GRR Rapid Response",
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",
@@ -137,6 +137,7 @@ setup_args = dict(
         "pytz==2015.7",
         "urllib3==1.14",
         "protobuf==2.6.1",
+        "wheel==0.29",
     ],
     extras_require={
         # The following requirements are needed in Windows.

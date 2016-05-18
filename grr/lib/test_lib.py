@@ -977,6 +977,10 @@ class GRRSeleniumTest(GRRBaseTest):
 
   def InstallACLChecks(self):
     """Installs AccessControlManager and stubs out SendEmail."""
+    # Clear the cache of the approvals-based router.
+    (api_call_router_with_approval_checks.
+     ApiCallRouterWithApprovalChecksWithRobotAccess).ClearCache()
+
     if self.acl_manager:
       return
 

@@ -29,6 +29,13 @@ from grr.proto import sysinfo_pb2
 # ntop does not exist on Windows.
 # pylint: disable=g-socket-inet-aton,g-socket-inet-ntoa
 
+# We try to support PEP 425 style component names if possible. This makes it
+# possible to have wheel as an optional dependency.
+try:
+  from wheel import pep425tags  # pylint: disable=g-import-not-at-top
+except ImportError:
+  pep425tags = None
+
 
 class ClientURN(rdfvalue.RDFURN):
   """A client urn has to have a specific form."""
@@ -703,9 +710,13 @@ class Uname(structs.RDFProtoStruct):
 
   def signature(self):
     """Returns a unique string that encapsulates the architecture."""
-    # For example: windows_7__amd64
-    attributes = ["system", "release", "libc_ver", "arch"]
-    return "_".join([getattr(self, x) for x in attributes])
+    # If the protobuf contains a proper pep425 tag return that.
+    result = self.pep425tag
+    if result:
+      return result
+
+    raise ValueError("PEP 425 Signature not set - this is likely an old "
+                     "component file, please back it up and remove it.")
 
   @classmethod
   def FromCurrentSystem(cls):
@@ -728,6 +739,17 @@ class Uname(structs.RDFProtoStruct):
       release = platform.linux_distribution()[0]  # Ubuntu
       version = platform.linux_distribution()[1]  # 12.04
 
+    # Emulate PEP 425 naming conventions - e.g. cp27-cp27mu-linux_x86_64.
+    if pep425tags:
+      pep425tag = "%s%s-%s-%s" % (
+          pep425tags.get_abbr_impl(),
+          pep425tags.get_impl_ver(),
+          str(pep425tags.get_abi_tag()).lower(),
+          pep425tags.get_platform())
+    else:
+      # For example: windows_7_amd64
+      pep425tag = "%s_%s_%s" % (system, release, architecture)
+
     return cls(system=system,
                architecture=architecture,
                node=uname[1],
@@ -736,7 +758,7 @@ class Uname(structs.RDFProtoStruct):
                machine=uname[4],              # x86, x86_64
                kernel=kernel,
                fqdn=fqdn,
-               libc_ver="_".join(platform.libc_ver()),
+               pep425tag=pep425tag,
               )
 
 

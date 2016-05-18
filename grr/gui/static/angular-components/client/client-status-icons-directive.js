@@ -83,15 +83,19 @@ ClientStatusIconsController.prototype.onClientChange_ = function(newValue) {
         return;
       }
 
-      var percent = (
-          volume['value']['actual_available_allocation_units']['value'] /
-          volume['value']['total_allocation_units']['value']) * 100;
-      if (percent <= 5) {
-        var volumeName = '';
-        if (volume['value']['name']) {
-          volumeName = volume['value']['name']['value'];
+      if (angular.isDefined(volume['value']
+                            ['actual_available_allocation_units']) &&
+          angular.isDefined(volume['value']['total_allocation_units'])) {
+        var percent = (
+            volume['value']['actual_available_allocation_units']['value'] /
+                volume['value']['total_allocation_units']['value']) * 100;
+        if (percent <= 5) {
+          var volumeName = '';
+          if (volume['value']['name']) {
+            volumeName = volume['value']['name']['value'];
+          }
+          this.diskWarnings.push([volumeName, percent]);
         }
-        this.diskWarnings.push([volumeName, percent]);
       }
     }.bind(this));
   }

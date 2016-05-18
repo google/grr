@@ -120,11 +120,11 @@ class TestGetFileTSKLinux(base.AutomatedTest):
   platforms = ["Linux"]
   flow = "GetFile"
   args = {"pathspec": rdf_paths.PathSpec(
-      path="/bin/ls",
+      path="/usr/bin/diff",
       pathtype=rdf_paths.PathSpec.PathType.TSK)}
 
   # Interpolate for /dev/mapper-...
-  test_output_path = "/fs/tsk/.*/bin/ls"
+  test_output_path = "/fs/tsk/.*/usr/bin/diff"
 
   def CheckFlow(self):
     pos = self.test_output_path.find("*")
@@ -154,7 +154,7 @@ class TestMultiGetFileTSKLinux(TestGetFileTSKLinux):
   """Tests if MultiGetFile works on Linux using Sleuthkit."""
   flow = "MultiGetFile"
   args = {"pathspecs": [rdf_paths.PathSpec(
-      path="/bin/ls",
+      path="/usr/bin/diff",
       pathtype=rdf_paths.PathSpec.PathType.TSK)]}
 
 
@@ -175,7 +175,11 @@ class TestMultiGetFileOSLinux(TestGetFileOSLinux):
 
 
 class TestSendFile(base.LocalClientTest):
-  """Test SendFile."""
+  """Test SendFile.
+
+  This test only works if your client is running on the same machine as the
+  server.
+  """
   platforms = ["Linux"]
   flow = "SendFile"
   key = rdf_crypto.AES128Key("1a5eafcc77d428863d4c2441ea26e5a5")

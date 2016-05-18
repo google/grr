@@ -5,7 +5,8 @@
     <span>{$ controller.clientId $}</span>
   </h1>
 
-  <div class="no-approval alert alert-danger alert-block" ng-if="!controller.fetchingApproval && !controller.hasApproval">
+  <div class="no-approval alert alert-danger alert-block"
+       ng-if="!controller.clientAccessCheckInProgress && !controller.hasClientAccess">
     <i class="fa fa-warning"></i> You do not have an <b>approval</b> for this client. <br/>
 
     <button name="requestApproval" class="btn btn-default"
@@ -17,7 +18,7 @@
 
     <button class="btn btn-default"
             ng-click="controller.interrogate()"
-            ng-disabled="!controller.hasApproval || controller.interrogateOperationId">
+            ng-disabled="!controller.hasClientAccess || controller.interrogateOperationId">
       <i class="fa fa-search-plus"
          ng-if="!controller.interrogateOperationId"></i>
       <i class="fa fa-spinner fa-spin fa-fw"

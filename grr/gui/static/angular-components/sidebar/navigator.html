@@ -12,23 +12,22 @@
     <!-- Client links -->
     <ul class="nav nav-list">
       <li grr-nav-link state="client.hostInfo"
-          params="{clientId: controller.clientId}"
-          disabled="!controller.hasApproval">
+          params="{clientId: controller.clientId}">
         Host Information
       </li>
       <li grr-nav-link state="client.launchFlows"
           params="{clientId: controller.clientId}"
-          disabled="!controller.hasApproval">
+          disabled="!controller.hasClientAccess">
         Start new flows
       </li>
       <li grr-nav-link state="client.vfs"
           params="{clientId: controller.clientId}"
-          disabled="!controller.hasApproval">
+          disabled="!controller.hasClientAccess">
         Browse Virtual Filesystem
       </li>
       <li grr-nav-link state="client.flows"
           params="{clientId: controller.clientId}"
-          disabled="!controller.hasApproval">
+          disabled="!controller.hasClientAccess">
         Manage launched flows
       </li>
 
@@ -36,22 +35,22 @@
         <ul class="nav nav-list">
           <li grr-nav-link state="client.crashes"
               params="{clientId: controller.clientId}"
-              disabled="!controller.hasApproval">
+              disabled="!controller.hasClientAccess">
             Crashes
           </li>
           <li grr-nav-link state="client.debugRequests"
               params="{clientId: controller.clientId}"
-              disabled="!controller.hasApproval">
+              disabled="!controller.hasClientAccess">
             Debug Client Requests
           </li>
           <li grr-nav-link state="client.load"
               params="{clientId: controller.clientId}"
-              disabled="!controller.hasApproval">
+              disabled="!controller.hasClientAccess">
             Current Client Load
           </li>
           <li grr-nav-link state="client.stats"
               params="{clientId: controller.clientId}"
-              disabled="!controller.hasApproval">
+              disabled="!controller.hasClientAccess">
             Client Performance Stats
           </li>
         </ul>

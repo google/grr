@@ -19,6 +19,11 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
   full_access_control_manager = None
 
+  @staticmethod
+  def ClearCache():
+    cls = ApiCallRouterWithApprovalChecksWithoutRobotAccess
+    cls.full_access_control_manager = None
+
   def _GetFullAccessControlManager(self):
     cls = ApiCallRouterWithApprovalChecksWithoutRobotAccess
     if cls.full_access_control_manager is None:

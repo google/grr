@@ -207,11 +207,10 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetFileDetailsResult
 
   def Handle(self, args, token=None):
-    age = args.timestamp
-    if not age:
-      age = rdfvalue.RDFDatetime().Now()
+    if args.timestamp:
+      age = rdfvalue.RDFDatetime(args.timestamp)
     else:
-      age = rdfvalue.RDFDatetime(age)
+      age = aff4.ALL_TIMES
 
     file_obj = aff4.FACTORY.Open(args.client_id.Add(args.file_path),
                                  mode="r", age=age, token=token)
@@ -308,10 +307,10 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
   result_type = ApiGetFileTextResult
 
   def Handle(self, args, token=None):
-    if not args.timestamp:
-      age = rdfvalue.RDFDatetime().Now()
-    else:
+    if args.timestamp:
       age = rdfvalue.RDFDatetime(args.timestamp)
+    else:
+      age = aff4.NEWEST_TIME
 
     try:
       file_obj = aff4.FACTORY.Open(args.client_id.Add(args.file_path),
@@ -371,10 +370,10 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
       yield aff4_stream.Read(min(self.CHUNK_SIZE, offset + length - start))
 
   def Handle(self, args, token=None):
-    if not args.timestamp:
-      age = rdfvalue.RDFDatetime().Now()
-    else:
+    if args.timestamp:
       age = rdfvalue.RDFDatetime(args.timestamp)
+    else:
+      age = aff4.NEWEST_TIME
 
     try:
       file_obj = aff4.FACTORY.Open(args.client_id.Add(args.file_path),
@@ -740,5 +739,3 @@ class ApiGetVfsFileContentUpdateStateHandler(
       result.state = ApiGetVfsFileContentUpdateStateResult.State.RUNNING
 
     return result
-
-

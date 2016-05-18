@@ -56,11 +56,14 @@ class TestListDirectoryOSLinuxDarwin(base.AutomatedTest):
 # TODO(user): Find a way to run this on Darwin with Filevault turned on.
 class TestListDirectoryTSKLinux(TestListDirectoryOSLinuxDarwin):
   """Tests if ListDirectory works on Linux and Darwin using Sleuthkit."""
+  # We use /usr/bin/diff because it is in the same place across OS X, Ubuntu and
+  # CentOS and isn't symlinked (/bin is a symlink to /usr/bin on CentOS).
   platforms = ["Linux"]
   args = {"pathspec": rdf_paths.PathSpec(
-      path="/bin",
+      path="/usr/bin",
       pathtype=rdf_paths.PathSpec.PathType.TSK)}
-  output_path = "/fs/tsk/.*/bin"
+  output_path = "/fs/tsk/.*/usr/bin"
+  file_to_find = "diff"
 
 
 class TestRecursiveListDirectoryLinuxDarwin(TestListDirectoryOSLinuxDarwin):
@@ -81,7 +84,7 @@ class TestFindTSKLinux(TestListDirectoryTSKLinux):
   args = {"findspec": rdf_client.FindSpec(
       path_regex=".",
       pathspec=rdf_paths.PathSpec(
-          path="/bin/",
+          path="/usr/bin/",
           pathtype=rdf_paths.PathSpec.PathType.TSK))}
 
 

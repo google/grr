@@ -3,8 +3,8 @@
 goog.provide('grrUi.client.hostInfoDirective.HostInfoController');
 goog.provide('grrUi.client.hostInfoDirective.HostInfoDirective');
 
-
 goog.scope(function() {
+
 
 var OPERATION_POLL_INTERVAL = 1000;
 
@@ -47,10 +47,10 @@ grrUi.client.hostInfoDirective.HostInfoController = function(
   this.client;
 
   /** @type {boolean} */
-  this.fetchingApproval = true;
+  this.clientAccessCheckInProgress = true;
 
   /** @type {boolean} */
-  this.hasApproval = false;
+  this.hasClientAccess = false;
 
   /** @type {?string} */
   this.interrogateOperationId;
@@ -81,7 +81,7 @@ HostInfoController.prototype.onClientIdChange_ = function(clientId) {
     this.clientId = clientId;
     this.clientVersionUrl = '/clients/' + clientId + '/version-times';
     this.fetchClientDetails_();
-    this.fetchClientApproval_();
+    this.checkClientAccess_();
   }
 };
 
@@ -121,18 +121,22 @@ HostInfoController.prototype.fetchClientDetails_ = function() {
 };
 
 /**
- * Fetches the client approval.
+ * Checks if user has a permission to access the client.
  *
  * @private
  */
-HostInfoController.prototype.fetchClientApproval_ = function() {
-  this.fetchingApproval = true;
-  var approvalUrl = 'users/me/approvals/client/' + this.clientId;
-  this.grrApiService_.get(approvalUrl).then(function(response) {
-    var approvals = response.data['items'];
-    this.hasApproval = approvals && approvals.length;
-    this.fetchingApproval = false;
-  }.bind(this));
+HostInfoController.prototype.checkClientAccess_ = function() {
+  this.clientAccessCheckInProgress = true;
+
+  this.grrApiService_.head('clients/' + this.clientId + '/flows').then(
+      function resolve() {
+        this.hasClientAccess = true;
+      }.bind(this),
+      function reject() {
+        this.hasClientAccess = false;
+      }.bind(this)).finally(function() {
+        this.clientAccessCheckInProgress = false;
+      }.bind(this));
 };
 
 /**

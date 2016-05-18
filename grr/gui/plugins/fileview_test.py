@@ -264,32 +264,43 @@ class TestFileView(FileViewTestBase):
       client_id = rdf_client.ClientURN("C.0000000000000001")
 
       fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+      # Make sure that the flow has started (when button is clicked, the HTTP
+      # API request is sent asynchronously).
+      def MultiGetFileStarted():
+        return "MultiGetFile" in list(
+            x.__class__.__name__ for x in fd.OpenChildren())
+      self.WaitUntil(MultiGetFileStarted)
+
       flows = list(fd.ListChildren())
 
       client_mock = action_mocks.ActionMock("StatFile", "HashFile",
                                             "FingerprintFile")
       for flow_urn in flows:
         for _ in test_lib.TestFlowHelper(
-            flow_urn, client_mock, client_id=client_id, token=self.token,
-            check_flow_errors=False):
+            flow_urn, client_mock, client_id=client_id, check_flow_errors=False,
+            token=self.token):
           pass
 
-      # Extract the timestamp of the newest version and update its content.
-      with aff4.FACTORY.Open(
-          "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
-          aff4_type="VFSFile", mode="rw", token=self.token) as fd:
-        newest_file_version = fd.Get(fd.Schema.TYPE).age
-        fd.Write("The newest version!")
+      time_in_future = rdfvalue.RDFDatetime().Now() + rdfvalue.Duration("1h")
+      # We have to make sure that the new version will not be within a second
+      # from the current one, otherwise the previous one and the new one will
+      # be indistinguishable in the UI (as it has a 1s precision when
+      # displaying versions).
+      with test_lib.FakeTime(time_in_future):
+        with aff4.FACTORY.Open(
+            "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
+            aff4_type="VFSFile", mode="rw", token=self.token) as fd:
+          fd.Write("The newest version!")
 
     # Once the flow has finished, the file view should update and select the
     # newly created, latest version of the file.
-    self.WaitUntilContains(DateString(newest_file_version), self.GetText,
+    self.WaitUntilContains(DateTimeString(time_in_future), self.GetText,
                            "css=.version-dropdown > option[selected]")
 
     # The file table should also update and display the new timestamp.
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-file-table tbody > tr td:contains(\"%s\")" % (
-                       DateString(newest_file_version)))
+                       DateTimeString(time_in_future)))
 
     # Make sure the file content has changed.
     self.Click("css=li[heading=TextView]")
@@ -310,9 +321,12 @@ class TestFileView(FileViewTestBase):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView&t=_fs-os-c")
 
-    # Test file versioning.
-    self.WaitUntil(self.IsElementPresent, "css=#_fs-os-c-Downloads")
-    self.Click("link=Downloads")
+    # Wait until the folder gets selected and its information displayed in
+    # the details pane.
+    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs/os/c")
+
+    # Click on the "Downloads" subfolder.
+    self.Click("css=#_fs-os-c-Downloads a")
 
     # Some more unicode testing.
     self.Click(u"css=tr:contains(\"中.txt\")")
@@ -321,10 +335,14 @@ class TestFileView(FileViewTestBase):
     self.WaitUntil(self.IsTextPresent, u"中国新闻网新闻中.txt")
 
     # Test the hex viewer.
-    self.Click("css=#_fs-os-proc i.jstree-icon")
+    self.Click("css=#_fs-os-proc a")
+    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs/os/proc")
+
     self.Click("css=#_fs-os-proc-10 a")
+    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs/os/proc/10")
+
     self.Click("css=td:contains(\"cmdline\")")
-    self.Click("css=li[heading=HexView]")
+    self.Click("css=li[heading=HexView]:not([disabled])")
 
     self.WaitUntilEqual("6c730068656c6c6f20776f726c6427002d6c", self.GetText,
                         "css=table.hex-area tr:first td")
@@ -386,10 +404,18 @@ class TestFileView(FileViewTestBase):
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView")
 
     # Choose some directory with pathspec in the ClientFixture.
-    self.Click("css=#_fs i.jstree-icon")
-    self.Click("css=#_fs-os i.jstree-icon")
-    self.Click("css=#_fs-os-Users i.jstree-icon")
+    self.Click("css=#_fs a")
+    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs")
+
+    self.Click("css=#_fs-os a")
+    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs/os")
+
+    self.Click("css=#_fs-os-Users a")
+    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs/os/Users")
+
     self.Click("css=#_fs-os-Users-Shared a")
+    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs/os/Users/Shared")
+    self.WaitUntil(self.IsTextPresent, "/Users/Shared")
 
     # Grab the root directory again - should produce an Interrogate flow.
     self.Click("css=button#refresh-dir")
