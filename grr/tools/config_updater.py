@@ -686,7 +686,7 @@ def InstallTemplatePackage():
 
 def ManageBinaries(config=None, token=None):
   """Repack templates into installers."""
-  print ("\nStep 5: Installing template package and repackaging clients with"
+  print ("\nStep 4: Installing template package and repackaging clients with"
          " new configuration.")
 
   if flags.FLAGS.noprompt or ((raw_input(
