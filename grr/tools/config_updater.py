@@ -699,7 +699,7 @@ def ManageBinaries(config=None, token=None):
                                       token=token)
   maintenance_utils.RepackAllBinaries(upload=True, token=token)
 
-  print "\nStep 6: Signing and uploading client components."
+  print "\nStep 5: Signing and uploading client components."
 
   maintenance_utils.SignAllComponents(token=token)
 
