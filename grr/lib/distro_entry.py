@@ -129,3 +129,8 @@ def AdminUI():
   from grr.gui import admin_ui
   SetConfigOptions()
   flags.StartMain(admin_ui.main)
+
+def DataServer():
+  from grr.tools import data_server
+  SetConfigOptions()
+  flags.StartMain(data_server.main)
