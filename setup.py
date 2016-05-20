@@ -4,6 +4,7 @@
 # pylint: disable=unused-variable
 # pylint: disable=g-multiple-import
 # pylint: disable=g-import-not-at-top
+import ConfigParser
 import os
 import subprocess
 
@@ -34,6 +35,13 @@ def run_make_files(make_docs=False):
     subprocess.check_call(["python", "makefile.py"], cwd="docs")
 
 
+def get_version():
+  config = ConfigParser.SafeConfigParser()
+  config.read(os.path.join(
+      os.path.dirname(os.path.realpath(__file__)), "version.ini"))
+  return config.get("Version", "packageversion")
+
+
 class Develop(develop):
 
   def run(self):
@@ -44,7 +52,7 @@ class Develop(develop):
 class Sdist(sdist):
   """Build sdist."""
 
-  user_options = install.user_options + [
+  user_options = sdist.user_options + [
       ("no-make-docs", None,
        "Don't build ascii docs when building the sdist."),
   ]
@@ -104,7 +112,7 @@ data_files = (find_data_files("docs") +
 
 setup_args = dict(
     name="grr-response-core",
-    version="3.1.0pre3",
+    version=get_version(),
     description="GRR Rapid Response",
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",

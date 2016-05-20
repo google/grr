@@ -26,13 +26,8 @@ if [ "$1" == "windows_7_64" ]; then
     echo "Missing osslsigncode, required to sign windows executables."
     exit 1
   fi
-  # First, build the templates on windows. See Vagrantfile for info on why we
-  # use --provision. These templates don't go into a timestamped directory
-  # because the next step runs on linux and needs to know where to find them.
-  vagrant reload --provision windows_7_64
-  if [ $? -eq 0 ]; then
-    vagrant halt "$1"
-  fi
+  # We expect templates to be built and available in
+  # grr/executables/windows/templates
   cd ../../
   # Repack templates into executables and sign
   PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml --platform windows --sign buildanddeploy --templatedir grr/executables/windows/templates

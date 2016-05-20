@@ -4,11 +4,24 @@
 This is just a meta-package which pulls in the minimal requirements to create a
 full grr server.
 """
+import ConfigParser
+import os
 from setuptools import setup
 
-setup(
+
+def get_config():
+  config = ConfigParser.SafeConfigParser()
+  config.read(os.path.join(
+      os.path.dirname(os.path.realpath(__file__)), "../../version.ini"))
+  return config
+
+
+VERSION = get_config()
+
+
+setup_args = dict(
     name="grr-response-server",
-    version="3.1.0post1",
+    version=VERSION.get("Version", "packageversion"),
     description="The GRR Rapid Response Server.",
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",
@@ -28,8 +41,8 @@ setup(
     install_requires=[
         "Django==1.8.3",
         "google-api-python-client==1.4.2",
-        "grr-response-core==3.1.*",
-        "grr-response-client==3.1.*",
+        "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
+        "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
         "oauth2client==1.5.2",
         "pexpect==4.0.1",
         "portpicker==1.1.1",
@@ -48,3 +61,5 @@ setup(
         ],
     }
 )
+
+setup(**setup_args)

@@ -5,6 +5,7 @@
 import importlib
 import os
 import pdb
+import string
 import time
 
 
@@ -220,6 +221,11 @@ def RenderGenericRenderer(request):
 
 def RedirectToRemoteHelp(path):
   """Redirect to GitHub-hosted documentation."""
+  allowed_chars = set(string.ascii_letters + string.digits + "._")
+  if not set(path) <= allowed_chars:
+    raise RuntimeError("Unusual chars in path %r - "
+                       "possible exploit attempt." % path)
+
   target_path = os.path.join(config_lib.CONFIG["AdminUI.github_docs_location"],
                              path.replace(".html", ".adoc"))
 

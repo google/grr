@@ -1,12 +1,22 @@
 #!/usr/bin/env python
 """This package contains GRR client templates and components."""
-
+import ConfigParser
 import glob
 import os
 import re
 from setuptools import setup
 
 from setuptools.command.sdist import sdist
+
+
+def get_config():
+  config = ConfigParser.SafeConfigParser()
+  config.read(os.path.join(
+      os.path.dirname(os.path.realpath(__file__)), "../../version.ini"))
+  return config
+
+
+VERSION = get_config()
 
 
 class Sdist(sdist):
@@ -93,7 +103,7 @@ def find_data_files(source, prefix=None):
 
 setup_args = dict(
     name="grr-response-templates",
-    version="3.1.0post2",
+    version=VERSION.get("Version", "packageversion"),
     description="GRR Rapid Response client templates and components.",
     long_description=("This PyPi package is just a placeholder. The package"
                       " itself is too large to distribute on PyPi so it is "

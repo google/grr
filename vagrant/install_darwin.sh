@@ -2,6 +2,8 @@
 
 set -e
 
+INSTALL_USER="vagrant"
+
 # Update the system
 function system_update() {
   sudo softwareupdate --install --all
@@ -39,7 +41,7 @@ function install_python_deps() {
   pip install --upgrade pip setuptools
   sudo -H pip install --upgrade virtualenv
 
-  BUILDDIR="${HOME}/grrbuild"
+  BUILDDIR="/home/${INSTALL_USER}/grrbuild"
   rm -rf "${BUILDDIR}" && mkdir "${BUILDDIR}"
 
   virtualenv -p /usr/local/bin/python2.7 "${BUILDDIR}/PYTHON_ENV"
@@ -78,7 +80,7 @@ function install_python() {
 # provisioning runs as root.
 case $EUID in
   0)
-    sudo -u vagrant -i $0  # script calling itself as the vagrant user
+    sudo -u "$INSTALL_USER" -i "$0"  # script calling itself as the vagrant user
     ;;
   *)
     system_update

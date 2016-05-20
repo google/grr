@@ -6,6 +6,8 @@
 set -e
 set -x
 
+INSTALL_USER="vagrant"
+
 function system_update() {
   if [ $DISTRO == "Ubuntu" ]; then
     apt-get --yes update
@@ -134,8 +136,11 @@ function install_python_deps() {
   # get a newer version
   pip2.7 install virtualenv
 
-  /usr/local/bin/virtualenv -p /usr/local/bin/python2.7 PYTHON_ENV
-  source PYTHON_ENV/bin/activate
+  BUILDDIR="/home/${INSTALL_USER}/grrbuild"
+  rm -rf "${BUILDDIR}" && mkdir "${BUILDDIR}"
+
+  /usr/local/bin/virtualenv -p /usr/local/bin/python2.7 "${BUILDDIR}/PYTHON_ENV"
+  source "${BUILDDIR}/PYTHON_ENV/bin/activate"
 
   # We need grr-reponse-client to get the grr_client_build entrypoint and
   # pyinstaller.
@@ -143,8 +148,8 @@ function install_python_deps() {
 
   # pyinstaller fails to include protobuf because there is no __init__.py:
   # https://github.com/google/protobuf/issues/713
-  touch PYTHON_ENV/lib/python2.7/site-packages/google/__init__.py
-  chown -R vagrant PYTHON_ENV
+  touch "${BUILDDIR}/PYTHON_ENV/lib/python2.7/site-packages/google/__init__.py"
+  chown -R ${INSTALL_USER} "${BUILDDIR}/PYTHON_ENV"
 }
 
 # Lucid debhelper is too old to build debs that handle both upstart, init.d,

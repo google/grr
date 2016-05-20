@@ -18,13 +18,6 @@ Client.name: GRR
 
 Client.proxy_servers:
 
-# The final version number will be built in the same order as listed
-# here:
-Client.version_major: 3
-Client.version_minor: 1
-Client.version_revision: 0
-Client.version_release: 0
-
 Datastore.security_manager: BasicAccessControlManager
 
 Logging.engines: "stderr,file"

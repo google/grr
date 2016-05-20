@@ -1,10 +1,13 @@
 #!/usr/bin/env python
 """Configuration parameters for the client."""
 
+import grr
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import crypto
 
+
+VERSION = grr.version()
 
 # General Client options.
 config_lib.DEFINE_string("Client.name", "GRR",
@@ -158,16 +161,16 @@ config_lib.DEFINE_list(
           " relative to the given root. Format is os:/mount/disk."),
     default=[])
 
-config_lib.DEFINE_integer("Client.version_major", 0,
+config_lib.DEFINE_integer("Client.version_major", VERSION["major"],
                           "Major version number of client binary.")
 
-config_lib.DEFINE_integer("Client.version_minor", 0,
+config_lib.DEFINE_integer("Client.version_minor", VERSION["minor"],
                           "Minor version number of client binary.")
 
-config_lib.DEFINE_integer("Client.version_revision", 0,
+config_lib.DEFINE_integer("Client.version_revision", VERSION["revision"],
                           "Revision number of client binary.")
 
-config_lib.DEFINE_integer("Client.version_release", 0,
+config_lib.DEFINE_integer("Client.version_release", VERSION["release"],
                           "Release number of client binary.")
 
 config_lib.DEFINE_string("Client.version_string",

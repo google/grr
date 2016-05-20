@@ -7,8 +7,19 @@ run GRR tests.
 If you want to do any development, you probably want this.
 
 """
+import ConfigParser
 import os
 from setuptools import setup
+
+
+def get_config():
+  config = ConfigParser.SafeConfigParser()
+  config.read(os.path.join(
+      os.path.dirname(os.path.realpath(__file__)), "../../version.ini"))
+  return config
+
+
+VERSION = get_config()
 
 
 def find_data_files(source):
@@ -20,9 +31,9 @@ def find_data_files(source):
   return result
 
 
-setup(
+setup_args = dict(
     name="grr-response-test",
-    version="3.1.0post1",
+    version=VERSION.get("Version", "packageversion"),
     description="The GRR Rapid Response test suite.",
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",
@@ -30,7 +41,7 @@ setup(
         "mock==1.3.0",
         "mox==0.5.3",
         "selenium==2.50.1",
-        "grr-response-server==3.1.*",
+        "grr-response-server==%s" % VERSION.get("Version", "packagedepends"),
     ],
     data_files=find_data_files("test_data"),
     entry_points={
@@ -40,3 +51,5 @@ setup(
         ]
     }
 )
+
+setup(**setup_args)

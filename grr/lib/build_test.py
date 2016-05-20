@@ -3,6 +3,7 @@
 import glob
 import os
 import shutil
+import pkg_resources
 
 from grr.lib import build
 from grr.lib import config_lib
@@ -34,10 +35,19 @@ class BuildTests(test_lib.GRRBaseTest):
           self.executables_dir,
           "windows/templates/unzipsfx/unzipsfx-amd64.exe"), new_dir)
 
-      with test_lib.ConfigOverrider({"ClientBuilder.executables_dir": new_dir}):
-        with test_lib.ConfigOverrider(
-            {"ClientBuilder.unzipsfx_stub_dir": new_dir}):
-          maintenance_utils.RepackAllBinaries()
+      # Since we want to be able to increase the client version in the repo
+      # without immediately making a client template release, just check we can
+      # repack whatever templates we have installed.
+      version = pkg_resources.get_distribution(
+          "grr-response-templates").version.replace("post", "")
+      major, minor, revision, release = version.split(".")
+      with test_lib.ConfigOverrider({"ClientBuilder.executables_dir": new_dir,
+                                     "ClientBuilder.unzipsfx_stub_dir": new_dir,
+                                     "Client.version_major": major,
+                                     "Client.version_minor": minor,
+                                     "Client.version_revision": revision,
+                                     "Client.version_release": release,}):
+        maintenance_utils.RepackAllBinaries()
 
       self.assertEqual(len(glob.glob(
           os.path.join(new_dir, "linux/installers/*.deb"))), 2)
