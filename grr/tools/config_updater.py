@@ -686,7 +686,7 @@ def InstallTemplatePackage():
 
 def ManageBinaries(config=None, token=None):
   """Repack templates into installers."""
-  print ("\nStep 5: Installing template package and repackaging clients with"
+  print ("\nStep 4: Installing template package and repackaging clients with"
          " new configuration.")
 
   if flags.FLAGS.noprompt or ((raw_input(
@@ -699,7 +699,7 @@ def ManageBinaries(config=None, token=None):
                                       token=token)
   maintenance_utils.RepackAllBinaries(upload=True, token=token)
 
-  print "\nStep 6: Signing and uploading client components."
+  print "\nStep 5: Signing and uploading client components."
 
   maintenance_utils.SignAllComponents(token=token)
 
