@@ -15,7 +15,7 @@ from setuptools import setup
 def get_config():
   config = ConfigParser.SafeConfigParser()
   config.read(os.path.join(
-      os.path.dirname(os.path.realpath(__file__)), "../../version.ini"))
+      os.path.dirname(os.path.realpath(__file__)), "../../../version.ini"))
   return config
 
 
