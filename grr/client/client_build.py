@@ -69,7 +69,7 @@ elif default_platform == "windows":
   default_package = "exe"
 
 parser.add_argument(
-    "--package_format", choices=["deb", "rpm"],
+    "--package_format", choices=["deb", "rpm", "dmg"],
     default=default_package,
     help="The packaging format to use when building a Linux client.")
 
