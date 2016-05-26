@@ -22,7 +22,6 @@ from grr.lib.aff4_objects import cronjobs
 from grr.lib.hunts import implementation
 from grr.lib.hunts import process_results
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -117,7 +116,7 @@ class StartHuntFlow(flow.GRRFlow):
         self.token.RealUID(), self.args.hunt_urn)
 
     with aff4.FACTORY.Open(
-        self.args.hunt_urn, aff4_type="GRRHunt",
+        self.args.hunt_urn, aff4_type=implementation.GRRHunt,
         mode="rw", token=self.token) as hunt:
 
       hunt.Run()
@@ -135,7 +134,7 @@ class DeleteHuntFlow(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     with aff4.FACTORY.Open(
-        self.args.hunt_urn, aff4_type="GRRHunt", mode="rw",
+        self.args.hunt_urn, aff4_type=implementation.GRRHunt, mode="rw",
         token=self.token) as hunt:
       # Check for approval if the hunt was created by somebody else.
       if self.token.username != hunt.creator:
@@ -168,7 +167,7 @@ class StopHuntFlow(flow.GRRFlow):
         self.token.RealUID(), self.args.hunt_urn)
 
     with aff4.FACTORY.Open(
-        self.args.hunt_urn, aff4_type="GRRHunt", mode="rw",
+        self.args.hunt_urn, aff4_type=implementation.GRRHunt, mode="rw",
         token=self.token) as hunt:
 
       hunt.Stop()
@@ -194,7 +193,7 @@ class ModifyHuntFlow(flow.GRRFlow):
   def Start(self):
     """Find a hunt, perform a permissions check and modify it."""
     with aff4.FACTORY.Open(
-        self.args.hunt_urn, aff4_type="GRRHunt",
+        self.args.hunt_urn, aff4_type=implementation.GRRHunt,
         mode="rw", token=self.token) as hunt:
 
       runner = hunt.GetRunner()
@@ -307,27 +306,6 @@ class SampleHunt(implementation.GRRHunt):
     self.MarkClientDone(client_id)
 
 
-class HuntResultsMetadata(aff4.AFF4Object):
-  """Metadata AFF4 object used by CronHuntOutputFlow."""
-
-  class SchemaCls(aff4.AFF4Object.SchemaCls):
-    """AFF4 schema for CronHuntOutputMetadata."""
-
-    NUM_PROCESSED_RESULTS = aff4.Attribute(
-        "aff4:num_processed_results", rdfvalue.RDFInteger,
-        "Number of hunt results already processed by the cron job.",
-        versioned=False, default=0)
-
-    OUTPUT_PLUGINS = aff4.Attribute(
-        "aff4:output_plugins_state", rdf_flows.FlowState,
-        "Pickled output plugins.", versioned=False)
-
-    OUTPUT_PLUGINS_VERIFICATION_RESULTS = aff4.Attribute(
-        "aff4:output_plugins_verification_results",
-        output_plugin.OutputPluginVerificationResultsList,
-        "Verification results list.", versioned=False)
-
-
 class ProcessHuntResultsCronFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.ProcessHuntResultsCronFlowArgs
 
@@ -398,7 +376,7 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
       # migrated.
       try:
         aff4.FACTORY.Open(self.StatusCollectionUrn(hunt_urn),
-                          "PluginStatusCollection",
+                          implementation.PluginStatusCollection,
                           mode="w",
                           token=self.token).Add(plugin_status)
       except IOError:
@@ -409,7 +387,7 @@ class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
       if plugin_status.status == plugin_status.Status.ERROR:
         try:
           aff4.FACTORY.Open(self.ErrorsCollectionUrn(hunt_urn),
-                            "PluginStatusCollection",
+                            implementation.PluginStatusCollection,
                             mode="w",
                             token=self.token).Add(plugin_status)
         except IOError:
@@ -611,7 +589,7 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
 
     results_metadata_urns = [hunt.urn.Add("ResultsMetadata") for hunt in hunts]
     results_metadata_objects = aff4.FACTORY.MultiOpen(
-        results_metadata_urns, aff4_type=HuntResultsMetadata.__name__,
+        results_metadata_urns, aff4_type=implementation.HuntResultsMetadata,
         token=self.token)
 
     results = {}
@@ -691,7 +669,8 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
 
   def _WriteVerificationResults(self, hunt_urn, results):
     with aff4.FACTORY.Create(
-        hunt_urn.Add("ResultsMetadata"), aff4_type=HuntResultsMetadata.__name__,
+        hunt_urn.Add("ResultsMetadata"),
+        aff4_type=implementation.HuntResultsMetadata,
         mode="w", token=self.token) as results_metadata:
       results_metadata.Set(
           results_metadata.Schema.OUTPUT_PLUGINS_VERIFICATION_RESULTS,
@@ -760,7 +739,7 @@ class GenericHunt(implementation.GRRHunt):
     super(GenericHunt, self).Start()
 
     with aff4.FACTORY.Create(self.started_flows_collection_urn,
-                             "PackedVersionedCollection",
+                             collects.PackedVersionedCollection,
                              mode="w", token=self.token):
       pass
 
@@ -783,7 +762,7 @@ class GenericHunt(implementation.GRRHunt):
     super(GenericHunt, self).Stop()
 
     started_flows = aff4.FACTORY.Create(self.started_flows_collection_urn,
-                                        "PackedVersionedCollection",
+                                        collects.PackedVersionedCollection,
                                         mode="r", token=self.token)
 
     self.Log("Hunt stop. Terminating all the started flows.")

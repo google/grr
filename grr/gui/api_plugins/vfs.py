@@ -24,6 +24,26 @@ from grr.proto import api_pb2
 CATEGORY = "Files"
 
 
+# Files can only be accessed if their first path component is from this list.
+ROOT_FILES_WHITELIST = ["fs", "registry"]
+
+
+def ValidateVfsPath(path):
+  """Validates a VFS path."""
+
+  components = (path or "").lstrip("/").split("/")
+  if not components:
+    raise ValueError("Empty path is not a valid path: %s." %
+                     utils.SmartStr(path))
+
+  if components[0] not in ROOT_FILES_WHITELIST:
+    raise ValueError("First path component was '%s', but has to be one of %s" %
+                     (utils.SmartStr(components[0]),
+                      ", ".join(ROOT_FILES_WHITELIST)))
+
+  return True
+
+
 class FileContentNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when the content for a specific file could not be found."""
 
@@ -207,6 +227,8 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetFileDetailsResult
 
   def Handle(self, args, token=None):
+    ValidateVfsPath(args.file_path)
+
     if args.timestamp:
       age = rdfvalue.RDFDatetime(args.timestamp)
     else:
@@ -234,12 +256,16 @@ class ApiGetFileListHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetFileListArgs
   result_type = ApiGetFileListResult
-  root_files_whitelist = ["fs"]
 
   def Handle(self, args, token=None):
     path = args.file_path
     if not path:
       path = "/"
+
+    # We allow querying root path ("/") to get a list of whitelisted
+    # root entries. In all other cases we have to validate the path.
+    if path != "/":
+      ValidateVfsPath(args.file_path)
 
     directory = aff4.FACTORY.Open(args.client_id.Add(path), mode="r",
                                   token=token).Upgrade("VFSDirectory")
@@ -253,7 +279,7 @@ class ApiGetFileListHandler(api_call_handler_base.ApiCallHandler):
     # If we are reading the root file content, a whitelist applies.
     if path == "/":
       children = [ch for ch in children
-                  if ch.urn.Basename() in self.root_files_whitelist]
+                  if ch.urn.Basename() in ROOT_FILES_WHITELIST]
 
     # Apply the filter.
     if args.filter:
@@ -307,6 +333,8 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
   result_type = ApiGetFileTextResult
 
   def Handle(self, args, token=None):
+    ValidateVfsPath(args.file_path)
+
     if args.timestamp:
       age = rdfvalue.RDFDatetime(args.timestamp)
     else:
@@ -370,6 +398,8 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
       yield aff4_stream.Read(min(self.CHUNK_SIZE, offset + length - start))
 
   def Handle(self, args, token=None):
+    ValidateVfsPath(args.file_path)
+
     if args.timestamp:
       age = rdfvalue.RDFDatetime(args.timestamp)
     else:
@@ -422,6 +452,8 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetFileVersionTimesResult
 
   def Handle(self, args, token=None):
+    ValidateVfsPath(args.file_path)
+
     fd = aff4.FACTORY.Open(args.client_id.Add(args.file_path), mode="r",
                            age=aff4.ALL_TIMES, token=token)
 
@@ -448,6 +480,8 @@ class ApiGetFileDownloadCommandHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetFileDownloadCommandResult
 
   def Handle(self, args, token=None):
+    ValidateVfsPath(args.file_path)
+
     aff4_path = args.client_id.Add(args.file_path)
 
     export_command = u" ".join([
@@ -503,6 +537,8 @@ class ApiCreateVfsRefreshOperationHandler(
   result_type = ApiCreateVfsRefreshOperationResult
 
   def Handle(self, args, token=None):
+    ValidateVfsPath(args.file_path)
+
     aff4_path = args.client_id.Add(args.file_path)
     fd = aff4.FACTORY.Open(aff4_path, token=token)
 
@@ -579,6 +615,8 @@ class ApiGetVfsTimelineHandler(
   result_type = ApiGetVfsTimelineResult
 
   def Handle(self, args, token=None):
+    ValidateVfsPath(args.file_path)
+
     folder_urn = args.client_id.Add(args.file_path)
     items = self.GetTimelineItems(folder_urn, token=token)
     return ApiGetVfsTimelineResult(items=items)
@@ -664,6 +702,8 @@ class ApiGetVfsTimelineAsCsvHandler(
       fd.truncate(size=0)
 
   def Handle(self, args, token=None):
+    ValidateVfsPath(args.file_path)
+
     folder_urn = args.client_id.Add(args.file_path)
     items = ApiGetVfsTimelineHandler.GetTimelineItems(folder_urn, token=token)
 
@@ -696,6 +736,8 @@ class ApiUpdateVfsFileContentHandler(
   result_type = ApiUpdateVfsFileContentResult
 
   def Handle(self, args, token=None):
+    ValidateVfsPath(args.file_path)
+
     aff4_path = args.client_id.Add(args.file_path)
     fd = aff4.FACTORY.Open(aff4_path, aff4_type="VFSFile", mode="rw",
                            token=token)

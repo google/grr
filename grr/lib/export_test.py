@@ -17,6 +17,8 @@ from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import filestore
 from grr.lib.checks import checks
 from grr.lib.flows.general import collectors
@@ -174,7 +176,8 @@ class ExportTest(test_lib.GRRBaseTest):
         "HuntResultCollection")
 
   def testConvertsRDFValueCollectionWithValuesWithSingleConverter(self):
-    self._ConvertsCollectionWithValuesWithSingleConverter("RDFValueCollection")
+    self._ConvertsCollectionWithValuesWithSingleConverter(
+        collects.RDFValueCollection)
 
   def _ConvertsCollectionWithMultipleConverters(self, coll_type):
     fd = aff4.FACTORY.Create("aff4:/testcoll", coll_type,
@@ -206,7 +209,7 @@ class ExportTest(test_lib.GRRBaseTest):
                      ["some1B", "some2B"])
 
   def testConvertsRDFValueCollectionWithValuesWithMultipleConverters(self):
-    self._ConvertsCollectionWithMultipleConverters("RDFValueCollection")
+    self._ConvertsCollectionWithMultipleConverters(collects.RDFValueCollection)
 
   def testConvertsHuntResultCollectionWithValuesWithMultipleConverters(self):
     self._ConvertsCollectionWithMultipleConverters("HuntResultCollection")
@@ -527,7 +530,7 @@ class ExportTest(test_lib.GRRBaseTest):
   def testRDFURNConverterWithURNPointingToFile(self):
     urn = rdfvalue.RDFURN("aff4:/C.00000000000000/some/path")
 
-    fd = aff4.FACTORY.Create(urn, "VFSFile", token=self.token)
+    fd = aff4.FACTORY.Create(urn, aff4_grr.VFSFile, token=self.token)
     fd.Set(fd.Schema.STAT(rdf_client.StatEntry(
         aff4path=urn,
         pathspec=rdf_paths.PathSpec(path="/some/path",
@@ -675,7 +678,7 @@ class ExportTest(test_lib.GRRBaseTest):
 
   def testGetMetadataMissingKB(self):
     client_urn = rdf_client.ClientURN("C.0000000000000000")
-    newclient = aff4.FACTORY.Create(client_urn, "VFSGRRClient",
+    newclient = aff4.FACTORY.Create(client_urn, aff4_grr.VFSGRRClient,
                                     token=self.token, mode="rw")
     self.assertFalse(newclient.Get(newclient.Schema.KNOWLEDGE_BASE))
     newclient.Flush()
@@ -889,7 +892,7 @@ class ExportTest(test_lib.GRRBaseTest):
   def testRDFURNConverterWithURNPointingToCollection(self):
     urn = rdfvalue.RDFURN("aff4:/C.00000000000000/some/collection")
 
-    fd = aff4.FACTORY.Create(urn, "RDFValueCollection", token=self.token)
+    fd = aff4.FACTORY.Create(urn, collects.RDFValueCollection, token=self.token)
     fd.Add(rdf_client.StatEntry(
         aff4path=rdfvalue.RDFURN("aff4:/C.00000000000000/some/path"),
         pathspec=rdf_paths.PathSpec(path="/some/path",

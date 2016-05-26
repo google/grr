@@ -28,7 +28,7 @@ class MACTimes(flow.GRRFlow):
     self.state.Register("urn", self.client_id.Add(self.args.path))
     if self.runner.output is not None:
       self.runner.output = aff4.FACTORY.Create(
-          self.runner.output.urn, "GRRTimeSeries", token=self.token)
+          self.runner.output.urn, timeline.GRRTimeSeries, token=self.token)
 
       self.runner.output.Set(
           self.runner.output.Schema.DESCRIPTION(

@@ -303,7 +303,7 @@ class VFSGRRClient(standard.VFSDirectory):
   def AddLabels(self, *label_names, **kwargs):
     super(VFSGRRClient, self).AddLabels(*label_names, **kwargs)
     with aff4.FACTORY.Create(standard.LabelSet.CLIENT_LABELS_URN,
-                             "LabelSet",
+                             standard.LabelSet,
                              mode="w",
                              token=self.token) as client_labels_index:
       for label_name in label_names:
@@ -356,7 +356,7 @@ class UpdateVFSFile(flow.GRRFlow):
 
     # Account for implicit directories.
     if fd.Get(fd.Schema.TYPE) is None:
-      fd = fd.Upgrade("VFSDirectory")
+      fd = fd.Upgrade(standard.VFSDirectory)
 
     self.state.get_file_flow_urn = fd.Update(
         attribute=self.args.attribute,
@@ -658,7 +658,7 @@ class GRRAFF4Init(registry.InitHook):
   def Run(self):
     try:
       # Make the foreman
-      with aff4.FACTORY.Create("aff4:/foreman", "GRRForeman",
+      with aff4.FACTORY.Create("aff4:/foreman", GRRForeman,
                                token=aff4.FACTORY.root_token):
         pass
     except access_control.UnauthorizedAccess:
@@ -711,10 +711,10 @@ class VFSFileSymlink(aff4.AFF4Stream):
     raise IOError("VFSFileSymlink not writeable.")
 
 
-class VFSBlobImage(aff4.BlobImage, aff4.VFSFile):
+class VFSBlobImage(standard.BlobImage, VFSFile):
   """BlobImage with VFS attributes for use in client namespace."""
 
-  class SchemaCls(aff4.BlobImage.SchemaCls, aff4.VFSFile.SchemaCls):
+  class SchemaCls(standard.BlobImage.SchemaCls, VFSFile.SchemaCls):
     pass
 
 
@@ -742,7 +742,7 @@ def GetAllClientLabels(token, include_catchall=False):
     set of label name strings, including the catchall "All"
   """
   labels_index = aff4.FACTORY.Create(standard.LabelSet.CLIENT_LABELS_URN,
-                                     "LabelSet",
+                                     standard.LabelSet,
                                      mode="r",
                                      token=token)
   labels = set(labels_index.ListLabels())

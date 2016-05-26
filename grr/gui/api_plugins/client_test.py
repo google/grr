@@ -8,6 +8,7 @@ from grr.gui import api_test_lib
 from grr.gui.api_plugins import client as client_plugin
 
 from grr.lib import aff4
+from grr.lib import client_index
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
@@ -162,6 +163,88 @@ class ApiSearchClientsHandlerRegressionTest(
         grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
       self.Check("GET", "/api/clients?query=%s" % client_ids[0].Basename())
+
+
+class ApiLabelsRestrictedSearchClientsHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiLabelsRestrictedSearchClientsHandler."""
+
+  def setUp(self):
+    super(ApiLabelsRestrictedSearchClientsHandlerTest, self).setUp()
+
+    self.client_ids = self.SetupClients(4)
+
+    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                                aff4_type="ClientIndex",
+                                mode="rw",
+                                token=self.token)
+
+    def LabelClient(i, label, owner):
+      with aff4.FACTORY.Open(self.client_ids[i], mode="rw",
+                             token=self.token) as grr_client:
+        grr_client.AddLabels(label, owner=owner)
+        index.AddClient(grr_client)
+
+    LabelClient(0, "foo", "david")
+    LabelClient(1, "not-foo", "david")
+    LabelClient(2, "bar", "peter_another")
+    LabelClient(3, "bar", "peter")
+
+    self.handler = client_plugin.ApiLabelsRestrictedSearchClientsHandler(
+        labels_whitelist=["foo", "bar"],
+        labels_owners_whitelist=["david", "peter"])
+
+  def testSearchWithoutArgsReturnsOnlyClientsWithWhitelistedLabels(self):
+    result = self.handler.Handle(client_plugin.ApiSearchClientsArgs(),
+                                 token=self.token)
+
+    self.assertEqual(len(result.items), 2)
+    sorted_items = sorted(result.items, key=lambda r: r.urn)
+
+    self.assertEqual(sorted_items[0].urn, self.client_ids[0])
+    self.assertEqual(sorted_items[1].urn, self.client_ids[3])
+
+  def testSearchWithNonWhitelistedLabelReturnsNothing(self):
+    result = self.handler.Handle(
+        client_plugin.ApiSearchClientsArgs(query="label:not-foo"),
+        token=self.token)
+    self.assertFalse(result.items)
+
+  def testSearchWithWhitelistedLabelReturnsSubSet(self):
+    result = self.handler.Handle(
+        client_plugin.ApiSearchClientsArgs(query="label:foo"),
+        token=self.token)
+    self.assertEqual(len(result.items), 1)
+    self.assertEqual(result.items[0].urn, self.client_ids[0])
+
+    result = self.handler.Handle(
+        client_plugin.ApiSearchClientsArgs(query="label:bar"),
+        token=self.token)
+    self.assertEqual(len(result.items), 1)
+    self.assertEqual(result.items[0].urn, self.client_ids[3])
+
+  def testSearchWithWhitelistedClientIdsReturnsSubSet(self):
+    result = self.handler.Handle(
+        client_plugin.ApiSearchClientsArgs(query=self.client_ids[0].Basename()),
+        token=self.token)
+    self.assertEqual(len(result.items), 1)
+    self.assertEqual(result.items[0].urn, self.client_ids[0])
+
+    result = self.handler.Handle(
+        client_plugin.ApiSearchClientsArgs(query=self.client_ids[3].Basename()),
+        token=self.token)
+    self.assertEqual(len(result.items), 1)
+    self.assertEqual(result.items[0].urn, self.client_ids[3])
+
+  def testSearchWithBlacklistedClientIdsReturnsNothing(self):
+    result = self.handler.Handle(
+        client_plugin.ApiSearchClientsArgs(query=self.client_ids[1].Basename()),
+        token=self.token)
+    self.assertFalse(result.items)
+
+    result = self.handler.Handle(
+        client_plugin.ApiSearchClientsArgs(query=self.client_ids[2].Basename()),
+        token=self.token)
+    self.assertFalse(result.items)
 
 
 class ApiGetClientHandlerRegressionTest(

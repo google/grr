@@ -13,6 +13,10 @@ from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import users as aff4_users
+
 from grr.lib.authorization import client_approval_auth
 
 from grr.lib.rdfvalues import client as rdf_client
@@ -124,7 +128,7 @@ class Approval(aff4.AFF4Object):
 
     last_error = None
     approvals = aff4.FACTORY.MultiOpen(children_urns, mode="r",
-                                       aff4_type=Approval.__name__,
+                                       aff4_type=Approval,
                                        age=aff4.ALL_TIMES,
                                        token=token)
     for approval in approvals:
@@ -246,7 +250,7 @@ class ApprovalWithApproversAndReason(Approval):
       for approver in approvers:
         try:
           user = aff4.FACTORY.Open("aff4:/users/%s" % approver,
-                                   aff4_type="GRRUser",
+                                   aff4_type=aff4_users.GRRUser,
                                    token=token.SetUID())
           if self.checked_approvers_label in user.GetLabelsNames():
             approvers_with_label.append(approver)
@@ -319,7 +323,7 @@ class ClientApproval(ApprovalWithApproversAndReason):
     # labels
     try:
       client_object = aff4.FACTORY.Open(client_urn, mode="r",
-                                        aff4_type="VFSGRRClient",
+                                        aff4_type=aff4_grr.VFSGRRClient,
                                         token=token.SetUID())
     except aff4.InstantiationError:
       raise ErrorClientDoesNotExist("Can't check label approvals on client %s "
@@ -492,7 +496,7 @@ class RequestApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
 
     approval_link_urns = self.BuildApprovalSymlinksUrns()
     for link_urn in approval_link_urns:
-      with aff4.FACTORY.Create(link_urn, "AFF4Symlink",
+      with aff4.FACTORY.Create(link_urn, aff4.AFF4Symlink,
                                mode="w", token=self.token) as link:
         link.Set(link.Schema.SYMLINK_TARGET(approval_urn))
 
@@ -500,7 +504,7 @@ class RequestApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
     for user in self.args.approver.split(","):
       user = user.strip()
       fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(user),
-                               "GRRUser", mode="rw", token=self.token)
+                               aff4_users.GRRUser, mode="rw", token=self.token)
 
       fd.Notify("GrantAccess", approval_urn,
                 "Please grant access to %s" % subject_title, self.session_id)
@@ -590,7 +594,7 @@ class GrantApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
     # Notify to the user.
     fd = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(self.args.delegate),
-        "GRRUser", mode="rw", token=self.token)
+        aff4_users.GRRUser, mode="rw", token=self.token)
 
     fd.Notify("ViewObject", self.args.subject_urn,
               "%s has granted you access to %s."
@@ -666,7 +670,7 @@ class BreakGlassGrantApprovalWithReasonFlow(GrantApprovalWithReasonFlow):
 
     # Notify the user.
     fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(
-        self.token.username), "GRRUser", mode="rw", token=self.token)
+        self.token.username), aff4_users.GRRUser, mode="rw", token=self.token)
 
     fd.Notify("ViewObject", self.args.subject_urn,
               "An Emergency Approval has been granted to access "
@@ -705,7 +709,7 @@ class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):
   # This flow can run on any client without ACL enforcement (an SUID flow).
   ACL_ENFORCED = False
 
-  approval_type = "ClientApproval"
+  approval_type = ClientApproval
 
   def BuildApprovalUrn(self):
     """Builds approval object urn."""
@@ -736,7 +740,7 @@ class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
   # This flow can run on any client without ACL enforcement (an SUID flow).
   ACL_ENFORCED = False
 
-  approval_type = "ClientApproval"
+  approval_type = ClientApproval
 
   def BuildApprovalUrn(self):
     """Builds approval object urn."""
@@ -767,7 +771,7 @@ class BreakGlassGrantClientApprovalFlow(BreakGlassGrantApprovalWithReasonFlow):
   # This flow can run on any client without ACL enforcement (an SUID flow).
   ACL_ENFORCED = False
 
-  approval_type = "ClientApproval"
+  approval_type = ClientApproval
 
   def BuildApprovalUrn(self):
     """Builds approval object urn."""
@@ -792,7 +796,7 @@ class RequestHuntApprovalFlow(RequestApprovalWithReasonFlow):
   # This flow can run on any client without ACL enforcement (an SUID flow).
   ACL_ENFORCED = False
 
-  approval_type = "HuntApproval"
+  approval_type = HuntApproval
 
   def BuildApprovalUrn(self):
     """Builds approval object URN."""
@@ -823,7 +827,7 @@ class GrantHuntApprovalFlow(GrantApprovalWithReasonFlow):
   # This flow can run on any client without ACL enforcement (an SUID flow).
   ACL_ENFORCED = False
 
-  approval_type = "HuntApproval"
+  approval_type = HuntApproval
 
   def BuildApprovalUrn(self):
     """Builds approval object URN."""
@@ -853,7 +857,7 @@ class RequestCronJobApprovalFlow(RequestApprovalWithReasonFlow):
   # This flow can run on any client without ACL enforcement (an SUID flow).
   ACL_ENFORCED = False
 
-  approval_type = "CronJobApproval"
+  approval_type = CronJobApproval
 
   def BuildApprovalUrn(self):
     """Builds approval object URN."""
@@ -884,7 +888,7 @@ class GrantCronJobApprovalFlow(GrantApprovalWithReasonFlow):
   # This flow can run on any client without ACL enforcement (an SUID flow).
   ACL_ENFORCED = False
 
-  approval_type = "CronJobApproval"
+  approval_type = CronJobApproval
 
   def BuildApprovalUrn(self):
     """Builds approval object URN."""

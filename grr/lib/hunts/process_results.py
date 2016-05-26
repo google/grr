@@ -12,6 +12,7 @@ from grr.lib import stats
 from grr.lib import utils
 
 from grr.lib.aff4_objects import cronjobs
+from grr.lib.hunts import implementation as hunts_implementation
 from grr.lib.hunts import results as hunts_results
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
@@ -107,13 +108,13 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
 
       aff4.FACTORY.Open(
           hunt_urn.Add("OutputPluginsStatus"),
-          "PluginStatusCollection",
+          hunts_implementation.PluginStatusCollection,
           mode="w",
           token=self.token).Add(plugin_status)
       if plugin_status.status == plugin_status.Status.ERROR:
         aff4.FACTORY.Open(
             hunt_urn.Add("OutputPluginsErrors"),
-            "PluginStatusCollection",
+            hunts_implementation.PluginStatusCollection,
             mode="w",
             token=self.token).Add(plugin_status)
 
@@ -135,7 +136,7 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     exceptions_by_plugin = {}
     num_processed_for_hunt = 0
     with aff4.FACTORY.OpenWithLock(hunt_results_urn,
-                                   aff4_type="HuntResultCollection",
+                                   aff4_type=hunts_results.HuntResultCollection,
                                    lease_time=600,
                                    token=self.token) as collection_obj:
       with aff4.FACTORY.OpenWithLock(metadata_urn,

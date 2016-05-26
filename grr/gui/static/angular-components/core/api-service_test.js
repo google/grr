@@ -1,5 +1,6 @@
 'use strict';
 
+goog.require('grrUi.core.apiService.encodeUrlPath');
 goog.require('grrUi.core.apiService.stripTypeInfo');
 goog.require('grrUi.core.module');
 
@@ -23,7 +24,20 @@ describe('API service', function() {
     $httpBackend.verifyNoOutstandingRequest();
   });
 
-  describe('stripTypeInfo() method', function() {
+  describe('encodeUrlPath() function', function() {
+    var encodeUrlPath = grrUi.core.apiService.encodeUrlPath;
+
+    it('does not touch slashes and normal characters', function() {
+      expect(encodeUrlPath('////')).toBe('////');
+      expect(encodeUrlPath('/a/b/c/d/')).toBe('/a/b/c/d/');
+    });
+
+    it('encodes "?", "&" and "+" characters', function() {
+      expect(encodeUrlPath('/foo?bar=a+b')).toBe('/foo%3Fbar%3Da%2Bb');
+    });
+  });
+
+  describe('stripTypeInfo() function', function() {
     var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
     it('converts richly typed primitive into a primitive value', function() {
@@ -175,6 +189,13 @@ describe('API service', function() {
       grrApiService.head('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
+
+    it('url-escapes the path', function() {
+      $httpBackend.whenHEAD(
+          '/api/some/path%3Ffoo%26bar?key1=value1&key2=value2').respond(200);
+      grrApiService.head('some/path?foo&bar', {key1: 'value1', key2: 'value2'});
+      $httpBackend.flush();
+    });
   });
 
   describe('get() method', function() {
@@ -214,6 +235,13 @@ describe('API service', function() {
       grrApiService.get('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
+
+    it('url-escapes the path', function() {
+      $httpBackend.whenGET(
+          '/api/some/path%3Ffoo%26bar?key1=value1&key2=value2').respond(200);
+      grrApiService.get('some/path?foo&bar', {key1: 'value1', key2: 'value2'});
+      $httpBackend.flush();
+    });
   });
 
   describe('delete() method', function() {
@@ -251,6 +279,14 @@ describe('API service', function() {
       $httpBackend.whenDELETE('/api/some/path?' +
           'key1=value1&key2=value2&reason=some+reason+').respond(200);
       grrApiService.delete('some/path', {key1: 'value1', key2: 'value2'});
+      $httpBackend.flush();
+    });
+
+    it('url-escapes the path', function() {
+      $httpBackend.whenDELETE(
+          '/api/some/path%3Ffoo%26bar?key1=value1&key2=value2').respond(200);
+      grrApiService.delete('some/path?foo&bar',
+                           {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
   });
@@ -330,6 +366,19 @@ describe('API service', function() {
       grrApiService.post('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
+
+    it('url-escapes the path', function() {
+      $httpBackend.whenPOST(
+          '/api/some/path%3Ffoo%26bar').respond(200);
+      grrApiService.post('some/path?foo&bar', {});
+      $httpBackend.flush();
+    });
+
+    it('url-escapes the path when files are uploaded', function() {
+      $httpBackend.whenPOST('/api/some/path%3Ffoo%26bar').respond(200);
+      grrApiService.post('some/path?foo&bar', {}, false, {'file1': 'blah'});
+      $httpBackend.flush();
+    });
   });
 
   describe('downloadFile() method', function() {
@@ -354,6 +403,14 @@ describe('API service', function() {
       grrApiService.downloadFile('some/path', {'foo': 'bar',
                                                'abra': 'cadabra'});
 
+      $httpBackend.flush();
+    });
+
+    it('url-escapes the path', function() {
+      $httpBackend.expectHEAD(
+          '/api/some/path%3Ffoo%26bar?key1=value1&key2=value2').respond(200);
+      grrApiService.downloadFile('some/path?foo&bar',
+                                 {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 

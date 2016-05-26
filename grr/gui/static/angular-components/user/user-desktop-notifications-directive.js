@@ -116,8 +116,8 @@ UserDesktopNotificationsController.prototype.notify_ = function(
  */
 UserDesktopNotificationsController.prototype.
     fetchPendingNotifications_ = function() {
-  this.grrApiService_.get('users/me/notifications/pending?timestamp=' +
-      this.lastTimestamp_).then(function(response) {
+  this.grrApiService_.get('users/me/notifications/pending', {
+    timestamp: this.lastTimestamp_}).then(function(response) {
     var items = response['data']['items'];
     if (items.length == 0) {
       return;

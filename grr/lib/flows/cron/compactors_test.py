@@ -8,6 +8,7 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import collects
 # pylint: disable=unused-import
 from grr.lib.flows.cron import compactors as _
 # pylint: enable=unused-import
@@ -18,7 +19,8 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
   """Test for PackedVersionedCollectionCompactor."""
 
   def testCompactsSingleCollection(self):
-    with aff4.FACTORY.Create("aff4:/tmp/coll", "PackedVersionedCollection",
+    with aff4.FACTORY.Create("aff4:/tmp/coll",
+                             collects.PackedVersionedCollection,
                              mode="w", token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=1))
 
@@ -36,7 +38,8 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd.Get(fd.Schema.SIZE), 1)
 
   def testNotificationIsRemovedAfterCompaction(self):
-    with aff4.FACTORY.Create("aff4:/tmp/coll", "PackedVersionedCollection",
+    with aff4.FACTORY.Create("aff4:/tmp/coll",
+                             collects.PackedVersionedCollection,
                              mode="w", token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=1))
 
@@ -61,7 +64,8 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
 
   def testNewNotificationsAreNotRemovedAfterCompaction(self):
     def AddNewElementToCollection(*unused_args, **unused_kwargs):
-      with aff4.FACTORY.Create("aff4:/tmp/coll", "PackedVersionedCollection",
+      with aff4.FACTORY.Create("aff4:/tmp/coll",
+                               collects.PackedVersionedCollection,
                                mode="w", token=self.token) as fd:
         fd.Add(rdf_flows.GrrMessage(request_id=1))
 
@@ -95,11 +99,13 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(list(notifications)), 1)
 
   def testCompactsTwoCollections(self):
-    with aff4.FACTORY.Create("aff4:/tmp/coll1", "PackedVersionedCollection",
+    with aff4.FACTORY.Create("aff4:/tmp/coll1",
+                             collects.PackedVersionedCollection,
                              mode="w", token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=1))
 
-    with aff4.FACTORY.Create("aff4:/tmp/coll2", "PackedVersionedCollection",
+    with aff4.FACTORY.Create("aff4:/tmp/coll2",
+                             collects.PackedVersionedCollection,
                              mode="w", token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=1))
 
@@ -123,7 +129,8 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd.Get(fd.Schema.SIZE), 1)
 
   def testSecondConsecutiveRunDoesNothing(self):
-    with aff4.FACTORY.Create("aff4:/tmp/coll", "PackedVersionedCollection",
+    with aff4.FACTORY.Create("aff4:/tmp/coll",
+                             collects.PackedVersionedCollection,
                              mode="w", token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=1))
 

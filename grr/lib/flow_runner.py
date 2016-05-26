@@ -71,10 +71,11 @@ from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import utils
-# for RDFValueCollection pylint: disable=unused-import
-from grr.lib.aff4_objects import collects as _
-# pylint: enable=unused-import
+
+from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import sequential_collection
+from grr.lib.aff4_objects import users as aff4_users
+
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -198,7 +199,7 @@ class FlowRunner(object):
           u=self.token.username)
 
       return aff4.FACTORY.Create(
-          args.client_id.Add(output_name), "RDFValueCollection",
+          args.client_id.Add(output_name), collects.RDFValueCollection,
           token=self.token)
 
   def _GetLogsCollectionURN(self, logs_collection_urn):
@@ -233,7 +234,7 @@ class FlowRunner(object):
       RuntimeError: on parent missing logs_collection.
     """
     return aff4.FACTORY.Create(self._GetLogsCollectionURN(logs_collection_urn),
-                               "FlowLogCollection", mode=mode,
+                               FlowLogCollection, mode=mode,
                                object_exists=True, token=self.token)
 
   def InitializeContext(self, args):
@@ -599,7 +600,7 @@ class FlowRunner(object):
 
     # We don't know here what exceptions can be thrown in the flow but we have
     # to continue. Thus, we catch everything.
-    except Exception:  # pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
       # This flow will terminate now
 
       # TODO(user): Deprecate in favor of 'flow_errors'.
@@ -607,7 +608,7 @@ class FlowRunner(object):
 
       stats.STATS.IncrementCounter("flow_errors",
                                    fields=[self.flow_obj.Name()])
-      logging.exception("Flow %s raised.", self.session_id)
+      logging.exception("Flow %s raised %s.", self.session_id, e)
 
       self.Error(traceback.format_exc(), client_id=client_id)
 
@@ -1179,7 +1180,7 @@ class FlowRunner(object):
     """
     user = self.context.creator
     # Don't send notifications to system users.
-    if self.args.notify_to_user and user not in aff4.GRRUser.SYSTEM_USERS:
+    if self.args.notify_to_user and user not in aff4_users.GRRUser.SYSTEM_USERS:
 
       # Prefix the message with the hostname of the client we are running
       # against.
@@ -1193,7 +1194,7 @@ class FlowRunner(object):
 
       # Add notification to the User object.
       fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(
-          user), "GRRUser", mode="rw", token=self.token)
+          user), aff4_users.GRRUser, mode="rw", token=self.token)
 
       # Queue notifications to the user.
       fd.Notify(message_type, subject, client_msg, self.session_id)

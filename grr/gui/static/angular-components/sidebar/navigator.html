@@ -7,6 +7,9 @@
   <!-- Client overview and links for client navigation -->
   <section ng-if="controller.client">
     <!-- Client overview-->
+    <grr-periodic-refresh interval="30000"
+                          on-refresh="controller.refreshClientDetails()">
+    </grr-periodic-refresh>
     <grr-client-summary client="controller.client"></grr-client-summary>
 
     <!-- Client links -->
@@ -17,17 +20,17 @@
       </li>
       <li grr-nav-link state="client.launchFlows"
           params="{clientId: controller.clientId}"
-          disabled="!controller.hasClientAccess">
+          disabled="controller.uiTraits.start_client_flow_nav_item_enabled === false || !controller.hasClientAccess">
         Start new flows
       </li>
       <li grr-nav-link state="client.vfs"
           params="{clientId: controller.clientId}"
-          disabled="!controller.hasClientAccess">
+          disabled="controller.uiTraits.browse_virtual_file_system_nav_item_enabled === false || !controller.hasClientAccess">
         Browse Virtual Filesystem
       </li>
       <li grr-nav-link state="client.flows"
           params="{clientId: controller.clientId}"
-          disabled="!controller.hasClientAccess">
+          disabled="controller.uiTraits.manage_client_flows_nav_item_enabled === false || !controller.hasClientAccess">
         Manage launched flows
       </li>
 
@@ -63,25 +66,31 @@
     <h1>Management</h1>
 
     <ul class="nav nav-list">
-      <li grr-nav-link state="crons">
+      <li grr-nav-link state="crons"
+          disabled="controller.uiTraits.cron_jobs_nav_item_enabled === false">
         Cron Job Viewer
       </li>
-      <li grr-nav-link state="hunts">
+      <li grr-nav-link state="hunts"
+          disabled="controller.uiTraits.hunt_manager_nav_item_enabled === false">
         Hunt Manager
       </li>
-      <li grr-nav-link state="stats">
+      <li grr-nav-link state="stats"
+          disabled="controller.uiTraits.show_statistics_nav_item_enabled === false">
         Show Statistics
       </li>
-      <li grr-nav-link state="globalFlows">
+      <li grr-nav-link state="globalFlows"
+          disabled="controller.uiTraits.start_global_flows_nav_item_enabled === false">
         Start Global Flows
       </li>
 
       <li id="ManagementAdvanced" grr-nav-dropdown title="Advanced">
         <ul class="nav nav-list">
-          <li grr-nav-link state="serverLoad">
+          <li grr-nav-link state="serverLoad"
+              disabled="controller.uiTraits.server_load_nav_item_enabled === false">
             Server Load
           </li>
-          <li grr-nav-link state="clientCrashes">
+          <li grr-nav-link state="clientCrashes"
+              disabled="controller.uiTraits.global_client_crashes_nav_item_enabled === false">
             All Clients Crashes
           </li>
         </ul>
@@ -94,13 +103,16 @@
     <h1>Configuration</h1>
 
     <ul class="nav nav-list">
-      <li grr-nav-link state="manageBinaries">
+      <li grr-nav-link state="manageBinaries"
+          disabled="controller.uiTraits.manage_binaries_nav_item_enabled === false">
         Manage Binaries
       </li>
-      <li grr-nav-link state="config">
+      <li grr-nav-link state="config"
+          disabled="controller.uiTraits.settings_nav_item_enabled === false">
         Settings
       </li>
-      <li grr-nav-link state="artifacts">
+      <li grr-nav-link state="artifacts"
+          disabled="controller.uiTraits.artifact_manager_nav_item_enabled === false">
         Artifact Manager
       </li>
     </ul>

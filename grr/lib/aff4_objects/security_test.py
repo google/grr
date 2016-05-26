@@ -92,7 +92,7 @@ class ApprovalTest(test_lib.GRRBaseTest):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(
         self.client_id.Path()).Add(self.token.username).Add(
             utils.EncodeReasonString(self.token.reason))
-    with aff4.FACTORY.Create(approval_urn, aff4.AFF4Volume.__name__,
+    with aff4.FACTORY.Create(approval_urn, aff4.AFF4Volume,
                              token=self.token) as _:
       pass
 

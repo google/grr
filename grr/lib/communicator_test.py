@@ -25,6 +25,7 @@ from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import ca_enroller
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -116,7 +117,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     """Make a client in the data store."""
     cert = self.ClientCertFromPrivateKey(self.client_private_key)
     client_cert = rdf_crypto.RDFX509Cert(cert.as_pem())
-    new_client = aff4.FACTORY.Create(client_cert.common_name, "VFSGRRClient",
+    new_client = aff4.FACTORY.Create(client_cert.common_name,
+                                     aff4_grr.VFSGRRClient,
                                      token=self.token)
     new_client.Set(new_client.Schema.CERT, client_cert)
     new_client.Close()
@@ -288,7 +290,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     stats.StatsCollector.exit = True
 
     # Make a client mock
-    self.client = aff4.FACTORY.Create(self.client_cn, "VFSGRRClient", mode="rw",
+    self.client = aff4.FACTORY.Create(self.client_cn, aff4_grr.VFSGRRClient,
+                                      mode="rw",
                                       token=self.token)
     self.client.Set(self.client.Schema.CERT(self.certificate))
     self.client.Flush()
@@ -452,7 +455,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.server_communicator.client_cache.Flush()
 
     # Assume we do not know the client yet by clearing its certificate.
-    self.client = aff4.FACTORY.Create(self.client_cn, "VFSGRRClient", mode="rw",
+    self.client = aff4.FACTORY.Create(self.client_cn, aff4_grr.VFSGRRClient,
+                                      mode="rw",
                                       token=self.token)
     self.client.DeleteAttribute(self.client.Schema.CERT)
     self.client.Flush()
@@ -488,7 +492,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.assertEqual(status.code, 200)
 
     # There should be a cert for the client right now.
-    self.client = aff4.FACTORY.Create(self.client_cn, "VFSGRRClient", mode="rw",
+    self.client = aff4.FACTORY.Create(self.client_cn, aff4_grr.VFSGRRClient,
+                                      mode="rw",
                                       token=self.token)
     self.assertTrue(self.client.Get(self.client.Schema.CERT))
 

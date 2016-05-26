@@ -11,6 +11,9 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import standard
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
@@ -34,12 +37,12 @@ class TestExports(test_lib.FlowTestsBaseclass):
 
   def CreateDir(self, dirpath):
     path = self.out.Add(*dirpath.split("/"))
-    fd = aff4.FACTORY.Create(path, "VFSDirectory", token=self.token)
+    fd = aff4.FACTORY.Create(path, standard.VFSDirectory, token=self.token)
     fd.Close()
 
   def CreateFile(self, filepath):
     path = self.out.Add(filepath)
-    fd = aff4.FACTORY.Create(path, "VFSMemoryFile", token=self.token)
+    fd = aff4.FACTORY.Create(path, aff4_grr.VFSMemoryFile, token=self.token)
     fd.Write("some data")
     fd.Close()
 
@@ -89,7 +92,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
   def testDownloadCollection(self):
     """Check we can download files references in RDFValueCollection."""
     # Create a collection with URNs to some files.
-    fd = aff4.FACTORY.Create("aff4:/testcoll", "RDFValueCollection",
+    fd = aff4.FACTORY.Create("aff4:/testcoll", collects.RDFValueCollection,
                              token=self.token)
     fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")))
     fd.Add(rdf_client.StatEntry(aff4path=self.out.Add("testfile2")))
@@ -103,7 +106,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
 
   def testDownloadCollectionIgnoresArtifactResultsWithoutFiles(self):
     # Create a collection with URNs to some files.
-    fd = aff4.FACTORY.Create("aff4:/testcoll", "RDFValueCollection",
+    fd = aff4.FACTORY.Create("aff4:/testcoll", collects.RDFValueCollection,
                              token=self.token)
     fd.Add(collectors.ArtifactFilesDownloaderResult())
     fd.Close()
@@ -118,7 +121,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
   def testDownloadCollectionWithFlattenOption(self):
     """Check we can download files references in RDFValueCollection."""
     # Create a collection with URNs to some files.
-    fd = aff4.FACTORY.Create("aff4:/testcoll", "RDFValueCollection",
+    fd = aff4.FACTORY.Create("aff4:/testcoll", collects.RDFValueCollection,
                              token=self.token)
     fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")))
     fd.Add(rdf_client.StatEntry(aff4path=self.out.Add("testfile2")))
@@ -145,7 +148,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
 
   def testDownloadCollectionWithFoldersEntries(self):
     """Check we can download RDFValueCollection that also references folders."""
-    fd = aff4.FACTORY.Create("aff4:/testcoll", "RDFValueCollection",
+    fd = aff4.FACTORY.Create("aff4:/testcoll", collects.RDFValueCollection,
                              token=self.token)
     fd.Add(file_finder.FileFinderResult(
         stat_entry=rdf_client.StatEntry(aff4path=self.out.Add("testfile5"))))

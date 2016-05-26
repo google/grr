@@ -12,6 +12,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import collects
 # pylint: disable=unused-import
 from grr.lib.flows.general import webhistory
 # pylint: enable=unused-import
@@ -127,7 +128,7 @@ class TestWebHistory(WebHistoryFlowTest):
     # Check if the collection file was created.
     output_path = self.client_id.Add("analysis/cachegrep").Add("test")
 
-    fd = aff4.FACTORY.Open(output_path, aff4_type="RDFValueCollection",
+    fd = aff4.FACTORY.Open(output_path, aff4_type=collects.RDFValueCollection,
                            token=self.token)
 
     # There should be one hit.
@@ -193,7 +194,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
       pass
 
     output_urn = self.client_id.Add(output_name)
-    return aff4.FACTORY.Open(output_urn, aff4_type="RDFValueCollection",
+    return aff4.FACTORY.Open(output_urn, aff4_type=collects.RDFValueCollection,
                              token=self.token)
 
   def testChrome(self):

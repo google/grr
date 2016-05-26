@@ -126,7 +126,7 @@ class CronTest(test_lib.AFF4ObjectTest):
     cron_job_urn = cron_manager.ScheduleFlow(cron_args=cron_args,
                                              token=self.token)
 
-    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                  token=self.token)
     self.assertFalse(cron_job.IsRunning())
     # The job never ran, so DueToRun() should return true.
@@ -134,7 +134,7 @@ class CronTest(test_lib.AFF4ObjectTest):
 
     cron_manager.RunOnce(token=self.token)
 
-    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                  token=self.token)
     self.assertTrue(cron_job.IsRunning())
 
@@ -154,16 +154,16 @@ class CronTest(test_lib.AFF4ObjectTest):
     cron_job_urn1 = cron_manager.ScheduleFlow(cron_args, token=self.token)
     cron_job_urn2 = cron_manager.ScheduleFlow(cron_args, token=self.token)
 
-    cron_job1 = aff4.FACTORY.Open(cron_job_urn1, aff4_type="CronJob",
+    cron_job1 = aff4.FACTORY.Open(cron_job_urn1, aff4_type=cronjobs.CronJob,
                                   mode="rw", token=self.token)
     cron_job1.Set(cron_job1.Schema.DISABLED(1))
     cron_job1.Close()
 
     cron_manager.RunOnce(token=self.token)
 
-    cron_job1 = aff4.FACTORY.Open(cron_job_urn1, aff4_type="CronJob",
+    cron_job1 = aff4.FACTORY.Open(cron_job_urn1, aff4_type=cronjobs.CronJob,
                                   token=self.token)
-    cron_job2 = aff4.FACTORY.Open(cron_job_urn2, aff4_type="CronJob",
+    cron_job2 = aff4.FACTORY.Open(cron_job_urn2, aff4_type=cronjobs.CronJob,
                                   token=self.token)
 
     # Disabled flow shouldn't be running, while not-disabled flow should run
@@ -186,9 +186,9 @@ class CronTest(test_lib.AFF4ObjectTest):
 
       cron_manager.RunOnce(token=self.token)
 
-      cron_job1 = aff4.FACTORY.Open(cron_job_urn1, aff4_type="CronJob",
+      cron_job1 = aff4.FACTORY.Open(cron_job_urn1, aff4_type=cronjobs.CronJob,
                                     token=self.token)
-      cron_job2 = aff4.FACTORY.Open(cron_job_urn2, aff4_type="CronJob",
+      cron_job2 = aff4.FACTORY.Open(cron_job_urn2, aff4_type=cronjobs.CronJob,
                                     token=self.token)
 
       self.assertEqual(cron_job1.Get(cron_job1.Schema.CRON_ARGS).start_time,
@@ -203,9 +203,9 @@ class CronTest(test_lib.AFF4ObjectTest):
 
       cron_manager.RunOnce(token=self.token)
 
-      cron_job1 = aff4.FACTORY.Open(cron_job_urn1, aff4_type="CronJob",
+      cron_job1 = aff4.FACTORY.Open(cron_job_urn1, aff4_type=cronjobs.CronJob,
                                     token=self.token)
-      cron_job2 = aff4.FACTORY.Open(cron_job_urn2, aff4_type="CronJob",
+      cron_job2 = aff4.FACTORY.Open(cron_job_urn2, aff4_type=cronjobs.CronJob,
                                     token=self.token)
 
       # Start time should be the same
@@ -217,13 +217,13 @@ class CronTest(test_lib.AFF4ObjectTest):
       self.assertTrue(cron_job2.IsRunning())
 
       # Check setting a bad flow urn is handled and removed
-      with aff4.FACTORY.OpenWithLock(cron_job_urn2, aff4_type="CronJob",
+      with aff4.FACTORY.OpenWithLock(cron_job_urn2, aff4_type=cronjobs.CronJob,
                                      token=self.token) as cron_job2:
 
         cron_job2.Set(cron_job2.Schema.CURRENT_FLOW_URN("aff4:/does/not/exist"))
         self.assertFalse(cron_job2.IsRunning())
 
-      cron_job2 = aff4.FACTORY.Open(cron_job_urn2, aff4_type="CronJob",
+      cron_job2 = aff4.FACTORY.Open(cron_job_urn2, aff4_type=cronjobs.CronJob,
                                     token=self.token)
       self.assertFalse(cron_job2.Get(cron_job2.Schema.CURRENT_FLOW_URN))
 
@@ -272,11 +272,11 @@ class CronTest(test_lib.AFF4ObjectTest):
       no_random_time = "aff4:/cron/DummySystemCronJobStartNow"
 
       random_time_job = aff4.FACTORY.Open(random_time,
-                                          aff4_type="CronJob",
+                                          aff4_type=cronjobs.CronJob,
                                           token=self.token)
 
       no_random_time_job = aff4.FACTORY.Open(no_random_time,
-                                             aff4_type="CronJob",
+                                             aff4_type=cronjobs.CronJob,
                                              token=self.token)
 
       start_time_now = no_random_time_job.Get(
@@ -297,7 +297,7 @@ class CronTest(test_lib.AFF4ObjectTest):
     cron_job_urn = cron_manager.ScheduleFlow(cron_args, token=self.token)
 
     # Run() wasn't called, so nothing is supposed to be running
-    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                  token=self.token)
     self.assertFalse(cron_job.IsRunning())
 
@@ -305,12 +305,12 @@ class CronTest(test_lib.AFF4ObjectTest):
 
     # Run() was called and flow was started, so the job should be
     # considered running.
-    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                  token=self.token)
     self.assertTrue(cron_job.IsRunning())
 
     # Find the flow that is currently running for the job and terminate it.
-    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                  token=self.token)
     self.assertTrue(cron_job.IsRunning())
     cron_job_flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
@@ -318,7 +318,7 @@ class CronTest(test_lib.AFF4ObjectTest):
     flow.GRRFlow.TerminateFlow(cron_job_flow_urn, token=self.token)
 
     # Check we're dead
-    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                  token=self.token)
     self.assertFalse(cron_job.IsRunning())
 
@@ -328,7 +328,7 @@ class CronTest(test_lib.AFF4ObjectTest):
     cron_manager.RunOnce(token=self.token)
 
     # Still dead
-    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                  token=self.token)
     self.assertFalse(cron_job.IsRunning())
 
@@ -341,18 +341,18 @@ class CronTest(test_lib.AFF4ObjectTest):
     cron_job_urn = cron_manager.ScheduleFlow(cron_args=cron_args,
                                              token=self.token)
 
-    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                  token=self.token)
     cron_manager.RunOnce(token=self.token)
 
-    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                  token=self.token)
     cron_job_flows = list(cron_job.ListChildren())
     self.assertEqual(len(cron_job_flows), 1)
 
     cron_manager.RunOnce(token=self.token)
 
-    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+    cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                  token=self.token)
     cron_job_flows = list(cron_job.ListChildren())
     self.assertEqual(len(cron_job_flows), 1)
@@ -370,7 +370,7 @@ class CronTest(test_lib.AFF4ObjectTest):
 
       cron_manager.RunOnce(token=self.token)
 
-      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                    token=self.token)
       cron_job_flows = list(cron_job.ListChildren())
       self.assertEqual(len(cron_job_flows), 1)
@@ -381,7 +381,7 @@ class CronTest(test_lib.AFF4ObjectTest):
 
       cron_manager.RunOnce(token=self.token)
 
-      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                    token=self.token)
       cron_job_flows = list(cron_job.ListChildren())
       self.assertEqual(len(cron_job_flows), 1)
@@ -399,7 +399,7 @@ class CronTest(test_lib.AFF4ObjectTest):
 
       cron_manager.RunOnce(token=self.token)
 
-      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                    token=self.token)
       cron_job_flows = list(cron_job.ListChildren())
       self.assertEqual(len(cron_job_flows), 1)
@@ -412,7 +412,7 @@ class CronTest(test_lib.AFF4ObjectTest):
 
       cron_manager.RunOnce(token=self.token)
 
-      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                    token=self.token)
       cron_job_flows = list(cron_job.ListChildren())
       self.assertEqual(len(cron_job_flows), 1)
@@ -430,7 +430,7 @@ class CronTest(test_lib.AFF4ObjectTest):
 
       cron_manager.RunOnce(token=self.token)
 
-      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                    token=self.token)
       cron_job_flows = list(cron_job.ListChildren())
       self.assertEqual(len(cron_job_flows), 1)
@@ -443,7 +443,7 @@ class CronTest(test_lib.AFF4ObjectTest):
 
       cron_manager.RunOnce(token=self.token)
 
-      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                    token=self.token)
       cron_job_flows = list(cron_job.ListChildren())
       self.assertEqual(len(cron_job_flows), 2)
@@ -480,7 +480,7 @@ class CronTest(test_lib.AFF4ObjectTest):
 
       cron_manager.RunOnce(token=self.token)
 
-      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                    token=self.token)
       self.assertTrue(cron_job.IsRunning())
       self.assertFalse(cron_job.KillOldFlows())
@@ -495,7 +495,7 @@ class CronTest(test_lib.AFF4ObjectTest):
       flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
 
       cron_manager.RunOnce(token=self.token)
-      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                    token=self.token)
       self.assertFalse(cron_job.IsRunning())
 
@@ -565,7 +565,7 @@ class CronTest(test_lib.AFF4ObjectTest):
     # Fast foward one minute
     with test_lib.FakeTime(60):
       cron_manager.RunOnce(token=self.token)
-      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+      cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                    token=self.token)
       cron_flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
       for _ in test_lib.TestFlowHelper(cron_flow_urn,
@@ -630,7 +630,7 @@ class CronTest(test_lib.AFF4ObjectTest):
       with test_lib.FakeTime(fake_time):
         # This call should start a new cron job flow
         cron_manager.RunOnce(token=self.token)
-        cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type="CronJob",
+        cron_job = aff4.FACTORY.Open(cron_job_urn, aff4_type=cronjobs.CronJob,
                                      token=self.token)
         cron_flow_urn = cron_job.Get(cron_job.Schema.CURRENT_FLOW_URN)
         for _ in test_lib.TestFlowHelper(cron_flow_urn,
@@ -665,7 +665,7 @@ class CronTest(test_lib.AFF4ObjectTest):
     self.assertTrue(dummy_jobs)
 
     # System cron job should be enabled by default.
-    job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type="CronJob",
+    job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type=cronjobs.CronJob,
                             token=self.token)
     self.assertFalse(job.Get(job.Schema.DISABLED))
 
@@ -679,7 +679,7 @@ class CronTest(test_lib.AFF4ObjectTest):
     self.assertTrue(dummy_jobs)
 
     # System cron job should be enabled by default.
-    job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type="CronJob",
+    job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type=cronjobs.CronJob,
                             token=self.token)
     self.assertTrue(job.Get(job.Schema.DISABLED))
 
@@ -695,7 +695,7 @@ class CronTest(test_lib.AFF4ObjectTest):
 
       # This cron job should be disabled, because it's listed in
       # Cron.disabled_system_jobs config variable.
-      job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type="CronJob",
+      job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type=cronjobs.CronJob,
                               token=self.token)
       self.assertTrue(job.Get(job.Schema.DISABLED))
 
@@ -707,7 +707,7 @@ class CronTest(test_lib.AFF4ObjectTest):
       cronjobs.ScheduleSystemCronFlows(token=self.token)
 
       # System cron job should be enabled.
-      job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type="CronJob",
+      job = aff4.FACTORY.Open(dummy_jobs[0], aff4_type=cronjobs.CronJob,
                               token=self.token)
       self.assertFalse(job.Get(job.Schema.DISABLED))
 

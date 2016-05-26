@@ -5,6 +5,8 @@ import stat
 
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
@@ -86,9 +88,10 @@ class FindFiles(flow.GRRFlow):
 
       # TODO(user): This ends up being fairly expensive.
       if stat.S_ISDIR(response.hit.st_mode):
-        fd = aff4.FACTORY.Create(vfs_urn, "VFSDirectory", token=self.token)
+        fd = aff4.FACTORY.Create(vfs_urn, standard.VFSDirectory,
+                                 token=self.token)
       else:
-        fd = aff4.FACTORY.Create(vfs_urn, "VFSFile", token=self.token)
+        fd = aff4.FACTORY.Create(vfs_urn, aff4_grr.VFSFile, token=self.token)
 
       stat_response = fd.Schema.STAT(response.hit)
       fd.Set(stat_response)

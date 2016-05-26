@@ -8,6 +8,7 @@
 import json
 import urllib2
 
+from grr.gui import api_auth_manager
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_router
 from grr.gui import http_api
@@ -114,6 +115,8 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
     self.config_overrider = test_lib.ConfigOverrider(
         {"API.DefaultRouter": TestHttpApiRouter.__name__})
     self.config_overrider.Start()
+    # Make sure ApiAuthManager is initialized with this configuration setting.
+    api_auth_manager.APIACLInit.InitApiAuthManager()
 
     self.router_matcher = http_api.RouterMatcher()
 
@@ -176,9 +179,12 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(HttpRequestHandlerTest, self).setUp()
+
     self.config_overrider = test_lib.ConfigOverrider(
         {"API.DefaultRouter": TestHttpApiRouter.__name__})
     self.config_overrider.Start()
+    # Make sure ApiAuthManager is initialized with this configuration setting.
+    api_auth_manager.APIACLInit.InitApiAuthManager()
 
     self.request_handler = http_api.HttpRequestHandler()
 

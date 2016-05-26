@@ -242,7 +242,7 @@ class StatsStore(aff4.AFF4Volume):
       raise ValueError("process_id can't be None")
 
     process_data = aff4.FACTORY.Create(self.urn.Add(process_id),
-                                       "StatsStoreProcessData",
+                                       StatsStoreProcessData,
                                        mode="rw", token=self.token)
     process_data.WriteStats(timestamp=timestamp, sync=sync)
 
@@ -272,7 +272,7 @@ class StatsStore(aff4.AFF4Volume):
     subjects = [self.DATA_STORE_ROOT.Add(process_id)
                 for process_id in process_ids]
     subjects_data = aff4.FACTORY.MultiOpen(subjects, mode="r", token=self.token,
-                                           aff4_type="StatsStoreProcessData")
+                                           aff4_type=StatsStoreProcessData)
 
     results = {}
     for subject_data in subjects_data:
@@ -362,7 +362,7 @@ class StatsStore(aff4.AFF4Volume):
       raise ValueError("process_id can't be None")
 
     process_data = aff4.FACTORY.Create(self.urn.Add(process_id),
-                                       "StatsStoreProcessData",
+                                       StatsStoreProcessData,
                                        mode="w", token=self.token)
     process_data.DeleteStats(timestamp=timestamp, sync=sync)
 
@@ -701,7 +701,7 @@ class StatsStoreInit(registry.InitHook):
     token = access_control.ACLToken(username="GRRStatsStore").SetUID()
 
     global STATS_STORE
-    STATS_STORE = aff4.FACTORY.Create(None, "StatsStore", mode="w", token=token)
+    STATS_STORE = aff4.FACTORY.Create(None, StatsStore, mode="w", token=token)
     try:
       STATS_STORE.Flush()
     except access_control.UnauthorizedAccess:

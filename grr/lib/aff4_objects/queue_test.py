@@ -16,7 +16,7 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
   def testClaimReturnsRecordsInOrder(self):
     queue_urn = "aff4:/queue_test/testClaimReturnsRecordsInOrder"
-    with aff4.FACTORY.Create(queue_urn, "TestQueue", token=self.token) as queue:
+    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
       for i in range(100):
         queue.Add(rdfvalue.RDFInteger(i))
 
@@ -33,7 +33,7 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
   def testClaimIgnoresClaimedRecords(self):
     queue_urn = "aff4:/queue_test/testClaimReturnsRecordsInOrder"
-    with aff4.FACTORY.Create(queue_urn, "TestQueue", token=self.token) as queue:
+    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
       for i in range(100):
         queue.Add(rdfvalue.RDFInteger(i))
 
@@ -55,7 +55,7 @@ class QueueTest(test_lib.AFF4ObjectTest):
   def testClaimReturnsPreviouslyClaimedRecordsAfterTimeout(self):
     queue_urn = (
         "aff4:/queue_test/testClaimReturnsPreviouslyClaimedRecordsAfterTimeout")
-    with aff4.FACTORY.Create(queue_urn, "TestQueue", token=self.token) as queue:
+    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
       for i in range(100):
         queue.Add(rdfvalue.RDFInteger(i))
 
@@ -78,7 +78,7 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
   def testDeleteRemovesRecords(self):
     queue_urn = "aff4:/queue_test/testDeleteRemovesRecords"
-    with aff4.FACTORY.Create(queue_urn, "TestQueue", token=self.token) as queue:
+    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
       for i in range(100):
         queue.Add(rdfvalue.RDFInteger(i))
 
@@ -107,7 +107,7 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
   def testClaimReturnsPreviouslyReleasedRecords(self):
     queue_urn = "aff4:/queue_test/testClaimReturnsPreviouslyReleasedRecords"
-    with aff4.FACTORY.Create(queue_urn, "TestQueue", token=self.token) as queue:
+    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
       for i in range(100):
         queue.Add(rdfvalue.RDFInteger(i))
 
@@ -133,7 +133,7 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
   def testClaimFiltersRecordsIfFilterIsSpecified(self):
     queue_urn = "aff4:/queue_test/testClaimFiltersRecordsIfFilterIsSpecified"
-    with aff4.FACTORY.Create(queue_urn, "TestQueue", token=self.token) as queue:
+    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
       for i in range(100):
         queue.Add(rdfvalue.RDFInteger(i))
 
@@ -154,7 +154,7 @@ class QueueTest(test_lib.AFF4ObjectTest):
   def testClaimFiltersByStartTime(self):
     queue_urn = "aff4:/queue_test/testClaimFiltersByStartTime"
     middle = None
-    with aff4.FACTORY.Create(queue_urn, "TestQueue", token=self.token) as queue:
+    with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
       for i in range(100):
         if i == 50:
           middle = rdfvalue.RDFDatetime().Now()

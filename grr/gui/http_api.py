@@ -405,6 +405,8 @@ class HttpRequestHandler(object):
           subject=utils.SmartStr(e.subject)), headers=additional_headers)
     except api_call_handler_base.ResourceNotFoundError as e:
       return self._BuildResponse(404, dict(message=e.message))
+    except NotImplementedError as e:
+      return self._BuildResponse(501, dict(message=e.message))
     except Exception as e:  # pylint: disable=broad-except
       logging.exception(
           "Error while processing %s (%s) with %s: %s", request.path,

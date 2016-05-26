@@ -75,7 +75,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
   def testClientSubfieldGet(self):
     """Test we can get subfields of the client."""
-    fd = aff4.FACTORY.Create("C.0000000000000000", "VFSGRRClient",
+    fd = aff4.FACTORY.Create("C.0000000000000000", aff4_grr.VFSGRRClient,
                              token=self.token, age=aff4.ALL_TIMES)
 
     kb = fd.Schema.KNOWLEDGE_BASE()
@@ -94,7 +94,8 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
     timestamp = 1
     with utils.Stubber(time, "time", lambda: timestamp):
-      fd = aff4.FACTORY.Create(path, "VFSFile", mode="w", token=self.token)
+      fd = aff4.FACTORY.Create(path, aff4_grr.VFSFile, mode="w",
+                               token=self.token)
 
       timestamp += 1
       fd.SetChunksize(10)
@@ -136,7 +137,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     path = "fs/os/c/bin/bash"
 
     with aff4.FACTORY.Create(
-        client_id.Add(path), aff4_type=aff4_grr.VFSFile.__name__, mode="rw",
+        client_id.Add(path), aff4_type=aff4_grr.VFSFile, mode="rw",
         token=self.token) as file_fd:
       # Starts a MultiGetFile flow.
       file_fd.Update()
@@ -168,7 +169,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     path = "fs/os/c/bin/bash"
 
     with aff4.FACTORY.Create(
-        client_id.Add(path), aff4_type=aff4_grr.VFSFile.__name__, mode="rw",
+        client_id.Add(path), aff4_type=aff4_grr.VFSFile, mode="rw",
         token=self.token) as file_fd:
       # Starts a MultiGetFile flow.
       first_update_flow_urn = file_fd.Update()
@@ -213,8 +214,8 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
     timestamp = 1
     with utils.Stubber(time, "time", lambda: timestamp):
-      with aff4.FACTORY.Create("C.0000000000000000", "VFSGRRClient", mode="rw",
-                               token=self.token) as fd:
+      with aff4.FACTORY.Create("C.0000000000000000", aff4_grr.VFSGRRClient,
+                               mode="rw", token=self.token) as fd:
         kb = rdf_client.KnowledgeBase()
         kb.users.Append(userobj)
         empty_summary = fd.GetSummary()
@@ -236,8 +237,8 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
         fd.Set(fd.Schema.USERNAMES([user]))
         fd.Set(fd.Schema.LAST_INTERFACES([interface]))
 
-      with aff4.FACTORY.Open("C.0000000000000000", "VFSGRRClient", mode="rw",
-                             token=self.token) as fd:
+      with aff4.FACTORY.Open("C.0000000000000000", aff4_grr.VFSGRRClient,
+                             mode="rw", token=self.token) as fd:
         summary = fd.GetSummary()
         self.assertEqual(summary.system_info.node, hostname)
         self.assertEqual(summary.system_info.system, system)

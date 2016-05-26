@@ -9,6 +9,7 @@ from grr.lib import aff4
 from grr.lib import artifact_utils
 from grr.lib import flow
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import standard
 # pylint: disable=unused-import
 from grr.lib.flows.general import transfer
 # pylint: enable=unused-import
@@ -39,9 +40,9 @@ def CreateAFF4Object(stat_response, client_id, token, sync=False):
     stat_response.st_mode |= stat.S_IFREG
 
   if stat.S_ISDIR(stat_response.st_mode):
-    ftype = "VFSDirectory"
+    ftype = standard.VFSDirectory
   else:
-    ftype = "VFSFile"
+    ftype = aff4_grr.VFSFile
 
   fd = aff4.FACTORY.Create(stat_response.aff4path, ftype, mode="w", token=token)
   fd.Set(fd.Schema.STAT(stat_response))
@@ -96,7 +97,7 @@ class ListDirectory(flow.GRRFlow):
     self.Status("Listed %s", self.state.urn)
 
     # The AFF4 object is opened for writing with an asyncronous close for speed.
-    fd = aff4.FACTORY.Create(self.state.urn, "VFSDirectory", mode="w",
+    fd = aff4.FACTORY.Create(self.state.urn, standard.VFSDirectory, mode="w",
                              token=self.token)
 
     fd.Set(fd.Schema.PATHSPEC(self.state.directory_pathspec))
@@ -174,7 +175,7 @@ class IteratedListDirectory(ListDirectory):
     # First dir we get back is the main urn.
     if not self.state.urn: self.state.urn = urn
 
-    fd = aff4.FACTORY.Create(urn, "VFSDirectory", token=self.token)
+    fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
     fd.Close(sync=False)
 
     for st in self.state.responses:
@@ -291,7 +292,7 @@ class UpdateSparseImageChunks(flow.GRRFlow):
   def Start(self):
 
     fd = aff4.FACTORY.Open(self.state.args.file_urn, token=self.token,
-                           aff4_type="AFF4SparseImage", mode="rw")
+                           aff4_type=standard.AFF4SparseImage, mode="rw")
     pathspec = fd.Get(fd.Schema.PATHSPEC)
     self.state.Register("pathspec", pathspec)
     self.state.Register("fd", fd)
@@ -344,7 +345,8 @@ class FetchBufferForSparseImage(flow.GRRFlow):
 
     urn = self.state.args.file_urn
 
-    fd = aff4.FACTORY.Open(urn, token=self.token, aff4_type="AFF4SparseImage",
+    fd = aff4.FACTORY.Open(urn, token=self.token,
+                           aff4_type=standard.AFF4SparseImage,
                            mode="rw")
     self.state.Register("fd", fd)
 
@@ -490,7 +492,7 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
       # TODO(user) When we can check the last update time of the
       # contents of a file, raise if the contents have been updated before here.
 
-      fd = aff4.FACTORY.Create(urn, aff4_type="AFF4SparseImage",
+      fd = aff4.FACTORY.Create(urn, aff4_type=standard.AFF4SparseImage,
                                token=self.token, mode="rw")
       fd.Set(fd.Schema.PATHSPEC, self.state.pathspec)
       fd.Set(fd.Schema.STAT, client_stat)

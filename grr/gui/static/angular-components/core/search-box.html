@@ -8,6 +8,7 @@
     <div class="form-group">
       <div class="input-group">
         <input id="client_query" autocomplete="off"
+               grr-disable-if-no-trait="search_clients_action_enabled"
                type="text" name="q" class="form-control search-query"
                placeholder="Search Box" ng-model="controller.query"
                ng-keypress="$event.which == 13 && controller.submitQuery()"

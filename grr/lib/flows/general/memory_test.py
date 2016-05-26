@@ -16,6 +16,7 @@ from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -132,7 +133,7 @@ class TestMemoryCollector(MemoryTest):
 
   def testChecksDiskSpace(self):
     client = aff4.FACTORY.Create(self.client_id,
-                                 "VFSGRRClient", token=self.token)
+                                 aff4_grr.VFSGRRClient, token=self.token)
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Set(client.Schema.MEMORY_SIZE(64 * 1024 * 1024 * 1024))
     client.Close()

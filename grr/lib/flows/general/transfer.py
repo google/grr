@@ -13,6 +13,7 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import filestore
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -130,7 +131,8 @@ class GetFile(flow.GRRFlow):
 
     # Create a new BlobImage for the data. Note that this object is pickled
     # with this flow between states.
-    self.state.fd = aff4.FACTORY.Create(urn, "VFSBlobImage", token=self.token)
+    self.state.fd = aff4.FACTORY.Create(urn, aff4_grr.VFSBlobImage,
+                                        token=self.token)
 
     # The chunksize must be set to be the same as the transfer chunk size.
     self.state.fd.SetChunksize(self.CHUNK_SIZE)
@@ -292,7 +294,8 @@ class MultiGetFileMixin(object):
     # Set of blobs we still need to fetch.
     self.state.Register("blobs_we_need", set())
 
-    fd = aff4.FACTORY.Open(filestore.FileStore.PATH, "FileStore", mode="r",
+    fd = aff4.FACTORY.Open(filestore.FileStore.PATH, filestore.FileStore,
+                           mode="r",
                            token=self.token)
     self.state.Register("filestore", fd)
 
@@ -519,7 +522,7 @@ class MultiGetFileMixin(object):
       self.state.pending_files[index] = file_tracker
 
       # Create the VFS file for this file tracker.
-      file_tracker.CreateVFSFile("VFSBlobImage", token=self.token,
+      file_tracker.CreateVFSFile(aff4_grr.VFSBlobImage, token=self.token,
                                  chunksize=self.CHUNK_SIZE)
 
       # If we already know how big the file is we use that, otherwise fall back
@@ -735,7 +738,8 @@ class FileStoreCreateFile(flow.EventListener):
     vfs_urn = message.payload
 
     vfs_fd = aff4.FACTORY.Open(vfs_urn, mode="rw", token=self.token)
-    filestore_fd = aff4.FACTORY.Create(filestore.FileStore.PATH, "FileStore",
+    filestore_fd = aff4.FACTORY.Create(filestore.FileStore.PATH,
+                                       filestore.FileStore,
                                        mode="w", token=self.token)
     filestore_fd.AddFile(vfs_fd)
     vfs_fd.Flush(sync=False)
@@ -779,7 +783,7 @@ class GetMBR(flow.GRRFlow):
 
     response = responses.First()
 
-    mbr = aff4.FACTORY.Create(self.client_id.Add("mbr"), "VFSFile",
+    mbr = aff4.FACTORY.Create(self.client_id.Add("mbr"), aff4_grr.VFSFile,
                               mode="w", token=self.token)
     mbr.write(response.data)
     mbr.Close()

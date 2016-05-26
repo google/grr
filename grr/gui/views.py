@@ -28,6 +28,11 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 
+from grr.lib.authorization import auth_manager
+
+
+LEGACY_RENDERERS_AUTH_MANAGER = None
+
 
 class ViewsInit(registry.InitHook):
 
@@ -46,6 +51,14 @@ class ViewsInit(registry.InitHook):
     stats.STATS.RegisterCounterMetric("ui_unknown_renderer")
     stats.STATS.RegisterCounterMetric("http_access_denied")
     stats.STATS.RegisterCounterMetric("http_server_error")
+
+    global LEGACY_RENDERERS_AUTH_MANAGER
+    legacy_renderers_groups = config_lib.CONFIG[
+        "AdminUI.legacy_renderers_allowed_groups"]
+    if legacy_renderers_groups:
+      LEGACY_RENDERERS_AUTH_MANAGER = auth_manager.AuthorizationManager()
+      for group in legacy_renderers_groups:
+        LEGACY_RENDERERS_AUTH_MANAGER.AuthorizeGroup(group, "legacy_renderers")
 
 
 @webauth.SecurityCheck
@@ -118,6 +131,11 @@ def Homepage(request):
 @webauth.SecurityCheck
 def RenderBinaryDownload(request):
   """Basic handler to allow downloads of aff4:/config/executables files."""
+  if (LEGACY_RENDERERS_AUTH_MANAGER and
+      not LEGACY_RENDERERS_AUTH_MANAGER.CheckPermissions(
+          request.user, "legacy_renderers")):
+    return AccessDenied("User is not allowed to use legacy renderers.")
+
   path, filename = request.path.split("/", 2)[-1].rsplit("/", 1)
   if not path or not filename:
     return AccessDenied("Error: Invalid path.")
@@ -155,6 +173,11 @@ def RenderApi(request):
 @renderers.ErrorHandler()
 def RenderGenericRenderer(request):
   """Django handler for rendering registered GUI Elements."""
+  if (LEGACY_RENDERERS_AUTH_MANAGER and
+      not LEGACY_RENDERERS_AUTH_MANAGER.CheckPermissions(
+          request.user, "legacy_renderers")):
+    return AccessDenied("User is not allowed to use legacy renderers.")
+
   try:
     action, renderer_name = request.path.split("/")[-2:]
 

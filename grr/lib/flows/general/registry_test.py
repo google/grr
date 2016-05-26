@@ -8,6 +8,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.aff4_objects import collects
 from grr.lib.flows.general import file_finder
 # pylint: disable=unused-import
 from grr.lib.flows.general import registry
@@ -57,12 +58,12 @@ class TestRegistryFinderFlow(RegistryFlowTest):
   def AssertNoResults(self):
     self.assertRaises(aff4.InstantiationError, aff4.FACTORY.Open,
                       self.client_id.Add(self.output_path),
-                      aff4_type="RDFValueCollection",
+                      aff4_type=collects.RDFValueCollection,
                       token=self.token)
 
   def GetResults(self):
     fd = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                           aff4_type="RDFValueCollection",
+                           aff4_type=collects.RDFValueCollection,
                            token=self.token)
     return list(fd)
 

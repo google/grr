@@ -2,9 +2,13 @@
 
 goog.provide('grrUi.sidebar.navigatorDirective.NavigatorController');
 goog.provide('grrUi.sidebar.navigatorDirective.NavigatorDirective');
+goog.require('grrUi.core.apiService.stripTypeInfo');
 
 
 goog.scope(function() {
+
+
+var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 
 /**
@@ -35,6 +39,14 @@ grrUi.sidebar.navigatorDirective.NavigatorController = function(
 
   /** @type {boolean} */
   this.hasClientAccess = false;
+
+  /** @type {Object} */
+  this.uiTraits;
+
+  // Fetch UI traits.
+  this.grrApiService_.getCached('users/me').then(function (response) {
+    this.uiTraits = stripTypeInfo(response['data'])['interface_traits'];
+  }.bind(this));
 
   // Subscribe to legacy grr events to be notified on client change.
   this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'clientId',
@@ -75,9 +87,14 @@ NavigatorController.prototype.onClientSelectionChange_ = function(clientId) {
   this.clientId = clientId;
   this.client = null; // Set to null so the loader is shown.
 
-  var url = 'clients/' + clientId;
-  this.grrApiService_.get(url).then(this.onClientDetailsFetched_.bind(this));
+  this.refreshClientDetails();
   this.checkClientAccess_();
+};
+
+
+NavigatorController.prototype.refreshClientDetails = function() {
+  var url = 'clients/' + this.clientId;
+  this.grrApiService_.get(url).then(this.onClientDetailsFetched_.bind(this));
 };
 
 /**

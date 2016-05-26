@@ -24,6 +24,8 @@ from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import users
 # pylint: disable=unused-import
 from grr.lib.flows.general import administrative
 # For AuditEventListener, needed to handle published audit events.
@@ -144,7 +146,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     # into proper locations. First check the per-client crashes collection.
     client_crashes = sorted(
         list(aff4.FACTORY.Open(self.client_id.Add("crashes"),
-                               aff4_type="PackedVersionedCollection",
+                               aff4_type=collects.PackedVersionedCollection,
                                token=self.token)),
         key=lambda x: x.timestamp)
 
@@ -165,7 +167,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     # equal to per-client crash.
     global_crashes = sorted(
         aff4.FACTORY.Open(aff4.ROOT_URN.Add("crashes"),
-                          aff4_type="PackedVersionedCollection",
+                          aff4_type=collects.PackedVersionedCollection,
                           token=self.token),
         key=lambda x: x.timestamp)
     self.assertEqual(len(global_crashes), len(client_crashes))
@@ -238,7 +240,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       # into proper locations. First check the per-client crashes collection.
       client_crashes = list(aff4.FACTORY.Open(
           self.client_id.Add("crashes"),
-          aff4_type="PackedVersionedCollection",
+          aff4_type=collects.PackedVersionedCollection,
           token=self.token))
 
       self.assertEqual(len(client_crashes), 1)
@@ -253,7 +255,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       # equal to per-client crash.
       global_crashes = list(aff4.FACTORY.Open(
           aff4.ROOT_URN.Add("crashes"),
-          aff4_type="PackedVersionedCollection",
+          aff4_type=collects.PackedVersionedCollection,
           token=self.token))
       self.assertEqual(len(global_crashes), 1)
       self.assertEqual(global_crashes[0], crash)
@@ -372,7 +374,8 @@ sys.test_code_ran_here = py_args['value']
 
     # This flow has an acl, the user needs to be admin.
     user = aff4.FACTORY.Create("aff4:/users/%s" % self.token.username,
-                               mode="rw", aff4_type="GRRUser", token=self.token)
+                               mode="rw", aff4_type=users.GRRUser,
+                               token=self.token)
     user.SetLabels("admin", owner="GRR")
     user.Close()
 
@@ -417,7 +420,8 @@ sys.test_code_ran_here = py_args['value']
 
     # This flow has an acl, the user needs to be admin.
     user = aff4.FACTORY.Create("aff4:/users/%s" % self.token.username,
-                               mode="rw", aff4_type="GRRUser", token=self.token)
+                               mode="rw", aff4_type=users.GRRUser,
+                               token=self.token)
     user.SetLabels("admin", owner="GRR")
     user.Close()
 

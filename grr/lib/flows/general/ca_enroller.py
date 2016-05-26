@@ -17,6 +17,7 @@ from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -35,7 +36,7 @@ class CAEnroler(flow.GRRFlow):
   @flow.StateHandler(next_state="End")
   def Start(self):
     """Sign the CSR from the client."""
-    client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient",
+    client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
                                  mode="rw", token=self.token)
 
     if self.args.csr.type != rdf_crypto.Certificate.Type.CSR:
@@ -74,7 +75,7 @@ class CAEnroler(flow.GRRFlow):
     client.Set(client.Schema.FIRST_SEEN, rdfvalue.RDFDatetime().Now())
 
     index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                aff4_type="ClientIndex",
+                                aff4_type=client_index.ClientIndex,
                                 object_exists=True,
                                 mode="rw", token=self.token)
     index.AddClient(client)
@@ -152,7 +153,7 @@ class Enroler(flow.WellKnownFlow):
       enrolment_cache.Put(client_id, 1)
 
     # Create a new client object for this client.
-    client = aff4.FACTORY.Create(client_id, "VFSGRRClient", mode="rw",
+    client = aff4.FACTORY.Create(client_id, aff4_grr.VFSGRRClient, mode="rw",
                                  token=self.token)
 
     # Only enroll this client if it has no certificate yet.

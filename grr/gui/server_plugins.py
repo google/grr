@@ -16,4 +16,5 @@ from grr.gui import api_call_robot_router
 from grr.gui import api_call_router
 from grr.gui import api_call_router_with_approval_checks
 from grr.gui import api_call_router_without_checks
+from grr.gui import api_labels_restricted_call_router
 from grr.gui import local

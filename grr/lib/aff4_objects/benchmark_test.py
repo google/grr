@@ -6,6 +6,8 @@
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import test_lib
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -22,12 +24,13 @@ class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
       fd = aff4.FACTORY.Create(urn, object_type, token=self.token)
       fd.Close()
 
-    for object_type in ["AFF4Object", "HashImage", "AFF4MemoryStream"]:
+    for object_type in [aff4.AFF4Object, standard.HashImage,
+                        aff4.AFF4MemoryStream]:
       self.TimeIt(CreateAFF4Object, name="Create %s" % object_type,
                   object_type=object_type)
 
     self.TimeIt(CreateAFF4Object, name="Create VFSGRRClient",
-                object_type="VFSGRRClient", urn="C.1234567812345678")
+                object_type=aff4_grr.VFSGRRClient, urn="C.1234567812345678")
 
   def testAFF4CreateAndSet(self):
     """How long does it take to create and set properties."""
@@ -37,7 +40,7 @@ class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
 
     def CreateAFF4Object():
       """Blind write a VFSGRRClient with 1000 client info attributes."""
-      fd = aff4.FACTORY.Create("C.1234567812345678", "VFSGRRClient",
+      fd = aff4.FACTORY.Create("C.1234567812345678", aff4_grr.VFSGRRClient,
                                token=self.token)
       fd.Set(fd.Schema.HOSTNAME("Foobar"))
       for _ in range(1000):

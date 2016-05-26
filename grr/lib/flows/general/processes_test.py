@@ -8,6 +8,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
+from grr.lib.aff4_objects import collects
 # pylint: disable=unused-import
 from grr.lib.flows.general import processes as _
 # pylint: enable=unused-import
@@ -110,7 +111,7 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
     # No file created since no output matched.
     with self.assertRaises(IOError):
       aff4.FACTORY.Open(self.client_id.Add(output_path),
-                        aff4_type="RDFValueCollection", token=self.token)
+                        aff4_type=collects.RDFValueCollection, token=self.token)
 
   def testFetchesAndStoresBinary(self):
     process = rdf_client.Process(

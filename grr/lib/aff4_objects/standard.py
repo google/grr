@@ -324,8 +324,8 @@ class HashImage(aff4.AFF4Image):
   def _OpenIndex(self):
     if self.index is None:
       index_urn = self.urn.Add("index")
-      self.index = aff4.FACTORY.Create(index_urn, "AFF4Image", mode=self.mode,
-                                       token=self.token)
+      self.index = aff4.FACTORY.Create(index_urn, aff4.AFF4Image,
+                                       mode=self.mode, token=self.token)
 
   def _GetChunkForWriting(self, chunk):
     """Chunks must be added using the AddBlob() method."""
@@ -571,7 +571,7 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
 
     index_urn = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number)
     with aff4.FACTORY.Create(
-        index_urn, "AFF4MemoryStream", token=self.token) as fd:
+        index_urn, aff4.AFF4MemoryStream, token=self.token) as fd:
       fd.write(blob_hash)
     if chunk_number in self.chunk_cache:
       self.chunk_cache.Pop(chunk_number)

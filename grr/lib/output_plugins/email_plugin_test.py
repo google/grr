@@ -7,6 +7,7 @@ from grr.lib import email_alerts
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -20,7 +21,7 @@ class EmailOutputPluginTest(test_lib.FlowTestsBaseclass):
 
     self.client_id = self.SetupClients(1)[0]
     self.hostname = aff4.FACTORY.Open(self.client_id, token=self.token).Get(
-        aff4.VFSGRRClient.SchemaCls.HOSTNAME)
+        aff4_grr.VFSGRRClient.SchemaCls.HOSTNAME)
     self.results_urn = self.client_id.Add("Results")
     self.email_messages = []
     self.email_address = "notify@%s" % config_lib.CONFIG["Logging.domain"]

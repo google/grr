@@ -164,7 +164,7 @@ class RegistryFake(test_lib.FakeRegistryVFSHandler):
     for path in self.cache[self.prefix]:
       if os.path.dirname(path) == key.value:
         sub_type, stat_entry = self.cache[self.prefix][path]
-        if sub_type == "VFSDirectory":
+        if sub_type.__name__ == "VFSDirectory":
           res.append(os.path.basename(stat_entry.pathspec.path))
     return sorted(res)
 
@@ -181,7 +181,7 @@ class RegistryFake(test_lib.FakeRegistryVFSHandler):
     for path in self.cache[self.prefix]:
       if os.path.dirname(path) == key.value:
         sub_type, stat_entry = self.cache[self.prefix][path]
-        if sub_type == "VFSFile":
+        if sub_type.__name__ == "VFSFile":
           res.append(os.path.basename(stat_entry.pathspec.path))
     return sorted(res)
 

@@ -24,6 +24,7 @@ from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import collects
 # For ArtifactCollectorFlow pylint: disable=unused-import
 from grr.lib.flows.general import collectors
 # pylint: enable=unused-import
@@ -179,7 +180,7 @@ class ArtifactTest(test_lib.FlowTestsBaseclass):
       pass
 
     output_urn = self.client_id.Add(output_name)
-    return aff4.FACTORY.Open(output_urn, aff4_type="RDFValueCollection",
+    return aff4.FACTORY.Open(output_urn, aff4_type=collects.RDFValueCollection,
                              token=self.token)
 
 

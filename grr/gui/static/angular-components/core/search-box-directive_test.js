@@ -2,6 +2,7 @@
 
 goog.require('grrUi.core.module');
 goog.require('grrUi.tests.module');
+goog.require('grrUi.tests.stubUiTrait');
 
 var browserTrigger = grrUi.tests.browserTrigger;
 
@@ -11,6 +12,8 @@ describe('search box directive', function() {
   beforeEach(module('/static/angular-components/core/search-box.html'));
   beforeEach(module(grrUi.core.module.name));
   beforeEach(module(grrUi.tests.module.name));
+
+  grrUi.tests.stubUiTrait('search_clients_action_enabled');
 
   beforeEach(inject(function($injector) {
     $compile = $injector.get('$compile');
@@ -46,8 +49,8 @@ describe('search box directive', function() {
   };
 
   var triggerSearch = function(element, query) {
-    element.find('input').val(query).trigger('input');
-    $scope.$apply();
+    $('input', element).val(query).trigger('input');
+    browserTrigger($('input', element), 'change');
     browserTrigger($('button', element), 'click');
   };
 

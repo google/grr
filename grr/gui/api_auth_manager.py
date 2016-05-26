@@ -3,6 +3,9 @@
 
 
 
+
+import yaml
+
 import logging
 
 from grr.gui import api_call_router
@@ -10,8 +13,6 @@ from grr.lib import config_lib
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib.authorization import auth_manager
-from grr.lib.rdfvalues import structs
-from grr.proto import api_pb2
 
 
 class Error(Exception):
@@ -26,99 +27,107 @@ class ApiCallRouterNotFoundError(Error):
   """Used when a router with a given name can't be found."""
 
 
-class APIAuthorization(structs.RDFProtoStruct):
+class APIAuthorization(object):
   """Authorization for users/groups to use an API handler."""
-  protobuf = api_pb2.ApiAuthorization
+
+  def __init__(self):
+    super(APIAuthorization, self).__init__()
+    self.router = None
+    self.users = []
+    self.groups = []
+    self.router_params = {}
 
   @property
-  def users(self):
-    return self.Get("users")
+  def router_params_dict(self):
+    result = {}
+    for item in self.router_params.items:
+      if item.invalid:
+        raise InvalidAPIAuthorization(
+            "Invalid value in router %s configuration: %s" % (
+                self.router, item.key))
 
-  @users.setter
-  def users(self, value):
-    if not isinstance(value, list):
-      raise InvalidAPIAuthorization("users must be a list")
-    self.Set("users", value)
+      result[item.key] = item.value
 
-  @property
-  def groups(self):
-    return self.Get("groups")
+  @staticmethod
+  def ParseYAMLAuthorizationsList(yaml_data):
+    """Parses YAML data into a list of APIAuthorization objects."""
+    try:
+      raw_list = list(yaml.safe_load_all(yaml_data))
+    except (ValueError, yaml.YAMLError) as e:
+      raise InvalidAPIAuthorization("Invalid YAML: %s" % e)
 
-  @groups.setter
-  def groups(self, value):
-    if not isinstance(value, list):
-      raise InvalidAPIAuthorization("groups must be a list")
-    self.Set("groups", value)
+    result = []
+    for auth_src in raw_list:
+      auth = APIAuthorization()
+      auth.router = auth_src["router"]
+      auth.users = auth_src.get("users", [])
+      auth.groups = auth_src.get("groups", [])
+      auth.router_params = auth_src.get("router_params", {})
 
-  @property
-  def router(self):
-    return self.Get("router")
+      result.append(auth)
 
-  @router.setter
-  def router(self, value):
-    self.Set("router", value)
-
-  @property
-  def key(self):
-    return self.Get("router")
+    return result
 
 
 class APIAuthorizationManager(object):
   """Manages loading API authorizations and enforcing them."""
 
-  def _CreateRouter(self, router_name):
-    return api_call_router.ApiCallRouter.classes[router_name]()
+  def _CreateRouter(self, name, params=None):
+    try:
+      router_cls = api_call_router.ApiCallRouter.classes[name]
+    except KeyError:
+      raise ApiCallRouterNotFoundError("%s not a valid router" % name)
 
-  def Initialize(self):
+    params = params or {}
+    return router_cls(**params)
+
+  def __init__(self):
     """Initializes the manager by reading the config file."""
 
-    self.acled_routers = []
+    self.routers = []
     self.auth_manager = auth_manager.AuthorizationManager()
+
+    self.default_router = self._CreateRouter(
+        config_lib.CONFIG["API.DefaultRouter"])
 
     if config_lib.CONFIG["API.RouterACLConfigFile"]:
       logging.info("Using API router ACL config file: %s",
                    config_lib.CONFIG["API.RouterACLConfigFile"])
 
-      reader = auth_manager.AuthorizationReader()
       with open(config_lib.CONFIG["API.RouterACLConfigFile"], mode="rb") as fh:
-        reader.CreateAuthorizations(fh.read(), APIAuthorization)
+        acl_list = APIAuthorization.ParseYAMLAuthorizationsList(fh.read())
 
-        if not reader.GetAllAuthorizationObjects():
-          raise InvalidAPIAuthorization("No entries added from "
-                                        "RouterACLConfigFile.")
+      if not acl_list:
+        raise InvalidAPIAuthorization("No entries added from "
+                                      "RouterACLConfigFile.")
 
-      for acl in reader.GetAllAuthorizationObjects():
-        # Allow empty acls to act as DenyAll
-        self.auth_manager.DenyAll(acl.router)
+      for index, acl in enumerate(acl_list):
+        router = self._CreateRouter(acl.router, params=acl.router_params)
+        self.routers.append(router)
+
+        router_id = str(index)
+        self.auth_manager.DenyAll(router_id)
 
         for group in acl.groups:
-          self.auth_manager.AuthorizeGroup(group, acl.router)
+          self.auth_manager.AuthorizeGroup(group, router_id)
 
         for user in acl.users:
-          self.auth_manager.AuthorizeUser(user, acl.router)
-
-        self.acled_routers.append(acl.router)
-        logging.info("Applied API ACL: %s, %s, to router: %s",
-                     acl.users, acl.groups, acl.router)
-
-    return self
+          self.auth_manager.AuthorizeUser(user, router_id)
 
   def GetRouterForUser(self, username):
     """Returns a router corresponding to a given username."""
 
-    for acled_router in self.acled_routers:
-      if self.auth_manager.CheckPermissions(username, acled_router):
-        router = self._CreateRouter(acled_router)
+    for index, router in enumerate(self.routers):
+      router_id = str(index)
+
+      if self.auth_manager.CheckPermissions(username, router_id):
         logging.debug("Matched router %s to user %s", router.__class__.__name__,
                       username)
         return router
 
     logging.debug("No router ACL rule match for user %s. Using default "
-                  "router %s", username, config_lib.CONFIG["API.DefaultRouter"])
-    return self._CreateRouter(config_lib.CONFIG["API.DefaultRouter"])
-
-  def GetACLedRouters(self):
-    return self.acled_routers
+                  "router %s", username, self.default_router.__class__.__name__)
+    return self.default_router
 
 
 # Set in APIACLInit
@@ -131,17 +140,12 @@ class APIACLInit(registry.InitHook):
   @staticmethod
   def InitApiAuthManager():
     global API_AUTH_MGR
-    API_AUTH_MGR = APIAuthorizationManager().Initialize()
+    API_AUTH_MGR = APIAuthorizationManager()
 
     stats.STATS.RegisterCounterMetric("grr_api_auth_success",
                                       fields=[("handler", str), ("user", str)])
     stats.STATS.RegisterCounterMetric("grr_api_auth_fail",
                                       fields=[("handler", str), ("user", str)])
-
-    # Quickly validate the list of routers.
-    for router in API_AUTH_MGR.GetACLedRouters():
-      if router not in api_call_router.ApiCallRouter.classes:
-        raise ApiCallRouterNotFoundError("%s not a valid router" % router)
 
   def RunOnce(self):
     allowed_contexts = ["AdminUI Context"]

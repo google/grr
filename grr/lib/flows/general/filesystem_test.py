@@ -13,6 +13,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
 # pylint: disable=unused-import
 from grr.lib.flows.general import collectors
@@ -69,7 +70,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # And the wrong object is not there
     self.assertRaises(IOError, aff4.FACTORY.Open,
                       output_path.Add("test directory"),
-                      aff4_type="VFSDirectory", token=self.token)
+                      aff4_type=standard.VFSDirectory, token=self.token)
 
   def testUnicodeListDirectory(self):
     """Test that the ListDirectory flow works on unicode directories."""
@@ -411,11 +412,11 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     path = self.client_id.Add("fs/os").Add(self.base_path).Add("index.dat")
 
-    aff4.FACTORY.Open(path, aff4_type="VFSFile", token=self.token)
+    aff4.FACTORY.Open(path, aff4_type=aff4_grr.VFSFile, token=self.token)
 
     path = self.client_id.Add("fs/os").Add(self.base_path).Add("index.dat")
 
-    aff4.FACTORY.Open(path, aff4_type="VFSFile", token=self.token)
+    aff4.FACTORY.Open(path, aff4_type=aff4_grr.VFSFile, token=self.token)
 
   def testGlobGrouping(self):
     """Test that glob expands directories."""
@@ -633,7 +634,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
 
     with aff4.FACTORY.Create(
-        urn, "AFF4SparseImage", mode="rw", token=self.token) as fd:
+        urn, standard.AFF4SparseImage, mode="rw", token=self.token) as fd:
 
       # Give the new object a pathspec.
       fd.Set(fd.Schema.PATHSPEC, pathspec)

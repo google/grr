@@ -181,18 +181,26 @@ SemanticProtoFormController.prototype.onEditedValueChange_ = function(
      */
     angular.forEach(this.valueDescriptor['fields'], function(field) {
       if (this.notExplicitlyHiddenFields_(field)) {
-        if (angular.isDefined(field['default'])) {
-          if (angular.equals(this.scope_.value.value[field.name],
-                             field['default'])) {
-            delete this.scope_.value.value[field.name];
-          }
-        } else {
-          // Field.type may be undefined for dynamic fields.
-          if (field.type &&
-              angular.equals(this.scope_.value.value[field.name],
-                             this.descriptors[field.type]['default'])) {
-            delete this.scope_.value.value[field.name];
-          }
+        if (field.type &&
+            angular.equals(this.scope_.value.value[field.name],
+                           this.descriptors[field.type]['default']) &&
+            /**
+             * If the field has a per-field special default value that's
+             * different from the field type's default value, we shouldn't erase
+             * the field (so that when the form is submitted, the special
+             * default values gets sent to the server).
+             *
+             * For example, if the field is integer and has an explicit default
+             * value 0, then the field will be erased if its current value is 0.
+             *
+             * But if the field is integer and has an explicit default of 42,
+             * then it won't get erased when its current value is 42 (nor will
+             * it get erased when its default is 0).
+             */
+            (angular.isUndefined(field['default']) ||
+             angular.equals(field['default'],
+                            this.descriptors[field.type]['default']))) {
+          delete this.scope_.value.value[field.name];
         }
       }
     }.bind(this));

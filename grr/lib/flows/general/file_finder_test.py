@@ -15,6 +15,9 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import standard
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -111,7 +114,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     for fname in fnames:
       fd = aff4.FACTORY.Open(self.FileNameToURN(fname), token=self.token)
       # Directories have no size attribute.
-      if fd.Get(fd.Schema.TYPE) == "VFSDirectory":
+      if fd.Get(fd.Schema.TYPE) == standard.VFSDirectory:
         continue
       self.assertEqual(fd.Get(fd.Schema.SIZE), 0)
 
@@ -120,7 +123,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
       # If results are expected, check that they are present in the collection.
       # Also check that there are no other files.
       output = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                                 aff4_type="RDFValueCollection",
+                                 aff4_type=collects.RDFValueCollection,
                                  token=self.token)
       self.assertEqual(len(output), len(fnames))
 
@@ -133,7 +136,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
       # If no results are expected, collection shouldn't be created.
       self.assertRaises(aff4.InstantiationError, aff4.FACTORY.Open,
                         self.client_id.Add(self.output_path),
-                        aff4_type="RDFValueCollection",
+                        aff4_type=collects.RDFValueCollection,
                         token=self.token)
 
   def CheckReplies(self, replies, action, expected_files):
@@ -268,7 +271,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
       # Check that the results' matches fields are correctly filled.
       fd = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                             aff4_type="RDFValueCollection",
+                             aff4_type=collects.RDFValueCollection,
                              token=self.token)
       self.assertEqual(len(fd), 1)
       self.assertEqual(len(fd[0].matches), 1)
@@ -300,7 +303,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     # Check that the results' matches fields are correctly filled. Expecting a
     # match from hello.exe
     fd = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                           aff4_type="RDFValueCollection", token=self.token)
+                           aff4_type=collects.RDFValueCollection,
+                           token=self.token)
     self.assertEqual(len(fd[0].matches), 1)
     self.assertEqual(fd[0].matches[0].offset, 0)
     self.assertEqual(fd[0].matches[0].data,
@@ -329,7 +333,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
           non_expected_files=non_expected_files)
 
       fd = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                             aff4_type="RDFValueCollection",
+                             aff4_type=collects.RDFValueCollection,
                              token=self.token)
       self.assertEqual(len(fd), 1)
       self.assertEqual(len(fd[0].matches), 1)
@@ -370,7 +374,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
       # Check the output file is created
       fd = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                             aff4_type="RDFValueCollection",
+                             aff4_type=collects.RDFValueCollection,
                              token=self.token)
 
       self.assertEqual(len(fd), 1)
@@ -415,7 +419,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
       # Check the output file is created
       fd = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                             aff4_type="RDFValueCollection",
+                             aff4_type=collects.RDFValueCollection,
                              token=self.token)
 
       self.assertEqual(len(fd), 1)
@@ -620,7 +624,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
           self.CheckFilesInCollection(["auth.log"])
 
           fd = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                                 aff4_type="RDFValueCollection",
+                                 aff4_type=collects.RDFValueCollection,
                                  token=self.token)
           self.assertEqual(fd[0].stat_entry.pathspec.CollapsePath(),
                            paths[0])
@@ -673,8 +677,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
     # There should be one directory and three files. It's important that all
     # ADSs have been created as files or we won't be able to access the data.
-    self.assertEqual(counter[aff4.VFSBlobImage], 3)
-    self.assertEqual(counter[aff4.VFSDirectory], 1)
+    self.assertEqual(counter[aff4_grr.VFSBlobImage], 3)
+    self.assertEqual(counter[standard.VFSDirectory], 1)
 
     # Make sure we can access all the data.
     fd = aff4.FACTORY.Open(output.Add("a.txt"), token=self.token)

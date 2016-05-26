@@ -1,6 +1,7 @@
 <a class="nav-link"
    ng-class="{'disabled': disabled}"
    ng-click="controller.openLink()"
+   ng-href="{$ controller.href $}"
    grrtarget="{$ state $}">
 
   <i ng-if="disabled" class="fa fa-lock" title="Missing approvals."></i>

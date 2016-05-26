@@ -26,8 +26,8 @@ grrUi.user.userLabelDirective.UserLabelController =
     /** @type {string} */
     this.username;
 
-    this.grrApiService_.get('users/me/info').then(function(response){
-      this.username = response.data['username'];
+    this.grrApiService_.getCached('users/me').then(function(response){
+      this.username = response.data['value']['username']['value'];
     }.bind(this));
   };
 

@@ -28,6 +28,18 @@ var RoutingService = grrUi.routing.routingService.RoutingService;
 RoutingService.service_name = 'grrRoutingService';
 
 /**
+ * Returns an href corresponding to a given state with given params.
+ *
+ * @param {string} targetState The state to transition to.
+ * @param {Object=} opt_params An optional dictionary of state parameters.
+ * @return {string} Href corresponding to a given state with given params.
+ * @export
+ */
+RoutingService.prototype.href = function(targetState, opt_params) {
+  return this.state_.href(targetState, opt_params);
+};
+
+/**
  * Performes a state transition to a target state.
  *
  * Remarks: This method uses the notify option to control whether state change
@@ -95,8 +107,8 @@ RoutingService.prototype.onStateChange = function(scope, callback) {
   // Call immediately for intialization.
   callback(this.state_.current.name, this.state_.params);
 
-  return scope.$on('$locationChangeSuccess', function() {
-    callback(this.state_.current.name, this.state_.params);
+  return scope.$on('$stateChangeSuccess', function(event, state, params) {
+    callback(state.name, params);
   }.bind(this));
 };
 

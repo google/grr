@@ -59,7 +59,7 @@ def UpdateVFSFileAndWait(client_id, vfs_file_urn, token=None,
                                      vfs_file_urn=vfs_file_urn)
 
   update_flow_obj = aff4.FACTORY.Open(update_flow_urn, token=token,
-                                      aff4_type="GRRFlow")
+                                      aff4_type=flow.GRRFlow)
 
   # Get the child flow so we can wait for it too.
   sub_flow_urn = update_flow_obj.state.get_file_flow_urn
@@ -98,7 +98,7 @@ def WaitForFlow(flow_urn, token=None, timeout=DEFAULT_TIMEOUT, max_sleep_time=1,
     # Reopen the AFF4Object to check if its status has changed, and also make
     # sure it's a flow.
     with aff4.FACTORY.Open(
-        flow_urn, token=token, aff4_type="GRRFlow") as flow_obj:
+        flow_urn, token=token, aff4_type=flow.GRRFlow) as flow_obj:
 
       # Stop if the flow is done or has timed out.
       if time.time() - start_time > timeout:

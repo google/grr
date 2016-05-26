@@ -20,12 +20,8 @@ from grr.lib import utils
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 
 
-class NullAPIAuthorizationManager(
-    api_auth_manager.APIAuthorizationManager):
+class NullAPIAuthorizationManager(object):
   """Authorization manager that allows everything. Used for testing only."""
-
-  def Initialize(self):
-    pass
 
   def GetRouterForUser(self, unused_username):
     return api_call_router_without_checks.ApiCallRouterWithoutChecks()

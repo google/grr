@@ -14,6 +14,8 @@ from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import user_managers
 from grr.lib.aff4_objects import users
@@ -25,7 +27,7 @@ from grr.lib.rdfvalues import client as rdf_client
 class GRRUserTest(test_lib.AFF4ObjectTest):
 
   def testUserPasswords(self):
-    with aff4.FACTORY.Create("aff4:/users/test", "GRRUser",
+    with aff4.FACTORY.Create("aff4:/users/test", users.GRRUser,
                              token=self.token) as user:
       user.SetPassword("hello")
 
@@ -35,7 +37,7 @@ class GRRUserTest(test_lib.AFF4ObjectTest):
     self.assertTrue(user.CheckPassword("hello"))
 
   def testLabels(self):
-    with aff4.FACTORY.Create("aff4:/users/test", "GRRUser",
+    with aff4.FACTORY.Create("aff4:/users/test", users.GRRUser,
                              token=self.token) as user:
       user.SetLabels("hello", "world", owner="GRR")
 
@@ -613,7 +615,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     super_token.supervisor = True
 
     # Make the user an admin user now, this time with the supervisor token.
-    with aff4.FACTORY.Create("aff4:/users/test", "GRRUser",
+    with aff4.FACTORY.Create("aff4:/users/test", users.GRRUser,
                              token=super_token) as fd:
 
       fd.SetLabels("admin", owner="GRR")
@@ -628,20 +630,21 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
 
     path = rdfvalue.RDFURN("aff4:/crashes")
 
-    crashes = aff4.FACTORY.Create(path, "RDFValueCollection", token=self.token)
+    crashes = aff4.FACTORY.Create(path, collects.RDFValueCollection,
+                                  token=self.token)
     self.assertRaises(access_control.UnauthorizedAccess, crashes.Close)
 
     # This shouldn't raise as we're using supervisor token.
-    crashes = aff4.FACTORY.Create(path, "RDFValueCollection",
+    crashes = aff4.FACTORY.Create(path, collects.RDFValueCollection,
                                   token=super_token)
     crashes.Close()
 
-    crashes = aff4.FACTORY.Open(path, aff4_type="RDFValueCollection",
+    crashes = aff4.FACTORY.Open(path, aff4_type=collects.RDFValueCollection,
                                 mode="rw", token=self.token)
     crashes.Set(crashes.Schema.DESCRIPTION("Some description"))
     self.assertRaises(access_control.UnauthorizedAccess, crashes.Close)
 
-    crashes = aff4.FACTORY.Open(path, aff4_type="RDFValueCollection",
+    crashes = aff4.FACTORY.Open(path, aff4_type=collects.RDFValueCollection,
                                 mode="r", token=self.token)
     crashes.Close()
 
@@ -830,11 +833,11 @@ class ClientApprovalByLabelTests(test_lib.GRRBaseTest):
     self.client_nolabel = rdf_client.ClientURN(client_ids[0])
     self.client_legal = rdf_client.ClientURN(client_ids[1])
     self.client_prod = rdf_client.ClientURN(client_ids[2])
-    with aff4.FACTORY.Open(self.client_legal, aff4_type="VFSGRRClient",
+    with aff4.FACTORY.Open(self.client_legal, aff4_type=aff4_grr.VFSGRRClient,
                            mode="rw", token=self.token) as client_obj:
       client_obj.AddLabels("legal_approval")
 
-    with aff4.FACTORY.Open(self.client_prod, aff4_type="VFSGRRClient",
+    with aff4.FACTORY.Open(self.client_prod, aff4_type=aff4_grr.VFSGRRClient,
                            mode="rw", token=self.token) as client_obj:
       client_obj.AddLabels("legal_approval", "prod_admin_approval")
 

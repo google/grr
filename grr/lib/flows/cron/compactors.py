@@ -56,7 +56,8 @@ class PackedVersionedCollectionCompactor(cronjobs.SystemCronFlow):
 
     try:
       with aff4.FACTORY.OpenWithLock(
-          urn, lease_time=lease_time, aff4_type="PackedVersionedCollection",
+          urn, lease_time=lease_time,
+          aff4_type=collects.PackedVersionedCollection,
           blocking=False, age=aff4.ALL_TIMES, token=self.token) as fd:
         num_compacted = fd.Compact(callback=self.HeartBeat)
         self.Log("Compacted %d items in %s", num_compacted, urn)

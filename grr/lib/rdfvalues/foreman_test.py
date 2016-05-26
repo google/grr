@@ -523,4 +523,3 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestCase):
     self.assertFalse(r.Evaluate(CollectAff4Objects(r.GetPathsToCheck(),
                                                    client_id, self.token),
                                 client_id))
-

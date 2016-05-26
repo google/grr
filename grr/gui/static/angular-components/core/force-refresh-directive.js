@@ -9,12 +9,10 @@ goog.scope(function() {
  * Controller for force-refresh directive.
  *
  * @param {!angular.Scope} $scope
- * @param {!angular.$timeout} $timeout
  * @constructor
  * @ngInject
  */
-grrUi.core.forceRefreshDirective.ForceRefreshController = function(
-    $scope, $timeout) {
+grrUi.core.forceRefreshDirective.ForceRefreshController = function($scope) {
 
   /** @private {!angular.Scope} */
   this.scope_ = $scope;

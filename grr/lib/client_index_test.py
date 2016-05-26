@@ -7,6 +7,7 @@ from grr.lib import client_index
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
 
 CLIENT_ID = "C.00aaeccbb45f33a3"
@@ -16,12 +17,12 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
 
   def testAnalyzeClient(self):
     index = aff4.FACTORY.Create("aff4:/client-index/",
-                                aff4_type="ClientIndex",
+                                aff4_type=client_index.ClientIndex,
                                 mode="rw",
                                 token=self.token)
     test_lib.ClientFixture("aff4:/" + CLIENT_ID, token=self.token)
     client = aff4.FACTORY.Create("aff4:/" + CLIENT_ID,
-                                 aff4_type="VFSGRRClient",
+                                 aff4_type=aff4_grr.VFSGRRClient,
                                  mode="rw",
                                  token=self.token)
     kb = rdf_client.KnowledgeBase()
@@ -58,13 +59,13 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
 
   def testAddLookupClients(self):
     index = aff4.FACTORY.Create("aff4:/client-index1/",
-                                aff4_type="ClientIndex",
+                                aff4_type=client_index.ClientIndex,
                                 mode="rw",
                                 token=self.token)
     client_urns = self.SetupClients(42)
     for urn in client_urns:
       client = aff4.FACTORY.Create(urn,
-                                   aff4_type="VFSGRRClient",
+                                   aff4_type=aff4_grr.VFSGRRClient,
                                    mode="r",
                                    token=self.token)
       index.AddClient(client)
@@ -119,7 +120,7 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
 
   def testAddTimestamp(self):
     index = aff4.FACTORY.Create("aff4:/client-index2/",
-                                aff4_type="ClientIndex",
+                                aff4_type=client_index.ClientIndex,
                                 mode="rw",
                                 token=self.token)
 
@@ -128,7 +129,7 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     with test_lib.FakeTime(1413807132):
       for urn in client_urns:
         client = aff4.FACTORY.Create(urn,
-                                     aff4_type="VFSGRRClient",
+                                     aff4_type=aff4_grr.VFSGRRClient,
                                      mode="r",
                                      token=self.token)
         index.AddClient(client)
@@ -148,7 +149,7 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
 
   def testUnversionedKeywords(self):
     index = aff4.FACTORY.Create("aff4:/client-index3/",
-                                aff4_type="ClientIndex",
+                                aff4_type=client_index.ClientIndex,
                                 mode="rw",
                                 token=self.token)
 
@@ -157,7 +158,7 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     with test_lib.FakeTime(1000000):
       for i in range(5):
         client = aff4.FACTORY.Create(client_urns[i],
-                                     aff4_type="VFSGRRClient",
+                                     aff4_type=aff4_grr.VFSGRRClient,
                                      mode="rw",
                                      token=self.token)
         client.Set(client.Schema.HOST_IPS("10.1.0.%d" % i))
@@ -167,7 +168,7 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     with test_lib.FakeTime(2000000):
       for i in range(5):
         client = aff4.FACTORY.Create(client_urns[i],
-                                     aff4_type="VFSGRRClient",
+                                     aff4_type=aff4_grr.VFSGRRClient,
                                      mode="rw",
                                      token=self.token)
         client.Set(client.Schema.HOST_IPS("10.1.1.%d" % i))
@@ -182,14 +183,14 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
 
   def testRemoveLabels(self):
     client = aff4.FACTORY.Create(CLIENT_ID,
-                                 aff4_type="VFSGRRClient",
+                                 aff4_type=aff4_grr.VFSGRRClient,
                                  mode="rw",
                                  token=self.token)
     client.AddLabels("testlabel_1", token=self.token)
     client.AddLabels("testlabel_2", token=self.token)
     client.Flush()
     index = aff4.FACTORY.Create("aff4:/client-index4/",
-                                aff4_type="ClientIndex",
+                                aff4_type=client_index.ClientIndex,
                                 mode="rw",
                                 token=self.token)
     index.AddClient(client)
@@ -214,14 +215,14 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
 
   def testBulkLabelClients(self):
     index = aff4.FACTORY.Create("aff4:/client-index4/",
-                                aff4_type="ClientIndex",
+                                aff4_type=client_index.ClientIndex,
                                 mode="rw",
                                 token=self.token)
 
     client_urns = self.SetupClients(2)
     for urn in client_urns:
       client = aff4.FACTORY.Create(urn,
-                                   aff4_type="VFSGRRClient",
+                                   aff4_type=aff4_grr.VFSGRRClient,
                                    mode="rw",
                                    token=self.token)
       client.AddLabels("test_client", token=self.token)

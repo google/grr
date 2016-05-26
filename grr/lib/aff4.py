@@ -125,10 +125,10 @@ class DeletionPool(object):
       self._objects_cache[key] = obj
 
     if (aff4_type is not None and
-        not isinstance(obj, AFF4Object.classes[aff4_type])):
+        not isinstance(obj, aff4_type)):
       raise InstantiationError(
           "Object %s is of type %s, but required_type is %s" % (
-              urn, obj.__class__.__name__, aff4_type))
+              urn, obj.__class__.__name__, aff4_type.__name__))
 
     return obj
 
@@ -153,10 +153,12 @@ class DeletionPool(object):
         key = self._ObjectKey(obj.urn, mode)
         self._objects_cache[key] = obj
 
+    aff4_type = _ValidateAFF4Type(aff4_type)
     if aff4_type is not None:
+
       type_checked_result = []
       for obj in result:
-        if isinstance(obj, AFF4Object.classes[aff4_type]):
+        if isinstance(obj, aff4_type):
           type_checked_result.append(obj)
 
       return type_checked_result
@@ -266,6 +268,25 @@ class DeletionPool(object):
   def urns_for_deletion(self):
     """Urns marked for deletion."""
     return self._urns_for_deletion
+
+
+def _ValidateAFF4Type(aff4_type):
+  """Validates and normalizes aff4_type to class object."""
+  if aff4_type is None:
+    return None
+
+  # TODO(user): remove this
+  if isinstance(aff4_type, basestring) or isinstance(aff4_type,
+                                                     rdfvalue.RDFString):
+    return AFF4Object.classes[str(aff4_type)]
+
+  # Check that we have the right type.
+  if not isinstance(aff4_type, type):
+    raise InstantiationError("aff4_type=%s must be a type" % aff4_type)
+  if not issubclass(aff4_type, AFF4Object):
+    raise InstantiationError("aff4_type=%s must be a subclass of AFF4Object."
+                             % aff4_type)
+  return aff4_type
 
 
 class Factory(object):
@@ -656,6 +677,8 @@ class Factory(object):
       IOError: If the object is not of the required type.
       AttributeError: If the requested mode is incorrect.
     """
+    aff4_type = _ValidateAFF4Type(aff4_type)
+
     if mode not in ["w", "r", "rw"]:
       raise AttributeError("Invalid mode %s" % mode)
 
@@ -687,21 +710,26 @@ class Factory(object):
     # some data in the local_cache already for this object.
     result = AFF4Object(urn, mode=mode, token=token, local_cache=local_cache,
                         age=age, follow_symlinks=follow_symlinks,
-                        aff4_type=aff4_type,
                         object_exists=bool(local_cache.get(urn)),
                         transaction=transaction)
+
+    result.aff4_type = aff4_type
 
     # Now we have a AFF4Object, turn it into the type it is currently supposed
     # to be as specified by Schema.TYPE.
     existing_type = result.Get(result.Schema.TYPE, default="AFF4Volume")
     if existing_type:
-      result = result.Upgrade(existing_type)
+      try:
+        result = result.Upgrade(AFF4Object.classes[existing_type])
+      except KeyError:
+        raise InstantiationError("Unable to open %s, type %s unknown." %
+                                 (urn, existing_type))
 
     if (aff4_type is not None and
-        not isinstance(result, AFF4Object.classes[aff4_type])):
+        not isinstance(result, aff4_type)):
       raise InstantiationError(
           "Object %s is of type %s, but required_type is %s" % (
-              urn, result.__class__.__name__, aff4_type))
+              urn, result.__class__.__name__, aff4_type.__name__))
 
     return result
 
@@ -716,6 +744,9 @@ class Factory(object):
       raise RuntimeError("Invalid mode %s" % mode)
 
     symlinks = {}
+
+    aff4_type = _ValidateAFF4Type(aff4_type)
+
     for urn, values in self.GetAttributes(urns, token=token, age=age):
       try:
         obj = self.Open(urn, mode=mode, ignore_cache=ignore_cache, token=token,
@@ -732,7 +763,7 @@ class Factory(object):
           if target is not None:
             symlinks[target] = obj.urn
         elif aff4_type:
-          if isinstance(obj, AFF4Object.classes[aff4_type]):
+          if isinstance(obj, aff4_type):
             yield obj
         else:
           yield obj
@@ -881,6 +912,8 @@ class Factory(object):
     if urn is not None:
       urn = rdfvalue.RDFURN(urn)
 
+    aff4_type = _ValidateAFF4Type(aff4_type)
+
     if "r" in mode:
       # Check to see if an object already exists.
       try:
@@ -894,19 +927,19 @@ class Factory(object):
         # type mismatch. We set it like this so BadGetAttributeError checking
         # works.
         if aff4_type:
-          result.aff4_type = aff4_type
+          result.aff4_type = aff4_type.__name__
 
-        if force_new_version and existing.Get(result.Schema.TYPE) != aff4_type:
+        if force_new_version and existing.Get(
+            result.Schema.TYPE) != aff4_type.__name__:
           result.ForceNewVersion()
         return result
       except IOError:
         pass
 
-    # Object does not exist, just make it.
-    cls = AFF4Object.classes[str(aff4_type)]
-    result = cls(urn, mode=mode, token=token, age=age, aff4_type=aff4_type,
-                 object_exists=object_exists, mutation_pool=mutation_pool,
-                 transaction=transaction)
+    result = aff4_type(urn, mode=mode, token=token, age=age,
+                       aff4_type=aff4_type.__name__,
+                       object_exists=object_exists, mutation_pool=mutation_pool,
+                       transaction=transaction)
     result.Initialize()
     if force_new_version:
       result.ForceNewVersion()
@@ -1497,7 +1530,7 @@ class AFF4Object(object):
       """Init.
 
       Args:
-        aff4_type: aff4 type string e.g. "VFSGRRClient" if specified by the user
+        aff4_type: aff4 type string e.g. 'VFSGRRClient' if specified by the user
           when the aff4 object was created. Or None.
       """
       self.aff4_type = aff4_type
@@ -2045,17 +2078,22 @@ class AFF4Object(object):
        attributes.
        InstantiationError: When we cannot instantiate the object type class.
     """
+
+    aff4_class = _ValidateAFF4Type(aff4_class)
+
     # We are already of the required type
-    if self.__class__.__name__ == aff4_class:
+    if self.__class__ == aff4_class:
       return self
 
-    # Instantiate the right type
-    cls = self.classes.get(str(aff4_class))
-    if cls is None:
-      raise InstantiationError("Could not instantiate %s" % aff4_class)
+    # Check that we have the right type.
+    if not isinstance(aff4_class, type):
+      raise InstantiationError("aff4_class=%s must be a type" % aff4_class)
+    if not issubclass(aff4_class, AFF4Object):
+      raise InstantiationError("aff4_class=%s must be a subclass of AFF4Object."
+                               % aff4_class)
 
     # It's not allowed to downgrade the object
-    if isinstance(self, cls):
+    if isinstance(self, aff4_class):
       # TODO(user): check what we should do here:
       #                 1) Nothing
       #                 2) raise
@@ -2072,11 +2110,17 @@ class AFF4Object(object):
     # context of the new object.
 
     # Instantiate the class
-    result = cls(self.urn, mode=self.mode, clone=self, parent=self.parent,
-                 token=self.token, age=self.age_policy,
-                 object_exists=self.object_exists,
-                 follow_symlinks=self.follow_symlinks, aff4_type=self.aff4_type,
-                 mutation_pool=self.mutation_pool, transaction=self.transaction)
+    result = aff4_class(self.urn,
+                        mode=self.mode,
+                        clone=self,
+                        parent=self.parent,
+                        token=self.token,
+                        age=self.age_policy,
+                        object_exists=self.object_exists,
+                        follow_symlinks=self.follow_symlinks,
+                        aff4_type=self.aff4_type,
+                        mutation_pool=self.mutation_pool,
+                        transaction=self.transaction)
     result.symlink_urn = self.urn
     result.Initialize()
 
@@ -2174,6 +2218,8 @@ class AFF4Object(object):
 # where they are defined. This allows us to decouple the place of definition of
 # a class (which might be in a plugin) from its use which will reference this
 # module.
+#
+# TODO(user): Remove this.
 AFF4Object.classes = globals()
 
 
@@ -3045,12 +3091,12 @@ class AFF4ImageBase(AFF4Stream):
 
 class AFF4Image(AFF4ImageBase):
   """An AFF4 Image containing a versioned stream."""
-  STREAM_TYPE = "AFF4MemoryStream"
+  STREAM_TYPE = AFF4MemoryStream
 
 
 class AFF4UnversionedImage(AFF4ImageBase):
   """An AFF4 Image containing an unversioned stream."""
-  STREAM_TYPE = "AFF4UnversionedMemoryStream"
+  STREAM_TYPE = AFF4UnversionedMemoryStream
 
 
 # Utility functions

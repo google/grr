@@ -24,8 +24,10 @@ from grr.lib import registry
 from grr.lib import rendering
 from grr.lib import stats
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import reports
+from grr.lib.hunts import implementation
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -44,7 +46,7 @@ class ClientCrashEventListener(flow.EventListener):
 
   def _AppendCrashDetails(self, path, crash_details):
     collection = aff4.FACTORY.Create(
-        path, "PackedVersionedCollection", mode="rw", token=self.token)
+        path, collects.PackedVersionedCollection, mode="rw", token=self.token)
 
     collection.Add(crash_details)
     collection.Close(sync=False)
@@ -57,7 +59,7 @@ class ClientCrashEventListener(flow.EventListener):
   def WriteAllCrashDetails(self, client_id, crash_details,
                            flow_session_id=None, hunt_session_id=None):
     # Update last crash attribute of the client.
-    client_obj = aff4.FACTORY.Create(client_id, "VFSGRRClient",
+    client_obj = aff4.FACTORY.Create(client_id, aff4_grr.VFSGRRClient,
                                      token=self.token)
     client_obj.Set(client_obj.Schema.LAST_CRASH(crash_details))
     client_obj.Close(sync=False)
@@ -68,7 +70,7 @@ class ClientCrashEventListener(flow.EventListener):
     self._AppendCrashDetails(aff4.ROOT_URN.Add("crashes"), crash_details)
 
     if flow_session_id:
-      aff4_flow = aff4.FACTORY.Open(flow_session_id, "GRRFlow", mode="rw",
+      aff4_flow = aff4.FACTORY.Open(flow_session_id, flow.GRRFlow, mode="rw",
                                     age=aff4.NEWEST_TIME, token=self.token)
 
       aff4_flow.Set(aff4_flow.Schema.CLIENT_CRASH(crash_details))
@@ -663,7 +665,8 @@ P.S. The state of the failing flow was:
     try:
       hunt_session_id = self._ExtractHuntId(message.session_id)
       if hunt_session_id and hunt_session_id != message.session_id:
-        hunt_obj = aff4.FACTORY.Open(hunt_session_id, aff4_type="GRRHunt",
+        hunt_obj = aff4.FACTORY.Open(hunt_session_id,
+                                     aff4_type=implementation.GRRHunt,
                                      token=self.token)
         email = hunt_obj.GetRunner().args.crash_alert_email
         if email:
@@ -727,7 +730,7 @@ class ClientStartupHandler(flow.EventListener):
 
     client_id = message.source
 
-    client = aff4.FACTORY.Create(client_id, "VFSGRRClient", mode="rw",
+    client = aff4.FACTORY.Create(client_id, aff4_grr.VFSGRRClient, mode="rw",
                                  token=self.token)
     old_info = client.Get(client.Schema.CLIENT_INFO)
     old_boot = client.Get(client.Schema.LAST_BOOT_TIME, 0)

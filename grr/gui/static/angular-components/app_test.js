@@ -1,12 +1,14 @@
 goog.provide('grrUi.tests.browserTrigger');
 goog.provide('grrUi.tests.module');
 goog.provide('grrUi.tests.stubDirective');
+goog.provide('grrUi.tests.stubTranscludeDirective');
+goog.provide('grrUi.tests.stubUiTrait');
 
 
 /**
  * Module required to run GRR javascript tests in Karma.
  */
-grrUi.tests.module = angular.module('grrUi.tests', []);
+grrUi.tests.module = angular.module('grrUi.tests', ['ng']);
 
 grrUi.tests.module.config(function($interpolateProvider) {
   $interpolateProvider.startSymbol('{$');
@@ -100,13 +102,99 @@ grrUi.tests.stubDirective = function(directiveName) {
   var moduleName = 'test.directives.stubs.' + directiveStubCounter;
   directiveStubCounter += 1;
 
-  angular.module(moduleName, []).directive(directiveName,
-                                           function() {
-                                             return {
-                                               priority: 100000,
-                                               terminal: true
-                                             };
-                                           });
+  angular.module(moduleName, []).directive(
+      directiveName,
+      function() {
+        return {
+          priority: 100000 + directiveStubCounter,
+          terminal: true
+        };
+      });
 
   beforeEach(module(moduleName));
+};
+
+
+/**
+ * Stub out a transclude directive.
+ *
+ * This function stubs the directive exactly as stubDirective does, but
+ * it declares the stub as a 'transclude' directive, thus rendering
+ * everything between the the stubbed directive tags. Useful when
+ * we need to stub directive "foo", but we care about the transcluded
+ * directive "bar":
+ * <foo>
+ *  <bar></bar>
+ * </foo>
+ *
+ * @param {string} directiveName
+ * @export
+ */
+grrUi.tests.stubTranscludeDirective = function(directiveName) {
+  var moduleName = 'test.directives.stubs.' + directiveStubCounter;
+  directiveStubCounter += 1;
+
+  angular.module(moduleName, []).directive(
+      directiveName,
+      function() {
+        return {
+          restrict: 'E',
+          scope: {},
+          transclude: true,
+          priority: 100000 + directiveStubCounter,
+          terminal: true,
+          link: function($scope, $element, $attrs, controller, $transclude) {
+            function ngTranscludeCloneAttachFn(clone) {
+              if (clone.length) {
+                $element.empty();
+                $element.append(clone);
+              }
+            }
+            $transclude(ngTranscludeCloneAttachFn, null, null);
+          }
+        };
+      });
+
+  beforeEach(module(moduleName));
+};
+
+
+/**
+ * Stub out a GRR UI trait (see grr-disable-if-no-trait directive).
+ *
+ * This function stubs out the trait, so that UI pieces that depend on this
+ * trait treat it as "enabled" in the test.
+ *
+ * @param {string} traitName
+ * @export
+ */
+grrUi.tests.stubUiTrait = function(traitName) {
+  beforeEach(inject(function($injector) {
+    $q = $injector.get('$q');
+    grrApiService = $injector.get('grrApiService');
+
+    var deferred = $q.defer();
+    var response = {
+      data: {
+        value: {
+          interface_traits: {
+            value: {}
+          }
+        }
+      }
+    };
+    response['data']['value']['interface_traits']['value'][traitName] = {
+      value: true
+    };
+    deferred.resolve(response);
+
+    var currentImpl = grrApiService.getCached;
+    spyOn(grrApiService, 'getCached').and.callFake(function(url, params) {
+      if (url == 'users/me') {
+        return deferred.promise;
+      } else {
+        return currentImpl(url, params);
+      }
+    });
+  }));
 };

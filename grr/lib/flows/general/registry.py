@@ -8,6 +8,8 @@ from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_utils
 from grr.lib import flow
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import standard
 # For ArtifactCollectorFlow pylint: disable=unused-import
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
@@ -171,9 +173,9 @@ class GetMRU(flow.GRRFlow):
           response.pathspec, self.client_id)
 
       if stat.S_ISDIR(response.st_mode):
-        obj_type = "VFSDirectory"
+        obj_type = standard.VFSDirectory
       else:
-        obj_type = "VFSFile"
+        obj_type = aff4_grr.VFSFile
 
       fd = aff4.FACTORY.Create(urn, obj_type, mode="w", token=self.token)
       fd.Set(fd.Schema.STAT(response))

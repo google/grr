@@ -12,7 +12,7 @@ class UsersTest(test_lib.AFF4ObjectTest):
     super(UsersTest, self).setUp()
 
     self.user = aff4.FACTORY.Create("aff4:/users/foo",
-                                    aff4_type="GRRUser",
+                                    aff4_type=users.GRRUser,
                                     mode="rw",
                                     token=self.token)
     self.user.Flush()
@@ -21,8 +21,9 @@ class UsersTest(test_lib.AFF4ObjectTest):
     self.assertFalse(self.user.GetPendingGlobalNotifications())
 
   def testNotificationIsReturnedWhenItIsSet(self):
-    with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
-                             aff4_type="GlobalNotificationStorage", mode="rw",
+    with aff4.FACTORY.Create(users.GlobalNotificationStorage.DEFAULT_PATH,
+                             aff4_type=users.GlobalNotificationStorage,
+                             mode="rw",
                              token=self.token) as storage:
       storage.AddNotification(users.GlobalNotification(
           type=users.GlobalNotification.Type.ERROR, header="foo",
@@ -36,8 +37,9 @@ class UsersTest(test_lib.AFF4ObjectTest):
 
   def testNotificationIsNotReturnedWhenItExpires(self):
     with test_lib.FakeTime(100):
-      with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
-                               aff4_type="GlobalNotificationStorage", mode="rw",
+      with aff4.FACTORY.Create(users.GlobalNotificationStorage.DEFAULT_PATH,
+                               aff4_type=users.GlobalNotificationStorage,
+                               mode="rw",
                                token=self.token) as storage:
         storage.AddNotification(users.GlobalNotification(
             type=users.GlobalNotification.Type.ERROR, header="foo",

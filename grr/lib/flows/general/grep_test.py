@@ -11,6 +11,7 @@ from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import grep
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -33,7 +34,7 @@ class TestSearchFileContentWithFixture(GrepTests):
 
     test_lib.client_fixture.VFS.append(
         (filename,
-         ("VFSFile",
+         (aff4_grr.VFSFile,
           {"aff4:stat": (
               "\n"
               "st_mode: 33261\n"
@@ -242,7 +243,7 @@ class TestSearchFileContent(GrepTests):
         rdfvalue.RDFURN(self.client_id).Add("/fs/os/").Add(
             self.base_path).Add("searching"),
         token=self.token).OpenChildren():
-      self.assertTrue(isinstance(log, aff4.VFSBlobImage))
+      self.assertTrue(isinstance(log, aff4_grr.VFSBlobImage))
       # Make sure there is some data.
       self.assertGreater(len(log), 0)
 

@@ -1,9 +1,27 @@
 'use strict';
 
 goog.provide('grrUi.core.apiService.ApiService');
+goog.provide('grrUi.core.apiService.encodeUrlPath');
 goog.provide('grrUi.core.apiService.stripTypeInfo');
 
 goog.scope(function() {
+
+
+/**
+ * URL-encodes url path (URL-encodes all non-allowed characters except
+ * for forward slashes ('/'). Must be used since user-provided data
+ * may be used as parts of urls (file paths, for example, are used
+ * in virtual file system URLs).
+ *
+ * @param {string} urlPath Source url path.
+ * @return {string} Encoded url path.
+ */
+grrUi.core.apiService.encodeUrlPath = function(urlPath) {
+  var components = urlPath.split('/');
+  var encodedComponents = components.map(encodeURIComponent);
+  return encodedComponents.join('/');
+};
+var encodeUrlPath = grrUi.core.apiService.encodeUrlPath;
 
 /**
  * Strips type information from a JSON-encoded RDFValue.
@@ -103,22 +121,28 @@ ApiService.service_name = 'grrApiService';
  * @param {string} method The HTTP method to use, e.g. HEAD, GET, etc.
  * @param {string} apiPath API path to trigger/
  * @param {Object<string, string>=} opt_params Query parameters.
+ * @param {Object<string, string>=} opt_requestSettings Request settings
+ *     (cache, etc).
  * @return {!angular.$q.Promise} Promise that resolves to the result.
  * @private
  */
-ApiService.prototype.sendRequest_ = function(method, apiPath, opt_params) {
+ApiService.prototype.sendRequest_ = function(method, apiPath, opt_params,
+                                             opt_requestSettings) {
   var requestParams = angular.extend({}, opt_params);
   if (grr.state.reason) {
     requestParams.reason = grr.state.reason;
   }
 
+  var requestSettings = angular.extend({}, opt_requestSettings);
+
   var loadingKey = this.grrLoadingIndicatorService_.startLoading();
-  var url = '/api/' + apiPath.replace(/^\//, '');
+  var url = encodeUrlPath('/api/' + apiPath.replace(/^\//, ''));
 
   var promise = /** @type {function(Object)} */ (this.http_)({
     method: method,
     url: url,
-    params: requestParams
+    params: requestParams,
+    cache: requestSettings['cache']
   });
 
   return promise.finally(function() {
@@ -149,6 +173,17 @@ ApiService.prototype.get = function(apiPath, opt_params) {
 };
 
 /**
+ * Fetches data for a given API url via HTTP GET method.
+ *
+ * @param {string} apiPath API path to trigger/
+ * @param {Object<string, string>=} opt_params Query parameters.
+ * @return {!angular.$q.Promise} Promise that resolves to the result.
+ */
+ApiService.prototype.getCached = function(apiPath, opt_params) {
+  return this.sendRequest_("GET", apiPath, opt_params, {cache: true});
+};
+
+/**
  * Deletes the resource behind a given API url via HTTP DELETE method.
  *
  * @param {string} apiPath API path to trigger/
@@ -168,7 +203,7 @@ ApiService.prototype.delete = function(apiPath, opt_params) {
  */
 ApiService.prototype.downloadFile = function(apiPath, opt_params) {
   var requestParams = angular.extend({}, opt_params);
-  var url = '/api/' + apiPath.replace(/^\//, '');
+  var url = encodeUrlPath('/api/' + apiPath.replace(/^\//, ''));
 
   // Using HEAD to check that there are no ACL issues when accessing url
   // in question.
@@ -259,7 +294,7 @@ ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
   if (angular.equals(opt_files || {}, {})) {
     request = {
       method: 'POST',
-      url: '/api/' + apiPath.replace(/^\//, ''),
+      url: encodeUrlPath('/api/' + apiPath.replace(/^\//, '')),
       data: opt_params,
       headers: {}
     };
@@ -272,7 +307,7 @@ ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
 
     request = {
       method: 'POST',
-      url: '/api/' + apiPath.replace(/^\//, ''),
+      url: encodeUrlPath('/api/' + apiPath.replace(/^\//, '')),
       data: fd,
       transformRequest: angular.identity,
       headers: {

@@ -51,7 +51,7 @@ function install_python_deps() {
   # an sdist and install that.
   # https://github.com/google/grr/issues/373
   cd /grr
-  python setup.py sdist --dist-dir="${BUILDDIR}/core" --no-make-docs
+  python setup.py sdist --dist-dir="${BUILDDIR}/core" --no-make-docs --no-sync-artifacts
   cd -
   cd /grr/grr/config/grr-response-client/
   python setup.py sdist --dist-dir="${BUILDDIR}/client"

@@ -540,7 +540,7 @@ class FileStoreFileTypes(PieChart):
   title = "Filetypes stored in filestore."
   description = ""
   category = "/FileStore/FileTypes"
-  attribute = aff4.FilestoreStats.SchemaCls.FILESTORE_FILETYPES
+  attribute = aff4_stats.FilestoreStats.SchemaCls.FILESTORE_FILETYPES
 
   def Layout(self, request, response):
     """Extract only the operating system type from the active histogram."""
@@ -562,7 +562,7 @@ class FileStoreSizeFileTypes(FileStoreFileTypes):
   title = "Total filesize in GB of files in the filestore by type."
   description = ""
   category = "/FileStore/TotalFileSize"
-  attribute = aff4.FilestoreStats.SchemaCls.FILESTORE_FILETYPES_SIZE
+  attribute = aff4_stats.FilestoreStats.SchemaCls.FILESTORE_FILETYPES_SIZE
 
 
 def SizeToReadableString(filesize):
@@ -586,7 +586,7 @@ class FileStoreFileSizes(LogXAxisChart):
   description = "X: log10 (filesize), Y: Number of files"
   category = "/FileStore/FileSizeDistribution"
   data_urn = "aff4:/stats/FileStoreStats"
-  attribute = aff4.FilestoreStats.SchemaCls.FILESTORE_FILESIZE_HISTOGRAM
+  attribute = aff4_stats.FilestoreStats.SchemaCls.FILESTORE_FILESIZE_HISTOGRAM
 
   def FormatLabel(self, value):
     return SizeToReadableString(value)
@@ -598,4 +598,5 @@ class FileClientCount(CustomXAxisChart):
                  " clients, Y: number of files.")
   category = "/FileStore/ClientCounts"
   data_urn = "aff4:/stats/FileStoreStats"
-  attribute = aff4.FilestoreStats.SchemaCls.FILESTORE_CLIENTCOUNT_HISTOGRAM
+  attribute = (
+      aff4_stats.FilestoreStats.SchemaCls.FILESTORE_CLIENTCOUNT_HISTOGRAM)

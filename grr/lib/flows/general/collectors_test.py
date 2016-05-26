@@ -18,6 +18,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import collects
 # pylint: disable=unused-import
 from grr.lib.flows.general import artifact_fallbacks
 from grr.lib.flows.general import collectors
@@ -251,21 +252,21 @@ class TestArtifactCollectors(CollectorTest):
         conditions=["os == 'Windows'"])
     self.fakeartifact.sources.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-    self.assertEqual(fd.__class__.__name__, "AFF4Volume")
+    self.assertEqual(fd.__class__, aff4.AFF4Volume)
 
     # Now run with matching or condition.
     coll1.conditions = ["os == 'Linux' or os == 'Windows'"]
     self.fakeartifact.sources = []
     self.fakeartifact.sources.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-    self.assertEqual(fd.__class__.__name__, "RDFValueCollection")
+    self.assertEqual(fd.__class__, collects.RDFValueCollection)
 
     # Now run with impossible or condition.
     coll1.conditions.append("os == 'NotTrue'")
     self.fakeartifact.sources = []
     self.fakeartifact.sources.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-    self.assertEqual(fd.__class__.__name__, "AFF4Volume")
+    self.assertEqual(fd.__class__, aff4.AFF4Volume)
 
   def testRegistryValueArtifact(self):
     with test_lib.VFSOverrider(
@@ -330,7 +331,7 @@ class TestArtifactCollectors(CollectorTest):
         attributes={"client_action": "ListProcesses"}, supported_os=["Windows"])
     self.fakeartifact.sources.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-    self.assertEqual(fd.__class__.__name__, "AFF4Volume")
+    self.assertEqual(fd.__class__, aff4.AFF4Volume)
 
     # Now run with matching or condition.
     coll1.conditions = []
@@ -338,7 +339,7 @@ class TestArtifactCollectors(CollectorTest):
     self.fakeartifact.sources = []
     self.fakeartifact.sources.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-    self.assertEqual(fd.__class__.__name__, "RDFValueCollection")
+    self.assertEqual(fd.__class__, collects.RDFValueCollection)
 
     # Now run with impossible or condition.
     coll1.conditions = ["os == 'Linux' or os == 'Windows'"]
@@ -346,7 +347,7 @@ class TestArtifactCollectors(CollectorTest):
     self.fakeartifact.sources = []
     self.fakeartifact.sources.append(coll1)
     fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-    self.assertEqual(fd.__class__.__name__, "AFF4Volume")
+    self.assertEqual(fd.__class__, aff4.AFF4Volume)
 
   def _RunClientActionArtifact(self, client_mock, artifact_list):
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
@@ -411,7 +412,8 @@ supported_os: [ "Linux" ]
     for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(
         cmd_artifact):
       with aff4.FACTORY.Open("aff4:/artifact_store",
-                             aff4_type="RDFValueCollection", token=self.token,
+                             aff4_type=collects.RDFValueCollection,
+                             token=self.token,
                              mode="rw") as artifact_coll:
         artifact_coll.Add(artifact_val)
 
@@ -714,7 +716,7 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
 
     try:
       results_fd = aff4.FACTORY.Open(self.client_id.Add(self.output_path),
-                                     aff4_type="RDFValueCollection",
+                                     aff4_type=collects.RDFValueCollection,
                                      token=self.token)
       return list(results_fd)
     except aff4.InstantiationError:

@@ -29,9 +29,17 @@ describe('User label directive', function() {
   };
 
   var mockApiServiceReponse = function(value){
-    spyOn(grrApiService, 'get').and.callFake(function() {
+    spyOn(grrApiService, 'getCached').and.callFake(function() {
       var deferred = $q.defer();
-      deferred.resolve({ data: { username: value }});
+      deferred.resolve({
+        data: {
+          value: {
+            username: {
+              value: value
+            }
+          }
+        }
+      });
       return deferred.promise;
     });
   }
@@ -39,7 +47,7 @@ describe('User label directive', function() {
   it('fetches username and shows it', function() {
     var mockUserName = 'Test Username';
     var element = render(mockUserName);
-    expect(grrApiService.get).toHaveBeenCalled();
+    expect(grrApiService.getCached).toHaveBeenCalled();
     expect(element.text().trim()).toBe("User: " + mockUserName);
   });
 });

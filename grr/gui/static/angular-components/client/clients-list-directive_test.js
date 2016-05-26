@@ -2,6 +2,7 @@
 
 goog.require('grrUi.client.module');
 goog.require('grrUi.tests.module');
+goog.require('grrUi.tests.stubDirective');
 
 describe('clients list', function() {
   var $q, $compile, $rootScope, $interval, grrApiService, grrRoutingService;
@@ -13,6 +14,7 @@ describe('clients list', function() {
 
   grrUi.tests.stubDirective('grrClientStatusIcons');
   grrUi.tests.stubDirective('grrSemanticValue');
+  grrUi.tests.stubDirective('grrDisableIfNoTrait');
 
   beforeEach(inject(function($injector) {
     $q = $injector.get('$q');

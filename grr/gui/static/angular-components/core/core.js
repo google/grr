@@ -12,6 +12,7 @@ goog.require('grrUi.core.bytesToHexFilter.BytesToHexFilter');
 goog.require('grrUi.core.clockDirective.ClockDirective');
 goog.require('grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective');
 goog.require('grrUi.core.dialogService.DialogService');
+goog.require('grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective');
 goog.require('grrUi.core.downloadCollectionFilesDirective.DownloadCollectionFilesDirective');
 goog.require('grrUi.core.encodeUriComponentFilter.EncodeUriComponentFilter');
 goog.require('grrUi.core.forceRefreshDirective.ForceRefreshDirective');
@@ -26,6 +27,7 @@ goog.require('grrUi.core.onScrollIntoViewDirective.OnScrollIntoViewDirective');
 goog.require('grrUi.core.pagedFilteredTableDirective.PagedFilteredTableDirective');
 goog.require('grrUi.core.pagedFilteredTableDirective.TableBottomDirective');
 goog.require('grrUi.core.pagedFilteredTableDirective.TableTopDirective');
+goog.require('grrUi.core.periodicRefreshDirective.PeriodicRefreshDirective');
 goog.require('grrUi.core.reflectionService.ReflectionService');
 goog.require('grrUi.core.resultsCollectionDirective.ResultsCollectionDirective');
 goog.require('grrUi.core.searchBoxDirective.SearchBoxDirective');
@@ -95,6 +97,9 @@ grrUi.core.module.directive(
     grrUi.core.pagedFilteredTableDirective.TableBottomDirective.directive_name,
     grrUi.core.pagedFilteredTableDirective.TableBottomDirective);
 grrUi.core.module.directive(
+    grrUi.core.periodicRefreshDirective.PeriodicRefreshDirective.directive_name,
+    grrUi.core.periodicRefreshDirective.PeriodicRefreshDirective);
+grrUi.core.module.directive(
     grrUi.core.infiniteTableDirective.InfiniteTableDirective.directive_name,
     grrUi.core.infiniteTableDirective.InfiniteTableDirective);
 grrUi.core.module.service(
@@ -127,6 +132,9 @@ grrUi.core.module.directive(
 grrUi.core.module.directive(
     grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective.directive_name,
     grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective);
+grrUi.core.module.directive(
+    grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective.directive_name,
+    grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective);
 grrUi.core.module.directive(
     grrUi.core.searchBoxDirective.SearchBoxDirective.directive_name,
     grrUi.core.searchBoxDirective.SearchBoxDirective);

@@ -17,7 +17,7 @@ class TimelineTest(test_lib.AFF4ObjectTest):
     """Check that timeseries sort events by timestamps."""
     path = "/C.1/time series 1"
 
-    fd = aff4.FACTORY.Create(path, "GRRTimeSeries", token=self.token)
+    fd = aff4.FACTORY.Create(path, timeline.GRRTimeSeries, token=self.token)
 
     # Make up some random events in random time order.
     now = int(time.time() * 1000000)
@@ -47,7 +47,7 @@ class TimelineTest(test_lib.AFF4ObjectTest):
     """Check that we can filter by query string."""
     path = "/C.1/time series 2"
 
-    fd = aff4.FACTORY.Create(path, "GRRTimeSeries", token=self.token)
+    fd = aff4.FACTORY.Create(path, timeline.GRRTimeSeries, token=self.token)
     times = [1321533293629468, 1321633293629468, 1321733293629468]
     for t in times:
       event = timeline.Event(timestamp=t)

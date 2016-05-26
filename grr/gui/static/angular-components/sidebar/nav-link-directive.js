@@ -30,8 +30,14 @@ grrUi.sidebar.navLinkDirective.NavLinkController = function(
   /** @type {grrUi.sidebar.navDropdownDirective.NavDropdownController} */
   this.navDropdownController;
 
-  /** @type {!boolean} */
+  /** @type {boolean} */
   this.isActive = false;
+
+  /** @type {string} */
+  this.href;
+
+  this.scope_.$watchGroup(['state', 'params'],
+                          this.onStateOrParamsChange_.bind(this));
 
   this.grrRoutingService_.onStateChange(this.scope_,
       this.applyActiveState_.bind(this));
@@ -39,6 +45,16 @@ grrUi.sidebar.navLinkDirective.NavLinkController = function(
 
 var NavLinkController =
     grrUi.sidebar.navLinkDirective.NavLinkController;
+
+
+
+NavLinkController.prototype.onStateOrParamsChange_ = function() {
+  this.href = '#';
+  if (angular.isDefined(this.scope_['state'])) {
+    this.href = this.grrRoutingService_.href(this.scope_['state'],
+                                             this.scope_['params']);
+  }
+};
 
 
 /**

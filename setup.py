@@ -23,12 +23,13 @@ def find_data_files(source):
   return result
 
 
-def run_make_files(make_docs=False):
+def run_make_files(make_docs=False, sync_artifacts=True):
   # Compile the protobufs.
   subprocess.check_call(["python", "makefile.py"])
 
-  # Sync the artifact repo with upstream for distribution.
-  subprocess.check_call(["python", "makefile.py"], cwd="grr/artifacts")
+  if sync_artifacts:
+    # Sync the artifact repo with upstream for distribution.
+    subprocess.check_call(["python", "makefile.py"], cwd="grr/artifacts")
 
   if make_docs:
     # Download the docs so they are available offline.
@@ -55,14 +56,19 @@ class Sdist(sdist):
   user_options = sdist.user_options + [
       ("no-make-docs", None,
        "Don't build ascii docs when building the sdist."),
+      ("no-sync-artifacts", None,
+       "Don't sync the artifact repo. This is unnecessary for "
+       "clients and old client build OSes can't make the SSL connection."),
   ]
 
   def initialize_options(self):
     self.no_make_docs = None
+    self.no_sync_artifacts = None
     sdist.initialize_options(self)
 
   def run(self):
-    run_make_files(make_docs=not self.no_make_docs)
+    run_make_files(make_docs=not self.no_make_docs,
+                   sync_artifacts=not self.no_sync_artifacts)
     sdist.run(self)
 
 
@@ -107,7 +113,16 @@ data_files = (find_data_files("docs") +
               find_data_files("grr/artifacts") +
               find_data_files("grr/checks") +
               find_data_files("grr/gui/static") +
-              find_data_files("grr/gui/local/static"))
+              find_data_files("grr/gui/local/static") +
+              ["version.ini"])
+
+
+if "VIRTUAL_ENV" not in os.environ:
+  print "*****************************************************"
+  print "  WARNING: You are not installing in a virtual"
+  print "  environment. This configuration is not supported!!!"
+  print "  Expect breakage."
+  print "*****************************************************"
 
 
 setup_args = dict(

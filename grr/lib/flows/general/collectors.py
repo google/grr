@@ -13,6 +13,7 @@ from grr.lib import flow
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import collects
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import filesystem
 # For AnalyzeClientMemory. pylint: disable=unused-import
@@ -666,7 +667,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     """Write anomalies to the client in the data store."""
     if not self.state.client_anomaly_store:
       self.state.client_anomaly_store = aff4.FACTORY.Create(
-          self.client_id.Add("anomalies"), "RDFValueCollection",
+          self.client_id.Add("anomalies"), collects.RDFValueCollection,
           token=self.token, mode="rw")
     self.state.client_anomaly_store.Add(anomaly_value)
 
@@ -730,7 +731,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         # so they are visible in the GUI
         urn = "_".join((str(self.runner.output.urn),
                         utils.SmartStr(artifact_name)))
-        collection = aff4.FACTORY.Create(urn, "RDFValueCollection", mode="rw",
+        collection = aff4.FACTORY.Create(urn, collects.RDFValueCollection,
+                                         mode="rw",
                                          token=self.token)
         # Cache the opened object.
         output_collection_map[artifact_name] = collection

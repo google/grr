@@ -11,9 +11,16 @@
     Access reason: {$ controller.approvalReason $}
   </div>
   <div class="client-status">
-    Status:
-    <grr-client-status-icons client="client"></grr-client-status-icons>
-    {$ (client.value.last_seen_at.value | grrTimeSince) $}
+    <!-- Output of the directives below depends on the current time (as
+         they depend on the time *passed since* the time the client was last
+         active. We have to refresh them every second, as Angular won't
+         detect the changes automatically (since source value - last_seen_at -
+         stays the same). -->
+    <grr-periodic-refresh interval="1000">
+      Status:
+      <grr-client-status-icons client="client"></grr-client-status-icons>
+      {$ (client.value.last_seen_at.value | grrTimeSince) $}
+    </grr-periodic-refresh>
   </div>
   <span ng-if="controller.crashTime != null" class="last-crash">
     <strong>Last crash:</strong><br/>

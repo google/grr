@@ -20,6 +20,13 @@ describe('rewriteUrl()', function() {
   mapping['main=ManageHuntsClientView'] = '/hunt-details/';
   mapping['main=ManageHuntsClientView&hunt_id=aff4:/hunts/H:123456'] = '/hunt-details/H:123456';
 
+  // Virtual File System.
+  mapping['main=VirtualFileSystemView&c=C.dc1a70ddaaba407a&tag=AFF4Stats' +
+      '&t=_fs-tsk-_5C_5C_3F_5CVolume_7B649ac6fa_2D9ab4_' +
+      '2D11e5_2Db332_2D806e6f6e6963_7D'] = '/clients/C.dc1a70ddaaba407a/vfs' +
+      '?folder=_fs-tsk-_5C_5C_3F_5CVolume_7B649ac6fa_2D9ab4_' +
+      '2D11e5_2Db332_2D806e6f6e6963_7D';
+
   // Statistics.
   mapping['main=ShowStatistics'] = '/stats?selection=';
   mapping['main=ShowStatistics&t=test'] = '/stats?selection=test';

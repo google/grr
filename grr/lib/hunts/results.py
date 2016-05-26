@@ -66,7 +66,7 @@ class HuntResultQueue(aff4_queue.Queue):
     f = CollectionFilter(collection)
     results = []
     with aff4.FACTORY.OpenWithLock(RESULT_NOTIFICATION_QUEUE,
-                                   aff4_type="HuntResultQueue",
+                                   aff4_type=HuntResultQueue,
                                    lease_time=300,
                                    blocking=True,
                                    blocking_sleep_interval=15,
@@ -83,7 +83,7 @@ class HuntResultQueue(aff4_queue.Queue):
   def DeleteNotifications(cls, record_ids, token=None):
     """Delete hunt notifications."""
     with aff4.FACTORY.Open(RESULT_NOTIFICATION_QUEUE,
-                           aff4_type="HuntResultQueue",
+                           aff4_type=HuntResultQueue,
                            token=token) as queue:
       queue.DeleteRecords(record_ids)
 
@@ -125,7 +125,7 @@ class ResultQueueInitHook(registry.InitHook):
   def Run(self):
     try:
       with aff4.FACTORY.Create(RESULT_NOTIFICATION_QUEUE,
-                               "HuntResultQueue",
+                               HuntResultQueue,
                                mode="w",
                                token=aff4.FACTORY.root_token):
         pass

@@ -4,7 +4,6 @@
 import functools
 
 from grr.gui import api_call_handler_base
-from grr.gui import api_value_renderers
 
 from grr.gui.api_plugins import client as api_client
 from grr.gui.api_plugins import cron as api_cron
@@ -34,6 +33,20 @@ CATEGORY = "User"
 class GlobalNotificationNotFoundError(
     api_call_handler_base.ResourceNotFoundError):
   """Raised when a specific global notification could not be found."""
+
+
+class ApiGrrUserInterfaceTraits(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGrrUserInterfaceTraits
+
+  def EnableAll(self):
+    for type_descriptor in self.type_infos:
+      self.Set(type_descriptor.name, True)
+
+    return self
+
+
+class ApiGrrUser(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGrrUser
 
 
 def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
@@ -369,57 +382,54 @@ class ApiListUserCronApprovalsHandler(ApiListUserApprovalsHandlerBase):
                                     self._ApprovalToApiApproval))
 
 
-class ApiGetUserSettingsHandler(api_call_handler_base.ApiCallHandler):
+class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
   """Renders current user settings."""
 
   category = CATEGORY
 
-  def GetUserSettings(self, token):
+  result_type = ApiGrrUser
+  strip_json_root_fields_types = False
+
+  def __init__(self, interface_traits=None):
+    super(ApiGetGrrUserHandler, self).__init__()
+    self.interface_traits = interface_traits
+
+  def Handle(self, unused_args, token=None):
+    """Fetches and renders current user's settings."""
+
+    result = ApiGrrUser(username=token.username)
+
     try:
       user_record = aff4.FACTORY.Open(
           aff4.ROOT_URN.Add("users").Add(token.username), "GRRUser",
           token=token)
 
-      return user_record.Get(user_record.Schema.GUI_SETTINGS)
+      result.settings = user_record.Get(user_record.Schema.GUI_SETTINGS)
     except IOError:
-      return aff4.GRRUser.SchemaCls.GUI_SETTINGS()
+      result.settings = aff4.GRRUser.SchemaCls.GUI_SETTINGS()
 
-  def Render(self, unused_args, token=None):
-    """Fetches and renders current user's settings."""
+    result.interface_traits = (self.interface_traits or
+                               ApiGrrUserInterfaceTraits())
 
-    user_settings = self.GetUserSettings(token)
-    return api_value_renderers.RenderValue(user_settings)
+    return result
 
 
-class ApiUpdateUserSettingsHandler(api_call_handler_base.ApiCallHandler):
+class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
   """Sets current user settings."""
 
   category = CATEGORY
-  args_type = aff4_users.GUISettings
-  privileged = True
 
-  def Render(self, args, token=None):
-    with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type="GRRUser", mode="w",
-        token=token) as user_fd:
-      user_fd.Set(user_fd.Schema.GUI_SETTINGS(args))
-
-    return dict(status="OK")
-
-
-class ApiGetUserInfoResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetUserInfoResult
-
-
-class ApiGetUserInfoHandler(api_call_handler_base.ApiCallHandler):
-  """Fetches the user info."""
-
-  category = CATEGORY
-  result_type = ApiGetUserInfoResult
+  args_type = ApiGrrUser
 
   def Handle(self, args, token=None):
-    return ApiGetUserInfoResult(username=token.username)
+    if args.username or args.HasField("interface_traits"):
+      raise ValueError("Only user settings can be updated.")
+
+    with aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(token.username),
+        aff4_type=aff4_users.GRRUser.__name__, mode="w",
+        token=token) as user_fd:
+      user_fd.Set(user_fd.Schema.GUI_SETTINGS(args.settings))
 
 
 class ApiGetPendingUserNotificationsCountResult(rdf_structs.RDFProtoStruct):
@@ -738,4 +748,3 @@ class ApiDeletePendingGlobalNotificationHandler(
           return
 
     raise GlobalNotificationNotFoundError()
-

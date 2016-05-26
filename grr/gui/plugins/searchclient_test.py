@@ -1088,6 +1088,38 @@ class TestClientSearch(SearchClientTestBase,
     self.WaitUntilEqual("label:common_test_label", self.GetValue,
                         "css=#client_query")
 
+  def testBackButtonWorksAsExpected(self):
+    with self.ACLChecksDisabled():
+      self.RequestAndGrantClientApproval(self.client_ids[0])
+
+    client_name = self.client_ids[0].Basename()
+
+    self.Open("/#/clients/" + client_name)
+    self.WaitUntil(self.IsTextPresent, client_name)
+    # Check that correct navigation link is selected.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=.active > a[grrtarget='client.hostInfo']")
+
+    self.Click("css=a[grrtarget='client.launchFlows']")
+    self.WaitUntil(self.IsTextPresent, "Please Select a flow to launch")
+    # Check that correct navigation link is selected.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=.active > a[grrtarget='client.launchFlows']")
+
+    # Back button should bring us to host information again.
+    self.Back()
+    self.WaitUntil(self.IsTextPresent, client_name)
+    # Check that correct navigation link is selected.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=.active > a[grrtarget='client.hostInfo']")
+
+    # Forward button should bring us to launch flows again.
+    self.Forward()
+    self.WaitUntil(self.IsTextPresent, "Please Select a flow to launch")
+    # Check that correct navigation link is selected.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=.active > a[grrtarget='client.launchFlows']")
+
 
 def main(argv):
   # Run the full test suite

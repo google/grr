@@ -32,6 +32,7 @@ from grr.lib import registry
 from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects as aff4_collections
 from grr.lib.aff4_objects import sequential_collection
 from grr.lib.hunts import results as hunts_results
@@ -66,6 +67,27 @@ class HuntErrorCollection(sequential_collection.IndexedSequentialCollection):
 
 class PluginStatusCollection(sequential_collection.IndexedSequentialCollection):
   RDF_TYPE = output_plugin.OutputPluginBatchProcessingStatus
+
+
+class HuntResultsMetadata(aff4.AFF4Object):
+  """Metadata AFF4 object used by CronHuntOutputFlow."""
+
+  class SchemaCls(aff4.AFF4Object.SchemaCls):
+    """AFF4 schema for CronHuntOutputMetadata."""
+
+    NUM_PROCESSED_RESULTS = aff4.Attribute(
+        "aff4:num_processed_results", rdfvalue.RDFInteger,
+        "Number of hunt results already processed by the cron job.",
+        versioned=False, default=0)
+
+    OUTPUT_PLUGINS = aff4.Attribute(
+        "aff4:output_plugins_state", rdf_flows.FlowState,
+        "Pickled output plugins.", versioned=False)
+
+    OUTPUT_PLUGINS_VERIFICATION_RESULTS = aff4.Attribute(
+        "aff4:output_plugins_verification_results",
+        output_plugin.OutputPluginVerificationResultsList,
+        "Verification results list.", versioned=False)
 
 
 class HuntRunner(flow_runner.FlowRunner):
@@ -311,7 +333,7 @@ class HuntRunner(flow_runner.FlowRunner):
     foreman_rule.Validate()
 
     with aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token,
-                           aff4_type="GRRForeman",
+                           aff4_type=aff4_grr.GRRForeman,
                            ignore_cache=True) as foreman:
       foreman_rules = foreman.Get(foreman.Schema.RULES,
                                   default=foreman.Schema.RULES())
@@ -572,7 +594,7 @@ class GRRHunt(flow.GRRFlow):
     # migrated.
     try:
       aff4.FACTORY.Open(collection_urn,
-                        "UrnCollection",
+                        UrnCollection,
                         mode="rw",
                         token=self.token).Add(urn)
     except IOError:
@@ -584,7 +606,7 @@ class GRRHunt(flow.GRRFlow):
     # migrated.
     try:
       aff4.FACTORY.Open(collection_urn,
-                        "HuntErrorCollection",
+                        HuntErrorCollection,
                         mode="rw",
                         token=self.token).Add(error)
     except IOError:
@@ -662,7 +684,7 @@ class GRRHunt(flow.GRRFlow):
       raise RuntimeError("Unable to locate hunt %s" % runner_args.hunt_name)
 
     # Make a new hunt object and initialize its runner.
-    hunt_obj = aff4.FACTORY.Create(None, runner_args.hunt_name,
+    hunt_obj = aff4.FACTORY.Create(None, cls.classes[runner_args.hunt_name],
                                    mode="w", token=runner_args.token)
 
     # Hunt is called using keyword args. We construct an args proto from the
@@ -766,7 +788,7 @@ class GRRHunt(flow.GRRFlow):
                 for response in responses]
         try:
           with aff4.FACTORY.Open(self.state.context.results_collection_urn,
-                                 hunts_results.HuntResultCollection.__name__,
+                                 hunts_results.HuntResultCollection,
                                  mode="rw",
                                  token=self.token) as collection:
             for msg in msgs:
@@ -808,7 +830,7 @@ class GRRHunt(flow.GRRFlow):
       hunt_link_urn = client_id.Add("flows").Add(
           "%s:hunt" % (self.urn.Basename()))
 
-      hunt_link = aff4.FACTORY.Create(hunt_link_urn, "AFF4Symlink",
+      hunt_link = aff4.FACTORY.Create(hunt_link_urn, aff4.AFF4Symlink,
                                       token=self.token)
 
       hunt_link.Set(hunt_link.Schema.SYMLINK_TARGET(child_urn))
@@ -841,7 +863,8 @@ class GRRHunt(flow.GRRFlow):
                                 self.urn.Add("Results"))
 
     with aff4.FACTORY.Create(
-        self.state.context.results_metadata_urn, "HuntResultsMetadata",
+        self.state.context.results_metadata_urn,
+        HuntResultsMetadata,
         mode="rw", token=self.token) as results_metadata:
 
       state = rdf_flows.FlowState()
@@ -867,14 +890,14 @@ class GRRHunt(flow.GRRFlow):
 
     # Create the collection for results.
     with aff4.FACTORY.Create(self.state.context.results_collection_urn,
-                             "HuntResultCollection",
+                             hunts_results.HuntResultCollection,
                              mode="w",
                              token=self.token):
       pass
 
     # Create the collection for logs.
     with aff4.FACTORY.Create(self.logs_collection_urn,
-                             flow_runner.FlowLogCollection.__name__,
+                             flow_runner.FlowLogCollection,
                              mode="w",
                              token=self.token):
       pass
@@ -883,13 +906,13 @@ class GRRHunt(flow.GRRFlow):
     for urn in [self.all_clients_collection_urn,
                 self.completed_clients_collection_urn,
                 self.clients_with_results_collection_urn]:
-      with aff4.FACTORY.Create(urn, "UrnCollection",
+      with aff4.FACTORY.Create(urn, UrnCollection,
                                mode="w", token=self.token):
         pass
 
     # Create the collection for errors.
     with aff4.FACTORY.Create(self.clients_errors_collection_urn,
-                             "HuntErrorCollection",
+                             HuntErrorCollection,
                              mode="w",
                              token=self.token):
       pass
@@ -897,7 +920,7 @@ class GRRHunt(flow.GRRFlow):
     # Create the collections for PluginStatus messages.
     for urn in [self.output_plugins_status_collection_urn,
                 self.output_plugins_errors_collection_urn]:
-      with aff4.FACTORY.Create(urn, "PluginStatusCollection",
+      with aff4.FACTORY.Create(urn, PluginStatusCollection,
                                mode="w", token=self.token):
         pass
 
@@ -978,7 +1001,7 @@ class GRRHunt(flow.GRRFlow):
     """Take in a client list and return dicts with their age and hostname."""
     for client_group in utils.Grouper(client_list, client_chunk):
       for fd in aff4.FACTORY.MultiOpen(client_group, mode="r",
-                                       aff4_type="VFSGRRClient",
+                                       aff4_type=aff4_grr.VFSGRRClient,
                                        token=self.token):
         result = {}
         result["age"] = fd.Get(fd.Schema.PING)

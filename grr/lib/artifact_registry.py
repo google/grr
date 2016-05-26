@@ -16,6 +16,7 @@ from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.aff4_objects import collects
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs
 from grr.proto import artifact_pb2
@@ -56,7 +57,7 @@ class ArtifactRegistry(object):
 
     for artifact_coll_urn in source_urns or []:
       with aff4.FACTORY.Create(
-          artifact_coll_urn, aff4_type="RDFValueCollection",
+          artifact_coll_urn, aff4_type=collects.RDFValueCollection,
           token=token, mode="rw") as artifact_coll:
         for artifact_value in artifact_coll:
           self.RegisterArtifact(

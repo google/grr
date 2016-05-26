@@ -426,11 +426,6 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
   # User settings methods.
   # =====================
   #
-  def GetUserInfo(self, args, token=None):
-    # Everybody can get their own user info.
-
-    return self.delegate.GetUserInfo(args, token=token)
-
   def GetPendingUserNotificationsCount(self, args, token=None):
     # Everybody can get their own pending notifications count.
 
@@ -454,15 +449,15 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.GetAndResetUserNotifications(args, token=token)
 
-  def GetUserSettings(self, args, token=None):
+  def GetGrrUser(self, args, token=None):
     # Everybody can get their own user settings.
 
-    return self.delegate.GetUserSettings(args, token=token)
+    return self.delegate.GetGrrUser(args, token=token)
 
-  def UpdateUserSettings(self, args, token=None):
+  def UpdateGrrUser(self, args, token=None):
     # Everybody can update their own user settings.
 
-    return self.delegate.UpdateUserSettings(args, token=token)
+    return self.delegate.UpdateGrrUser(args, token=token)
 
   def GetPendingGlobalNotifications(self, args, token=None):
     # Everybody can get their global pending notifications.

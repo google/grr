@@ -17,6 +17,7 @@ from grr.lib import serialize
 from grr.lib import threadpool
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import standard
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
@@ -29,7 +30,7 @@ BUFFER_SIZE = 16 * 1024 * 1024
 def GetAllClients(token=None):
   """Return a list of all client urns."""
   index = aff4.FACTORY.Create(
-      client_index.MAIN_INDEX, aff4_type="ClientIndex",
+      client_index.MAIN_INDEX, aff4_type=client_index.ClientIndex,
       mode="rw", object_exists=True, token=token)
 
   return index.LookupClients(["."])
@@ -117,12 +118,12 @@ class IterateAllClients(IterateAllClientUrns):
     logging.debug("Got %d clients", len(client_list))
     for client_group in utils.Grouper(client_list, self.client_chunksize):
       for fd in aff4.FACTORY.MultiOpen(client_group, mode="r",
-                                       aff4_type="VFSGRRClient",
+                                       aff4_type=aff4_grr.VFSGRRClient,
                                        token=self.token):
         if isinstance(fd, aff4_grr.VFSGRRClient):
           # Skip if older than max_age
           oldest_time = (time.time() - self.max_age) * 1e6
-        if fd.Get(aff4.VFSGRRClient.SchemaCls.PING) >= oldest_time:
+        if fd.Get(aff4_grr.VFSGRRClient.SchemaCls.PING) >= oldest_time:
           yield fd
 
 
@@ -311,7 +312,7 @@ def CopyAFF4ToLocal(aff4_urn, target_dir, token=None, overwrite=False):
     filepath = os.path.join(target_dir, fd.urn.Path()[1:])
 
     # If urn points to a directory, just create it.
-    if isinstance(fd, aff4.VFSDirectory):
+    if isinstance(fd, standard.VFSDirectory):
       try:
         os.makedirs(filepath)
       except OSError:
@@ -366,7 +367,7 @@ def CopyAndSymlinkAFF4ToLocal(aff4_urn, target_dir, token=None,
 
 def DumpClientYaml(client_urn, target_dir, token=None, overwrite=False):
   """Dump a yaml file containing client info."""
-  fd = aff4.FACTORY.Open(client_urn, "VFSGRRClient", token=token)
+  fd = aff4.FACTORY.Open(client_urn, aff4_grr.VFSGRRClient, token=token)
   dirpath = os.path.join(target_dir, fd.urn.Split()[0])
   try:
     # Due to threading this can actually be created by another thread.

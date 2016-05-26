@@ -281,7 +281,7 @@ class GRRUser(aff4.AFF4Object):
 
   def GetPendingGlobalNotifications(self):
     storage = aff4.FACTORY.Create(GlobalNotificationStorage.DEFAULT_PATH,
-                                  aff4_type="GlobalNotificationStorage",
+                                  aff4_type=GlobalNotificationStorage,
                                   mode="r", token=self.token)
     current_notifications = storage.GetNotifications()
 

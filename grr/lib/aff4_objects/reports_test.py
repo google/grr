@@ -3,6 +3,7 @@
 
 from grr.lib import aff4
 from grr.lib import test_lib
+from grr.lib.aff4_objects import network as aff4_network
 from grr.lib.aff4_objects import reports
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -16,7 +17,8 @@ class ReportsTest(test_lib.AFF4ObjectTest):
     client_ids = self.SetupClients(10)
     with aff4.FACTORY.Open(client_ids[0], token=self.token,
                            mode="rw") as client:
-      with aff4.FACTORY.Open(client.urn.Add("network"), aff4_type="Network",
+      with aff4.FACTORY.Open(client.urn.Add("network"),
+                             aff4_type=aff4_network.Network,
                              token=self.token, mode="w") as net:
         interfaces = net.Schema.INTERFACES()
         interfaces.Append(

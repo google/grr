@@ -10,6 +10,7 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.cron import system
 from grr.lib.flows.general import endtoend as endtoend_flows
 from grr.lib.flows.general import endtoend_test
@@ -80,7 +81,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     self._CheckVersionStats("Label2", histogram, [0, 0, 10, 10])
 
     # This shouldn't exist since it isn't a system label
-    aff4.FACTORY.Open("aff4:/stats/ClientFleetStats/UserLabel", "AFF4Volume",
+    aff4.FACTORY.Open("aff4:/stats/ClientFleetStats/UserLabel", aff4.AFF4Volume,
                       token=self.token)
 
   def _CheckOSStats(self, label, attribute, counts):
@@ -192,7 +193,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     self.assertTrue(max_age not in [e.RSS_size for e in stat_entries])
 
   def _SetSummaries(self, client_id):
-    client = aff4.FACTORY.Create(client_id, "VFSGRRClient", mode="rw",
+    client = aff4.FACTORY.Create(client_id, aff4_grr.VFSGRRClient, mode="rw",
                                  token=self.token)
     client.Set(client.Schema.HOSTNAME(client_id))
     client.Set(client.Schema.SYSTEM("Darwin"))

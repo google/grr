@@ -113,6 +113,64 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
     return ApiSearchClientsResult(items=api_clients)
 
 
+class ApiLabelsRestrictedSearchClientsHandler(
+    api_call_handler_base.ApiCallHandler):
+  """Renders results of a client search."""
+
+  category = CATEGORY
+
+  args_type = ApiSearchClientsArgs
+  result_type = ApiSearchClientsResult
+
+  def __init__(self, labels_whitelist=None, labels_owners_whitelist=None):
+    super(ApiLabelsRestrictedSearchClientsHandler, self).__init__()
+
+    self.labels_whitelist = set(labels_whitelist or [])
+    self.labels_owners_whitelist = set(labels_owners_whitelist or [])
+
+  def _CheckClientLabels(self, client_obj, token=None):
+    for label in client_obj.GetLabels():
+      if (label.name in self.labels_whitelist and
+          label.owner in self.labels_owners_whitelist):
+        return True
+
+    return False
+
+  def Handle(self, args, token=None):
+    if args.count:
+      end = args.offset + args.count
+    else:
+      end = sys.maxint
+
+    keywords = shlex.split(args.query)
+
+    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                                aff4_type="ClientIndex",
+                                mode="rw",
+                                token=token)
+    all_urns = set()
+    for label in self.labels_whitelist:
+      label_filter = ["label:" + label] + keywords
+      all_urns.update(index.LookupClients(label_filter))
+
+    all_objs = aff4.FACTORY.MultiOpen(
+        sorted(all_urns, key=str), aff4_type=aff4_grr.VFSGRRClient.__name__,
+        token=token)
+
+    api_clients = []
+    index = 0
+    for client_obj in all_objs:
+      if self._CheckClientLabels(client_obj):
+        if index >= args.offset and index < end:
+          api_clients.append(ApiClient().InitFromAff4Object(client_obj))
+
+        index += 1
+        if index >= end:
+          break
+
+    return ApiSearchClientsResult(items=api_clients)
+
+
 class ApiGetClientArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiGetClientArgs
 
@@ -381,4 +439,3 @@ class ApiListKbFieldsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     fields = rdf_client.KnowledgeBase().GetKbFieldNames()
     return ApiListKbFieldsResult(items=sorted(fields))
-

@@ -19,7 +19,13 @@ describe('flow descriptors tree directive', function() {
     // If user settings are empty, flows tree should use 'BASIC' mode.
     emptySettingsDeferred = $q.defer();
     emptySettingsDeferred.resolve({
-      data: {}
+      data: {
+        value: {
+          settings: {
+            value: {}
+          }
+        }
+      }
     });
   }));
 
@@ -77,13 +83,13 @@ describe('flow descriptors tree directive', function() {
 
     renderTestTemplate();
 
-    expect(grrApiService.get).toHaveBeenCalledWith('/users/me/settings');
+    expect(grrApiService.get).toHaveBeenCalledWith('/users/me');
   });
 
   it('creates node per category', function(done) {
     var deferred = $q.defer();
     spyOn(grrApiService, 'get').and.callFake(function(url) {
-      if (url == '/users/me/settings') {
+      if (url == '/users/me') {
         return emptySettingsDeferred.promise;
       } else {
         return deferred.promise;
@@ -151,7 +157,7 @@ describe('flow descriptors tree directive', function() {
   it('uses friendly name if available', function(done) {
     var deferred = $q.defer();
     spyOn(grrApiService, 'get').and.callFake(function(url) {
-      if (url == '/users/me/settings') {
+      if (url == '/users/me') {
         return emptySettingsDeferred.promise;
       } else {
         return deferred.promise;
@@ -199,8 +205,12 @@ describe('flow descriptors tree directive', function() {
     advancedSettingsDeferred.resolve({
       data: {
         value: {
-          mode: {
-            value: 'ADVANCED'
+          settings: {
+            value: {
+              mode: {
+                value: 'ADVANCED'
+              }
+            }
           }
         }
       }
@@ -257,7 +267,7 @@ describe('flow descriptors tree directive', function() {
     });
 
     spyOn(grrApiService, 'get').and.callFake(function(url) {
-      if (url == '/users/me/settings') {
+      if (url == '/users/me') {
         return advancedSettingsDeferred.promise;
       } else {
         return deferred.promise;
@@ -279,7 +289,7 @@ describe('flow descriptors tree directive', function() {
     beforeEach(function(done) {
       var deferred = $q.defer();
       spyOn(grrApiService, 'get').and.callFake(function(url) {
-        if (url == '/users/me/settings') {
+        if (url == '/users/me') {
           return emptySettingsDeferred.promise;
         } else {
           return deferred.promise;

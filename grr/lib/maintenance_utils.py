@@ -107,7 +107,7 @@ def CreateBinaryConfigPaths(token=None):
 
     # One by one is not optimal but we have to do it only once per urn.
     for urn in missing_urns:
-      aff4.FACTORY.Create(urn, "AFF4Volume", token=token).Flush()
+      aff4.FACTORY.Create(urn, aff4.AFF4Volume, token=token).Flush()
 
   except access_control.UnauthorizedAccess:
     logging.info("User is not admin, cannot check configuration tree.")
@@ -310,7 +310,7 @@ def SignComponent(component_filename, overwrite=False, token=None):
       "Config.aff4_root").Add("components").Add(
           "%s_%s" % (component.summary.name, component.summary.version))
 
-  component_fd = aff4.FACTORY.Create(component_urn, "ComponentObject",
+  component_fd = aff4.FACTORY.Create(component_urn, collects.ComponentObject,
                                      mode="rw", token=token)
 
   component_summary = component_fd.Get(component_fd.Schema.COMPONENT)
@@ -342,7 +342,7 @@ def SignComponent(component_filename, overwrite=False, token=None):
           component.summary.seed).Add(component.build_system.signature())
 
   print "Storing signed component at %s" % aff4_urn
-  with aff4.FACTORY.Create(aff4_urn, "AFF4MemoryStream", token=token) as fd:
+  with aff4.FACTORY.Create(aff4_urn, aff4.AFF4MemoryStream, token=token) as fd:
     fd.Write(component_summary.cipher.Encrypt(
         signed_component.SerializeToString()))
 

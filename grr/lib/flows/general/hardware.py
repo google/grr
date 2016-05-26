@@ -77,7 +77,7 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
     self.SendReply(response)
 
     # Update the symbolic link to the new instance.
-    with aff4.FACTORY.Create(self.client_id.Add("spiflash"), "AFF4Symlink",
+    with aff4.FACTORY.Create(self.client_id.Add("spiflash"), aff4.AFF4Symlink,
                              token=self.token) as symlink:
       symlink.Set(symlink.Schema.SYMLINK_TARGET, response.aff4path)
 

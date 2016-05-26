@@ -19,8 +19,6 @@ from grr.gui.api_plugins import vfs as api_vfs
 
 from grr.lib import registry
 
-from grr.lib.aff4_objects import users as aff4_users
-
 
 class Http(object):
   """Decorator that associates URLs with API methods."""
@@ -617,12 +615,6 @@ class ApiCallRouter(object):
   # =====================
   #
   @Category("User")
-  @ResultType(api_user.ApiGetUserInfoResult)
-  @Http("GET", "/api/users/me/info")
-  def GetUserInfo(self, args, token=None):
-    raise NotImplementedError()
-
-  @Category("User")
   @ResultType(api_user.ApiGetPendingUserNotificationsCountResult)
   @Http("GET", "/api/users/me/notifications/pending/count")
   def GetPendingUserNotificationsCount(self, args, token=None):
@@ -649,14 +641,15 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("User")
-  @Http("GET", "/api/users/me/settings")
-  def GetUserSettings(self, args, token=None):
+  @ResultType(api_user.ApiGrrUser)
+  @Http("GET", "/api/users/me")
+  def GetGrrUser(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
-  @ArgsType(aff4_users.GUISettings)
-  @Http("POST", "/api/users/me/settings")
-  def UpdateUserSettings(self, args, token=None):
+  @ArgsType(api_user.ApiGrrUser)
+  @Http("POST", "/api/users/me")
+  def UpdateGrrUser(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")

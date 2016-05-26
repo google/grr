@@ -11,6 +11,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -241,7 +242,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
     blobimage = aff4.FACTORY.Open(urn, token=self.token)
     # Make sure a VFSBlobImage got written.
-    self.assertTrue(isinstance(blobimage, aff4.VFSBlobImage))
+    self.assertTrue(isinstance(blobimage, aff4_grr.VFSBlobImage))
 
     self.assertEqual(len(blobimage), expected_size)
     data = blobimage.read(100 * expected_size)

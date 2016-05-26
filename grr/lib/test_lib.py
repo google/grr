@@ -80,6 +80,7 @@ from grr.lib import worker_mocks
 
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import filestore
+from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.aff4_objects import user_managers
 from grr.lib.aff4_objects import users
 
@@ -91,7 +92,7 @@ from grr.lib.data_stores import fake_data_store as _
 # Importing administrative to import ClientCrashHandler flow that
 # handles ClientCrash events triggered by CrashClientMock.
 from grr.lib.flows.general import administrative as _
-from grr.lib.flows.general import ca_enroller as _
+from grr.lib.flows.general import ca_enroller
 from grr.lib.flows.general import discovery
 from grr.lib.flows.general import filesystem as _
 # pylint: enable=unused-import
@@ -488,7 +489,7 @@ class GRRBaseTest(unittest.TestCase):
 
   def CreateUser(self, username):
     """Creates a user."""
-    user = aff4.FACTORY.Create("aff4:/users/%s" % username, "GRRUser",
+    user = aff4.FACTORY.Create("aff4:/users/%s" % username, users.GRRUser,
                                token=self.token.SetUID())
     user.Flush()
     return user
@@ -574,14 +575,15 @@ class GRRBaseTest(unittest.TestCase):
 
   def SetupClients(self, nr_clients, system=None, os_version=None, arch=None):
     client_ids = []
-    with aff4.FACTORY.Create(client_index.MAIN_INDEX, aff4_type="ClientIndex",
+    with aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                             aff4_type=client_index.ClientIndex,
                              mode="rw", token=self.token) as index:
 
       for i in range(nr_clients):
         client_id = rdf_client.ClientURN("C.1%015d" % i)
         client_ids.append(client_id)
 
-        with aff4.FACTORY.Create(client_id, "VFSGRRClient",
+        with aff4.FACTORY.Create(client_id, aff4_grr.VFSGRRClient,
                                  mode="rw",
                                  token=self.token) as fd:
           cert = rdf_crypto.RDFX509Cert(
@@ -623,7 +625,8 @@ class GRRBaseTest(unittest.TestCase):
     communicator = comms.ClientCommunicator(private_key=private_key)
     csr = communicator.GetCSR()
     request = X509.load_request_string(csr)
-    flow_obj = aff4.FACTORY.Create(None, "CAEnroler", token=self.token)
+    flow_obj = aff4.FACTORY.Create(None, ca_enroller.CAEnroler,
+                                   token=self.token)
     subject = request.get_subject()
     cn = rdf_client.ClientURN(subject.as_text().split("=")[-1])
     return flow_obj.MakeCert(cn, request)
@@ -992,6 +995,8 @@ class GRRSeleniumTest(GRRBaseTest):
          api_call_router_with_approval_checks.
          ApiCallRouterWithApprovalChecksWithRobotAccess.__name__})
     self.config_override.Start()
+    # Make sure ApiAuthManager is initialized with this configuration setting.
+    api_auth_manager.APIACLInit.InitApiAuthManager()
 
   def UninstallACLChecks(self):
     """Deinstall previously installed ACL checks."""
@@ -1003,6 +1008,10 @@ class GRRSeleniumTest(GRRBaseTest):
 
     self.config_override.Stop()
     self.config_override = None
+
+    # Make sure ApiAuthManager is initialized with update configuration
+    # setting (i.e. without overrides).
+    api_auth_manager.APIACLInit.InitApiAuthManager()
 
   def ACLChecksDisabled(self):
     return ACLChecksDisabledContextManager()
@@ -1105,6 +1114,14 @@ class GRRSeleniumTest(GRRBaseTest):
   @SeleniumAction
   def Refresh(self):
     self.driver.refresh()
+
+  @SeleniumAction
+  def Back(self):
+    self.driver.back()
+
+  @SeleniumAction
+  def Forward(self):
+    self.driver.forward()
 
   def WaitUntilNot(self, condition_cb, *args):
     self.WaitUntil(lambda: not condition_cb(*args))
@@ -1296,7 +1313,7 @@ class GRRSeleniumTest(GRRBaseTest):
 
     # Make the user use the advanced gui so we can test it.
     with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users/test"), aff4_type="GRRUser", mode="w",
+        aff4.ROOT_URN.Add("users/test"), aff4_type=users.GRRUser, mode="w",
         token=self.token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS(mode="ADVANCED"))
 
@@ -1721,7 +1738,7 @@ def CheckFlowErrors(total_flows, token=None):
   # Check that all the flows are complete.
   for session_id in total_flows:
     try:
-      flow_obj = aff4.FACTORY.Open(session_id, aff4_type="GRRFlow", mode="r",
+      flow_obj = aff4.FACTORY.Open(session_id, aff4_type=flow.GRRFlow, mode="r",
                                    token=token)
     except IOError:
       continue
@@ -2102,7 +2119,7 @@ class ClientFixture(object):
             aff4_object.AddAttribute(attribute, rdfvalue_object)
 
         # Populate the KB from the client attributes.
-        if aff4_type == "VFSGRRClient":
+        if aff4_type == aff4_grr.VFSGRRClient:
           kb = rdf_client.KnowledgeBase()
           artifact.SetCoreGRRKnowledgeBaseValues(kb, aff4_object)
           aff4_object.Set(aff4_object.Schema.KNOWLEDGE_BASE, kb)
@@ -2110,9 +2127,9 @@ class ClientFixture(object):
         # Make sure we do not actually close the object here - we only want to
         # sync back its attributes, not run any finalization code.
         aff4_object.Flush()
-        if aff4_type == "VFSGRRClient":
+        if aff4_type == aff4_grr.VFSGRRClient:
           aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                              aff4_type="ClientIndex",
+                              aff4_type=client_index.ClientIndex,
                               mode="rw",
                               token=self.token).AddClient(aff4_object)
 
@@ -2206,7 +2223,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
     if self.supported_pathtype == rdf_paths.PathSpec.PathType.REGISTRY:
       self.path = self.path.replace("\\", "/")
       parts = path.split("/")
-      if vfs_type == "VFSFile":
+      if vfs_type == aff4_grr.VFSFile:
         # If its a file, the last component is a value which is case sensitive.
         lower_parts = [x.lower() for x in parts[0:-1]]
         lower_parts.append(parts[-1])
@@ -2232,7 +2249,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
 
         if dirname == "/" or dirname in self.paths: break
 
-        self.paths[dirname] = ("VFSDirectory",
+        self.paths[dirname] = (aff4_standard.VFSDirectory,
                                rdf_client.StatEntry(st_mode=16877,
                                                     st_size=1,
                                                     st_dev=1,
@@ -2246,7 +2263,8 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
         yield stat
 
   def Read(self, length):
-    result = self.paths.get(self._NormalizeCaseForPath(self.path, "VFSFile"))
+    result = self.paths.get(self._NormalizeCaseForPath(self.path,
+                                                       aff4_grr.VFSFile))
     if not result:
       raise IOError("File not found")
 
@@ -2271,7 +2289,7 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
       # the user specify if they are after a value or a key, so we have to try
       # both.
       stat_data = self.paths.get(self._NormalizeCaseForPath(self.path,
-                                                            "VFSFile"))
+                                                            aff4_grr.VFSFile))
     if stat_data:
       return stat_data[1]  # Strip the vfs_type.
     else:
@@ -2373,7 +2391,7 @@ class GrrTestProgram(unittest.TestProgram):
     self.mock_smtp = self.smtp_patcher.start()
 
     # "test" must not be a system user or notifications will not be delivered.
-    if "test" in aff4.GRRUser.SYSTEM_USERS:
+    if "test" in users.GRRUser.SYSTEM_USERS:
       users.GRRUser.SYSTEM_USERS.remove("test")
 
     def DisabledSet(*unused_args, **unused_kw):
@@ -2525,7 +2543,7 @@ class CanaryModeOverrider(object):
   def Start(self):
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type="GRRUser", mode="rw", token=self.token) as user:
+        aff4_type=users.GRRUser, mode="rw", token=self.token) as user:
       # Save original canary mode to reset it later.
       self.original_canary_mode = user.Get(
           user.Schema.GUI_SETTINGS).canary_mode
@@ -2539,7 +2557,7 @@ class CanaryModeOverrider(object):
   def Stop(self):
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type="GRRUser", mode="w", token=self.token) as user:
+        aff4_type=users.GRRUser, mode="w", token=self.token) as user:
       # Reset canary mode to original value.
       user.Set(user.Schema.GUI_SETTINGS(
           canary_mode=self.original_canary_mode))

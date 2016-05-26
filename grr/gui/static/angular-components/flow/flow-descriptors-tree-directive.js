@@ -35,8 +35,8 @@ grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeController =
   /** @type {!Object} */
   this.userSettings;
 
-  this.grrApiService_.get('/users/me/settings').then(function(response) {
-    this.userSettings = response.data;
+  this.grrApiService_.get('/users/me').then(function(response) {
+    this.userSettings = response.data['value']['settings'];
   }.bind(this));
 
   this.scope_.$watch('flowType', this.onFlowTypeChange_.bind(this));

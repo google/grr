@@ -9,6 +9,7 @@ from grr.lib import aff4
 from grr.lib import keyword_index
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
 
 # The system's primary client index.
@@ -281,7 +282,7 @@ def GetClientURNsForHostnames(hostnames, token=None):
   """
 
   index = aff4.FACTORY.Create(
-      MAIN_INDEX, aff4_type="ClientIndex", mode="rw", object_exists=True,
+      MAIN_INDEX, aff4_type=ClientIndex, mode="rw", object_exists=True,
       token=token)
 
   keywords = set()
@@ -329,7 +330,7 @@ def BulkLabel(label, hostnames, token=None, client_index=None):
   """
   if client_index is None:
     client_index = aff4.FACTORY.Create(
-        MAIN_INDEX, aff4_type="ClientIndex", mode="rw", object_exists=True,
+        MAIN_INDEX, aff4_type=ClientIndex, mode="rw", object_exists=True,
         token=token)
 
   fqdns = set()
@@ -342,7 +343,8 @@ def BulkLabel(label, hostnames, token=None, client_index=None):
   # Labelled clients with a target fqdn need no action and are removed from the
   # set of target fqdns.
   for client in aff4.FACTORY.MultiOpen(labelled_urns, token=token,
-                                       aff4_type="VFSGRRClient", mode="rw"):
+                                       aff4_type=aff4_grr.VFSGRRClient,
+                                       mode="rw"):
     fqdn = utils.SmartStr(client.Get("FQDN")).lower()
     if fqdn not in fqdns:
       client_index.RemoveClientLabels(client)
@@ -361,7 +363,8 @@ def BulkLabel(label, hostnames, token=None, client_index=None):
       urns.append(rdfvalue.RDFURN(client_id))
 
   for client in aff4.FACTORY.MultiOpen(urns, token=token,
-                                       aff4_type="VFSGRRClient", mode="rw"):
+                                       aff4_type=aff4_grr.VFSGRRClient,
+                                       mode="rw"):
     client.AddLabels(label, owner="GRR")
     client.Flush()
     client_index.AddClient(client)

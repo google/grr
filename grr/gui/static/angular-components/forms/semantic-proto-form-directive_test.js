@@ -54,7 +54,7 @@ describe('semantic proto form directive', function() {
     return element;
   };
 
-  describe('form for structure with 2 primitive fields', function() {
+  describe('form for structure with 3 primitive fields', function() {
     var defaultFooStructValue = {
       type: 'Foo',
       mro: ['Foo', 'RDFProtoStruct'],
@@ -93,7 +93,20 @@ describe('semantic proto form directive', function() {
               'name': 'field_2',
               'repeated': false,
               'type': 'PrimitiveType'
-            }
+            },
+            {
+              'default': {
+                'type': 'PrimitiveType',
+                'value': ''
+              },
+              'doc': 'Field 3 description.',
+              'dynamic': false,
+              'friendly_name': 'Field 3',
+              'index': 1,
+              'name': 'field_3',
+              'repeated': false,
+              'type': 'PrimitiveType'
+            },
           ],
           'kind': 'struct',
           'name': 'Foo',
@@ -121,12 +134,12 @@ describe('semantic proto form directive', function() {
           });
     });
 
-    it('renders a form for structure with 2 primitive fields', function() {
+    it('renders a form for structure with 3 primitive fields', function() {
       var element = renderTestTemplate(defaultFooStructValue);
 
       // Check that for every primitive field a grr-form-proto-single-field
       // directive is created.
-      expect(element.find('grr-form-proto-single-field').length).toBe(2);
+      expect(element.find('grr-form-proto-single-field').length).toBe(3);
     });
 
     it('does not overwrite field prefilled with non-default value', function() {
@@ -147,13 +160,32 @@ describe('semantic proto form directive', function() {
       });
     });
 
-    it('erases the field with default value prefilled with default field ' +
-       'value', function() {
+    it('does not erase the field with default value prefilled with default ' +
+       'field value not equal to the default type value', function() {
       var fooValue = defaultFooStructValue;
       fooValue.value = {
         field_2: {
           type: 'PrimitiveType',
           value: 'a foo bar'
+        }
+      };
+      var element = renderTestTemplate(fooValue);
+
+      expect(fooValue.value).toEqual({
+        field_2: {
+          type: 'PrimitiveType',
+          value: 'a foo bar'
+        }
+      });
+    });
+
+    it('erases the field with default value prefilled with default field ' +
+       'value equal to the default type value', function() {
+      var fooValue = defaultFooStructValue;
+      fooValue.value = {
+        field_3: {
+          type: 'PrimitiveType',
+          value: ''
         }
       };
       var element = renderTestTemplate(fooValue);
@@ -197,13 +229,19 @@ describe('semantic proto form directive', function() {
       var element = renderTestTemplate(defaultFooStructValue, undefined,
                                        ['field_1']);
 
-      expect(element.find('grr-form-proto-single-field').length).toBe(1);
+      expect(element.find('grr-form-proto-single-field').length).toBe(2);
 
-      // Check that rendered field is actually field_2.
+      // Check that rendered fields are field_2 and field_3 only.
       var field = element.find('grr-form-proto-single-field:nth(0)');
       expect(field.scope().$eval(field.attr('value'))).toEqual({
         type: 'PrimitiveType',
         value: 'a foo bar'
+      });
+
+      field = element.find('grr-form-proto-single-field:nth(1)');
+      expect(field.scope().$eval(field.attr('value'))).toEqual({
+        type: 'PrimitiveType',
+        value: ''
       });
     });
 
@@ -228,6 +266,12 @@ describe('semantic proto form directive', function() {
       expect(field.scope().$eval(field.attr('value'))).toEqual({
         type: 'PrimitiveType',
         value: 'a foo bar'
+      });
+
+      field = element.find('grr-form-proto-single-field:nth(2)');
+      expect(field.scope().$eval(field.attr('value'))).toEqual({
+        type: 'PrimitiveType',
+        value: ''
       });
     });
 
@@ -289,7 +333,7 @@ describe('semantic proto form directive', function() {
       // Click on the '+' icon to expand it.
       browserTrigger(icon(element, 'plus'), 'click');
       // Check that fields got displayed.
-      expect(element.find('grr-form-proto-single-field').length).toBe(2);
+      expect(element.find('grr-form-proto-single-field').length).toBe(3);
       // Check that '+' icon became '-' icon.
       expectNoIcon(element, 'plus');
       expectIcon(element, 'minus');

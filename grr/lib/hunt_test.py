@@ -303,7 +303,7 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     hunt_obj = aff4.FACTORY.Open(
         hunt.session_id, mode="r", age=aff4.ALL_TIMES,
-        aff4_type="SampleHunt", token=self.token)
+        aff4_type=hunts.SampleHunt, token=self.token)
 
     started, finished, _ = hunt_obj.GetClientsCounts()
     self.assertEqual(started, 10)

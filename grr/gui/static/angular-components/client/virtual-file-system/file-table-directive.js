@@ -102,7 +102,7 @@ var FileTableController =
  */
 FileTableController.prototype.onContextChange_ = function() {
   var clientId = this.fileContext['clientId'];
-  var selectedFolderPath = this.fileContext['selectedFolderPath'];
+  var selectedFolderPath = this.fileContext['selectedFolderPath'] || '';
 
   this.filter = '';
   this.fileListUrl = 'clients/' + clientId + '/vfs-index/' + selectedFolderPath;

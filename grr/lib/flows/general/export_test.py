@@ -14,6 +14,7 @@ from grr.lib import email_alerts
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import collects
 # pylint: disable=unused-import
 from grr.lib.flows.general import export
 # pylint: enable=unused-import
@@ -29,14 +30,14 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
     super(TestExportCollectionFilesAsArchive, self).setUp()
 
     path1 = "aff4:/C.0000000000000000/fs/os/foo/bar/hello1.txt"
-    fd = aff4.FACTORY.Create(path1, "AFF4MemoryStream", token=self.token)
+    fd = aff4.FACTORY.Create(path1, aff4.AFF4MemoryStream, token=self.token)
     fd.Write("hello1")
     fd.Set(fd.Schema.HASH,
            rdf_crypto.Hash(sha256=hashlib.sha256("hello1").digest()))
     fd.Close()
 
     path2 = u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
-    fd = aff4.FACTORY.Create(path2, "AFF4MemoryStream", token=self.token)
+    fd = aff4.FACTORY.Create(path2, aff4.AFF4MemoryStream, token=self.token)
     fd.Write("hello2")
     fd.Set(fd.Schema.HASH,
            rdf_crypto.Hash(sha256=hashlib.sha256("hello2").digest()))
@@ -45,7 +46,7 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
     self.collection_urn = aff4.ROOT_URN.Add("hunts/H:ABCDEF/Results")
     self.paths = [path1, path2]
     with aff4.FACTORY.Create(
-        self.collection_urn, aff4_type="RDFValueCollection", mode="w",
+        self.collection_urn, aff4_type=collects.RDFValueCollection, mode="w",
         token=self.token) as collection:
 
       for path in self.paths:

@@ -27,6 +27,7 @@ from grr.lib import stats
 from grr.lib import utils
 
 from grr.lib.aff4_objects import security
+from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -44,7 +45,7 @@ class LoggedACL(object):
         result = func(this, token, *args, **kwargs)
         if (self.access_type == "data_store_access" and
             token and
-            token.username in aff4.GRRUser.SYSTEM_USERS):
+            token.username in aff4_users.GRRUser.SYSTEM_USERS):
           # Logging internal system database access is noisy and useless.
           return result
         logging.debug(u"%s GRANTED by %s to %s%s (%s, %s) with reason: %s",
@@ -177,7 +178,8 @@ def CheckUserForLabels(username, authorized_labels, token=None):
   authorized_labels = set(authorized_labels)
 
   try:
-    user = aff4.FACTORY.Open("aff4:/users/%s" % username, aff4_type="GRRUser",
+    user = aff4.FACTORY.Open("aff4:/users/%s" % username,
+                             aff4_type=aff4_users.GRRUser,
                              token=token)
 
     # Only return if all the authorized_labels are found in the user's
@@ -675,7 +677,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
                                    fields=["with_reason", "data_store"])
       try:
         approval_request = aff4.FACTORY.Open(
-            approval_urn, aff4_type=security.Approval.__name__, mode="r",
+            approval_urn, aff4_type=security.Approval, mode="r",
             token=token, age=aff4.ALL_TIMES)
 
         if approval_request.CheckAccess(token):

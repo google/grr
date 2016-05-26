@@ -105,3 +105,14 @@ config_lib.DEFINE_bool("AdminUI.new_hunt_wizard."
                        help="This is the same as "
                        "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules,"
                        " but regarding the new cron job wizard.")
+
+# Temporary option that allows limiting access to legacy UI renderers. Useful
+# when giving access to GRR AdminUI to parties that have to use the HTTP API
+# only.
+# TODO(user): remove as soon as legacy rendering system is removed.
+config_lib.DEFINE_list(
+    "AdminUI.legacy_renderers_allowed_groups", [],
+    "Users belonging to these  groups can access legacy GRR renderers, "
+    "which are still used for some GRR features (manage binaries, legacy "
+    "browse virtual filesystem pane, etc). If this option is not set, then "
+    "no additional checks are performed when legacy renderers are used.")

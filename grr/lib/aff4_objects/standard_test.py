@@ -23,7 +23,7 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
     src_fd = StringIO.StringIO(src_content)
 
     dest_fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("temp"),
-                                  aff4_standard.BlobImage.__name__,
+                                  aff4_standard.BlobImage,
                                   token=self.token, mode="rw")
     dest_fd.SetChunksize(7)
     dest_fd.AppendContent(src_fd)
@@ -39,7 +39,7 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
     src_fd = StringIO.StringIO(src_content)
 
     dest_fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("temp"),
-                                  aff4_standard.BlobImage.__name__,
+                                  aff4_standard.BlobImage,
                                   token=self.token, mode="rw")
     self.assertEqual(dest_fd.Get(dest_fd.Schema.HASHES), None)
 
@@ -62,7 +62,7 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
 
   def testMultiStreamStreamsSingleFileWithSingleChunk(self):
     with aff4.FACTORY.Create("aff4:/foo",
-                             aff4_type=aff4_standard.BlobImage.__name__,
+                             aff4_type=aff4_standard.BlobImage,
                              token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("123456789"))
@@ -76,13 +76,13 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
 
   def testMultiStreamStreamsSinglfeFileWithTwoChunks(self):
     with aff4.FACTORY.Create("aff4:/foo",
-                             aff4_type=aff4_standard.BlobImage.__name__,
+                             aff4_type=aff4_standard.BlobImage,
                              token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("123456789"))
 
     with aff4.FACTORY.Create("aff4:/bar",
-                             aff4_type=aff4_standard.BlobImage.__name__,
+                             aff4_type=aff4_standard.BlobImage,
                              token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("abcd"))
@@ -101,13 +101,13 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
 
   def testMultiStreamStreamsTwoFilesWithTwoChunksInEach(self):
     with aff4.FACTORY.Create("aff4:/foo",
-                             aff4_type=aff4_standard.BlobImage.__name__,
+                             aff4_type=aff4_standard.BlobImage,
                              token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
 
     with aff4.FACTORY.Create("aff4:/bar",
-                             aff4_type=aff4_standard.BlobImage.__name__,
+                             aff4_type=aff4_standard.BlobImage,
                              token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("*" * 10 + "abcd"))
@@ -132,7 +132,7 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
 
   def testMultiStreamReturnsExceptionIfChunkIsMissing(self):
     with aff4.FACTORY.Create("aff4:/foo",
-                             aff4_type=aff4_standard.BlobImage.__name__,
+                             aff4_type=aff4_standard.BlobImage,
                              token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("123456789"))
@@ -153,7 +153,7 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
 
   def testMultiStreamIgnoresTheFileIfAnyChunkIsMissingInReadAheadChunks(self):
     with aff4.FACTORY.Create("aff4:/foo",
-                             aff4_type=aff4_standard.BlobImage.__name__,
+                             aff4_type=aff4_standard.BlobImage,
                              token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
@@ -175,13 +175,14 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
 
     self.assertEqual(count, 0)
 
-  @mock.patch.object(aff4.BlobImage, "MULTI_STREAM_CHUNKS_READ_AHEAD", 1)
+  @mock.patch.object(aff4_standard.BlobImage, "MULTI_STREAM_CHUNKS_READ_AHEAD",
+                     1)
   def testMultiStreamTruncatesBigFileIfLastChunkIsMissing(self):
     # If the file is split between 2 batches of chunks, and the missing
     # chunk is in the second batch, the first batch will be succesfully
     # yielded.
     with aff4.FACTORY.Create("aff4:/foo",
-                             aff4_type=aff4_standard.BlobImage.__name__,
+                             aff4_type=aff4_standard.BlobImage,
                              token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
@@ -207,12 +208,13 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
     self.assertEqual(content, ["*" * 10])
     self.assertTrue(error_detected)
 
-  @mock.patch.object(aff4.BlobImage, "MULTI_STREAM_CHUNKS_READ_AHEAD", 1)
+  @mock.patch.object(aff4_standard.BlobImage, "MULTI_STREAM_CHUNKS_READ_AHEAD",
+                     1)
   def testMultiStreamSkipsBigFileIfFirstChunkIsMissing(self):
     # If the file is split between 2 batches of chunks, and the missing
     # chunk is in the first batch, the file will be skipped entirely.
     with aff4.FACTORY.Create("aff4:/foo",
-                             aff4_type=aff4_standard.BlobImage.__name__,
+                             aff4_type=aff4_standard.BlobImage,
                              token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
@@ -238,7 +240,7 @@ class LabelSetTest(test_lib.AFF4ObjectTest):
 
   def testAddListRemoveLabels(self):
     index = aff4.FACTORY.Create("aff4:/index/labels/client_set_test",
-                                "LabelSet",
+                                aff4_standard.LabelSet,
                                 mode="rw", token=self.token)
     self.assertListEqual([], index.ListLabels())
     index.Add("label1")
@@ -263,7 +265,7 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     """Makes sure we can add a chunk and modify it."""
 
     urn = aff4.ROOT_URN.Add("temp_sparse_image.dd")
-    fd = aff4.FACTORY.Create(urn, aff4_type="AFF4SparseImage",
+    fd = aff4.FACTORY.Create(urn, aff4_type=aff4_standard.AFF4SparseImage,
                              token=self.token, mode="rw")
     fd.Set(fd.Schema._CHUNKSIZE, rdfvalue.RDFInteger(1024))
     fd.chunksize = 1024
@@ -298,7 +300,7 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     """Read a chunk, and test that the next few are in cache."""
 
     urn = aff4.ROOT_URN.Add("temp_sparse_image.dd")
-    fd = aff4.FACTORY.Create(urn, aff4_type="AFF4SparseImage",
+    fd = aff4.FACTORY.Create(urn, aff4_type=aff4_standard.AFF4SparseImage,
                              token=self.token, mode="rw")
     fd.Set(fd.Schema._CHUNKSIZE, rdfvalue.RDFInteger(1024))
     fd.chunksize = 1024
@@ -336,7 +338,7 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
 
   def testReadingAfterLastChunk(self):
     urn = aff4.ROOT_URN.Add("temp_sparse_image.dd")
-    fd = aff4.FACTORY.Create(urn, aff4_type="AFF4SparseImage",
+    fd = aff4.FACTORY.Create(urn, aff4_type=aff4_standard.AFF4SparseImage,
                              token=self.token, mode="rw")
     fd.Set(fd.Schema._CHUNKSIZE, rdfvalue.RDFInteger(1024))
     fd.chunksize = 1024
@@ -378,7 +380,7 @@ class VFSDirectoryTest(test_lib.AFF4ObjectTest):
     client_id = rdf_client.ClientURN("C.%016X" % 1234)
     for path in ["a/b", "a/b/c/d"]:
       d = aff4.FACTORY.Create(client_id.Add("fs/os").Add(path),
-                              aff4_type="VFSDirectory",
+                              aff4_type=aff4_standard.VFSDirectory,
                               token=self.token)
       pathspec = rdf_paths.PathSpec(path=path,
                                     pathtype=rdf_paths.PathSpec.PathType.OS)
@@ -386,6 +388,6 @@ class VFSDirectoryTest(test_lib.AFF4ObjectTest):
       d.Close()
 
     d = aff4.FACTORY.Create(client_id.Add("fs/os").Add("a/b/c"),
-                            aff4_type="VFSDirectory", mode="rw",
+                            aff4_type=aff4_standard.VFSDirectory, mode="rw",
                             token=self.token)
     self.assertEqual(d.real_pathspec.CollapsePath(), "a/b/c")

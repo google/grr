@@ -249,9 +249,6 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   # User settings methods.
   # =====================
   #
-  def GetUserInfo(self, args, token=None):
-    return api_user.ApiGetUserInfoHandler()
-
   def GetPendingUserNotificationsCount(self, args, token=None):
     return api_user.ApiGetPendingUserNotificationsCountHandler()
 
@@ -264,11 +261,12 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def GetAndResetUserNotifications(self, args, token=None):
     return api_user.ApiGetAndResetUserNotificationsHandler()
 
-  def GetUserSettings(self, args, token=None):
-    return api_user.ApiGetUserSettingsHandler()
+  def GetGrrUser(self, args, token=None):
+    return api_user.ApiGetGrrUserHandler(
+        interface_traits=api_user.ApiGrrUserInterfaceTraits().EnableAll())
 
-  def UpdateUserSettings(self, args, token=None):
-    return api_user.ApiUpdateUserSettingsHandler()
+  def UpdateGrrUser(self, args, token=None):
+    return api_user.ApiUpdateGrrUserHandler()
 
   def GetPendingGlobalNotifications(self, args, token=None):
     return api_user.ApiGetPendingGlobalNotificationsHandler()

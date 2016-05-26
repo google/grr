@@ -25,9 +25,12 @@ from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import user_managers
 from grr.lib.flows.general import administrative
 from grr.lib.flows.general import transfer
+from grr.lib.hunts import implementation
 from grr.lib.hunts import process_results
 from grr.lib.hunts import standard
 from grr.lib.rdfvalues import client as rdf_client
@@ -296,7 +299,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       # Only one flow (issued by the hunt) is expected.
       self.assertEqual(len(flows_list), 1)
 
-      flow_obj = aff4.FACTORY.Open(flows_list[0], aff4_type="InfiniteFlow",
+      flow_obj = aff4.FACTORY.Open(flows_list[0], aff4_type=InfiniteFlow,
                                    token=self.token)
       self.assertEqual(flow_obj.state.context.state, "ERROR")
       self.assertEqual(flow_obj.state.context.backtrace,
@@ -336,7 +339,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     """Check no foreman rules are created if we pass add_foreman_rules=False."""
     hunt_urn = self.StartHunt(add_foreman_rules=False)
     with aff4.FACTORY.Open("aff4:/foreman", mode="r", token=self.token,
-                           aff4_type="GRRForeman",
+                           aff4_type=aff4_grr.GRRForeman,
                            ignore_cache=True) as foreman:
       foreman_rules = foreman.Get(foreman.Schema.RULES,
                                   default=foreman.Schema.RULES())
@@ -365,7 +368,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     # job handles this scenario gracefully.
     hunt_urn = self.StartHunt()
     hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
-    aff4.ResultsOutputCollection.ScheduleNotification(
+    collects.ResultsOutputCollection.ScheduleNotification(
         hunt_obj.state.context.results_collection_urn, token=self.token)
     self.ProcessHuntOutputPlugins()
 
@@ -950,7 +953,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       self.assertEqual(len(result_collection), (len(self.client_ids) + 1) * 2)
 
   def testStatsHuntFilterLocalhost(self):
-    statshunt = aff4.FACTORY.Create("aff4:/temp", "StatsHunt")
+    statshunt = aff4.FACTORY.Create("aff4:/temp", standard.StatsHunt)
     self.assertTrue(statshunt.ProcessInterface(
         rdf_client.Interface(mac_address="123")))
     self.assertFalse(statshunt.ProcessInterface(
@@ -1141,7 +1144,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     client_mock = test_lib.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
-    hunt = aff4.FACTORY.Open(hunt.urn, aff4_type="GenericHunt",
+    hunt = aff4.FACTORY.Open(hunt.urn, aff4_type=standard.GenericHunt,
                              token=self.token)
 
     # This is called once for each state method. Each flow above runs the
@@ -1266,7 +1269,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
   def _CheckHuntIsDeleted(self, hunt_urn, token=None):
     with self.assertRaises(aff4.InstantiationError):
-      aff4.FACTORY.Open(hunt_urn, aff4_type="GRRHunt",
+      aff4.FACTORY.Open(hunt_urn, aff4_type=implementation.GRRHunt,
                         token=token or self.token)
 
   def testDeleteHuntFlow(self):
@@ -1283,7 +1286,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       # Let user1 create a hunt and delete it, this should work.
       hunt = self._CreateHunt(token1.SetUID())
-      aff4.FACTORY.Open(hunt.urn, aff4_type="GRRHunt", token=token1)
+      aff4.FACTORY.Open(hunt.urn, aff4_type=implementation.GRRHunt,
+                        token=token1)
 
       flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
                              token=token1, hunt_urn=hunt.urn)
@@ -1291,13 +1295,15 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       # Let user1 create a hunt and user2 delete it, this should fail.
       hunt = self._CreateHunt(token1.SetUID())
-      aff4.FACTORY.Open(hunt.urn, aff4_type="GRRHunt", token=token1)
+      aff4.FACTORY.Open(hunt.urn, aff4_type=implementation.GRRHunt,
+                        token=token1)
 
       with self.assertRaises(access_control.UnauthorizedAccess):
         flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
                                token=token2, hunt_urn=hunt.urn)
       # Hunt is still there.
-      aff4.FACTORY.Open(hunt.urn, aff4_type="GRRHunt", token=token1)
+      aff4.FACTORY.Open(hunt.urn, aff4_type=implementation.GRRHunt,
+                        token=token1)
 
       # If user2 gets an approval, deletion is ok though.
       self.GrantHuntApproval(hunt.urn, token=token2)
@@ -1312,7 +1318,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       hunt.Run()
       hunt.Flush()
 
-      aff4.FACTORY.Open(hunt.urn, aff4_type="GRRHunt", token=token1)
+      aff4.FACTORY.Open(hunt.urn, aff4_type=implementation.GRRHunt,
+                        token=token1)
 
       with self.assertRaises(RuntimeError):
         flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
@@ -1323,7 +1330,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       hunt.Set(hunt.Schema.CLIENT_COUNT(1))
       hunt.Flush()
 
-      aff4.FACTORY.Open(hunt.urn, aff4_type="GRRHunt", token=token1)
+      aff4.FACTORY.Open(hunt.urn, aff4_type=implementation.GRRHunt,
+                        token=token1)
 
       with self.assertRaises(RuntimeError):
         flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",

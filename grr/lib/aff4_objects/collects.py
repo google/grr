@@ -70,7 +70,7 @@ class RDFValueCollection(aff4.AFF4Object):
 
     try:
       self.fd = aff4.FACTORY.Open(self.urn.Add("UnversionedStream"),
-                                  aff4_type="AFF4UnversionedImage",
+                                  aff4_type=aff4.AFF4UnversionedImage,
                                   mode=self.mode,
                                   token=self.token)
       self.size = int(self.Get(self.Schema.SIZE))
@@ -83,7 +83,7 @@ class RDFValueCollection(aff4.AFF4Object):
     # old behavior if necessary.
     try:
       self.fd = aff4.FACTORY.Open(self.urn.Add("Stream"),
-                                  aff4_type="AFF4Image", mode=self.mode,
+                                  aff4_type=aff4.AFF4Image, mode=self.mode,
                                   token=self.token)
       self.size = int(self.Get(self.Schema.SIZE))
       return
@@ -93,7 +93,7 @@ class RDFValueCollection(aff4.AFF4Object):
     # If we get here, the stream does not already exist - we create a new
     # stream.
     self.fd = aff4.FACTORY.Create(self.urn.Add("UnversionedStream"),
-                                  "AFF4UnversionedImage",
+                                  aff4.AFF4UnversionedImage,
                                   mode=self.mode, token=self.token)
     self.fd.seek(0, 2)
     self.size = 0
@@ -344,8 +344,7 @@ class GRRSignedBlob(aff4.AFF4Stream):
     Returns:
       the URN of the new object written.
     """
-    with aff4.FACTORY.Create(
-        urn, cls.__name__, mode="w", token=token) as fd:
+    with aff4.FACTORY.Create(urn, cls, mode="w", token=token) as fd:
       for start_of_chunk in xrange(0, len(content), chunk_size):
         chunk = content[start_of_chunk:start_of_chunk + chunk_size]
         blob_rdf = rdf_crypto.SignedBlob()
@@ -387,7 +386,7 @@ class GRRSignedBlob(aff4.AFF4Stream):
 
         # Blind write.
         self.collection = aff4.FACTORY.Create(
-            self.urn.Add("collection"), "GRRSignedBlobCollection", mode="w",
+            self.urn.Add("collection"), GRRSignedBlobCollection, mode="w",
             token=self.token)
 
       else:
@@ -792,7 +791,7 @@ class PackedVersionedCollection(RDFValueCollection):
 
         # We use AFF4Image to avoid serializing/deserializing data stored
         # in versioned attributes.
-        with aff4.FACTORY.Create(batch_urn, "AFF4Image", mode="w",
+        with aff4.FACTORY.Create(batch_urn, aff4.AFF4Image, mode="w",
                                  token=self.token) as batch_stream:
           batch_stream.Write(buf.getvalue())
 
@@ -824,7 +823,7 @@ class PackedVersionedCollection(RDFValueCollection):
         return compacted_count
 
     batches = {}
-    for batch in aff4.FACTORY.MultiOpen(batches_urns, aff4_type="AFF4Image",
+    for batch in aff4.FACTORY.MultiOpen(batches_urns, aff4_type=aff4.AFF4Image,
                                         token=self.token):
       batches[batch.urn] = batch
 

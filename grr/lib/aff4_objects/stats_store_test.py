@@ -22,7 +22,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
 
     self.process_id = "some_pid"
     self.stats_store = aff4.FACTORY.Create(
-        None, "StatsStore", mode="w", token=self.token)
+        None, stats_store.StatsStore, mode="w", token=self.token)
 
   def testCountersAreWrittenToDataStore(self):
     stats.STATS.RegisterCounterMetric("counter")
@@ -481,7 +481,7 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     super(StatsStoreDataQueryTest, self).setUp()
     self.process_id = "some_pid"
     self.stats_store = aff4.FACTORY.Create(
-        None, "StatsStore", mode="w", token=self.token)
+        None, stats_store.StatsStore, mode="w", token=self.token)
 
   def testUsingInCallNarrowsQuerySpace(self):
     # Create sample data.

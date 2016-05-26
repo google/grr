@@ -263,7 +263,7 @@ class OutputPluginWithOutputStreams(OutputPlugin):
       return self.state.output_streams[name]
     except KeyError:
       output_stream = aff4.FACTORY.Create(self.state.output_base_urn.Add(name),
-                                          "AFF4UnversionedImage",
+                                          aff4.AFF4UnversionedImage,
                                           mode="w", token=self.token)
       self.state.output_streams[name] = output_stream
       return output_stream
@@ -289,7 +289,7 @@ class OutputPluginWithOutputStreams(OutputPlugin):
       Dictionary with "stream name" -> "stream object" key-value pairs.
     """
     streams = list(aff4.FACTORY.MultiOpen(self.output_streams_map.values(),
-                                          aff4_type="AFF4UnversionedImage",
+                                          aff4_type=aff4.AFF4UnversionedImage,
                                           token=self.token))
 
     result = {}

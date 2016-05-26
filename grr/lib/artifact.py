@@ -13,6 +13,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import software
 from grr.lib.rdfvalues import anomaly
 from grr.lib.rdfvalues import client as rdf_client
@@ -529,7 +530,7 @@ def UploadArtifactYamlFile(file_content, base_urn=None, token=None,
     artifact_value.ValidateSyntax()
 
   # Iterate through each artifact adding it to the collection.
-  with aff4.FACTORY.Create(base_urn, aff4_type="RDFValueCollection",
+  with aff4.FACTORY.Create(base_urn, aff4_type=collects.RDFValueCollection,
                            token=token, mode="rw") as artifact_coll:
     for artifact_value in new_artifacts:
       artifact_coll.Add(artifact_value)

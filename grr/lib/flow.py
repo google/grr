@@ -867,8 +867,10 @@ class GRRFlow(aff4.AFF4Volume):
 
     # We create an anonymous AFF4 object first, The runner will then generate
     # the appropriate URN.
-    flow_obj = aff4.FACTORY.Create(None, runner_args.flow_name,
-                                   token=token)
+    flow_obj = aff4.FACTORY.Create(
+        None,
+        aff4.AFF4Object.classes.get(runner_args.flow_name),
+        token=token)
 
     # Now parse the flow args into the new object from the keywords.
     if args is None:
@@ -958,10 +960,10 @@ class GRRFlow(aff4.AFF4Volume):
       FlowError: If the flow can not be found.
     """
     if not force:
-      flow_obj = aff4.FACTORY.OpenWithLock(flow_id, aff4_type="GRRFlow",
+      flow_obj = aff4.FACTORY.OpenWithLock(flow_id, aff4_type=GRRFlow,
                                            blocking=True, token=token)
     else:
-      flow_obj = aff4.FACTORY.Open(flow_id, aff4_type="GRRFlow", mode="rw",
+      flow_obj = aff4.FACTORY.Open(flow_id, aff4_type=GRRFlow, mode="rw",
                                    token=token)
 
     if not flow_obj:
@@ -996,7 +998,7 @@ class GRRFlow(aff4.AFF4Volume):
 
       # Also terminate its children
       children_to_kill = aff4.FACTORY.MultiOpen(
-          flow_obj.ListChildren(), token=super_token, aff4_type="GRRFlow")
+          flow_obj.ListChildren(), token=super_token, aff4_type=GRRFlow)
 
       for child_obj in children_to_kill:
         cls.TerminateFlow(child_obj.urn, reason="Parent flow terminated.",

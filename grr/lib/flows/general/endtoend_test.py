@@ -9,6 +9,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import endtoend
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -66,8 +67,9 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     user = "testuser"
     userobj = rdf_client.User(username=user)
     interface = rdf_client.Interface(ifname="eth0")
-    self.client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="rw",
-                                      token=self.token, age=aff4.ALL_TIMES)
+    self.client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
+                                      mode="rw", token=self.token,
+                                      age=aff4.ALL_TIMES)
     kb = self.client.Get(self.client.Schema.KNOWLEDGE_BASE)
     kb.users.Append(userobj)
     self.client.Set(self.client.Schema.HOSTNAME("hostname"))
@@ -114,7 +116,8 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     user = "testuser"
     userobj = rdf_client.User(username=user)
     interface = rdf_client.Interface(ifname="eth0")
-    self.client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="rw",
+    self.client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
+                                      mode="rw",
                                       token=self.token, age=aff4.ALL_TIMES)
 
     kb = self.client.Get(self.client.Schema.KNOWLEDGE_BASE)

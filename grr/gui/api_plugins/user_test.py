@@ -496,62 +496,99 @@ class ApiListUserHuntApprovalsHandlerRegressionTest(
                  replace={utils.SmartStr(hunt.urn.Basename()): "H:123456"})
 
 
-class ApiGetUserSettingsHandlerTest(test_lib.GRRBaseTest):
+class ApiGetGrrUserHandlerTest(test_lib.GRRBaseTest):
   """Test for ApiGetUserSettingsHandler."""
 
   def setUp(self):
-    super(ApiGetUserSettingsHandlerTest, self).setUp()
-    self.handler = user_plugin.ApiGetUserSettingsHandler()
+    super(ApiGetGrrUserHandlerTest, self).setUp()
+    self.handler = user_plugin.ApiGetGrrUserHandler()
+
+  def testRendersObjectForNonExistingUser(self):
+    result = self.handler.Handle(None,
+                                 token=access_control.ACLToken(username="foo"))
+    self.assertEqual(result.username, "foo")
 
   def testRendersSettingsForUserCorrespondingToToken(self):
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add("foo"),
-        aff4_type="GRRUser", mode="w", token=self.token) as user_fd:
+        aff4_type=aff4_users.GRRUser.__name__, mode="w",
+        token=self.token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS,
                   aff4_users.GUISettings(mode="ADVANCED",
                                          canary_mode=True,
                                          docs_location="REMOTE"))
 
-    result = self.handler.Render(None,
+    result = self.handler.Handle(None,
                                  token=access_control.ACLToken(username="foo"))
-    self.assertEqual(result["value"]["mode"]["value"], "ADVANCED")
-    self.assertEqual(result["value"]["canary_mode"]["value"], True)
-    self.assertEqual(result["value"]["docs_location"]["value"], "REMOTE")
+    self.assertEqual(result.settings.mode, "ADVANCED")
+    self.assertEqual(result.settings.canary_mode, True)
+    self.assertEqual(result.settings.docs_location, "REMOTE")
+
+  def testRendersTraitsPassedInConstructor(self):
+    result = self.handler.Handle(None,
+                                 token=access_control.ACLToken(username="foo"))
+    self.assertFalse(result.interface_traits.create_hunt_action_enabled)
+
+    handler = user_plugin.ApiGetGrrUserHandler(
+        interface_traits=user_plugin.ApiGrrUserInterfaceTraits(
+            create_hunt_action_enabled=True
+        ))
+    result = handler.Handle(None,
+                            token=access_control.ACLToken(username="foo"))
+    self.assertTrue(result.interface_traits.create_hunt_action_enabled)
 
 
-class ApiGetUserSettingsHandlerRegresstionTest(
+class ApiGetGrrUserHandlerRegresstionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiGetUserSettingsHandler."""
 
-  handler = "ApiGetUserSettingsHandler"
+  handler = "ApiGetGrrUserHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):
       with aff4.FACTORY.Create(
           aff4.ROOT_URN.Add("users").Add(self.token.username),
-          aff4_type="GRRUser", mode="w", token=self.token) as user_fd:
+          aff4_type=aff4_users.GRRUser.__name__, mode="w",
+          token=self.token) as user_fd:
         user_fd.Set(user_fd.Schema.GUI_SETTINGS,
                     aff4_users.GUISettings(canary_mode=True))
 
-    self.Check("GET", "/api/users/me/settings")
+    self.Check("GET", "/api/users/me")
 
 
-class ApiUpdateUserSettingsHandlerTest(test_lib.GRRBaseTest):
+class ApiUpdateGrrUserHandlerTest(test_lib.GRRBaseTest):
   """Tests for ApiUpdateUserSettingsHandler."""
 
   def setUp(self):
-    super(ApiUpdateUserSettingsHandlerTest, self).setUp()
-    self.handler = user_plugin.ApiUpdateUserSettingsHandler()
+    super(ApiUpdateGrrUserHandlerTest, self).setUp()
+    self.handler = user_plugin.ApiUpdateGrrUserHandler()
+
+  def testRaisesIfUsernameSetInRequest(self):
+    user = user_plugin.ApiGrrUser(username="foo")
+    with self.assertRaises(ValueError):
+      self.handler.Handle(user,
+                          token=access_control.ACLToken(username="foo"))
+
+    user = user_plugin.ApiGrrUser(username="bar")
+    with self.assertRaises(ValueError):
+      self.handler.Handle(user,
+                          token=access_control.ACLToken(username="foo"))
+
+  def testRaisesIfTraitsSetInRequest(self):
+    user = user_plugin.ApiGrrUser(
+        interface_traits=user_plugin.ApiGrrUserInterfaceTraits())
+    with self.assertRaises(ValueError):
+      self.handler.Handle(user,
+                          token=access_control.ACLToken(username="foo"))
 
   def testSetsSettingsForUserCorrespondingToToken(self):
     settings = aff4_users.GUISettings(mode="ADVANCED",
                                       canary_mode=True,
                                       docs_location="REMOTE")
+    user = user_plugin.ApiGrrUser(settings=settings)
 
-    # Render the request - effectively applying the settings for user "foo".
-    result = self.handler.Render(settings,
-                                 token=access_control.ACLToken(username="foo"))
-    self.assertEqual(result["status"], "OK")
+    self.handler.Handle(user,
+                        token=access_control.ACLToken(username="foo"))
 
     # Check that settings for user "foo" were applied.
     fd = aff4.FACTORY.Open("aff4:/users/foo", token=self.token)

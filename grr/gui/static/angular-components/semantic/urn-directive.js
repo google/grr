@@ -2,9 +2,12 @@
 
 goog.provide('grrUi.semantic.urnDirective.UrnController');
 goog.provide('grrUi.semantic.urnDirective.UrnDirective');
+goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
 
 goog.scope(function() {
 
+
+var getFileId = grrUi.client.virtualFileSystem.fileViewDirective.getFileId;
 
 
 /**
@@ -49,18 +52,8 @@ grrUi.semantic.urnDirective.CLIENT_ID_RE =
 UrnController.prototype.deriveIdFromUrn_ = function(urn) {
   var invalidChars = /[^a-zA-Z0-9]/;
 
-  var components = urn.split('/');
-  var result = [];
-
-  // Starting from 2, because first 2 components are "aff4:/" and client id.
-  for (var i = 2; i < components.length; ++i) {
-    var fixedComponent = components[i].replace(invalidChars, function(match) {
-      return '_' + match.charCodeAt(0).toString(16);
-    });
-    result.push(fixedComponent);
-  }
-
-  return '_' + result.join('-');
+  var components = urn.split('/').slice(2);
+  return getFileId(components.join('/'));
 };
 
 

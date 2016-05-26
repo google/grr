@@ -5,6 +5,7 @@
 
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
@@ -59,7 +60,7 @@ class FingerprintFileMixin(object):
                                                        self.client_id)
     self.state.Register("urn", urn)
 
-    fd = aff4.FACTORY.Create(urn, "VFSFile", mode="w", token=self.token)
+    fd = aff4.FACTORY.Create(urn, aff4_grr.VFSFile, mode="w", token=self.token)
 
     if response.HasField("hash"):
       hash_obj = response.hash

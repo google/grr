@@ -10,7 +10,10 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import cronjobs
+
+from grr.lib.hunts import implementation
 
 
 class CleanHunts(cronjobs.SystemCronFlow):
@@ -34,7 +37,7 @@ class CleanHunts(cronjobs.SystemCronFlow):
 
     deadline = rdfvalue.RDFDatetime().Now() - hunts_ttl
 
-    hunts = aff4.FACTORY.MultiOpen(hunts_urns, aff4_type="GRRHunt",
+    hunts = aff4.FACTORY.MultiOpen(hunts_urns, aff4_type=implementation.GRRHunt,
                                    token=self.token)
     for hunt in hunts:
       if exception_label in hunt.GetLabelsNames():
@@ -60,7 +63,7 @@ class CleanCronJobs(cronjobs.SystemCronFlow):
       return
 
     jobs = cronjobs.CRON_MANAGER.ListJobs(token=self.token)
-    jobs_objs = aff4.FACTORY.MultiOpen(jobs, aff4_type="CronJob",
+    jobs_objs = aff4.FACTORY.MultiOpen(jobs, aff4_type=cronjobs.CronJob,
                                        mode="r", token=self.token)
 
     for obj in jobs_objs:
@@ -121,7 +124,7 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
         "DataRetention.inactive_client_ttl_exception_label"]
 
     index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                aff4_type="ClientIndex",
+                                aff4_type=client_index.ClientIndex,
                                 mode="rw",
                                 token=self.token)
 
@@ -132,7 +135,7 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
     for client_group in utils.Grouper(client_urns, 1000):
       inactive_client_urns = []
       for client in aff4.FACTORY.MultiOpen(client_group, mode="r",
-                                           aff4_type="VFSGRRClient",
+                                           aff4_type=aff4_grr.VFSGRRClient,
                                            token=self.token):
         if exception_label in client.GetLabelsNames():
           continue
@@ -142,4 +145,3 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
 
       aff4.FACTORY.MultiDelete(inactive_client_urns, token=self.token)
       self.HeartBeat()
-

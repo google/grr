@@ -5,6 +5,7 @@
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib.aff4_objects import aff4_grr
 # pylint: disable=unused-import
 from grr.lib.flows.general import network
 # pylint: enable=unused-import
@@ -48,7 +49,7 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
 
     # Set the system to Windows so the netstat flow will run as its the only
     # one that works at the moment.
-    fd = aff4.FACTORY.Create(self.client_id, "VFSGRRClient",
+    fd = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
                              token=self.token)
     fd.Set(fd.Schema.SYSTEM("Windows"))
     fd.Close()

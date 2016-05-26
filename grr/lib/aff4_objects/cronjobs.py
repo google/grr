@@ -83,7 +83,7 @@ class CronManager(object):
       job_name = "%s_%s" % (cron_args.flow_runner_args.flow_name, uid)
 
     cron_job_urn = self.CRON_JOBS_PATH.Add(job_name)
-    with aff4.FACTORY.Create(cron_job_urn, aff4_type="CronJob", mode="rw",
+    with aff4.FACTORY.Create(cron_job_urn, aff4_type=CronJob, mode="rw",
                              token=token, force_new_version=False) as cron_job:
 
       # If the cronjob was already present we don't want to overwrite the
@@ -106,14 +106,14 @@ class CronManager(object):
 
   def EnableJob(self, job_urn, token=None):
     """Enable cron job with the given URN."""
-    cron_job = aff4.FACTORY.Open(job_urn, mode="rw", aff4_type="CronJob",
+    cron_job = aff4.FACTORY.Open(job_urn, mode="rw", aff4_type=CronJob,
                                  token=token)
     cron_job.Set(cron_job.Schema.DISABLED(0))
     cron_job.Close()
 
   def DisableJob(self, job_urn, token=None):
     """Disable cron job with the given URN."""
-    cron_job = aff4.FACTORY.Open(job_urn, mode="rw", aff4_type="CronJob",
+    cron_job = aff4.FACTORY.Open(job_urn, mode="rw", aff4_type=CronJob,
                                  token=token)
     cron_job.Set(cron_job.Schema.DISABLED(1))
     cron_job.Close()
@@ -197,7 +197,7 @@ class StatefulSystemCronFlow(SystemCronFlow):
 
   def ReadCronState(self):
     try:
-      cron_job = aff4.FACTORY.Open(self.cron_job_urn, aff4_type="CronJob",
+      cron_job = aff4.FACTORY.Open(self.cron_job_urn, aff4_type=CronJob,
                                    token=self.token)
       return cron_job.Get(cron_job.Schema.STATE, default=rdf_flows.FlowState())
     except aff4.InstantiationError as e:
@@ -205,7 +205,7 @@ class StatefulSystemCronFlow(SystemCronFlow):
 
   def WriteCronState(self, state):
     try:
-      with aff4.FACTORY.OpenWithLock(self.cron_job_urn, aff4_type="CronJob",
+      with aff4.FACTORY.OpenWithLock(self.cron_job_urn, aff4_type=CronJob,
                                      token=self.token) as cron_job:
         cron_job.Set(cron_job.Schema.STATE(state))
     except aff4.InstantiationError as e:
@@ -416,7 +416,8 @@ class CronJob(aff4.AFF4Volume):
     current_urn = self.Get(self.Schema.CURRENT_FLOW_URN)
     if current_urn:
       try:
-        current_flow = aff4.FACTORY.Open(urn=current_urn, aff4_type="GRRFlow",
+        current_flow = aff4.FACTORY.Open(urn=current_urn,
+                                         aff4_type=flow.GRRFlow,
                                          token=self.token, mode="r")
       except aff4.InstantiationError:
         # This isn't a flow, something went really wrong, clear it out.

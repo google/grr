@@ -33,8 +33,10 @@ from grr.lib import test_lib
 from grr.lib import threadpool
 from grr.lib import utils
 from grr.lib import worker
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import sequential_collection
+from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -1212,7 +1214,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     identifier = data_store.DB.StoreBlob(data, token=self.token)
 
     # Now create the image containing the blob.
-    fd = aff4.FACTORY.Create("aff4:/C.1235/image", "HashImage",
+    fd = aff4.FACTORY.Create("aff4:/C.1235/image", standard.HashImage,
                              token=self.token)
     fd.SetChunksize(512 * 1024)
     fd.Set(fd.Schema.STAT())
@@ -1236,13 +1238,14 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                       "aff4:/C.1240/dir/a.b",
                       "aff4:/C.1240/dir/a.b/c",
                       "aff4:/C.1240/dir/b"]:
-      aff4.FACTORY.Create(directory, "VFSDirectory", token=self.token).Close()
+      aff4.FACTORY.Create(directory, standard.VFSDirectory,
+                          token=self.token).Close()
 
     # We want the indexes to be written now.
     data_store.DB.Flush()
 
     # This must not raise.
-    aff4.FACTORY.Open("aff4:/C.1240/dir/a.b/c", "VFSDirectory",
+    aff4.FACTORY.Open("aff4:/C.1240/dir/a.b/c", standard.VFSDirectory,
                       token=self.token)
 
     index = data_store.DB.ResolvePrefix("aff4:/C.1240/dir",
@@ -1265,8 +1268,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self.opened = False
     self.client_urn = "aff4:/C.0000000000000001"
 
-    client = aff4.FACTORY.Create(self.client_urn, "VFSGRRClient", mode="w",
-                                 token=self.token)
+    client = aff4.FACTORY.Create(self.client_urn, aff4_grr.VFSGRRClient,
+                                 mode="w", token=self.token)
     client.Set(client.Schema.HOSTNAME("client1"))
     client.Set(
         client.Schema.LEASED_UNTIL(
@@ -2209,7 +2212,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
     #
     packed_collection_urn = rdfvalue.RDFURN("aff4:/test_packed_collection")
     packed_collection = aff4.FACTORY.Create(packed_collection_urn,
-                                            "PackedVersionedCollection",
+                                            collects.PackedVersionedCollection,
                                             mode="w",
                                             token=self.token)
     packed_collection.Close()
@@ -2233,7 +2236,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
     self.AddResult("Packed Coll. Compact", elapsed_time, 1)
 
     packed_collection = aff4.FACTORY.Create(packed_collection_urn,
-                                            "PackedVersionedCollection",
+                                            collects.PackedVersionedCollection,
                                             mode="r",
                                             token=self.token)
     start_time = time.time()
@@ -2268,7 +2271,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
     #
 
     indexed_collection = aff4.FACTORY.Create("aff4:/test_seq_collection",
-                                             "StringSequentialCollection",
+                                             StringSequentialCollection,
                                              mode="rw",
                                              token=self.token)
 
@@ -2573,8 +2576,8 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
     self.client_id = "C.%016X" % 999
 
     # Write some data to read.
-    client = aff4.FACTORY.Create(self.client_id, "VFSGRRClient", mode="w",
-                                 token=self.token)
+    client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
+                                 mode="w", token=self.token)
     client.Set(client.Schema.HOSTNAME("client1"))
     client.Close()
 

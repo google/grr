@@ -8,9 +8,8 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
-# pylint: disable=unused-import
 from grr.lib.aff4_objects import network
-# pylint: enable=unused-import
+from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
@@ -61,7 +60,7 @@ class Interrogate(flow.GRRFlow):
 
     # Create the objects we need to exist.
     self.Load()
-    fd = aff4.FACTORY.Create(self.client.urn.Add("network"), "Network",
+    fd = aff4.FACTORY.Create(self.client.urn.Add("network"), network.Network,
                              token=self.token)
     fd.Close()
 
@@ -70,7 +69,7 @@ class Interrogate(flow.GRRFlow):
         path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
     urn = self.client.PathspecToURN(pathspec, self.client.urn)
     with aff4.FACTORY.Create(
-        urn, "VFSDirectory", mode="w", token=self.token) as fd:
+        urn, standard.VFSDirectory, mode="w", token=self.token) as fd:
       fd.Set(fd.Schema.PATHSPEC, pathspec)
 
     self.CallClient("GetPlatformInfo", next_state="Platform")
@@ -126,13 +125,13 @@ class Interrogate(flow.GRRFlow):
 
       if response.system == "Windows":
         with aff4.FACTORY.Create(self.client.urn.Add("registry"),
-                                 "VFSDirectory", token=self.token) as fd:
+                                 standard.VFSDirectory, token=self.token) as fd:
           fd.Set(fd.Schema.PATHSPEC, fd.Schema.PATHSPEC(
               path="/", pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
 
       # Update the client index
       aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                          aff4_type="ClientIndex",
+                          aff4_type=client_index.ClientIndex,
                           mode="rw",
                           object_exists=True,
                           token=self.token).AddClient(self.client)
@@ -183,7 +182,7 @@ class Interrogate(flow.GRRFlow):
 
     # Update the client index
     aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                        aff4_type="ClientIndex",
+                        aff4_type=client_index.ClientIndex,
                         mode="rw",
                         object_exists=True,
                         token=self.token).AddClient(self.client)
@@ -249,7 +248,7 @@ class Interrogate(flow.GRRFlow):
                           pathtype=rdf_paths.PathSpec.PathType.TSK)
 
           urn = self.client.PathspecToURN(pathspec, self.client.urn)
-          fd = aff4.FACTORY.Create(urn, "VFSDirectory", token=self.token)
+          fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
           fd.Set(fd.Schema.PATHSPEC(pathspec))
           fd.Close()
           continue
@@ -263,7 +262,7 @@ class Interrogate(flow.GRRFlow):
                           pathtype=rdf_paths.PathSpec.PathType.TSK)
 
           urn = self.client.PathspecToURN(pathspec, self.client.urn)
-          fd = aff4.FACTORY.Create(urn, "VFSDirectory", token=self.token)
+          fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
           fd.Set(fd.Schema.PATHSPEC(pathspec))
           fd.Close()
 
@@ -274,7 +273,7 @@ class Interrogate(flow.GRRFlow):
               pathtype=rdf_paths.PathSpec.PathType.OS)
 
           urn = self.client.PathspecToURN(pathspec, self.client.urn)
-          fd = aff4.FACTORY.Create(urn, "VFSDirectory", token=self.token)
+          fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
           fd.Set(fd.Schema.PATHSPEC(pathspec))
           fd.Close()
 
@@ -318,7 +317,7 @@ class Interrogate(flow.GRRFlow):
 
     # Update the client index
     aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                        aff4_type="ClientIndex",
+                        aff4_type=client_index.ClientIndex,
                         mode="rw",
                         object_exists=True,
                         token=self.token).AddClient(self.client)

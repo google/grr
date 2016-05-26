@@ -108,7 +108,7 @@ class GenericRDFProtoTest(RDFValueBaseTest):
   def testRDFTypes(self):
     """Test that types are properly serialized."""
     # Create an object to carry attributes
-    obj = aff4.FACTORY.Create("foobar", "AFF4Object", token=self.token)
+    obj = aff4.FACTORY.Create("foobar", aff4.AFF4Object, token=self.token)
 
     # Make a url object
     str_url = "aff4:/users"

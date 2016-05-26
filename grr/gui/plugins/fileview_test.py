@@ -110,11 +110,10 @@ class TestFileView(FileViewTestBase):
     """Add new versions for a file."""
     # This file already exists in the fixture at TIME_0, we write a later
     # version.
-    token = access_control.ACLToken(username="test")
     self._CreateFileVersion("aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
-                            "Hello World", timestamp=TIME_1, token=token)
+                            "Hello World", timestamp=TIME_1, token=self.token)
     self._CreateFileVersion("aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
-                            "Goodbye World", timestamp=TIME_2, token=token)
+                            "Goodbye World", timestamp=TIME_2, token=self.token)
 
   def _CreateFileVersion(self, path, content, timestamp, token=None):
     """Add a new version for a file."""
@@ -357,6 +356,46 @@ class TestFileView(FileViewTestBase):
 
     # Check that the correct file is listed.
     self.WaitUntil(self.IsElementPresent, "css=tr:contains(\"bzcmp\")")
+
+  def testUrlSensitiveCharactersAreShownInTree(self):
+    with self.ACLChecksDisabled():
+      self._CreateFileVersion(
+          "aff4:/C.0000000000000001/fs/os/c/foo?bar&oh/a&=?b.txt",
+          "Hello World", timestamp=TIME_1, token=self.token)
+
+    # Open VFS view for client 1 on a specific location.
+    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView&t=_fs-os-c")
+
+    # Wait until the folder gets selected and its information displayed in
+    # the details pane.
+    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs/os/c")
+
+    # Click on the "foo?bar&oh" subfolder.
+    self.Click("css=#_fs-os-c-foo_3Fbar_26oh a")
+
+    # Some more unicode testing.
+    self.Click(u"css=tr:contains(\"a&=?b.txt\")")
+    self.Click("css=li[heading=Download]")
+
+    self.WaitUntil(self.IsTextPresent, u"a&=?b.txt")
+
+    # Test the text viewer.
+    self.Click("css=li[heading=TextView]")
+    self.WaitUntilContains("Hello World", self.GetText,
+                           "css=div.monospace pre")
+
+  def testFolderPathCanContainUrlSensitiveCharacters(self):
+    with self.ACLChecksDisabled():
+      self._CreateFileVersion(
+          "aff4:/C.0000000000000001/fs/os/c/foo?bar&oh/a&=?b.txt",
+          "Hello World", timestamp=TIME_1, token=self.token)
+
+    # Open VFS view for client 1 on a location containing unicode characters.
+    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView&t=_fs-os-c"
+              "-foo_3Fbar_26oh")
+
+    # Check that the correct file is listed.
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains(\"a&=?b.txt\")")
 
   def testSearchInputFiltersFileList(self):
     # Open VFS view for client 1.
@@ -641,7 +680,15 @@ class TestTimeline(FileViewTestBase):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
               "&t=_fs-os-c-proc")
+
+    # We have to wait until the "proc" node gets highlighted in the tree,
+    # as the tree expansion may take time and happen in multiple steps.
+    # On every expansion step, the view mode will be switched to "file list",
+    # even if "timeline" mode was previously active.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=a.jstree-clicked:contains('proc')")
     self.WaitUntilEqual(2, self.GetCssCount, "css=.file-list tbody tr")
+
     self.Click("css=.btn:contains('Timeline')")
 
     # We need to have one entry per timestamp per file.
@@ -652,7 +699,15 @@ class TestTimeline(FileViewTestBase):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
               "&t=_fs-os-c-proc")
+
+    # We have to wait until the "proc" node gets highlighted in the tree,
+    # as the tree expansion may take time and happen in multiple steps.
+    # On every expansion step, the view mode will be switched to "file list",
+    # even if "timeline" mode was previously active.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=a.jstree-clicked:contains('proc')")
     self.WaitUntilEqual(2, self.GetCssCount, "css=.file-list tbody tr")
+
     self.Click("css=.btn:contains('Timeline')")
 
     # The first item has the latest time, so the version dropdown should not
@@ -678,7 +733,15 @@ class TestTimeline(FileViewTestBase):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
               "&t=_fs-os-c-proc")
+
+    # We have to wait until the "proc" node gets highlighted in the tree,
+    # as the tree expansion may take time and happen in multiple steps.
+    # On every expansion step, the view mode will be switched to "file list",
+    # even if "timeline" mode was previously active.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=a.jstree-clicked:contains('proc')")
     self.WaitUntilEqual(2, self.GetCssCount, "css=.file-list tbody tr")
+
     self.Click("css=.btn:contains('Timeline')")
 
     # Wait until the UI finished loading.
@@ -699,7 +762,15 @@ class TestTimeline(FileViewTestBase):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
               "&t=_fs-os-c-proc")
+
+    # We have to wait until the "proc" node gets highlighted in the tree,
+    # as the tree expansion may take time and happen in multiple steps.
+    # On every expansion step, the view mode will be switched to "file list",
+    # even if "timeline" mode was previously active.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=a.jstree-clicked:contains('proc')")
     self.WaitUntilEqual(2, self.GetCssCount, "css=.file-list tbody tr")
+
     self.Click("css=.btn:contains('Timeline')")
 
     # Wait until the UI finished loading.
@@ -721,7 +792,15 @@ class TestTimeline(FileViewTestBase):
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
               "&t=_fs-os-c-proc")
+
+    # We have to wait until the "proc" node gets highlighted in the tree,
+    # as the tree expansion may take time and happen in multiple steps.
+    # On every expansion step, the view mode will be switched to "file list",
+    # even if "timeline" mode was previously active.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=a.jstree-clicked:contains('proc')")
     self.WaitUntilEqual(2, self.GetCssCount, "css=.file-list tbody tr")
+
     self.Click("css=.btn:contains('Timeline')")
 
     # Wait until the UI finished loading.

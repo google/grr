@@ -71,10 +71,10 @@ describe('urn directive', function() {
             'tag=AFF4Stats&t=_foo-bar');
   });
 
-  it('it replaces alphanumeric characters in a link', function() {
+  it('replaces alphanumeric characters with "_" and hex code', function() {
     var element = renderTestTemplate('aff4:/C.0001000200030004/_f$o/bA%');
     expect(element.find('a').attr('href')).toBe(
         '#main=VirtualFileSystemView&c=C.0001000200030004&' +
-            'tag=AFF4Stats&t=__5ff%24o-bA_25');
+            'tag=AFF4Stats&t=__5Ff_24o-bA_25');
   });
 });

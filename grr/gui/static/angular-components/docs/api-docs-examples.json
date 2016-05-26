@@ -1884,6 +1884,157 @@
       "url": "/api/flows/C.1000000000000000/F:ABCDEF12/status"
     }
   ],
+  "ApiGetGrrUserHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "age": 0,
+        "type": "ApiGrrUser",
+        "value": {
+          "interface_traits": {
+            "age": 0,
+            "type": "ApiGrrUserInterfaceTraits",
+            "value": {
+              "artifact_manager_nav_item_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "browse_virtual_file_system_nav_item_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "create_cron_job_action_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "create_hunt_action_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "cron_jobs_nav_item_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "global_client_crashes_nav_item_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "hunt_manager_nav_item_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "manage_binaries_nav_item_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "manage_client_flows_nav_item_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "modify_client_labels_action_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "search_clients_action_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "server_load_nav_item_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "settings_nav_item_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "show_statistics_nav_item_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "start_client_flow_nav_item_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "start_global_flows_nav_item_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "upload_artifact_action_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "upload_binary_action_enabled": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              }
+            }
+          },
+          "settings": {
+            "age": 42000000,
+            "type": "GUISettings",
+            "value": {
+              "canary_mode": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              }
+            }
+          },
+          "username": {
+            "age": 0,
+            "type": "unicode",
+            "value": "test"
+          }
+        }
+      },
+      "test_class": "ApiGetGrrUserHandlerRegresstionTest",
+      "type_stripped_response": {
+        "interface_traits": {
+          "artifact_manager_nav_item_enabled": true,
+          "browse_virtual_file_system_nav_item_enabled": true,
+          "create_cron_job_action_enabled": true,
+          "create_hunt_action_enabled": true,
+          "cron_jobs_nav_item_enabled": true,
+          "global_client_crashes_nav_item_enabled": true,
+          "hunt_manager_nav_item_enabled": true,
+          "manage_binaries_nav_item_enabled": true,
+          "manage_client_flows_nav_item_enabled": true,
+          "modify_client_labels_action_enabled": true,
+          "search_clients_action_enabled": true,
+          "server_load_nav_item_enabled": true,
+          "settings_nav_item_enabled": true,
+          "show_statistics_nav_item_enabled": true,
+          "start_client_flow_nav_item_enabled": true,
+          "start_global_flows_nav_item_enabled": true,
+          "upload_artifact_action_enabled": true,
+          "upload_binary_action_enabled": true
+        },
+        "settings": {
+          "canary_mode": true
+        },
+        "username": "test"
+      },
+      "url": "/api/users/me"
+    }
+  ],
   "ApiGetHuntClientsHandler": [
     {
       "method": "GET",
@@ -6436,27 +6587,6 @@
         }
       },
       "url": "/api/users/me/approvals/client/C.1000000000000001/bar"
-    }
-  ],
-  "ApiGetUserSettingsHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "age": 42000000,
-        "type": "GUISettings",
-        "value": {
-          "canary_mode": {
-            "age": 0,
-            "type": "RDFBool",
-            "value": true
-          }
-        }
-      },
-      "test_class": "ApiGetUserSettingsHandlerRegresstionTest",
-      "type_stripped_response": {
-        "canary_mode": true
-      },
-      "url": "/api/users/me/settings"
     }
   ],
   "ApiGetVfsTimelineHandler": [

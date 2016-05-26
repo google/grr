@@ -185,7 +185,7 @@ class GRRFuseTest(GRRFuseTestBase):
       kb = fd.Schema.KNOWLEDGE_BASE()
       fd.Set(kb)
 
-    with aff4.FACTORY.Create(self.client_id.Add("fs/os"), "VFSDirectory",
+    with aff4.FACTORY.Create(self.client_id.Add("fs/os"), standard.VFSDirectory,
                              mode="rw", token=self.token) as fd:
       fd.Set(fd.Schema.PATHSPEC(path="/", pathtype="OS"))
 
