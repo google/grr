@@ -36,13 +36,16 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
     with hunts.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
-        output_plugins=output_plugins, description=description,
-        client_rate=0, token=self.token) as hunt:
+        output_plugins=output_plugins,
+        description=description,
+        client_rate=0,
+        token=self.token) as hunt:
       return hunt
 
   def _GetPlugin(self, hunt):
-    results_metadata = aff4.FACTORY.Open(hunt.urn.Add("ResultsMetadata"),
-                                         token=self.token)
+    results_metadata = aff4.FACTORY.Open(
+        hunt.urn.Add("ResultsMetadata"),
+        token=self.token)
     descriptor, state = results_metadata.Get(
         results_metadata.Schema.OUTPUT_PLUGINS).values()[0]
     return descriptor.GetPluginForState(state)
@@ -61,8 +64,8 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
     hunt3 = self._CreateHunt("desc3")
     plugin3 = self._GetPlugin(hunt3)
 
-    results = list(self.verifier.MultiVerifyHuntOutput(
-        [(plugin1, hunt1), (plugin2, hunt2), (plugin3, hunt3)]))
+    results = list(self.verifier.MultiVerifyHuntOutput([(plugin1, hunt1), (
+        plugin2, hunt2), (plugin3, hunt3)]))
 
     self.assertEqual(len(results), 3)
 
@@ -81,8 +84,7 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
     plugin1 = self._GetPlugin(hunt1)
 
     with self.assertRaises(output_plugin.MultiVerifyHuntOutputError):
-      _ = list(self.verifier.MultiVerifyHuntOutput(
-          [(plugin1, hunt1)]))
+      _ = list(self.verifier.MultiVerifyHuntOutput([(plugin1, hunt1)]))
 
   def testMultiVerifyHuntOutputContinuesVerifyingIfExceptionOccurs(self):
     hunt1 = self._CreateHunt("desc1")
@@ -95,8 +97,8 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
     plugin3 = self._GetPlugin(hunt3)
 
     results = []
-    with self.assertRaisesRegexp(
-        output_plugin.MultiVerifyHuntOutputError, "oh no"):
+    with self.assertRaisesRegexp(output_plugin.MultiVerifyHuntOutputError,
+                                 "oh no"):
       for hunt_urn, verification_result in self.verifier.MultiVerifyHuntOutput(
           [(plugin1, hunt1), (plugin2, hunt2), (plugin3, hunt3)]):
         results.append((hunt_urn, verification_result))
@@ -112,6 +114,7 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

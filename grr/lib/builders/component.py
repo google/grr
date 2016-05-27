@@ -29,17 +29,35 @@ def _PathStartsWithSkippedModules(path, modules):
 # These are modules which already exist on the client and do not need to be
 # packaged in a component.
 SKIPPED_MODULES = [
-    "_markerlib", "pip", "setuptools", "wheel",
-    "pkg_resources", "easy_install", "python_dateutil", "python-dateutil",
-    "yaml", "pytz", "six", "PyYAML", "pyyaml",
+    "_markerlib",
+    "pip",
+    "setuptools",
+    "wheel",
+    "pkg_resources",
+    "easy_install",
+    "python_dateutil",
+    "python-dateutil",
+    "yaml",
+    "pytz",
+    "six",
+    "PyYAML",
+    "pyyaml",
 
     # This is a core package but it is sometimes installed via pip.
     "argparse",
 
     # The following are introduced by pypiwin32.
-    "pypiwin32", "win32comext", "win32com", "adobeapi", "PyWin32",
-    "isapi", "pythoncom", "pythonwin", "pywin32", "win32",
-    ]
+    "pypiwin32",
+    "win32comext",
+    "win32com",
+    "adobeapi",
+    "PyWin32",
+    "isapi",
+    "pythoncom",
+    "pythonwin",
+    "pywin32",
+    "win32",
+]
 
 
 def GetCleanEnvironment():
@@ -88,14 +106,12 @@ def CheckUselessComponentModules(virtualenv_interpreter):
     virtualenv_interpreter: The path to the component virtualenv interpreter.
   """
   virtualenv_pip = os.path.join(os.path.dirname(virtualenv_interpreter), "pip")
-  component_modules = set(
-      subprocess.check_output(
-          [virtualenv_pip, "freeze"],
-          env=GetCleanEnvironment()).splitlines(),
-      )
+  component_modules = set(subprocess.check_output(
+      [virtualenv_pip, "freeze"],
+      env=GetCleanEnvironment()).splitlines(),)
 
-  client_modules = dict(
-      (x.key, x.version) for x in pip.get_installed_distributions())
+  client_modules = dict((x.key, x.version)
+                        for x in pip.get_installed_distributions())
 
   for component_name in component_modules:
     dist_name, version = component_name.split("==")
@@ -108,8 +124,8 @@ def CheckUselessComponentModules(virtualenv_interpreter):
       print "Useless client module %s" % dist_name
 
       if client_mod_version != version:
-        print ("Conflicting component module version (%s)"
-               "with client version (%s):") % (version, client_mod_version)
+        print("Conflicting component module version (%s)"
+              "with client version (%s):") % (version, client_mod_version)
 
 
 def BuildComponents(output_dir=None):
@@ -146,18 +162,19 @@ def BuildComponent(setup_path, output_dir=None):
     subprocess.check_call(["virtualenv", tmp_dirname],
                           env=GetCleanEnvironment())
 
-    subprocess.check_call(
-        [GetVirtualEnvBinary(tmp_dirname, "pip"), "install", "--upgrade",
-         "setuptools"])
+    subprocess.check_call([GetVirtualEnvBinary(tmp_dirname, "pip"), "install",
+                           "--upgrade", "setuptools"])
 
     interpreter = GetVirtualEnvBinary(tmp_dirname, "python")
-    subprocess.check_call([interpreter, "setup.py", "sdist", "install"],
-                          cwd=os.path.dirname(module.__file__),
-                          env=GetCleanEnvironment())
+    subprocess.check_call(
+        [interpreter, "setup.py", "sdist", "install"],
+        cwd=os.path.dirname(module.__file__),
+        env=GetCleanEnvironment())
 
     out_fd = StringIO.StringIO()
-    component_archive = zipfile.ZipFile(
-        out_fd, "w", compression=zipfile.ZIP_DEFLATED)
+    component_archive = zipfile.ZipFile(out_fd,
+                                        "w",
+                                        compression=zipfile.ZIP_DEFLATED)
 
     path = os.path.join(tmp_dirname, "lib/python2.7/site-packages")
     if not os.access(path, os.R_OK):
@@ -195,10 +212,8 @@ def BuildComponent(setup_path, output_dir=None):
         summary=rdf_client.ClientComponentSummary(
             name=setup_args["name"],
             version=setup_args["version"],
-            modules=setup_args["py_modules"],
-            ),
-        build_system=rdf_client.Uname.FromCurrentSystem(),
-        )
+            modules=setup_args["py_modules"],),
+        build_system=rdf_client.Uname.FromCurrentSystem(),)
 
     # Components will be encrypted using AES128CBC
     result.summary.cipher.SetAlgorithm("AES128CBC")
@@ -215,9 +230,10 @@ def BuildComponent(setup_path, output_dir=None):
 
     utils.EnsureDirExists(output_dir)
 
-    output = os.path.join(output_dir, "%s_%s_%s.bin" % (
-        result.summary.name, result.summary.version,
-        result.build_system.signature()))
+    output = os.path.join(output_dir,
+                          "%s_%s_%s.bin" % (result.summary.name,
+                                            result.summary.version,
+                                            result.build_system.signature()))
 
     with open(output, "wb") as fd:
       fd.write(result.SerializeToString())

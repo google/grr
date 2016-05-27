@@ -29,7 +29,6 @@ from grr.lib import registry
 from grr.lib import utils
 from grr.proto import jobs_pb2
 
-
 # Factor to convert from seconds to microseconds
 MICROSECONDS = 1000000
 
@@ -429,13 +428,13 @@ class RDFInteger(RDFString):
 
   @staticmethod
   def GreaterThan(attribute, filter_implemention, value):
-    return filter_implemention.PredicateGreaterThanFilter(
-        attribute, long(value))
+    return filter_implemention.PredicateGreaterThanFilter(attribute,
+                                                          long(value))
 
   @staticmethod
   def Equal(attribute, filter_implemention, value):
-    return filter_implemention.PredicateNumericEqualFilter(
-        attribute, long(value))
+    return filter_implemention.PredicateNumericEqualFilter(attribute,
+                                                           long(value))
 
   operators = {"<": (1, "LessThan"),
                ">": (1, "GreaterThan"),
@@ -576,10 +575,18 @@ class RDFDatetime(RDFInteger):
     """
     # By default assume the time is given in UTC.
     if eoy:
-      default = datetime.datetime(time.gmtime().tm_year, 12, 31, 23, 59,
+      default = datetime.datetime(time.gmtime().tm_year,
+                                  12,
+                                  31,
+                                  23,
+                                  59,
                                   tzinfo=dateutil.tz.tzutc())
     else:
-      default = datetime.datetime(time.gmtime().tm_year, 1, 1, 0, 0,
+      default = datetime.datetime(time.gmtime().tm_year,
+                                  1,
+                                  1,
+                                  0,
+                                  0,
                                   tzinfo=dateutil.tz.tzutc())
 
     timestamp = parser.parse(string, default=default)
@@ -622,12 +629,8 @@ class Duration(RDFInteger):
   """Duration value stored in seconds internally."""
   data_store_type = "unsigned_integer"
 
-  DIVIDERS = collections.OrderedDict((
-      ("w", 60 * 60 * 24 * 7),
-      ("d", 60 * 60 * 24),
-      ("h", 60 * 60),
-      ("m", 60),
-      ("s", 1)))
+  DIVIDERS = collections.OrderedDict((("w", 60 * 60 * 24 * 7), (
+      "d", 60 * 60 * 24), ("h", 60 * 60), ("m", 60), ("s", 1)))
 
   def __init__(self, initializer=None, age=None):
     super(Duration, self).__init__(None, age)
@@ -763,15 +766,13 @@ class ByteSize(RDFInteger):
   """
   data_store_type = "unsigned_integer"
 
-  DIVIDERS = dict((
-      ("", 1),
-      ("k", 1000),
-      ("m", 1000 ** 2),
-      ("g", 1000 ** 3),
-      ("ki", 1024),
-      ("mi", 1024 ** 2),
-      ("gi", 1024 ** 3),
-  ))
+  DIVIDERS = dict((("", 1),
+                   ("k", 1000),
+                   ("m", 1000**2),
+                   ("g", 1000**3),
+                   ("ki", 1024),
+                   ("mi", 1024**2),
+                   ("gi", 1024**3),))
 
   REGEX = re.compile("^([0-9.]+)([kmgi]*)b?$")
 
@@ -793,12 +794,12 @@ class ByteSize(RDFInteger):
 
   def __str__(self):
     size_token = ""
-    if self._value > 1024 ** 3:
+    if self._value > 1024**3:
       size_token = "Gb"
-      value = float(self._value) / 1024 ** 3
-    elif self._value > 1024 ** 2:
+      value = float(self._value) / 1024**3
+    elif self._value > 1024**2:
       size_token = "Mb"
-      value = float(self._value) / 1024 ** 2
+      value = float(self._value) / 1024**2
     elif self._value > 1024:
       size_token = "Kb"
       value = float(self._value) / 1024
@@ -1027,8 +1028,8 @@ class Subject(RDFURN):
 
   @staticmethod
   def Startswith(unused_attribute, filter_implemention, string):
-    return filter_implemention.SubjectContainsFilter(
-        "^" + utils.EscapeRegex(string))
+    return filter_implemention.SubjectContainsFilter("^" + utils.EscapeRegex(
+        string))
 
   @staticmethod
   def HasAttribute(unused_attribute, filter_implemention, string):
@@ -1039,15 +1040,19 @@ class Subject(RDFURN):
                    startswith=(1, "Startswith"),
                    has=(1, "HasAttribute"))
 
+
 DEFAULT_FLOW_QUEUE = RDFURN("F")
 
 
 class SessionID(RDFURN):
   """An rdfvalue object that represents a session_id."""
 
-  def __init__(
-      self, initializer=None, age=None, base="aff4:/flows",
-      queue=DEFAULT_FLOW_QUEUE, flow_name=None):
+  def __init__(self,
+               initializer=None,
+               age=None,
+               base="aff4:/flows",
+               queue=DEFAULT_FLOW_QUEUE,
+               flow_name=None):
     """Constructor.
 
     Args:

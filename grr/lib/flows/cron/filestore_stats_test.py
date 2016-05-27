@@ -23,14 +23,16 @@ class FilestoreStatsCronFlowTest(test_lib.FlowTestsBaseclass):
       newfd.Close()
 
     newfd = aff4.FACTORY.Create("aff4:/files/hash/generic/sha256/blobbig",
-                                aff4_filestore.FileStoreImage, token=self.token)
+                                aff4_filestore.FileStoreImage,
+                                token=self.token)
     newfd.size = 1e12
     newfd.AddIndex("aff4:/C.0000000000000001/fs/os/1")
     newfd.AddIndex("aff4:/C.0000000000000001/fs/os/2")
     newfd.Close()
 
     newfd = aff4.FACTORY.Create("aff4:/files/hash/generic/sha256/blobtiny",
-                                aff4_filestore.FileStoreImage, token=self.token)
+                                aff4_filestore.FileStoreImage,
+                                token=self.token)
     newfd.size = 12
     newfd.AddIndex("aff4:/C.0000000000000001/fs/os/1")
     newfd.Close()
@@ -76,6 +78,7 @@ class FilestoreStatsCronFlowTest(test_lib.FlowTestsBaseclass):
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -1,14 +1,11 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
-
 """Tests for grr.lib.objectfilter."""
-
 
 
 
 import unittest
 from grr.lib import objectfilter
-
 
 attr1 = "Backup"
 attr2 = "Archive"
@@ -59,10 +56,8 @@ class DummyFile(object):
 
   def __init__(self):
     self.non_callable = HashObject(hash1)
-    self.non_callable_repeated = [DummyObject("desmond", ["brotha",
-                                                          "brotha"]),
-                                  DummyObject("desmond", ["brotha",
-                                                          "sista"])]
+    self.non_callable_repeated = [DummyObject("desmond", ["brotha", "brotha"]),
+                                  DummyObject("desmond", ["brotha", "sista"])]
     self.imported_dll1 = Dll("a.dll", ["FindWindow", "CreateFileA"])
     self.imported_dll2 = Dll("b.dll", ["RegQueryValueEx"])
 
@@ -207,8 +202,8 @@ class ObjectFilterTest(unittest.TestCase):
   def testBinaryOperators(self):
     for operator, test_data in self.operator_tests.items():
       for test_unit in test_data:
-        print ("Testing %s with %s and %s" % (
-            operator, test_unit[0], test_unit[1]))
+        print("Testing %s with %s and %s" % (operator, test_unit[0],
+                                             test_unit[1]))
         kwargs = {"arguments": test_unit[1],
                   "value_expander": self.value_expander}
         self.assertEqual(test_unit[0], operator(**kwargs).Matches(self.file))
@@ -242,8 +237,8 @@ class ObjectFilterTest(unittest.TestCase):
     # Existing, repeated, leaf is iterable
     values = self.value_expander().Expand(self.file,
                                           "non_callable_repeated.desmond")
-    self.assertListEqual(list(values), [["brotha", "brotha"],
-                                        ["brotha", "sista"]])
+    self.assertListEqual(
+        list(values), [["brotha", "brotha"], ["brotha", "sista"]])
 
     # Existing, repeated, leaf is mapping.
     values = self.value_expander().Expand(self.file, "mapping.hashes")
@@ -258,9 +253,7 @@ class ObjectFilterTest(unittest.TestCase):
     # Iterator > generator
     values = self.value_expander().Expand(self.file,
                                           "imported_dlls.imported_functions")
-    expected = [
-        ["FindWindow", "CreateFileA"],
-        ["RegQueryValueEx"]]
+    expected = [["FindWindow", "CreateFileA"], ["RegQueryValueEx"]]
     self.assertListEqual([list(value) for value in values], expected)
 
     # Non-existing first path
@@ -288,6 +281,7 @@ class ObjectFilterTest(unittest.TestCase):
     self.assertListEqual(list(values), [])
 
   def testGenericBinaryOperator(self):
+
     class TestBinaryOperator(objectfilter.GenericBinaryOperator):
       values = list()
 
@@ -311,32 +305,34 @@ class ObjectFilterTest(unittest.TestCase):
                       arguments=["context"],
                       value_expander=self.value_expander)
     self.assertRaises(
-        objectfilter.InvalidNumberOfOperands, objectfilter.Context,
+        objectfilter.InvalidNumberOfOperands,
+        objectfilter.Context,
         arguments=["context",
-                   objectfilter.Equals(
-                       arguments=["path", "value"],
-                       value_expander=self.value_expander),
-                   objectfilter.Equals(
-                       arguments=["another_path", "value"],
-                       value_expander=self.value_expander)],
+                   objectfilter.Equals(arguments=["path", "value"],
+                                       value_expander=self.value_expander),
+                   objectfilter.Equals(arguments=["another_path", "value"],
+                                       value_expander=self.value_expander)],
         value_expander=self.value_expander)
     # "One imported_dll imports 2 functions AND one imported_dll imports
     # function RegQueryValueEx"
     arguments = [
-        objectfilter.Equals(["imported_dlls.num_imported_functions", 1],
-                            value_expander=self.value_expander),
-        objectfilter.Contains(["imported_dlls.imported_functions",
-                               "RegQueryValueEx"],
-                              value_expander=self.value_expander)]
+        objectfilter.Equals(
+            ["imported_dlls.num_imported_functions", 1],
+            value_expander=self.value_expander), objectfilter.Contains(
+                ["imported_dlls.imported_functions", "RegQueryValueEx"],
+                value_expander=self.value_expander)
+    ]
     condition = objectfilter.AndFilter(arguments=arguments)
     # Without context, it matches because both filters match separately
     self.assertEqual(True, condition.Matches(self.file))
 
     arguments = [
-        objectfilter.Equals(["num_imported_functions", 2],
-                            value_expander=self.value_expander),
-        objectfilter.Contains(["imported_functions", "RegQueryValueEx"],
-                              value_expander=self.value_expander)]
+        objectfilter.Equals(
+            ["num_imported_functions", 2],
+            value_expander=self.value_expander), objectfilter.Contains(
+                ["imported_functions", "RegQueryValueEx"],
+                value_expander=self.value_expander)
+    ]
     condition = objectfilter.AndFilter(arguments=arguments)
     # "The same DLL imports 2 functions AND one of these is RegQueryValueEx"
     context = objectfilter.Context(arguments=["imported_dlls", condition],
@@ -349,11 +345,14 @@ class ObjectFilterTest(unittest.TestCase):
     condition = objectfilter.AndFilter(arguments=[
         objectfilter.Equals(arguments=["num_imported_functions", 1],
                             value_expander=self.value_expander),
-        objectfilter.Contains(["imported_functions", "RegQueryValueEx"],
-                              value_expander=self.value_expander)])
+        objectfilter.Contains(
+            ["imported_functions", "RegQueryValueEx"],
+            value_expander=self.value_expander)
+    ])
     # "The same DLL imports 1 function AND it"s RegQueryValueEx"
-    context = objectfilter.Context(["imported_dlls", condition],
-                                   value_expander=self.value_expander)
+    context = objectfilter.Context(
+        ["imported_dlls", condition],
+        value_expander=self.value_expander)
     self.assertEqual(True, context.Matches(self.file))
 
     # Now test the context with a straight query
@@ -369,7 +368,8 @@ class ObjectFilterTest(unittest.TestCase):
     self.assertEqual(True, filter_.Matches(self.file))
 
   def testRegexpRaises(self):
-    self.assertRaises(ValueError, objectfilter.Regexp,
+    self.assertRaises(ValueError,
+                      objectfilter.Regexp,
                       arguments=["name", "I [dont compile"],
                       value_expander=self.value_expander)
 

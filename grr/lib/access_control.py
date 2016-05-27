@@ -162,7 +162,6 @@ class ACLInit(registry.InitHook):
   def RunOnce(self):
     stats.STATS.RegisterCounterMetric("grr_expired_tokens")
 
-
 # This will register all classes into this modules's namespace regardless of
 # where they are defined. This allows us to decouple the place of definition of
 # a class (which might be in a plugin) from its use which will reference this

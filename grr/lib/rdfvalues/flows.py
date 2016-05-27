@@ -15,7 +15,6 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
-
 # Maintaining the reference so that DataObject can be unpickled from old
 # hunts and flows.
 # pylint: disable=invalid-name
@@ -173,6 +172,7 @@ class RobustUnpickler(pickle.Unpickler):
       pickle.Unpickler.load_reduce(self)
     except Exception:
       self.stack[-1] = UnknownObject()
+
   dispatch[pickle.REDUCE] = load_reduce
 
   def load_global(self):
@@ -180,6 +180,7 @@ class RobustUnpickler(pickle.Unpickler):
       pickle.Unpickler.load_global(self)
     except Exception:
       self.append(UnknownObject)
+
   dispatch[pickle.GLOBAL] = load_global
   # pylint: enable=invalid-name, broad-except
 
@@ -277,11 +278,11 @@ class Notification(rdf_structs.RDFProtoStruct):
   """
   protobuf = jobs_pb2.Notification
 
-  notification_types = ["Discovery",        # Link to the client object
-                        "ViewObject",       # Link to any URN
-                        "FlowStatus",       # Link to a flow
-                        "GrantAccess",      # Link to an access grant page
-                        "DownloadFile",     # Directly download a file.
+  notification_types = ["Discovery",  # Link to the client object
+                        "ViewObject",  # Link to any URN
+                        "FlowStatus",  # Link to a flow
+                        "GrantAccess",  # Link to an access grant page
+                        "DownloadFile",  # Directly download a file.
                         "ArchiveGenerationFinished",
                         "Error"]
 

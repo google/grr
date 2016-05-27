@@ -27,7 +27,8 @@ class ProfileServer(object):
                                          reason="Implied.")
     self.token.supervisor = True
 
-  def GetProfileByName(self, profile_name,
+  def GetProfileByName(self,
+                       profile_name,
                        version=constants.PROFILE_REPOSITORY_VERSION):
     """Retrieves a profile by name."""
     pass
@@ -36,7 +37,8 @@ class ProfileServer(object):
 class CachingProfileServer(ProfileServer):
   """A ProfileServer that caches profiles in the AFF4 space."""
 
-  def _GetProfileFromCache(self, profile_name,
+  def _GetProfileFromCache(self,
+                           profile_name,
                            version=constants.PROFILE_REPOSITORY_VERSION):
 
     cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
@@ -50,16 +52,19 @@ class CachingProfileServer(ProfileServer):
     except IOError:
       pass
 
-  def _StoreProfile(self, profile,
+  def _StoreProfile(self,
+                    profile,
                     version=constants.PROFILE_REPOSITORY_VERSION):
     cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
     aff4_profile = aff4.FACTORY.Create(
-        cache_urn.Add(version).Add(profile.name), "AFF4RekallProfile",
+        cache_urn.Add(version).Add(profile.name),
+        "AFF4RekallProfile",
         token=self.token)
     aff4_profile.Set(aff4_profile.Schema.PROFILE(profile))
     aff4_profile.Close()
 
-  def GetProfileByName(self, profile_name,
+  def GetProfileByName(self,
+                       profile_name,
                        version=constants.PROFILE_REPOSITORY_VERSION,
                        ignore_cache=False):
     """Retrieves a profile by name."""
@@ -79,24 +84,22 @@ class CachingProfileServer(ProfileServer):
 class RekallRepositoryProfileServer(ProfileServer):
   """This server gets the profiles from the official Rekall repository."""
 
-  def GetProfileByName(self, profile_name,
+  def GetProfileByName(self,
+                       profile_name,
                        version=constants.PROFILE_REPOSITORY_VERSION):
     try:
-      url = "%s/%s/%s.gz" % (
-          config_lib.CONFIG["Rekall.profile_repository"],
-          version, profile_name)
+      url = "%s/%s/%s.gz" % (config_lib.CONFIG["Rekall.profile_repository"],
+                             version, profile_name)
       handle = urllib2.urlopen(url, timeout=10)
 
     except urllib2.HTTPError as e:
       if e.code == 404:
-        logging.info(
-            "Got a 404 while downloading Rekall profile %s", url)
+        logging.info("Got a 404 while downloading Rekall profile %s", url)
         return None
       raise
     except urllib2.URLError as e:
-      logging.info(
-          "Got an URLError while downloading Rekall profile %s: %s",
-          url, e.reason)
+      logging.info("Got an URLError while downloading Rekall profile %s: %s",
+                   url, e.reason)
       raise
 
     profile_data = handle.read()
@@ -116,8 +119,9 @@ class GRRRekallProfileServer(CachingProfileServer,
   def GetAllProfiles(self, version=constants.PROFILE_REPOSITORY_VERSION):
     """This function will download all profiles and cache them locally."""
 
-    inv_profile = self.GetProfileByName(
-        "inventory", ignore_cache=True, version=version)
+    inv_profile = self.GetProfileByName("inventory",
+                                        ignore_cache=True,
+                                        version=version)
     inventory_json = zlib.decompress(inv_profile.data, 16 + zlib.MAX_WBITS)
     inventory = json.loads(inventory_json)
 
@@ -130,8 +134,9 @@ class GRRRekallProfileServer(CachingProfileServer,
 
   def GetMissingProfiles(self, version=constants.PROFILE_REPOSITORY_VERSION):
     """This will download all profiles that are not already cached."""
-    inv_profile = self.GetProfileByName(
-        "inventory", ignore_cache=True, version=version)
+    inv_profile = self.GetProfileByName("inventory",
+                                        ignore_cache=True,
+                                        version=version)
     inventory_json = zlib.decompress(inv_profile.data, 16 + zlib.MAX_WBITS)
     inventory = json.loads(inventory_json)
 
@@ -168,8 +173,7 @@ class GRRRekallProfileServer(CachingProfileServer,
         profile = urn_to_profile[urn]
         logging.info("Getting missing profile: %s", profile)
         try:
-          pool.AddTask(self.GetProfileByName,
-                       (profile, version, True))
+          pool.AddTask(self.GetProfileByName, (profile, version, True))
         except urllib2.URLError as e:
           logging.info("Exception: %s", e)
     finally:

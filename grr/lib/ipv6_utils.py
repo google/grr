@@ -11,7 +11,6 @@ import socket
 # ntop does not exist on Windows.
 # pylint: disable=g-socket-inet-aton,g-socket-inet-ntoa
 
-
 V4_ENDING = re.compile(r"(?P<v6>.*):(\d+)\.(\d+)\.(\d+)\.(\d+)$")
 ZERO_SEQUENCE = re.compile(r"(?:^|\:)(?:0\:?)+")
 BAD_SINGLE_COLON = re.compile(r"(^\:[^:].*|.*[^:]\:$)")

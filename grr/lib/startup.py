@@ -47,8 +47,8 @@ def ClientPluginInit():
   these files (and register any plugins at run time).
   """
   for plugin in config_lib.CONFIG["Client.plugins"]:
-    config_lib.PluginLoader.LoadPlugin(
-        os.path.join(os.path.dirname(sys.executable), plugin))
+    config_lib.PluginLoader.LoadPlugin(os.path.join(
+        os.path.dirname(sys.executable), plugin))
 
 
 def ClientLoggingStartupInit():
@@ -140,12 +140,13 @@ def TestInit():
   flags.FLAGS.config = config_lib.Resource().Filter(
       "install_data/etc/grr-server.yaml")
 
-  flags.FLAGS.secondary_configs = [config_lib.Resource().Filter(
-      "test_data/grr_test.yaml@grr-response-test")]
+  flags.FLAGS.secondary_configs = [
+      config_lib.Resource().Filter("test_data/grr_test.yaml@grr-response-test")
+  ]
 
   # We are running a test so let the config system know that.
-  config_lib.CONFIG.AddContext(
-      "Test Context", "Context applied when we run tests.")
+  config_lib.CONFIG.AddContext("Test Context",
+                               "Context applied when we run tests.")
 
   AddConfigContext()
   ConfigInit()

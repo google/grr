@@ -65,14 +65,12 @@ class GRRFuseDatastoreOnlyTest(GRRFuseTestBase):
     test_lib.ClientFixture(self.client_name, token=self.token)
     self.root = "/"
 
-    self.passthrough = fuse_mount.GRRFuseDatastoreOnly(
-        self.root,
-        token=self.token)
+    self.passthrough = fuse_mount.GRRFuseDatastoreOnly(self.root,
+                                                       token=self.token)
 
   def testInvalidAFF4Root(self):
     with self.assertRaises(IOError):
-      fuse_mount.GRRFuseDatastoreOnly("not_a_valid_path",
-                                      token=self.token)
+      fuse_mount.GRRFuseDatastoreOnly("not_a_valid_path", token=self.token)
 
   def _TestReadDir(self, directory):
     contents = list(self.passthrough.readdir(directory))
@@ -127,16 +125,17 @@ class GRRFuseDatastoreOnlyTest(GRRFuseTestBase):
 
     fd = aff4.FACTORY.Open(path, token=self.token)
 
-    self.assertEqual(self.passthrough.getattr("/"),
-                     self.passthrough.MakePartialStat(fd))
+    self.assertEqual(
+        self.passthrough.getattr("/"), self.passthrough.MakePartialStat(fd))
 
   def testGetAttrFile(self):
     path = "/foreman"
 
     fd = aff4.FACTORY.Open(path, token=self.token)
 
-    self.assertEqual(self.passthrough.getattr("/foreman"),
-                     self.passthrough.MakePartialStat(fd))
+    self.assertEqual(
+        self.passthrough.getattr("/foreman"),
+        self.passthrough.MakePartialStat(fd))
 
   def testExistingFileStat(self):
     bash_stat = {
@@ -147,10 +146,9 @@ class GRRFuseDatastoreOnlyTest(GRRFuseTestBase):
         "st_nlink": 1,
         "st_gid": 0,
         "st_blksize": 4096,
-        "pathspec": rdf_paths.PathSpec(
-            path="/bin/bash",
-            pathtype="OS",
-            path_options="CASE_LITERAL"),
+        "pathspec": rdf_paths.PathSpec(path="/bin/bash",
+                                       pathtype="OS",
+                                       path_options="CASE_LITERAL"),
         "st_dev": 51713,
         "st_size": 4874,
         "st_ino": 1026148,
@@ -185,37 +183,35 @@ class GRRFuseTest(GRRFuseTestBase):
       kb = fd.Schema.KNOWLEDGE_BASE()
       fd.Set(kb)
 
-    with aff4.FACTORY.Create(self.client_id.Add("fs/os"), standard.VFSDirectory,
-                             mode="rw", token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.client_id.Add("fs/os"),
+        standard.VFSDirectory,
+        mode="rw",
+        token=self.token) as fd:
       fd.Set(fd.Schema.PATHSPEC(path="/", pathtype="OS"))
 
     # Ignore cache so our tests always get client side updates.
-    self.grr_fuse = fuse_mount.GRRFuse(root="/", token=self.token,
+    self.grr_fuse = fuse_mount.GRRFuse(root="/",
+                                       token=self.token,
                                        ignore_cache=True)
 
-    self.action_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                               "Find", "FingerprintFile",
-                                               "HashBuffer", "UpdateVFSFile",
-                                               "EnumerateInterfaces",
-                                               "EnumerateFilesystems",
-                                               "GetConfiguration", "GetConfig",
-                                               "GetClientInfo",
-                                               "GetInstallDate",
-                                               "GetPlatformInfo",
-                                               "EnumerateUsers",
-                                               "ListDirectory")
+    self.action_mock = action_mocks.ActionMock(
+        "TransferBuffer", "StatFile", "Find", "FingerprintFile", "HashBuffer",
+        "UpdateVFSFile", "EnumerateInterfaces", "EnumerateFilesystems",
+        "GetConfiguration", "GetConfig", "GetClientInfo", "GetInstallDate",
+        "GetPlatformInfo", "EnumerateUsers", "ListDirectory")
 
-    self.client_mock = test_lib.MockClient(self.client_id, self.action_mock,
+    self.client_mock = test_lib.MockClient(self.client_id,
+                                           self.action_mock,
                                            token=self.token)
 
-    self.update_stubber = utils.Stubber(
-        self.grr_fuse, "_RunAndWaitForVFSFileUpdate",
-        self._RunAndWaitForVFSFileUpdate)
+    self.update_stubber = utils.Stubber(self.grr_fuse,
+                                        "_RunAndWaitForVFSFileUpdate",
+                                        self._RunAndWaitForVFSFileUpdate)
     self.update_stubber.Start()
 
-    self.start_flow_stubber = utils.Stubber(
-        flow_utils, "StartFlowAndWait",
-        self.StartFlowAndWait)
+    self.start_flow_stubber = utils.Stubber(flow_utils, "StartFlowAndWait",
+                                            self.StartFlowAndWait)
     self.start_flow_stubber.Start()
 
   def tearDown(self):
@@ -224,19 +220,23 @@ class GRRFuseTest(GRRFuseTestBase):
     self.update_stubber.Stop()
 
   def _RunAndWaitForVFSFileUpdate(self, path):
-    for _ in test_lib.TestFlowHelper("UpdateVFSFile", self.action_mock,
-                                     token=self.token, client_id=self.client_id,
+    for _ in test_lib.TestFlowHelper("UpdateVFSFile",
+                                     self.action_mock,
+                                     token=self.token,
+                                     client_id=self.client_id,
                                      vfs_file_urn=path):
       pass
 
   def ClientPathToAFF4Path(self, client_side_path):
     return "/%s/fs/os%s" % (self.client_name, client_side_path)
 
-  def StartFlowAndWait(self, client_id, token=None,
-                       timeout=None, **flow_args):
+  def StartFlowAndWait(self, client_id, token=None, timeout=None, **flow_args):
     for _ in test_lib.TestFlowHelper(
-        flow_args.pop("flow_name"), self.action_mock, token=self.token,
-        client_id=self.client_id, **flow_args):
+        flow_args.pop("flow_name"),
+        self.action_mock,
+        token=self.token,
+        client_id=self.client_id,
+        **flow_args):
       pass
 
   def ListDirectoryOnClient(self, path):
@@ -245,8 +245,10 @@ class GRRFuseTest(GRRFuseTestBase):
 
     pathspec = rdf_paths.PathSpec(path=path, pathtype="OS")
 
-    for _ in test_lib.TestFlowHelper("ListDirectory", self.action_mock,
-                                     pathspec=pathspec, token=self.token,
+    for _ in test_lib.TestFlowHelper("ListDirectory",
+                                     self.action_mock,
+                                     pathspec=pathspec,
+                                     token=self.token,
                                      client_id=self.client_id):
       pass
 
@@ -254,9 +256,12 @@ class GRRFuseTest(GRRFuseTestBase):
 
     # Make sure to use the least topical meme we can think of as dummy data.
     filename = self.WriteFileAndList("password.txt", "hunter2")
-    self.assertEqual(self.grr_fuse.Read(self.ClientPathToAFF4Path(filename),
-                                        length=len("hunter2"), offset=0),
-                     "hunter2")
+    self.assertEqual(
+        self.grr_fuse.Read(
+            self.ClientPathToAFF4Path(filename),
+            length=len("hunter2"),
+            offset=0),
+        "hunter2")
 
   def WriteFileAndList(self, filename, contents):
     path = os.path.join(self.temp_dir, filename)
@@ -272,8 +277,7 @@ class GRRFuseTest(GRRFuseTestBase):
     with utils.MultiStubber(
         (self.grr_fuse, "force_sparse_image", True),
         (self.grr_fuse, "max_age_before_refresh",
-         datetime.timedelta(seconds=30)),
-        (self.grr_fuse, "size_threshold", 0)):
+         datetime.timedelta(seconds=30)), (self.grr_fuse, "size_threshold", 0)):
       self._testUpdateSparseImageChunks()
 
   def _testUpdateSparseImageChunks(self):
@@ -306,14 +310,16 @@ class GRRFuseTest(GRRFuseTestBase):
     fd = aff4.FACTORY.Open(client_path, mode="rw", token=self.token)
     self.assertIsInstance(fd, standard.AFF4SparseImage)
 
-    missing_chunks = self.grr_fuse.GetMissingChunks(
-        fd, length=10 * chunksize, offset=0)
+    missing_chunks = self.grr_fuse.GetMissingChunks(fd,
+                                                    length=10 * chunksize,
+                                                    offset=0)
     # 10 chunks but not #2 - #4 that we already got.
     self.assertEqual(missing_chunks, [0, 1, 5, 6, 7, 8, 9])
 
     # Now we read and make sure the contents are as we expect.
-    fuse_contents = self.grr_fuse.Read(
-        client_path, length=8 * chunksize, offset=0)
+    fuse_contents = self.grr_fuse.Read(client_path,
+                                       length=8 * chunksize,
+                                       offset=0)
     expected_contents = ("\x00" * start_point + contents)[:8 * chunksize]
 
     self.assertEqual(fuse_contents, expected_contents,
@@ -329,16 +335,18 @@ class GRRFuseTest(GRRFuseTestBase):
     # Expire the chunks so we update all of them.
     self.grr_fuse.max_age_before_refresh = datetime.timedelta(seconds=0)
 
-    fuse_contents = self.grr_fuse.Read(
-        client_path, length=len(contents), offset=0)
+    fuse_contents = self.grr_fuse.Read(client_path,
+                                       length=len(contents),
+                                       offset=0)
 
     self.assertEqual(fuse_contents, expected_contents,
                      "Fuse contents don't match.")
 
     # Put a cache time back on, all chunks should be not missing.
     self.grr_fuse.max_age_before_refresh = datetime.timedelta(seconds=30)
-    missing_chunks = self.grr_fuse.GetMissingChunks(
-        fd, length=8 * chunksize, offset=0)
+    missing_chunks = self.grr_fuse.GetMissingChunks(fd,
+                                                    length=8 * chunksize,
+                                                    offset=0)
 
     self.assertEqual(missing_chunks, [])
 
@@ -389,9 +397,11 @@ class GRRFuseTest(GRRFuseTestBase):
   def testReadNonzeroOffset(self):
 
     filename = self.WriteFileAndList("password.txt", "password1")
-    self.assertEqual(self.grr_fuse.Read(self.ClientPathToAFF4Path(filename),
-                                        length=5, offset=3),
-                     "sword")
+    self.assertEqual(
+        self.grr_fuse.Read(
+            self.ClientPathToAFF4Path(filename),
+            length=5, offset=3),
+        "sword")
 
   def RunFakeWorkerAndClient(self, client_mock, worker_mock):
     """Runs a fake client and worker until both have empty queues.
@@ -428,6 +438,7 @@ class GRRFuseTest(GRRFuseTestBase):
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

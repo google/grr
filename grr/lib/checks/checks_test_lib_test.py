@@ -28,15 +28,17 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     # we are looking for.
     other_anomaly = {
         "SW-CHECK": checks.CheckResult(check_id="SW-CHECK"),
-        "OTHER": checks.CheckResult(
-            check_id="OTHER", anomaly=rdf_anomaly.Anomaly(**anomaly))}
+        "OTHER": checks.CheckResult(check_id="OTHER",
+                                    anomaly=rdf_anomaly.Anomaly(**anomaly))
+    }
     self.assertCheckUndetected("SW-CHECK", other_anomaly)
 
     # Check the simple failure case works.
     has_anomaly = {"SW-CHECK": checks.CheckResult(
-        check_id="SW-CHECK", anomaly=rdf_anomaly.Anomaly(**anomaly))}
-    self.assertRaises(AssertionError,
-                      self.assertCheckUndetected, "SW-CHECK", has_anomaly)
+        check_id="SW-CHECK",
+        anomaly=rdf_anomaly.Anomaly(**anomaly))}
+    self.assertRaises(AssertionError, self.assertCheckUndetected, "SW-CHECK",
+                      has_anomaly)
 
   def testAssertRanChecks(self):
     """Tests for the assertRanChecks() method."""
@@ -44,12 +46,10 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     some_checks = {"EXISTS": checks.CheckResult(check_id="EXISTS")}
 
     self.assertRanChecks(["EXISTS"], some_checks)
-    self.assertRaises(AssertionError,
-                      self.assertRanChecks,
-                      ["EXISTS"], no_checks)
-    self.assertRaises(AssertionError,
-                      self.assertRanChecks,
-                      ["FOOBAR"], some_checks)
+    self.assertRaises(AssertionError, self.assertRanChecks, ["EXISTS"],
+                      no_checks)
+    self.assertRaises(AssertionError, self.assertRanChecks, ["FOOBAR"],
+                      some_checks)
 
   def testAssertChecksNotRun(self):
     """Tests for the assertChecksNotRun() method."""
@@ -61,11 +61,9 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     self.assertChecksNotRun(["FOOBAR"], some_checks)
     self.assertChecksNotRun(["FOO", "BAR"], some_checks)
 
-    self.assertRaises(AssertionError,
-                      self.assertChecksNotRun,
-                      ["EXISTS"], some_checks)
-    self.assertRaises(AssertionError,
-                      self.assertChecksNotRun,
+    self.assertRaises(AssertionError, self.assertChecksNotRun, ["EXISTS"],
+                      some_checks)
+    self.assertRaises(AssertionError, self.assertChecksNotRun,
                       ["FOO", "EXISTS", "BAR"], some_checks)
 
   def testAssertCheckDetectedAnom(self):
@@ -100,17 +98,23 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
 
     # Check we pass when our check produces an anomaly and we don't care
     # about the details.
-    self.assertCheckDetectedAnom("EXISTS", failing_checks,
-                                 sym=None, findings=None)
+    self.assertCheckDetectedAnom("EXISTS",
+                                 failing_checks,
+                                 sym=None,
+                                 findings=None)
     # When we do care only about the 'symptom'.
-    self.assertCheckDetectedAnom("EXISTS", failing_checks,
-                                 sym="Found: An issue.", findings=None)
+    self.assertCheckDetectedAnom("EXISTS",
+                                 failing_checks,
+                                 sym="Found: An issue.",
+                                 findings=None)
     # And when we also care about the findings.
-    self.assertCheckDetectedAnom("EXISTS", failing_checks,
+    self.assertCheckDetectedAnom("EXISTS",
+                                 failing_checks,
                                  sym="Found: An issue.",
                                  findings=["Finding"])
     # And check we match substrings of a 'finding'.
-    self.assertCheckDetectedAnom("EXISTS", failing_checks,
+    self.assertCheckDetectedAnom("EXISTS",
+                                 failing_checks,
                                  sym="Found: An issue.",
                                  findings=["Fin"])
     # Check we complain when the symptom doesn't match.
@@ -146,8 +150,8 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     self.assertTrue(art_name in result)
     self.assertDictEqual(self.SetArtifactData(), result[art_name])
     # Now with data.
-    result = self.GenProcessData([("proc1", 1, ["/bin/foo"]),
-                                  ("proc2", 2, ["/bin/bar"])])
+    result = self.GenProcessData([("proc1", 1, ["/bin/foo"]), ("proc2", 2,
+                                                               ["/bin/bar"])])
     self.assertEquals("proc1", result[art_name][context][0].name)
     self.assertEquals(1, result[art_name][context][0].pid)
     self.assertEquals(["/bin/foo"], result[art_name][context][0].cmdline)
@@ -202,6 +206,7 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -29,9 +29,8 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     kb.users.Append(rdf_client.User(
         username="Bert",
         full_name="Eric (Bertrand ) 'Russell' \"Logician\" Jacobson"))
-    kb.users.Append(rdf_client.User(
-        username="Ernie",
-        full_name="Steve O'Bryan"))
+    kb.users.Append(rdf_client.User(username="Ernie",
+                                    full_name="Steve O'Bryan"))
     client.Set(client.Schema.KNOWLEDGE_BASE(kb))
     _, keywords = index.AnalyzeClient(client)
 
@@ -112,8 +111,9 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
         [rdf_client.ClientURN("aff4:/C.1000000000000005")])
 
     # Intersections should work.
-    self.assertEqual(index.LookupClients(["192.168.0", "Host-2"]),
-                     [rdf_client.ClientURN("aff4:/C.1000000000000002")])
+    self.assertEqual(
+        index.LookupClients(["192.168.0", "Host-2"]),
+        [rdf_client.ClientURN("aff4:/C.1000000000000002")])
 
     # Universal keyword should find everything.
     self.assertEqual(len(index.LookupClients(["."])), 42)
@@ -134,18 +134,21 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
                                      token=self.token)
         index.AddClient(client)
 
-    self.assertEqual(len(index.LookupClients([".", "start_date:2014-10-20"])),
-                     5)
-    self.assertEqual(len(index.LookupClients([".", "start_date:2014-10-21"])),
-                     0)
-    self.assertEqual(len(index.LookupClients([".", "start_date:2013-10-20",
-                                              "end_date:2014-10-19"])), 0)
-    self.assertEqual(len(index.LookupClients([".", "start_date:2013-10-20",
-                                              "end_date:2014-10-20"])), 5)
+    self.assertEqual(
+        len(index.LookupClients([".", "start_date:2014-10-20"])), 5)
+    self.assertEqual(
+        len(index.LookupClients([".", "start_date:2014-10-21"])), 0)
+    self.assertEqual(
+        len(index.LookupClients([".", "start_date:2013-10-20",
+                                 "end_date:2014-10-19"])), 0)
+    self.assertEqual(
+        len(index.LookupClients([".", "start_date:2013-10-20",
+                                 "end_date:2014-10-20"])), 5)
 
     # Ignore the keyword if the date is not readable.
-    self.assertEqual(len(index.LookupClients([".", "start_date:2013-10-20",
-                                              "end_date:XXXX"])), 5)
+    self.assertEqual(
+        len(index.LookupClients([".", "start_date:2013-10-20", "end_date:XXXX"
+                                ])), 5)
 
   def testUnversionedKeywords(self):
     index = aff4.FACTORY.Create("aff4:/client-index3/",
@@ -175,11 +178,13 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
         client.Flush()
         index.AddClient(client)
     with test_lib.FakeTime(3000000):
-      self.assertEqual(index.LookupClients(["10.1.0", "Host-2"]),
-                       [rdf_client.ClientURN("aff4:/C.1000000000000002")])
+      self.assertEqual(
+          index.LookupClients(["10.1.0", "Host-2"]),
+          [rdf_client.ClientURN("aff4:/C.1000000000000002")])
       self.assertEqual(index.LookupClients(["+10.1.0", "Host-2"]), [])
-      self.assertEqual(index.LookupClients(["+10.1.1", "Host-2"]),
-                       [rdf_client.ClientURN("aff4:/C.1000000000000002")])
+      self.assertEqual(
+          index.LookupClients(["+10.1.1", "Host-2"]),
+          [rdf_client.ClientURN("aff4:/C.1000000000000002")])
 
   def testRemoveLabels(self):
     client = aff4.FACTORY.Create(CLIENT_ID,
@@ -230,8 +235,7 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
       index.AddClient(client)
 
     # Maps hostnames used in the test to client urns.
-    m = {"host-0": client_urns[0],
-         "host-1": client_urns[1]}
+    m = {"host-0": client_urns[0], "host-1": client_urns[1]}
 
     # No hostname.
     client_index.BulkLabel("label-0", ["host-3"], self.token, index)
@@ -243,8 +247,8 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     # host-0: label-0
     # host-1: label-0
     self._HostsHaveLabel(hosts, "label-0", index)
-    self.assertItemsEqual(index.LookupClients(["label-0"]),
-                          [m[host] for host in hosts])
+    self.assertItemsEqual(
+        index.LookupClients(["label-0"]), [m[host] for host in hosts])
 
     # Add another label only changes the new host.
     hosts = ["host-1"]
@@ -252,13 +256,13 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     # host-0: label-0
     # host-1: label-0, label-1
     self._HostsHaveLabel(hosts, "label-1", index)
-    self.assertItemsEqual(index.LookupClients(["label-1"]),
-                          [m[host] for host in hosts])
+    self.assertItemsEqual(
+        index.LookupClients(["label-1"]), [m[host] for host in hosts])
     # and other labels remain unchanged.
     hosts = ["host-0", "host-1"]
     self._HostsHaveLabel(hosts, "label-0", index)
-    self.assertItemsEqual(index.LookupClients(["label-0"]),
-                          [m[host] for host in hosts])
+    self.assertItemsEqual(
+        index.LookupClients(["label-0"]), [m[host] for host in hosts])
 
     # Relabeling updates the label on already labeled hosts.
     hosts = ["host-0"]
@@ -266,17 +270,18 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     # host-0: label-0
     # host-1: label-1
     self._HostsHaveLabel(hosts, "label-0", index)
-    self.assertItemsEqual(index.LookupClients(["label-0"]),
-                          [m[host] for host in hosts])
+    self.assertItemsEqual(
+        index.LookupClients(["label-0"]), [m[host] for host in hosts])
     # and other labels remain unchanged.
     hosts = ["host-1"]
     self._HostsHaveLabel(hosts, "label-1", index)
-    self.assertItemsEqual(index.LookupClients(["label-1"]),
-                          [m[host] for host in hosts])
+    self.assertItemsEqual(
+        index.LookupClients(["label-1"]), [m[host] for host in hosts])
 
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

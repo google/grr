@@ -24,16 +24,20 @@ class TestDebugFlows(test_lib.FlowTestsBaseclass):
 
     request = rdf_client.ListDirRequest(pathspec=pathspec)
 
-    for _ in test_lib.TestFlowHelper(
-        "ClientAction", client_mock, client_id=self.client_id,
-        action="ListDirectory", break_pdb=False,
-        action_args=request, token=self.token):
+    for _ in test_lib.TestFlowHelper("ClientAction",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     action="ListDirectory",
+                                     break_pdb=False,
+                                     action_args=request,
+                                     token=self.token):
       pass
 
 
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

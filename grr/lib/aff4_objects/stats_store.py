@@ -149,7 +149,9 @@ class StatsStoreProcessData(aff4.AFF4Object):
         creates_new_object_version=False,
         versioned=False)
 
-  def WriteMetadataDescriptors(self, metrics_metadata, sync=False,
+  def WriteMetadataDescriptors(self,
+                               metrics_metadata,
+                               sync=False,
                                timestamp=None):
     current_metadata = self.Get(self.Schema.METRICS_METADATA,
                                 default=StatsStoreMetricsMetadata())
@@ -157,14 +159,16 @@ class StatsStoreProcessData(aff4.AFF4Object):
     if current_metadata.AsDict() != metrics_metadata:
       store_metadata = StatsStoreMetricsMetadata(
           metrics=metrics_metadata.values())
-      self.AddAttribute(self.Schema.METRICS_METADATA, store_metadata,
+      self.AddAttribute(self.Schema.METRICS_METADATA,
+                        store_metadata,
                         age=timestamp)
       self.Flush(sync=sync)
 
   def WriteStats(self, timestamp=None, sync=False):
     to_set = {}
     metrics_metadata = stats.STATS.GetAllMetricsMetadata()
-    self.WriteMetadataDescriptors(metrics_metadata, timestamp=timestamp,
+    self.WriteMetadataDescriptors(metrics_metadata,
+                                  timestamp=timestamp,
                                   sync=sync)
 
     for name, metadata in metrics_metadata.iteritems():
@@ -177,15 +181,14 @@ class StatsStoreProcessData(aff4.AFF4Object):
           for field_def, field_value in zip(metadata.fields_defs,
                                             fields_values):
             store_field_value = StatsStoreFieldValue()
-            store_field_value.SetValue(field_value,
-                                       field_def.field_type)
+            store_field_value.SetValue(field_value, field_def.field_type)
             store_fields_values.append(store_field_value)
 
           store_value.fields_values = store_fields_values
           store_value.SetValue(value, metadata.value_type)
 
-          to_set.setdefault(self.STATS_STORE_PREFIX + name, []).append(
-              store_value)
+          to_set.setdefault(self.STATS_STORE_PREFIX + name,
+                            []).append(store_value)
       else:
         value = stats.STATS.GetMetricValue(name)
         store_value = StatsStoreValue()
@@ -194,8 +197,12 @@ class StatsStoreProcessData(aff4.AFF4Object):
         to_set[self.STATS_STORE_PREFIX + name] = [store_value]
 
     # Write actual data
-    data_store.DB.MultiSet(self.urn, to_set, replace=False,
-                           token=self.token, timestamp=timestamp, sync=sync)
+    data_store.DB.MultiSet(self.urn,
+                           to_set,
+                           replace=False,
+                           token=self.token,
+                           timestamp=timestamp,
+                           sync=sync)
 
   def DeleteStats(self, timestamp=ALL_TIMESTAMPS, sync=False):
     """Deletes all stats in the given time range."""
@@ -212,8 +219,12 @@ class StatsStoreProcessData(aff4.AFF4Object):
     if timestamp and timestamp != self.ALL_TIMESTAMPS:
       start, end = timestamp
 
-    data_store.DB.DeleteAttributes(self.urn, predicates, start=start,
-                                   end=end, token=self.token, sync=sync)
+    data_store.DB.DeleteAttributes(self.urn,
+                                   predicates,
+                                   start=start,
+                                   end=end,
+                                   token=self.token,
+                                   sync=sync)
 
 
 class StatsStore(aff4.AFF4Volume):
@@ -241,9 +252,11 @@ class StatsStore(aff4.AFF4Volume):
     if not process_id:
       raise ValueError("process_id can't be None")
 
-    process_data = aff4.FACTORY.Create(self.urn.Add(process_id),
-                                       StatsStoreProcessData,
-                                       mode="rw", token=self.token)
+    process_data = aff4.FACTORY.Create(
+        self.urn.Add(process_id),
+        StatsStoreProcessData,
+        mode="rw",
+        token=self.token)
     process_data.WriteStats(timestamp=timestamp, sync=sync)
 
   def ListUsedProcessIds(self):
@@ -271,7 +284,9 @@ class StatsStore(aff4.AFF4Volume):
 
     subjects = [self.DATA_STORE_ROOT.Add(process_id)
                 for process_id in process_ids]
-    subjects_data = aff4.FACTORY.MultiOpen(subjects, mode="r", token=self.token,
+    subjects_data = aff4.FACTORY.MultiOpen(subjects,
+                                           mode="r",
+                                           token=self.token,
                                            aff4_type=StatsStoreProcessData)
 
     results = {}
@@ -284,22 +299,29 @@ class StatsStore(aff4.AFF4Volume):
 
     return results
 
-  def ReadStats(self, process_id=None, metric_name=None,
-                timestamp=ALL_TIMESTAMPS, limit=10000):
+  def ReadStats(self,
+                process_id=None,
+                metric_name=None,
+                timestamp=ALL_TIMESTAMPS,
+                limit=10000):
     """Reads stats values from the data store for the current process."""
     if not process_id:
       raise ValueError("process_id can't be None")
 
     results = self.MultiReadStats(process_ids=[process_id],
                                   metric_name=metric_name,
-                                  timestamp=timestamp, limit=limit)
+                                  timestamp=timestamp,
+                                  limit=limit)
     try:
       return results[process_id]
     except KeyError:
       return {}
 
-  def MultiReadStats(self, process_ids=None, metric_name=None,
-                     timestamp=ALL_TIMESTAMPS, limit=10000):
+  def MultiReadStats(self,
+                     process_ids=None,
+                     metric_name=None,
+                     timestamp=ALL_TIMESTAMPS,
+                     limit=10000):
     """Reads historical data for multiple process ids at once."""
     if not process_ids:
       process_ids = self.ListUsedProcessIds()
@@ -354,16 +376,17 @@ class StatsStore(aff4.AFF4Volume):
 
     return results
 
-  def DeleteStats(self, process_id=None, timestamp=ALL_TIMESTAMPS,
-                  sync=False):
+  def DeleteStats(self, process_id=None, timestamp=ALL_TIMESTAMPS, sync=False):
     """Deletes all stats in the given time range."""
 
     if not process_id:
       raise ValueError("process_id can't be None")
 
-    process_data = aff4.FACTORY.Create(self.urn.Add(process_id),
-                                       StatsStoreProcessData,
-                                       mode="w", token=self.token)
+    process_data = aff4.FACTORY.Create(
+        self.urn.Add(process_id),
+        StatsStoreProcessData,
+        mode="w",
+        token=self.token)
     process_data.DeleteStats(timestamp=timestamp, sync=sync)
 
 
@@ -407,12 +430,12 @@ class StatsStoreDataQuery(object):
         try:
           series.Append(getattr(value, attr), timestamp)
         except AttributeError:
-          raise ValueError("Can't find attribute %s in value %s." % (
-              attr, value))
+          raise ValueError("Can't find attribute %s in value %s." % (attr,
+                                                                     value))
       else:
         if hasattr(value, "sum") or hasattr(value, "count"):
-          raise ValueError(
-              "Can't treat complext type as simple value: %s" % value)
+          raise ValueError("Can't treat complext type as simple value: %s" %
+                           value)
         series.Append(value, timestamp)
 
     return series
@@ -462,8 +485,7 @@ class StatsStoreDataQuery(object):
       for _, value in current_dict.iteritems():
         new_dicts.append(value)
 
-    sub_dicts = [x for x in new_dicts
-                 if hasattr(x, "iteritems")]
+    sub_dicts = [x for x in new_dicts if hasattr(x, "iteritems")]
     if not sub_dicts:
       return (new_dicts, False)
     elif len(sub_dicts) == len(new_dicts):
@@ -638,7 +660,6 @@ class StatsStoreDataQuery(object):
 
     return self.time_series[0].Mean()
 
-
 # Global StatsStore object
 STATS_STORE = None
 
@@ -646,7 +667,10 @@ STATS_STORE = None
 class StatsStoreWorker(object):
   """StatsStoreWorker periodically dumps stats data into the stats store."""
 
-  def __init__(self, stats_store, process_id, thread_name="grr_stats_saver",
+  def __init__(self,
+               stats_store,
+               process_id,
+               thread_name="grr_stats_saver",
                sleep=None):
     super(StatsStoreWorker, self).__init__()
 
@@ -662,16 +686,15 @@ class StatsStoreWorker(object):
       try:
         self.stats_store.WriteStats(process_id=self.process_id, sync=False)
       except Exception as e:  # pylint: disable=broad-except
-        logging.exception(
-            "StatsStore exception caught during WriteStats(): %s", e)
+        logging.exception("StatsStore exception caught during WriteStats(): %s",
+                          e)
 
-      logging.debug("Removing old stats from stats store.""")
+      logging.debug("Removing old stats from stats store." "")
       try:
         now = rdfvalue.RDFDatetime().Now().AsMicroSecondsFromEpoch()
         self.stats_store.DeleteStats(
             process_id=self.process_id,
-            timestamp=(0, now -
-                       config_lib.CONFIG["StatsStore.ttl"] * 1000000),
+            timestamp=(0, now - config_lib.CONFIG["StatsStore.ttl"] * 1000000),
             sync=False)
       except Exception as e:  # pylint: disable=broad-except
         logging.exception(

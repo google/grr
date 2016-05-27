@@ -8,14 +8,13 @@ import datetime
 import re
 import time
 
-
 # Special Windows value for 'the beginning of time'
 NULL_FILETIME = datetime.datetime(1601, 1, 1, 0, 0, 0)
 
 # Regex for times in windows wmi converted format 20080726084622.375000+120
-TIME_WMI_RE = re.compile(r"(?P<date>\d{14})\."        # date then .
+TIME_WMI_RE = re.compile(r"(?P<date>\d{14})\."  # date then .
                          r"(?P<subsecond>\d{6})[+-]"  # secs then + or -
-                         r"(?P<tzoffset>\d{3})")      # minute timezone offset
+                         r"(?P<tzoffset>\d{3})")  # minute timezone offset
 
 
 def DatetimeToWmiTime(dt):

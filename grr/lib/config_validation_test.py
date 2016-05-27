@@ -22,7 +22,7 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
       "PrivateKeys.driver_signing_private_key"
       "PrivateKeys.executable_signing_private_key",
       "PrivateKeys.server_key",
-      ]
+  ]
 
   # For all the resource filters to work you need the grr-response-templates
   # package, which is big.
@@ -63,8 +63,8 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
             logging.info("%s:", config_entry)
             logging.info("%s", error)
 
-          self.fail("Validation of %s returned errors: %s" % (
-              config_file, errors))
+          self.fail("Validation of %s returned errors: %s" % (config_file,
+                                                              errors))
 
 
 class BuildConfigTests(BuildConfigTestsBase):
@@ -80,8 +80,8 @@ class BuildConfigTests(BuildConfigTestsBase):
       if os.access(cfg_file, os.R_OK):
         configs.append(cfg_file)
       else:
-        logging.info(
-            "Skipping checking %s, you probably need to be root" % cfg_file)
+        logging.info("Skipping checking %s, you probably need to be root",
+                     cfg_file)
 
     self.ValidateConfigs(configs)
 

@@ -70,8 +70,7 @@ class ClientApprovalAuthorization(rdf_structs.RDFProtoStruct):
     return self.Get("label")
 
 
-class ClientApprovalAuthorizationManager(
-    auth_manager.AuthorizationManager):
+class ClientApprovalAuthorizationManager(auth_manager.AuthorizationManager):
   """Manage client label approvers from approvers.yaml."""
 
   def Initialize(self):
@@ -88,8 +87,8 @@ class ClientApprovalAuthorizationManager(
     if yaml_data:
       self.reader.CreateAuthorizations(yaml_data, ClientApprovalAuthorization)
     else:
-      with open(
-          config_lib.CONFIG["ACL.approvers_config_file"], mode="rb") as fh:
+      with open(config_lib.CONFIG["ACL.approvers_config_file"],
+                mode="rb") as fh:
         self.reader.CreateAuthorizations(fh.read(), ClientApprovalAuthorization)
 
     for approval_spec in self.reader.GetAllAuthorizationObjects():
@@ -125,7 +124,8 @@ class ClientApprovalAuthorizationManager(
         raise access_control.UnauthorizedAccess(
             "User %s not in %s or groups:%s for %s" % (requester, auth.users,
                                                        auth.groups, label),
-            subject=client_urn, requested_access=token.requested_access)
+            subject=client_urn,
+            requested_access=token.requested_access)
 
     approved_count = 0
     for approver in approvers:
@@ -134,9 +134,10 @@ class ClientApprovalAuthorizationManager(
 
     if approved_count < auth.num_approvers_required:
       raise access_control.UnauthorizedAccess(
-          "Found %s approvers for %s, needed %s" % (
-              approved_count, label, auth.num_approvers_required),
-          subject=client_urn, requested_access=token.requested_access)
+          "Found %s approvers for %s, needed %s" %
+          (approved_count, label, auth.num_approvers_required),
+          subject=client_urn,
+          requested_access=token.requested_access)
     return True
 
 

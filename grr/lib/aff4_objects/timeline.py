@@ -29,12 +29,13 @@ class AFF4Event(aff4.AFF4Object):
                                "The time of this event.", "timestamp")
 
     # The actual event protobuf
-    EVENT = aff4.Attribute("aff4:timeline/event", Event,
-                           "The event protobuf", "event")
+    EVENT = aff4.Attribute("aff4:timeline/event", Event, "The event protobuf",
+                           "event")
 
   def __init__(self, event):
     # This object is virtualized from the event.
-    super(AFF4Event, self).__init__(urn=event.subject, mode="w",
+    super(AFF4Event, self).__init__(urn=event.subject,
+                                    mode="w",
                                     age=aff4.ALL_TIMES)
     self.event = event
     self.Set(self.Schema.TIMESTAMP(event.timestamp))
@@ -71,7 +72,8 @@ class GRRTimeSeries(standard.VFSDirectory):
     DESCRIPTION = aff4.Attribute("aff4:description", rdfvalue.RDFString,
                                  "This collection's description", "description")
 
-    TIMELINE = aff4.Attribute("aff4:timeline/view", TimelineView,
+    TIMELINE = aff4.Attribute("aff4:timeline/view",
+                              TimelineView,
                               "The columns that will be shown in the timeline.",
                               default="")
 
@@ -157,9 +159,11 @@ class GRRTimeSeries(standard.VFSDirectory):
 
   def Close(self):
     """Flush the events into the image stream."""
-    if not self.dirty: return
-    storage = aff4.FACTORY.Create(self.urn.Add("Storage"), "AFF4Image",
-                                  token=self.token)
+    if not self.dirty:
+      return
+    storage = aff4.FACTORY.Create(
+        self.urn.Add("Storage"),
+        "AFF4Image", token=self.token)
     storage.SetChunksize(1024 * 1024)
 
     if self.heap:

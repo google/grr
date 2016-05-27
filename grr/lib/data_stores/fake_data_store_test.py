@@ -26,5 +26,6 @@ class FakeDataStoreBenchmarks(data_store_test.DataStoreBenchmarks):
 def main(args):
   test_lib.main(args)
 
+
 if __name__ == "__main__":
   flags.StartMain(main)

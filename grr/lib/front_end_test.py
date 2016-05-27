@@ -45,7 +45,8 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
         "Frontend.well_known_flows": [utils.SmartStr(
             test_lib.WellKnownSessionTest.well_known_session_id.FlowName())],
         # For tests, small pools are ok.
-        "Threadpool.size": 10})
+        "Threadpool.size": 10
+    })
     self.config_overrider.Start()
 
     prefix = "pool-%s" % self._testMethodName
@@ -98,15 +99,16 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
                                      response_id=i,
                                      session_id=session_id,
                                      payload=rdfvalue.RDFInteger(i),
-                                     task_id=15)
-                for i in range(1, 10)]
+                                     task_id=15) for i in range(1, 10)]
 
     # Now add the status message
     status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
-    messages.append(rdf_flows.GrrMessage(
-        request_id=1, response_id=len(messages) + 1, task_id=15,
-        session_id=messages[0].session_id, payload=status,
-        type=rdf_flows.GrrMessage.Type.STATUS))
+    messages.append(rdf_flows.GrrMessage(request_id=1,
+                                         response_id=len(messages) + 1,
+                                         task_id=15,
+                                         session_id=messages[0].session_id,
+                                         payload=status,
+                                         type=rdf_flows.GrrMessage.Type.STATUS))
 
     self.server.ReceiveMessages(self.client_id, messages)
 
@@ -144,12 +146,13 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     test_lib.WellKnownSessionTest.messages.sort()
 
     # Well known flows are now directly processed on the front end
-    self.assertEqual(test_lib.WellKnownSessionTest.messages,
-                     list(range(1, 10)))
+    self.assertEqual(test_lib.WellKnownSessionTest.messages, list(range(1, 10)))
 
     # There should be nothing in the client_queue
-    self.assertEqual([], data_store.DB.ResolvePrefix(self.client_id, "task:",
-                                                     token=self.token))
+    self.assertEqual([],
+                     data_store.DB.ResolvePrefix(self.client_id,
+                                                 "task:",
+                                                 token=self.token))
 
   def testWellKnownFlowsRemote(self):
     """Make sure that flows that do not exist on the front end get scheduled."""
@@ -173,13 +176,17 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(test_lib.WellKnownSessionTest.messages, [])
 
     # There should be nothing in the client_queue
-    self.assertEqual([], data_store.DB.ResolvePrefix(self.client_id, "task:",
-                                                     token=self.token))
+    self.assertEqual([],
+                     data_store.DB.ResolvePrefix(self.client_id,
+                                                 "task:",
+                                                 token=self.token))
 
     # The well known flow messages should be waiting in the flow state now:
     queued_messages = []
     for predicate, _, _ in data_store.DB.ResolvePrefix(
-        session_id.Add("state/request:00000000"), "flow:", token=self.token):
+        session_id.Add("state/request:00000000"),
+        "flow:",
+        token=self.token):
       queued_messages.append(predicate)
 
     self.assertEqual(len(queued_messages), 9)
@@ -212,8 +219,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
     # Flow 1 should have been processed right away.
     test_lib.WellKnownSessionTest.messages.sort()
-    self.assertEqual(test_lib.WellKnownSessionTest.messages,
-                     list(range(1, 5)))
+    self.assertEqual(test_lib.WellKnownSessionTest.messages, list(range(1, 5)))
 
     # But not Flow 2.
     self.assertEqual(test_lib.WellKnownSessionTest2.messages, [])
@@ -267,8 +273,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     # message list.
     response = rdf_flows.MessageList()
 
-    self.server.DrainTaskSchedulerQueueForClient(
-        self.client_id, 5, response)
+    self.server.DrainTaskSchedulerQueueForClient(self.client_id, 5, response)
 
     # Check that we received only as many messages as we asked for
     self.assertEqual(len(response.job), 5)
@@ -371,8 +376,10 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
                       self.server.HandleMessageBundles, request_comms, 2)
 
     # We can still schedule a flow for it
-    flow.GRRFlow.StartFlow(client_id=client_id, flow_name="SendingFlow",
-                           message_count=1, token=self.token)
+    flow.GRRFlow.StartFlow(client_id=client_id,
+                           flow_name="SendingFlow",
+                           message_count=1,
+                           token=self.token)
     manager = queue_manager.QueueManager(token=self.token)
     tasks = manager.Query(client_id, limit=100)
 
@@ -395,20 +402,24 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
   def _ScheduleResponseAndStatus(self, client_id, flow_id):
     with queue_manager.QueueManager(token=self.token) as flow_manager:
       # Schedule a response.
-      flow_manager.QueueResponse(flow_id, rdf_flows.GrrMessage(
-          source=client_id,
-          session_id=flow_id,
-          payload=rdf_protodict.DataBlob(string="Helllo"),
-          request_id=1,
-          response_id=1))
+      flow_manager.QueueResponse(
+          flow_id,
+          rdf_flows.GrrMessage(source=client_id,
+                               session_id=flow_id,
+                               payload=rdf_protodict.DataBlob(string="Helllo"),
+                               request_id=1,
+                               response_id=1))
       # And a STATUS message.
-      flow_manager.QueueResponse(flow_id, rdf_flows.GrrMessage(
-          source=client_id,
-          session_id=flow_id,
-          payload=rdf_flows.GrrStatus(
-              status=rdf_flows.GrrStatus.ReturnedStatus.OK),
-          request_id=1, response_id=2,
-          type=rdf_flows.GrrMessage.Type.STATUS))
+      flow_manager.QueueResponse(
+          flow_id,
+          rdf_flows.GrrMessage(
+              source=client_id,
+              session_id=flow_id,
+              payload=rdf_flows.GrrStatus(
+                  status=rdf_flows.GrrStatus.ReturnedStatus.OK),
+              request_id=1,
+              response_id=2,
+              type=rdf_flows.GrrMessage.Type.STATUS))
 
   def testHandleClientMessageRetransmission(self):
     """Check that requests get retransmitted but only if there is no status."""
@@ -421,8 +432,10 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
     default_ttl = rdf_flows.GrrMessage().task_ttl
     with test_lib.FakeTime(base_time):
-      flow.GRRFlow.StartFlow(client_id=client_id, flow_name="SendingFlow",
-                             message_count=1, token=self.token)
+      flow.GRRFlow.StartFlow(client_id=client_id,
+                             flow_name="SendingFlow",
+                             message_count=1,
+                             token=self.token)
 
     for i in range(default_ttl):
       with test_lib.FakeTime(base_time + i * (self.message_expiry_time + 1)):
@@ -432,8 +445,9 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
         msgs_recvd.append(tasks)
 
     # Should return a client message (ttl-1) times and nothing afterwards.
-    self.assertEqual(map(bool, msgs_recvd),
-                     [True] * (rdf_flows.GrrMessage().task_ttl - 1) + [False])
+    self.assertEqual(
+        map(bool, msgs_recvd),
+        [True] * (rdf_flows.GrrMessage().task_ttl - 1) + [False])
 
     # Now we simulate that the workers are overloaded - the client messages
     # arrive but do not get processed in time.
@@ -443,9 +457,10 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     msgs_recvd = []
 
     with test_lib.FakeTime(base_time):
-      flow_id = flow.GRRFlow.StartFlow(
-          client_id=client_id, flow_name="SendingFlow",
-          message_count=1, token=self.token)
+      flow_id = flow.GRRFlow.StartFlow(client_id=client_id,
+                                       flow_name="SendingFlow",
+                                       message_count=1,
+                                       token=self.token)
 
     for i in range(default_ttl):
       if i == 2:
@@ -461,7 +476,8 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
           # Even if the request has not been leased ttl times yet,
           # it should be dequeued by now.
           new_tasks = queue_manager.QueueManager(token=self.token).Query(
-              queue=rdf_client.ClientURN(client_id).Queue(), limit=1000)
+              queue=rdf_client.ClientURN(client_id).Queue(),
+              limit=1000)
           self.assertEqual(len(new_tasks), 0)
 
     # Should return a client message twice and nothing afterwards.

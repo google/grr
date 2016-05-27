@@ -22,5 +22,6 @@ class SqliteDataStoreCSVBenchmarks(sqlite_data_store_test.SqliteTestMixin,
 def main(args):
   test_lib.main(args)
 
+
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -1,8 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """An implementation of a data store based on mysql."""
-
 
 import logging
 import Queue
@@ -77,7 +75,8 @@ class MySQLConnection(object):
       try:
         connection_args = dict(
             user=config_lib.CONFIG["Mysql.database_username"],
-            db=database, charset="utf8",
+            db=database,
+            charset="utf8",
             passwd=config_lib.CONFIG["Mysql.database_password"],
             cursorclass=cursors.DictCursor,
             host=config_lib.CONFIG["Mysql.host"],
@@ -115,8 +114,8 @@ class ConnectionPool(object):
       self.connections.put(MySQLConnection(self.database_name))
 
   def GetConnection(self):
-    if self.connections.empty() and (self.connections.unfinished_tasks <
-                                     self.pool_max_size):
+    if self.connections.empty() and (
+        self.connections.unfinished_tasks < self.pool_max_size):
       self.connections.put(MySQLConnection(self.database_name))
     connection = self.connections.get(block=True)
     return connection
@@ -174,9 +173,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
   def DropTables(self):
     """Drop all existing tables."""
 
-    rows = self.ExecuteQuery(
-        "SELECT table_name FROM information_schema.tables "
-        "WHERE table_schema='%s'" % self.database_name)
+    rows = self.ExecuteQuery("SELECT table_name FROM information_schema.tables "
+                             "WHERE table_schema='%s'" % self.database_name)
     for row in rows:
       self.ExecuteQuery("DROP TABLE `%s`" % row["table_name"])
 
@@ -200,8 +198,13 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       return -1
     return int(result[0]["size"])
 
-  def DeleteAttributes(self, subject, attributes, start=None, end=None,
-                       sync=True, token=None):
+  def DeleteAttributes(self,
+                       subject,
+                       attributes,
+                       start=None,
+                       end=None,
+                       sync=True,
+                       token=None):
     """Remove some attributes from a subject."""
     _ = sync  # Unused
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
@@ -225,7 +228,11 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     queries = self._BuildDelete(subject)
     self._ExecuteQueries(queries)
 
-  def ResolveMulti(self, subject, attributes, timestamp=None, limit=None,
+  def ResolveMulti(self,
+                   subject,
+                   attributes,
+                   timestamp=None,
+                   limit=None,
                    token=None):
     """Resolves multiple attributes at once for one subject."""
     self.security_manager.CheckDataStoreAccess(
@@ -246,14 +253,21 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       if limit is not None and limit <= 0:
         break
 
-  def MultiResolvePrefix(self, subjects, attribute_prefix, timestamp=None,
-                         limit=None, token=None):
+  def MultiResolvePrefix(self,
+                         subjects,
+                         attribute_prefix,
+                         timestamp=None,
+                         limit=None,
+                         token=None):
     """Result multiple subjects using one or more attribute regexps."""
     result = {}
 
     for subject in subjects:
-      values = self.ResolvePrefix(subject, attribute_prefix, token=token,
-                                  timestamp=timestamp, limit=limit)
+      values = self.ResolvePrefix(subject,
+                                  attribute_prefix,
+                                  token=token,
+                                  timestamp=timestamp,
+                                  limit=limit)
 
       if values:
         result[subject] = values
@@ -265,7 +279,11 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     return result.iteritems()
 
-  def ResolvePrefix(self, subject, attribute_prefix, timestamp=None, limit=None,
+  def ResolvePrefix(self,
+                    subject,
+                    attribute_prefix,
+                    timestamp=None,
+                    limit=None,
                     token=None):
     """ResolvePrefix."""
     self.security_manager.CheckDataStoreAccess(
@@ -277,7 +295,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     results = []
 
     for prefix in attribute_prefix:
-      query, args = self._BuildQuery(subject, prefix, timestamp, limit,
+      query, args = self._BuildQuery(subject,
+                                     prefix,
+                                     timestamp,
+                                     limit,
                                      is_prefix=True)
       rows = self.ExecuteQuery(query, args)
 
@@ -288,10 +309,13 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     return results
 
-  def _ScanAttribute(self, subject_prefix, attribute, after_urn=None,
-                     limit=None, token=None):
-    self.security_manager.CheckDataStoreAccess(
-        token, [subject_prefix], "qr")
+  def _ScanAttribute(self,
+                     subject_prefix,
+                     attribute,
+                     after_urn=None,
+                     limit=None,
+                     token=None):
+    self.security_manager.CheckDataStoreAccess(token, [subject_prefix], "qr")
 
     subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
     if subject_prefix[-1] != "/":
@@ -323,8 +347,13 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     results = self.ExecuteQuery(query, args)
     return results
 
-  def ScanAttributes(self, subject_prefix, attributes, after_urn=None,
-                     max_records=None, token=None, relaxed_order=False):
+  def ScanAttributes(self,
+                     subject_prefix,
+                     attributes,
+                     after_urn=None,
+                     max_records=None,
+                     token=None,
+                     relaxed_order=False):
     _ = relaxed_order  # Unused
 
     if after_urn:
@@ -335,8 +364,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     results = {}
 
     for attribute in attributes:
-      attribute_results = self._ScanAttribute(
-          subject_prefix, attribute, after_urn, max_records, token)
+      attribute_results = self._ScanAttribute(subject_prefix, attribute,
+                                              after_urn, max_records, token)
 
       for row in attribute_results:
         subject = row["subject"]
@@ -354,8 +383,14 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       if max_records and result_count >= max_records:
         return
 
-  def MultiSet(self, subject, values, timestamp=None, replace=True, sync=True,
-               to_delete=None, token=None):
+  def MultiSet(self,
+               subject,
+               values,
+               timestamp=None,
+               replace=True,
+               sync=True,
+               to_delete=None,
+               token=None):
     """Set multiple attributes' values for this subject in one operation."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     to_delete = set(to_delete or [])
@@ -479,9 +514,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     subjects_q["query"] = "INSERT IGNORE INTO subjects (hash, subject) VALUES"
     attributes_q["query"] = (
         "INSERT IGNORE INTO attributes (hash, attribute) VALUES")
-    aff4_q["query"] = (
-        "INSERT INTO aff4 (subject_hash, attribute_hash, "
-        "timestamp, value) VALUES")
+    aff4_q["query"] = ("INSERT INTO aff4 (subject_hash, attribute_hash, "
+                       "timestamp, value) VALUES")
 
     subjects_q["args"] = []
     attributes_q["args"] = []
@@ -500,15 +534,14 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         seen["attributes"].append(attribute)
       aff4_q["args"].extend([subject, attribute, timestamp, timestamp, value])
 
-    subjects_q["query"] += ", ".join(
-        ["(unhex(md5(%s)), %s)"] * (len(subjects_q["args"]) / 2))
-    attributes_q["query"] += ", ".join(
-        ["(unhex(md5(%s)), %s)"] * (len(attributes_q["args"]) / 2))
+    subjects_q["query"] += ", ".join(["(unhex(md5(%s)), %s)"] *
+                                     (len(subjects_q["args"]) / 2))
+    attributes_q["query"] += ", ".join(["(unhex(md5(%s)), %s)"] *
+                                       (len(attributes_q["args"]) / 2))
     aff4_q["query"] += ", ".join(
         ["(unhex(md5(%s)), unhex(md5(%s)), "
          "if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s), "
-         "unhex(%s))"] *
-        (len(aff4_q["args"]) / 5))
+         "unhex(%s))"] * (len(aff4_q["args"]) / 5))
 
     return [aff4_q, attributes_q, subjects_q]
 
@@ -612,8 +645,12 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     else:
       return value
 
-  def _BuildQuery(self, subject, attribute=None, timestamp=None,
-                  limit=None, is_prefix=False):
+  def _BuildQuery(self,
+                  subject,
+                  attribute=None,
+                  timestamp=None,
+                  limit=None,
+                  is_prefix=False):
     """Build the SELECT query to be executed."""
     args = []
     subject = utils.SmartUnicode(subject)
@@ -778,8 +815,10 @@ class MySQLTransaction(data_store.CommonTransaction):
 
   def __init__(self, store, subject, lease_time=None, token=None):
     """Ensure we can take a lock on this subject."""
-    super(MySQLTransaction, self).__init__(store, subject,
-                                           lease_time=lease_time, token=token)
+    super(MySQLTransaction, self).__init__(store,
+                                           subject,
+                                           lease_time=lease_time,
+                                           token=token)
     if lease_time is None:
       lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
 
@@ -788,10 +827,9 @@ class MySQLTransaction(data_store.CommonTransaction):
     self.expires_lock = int((time.time() + self.lock_time) * 1e6)
 
     # This will take over the lock if the lock is too old.
-    query = (
-        "UPDATE locks SET lock_expiration=%s, lock_owner=%s "
-        "WHERE subject_hash=unhex(md5(%s)) "
-        "AND (lock_expiration < %s)")
+    query = ("UPDATE locks SET lock_expiration=%s, lock_owner=%s "
+             "WHERE subject_hash=unhex(md5(%s)) "
+             "AND (lock_expiration < %s)")
     args = [self.expires_lock, self.lock_token, subject, time.time() * 1e6]
     self.store.ExecuteQuery(query, args)
 
@@ -801,9 +839,8 @@ class MySQLTransaction(data_store.CommonTransaction):
     self.expires_lock = int((time.time() + lease_time) * 1e6)
 
     # This will take over the lock if the lock is too old.
-    query = (
-        "UPDATE locks SET lock_expiration=%s, lock_owner=%s "
-        "WHERE subject_hash=unhex(md5(%s))")
+    query = ("UPDATE locks SET lock_expiration=%s, lock_owner=%s "
+             "WHERE subject_hash=unhex(md5(%s))")
     args = [self.expires_lock, self.lock_token, self.subject]
     self.store.ExecuteQuery(query, args)
 

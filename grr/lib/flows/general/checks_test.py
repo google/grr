@@ -67,13 +67,14 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
   def RunFlow(self):
     session_id = None
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
-      for session_id in test_lib.TestFlowHelper(
-          "CheckRunner", client_mock=self.client_mock, client_id=self.client_id,
-          token=self.token):
+      for session_id in test_lib.TestFlowHelper("CheckRunner",
+                                                client_mock=self.client_mock,
+                                                client_id=self.client_id,
+                                                token=self.token):
         pass
     session = aff4.FACTORY.Open(session_id, token=self.token)
-    results = {r.check_id: r for _, r in send_reply.args if isinstance(
-        r, checks.CheckResult)}
+    results = {r.check_id: r
+               for _, r in send_reply.args if isinstance(r, checks.CheckResult)}
     return session, results
 
   def LoadChecks(self):
@@ -126,6 +127,7 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

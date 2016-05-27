@@ -26,14 +26,15 @@ class GenericRDFProtoTest(RDFValueBaseTest):
     pathspec = rdf_paths.PathSpec(path=r"\\.\pmem", pathtype=1)
 
     # Should raise - incompatible RDFType.
-    self.assertRaises(
-        type_info.TypeValueError,
-        setattr, container, "device", rdfvalue.RDFString("hello"))
+    self.assertRaises(type_info.TypeValueError, setattr, container, "device",
+                      rdfvalue.RDFString("hello"))
 
     # Should raise - incompatible RDFProto type.
-    self.assertRaises(
-        type_info.TypeValueError,
-        setattr, container, "device", rdf_client.StatEntry(st_size=5))
+    self.assertRaises(type_info.TypeValueError,
+                      setattr,
+                      container,
+                      "device",
+                      rdf_client.StatEntry(st_size=5))
 
     # Assign directly.
     container.device = pathspec
@@ -48,9 +49,10 @@ class GenericRDFProtoTest(RDFValueBaseTest):
 
   def testSimpleTypeAssignment(self):
     sample = rdf_client.StatEntry()
-    sample.AddDescriptor(type_info.ProtoRDFValue(
-        name="test", field_number=45, default=rdfvalue.RDFInteger(0),
-        rdf_type=rdfvalue.RDFInteger))
+    sample.AddDescriptor(type_info.ProtoRDFValue(name="test",
+                                                 field_number=45,
+                                                 default=rdfvalue.RDFInteger(0),
+                                                 rdf_type=rdfvalue.RDFInteger))
 
     # Ensure there is an rdf_map so we know that st_size is an RDFInteger:
     self.assertIsInstance(sample.test, rdfvalue.RDFInteger)
@@ -81,22 +83,19 @@ class GenericRDFProtoTest(RDFValueBaseTest):
     self.assertEqual(sample.test, 10)
 
     # Assign an RDFValue which can not be coerced.
-    self.assertRaises(
-        type_info.TypeValueError,
-        setattr, sample, "test", rdfvalue.RDFString("hello"))
+    self.assertRaises(type_info.TypeValueError, setattr, sample, "test",
+                      rdfvalue.RDFString("hello"))
 
   def testComplexConstruction(self):
     """Test that we can construct RDFProtos with nested fields."""
     pathspec = rdf_paths.PathSpec(path="/foobar",
                                   pathtype=rdf_paths.PathSpec.PathType.TSK)
-    sample = rdf_client.StatEntry(pathspec=pathspec,
-                                  st_size=5)
+    sample = rdf_client.StatEntry(pathspec=pathspec, st_size=5)
 
     self.assertEqual(sample.pathspec.path, "/foobar")
     self.assertEqual(sample.st_size, 5)
 
-    self.assertRaises(
-        AttributeError, rdf_client.StatEntry, foobar=1)
+    self.assertRaises(AttributeError, rdf_client.StatEntry, foobar=1)
 
   def testUnicodeSupport(self):
     pathspec = rdf_paths.PathSpec(path="/foobar",
@@ -246,8 +245,7 @@ class RDFValueTestCase(RDFValueBaseTest):
       self.assertIsInstance(serialized, str)
     elif self.rdfvalue_class.data_store_type == "string":
       self.assertIsInstance(serialized, unicode)
-    elif self.rdfvalue_class.data_store_type in [
-        "unsigned_integer", "integer"]:
+    elif self.rdfvalue_class.data_store_type in ["unsigned_integer", "integer"]:
       self.assertIsInstance(serialized, (int, long))
     else:
       self.fail("%s has no valid data_store_type" % self.rdfvalue_class)

@@ -19,18 +19,20 @@ RUN apt-get update && \
   pip install setuptools --upgrade && \
   virtualenv /usr/share/grr-server
 
-# Pull dependencies and templates from pypi so docker can cache them.
+# Pull dependencies and templates from pypi and build wheels so docker can cache
+# them. This just makes the actual install go faster.
 RUN . /usr/share/grr-server/bin/activate && \
-pip install --pre grr-response-server && \
-pip install -f https://storage.googleapis.com/releases.grr-response.com/index.html grr-response-templates
+mkdir /wheelhouse && \
+pip wheel --wheel-dir=/wheelhouse --pre grr-response-server && \
+pip wheel --wheel-dir=/wheelhouse -f https://storage.googleapis.com/releases.grr-response.com/index.html grr-response-templates
 
 # Copy the GRR code over.
 ADD . /usr/src/grr/
 
 # Now install the current version over the top.
 RUN . /usr/share/grr-server/bin/activate && \
-pip install --force-reinstall -e /usr/src/grr/ && \
-pip install --force-reinstall -e /usr/src/grr/grr/config/grr-response-server
+pip install --find-links=/wheelhouse /usr/src/grr/ && \
+pip install --find-links=/wheelhouse /usr/src/grr/grr/config/grr-response-server
 
 COPY scripts/docker-entrypoint.sh /
 

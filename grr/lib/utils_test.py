@@ -143,8 +143,9 @@ class UtilsTest(test_lib.GRRBaseTest):
     self.assertEqual(utils.FormatAsHexString(10, 16), "0x000000000000001b")
     # No trailing "L".
     self.assertEqual(utils.FormatAsHexString(int(1e19)), "0x8ac7230489e80000")
-    self.assertEqual(utils.FormatAsHexString(int(1e19), 5),
-                     "0x8ac7230489e80000")
+    self.assertEqual(
+        utils.FormatAsHexString(
+            int(1e19), 5), "0x8ac7230489e80000")
 
   def testXor(self):
     test_str = "Hello World!!"
@@ -284,6 +285,7 @@ class UtilsTest(test_lib.GRRBaseTest):
     self.assertEqual(p, self.tail)
 
   def testMemoize(self):
+
     class Concat(object):
       append_count = 0
 
@@ -312,9 +314,11 @@ class UtilsTest(test_lib.GRRBaseTest):
     self.assertEqual(Fibber.fib_count, 21)
 
   def testMemoizeFunction(self):
+
     @utils.MemoizeFunction()
     def concat(prefix, suffix):
       return prefix + "," + suffix
+
     self.assertEqual(concat(prefix="a", suffix="b"), "a,b")
 
 
@@ -508,6 +512,7 @@ class StreamingTarWriterTest(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

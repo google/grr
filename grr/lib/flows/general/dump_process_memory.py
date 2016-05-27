@@ -31,11 +31,10 @@ class DumpProcessMemory(flow.GRRFlow):
   def Start(self):
     """Start processing."""
     for pid in self.args.pids:
-      self.CallClient(
-          "DumpProcessMemory",
-          rdf_client.DumpProcessMemoryRequest(pid=pid,
-                                              pause=self.args.pause),
-          next_state="DownloadImage")
+      self.CallClient("DumpProcessMemory",
+                      rdf_client.DumpProcessMemoryRequest(
+                          pid=pid, pause=self.args.pause),
+                      next_state="DownloadImage")
 
   @flow.StateHandler(next_state=["DeleteFile"])
   def DownloadImage(self, responses):

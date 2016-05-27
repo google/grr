@@ -67,24 +67,25 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
                                           "UpdateConfiguration")
 
     loc = "http://www.example.com"
-    new_config = rdf_protodict.Dict(
-        {"Client.server_urls": [loc],
-         "Client.foreman_check_frequency": 3600,
-         "Client.poll_min": 1})
+    new_config = rdf_protodict.Dict({"Client.server_urls": [loc],
+                                     "Client.foreman_check_frequency": 3600,
+                                     "Client.poll_min": 1})
 
     # Setting config options is disallowed in tests so we need to temporarily
     # revert this.
     with utils.Stubber(config_lib.CONFIG, "Set",
                        config_lib.CONFIG.Set.old_target):
       # Write the config.
-      for _ in test_lib.TestFlowHelper("UpdateConfiguration", client_mock,
+      for _ in test_lib.TestFlowHelper("UpdateConfiguration",
+                                       client_mock,
                                        client_id=self.client_id,
                                        token=self.token,
                                        config=new_config):
         pass
 
     # Now retrieve it again to see if it got written.
-    for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
+    for _ in test_lib.TestFlowHelper("Interrogate",
+                                     client_mock,
                                      token=self.token,
                                      client_id=self.client_id):
       pass
@@ -100,40 +101,44 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     self.assertEqual(crash.client_id, self.client_id)
     self.assertEqual(crash.session_id, expected_session_id)
     self.assertEqual(crash.client_info.client_name, "GRR Monitor")
-    self.assertEqual(
-        crash.crash_type,
-        "aff4:/flows/" + queues.FLOWS.Basename() + ":CrashHandler")
-    self.assertEqual(crash.crash_message,
-                     "Client killed during transaction")
+    self.assertEqual(crash.crash_type,
+                     "aff4:/flows/" + queues.FLOWS.Basename() + ":CrashHandler")
+    self.assertEqual(crash.crash_message, "Client killed during transaction")
 
   def testAlertEmailIsSentWhenClientKilled(self):
     """Test that client killed messages are handled correctly."""
     self.email_messages = []
 
     def SendEmail(address, sender, title, message, **_):
-      self.email_messages.append(dict(address=address, sender=sender,
-                                      title=title, message=message))
+      self.email_messages.append(dict(address=address,
+                                      sender=sender,
+                                      title=title,
+                                      message=message))
 
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       client = test_lib.CrashClientMock(self.client_id, self.token)
-      for _ in test_lib.TestFlowHelper(
-          "FlowWithOneClientRequest", client, client_id=self.client_id,
-          token=self.token, check_flow_errors=False):
+      for _ in test_lib.TestFlowHelper("FlowWithOneClientRequest",
+                                       client,
+                                       client_id=self.client_id,
+                                       token=self.token,
+                                       check_flow_errors=False):
         pass
 
     self.assertEqual(len(self.email_messages), 1)
     email_message = self.email_messages[0]
 
     # We expect the email to be sent.
-    self.assertEqual(email_message.get("address", ""),
-                     config_lib.CONFIG["Monitoring.alert_email"])
+    self.assertEqual(
+        email_message.get("address", ""),
+        config_lib.CONFIG["Monitoring.alert_email"])
     self.assertTrue(str(self.client_id) in email_message["title"])
 
     # Make sure the flow state is included in the email message.
     for s in ["Flow name", "FlowWithOneClientRequest", "current_state"]:
       self.assertTrue(s in email_message["message"])
 
-    flow_obj = aff4.FACTORY.Open(client.flow_id, age=aff4.ALL_TIMES,
+    flow_obj = aff4.FACTORY.Open(client.flow_id,
+                                 age=aff4.ALL_TIMES,
                                  token=self.token)
     self.assertEqual(flow_obj.state.context.state, rdf_flows.Flow.State.ERROR)
 
@@ -145,9 +150,10 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     # Make sure crashes RDFValueCollections are created and written
     # into proper locations. First check the per-client crashes collection.
     client_crashes = sorted(
-        list(aff4.FACTORY.Open(self.client_id.Add("crashes"),
-                               aff4_type=collects.PackedVersionedCollection,
-                               token=self.token)),
+        list(aff4.FACTORY.Open(
+            self.client_id.Add("crashes"),
+            aff4_type=collects.PackedVersionedCollection,
+            token=self.token)),
         key=lambda x: x.timestamp)
 
     self.assertTrue(len(client_crashes) >= 1)
@@ -166,9 +172,10 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     # Check global crash collection. Check that crash written there is
     # equal to per-client crash.
     global_crashes = sorted(
-        aff4.FACTORY.Open(aff4.ROOT_URN.Add("crashes"),
-                          aff4_type=collects.PackedVersionedCollection,
-                          token=self.token),
+        aff4.FACTORY.Open(
+            aff4.ROOT_URN.Add("crashes"),
+            aff4_type=collects.PackedVersionedCollection,
+            token=self.token),
         key=lambda x: x.timestamp)
     self.assertEqual(len(global_crashes), len(client_crashes))
     for a, b in zip(global_crashes, client_crashes):
@@ -179,37 +186,40 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     self.email_messages = []
 
     def SendEmail(address, sender, title, message, **_):
-      self.email_messages.append(dict(address=address, sender=sender,
-                                      title=title, message=message))
+      self.email_messages.append(dict(address=address,
+                                      sender=sender,
+                                      title=title,
+                                      message=message))
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
-        flow_runner_args=flow_runner.FlowRunnerArgs(
-            flow_name="FlowWithOneClientRequest"),
-        client_rate=0, crash_alert_email="crashes@example.com",
-        token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(hunt_name="GenericHunt",
+                                 flow_runner_args=flow_runner.FlowRunnerArgs(
+                                     flow_name="FlowWithOneClientRequest"),
+                                 client_rate=0,
+                                 crash_alert_email="crashes@example.com",
+                                 token=self.token) as hunt:
       hunt.Run()
       hunt.StartClients(hunt.session_id, self.client_id)
 
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       client = test_lib.CrashClientMock(self.client_id, self.token)
-      test_lib.TestHuntHelper(
-          client, [self.client_id],
-          token=self.token, check_flow_errors=False)
+      test_lib.TestHuntHelper(client, [self.client_id],
+                              token=self.token,
+                              check_flow_errors=False)
 
     self.assertEqual(len(self.email_messages), 2)
-    self.assertListEqual([self.email_messages[0]["address"],
-                          self.email_messages[1]["address"]],
-                         ["crashes@example.com",
-                          config_lib.CONFIG["Monitoring.alert_email"]])
+    self.assertListEqual(
+        [self.email_messages[0]["address"], self.email_messages[1]["address"]],
+        ["crashes@example.com", config_lib.CONFIG["Monitoring.alert_email"]])
 
   def testNannyMessage(self):
     nanny_message = "Oh no!"
     self.email_message = {}
 
     def SendEmail(address, sender, title, message, **_):
-      self.email_message.update(dict(address=address, sender=sender,
-                                     title=title, message=message))
+      self.email_message.update(dict(address=address,
+                                     sender=sender,
+                                     title=title,
+                                     message=message))
 
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       msg = rdf_flows.GrrMessage(
@@ -229,8 +239,9 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       worker.pool.Join()
 
       # We expect the email to be sent.
-      self.assertEqual(self.email_message.get("address"),
-                       config_lib.CONFIG["Monitoring.alert_email"])
+      self.assertEqual(
+          self.email_message.get("address"),
+          config_lib.CONFIG["Monitoring.alert_email"])
       self.assertTrue(str(self.client_id) in self.email_message["title"])
 
       # Make sure the message is included in the email message.
@@ -247,8 +258,9 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
       crash = client_crashes[0]
       self.assertEqual(crash.client_id, self.client_id)
       self.assertEqual(crash.client_info.client_name, "GRR Monitor")
-      self.assertEqual(crash.crash_type, "aff4:/flows/" +
-                       queues.FLOWS.Basename() + ":NannyMessage")
+      self.assertEqual(
+          crash.crash_type,
+          "aff4:/flows/" + queues.FLOWS.Basename() + ":NannyMessage")
       self.assertEqual(crash.crash_message, nanny_message)
 
       # Check global crash collection. Check that crash written there is
@@ -265,9 +277,11 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     aff4.FACTORY.Delete(self.client_id, token=self.token)
 
     client_mock = action_mocks.ActionMock("SendStartupInfo")
-    for _ in test_lib.TestFlowHelper(
-        "ClientActionRunner", client_mock, client_id=self.client_id,
-        action="SendStartupInfo", token=self.token):
+    for _ in test_lib.TestFlowHelper("ClientActionRunner",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     action="SendStartupInfo",
+                                     token=self.token):
       pass
 
     # Check the client's boot time and info.
@@ -275,8 +289,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     client_info = fd.Get(fd.Schema.CLIENT_INFO)
     boot_time = fd.Get(fd.Schema.LAST_BOOT_TIME)
 
-    self.assertEqual(client_info.client_name,
-                     config_lib.CONFIG["Client.name"])
+    self.assertEqual(client_info.client_name, config_lib.CONFIG["Client.name"])
     self.assertEqual(client_info.client_description,
                      config_lib.CONFIG["Client.description"])
 
@@ -284,9 +297,11 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     self.assertAlmostEqual(psutil.boot_time(), boot_time.AsSecondsFromEpoch())
 
     # Run it again - this should not update any record.
-    for _ in test_lib.TestFlowHelper(
-        "ClientActionRunner", client_mock, client_id=self.client_id,
-        action="SendStartupInfo", token=self.token):
+    for _ in test_lib.TestFlowHelper("ClientActionRunner",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     action="SendStartupInfo",
+                                     token=self.token):
       pass
 
     fd = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -298,33 +313,36 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     psutil.boot_time = lambda: current_boot_time + 600
 
     # Run it again - this should now update the boot time.
-    for _ in test_lib.TestFlowHelper(
-        "ClientActionRunner", client_mock, client_id=self.client_id,
-        action="SendStartupInfo", token=self.token):
+    for _ in test_lib.TestFlowHelper("ClientActionRunner",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     action="SendStartupInfo",
+                                     token=self.token):
       pass
 
     # Ensure only this attribute is updated.
     fd = aff4.FACTORY.Open(self.client_id, token=self.token)
-    self.assertNotEqual(int(boot_time.age),
-                        int(fd.Get(fd.Schema.LAST_BOOT_TIME).age))
+    self.assertNotEqual(
+        int(boot_time.age), int(fd.Get(fd.Schema.LAST_BOOT_TIME).age))
 
-    self.assertEqual(int(client_info.age),
-                     int(fd.Get(fd.Schema.CLIENT_INFO).age))
+    self.assertEqual(
+        int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
 
     # Now set a new client build time.
-    with test_lib.ConfigOverrider({
-        "Client.build_time": time.ctime()}):
+    with test_lib.ConfigOverrider({"Client.build_time": time.ctime()}):
 
       # Run it again - this should now update the client info.
-      for _ in test_lib.TestFlowHelper(
-          "ClientActionRunner", client_mock, client_id=self.client_id,
-          action="SendStartupInfo", token=self.token):
+      for _ in test_lib.TestFlowHelper("ClientActionRunner",
+                                       client_mock,
+                                       client_id=self.client_id,
+                                       action="SendStartupInfo",
+                                       token=self.token):
         pass
 
       # Ensure the client info attribute is updated.
       fd = aff4.FACTORY.Open(self.client_id, token=self.token)
-      self.assertNotEqual(int(client_info.age),
-                          int(fd.Get(fd.Schema.CLIENT_INFO).age))
+      self.assertNotEqual(
+          int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
 
   def testExecutePythonHack(self):
     client_mock = action_mocks.ActionMock("ExecutePython")
@@ -337,11 +355,14 @@ import sys
 sys.test_code_ran_here = True
 """
     maintenance_utils.UploadSignedConfigBlob(
-        code, aff4_path="aff4:/config/python_hacks/test", token=self.token)
+        code, aff4_path="aff4:/config/python_hacks/test",
+        token=self.token)
 
-    for _ in test_lib.TestFlowHelper(
-        "ExecutePythonHack", client_mock, client_id=self.client_id,
-        hack_name="test", token=self.token):
+    for _ in test_lib.TestFlowHelper("ExecutePythonHack",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     hack_name="test",
+                                     token=self.token):
       pass
 
     self.assertTrue(sys.test_code_ran_here)
@@ -354,11 +375,15 @@ import sys
 sys.test_code_ran_here = py_args['value']
 """
     maintenance_utils.UploadSignedConfigBlob(
-        code, aff4_path="aff4:/config/python_hacks/test", token=self.token)
+        code, aff4_path="aff4:/config/python_hacks/test",
+        token=self.token)
 
-    for _ in test_lib.TestFlowHelper(
-        "ExecutePythonHack", client_mock, client_id=self.client_id,
-        hack_name="test", py_args=dict(value=5678), token=self.token):
+    for _ in test_lib.TestFlowHelper("ExecutePythonHack",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     hack_name="test",
+                                     py_args=dict(value=5678),
+                                     token=self.token):
       pass
 
     self.assertEqual(sys.test_code_ran_here, 5678)
@@ -369,20 +394,25 @@ sys.test_code_ran_here = py_args['value']
     code = "I am a binary file"
     upload_path = config_lib.CONFIG["Executables.aff4_path"].Add("test.exe")
 
-    maintenance_utils.UploadSignedConfigBlob(
-        code, aff4_path=upload_path, token=self.token)
+    maintenance_utils.UploadSignedConfigBlob(code,
+                                             aff4_path=upload_path,
+                                             token=self.token)
 
     # This flow has an acl, the user needs to be admin.
     user = aff4.FACTORY.Create("aff4:/users/%s" % self.token.username,
-                               mode="rw", aff4_type=users.GRRUser,
+                               mode="rw",
+                               aff4_type=users.GRRUser,
                                token=self.token)
     user.SetLabels("admin", owner="GRR")
     user.Close()
 
     with utils.Stubber(subprocess, "Popen", test_lib.Popen):
-      for _ in test_lib.TestFlowHelper(
-          "LaunchBinary", client_mock, client_id=self.client_id,
-          binary=upload_path, command_line="--value 356", token=self.token):
+      for _ in test_lib.TestFlowHelper("LaunchBinary",
+                                       client_mock,
+                                       client_id=self.client_id,
+                                       binary=upload_path,
+                                       command_line="--value 356",
+                                       token=self.token):
         pass
 
       # Check that the executable file contains the code string.
@@ -406,8 +436,10 @@ sys.test_code_ran_here = py_args['value']
     code = "I am a large binary file" * 100
     upload_path = config_lib.CONFIG["Executables.aff4_path"].Add("test.exe")
 
-    maintenance_utils.UploadSignedConfigBlob(
-        code, aff4_path=upload_path, limit=100, token=self.token)
+    maintenance_utils.UploadSignedConfigBlob(code,
+                                             aff4_path=upload_path,
+                                             limit=100,
+                                             token=self.token)
 
     # Ensure the aff4 collection has many items.
     fd = aff4.FACTORY.Open(upload_path, token=self.token)
@@ -420,15 +452,19 @@ sys.test_code_ran_here = py_args['value']
 
     # This flow has an acl, the user needs to be admin.
     user = aff4.FACTORY.Create("aff4:/users/%s" % self.token.username,
-                               mode="rw", aff4_type=users.GRRUser,
+                               mode="rw",
+                               aff4_type=users.GRRUser,
                                token=self.token)
     user.SetLabels("admin", owner="GRR")
     user.Close()
 
     with utils.Stubber(subprocess, "Popen", test_lib.Popen):
-      for _ in test_lib.TestFlowHelper(
-          "LaunchBinary", client_mock, client_id=self.client_id,
-          binary=upload_path, command_line="--value 356", token=self.token):
+      for _ in test_lib.TestFlowHelper("LaunchBinary",
+                                       client_mock,
+                                       client_id=self.client_id,
+                                       binary=upload_path,
+                                       command_line="--value 356",
+                                       token=self.token):
         pass
 
       # Check that the executable file contains the code string.
@@ -454,28 +490,29 @@ sys.test_code_ran_here = py_args['value']
         """Fake get client stats method."""
         response = rdf_client.ClientStats()
         for i in range(12):
-          sample = rdf_client.CpuSample(
-              timestamp=int(i * 10 * 1e6),
-              user_cpu_time=10 + i,
-              system_cpu_time=20 + i,
-              cpu_percent=10 + i)
+          sample = rdf_client.CpuSample(timestamp=int(i * 10 * 1e6),
+                                        user_cpu_time=10 + i,
+                                        system_cpu_time=20 + i,
+                                        cpu_percent=10 + i)
           response.cpu_samples.Append(sample)
 
-          sample = rdf_client.IOSample(
-              timestamp=int(i * 10 * 1e6),
-              read_bytes=10 + i,
-              write_bytes=10 + i)
+          sample = rdf_client.IOSample(timestamp=int(i * 10 * 1e6),
+                                       read_bytes=10 + i,
+                                       write_bytes=10 + i)
           response.io_samples.Append(sample)
 
         return [response]
 
-    for _ in test_lib.TestFlowHelper("GetClientStats", ClientMock(),
+    for _ in test_lib.TestFlowHelper("GetClientStats",
+                                     ClientMock(),
                                      token=self.token,
                                      client_id=self.client_id):
       pass
 
     urn = self.client_id.Add("stats")
-    stats_fd = aff4.FACTORY.Create(urn, "ClientStats", token=self.token,
+    stats_fd = aff4.FACTORY.Create(urn,
+                                   "ClientStats",
+                                   token=self.token,
                                    mode="rw")
     sample = stats_fd.Get(stats_fd.Schema.STATS)
 
@@ -503,6 +540,7 @@ sys.test_code_ran_here = py_args['value']
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

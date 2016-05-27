@@ -25,7 +25,9 @@ class BigQueryJobUploadError(Error):
   """Failed to create BigQuery uplod job."""
 
 
-def GetBigQueryClient(service_account=None, private_key=None, project_id=None,
+def GetBigQueryClient(service_account=None,
+                      private_key=None,
+                      project_id=None,
                       dataset_id=None):
   """Create a BigQueryClient."""
   service_account = service_account or config_lib.CONFIG[
@@ -34,17 +36,19 @@ def GetBigQueryClient(service_account=None, private_key=None, project_id=None,
   project_id = project_id or config_lib.CONFIG["BigQuery.project_id"]
   dataset_id = dataset_id or config_lib.CONFIG["BigQuery.dataset_id"]
 
-  if not(service_account and private_key and project_id and dataset_id):
+  if not (service_account and private_key and project_id and dataset_id):
     raise RuntimeError("BigQuery.service_account, BigQuery.private_key, "
                        "BigQuery.project_id and BigQuery.dataset_id "
                        "must be defined.")
 
-  creds = SignedJwtAssertionCredentials(service_account, private_key,
+  creds = SignedJwtAssertionCredentials(service_account,
+                                        private_key,
                                         scope=BIGQUERY_SCOPE)
   http = httplib2.Http()
   http = creds.authorize(http)
   service = build("bigquery", "v2", http=http)
-  return BigQueryClient(project_id=project_id, bq_service=service,
+  return BigQueryClient(project_id=project_id,
+                        bq_service=service,
                         dataset_id=dataset_id)
 
 
@@ -86,8 +90,8 @@ class BigQueryClient(object):
   def GetDataset(self, dataset_id):
     if dataset_id not in self.datasets:
       try:
-        result = self.service.datasets().get(
-            projectId=self.project_id, datasetId=dataset_id).execute()
+        result = self.service.datasets().get(projectId=self.project_id,
+                                             datasetId=dataset_id).execute()
         self.datasets[dataset_id] = result
       except HttpError:
         return None
@@ -105,8 +109,7 @@ class BigQueryClient(object):
     Returns:
       boolean
     """
-    return e.resp.status in config_lib.CONFIG[
-        "BigQuery.retry_status_codes"]
+    return e.resp.status in config_lib.CONFIG["BigQuery.retry_status_codes"]
 
   def RetryUpload(self, job, job_id, error):
     """Retry the BigQuery upload job.
@@ -190,7 +193,8 @@ class BigQueryClient(object):
     # File content can be gzipped for bandwidth efficiency. The server handles
     # it correctly without any changes to the request.
     mediafile = MediaFileUpload(fd.name, mimetype="application/octet-stream")
-    job = self.service.jobs().insert(projectId=self.project_id, body=body,
+    job = self.service.jobs().insert(projectId=self.project_id,
+                                     body=body,
                                      media_body=mediafile)
     try:
       response = job.execute()
@@ -203,4 +207,3 @@ class BigQueryClient(object):
         logging.info("Attempting to create dataset: %s", self.dataset_id)
         self.CreateDataset()
       return self.RetryUpload(job, job_id, e)
-

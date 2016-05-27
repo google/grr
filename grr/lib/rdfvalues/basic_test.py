@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # Copyright 2012 Google Inc. All Rights Reserved.
-
 """Basic rdfvalue tests."""
 
 
@@ -56,6 +55,7 @@ class RDFIntegerTest(test_base.RDFValueTestCase):
     self.assertEqual(10 * rdfvalue.RDFInteger(10), 100)
 
   def testUsableInBitwiseOr(self):
+
     def TestOr(val1, val2, expected):
       self.assertEqual(rdfvalue.RDFInteger(val1) | val2, expected)
       self.assertEqual(val1 | rdfvalue.RDFInteger(val2), expected)
@@ -74,6 +74,7 @@ class RDFIntegerTest(test_base.RDFValueTestCase):
     TestOr(True, True, True)
 
   def testUsableInBitwiseAnd(self):
+
     def TestAnd(val1, val2, expected):
       self.assertEqual(rdfvalue.RDFInteger(val1) & val2, expected)
       self.assertEqual(val1 & rdfvalue.RDFInteger(val2), expected)
@@ -105,6 +106,7 @@ class RDFBoolTest(test_base.RDFValueTestCase):
     self.assertNotEqual(rdfvalue.RDFBool(False), True)
 
   def testUsableInBitwiseOr(self):
+
     def TestOr(val1, val2, expected):
       self.assertEqual(rdfvalue.RDFBool(val1) | val2, expected)
       self.assertEqual(val1 | rdfvalue.RDFBool(val2), expected)
@@ -123,6 +125,7 @@ class RDFBoolTest(test_base.RDFValueTestCase):
     TestOr(True, True, True)
 
   def testUsableInBitwiseAnd(self):
+
     def TestAnd(val1, val2, expected):
       self.assertEqual(rdfvalue.RDFBool(val1) & val2, expected)
       self.assertEqual(val1 & rdfvalue.RDFBool(val2), expected)
@@ -178,8 +181,7 @@ class ByteSizeTest(test_base.RDFValueTestCase):
     return rdfvalue.ByteSize("%sKib" % number)
 
   def testParsing(self):
-    for string, expected in [("100gb", 100 * 1000 ** 3),
-                             ("10kib", 10 * 1024),
+    for string, expected in [("100gb", 100 * 1000**3), ("10kib", 10 * 1024),
                              ("2.5kb", 2500)]:
       self.assertEqual(expected, rdfvalue.ByteSize(string))
 
@@ -213,11 +215,7 @@ class RDFURNTest(test_base.RDFValueTestCase):
     self.assertEqual(url.Path(), str_url[5:])
 
     # Some more special characters...
-    for path in [
-        "aff4:/test/?#asd",
-        "aff4:/test/#asd",
-        "aff4:/test/?#"
-        ]:
+    for path in ["aff4:/test/?#asd", "aff4:/test/#asd", "aff4:/test/?#"]:
       self.assertEqual(path, str(rdfvalue.RDFURN(path)))
 
   def testComparison(self):

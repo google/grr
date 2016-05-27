@@ -19,7 +19,8 @@ class AFF4ObjectLabel(structs.RDFProtoStruct):
 
   def __init__(self, initializer=None, age=None, **kwargs):
     super(AFF4ObjectLabel, self).__init__(initializer=initializer,
-                                          age=age, **kwargs)
+                                          age=age,
+                                          **kwargs)
 
     if initializer is None and "name" in kwargs:
       self.Validate()

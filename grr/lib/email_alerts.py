@@ -47,17 +47,31 @@ class EmailAlerterBase(object):
       result.append(self.AddEmailDomain(address))
     return result
 
-  def SendEmail(self, to_addresses, from_address, subject, message,
-                attachments=None, is_html=True, cc_addresses=None,
-                message_id=None, headers=None):
+  def SendEmail(self,
+                to_addresses,
+                from_address,
+                subject,
+                message,
+                attachments=None,
+                is_html=True,
+                cc_addresses=None,
+                message_id=None,
+                headers=None):
     raise NotImplementedError()
 
 
 class SMTPEmailAlerter(EmailAlerterBase):
 
-  def SendEmail(self, to_addresses, from_address, subject, message,
-                attachments=None, is_html=True, cc_addresses=None,
-                message_id=None, headers=None):
+  def SendEmail(self,
+                to_addresses,
+                from_address,
+                subject,
+                message,
+                attachments=None,
+                is_html=True,
+                cc_addresses=None,
+                message_id=None,
+                headers=None):
     """This method sends an email notification.
 
     Args:
@@ -132,6 +146,7 @@ class SMTPEmailAlerter(EmailAlerterBase):
                          "Please check config option Worker.smtp_server. "
                          "Currently set to %s. Error: %s" %
                          (config_lib.CONFIG["Worker.smtp_server"], e))
+
 
 EMAIL_ALERTER = None
 

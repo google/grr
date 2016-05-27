@@ -33,6 +33,7 @@ def Proxy(f):
 
   def Wrapped(self, *args):
     return getattr(self, f)(*args)
+
   return Wrapped
 
 
@@ -447,6 +448,7 @@ class Memoize(object):
     """
     f.memo_pad = {}
     f.memo_deep_copy = self.deep_copy
+
     @functools.wraps(f)
     def Wrapped(self, *args, **kwargs):
       # We keep args and kwargs separate to avoid confusing an arg which is a
@@ -459,6 +461,7 @@ class Memoize(object):
         return copy.deepcopy(f.memo_pad[key])
       else:
         return f.memo_pad[key]
+
     return Wrapped
 
 
@@ -491,6 +494,7 @@ class MemoizeFunction(object):
     """
     f.memo_pad = {}
     f.memo_deep_copy = self.deep_copy
+
     @functools.wraps(f)
     def Wrapped(*args, **kwargs):
       key = tuple(args), tuple(sorted(kwargs.items(), key=lambda x: x[0]))
@@ -500,6 +504,7 @@ class MemoizeFunction(object):
         return copy.deepcopy(f.memo_pad[key])
       else:
         return f.memo_pad[key]
+
     return Wrapped
 
 
@@ -791,14 +796,12 @@ def EncodeReasonString(reason):
 def DecodeReasonString(reason):
   return SmartUnicode(base64.urlsafe_b64decode(SmartStr(reason)))
 
-
 # Regex chars that should not be in a regex
 disallowed_chars = re.compile(r"[[\](){}+*?.$^\\]")
 
 
 def EscapeRegex(string):
-  return re.sub(disallowed_chars,
-                lambda x: "\\" + x.group(0),
+  return re.sub(disallowed_chars, lambda x: "\\" + x.group(0),
                 SmartUnicode(string))
 
 
@@ -824,9 +827,8 @@ class PRNG(object):
       try:
         return cls.random_list.pop()
       except IndexError:
-        PRNG.random_list = list(
-            struct.unpack("=" + "L" * 1000,
-                          os.urandom(struct.calcsize("=L") * 1000)))
+        PRNG.random_list = list(struct.unpack("=" + "L" * 1000, os.urandom(
+            struct.calcsize("=L") * 1000)))
 
 
 def FormatNumberAsString(num):
@@ -842,7 +844,7 @@ class NotAValue(object):
   pass
 
 
-def issubclass(obj, cls):    # pylint: disable=redefined-builtin,g-bad-name
+def issubclass(obj, cls):  # pylint: disable=redefined-builtin,g-bad-name
   """A sane implementation of issubclass.
 
   See http://bugs.python.org/issue10569
@@ -899,8 +901,7 @@ class RollingMemoryStream(object):
 
   def write(self, b):  # pylint: disable=invalid-name
     if not self._stream:
-      raise ArchiveAlreadyClosedError(
-          "Attempting to write to a closed stream.")
+      raise ArchiveAlreadyClosedError("Attempting to write to a closed stream.")
 
     self._stream.write(b)
     self._offset += len(b)
@@ -938,7 +939,8 @@ class StreamingZipGenerator(object):
 
   def __init__(self, compression=zipfile.ZIP_STORED):
     self._stream = RollingMemoryStream()
-    self._zip_fd = zipfile.ZipFile(self._stream, mode="w",
+    self._zip_fd = zipfile.ZipFile(self._stream,
+                                   mode="w",
                                    compression=compression,
                                    allowZip64=True)
     self._compression = compression
@@ -983,7 +985,7 @@ class StreamingZipGenerator(object):
       raise ValueError("An arcname must be provided.")
 
     zinfo = zipfile.ZipInfo(arcname, date_time)
-    zinfo.external_attr = (st[0] & 0xFFFF) << 16L      # Unix attributes
+    zinfo.external_attr = (st[0] & 0xFFFF) << 16L  # Unix attributes
 
     if compress_type is None:
       zinfo.compress_type = self._compression
@@ -994,9 +996,11 @@ class StreamingZipGenerator(object):
     zinfo.compress_size = 0
     zinfo.flag_bits = 0x08  # Setting data descriptor flag.
     zinfo.CRC = 0x08074b50  # Predefined CRC for archives using data
-                            # descriptors.
+    # descriptors.
     # This fills an empty Info-ZIP Unix extra field.
-    zinfo.extra = struct.pack("<HHIIHH", 0x5855, 12,
+    zinfo.extra = struct.pack("<HHIIHH",
+                              0x5855,
+                              12,
                               0,  # time of last access (UTC/GMT)
                               0,  # time of last modification (UTC/GMT)
                               0,  # user ID
@@ -1023,12 +1027,14 @@ class StreamingZipGenerator(object):
 
     # This fills the ASi UNIX extra field, see:
     # http://www.opensource.apple.com/source/zip/zip-6/unzip/unzip/proginfo/extra.fld
-    zinfo.extra = struct.pack("<HHIHIHHs", 0x756e, len(src_arcname) + 14,
-                              0,        # CRC-32 of the remaining data
+    zinfo.extra = struct.pack("<HHIHIHHs",
+                              0x756e,
+                              len(src_arcname) + 14,
+                              0,  # CRC-32 of the remaining data
                               0120000,  # file permissions
-                              0,        # target file size
-                              0,        # user ID
-                              0,        # group ID
+                              0,  # target file size
+                              0,  # user ID
+                              0,  # group ID
                               src_arcname)
 
     self._zip_fd.writestr(zinfo, src_arcname)
@@ -1042,8 +1048,9 @@ class StreamingZipGenerator(object):
       raise ArchiveAlreadyClosedError(
           "Attempting to write to a ZIP archive that was already closed.")
 
-    self.cur_zinfo = self._GenerateZipInfo(
-        arcname=arcname, compress_type=compress_type, st=st)
+    self.cur_zinfo = self._GenerateZipInfo(arcname=arcname,
+                                           compress_type=compress_type,
+                                           st=st)
     self.cur_file_size = 0
     self.cur_compress_size = 0
 
@@ -1065,7 +1072,7 @@ class StreamingZipGenerator(object):
     self._zip_fd._writecheck(self.cur_zinfo)  # pylint: disable=protected-access
     # Mark ZipFile as dirty. We have to keep self._zip_fd's internal state
     # coherent so that it behaves correctly when close() is called.
-    self._zip_fd._didModify = True   # pylint: disable=protected-access
+    self._zip_fd._didModify = True  # pylint: disable=protected-access
 
     # Write FileHeader now. It's incomplete, but CRC and uncompressed/compressed
     # sized will be written later in data descriptor.
@@ -1115,8 +1122,7 @@ class StreamingZipGenerator(object):
     # crc-32                          8 bytes (little endian)
     # compressed size                 8 bytes (little endian)
     # uncompressed size               8 bytes (little endian)
-    self._stream.write(struct.pack("<LLL", self.cur_crc,
-                                   self.cur_compress_size,
+    self._stream.write(struct.pack("<LLL", self.cur_crc, self.cur_compress_size,
                                    self.cur_file_size))
 
     # Register the file in the zip file, so that central directory gets
@@ -1147,7 +1153,8 @@ class StreamingZipGenerator(object):
     Yields:
       Chunks of binary data.
     """
-    yield self.WriteFileHeader(arcname=arcname, compress_type=compress_type,
+    yield self.WriteFileHeader(arcname=arcname,
+                               compress_type=compress_type,
                                st=st)
     while 1:
       buf = src_fd.read(1024 * 1024)
@@ -1223,8 +1230,10 @@ class StreamingZipWriter(object):
     Raises:
       ArchiveAlreadyClosedError: If the zip if already closed.
     """
-    for chunk in self._generator.WriteFromFD(
-        src_fd, arcname=arcname, compress_type=compress_type, st=st):
+    for chunk in self._generator.WriteFromFD(src_fd,
+                                             arcname=arcname,
+                                             compress_type=compress_type,
+                                             st=st):
       self._fd.write(chunk)
 
 
@@ -1237,7 +1246,8 @@ class StreamingTarGenerator(object):
     super(StreamingTarGenerator, self).__init__()
 
     self._stream = RollingMemoryStream()
-    self._tar_fd = tarfile.open(mode="w:gz", fileobj=self._stream,
+    self._tar_fd = tarfile.open(mode="w:gz",
+                                fileobj=self._stream,
                                 encoding="utf-8")
 
     self._ResetState()
@@ -1305,8 +1315,8 @@ class StreamingTarGenerator(object):
     """Writes file footer (finishes the file)."""
 
     if self.cur_file_size != self.cur_info.size:
-      raise IOError("Incorrect file size: st_size=%d, but written %d bytes." % (
-          self.cur_info.size, self.cur_file_size))
+      raise IOError("Incorrect file size: st_size=%d, but written %d bytes." %
+                    (self.cur_info.size, self.cur_file_size))
 
     blocks, remainder = divmod(self.cur_file_size, tarfile.BLOCKSIZE)
     if remainder > 0:
@@ -1365,7 +1375,8 @@ class StreamingTarWriter(object):
 
   def __init__(self, fd_or_path, mode="w"):
     if hasattr(fd_or_path, "write"):
-      self.tar_fd = tarfile.open(mode=mode, fileobj=fd_or_path,
+      self.tar_fd = tarfile.open(mode=mode,
+                                 fileobj=fd_or_path,
                                  encoding="utf-8")
     else:
       self.tar_fd = tarfile.open(name=fd_or_path, mode=mode, encoding="utf-8")

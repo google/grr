@@ -18,11 +18,10 @@ from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
-
 # This is all bits that define the type of the file in the stat mode. Equal to
 # 0b1111000000000000.
-stat_type_mask = (stat.S_IFREG | stat.S_IFDIR | stat.S_IFLNK | stat.S_IFBLK |
-                  stat.S_IFCHR | stat.S_IFIFO | stat.S_IFSOCK)
+stat_type_mask = (stat.S_IFREG | stat.S_IFDIR | stat.S_IFLNK | stat.S_IFBLK
+                  | stat.S_IFCHR | stat.S_IFIFO | stat.S_IFSOCK)
 
 
 def CreateAFF4Object(stat_response, client_id, token, sync=False):
@@ -64,11 +63,13 @@ class ListDirectory(flow.GRRFlow):
   @flow.StateHandler(next_state=["List", "Stat"])
   def Start(self):
     """Issue a request to list the directory."""
-    self.CallClient("StatFile", pathspec=self.state.args.pathspec,
+    self.CallClient("StatFile",
+                    pathspec=self.state.args.pathspec,
                     next_state="Stat")
 
     # We use data to pass the path to the callback:
-    self.CallClient("ListDirectory", pathspec=self.state.args.pathspec,
+    self.CallClient("ListDirectory",
+                    pathspec=self.state.args.pathspec,
                     next_state="List")
 
   @flow.StateHandler()
@@ -97,7 +98,9 @@ class ListDirectory(flow.GRRFlow):
     self.Status("Listed %s", self.state.urn)
 
     # The AFF4 object is opened for writing with an asyncronous close for speed.
-    fd = aff4.FACTORY.Create(self.state.urn, standard.VFSDirectory, mode="w",
+    fd = aff4.FACTORY.Create(self.state.urn,
+                             standard.VFSDirectory,
+                             mode="w",
                              token=self.token)
 
     fd.Set(fd.Schema.PATHSPEC(self.state.directory_pathspec))
@@ -135,14 +138,16 @@ class IteratedListDirectory(ListDirectory):
     self.state.Register("urn", None)
 
     # We use data to pass the path to the callback:
-    self.state.Register("request", rdf_client.ListDirRequest(
-        pathspec=self.state.args.pathspec))
+    self.state.Register("request",
+                        rdf_client.ListDirRequest(
+                            pathspec=self.state.args.pathspec))
 
     # For this example we will use a really small number to force many round
     # trips with the client. This is a performance killer.
     self.state.request.iterator.number = 50
 
-    self.CallClient("IteratedListDirectory", self.state.request,
+    self.CallClient("IteratedListDirectory",
+                    self.state.request,
                     next_state="List")
 
   @flow.StateHandler(next_state="List")
@@ -156,7 +161,8 @@ class IteratedListDirectory(ListDirectory):
         self.state.responses.append(response)
 
       self.state.request.iterator = responses.iterator
-      self.CallClient("IteratedListDirectory", self.state.request,
+      self.CallClient("IteratedListDirectory",
+                      self.state.request,
                       next_state="List")
     else:
       self.StoreDirectory()
@@ -165,15 +171,17 @@ class IteratedListDirectory(ListDirectory):
     """Store the content of the directory listing in the AFF4 object."""
     # The full path of the object is the combination of the client_id and the
     # path.
-    if not self.state.responses: return
+    if not self.state.responses:
+      return
 
     directory_pathspec = self.state.responses[0].pathspec.Dirname()
 
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-        directory_pathspec, self.client_id)
+    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(directory_pathspec,
+                                                     self.client_id)
 
     # First dir we get back is the main urn.
-    if not self.state.urn: self.state.urn = urn
+    if not self.state.urn:
+      self.state.urn = urn
 
     fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
     fd.Close(sync=False)
@@ -185,8 +193,8 @@ class IteratedListDirectory(ListDirectory):
 
   @flow.StateHandler()
   def End(self):
-    self.Notify("ViewObject", self.state.urn, "List of {0} completed.".format(
-        self.state.args.pathspec))
+    self.Notify("ViewObject", self.state.urn,
+                "List of {0} completed.".format(self.state.args.pathspec))
 
 
 class RecursiveListDirectoryArgs(rdf_structs.RDFProtoStruct):
@@ -209,7 +217,8 @@ class RecursiveListDirectory(flow.GRRFlow):
     self.state.Register("dir_count", 0)
     self.state.Register("file_count", 0)
 
-    self.CallClient("ListDirectory", pathspec=self.state.args.pathspec,
+    self.CallClient("ListDirectory",
+                    pathspec=self.state.args.pathspec,
                     next_state="ProcessDirectory")
 
   @flow.StateHandler(next_state="ProcessDirectory")
@@ -223,8 +232,8 @@ class RecursiveListDirectory(flow.GRRFlow):
 
       directory_pathspec = response.pathspec.Dirname()
 
-      urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-          directory_pathspec, self.client_id)
+      urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(directory_pathspec,
+                                                       self.client_id)
 
       self.StoreDirectory(responses)
 
@@ -242,12 +251,12 @@ class RecursiveListDirectory(flow.GRRFlow):
       for stat_response in responses:
         # Queue a list directory for each directory here, but do not follow
         # symlinks.
-        if (not stat_response.symlink and
-            stat.S_ISDIR(stat_response.st_mode)):
-          self.CallClient("ListDirectory", pathspec=stat_response.pathspec,
+        if not stat_response.symlink and stat.S_ISDIR(stat_response.st_mode):
+          self.CallClient("ListDirectory",
+                          pathspec=stat_response.pathspec,
                           next_state="ProcessDirectory")
           self.state.dir_count += 1
-          if self.state.dir_count % 100 == 0:   # Log every 100 directories
+          if self.state.dir_count % 100 == 0:  # Log every 100 directories
             self.Status("Reading %s. (%d nodes, %d directories done)",
                         urn.RelativeName(self.state.first_directory),
                         self.state.file_count, self.state.dir_count)
@@ -291,8 +300,10 @@ class UpdateSparseImageChunks(flow.GRRFlow):
   @flow.StateHandler(next_state="UpdateChunk")
   def Start(self):
 
-    fd = aff4.FACTORY.Open(self.state.args.file_urn, token=self.token,
-                           aff4_type=standard.AFF4SparseImage, mode="rw")
+    fd = aff4.FACTORY.Open(self.state.args.file_urn,
+                           token=self.token,
+                           aff4_type=standard.AFF4SparseImage,
+                           mode="rw")
     pathspec = fd.Get(fd.Schema.PATHSPEC)
     self.state.Register("pathspec", pathspec)
     self.state.Register("fd", fd)
@@ -345,7 +356,8 @@ class FetchBufferForSparseImage(flow.GRRFlow):
 
     urn = self.state.args.file_urn
 
-    fd = aff4.FACTORY.Open(urn, token=self.token,
+    fd = aff4.FACTORY.Open(urn,
+                           token=self.token,
                            aff4_type=standard.AFF4SparseImage,
                            mode="rw")
     self.state.Register("fd", fd)
@@ -376,8 +388,7 @@ class FetchBufferForSparseImage(flow.GRRFlow):
     self.state.bytes_left_to_read -= chunksize
     self.state.current_offset += chunksize
 
-    self.CallClient("TransferBuffer", request,
-                    next_state="TransferBuffer")
+    self.CallClient("TransferBuffer", request, next_state="TransferBuffer")
 
   @flow.StateHandler(next_state="TransferBuffer")
   def TransferBuffer(self, responses):
@@ -395,8 +406,7 @@ class FetchBufferForSparseImage(flow.GRRFlow):
                          chunk_number=chunk_number)
     sparse_image.Flush()
 
-    length_to_read = min(self.state.chunksize,
-                         self.state.bytes_left_to_read)
+    length_to_read = min(self.state.chunksize, self.state.bytes_left_to_read)
 
     if length_to_read:
       request = rdf_client.BufferReference(pathspec=self.state.pathspec,
@@ -405,15 +415,13 @@ class FetchBufferForSparseImage(flow.GRRFlow):
       # TODO(user): Again, this is going to be too slow, since we're
       # waiting for a client response every time we request a buffer. We need to
       # queue up multiple reads.
-      self.CallClient("TransferBuffer", request,
-                      next_state="TransferBuffer")
+      self.CallClient("TransferBuffer", request, next_state="TransferBuffer")
 
       # Move our offset along the file by how much we read.
       self.state.current_offset += length_to_read
       # Remember how much more we need to read.
       self.state.bytes_left_to_read = max(
-          0,
-          self.state.bytes_left_to_read - length_to_read)
+          0, self.state.bytes_left_to_read - length_to_read)
 
   @staticmethod
   def AlignToChunks(length, offset, chunksize):
@@ -467,7 +475,8 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
 
   @flow.StateHandler(next_state="ProcessStat")
   def Start(self):
-    self.CallClient("StatFile", pathspec=self.state.args.pathspec,
+    self.CallClient("StatFile",
+                    pathspec=self.state.args.pathspec,
                     next_state="ProcessStat")
 
   @flow.StateHandler(next_state="End")
@@ -492,14 +501,17 @@ class MakeNewAFF4SparseImage(flow.GRRFlow):
       # TODO(user) When we can check the last update time of the
       # contents of a file, raise if the contents have been updated before here.
 
-      fd = aff4.FACTORY.Create(urn, aff4_type=standard.AFF4SparseImage,
-                               token=self.token, mode="rw")
+      fd = aff4.FACTORY.Create(urn,
+                               aff4_type=standard.AFF4SparseImage,
+                               token=self.token,
+                               mode="rw")
       fd.Set(fd.Schema.PATHSPEC, self.state.pathspec)
       fd.Set(fd.Schema.STAT, client_stat)
       fd.Flush()
     else:
       # Otherwise, just get the whole file.
-      self.CallFlow("MultiGetFile", pathspecs=[self.state.pathspec],
+      self.CallFlow("MultiGetFile",
+                    pathspecs=[self.state.pathspec],
                     next_state="End")
 
   @flow.StateHandler()
@@ -520,7 +532,10 @@ class GlobArgs(rdf_structs.RDFProtoStruct):
 class GlobMixin(object):
   """A MixIn to implement the glob functionality."""
 
-  def GlobForPaths(self, paths, pathtype="OS", root_path=None,
+  def GlobForPaths(self,
+                   paths,
+                   pathtype="OS",
+                   root_path=None,
                    no_file_type_check=False):
     """Starts the Glob.
 
@@ -574,7 +589,8 @@ class GlobMixin(object):
         node = node.setdefault(component.SerializeToString(), {})
 
     root_path = self.state.component_tree.keys()[0]
-    self.CallStateInline(messages=[None], next_state="ProcessEntry",
+    self.CallStateInline(messages=[None],
+                         next_state="ProcessEntry",
                          request_data=dict(component_path=[root_path]))
 
   def GlobReportMatch(self, stat_response):
@@ -692,11 +708,12 @@ class GlobMixin(object):
 
     # If we get a response with an unfinished iterator then we missed some
     # files. Call Find on the client until we're done.
-    if (responses.iterator and responses.iterator.state !=
-        responses.iterator.State.FINISHED):
+    if (responses.iterator and
+        responses.iterator.state != responses.iterator.State.FINISHED):
       findspec = rdf_client.FindSpec(responses.request.request.payload)
       findspec.iterator = responses.iterator
-      self.CallClient("Find", findspec,
+      self.CallClient("Find",
+                      findspec,
                       next_state="ProcessEntry",
                       request_data=responses.request_data)
 
@@ -732,7 +749,8 @@ class GlobMixin(object):
             matching_components.append(matching_path)
 
         if matching_components:
-          self._ProcessResponse(response, matching_components,
+          self._ProcessResponse(response,
+                                matching_components,
                                 base_wildcard=True)
 
   def _GetBasePathspec(self, response):
@@ -772,14 +790,13 @@ class GlobMixin(object):
         # sometimes lead to instabilities due to bugs in the library.
 
         if response and (
-            not (stat.S_ISDIR(response.st_mode) or
-                 not base_wildcard or
+            not (stat.S_ISDIR(response.st_mode) or not base_wildcard or
                  self.state.no_file_type_check)):
           continue
 
         if component.path_options == component.Options.RECURSIVE:
-          recursions_to_get.setdefault(
-              component.recursion_depth, []).append(component)
+          recursions_to_get.setdefault(component.recursion_depth,
+                                       []).append(component)
         elif component.path_options == component.Options.REGEX:
           regexes_to_get.append(component)
 
@@ -798,18 +815,18 @@ class GlobMixin(object):
             # Check for the existence of the last node.
             request = rdf_client.ListDirRequest(pathspec=pathspec)
 
-            if (response is None or
-                (response and
-                 (response.st_mode == 0 or
-                  not stat.S_ISREG(response.st_mode)))):
+            if (response is None or (response and
+                                     (response.st_mode == 0 or
+                                      not stat.S_ISREG(response.st_mode)))):
               # If next node is empty, this node is a leaf node, we therefore
               # must stat it to check that it is there. There is a special case
               # here where this pathspec points to a file/directory in the root
               # directory. In this case, response will be None but we still need
               # to stat it.
-              self.CallClient(
-                  "StatFile", request, next_state="ProcessEntry",
-                  request_data=dict(component_path=next_component))
+              self.CallClient("StatFile",
+                              request,
+                              next_state="ProcessEntry",
+                              request_data=dict(component_path=next_component))
           else:
             # There is no need to go back to the client for intermediate
             # paths in the prefix tree, just emulate this by recursively
@@ -828,8 +845,8 @@ class GlobMixin(object):
           base_pathspec = rdf_paths.PathSpec(path="/", pathtype="OS")
 
         for depth, recursions in recursions_to_get.iteritems():
-          path_regex = "(?i)^" + "$|^".join(
-              set([c.path for c in recursions])) + "$"
+          path_regex = "(?i)^" + "$|^".join(set([c.path for c in recursions
+                                                ])) + "$"
 
           findspec = rdf_client.FindSpec(pathspec=base_pathspec,
                                          cross_devs=True,
@@ -837,19 +854,21 @@ class GlobMixin(object):
                                          path_regex=path_regex)
 
           findspec.iterator.number = self.FILE_MAX_PER_DIR
-          self.CallClient("Find", findspec,
+          self.CallClient("Find",
+                          findspec,
                           next_state="ProcessEntry",
                           request_data=dict(base_path=component_path))
 
         if regexes_to_get:
-          path_regex = "(?i)^" + "$|^".join(
-              set([c.path for c in regexes_to_get])) + "$"
+          path_regex = "(?i)^" + "$|^".join(set([c.path for c in regexes_to_get
+                                                ])) + "$"
           findspec = rdf_client.FindSpec(pathspec=base_pathspec,
                                          max_depth=1,
                                          path_regex=path_regex)
 
           findspec.iterator.number = self.FILE_MAX_PER_DIR
-          self.CallClient("Find", findspec,
+          self.CallClient("Find",
+                          findspec,
                           next_state="ProcessEntry",
                           request_data=dict(base_path=component_path))
 
@@ -874,7 +893,8 @@ class Glob(GlobMixin, flow.GRRFlow):
     combinations.
     """
     super(Glob, self).Start()
-    self.GlobForPaths(self.args.paths, pathtype=self.args.pathtype,
+    self.GlobForPaths(self.args.paths,
+                      pathtype=self.args.pathtype,
                       root_path=self.args.root_path,
                       no_file_type_check=self.args.no_file_type_check)
 
@@ -928,10 +948,9 @@ class DiskVolumeInfo(flow.GRRFlow):
         else:
           self.state.system_root_required = True
       if self.state.system_root_required:
-        self.CallFlow(
-            "ArtifactCollectorFlow",
-            artifact_list=["SystemRoot"],
-            next_state="StoreSystemRoot")
+        self.CallFlow("ArtifactCollectorFlow",
+                      artifact_list=["SystemRoot"],
+                      next_state="StoreSystemRoot")
         return
 
     self.CallStateInline(next_state="CollectVolumeInfo")
@@ -944,8 +963,8 @@ class DiskVolumeInfo(flow.GRRFlow):
         # rather than raise.
         self.Log("Error collecting SystemRoot artifact: %s", responses.status)
       else:
-        raise flow.FlowError(
-            "Error collecting SystemRoot artifact: %s" % responses.status)
+        raise flow.FlowError("Error collecting SystemRoot artifact: %s" %
+                             responses.status)
 
     drive = str(responses.First())[0:2]
     if drive:
@@ -960,17 +979,15 @@ class DiskVolumeInfo(flow.GRRFlow):
     if self.state.system == "Windows":
       # No dependencies for WMI
       deps = artifact_utils.ArtifactCollectorFlowArgs.Dependency.IGNORE_DEPS
-      self.CallFlow(
-          "ArtifactCollectorFlow",
-          artifact_list=["WMILogicalDisks"],
-          next_state="ProcessWindowsVolumes",
-          dependencies=deps,
-          store_results_in_aff4=True)
+      self.CallFlow("ArtifactCollectorFlow",
+                    artifact_list=["WMILogicalDisks"],
+                    next_state="ProcessWindowsVolumes",
+                    dependencies=deps,
+                    store_results_in_aff4=True)
     else:
       self.CallClient("StatFS",
-                      rdf_client.StatFSRequest(
-                          path_list=self.args.path_list,
-                          pathtype=self.args.pathtype),
+                      rdf_client.StatFSRequest(path_list=self.args.path_list,
+                                               pathtype=self.args.pathtype),
                       next_state="ProcessVolumes")
 
   @flow.StateHandler()

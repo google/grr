@@ -14,6 +14,7 @@ if platform.system() == "Linux":
   import pexpect
 
 import logging
+
 # pylint: enable=g-import-not-at-top
 
 
@@ -72,13 +73,10 @@ class WindowsCodeSigner(CodeSigner):
       out_filename = "%s.signed" % in_filename
 
     args = [
-        "-certs", self.cert,
-        "-key", self.key,
-        "-n", self.application,
-        "-t", "http://timestamp.verisign.com/scripts/timestamp.dll",
-        "-h", "sha1",
-        "-in", in_filename,
-        "-out", out_filename]
+        "-certs", self.cert, "-key", self.key, "-n", self.application, "-t",
+        "http://timestamp.verisign.com/scripts/timestamp.dll", "-h", "sha1",
+        "-in", in_filename, "-out", out_filename
+    ]
 
     try:
       output_log = cStringIO.StringIO()
@@ -99,7 +97,7 @@ class WindowsCodeSigner(CodeSigner):
     try:
       subprocess.check_call(["osslsigncode", "verify", "-in", out_filename])
     except subprocess.CalledProcessError:
-      logging.exception("Bad signature verification on %s" % out_filename)
+      logging.exception("Bad signature verification on %s", out_filename)
       raise SigningError("Bad signature verification on %s" % out_filename)
 
     return out_filename
@@ -114,7 +112,7 @@ class RPMCodeSigner(CodeSigner):
     try:
       subprocess.check_call(["rpm", "--import", public_key_file])
     except subprocess.CalledProcessError:
-      logging.exception("Couldn't import public key %s" % public_key_file)
+      logging.exception("Couldn't import public key %s", public_key_file)
       raise SigningError("Couldn't import public key %s" % public_key_file)
 
   def AddSignatureToRPM(self, rpm_filename):
@@ -127,9 +125,8 @@ class RPMCodeSigner(CodeSigner):
         ("--define=__gpg_sign_cmd %%{__gpg} gpg --force-v3-sigs "
          "--digest-algo=sha1 --batch --no-verbose --no-armor --passphrase-fd 3 "
          "--no-secmem-warning -u '%s' -sbo %%{__signature_filename} "
-         "%%{__plaintext_filename}" % self.gpg_name),
-        "--addsign",
-        rpm_filename]
+         "%%{__plaintext_filename}" % self.gpg_name), "--addsign", rpm_filename
+    ]
 
     try:
       output_log = cStringIO.StringIO()
@@ -150,5 +147,5 @@ class RPMCodeSigner(CodeSigner):
       if "pgp" not in output:
         raise SigningError("PGP missing checksig %s" % rpm_filename)
     except subprocess.CalledProcessError:
-      logging.exception("Bad signature verification on %s" % rpm_filename)
+      logging.exception("Bad signature verification on %s", rpm_filename)
       raise SigningError("Bad signature verification on %s" % rpm_filename)

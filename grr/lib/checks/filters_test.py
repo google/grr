@@ -10,7 +10,6 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
-
 # Just a named tuple that can be used to test objectfilter expressions.
 Sample = collections.namedtuple("Sample", ["x", "y"])
 
@@ -114,7 +113,8 @@ class ForEachTests(test_lib.GRRBaseTest):
 
     hit1 = rdf_protodict.AttributedDict(k1="v1", k2="v2", k3="v3")
     hit2 = rdf_protodict.AttributedDict(k1="v4", k2="v5", k3="v6")
-    meta = rdf_protodict.AttributedDict(foo=["foo", "bar"], target=[hit1, hit2],
+    meta = rdf_protodict.AttributedDict(foo=["foo", "bar"],
+                                        target=[hit1, hit2],
                                         null=[])
     objs = [meta]
 
@@ -199,13 +199,21 @@ class StatFilterTests(test_lib.GRRBaseTest):
   ok_uids = ["uid:=0", "uid:=1,>1,<1,>=1,<=1,!1"]
   just_fine = [ok_file, ok_gids, ok_mask, ok_mode, ok_path, ok_type, ok_uids]
 
-  def _GenStat(self, path="/etc/passwd", st_mode=33184, st_ino=1063090,
-               st_dev=64512L, st_nlink=1, st_uid=1001, st_gid=5000,
-               st_size=1024, st_atime=1336469177, st_mtime=1336129892,
+  def _GenStat(self,
+               path="/etc/passwd",
+               st_mode=33184,
+               st_ino=1063090,
+               st_dev=64512L,
+               st_nlink=1,
+               st_uid=1001,
+               st_gid=5000,
+               st_size=1024,
+               st_atime=1336469177,
+               st_mtime=1336129892,
                st_ctime=1336129892):
     """Generate a StatEntry RDF value."""
-    pathspec = rdf_paths.PathSpec(
-        path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
+    pathspec = rdf_paths.PathSpec(path=path,
+                                  pathtype=rdf_paths.PathSpec.PathType.OS)
     return rdf_client.StatEntry(pathspec=pathspec,
                                 st_mode=st_mode,
                                 st_ino=st_ino,
@@ -331,15 +339,23 @@ class StatFilterTests(test_lib.GRRBaseTest):
   def testParseFileObjs(self):
     """Multiple file types are parsed successfully."""
     filt = filters.StatFilter()
-    ok = self._GenStat(
-        path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0100640)
-    link = self._GenStat(
-        path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0120640)
-    user = self._GenStat(
-        path="/etc/shadow", st_uid=1000, st_gid=1000, st_mode=0100640)
-    writable = self._GenStat(
-        path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0100666)
-    cfg = {"path": "/etc/shadow", "st_uid": 0, "st_gid": 0, "st_mode": 0100640}
+    ok = self._GenStat(path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0100640)
+    link = self._GenStat(path="/etc/shadow",
+                         st_uid=0,
+                         st_gid=0,
+                         st_mode=0120640)
+    user = self._GenStat(path="/etc/shadow",
+                         st_uid=1000,
+                         st_gid=1000,
+                         st_mode=0100640)
+    writable = self._GenStat(path="/etc/shadow",
+                             st_uid=0,
+                             st_gid=0,
+                             st_mode=0100666)
+    cfg = {"path": "/etc/shadow",
+           "st_uid": 0,
+           "st_gid": 0,
+           "st_mode": 0100640}
     invalid = rdf_protodict.AttributedDict(**cfg)
     objs = [ok, link, user, writable, invalid]
     results = filt.Parse(objs, "uid:>=0 gid:>=0")
@@ -348,8 +364,8 @@ class StatFilterTests(test_lib.GRRBaseTest):
     self.assertItemsEqual([ok, link, writable], results)
     results = filt.Parse(objs, "uid:=0 mode:0440 mask:0444")
     self.assertItemsEqual([ok, link], results)
-    results = list(
-        filt.Parse(objs, "uid:=0 mode:0440 mask:0444 file_type:regular"))
+    results = list(filt.Parse(objs,
+                              "uid:=0 mode:0440 mask:0444 file_type:regular"))
     self.assertItemsEqual([ok], results)
 
 
@@ -437,6 +453,7 @@ class HandlerTests(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

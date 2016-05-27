@@ -60,8 +60,7 @@ class MemoryCollector(flow.GRRFlow):
 
     # Should we check if there is enough free space?
     if self.args.check_disk_free_space:
-      self.CallClient("CheckFreeGRRTempSpace",
-                      next_state="CheckFreeSpace")
+      self.CallClient("CheckFreeGRRTempSpace", next_state="CheckFreeSpace")
     else:
       self.RunRekallPlugin()
 
@@ -73,11 +72,10 @@ class MemoryCollector(flow.GRRFlow):
         raise flow.FlowError(
             "Free space may be too low for local copy. Free "
             "space for path %s is %s bytes. Mem size is: %s "
-            "bytes. Override with check_disk_free_space=False."
-            % (disk_usage.path, disk_usage.free, self.state.memory_size))
+            "bytes. Override with check_disk_free_space=False." %
+            (disk_usage.path, disk_usage.free, self.state.memory_size))
     else:
-      logging.error(
-          "Couldn't determine free disk space for temporary files.")
+      logging.error("Couldn't determine free disk space for temporary files.")
 
     self.RunRekallPlugin()
 
@@ -86,7 +84,8 @@ class MemoryCollector(flow.GRRFlow):
     request = rekall_types.RekallRequest(plugins=[plugin])
 
     # Note that this will actually also retrieve the memory image.
-    self.CallFlow("AnalyzeClientMemory", request=request,
+    self.CallFlow("AnalyzeClientMemory",
+                  request=request,
                   max_file_size_download=self.args.max_file_size,
                   next_state="CheckAnalyzeClientMemory")
 
@@ -129,7 +128,8 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
   def Start(self):
     self.state.Register("component_version", None)
     # Load all the components we will be needing on the client.
-    self.LoadComponentOnClient(name="grr-rekall", version="0.3",
+    self.LoadComponentOnClient(name="grr-rekall",
+                               version="0.3",
                                next_state="StartAnalysis")
 
   @flow.StateHandler()
@@ -146,9 +146,10 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
   def StartAnalysis(self, responses):
     # Our output collection is a RekallResultCollection.
     if self.runner.output is not None:
-      self.runner.output = aff4.FACTORY.Create(
-          self.runner.output.urn, "RekallResponseCollection",
-          mode="rw", token=self.token)
+      self.runner.output = aff4.FACTORY.Create(self.runner.output.urn,
+                                               "RekallResponseCollection",
+                                               mode="rw",
+                                               token=self.token)
 
     self.state.Register("rekall_context_messages", {})
     self.state.Register("output_files", [])
@@ -159,21 +160,19 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     # We always push the inventory to the request. This saves a round trip
     # because the client always needs it (so it can figure out if its cache is
     # still valid).
-    self.state.rekall_request.profiles.append(
-        self.GetProfileByName(
-            "inventory", constants.PROFILE_REPOSITORY_VERSION))
+    self.state.rekall_request.profiles.append(self.GetProfileByName(
+        "inventory", constants.PROFILE_REPOSITORY_VERSION))
 
     if self.args.debug_logging:
-      self.state.rekall_request.session[
-          u"logging_level"] = u"DEBUG"
+      self.state.rekall_request.session[u"logging_level"] = u"DEBUG"
 
     # We want to disable local profile building on the client machines.
-    self.state.rekall_request.session[
-        u"autodetect_build_local"] = u"none"
+    self.state.rekall_request.session[u"autodetect_build_local"] = u"none"
 
     # The client will use rekall in live mode.
     self.state.rekall_request.session["live"] = True
-    self.CallClient("RekallAction", self.state.rekall_request,
+    self.CallClient("RekallAction",
+                    self.state.rekall_request,
                     next_state="StoreResults")
 
   @flow.StateHandler()
@@ -196,7 +195,8 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
         profile = self.GetProfileByName(response.missing_profile,
                                         response.repository_version)
         if profile:
-          self.CallClient("WriteRekallProfile", profile,
+          self.CallClient("WriteRekallProfile",
+                          profile,
                           next_state="UpdateProfile")
         else:
           self.Log("Needed profile %s not found! See "
@@ -224,20 +224,22 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
             if message[0] == "L":
               if len(message) > 1:
                 log_record = message[1]
-                self.Log("%s:%s:%s", log_record["level"],
-                         log_record["name"], log_record["msg"])
+                self.Log("%s:%s:%s", log_record["level"], log_record["name"],
+                         log_record["msg"])
 
         self.SendReply(response)
 
-    if (responses.iterator and   # This will be None if an error occurred.
+    if (responses.iterator and  # This will be None if an error occurred.
         responses.iterator.state != rdf_client.Iterator.State.FINISHED):
       self.state.rekall_request.iterator = responses.iterator
-      self.CallClient("RekallAction", self.state.rekall_request,
+      self.CallClient("RekallAction",
+                      self.state.rekall_request,
                       next_state="StoreResults")
     else:
       if self.state.output_files:
         self.Log("Getting %i files.", len(self.state.output_files))
-        self.CallFlow("MultiGetFile", pathspecs=self.state.output_files,
+        self.CallFlow("MultiGetFile",
+                      pathspecs=self.state.output_files,
                       file_size=self.args.max_file_size_download,
                       next_state="DeleteFiles")
 
@@ -248,7 +250,8 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
       raise flow.FlowError("Could not get files: %s" % responses.status)
 
     for output_file in self.state.output_files:
-      self.CallClient("DeleteGRRTempFiles", output_file,
+      self.CallClient("DeleteGRRTempFiles",
+                      output_file,
                       next_state="LogDeleteFiles")
 
     # Let calling flows know where files ended up in AFF4 space.
@@ -274,11 +277,10 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
   def GetProfileByName(self, name, version):
     """Load the requested profile from the repository."""
     server_type = config_lib.CONFIG["Rekall.profile_server"]
-    logging.info(
-        "Getting missing Rekall profile '%s' from %s", name, server_type)
+    logging.info("Getting missing Rekall profile '%s' from %s", name,
+                 server_type)
 
-    profile_server = rekall_profile_server.ProfileServer.classes[
-        server_type]()
+    profile_server = rekall_profile_server.ProfileServer.classes[server_type]()
 
     return profile_server.GetProfileByName(name, version=version)
 

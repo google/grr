@@ -65,8 +65,7 @@ class VFSDirectory(aff4.AFF4Volume):
   class SchemaCls(aff4.AFF4Volume.SchemaCls):
     """Attributes specific to VFSDirectory."""
     STAT = aff4.Attribute("aff4:stat", rdf_client.StatEntry,
-                          "A StatEntry describing this file.",
-                          "stat")
+                          "A StatEntry describing this file.", "stat")
 
     PATHSPEC = aff4.Attribute(
         "aff4:pathspec", rdf_paths.PathSpec,
@@ -87,8 +86,8 @@ class HashList(rdfvalue.RDFBytes):
       yield self[i]
 
   def __getitem__(self, idx):
-    return rdfvalue.HashDigest(
-        self._value[idx * self.HASH_SIZE: (idx + 1) * self.HASH_SIZE])
+    return rdfvalue.HashDigest(self._value[idx * self.HASH_SIZE:(idx + 1) *
+                                           self.HASH_SIZE])
 
 
 class BlobImage(aff4.AFF4ImageBase):
@@ -137,7 +136,8 @@ class BlobImage(aff4.AFF4ImageBase):
     for chunk_fd_pairs in utils.Grouper(
         cls._GenerateChunkIds(fds), cls.MULTI_STREAM_CHUNKS_READ_AHEAD):
       results_map = data_store.DB.ReadBlobs(
-          dict(chunk_fd_pairs).keys(), token=fds[0].token)
+          dict(chunk_fd_pairs).keys(),
+          token=fds[0].token)
 
       for chunk_id, fd in chunk_fd_pairs:
         if chunk_id not in results_map or results_map[chunk_id] is None:
@@ -289,8 +289,7 @@ class BlobImage(aff4.AFF4ImageBase):
     HASHES = aff4.Attribute("aff4:hashes", HashList,
                             "List of hashes of each chunk in this file.")
 
-    FINALIZED = aff4.Attribute("aff4:finalized",
-                               rdfvalue.RDFBool,
+    FINALIZED = aff4.Attribute("aff4:finalized", rdfvalue.RDFBool,
                                "Once a blobimage is finalized, further writes"
                                " will raise exceptions.")
 
@@ -324,8 +323,10 @@ class HashImage(aff4.AFF4Image):
   def _OpenIndex(self):
     if self.index is None:
       index_urn = self.urn.Add("index")
-      self.index = aff4.FACTORY.Create(index_urn, aff4.AFF4Image,
-                                       mode=self.mode, token=self.token)
+      self.index = aff4.FACTORY.Create(index_urn,
+                                       aff4.AFF4Image,
+                                       mode=self.mode,
+                                       token=self.token)
 
   def _GetChunkForWriting(self, chunk):
     """Chunks must be added using the AddBlob() method."""
@@ -397,10 +398,13 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
 
     STAT = aff4.AFF4Object.VFSDirectory.SchemaCls.STAT
 
-    _CHUNKSIZE = aff4.Attribute("aff4:chunksize", rdfvalue.RDFInteger,
-                                "Total size of each chunk.", default=512 * 1024)
+    _CHUNKSIZE = aff4.Attribute("aff4:chunksize",
+                                rdfvalue.RDFInteger,
+                                "Total size of each chunk.",
+                                default=512 * 1024)
 
-    LAST_CHUNK = aff4.Attribute("aff4:lastchunk", rdfvalue.RDFInteger,
+    LAST_CHUNK = aff4.Attribute("aff4:lastchunk",
+                                rdfvalue.RDFInteger,
                                 "The highest numbered chunk in this object.",
                                 default=-1)
 
@@ -515,8 +519,7 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
     # end of the last chunk. If we do try and read past the end, we should
     # return an empty string.
     # The end of the file is the *end* of the last chunk, so we add one here.
-    length = min(length,
-                 ((self.last_chunk + 1) * self.chunksize) - self.offset)
+    length = min(length, ((self.last_chunk + 1) * self.chunksize) - self.offset)
 
     while length > 0:
       data = self._ReadPartial(length)
@@ -551,8 +554,8 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
   def AddBlob(self, blob_hash, length, chunk_number):
     """Add another blob to this image using its hash."""
     if len(blob_hash) != self._HASH_SIZE:
-      raise ValueError("Hash '%s' doesn't have correct length (%d)." % (
-          blob_hash, self._HASH_SIZE))
+      raise ValueError("Hash '%s' doesn't have correct length (%d)." %
+                       (blob_hash, self._HASH_SIZE))
 
     # If we're adding a new blob, we should increase the size. If we're just
     # updating an existing blob, the size should stay the same.
@@ -570,8 +573,9 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
         self._dirty = True
 
     index_urn = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number)
-    with aff4.FACTORY.Create(
-        index_urn, aff4.AFF4MemoryStream, token=self.token) as fd:
+    with aff4.FACTORY.Create(index_urn,
+                             aff4.AFF4MemoryStream,
+                             token=self.token) as fd:
       fd.write(blob_hash)
     if chunk_number in self.chunk_cache:
       self.chunk_cache.Pop(chunk_number)
@@ -583,7 +587,8 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
     """Do we have this chunk in the index?"""
     index_urns = {
         self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number): chunk_number
-        for chunk_number in chunk_numbers}
+        for chunk_number in chunk_numbers
+    }
 
     res = {chunk_number: False for chunk_number in chunk_numbers}
 
@@ -595,7 +600,8 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
   def ChunksMetadata(self, chunk_numbers):
     index_urns = {
         self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number): chunk_number
-        for chunk_number in chunk_numbers}
+        for chunk_number in chunk_numbers
+    }
 
     res = {}
 

@@ -69,8 +69,9 @@ class GetFile(flow.GRRFlow):
     self.state.Register("fd", None)
     self.state.Register("stat", None)
 
-    self.CallClient("StatFile", rdf_client.ListDirRequest(
-        pathspec=self.args.pathspec), next_state="Stat")
+    self.CallClient("StatFile",
+                    rdf_client.ListDirRequest(pathspec=self.args.pathspec),
+                    next_state="Stat")
 
   @flow.StateHandler(next_state=["ReadBuffer", "CheckHashes"])
   def Stat(self, responses):
@@ -95,13 +96,11 @@ class GetFile(flow.GRRFlow):
     else:
       self.state.file_size = self.args.read_length
 
-    self.state.max_chunk_number = (self.state.file_size /
-                                   self.CHUNK_SIZE) + 1
+    self.state.max_chunk_number = (self.state.file_size / self.CHUNK_SIZE) + 1
 
     self.CreateBlobImage()
-    self.FetchWindow(min(
-        self.WINDOW_SIZE,
-        self.state.max_chunk_number - self.state.current_chunk_number))
+    self.FetchWindow(min(self.WINDOW_SIZE, self.state.max_chunk_number -
+                         self.state.current_chunk_number))
 
   def FetchWindow(self, number_of_chunks_to_readahead):
     """Read ahead a number of buffers to fill the window."""
@@ -124,14 +123,15 @@ class GetFile(flow.GRRFlow):
     Note that this is pinned on the client id - i.e. the client can not change
     aff4 objects outside its tree.
     """
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-        self.args.pathspec, self.client_id)
+    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(self.args.pathspec,
+                                                     self.client_id)
 
     self.state.stat.aff4path = urn
 
     # Create a new BlobImage for the data. Note that this object is pickled
     # with this flow between states.
-    self.state.fd = aff4.FACTORY.Create(urn, aff4_grr.VFSBlobImage,
+    self.state.fd = aff4.FACTORY.Create(urn,
+                                        aff4_grr.VFSBlobImage,
                                         token=self.token)
 
     # The chunksize must be set to be the same as the transfer chunk size.
@@ -199,8 +199,8 @@ class FileTracker(object):
     self.hash_obj = None
     self.hash_list = []
     self.pathspec = stat_entry.pathspec
-    self.urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-        self.pathspec, client_id)
+    self.urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(self.pathspec,
+                                                          client_id)
     self.stat_entry.aff4path = self.urn
     self.request_data = request_data
     self.index = index
@@ -238,8 +238,7 @@ class FileTracker(object):
     """
 
     # We create the file in the client namespace and populate with metadata.
-    self.fd = aff4.FACTORY.Create(self.urn, filetype, mode="w",
-                                  token=token)
+    self.fd = aff4.FACTORY.Create(self.urn, filetype, mode="w", token=token)
     self.fd.SetChunksize(chunksize)
     self.fd.Set(self.fd.Schema.STAT(self.stat_entry))
     self.fd.Set(self.fd.Schema.PATHSPEC(self.pathspec))
@@ -294,7 +293,8 @@ class MultiGetFileMixin(object):
     # Set of blobs we still need to fetch.
     self.state.Register("blobs_we_need", set())
 
-    fd = aff4.FACTORY.Open(filestore.FileStore.PATH, filestore.FileStore,
+    fd = aff4.FACTORY.Open(filestore.FileStore.PATH,
+                           filestore.FileStore,
                            mode="r",
                            token=self.token)
     self.state.Register("filestore", fd)
@@ -312,19 +312,21 @@ class MultiGetFileMixin(object):
 
     request_data = request_data or {}
     request_data["index"] = index
-    self.CallClient("StatFile", pathspec=pathspec,
+    self.CallClient("StatFile",
+                    pathspec=pathspec,
                     next_state="StoreStat",
                     request_data=request_data)
 
     request = rdf_client.FingerprintRequest(pathspec=pathspec,
                                             max_filesize=self.state.file_size)
-    request.AddRequest(
-        fp_type=rdf_client.FingerprintTuple.Type.FPT_GENERIC,
-        hashers=[rdf_client.FingerprintTuple.HashType.MD5,
-                 rdf_client.FingerprintTuple.HashType.SHA1,
-                 rdf_client.FingerprintTuple.HashType.SHA256])
+    request.AddRequest(fp_type=rdf_client.FingerprintTuple.Type.FPT_GENERIC,
+                       hashers=[rdf_client.FingerprintTuple.HashType.MD5,
+                                rdf_client.FingerprintTuple.HashType.SHA1,
+                                rdf_client.FingerprintTuple.HashType.SHA256])
 
-    self.CallClient("HashFile", request, next_state="ReceiveFileHash",
+    self.CallClient("HashFile",
+                    request,
+                    next_state="ReceiveFileHash",
                     request_data=request_data)
 
   def ReceiveFetchedFile(self, stat_entry, file_hash, request_data=None):
@@ -360,8 +362,9 @@ class MultiGetFileMixin(object):
 
     stat_entry = responses.First()
     index = responses.request_data["index"]
-    self.state.pending_hashes[index] = FileTracker(
-        stat_entry, self.client_id, responses.request_data, index)
+    self.state.pending_hashes[index] = FileTracker(stat_entry, self.client_id,
+                                                   responses.request_data,
+                                                   index)
 
   @flow.StateHandler(next_state="CheckHash")
   def ReceiveFileHash(self, responses):
@@ -372,7 +375,8 @@ class MultiGetFileMixin(object):
     if not responses.success and responses.request.request.name == "HashFile":
       logging.debug(
           "HashFile action not available, falling back to FingerprintFile.")
-      self.CallClient("FingerprintFile", responses.request.request.payload,
+      self.CallClient("FingerprintFile",
+                      responses.request.request.payload,
                       next_state="ReceiveFileHash",
                       request_data=responses.request_data)
       return
@@ -460,7 +464,8 @@ class MultiGetFileMixin(object):
     # First we get all the files which are present in the file store.
     files_in_filestore = set()
     for file_store_urn, hash_obj in self.state.filestore.CheckHashes(
-        file_hashes.values(), external=self.state.use_external_stores):
+        file_hashes.values(),
+        external=self.state.use_external_stores):
 
       self.HeartBeat()
 
@@ -479,7 +484,8 @@ class MultiGetFileMixin(object):
 
     # Now copy all existing files to the client aff4 space.
     for existing_blob in aff4.FACTORY.MultiOpen(files_in_filestore,
-                                                mode="rw", token=self.token):
+                                                mode="rw",
+                                                token=self.token):
 
       hashset = existing_blob.Get(existing_blob.Schema.HASH)
       if hashset is None:
@@ -509,7 +515,8 @@ class MultiGetFileMixin(object):
         file_tracker.fd.Close(sync=False)
 
         # Let the caller know we have this file already.
-        self.ReceiveFetchedFile(file_tracker.stat_entry, file_tracker.hash_obj,
+        self.ReceiveFetchedFile(file_tracker.stat_entry,
+                                file_tracker.hash_obj,
                                 request_data=file_tracker.request_data)
 
     # Now we iterate over all the files which are not in the store and arrange
@@ -522,7 +529,8 @@ class MultiGetFileMixin(object):
       self.state.pending_files[index] = file_tracker
 
       # Create the VFS file for this file tracker.
-      file_tracker.CreateVFSFile(aff4_grr.VFSBlobImage, token=self.token,
+      file_tracker.CreateVFSFile(aff4_grr.VFSBlobImage,
+                                 token=self.token,
                                  chunksize=self.CHUNK_SIZE)
 
       # If we already know how big the file is we use that, otherwise fall back
@@ -547,9 +555,11 @@ class MultiGetFileMixin(object):
           length = file_tracker.size_to_download % self.CHUNK_SIZE
         else:
           length = self.CHUNK_SIZE
-        self.CallClient("HashBuffer", pathspec=file_tracker.pathspec,
+        self.CallClient("HashBuffer",
+                        pathspec=file_tracker.pathspec,
                         offset=i * self.CHUNK_SIZE,
-                        length=length, next_state="CheckHash",
+                        length=length,
+                        next_state="CheckHash",
                         request_data=dict(index=index))
 
     if self.state.files_hashed % 100 == 0:
@@ -610,7 +620,8 @@ class MultiGetFileMixin(object):
 
         else:
           # We dont have this blob - ask the client to transmit it.
-          self.CallClient("TransferBuffer", hash_tracker.hash_response,
+          self.CallClient("TransferBuffer",
+                          hash_tracker.hash_response,
                           next_state="WriteBuffer",
                           request_data=dict(index=index))
 
@@ -647,7 +658,8 @@ class MultiGetFileMixin(object):
         # Publish the new file event to cause the file to be added to the
         # filestore. This is not time critical so do it when we have spare
         # capacity.
-        self.Publish("FileStore.AddFileToStore", file_tracker.fd.urn,
+        self.Publish("FileStore.AddFileToStore",
+                     file_tracker.fd.urn,
                      priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY)
 
         self.state.files_fetched += 1
@@ -661,7 +673,8 @@ class MultiGetFileMixin(object):
 
     file_tracker = self.state.pending_files.pop(index)
     if file_tracker:
-      self.ReceiveFetchedFile(file_tracker.stat_entry, file_tracker.hash_obj,
+      self.ReceiveFetchedFile(file_tracker.stat_entry,
+                              file_tracker.hash_obj,
                               request_data=file_tracker.request_data)
 
   @flow.StateHandler(next_state=["CheckHash", "WriteBuffer"])
@@ -697,8 +710,8 @@ class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
 
     for pathspec in self.args.pathspecs:
 
-      vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-          pathspec, self.client_id)
+      vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec,
+                                                           self.client_id)
 
       if vfs_urn not in unique_paths:
         # Only Stat/Hash each path once, input pathspecs can have dups.
@@ -706,8 +719,7 @@ class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
 
         self.StartFileFetch(pathspec)
 
-  def ReceiveFetchedFile(self, stat_entry, unused_hash_obj,
-                         request_data=None):
+  def ReceiveFetchedFile(self, stat_entry, unused_hash_obj, request_data=None):
     """This method will be called for each new file successfully fetched."""
     _ = request_data
     self.SendReply(stat_entry)
@@ -726,8 +738,7 @@ class FileStoreCreateFile(flow.EventListener):
 
   EVENTS = ["FileStore.AddFileToStore"]
 
-  well_known_session_id = rdfvalue.SessionID(
-      flow_name="FileStoreCreateFile")
+  well_known_session_id = rdfvalue.SessionID(flow_name="FileStoreCreateFile")
 
   CHUNK_SIZE = 512 * 1024
 
@@ -740,7 +751,8 @@ class FileStoreCreateFile(flow.EventListener):
     vfs_fd = aff4.FACTORY.Open(vfs_urn, mode="rw", token=self.token)
     filestore_fd = aff4.FACTORY.Create(filestore.FileStore.PATH,
                                        filestore.FileStore,
-                                       mode="w", token=self.token)
+                                       mode="w",
+                                       token=self.token)
     filestore_fd.AddFile(vfs_fd)
     vfs_fd.Flush(sync=False)
 
@@ -768,7 +780,8 @@ class GetMBR(flow.GRRFlow):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
 
-    request = rdf_client.BufferReference(pathspec=pathspec, offset=0,
+    request = rdf_client.BufferReference(pathspec=pathspec,
+                                         offset=0,
                                          length=self.args.length)
     self.CallClient("ReadBuffer", request, next_state="StoreMBR")
 
@@ -783,8 +796,11 @@ class GetMBR(flow.GRRFlow):
 
     response = responses.First()
 
-    mbr = aff4.FACTORY.Create(self.client_id.Add("mbr"), aff4_grr.VFSFile,
-                              mode="w", token=self.token)
+    mbr = aff4.FACTORY.Create(
+        self.client_id.Add("mbr"),
+        aff4_grr.VFSFile,
+        mode="w",
+        token=self.token)
     mbr.write(response.data)
     mbr.Close()
     self.Log("Successfully stored the MBR (%d bytes)." % len(response.data))
@@ -876,21 +892,21 @@ class LoadComponentMixin(object):
     # TODO(user): Remove python hack when client 3.1 is pushed.
     request_data = dict(name=name, version=version, next_state=next_state)
     python_hack_root_urn = config_lib.CONFIG.Get("Config.python_hack_root")
-    python_hack_path = python_hack_root_urn.Add(
-        system).Add("restart_if_component_loaded.py")
+    python_hack_path = python_hack_root_urn.Add(system).Add(
+        "restart_if_component_loaded.py")
 
     fd = aff4.FACTORY.Open(python_hack_path, token=self.token)
     if not isinstance(fd, aff4.GRRSignedBlob):
       logging.info("Python hack %s not available.", python_hack_path)
 
-      self.CallStateInline(
-          next_state="LoadComponentAfterFlushOldComponent",
-          request_data=request_data)
+      self.CallStateInline(next_state="LoadComponentAfterFlushOldComponent",
+                           request_data=request_data)
     else:
       logging.info("Sending python hack %s", python_hack_path)
 
       for python_blob in fd:
-        self.CallClient("ExecutePython", python_code=python_blob,
+        self.CallClient("ExecutePython",
+                        python_code=python_blob,
                         py_args=dict(name=name, version=version),
                         next_state="LoadComponentAfterFlushOldComponent",
                         request_data=request_data)
@@ -904,12 +920,14 @@ class LoadComponentMixin(object):
     next_state = request_data["next_state"]
 
     # Get the component summary.
-    component_urn = config_lib.CONFIG.Get(
-        "Config.aff4_root").Add("components").Add("%s_%s" % (name, version))
+    component_urn = config_lib.CONFIG.Get("Config.aff4_root").Add(
+        "components").Add("%s_%s" % (name, version))
 
     try:
-      fd = aff4.FACTORY.Open(component_urn, aff4_type="ComponentObject",
-                             mode="r", token=self.token)
+      fd = aff4.FACTORY.Open(component_urn,
+                             aff4_type="ComponentObject",
+                             mode="r",
+                             token=self.token)
     except IOError as e:
       raise IOError("Required component not found: %s" % e)
 
@@ -918,9 +936,10 @@ class LoadComponentMixin(object):
       raise RuntimeError("Component %s (%s) does not exist in data store." %
                          (name, version))
 
-    self.CallClient("LoadComponent", summary=component_summary,
-                    next_state="ComponentLoaded", request_data=dict(
-                        next_state=next_state))
+    self.CallClient("LoadComponent",
+                    summary=component_summary,
+                    next_state="ComponentLoaded",
+                    request_data=dict(next_state=next_state))
 
   @flow.StateHandler()
   def ComponentLoaded(self, responses):

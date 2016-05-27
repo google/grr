@@ -43,8 +43,7 @@ class LoggedACL(object):
     def Decorated(this, token, *args, **kwargs):
       try:
         result = func(this, token, *args, **kwargs)
-        if (self.access_type == "data_store_access" and
-            token and
+        if (self.access_type == "data_store_access" and token and
             token.username in aff4_users.GRRUser.SYSTEM_USERS):
           # Logging internal system database access is noisy and useless.
           return result
@@ -52,11 +51,9 @@ class LoggedACL(object):
                       utils.SmartUnicode(self.access_type),
                       utils.SmartUnicode(this.__class__.__name__),
                       utils.SmartUnicode(token and token.username),
-                      utils.SmartUnicode(token and
-                                         token.supervisor and
+                      utils.SmartUnicode(token and token.supervisor and
                                          " (supervisor)" or ""),
-                      utils.SmartUnicode(args),
-                      utils.SmartUnicode(kwargs),
+                      utils.SmartUnicode(args), utils.SmartUnicode(kwargs),
                       utils.SmartUnicode(token and token.reason))
 
         return result
@@ -65,10 +62,9 @@ class LoggedACL(object):
                       utils.SmartUnicode(self.access_type),
                       utils.SmartUnicode(this.__class__.__name__),
                       utils.SmartUnicode(token and token.username),
-                      utils.SmartUnicode(
-                          token and token.supervisor and " (supervisor)" or ""),
-                      utils.SmartUnicode(args),
-                      utils.SmartUnicode(kwargs),
+                      utils.SmartUnicode(token and token.supervisor and
+                                         " (supervisor)" or ""),
+                      utils.SmartUnicode(args), utils.SmartUnicode(kwargs),
                       utils.SmartUnicode(token and token.reason))
 
         raise
@@ -162,13 +158,14 @@ def ValidateAccessAndSubjects(requested_access, subjects):
 
   for s in requested_access:
     if s not in "rwq":
-      raise ValueError("Invalid access requested for %s: %s" % (
-          subjects, requested_access))
+      raise ValueError("Invalid access requested for %s: %s" %
+                       (subjects, requested_access))
 
   if "q" in requested_access and "r" not in requested_access:
     raise access_control.UnauthorizedAccess(
         "Invalid access request: query permissions require read permissions "
-        "for %s" % subjects, requested_access=requested_access)
+        "for %s" % subjects,
+        requested_access=requested_access)
 
   return True
 
@@ -184,8 +181,8 @@ def CheckUserForLabels(username, authorized_labels, token=None):
 
     # Only return if all the authorized_labels are found in the user's
     # label list, otherwise raise UnauthorizedAccess.
-    if (authorized_labels.intersection(
-        user.GetLabelsNames()) == authorized_labels):
+    if (authorized_labels.intersection(user.GetLabelsNames()) ==
+        authorized_labels):
       return True
     else:
       raise access_control.UnauthorizedAccess(
@@ -253,7 +250,8 @@ def CheckFlowAuthorizedLabels(token, flow_name):
   flow_cls = flow.GRRFlow.GetPlugin(flow_name)
 
   if flow_cls.AUTHORIZED_LABELS:
-    return CheckUserForLabels(token.username, flow_cls.AUTHORIZED_LABELS,
+    return CheckUserForLabels(token.username,
+                              flow_cls.AUTHORIZED_LABELS,
                               token=token)
   else:
     return True
@@ -290,8 +288,7 @@ class BasicAccessControlManager(access_control.AccessControlManager):
   def CheckIfCanStartFlow(self, token, flow_name, with_client_id=False):
     """Check labels, ACL_ENFORCED attribute, and validate the token."""
     return ValidateToken(token, [flow_name]) and (
-        token.supervisor or
-        CheckFlowAuthorizedLabels(token, flow_name))
+        token.supervisor or CheckFlowAuthorizedLabels(token, flow_name))
 
   @LoggedACL("data_store_access")
   def CheckDataStoreAccess(self, token, subjects, requested_access="r"):
@@ -385,14 +382,15 @@ class CheckAccessHelper(object):
                     utils.SmartUnicode(token.username),
                     utils.SmartUnicode(subject_str),
                     utils.SmartUnicode(regex_text),
-                    utils.SmartUnicode(token.reason),
-                    require, require_args, require_kwargs, self.helper_name)
+                    utils.SmartUnicode(token.reason), require, require_args,
+                    require_kwargs, self.helper_name)
       return True
 
     logging.warn("Datastore access denied to %s (no matched rules)",
                  subject_str)
     raise access_control.UnauthorizedAccess(
-        "Access to %s rejected: (no matched rules)." % subject, subject=subject)
+        "Access to %s rejected: (no matched rules)." % subject,
+        subject=subject)
 
 
 class FullAccessControlManager(access_control.AccessControlManager):
@@ -408,7 +406,8 @@ class FullAccessControlManager(access_control.AccessControlManager):
     super(FullAccessControlManager, self).__init__()
 
     self.acl_cache = utils.AgeBasedCache(
-        max_size=10000, max_age=config_lib.CONFIG["ACL.cache_age"])
+        max_size=10000,
+        max_age=config_lib.CONFIG["ACL.cache_age"])
     self.super_token = access_control.ACLToken(username="GRRSystem").SetUID()
 
     self.helpers = {
@@ -676,24 +675,26 @@ class FullAccessControlManager(access_control.AccessControlManager):
       stats.STATS.IncrementCounter("approval_searches",
                                    fields=["with_reason", "data_store"])
       try:
-        approval_request = aff4.FACTORY.Open(
-            approval_urn, aff4_type=security.Approval, mode="r",
-            token=token, age=aff4.ALL_TIMES)
+        approval_request = aff4.FACTORY.Open(approval_urn,
+                                             aff4_type=security.Approval,
+                                             mode="r",
+                                             token=token,
+                                             age=aff4.ALL_TIMES)
 
         if approval_request.CheckAccess(token):
           # Cache this approval for fast path checking.
           self.acl_cache.Put(approval_urn, token)
           return True
 
-        raise access_control.UnauthorizedAccess(
-            "Approval %s was rejected." % approval_urn,
-            subject=target)
+        raise access_control.UnauthorizedAccess("Approval %s was rejected." %
+                                                approval_urn,
+                                                subject=target)
 
       except IOError:
         # No Approval found, reject this request.
-        raise access_control.UnauthorizedAccess(
-            "No approval found for %s." % target,
-            subject=target)
+        raise access_control.UnauthorizedAccess("No approval found for %s." %
+                                                target,
+                                                subject=target)
 
   def _CheckApprovalsForTokenWithoutReason(self, token, target):
     approval_root_urn = aff4.ROOT_URN.Add("ACL").Add(target.Path()).Add(
@@ -735,8 +736,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
     client_urn = rdf_client.ClientURN(client_urn)
 
     return ValidateToken(token, [client_urn]) and (
-        token.supervisor or
-        self._CheckApprovals(token, client_urn))
+        token.supervisor or self._CheckApprovals(token, client_urn))
 
   @LoggedACL("hunt_access")
   @stats.Timed("acl_check_time", fields=["hunt_access"])
@@ -746,8 +746,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
     hunt_urn = rdfvalue.RDFURN(hunt_urn)
 
     return ValidateToken(token, [hunt_urn]) and (
-        token.supervisor or
-        self._CheckApprovals(token, hunt_urn))
+        token.supervisor or self._CheckApprovals(token, hunt_urn))
 
   @LoggedACL("cron_job_access")
   @stats.Timed("acl_check_time", fields=["cron_job_access"])
@@ -757,8 +756,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
     cron_job_urn = rdfvalue.RDFURN(cron_job_urn)
 
     return ValidateToken(token, [cron_job_urn]) and (
-        token.supervisor or
-        self._CheckApprovals(token, cron_job_urn))
+        token.supervisor or self._CheckApprovals(token, cron_job_urn))
 
   @LoggedACL("can_start_flow")
   @stats.Timed("acl_check_time", fields=["can_start_flow"])
@@ -771,10 +769,9 @@ class FullAccessControlManager(access_control.AccessControlManager):
     else:
       can_start_flow = CheckFlowCanBeStartedAsGlobal
 
-    return ValidateToken(token, [flow_name]) and (
-        token.supervisor or (
-            can_start_flow(flow_name) and
-            CheckFlowAuthorizedLabels(token, flow_name)))
+    return ValidateToken(token, [flow_name]) and (token.supervisor or (
+        can_start_flow(flow_name) and
+        CheckFlowAuthorizedLabels(token, flow_name)))
 
   @LoggedACL("data_store_access")
   @stats.Timed("acl_check_time", fields=["data_store_access"])
@@ -785,10 +782,9 @@ class FullAccessControlManager(access_control.AccessControlManager):
     subjects = map(rdfvalue.RDFURN, subjects)
 
     return (ValidateAccessAndSubjects(requested_access, subjects) and
-            ValidateToken(token, subjects) and (
-                token.supervisor or
-                self._CheckAccessWithHelpers(token, subjects,
-                                             requested_access)))
+            ValidateToken(token, subjects) and
+            (token.supervisor or
+             self._CheckAccessWithHelpers(token, subjects, requested_access)))
 
 
 class UserManagersInit(registry.InitHook):

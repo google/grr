@@ -21,8 +21,7 @@ class SignedBlobTest(test_base.RDFValueTestCase):
     super(SignedBlobTest, self).setUp()
     self.private_key = config_lib.CONFIG[
         "PrivateKeys.driver_signing_private_key"]
-    self.public_key = config_lib.CONFIG[
-        "Client.driver_signing_public_key"]
+    self.public_key = config_lib.CONFIG["Client.driver_signing_public_key"]
 
   def GenerateSample(self, number=0):
     result = self.rdfvalue_class()

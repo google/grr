@@ -32,7 +32,8 @@ class EnrolmentInterrogateEvent(flow.EventListener):
   @flow.EventHandler(source_restriction=True)
   def ProcessMessage(self, message=None, event=None):
     _ = message
-    flow.GRRFlow.StartFlow(client_id=event, flow_name="Interrogate",
+    flow.GRRFlow.StartFlow(client_id=event,
+                           flow_name="Interrogate",
                            queue=queues.ENROLLMENT,
                            token=self.token)
 
@@ -49,27 +50,28 @@ class Interrogate(flow.GRRFlow):
   args_type = InterrogateArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state=["Platform",
-                                 "InstallDate",
-                                 "EnumerateInterfaces",
-                                 "EnumerateFilesystems",
-                                 "ClientInfo",
-                                 "ClientConfiguration"])
+  @flow.StateHandler(next_state=["Platform", "InstallDate",
+                                 "EnumerateInterfaces", "EnumerateFilesystems",
+                                 "ClientInfo", "ClientConfiguration"])
   def Start(self):
     """Start off all the tests."""
 
     # Create the objects we need to exist.
     self.Load()
-    fd = aff4.FACTORY.Create(self.client.urn.Add("network"), network.Network,
-                             token=self.token)
+    fd = aff4.FACTORY.Create(
+        self.client.urn.Add("network"),
+        network.Network,
+        token=self.token)
     fd.Close()
 
     # Make sure we always have a VFSDirectory with a pathspec at fs/os
-    pathspec = rdf_paths.PathSpec(
-        path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
+    pathspec = rdf_paths.PathSpec(path="/",
+                                  pathtype=rdf_paths.PathSpec.PathType.OS)
     urn = self.client.PathspecToURN(pathspec, self.client.urn)
-    with aff4.FACTORY.Create(
-        urn, standard.VFSDirectory, mode="w", token=self.token) as fd:
+    with aff4.FACTORY.Create(urn,
+                             standard.VFSDirectory,
+                             mode="w",
+                             token=self.token) as fd:
       fd.Set(fd.Schema.PATHSPEC, pathspec)
 
     self.CallClient("GetPlatformInfo", next_state="Platform")
@@ -83,8 +85,7 @@ class Interrogate(flow.GRRFlow):
 
   def Load(self):
     # Ensure there is a client object
-    self.client = aff4.FACTORY.Open(self.client_id,
-                                    mode="rw", token=self.token)
+    self.client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
 
   def Save(self):
     # Make sure the client object is removed and closed
@@ -124,10 +125,14 @@ class Interrogate(flow.GRRFlow):
       self.client.Flush(sync=True)
 
       if response.system == "Windows":
-        with aff4.FACTORY.Create(self.client.urn.Add("registry"),
-                                 standard.VFSDirectory, token=self.token) as fd:
-          fd.Set(fd.Schema.PATHSPEC, fd.Schema.PATHSPEC(
-              path="/", pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
+        with aff4.FACTORY.Create(
+            self.client.urn.Add("registry"),
+            standard.VFSDirectory,
+            token=self.token) as fd:
+          fd.Set(fd.Schema.PATHSPEC,
+                 fd.Schema.PATHSPEC(
+                     path="/",
+                     pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
 
       # Update the client index
       aff4.FACTORY.Create(client_index.MAIN_INDEX,
@@ -153,18 +158,17 @@ class Interrogate(flow.GRRFlow):
   def InstallDate(self, responses):
     if responses.success:
       response = responses.First()
-      install_date = self.client.Schema.INSTALL_DATE(
-          response.integer * 1000000)
+      install_date = self.client.Schema.INSTALL_DATE(response.integer * 1000000)
       self.client.Set(install_date)
     else:
       self.Log("Could not get InstallDate")
 
   def _GetExtraArtifactsForCollection(self):
     original_set = set(config_lib.CONFIG["Artifacts.interrogate_store_in_aff4"])
-    add_set = set(
-        config_lib.CONFIG["Artifacts.interrogate_store_in_aff4_additions"])
-    skip_set = set(
-        config_lib.CONFIG["Artifacts.interrogate_store_in_aff4_skip"])
+    add_set = set(config_lib.CONFIG[
+        "Artifacts.interrogate_store_in_aff4_additions"])
+    skip_set = set(config_lib.CONFIG[
+        "Artifacts.interrogate_store_in_aff4_skip"])
     return original_set.union(add_set) - skip_set
 
   @flow.StateHandler(next_state=["ProcessArtifactResponses"])
@@ -176,7 +180,8 @@ class Interrogate(flow.GRRFlow):
     # Collect any non-knowledgebase artifacts that will be stored in aff4.
     artifact_list = self._GetExtraArtifactsForCollection()
     if artifact_list:
-      self.CallFlow("ArtifactCollectorFlow", artifact_list=artifact_list,
+      self.CallFlow("ArtifactCollectorFlow",
+                    artifact_list=artifact_list,
                     next_state="ProcessArtifactResponses",
                     store_results_in_aff4=True)
 
@@ -198,8 +203,9 @@ class Interrogate(flow.GRRFlow):
   def EnumerateInterfaces(self, responses):
     """Enumerates the interfaces."""
     if responses.success and responses:
-      net_fd = aff4.FACTORY.Create(self.client.urn.Add("network"), "Network",
-                                   token=self.token)
+      net_fd = aff4.FACTORY.Create(
+          self.client.urn.Add("network"),
+          "Network", token=self.token)
       interface_list = net_fd.Schema.INTERFACES()
       mac_addresses = []
       ip_addresses = []
@@ -215,10 +221,8 @@ class Interrogate(flow.GRRFlow):
           if address.human_readable_address not in self.FILTERED_IPS:
             ip_addresses.append(address.human_readable_address)
 
-      self.client.Set(self.client.Schema.MAC_ADDRESS(
-          "\n".join(mac_addresses)))
-      self.client.Set(self.client.Schema.HOST_IPS(
-          "\n".join(ip_addresses)))
+      self.client.Set(self.client.Schema.MAC_ADDRESS("\n".join(mac_addresses)))
+      self.client.Set(self.client.Schema.HOST_IPS("\n".join(ip_addresses)))
 
       net_fd.Set(net_fd.Schema.INTERFACES(interface_list))
       net_fd.Close()
@@ -240,12 +244,11 @@ class Interrogate(flow.GRRFlow):
 
           offset = int(offset)
 
-          pathspec = rdf_paths.PathSpec(
-              path=device, pathtype=rdf_paths.PathSpec.PathType.OS,
-              offset=offset)
+          pathspec = rdf_paths.PathSpec(path=device,
+                                        pathtype=rdf_paths.PathSpec.PathType.OS,
+                                        offset=offset)
 
-          pathspec.Append(path="/",
-                          pathtype=rdf_paths.PathSpec.PathType.TSK)
+          pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
           urn = self.client.PathspecToURN(pathspec, self.client.urn)
           fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
@@ -254,12 +257,10 @@ class Interrogate(flow.GRRFlow):
           continue
 
         if response.device:
-          pathspec = rdf_paths.PathSpec(
-              path=response.device,
-              pathtype=rdf_paths.PathSpec.PathType.OS)
+          pathspec = rdf_paths.PathSpec(path=response.device,
+                                        pathtype=rdf_paths.PathSpec.PathType.OS)
 
-          pathspec.Append(path="/",
-                          pathtype=rdf_paths.PathSpec.PathType.TSK)
+          pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
           urn = self.client.PathspecToURN(pathspec, self.client.urn)
           fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
@@ -268,9 +269,8 @@ class Interrogate(flow.GRRFlow):
 
         if response.mount_point:
           # Create the OS device
-          pathspec = rdf_paths.PathSpec(
-              path=response.mount_point,
-              pathtype=rdf_paths.PathSpec.PathType.OS)
+          pathspec = rdf_paths.PathSpec(path=response.mount_point,
+                                        pathtype=rdf_paths.PathSpec.PathType.OS)
 
           urn = self.client.PathspecToURN(pathspec, self.client.urn)
           fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)

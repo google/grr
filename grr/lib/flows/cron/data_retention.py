@@ -37,7 +37,8 @@ class CleanHunts(cronjobs.SystemCronFlow):
 
     deadline = rdfvalue.RDFDatetime().Now() - hunts_ttl
 
-    hunts = aff4.FACTORY.MultiOpen(hunts_urns, aff4_type=implementation.GRRHunt,
+    hunts = aff4.FACTORY.MultiOpen(hunts_urns,
+                                   aff4_type=implementation.GRRHunt,
                                    token=self.token)
     for hunt in hunts:
       if exception_label in hunt.GetLabelsNames():
@@ -63,8 +64,10 @@ class CleanCronJobs(cronjobs.SystemCronFlow):
       return
 
     jobs = cronjobs.CRON_MANAGER.ListJobs(token=self.token)
-    jobs_objs = aff4.FACTORY.MultiOpen(jobs, aff4_type=cronjobs.CronJob,
-                                       mode="r", token=self.token)
+    jobs_objs = aff4.FACTORY.MultiOpen(jobs,
+                                       aff4_type=cronjobs.CronJob,
+                                       mode="r",
+                                       token=self.token)
 
     for obj in jobs_objs:
       age = rdfvalue.RDFDatetime().Now() - cron_jobs_ttl
@@ -85,8 +88,7 @@ class CleanTemp(cronjobs.SystemCronFlow):
       self.Log("TTL not set - nothing to do...")
       return
 
-    exception_label = config_lib.CONFIG[
-        "DataRetention.tmp_ttl_exception_label"]
+    exception_label = config_lib.CONFIG["DataRetention.tmp_ttl_exception_label"]
 
     tmp_root = aff4.FACTORY.Open("aff4:/tmp", mode="r", token=self.token)
     tmp_urns = list(tmp_root.ListChildren())
@@ -95,7 +97,8 @@ class CleanTemp(cronjobs.SystemCronFlow):
 
     for tmp_group in utils.Grouper(tmp_urns, 10000):
       expired_tmp_urns = []
-      for tmp_obj in aff4.FACTORY.MultiOpen(tmp_group, mode="r",
+      for tmp_obj in aff4.FACTORY.MultiOpen(tmp_group,
+                                            mode="r",
                                             token=self.token):
         if exception_label in tmp_obj.GetLabelsNames():
           continue
@@ -134,7 +137,8 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
 
     for client_group in utils.Grouper(client_urns, 1000):
       inactive_client_urns = []
-      for client in aff4.FACTORY.MultiOpen(client_group, mode="r",
+      for client in aff4.FACTORY.MultiOpen(client_group,
+                                           mode="r",
                                            aff4_type=aff4_grr.VFSGRRClient,
                                            token=self.token):
         if exception_label in client.GetLabelsNames():

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Tests for CSV output plugin."""
 
 import csv
@@ -24,7 +23,9 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
     self.results_urn = self.client_id.Add("Results")
     self.base_urn = rdfvalue.RDFURN("aff4:/foo/bar")
 
-  def ProcessResponses(self, plugin_args=None, responses=None,
+  def ProcessResponses(self,
+                       plugin_args=None,
+                       responses=None,
                        process_responses_separately=False):
     plugin = csv_plugin.CSVOutputPlugin(source_urn=self.results_urn,
                                         output_base_urn=self.base_urn,
@@ -75,10 +76,8 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
     parsed_output = list(csv.DictReader(contents))
     self.assertEqual(len(parsed_output), 10)
     for i in range(10):
-      self.assertEqual(parsed_output[i]["metadata.client_urn"],
-                       self.client_id)
-      self.assertEqual(parsed_output[i]["metadata.hostname"],
-                       "Host-0")
+      self.assertEqual(parsed_output[i]["metadata.client_urn"], self.client_id)
+      self.assertEqual(parsed_output[i]["metadata.hostname"], "Host-0")
       self.assertEqual(parsed_output[i]["metadata.mac_address"],
                        "aabbccddee00\nbbccddeeff00")
       self.assertEqual(parsed_output[i]["metadata.source_urn"],
@@ -104,14 +103,15 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
     streams = self.ProcessResponses(
         plugin_args=csv_plugin.CSVOutputPluginArgs(),
         responses=[
-            rdf_client.StatEntry(
-                aff4path=self.client_id.Add("/fs/os/foo/bar"),
-                pathspec=rdf_paths.PathSpec(path="/foo/bar")),
-            rdf_client.Process(pid=42)],
+            rdf_client.StatEntry(aff4path=self.client_id.Add("/fs/os/foo/bar"),
+                                 pathspec=rdf_paths.PathSpec(path="/foo/bar")),
+            rdf_client.Process(pid=42)
+        ],
         process_responses_separately=True)
 
-    self.assertEqual(sorted(streams.keys()),
-                     sorted(["ExportedFile.csv", "ExportedProcess.csv"]))
+    self.assertEqual(
+        sorted(streams.keys()),
+        sorted(["ExportedFile.csv", "ExportedProcess.csv"]))
     self.assertEqual(streams["ExportedFile.csv"].urn,
                      rdfvalue.RDFURN("aff4:/foo/bar/ExportedFile.csv"))
     self.assertEqual(streams["ExportedProcess.csv"].urn,
@@ -126,8 +126,7 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(parsed_output[0]["metadata.hostname"], "Host-0")
     self.assertEqual(parsed_output[0]["metadata.mac_address"],
                      "aabbccddee00\nbbccddeeff00")
-    self.assertEqual(parsed_output[0]["metadata.source_urn"],
-                     self.results_urn)
+    self.assertEqual(parsed_output[0]["metadata.source_urn"], self.results_urn)
     self.assertEqual(parsed_output[0]["urn"],
                      self.client_id.Add("/fs/os/foo/bar"))
 
@@ -139,17 +138,16 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(parsed_output[0]["metadata.hostname"], "Host-0")
     self.assertEqual(parsed_output[0]["metadata.mac_address"],
                      "aabbccddee00\nbbccddeeff00")
-    self.assertEqual(parsed_output[0]["metadata.source_urn"],
-                     self.results_urn)
+    self.assertEqual(parsed_output[0]["metadata.source_urn"], self.results_urn)
     self.assertEqual(parsed_output[0]["pid"], "42")
 
   def testCSVPluginWritesUnicodeValuesCorrectly(self):
     streams = self.ProcessResponses(
         plugin_args=csv_plugin.CSVOutputPluginArgs(),
         responses=[
-            rdf_client.StatEntry(
-                aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
-                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中"))],
+            rdf_client.StatEntry(aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
+                                 pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中"))
+        ],
         process_responses_separately=True)
 
     contents = StringIO.StringIO(streams["ExportedFile.csv"].Read(16384))
@@ -162,6 +160,7 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
 
 def main(argv):
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

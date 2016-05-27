@@ -18,7 +18,8 @@ from grr.lib import config_lib
 MODULE_PATTERNS = [
     # Visual Studio runtime libs.
     re.compile("msvcr.+.dll", re.I),
-    re.compile("msvcp.+.dll", re.I)]
+    re.compile("msvcp.+.dll", re.I)
+]
 
 PROCESS_QUERY_INFORMATION = 0x400
 PROCESS_VM_READ = 0x10
@@ -38,24 +39,27 @@ def EnumMissingModules():
   """
   module_handle = ctypes.c_ulong()
   count = ctypes.c_ulong()
-  process_handle = ctypes.windll.kernel32.OpenProcess(
-      PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, 0, os.getpid())
-  ctypes.windll.psapi.EnumProcessModules(
-      process_handle, ctypes.byref(module_handle), ctypes.sizeof(module_handle),
-      ctypes. byref(count))
+  process_handle = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_INFORMATION
+                                                      | PROCESS_VM_READ, 0,
+                                                      os.getpid())
+  ctypes.windll.psapi.EnumProcessModules(process_handle,
+                                         ctypes.byref(module_handle),
+                                         ctypes.sizeof(module_handle),
+                                         ctypes.byref(count))
 
   # The size of a handle is pointer size (i.e. 64 bit of amd64 and 32 bit on
   # i386).
-  if sys.maxsize > 2 ** 32:
+  if sys.maxsize > 2**32:
     handle_type = ctypes.c_ulonglong
   else:
     handle_type = ctypes.c_ulong
 
   module_list = (handle_type * (count.value / ctypes.sizeof(handle_type)))()
 
-  ctypes.windll.psapi.EnumProcessModulesEx(
-      process_handle, ctypes.byref(module_list), ctypes.sizeof(module_list),
-      ctypes.byref(count), 2)
+  ctypes.windll.psapi.EnumProcessModulesEx(process_handle,
+                                           ctypes.byref(module_list),
+                                           ctypes.sizeof(module_list),
+                                           ctypes.byref(count), 2)
 
   for x in module_list:
     module_filename = win32process.GetModuleFileNameEx(process_handle, x)
@@ -83,19 +87,23 @@ class WindowsClientBuilder(build.ClientBuilder):
     logging.info("Copying Nanny build files from %s to %s", nanny_src_dir,
                  self.nanny_dir)
 
-    shutil.copytree(config_lib.CONFIG.Get("ClientBuilder.nanny_source_dir",
-                                          context=self.context), self.nanny_dir)
+    shutil.copytree(
+        config_lib.CONFIG.Get("ClientBuilder.nanny_source_dir",
+                              context=self.context),
+        self.nanny_dir)
 
-    build_type = config_lib.CONFIG.Get(
-        "ClientBuilder.build_type", context=self.context)
+    build_type = config_lib.CONFIG.Get("ClientBuilder.build_type",
+                                       context=self.context)
 
-    vs_arch = config_lib.CONFIG.Get("ClientBuilder.vs_arch", default=None,
+    vs_arch = config_lib.CONFIG.Get("ClientBuilder.vs_arch",
+                                    default=None,
                                     context=self.context)
 
     # We have to set up the Visual Studio environment first and then call
     # msbuild.
     env_script = config_lib.CONFIG.Get("ClientBuilder.vs_env_script",
-                                       default=None, context=self.context)
+                                       default=None,
+                                       context=self.context)
 
     if vs_arch is None or env_script is None or not os.path.exists(env_script):
       # Visual Studio is not installed. We just use pre-built binaries in that
@@ -105,7 +113,8 @@ class WindowsClientBuilder(build.ClientBuilder):
                    "If you want to build it you must have VS 2012 installed.")
 
       binaries_dir = config_lib.CONFIG.Get(
-          "ClientBuilder.nanny_prebuilt_binaries", context=self.context)
+          "ClientBuilder.nanny_prebuilt_binaries",
+          context=self.context)
 
       shutil.copy(
           os.path.join(binaries_dir, "GRRNanny_%s.exe" % vs_arch),
@@ -114,8 +123,9 @@ class WindowsClientBuilder(build.ClientBuilder):
     else:
       # Lets build the nanny with the VS env script.
       subprocess.check_call(
-          "cmd /c \"\"%s\" && msbuild /p:Configuration=%s;Platform=%s\"" % (
-              env_script, build_type, vs_arch), cwd=self.nanny_dir)
+          "cmd /c \"\"%s\" && msbuild /p:Configuration=%s;Platform=%s\"" %
+          (env_script, build_type, vs_arch),
+          cwd=self.nanny_dir)
 
       # The templates always contain the same filenames - the deploy step might
       # rename them later.

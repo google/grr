@@ -28,12 +28,13 @@ class BuildTests(test_lib.GRRBaseTest):
       os.makedirs(new_dir)
 
       # Copy unzipsfx so it can be used in repacking/
-      shutil.copy(os.path.join(
-          self.executables_dir, "windows/templates/unzipsfx/unzipsfx-i386.exe"),
-                  new_dir)
-      shutil.copy(os.path.join(
-          self.executables_dir,
-          "windows/templates/unzipsfx/unzipsfx-amd64.exe"), new_dir)
+      shutil.copy(
+          os.path.join(self.executables_dir,
+                       "windows/templates/unzipsfx/unzipsfx-i386.exe"), new_dir)
+      shutil.copy(
+          os.path.join(self.executables_dir,
+                       "windows/templates/unzipsfx/unzipsfx-amd64.exe"),
+          new_dir)
 
       # Since we want to be able to increase the client version in the repo
       # without immediately making a client template release, just check we can
@@ -49,14 +50,14 @@ class BuildTests(test_lib.GRRBaseTest):
                                      "Client.version_release": release,}):
         maintenance_utils.RepackAllBinaries()
 
-      self.assertEqual(len(glob.glob(
-          os.path.join(new_dir, "linux/installers/*.deb"))), 2)
-      self.assertEqual(len(glob.glob(os.path.join(
-          new_dir, "linux/installers/*.rpm"))), 2)
-      self.assertEqual(len(glob.glob(os.path.join(
-          new_dir, "windows/installers/*.exe"))), 2)
-      self.assertEqual(len(glob.glob(os.path.join(
-          new_dir, "darwin/installers/*.pkg"))), 1)
+      self.assertEqual(
+          len(glob.glob(os.path.join(new_dir, "linux/installers/*.deb"))), 2)
+      self.assertEqual(
+          len(glob.glob(os.path.join(new_dir, "linux/installers/*.rpm"))), 2)
+      self.assertEqual(
+          len(glob.glob(os.path.join(new_dir, "windows/installers/*.exe"))), 2)
+      self.assertEqual(
+          len(glob.glob(os.path.join(new_dir, "darwin/installers/*.pkg"))), 1)
 
   def testGenClientConfig(self):
     plugins = ["plugin1", "plugin2"]

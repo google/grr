@@ -137,8 +137,14 @@ config_lib.DEFINE_integer("Client.foreman_check_frequency", 1800,
                           "The minimum number of seconds before checking with "
                           "the foreman for new work.")
 
-config_lib.DEFINE_float("Client.rss_max", 500,
-                        "Maximum memory footprint in MB.")
+config_lib.DEFINE_float("Client.rss_max", 1000,
+                        "Maximum memory footprint in MB (soft limit). "
+                        "Exceeding this will result in an orderly shutdown.")
+
+config_lib.DEFINE_float("Client.rss_max_hard", 2000,
+                        "Maximum memory footprint in MB (hard limit). "
+                        "Exceeding this will result in aborting the current "
+                        "client action and restarting.")
 
 config_lib.DEFINE_string(
     name="Client.tempfile_prefix",

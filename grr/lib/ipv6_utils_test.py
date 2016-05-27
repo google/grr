@@ -23,8 +23,9 @@ class Ipv6UtilsTest(test_lib.GRRBaseTest):
 
   def testInetAtoN(self):
     for address in ipv6_addresses.IPV6_ADDRESSES:
-      self.assertEqual(ipv6_utils.InetAtoN(address),
-                       socket.inet_pton(socket.AF_INET6, address))
+      self.assertEqual(
+          ipv6_utils.InetAtoN(address),
+          socket.inet_pton(socket.AF_INET6, address))
 
     for address in ipv6_addresses.BAD_IPV6_ADDRESSES:
       self.assertRaises(socket.error, ipv6_utils.InetAtoN, address)
@@ -33,12 +34,14 @@ class Ipv6UtilsTest(test_lib.GRRBaseTest):
     for address in ipv6_addresses.IPV6_ADDRESSES:
       packed = socket.inet_pton(socket.AF_INET6, address)
 
-      self.assertEqual(ipv6_utils.InetNtoA(packed),
-                       socket.inet_ntop(socket.AF_INET6, packed))
+      self.assertEqual(
+          ipv6_utils.InetNtoA(packed),
+          socket.inet_ntop(socket.AF_INET6, packed))
 
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

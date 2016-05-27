@@ -151,8 +151,7 @@ class _Metric(object):
       raise ValueError("Metric was registered with %d fields (%s), but "
                        "%d fields were provided (%s)." % (len(self.fields_defs),
                                                           self.fields_defs,
-                                                          len(fields),
-                                                          fields))
+                                                          len(fields), fields))
 
     try:
       return self._values[self._FieldsToKey(fields)]
@@ -225,9 +224,8 @@ class _EventMetric(_Metric):
     return Distribution(bins=self._bins)
 
   def __init__(self, bins, fields, docstring, units):
-    self._bins = bins or [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1,
-                          1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 9, 10,
-                          15, 20, 50, 100]
+    self._bins = bins or [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.5, 2, 2.5, 3,
+                          4, 5, 6, 7, 8, 9, 10, 15, 20, 50, 100]
     super(_EventMetric, self).__init__(fields, docstring, units)
 
   def Record(self, value, fields=None):
@@ -342,7 +340,10 @@ class StatsCollector(object):
     return result
 
   @utils.Synchronized
-  def RegisterCounterMetric(self, varname, fields=None, docstring=None,
+  def RegisterCounterMetric(self,
+                            varname,
+                            fields=None,
+                            docstring=None,
                             units=None):
     """Registers a counter metric (integer value that never decreases).
 
@@ -358,10 +359,12 @@ class StatsCollector(object):
     """
     self._metrics[varname] = _CounterMetric(fields, docstring, units)
     self._metrics_metadata[varname] = MetricMetadata(
-        varname=varname, metric_type=MetricMetadata.MetricType.COUNTER,
+        varname=varname,
+        metric_type=MetricMetadata.MetricType.COUNTER,
         value_type=MetricMetadata.ValueType.INT,
         fields_defs=self.FieldsToFieldsDefinitions(fields),
-        docstring=docstring, units=units)
+        docstring=docstring,
+        units=units)
 
   @utils.Synchronized
   def IncrementCounter(self, varname, delta=1, fields=None):
@@ -382,8 +385,12 @@ class StatsCollector(object):
     self._metrics[varname].Increment(delta, fields)
 
   @utils.Synchronized
-  def RegisterEventMetric(self, varname, bins=None, fields=None,
-                          docstring=None, units=None):
+  def RegisterEventMetric(self,
+                          varname,
+                          bins=None,
+                          fields=None,
+                          docstring=None,
+                          units=None):
     """Registers metric that records distribution of values.
 
     Args:
@@ -401,10 +408,12 @@ class StatsCollector(object):
     """
     self._metrics[varname] = _EventMetric(bins, fields, docstring, units)
     self._metrics_metadata[varname] = MetricMetadata(
-        varname=varname, metric_type=MetricMetadata.MetricType.EVENT,
+        varname=varname,
+        metric_type=MetricMetadata.MetricType.EVENT,
         value_type=MetricMetadata.ValueType.DISTRIBUTION,
         fields_defs=self.FieldsToFieldsDefinitions(fields),
-        docstring=docstring, units=units)
+        docstring=docstring,
+        units=units)
 
   @utils.Synchronized
   def RecordEvent(self, varname, value, fields=None):
@@ -422,8 +431,12 @@ class StatsCollector(object):
     self._metrics[varname].Record(value, fields)
 
   @utils.Synchronized
-  def RegisterGaugeMetric(self, varname, value_type, fields=None,
-                          docstring=None, units=None):
+  def RegisterGaugeMetric(self,
+                          varname,
+                          value_type,
+                          fields=None,
+                          docstring=None,
+                          units=None):
     """Registers metric that may change arbitrarily.
 
     Args:
@@ -439,10 +452,12 @@ class StatsCollector(object):
     """
     self._metrics[varname] = _GaugeMetric(value_type, fields, docstring, units)
     self._metrics_metadata[varname] = MetricMetadata(
-        varname=varname, metric_type=MetricMetadata.MetricType.GAUGE,
+        varname=varname,
+        metric_type=MetricMetadata.MetricType.GAUGE,
         value_type=self.ValueTypeToMetricValueType(value_type),
         fields_defs=self.FieldsToFieldsDefinitions(fields),
-        docstring=docstring, units=units)
+        docstring=docstring,
+        units=units)
 
   @utils.Synchronized
   def SetGaugeValue(self, varname, value, fields=None):
@@ -539,7 +554,6 @@ class StatsCollector(object):
       means "with an API matching the API of the Distribution object".
     """
     return self._metrics[varname].Get(fields)
-
 
 # A global store of statistics.
 STATS = None

@@ -27,8 +27,10 @@ def ConvertStringToFilename(name):
   Returns:
     A safe filename with escaped special chars.
   """
-  return re.sub(r"\W", lambda x: "%%%02X" % ord(x.group(0)),
-                name, flags=re.UNICODE).rstrip("/")
+  return re.sub(r"\W",
+                lambda x: "%%%02X" % ord(x.group(0)),
+                name,
+                flags=re.UNICODE).rstrip("/")
 
 
 def Components(subject):

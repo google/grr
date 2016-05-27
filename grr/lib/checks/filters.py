@@ -42,10 +42,10 @@ class BaseHandler(object):
     if not artifact:
       raise DefinitionError("Filter needs some data to process!")
     self.artifact = artifact
-    self.raw_data = []     # Collected data to analyze.
-    self.filters = []      # Filters used to process data.
-    self.cmp_data = []     # Data that results will be compared against.
-    self.results = []      # Residual data following filtering.
+    self.raw_data = []  # Collected data to analyze.
+    self.filters = []  # Filters used to process data.
+    self.cmp_data = []  # Data that results will be compared against.
+    self.results = []  # Residual data following filtering.
     if isinstance(filters, structs.RepeatedFieldHelper):
       self.filters = filters
       self.Validate()
@@ -256,8 +256,7 @@ class ForEach(ObjectFilter):
     if attrs:
       if len(attrs) == 1:
         return
-      raise DefinitionError("ForEach has multiple attributes: %s" %
-                            expression)
+      raise DefinitionError("ForEach has multiple attributes: %s" % expression)
     raise DefinitionError("ForEach sets no attribute: %s" % expression)
 
   def ParseObjs(self, objs, expression):
@@ -317,9 +316,12 @@ class StatFilter(Filter):
   _KEYS = {"path_re", "file_re", "file_type", "uid", "gid", "mode", "mask"}
   _UID_GID_RE = re.compile(r"\A(!|>|>=|<=|<|=)([0-9]+)\Z")
   _PERM_RE = re.compile(r"\A[0-7]{4}\Z")
-  _TYPES = {"BLOCK": stat.S_ISBLK, "CHARACTER": stat.S_ISCHR,
-            "DIRECTORY": stat.S_ISDIR, "FIFO": stat.S_ISFIFO,
-            "REGULAR": stat.S_ISREG, "SOCKET": stat.S_ISSOCK,
+  _TYPES = {"BLOCK": stat.S_ISBLK,
+            "CHARACTER": stat.S_ISCHR,
+            "DIRECTORY": stat.S_ISDIR,
+            "FIFO": stat.S_ISFIFO,
+            "REGULAR": stat.S_ISREG,
+            "SOCKET": stat.S_ISSOCK,
             "SYMLINK": stat.S_ISLNK}
 
   def _MatchFile(self, stat_entry):
@@ -376,7 +378,8 @@ class StatFilter(Filter):
 
   def _Load(self, expression):
     self._Flush()
-    parser = config_file.KeyValueParser(kv_sep=":", sep=",",
+    parser = config_file.KeyValueParser(kv_sep=":",
+                                        sep=",",
                                         term=(r"\s+", r"\n"))
     parsed = {}
     for entry in parser.ParseEntries(expression):
@@ -501,8 +504,7 @@ class StatFilter(Filter):
 
     if self.cfg.file_re:
       if len(self.cfg.file_re) > 1:
-        raise DefinitionError(
-            "Too many regexes defined: %s" % self.cfg.file_re)
+        raise DefinitionError("Too many regexes defined: %s" % self.cfg.file_re)
       try:
         self.file_re = re.compile(self.cfg.file_re[0])
       except (re.error, TypeError) as e:
@@ -510,8 +512,7 @@ class StatFilter(Filter):
 
     if self.cfg.path_re:
       if len(self.cfg.path_re) > 1:
-        raise DefinitionError(
-            "Too many regexes defined: %s" % self.cfg.path_re)
+        raise DefinitionError("Too many regexes defined: %s" % self.cfg.path_re)
       try:
         self.path_re = re.compile(self.cfg.path_re[0])
       except (re.error, TypeError) as e:
@@ -519,8 +520,8 @@ class StatFilter(Filter):
 
     if self.cfg.file_type:
       if len(self.cfg.file_type) > 1:
-        raise DefinitionError(
-            "Too many file types defined: %s" % self.cfg.file_type)
+        raise DefinitionError("Too many file types defined: %s" %
+                              self.cfg.file_type)
       file_type = self.cfg.file_type[0].upper()
       if file_type not in self._TYPES:
         raise DefinitionError("Unsupported file type %s" % file_type)

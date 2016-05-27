@@ -14,7 +14,6 @@ def MonkeyPatch(cls, method_name, method):
     setattr(cls, method_name, method)
     return method
 
-
 # Fixup the protobuf implementation.
 # pylint: disable=g-import-not-at-top
 try:

@@ -39,8 +39,13 @@ class TypeInfoObject(object):
   # The delegate type this TypeInfoObject manages.
   _type = None
 
-  def __init__(self, name="", default=None, description="", friendly_name="",
-               hidden=False, help=""):  # pylint: disable=redefined-builtin
+  def __init__(self,
+               name="",
+               default=None,
+               description="",
+               friendly_name="",
+               hidden=False,
+               help=""):  # pylint: disable=redefined-builtin
     """Build a TypeInfo type descriptor.
 
     Args:
@@ -98,9 +103,7 @@ class TypeInfoObject(object):
 
   def Help(self):
     """Returns a helpful string describing this type info."""
-    return "%s = %s\n   %s" % (self.name, self.GetDefault(),
-                               self.description)
-
+    return "%s = %s\n   %s" % (self.name, self.GetDefault(), self.description)
 
 # This will register all classes into this modules's namespace regardless of
 # where they are defined. This allows us to decouple the place of definition of
@@ -147,8 +150,8 @@ class RDFValueType(TypeInfoObject):
       try:
         return self.rdfclass(value)
       except rdfvalue.InitializeError:
-        raise TypeValueError("Value for arg %s should be an %s" % (
-            self.name, self.rdfclass.__class__.__name__))
+        raise TypeValueError("Value for arg %s should be an %s" %
+                             (self.name, self.rdfclass.__class__.__name__))
 
     return value
 

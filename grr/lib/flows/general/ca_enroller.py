@@ -36,8 +36,10 @@ class CAEnroler(flow.GRRFlow):
   @flow.StateHandler(next_state="End")
   def Start(self):
     """Sign the CSR from the client."""
-    client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
-                                 mode="rw", token=self.token)
+    client = aff4.FACTORY.Create(self.client_id,
+                                 aff4_grr.VFSGRRClient,
+                                 mode="rw",
+                                 token=self.token)
 
     if self.args.csr.type != rdf_crypto.Certificate.Type.CSR:
       raise IOError("Must be called with CSR")
@@ -77,7 +79,8 @@ class CAEnroler(flow.GRRFlow):
     index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
                                 aff4_type=client_index.ClientIndex,
                                 object_exists=True,
-                                mode="rw", token=self.token)
+                                mode="rw",
+                                token=self.token)
     index.AddClient(client)
     client.Close(sync=True)
 
@@ -153,11 +156,16 @@ class Enroler(flow.WellKnownFlow):
       enrolment_cache.Put(client_id, 1)
 
     # Create a new client object for this client.
-    client = aff4.FACTORY.Create(client_id, aff4_grr.VFSGRRClient, mode="rw",
+    client = aff4.FACTORY.Create(client_id,
+                                 aff4_grr.VFSGRRClient,
+                                 mode="rw",
                                  token=self.token)
 
     # Only enroll this client if it has no certificate yet.
     if not client.Get(client.Schema.CERT):
       # Start the enrollment flow for this client.
-      flow.GRRFlow.StartFlow(client_id=client_id, flow_name="CAEnroler",
-                             csr=cert, queue=queue, token=self.token)
+      flow.GRRFlow.StartFlow(client_id=client_id,
+                             flow_name="CAEnroler",
+                             csr=cert,
+                             queue=queue,
+                             token=self.token)

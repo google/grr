@@ -6,7 +6,6 @@ import hashlib
 import itertools
 import time
 
-
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -86,8 +85,10 @@ class GlobalNotificationStorage(aff4.AFF4Object):
     """Schema for GlobalNotificationsManager."""
 
     NOTIFICATIONS = aff4.Attribute(
-        "aff4:global_notification_storage/notifications", GlobalNotificationSet,
-        "List of currently active notifications", versioned=False)
+        "aff4:global_notification_storage/notifications",
+        GlobalNotificationSet,
+        "List of currently active notifications",
+        versioned=False)
 
   def AddNotification(self, new_notification):
     """Adds new notification to the set."""
@@ -137,8 +138,7 @@ class CryptedPassword(rdfvalue.RDFString):
       return self._CheckLegacyPassword(password)
 
     salt = self._value.split("$")[1]
-    return self.safe_str_cmp(
-        self._value, self._CalculateHash(password, salt))
+    return self.safe_str_cmp(self._value, self._CalculateHash(password, salt))
 
 
 class GUISettings(rdf_structs.RDFProtoStruct):
@@ -155,27 +155,33 @@ class GRRUser(aff4.AFF4Object):
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     """Schema for GRRUser."""
     PENDING_NOTIFICATIONS = aff4.Attribute(
-        "aff4:notification/pending", rdf_flows.NotificationList,
-        "The notifications pending for the user.", default="",
+        "aff4:notification/pending",
+        rdf_flows.NotificationList,
+        "The notifications pending for the user.",
+        default="",
         versioned=False)
 
     SHOWN_NOTIFICATIONS = aff4.Attribute(
-        "aff4:notifications/shown", rdf_flows.NotificationList,
-        "Notifications already shown to the user.", default="",
+        "aff4:notifications/shown",
+        rdf_flows.NotificationList,
+        "Notifications already shown to the user.",
+        default="",
         versioned=False)
 
     SHOWN_GLOBAL_NOTIFICATIONS = aff4.Attribute(
-        "aff4:global_notification/timestamp_list", GlobalNotificationSet,
+        "aff4:global_notification/timestamp_list",
+        GlobalNotificationSet,
         "Global notifications shown to this user.",
-        default=GlobalNotificationSet(), versioned=False)
+        default=GlobalNotificationSet(),
+        versioned=False)
 
-    GUI_SETTINGS = aff4.Attribute(
-        "aff4:gui/settings", GUISettings,
-        "GUI Settings", default="")
+    GUI_SETTINGS = aff4.Attribute("aff4:gui/settings",
+                                  GUISettings,
+                                  "GUI Settings",
+                                  default="")
 
-    PASSWORD = aff4.Attribute(
-        "aff4:user/password", CryptedPassword,
-        "Encrypted Password for the user")
+    PASSWORD = aff4.Attribute("aff4:user/password", CryptedPassword,
+                              "Encrypted Password for the user")
 
   def Notify(self, message_type, subject, msg, source):
     """Send a notification to the user in the UI.
@@ -197,8 +203,11 @@ class GRRUser(aff4.AFF4Object):
     if message_type not in rdf_flows.Notification.notification_types:
       raise TypeError("Invalid notification type %s" % message_type)
 
-    pending.Append(type=message_type, subject=subject, message=msg,
-                   source=source, timestamp=long(time.time() * 1e6))
+    pending.Append(type=message_type,
+                   subject=subject,
+                   message=msg,
+                   source=source,
+                   timestamp=long(time.time() * 1e6))
 
     # Limit the notification to 50, expiring older notifications.
     while len(pending) > 50:
@@ -282,7 +291,8 @@ class GRRUser(aff4.AFF4Object):
   def GetPendingGlobalNotifications(self):
     storage = aff4.FACTORY.Create(GlobalNotificationStorage.DEFAULT_PATH,
                                   aff4_type=GlobalNotificationStorage,
-                                  mode="r", token=self.token)
+                                  mode="r",
+                                  token=self.token)
     current_notifications = storage.GetNotifications()
 
     shown_notifications = self.Get(self.Schema.SHOWN_GLOBAL_NOTIFICATIONS,

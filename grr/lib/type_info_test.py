@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 # Copyright 2012 Google Inc. All Rights Reserved.
-
 """Tests for grr.lib.type_info."""
 
 
@@ -48,7 +47,8 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
     self.assertRaises(type_info.TypeValueError, a.Validate, ["test"])
     self.assertRaises(type_info.TypeValueError, a.Validate, [
-        rdf_paths.PathSpec()])
+        rdf_paths.PathSpec()
+    ])
     a.Validate([1, 2, 3])
 
   def testTypeInfoMultiChoiceObjects(self):
@@ -76,38 +76,25 @@ class TypeInfoTest(test_lib.GRRBaseTest):
   def testTypeDescriptorSet(self):
 
     type_infos = [
-        type_info.String(
-            name="output",
-            default="analysis/{p}/{u}-{t}"),
-
-        type_info.String(
-            description="Profile to use.",
-            name="profile",
-            default=""),
-
-        type_info.String(
-            description="A comma separated list of plugins.",
-            name="plugins",
-            default=""),
+        type_info.String(name="output",
+                         default="analysis/{p}/{u}-{t}"),
+        type_info.String(description="Profile to use.",
+                         name="profile",
+                         default=""),
+        type_info.String(description="A comma separated list of plugins.",
+                         name="plugins",
+                         default=""),
     ]
 
-    info = type_info.TypeDescriptorSet(
-        type_infos[0],
-        type_infos[1],
-        type_infos[2],
-    )
+    info = type_info.TypeDescriptorSet(type_infos[0],
+                                       type_infos[1],
+                                       type_infos[2],)
 
-    new_info = type_info.TypeDescriptorSet(
-        type_infos[0],
-    )
+    new_info = type_info.TypeDescriptorSet(type_infos[0],)
 
-    updated_info = new_info + type_info.TypeDescriptorSet(
-        type_infos[1],
-    )
+    updated_info = new_info + type_info.TypeDescriptorSet(type_infos[1],)
 
-    updated_info += type_info.TypeDescriptorSet(
-        type_infos[2],
-    )
+    updated_info += type_info.TypeDescriptorSet(type_infos[2],)
 
     self.assertEqual(info.descriptor_map, updated_info.descriptor_map)
     self.assertEqual(sorted(info.descriptors), sorted(updated_info.descriptors))
@@ -126,6 +113,7 @@ class TypeInfoTest(test_lib.GRRBaseTest):
 
 def main(args):
   test_lib.main(args)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

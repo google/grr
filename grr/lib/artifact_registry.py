@@ -42,12 +42,12 @@ class ArtifactRegistry(object):
   """A global registry of artifacts."""
 
   _artifacts = {}
-  _sources = {"dirs": [],
-              "files": [],
-              "datastores": []}
+  _sources = {"dirs": [], "files": [], "datastores": []}
   _dirty = False
 
-  def _LoadArtifactsFromDatastore(self, source_urns=None, token=None,
+  def _LoadArtifactsFromDatastore(self,
+                                  source_urns=None,
+                                  token=None,
                                   overwrite_if_exists=True):
     """Load artifacts from the data store."""
     if token is None:
@@ -56,13 +56,14 @@ class ArtifactRegistry(object):
     loaded_artifacts = []
 
     for artifact_coll_urn in source_urns or []:
-      with aff4.FACTORY.Create(
-          artifact_coll_urn, aff4_type=collects.RDFValueCollection,
-          token=token, mode="rw") as artifact_coll:
+      with aff4.FACTORY.Create(artifact_coll_urn,
+                               aff4_type=collects.RDFValueCollection,
+                               token=token,
+                               mode="rw") as artifact_coll:
         for artifact_value in artifact_coll:
-          self.RegisterArtifact(
-              artifact_value, source="datastore:%s" % artifact_coll_urn,
-              overwrite_if_exists=overwrite_if_exists)
+          self.RegisterArtifact(artifact_value,
+                                source="datastore:%s" % artifact_coll_urn,
+                                overwrite_if_exists=overwrite_if_exists)
           loaded_artifacts.append(artifact_value)
           logging.debug("Loaded artifact %s from %s", artifact_value.name,
                         artifact_coll_urn)
@@ -75,8 +76,8 @@ class ArtifactRegistry(object):
         try:
           artifact_obj.Validate()
         except ArtifactDefinitionError as e:
-          logging.error("Artifact %s did not validate: %s",
-                        artifact_obj.name, e)
+          logging.error("Artifact %s did not validate: %s", artifact_obj.name,
+                        e)
           artifact_obj.error_message = utils.SmartStr(e)
           loaded_artifacts.remove(artifact_obj)
           revalidate = True
@@ -86,8 +87,7 @@ class ArtifactRegistry(object):
     try:
       raw_list = list(yaml.safe_load_all(yaml_content))
     except (ValueError, yaml.YAMLError) as e:
-      raise ArtifactDefinitionError(
-          "Invalid YAML for artifact: %s" % e)
+      raise ArtifactDefinitionError("Invalid YAML for artifact: %s" % e)
 
     # Try to do the right thing with json/yaml formatted as a list.
     if (isinstance(raw_list, list) and len(raw_list) == 1 and
@@ -106,9 +106,8 @@ class ArtifactRegistry(object):
         artifact_value = Artifact(**artifact_dict)
         valid_artifacts.append(artifact_value)
       except (TypeError, AttributeError, type_info.TypeValueError) as e:
-        raise ArtifactDefinitionError(
-            "Invalid artifact definition for %s: %s" %
-            (artifact_dict.get("name"), e))
+        raise ArtifactDefinitionError("Invalid artifact definition for %s: %s" %
+                                      (artifact_dict.get("name"), e))
 
     return valid_artifacts
 
@@ -121,9 +120,9 @@ class ArtifactRegistry(object):
         with open(file_path, mode="rb") as fh:
           logging.debug("Loading artifacts from %s", file_path)
           for artifact_val in self.ArtifactsFromYaml(fh.read(1000000)):
-            self.RegisterArtifact(
-                artifact_val, source="file:%s" % file_path,
-                overwrite_if_exists=overwrite_if_exists)
+            self.RegisterArtifact(artifact_val,
+                                  source="file:%s" % file_path,
+                                  overwrite_if_exists=overwrite_if_exists)
             loaded_artifacts.append(artifact_val)
             logging.debug("Loaded artifact %s from %s", artifact_val.name,
                           file_path)
@@ -141,9 +140,7 @@ class ArtifactRegistry(object):
       artifact_value.Validate()
 
   def ClearSources(self):
-    self._sources = {"dirs": [],
-                     "files": [],
-                     "datastores": []}
+    self._sources = {"dirs": [], "files": [], "datastores": []}
     self._dirty = True
 
   def AddFileSource(self, filename):
@@ -161,7 +158,9 @@ class ArtifactRegistry(object):
     self._sources["datastores"] += datastores
     self._dirty = True
 
-  def RegisterArtifact(self, artifact_rdfvalue, source="datastore",
+  def RegisterArtifact(self,
+                       artifact_rdfvalue,
+                       source="datastore",
                        overwrite_if_exists=False):
     """Registers a new artifact."""
     if not overwrite_if_exists and artifact_rdfvalue.name in self._artifacts:
@@ -225,9 +224,13 @@ class ArtifactRegistry(object):
       if reload_datastore_artifacts:
         self.ReloadDatastoreArtifacts()
 
-  def GetArtifacts(self, os_name=None, name_list=None,
-                   source_type=None, exclude_dependents=False,
-                   provides=None, reload_datastore_artifacts=False):
+  def GetArtifacts(self,
+                   os_name=None,
+                   name_list=None,
+                   source_type=None,
+                   exclude_dependents=False,
+                   provides=None,
+                   reload_datastore_artifacts=False):
     """Retrieve artifact classes with optional filtering.
 
     All filters must match for the artifact to be returned.
@@ -250,8 +253,8 @@ class ArtifactRegistry(object):
     for artifact in self._artifacts.itervalues():
 
       # artifact.supported_os = [] matches all OSes
-      if os_name and artifact.supported_os and (os_name not in
-                                                artifact.supported_os):
+      if os_name and artifact.supported_os and (
+          os_name not in artifact.supported_os):
         continue
       if name_list and artifact.name not in name_list:
         continue
@@ -299,7 +302,9 @@ class ArtifactRegistry(object):
   def GetArtifactNames(self, *args, **kwargs):
     return set([a.name for a in self.GetArtifacts(*args, **kwargs)])
 
-  def SearchDependencies(self, os_name, artifact_name_list,
+  def SearchDependencies(self,
+                         os_name,
+                         artifact_name_list,
                          existing_artifact_deps=None,
                          existing_expansion_deps=None):
     """Return a set of artifact names needed to fulfill dependencies.
@@ -338,7 +343,9 @@ class ArtifactRegistry(object):
         if missing_artifacts:
           # Add those artifacts and any child dependencies
           new_artifacts, new_expansions = self.SearchDependencies(
-              os_name, new_artifact_names, existing_artifact_deps=artifact_deps,
+              os_name,
+              new_artifact_names,
+              existing_artifact_deps=artifact_deps,
               existing_expansion_deps=expansion_deps)
           artifact_deps = artifact_deps.union(new_artifacts)
           expansion_deps = expansion_deps.union(new_expansions)
@@ -365,6 +372,7 @@ class ArtifactRegistry(object):
 
     return "---\n\n".join(yaml_list)
 
+
 REGISTRY = ArtifactRegistry()
 
 
@@ -374,44 +382,47 @@ class ArtifactSource(structs.RDFProtoStruct):
 
   OUTPUT_UNDEFINED = "Undefined"
 
-  TYPE_MAP = {"GRR_CLIENT_ACTION": {"required_attributes": ["client_action"],
-                                    "output_type": OUTPUT_UNDEFINED},
-              "FILE": {"required_attributes": ["paths"],
+  TYPE_MAP = {
+      "GRR_CLIENT_ACTION": {"required_attributes": ["client_action"],
+                            "output_type": OUTPUT_UNDEFINED},
+      "FILE": {"required_attributes": ["paths"],
+               "output_type": "StatEntry"},
+      "GREP": {"required_attributes": ["paths", "content_regex_list"],
+               "output_type": "BufferReference"},
+      "DIRECTORY": {"required_attributes": ["paths"],
+                    "output_type": "StatEntry"},
+      "LIST_FILES": {"required_attributes": ["paths"],
+                     "output_type": "StatEntry"},
+      "PATH": {"required_attributes": ["paths"],
+               "output_type": "StatEntry"},
+      "REGISTRY_KEY": {"required_attributes": ["keys"],
                        "output_type": "StatEntry"},
-              "GREP": {"required_attributes": ["paths", "content_regex_list"],
-                       "output_type": "BufferReference"},
-              "DIRECTORY": {"required_attributes": ["paths"],
-                            "output_type": "StatEntry"},
-              "LIST_FILES": {"required_attributes": ["paths"],
-                             "output_type": "StatEntry"},
-              "PATH": {"required_attributes": ["paths"],
-                       "output_type": "StatEntry"},
-              "REGISTRY_KEY": {"required_attributes": ["keys"],
-                               "output_type": "StatEntry"},
-              "REGISTRY_VALUE": {"required_attributes": ["key_value_pairs"],
-                                 "output_type": "RDFString"},
-              "WMI": {"required_attributes": ["query"],
-                      "output_type": "Dict"},
-              "COMMAND": {"required_attributes": ["cmd", "args"],
-                          "output_type": "ExecuteResponse"},
-              "REKALL_PLUGIN": {"required_attributes": ["plugin"],
-                                "output_type": "RekallResponse"},
-              # ARTIFACT is the legacy name for ARTIFACT_GROUP
-              # per: https://github.com/ForensicArtifacts/artifacts/pull/143
-              # TODO(user): remove legacy support after migration.
-              "ARTIFACT": {"required_attributes": ["names"],
-                           "output_type": OUTPUT_UNDEFINED},
-              "ARTIFACT_FILES": {"required_attributes": ["artifact_list"],
-                                 "output_type": "StatEntry"},
-              "ARTIFACT_GROUP": {"required_attributes": ["names"],
-                                 "output_type": OUTPUT_UNDEFINED}}
+      "REGISTRY_VALUE": {"required_attributes": ["key_value_pairs"],
+                         "output_type": "RDFString"},
+      "WMI": {"required_attributes": ["query"],
+              "output_type": "Dict"},
+      "COMMAND": {"required_attributes": ["cmd", "args"],
+                  "output_type": "ExecuteResponse"},
+      "REKALL_PLUGIN": {"required_attributes": ["plugin"],
+                        "output_type": "RekallResponse"},
+      # ARTIFACT is the legacy name for ARTIFACT_GROUP
+      # per: https://github.com/ForensicArtifacts/artifacts/pull/143
+      # TODO(user): remove legacy support after migration.
+      "ARTIFACT": {"required_attributes": ["names"],
+                   "output_type": OUTPUT_UNDEFINED},
+      "ARTIFACT_FILES": {"required_attributes": ["artifact_list"],
+                         "output_type": "StatEntry"},
+      "ARTIFACT_GROUP": {"required_attributes": ["names"],
+                         "output_type": OUTPUT_UNDEFINED}
+  }
 
   def __init__(self, initializer=None, age=None, **kwarg):
     # Support initializing from a mapping
     if isinstance(initializer, dict):
       super(ArtifactSource, self).__init__(age=age, **initializer)
     else:
-      super(ArtifactSource, self).__init__(initializer=initializer, age=age,
+      super(ArtifactSource, self).__init__(initializer=initializer,
+                                           age=age,
                                            **kwarg)
 
   def Validate(self):
@@ -431,32 +442,28 @@ class ArtifactSource(structs.RDFProtoStruct):
     # Catch common mistake of path vs paths.
     if self.attributes.GetItem("paths"):
       if not isinstance(self.attributes.GetItem("paths"), list):
-        raise ArtifactDefinitionError(
-            "Arg 'paths' that is not a list.")
+        raise ArtifactDefinitionError("Arg 'paths' that is not a list.")
 
     if self.attributes.GetItem("path"):
       if not isinstance(self.attributes.GetItem("path"), basestring):
-        raise ArtifactDefinitionError(
-            "Arg 'path' is not a string.")
+        raise ArtifactDefinitionError("Arg 'path' is not a string.")
 
     # Check all returned types.
     if self.returned_types:
       for rdf_type in self.returned_types:
         if rdf_type not in rdfvalue.RDFValue.classes:
-          raise ArtifactDefinitionError(
-              "Invalid return type %s" % rdf_type)
+          raise ArtifactDefinitionError("Invalid return type %s" % rdf_type)
 
     src_type = self.TYPE_MAP.get(str(self.type))
     if src_type is None:
-      raise ArtifactDefinitionError(
-          "Invalid type %s." % self.type)
+      raise ArtifactDefinitionError("Invalid type %s." % self.type)
 
     required_attributes = src_type.get("required_attributes", [])
-    missing_attributes = set(
-        required_attributes).difference(self.attributes.keys())
+    missing_attributes = set(required_attributes).difference(
+        self.attributes.keys())
     if missing_attributes:
-      raise ArtifactDefinitionError(
-          "Missing required attributes: %s." % missing_attributes)
+      raise ArtifactDefinitionError("Missing required attributes: %s." %
+                                    missing_attributes)
 
 
 class ArtifactName(rdfvalue.RDFString):
@@ -484,7 +491,8 @@ class Artifact(structs.RDFProtoStruct):
       "urls",
       # List of strings that describe knowledge_base entries that this artifact
       # can supply.
-      "provides"]
+      "provides"
+  ]
 
   # These labels represent the full set of labels that an Artifact can have.
   # This set is tested on creation to ensure our list of labels doesn't get out
@@ -562,15 +570,19 @@ class Artifact(structs.RDFProtoStruct):
     else:
       artifact_dict = self.ToPrimitiveDict()
 
-    artifact_json = json.dumps(artifact_dict, indent=2, sort_keys=True,
+    artifact_json = json.dumps(artifact_dict,
+                               indent=2,
+                               sort_keys=True,
                                separators=(",", ": "))
+
     # Now tidy up the json for better display. Unfortunately json gives us very
     # little control over output format, so we manually tidy it up given that
     # we have a defined format.
 
     def CompressBraces(name, in_str):
-      return re.sub(r"%s\": \[\n\s+(.*)\n\s+" % name,
-                    "%s\": [ \\g<1> " % name, in_str)
+      return re.sub(r"%s\": \[\n\s+(.*)\n\s+" % name, "%s\": [ \\g<1> " % name,
+                    in_str)
+
     artifact_json = CompressBraces("conditions", artifact_json)
     artifact_json = CompressBraces("urls", artifact_json)
     artifact_json = CompressBraces("labels", artifact_json)
@@ -580,15 +592,16 @@ class Artifact(structs.RDFProtoStruct):
 
   def ToYaml(self):
     artifact_dict = self.ToPrimitiveDict()
+
     # Remove redundant empty defaults.
 
     def ReduceDict(in_dict):
       return dict((k, v) for (k, v) in in_dict.items() if v)
+
     artifact_dict = ReduceDict(artifact_dict)
     sources_dict = artifact_dict.get("sources")
     if sources_dict:
-      artifact_dict["sources"] = [ReduceDict(c) for c in
-                                  sources_dict]
+      artifact_dict["sources"] = [ReduceDict(c) for c in sources_dict]
     # Do some clunky stuff to put the name and doc first in the YAML.
     # Unfortunatley PYYaml makes doing this difficult in other ways.
     name = artifact_dict.pop("name")
@@ -681,8 +694,7 @@ class Artifact(structs.RDFProtoStruct):
     """
     cls_name = self.name
     if not self.doc:
-      raise ArtifactDefinitionError(
-          "Artifact %s has missing doc" % cls_name)
+      raise ArtifactDefinitionError("Artifact %s has missing doc" % cls_name)
 
     for supp_os in self.supported_os:
       if supp_os not in self.SUPPORTED_OS_LIST:
@@ -695,8 +707,8 @@ class Artifact(structs.RDFProtoStruct):
         of.Compile(objectfilter.BaseFilterImplementation)
       except ConditionError as e:
         raise ArtifactDefinitionError(
-            "Artifact %s has invalid condition %s. %s" % (
-                cls_name, condition, e))
+            "Artifact %s has invalid condition %s. %s" % (cls_name, condition,
+                                                          e))
 
     for label in self.labels:
       if label not in self.ARTIFACT_LABELS:
@@ -709,8 +721,8 @@ class Artifact(structs.RDFProtoStruct):
     for kb_var in self.provides:
       if kb_var not in valid_provides:
         raise ArtifactDefinitionError(
-            "Artifact %s has broken provides: '%s' not in KB fields: %s" % (
-                cls_name, kb_var, valid_provides))
+            "Artifact %s has broken provides: '%s' not in KB fields: %s" %
+            (cls_name, kb_var, valid_provides))
 
     # Any %%blah%% path dependencies must be defined in the KnowledgeBase
     for dep in self.GetArtifactPathDependencies():
@@ -723,8 +735,8 @@ class Artifact(structs.RDFProtoStruct):
       try:
         source.Validate()
       except Error as e:
-        raise ArtifactDefinitionError(
-            "Artifact %s has bad source. %s" % (cls_name, e))
+        raise ArtifactDefinitionError("Artifact %s has bad source. %s" %
+                                      (cls_name, e))
 
   def Validate(self):
     """Attempt to validate the artifact has been well defined.
@@ -744,8 +756,8 @@ class Artifact(structs.RDFProtoStruct):
       for dependency in self.GetArtifactDependencies():
         dependency_obj = REGISTRY.GetArtifact(dependency)
         if dependency_obj.error_message:
-          raise ArtifactDefinitionError(
-              "Dependency %s has an error!" % dependency)
+          raise ArtifactDefinitionError("Dependency %s has an error!" %
+                                        dependency)
     except ArtifactNotRegisteredError as e:
       raise ArtifactDefinitionError(e)
 

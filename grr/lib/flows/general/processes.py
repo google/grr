@@ -77,8 +77,8 @@ class ListProcesses(flow.GRRFlow):
         self.SendReply(response.stat_entry)
 
     else:
-      self.Log("Download of file %s failed %s",
-               responses.request_data["path"], responses.status)
+      self.Log("Download of file %s failed %s", responses.request_data["path"],
+               responses.status)
 
   @flow.StateHandler()
   def End(self):

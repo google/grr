@@ -27,13 +27,15 @@ class WindowsCodeSignerTest(test_lib.GRRBaseTest):
 
     with mock.patch.object(pexpect, "spawn"):
       with mock.patch.object(signing.subprocess, "check_call"):
-        with mock.patch.object(tempfile, "NamedTemporaryFile",
+        with mock.patch.object(tempfile,
+                               "NamedTemporaryFile",
                                return_value=intemp):
           output = self.winsign.SignBuffer("asdflkjlaksjdf")
 
     self.assertEqual(output, "content")
 
-    with mock.patch.object(pexpect, "spawn",
+    with mock.patch.object(pexpect,
+                           "spawn",
                            side_effect=pexpect.ExceptionPexpect("blah")):
       with self.assertRaises(pexpect.ExceptionPexpect):
         output = self.winsign.SignBuffer("asdflkjlaksjdf")

@@ -24,10 +24,11 @@ class FakeClientWorker(comms.GRRClientWorker):
   def __del__(self):
     pass
 
-  def SendReply(self, rdf_value,
-                message_type=rdf_flows.GrrMessage.Type.MESSAGE, **kw):
-    message = rdf_flows.GrrMessage(
-        type=message_type, payload=rdf_value, **kw)
+  def SendReply(self,
+                rdf_value,
+                message_type=rdf_flows.GrrMessage.Type.MESSAGE,
+                **kw):
+    message = rdf_flows.GrrMessage(type=message_type, payload=rdf_value, **kw)
 
     self.responses.append(message)
 

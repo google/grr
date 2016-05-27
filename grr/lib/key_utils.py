@@ -74,7 +74,9 @@ def MakeCASignedCert(common_name, ca_pkey, bits=2048):
   return cert, pk
 
 
-def MakeCACert(common_name="grr", issuer_cn="grr_test", issuer_c="US",
+def MakeCACert(common_name="grr",
+               issuer_cn="grr_test",
+               issuer_c="US",
                bits=2048):
   """Generate a CA certificate.
 
@@ -102,7 +104,7 @@ def MakeCACert(common_name="grr", issuer_cn="grr_test", issuer_c="US",
   cert.set_subject(cert.get_issuer())
   cert.set_pubkey(pkey)
   cert.add_ext(X509.new_extension("basicConstraints", "CA:TRUE"))
-  cert.add_ext(X509.new_extension("subjectKeyIdentifier",
-                                  cert.get_fingerprint()))
+  cert.add_ext(X509.new_extension("subjectKeyIdentifier", cert.get_fingerprint(
+  )))
   cert.sign(pk, "sha256")
   return cert, pk, pkey

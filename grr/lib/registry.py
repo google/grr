@@ -17,6 +17,7 @@ import logging
 # This is required to monkey patch various older libraries so
 # pylint: disable=unused-import
 from grr.lib import compatibility
+
 # pylint: enable=unused-import
 
 
@@ -51,8 +52,8 @@ class MetaclassRegistry(abc.ABCMeta):
           # since it can hide serious problems with registration.  Unfortunately
           # gui/runtests.TestPluginInit relies on being able to re-import and
           # overwrite the test plugins after django has been initialized.
-          logging.warn("Duplicate names for registered classes: %s, %s",
-                       cls, cls.classes[cls.__name__])
+          logging.warn("Duplicate names for registered classes: %s, %s", cls,
+                       cls.classes[cls.__name__])
 
         cls.classes[cls.__name__] = cls
         cls.classes_by_name[getattr(cls, "name", None)] = cls
@@ -152,14 +153,15 @@ class HookRegistry(object):
         raise RuntimeError("Pre Init Hook %s in %s could not"
                            " be found. Missing import?" % (pre_hook, hook_cls))
 
-      self._RunSingleHook(self.classes[pre_hook], executed_set,
+      self._RunSingleHook(self.classes[pre_hook],
+                          executed_set,
                           required=hook_cls.__name__)
 
     # Now run this hook.
     cls_instance = hook_cls()
     if required:
-      logging.debug("Initializing %s, required by %s",
-                    hook_cls.__name__, required)
+      logging.debug("Initializing %s, required by %s", hook_cls.__name__,
+                    required)
     else:
       logging.debug("Initializing %s", hook_cls.__name__)
 

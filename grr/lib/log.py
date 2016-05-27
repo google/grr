@@ -12,7 +12,6 @@ import time
 from grr.lib import config_lib
 from grr.lib import flags
 
-
 # Global Application Logger.
 LOGGER = None
 
@@ -32,10 +31,10 @@ class GrrApplicationLogger(object):
       request: A HttpRequest protobuf.
       response: A HttpResponse protobuf.
     """
-    log_msg = "%s-%s %d: %s %s %s %d %s" % (
-        event_id, request.source_ip, response.code,
-        request.method, request.url, request.user_agent, response.size,
-        request.user)
+    log_msg = "%s-%s %d: %s %s %s %d %s" % (event_id, request.source_ip,
+                                            response.code, request.method,
+                                            request.url, request.user_agent,
+                                            response.size, request.user)
     logging.info(log_msg)
 
   def GetNewEventId(self, event_time=None):
@@ -115,8 +114,8 @@ def GetLogHandlers():
         yield handler
 
       elif engine == "event_log":
-        handler = handlers.NTEventLogHandler(
-            config_lib.CONFIG["Logging.service_name"])
+        handler = handlers.NTEventLogHandler(config_lib.CONFIG[
+            "Logging.service_name"])
         handler.setFormatter(formatter)
         yield handler
 

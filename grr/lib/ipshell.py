@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
-
 """A compatibility layer for the IPython shell."""
 
 
@@ -18,7 +17,8 @@ def IPShell(argv=None, user_ns=None, banner=None):
     cfg = Config()
     cfg.InteractiveShellEmbed.autocall = 2
 
-    shell = InteractiveShellEmbed(config=cfg, user_ns=user_ns,
+    shell = InteractiveShellEmbed(config=cfg,
+                                  user_ns=user_ns,
                                   banner2=unicode(banner))
     shell(local_ns=user_ns)
   except ImportError:

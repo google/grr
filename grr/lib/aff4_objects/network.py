@@ -17,5 +17,5 @@ class Network(collects.AFF4Collection):
                                 "Network interfaces.", "Interfaces")
 
     CONNECTIONS = aff4.Attribute("aff4:connections",
-                                 rdf_client.Connections,
-                                 "Network Connections", "Connections")
+                                 rdf_client.Connections, "Network Connections",
+                                 "Connections")

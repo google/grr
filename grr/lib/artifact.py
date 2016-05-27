@@ -148,9 +148,11 @@ class CollectArtifactDependencies(flow.GRRFlow):
     # generated them.
     for artifact_name in first_flows:
       self.state.in_flight_artifacts.append(artifact_name)
-      self.CallFlow("ArtifactCollectorFlow", artifact_list=[artifact_name],
+      self.CallFlow("ArtifactCollectorFlow",
+                    artifact_list=[artifact_name],
                     knowledge_base=self.state.knowledge_base,
-                    store_results_in_aff4=False, next_state="ProcessBase",
+                    store_results_in_aff4=False,
+                    next_state="ProcessBase",
                     request_data={"artifact_name": artifact_name})
 
   def GetFirstFlowsForCollection(self):
@@ -169,7 +171,8 @@ class CollectArtifactDependencies(flow.GRRFlow):
     # starting point.
     check_deps = name_deps.union(artifact_set)
     no_deps_names = artifact_registry.REGISTRY.GetArtifactNames(
-        os_name=self.state.knowledge_base.os, name_list=check_deps,
+        os_name=self.state.knowledge_base.os,
+        name_list=check_deps,
         exclude_dependents=True)
 
     # If the only artifacts with no dependencies are the ones we want to collect
@@ -201,14 +204,15 @@ class CollectArtifactDependencies(flow.GRRFlow):
   def _ScheduleCollection(self):
     # Schedule any new artifacts for which we have now fulfilled dependencies.
     for artifact_name in self.state.awaiting_deps_artifacts:
-      artifact_obj = artifact_registry.REGISTRY.GetArtifact(
-          artifact_name)
+      artifact_obj = artifact_registry.REGISTRY.GetArtifact(artifact_name)
       deps = artifact_obj.GetArtifactPathDependencies()
       if set(deps).issubset(self.state.fulfilled_deps):
         self.state.in_flight_artifacts.append(artifact_name)
         self.state.awaiting_deps_artifacts.remove(artifact_name)
-        self.CallFlow("ArtifactCollectorFlow", artifact_list=[artifact_name],
-                      store_results_in_aff4=False, next_state="ProcessBase",
+        self.CallFlow("ArtifactCollectorFlow",
+                      artifact_list=[artifact_name],
+                      store_results_in_aff4=False,
+                      next_state="ProcessBase",
                       request_data={"artifact_name": artifact_name},
                       knowledge_base=self.state.knowledge_base)
 
@@ -233,16 +237,14 @@ class CollectArtifactDependencies(flow.GRRFlow):
       self.Log("Failed to get artifact %s. Status: %s", artifact_name,
                responses.status)
     else:
-      deps = self.SetKBValue(responses.request_data["artifact_name"],
-                             responses)
+      deps = self.SetKBValue(responses.request_data["artifact_name"], responses)
       if deps:
         # If we fulfilled a dependency, make sure we have collected all
         # artifacts that provide the dependency before marking it as fulfilled.
         for dep in deps:
-          required_artifacts = (
-              artifact_registry.REGISTRY.GetArtifactNames(
-                  os_name=self.state.knowledge_base.os,
-                  provides=[dep]))
+          required_artifacts = (artifact_registry.REGISTRY.GetArtifactNames(
+              os_name=self.state.knowledge_base.os,
+              provides=[dep]))
           if required_artifacts.issubset(self.state.completed_artifacts):
             self.state.fulfilled_deps.append(dep)
           else:
@@ -271,9 +273,9 @@ class CollectArtifactDependencies(flow.GRRFlow):
         else:
           self.Log("Storing incomplete KnowledgeBase. The following artifacts"
                    "had dependencies that could not be fulfilled %s. "
-                   "Missing: %s. Completed: %s" % (
-                       self.state.awaiting_deps_artifacts, missing_deps,
-                       self.state.completed_artifacts))
+                   "Missing: %s. Completed: %s" %
+                   (self.state.awaiting_deps_artifacts, missing_deps,
+                    self.state.completed_artifacts))
 
   def SetKBValue(self, artifact_name, responses):
     """Set values in the knowledge base based on responses."""
@@ -317,8 +319,8 @@ class CollectArtifactDependencies(flow.GRRFlow):
           if provides not in artifact_provides:
             raise RuntimeError("Attempt to provide knowledge base value %s "
                                "without this being set in the artifact "
-                               "provides setting: %s" % (
-                                   provides, artifact_obj))
+                               "provides setting: %s" % (provides,
+                                                         artifact_obj))
 
           if isinstance(value, rdfvalue.RDFString):
             value = utils.SmartStr(value)
@@ -342,8 +344,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
     """
     kb = self.state.knowledge_base.users
     usernames = [user.username for user in kb if user.username]
-    client.AddAttribute(client.Schema.USERNAMES(
-        " ".join(usernames)))
+    client.AddAttribute(client.Schema.USERNAMES(" ".join(usernames)))
 
   def CopyOSReleaseFromKnowledgeBase(self, client):
     """Copy os release and version from KB to client object."""
@@ -399,15 +400,15 @@ class KnowledgeBaseInitializationFlow(CollectArtifactDependencies):
     kb_add = set(config_lib.CONFIG["Artifacts.knowledge_base_additions"])
     kb_skip = set(config_lib.CONFIG["Artifacts.knowledge_base_skip"])
     if self.args.lightweight:
-      kb_skip.update(
-          config_lib.CONFIG["Artifacts.knowledge_base_heavyweight"])
+      kb_skip.update(config_lib.CONFIG["Artifacts.knowledge_base_heavyweight"])
     kb_set = kb_base_set.union(kb_add) - kb_skip
 
     for artifact_name in kb_set:
       artifact_registry.REGISTRY.GetArtifact(artifact_name)
 
     no_deps_names = artifact_registry.REGISTRY.GetArtifactNames(
-        os_name=self.state.knowledge_base.os, name_list=kb_set,
+        os_name=self.state.knowledge_base.os,
+        name_list=kb_set,
         exclude_dependents=True)
 
     name_deps, self.state.all_deps = (
@@ -476,14 +477,13 @@ def ApplyParserToResponses(processor_obj, responses, source, state, token):
     if isinstance(processor_obj, parsers.CommandParser):
       # Command processor only supports one response at a time.
       response = responses
-      result_iterator = parse_method(
-          cmd=response.request.cmd,
-          args=response.request.args,
-          stdout=response.stdout,
-          stderr=response.stderr,
-          return_val=response.exit_status,
-          time_taken=response.time_used,
-          knowledge_base=state.knowledge_base)
+      result_iterator = parse_method(cmd=response.request.cmd,
+                                     args=response.request.args,
+                                     stdout=response.stdout,
+                                     stderr=response.stderr,
+                                     return_val=response.exit_status,
+                                     time_taken=response.time_used,
+                                     knowledge_base=state.knowledge_base)
 
     elif isinstance(processor_obj, parsers.WMIQueryParser):
       query = source["attributes"]["query"]
@@ -499,11 +499,10 @@ def ApplyParserToResponses(processor_obj, responses, source, state, token):
         fd = aff4.FACTORY.Open(responses.aff4path, token=token)
         result_iterator = parse_method(responses, fd, state.knowledge_base)
 
-    elif isinstance(processor_obj, (parsers.RegistryParser,
-                                    parsers.RekallPluginParser,
-                                    parsers.RegistryValueParser,
-                                    parsers.GenericResponseParser,
-                                    parsers.GrepParser)):
+    elif isinstance(processor_obj,
+                    (parsers.RegistryParser, parsers.RekallPluginParser,
+                     parsers.RegistryValueParser, parsers.GenericResponseParser,
+                     parsers.GrepParser)):
       result_iterator = parse_method(responses, state.knowledge_base)
 
     elif isinstance(processor_obj, (parsers.ArtifactFilesParser)):
@@ -515,7 +514,9 @@ def ApplyParserToResponses(processor_obj, responses, source, state, token):
   return result_iterator
 
 
-def UploadArtifactYamlFile(file_content, base_urn=None, token=None,
+def UploadArtifactYamlFile(file_content,
+                           base_urn=None,
+                           token=None,
                            overwrite=True):
   """Upload a yaml or json file as an artifact to the datastore."""
   _ = overwrite
@@ -530,13 +531,15 @@ def UploadArtifactYamlFile(file_content, base_urn=None, token=None,
     artifact_value.ValidateSyntax()
 
   # Iterate through each artifact adding it to the collection.
-  with aff4.FACTORY.Create(base_urn, aff4_type=collects.RDFValueCollection,
-                           token=token, mode="rw") as artifact_coll:
+  with aff4.FACTORY.Create(base_urn,
+                           aff4_type=collects.RDFValueCollection,
+                           token=token,
+                           mode="rw") as artifact_coll:
     for artifact_value in new_artifacts:
       artifact_coll.Add(artifact_value)
-      registry_obj.RegisterArtifact(
-          artifact_value, source="datastore:%s" % base_urn,
-          overwrite_if_exists=overwrite)
+      registry_obj.RegisterArtifact(artifact_value,
+                                    source="datastore:%s" % base_urn,
+                                    overwrite_if_exists=overwrite)
       loaded_artifacts.append(artifact_value)
       logging.info("Uploaded artifact %s to %s", artifact_value.name, base_urn)
 
@@ -586,13 +589,12 @@ class GRRArtifactMappings(object):
   """
 
   rdf_map = {
-      "SoftwarePackage": (
-          "info/software", software.InstalledSoftwarePackages.__name__,
-          "INSTALLED_PACKAGES", "Append"),
-      "Volume": (
-          "", aff4_grr.VFSGRRClient.__name__, "VOLUMES", "Append"),
-      "HardwareInfo": (
-          "", aff4_grr.VFSGRRClient.__name__, "HARDWARE_INFO", "Overwrite")
+      "SoftwarePackage": ("info/software",
+                          software.InstalledSoftwarePackages.__name__,
+                          "INSTALLED_PACKAGES", "Append"),
+      "Volume": ("", aff4_grr.VFSGRRClient.__name__, "VOLUMES", "Append"),
+      "HardwareInfo": ("", aff4_grr.VFSGRRClient.__name__, "HARDWARE_INFO",
+                       "Overwrite")
   }
 
 
@@ -608,5 +610,5 @@ class ArtifactLoader(registry.InitHook):
     for path in config_lib.CONFIG["Artifacts.artifact_dirs"]:
       artifact_registry.REGISTRY.AddDirSource(path)
 
-    artifact_registry.REGISTRY.AddDatastoreSources(
-        [aff4.ROOT_URN.Add("artifact_store")])
+    artifact_registry.REGISTRY.AddDatastoreSources([aff4.ROOT_URN.Add(
+        "artifact_store")])

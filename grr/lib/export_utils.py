@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
-
 """Utils exporting data from AFF4 to the rest of the world."""
 
 import os
@@ -23,15 +22,16 @@ from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 
-
 BUFFER_SIZE = 16 * 1024 * 1024
 
 
 def GetAllClients(token=None):
   """Return a list of all client urns."""
-  index = aff4.FACTORY.Create(
-      client_index.MAIN_INDEX, aff4_type=client_index.ClientIndex,
-      mode="rw", object_exists=True, token=token)
+  index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                              aff4_type=client_index.ClientIndex,
+                              mode="rw",
+                              object_exists=True,
+                              token=token)
 
   return index.LookupClients(["."])
 
@@ -75,7 +75,8 @@ class IterateAllClientUrns(object):
       if count % 2000 == 0:
         logging.debug("%d processed.", count)
       args = (input_data, self.out_queue, self.token)
-      self.thread_pool.AddTask(target=self.IterFunction, args=args,
+      self.thread_pool.AddTask(target=self.IterFunction,
+                               args=args,
                                name=self.THREAD_POOL_NAME)
 
     while count >= 0:
@@ -117,7 +118,8 @@ class IterateAllClients(IterateAllClientUrns):
     client_list = GetAllClients(token=self.token)
     logging.debug("Got %d clients", len(client_list))
     for client_group in utils.Grouper(client_list, self.client_chunksize):
-      for fd in aff4.FACTORY.MultiOpen(client_group, mode="r",
+      for fd in aff4.FACTORY.MultiOpen(client_group,
+                                       mode="r",
                                        aff4_type=aff4_grr.VFSGRRClient,
                                        token=self.token):
         if isinstance(fd, aff4_grr.VFSGRRClient):
@@ -152,8 +154,12 @@ def DownloadFile(file_obj, target_path, buffer_size=BUFFER_SIZE):
   target_file.close()
 
 
-def RecursiveDownload(dir_obj, target_dir, max_depth=10, depth=1,
-                      overwrite=False, max_threads=10):
+def RecursiveDownload(dir_obj,
+                      target_dir,
+                      max_depth=10,
+                      depth=1,
+                      overwrite=False,
+                      max_threads=10):
   """Recursively downloads a file entry to the target path.
 
   Args:
@@ -180,7 +186,8 @@ def RecursiveDownload(dir_obj, target_dir, max_depth=10, depth=1,
       if isinstance(sub_file_entry, aff4.AFF4Stream):
         args = (sub_file_entry.urn, sub_target_dir, sub_file_entry.token,
                 overwrite)
-        thread_pool.AddTask(target=CopyAFF4ToLocal, args=args,
+        thread_pool.AddTask(target=CopyAFF4ToLocal,
+                            args=args,
                             name="Downloader")
       elif "Container" in sub_file_entry.behaviours:
         if depth >= max_depth:  # Don't go any deeper.
@@ -189,7 +196,9 @@ def RecursiveDownload(dir_obj, target_dir, max_depth=10, depth=1,
           os.makedirs(sub_target_dir)
         except OSError:
           pass
-        RecursiveDownload(sub_file_entry, sub_target_dir, overwrite=overwrite,
+        RecursiveDownload(sub_file_entry,
+                          sub_target_dir,
+                          overwrite=overwrite,
                           depth=depth + 1)
     except IOError:
       logging.exception("Unable to download %s", sub_file_entry.urn)
@@ -201,8 +210,12 @@ def RecursiveDownload(dir_obj, target_dir, max_depth=10, depth=1,
     thread_pool.Stop()
 
 
-def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
-                       dump_client_info=False, flatten=False,
+def DownloadCollection(coll_path,
+                       target_path,
+                       token=None,
+                       overwrite=False,
+                       dump_client_info=False,
+                       flatten=False,
                        max_threads=10):
   """Iterate through a Collection object downloading all files.
 
@@ -276,7 +289,8 @@ def DownloadCollection(coll_path, target_path, token=None, overwrite=False,
     re_match = aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(client_id)
     if dump_client_info and re_match and client_id not in completed_clients:
       args = (rdf_client.ClientURN(client_id), target_path, token, overwrite)
-      thread_pool.AddTask(target=DumpClientYaml, args=args,
+      thread_pool.AddTask(target=DumpClientYaml,
+                          args=args,
                           name="ClientYamlDownloader")
       completed_clients.add(client_id)
 
@@ -345,10 +359,11 @@ def CopyAFF4ToLocal(aff4_urn, target_dir, token=None, overwrite=False):
     raise
 
 
-def CopyAndSymlinkAFF4ToLocal(aff4_urn, target_dir, token=None,
+def CopyAndSymlinkAFF4ToLocal(aff4_urn,
+                              target_dir,
+                              token=None,
                               overwrite=False):
-  path = CopyAFF4ToLocal(aff4_urn, target_dir, token=token,
-                         overwrite=overwrite)
+  path = CopyAFF4ToLocal(aff4_urn, target_dir, token=token, overwrite=overwrite)
   if path:
     files_output_dir = os.path.join(target_dir, "files")
     try:

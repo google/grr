@@ -77,9 +77,8 @@ class DomainEmailAddress(EmailAddress):
 
     domain = config_lib.CONFIG["Logging.domain"]
     if domain and self._match.group(1) != domain:
-      raise ValueError(
-          "Email address '%s' does not belong to the configured "
-          "domain '%s'" % (self._match.group(1), domain))
+      raise ValueError("Email address '%s' does not belong to the configured "
+                       "domain '%s'" % (self._match.group(1), domain))
 
 
 class AuthenticodeSignedData(rdf_structs.RDFProtoStruct):

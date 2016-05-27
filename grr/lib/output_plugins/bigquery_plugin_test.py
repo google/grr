@@ -30,11 +30,14 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     self.results_urn = self.client_id.Add("Results")
     self.base_urn = rdfvalue.RDFURN("aff4:/foo/bar")
 
-  def ProcessResponses(self, plugin_args=None, responses=None,
+  def ProcessResponses(self,
+                       plugin_args=None,
+                       responses=None,
                        process_responses_separately=False):
-    plugin = bigquery_plugin.BigQueryOutputPlugin(
-        source_urn=self.results_urn, output_base_urn=self.base_urn,
-        args=plugin_args, token=self.token)
+    plugin = bigquery_plugin.BigQueryOutputPlugin(source_urn=self.results_urn,
+                                                  output_base_urn=self.base_urn,
+                                                  args=plugin_args,
+                                                  token=self.token)
 
     plugin.Initialize()
 
@@ -130,17 +133,14 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
         self.assertEqual(row["metadata"]["hostname"], "Host-0")
         self.assertEqual(row["metadata"]["mac_address"],
                          "aabbccddee00\nbbccddeeff00")
-        self.assertEqual(row["metadata"]["source_urn"],
-                         self.results_urn)
-        self.assertEqual(row["urn"],
-                         self.client_id.Add("/fs/os/中国新闻网新闻中"))
+        self.assertEqual(row["metadata"]["source_urn"], self.results_urn)
+        self.assertEqual(row["urn"], self.client_id.Add("/fs/os/中国新闻网新闻中"))
       else:
         self.assertEqual(row["metadata"]["client_urn"], self.client_id)
         self.assertEqual(row["metadata"]["hostname"], "Host-0")
         self.assertEqual(row["metadata"]["mac_address"],
                          "aabbccddee00\nbbccddeeff00")
-        self.assertEqual(row["metadata"]["source_urn"],
-                         self.results_urn)
+        self.assertEqual(row["metadata"]["source_urn"], self.results_urn)
         self.assertEqual(row["pid"], "42")
 
     self.assertEqual(counter, 1)
@@ -149,10 +149,10 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     output = self.ProcessResponses(
         plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
         responses=[
-            rdf_client.StatEntry(
-                aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
-                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中")),
-            rdf_client.Process(pid=42)],
+            rdf_client.StatEntry(aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
+                                 pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中")),
+            rdf_client.Process(pid=42)
+        ],
         process_responses_separately=True)
 
     # Should have two separate output streams for the two types
@@ -161,7 +161,8 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     for name, stream, _, job_id in output:
       self.assertTrue(job_id in [
           "C-1000000000000000_Results_ExportedFile_1445995873",
-          "C-1000000000000000_Results_ExportedProcess_1445995873"])
+          "C-1000000000000000_Results_ExportedProcess_1445995873"
+      ])
       self._parseOutput(name, stream)
 
   def testBigQueryPluginWithEarlyFlush(self):
@@ -211,16 +212,16 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
   def testBigQueryPluginFallbackToAFF4(self):
     plugin_args = bigquery_plugin.BigQueryOutputPluginArgs()
     responses = [
-        rdf_client.StatEntry(
-            aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
-            pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中")),
-        rdf_client.Process(pid=42),
-        rdf_client.Process(pid=43),
-        rdf_client.SoftwarePackage(name="test.deb")]
+        rdf_client.StatEntry(aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
+                             pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中")),
+        rdf_client.Process(pid=42), rdf_client.Process(pid=43),
+        rdf_client.SoftwarePackage(name="test.deb")
+    ]
 
-    plugin = bigquery_plugin.BigQueryOutputPlugin(
-        source_urn=self.results_urn, output_base_urn=self.base_urn,
-        args=plugin_args, token=self.token)
+    plugin = bigquery_plugin.BigQueryOutputPlugin(source_urn=self.results_urn,
+                                                  output_base_urn=self.base_urn,
+                                                  args=plugin_args,
+                                                  token=self.token)
 
     plugin.Initialize()
 
@@ -232,7 +233,8 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     with test_lib.FakeTime(1445995873):
       with mock.patch.object(bigquery, "GetBigQueryClient") as mock_bigquery:
         mock_bigquery.return_value.configure_mock(**{
-            "InsertData.side_effect": bigquery.BigQueryJobUploadError()})
+            "InsertData.side_effect": bigquery.BigQueryJobUploadError()
+        })
         with test_lib.ConfigOverrider({"BigQuery.max_upload_failures": 2}):
           for message in messages:
             plugin.ProcessResponses([message])
@@ -246,19 +248,19 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     for output_name in ["ExportedFile", "ExportedProcess",
                         "AutoExportedSoftwarePackage"]:
       schema_fd = aff4.FACTORY.Open(
-          self.base_urn.Add(
-              "C-1000000000000000_Results_%s_1445995873.schema" % output_name),
+          self.base_urn.Add("C-1000000000000000_Results_%s_1445995873.schema" %
+                            output_name),
           token=self.token)
       data_fd = aff4.FACTORY.Open(
-          self.base_urn.Add(
-              "C-1000000000000000_Results_%s_1445995873.data" % output_name),
+          self.base_urn.Add("C-1000000000000000_Results_%s_1445995873.data" %
+                            output_name),
           token=self.token)
       actual_fd = gzip.GzipFile(None, "r", 9, data_fd)
 
       if output_name == "ExportedFile":
         self.CompareSchemaToKnownGood(json.load(schema_fd))
-        self.assertEqual(json.load(actual_fd)["urn"],
-                         self.client_id.Add("/fs/os/中国新闻网新闻中"))
+        self.assertEqual(
+            json.load(actual_fd)["urn"], self.client_id.Add("/fs/os/中国新闻网新闻中"))
       elif output_name == "ExportedProcess":
         self.assertEqual(json.load(schema_fd)[1]["name"], "pid")
         expected_pids = ["42", "43"]
@@ -272,7 +274,8 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     with test_lib.FakeTime(1445995878):
       with mock.patch.object(bigquery, "GetBigQueryClient") as mock_bigquery:
         mock_bigquery.return_value.configure_mock(**{
-            "InsertData.side_effect": bigquery.BigQueryJobUploadError()})
+            "InsertData.side_effect": bigquery.BigQueryJobUploadError()
+        })
         with test_lib.ConfigOverrider({"BigQuery.max_upload_failures": 2}):
           for message in messages:
             plugin.ProcessResponses([message])
@@ -282,21 +285,23 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
           # failures already
           self.assertEqual(mock_bigquery.return_value.InsertData.call_count, 0)
 
-    expected_line_counts = {"ExportedFile": 2, "ExportedProcess": 4,
+    expected_line_counts = {"ExportedFile": 2,
+                            "ExportedProcess": 4,
                             "AutoExportedSoftwarePackage": 2}
     for output_name in ["ExportedFile", "ExportedProcess",
                         "AutoExportedSoftwarePackage"]:
       data_fd = aff4.FACTORY.Open(
-          self.base_urn.Add(
-              "C-1000000000000000_Results_%s_1445995873.data" % output_name),
+          self.base_urn.Add("C-1000000000000000_Results_%s_1445995873.data" %
+                            output_name),
           token=self.token)
       actual_fd = gzip.GzipFile(None, "r", 9, data_fd)
-      self.assertEqual(sum(1 for line in actual_fd),
-                       expected_line_counts[output_name])
+      self.assertEqual(
+          sum(1 for line in actual_fd), expected_line_counts[output_name])
 
 
 def main(argv):
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

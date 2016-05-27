@@ -440,7 +440,7 @@ class SqliteConnection(object):
                      t1.timestamp = t2.max_ts AND
                      t1.predicate = t2.predicate
                ORDER BY t1.subject
-            """ % ",".join("?"*len(attributes))
+            """ % ",".join("?" * len(attributes))
     subject_prefix = utils.SmartStr(subject_prefix)
     if after_urn:
       after_urn = utils.SmartStr(after_urn)
@@ -644,8 +644,14 @@ class SqliteDataStore(data_store.DataStore):
     else:
       return value
 
-  def MultiSet(self, subject, values, timestamp=None, replace=True,
-               sync=True, to_delete=None, token=None):
+  def MultiSet(self,
+               subject,
+               values,
+               timestamp=None,
+               replace=True,
+               sync=True,
+               to_delete=None,
+               token=None):
     """Set multiple values at once."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     # All operations are synchronized.
@@ -678,8 +684,13 @@ class SqliteDataStore(data_store.DataStore):
           sqlite_connection.SetAttribute(subject, attribute, value,
                                          element_timestamp)
 
-  def DeleteAttributes(self, subject, attributes, start=None, end=None,
-                       sync=True, token=None):
+  def DeleteAttributes(self,
+                       subject,
+                       attributes,
+                       start=None,
+                       end=None,
+                       sync=True,
+                       token=None):
     """Remove some attributes from a subject."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
     _ = sync
@@ -698,10 +709,9 @@ class SqliteDataStore(data_store.DataStore):
         # This code path is taken when we have a timestamp range.
         start = start or 0
         if end is None:
-          end = (2 ** 63) - 1  # sys.maxint
+          end = (2**63) - 1  # sys.maxint
         for attribute in list(attributes):
-          sqlite_connection.DeleteAttributeRange(subject, attribute, start,
-                                                 end)
+          sqlite_connection.DeleteAttributeRange(subject, attribute, start, end)
 
   def DeleteSubject(self, subject, sync=False, token=None):
     _ = sync
@@ -710,15 +720,22 @@ class SqliteDataStore(data_store.DataStore):
     with self.cache.Get(subject) as sqlite_connection:
       sqlite_connection.DeleteSubject(subject)
 
-  def MultiResolvePrefix(self, subjects, attribute_prefix, timestamp=None,
-                         limit=None, token=None):
+  def MultiResolvePrefix(self,
+                         subjects,
+                         attribute_prefix,
+                         timestamp=None,
+                         limit=None,
+                         token=None):
     """Result multiple subjects using one or more attribute prefixes."""
     result = {}
 
     remaining_limit = limit
     for subject in subjects:
-      values = self.ResolvePrefix(subject, attribute_prefix, token=token,
-                                  timestamp=timestamp, limit=remaining_limit)
+      values = self.ResolvePrefix(subject,
+                                  attribute_prefix,
+                                  token=token,
+                                  timestamp=timestamp,
+                                  limit=remaining_limit)
 
       if values:
         if limit:
@@ -732,7 +749,7 @@ class SqliteDataStore(data_store.DataStore):
 
   def _GetStartEndTimestamp(self, timestamp):
     if timestamp == self.ALL_TIMESTAMPS or timestamp is None:
-      return 0, (2 ** 63) - 1
+      return 0, (2**63) - 1
     elif timestamp == self.NEWEST_TIMESTAMP:
       return -1, -1
     elif isinstance(timestamp, int):
@@ -744,8 +761,12 @@ class SqliteDataStore(data_store.DataStore):
       except ValueError:
         return timestamp, timestamp
 
-  def ResolvePrefix(self, subject, attribute_prefix, timestamp=None,
-                    limit=None, token=None):
+  def ResolvePrefix(self,
+                    subject,
+                    attribute_prefix,
+                    timestamp=None,
+                    limit=None,
+                    token=None):
     """Resolve all attributes for a subject matching a prefix."""
     self.security_manager.CheckDataStoreAccess(
         token, [subject], self.GetRequiredResolveAccess(attribute_prefix))
@@ -821,11 +842,12 @@ class SqliteDataStore(data_store.DataStore):
     if relaxed_order:
       for sqlite_connection in connection_iter:
         with sqlite_connection:
-          for r in self._GroupSubjects(list(sqlite_connection.ScanAttributes(
-              subject_prefix,
-              attributes,
-              after_urn=after_urn,
-              max_records=max_records)), max_records):
+          for r in self._GroupSubjects(
+              list(sqlite_connection.ScanAttributes(subject_prefix,
+                                                    attributes,
+                                                    after_urn=after_urn,
+                                                    max_records=max_records)),
+              max_records):
             yield r
       return
     first_connections = []
@@ -838,11 +860,12 @@ class SqliteDataStore(data_store.DataStore):
       return
     if len(first_connections) == 1:
       with first_connections[0] as sqlite_connection:
-        for r in self._GroupSubjects(list(sqlite_connection.ScanAttributes(
-            subject_prefix,
-            attributes,
-            after_urn=after_urn,
-            max_records=max_records)), max_records):
+        for r in self._GroupSubjects(
+            list(sqlite_connection.ScanAttributes(subject_prefix,
+                                                  attributes,
+                                                  after_urn=after_urn,
+                                                  max_records=max_records)),
+            max_records):
           yield r
       return
     raw_results = []
@@ -853,12 +876,17 @@ class SqliteDataStore(data_store.DataStore):
                                                      after_urn=after_urn,
                                                      max_records=max_records):
         raw_results.append(record)
-    for r in self._GroupSubjects(sorted(raw_results, key=lambda x: x[0]),
-                                 max_records):
+    for r in self._GroupSubjects(
+        sorted(raw_results, key=lambda x: x[0]),
+        max_records):
       yield r
 
-  def ResolveMulti(self, subject, attributes, timestamp=None,
-                   limit=None, token=None):
+  def ResolveMulti(self,
+                   subject,
+                   attributes,
+                   timestamp=None,
+                   limit=None,
+                   token=None):
     """Resolve multiple attributes for a subject."""
     self.security_manager.CheckDataStoreAccess(
         token, [subject], self.GetRequiredResolveAccess(attributes))
@@ -944,8 +972,10 @@ class SqliteTransaction(data_store.CommonTransaction):
 
   def __init__(self, store, subject, lease_time=None, token=None):
     """Ensure we can take a lock on this subject."""
-    super(SqliteTransaction, self).__init__(store, utils.SmartUnicode(subject),
-                                            lease_time=lease_time, token=token)
+    super(SqliteTransaction, self).__init__(store,
+                                            utils.SmartUnicode(subject),
+                                            lease_time=lease_time,
+                                            token=token)
 
     if lease_time is None:
       lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]

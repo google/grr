@@ -103,7 +103,9 @@ class ClientReport(Report):
     csv_data = self.AsCsv()
     filename = "%s-%s.csv" % (self.REPORT_NAME, dt)
     email_alerts.EMAIL_ALERTER.SendEmail(
-        recipient, self.EMAIL_FROM, subject,
+        recipient,
+        self.EMAIL_FROM,
+        subject,
         "Please find the CSV report file attached",
         attachments={filename: csv_data.getvalue()},
         is_html=False)
@@ -116,11 +118,13 @@ class ClientReport(Report):
     report_text = self.AsHtmlTable()
 
     email_alerts.EMAIL_ALERTER.SendEmail(
-        recipient, self.EMAIL_FROM, subject,
-        self.EMAIL_TEMPLATE % dict(
-            report_text=report_text,
-            report_name=self.REPORT_NAME,
-            signature=config_lib.CONFIG["Email.signature"]),
+        recipient,
+        self.EMAIL_FROM,
+        subject,
+        self.EMAIL_TEMPLATE %
+        dict(report_text=report_text,
+             report_name=self.REPORT_NAME,
+             signature=config_lib.CONFIG["Email.signature"]),
         is_html=True)
     logging.info("Report %s mailed to %s", self.REPORT_NAME, recipient)
 
@@ -135,7 +139,9 @@ class ClientReport(Report):
   def _QueryResults(self, max_age):
     """Query each record in the client database."""
     report_iter = ClientReportIterator(
-        max_age=max_age, token=self.token, report_attrs=self.REPORT_ATTRS,
+        max_age=max_age,
+        token=self.token,
+        report_attrs=self.REPORT_ATTRS,
         extended_report_attrs=self.EXTENDED_REPORT_ATTRS)
     self.broken_clients = report_iter.broken_subjects
     return report_iter.Run()
@@ -168,16 +174,15 @@ class ClientListReport(ClientReport):
     for client in self._QueryResults(max_age):
       self.results.append(client)
     self.SortResults("GRR client")
-    logging.info("%s took %s to complete", self.REPORT_NAME,
+    logging.info("%s took %s to complete",
+                 self.REPORT_NAME,
                  datetime.timedelta(seconds=time.time() - start_time))
 
 
 class VersionBreakdownReport(ClientReport):
   """Returns a breakdown of versions."""
 
-  REPORT_ATTRS = [
-      aff4_grr.VFSGRRClient.SchemaCls.GetAttribute("GRR client")
-  ]
+  REPORT_ATTRS = [aff4_grr.VFSGRRClient.SchemaCls.GetAttribute("GRR client")]
   REPORT_NAME = "GRR Client Version Breakdown Report"
 
   def Run(self, max_age=60 * 60 * 24 * 7):

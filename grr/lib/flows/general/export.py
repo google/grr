@@ -105,8 +105,8 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
 
     hashes = set()
     batch_index = 0
-    for fd_urn_batch in utils.Grouper(self.ResultsToUrns(collection),
-                                      self.BATCH_SIZE):
+    for fd_urn_batch in utils.Grouper(
+        self.ResultsToUrns(collection), self.BATCH_SIZE):
 
       for fd in aff4.FACTORY.MultiOpen(fd_urn_batch, token=self.token):
         self.HeartBeat()
@@ -133,8 +133,8 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
           output_writer.WriteSymlink(up_prefix + content_path, archive_path)
 
       batch_index += 1
-      self.Log("Processed batch %d (batch size %d).",
-               batch_index, self.BATCH_SIZE)
+      self.Log("Processed batch %d (batch size %d).", batch_index,
+               self.BATCH_SIZE)
 
   @flow.StateHandler(next_state="CreateArchive")
   def Start(self):
@@ -171,17 +171,19 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
       else:
         raise ValueError("Unknown archive format: %s" % self.args.format)
 
-      outfd.urn = outfd.urn.Add("%s_%X%X.%s" % (
-          self.args.target_file_prefix, utils.PRNG.GetULong(),
-          utils.PRNG.GetULong(), file_extension))
+      outfd.urn = outfd.urn.Add("%s_%X%X.%s" % (self.args.target_file_prefix,
+                                                utils.PRNG.GetULong(),
+                                                utils.PRNG.GetULong(),
+                                                file_extension))
 
       self.Log("Will create output on %s" % outfd.urn)
       self.state.output_archive_urn = outfd.urn
 
       collection = aff4.FACTORY.Open(self.args.collection_urn, token=self.token)
 
-      buffered_outfd = io.BufferedWriter(RawIOBaseBridge(outfd),
-                                         buffer_size=1024 * 1024 * 12)
+      buffered_outfd = io.BufferedWriter(
+          RawIOBaseBridge(outfd),
+          buffer_size=1024 * 1024 * 12)
       if self.args.format == self.args.ArchiveFormat.ZIP:
         streaming_writer = utils.StreamingZipWriter(buffered_outfd, "w",
                                                     zipfile.ZIP_DEFLATED)
@@ -199,11 +201,9 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     self.Notify("DownloadFile", self.state.output_archive_urn,
-                "%s (archived %d out of %d results, archive size is %s)" % (
-                    self.args.notification_message,
-                    self.state.archived_files,
-                    self.state.total_files,
-                    self.state.output_size))
+                "%s (archived %d out of %d results, archive size is %s)" %
+                (self.args.notification_message, self.state.archived_files,
+                 self.state.total_files, self.state.output_size))
 
     # TODO(user): it would be better to provide a direct download link in the
     # email here, but it requires more work.  The notifications bar creates and
@@ -225,11 +225,11 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
     creator = self.state.context.creator
     email_alerts.EMAIL_ALERTER.SendEmail(
         "%s@%s" % (creator, config_lib.CONFIG.Get("Logging.domain")),
-        "grr-noreply@%s" % config_lib.CONFIG.Get("Logging.domain"), subject,
-        template % dict(
-            notification_message=self.args.notification_message,
-            archived=self.state.archived_files,
-            total=self.state.total_files,
-            admin_ui=config_lib.CONFIG["AdminUI.url"],
-            signature=config_lib.CONFIG["Email.signature"]),
+        "grr-noreply@%s" % config_lib.CONFIG.Get("Logging.domain"),
+        subject,
+        template % dict(notification_message=self.args.notification_message,
+                        archived=self.state.archived_files,
+                        total=self.state.total_files,
+                        admin_ui=config_lib.CONFIG["AdminUI.url"],
+                        signature=config_lib.CONFIG["Email.signature"]),
         is_html=True)

@@ -26,7 +26,8 @@ class MysqlAdvancedTestMixin(object):
     # Use separate tables for benchmarks / tests so they can be run in parallel.
     with test_lib.ConfigOverrider({
         "Mysql.database_name": "grr_test_%s" % self.__class__.__name__,
-        "Mysql.max_connect_wait": 2}):
+        "Mysql.max_connect_wait": 2
+    }):
       try:
         data_store.DB = mysql_advanced_data_store.MySQLAdvancedDataStore()
         data_store.DB.Initialize()
@@ -42,13 +43,12 @@ class MysqlAdvancedTestMixin(object):
     data_store.DB.DropTables()
 
   def testCorrectDataStore(self):
-    self.assertTrue(
-        isinstance(data_store.DB,
-                   mysql_advanced_data_store.MySQLAdvancedDataStore))
+    self.assertTrue(isinstance(
+        data_store.DB, mysql_advanced_data_store.MySQLAdvancedDataStore))
 
 
-class MysqlAdvancedDataStoreTest(
-    MysqlAdvancedTestMixin, data_store_test._DataStoreTest):
+class MysqlAdvancedDataStoreTest(MysqlAdvancedTestMixin,
+                                 data_store_test._DataStoreTest):
   """Test the mysql data store abstraction."""
 
   def testMultiSet(self):
@@ -65,6 +65,7 @@ class MysqlAdvancedDataStoreTest(
 
 def main(args):
   test_lib.main(args)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

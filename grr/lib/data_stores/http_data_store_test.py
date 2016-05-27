@@ -75,11 +75,12 @@ def _StartServers():
              sqlite_data_store.SqliteDataStore(temp_dir_2)]
   STARTED_SERVER = [
       threading.Thread(target=data_server.Start,
-                       args=(HTTP_DB[0], PORT[0], True,
-                             StoppableHTTPServer, MockRequestHandler1)),
+                       args=(HTTP_DB[0], PORT[0], True, StoppableHTTPServer,
+                             MockRequestHandler1)),
       threading.Thread(target=data_server.Start,
-                       args=(HTTP_DB[1], PORT[1], False,
-                             StoppableHTTPServer, MockRequestHandler2))]
+                       args=(HTTP_DB[1], PORT[1], False, StoppableHTTPServer,
+                             MockRequestHandler2))
+  ]
   STARTED_SERVER[0].start()
   STARTED_SERVER[1].start()
 
@@ -94,7 +95,8 @@ def _SetConfig():
       "Dataserver.client_credentials": ["user:user:rw"],
       "HTTPDataStore.username": "user",
       "HTTPDataStore.password": "user",
-      "Datastore.location": TMP_DIR})
+      "Datastore.location": TMP_DIR
+  })
   CONFIG_OVERRIDER.Start()
 
 
@@ -186,8 +188,7 @@ class HTTPDataStoreMixin(object):
       self.old_security_managers = None
 
 
-class HTTPDataStoreTest(HTTPDataStoreMixin,
-                        data_store_test._DataStoreTest):
+class HTTPDataStoreTest(HTTPDataStoreMixin, data_store_test._DataStoreTest):
   """Test the remote data store."""
 
   def __init__(self, *args):
@@ -200,6 +201,7 @@ class HTTPDataStoreTest(HTTPDataStoreMixin,
 
 def main(args):
   test_lib.main(args)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

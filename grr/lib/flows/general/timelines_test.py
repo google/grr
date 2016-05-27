@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Tests for the Timelines flow."""
 
 from grr.lib import action_mocks
@@ -20,8 +19,8 @@ class TestTimelines(test_lib.FlowTestsBaseclass):
 
   def testMACTimes(self):
     """Test that the timelining works with files."""
-    with test_lib.VFSOverrider(
-        rdf_paths.PathSpec.PathType.OS, test_lib.ClientVFSHandlerFixture):
+    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                               test_lib.ClientVFSHandlerFixture):
 
       client_mock = action_mocks.ActionMock("ListDirectory")
       output_path = "analysis/Timeline/MAC"
@@ -29,15 +28,20 @@ class TestTimelines(test_lib.FlowTestsBaseclass):
       pathspec = rdf_paths.PathSpec(path="/",
                                     pathtype=rdf_paths.PathSpec.PathType.OS)
 
-      for _ in test_lib.TestFlowHelper(
-          "RecursiveListDirectory", client_mock, client_id=self.client_id,
-          pathspec=pathspec, token=self.token):
+      for _ in test_lib.TestFlowHelper("RecursiveListDirectory",
+                                       client_mock,
+                                       client_id=self.client_id,
+                                       pathspec=pathspec,
+                                       token=self.token):
         pass
 
       # Now make a timeline
-      for _ in test_lib.TestFlowHelper(
-          "MACTimes", client_mock, client_id=self.client_id, token=self.token,
-          path="/", output=output_path):
+      for _ in test_lib.TestFlowHelper("MACTimes",
+                                       client_mock,
+                                       client_id=self.client_id,
+                                       token=self.token,
+                                       path="/",
+                                       output=output_path):
         pass
 
       fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
@@ -59,6 +63,7 @@ class TestTimelines(test_lib.FlowTestsBaseclass):
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

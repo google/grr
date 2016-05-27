@@ -54,9 +54,11 @@ class GRRWorker(object):
   # failure on a flow, it will not attempt to grab this flow until the timeout.
   queued_flows = None
 
-  def __init__(self, queues=queues_config.WORKER_LIST,
+  def __init__(self,
+               queues=queues_config.WORKER_LIST,
                threadpool_prefix="grr_threadpool",
-               threadpool_size=None, token=None):
+               threadpool_size=None,
+               token=None):
     """Constructor.
 
     Args:
@@ -81,7 +83,9 @@ class GRRWorker(object):
         threadpool_size = config_lib.CONFIG["Threadpool.size"]
 
       GRRWorker.thread_pool = threadpool.ThreadPool.Factory(
-          threadpool_prefix, min_threads=2, max_threads=threadpool_size)
+          threadpool_prefix,
+          min_threads=2,
+          max_threads=threadpool_size)
 
       GRRWorker.thread_pool.Start()
 
@@ -146,8 +150,8 @@ class GRRWorker(object):
                               time.time() - fetch_messages_start)
 
       # Process stuck flows first
-      stuck_flows = notifications_by_priority.pop(
-          queue_manager.STUCK_PRIORITY, [])
+      stuck_flows = notifications_by_priority.pop(queue_manager.STUCK_PRIORITY,
+                                                  [])
 
       if stuck_flows:
         self.ProcessStuckFlows(stuck_flows, queue_manager)
@@ -175,7 +179,7 @@ class GRRWorker(object):
                                           (time.time() - start_time))
 
       # We need to keep going no matter what.
-      except Exception as e:    # pylint: disable=broad-except
+      except Exception as e:  # pylint: disable=broad-except
         logging.error("Error processing message %s. %s.", e,
                       traceback.format_exc())
         stats.STATS.IncrementCounter("grr_worker_exceptions")
@@ -194,10 +198,12 @@ class GRRWorker(object):
     for stuck_flow in stuck_flows:
       try:
         flow.GRRFlow.TerminateFlow(
-            stuck_flow.session_id, reason="Stuck in the worker",
+            stuck_flow.session_id,
+            reason="Stuck in the worker",
             status=rdf_flows.GrrStatus.ReturnedStatus.WORKER_STUCK,
-            force=True, token=self.token)
-      except Exception:   # pylint: disable=broad-except
+            force=True,
+            token=self.token)
+      except Exception:  # pylint: disable=broad-except
         logging.exception("Error terminating stuck flow: %s", stuck_flow)
       finally:
         # Remove notifications for this flow. This will also remove the
@@ -233,8 +239,7 @@ class GRRWorker(object):
         processed += 1
         self.queued_flows.Put(notification.session_id, 1)
         self.thread_pool.AddTask(target=self._ProcessMessages,
-                                 args=(notification,
-                                       queue_manager.Copy()),
+                                 args=(notification, queue_manager.Copy()),
                                  name=self.__class__.__name__)
 
     return processed
@@ -258,10 +263,9 @@ class GRRWorker(object):
       # requests. If we're stuck for some reason, the notification
       # will be delivered later and the stuck flow will get
       # terminated.
-      stuck_flows_timeout = rdfvalue.Duration(
-          config_lib.CONFIG["Worker.stuck_flows_timeout"])
-      kill_timestamp = (rdfvalue.RDFDatetime().Now() +
-                        stuck_flows_timeout)
+      stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
+          "Worker.stuck_flows_timeout"])
+      kill_timestamp = (rdfvalue.RDFDatetime().Now() + stuck_flows_timeout)
       with queue_manager_lib.QueueManager(token=self.token) as manager:
         manager.QueueNotification(session_id=session_id,
                                   in_progress=True,
@@ -286,24 +290,21 @@ class GRRWorker(object):
       # stuck.
       with queue_manager_lib.QueueManager(token=self.token) as manager:
         if runner.schedule_kill_notifications:
-          manager.DeleteNotification(
-              session_id, start=runner.context.kill_timestamp,
-              end=runner.context.kill_timestamp)
+          manager.DeleteNotification(session_id,
+                                     start=runner.context.kill_timestamp,
+                                     end=runner.context.kill_timestamp)
           runner.context.kill_timestamp = None
 
-        if (runner.process_requests_in_order and
-            notification.last_status and
-            (runner.context.next_processed_request <=
-             notification.last_status)):
+        if (runner.process_requests_in_order and notification.last_status and (
+            runner.context.next_processed_request <= notification.last_status)):
           logging.debug("Had to reschedule a notification: %s", notification)
           # We are processing requests in order and have received a
           # notification for a specific request but could not process
           # that request. This might be a race condition in the data
           # store so we reschedule the notification in the future.
-          delay = config_lib.CONFIG[
-              "Worker.notification_retry_interval"]
-          manager.QueueNotification(
-              notification, timestamp=notification.timestamp + delay)
+          delay = config_lib.CONFIG["Worker.notification_retry_interval"]
+          manager.QueueNotification(notification,
+                                    timestamp=notification.timestamp + delay)
 
   def _ProcessMessages(self, notification, queue_manager):
     """Does the real work with a single flow."""
@@ -318,13 +319,16 @@ class GRRWorker(object):
         # we need to create them instead of opening.
         expected_flow = self.well_known_flows[flow_name].__class__.__name__
         flow_obj = aff4.FACTORY.CreateWithLock(
-            session_id, expected_flow,
+            session_id,
+            expected_flow,
             lease_time=self.well_known_flow_lease_time,
-            blocking=False, token=self.token)
+            blocking=False,
+            token=self.token)
       else:
-        flow_obj = aff4.FACTORY.OpenWithLock(
-            session_id, lease_time=self.flow_lease_time,
-            blocking=False, token=self.token)
+        flow_obj = aff4.FACTORY.OpenWithLock(session_id,
+                                             lease_time=self.flow_lease_time,
+                                             blocking=False,
+                                             token=self.token)
 
       now = time.time()
       logging.debug("Got lock on %s", session_id)
@@ -354,7 +358,8 @@ class GRRWorker(object):
 
       elapsed = time.time() - now
       logging.debug("Done processing %s: %s sec", session_id, elapsed)
-      stats.STATS.RecordEvent("worker_flow_processing_time", elapsed,
+      stats.STATS.RecordEvent("worker_flow_processing_time",
+                              elapsed,
                               fields=[flow_obj.Name()])
 
       # Everything went well -> session can be run again.
@@ -375,7 +380,7 @@ class GRRWorker(object):
       # already.
       pass
 
-    except Exception as e:    # pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
       # Something went wrong when processing this session. In order not to spin
       # here, we just remove the notification.
       logging.exception("Error processing session %s: %s", session_id, e)
@@ -394,10 +399,11 @@ class WorkerInit(registry.InitHook):
                                       fields=[("type", str)])
     stats.STATS.RegisterCounterMetric("worker_session_errors",
                                       fields=[("type", str)])
-    stats.STATS.RegisterCounterMetric(
-        "worker_flow_lock_error", docstring=("Worker lock failures. We expect "
-                                             "these to be high when the system"
-                                             "is idle."))
+    stats.STATS.RegisterCounterMetric("worker_flow_lock_error",
+                                      docstring=(
+                                          "Worker lock failures. We expect "
+                                          "these to be high when the system"
+                                          "is idle."))
     stats.STATS.RegisterEventMetric("worker_flow_processing_time",
                                     fields=[("flow", str)])
     stats.STATS.RegisterEventMetric("worker_time_to_retrieve_notifications")

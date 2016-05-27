@@ -79,12 +79,11 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
       ValueError: A string (single keyword) was passed instead of an iterable.
     """
     if isinstance(keywords, basestring):
-      raise ValueError("Keywords should be an iterable, not a string (got %s)."
-                       % keywords)
+      raise ValueError(
+          "Keywords should be an iterable, not a string (got %s)." % keywords)
 
     start_time, end_time, filtered_keywords, unversioned_keywords = (
-        self._AnalyzeKeywords(keywords)
-    )
+        self._AnalyzeKeywords(keywords))
 
     last_seen_map = None
     if unversioned_keywords:
@@ -93,19 +92,21 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     # TODO(user): Make keyword index datetime aware so that
     # AsMicroSecondsFromEpoch is unnecessary.
 
-    raw_results = self.Lookup(map(self._NormalizeKeyword, filtered_keywords),
-                              start_time=start_time.AsMicroSecondsFromEpoch(),
-                              end_time=end_time.AsMicroSecondsFromEpoch(),
-                              last_seen_map=last_seen_map)
+    raw_results = self.Lookup(
+        map(self._NormalizeKeyword, filtered_keywords),
+        start_time=start_time.AsMicroSecondsFromEpoch(),
+        end_time=end_time.AsMicroSecondsFromEpoch(),
+        last_seen_map=last_seen_map)
     if not raw_results:
       return []
 
     if unversioned_keywords:
       universal_last_seen_raw = {}
-      self.ReadPostingLists(map(self._NormalizeKeyword, raw_results),
-                            start_time=start_time.AsMicroSecondsFromEpoch(),
-                            end_time=end_time.AsMicroSecondsFromEpoch(),
-                            last_seen_map=universal_last_seen_raw)
+      self.ReadPostingLists(
+          map(self._NormalizeKeyword, raw_results),
+          start_time=start_time.AsMicroSecondsFromEpoch(),
+          end_time=end_time.AsMicroSecondsFromEpoch(),
+          last_seen_map=universal_last_seen_raw)
 
       universal_last_seen = {}
       for (_, client_id), ts in universal_last_seen_raw.iteritems():
@@ -134,7 +135,8 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     # TODO(user): Make keyword index datetime aware so that
     # AsMicroSecondsFromEpoch is unecessary.
     return self.ReadPostingLists(
-        filtered_keywords, start_time=start_time.AsMicroSecondsFromEpoch(),
+        filtered_keywords,
+        start_time=start_time.AsMicroSecondsFromEpoch(),
         end_time=end_time.AsMicroSecondsFromEpoch())
 
   def AnalyzeClient(self, client):
@@ -281,9 +283,11 @@ def GetClientURNsForHostnames(hostnames, token=None):
     A dict with a list of all known GRR client_ids for each hostname.
   """
 
-  index = aff4.FACTORY.Create(
-      MAIN_INDEX, aff4_type=ClientIndex, mode="rw", object_exists=True,
-      token=token)
+  index = aff4.FACTORY.Create(MAIN_INDEX,
+                              aff4_type=ClientIndex,
+                              mode="rw",
+                              object_exists=True,
+                              token=token)
 
   keywords = set()
   for hostname in hostnames:
@@ -329,9 +333,11 @@ def BulkLabel(label, hostnames, token=None, client_index=None):
       default client index.
   """
   if client_index is None:
-    client_index = aff4.FACTORY.Create(
-        MAIN_INDEX, aff4_type=ClientIndex, mode="rw", object_exists=True,
-        token=token)
+    client_index = aff4.FACTORY.Create(MAIN_INDEX,
+                                       aff4_type=ClientIndex,
+                                       mode="rw",
+                                       object_exists=True,
+                                       token=token)
 
   fqdns = set()
   for hostname in hostnames:
@@ -342,7 +348,8 @@ def BulkLabel(label, hostnames, token=None, client_index=None):
   # If a labelled client fqdn isn't in the set of target fqdns remove the label.
   # Labelled clients with a target fqdn need no action and are removed from the
   # set of target fqdns.
-  for client in aff4.FACTORY.MultiOpen(labelled_urns, token=token,
+  for client in aff4.FACTORY.MultiOpen(labelled_urns,
+                                       token=token,
                                        aff4_type=aff4_grr.VFSGRRClient,
                                        mode="rw"):
     fqdn = utils.SmartStr(client.Get("FQDN")).lower()
@@ -362,7 +369,8 @@ def BulkLabel(label, hostnames, token=None, client_index=None):
     for client_id in client_list:
       urns.append(rdfvalue.RDFURN(client_id))
 
-  for client in aff4.FACTORY.MultiOpen(urns, token=token,
+  for client in aff4.FACTORY.MultiOpen(urns,
+                                       token=token,
                                        aff4_type=aff4_grr.VFSGRRClient,
                                        mode="rw"):
     client.AddLabels(label, owner="GRR")

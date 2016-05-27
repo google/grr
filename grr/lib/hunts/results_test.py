@@ -2,7 +2,6 @@
 """Tests for grr.lib.hunts.results."""
 
 
-
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -106,7 +105,8 @@ class ResultTest(test_lib.AFF4ObjectTest):
     self.assertEqual(5, len(results_1[1]))
 
     hunts_results.HuntResultQueue.DeleteNotifications(
-        [record_id for (record_id, _, _) in results_1[1]], token=self.token)
+        [record_id for (record_id, _, _) in results_1[1]],
+        token=self.token)
 
     # Push time forward past the default claim timeout, then we should still
     # read nothing.
@@ -171,6 +171,7 @@ class ResultTest(test_lib.AFF4ObjectTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

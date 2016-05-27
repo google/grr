@@ -28,9 +28,9 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
   @mock.patch.object(bigquery, "build")
   @mock.patch.object(bigquery.httplib2, "Http")
   def testInsertData(self, mock_http, mock_build, mock_creds):
-    bq_client = bigquery.GetBigQueryClient(
-        service_account=self.SERVICE_ACCOUNT, private_key=self.TEST_KEY,
-        project_id=self.PROJECT_ID)
+    bq_client = bigquery.GetBigQueryClient(service_account=self.SERVICE_ACCOUNT,
+                                           private_key=self.TEST_KEY,
+                                           project_id=self.PROJECT_ID)
 
     schema_data = json.load(open(os.path.join(config_lib.CONFIG[
         "Test.data_dir"], "bigquery", "ExportedFile.schema")))
@@ -62,8 +62,7 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
       fd.write("{data}")
       with mock.patch.object(time, "sleep") as mock_sleep:
         with self.assertRaises(bigquery.BigQueryJobUploadError):
-          bq_client.RetryUpload(
-              job, job_id, error)
+          bq_client.RetryUpload(job, job_id, error)
 
     # Make sure retry sleeps are correct.
     max_calls = config_lib.CONFIG["BigQuery.retry_max_attempts"]
@@ -71,12 +70,13 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
     multiplier = config_lib.CONFIG["BigQuery.retry_multiplier"]
 
     self.assertEqual(job.execute.call_count, max_calls)
-    mock_sleep.assert_has_calls([mock.call(retry_interval),
-                                 mock.call(retry_interval*multiplier)])
+    mock_sleep.assert_has_calls([mock.call(retry_interval), mock.call(
+        retry_interval * multiplier)])
 
 
 def main(argv):
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

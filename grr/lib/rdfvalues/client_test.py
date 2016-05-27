@@ -16,12 +16,13 @@ class UserTests(test_base.RDFValueTestCase):
 
   rdfvalue_class = rdf_client.User
 
-  USER_ACCOUNT = dict(
-      username=u"user", full_name=u"John Smith",
-      comment=u"This is a user", last_logon=10000,
-      domain=u"Some domain name",
-      homedir=u"/home/user",
-      sid=u"some sid")
+  USER_ACCOUNT = dict(username=u"user",
+                      full_name=u"John Smith",
+                      comment=u"This is a user",
+                      last_logon=10000,
+                      domain=u"Some domain name",
+                      homedir=u"/home/user",
+                      sid=u"some sid")
 
   def GenerateSample(self, number=0):
     result = rdf_client.User(username="user%s" % number)
@@ -49,8 +50,7 @@ class UserTests(test_base.RDFValueTestCase):
     rdf_from_serialized = rdf_client.User(serialized)
 
     self.assertEqual(rdf_from_serialized.username, proto.username)
-    self.assertEqual(rdf_from_serialized.desktop,
-                     proto.desktop)
+    self.assertEqual(rdf_from_serialized.desktop, proto.desktop)
 
     rdf_direct = rdf_client.User(username="user1", desktop="User Desktop 1")
 
@@ -143,8 +143,8 @@ class ClientURNTests(test_base.RDFValueTestCase):
     # Check we can handle URN as well as string
     rdf_client.ClientURN(rdf_client.ClientURN(test_set[0]))
 
-    error_set = ["B.00aaeccbb45f33a3", "",
-                 "c.00accbb45f33a3", "aff5:/C.00aaeccbb45f33a3"]
+    error_set = ["B.00aaeccbb45f33a3", "", "c.00accbb45f33a3",
+                 "aff5:/C.00aaeccbb45f33a3"]
 
     for badurn in error_set:
       self.assertRaises(type_info.TypeValueError, rdf_client.ClientURN, badurn)
@@ -158,8 +158,8 @@ class NetworkAddressTests(test_base.RDFValueTestCase):
   rdfvalue_class = rdf_client.NetworkAddress
 
   def GenerateSample(self, number=0):
-    return rdf_client.NetworkAddress(
-        human_readable_address="192.168.0.%s" % number)
+    return rdf_client.NetworkAddress(human_readable_address="192.168.0.%s" %
+                                     number)
 
   def testIPv4(self):
     sample = rdf_client.NetworkAddress(human_readable_address="192.168.0.1")
@@ -167,8 +167,7 @@ class NetworkAddressTests(test_base.RDFValueTestCase):
     self.assertEqual(sample.packed_bytes,
                      socket.inet_pton(socket.AF_INET, "192.168.0.1"))
 
-    self.assertEqual(sample.human_readable_address,
-                     "192.168.0.1")
+    self.assertEqual(sample.human_readable_address, "192.168.0.1")
 
     self.CheckRDFValue(self.rdfvalue_class(sample), sample)
 
@@ -181,8 +180,7 @@ class NetworkAddressTests(test_base.RDFValueTestCase):
       self.assertEqual(sample.packed_bytes,
                        socket.inet_pton(socket.AF_INET6, address))
 
-      self.assertEqual(sample.human_readable_address,
-                       address)
+      self.assertEqual(sample.human_readable_address, address)
 
       self.CheckRDFValue(self.rdfvalue_class(sample), sample)
 

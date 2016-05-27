@@ -22,9 +22,11 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
     src_content = "ABCD" * 10
     src_fd = StringIO.StringIO(src_content)
 
-    dest_fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("temp"),
-                                  aff4_standard.BlobImage,
-                                  token=self.token, mode="rw")
+    dest_fd = aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("temp"),
+        aff4_standard.BlobImage,
+        token=self.token,
+        mode="rw")
     dest_fd.SetChunksize(7)
     dest_fd.AppendContent(src_fd)
     dest_fd.Seek(0)
@@ -38,9 +40,11 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
     src_content = "ABCDEFG" * 10  # 10 chunksize blobs
     src_fd = StringIO.StringIO(src_content)
 
-    dest_fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("temp"),
-                                  aff4_standard.BlobImage,
-                                  token=self.token, mode="rw")
+    dest_fd = aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("temp"),
+        aff4_standard.BlobImage,
+        token=self.token,
+        mode="rw")
     self.assertEqual(dest_fd.Get(dest_fd.Schema.HASHES), None)
 
     dest_fd.SetChunksize(7)
@@ -55,8 +59,8 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
     src_fd.seek(0)
     dest_fd.AppendContent(src_fd)
     self.assertEqual(dest_fd.size, 2 * len(src_content))
-    self.assertEqual(int(dest_fd.Get(dest_fd.Schema.SIZE)),
-                     2 * len(src_content))
+    self.assertEqual(
+        int(dest_fd.Get(dest_fd.Schema.SIZE)), 2 * len(src_content))
     dest_fd.Seek(0)
     self.assertEqual(dest_fd.Read(5000), src_content + src_content)
 
@@ -241,7 +245,8 @@ class LabelSetTest(test_lib.AFF4ObjectTest):
   def testAddListRemoveLabels(self):
     index = aff4.FACTORY.Create("aff4:/index/labels/client_set_test",
                                 aff4_standard.LabelSet,
-                                mode="rw", token=self.token)
+                                mode="rw",
+                                token=self.token)
     self.assertListEqual([], index.ListLabels())
     index.Add("label1")
     index.Add("label2")
@@ -265,8 +270,10 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     """Makes sure we can add a chunk and modify it."""
 
     urn = aff4.ROOT_URN.Add("temp_sparse_image.dd")
-    fd = aff4.FACTORY.Create(urn, aff4_type=aff4_standard.AFF4SparseImage,
-                             token=self.token, mode="rw")
+    fd = aff4.FACTORY.Create(urn,
+                             aff4_type=aff4_standard.AFF4SparseImage,
+                             token=self.token,
+                             mode="rw")
     fd.Set(fd.Schema._CHUNKSIZE, rdfvalue.RDFInteger(1024))
     fd.chunksize = 1024
     fd.Flush()
@@ -276,7 +283,8 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     blob_contents = "A" * fd.chunksize
     blob_hash = self.AddBlobToBlobStore(blob_contents).decode("hex")
 
-    fd.AddBlob(blob_hash=blob_hash, length=len(blob_contents),
+    fd.AddBlob(blob_hash=blob_hash,
+               length=len(blob_contents),
                chunk_number=chunk_number)
     fd.Flush()
 
@@ -300,8 +308,10 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     """Read a chunk, and test that the next few are in cache."""
 
     urn = aff4.ROOT_URN.Add("temp_sparse_image.dd")
-    fd = aff4.FACTORY.Create(urn, aff4_type=aff4_standard.AFF4SparseImage,
-                             token=self.token, mode="rw")
+    fd = aff4.FACTORY.Create(urn,
+                             aff4_type=aff4_standard.AFF4SparseImage,
+                             token=self.token,
+                             mode="rw")
     fd.Set(fd.Schema._CHUNKSIZE, rdfvalue.RDFInteger(1024))
     fd.chunksize = 1024
     fd.Flush()
@@ -315,7 +325,8 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
       blob_contents = str(chunk % 10) * fd.chunksize
       blobs.append(blob_contents)
       blob_hash = self.AddBlobToBlobStore(blob_contents).decode("hex")
-      fd.AddBlob(blob_hash=blob_hash, length=len(blob_contents),
+      fd.AddBlob(blob_hash=blob_hash,
+                 length=len(blob_contents),
                  chunk_number=chunk)
       blob_hashes.append(blob_hash)
 
@@ -333,13 +344,14 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
 
     # Make sure the contents of the file are what we put into it.
     fd.Seek(start_chunk * fd.chunksize)
-    self.assertEqual(fd.Read(fd.chunksize * num_chunks),
-                     "".join(blobs))
+    self.assertEqual(fd.Read(fd.chunksize * num_chunks), "".join(blobs))
 
   def testReadingAfterLastChunk(self):
     urn = aff4.ROOT_URN.Add("temp_sparse_image.dd")
-    fd = aff4.FACTORY.Create(urn, aff4_type=aff4_standard.AFF4SparseImage,
-                             token=self.token, mode="rw")
+    fd = aff4.FACTORY.Create(urn,
+                             aff4_type=aff4_standard.AFF4SparseImage,
+                             token=self.token,
+                             mode="rw")
     fd.Set(fd.Schema._CHUNKSIZE, rdfvalue.RDFInteger(1024))
     fd.chunksize = 1024
     fd.Flush()
@@ -353,7 +365,8 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
       # Make sure the blobs have unique content.
       blob_contents = str(chunk % 10) * fd.chunksize
       blob_hash = self.AddBlobToBlobStore(blob_contents).decode("hex")
-      fd.AddBlob(blob_hash=blob_hash, length=len(blob_contents),
+      fd.AddBlob(blob_hash=blob_hash,
+                 length=len(blob_contents),
                  chunk_number=chunk)
 
     # Make sure we can read the chunks we just wrote without error.
@@ -379,15 +392,18 @@ class VFSDirectoryTest(test_lib.AFF4ObjectTest):
 
     client_id = rdf_client.ClientURN("C.%016X" % 1234)
     for path in ["a/b", "a/b/c/d"]:
-      d = aff4.FACTORY.Create(client_id.Add("fs/os").Add(path),
-                              aff4_type=aff4_standard.VFSDirectory,
-                              token=self.token)
+      d = aff4.FACTORY.Create(
+          client_id.Add("fs/os").Add(path),
+          aff4_type=aff4_standard.VFSDirectory,
+          token=self.token)
       pathspec = rdf_paths.PathSpec(path=path,
                                     pathtype=rdf_paths.PathSpec.PathType.OS)
       d.Set(d.Schema.PATHSPEC, pathspec)
       d.Close()
 
-    d = aff4.FACTORY.Create(client_id.Add("fs/os").Add("a/b/c"),
-                            aff4_type=aff4_standard.VFSDirectory, mode="rw",
-                            token=self.token)
+    d = aff4.FACTORY.Create(
+        client_id.Add("fs/os").Add("a/b/c"),
+        aff4_type=aff4_standard.VFSDirectory,
+        mode="rw",
+        token=self.token)
     self.assertEqual(d.real_pathspec.CollapsePath(), "a/b/c")

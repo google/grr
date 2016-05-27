@@ -69,7 +69,8 @@ class CheckRunner(flow.GRRFlow):
         os_name=self.state.knowledge_base.os,
         restrict_checks=self.args.restrict_checks)
     for artifact_name in self.state.artifacts_wanted:
-      self.CallFlow("ArtifactCollectorFlow", artifact_list=[artifact_name],
+      self.CallFlow("ArtifactCollectorFlow",
+                    artifact_list=[artifact_name],
                     apply_parsers=False,
                     request_data={"artifact_name": artifact_name},
                     next_state="AddResponses")
@@ -87,8 +88,9 @@ class CheckRunner(flow.GRRFlow):
     """
     # Now parse the data and set state.
     artifact_data = self.state.host_data.get(artifact_name)
-    result_iterator = artifact.ApplyParserToResponses(
-        processor, responses, source, self.state, self.token)
+    result_iterator = artifact.ApplyParserToResponses(processor, responses,
+                                                      source, self.state,
+                                                      self.token)
 
     for rdf in result_iterator:
       if isinstance(rdf, rdf_anomaly.Anomaly):

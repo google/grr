@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """These are tests for the file store-related RDFValues implementations."""
 
 
@@ -24,9 +23,9 @@ class FileStoreHashTest(test_base.RDFValueTestCase):
 
   def GenerateSample(self, number=0):
     """Make a sample FileStoreHash instance."""
-    return filestore.FileStoreHash(
-        "aff4:/files/hash/pecoff/sha1/"
-        "eb875812858d27b22cb2b75f992dffadc1b05c6%d" % number)
+    return filestore.FileStoreHash("aff4:/files/hash/pecoff/sha1/"
+                                   "eb875812858d27b22cb2b75f992dffadc1b05c6%d" %
+                                   number)
 
   def testHashIsInferredCorrectlyFromTheURN(self):
     """Test we can initialized a hash from the HashFileStore urn."""
@@ -39,15 +38,15 @@ class FileStoreHashTest(test_base.RDFValueTestCase):
   def testHashIsInitializedFromConstructorArguments(self):
     """Test that we can construct FileStoreHash from keyword arguments."""
     sample = filestore.FileStoreHash(
-        fingerprint_type="pecoff", hash_type="sha1",
+        fingerprint_type="pecoff",
+        hash_type="sha1",
         hash_value="eb875812858d27b22cb2b75f992dffadc1b05c60")
     self.assertEqual(sample, self.GenerateSample())
 
   def testInitialization(self):
     # Invalid URN prefix
-    self.assertRaises(
-        ValueError, filestore.FileStoreHash,
-        "aff4:/sha1/eb875812858d27b22cb2b75f992dffadc1b05c66")
+    self.assertRaises(ValueError, filestore.FileStoreHash,
+                      "aff4:/sha1/eb875812858d27b22cb2b75f992dffadc1b05c66")
 
     # Invalid fingerprint type
     self.assertRaises(

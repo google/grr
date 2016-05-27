@@ -205,8 +205,9 @@ class Dict(rdf_structs.RDFProtoStruct):
         key to an error string.
     """
     del self[key]
-    self.dat.Append(k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
-                    v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
+    self.dat.Append(
+        k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
+        v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
 
   def __setitem__(self, key, value):
     del self[key]
@@ -270,9 +271,9 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
           self.Append(item)
       except TypeError:
         if initializer is not None:
-          raise rdfvalue.InitializeError(
-              "%s can not be initialized from %s" % (
-                  self.__class__.__name__, type(initializer)))
+          raise rdfvalue.InitializeError("%s can not be initialized from %s" %
+                                         (self.__class__.__name__,
+                                          type(initializer)))
 
   def Append(self, value=None, **kwarg):
     """Add another member to the array.
@@ -295,10 +296,10 @@ class RDFValueArray(rdf_structs.RDFProtoStruct):
 
       try:
         # Try to coerce the value.
-        value = self.rdf_type(value, **kwarg)   # pylint: disable=not-callable
+        value = self.rdf_type(value, **kwarg)  # pylint: disable=not-callable
       except (TypeError, ValueError):
-        raise ValueError("Unable to initialize %s from type %s" % (
-            self.__class__.__name__, type(value)))
+        raise ValueError("Unable to initialize %s from type %s" %
+                         (self.__class__.__name__, type(value)))
 
     self.content.Append(DataBlob().SetValue(value))
 
@@ -329,14 +330,14 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.EmbeddedRDFValue
 
   def __init__(self, initializer=None, payload=None, *args, **kwargs):
-    if (not payload and
-        isinstance(initializer, rdfvalue.RDFValue) and
+    if (not payload and isinstance(initializer, rdfvalue.RDFValue) and
         not isinstance(initializer, EmbeddedRDFValue)):
       # The initializer is an RDFValue object that we can use as payload.
       payload = initializer
       initializer = None
 
-    super(EmbeddedRDFValue, self).__init__(initializer=initializer, *args,
+    super(EmbeddedRDFValue, self).__init__(initializer=initializer,
+                                           *args,
                                            **kwargs)
     if payload is not None:
       self.payload = payload
@@ -358,5 +359,6 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
     self.name = payload.__class__.__name__
     self.embedded_age = payload.age
     self.data = payload.SerializeToString()
+
 
 collections.Mapping.register(Dict)

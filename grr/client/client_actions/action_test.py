@@ -359,11 +359,11 @@ class ActionTest(test_lib.EmptyActionTest):
 
       times = [(1, 0), (2, 0), (3, 0), (10000, 0), (10001, 0)]
 
-      def __init__(self, unused_pid):
-        pass
+      def __init__(self, unused_pid=None):
+        self.pcputimes = collections.namedtuple("pcputimes", ["user", "system"])
 
       def cpu_times(self):
-        return self.times.pop(0)
+        return self.pcputimes(*self.times.pop(0))
 
     results = []
 

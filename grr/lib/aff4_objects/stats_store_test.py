@@ -3,7 +3,6 @@
 
 
 
-
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
@@ -21,14 +20,17 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     super(StatsStoreTest, self).setUp()
 
     self.process_id = "some_pid"
-    self.stats_store = aff4.FACTORY.Create(
-        None, stats_store.StatsStore, mode="w", token=self.token)
+    self.stats_store = aff4.FACTORY.Create(None,
+                                           stats_store.StatsStore,
+                                           mode="w",
+                                           token=self.token)
 
   def testCountersAreWrittenToDataStore(self):
     stats.STATS.RegisterCounterMetric("counter")
     stats.STATS.IncrementCounter("counter")
 
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=42,
                                 sync=True)
 
     row = data_store.DB.ResolvePrefix("aff4:/stats_store/some_pid",
@@ -41,15 +43,15 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
         value_type=stats.MetricMetadata.ValueType.INT,
         int_value=1)
     self.assertEqual(counter[0], ("aff4:stats_store/counter",
-                                  stored_value.SerializeToString(),
-                                  42))
+                                  stored_value.SerializeToString(), 42))
 
   def testCountersWithFieldsAreWrittenToDataStore(self):
     stats.STATS.RegisterCounterMetric("counter", fields=[("source", str)])
     stats.STATS.IncrementCounter("counter", fields=["http"])
     stats.STATS.IncrementCounter("counter", delta=2, fields=["rpc"])
 
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=42,
                                 sync=True)
 
     row = data_store.DB.ResolvePrefix("aff4:/stats_store/some_pid",
@@ -68,16 +70,14 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
         str_value="rpc")
 
     # Check that counter with source=http is written.
-    http_counter = [x for x in values
-                    if x.fields_values == [http_field_value]]
+    http_counter = [x for x in values if x.fields_values == [http_field_value]]
     self.assertTrue(http_counter)
     self.assertEqual(http_counter[0].value_type,
                      stats.MetricMetadata.ValueType.INT)
     self.assertEqual(http_counter[0].int_value, 1)
 
     # Check that counter with source=rpc is written.
-    rpc_counter = [x for x in values
-                   if x.fields_values == [rpc_field_value]]
+    rpc_counter = [x for x in values if x.fields_values == [rpc_field_value]]
     self.assertTrue(rpc_counter)
     self.assertEqual(rpc_counter[0].value_type,
                      stats.MetricMetadata.ValueType.INT)
@@ -88,7 +88,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     stats.STATS.RecordEvent("foo_event", 5)
     stats.STATS.RecordEvent("foo_event", 15)
 
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=42,
                                 sync=True)
 
     row = data_store.DB.ResolvePrefix("aff4:/stats_store/some_pid",
@@ -109,7 +110,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     stats.STATS.RecordEvent("foo_event", 5, fields=["http"])
     stats.STATS.RecordEvent("foo_event", 15, fields=["rpc"])
 
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=42,
                                 sync=True)
 
     row = data_store.DB.ResolvePrefix("aff4:/stats_store/some_pid",
@@ -128,8 +130,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
         str_value="rpc")
 
     # Check that distribution with source=http is written.
-    http_events = [x for x in values
-                   if x.fields_values == [http_field_value]]
+    http_events = [x for x in values if x.fields_values == [http_field_value]]
     self.assertTrue(http_events)
     self.assertEqual(http_events[0].value_type,
                      stats.MetricMetadata.ValueType.DISTRIBUTION)
@@ -137,8 +138,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.assertEqual(http_events[0].distribution_value.sum, 5)
 
     # Check that distribution with source=rpc is written.
-    rpc_events = [x for x in values
-                  if x.fields_values == [rpc_field_value]]
+    rpc_events = [x for x in values if x.fields_values == [rpc_field_value]]
     self.assertTrue(rpc_events)
     self.assertEqual(rpc_events[0].value_type,
                      stats.MetricMetadata.ValueType.DISTRIBUTION)
@@ -149,7 +149,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     stats.STATS.RegisterGaugeMetric("str_gauge", str)
     stats.STATS.SetGaugeValue("str_gauge", "some_value")
 
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=42,
                                 sync=True)
 
     row = data_store.DB.ResolvePrefix("aff4:/stats_store/some_pid",
@@ -162,14 +163,14 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
         value_type=stats.MetricMetadata.ValueType.STR,
         str_value="some_value")
     self.assertEqual(counter[0], ("aff4:stats_store/str_gauge",
-                                  stored_value.SerializeToString(),
-                                  42))
+                                  stored_value.SerializeToString(), 42))
 
   def testIntGaugeValuesAreWrittenToDataStore(self):
     stats.STATS.RegisterGaugeMetric("int_gauge", int)
     stats.STATS.SetGaugeValue("int_gauge", 4242)
 
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=42,
                                 sync=True)
 
     row = data_store.DB.ResolvePrefix("aff4:/stats_store/some_pid",
@@ -182,18 +183,19 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
         value_type=stats.MetricMetadata.ValueType.INT,
         int_value=4242)
     self.assertEqual(counter[0], ("aff4:stats_store/int_gauge",
-                                  stored_value.SerializeToString(),
-                                  42))
+                                  stored_value.SerializeToString(), 42))
 
   def testLaterValuesDoNotOverridePrevious(self):
     stats.STATS.RegisterCounterMetric("counter")
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=42,
                                 sync=True)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=43,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=43,
                                 sync=True)
 
     row = data_store.DB.ResolvePrefix("aff4:/stats_store/some_pid",
@@ -207,14 +209,12 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
         value_type=stats.MetricMetadata.ValueType.INT,
         int_value=1)
     self.assertEqual(counters[0], ("aff4:stats_store/counter",
-                                   stored_value.SerializeToString(),
-                                   42))
+                                   stored_value.SerializeToString(), 42))
     stored_value = stats_store.StatsStoreValue(
         value_type=stats.MetricMetadata.ValueType.INT,
         int_value=2)
     self.assertEqual(counters[1], ("aff4:stats_store/counter",
-                                   stored_value.SerializeToString(),
-                                   43))
+                                   stored_value.SerializeToString(), 43))
 
   def testValuesAreFetchedCorrectly(self):
     stats.STATS.RegisterCounterMetric("counter")
@@ -222,11 +222,13 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     stats.STATS.SetGaugeValue("int_gauge", 4242)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=42,
                                 sync=True)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=43,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=43,
                                 sync=True)
 
     stats_history = self.stats_store.ReadStats(
@@ -241,11 +243,13 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     stats.STATS.SetGaugeValue("int_gauge", 4242)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=42,
                                 sync=True)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=43,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=43,
                                 sync=True)
 
     stats_history = self.stats_store.ReadStats(process_id=self.process_id,
@@ -259,11 +263,13 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     stats.STATS.SetGaugeValue("int_gauge", 4242)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=42,
                                 sync=True)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=43,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=43,
                                 sync=True)
 
     stats_history = self.stats_store.ReadStats(process_id=self.process_id,
@@ -277,14 +283,17 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     stats.STATS.SetGaugeValue("int_gauge", 4242)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=42,
                                 sync=True)
 
     stats.STATS.IncrementCounter("counter")
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=44,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=44,
                                 sync=True)
 
-    self.stats_store.DeleteStats(process_id=self.process_id, timestamp=(0, 43),
+    self.stats_store.DeleteStats(process_id=self.process_id,
+                                 timestamp=(0, 43),
                                  sync=True)
 
     stats_history = self.stats_store.ReadStats(process_id=self.process_id)
@@ -295,15 +304,18 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     stats.STATS.RegisterCounterMetric("counter", fields=[("source", str)])
 
     stats.STATS.IncrementCounter("counter", fields=["http"])
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=42,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=42,
                                 sync=True)
 
     stats.STATS.IncrementCounter("counter", fields=["http"])
     stats.STATS.IncrementCounter("counter", fields=["rpc"])
-    self.stats_store.WriteStats(process_id=self.process_id, timestamp=44,
+    self.stats_store.WriteStats(process_id=self.process_id,
+                                timestamp=44,
                                 sync=True)
 
-    self.stats_store.DeleteStats(process_id=self.process_id, timestamp=(0, 43),
+    self.stats_store.DeleteStats(process_id=self.process_id,
+                                 timestamp=(0, 43),
                                  sync=True)
 
     stats_history = self.stats_store.ReadStats(process_id=self.process_id)
@@ -318,8 +330,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.stats_store.WriteStats(process_id="pid1", sync=True)
     self.stats_store.WriteStats(process_id="pid2", sync=True)
 
-    self.assertEqual(sorted(self.stats_store.ListUsedProcessIds()),
-                     ["pid1", "pid2"])
+    self.assertEqual(
+        sorted(self.stats_store.ListUsedProcessIds()), ["pid1", "pid2"])
 
   def testMultiReadStatsWorksCorrectly(self):
     stats.STATS.RegisterCounterMetric("counter")
@@ -348,8 +360,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     stats.STATS.IncrementCounter("counter")
     self.stats_store.WriteStats(process_id="pid1", timestamp=44, sync=True)
 
-    results = self.stats_store.MultiReadStats(
-        timestamp=(43, 100))
+    results = self.stats_store.MultiReadStats(timestamp=(43, 100))
     self.assertEqual(sorted(results.keys()), ["pid1", "pid2"])
     self.assertEqual(results["pid1"]["counter"], [(2, 44)])
     self.assertEqual(results["pid2"]["counter"], [(1, 44)])
@@ -365,7 +376,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
                                     fields=[("source", str)])
 
     stats.STATS.RegisterGaugeMetric("str_gauge", str)
-    stats.STATS.RegisterGaugeMetric("str_gauge_with_fields", str,
+    stats.STATS.RegisterGaugeMetric("str_gauge_with_fields",
+                                    str,
                                     fields=[("task", int)])
 
     # Check that there are no metadata for registered metrics.
@@ -380,7 +392,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     # Write stats to the data store. Metadata should be
     # written as well.
     self.stats_store.WriteStats(process_id=self.process_id,
-                                timestamp=42, sync=True)
+                                timestamp=42,
+                                sync=True)
 
     # Check that metadata were written into the store.
     metadata = self.stats_store.ReadMetadata(process_id=self.process_id)
@@ -407,8 +420,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
                      stats.MetricType.COUNTER)
     self.assertEqual(metadata["counter_with_fields"].value_type,
                      stats.MetricMetadata.ValueType.INT)
-    self.assertListEqual(list(metadata["counter_with_fields"].fields_defs),
-                         [source_field_def])
+    self.assertListEqual(
+        list(metadata["counter_with_fields"].fields_defs), [source_field_def])
 
     self.assertTrue("events" in metadata)
     self.assertEqual(metadata["events"].varname, "events")
@@ -424,8 +437,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
                      stats.MetricType.EVENT)
     self.assertEqual(metadata["events_with_fields"].value_type,
                      stats.MetricMetadata.ValueType.DISTRIBUTION)
-    self.assertListEqual(list(metadata["events_with_fields"].fields_defs),
-                         [source_field_def])
+    self.assertListEqual(
+        list(metadata["events_with_fields"].fields_defs), [source_field_def])
 
     self.assertTrue("str_gauge" in metadata)
     self.assertEqual(metadata["str_gauge"].varname, "str_gauge")
@@ -441,8 +454,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
                      stats.MetricType.GAUGE)
     self.assertEqual(metadata["str_gauge_with_fields"].value_type,
                      stats.MetricMetadata.ValueType.STR)
-    self.assertListEqual(list(metadata["str_gauge_with_fields"].fields_defs),
-                         [task_field_def])
+    self.assertListEqual(
+        list(metadata["str_gauge_with_fields"].fields_defs), [task_field_def])
 
   def testMultiReadMetadataReturnsAllUsedMetadata(self):
     stats.STATS.RegisterCounterMetric("counter")
@@ -455,8 +468,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
 
     # Write stats to the data store. Metadata should be
     # written as well.
-    self.stats_store.WriteStats(process_id="pid1",
-                                timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id="pid1", timestamp=42, sync=True)
 
     # Now metadata should be found only for the pid1.
     metadata_by_id = self.stats_store.MultiReadMetadata(
@@ -465,8 +477,7 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     self.assertFalse("counter" in metadata_by_id["pid2"])
 
     # Write stats for the pid2 and check again.
-    self.stats_store.WriteStats(process_id="pid2",
-                                timestamp=42, sync=True)
+    self.stats_store.WriteStats(process_id="pid2", timestamp=42, sync=True)
 
     metadata_by_id = self.stats_store.MultiReadMetadata(
         process_ids=["pid1", "pid2"])
@@ -480,8 +491,10 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
   def setUp(self):
     super(StatsStoreDataQueryTest, self).setUp()
     self.process_id = "some_pid"
-    self.stats_store = aff4.FACTORY.Create(
-        None, stats_store.StatsStore, mode="w", token=self.token)
+    self.stats_store = aff4.FACTORY.Create(None,
+                                           stats_store.StatsStore,
+                                           mode="w",
+                                           token=self.token)
 
   def testUsingInCallNarrowsQuerySpace(self):
     # Create sample data.
@@ -490,14 +503,13 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
                                       fields=[("source", str)])
 
     stats.STATS.IncrementCounter("counter")
-    stats.STATS.IncrementCounter("counter_with_fields",
-                                 fields=["http"])
-    stats.STATS.IncrementCounter("counter_with_fields",
-                                 fields=["rpc"])
+    stats.STATS.IncrementCounter("counter_with_fields", fields=["http"])
+    stats.STATS.IncrementCounter("counter_with_fields", fields=["rpc"])
 
     # Write to data store.
     self.stats_store.WriteStats(process_id=self.process_id,
-                                timestamp=42, sync=True)
+                                timestamp=42,
+                                sync=True)
 
     # Read them back and apply queries with In() and InAll() calls.
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -509,8 +521,8 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     self.assertEqual(query.In("counter_with_fields").InAll().SeriesCount(), 2)
 
     query = stats_store.StatsStoreDataQuery(stats_data)
-    self.assertEqual(query.In("counter_with_fields").In("http").SeriesCount(),
-                     1)
+    self.assertEqual(
+        query.In("counter_with_fields").In("http").SeriesCount(), 1)
 
   def testInCallAcceptsRegularExpressions(self):
     # Initialize and write test data.
@@ -933,8 +945,8 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     # 1970-01-01 00:00:30    0.3
     # 1970-01-01 00:00:40    0.4
     self.assertListEqual(ts.data, [[0.1, 0], [0.2, 10 * 1e6],
-                                   [0.30000000000000004, 20 * 1e6], [0.4, 30 *
-                                                                     1e6]])
+                                   [0.30000000000000004, 20 * 1e6], [0.4,
+                                                                     30 * 1e6]])
 
   def testScaleAppliesScaleFunctionToSingleTimeSerie(self):
     # Initialize and write test data.
@@ -1009,6 +1021,7 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

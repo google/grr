@@ -46,8 +46,7 @@ class ClientURN(rdfvalue.RDFURN):
   def __init__(self, initializer=None, age=None):
     if isinstance(initializer, rdfvalue.RDFURN):
       if not self.Validate(initializer.Path()):
-        raise type_info.TypeValueError(
-            "Client urn malformed: %s" % initializer)
+        raise type_info.TypeValueError("Client urn malformed: %s" % initializer)
     super(ClientURN, self).__init__(initializer=initializer, age=age)
 
   def ParseFromString(self, value):
@@ -69,8 +68,8 @@ class ClientURN(rdfvalue.RDFURN):
     clientid = match.group("clientid")
     clientid_correctcase = "".join((clientid[0].upper(), clientid[1:].lower()))
 
-    self._string_urn = self._string_urn.replace(
-        clientid, clientid_correctcase, 1)
+    self._string_urn = self._string_urn.replace(clientid, clientid_correctcase,
+                                                1)
 
   @classmethod
   def Validate(cls, value):
@@ -82,8 +81,7 @@ class ClientURN(rdfvalue.RDFURN):
   @classmethod
   def FromPublicKey(cls, public_key):
     """An alternate constructor which generates a new client id."""
-    return cls("C.%s" % (
-        sha256(public_key).digest()[:8].encode("hex")))
+    return cls("C.%s" % (sha256(public_key).digest()[:8].encode("hex")))
 
   def Add(self, path, age=None):
     """Add a relative stem to the current value and return a new RDFURN.
@@ -205,10 +203,11 @@ class KnowledgeBase(structs.RDFProtoStruct):
       A list of strings with the set attribute names, e.g. ["users.sid"]
     """
 
-    user = self.GetUser(sid=kb_user.sid, uid=kb_user.uid,
+    user = self.GetUser(sid=kb_user.sid,
+                        uid=kb_user.uid,
                         username=kb_user.username)
     new_attrs = []
-    merge_conflicts = []    # Record when we overwrite a value.
+    merge_conflicts = []  # Record when we overwrite a value.
     if not user:
       new_attrs = self._CreateNewUser(kb_user)
     else:
@@ -287,7 +286,8 @@ class User(structs.RDFProtoStruct):
       # objects.
       # TODO(user): remove once all clients are newer than 3.0.7.1.
       super(User, self).__init__(initializer=initializer.SerializeToString(),
-                                 age=age, **kwargs)
+                                 age=age,
+                                 **kwargs)
     else:
       super(User, self).__init__(initializer=initializer, age=age, **kwargs)
 
@@ -373,11 +373,11 @@ class Interface(structs.RDFProtoStruct):
         results.append(address.human_readable)
       else:
         if address.address_type == NetworkAddress.Family.INET:
-          results.append(socket.inet_ntop(socket.AF_INET,
-                                          str(address.packed_bytes)))
+          results.append(socket.inet_ntop(socket.AF_INET, str(
+              address.packed_bytes)))
         else:
-          results.append(socket.inet_ntop(socket.AF_INET6,
-                                          str(address.packed_bytes)))
+          results.append(socket.inet_ntop(socket.AF_INET6, str(
+              address.packed_bytes)))
     return results
 
 
@@ -414,7 +414,7 @@ class Volume(structs.RDFProtoStruct):
 
   def AUToGBytes(self, allocation_units):
     """Convert a number of allocation units to GigaBytes."""
-    return self.AUToBytes(allocation_units) / 1000.0 ** 3
+    return self.AUToBytes(allocation_units) / 1000.0**3
 
   def Name(self):
     """Return the best available name for this volume."""
@@ -543,8 +543,7 @@ class ClientStats(structs.RDFProtoStruct):
     result = ClientStats(self)
     result.cpu_samples = self.DownsampleList(self.cpu_samples,
                                              sampling_interval)
-    result.io_samples = self.DownsampleList(self.io_samples,
-                                            sampling_interval)
+    result.io_samples = self.DownsampleList(self.io_samples, sampling_interval)
     return result
 
 
@@ -727,25 +726,24 @@ class Uname(structs.RDFProtoStruct):
     architecture, _ = platform.architecture()
     if system == "Windows":
       service_pack = platform.win32_ver()[2]
-      kernel = uname[3]                           # 5.1.2600
-      release = uname[2]                          # XP, 2000, 7
-      version = uname[3] + service_pack           # 5.1.2600 SP3, 6.1.7601 SP1
+      kernel = uname[3]  # 5.1.2600
+      release = uname[2]  # XP, 2000, 7
+      version = uname[3] + service_pack  # 5.1.2600 SP3, 6.1.7601 SP1
     elif system == "Darwin":
-      kernel = uname[2]                           # 12.2.0
-      release = "OSX"                             # OSX
-      version = platform.mac_ver()[0]             # 10.8.2
+      kernel = uname[2]  # 12.2.0
+      release = "OSX"  # OSX
+      version = platform.mac_ver()[0]  # 10.8.2
     elif system == "Linux":
-      kernel = uname[2]                           # 3.2.5
+      kernel = uname[2]  # 3.2.5
       release = platform.linux_distribution()[0]  # Ubuntu
       version = platform.linux_distribution()[1]  # 12.04
 
     # Emulate PEP 425 naming conventions - e.g. cp27-cp27mu-linux_x86_64.
     if pep425tags:
-      pep425tag = "%s%s-%s-%s" % (
-          pep425tags.get_abbr_impl(),
-          pep425tags.get_impl_ver(),
-          str(pep425tags.get_abi_tag()).lower(),
-          pep425tags.get_platform())
+      pep425tag = "%s%s-%s-%s" % (pep425tags.get_abbr_impl(),
+                                  pep425tags.get_impl_ver(),
+                                  str(pep425tags.get_abi_tag()).lower(),
+                                  pep425tags.get_platform())
     else:
       # For example: windows_7_amd64
       pep425tag = "%s_%s_%s" % (system, release, architecture)
@@ -841,8 +839,7 @@ class ClientResources(structs.RDFProtoStruct):
   """An RDFValue class representing the client resource usage."""
   protobuf = jobs_pb2.ClientResources
 
-  dependencies = dict(ClientURN=ClientURN,
-                      RDFURN=rdfvalue.RDFURN)
+  dependencies = dict(ClientURN=ClientURN, RDFURN=rdfvalue.RDFURN)
 
 
 class StatFSRequest(structs.RDFProtoStruct):

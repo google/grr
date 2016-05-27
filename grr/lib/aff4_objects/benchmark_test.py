@@ -26,11 +26,14 @@ class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
 
     for object_type in [aff4.AFF4Object, standard.HashImage,
                         aff4.AFF4MemoryStream]:
-      self.TimeIt(CreateAFF4Object, name="Create %s" % object_type,
+      self.TimeIt(CreateAFF4Object,
+                  name="Create %s" % object_type,
                   object_type=object_type)
 
-    self.TimeIt(CreateAFF4Object, name="Create VFSGRRClient",
-                object_type=aff4_grr.VFSGRRClient, urn="C.1234567812345678")
+    self.TimeIt(CreateAFF4Object,
+                name="Create VFSGRRClient",
+                object_type=aff4_grr.VFSGRRClient,
+                urn="C.1234567812345678")
 
   def testAFF4CreateAndSet(self):
     """How long does it take to create and set properties."""
@@ -40,7 +43,8 @@ class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
 
     def CreateAFF4Object():
       """Blind write a VFSGRRClient with 1000 client info attributes."""
-      fd = aff4.FACTORY.Create("C.1234567812345678", aff4_grr.VFSGRRClient,
+      fd = aff4.FACTORY.Create("C.1234567812345678",
+                               aff4_grr.VFSGRRClient,
                                token=self.token)
       fd.Set(fd.Schema.HOSTNAME("Foobar"))
       for _ in range(1000):
@@ -56,15 +60,19 @@ class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
     CreateAFF4Object()
 
     def ReadAFF4Object():
-      fd = aff4.FACTORY.Open("C.1234567812345678", token=self.token,
-                             ignore_cache=True, age=aff4.ALL_TIMES)
+      fd = aff4.FACTORY.Open("C.1234567812345678",
+                             token=self.token,
+                             ignore_cache=True,
+                             age=aff4.ALL_TIMES)
       self.assertEqual(fd.Get(fd.Schema.HOSTNAME), "Foobar")
 
     self.TimeIt(ReadAFF4Object, name="Read attribute from AFF4Object")
 
     def ReadVersionedAFF4Attribute():
-      fd = aff4.FACTORY.Open("C.1234567812345678", token=self.token,
-                             ignore_cache=True, age=aff4.ALL_TIMES)
+      fd = aff4.FACTORY.Open("C.1234567812345678",
+                             token=self.token,
+                             ignore_cache=True,
+                             age=aff4.ALL_TIMES)
       for x in fd.GetValuesForAttribute(fd.Schema.CLIENT_INFO):
         self.assertEqual(x.client_name, "GRR")
 
@@ -72,8 +80,10 @@ class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
                 name="Read heavily versioned Attributes")
 
     def ReadSomeVersionedAFF4Attribute():
-      fd = aff4.FACTORY.Open("C.1234567812345678", token=self.token,
-                             ignore_cache=True, age=aff4.ALL_TIMES)
+      fd = aff4.FACTORY.Open("C.1234567812345678",
+                             token=self.token,
+                             ignore_cache=True,
+                             age=aff4.ALL_TIMES)
 
       # Only read the top 5 attributes.
       for i, x in enumerate(fd.GetValuesForAttribute(fd.Schema.CLIENT_INFO)):
@@ -86,8 +96,10 @@ class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
 
     # Using Get() on a multi versioned object should only parse one value.
     def ReadAVersionedAFF4Attribute():
-      fd = aff4.FACTORY.Open("C.1234567812345678", token=self.token,
-                             ignore_cache=True, age=aff4.ALL_TIMES)
+      fd = aff4.FACTORY.Open("C.1234567812345678",
+                             token=self.token,
+                             ignore_cache=True,
+                             age=aff4.ALL_TIMES)
 
       x = fd.Get(fd.Schema.CLIENT_INFO)
       self.assertEqual(x.client_name, "GRR")

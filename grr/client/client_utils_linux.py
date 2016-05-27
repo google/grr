@@ -10,6 +10,9 @@ import sys
 import threading
 import time
 
+
+import psutil
+
 from google.protobuf import message
 import logging
 
@@ -131,6 +134,7 @@ class NannyThread(threading.Thread):
     self.unresponsive_kill_period = unresponsive_kill_period
     self.running = True
     self.daemon = True
+    self.proc = psutil.Process()
 
   def run(self):
     self.WriteNannyStatus("Nanny running.")
@@ -165,15 +169,23 @@ class NannyThread(threading.Thread):
     Args:
       seconds: Number of seconds to sleep.
 
+    Raises:
+      MemoryError: if the process exceeds memory quota.
     """
     time.sleep(seconds - int(seconds))
     for _ in xrange(int(seconds)):
       time.sleep(1)
+      # Check that we do not exceeded our memory allowance.
+      if self.GetMemoryUsage() > config_lib.CONFIG["Client.rss_max_hard"]:
+        raise MemoryError("Exceeded memory allowance.")
 
   def Stop(self):
     """Exits the main thread."""
     self.running = False
     self.WriteNannyStatus("Nanny stopping.")
+
+  def GetMemoryUsage(self):
+    return self.proc.memory_info().rss
 
   def Heartbeat(self):
     self.last_heart_beat_time = time.time()

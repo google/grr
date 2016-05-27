@@ -6,6 +6,7 @@ from grr.lib import aff4
 from grr.lib import flow
 # pylint: disable=unused-import
 from grr.lib.aff4_objects import network
+
 # pylint: enable=unused-import
 
 

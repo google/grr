@@ -50,8 +50,13 @@ class SequentialCollection(aff4.AFF4Object):
     return (int(string_urn[-23:-7], 16), int(string_urn[-6:], 16))
 
   @classmethod
-  def StaticAdd(cls, collection_urn, token, rdf_value,
-                timestamp=None, suffix=None, **kwargs):
+  def StaticAdd(cls,
+                collection_urn,
+                token,
+                rdf_value,
+                timestamp=None,
+                suffix=None,
+                **kwargs):
     """Adds an rdf value to a collection.
 
     Adds an rdf value to a collection. Does not require that the collection be
@@ -129,8 +134,12 @@ class SequentialCollection(aff4.AFF4Object):
       ValueError: rdf_value has unexpected type.
 
     """
-    return self.StaticAdd(self.urn, self.token, rdf_value,
-                          timestamp=timestamp, suffix=suffix, **kwargs)
+    return self.StaticAdd(self.urn,
+                          self.token,
+                          rdf_value,
+                          timestamp=timestamp,
+                          suffix=suffix,
+                          **kwargs)
 
   def Scan(self, after_timestamp=None, include_suffix=False, max_records=None):
     """Scans for stored records.
@@ -160,8 +169,8 @@ class SequentialCollection(aff4.AFF4Object):
         after_timestamp = after_timestamp[0]
       else:
         suffix = self.MAX_SUFFIX
-      after_urn = utils.SmartStr(self._MakeURN(self.urn, after_timestamp,
-                                               suffix=suffix))
+      after_urn = utils.SmartStr(self._MakeURN(
+          self.urn, after_timestamp, suffix=suffix))
 
     for subject, timestamp, value in data_store.DB.ScanAttribute(
         self.urn.Add("Results"),
@@ -284,8 +293,7 @@ class IndexedSequentialCollection(SequentialCollection):
     self._index = {0: (0, 0)}
     self._max_indexed = 0
     for (attr, value, ts) in data_store.DB.ResolvePrefix(
-        self.urn,
-        self.INDEX_ATTRIBUTE_PREFIX,
+        self.urn, self.INDEX_ATTRIBUTE_PREFIX,
         token=self.token):
       i = int(attr[len(self.INDEX_ATTRIBUTE_PREFIX):], 16)
       self._index[i] = (ts, int(value, 16))
@@ -379,10 +387,16 @@ class IndexedSequentialCollection(SequentialCollection):
       pass
 
   @classmethod
-  def StaticAdd(cls, collection_urn, token, rdf_value,
-                timestamp=None, suffix=None, **kwargs):
-    r = super(IndexedSequentialCollection, cls).StaticAdd(
-        collection_urn, token, rdf_value, timestamp, suffix, **kwargs)
+  def StaticAdd(cls,
+                collection_urn,
+                token,
+                rdf_value,
+                timestamp=None,
+                suffix=None,
+                **kwargs):
+    r = super(IndexedSequentialCollection, cls).StaticAdd(collection_urn, token,
+                                                          rdf_value, timestamp,
+                                                          suffix, **kwargs)
     if random.randint(0, cls.INDEX_SPACING) == 0:
       BACKGROUND_INDEX_UPDATER.AddIndexToUpdate(collection_urn)
     return r

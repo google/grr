@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
-
 """GRR rdfvalue tests.
 
 This module loads and registers all the tests for the RDFValue implementations.

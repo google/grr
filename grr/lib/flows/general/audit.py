@@ -19,7 +19,6 @@ from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import collects
 
-
 AUDIT_EVENT = "Audit"
 
 
@@ -34,6 +33,7 @@ class AuditEventListener(flow.EventListener):
   def ProcessMessage(self, message=None, event=None):
     _ = message
     with aff4.FACTORY.Create(aff4.CurrentAuditLog(),
-                             collects.PackedVersionedCollection, mode="w",
+                             collects.PackedVersionedCollection,
+                             mode="w",
                              token=self.token) as fd:
       fd.Add(event)

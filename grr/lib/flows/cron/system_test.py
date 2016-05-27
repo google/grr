@@ -31,14 +31,16 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     for i in range(0, 10):
       test_lib.ClientFixture("C.0%015X" % i, token=self.token, fixture=fixture)
 
-      with aff4.FACTORY.Open(
-          "C.0%015X" % i, mode="rw", token=self.token) as client:
+      with aff4.FACTORY.Open("C.0%015X" % i,
+                             mode="rw",
+                             token=self.token) as client:
         client.AddLabels("Label1", "Label2", owner="GRR")
         client.AddLabels("UserLabel", owner="jim")
 
     # Make 10 linux clients 12 hours apart.
     for i in range(0, 10):
-      test_lib.ClientFixture("C.1%015X" % i, token=self.token,
+      test_lib.ClientFixture("C.1%015X" % i,
+                             token=self.token,
                              fixture=client_fixture.LINUX_FIXTURE)
 
   def _CheckVersionStats(self, label, attribute, counts):
@@ -81,7 +83,8 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     self._CheckVersionStats("Label2", histogram, [0, 0, 10, 10])
 
     # This shouldn't exist since it isn't a system label
-    aff4.FACTORY.Open("aff4:/stats/ClientFleetStats/UserLabel", aff4.AFF4Volume,
+    aff4.FACTORY.Open("aff4:/stats/ClientFleetStats/UserLabel",
+                      aff4.AFF4Volume,
                       token=self.token)
 
   def _CheckOSStats(self, label, attribute, counts):
@@ -122,8 +125,10 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
       pass
 
     histogram = aff4.ClientFleetStats.SchemaCls.OS_HISTOGRAM
-    self._CheckOSStats("All", histogram, [0, 0, {"Linux": 10, "Windows": 10},
-                                          {"Linux": 10, "Windows": 10}])
+    self._CheckOSStats("All", histogram, [0, 0, {"Linux": 10,
+                                                 "Windows": 10},
+                                          {"Linux": 10,
+                                           "Windows": 10}])
     self._CheckOSStats("Label1", histogram,
                        [0, 0, {"Windows": 10}, {"Windows": 10}])
     self._CheckOSStats("Label2", histogram,
@@ -138,14 +143,10 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     data = [(x.x_value, x.y_value) for x in histogram]
 
     self.assertEqual(data, [
-        (86400000000L, 0L),
-        (172800000000L, 0L),
-        (259200000000L, 0L),
-        (604800000000L, 0L),
-
-        (1209600000000L, count),
-        (2592000000000L, count),
-        (5184000000000L, count)])
+        (86400000000L, 0L), (172800000000L, 0L), (259200000000L, 0L),
+        (604800000000L, 0L), (1209600000000L, count), (2592000000000L, count),
+        (5184000000000L, count)
+    ])
 
   def testLastAccessStats(self):
     """Check that all client stats cron jobs are run."""
@@ -168,32 +169,42 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
       with test_lib.FakeTime(t):
         urn = self.client_id.Add("stats")
 
-        stats_fd = aff4.FACTORY.Create(urn, "ClientStats", token=self.token,
+        stats_fd = aff4.FACTORY.Create(urn,
+                                       "ClientStats",
+                                       token=self.token,
                                        mode="rw")
         st = client_rdf.ClientStats(RSS_size=int(t))
         stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
 
         stats_fd.Close()
 
-    stat_obj = aff4.FACTORY.Open(
-        urn, age=aff4.ALL_TIMES, token=self.token, ignore_cache=True)
+    stat_obj = aff4.FACTORY.Open(urn,
+                                 age=aff4.ALL_TIMES,
+                                 token=self.token,
+                                 ignore_cache=True)
     stat_entries = list(stat_obj.GetValuesForAttribute(stat_obj.Schema.STATS))
     self.assertEqual(len(stat_entries), 3)
     self.assertTrue(max_age in [e.RSS_size for e in stat_entries])
 
     with test_lib.FakeTime(2.5 * max_age):
-      for _ in test_lib.TestFlowHelper(
-          "PurgeClientStats", None, client_id=self.client_id, token=self.token):
+      for _ in test_lib.TestFlowHelper("PurgeClientStats",
+                                       None,
+                                       client_id=self.client_id,
+                                       token=self.token):
         pass
 
-    stat_obj = aff4.FACTORY.Open(
-        urn, age=aff4.ALL_TIMES, token=self.token, ignore_cache=True)
+    stat_obj = aff4.FACTORY.Open(urn,
+                                 age=aff4.ALL_TIMES,
+                                 token=self.token,
+                                 ignore_cache=True)
     stat_entries = list(stat_obj.GetValuesForAttribute(stat_obj.Schema.STATS))
     self.assertEqual(len(stat_entries), 1)
     self.assertTrue(max_age not in [e.RSS_size for e in stat_entries])
 
   def _SetSummaries(self, client_id):
-    client = aff4.FACTORY.Create(client_id, aff4_grr.VFSGRRClient, mode="rw",
+    client = aff4.FACTORY.Create(client_id,
+                                 aff4_grr.VFSGRRClient,
+                                 mode="rw",
                                  token=self.token)
     client.Set(client.Schema.HOSTNAME(client_id))
     client.Set(client.Schema.SYSTEM("Darwin"))
@@ -206,8 +217,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
   def testEndToEndTests(self):
 
-    self.client_ids = ["aff4:/C.6000000000000000",
-                       "aff4:/C.6000000000000001",
+    self.client_ids = ["aff4:/C.6000000000000000", "aff4:/C.6000000000000001",
                        "aff4:/C.6000000000000002"]
     for clientid in self.client_ids:
       self._SetSummaries(clientid)
@@ -215,32 +225,36 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     self.client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
     with test_lib.ConfigOverrider({
-        "Test.end_to_end_client_ids": self.client_ids}):
-      with utils.MultiStubber((base.AutomatedTest, "classes",
-                               {"MockEndToEndTest":
-                                endtoend_test.MockEndToEndTest}),
-                              (system.EndToEndTests, "lifetime", 0)):
+        "Test.end_to_end_client_ids": self.client_ids
+    }):
+      with utils.MultiStubber(
+          (base.AutomatedTest, "classes",
+           {"MockEndToEndTest": endtoend_test.MockEndToEndTest}),
+          (system.EndToEndTests, "lifetime", 0)):
 
         # The test harness doesn't understand the callstate at a later time that
         # this flow is doing, so we need to disable check_flow_errors.
-        for _ in test_lib.TestFlowHelper("EndToEndTests", self.client_mock,
+        for _ in test_lib.TestFlowHelper("EndToEndTests",
+                                         self.client_mock,
                                          client_id=self.client_id,
                                          check_flow_errors=False,
                                          token=self.token):
           pass
 
-      test_lib.TestHuntHelperWithMultipleMocks({}, check_flow_errors=False,
-                                               token=self.token)
+      test_lib.TestHuntHelperWithMultipleMocks(
+          {}, check_flow_errors=False,
+          token=self.token)
       hunt_ids = list(aff4.FACTORY.Open("aff4:/hunts",
                                         token=self.token).ListChildren())
       # We have only created one hunt, and we should have started with a clean
       # aff4 space.
       self.assertEqual(len(hunt_ids), 1)
 
-      hunt_obj = aff4.FACTORY.Open(hunt_ids[0], token=self.token,
+      hunt_obj = aff4.FACTORY.Open(hunt_ids[0],
+                                   token=self.token,
                                    age=aff4.ALL_TIMES)
-      self.assertItemsEqual(sorted(hunt_obj.GetClients()),
-                            sorted(self.client_ids))
+      self.assertItemsEqual(
+          sorted(hunt_obj.GetClients()), sorted(self.client_ids))
 
   def _CreateResult(self, success, clientid):
     success = endtoend_flows.EndToEndTestResult(success=success)
@@ -248,8 +262,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
   def testEndToEndTestsResultChecking(self):
 
-    self.client_ids = ["aff4:/C.6000000000000000",
-                       "aff4:/C.6000000000000001",
+    self.client_ids = ["aff4:/C.6000000000000000", "aff4:/C.6000000000000001",
                        "aff4:/C.6000000000000002"]
     for clientid in self.client_ids:
       self._SetSummaries(clientid)
@@ -268,23 +281,21 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     # Not enough client results
     endtoend.state.Register("client_ids_failures", set())
     endtoend.state.Register("client_ids_result_reported", set())
-    self.assertRaises(flow.FlowError,
-                      endtoend._CheckForSuccess,
+    self.assertRaises(flow.FlowError, endtoend._CheckForSuccess,
                       [self._CreateResult(True, "aff4:/C.6000000000000001")])
 
     # All clients succeeded
     endtoend.state.Register("client_ids_failures", set())
     endtoend.state.Register("client_ids_result_reported", set())
-    endtoend._CheckForSuccess(
-        [self._CreateResult(True, "aff4:/C.6000000000000000"),
-         self._CreateResult(True, "aff4:/C.6000000000000001"),
-         self._CreateResult(True, "aff4:/C.6000000000000002")])
+    endtoend._CheckForSuccess([self._CreateResult(
+        True, "aff4:/C.6000000000000000"), self._CreateResult(
+            True, "aff4:/C.6000000000000001"), self._CreateResult(
+                True, "aff4:/C.6000000000000002")])
 
     # All clients complete, but some failures
     endtoend.state.Register("client_ids_failures", set())
     endtoend.state.Register("client_ids_result_reported", set())
-    self.assertRaises(flow.FlowError,
-                      endtoend._CheckForSuccess,
+    self.assertRaises(flow.FlowError, endtoend._CheckForSuccess,
                       [self._CreateResult(True, "aff4:/C.6000000000000000"),
                        self._CreateResult(False, "aff4:/C.6000000000000001"),
                        self._CreateResult(False, "aff4:/C.6000000000000002")])
@@ -293,6 +304,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

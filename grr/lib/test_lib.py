@@ -2,7 +2,6 @@
 """A library for tests."""
 
 
-
 import codecs
 import datetime
 import email
@@ -108,8 +107,8 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import tests_pb2
 
-
-flags.DEFINE_list("tests", None,
+flags.DEFINE_list("tests",
+                  None,
                   help=("Test module to run. If not specified we run"
                         "All modules in the test suite."))
 flags.DEFINE_list("labels", ["small"],
@@ -152,8 +151,7 @@ class FlowOrderTest(flow.GRRFlow):
 
   @flow.StateHandler(next_state="Incoming")
   def Start(self, unused_message=None):
-    self.CallClient("Test", data="test",
-                    next_state="Incoming")
+    self.CallClient("Test", data="test", next_state="Incoming")
 
   @flow.StateHandler(auth_required=True)
   def Incoming(self, responses):
@@ -327,16 +325,16 @@ class GRRBaseTest(unittest.TestCase):
     # Make a temporary directory for test files.
     self.temp_dir = tempfile.mkdtemp(dir=tmpdir)
 
-    config_lib.CONFIG.SetWriteBack(
-        os.path.join(self.temp_dir, "writeback.yaml"))
+    config_lib.CONFIG.SetWriteBack(os.path.join(self.temp_dir,
+                                                "writeback.yaml"))
 
     if self.install_mock_acl:
       # Enforce checking that security tokens are propagated to the data store
       # but no actual ACLs.
       data_store.DB.security_manager = MockSecurityManager()
 
-    logging.info("Starting test: %s.%s",
-                 self.__class__.__name__, self._testMethodName)
+    logging.info("Starting test: %s.%s", self.__class__.__name__,
+                 self._testMethodName)
     self.last_start_time = time.time()
 
     try:
@@ -373,9 +371,8 @@ class GRRBaseTest(unittest.TestCase):
     self.nanny_stubber.Stop()
     self.mail_stubber.Stop()
 
-    logging.info("Completed test: %s.%s (%.4fs)",
-                 self.__class__.__name__, self._testMethodName,
-                 time.time() - self.last_start_time)
+    logging.info("Completed test: %s.%s (%.4fs)", self.__class__.__name__,
+                 self._testMethodName, time.time() - self.last_start_time)
 
     # This may fail on filesystems which do not support unicode filenames.
     try:
@@ -388,8 +385,8 @@ class GRRBaseTest(unittest.TestCase):
     doc = doc.split("\n")[0].strip()
     # Write the suite and test name so it can be easily copied into the --tests
     # parameter.
-    return "\n%s.%s - %s\n" % (
-        self.__class__.__name__, self._testMethodName, doc)
+    return "\n%s.%s - %s\n" % (self.__class__.__name__, self._testMethodName,
+                               doc)
 
   def _AssertRDFValuesEqual(self, x, y):
     x_has_lsf = hasattr(x, "ListSetFields")
@@ -428,7 +425,8 @@ class GRRBaseTest(unittest.TestCase):
     Args:
       result: The testResult object that we will use.
     """
-    if result is None: result = self.defaultTestResult()
+    if result is None:
+      result = self.defaultTestResult()
     result.startTest(self)
     testMethod = getattr(  # pylint: disable=g-bad-name
         self, self._testMethodName)
@@ -489,7 +487,8 @@ class GRRBaseTest(unittest.TestCase):
 
   def CreateUser(self, username):
     """Creates a user."""
-    user = aff4.FACTORY.Create("aff4:/users/%s" % username, users.GRRUser,
+    user = aff4.FACTORY.Create("aff4:/users/%s" % username,
+                               users.GRRUser,
                                token=self.token.SetUID())
     user.Flush()
     return user
@@ -508,7 +507,10 @@ class GRRBaseTest(unittest.TestCase):
                            approver=approver,
                            token=token)
 
-  def GrantClientApproval(self, client_id, delegate, reason="testing",
+  def GrantClientApproval(self,
+                          client_id,
+                          delegate,
+                          reason="testing",
                           approver="approver"):
     """Grant an approval from approver to delegate.
 
@@ -528,11 +530,15 @@ class GRRBaseTest(unittest.TestCase):
                            subject_urn=rdf_client.ClientURN(client_id),
                            token=approver_token)
 
-  def RequestAndGrantClientApproval(self, client_id, token=None,
+  def RequestAndGrantClientApproval(self,
+                                    client_id,
+                                    token=None,
                                     approver="approver"):
     token = token or self.token
     self.RequestClientApproval(client_id, token=token, approver=approver)
-    self.GrantClientApproval(client_id, token.username, reason=token.reason,
+    self.GrantClientApproval(client_id,
+                             token.username,
+                             reason=token.reason,
                              approver=approver)
 
   def GrantHuntApproval(self, hunt_urn, token=None):
@@ -577,18 +583,19 @@ class GRRBaseTest(unittest.TestCase):
     client_ids = []
     with aff4.FACTORY.Create(client_index.MAIN_INDEX,
                              aff4_type=client_index.ClientIndex,
-                             mode="rw", token=self.token) as index:
+                             mode="rw",
+                             token=self.token) as index:
 
       for i in range(nr_clients):
         client_id = rdf_client.ClientURN("C.1%015d" % i)
         client_ids.append(client_id)
 
-        with aff4.FACTORY.Create(client_id, aff4_grr.VFSGRRClient,
+        with aff4.FACTORY.Create(client_id,
+                                 aff4_grr.VFSGRRClient,
                                  mode="rw",
                                  token=self.token) as fd:
-          cert = rdf_crypto.RDFX509Cert(
-              self.ClientCertFromPrivateKey(
-                  config_lib.CONFIG["Client.private_key"]).as_pem())
+          cert = rdf_crypto.RDFX509Cert(self.ClientCertFromPrivateKey(
+              config_lib.CONFIG["Client.private_key"]).as_pem())
           fd.Set(fd.Schema.CERT, cert)
 
           info = fd.Schema.CLIENT_INFO()
@@ -597,8 +604,8 @@ class GRRBaseTest(unittest.TestCase):
           fd.Set(fd.Schema.PING, rdfvalue.RDFDatetime().Now())
           fd.Set(fd.Schema.HOSTNAME("Host-%s" % i))
           fd.Set(fd.Schema.FQDN("Host-%s.example.com" % i))
-          fd.Set(
-              fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" % (i, i)))
+          fd.Set(fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" % (i, i
+                                                                          )))
           fd.Set(fd.Schema.HOST_IPS("192.168.0.%d\n2001:abcd::%x" % (i, i)))
 
           if system:
@@ -625,13 +632,17 @@ class GRRBaseTest(unittest.TestCase):
     communicator = comms.ClientCommunicator(private_key=private_key)
     csr = communicator.GetCSR()
     request = X509.load_request_string(csr)
-    flow_obj = aff4.FACTORY.Create(None, ca_enroller.CAEnroler,
+    flow_obj = aff4.FACTORY.Create(None,
+                                   ca_enroller.CAEnroler,
                                    token=self.token)
     subject = request.get_subject()
     cn = rdf_client.ClientURN(subject.as_text().split("=")[-1])
     return flow_obj.MakeCert(cn, request)
 
-  def _SendNotification(self, notification_type, subject, message,
+  def _SendNotification(self,
+                        notification_type,
+                        subject,
+                        message,
                         client_id="aff4:/C.0000000000000001"):
     """Sends a notification to the current user."""
     session_id = flow.GRRFlow.StartFlow(
@@ -639,8 +650,7 @@ class GRRBaseTest(unittest.TestCase):
         flow_name=discovery.Interrogate.__name__,
         token=self.token)
 
-    with aff4.FACTORY.Open(session_id,
-                           mode="rw", token=self.token) as flow_obj:
+    with aff4.FACTORY.Open(session_id, mode="rw", token=self.token) as flow_obj:
       flow_obj.Notify(notification_type, subject, message)
 
 
@@ -649,13 +659,17 @@ class EmptyActionTest(GRRBaseTest):
 
   __metaclass__ = registry.MetaclassRegistry
 
-  def RunAction(self, action_name, arg=None, grr_worker=None,
+  def RunAction(self,
+                action_name,
+                arg=None,
+                grr_worker=None,
                 action_worker_cls=None):
     if arg is None:
       arg = rdf_flows.GrrMessage()
 
     self.results = []
-    action = self._GetActionInstance(action_name, arg=arg,
+    action = self._GetActionInstance(action_name,
+                                     arg=arg,
                                      grr_worker=grr_worker,
                                      action_worker_cls=action_worker_cls)
 
@@ -665,13 +679,18 @@ class EmptyActionTest(GRRBaseTest):
 
     return self.results
 
-  def ExecuteAction(self, action_name, arg=None, grr_worker=None,
+  def ExecuteAction(self,
+                    action_name,
+                    arg=None,
+                    grr_worker=None,
                     action_worker_cls=None):
-    message = rdf_flows.GrrMessage(name=action_name, payload=arg,
+    message = rdf_flows.GrrMessage(name=action_name,
+                                   payload=arg,
                                    auth_state="AUTHENTICATED")
 
     self.results = []
-    action = self._GetActionInstance(action_name, arg=arg,
+    action = self._GetActionInstance(action_name,
+                                     arg=arg,
                                      grr_worker=grr_worker,
                                      action_worker_cls=action_worker_cls)
 
@@ -679,7 +698,10 @@ class EmptyActionTest(GRRBaseTest):
 
     return self.results
 
-  def _GetActionInstance(self, action_name, arg=None, grr_worker=None,
+  def _GetActionInstance(self,
+                         action_name,
+                         arg=None,
+                         grr_worker=None,
                          action_worker_cls=None):
     """Run an action and generate responses.
 
@@ -695,6 +717,7 @@ class EmptyActionTest(GRRBaseTest):
     Returns:
       A list of response protobufs.
     """
+
     # A mock SendReply() method to collect replies.
     def MockSendReply(mock_self, reply=None, **kwargs):
       if reply is None:
@@ -733,13 +756,15 @@ class FlowTestsBaseclass(GRRBaseTest):
 
   def FlowSetup(self, name):
     session_id = flow.GRRFlow.StartFlow(client_id=self.client_id,
-                                        flow_name=name, token=self.token)
+                                        flow_name=name,
+                                        token=self.token)
 
     return aff4.FACTORY.Open(session_id, mode="rw", token=self.token)
 
 
 def SeleniumAction(f):
   """Decorator to do multiple attempts in case of WebDriverException."""
+
   @functools.wraps(f)
   def Decorator(*args, **kwargs):
     delay = 0.2
@@ -990,10 +1015,9 @@ class GRRSeleniumTest(GRRBaseTest):
     self.acl_manager = ACLChecksEnabledContextManager()
     self.acl_manager.Start()
 
-    self.config_override = ConfigOverrider(
-        {"API.DefaultRouter":
-         api_call_router_with_approval_checks.
-         ApiCallRouterWithApprovalChecksWithRobotAccess.__name__})
+    self.config_override = ConfigOverrider({"API.DefaultRouter":
+        api_call_router_with_approval_checks.
+        ApiCallRouterWithApprovalChecksWithRobotAccess.__name__})
     self.config_override.Start()
     # Make sure ApiAuthManager is initialized with this configuration setting.
     api_auth_manager.APIACLInit.InitApiAuthManager()
@@ -1164,8 +1188,8 @@ class GRRSeleniumTest(GRRBaseTest):
     return element and element.is_displayed()
 
   def FileWasDownloaded(self):
-    new_count = stats.STATS.GetMetricValue(
-        "ui_renderer_latency", fields=["DownloadView"]).count
+    new_count = stats.STATS.GetMetricValue("ui_renderer_latency",
+                                           fields=["DownloadView"]).count
 
     result = (new_count - self.prev_download_count) > 0
     self.prev_download_count = new_count
@@ -1184,8 +1208,7 @@ class GRRSeleniumTest(GRRBaseTest):
 
   def IsUserNotificationPresent(self, contains_string):
     self.Click("css=#notification_button")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-user-notification-dialog")
+    self.WaitUntil(self.IsElementPresent, "css=grr-user-notification-dialog")
     self.WaitUntilNot(self.IsElementPresent,
                       "css=grr-user-notification-dialog:contains('Loading...')")
 
@@ -1313,7 +1336,9 @@ class GRRSeleniumTest(GRRBaseTest):
 
     # Make the user use the advanced gui so we can test it.
     with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users/test"), aff4_type=users.GRRUser, mode="w",
+        aff4.ROOT_URN.Add("users/test"),
+        aff4_type=users.GRRUser,
+        mode="w",
         token=self.token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS(mode="ADVANCED"))
 
@@ -1322,8 +1347,8 @@ class GRRSeleniumTest(GRRBaseTest):
 
     # Clean artifacts sources.
     artifact_registry.REGISTRY.ClearSources()
-    artifact_registry.REGISTRY.AddDatastoreSources(
-        [aff4.ROOT_URN.Add("artifact_store")])
+    artifact_registry.REGISTRY.AddDatastoreSources([aff4.ROOT_URN.Add(
+        "artifact_store")])
 
     self.InstallACLChecks()
 
@@ -1361,8 +1386,8 @@ class MicroBenchmarks(GRRBaseTest):
     self.scratchpad_fmt = " ".join([("{%d:%s}" % (ind, x))
                                     for ind, x in enumerate(initial_fmt)])
     # We use this to store temporary benchmark results.
-    self.scratchpad = [scratchpad_fields,
-                       ["-" * len(x) for x in scratchpad_fields]]
+    self.scratchpad = [scratchpad_fields, ["-" * len(x)
+                                           for x in scratchpad_fields]]
 
   def tearDown(self):
     super(MicroBenchmarks, self).tearDown()
@@ -1386,8 +1411,7 @@ class MicroBenchmarks(GRRBaseTest):
 
   def AddResult(self, name, time_taken, repetitions, *extra_values):
     logging.info("%s: %s (%s)", name, time_taken, repetitions)
-    self.scratchpad.append([name, time_taken, repetitions] +
-                           list(extra_values))
+    self.scratchpad.append([name, time_taken, repetitions] + list(extra_values))
 
 
 class AverageMicroBenchmarks(MicroBenchmarks):
@@ -1451,7 +1475,8 @@ class GRRTestLoader(unittest.TestLoader):
     """Just return all the tests as if they were in the same module."""
     test_cases = [
         self.loadTestsFromTestCase(x) for x in self.base_class.classes.values()
-        if issubclass(x, self.base_class)]
+        if issubclass(x, self.base_class)
+    ]
 
     return self.suiteClass(test_cases)
 
@@ -1486,8 +1511,8 @@ class MockClient(object):
     if client_mock is None:
       client_mock = action_mocks.InvalidActionMock()
 
-    self.status_message_enforced = getattr(
-        client_mock, "STATUS_MESSAGE_ENFORCED", True)
+    self.status_message_enforced = getattr(client_mock,
+                                           "STATUS_MESSAGE_ENFORCED", True)
     self.client_id = client_id
     self.client_mock = client_mock
     self.token = token
@@ -1561,22 +1586,28 @@ class MockClient(object):
         for response in responses:
           if isinstance(response, rdf_flows.GrrStatus):
             msg_type = rdf_flows.GrrMessage.Type.STATUS
-            response = rdf_flows.GrrMessage(
-                session_id=message.session_id, name=message.name,
-                response_id=response_id, request_id=message.request_id,
-                payload=response, type=msg_type)
+            response = rdf_flows.GrrMessage(session_id=message.session_id,
+                                            name=message.name,
+                                            response_id=response_id,
+                                            request_id=message.request_id,
+                                            payload=response,
+                                            type=msg_type)
           elif isinstance(response, rdf_client.Iterator):
             msg_type = rdf_flows.GrrMessage.Type.ITERATOR
-            response = rdf_flows.GrrMessage(
-                session_id=message.session_id, name=message.name,
-                response_id=response_id, request_id=message.request_id,
-                payload=response, type=msg_type)
+            response = rdf_flows.GrrMessage(session_id=message.session_id,
+                                            name=message.name,
+                                            response_id=response_id,
+                                            request_id=message.request_id,
+                                            payload=response,
+                                            type=msg_type)
           elif not isinstance(response, rdf_flows.GrrMessage):
             msg_type = rdf_flows.GrrMessage.Type.MESSAGE
-            response = rdf_flows.GrrMessage(
-                session_id=message.session_id, name=message.name,
-                response_id=response_id, request_id=message.request_id,
-                payload=response, type=msg_type)
+            response = rdf_flows.GrrMessage(session_id=message.session_id,
+                                            name=message.name,
+                                            response_id=response_id,
+                                            request_id=message.request_id,
+                                            payload=response,
+                                            type=msg_type)
 
           # Next expected response
           response_id = response.response_id + 1
@@ -1584,7 +1615,9 @@ class MockClient(object):
 
         # Status may only be None if the client reported itself as crashed.
         if status is not None:
-          self.PushToStateQueue(manager, message, response_id=response_id,
+          self.PushToStateQueue(manager,
+                                message,
+                                response_id=response_id,
                                 payload=status,
                                 type=rdf_flows.GrrMessage.Type.STATUS)
         else:
@@ -1627,8 +1660,10 @@ class MockWorker(worker.GRRWorker):
   SYSTEM_CPU = [0]
   NETWORK_BYTES = [0]
 
-  def __init__(self, queues=queue_config.WORKER_LIST,
-               check_flow_errors=True, token=None):
+  def __init__(self,
+               queues=queue_config.WORKER_LIST,
+               check_flow_errors=True,
+               token=None):
     self.queues = queues
     self.check_flow_errors = check_flow_errors
     self.token = token
@@ -1683,8 +1718,9 @@ class MockWorker(worker.GRRWorker):
             well_known_flow.ProcessResponses(responses, self.pool)
             continue
 
-          with aff4.FACTORY.OpenWithLock(
-              session_id, token=self.token, blocking=False) as flow_obj:
+          with aff4.FACTORY.OpenWithLock(session_id,
+                                         token=self.token,
+                                         blocking=False) as flow_obj:
 
             # Run it
             runner = flow_obj.GetRunner()
@@ -1738,7 +1774,9 @@ def CheckFlowErrors(total_flows, token=None):
   # Check that all the flows are complete.
   for session_id in total_flows:
     try:
-      flow_obj = aff4.FACTORY.Open(session_id, aff4_type=flow.GRRFlow, mode="r",
+      flow_obj = aff4.FACTORY.Open(session_id,
+                                   aff4_type=flow.GRRFlow,
+                                   mode="r",
                                    token=token)
     except IOError:
       continue
@@ -1746,14 +1784,19 @@ def CheckFlowErrors(total_flows, token=None):
     if flow_obj.state.context.state != rdf_flows.Flow.State.TERMINATED:
       if flags.FLAGS.debug:
         pdb.set_trace()
-      raise RuntimeError("Flow %s completed in state %s" % (
-          flow_obj.state.context.args.flow_name,
-          flow_obj.state.context.state))
+      raise RuntimeError("Flow %s completed in state %s" %
+                         (flow_obj.state.context.args.flow_name,
+                          flow_obj.state.context.state))
 
 
-def TestFlowHelper(flow_urn_or_cls_name, client_mock=None, client_id=None,
-                   check_flow_errors=True, token=None, notification_event=None,
-                   sync=True, **kwargs):
+def TestFlowHelper(flow_urn_or_cls_name,
+                   client_mock=None,
+                   client_id=None,
+                   check_flow_errors=True,
+                   token=None,
+                   notification_event=None,
+                   sync=True,
+                   **kwargs):
   """Build a full test harness: client - worker + start flow.
 
   Args:
@@ -1782,10 +1825,12 @@ def TestFlowHelper(flow_urn_or_cls_name, client_mock=None, client_id=None,
     session_id = flow_urn_or_cls_name
   else:
     # Instantiate the flow:
-    session_id = flow.GRRFlow.StartFlow(
-        client_id=client_id, flow_name=flow_urn_or_cls_name,
-        notification_event=notification_event, sync=sync,
-        token=token, **kwargs)
+    session_id = flow.GRRFlow.StartFlow(client_id=client_id,
+                                        flow_name=flow_urn_or_cls_name,
+                                        notification_event=notification_event,
+                                        sync=sync,
+                                        token=token,
+                                        **kwargs)
 
   total_flows = set()
   total_flows.add(session_id)
@@ -1826,7 +1871,8 @@ class CrashClientMock(object):
         error_message="Client killed during transaction")
 
     msg = rdf_flows.GrrMessage(
-        request_id=message.request_id, response_id=1,
+        request_id=message.request_id,
+        response_id=1,
         session_id=message.session_id,
         type=rdf_flows.GrrMessage.Type.STATUS,
         payload=status,
@@ -1854,18 +1900,17 @@ class SampleHuntMock(object):
   def _StatFile(self, args):
     req = rdf_client.ListDirRequest(args)
 
-    response = rdf_client.StatEntry(
-        pathspec=req.pathspec,
-        st_mode=33184,
-        st_ino=1063090,
-        st_dev=64512L,
-        st_nlink=1,
-        st_uid=139592,
-        st_gid=5000,
-        st_size=len(self.data),
-        st_atime=1336469177,
-        st_mtime=1336129892,
-        st_ctime=1336129892)
+    response = rdf_client.StatEntry(pathspec=req.pathspec,
+                                    st_mode=33184,
+                                    st_ino=1063090,
+                                    st_dev=64512L,
+                                    st_nlink=1,
+                                    st_uid=139592,
+                                    st_gid=5000,
+                                    st_size=len(self.data),
+                                    st_atime=1336469177,
+                                    st_mtime=1336129892,
+                                    st_ctime=1336129892)
 
     self.responses += 1
     self.count += 1
@@ -1892,8 +1937,10 @@ class SampleHuntMock(object):
     return [response]
 
 
-def TestHuntHelperWithMultipleMocks(client_mocks, check_flow_errors=False,
-                                    token=None, iteration_limit=None):
+def TestHuntHelperWithMultipleMocks(client_mocks,
+                                    check_flow_errors=False,
+                                    token=None,
+                                    iteration_limit=None):
   """Runs a hunt with a given set of clients mocks.
 
   Args:
@@ -1916,10 +1963,11 @@ def TestHuntHelperWithMultipleMocks(client_mocks, check_flow_errors=False,
   # SetUID().
   token = token.SetUID()
 
-  client_mocks = [MockClient(client_id, client_mock, token=token)
-                  for client_id, client_mock in client_mocks.iteritems()]
-  worker_mock = MockWorker(check_flow_errors=check_flow_errors,
-                           token=token)
+  client_mocks = [
+      MockClient(client_id, client_mock, token=token)
+      for client_id, client_mock in client_mocks.iteritems()
+  ]
+  worker_mock = MockWorker(check_flow_errors=check_flow_errors, token=token)
 
   # Run the clients and worker until nothing changes any more.
   while iteration_limit is None or iteration_limit > 0:
@@ -1944,8 +1992,11 @@ def TestHuntHelperWithMultipleMocks(client_mocks, check_flow_errors=False,
     CheckFlowErrors(total_flows, token=token)
 
 
-def TestHuntHelper(client_mock, client_ids, check_flow_errors=False,
-                   token=None, iteration_limit=None):
+def TestHuntHelper(client_mock,
+                   client_ids,
+                   check_flow_errors=False,
+                   token=None,
+                   iteration_limit=None):
   """Runs a hunt with a given client mock on given clients.
 
   Args:
@@ -1964,9 +2015,9 @@ def TestHuntHelper(client_mock, client_ids, check_flow_errors=False,
   """
   TestHuntHelperWithMultipleMocks(
       dict([(client_id, client_mock) for client_id in client_ids]),
-      check_flow_errors=check_flow_errors, iteration_limit=iteration_limit,
+      check_flow_errors=check_flow_errors,
+      iteration_limit=iteration_limit,
       token=token)
-
 
 # Make the fixture appear to be 1 week old.
 FIXTURE_TIME = rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("8d")
@@ -1998,21 +2049,26 @@ def RequiresPackage(package_name):
   Returns:
     Decorator function
   """
+
   def Decorator(test_function):
+
     @functools.wraps(test_function)
     def Wrapper(*args, **kwargs):
       try:
         pkg_resources.get_distribution(package_name)
       except pkg_resources.DistributionNotFound:
-        raise unittest.SkipTest(
-            "Skipping, package %s not installed" % package_name)
+        raise unittest.SkipTest("Skipping, package %s not installed" %
+                                package_name)
       return test_function(*args, **kwargs)
+
     return Wrapper
+
   return Decorator
 
 
 def SetLabel(*labels):
   """Sets a label on a function so we can run tests with different types."""
+
   def Decorator(f):
     # If the method is not already tagged, we replace its label (the default
     # label is "small").
@@ -2032,8 +2088,7 @@ class ClientFixture(object):
   end-to-end aspects (e.g. GUI).
   """
 
-  def __init__(self, client_id, token=None, fixture=None, age=None,
-               **kwargs):
+  def __init__(self, client_id, token=None, fixture=None, age=None, **kwargs):
     """Constructor.
 
     Args:
@@ -2065,9 +2120,11 @@ class ClientFixture(object):
       for path, (aff4_type, attributes) in vfs_fixture:
         path %= self.args
 
-        aff4_object = aff4.FACTORY.Create(self.client_id.Add(path),
-                                          aff4_type, mode="rw",
-                                          token=self.token)
+        aff4_object = aff4.FACTORY.Create(
+            self.client_id.Add(path),
+            aff4_type,
+            mode="rw",
+            token=self.token)
 
         for attribute_name, value in attributes.items():
           attribute = aff4.Attribute.PREDICATES[attribute_name]
@@ -2106,8 +2163,7 @@ class ClientFixture(object):
                 pathspec_attribute = aff4.Attribute(
                     "aff4:pathspec", rdf_paths.PathSpec,
                     "The pathspec used to retrieve "
-                    "this object from the client.",
-                    "pathspec")
+                    "this object from the client.", "pathspec")
                 aff4_object.AddAttribute(pathspec_attribute,
                                          stat_object.pathspec)
 
@@ -2171,10 +2227,16 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
   # Everything below this prefix is emulated
   prefix = "/fs/os"
 
-  def __init__(self, base_fd=None, prefix=None, pathspec=None,
-               progress_callback=None, full_pathspec=None):
+  def __init__(self,
+               base_fd=None,
+               prefix=None,
+               pathspec=None,
+               progress_callback=None,
+               full_pathspec=None):
     super(ClientVFSHandlerFixture, self).__init__(
-        base_fd, pathspec=pathspec, progress_callback=progress_callback,
+        base_fd,
+        pathspec=pathspec,
+        progress_callback=progress_callback,
         full_pathspec=full_pathspec)
 
     self.prefix = self.prefix or prefix
@@ -2186,12 +2248,14 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
 
   def PopulateCache(self):
     """Parse the paths from the fixture."""
-    if self.paths: return
+    if self.paths:
+      return
 
     # The cache is attached to the class so it can be shared by all instance.
     self.paths = self.__class__.cache[self.prefix] = {}
     for path, (vfs_type, attributes) in client_fixture.VFS:
-      if not path.startswith(self.prefix): continue
+      if not path.startswith(self.prefix):
+        continue
 
       path = utils.NormalizePath(path[len(self.prefix):])
       if path == "/":
@@ -2247,7 +2311,8 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
         new_pathspec.path = os.path.dirname(pathspec.path)
         pathspec = new_pathspec
 
-        if dirname == "/" or dirname in self.paths: break
+        if dirname == "/" or dirname in self.paths:
+          break
 
         self.paths[dirname] = (aff4_standard.VFSDirectory,
                                rdf_client.StatEntry(st_mode=16877,
@@ -2313,10 +2378,16 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
   prefix = "/fs/os"
   supported_pathtype = rdf_paths.PathSpec.PathType.OS
 
-  def __init__(self, base_fd=None, prefix=None, pathspec=None,
-               progress_callback=None, full_pathspec=None):
+  def __init__(self,
+               base_fd=None,
+               prefix=None,
+               pathspec=None,
+               progress_callback=None,
+               full_pathspec=None):
     super(FakeTestDataVFSHandler, self).__init__(
-        base_fd, pathspec=pathspec, progress_callback=progress_callback,
+        base_fd,
+        pathspec=pathspec,
+        progress_callback=progress_callback,
         full_pathspec=full_pathspec)
     # This should not really be done since there might be more information
     # in the pathspec than the path but here in the test is ok.
@@ -2331,8 +2402,8 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
     path = self.path
     if filename:
       path = os.path.join(path, filename)
-    return os.path.join(
-        config_lib.CONFIG["Test.data_dir"], "VFSFixture", path.lstrip("/"))
+    return os.path.join(config_lib.CONFIG["Test.data_dir"], "VFSFixture",
+                        path.lstrip("/"))
 
   def Read(self, length):
     test_data_path = self._AbsPath()
@@ -2398,8 +2469,8 @@ class GrrTestProgram(unittest.TestProgram):
       raise NotImplementedError(
           "Usage of Set() is disabled, please use a configoverrider in tests.")
 
-    self.config_set_disable = utils.Stubber(
-        config_lib.CONFIG, "Set", DisabledSet)
+    self.config_set_disable = utils.Stubber(config_lib.CONFIG, "Set",
+                                            DisabledSet)
     self.config_set_disable.Start()
 
   def tearDown(self):
@@ -2435,7 +2506,8 @@ class RemotePDB(pdb.Pdb):
     if RemotePDB.handle is None:
       self.ListenForConnection()
 
-    pdb.Pdb.__init__(self, stdin=self.handle,
+    pdb.Pdb.__init__(self,
+                     stdin=self.handle,
                      stdout=codecs.getwriter("utf8")(self.handle))
 
   def ListenForConnection(self):
@@ -2465,9 +2537,9 @@ class TestRekallRepositoryProfileServer(rekall_profile_server.ProfileServer):
 
   def GetProfileByName(self, profile_name, version="v1.0"):
     try:
-      profile_data = open(os.path.join(
-          config_lib.CONFIG["Test.data_dir"], "profiles", version,
-          profile_name + ".gz"), "rb").read()
+      profile_data = open(
+          os.path.join(config_lib.CONFIG["Test.data_dir"], "profiles", version,
+                       profile_name + ".gz"), "rb").read()
 
       self.profiles_served += 1
 
@@ -2499,7 +2571,10 @@ class OSSpecificClientTests(EmptyActionTest):
     self.binary_command_stubber.Stop()
 
 
-def WriteComponent(name="grr-rekall", version="0.3", modules=None, token=None,
+def WriteComponent(name="grr-rekall",
+                   version="0.3",
+                   modules=None,
+                   token=None,
                    raw_data=""):
   """Create a fake component."""
   components_base = "grr.client.components.rekall_support."
@@ -2543,10 +2618,11 @@ class CanaryModeOverrider(object):
   def Start(self):
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type=users.GRRUser, mode="rw", token=self.token) as user:
+        aff4_type=users.GRRUser,
+        mode="rw",
+        token=self.token) as user:
       # Save original canary mode to reset it later.
-      self.original_canary_mode = user.Get(
-          user.Schema.GUI_SETTINGS).canary_mode
+      self.original_canary_mode = user.Get(user.Schema.GUI_SETTINGS).canary_mode
 
       # Set new canary mode.
       user.Set(user.Schema.GUI_SETTINGS(canary_mode=self.target_canary_mode))
@@ -2557,10 +2633,11 @@ class CanaryModeOverrider(object):
   def Stop(self):
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type=users.GRRUser, mode="w", token=self.token) as user:
+        aff4_type=users.GRRUser,
+        mode="w",
+        token=self.token) as user:
       # Reset canary mode to original value.
-      user.Set(user.Schema.GUI_SETTINGS(
-          canary_mode=self.original_canary_mode))
+      user.Set(user.Schema.GUI_SETTINGS(canary_mode=self.original_canary_mode))
 
 
 def main(argv=None):

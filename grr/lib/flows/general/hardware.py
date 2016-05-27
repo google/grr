@@ -27,7 +27,8 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
   @flow.StateHandler(next_state="ComponentLoaded")
   def Start(self):
     """Load grr_chipsec component on the client."""
-    self.LoadComponentOnClient(name="grr-chipsec", version="0.1",
+    self.LoadComponentOnClient(name="grr-chipsec",
+                               version="0.1",
                                next_state="CollectDebugInfo")
 
   @flow.StateHandler(next_state=["DumpImage"])
@@ -41,7 +42,8 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
   @flow.StateHandler(next_state=["CollectImage"])
   def DumpImage(self, responses):
     """Intiate the dumping of the flash image."""
-    self.CallClient("DumpFlashImage", log_level=self.args.log_level,
+    self.CallClient("DumpFlashImage",
+                    log_level=self.args.log_level,
                     chunk_size=self.args.chunk_size,
                     notify_syslog=self.args.notify_syslog,
                     next_state="CollectImage")
@@ -63,7 +65,8 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
       self.CallState(next_state="End")
     else:
       self.state.Register("image_path", responses.First().path)
-      self.CallFlow("MultiGetFile", pathspecs=[self.state.image_path,],
+      self.CallFlow("MultiGetFile",
+                    pathspecs=[self.state.image_path,],
                     next_state="DeleteTemporaryImage")
 
   @flow.StateHandler(next_state=["TemporaryImageRemoved"])
@@ -77,12 +80,15 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
     self.SendReply(response)
 
     # Update the symbolic link to the new instance.
-    with aff4.FACTORY.Create(self.client_id.Add("spiflash"), aff4.AFF4Symlink,
-                             token=self.token) as symlink:
+    with aff4.FACTORY.Create(
+        self.client_id.Add("spiflash"),
+        aff4.AFF4Symlink,
+        token=self.token) as symlink:
       symlink.Set(symlink.Schema.SYMLINK_TARGET, response.aff4path)
 
     # Clean up the temporary image from the client.
-    self.CallClient("DeleteGRRTempFiles", self.state.image_path,
+    self.CallClient("DeleteGRRTempFiles",
+                    self.state.image_path,
                     next_state="TemporaryImageRemoved")
 
   @flow.StateHandler(next_state=["End"])

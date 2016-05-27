@@ -22,12 +22,10 @@ def YamlDumper(aff4object):
       result[attribute.predicate].append(
           [value.__class__.__name__, value.SerializeToString(), str(value.age)])
 
-  return yaml.dump(dict(
-      aff4_class=aff4object.__class__.__name__,
-      _urn=aff4object.urn.SerializeToString(),
-      attributes=result,
-      age_policy=aff4object.age_policy,
-  ))
+  return yaml.dump(dict(aff4_class=aff4object.__class__.__name__,
+                        _urn=aff4object.urn.SerializeToString(),
+                        attributes=result,
+                        age_policy=aff4object.age_policy,))
 
 
 def YamlLoader(string):
@@ -47,7 +45,8 @@ def YamlLoader(string):
   # Ensure the object is dirty so when we save it, it can be written to the data
   # store.
   result = result_cls(urn=representation["_urn"],
-                      clone=aff4_attributes, mode="rw",
+                      clone=aff4_attributes,
+                      mode="rw",
                       age=representation["age_policy"])
 
   result.new_attributes, result.synced_attributes = result.synced_attributes, {}

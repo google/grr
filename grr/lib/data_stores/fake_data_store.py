@@ -17,7 +17,9 @@ class FakeTransaction(data_store.CommonTransaction):
 
   def __init__(self, store, subject, lease_time=None, token=None):
     subject = utils.SmartUnicode(subject)
-    super(FakeTransaction, self).__init__(store, subject, lease_time=lease_time,
+    super(FakeTransaction, self).__init__(store,
+                                          subject,
+                                          lease_time=lease_time,
                                           token=token)
     self.locked = False
     if lease_time is None:
@@ -113,8 +115,14 @@ class FakeDataStore(data_store.DataStore):
     return FakeTransaction(self, subject, lease_time=lease_time, token=token)
 
   @utils.Synchronized
-  def Set(self, subject, attribute, value, timestamp=None, token=None,
-          replace=True, sync=True):
+  def Set(self,
+          subject,
+          attribute,
+          value,
+          timestamp=None,
+          token=None,
+          replace=True,
+          sync=True):
     """Set the value into the data store."""
     subject = utils.SmartUnicode(subject)
 
@@ -137,8 +145,14 @@ class FakeDataStore(data_store.DataStore):
     self.subjects[subject][attribute].sort(key=lambda x: x[1])
 
   @utils.Synchronized
-  def MultiSet(self, subject, values, timestamp=None, token=None,
-               replace=True, sync=True, to_delete=None):
+  def MultiSet(self,
+               subject,
+               values,
+               timestamp=None,
+               token=None,
+               replace=True,
+               sync=True,
+               to_delete=None):
     subject = utils.SmartUnicode(subject)
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
@@ -152,12 +166,22 @@ class FakeDataStore(data_store.DataStore):
         else:
           element_timestamp = timestamp
 
-        self.Set(subject, k, v, timestamp=element_timestamp, token=token,
-                 replace=replace, sync=sync)
+        self.Set(subject,
+                 k,
+                 v,
+                 timestamp=element_timestamp,
+                 token=token,
+                 replace=replace,
+                 sync=sync)
 
   @utils.Synchronized
-  def DeleteAttributes(self, subject, attributes, start=None, end=None,
-                       token=None, sync=None):
+  def DeleteAttributes(self,
+                       subject,
+                       attributes,
+                       start=None,
+                       end=None,
+                       token=None,
+                       sync=None):
     _ = sync  # Unimplemented.
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
@@ -175,7 +199,7 @@ class FakeDataStore(data_store.DataStore):
 
         start = start or 0
         if end is None:
-          end = (2 ** 63) - 1  # sys.maxint
+          end = (2**63) - 1  # sys.maxint
         new_values = []
         for value, timestamp in values:
           if not start <= timestamp <= end:
@@ -204,8 +228,7 @@ class FakeDataStore(data_store.DataStore):
       subject_prefix += "/"
     if after_urn:
       after_urn = utils.SmartUnicode(after_urn)
-    self.security_manager.CheckDataStoreAccess(token, [subject_prefix],
-                                               "qr")
+    self.security_manager.CheckDataStoreAccess(token, [subject_prefix], "qr")
     subjects = []
     for s in self.subjects.keys():
       if s.startswith(subject_prefix) and s > after_urn:
@@ -228,7 +251,11 @@ class FakeDataStore(data_store.DataStore):
         yield (s, results)
 
   @utils.Synchronized
-  def ResolveMulti(self, subject, attributes, timestamp=None, limit=None,
+  def ResolveMulti(self,
+                   subject,
+                   attributes,
+                   timestamp=None,
+                   limit=None,
                    token=None):
     subject = utils.SmartUnicode(subject)
     self.security_manager.CheckDataStoreAccess(
@@ -276,8 +303,10 @@ class FakeDataStore(data_store.DataStore):
     for attribute in attributes:
       # This returns triples of (attribute_name, timestamp, data). We want to
       # sort by timestamp.
-      for _, ts, data in sorted(results.get(attribute, []), key=lambda x: x[1],
-                                reverse=True):
+      for _, ts, data in sorted(
+          results.get(attribute, []),
+          key=lambda x: x[1],
+          reverse=True):
         if remaining_limit:
           remaining_limit -= 1
           if remaining_limit == 0:
@@ -287,8 +316,12 @@ class FakeDataStore(data_store.DataStore):
         yield (attribute, data, ts)
 
   @utils.Synchronized
-  def MultiResolvePrefix(self, subjects, attribute_prefix, token=None,
-                         timestamp=None, limit=None):
+  def MultiResolvePrefix(self,
+                         subjects,
+                         attribute_prefix,
+                         token=None,
+                         timestamp=None,
+                         limit=None):
     required_access = self.GetRequiredResolveAccess(attribute_prefix)
 
     result = {}
@@ -296,11 +329,13 @@ class FakeDataStore(data_store.DataStore):
       s = utils.SmartUnicode(subject)
 
       # If any of the subjects is forbidden we fail the entire request.
-      self.security_manager.CheckDataStoreAccess(token, [s],
-                                                 required_access)
+      self.security_manager.CheckDataStoreAccess(token, [s], required_access)
 
-      values = self.ResolvePrefix(subject, attribute_prefix, token=token,
-                                  timestamp=timestamp, limit=limit)
+      values = self.ResolvePrefix(subject,
+                                  attribute_prefix,
+                                  token=token,
+                                  timestamp=timestamp,
+                                  limit=limit)
 
       if not values:
         continue
@@ -318,8 +353,12 @@ class FakeDataStore(data_store.DataStore):
     return result.iteritems()
 
   @utils.Synchronized
-  def ResolvePrefix(self, subject, attribute_prefix, token=None,
-                    timestamp=None, limit=None):
+  def ResolvePrefix(self,
+                    subject,
+                    attribute_prefix,
+                    token=None,
+                    timestamp=None,
+                    limit=None):
     """Resolve all attributes for a subject starting with a prefix."""
     subject = utils.SmartUnicode(subject)
 
@@ -327,7 +366,7 @@ class FakeDataStore(data_store.DataStore):
         token, [subject], self.GetRequiredResolveAccess(attribute_prefix))
 
     if timestamp in [None, self.NEWEST_TIMESTAMP, self.ALL_TIMESTAMPS]:
-      start, end = 0, (2 ** 63) - 1
+      start, end = 0, (2**63) - 1
     # Does timestamp represent a range?
     elif isinstance(timestamp, (list, tuple)):
       start, end = timestamp  # pylint: disable=unpacking-non-sequence

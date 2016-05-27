@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.lib.authorization.client_approval_auth."""
 
-
 from grr.lib import access_control
 from grr.lib import test_lib
 from grr.lib.authorization import client_approval_auth
@@ -88,8 +87,8 @@ users:
   def testRaisesOnAuthorizedSelfApproval(self):
     self._CreateAuthSingleLabel()
     with self.assertRaises(access_control.UnauthorizedAccess):
-      self.mgr.CheckApproversForLabel(self.token, self.urn, "one",
-                                      ["one"], "label1")
+      self.mgr.CheckApproversForLabel(self.token, self.urn, "one", ["one"],
+                                      "label1")
 
   def testRaisesOnApprovalFromUnauthorized(self):
     self._CreateAuthSingleLabel()
@@ -111,13 +110,13 @@ users:
   def testRaisesOnSelfApprovalByAuthorizedRequester(self):
     self._CreateAuthCheckRequester()
     with self.assertRaises(access_control.UnauthorizedAccess):
-      self.mgr.CheckApproversForLabel(self.token, self.urn, "one",
-                                      ["one"], "label1")
+      self.mgr.CheckApproversForLabel(self.token, self.urn, "one", ["one"],
+                                      "label1")
 
   def testPassesWhenApproverAndRequesterAuthorized(self):
     self._CreateAuthCheckRequester()
-    self.mgr.CheckApproversForLabel(self.token, self.urn, "one",
-                                    ["one", "two"], "label1")
+    self.mgr.CheckApproversForLabel(self.token, self.urn, "one", ["one", "two"],
+                                    "label1")
 
   def testRaisesWhenOnlyOneAuthorizedApprover(self):
     self._CreateAuthMultiApproval()
@@ -129,4 +128,3 @@ users:
     self._CreateAuthMultiApproval()
     self.mgr.CheckApproversForLabel(self.token, self.urn, "one",
                                     ["two", "four"], "label1")
-

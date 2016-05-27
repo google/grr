@@ -60,8 +60,11 @@ class CronManager(object):
 
   CRON_JOBS_PATH = rdfvalue.RDFURN("aff4:/cron")
 
-  def ScheduleFlow(self, cron_args=None,
-                   job_name=None, token=None, disabled=False):
+  def ScheduleFlow(self,
+                   cron_args=None,
+                   job_name=None,
+                   token=None,
+                   disabled=False):
     """Creates a cron job that runs given flow with a given frequency.
 
     Args:
@@ -83,8 +86,11 @@ class CronManager(object):
       job_name = "%s_%s" % (cron_args.flow_runner_args.flow_name, uid)
 
     cron_job_urn = self.CRON_JOBS_PATH.Add(job_name)
-    with aff4.FACTORY.Create(cron_job_urn, aff4_type=CronJob, mode="rw",
-                             token=token, force_new_version=False) as cron_job:
+    with aff4.FACTORY.Create(cron_job_urn,
+                             aff4_type=CronJob,
+                             mode="rw",
+                             token=token,
+                             force_new_version=False) as cron_job:
 
       # If the cronjob was already present we don't want to overwrite the
       # original start_time.
@@ -106,14 +112,18 @@ class CronManager(object):
 
   def EnableJob(self, job_urn, token=None):
     """Enable cron job with the given URN."""
-    cron_job = aff4.FACTORY.Open(job_urn, mode="rw", aff4_type=CronJob,
+    cron_job = aff4.FACTORY.Open(job_urn,
+                                 mode="rw",
+                                 aff4_type=CronJob,
                                  token=token)
     cron_job.Set(cron_job.Schema.DISABLED(0))
     cron_job.Close()
 
   def DisableJob(self, job_urn, token=None):
     """Disable cron job with the given URN."""
-    cron_job = aff4.FACTORY.Open(job_urn, mode="rw", aff4_type=CronJob,
+    cron_job = aff4.FACTORY.Open(job_urn,
+                                 mode="rw",
+                                 aff4_type=CronJob,
                                  token=token)
     cron_job.Set(cron_job.Schema.DISABLED(1))
     cron_job.Close()
@@ -134,15 +144,16 @@ class CronManager(object):
     for cron_job_urn in urns:
       try:
 
-        with aff4.FACTORY.OpenWithLock(
-            cron_job_urn, blocking=False, token=token,
-            lease_time=600) as cron_job:
+        with aff4.FACTORY.OpenWithLock(cron_job_urn,
+                                       blocking=False,
+                                       token=token,
+                                       lease_time=600) as cron_job:
           try:
             logging.info("Running cron job: %s", cron_job.urn)
             cron_job.Run(force=force)
           except Exception as e:  # pylint: disable=broad-except
-            logging.exception("Error processing cron job %s: %s",
-                              cron_job.urn, e)
+            logging.exception("Error processing cron job %s: %s", cron_job.urn,
+                              e)
             stats.STATS.IncrementCounter("cron_internal_error")
 
       except aff4.LockError:
@@ -197,7 +208,8 @@ class StatefulSystemCronFlow(SystemCronFlow):
 
   def ReadCronState(self):
     try:
-      cron_job = aff4.FACTORY.Open(self.cron_job_urn, aff4_type=CronJob,
+      cron_job = aff4.FACTORY.Open(self.cron_job_urn,
+                                   aff4_type=CronJob,
                                    token=self.token)
       return cron_job.Get(cron_job.Schema.STATE, default=rdf_flows.FlowState())
     except aff4.InstantiationError as e:
@@ -205,7 +217,8 @@ class StatefulSystemCronFlow(SystemCronFlow):
 
   def WriteCronState(self, state):
     try:
-      with aff4.FACTORY.OpenWithLock(self.cron_job_urn, aff4_type=CronJob,
+      with aff4.FACTORY.OpenWithLock(self.cron_job_urn,
+                                     aff4_type=CronJob,
                                      token=self.token) as cron_job:
         cron_job.Set(cron_job.Schema.STATE(state))
     except aff4.InstantiationError as e:
@@ -285,7 +298,8 @@ def ScheduleSystemCronFlows(names=None, token=None):
         disabled = name in config_lib.CONFIG["Cron.disabled_system_jobs"]
 
       CRON_MANAGER.ScheduleFlow(cron_args=cron_args,
-                                job_name=name, token=token,
+                                job_name=name,
+                                token=token,
                                 disabled=disabled)
 
 
@@ -297,8 +311,8 @@ class CronWorker(object):
     self.sleep = sleep
 
     # SetUID is required to write cronjobs under aff4:/cron/
-    self.token = access_control.ACLToken(
-        username="GRRCron", reason="Implied.").SetUID()
+    self.token = access_control.ACLToken(username="GRRCron",
+                                         reason="Implied.").SetUID()
 
   def _RunLoop(self):
     ScheduleSystemCronFlows(token=self.token)
@@ -340,8 +354,8 @@ class ManageCronJobFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    data_store.DB.security_manager.CheckCronJobAccess(
-        self.token.RealUID(), self.state.args.urn)
+    data_store.DB.security_manager.CheckCronJobAccess(self.token.RealUID(),
+                                                      self.state.args.urn)
 
     if self.state.args.action == self.args_type.Action.DISABLE:
       CRON_MANAGER.DisableJob(self.state.args.urn, token=self.token)
@@ -350,7 +364,8 @@ class ManageCronJobFlow(flow.GRRFlow):
     elif self.state.args.action == self.args_type.Action.DELETE:
       CRON_MANAGER.DeleteJob(self.state.args.urn, token=self.token)
     elif self.state.args.action == self.args_type.Action.RUN:
-      CRON_MANAGER.RunOnce(urns=[self.state.args.urn], token=self.token,
+      CRON_MANAGER.RunOnce(urns=[self.state.args.urn],
+                           token=self.token,
                            force=True)
 
 
@@ -364,7 +379,8 @@ class CreateCronJobFlow(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     # Anyone can create a cron job but they need to get approval to start it.
-    CRON_MANAGER.ScheduleFlow(cron_args=self.state.args, disabled=True,
+    CRON_MANAGER.ScheduleFlow(cron_args=self.state.args,
+                              disabled=True,
                               token=self.token)
 
 
@@ -376,29 +392,36 @@ class CronJob(aff4.AFF4Volume):
     CRON_ARGS = aff4.Attribute("aff4:cron/args", CreateCronJobFlowArgs,
                                "This cron jobs' arguments.")
 
-    DISABLED = aff4.Attribute(
-        "aff4:cron/disabled", rdfvalue.RDFBool,
-        "If True, don't run this job.", versioned=False)
+    DISABLED = aff4.Attribute("aff4:cron/disabled",
+                              rdfvalue.RDFBool,
+                              "If True, don't run this job.",
+                              versioned=False)
 
     CURRENT_FLOW_URN = aff4.Attribute(
-        "aff4:cron/current_flow_urn", rdfvalue.RDFURN,
+        "aff4:cron/current_flow_urn",
+        rdfvalue.RDFURN,
         "URN of the currently running flow corresponding to this cron job.",
-        versioned=False, lock_protected=True)
+        versioned=False,
+        lock_protected=True)
 
-    LAST_RUN_TIME = aff4.Attribute(
-        "aff4:cron/last_run", rdfvalue.RDFDatetime,
-        "The last time this cron job ran.", "last_run",
-        versioned=False, lock_protected=True)
+    LAST_RUN_TIME = aff4.Attribute("aff4:cron/last_run",
+                                   rdfvalue.RDFDatetime,
+                                   "The last time this cron job ran.",
+                                   "last_run",
+                                   versioned=False,
+                                   lock_protected=True)
 
-    LAST_RUN_STATUS = aff4.Attribute(
-        "aff4:cron/last_run_status", grr_rdf.CronJobRunStatus,
-        "Result of the last flow", lock_protected=True,
-        creates_new_object_version=False)
+    LAST_RUN_STATUS = aff4.Attribute("aff4:cron/last_run_status",
+                                     grr_rdf.CronJobRunStatus,
+                                     "Result of the last flow",
+                                     lock_protected=True,
+                                     creates_new_object_version=False)
 
-    STATE = aff4.Attribute(
-        "aff4:cron/state", rdf_flows.FlowState,
-        "Cron flow state that is kept between iterations", lock_protected=True,
-        versioned=False)
+    STATE = aff4.Attribute("aff4:cron/state",
+                           rdf_flows.FlowState,
+                           "Cron flow state that is kept between iterations",
+                           lock_protected=True,
+                           versioned=False)
 
   def DeleteJobFlows(self, age=None):
     """Deletes flows initiated by the job that are older than specified."""
@@ -418,7 +441,8 @@ class CronJob(aff4.AFF4Volume):
       try:
         current_flow = aff4.FACTORY.Open(urn=current_urn,
                                          aff4_type=flow.GRRFlow,
-                                         token=self.token, mode="r")
+                                         token=self.token,
+                                         mode="r")
       except aff4.InstantiationError:
         # This isn't a flow, something went really wrong, clear it out.
         self.DeleteAttribute(self.Schema.CURRENT_FLOW_URN)
@@ -463,7 +487,9 @@ class CronJob(aff4.AFF4Volume):
   def StopCurrentRun(self, reason="Cron lifetime exceeded.", force=True):
     current_flow_urn = self.Get(self.Schema.CURRENT_FLOW_URN)
     if current_flow_urn:
-      flow.GRRFlow.TerminateFlow(current_flow_urn, reason=reason, force=force,
+      flow.GRRFlow.TerminateFlow(current_flow_urn,
+                                 reason=reason,
+                                 force=force,
                                  token=self.token)
       self.Set(self.Schema.LAST_RUN_STATUS,
                grr_rdf.CronJobRunStatus(
@@ -486,7 +512,8 @@ class CronJob(aff4.AFF4Volume):
         self.StopCurrentRun()
         stats.STATS.IncrementCounter("cron_job_timeout",
                                      fields=[self.urn.Basename()])
-        stats.STATS.RecordEvent("cron_job_latency", elapsed,
+        stats.STATS.RecordEvent("cron_job_latency",
+                                elapsed,
                                 fields=[self.urn.Basename()])
         return True
 
@@ -529,7 +556,8 @@ class CronJob(aff4.AFF4Volume):
 
           start_time = self.Get(self.Schema.LAST_RUN_TIME)
           elapsed = time.time() - start_time.AsSecondsFromEpoch()
-          stats.STATS.RecordEvent("cron_job_latency", elapsed,
+          stats.STATS.RecordEvent("cron_job_latency",
+                                  elapsed,
                                   fields=[self.urn.Basename()])
 
         self.DeleteAttribute(self.Schema.CURRENT_FLOW_URN)
@@ -542,9 +570,10 @@ class CronJob(aff4.AFF4Volume):
     cron_args = self.Get(self.Schema.CRON_ARGS)
     cron_args.flow_runner_args.base_session_id = self.urn
 
-    flow_urn = flow.GRRFlow.StartFlow(
-        runner_args=cron_args.flow_runner_args,
-        args=cron_args.flow_args, token=self.token, sync=False)
+    flow_urn = flow.GRRFlow.StartFlow(runner_args=cron_args.flow_runner_args,
+                                      args=cron_args.flow_args,
+                                      token=self.token,
+                                      sync=False)
 
     self.Set(self.Schema.CURRENT_FLOW_URN, flow_urn)
     self.Set(self.Schema.LAST_RUN_TIME, rdfvalue.RDFDatetime().Now())

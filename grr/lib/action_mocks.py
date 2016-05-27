@@ -37,9 +37,9 @@ class ActionMock(object):
   def __init__(self, *action_names, **kwargs):
     self.client_id = kwargs.get("client_id")
     self.action_names = action_names
-    self.action_classes = dict(
-        [(k, v) for (k, v) in actions.ActionPlugin.classes.items()
-         if k in action_names])
+    self.action_classes = dict([(
+        k, v) for (k, v) in actions.ActionPlugin.classes.items()
+                                if k in action_names])
     self.action_counts = dict((x, 0) for x in action_names)
 
     # Create a single long lived client worker mock.
@@ -96,15 +96,17 @@ class UnixVolumeClientMock(ActionMock):
   unix_local = rdf_client.UnixVolume(mount_point="/usr")
   unix_home = rdf_client.UnixVolume(mount_point="/")
   path_results = [
-      rdf_client.Volume(
-          unixvolume=unix_local, bytes_per_sector=4096,
-          sectors_per_allocation_unit=1, actual_available_allocation_units=50,
-          total_allocation_units=100),
-      rdf_client.Volume(
-          unixvolume=unix_home, bytes_per_sector=4096,
-          sectors_per_allocation_unit=1,
-          actual_available_allocation_units=10,
-          total_allocation_units=100)]
+      rdf_client.Volume(unixvolume=unix_local,
+                        bytes_per_sector=4096,
+                        sectors_per_allocation_unit=1,
+                        actual_available_allocation_units=50,
+                        total_allocation_units=100),
+      rdf_client.Volume(unixvolume=unix_home,
+                        bytes_per_sector=4096,
+                        sectors_per_allocation_unit=1,
+                        actual_available_allocation_units=10,
+                        total_allocation_units=100)
+  ]
 
   def StatFS(self, _):
     return self.path_results
@@ -115,14 +117,17 @@ class WindowsVolumeClientMock(ActionMock):
   windows_d = rdf_client.WindowsVolume(drive_letter="D:")
   windows_c = rdf_client.WindowsVolume(drive_letter="C:")
   path_results = [
-      rdf_client.Volume(
-          windowsvolume=windows_d, bytes_per_sector=4096,
-          sectors_per_allocation_unit=1,
-          actual_available_allocation_units=50, total_allocation_units=100),
-      rdf_client.Volume(
-          windowsvolume=windows_c, bytes_per_sector=4096,
-          sectors_per_allocation_unit=1, actual_available_allocation_units=10,
-          total_allocation_units=100)]
+      rdf_client.Volume(windowsvolume=windows_d,
+                        bytes_per_sector=4096,
+                        sectors_per_allocation_unit=1,
+                        actual_available_allocation_units=50,
+                        total_allocation_units=100),
+      rdf_client.Volume(windowsvolume=windows_c,
+                        bytes_per_sector=4096,
+                        sectors_per_allocation_unit=1,
+                        actual_available_allocation_units=10,
+                        total_allocation_units=100)
+  ]
 
   def WmiQuery(self, query):
     if query.query == u"SELECT * FROM Win32_LogicalDisk":
@@ -135,15 +140,16 @@ class MemoryClientMock(ActionMock):
   """A mock of client state including memory actions."""
 
   def __init__(self, *args, **kwargs):
-    super(MemoryClientMock, self).__init__(
-        "LoadComponent", "StatFile", "HashFile", "HashBuffer",
-        "TransferBuffer", *args, **kwargs)
+    super(MemoryClientMock, self).__init__("LoadComponent", "StatFile",
+                                           "HashFile", "HashBuffer",
+                                           "TransferBuffer", *args, **kwargs)
 
     # Create a fake component so we can launch the LoadComponent flow.
-    fd = aff4.FACTORY.Create(
-        "aff4:/config/components/grr-rekall_0.1", "ComponentObject",
-        mode="w", token=access_control.ACLToken(username="test",
-                                                reason="reason"))
+    fd = aff4.FACTORY.Create("aff4:/config/components/grr-rekall_0.1",
+                             "ComponentObject",
+                             mode="w",
+                             token=access_control.ACLToken(username="test",
+                                                           reason="reason"))
     fd.Set(fd.Schema.COMPONENT(name="grr-rekall", version="0.1"))
     fd.Close()
 
@@ -151,7 +157,9 @@ class MemoryClientMock(ActionMock):
 class InterrogatedClient(ActionMock):
   """A mock of client state."""
 
-  def InitializeClient(self, system="Linux", version="12.04",
+  def InitializeClient(self,
+                       system="Linux",
+                       version="12.04",
                        kernel="3.13.0-39-generic"):
     self.system = system
     self.version = version
@@ -166,13 +174,12 @@ class InterrogatedClient(ActionMock):
 
   def GetPlatformInfo(self, _):
     self.response_count += 1
-    return [rdf_client.Uname(
-        system=self.system,
-        node="test_node",
-        release="5",
-        version=self.version,
-        kernel=self.kernel,
-        machine="i386")]
+    return [rdf_client.Uname(system=self.system,
+                             node="test_node",
+                             release="5",
+                             version=self.version,
+                             kernel=self.kernel,
+                             machine="i386")]
 
   def GetInstallDate(self, _):
     self.response_count += 1
@@ -186,14 +193,12 @@ class InterrogatedClient(ActionMock):
             rdf_client.NetworkAddress(
                 address_type=rdf_client.NetworkAddress.Family.INET,
                 human_readable="100.100.100.1",
-                packed_bytes=socket.inet_pton(socket.AF_INET, "100.100.100.1"),
-            )]
-    )]
+                packed_bytes=socket.inet_pton(socket.AF_INET, "100.100.100.1"),)
+        ])]
 
   def EnumerateFilesystems(self, _):
     self.response_count += 1
-    return [rdf_client.Filesystem(device="/dev/sda",
-                                  mount_point="/mnt/data")]
+    return [rdf_client.Filesystem(device="/dev/sda", mount_point="/mnt/data")]
 
   def GetClientInfo(self, _):
     self.response_count += 1
@@ -201,8 +206,7 @@ class InterrogatedClient(ActionMock):
         client_name=config_lib.CONFIG["Client.name"],
         client_version=int(config_lib.CONFIG["Client.version_numeric"]),
         build_time=config_lib.CONFIG["Client.build_time"],
-        labels=["GRRLabel1", "Label2"],
-    )]
+        labels=["GRRLabel1", "Label2"],)]
 
   def GetUserInfo(self, user):
     self.response_count += 1
@@ -225,8 +229,8 @@ class InterrogatedClient(ActionMock):
                                 "from Win32_NetworkAdapterConfiguration"):
       self.response_count += 1
       rdf_dict = rdf_protodict.Dict()
-      wmi_properties = (client_fixture.WMIWin32NetworkAdapterConfigurationMock.
-                        __dict__.iteritems())
+      mock = client_fixture.WMIWin32NetworkAdapterConfigurationMock
+      wmi_properties = mock.__dict__.iteritems()
       for key, value in wmi_properties:
         if not key.startswith("__"):
           try:

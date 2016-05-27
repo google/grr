@@ -27,8 +27,8 @@ class Token(object):
       flags: re flags.
     """
     if state_regex:
-      self.state_regex = re.compile(state_regex,
-                                    re.DOTALL | re.M | re.S | re.U | flags)
+      self.state_regex = re.compile(state_regex, re.DOTALL | re.M | re.S | re.U
+                                    | flags)
     self.regex = re.compile(regex, re.DOTALL | re.M | re.S | re.U | flags)
 
     self.re_str = regex
@@ -93,12 +93,13 @@ class Lexer(object):
         continue
 
       if self.verbose:
-        logging.debug("%s: Trying to match %r with %r",
-                      self.state, self.buffer[:10], token.re_str)
+        logging.debug("%s: Trying to match %r with %r", self.state,
+                      self.buffer[:10], token.re_str)
 
       # Try to match the rule
       m = token.regex.match(self.buffer)
-      if not m: continue
+      if not m:
+        continue
 
       if self.verbose:
         logging.debug("%s matched %s", token.re_str, m.group(0))
@@ -255,8 +256,8 @@ class Expression(object):
     return False
 
   def __str__(self):
-    return "Expression: (%s) (%s) %s" % (
-        self.attribute, self.operator, self.args)
+    return "Expression: (%s) (%s) %s" % (self.attribute, self.operator,
+                                         self.args)
 
   def PrintTree(self, depth=""):
     return "%s %s" % (depth, self)
@@ -273,20 +274,22 @@ class BinaryExpression(Expression):
   def __init__(self, operator="", part=None):
     self.operator = operator
     self.args = []
-    if part: self.args.append(part)
+    if part:
+      self.args.append(part)
     super(BinaryExpression, self).__init__()
 
   def __str__(self):
-    return "Binary Expression: %s %s" % (
-        self.operator, [str(x) for x in self.args])
+    return "Binary Expression: %s %s" % (self.operator, [str(x)
+                                                         for x in self.args])
 
   def AddOperands(self, lhs, rhs):
     if isinstance(lhs, Expression) and isinstance(rhs, Expression):
       self.args.insert(0, lhs)
       self.args.append(rhs)
     else:
-      raise ParseError("Expected expression, got %s %s %s" % (
-          lhs, self.operator, rhs))
+      raise ParseError("Expected expression, got %s %s %s" % (lhs,
+                                                              self.operator,
+                                                              rhs))
 
   def PrintTree(self, depth=""):
     result = "%s%s\n" % (depth, self.operator)
@@ -347,10 +350,9 @@ class SearchParser(Lexer):
       Token("INITIAL", r"[^\s\(\)]", "PushState,PushBack", "ATTRIBUTE"),
       Token("INITIAL", r"\(", "BracketOpen", None),
       Token("INITIAL", r"\)", "BracketClose", None),
-
       Token("ATTRIBUTE", r"[\w._0-9]+", "StoreAttribute", "OPERATOR"),
-      Token("OPERATOR",
-            r"[a-z0-9<>=\-\+\!\^\&%]+", "StoreOperator", "ARG_LIST"),
+      Token("OPERATOR", r"[a-z0-9<>=\-\+\!\^\&%]+", "StoreOperator",
+            "ARG_LIST"),
       Token("OPERATOR", "(!=|[<>=])", "StoreSpecialOperator", "ARG_LIST"),
       Token("ARG_LIST", r"[^\s'\"]+", "InsertArg", None),
 
@@ -474,7 +476,8 @@ class SearchParser(Lexer):
       self._CombineBinaryExpressions("or")
 
       # No change
-      if len(self.stack) == length: break
+      if len(self.stack) == length:
+        break
       length = len(self.stack)
 
     if length != 1:
@@ -483,9 +486,9 @@ class SearchParser(Lexer):
     return self.stack[0]
 
   def Error(self, message=None, weight=1):
-    raise ParseError(u"%s in position %s: %s <----> %s )" % (
-        utils.SmartUnicode(message), len(self.processed_buffer),
-        self.processed_buffer, self.buffer))
+    raise ParseError(u"%s in position %s: %s <----> %s )" %
+                     (utils.SmartUnicode(message), len(self.processed_buffer),
+                      self.processed_buffer, self.buffer))
 
   def Parse(self):
     if not self.filter_string:

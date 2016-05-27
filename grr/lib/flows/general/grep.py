@@ -56,15 +56,19 @@ class SearchFileContent(flow.GRRFlow):
   def Start(self):
     """Run the glob first."""
     if self.runner.output is not None:
-      self.runner.output = aff4.FACTORY.Create(
-          self.runner.output.urn, "GrepResultsCollection", mode="rw",
-          token=self.token)
+      self.runner.output = aff4.FACTORY.Create(self.runner.output.urn,
+                                               "GrepResultsCollection",
+                                               mode="rw",
+                                               token=self.token)
 
       self.runner.output.Set(self.runner.output.Schema.DESCRIPTION(
           "SearchFiles {0}".format(self.__class__.__name__)))
 
-    self.CallFlow("Glob", next_state="Grep", root_path=self.args.root_path,
-                  paths=self.args.paths, pathtype=self.args.pathtype)
+    self.CallFlow("Glob",
+                  next_state="Grep",
+                  root_path=self.args.root_path,
+                  paths=self.args.paths,
+                  pathtype=self.args.pathtype)
 
   @flow.StateHandler(next_state=["WriteHits"])
   def Grep(self, responses):
@@ -83,7 +87,9 @@ class SearchFileContent(flow.GRRFlow):
             # Cast the BareGrepSpec to a GrepSpec type.
             request = rdf_client.GrepSpec(target=response.pathspec,
                                           **self.args.grep.AsDict())
-            self.CallClient("Grep", request=request, next_state="WriteHits",
+            self.CallClient("Grep",
+                            request=request,
+                            next_state="WriteHits",
                             request_data=dict(pathspec=response.pathspec))
 
   @flow.StateHandler(next_state="End")
@@ -98,5 +104,6 @@ class SearchFileContent(flow.GRRFlow):
       self.SendReply(hit)
 
     if self.args.also_download:
-      self.CallFlow("MultiGetFile", pathspecs=[x.pathspec for x in hits],
+      self.CallFlow("MultiGetFile",
+                    pathspecs=[x.pathspec for x in hits],
                     next_state="End")

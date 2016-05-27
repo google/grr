@@ -7,7 +7,6 @@ possible to search for those names which match all keywords.
 """
 
 
-
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import rdfvalue
@@ -22,7 +21,7 @@ class AFF4KeywordIndex(aff4.AFF4Object):
 
   # The lowest and highest legal timestamps.
   FIRST_TIMESTAMP = 0
-  LAST_TIMESTAMP = (2 ** 63) - 2  # maxint64 - 1
+  LAST_TIMESTAMP = (2**63) - 2  # maxint64 - 1
 
   def _KeywordToURN(self, keyword):
     return self.urn.Add(keyword)
@@ -54,8 +53,11 @@ class AFF4KeywordIndex(aff4.AFF4Object):
 
     return relevant_set
 
-  def ReadPostingLists(self, keywords, start_time=FIRST_TIMESTAMP,
-                       end_time=LAST_TIMESTAMP, last_seen_map=None):
+  def ReadPostingLists(self,
+                       keywords,
+                       start_time=FIRST_TIMESTAMP,
+                       end_time=LAST_TIMESTAMP,
+                       last_seen_map=None):
     """Finds all objects associated with any of the keywords.
 
     Args:
@@ -74,8 +76,10 @@ class AFF4KeywordIndex(aff4.AFF4Object):
       result[kw] = set()
 
     for keyword_urn, value in data_store.DB.MultiResolvePrefix(
-        keyword_urns.keys(), self.INDEX_PREFIX,
-        timestamp=(start_time, end_time+1), token=self.token):
+        keyword_urns.keys(),
+        self.INDEX_PREFIX,
+        timestamp=(start_time, end_time + 1),
+        token=self.token):
       for column, _, ts in value:
         kw = keyword_urns[keyword_urn]
         name = column[self.INDEX_PREFIX_LEN:]
@@ -85,7 +89,11 @@ class AFF4KeywordIndex(aff4.AFF4Object):
 
     return result
 
-  def AddKeywordsForName(self, name, keywords, sync=True, timestamp=None,
+  def AddKeywordsForName(self,
+                         name,
+                         keywords,
+                         sync=True,
+                         timestamp=None,
                          **kwargs):
     """Associates keywords with name.
 
@@ -105,14 +113,20 @@ class AFF4KeywordIndex(aff4.AFF4Object):
         for keyword in set(keywords):
           mutation_pool.Set(
               self._KeywordToURN(keyword),
-              self.INDEX_COLUMN_FORMAT % name, "",
-              timestamp=timestamp, **kwargs)
+              self.INDEX_COLUMN_FORMAT % name,
+              "",
+              timestamp=timestamp,
+              **kwargs)
     else:
       for keyword in set(keywords):
         data_store.DB.Set(
             self._KeywordToURN(keyword),
-            self.INDEX_COLUMN_FORMAT % name, "",
-            token=self.token, sync=False, timestamp=timestamp, **kwargs)
+            self.INDEX_COLUMN_FORMAT % name,
+            "",
+            token=self.token,
+            sync=False,
+            timestamp=timestamp,
+            **kwargs)
 
   def RemoveKeywordsForName(self, name, keywords, sync=True):
     """Removes keywords for a name.
@@ -126,11 +140,10 @@ class AFF4KeywordIndex(aff4.AFF4Object):
       with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
         for keyword in set(keywords):
           mutation_pool.DeleteAttributes(
-              self._KeywordToURN(keyword),
-              [self.INDEX_COLUMN_FORMAT % name])
+              self._KeywordToURN(keyword), [self.INDEX_COLUMN_FORMAT % name])
     else:
       for keyword in set(keywords):
         data_store.DB.DeleteAttributes(
-            self._KeywordToURN(keyword),
-            [self.INDEX_COLUMN_FORMAT % name],
-            token=self.token, sync=False)
+            self._KeywordToURN(keyword), [self.INDEX_COLUMN_FORMAT % name],
+            token=self.token,
+            sync=False)

@@ -25,7 +25,9 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
     # Set time to epoch + 20 intervals
     with test_lib.FakeTime(20 * rollover):
       for _ in test_lib.TestFlowHelper(
-          "ListDirectory", client_mock, client_id=self.client_id,
+          "ListDirectory",
+          client_mock,
+          client_id=self.client_id,
           pathspec=rdf_paths.PathSpec(
               path=os.path.join(self.base_path, "test_img.dd/test directory"),
               pathtype=rdf_paths.PathSpec.PathType.OS),
@@ -33,15 +35,19 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
         pass
 
       for _ in test_lib.TestFlowHelper(
-          "ListDirectory", client_mock, client_id=self.client_id,
+          "ListDirectory",
+          client_mock,
+          client_id=self.client_id,
           pathspec=rdf_paths.PathSpec(
               path=os.path.join(self.base_path, "test_img.dd/test directory"),
               pathtype=rdf_paths.PathSpec.PathType.OS),
           token=self.token):
         pass
 
-      parentdir = aff4.FACTORY.Open("aff4:/audit/logs", aff4.AFF4Volume,
-                                    mode="r", token=self.token)
+      parentdir = aff4.FACTORY.Open("aff4:/audit/logs",
+                                    aff4.AFF4Volume,
+                                    mode="r",
+                                    token=self.token)
       logs = list(parentdir.ListChildren())
       self.assertEqual(len(logs), 1)
       log = aff4.CurrentAuditLog()
@@ -56,15 +62,19 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
     # Set time to epoch + 22 intervals
     with test_lib.FakeTime(22 * rollover):
       for _ in test_lib.TestFlowHelper(
-          "ListDirectory", client_mock, client_id=self.client_id,
+          "ListDirectory",
+          client_mock,
+          client_id=self.client_id,
           pathspec=rdf_paths.PathSpec(
               path=os.path.join(self.base_path, "test_img.dd/test directory"),
               pathtype=rdf_paths.PathSpec.PathType.OS),
           token=self.token):
         pass
 
-      parentdir = aff4.FACTORY.Open("aff4:/audit/logs", aff4.AFF4Volume,
-                                    mode="r", token=self.token)
+      parentdir = aff4.FACTORY.Open("aff4:/audit/logs",
+                                    aff4.AFF4Volume,
+                                    mode="r",
+                                    token=self.token)
       # Now we should have two collections
       logs = list(parentdir.ListChildren())
       self.assertEqual(len(logs), 2)
@@ -81,6 +91,7 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

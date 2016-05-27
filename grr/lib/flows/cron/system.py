@@ -76,8 +76,8 @@ class _ActiveCounter(object):
     for active_time in self.active_days:
       for label in self.categories[active_time].keys():
         histograms.setdefault(label, self.attribute())
-        graph = rdfstats.Graph(
-            title="%s day actives for %s label" % (active_time, label))
+        graph = rdfstats.Graph(title="%s day actives for %s label" %
+                               (active_time, label))
         for k, v in sorted(self.categories[active_time][label].items()):
           graph.Append(label=k, y_value=v)
 
@@ -118,8 +118,10 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
   def _StatsForLabel(self, label):
     if label not in self.stats:
       self.stats[label] = aff4.FACTORY.Create(
-          self.CLIENT_STATS_URN.Add(label), "ClientFleetStats",
-          mode="w", token=self.token)
+          self.CLIENT_STATS_URN.Add(label),
+          "ClientFleetStats",
+          mode="w",
+          token=self.token)
     return self.stats[label]
 
   @flow.StateHandler()
@@ -136,8 +138,10 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
       logging.debug("Found %d children.", len(children_urns))
 
       processed_count = 0
-      for child in aff4.FACTORY.MultiOpen(
-          children_urns, mode="r", token=self.token, age=aff4.NEWEST_TIME):
+      for child in aff4.FACTORY.MultiOpen(children_urns,
+                                          mode="r",
+                                          token=self.token,
+                                          age=aff4.NEWEST_TIME):
         if isinstance(child, aff4.AFF4Object.VFSGRRClient):
           self.ProcessClient(child)
           processed_count += 1
@@ -173,8 +177,8 @@ class GRRVersionBreakDown(AbstractClientStatsCronFlow):
     c_info = client.Get(client.Schema.CLIENT_INFO)
 
     if c_info and ping:
-      category = " ".join([c_info.client_description or c_info.client_name,
-                           str(c_info.client_version)])
+      category = " ".join([c_info.client_description or c_info.client_name, str(
+          c_info.client_version)])
 
       for label in self.GetClientLabelsList(client):
         self.counter.Add(category, label, ping)
@@ -323,12 +327,11 @@ class StatsHuntCronFlow(cronjobs.SystemCronFlow):
 
   @flow.StateHandler()
   def Start(self):
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="StatsHunt",
-        client_limit=0,
-        output_plugins=self.GetOutputPlugins(),
-        regex_rules=[],
-        token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(hunt_name="StatsHunt",
+                                 client_limit=0,
+                                 output_plugins=self.GetOutputPlugins(),
+                                 regex_rules=[],
+                                 token=self.token) as hunt:
 
       runner = hunt.GetRunner()
       runner.args.client_rate = 0
@@ -362,15 +365,16 @@ class PurgeClientStats(cronjobs.SystemCronFlow):
     for batch in utils.Grouper(client_urns, 10000):
       with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
         for client_urn in batch:
-          mutation_pool.DeleteAttributes(client_urn.Add("stats"),
-                                         [u"aff4:stats"],
-                                         start=self.start, end=self.end)
+          mutation_pool.DeleteAttributes(
+              client_urn.Add("stats"), [u"aff4:stats"],
+              start=self.start,
+              end=self.end)
       self.HeartBeat()
 
 
 def GetSystemForemanRule(os_string):
-  return rdf_foreman.ForemanAttributeRegex(
-      attribute_name="System", attribute_regex=os_string)
+  return rdf_foreman.ForemanAttributeRegex(attribute_name="System",
+                                           attribute_regex=os_string)
 
 
 class EndToEndTests(cronjobs.SystemCronFlow):
@@ -412,19 +416,19 @@ class EndToEndTests(cronjobs.SystemCronFlow):
         runner_args=runner_args)
 
     bogus_rule = rdf_foreman.ForemanAttributeRegex(
-        attribute_name="System", attribute_regex="Does not match anything")
+        attribute_name="System",
+        attribute_regex="Does not match anything")
 
     hunt_args = hunts_standard.VariableGenericHuntArgs(flows=[flow_request])
 
     hunt_args.output_plugins = self.GetOutputPlugins()
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="VariableGenericHunt",
-        args=hunt_args,
-        regex_rules=[bogus_rule],
-        client_rate=0,
-        expiry_time="1d",
-        token=token) as hunt:
+    with hunts.GRRHunt.StartHunt(hunt_name="VariableGenericHunt",
+                                 args=hunt_args,
+                                 regex_rules=[bogus_rule],
+                                 client_rate=0,
+                                 expiry_time="1d",
+                                 token=token) as hunt:
 
       self.state.hunt_id = hunt.session_id
       hunt.SetDescription("EndToEnd tests run by cron")
@@ -435,8 +439,8 @@ class EndToEndTests(cronjobs.SystemCronFlow):
     # plenty of time for the clients to receive the hunt and run the tests, but
     # not so long that the flow lease will expire.
 
-    wait_duration = rdfvalue.Duration(
-        config_lib.CONFIG.Get("Test.end_to_end_result_check_wait"))
+    wait_duration = rdfvalue.Duration(config_lib.CONFIG.Get(
+        "Test.end_to_end_result_check_wait"))
     completed_time = rdfvalue.RDFDatetime().Now() + wait_duration
 
     self.CallState(next_state="CheckResults", start_time=completed_time)
@@ -474,6 +478,7 @@ class EndToEndTests(cronjobs.SystemCronFlow):
     any failures.
     """
     with aff4.FACTORY.Open(
-        self.state.hunt_id.Add("Results"), token=self.token) as results:
+        self.state.hunt_id.Add("Results"),
+        token=self.token) as results:
       self._CheckForSuccess(results)
       self.Log("Tests passed on all clients: %s", self.state.client_ids)

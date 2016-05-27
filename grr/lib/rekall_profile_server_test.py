@@ -34,8 +34,7 @@ class FakeHandle(object):
     profile_name = self.profile
     server = test_lib.TestRekallRepositoryProfileServer()
     profile = server.GetProfileByName(
-        profile_name,
-        version=constants.PROFILE_REPOSITORY_VERSION)
+        profile_name, version=constants.PROFILE_REPOSITORY_VERSION)
 
     return profile.data
 
@@ -69,7 +68,8 @@ class ProfileServerTest(test_lib.GRRBaseTest):
 
     with utils.Stubber(urllib2, "urlopen", FakeOpen):
       profile = self.server.GetProfileByName(
-          profile_name, version=constants.PROFILE_REPOSITORY_VERSION)
+          profile_name,
+          version=constants.PROFILE_REPOSITORY_VERSION)
 
     # This time it should have been cached.
     self.assertEqual(FakeHandle.read_count, 1)
@@ -105,6 +105,7 @@ class ProfileServerTest(test_lib.GRRBaseTest):
 
 def main(args):
   test_lib.main(args)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

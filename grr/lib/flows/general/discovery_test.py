@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Tests for Interrogate."""
 
 import socket
@@ -46,8 +45,8 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
     self.assertItemsEqual(self.fd.Get(self.fd.Schema.USERNAMES), all_users)
 
     # Check kb users
-    kbusers = [x.username for x in
-               self.fd.Get(self.fd.Schema.KNOWLEDGE_BASE).users]
+    kbusers = [x.username
+               for x in self.fd.Get(self.fd.Schema.KNOWLEDGE_BASE).users]
     self.assertItemsEqual(kbusers, all_users)
 
   def _CheckAFF4Object(self, hostname, system, install_date):
@@ -76,8 +75,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
                                 aff4_type=client_index.ClientIndex,
                                 mode="rw",
                                 token=self.token)
-    self.assertEqual(len(index.LookupClients(keywords)),
-                     expected_count)
+    self.assertEqual(len(index.LookupClients(keywords)), expected_count)
 
   def _CheckNotificationsCreated(self):
     user_fd = aff4.FACTORY.Open("aff4:/users/test", token=self.token)
@@ -88,7 +86,10 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(notification.subject, rdfvalue.RDFURN(self.client_id))
 
-  def _CheckClientSummary(self, osname, version, kernel="3.13.0-39-generic",
+  def _CheckClientSummary(self,
+                          osname,
+                          version,
+                          kernel="3.13.0-39-generic",
                           release="5"):
     summary = self.fd.GetSummary()
     self.assertEqual(summary.client_info.client_name,
@@ -110,18 +111,18 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 
     # Check that the client summary was published to the event listener.
     self.assertEqual(DiscoveryTestEventListener.event.client_id, self.client_id)
-    self.assertEqual(
-        DiscoveryTestEventListener.event.interfaces[0].mac_address,
-        "123456")
+    self.assertEqual(DiscoveryTestEventListener.event.interfaces[0].mac_address,
+                     "123456")
 
   def _CheckNetworkInfo(self):
     net_fd = self.fd.OpenMember("network")
     interfaces = list(net_fd.Get(net_fd.Schema.INTERFACES))
     self.assertEqual(interfaces[0].mac_address, "123456")
     self.assertEqual(interfaces[0].addresses[0].human_readable, "100.100.100.1")
-    self.assertEqual(socket.inet_ntop(
-        socket.AF_INET, str(interfaces[0].addresses[0].packed_bytes)),
-                     "100.100.100.1")
+    self.assertEqual(
+        socket.inet_ntop(socket.AF_INET,
+                         str(interfaces[0].addresses[0].packed_bytes)),
+        "100.100.100.1")
 
     # Mac addresses should be available as hex for searching
     mac_addresses = self.fd.Get(self.fd.Schema.MAC_ADDRESS)
@@ -133,30 +134,33 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 
   def _CheckVFS(self):
     # Check that virtual directories exist for the mount points
-    fd = aff4.FACTORY.Open(self.client_id.Add("fs/os/mnt/data"),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.client_id.Add("fs/os/mnt/data"),
+        token=self.token)
     # But no directory listing exists yet - we will need to fetch a new one
     self.assertEqual(len(list(fd.OpenChildren())), 0)
 
-    fd = aff4.FACTORY.Open(self.client_id.Add("fs/tsk/dev/sda"),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.client_id.Add("fs/tsk/dev/sda"),
+        token=self.token)
     # But no directory listing exists yet - we will need to fetch a new one
     self.assertEqual(len(list(fd.OpenChildren())), 0)
 
-    fd = aff4.FACTORY.Open(self.client_id.Add("devices/dev/sda"),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.client_id.Add("devices/dev/sda"),
+        token=self.token)
     # But no directory listing exists yet - we will need to fetch a new one
     self.assertEqual(len(list(fd.OpenChildren())), 0)
 
   def _CheckLabelIndex(self):
     """Check that label indexes are updated."""
-    index = aff4.FACTORY.Create(
-        client_index.MAIN_INDEX, aff4_type=client_index.ClientIndex,
-        mode="rw", token=self.token)
+    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                                aff4_type=client_index.ClientIndex,
+                                mode="rw",
+                                token=self.token)
 
     self.assertEqual(
-        list(index.LookupClients(["label:Label2"])),
-        [self.client_id])
+        list(index.LookupClients(["label:Label2"])), [self.client_id])
 
   def _CheckWindowsDiskInfo(self):
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -170,8 +174,10 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
     # This tests that we can click refresh on a key in the registry vfs subtree
     # even if we haven't downloaded any other key above it in the tree.
 
-    fd = aff4.FACTORY.Open(self.client_id.Add("registry").Add(
-        "HKEY_LOCAL_MACHINE").Add("random/path/bla"), token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.client_id.Add("registry").Add("HKEY_LOCAL_MACHINE").Add(
+            "random/path/bla"),
+        token=self.token)
     pathspec = fd.real_pathspec
     self.assertEqual(pathspec.pathtype, rdf_paths.PathSpec.PathType.REGISTRY)
     self.assertEqual(pathspec.CollapsePath(),
@@ -212,18 +218,18 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                test_lib.FakeTestDataVFSHandler):
       with test_lib.ConfigOverrider(
-          {"Artifacts.knowledge_base": ["LinuxWtmp",
-                                        "NetgroupConfiguration",
+          {"Artifacts.knowledge_base": ["LinuxWtmp", "NetgroupConfiguration",
                                         "LinuxRelease"],
            "Artifacts.interrogate_store_in_aff4": [],
            "Artifacts.netgroup_filter_regexes": [r"^login$"]}):
         client_mock = action_mocks.InterrogatedClient(
-            "TransferBuffer", "StatFile", "Find", "HashBuffer",
-            "ListDirectory", "FingerprintFile", "GetLibraryVersions",
-            "GetMemorySize", "HashFile")
+            "TransferBuffer", "StatFile", "Find", "HashBuffer", "ListDirectory",
+            "FingerprintFile", "GetLibraryVersions", "GetMemorySize",
+            "HashFile")
         client_mock.InitializeClient()
 
-        for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
+        for _ in test_lib.TestFlowHelper("Interrogate",
+                                         client_mock,
                                          token=self.token,
                                          client_id=self.client_id):
           pass
@@ -233,7 +239,9 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
         self._CheckClientInfo()
         self._CheckGRRConfig()
         self._CheckNotificationsCreated()
-        self._CheckClientSummary("Linux", "14.4", release="Ubuntu",
+        self._CheckClientSummary("Linux",
+                                 "14.4",
+                                 release="Ubuntu",
                                  kernel="3.13.0-39-generic")
         self._CheckRelease("Ubuntu", "14.4")
 
@@ -253,21 +261,22 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
     test_lib.ClientFixture(self.client_id, token=self.token)
     self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
 
-    with test_lib.VFSOverrider(
-        rdf_paths.PathSpec.PathType.REGISTRY, test_lib.FakeRegistryVFSHandler):
-      with test_lib.VFSOverrider(
-          rdf_paths.PathSpec.PathType.OS, test_lib.FakeFullVFSHandler):
+    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
+                               test_lib.FakeRegistryVFSHandler):
+      with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                 test_lib.FakeFullVFSHandler):
 
         client_mock = action_mocks.InterrogatedClient(
-            "TransferBuffer", "StatFile", "Find", "HashBuffer",
-            "ListDirectory", "FingerprintFile", "GetLibraryVersions",
-            "GetMemorySize")
+            "TransferBuffer", "StatFile", "Find", "HashBuffer", "ListDirectory",
+            "FingerprintFile", "GetLibraryVersions", "GetMemorySize")
 
-        client_mock.InitializeClient(system="Windows", version="6.1.7600",
+        client_mock.InitializeClient(system="Windows",
+                                     version="6.1.7600",
                                      kernel="6.1.7601")
 
         # Run the flow in the simulated way
-        for _ in test_lib.TestFlowHelper("Interrogate", client_mock,
+        for _ in test_lib.TestFlowHelper("Interrogate",
+                                         client_mock,
                                          token=self.token,
                                          client_id=self.client_id):
           pass
@@ -295,6 +304,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

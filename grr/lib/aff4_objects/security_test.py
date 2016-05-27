@@ -36,8 +36,8 @@ class ApprovalTest(test_lib.GRRBaseTest):
 
     # Make sure approval is expired by the time we call GetApprovalForObject.
     now = rdfvalue.RDFDatetime().Now()
-    with test_lib.FakeTime(now + self.approval_expiration +
-                           rdfvalue.Duration("1s")):
+    with test_lib.FakeTime(now + self.approval_expiration + rdfvalue.Duration(
+        "1s")):
       with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
                                    "Requires 2 approvers for access."):
         security.Approval.GetApprovalForObject(self.client_id, token=self.token)
@@ -55,8 +55,8 @@ class ApprovalTest(test_lib.GRRBaseTest):
     # Make sure that approvals are expired by the time we call
     # GetApprovalForObject.
     now = rdfvalue.RDFDatetime().Now()
-    with test_lib.FakeTime(now + self.approval_expiration +
-                           rdfvalue.Duration("1s")):
+    with test_lib.FakeTime(now + self.approval_expiration + rdfvalue.Duration(
+        "1s")):
       with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
                                    "Requires 2 approvers for access."):
         security.Approval.GetApprovalForObject(self.client_id, token=self.token)
@@ -64,8 +64,8 @@ class ApprovalTest(test_lib.GRRBaseTest):
   def testGetApprovalForObjectReturnsSingleAvailableApproval(self):
     self.RequestAndGrantClientApproval(self.client_id, token=self.token)
 
-    approved_token = security.Approval.GetApprovalForObject(
-        self.client_id, token=self.token)
+    approved_token = security.Approval.GetApprovalForObject(self.client_id,
+                                                            token=self.token)
     self.assertEqual(approved_token.reason, self.token.reason)
 
   def testGetApprovalForObjectReturnsNonExpiredApprovalFromMany(self):
@@ -81,18 +81,18 @@ class ApprovalTest(test_lib.GRRBaseTest):
 
     # Make sure only the first approval is expired by the time
     # GetApprovalForObject is called.
-    with test_lib.FakeTime(now + self.approval_expiration +
-                           rdfvalue.Duration("1h")):
-      approved_token = security.Approval.GetApprovalForObject(
-          self.client_id, token=self.token)
+    with test_lib.FakeTime(now + self.approval_expiration + rdfvalue.Duration(
+        "1h")):
+      approved_token = security.Approval.GetApprovalForObject(self.client_id,
+                                                              token=self.token)
       self.assertEqual(approved_token.reason, token2.reason)
 
   def testGetApprovalForObjectRaisesIfApprovalsAreOfWrongType(self):
     # Create AFF4Volume object where Approval is expected to be.
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(
-        self.client_id.Path()).Add(self.token.username).Add(
-            utils.EncodeReasonString(self.token.reason))
-    with aff4.FACTORY.Create(approval_urn, aff4.AFF4Volume,
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.client_id.Path()).Add(
+        self.token.username).Add(utils.EncodeReasonString(self.token.reason))
+    with aff4.FACTORY.Create(approval_urn,
+                             aff4.AFF4Volume,
                              token=self.token) as _:
       pass
 
@@ -118,8 +118,8 @@ class ApprovalWithReasonTest(test_lib.GRRBaseTest):
     # %{} is used here to tell the config system this is a literal that
     # shouldn't be expanded/filtered.
     with test_lib.ConfigOverrider({
-        "Email.link_regex_list":
-        [r"%{(?P<link>(incident|ir|jira)\/\d+)}"]}):
+        "Email.link_regex_list": [r"%{(?P<link>(incident|ir|jira)\/\d+)}"]
+    }):
       test_pairs = [
           ("Investigating jira/1234 (incident/1234)...incident/bug",
            "Investigating <a href=\"jira/1234\">jira/1234</a> "
@@ -129,7 +129,7 @@ class ApprovalWithReasonTest(test_lib.GRRBaseTest):
            "(<a href=\"incident/1234\">incident/1234</a>)"),
           ("Checking /var/lib/i/123/blah file",
            "Checking /var/lib/i/123/blah file")
-          ]
+      ]
 
       for reason, result in test_pairs:
         self._CreateReason(reason, result)
@@ -150,11 +150,14 @@ class ClientApprovalTest(test_lib.GRRBaseTest):
 
     fd = aff4.FACTORY.Open(
         "aff4:/users/test/approvals/client/C.1000000000000000/"
-        "UnVubmluZyB0ZXN0cw==", follow_symlinks=False, mode="r",
+        "UnVubmluZyB0ZXN0cw==",
+        follow_symlinks=False,
+        mode="r",
         token=self.token)
     self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4Symlink")
-    self.assertEqual(fd.Get(fd.Schema.SYMLINK_TARGET),
-                     "aff4:/ACL/C.1000000000000000/test/UnVubmluZyB0ZXN0cw==")
+    self.assertEqual(
+        fd.Get(fd.Schema.SYMLINK_TARGET),
+        "aff4:/ACL/C.1000000000000000/test/UnVubmluZyB0ZXN0cw==")
 
 
 class HuntApprovalTest(test_lib.GRRBaseTest):
@@ -171,10 +174,13 @@ class HuntApprovalTest(test_lib.GRRBaseTest):
 
     fd = aff4.FACTORY.Open(
         "aff4:/users/test/approvals/cron/CronJobName/UnVubmluZyB0ZXN0cw==",
-        follow_symlinks=False, mode="r", token=self.token)
+        follow_symlinks=False,
+        mode="r",
+        token=self.token)
     self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4Symlink")
-    self.assertEqual(fd.Get(fd.Schema.SYMLINK_TARGET),
-                     "aff4:/ACL/cron/CronJobName/test/UnVubmluZyB0ZXN0cw==")
+    self.assertEqual(
+        fd.Get(fd.Schema.SYMLINK_TARGET),
+        "aff4:/ACL/cron/CronJobName/test/UnVubmluZyB0ZXN0cw==")
 
 
 class CronJobAprrovalTest(test_lib.GRRBaseTest):
@@ -191,14 +197,18 @@ class CronJobAprrovalTest(test_lib.GRRBaseTest):
 
     fd = aff4.FACTORY.Open(
         "aff4:/users/test/approvals/hunt/H:ABCD1234/UnVubmluZyB0ZXN0cw==",
-        follow_symlinks=False, mode="r", token=self.token)
+        follow_symlinks=False,
+        mode="r",
+        token=self.token)
     self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4Symlink")
-    self.assertEqual(fd.Get(fd.Schema.SYMLINK_TARGET),
-                     "aff4:/ACL/hunts/H:ABCD1234/test/UnVubmluZyB0ZXN0cw==")
+    self.assertEqual(
+        fd.Get(fd.Schema.SYMLINK_TARGET),
+        "aff4:/ACL/hunts/H:ABCD1234/test/UnVubmluZyB0ZXN0cw==")
 
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

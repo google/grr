@@ -37,7 +37,6 @@ import logging
 from grr.lib import stats
 from grr.lib import utils
 
-
 STOP_MESSAGE = "Stop message"
 
 
@@ -95,8 +94,7 @@ class _WorkerThread(threading.Thread):
 
     if self.pool.name:
       time_in_queue = time.time() - queueing_time
-      stats.STATS.RecordEvent(self.pool.name + "_queueing_time",
-                              time_in_queue)
+      stats.STATS.RecordEvent(self.pool.name + "_queueing_time", time_in_queue)
 
       start_time = time.time()
     try:
@@ -107,13 +105,12 @@ class _WorkerThread(threading.Thread):
     except Exception as e:  # pylint: disable=broad-except
       if self.pool.name:
         stats.STATS.IncrementCounter(self.pool.name + "_task_exceptions")
-      logging.exception("Caught exception in worker thread (%s): %s",
-                        name, str(e))
+      logging.exception("Caught exception in worker thread (%s): %s", name,
+                        str(e))
 
     if self.pool.name:
       total_time = time.time() - start_time
-      stats.STATS.RecordEvent(self.pool.name + "_working_time",
-                              total_time)
+      stats.STATS.RecordEvent(self.pool.name + "_working_time", total_time)
 
   def _RemoveFromPool(self):
     """Remove ourselves from the pool.
@@ -215,8 +212,9 @@ class ThreadPool(object):
     with cls.factory_lock:
       result = cls.POOLS.get(name)
       if result is None:
-        cls.POOLS[name] = result = cls(
-            name, min_threads, max_threads=max_threads)
+        cls.POOLS[name] = result = cls(name,
+                                       min_threads,
+                                       max_threads=max_threads)
 
       return result
 
@@ -262,8 +260,7 @@ class ThreadPool(object):
                                    self._queue.qsize)
 
       stats.STATS.RegisterGaugeMetric(self.name + "_threads", int)
-      stats.STATS.SetGaugeCallback(self.name + "_threads",
-                                   lambda: len(self))
+      stats.STATS.SetGaugeCallback(self.name + "_threads", lambda: len(self))
 
       stats.STATS.RegisterGaugeMetric(self.name + "_cpu_use", float)
       stats.STATS.SetGaugeCallback(self.name + "_cpu_use", self.CPUUsage)
@@ -332,7 +329,11 @@ class ThreadPool(object):
     for worker in workers:
       worker.join()
 
-  def AddTask(self, target, args, name="Unnamed task", blocking=True,
+  def AddTask(self,
+              target,
+              args,
+              name="Unnamed task",
+              blocking=True,
               inline=True):
     """Adds a task to be processed later.
 
@@ -392,8 +393,10 @@ class ThreadPool(object):
           # We should block and try again soon.
           elif blocking:
             try:
-              self._queue.put((target, args, name, time.time()),
-                              block=True, timeout=1)
+              self._queue.put(
+                  (target, args, name, time.time()),
+                  block=True,
+                  timeout=1)
               return
             except Queue.Full:
               continue
@@ -454,7 +457,9 @@ class BatchConverter(object):
   batches using a threadpool.
   """
 
-  def __init__(self, batch_size=1000, threadpool_prefix="batch_processor",
+  def __init__(self,
+               batch_size=1000,
+               threadpool_prefix="batch_processor",
                threadpool_size=10):
     """BatchProcessor constructor.
 
@@ -505,8 +510,7 @@ class BatchConverter(object):
     except TypeError:
       total_batch_count = -1
 
-    pool = ThreadPool.Factory(self.threadpool_prefix,
-                              self.threadpool_size)
+    pool = ThreadPool.Factory(self.threadpool_prefix, self.threadpool_size)
     val_iterator = itertools.islice(values, start_index, end_index)
 
     pool.Start()
@@ -517,7 +521,8 @@ class BatchConverter(object):
                       total_batch_count)
 
         pool.AddTask(target=self.ConvertBatch,
-                     args=(batch,), name="batch_%d" % batch_index,
+                     args=(batch,),
+                     name="batch_%d" % batch_index,
                      inline=False)
 
     finally:

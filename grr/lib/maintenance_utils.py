@@ -23,7 +23,6 @@ from grr.lib.builders import signing
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 
-
 DIGEST_ALGORITHM = hashlib.sha256  # pylint: disable=invalid-name
 DIGEST_ALGORITHM_STR = "sha256"
 
@@ -31,8 +30,11 @@ SUPPORTED_PLATFORMS = ["windows", "linux", "darwin"]
 SUPPORTED_ARCHITECTURES = ["i386", "amd64"]
 
 
-def UploadSignedConfigBlob(content, aff4_path, client_context=None,
-                           limit=None, token=None):
+def UploadSignedConfigBlob(content,
+                           aff4_path,
+                           client_context=None,
+                           limit=None,
+                           token=None):
   """Upload a signed blob into the datastore.
 
   Args:
@@ -63,9 +65,12 @@ def UploadSignedConfigBlob(content, aff4_path, client_context=None,
   ver_key = config_lib.CONFIG.Get("Client.executable_signing_public_key",
                                   context=client_context)
 
-  urn = collects.GRRSignedBlob.NewFromContent(
-      content, aff4_path, chunk_size=limit, token=token,
-      private_key=sig_key, public_key=ver_key)
+  urn = collects.GRRSignedBlob.NewFromContent(content,
+                                              aff4_path,
+                                              chunk_size=limit,
+                                              token=token,
+                                              private_key=sig_key,
+                                              public_key=ver_key)
 
   logging.info("Uploaded to %s", urn)
 
@@ -100,8 +105,9 @@ def CreateBinaryConfigPaths(token=None):
       required_urns.add("aff4:/config/executables/%s/agentupdates" % platform)
       required_urns.add("aff4:/config/executables/%s/installers" % platform)
 
-    existing_urns = [x["urn"] for x in aff4.FACTORY.Stat(list(required_urns),
-                                                         token=token)]
+    existing_urns = [x["urn"]
+                     for x in aff4.FACTORY.Stat(
+                         list(required_urns), token=token)]
 
     missing_urns = required_urns - set(existing_urns)
 
@@ -167,7 +173,8 @@ def RepackAllBinaries(upload=False, debug_build=False, token=None):
       (["Target:Linux", "Target:LinuxRpm", "Platform:Linux", "Arch:i386"],
        build.CentosClientDeployer),
       (["Target:Darwin", "Platform:Darwin", "Arch:amd64"],
-       build.DarwinClientDeployer)]
+       build.DarwinClientDeployer)
+  ]
 
   if debug_build:
     base_context += ["DebugClientBuild Context"]
@@ -176,7 +183,8 @@ def RepackAllBinaries(upload=False, debug_build=False, token=None):
         (["Target:Windows", "Platform:Windows", "Arch:amd64"],
          build.WindowsClientDeployer),
         (["Target:Windows", "Platform:Windows", "Arch:i386"],
-         build.WindowsClientDeployer)]
+         build.WindowsClientDeployer)
+    ]
 
   msg = "Will repack the following clients "
   if debug_build:
@@ -211,10 +219,12 @@ def RepackAllBinaries(upload=False, debug_build=False, token=None):
       print "%s repacked ok." % template_path
       built.append(output_path)
       if upload:
-        dest = config_lib.CONFIG.Get("Executables.installer",
-                                     context=context)
-        UploadSignedConfigBlob(open(output_path).read(100 * 1024 * 1024),
-                               dest, client_context=context, token=token)
+        dest = config_lib.CONFIG.Get("Executables.installer", context=context)
+        UploadSignedConfigBlob(
+            open(output_path).read(100 * 1024 * 1024),
+            dest,
+            client_context=context,
+            token=token)
     else:
       print "Failed to repack %s." % template_path
 
@@ -235,7 +245,8 @@ def _SignWindowsComponent(component, output_filename):
     zip_file.extractall(temp_dir)
 
     new_data = StringIO.StringIO()
-    new_zipfile = zipfile.ZipFile(new_data, mode="w",
+    new_zipfile = zipfile.ZipFile(new_data,
+                                  mode="w",
                                   compression=zipfile.ZIP_DEFLATED)
 
     for root, _, files in os.walk(temp_dir):
@@ -296,9 +307,8 @@ def SignComponent(component_filename, overwrite=False, token=None):
   client_context = ["Platform:%s" % component.build_system.system.title(),
                     "Arch:%s" % component.build_system.arch]
 
-  sig_key = config_lib.CONFIG.Get(
-      "PrivateKeys.executable_signing_private_key",
-      context=client_context)
+  sig_key = config_lib.CONFIG.Get("PrivateKeys.executable_signing_private_key",
+                                  context=client_context)
 
   ver_key = config_lib.CONFIG.Get("Client.executable_signing_public_key",
                                   context=client_context)
@@ -306,12 +316,14 @@ def SignComponent(component_filename, overwrite=False, token=None):
   # For each platform specific component, we have a component summary object
   # which contains high level information in common to all components of this
   # specific version.
-  component_urn = config_lib.CONFIG.Get(
-      "Config.aff4_root").Add("components").Add(
-          "%s_%s" % (component.summary.name, component.summary.version))
+  component_urn = config_lib.CONFIG.Get("Config.aff4_root").Add(
+      "components").Add("%s_%s" %
+                        (component.summary.name, component.summary.version))
 
-  component_fd = aff4.FACTORY.Create(component_urn, collects.ComponentObject,
-                                     mode="rw", token=token)
+  component_fd = aff4.FACTORY.Create(component_urn,
+                                     collects.ComponentObject,
+                                     mode="rw",
+                                     token=token)
 
   component_summary = component_fd.Get(component_fd.Schema.COMPONENT)
   if overwrite or component_summary is None:
@@ -320,9 +332,8 @@ def SignComponent(component_filename, overwrite=False, token=None):
     component_summary = component.summary
     component_summary.seed = "%x%x" % (time.time(), utils.PRNG.GetULong())
     component_summary.url = (
-        config_lib.CONFIG.Get(
-            "Client.component_url_stem",
-            context=client_context) + component_summary.seed)
+        config_lib.CONFIG.Get("Client.component_url_stem",
+                              context=client_context) + component_summary.seed)
 
     component_fd.Set(component_fd.Schema.COMPONENT, component_summary)
     component_fd.Close()
@@ -334,12 +345,15 @@ def SignComponent(component_filename, overwrite=False, token=None):
 
   # Sign the component, encrypt it and store it at the static aff4 location.
   signed_component = rdf_crypto.SignedBlob()
-  signed_component.Sign(component.SerializeToString(), sig_key, ver_key,
+  signed_component.Sign(component.SerializeToString(),
+                        sig_key,
+                        ver_key,
                         prompt=True)
 
   aff4_urn = config_lib.CONFIG.Get(
-      "Client.component_aff4_stem", context=client_context).Add(
-          component.summary.seed).Add(component.build_system.signature())
+      "Client.component_aff4_stem",
+      context=client_context).Add(component.summary.seed).Add(
+          component.build_system.signature())
 
   print "Storing signed component at %s" % aff4_urn
   with aff4.FACTORY.Create(aff4_urn, aff4.AFF4MemoryStream, token=token) as fd:

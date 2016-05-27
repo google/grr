@@ -51,9 +51,11 @@ class VFSGRRClient(standard.VFSDirectory):
     FILESYSTEM = aff4.Attribute("aff4:filesystem", rdf_client.Filesystems,
                                 "Filesystems on the client.")
 
-    CLIENT_INFO = aff4.Attribute(
-        "metadata:ClientInfo", rdf_client.ClientInformation,
-        "GRR client information", "GRR client", default="")
+    CLIENT_INFO = aff4.Attribute("metadata:ClientInfo",
+                                 rdf_client.ClientInformation,
+                                 "GRR client information",
+                                 "GRR client",
+                                 default="")
 
     LAST_BOOT_TIME = aff4.Attribute("metadata:LastBootTime",
                                     rdfvalue.RDFDatetime,
@@ -65,11 +67,15 @@ class VFSGRRClient(standard.VFSDirectory):
                                 "FirstSeen")
 
     # Information about the host.
-    HOSTNAME = aff4.Attribute("metadata:hostname", rdfvalue.RDFString,
-                              "Hostname of the host.", "Host",
+    HOSTNAME = aff4.Attribute("metadata:hostname",
+                              rdfvalue.RDFString,
+                              "Hostname of the host.",
+                              "Host",
                               index=client_index)
-    FQDN = aff4.Attribute("metadata:fqdn", rdfvalue.RDFString,
-                          "Fully qualified hostname of the host.", "FQDN",
+    FQDN = aff4.Attribute("metadata:fqdn",
+                          rdfvalue.RDFString,
+                          "Fully qualified hostname of the host.",
+                          "FQDN",
                           index=client_index)
 
     SYSTEM = aff4.Attribute("metadata:system", rdfvalue.RDFString,
@@ -103,65 +109,79 @@ class VFSGRRClient(standard.VFSDirectory):
         "aff4:library_versions", rdf_protodict.Dict,
         "Running library versions for the client.", "Libraries")
 
-    USERNAMES = aff4.Attribute("aff4:user_names", SpaceSeparatedStringArray,
+    USERNAMES = aff4.Attribute("aff4:user_names",
+                               SpaceSeparatedStringArray,
                                "A space separated list of system users.",
                                "Usernames",
                                index=client_index)
 
     # This information is duplicated from the INTERFACES attribute but is done
     # to allow for fast searching by mac address.
-    MAC_ADDRESS = aff4.Attribute("aff4:mac_addresses", rdfvalue.RDFString,
-                                 "A hex encoded MAC address.", "MAC",
+    MAC_ADDRESS = aff4.Attribute("aff4:mac_addresses",
+                                 rdfvalue.RDFString,
+                                 "A hex encoded MAC address.",
+                                 "MAC",
                                  index=client_index)
 
     KERNEL = aff4.Attribute("aff4:kernel_version", rdfvalue.RDFString,
                             "Kernel version string.", "KernelVersion")
 
     # Same for IP addresses.
-    HOST_IPS = aff4.Attribute("aff4:host_ips", rdfvalue.RDFString,
-                              "An IP address.", "Host_ip",
+    HOST_IPS = aff4.Attribute("aff4:host_ips",
+                              rdfvalue.RDFString,
+                              "An IP address.",
+                              "Host_ip",
                               index=client_index)
 
-    PING = aff4.Attribute("metadata:ping", rdfvalue.RDFDatetime,
+    PING = aff4.Attribute("metadata:ping",
+                          rdfvalue.RDFDatetime,
                           "The last time the server heard from this client.",
-                          "LastCheckin", versioned=False, default=0)
+                          "LastCheckin",
+                          versioned=False,
+                          default=0)
 
-    CLOCK = aff4.Attribute("metadata:clock", rdfvalue.RDFDatetime,
+    CLOCK = aff4.Attribute("metadata:clock",
+                           rdfvalue.RDFDatetime,
                            "The last clock read on the client "
                            "(Can be used to estimate client clock skew).",
-                           "Clock", versioned=False)
+                           "Clock",
+                           versioned=False)
 
-    CLIENT_IP = aff4.Attribute("metadata:client_ip", rdfvalue.RDFString,
+    CLIENT_IP = aff4.Attribute("metadata:client_ip",
+                               rdfvalue.RDFString,
                                "The ip address this client connected from.",
-                               "Client_ip", versioned=False)
+                               "Client_ip",
+                               versioned=False)
 
     # This is the last foreman rule that applied to us
-    LAST_FOREMAN_TIME = aff4.Attribute(
-        "aff4:last_foreman_time", rdfvalue.RDFDatetime,
-        "The last time the foreman checked us.", versioned=False)
+    LAST_FOREMAN_TIME = aff4.Attribute("aff4:last_foreman_time",
+                                       rdfvalue.RDFDatetime,
+                                       "The last time the foreman checked us.",
+                                       versioned=False)
 
     LAST_INTERFACES = aff4.Attribute(
-        "aff4:last_interfaces", rdf_client.Interfaces,
+        "aff4:last_interfaces",
+        rdf_client.Interfaces,
         "Last seen network interfaces. Full history is maintained in the "
         "clientid/network object. Separated for performance reasons.",
         versioned=False)
 
-    LAST_CRASH = aff4.Attribute(
-        "aff4:last_crash", rdf_client.ClientCrash,
-        "Last client crash.", creates_new_object_version=False,
-        versioned=False)
+    LAST_CRASH = aff4.Attribute("aff4:last_crash",
+                                rdf_client.ClientCrash,
+                                "Last client crash.",
+                                creates_new_object_version=False,
+                                versioned=False)
 
-    VOLUMES = aff4.Attribute(
-        "aff4:volumes", rdf_client.Volumes,
-        "Client disk volumes.")
+    VOLUMES = aff4.Attribute("aff4:volumes", rdf_client.Volumes,
+                             "Client disk volumes.")
 
-    HARDWARE_INFO = aff4.Attribute(
-        "aff4:hardware_info", rdf_client.HardwareInfo,
-        "Various hardware information.", default="")
+    HARDWARE_INFO = aff4.Attribute("aff4:hardware_info",
+                                   rdf_client.HardwareInfo,
+                                   "Various hardware information.",
+                                   default="")
 
-    MEMORY_SIZE = aff4.Attribute(
-        "aff4:memory_size", rdfvalue.ByteSize,
-        "Amount of memory this client's machine has.")
+    MEMORY_SIZE = aff4.Attribute("aff4:memory_size", rdfvalue.ByteSize,
+                                 "Amount of memory this client's machine has.")
 
   # Valid client ids
   CLIENT_ID_RE = re.compile(r"^C\.[0-9a-fA-F]{16}$")
@@ -188,7 +208,8 @@ class VFSGRRClient(standard.VFSDirectory):
     if attribute == "CONTAINS":
       flow_id = flow.GRRFlow.StartFlow(client_id=self.client_id,
                                        flow_name="Interrogate",
-                                       token=self.token, priority=priority)
+                                       token=self.token,
+                                       priority=priority)
 
       return flow_id
 
@@ -286,8 +307,7 @@ class VFSGRRClient(standard.VFSDirectory):
     summary.system_info.kernel = self.Get(self.Schema.KERNEL)
     summary.system_info.fqdn = self.Get(self.Schema.FQDN)
     summary.system_info.machine = self.Get(self.Schema.ARCH)
-    summary.system_info.install_date = self.Get(
-        self.Schema.INSTALL_DATE)
+    summary.system_info.install_date = self.Get(self.Schema.INSTALL_DATE)
     kb = self.Get(self.Schema.KNOWLEDGE_BASE)
     if kb:
       summary.users = kb.users
@@ -314,7 +334,8 @@ class VFSGRRClient(standard.VFSDirectory):
     """Returns all client requests for the given client urns."""
     task_urns = [urn.Add("tasks") for urn in client_urns]
 
-    client_requests_raw = data_store.DB.MultiResolvePrefix(task_urns, "task:",
+    client_requests_raw = data_store.DB.MultiResolvePrefix(task_urns,
+                                                           "task:",
                                                            token=token)
 
     client_requests = {}
@@ -351,8 +372,7 @@ class UpdateVFSFile(flow.GRRFlow):
     data_store.DB.security_manager.CheckClientAccess(self.token.RealUID(),
                                                      client_id)
 
-    fd = aff4.FACTORY.Open(self.args.vfs_file_urn, mode="rw",
-                           token=self.token)
+    fd = aff4.FACTORY.Open(self.args.vfs_file_urn, mode="rw", token=self.token)
 
     # Account for implicit directories.
     if fd.Get(fd.Schema.TYPE) is None:
@@ -407,9 +427,11 @@ class VFSFile(VFSAnalysisFile):
 
     # Get the pathspec for this object
     pathspec = self.Get(self.Schema.STAT).pathspec
-    flow_urn = flow.GRRFlow.StartFlow(
-        client_id=client_id, flow_name="MultiGetFile", token=self.token,
-        pathspecs=[pathspec], priority=priority)
+    flow_urn = flow.GRRFlow.StartFlow(client_id=client_id,
+                                      flow_name="MultiGetFile",
+                                      token=self.token,
+                                      pathspecs=[pathspec],
+                                      priority=priority)
     self.Set(self.Schema.CONTENT_LOCK(flow_urn))
     self.Close()
 
@@ -442,8 +464,10 @@ class GRRForeman(aff4.AFF4Object):
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     """Attributes specific to VFSDirectory."""
-    RULES = aff4.Attribute("aff4:rules", rdf_foreman.ForemanRules,
-                           "The rules the foreman uses.", versioned=False,
+    RULES = aff4.Attribute("aff4:rules",
+                           rdf_foreman.ForemanRules,
+                           "The rules the foreman uses.",
+                           versioned=False,
                            creates_new_object_version=False,
                            default=rdf_foreman.ForemanRules())
 
@@ -464,9 +488,8 @@ class GRRForeman(aff4.AFF4Object):
     if expired_session_ids:
       # Notify the worker to mark this hunt as terminated.
       manager = queue_manager.QueueManager(token=self.token)
-      manager.MultiNotifyQueue(
-          [rdf_flows.GrrNotification(session_id=session_id)
-           for session_id in expired_session_ids])
+      manager.MultiNotifyQueue([rdf_flows.GrrNotification(session_id=session_id)
+                                for session_id in expired_session_ids])
 
     if len(new_rules) < len(rules):
       self.Set(self.Schema.RULES, new_rules)
@@ -475,8 +498,7 @@ class GRRForeman(aff4.AFF4Object):
   def _CheckIfHuntTaskWasAssigned(self, client_id, hunt_id):
     """Will return True if hunt's task was assigned to this client before."""
     for _ in aff4.FACTORY.Stat(
-        [client_id.Add("flows/%s:hunt" %
-                       rdfvalue.RDFURN(hunt_id).Basename())],
+        [client_id.Add("flows/%s:hunt" % rdfvalue.RDFURN(hunt_id).Basename())],
         token=self.token):
       return True
 
@@ -564,9 +586,10 @@ class GRRForeman(aff4.AFF4Object):
             flow_cls.StartClients(action.hunt_id, [client_id])
             actions_count += 1
         else:
-          flow.GRRFlow.StartFlow(
-              client_id=client_id, flow_name=action.flow_name, token=token,
-              **action.argv.ToDict())
+          flow.GRRFlow.StartFlow(client_id=client_id,
+                                 flow_name=action.flow_name,
+                                 token=token,
+                                 **action.argv.ToDict())
           actions_count += 1
       # There could be all kinds of errors we don't know about when starting the
       # flow/hunt so we catch everything here.
@@ -588,7 +611,8 @@ class GRRForeman(aff4.AFF4Object):
     client_id = rdf_client.ClientURN(client_id)
 
     rules = self.Get(self.Schema.RULES)
-    if not rules: return 0
+    if not rules:
+      return 0
 
     client = aff4.FACTORY.Open(client_id, mode="rw", token=self.token)
     try:
@@ -658,7 +682,8 @@ class GRRAFF4Init(registry.InitHook):
   def Run(self):
     try:
       # Make the foreman
-      with aff4.FACTORY.Create("aff4:/foreman", GRRForeman,
+      with aff4.FACTORY.Create("aff4:/foreman",
+                               GRRForeman,
                                token=aff4.FACTORY.root_token):
         pass
     except access_control.UnauthorizedAccess:
@@ -669,9 +694,10 @@ class MRUCollection(aff4.AFF4Object):
   """Stores all of the MRU files from the registry."""
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
-    LAST_USED_FOLDER = aff4.Attribute(
-        "aff4:mru", rdf_client.MRUFolder, "The Most Recently Used files.",
-        default="")
+    LAST_USED_FOLDER = aff4.Attribute("aff4:mru",
+                                      rdf_client.MRUFolder,
+                                      "The Most Recently Used files.",
+                                      default="")
 
 
 class VFSFileSymlink(aff4.AFF4Stream):
@@ -688,8 +714,10 @@ class VFSFileSymlink(aff4.AFF4Stream):
     if "r" in self.mode:
       delegate = self.Get(self.Schema.DELEGATE)
       if delegate:
-        self.delegate = aff4.FACTORY.Open(delegate, mode=self.mode,
-                                          token=self.token, age=self.age_policy)
+        self.delegate = aff4.FACTORY.Open(delegate,
+                                          mode=self.mode,
+                                          token=self.token,
+                                          age=self.age_policy)
 
   def Read(self, length):
     if "r" not in self.mode:
@@ -724,7 +752,6 @@ class AFF4RekallProfile(aff4.AFF4Object):
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     PROFILE = aff4.Attribute("aff4:profile", rdf_rekall_types.RekallProfile,
                              "A Rekall profile.")
-
 
 # The catchall client label used when compiling server-side stats about clients
 # by label.

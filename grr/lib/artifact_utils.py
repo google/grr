@@ -106,8 +106,8 @@ def InterpolateKbAttributes(pattern, knowledge_base, ignore_errors=False):
         raise StopIteration
       else:
         raise KnowledgeBaseInterpolationError(
-            "Failed to interpolate %s with the knowledgebase. %s" % (
-                pattern, e))
+            "Failed to interpolate %s with the knowledgebase. %s" % (pattern,
+                                                                     e))
 
     components.append(set(alternatives))
     offset = match.end()
@@ -232,7 +232,9 @@ def CheckCondition(condition, check_object):
     raise ConditionError(e)
 
 
-def ExpandWindowsUserEnvironmentVariables(data_string, knowledge_base, sid=None,
+def ExpandWindowsUserEnvironmentVariables(data_string,
+                                          knowledge_base,
+                                          sid=None,
                                           username=None):
   """Take a string and expand windows user environment variables based.
 

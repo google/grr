@@ -15,8 +15,10 @@ def CollectAff4Objects(paths, client_id, token):
     aff4_object = client_id.Add(path)
     object_urns[str(aff4_object)] = aff4_object
 
-  objects = {fd.urn: fd for fd in
-             aff4.FACTORY.MultiOpen(object_urns, token=token)}
+  objects = {
+      fd.urn: fd
+      for fd in aff4.FACTORY.MultiOpen(object_urns, token=token)
+  }
   return objects
 
 
@@ -59,9 +61,9 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestCase):
     client_id_dar, = self.SetupClients(nr_clients=1, system="Darwin")
     # One of the set's rules has os_darwin=True, so the whole set matches
     # with the match any match mode
-    self.assertTrue(rs.Evaluate(CollectAff4Objects(rs.GetPathsToCheck(),
-                                                   client_id_dar, self.token),
-                                client_id_dar))
+    self.assertTrue(rs.Evaluate(
+        CollectAff4Objects(rs.GetPathsToCheck(), client_id_dar, self.token),
+        client_id_dar))
 
   def testEvaluatesNegativeInMatchAnyModeIfNoRuleMatches(self):
     # Instantiate a rule set that matches if any of its two
@@ -84,9 +86,9 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestCase):
     client_id_win, = self.SetupClients(nr_clients=1, system="Windows")
     # None of the set's rules has os_windows=True, so the whole set doesn't
     # match
-    self.assertFalse(rs.Evaluate(CollectAff4Objects(rs.GetPathsToCheck(),
-                                                    client_id_win, self.token),
-                                 client_id_win))
+    self.assertFalse(rs.Evaluate(
+        CollectAff4Objects(rs.GetPathsToCheck(), client_id_win, self.token),
+        client_id_win))
 
   def testEvaluatesNegativeInMatchAllModeIfOnlyOneRuleMatches(self):
     # Instantiate a rule set that matches if all of its two
@@ -109,9 +111,9 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestCase):
     client_id_dar, = self.SetupClients(nr_clients=1, system="Darwin")
     # One of the set's rules has os_darwin=False, so the whole set doesn't
     # match with the match all match mode
-    self.assertFalse(rs.Evaluate(CollectAff4Objects(rs.GetPathsToCheck(),
-                                                    client_id_dar, self.token),
-                                 client_id_dar))
+    self.assertFalse(rs.Evaluate(
+        CollectAff4Objects(rs.GetPathsToCheck(), client_id_dar, self.token),
+        client_id_dar))
 
   def testEvaluatesPositiveInMatchAllModeIfAllRuleMatch(self):
     # Instantiate a rule set that matches if all of its two
@@ -133,9 +135,9 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestCase):
 
     client_id_lin, = self.SetupClients(nr_clients=1, system="Linux")
     # All of the set's rules have os_linux=False, so the whole set matches
-    self.assertTrue(rs.Evaluate(CollectAff4Objects(rs.GetPathsToCheck(),
-                                                   client_id_lin, self.token),
-                                client_id_lin))
+    self.assertTrue(rs.Evaluate(
+        CollectAff4Objects(rs.GetPathsToCheck(), client_id_lin, self.token),
+        client_id_lin))
 
   def testEvaluatesNegativeInMatchAnyModeWithNoRules(self):
     # Instantiate an empty rule set that matches if any of its rules matches
@@ -145,9 +147,9 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestCase):
 
     client_id_lin, = self.SetupClients(nr_clients=1, system="Linux")
     # None of the set's rules has os_linux=True, so the set doesn't match
-    self.assertFalse(rs.Evaluate(CollectAff4Objects(rs.GetPathsToCheck(),
-                                                    client_id_lin, self.token),
-                                 client_id_lin))
+    self.assertFalse(rs.Evaluate(
+        CollectAff4Objects(rs.GetPathsToCheck(), client_id_lin, self.token),
+        client_id_lin))
 
   def testEvaluatesPositiveInMatchAllModeWithNoRules(self):
     # Instantiate an empty rule set that matches if all of its rules match
@@ -157,9 +159,9 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestCase):
 
     client_id_lin, = self.SetupClients(nr_clients=1, system="Linux")
     # All of the set's rules have os_linux=True, so the set matches
-    self.assertTrue(rs.Evaluate(CollectAff4Objects(rs.GetPathsToCheck(),
-                                                   client_id_lin, self.token),
-                                client_id_lin))
+    self.assertTrue(rs.Evaluate(
+        CollectAff4Objects(rs.GetPathsToCheck(), client_id_lin, self.token),
+        client_id_lin))
 
 
 class ForemanClientRuleTest(test_base.RDFValueTestCase):
@@ -182,9 +184,9 @@ class ForemanClientRuleTest(test_base.RDFValueTestCase):
 
     client_id_win, = self.SetupClients(nr_clients=1, system="Windows")
     # The Windows client matches rule r
-    self.assertTrue(r.Evaluate(CollectAff4Objects(r.GetPathsToCheck(),
-                                                  client_id_win, self.token),
-                               client_id_win))
+    self.assertTrue(r.Evaluate(
+        CollectAff4Objects(r.GetPathsToCheck(), client_id_win, self.token),
+        client_id_win))
 
   def testEvaluatesNegativeIfNestedRuleEvaluatesNegative(self):
     # Instantiate a wrapped operating system rule
@@ -196,9 +198,9 @@ class ForemanClientRuleTest(test_base.RDFValueTestCase):
 
     client_id_win, = self.SetupClients(nr_clients=1, system="Windows")
     # The Windows client doesn't match rule r
-    self.assertFalse(r.Evaluate(CollectAff4Objects(r.GetPathsToCheck(),
-                                                   client_id_win, self.token),
-                                client_id_win))
+    self.assertFalse(r.Evaluate(
+        CollectAff4Objects(r.GetPathsToCheck(), client_id_win, self.token),
+        client_id_win))
 
 
 class ForemanOsClientRuleTest(test_base.RDFValueTestCase):
@@ -213,7 +215,7 @@ class ForemanOsClientRuleTest(test_base.RDFValueTestCase):
                        "numbered from 0 to %d." %
                        (num_combinations,
                         rdf_foreman.ForemanOsClientRule.__name__,
-                        num_combinations-1))
+                        num_combinations - 1))
 
     # Assign the bits to new rule's boolean fields accordingly
     return rdf_foreman.ForemanOsClientRule(os_windows=number & 1,
@@ -227,9 +229,9 @@ class ForemanOsClientRuleTest(test_base.RDFValueTestCase):
                                         os_darwin=False)
 
     client_id_win, = self.SetupClients(nr_clients=1, system="Windows")
-    self.assertFalse(r.Evaluate(CollectAff4Objects(r.GetPathsToCheck(),
-                                                   client_id_win, self.token),
-                                client_id_win))
+    self.assertFalse(r.Evaluate(
+        CollectAff4Objects(r.GetPathsToCheck(), client_id_win, self.token),
+        client_id_win))
 
   def testLinuxClientMatchesIffOsLinuxIsSelected(self):
     # Instantiate two operating system rules
@@ -242,12 +244,12 @@ class ForemanOsClientRuleTest(test_base.RDFValueTestCase):
                                          os_darwin=False)
 
     client_id_lin, = self.SetupClients(nr_clients=1, system="Linux")
-    self.assertFalse(r0.Evaluate(CollectAff4Objects(r0.GetPathsToCheck(),
-                                                    client_id_lin, self.token),
-                                 client_id_lin))
-    self.assertTrue(r1.Evaluate(CollectAff4Objects(r1.GetPathsToCheck(),
-                                                   client_id_lin, self.token),
-                                client_id_lin))
+    self.assertFalse(r0.Evaluate(
+        CollectAff4Objects(r0.GetPathsToCheck(), client_id_lin, self.token),
+        client_id_lin))
+    self.assertTrue(r1.Evaluate(
+        CollectAff4Objects(r1.GetPathsToCheck(), client_id_lin, self.token),
+        client_id_lin))
 
   def testDarwinClientMatchesIffOsDarwinIsSelected(self):
     # Instantiate two operating system rules
@@ -260,12 +262,12 @@ class ForemanOsClientRuleTest(test_base.RDFValueTestCase):
                                          os_darwin=True)
 
     client_id_dar, = self.SetupClients(nr_clients=1, system="Darwin")
-    self.assertFalse(r0.Evaluate(CollectAff4Objects(r0.GetPathsToCheck(),
-                                                    client_id_dar, self.token),
-                                 client_id_dar))
-    self.assertTrue(r1.Evaluate(CollectAff4Objects(r1.GetPathsToCheck(),
-                                                   client_id_dar, self.token),
-                                client_id_dar))
+    self.assertFalse(r0.Evaluate(
+        CollectAff4Objects(r0.GetPathsToCheck(), client_id_dar, self.token),
+        client_id_dar))
+    self.assertTrue(r1.Evaluate(
+        CollectAff4Objects(r1.GetPathsToCheck(), client_id_dar, self.token),
+        client_id_dar))
 
 
 class ForemanLabelClientRuleTest(test_base.RDFValueTestCase):
@@ -443,9 +445,9 @@ class ForemanRegexClientRuleTest(test_base.RDFValueTestCase):
     client_id, = self.SetupClients(nr_clients=1)
 
     # Aff4 object type is VFSGRRClient
-    self.assertTrue(r.Evaluate(CollectAff4Objects(r.GetPathsToCheck(),
-                                                  client_id, self.token),
-                               client_id))
+    self.assertTrue(r.Evaluate(
+        CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token),
+        client_id))
 
   def testEvaluatesAttributesSubstringToTrue(self):
     # Instantiate a regex rule
@@ -455,9 +457,9 @@ class ForemanRegexClientRuleTest(test_base.RDFValueTestCase):
     client_id, = self.SetupClients(nr_clients=1)
 
     # The type contains the substring GRR
-    self.assertTrue(r.Evaluate(CollectAff4Objects(r.GetPathsToCheck(),
-                                                  client_id, self.token),
-                               client_id))
+    self.assertTrue(r.Evaluate(
+        CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token),
+        client_id))
 
   def testEvaluatesNonSubstringToFalse(self):
     # Instantiate a regex rule
@@ -467,9 +469,9 @@ class ForemanRegexClientRuleTest(test_base.RDFValueTestCase):
     client_id, = self.SetupClients(nr_clients=1)
 
     # The type doesn't contain foo
-    self.assertFalse(r.Evaluate(CollectAff4Objects(r.GetPathsToCheck(),
-                                                   client_id, self.token),
-                                client_id))
+    self.assertFalse(r.Evaluate(
+        CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token),
+        client_id))
 
 
 class ForemanIntegerClientRuleTest(test_base.RDFValueTestCase):
@@ -492,9 +494,9 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestCase):
     client_id, = self.SetupClients(nr_clients=1)
 
     # The size is not less than 0
-    self.assertFalse(r.Evaluate(CollectAff4Objects(r.GetPathsToCheck(),
-                                                   client_id, self.token),
-                                client_id))
+    self.assertFalse(r.Evaluate(
+        CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token),
+        client_id))
 
   def testEvaluatesSizeGreaterThanMinusOneToTrue(self):
     # Instantiate an integer rule
@@ -506,9 +508,9 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestCase):
     client_id, = self.SetupClients(nr_clients=1)
 
     # size > -1
-    self.assertTrue(r.Evaluate(CollectAff4Objects(r.GetPathsToCheck(),
-                                                  client_id, self.token),
-                               client_id))
+    self.assertTrue(r.Evaluate(
+        CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token),
+        client_id))
 
   def testEvaluatesToFalseWithNonIntAttribute(self):
     # Instantiate an integer rule
@@ -520,6 +522,6 @@ class ForemanIntegerClientRuleTest(test_base.RDFValueTestCase):
     client_id, = self.SetupClients(nr_clients=1)
 
     # Host is not a number
-    self.assertFalse(r.Evaluate(CollectAff4Objects(r.GetPathsToCheck(),
-                                                   client_id, self.token),
-                                client_id))
+    self.assertFalse(r.Evaluate(
+        CollectAff4Objects(r.GetPathsToCheck(), client_id, self.token),
+        client_id))

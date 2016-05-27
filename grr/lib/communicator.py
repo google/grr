@@ -141,8 +141,7 @@ class Cipher(object):
         key=os.urandom(self.key_size / 8),
         metadata_iv=os.urandom(self.iv_size / 8),
         hmac_key=os.urandom(self.key_size / 8),
-        hmac_type="FULL_HMAC"
-    )
+        hmac_type="FULL_HMAC")
 
     self.pub_key_cache = pub_key_cache
     serialized_cipher = self.cipher.SerializeToString()
@@ -155,8 +154,8 @@ class Cipher(object):
     # We never want to have a password dialog
     private_key = self.private_key.GetPrivateKey()
 
-    self.cipher_metadata.signature = private_key.sign(
-        digest, self.hash_function_name)
+    self.cipher_metadata.signature = private_key.sign(digest,
+                                                      self.hash_function_name)
 
     # Now encrypt the cipher with our key
     rsa_key = pub_key_cache.GetRSAPublicKey(destination)
@@ -164,8 +163,9 @@ class Cipher(object):
     stats.STATS.IncrementCounter("grr_rsa_operations")
     # M2Crypto verifies the key on each public_encrypt call which is horribly
     # slow therefore we just call the swig wrapped method directly.
-    self.encrypted_cipher = m2.rsa_public_encrypt(
-        rsa_key.rsa, serialized_cipher, self.e_padding)
+    self.encrypted_cipher = m2.rsa_public_encrypt(rsa_key.rsa,
+                                                  serialized_cipher,
+                                                  self.e_padding)
 
     # Encrypt the metadata block symmetrically.
     _, self.encrypted_cipher_metadata = self.Encrypt(
@@ -178,8 +178,10 @@ class Cipher(object):
     if iv is None:
       iv = os.urandom(self.iv_size / 8)
 
-    evp_cipher = EVP.Cipher(alg=self.cipher_name, key=self.cipher.key,
-                            iv=iv, op=ENCRYPT)
+    evp_cipher = EVP.Cipher(alg=self.cipher_name,
+                            key=self.cipher.key,
+                            iv=iv,
+                            op=ENCRYPT)
 
     ctext = evp_cipher.update(data)
     ctext += evp_cipher.final()
@@ -189,8 +191,10 @@ class Cipher(object):
   def Decrypt(self, data, iv):
     """Symmetrically decrypt the data."""
     try:
-      evp_cipher = EVP.Cipher(alg=self.cipher_name, key=self.cipher.key,
-                              iv=iv, op=DECRYPT)
+      evp_cipher = EVP.Cipher(alg=self.cipher_name,
+                              key=self.cipher.key,
+                              iv=iv,
+                              op=DECRYPT)
 
       text = evp_cipher.update(data)
       text += evp_cipher.final()
@@ -344,8 +348,8 @@ class Communicator(object):
     self.common_name = PubKeyCache.GetCNFromCert(self.cert)
 
     # Make sure we know about our own public key
-    self.pub_key_cache.Put(
-        self.common_name, self.pub_key_cache.PubKeyFromCert(self.cert))
+    self.pub_key_cache.Put(self.common_name,
+                           self.pub_key_cache.PubKeyFromCert(self.cert))
 
   def EncodeMessageList(self, message_list, signed_message_list):
     """Encode the MessageList into the signed_message_list rdfvalue."""
@@ -362,8 +366,12 @@ class Communicator(object):
             rdf_flows.SignedMessageList.CompressionType.ZCOMPRESSION)
         signed_message_list.message_list = compressed_data
 
-  def EncodeMessages(self, message_list, result, destination=None,
-                     timestamp=None, api_version=3):
+  def EncodeMessages(self,
+                     message_list,
+                     result,
+                     destination=None,
+                     timestamp=None,
+                     api_version=3):
     """Accepts a list of messages and encodes for transmission.
 
     This function signs and then encrypts the payload.
@@ -422,8 +430,7 @@ class Communicator(object):
 
     # Encrypt the message symmetrically.
     # New scheme cipher is signed plus hmac over message list.
-    result.packet_iv, result.encrypted = cipher.Encrypt(
-        serialized_message_list)
+    result.packet_iv, result.encrypted = cipher.Encrypt(serialized_message_list)
 
     # This is to support older endpoints.
     result.hmac = cipher.HMAC(result.encrypted)
@@ -431,12 +438,10 @@ class Communicator(object):
     # Newer endpoints only look at this HMAC. It is recalculated for each packet
     # in the session. Note that encrypted_cipher and encrypted_cipher_metadata
     # do not change between all packets in this session.
-    result.full_hmac = cipher.HMAC(
-        result.encrypted,
-        result.encrypted_cipher,
-        result.encrypted_cipher_metadata,
-        result.packet_iv,
-        struct.pack("<I", api_version))
+    result.full_hmac = cipher.HMAC(result.encrypted, result.encrypted_cipher,
+                                   result.encrypted_cipher_metadata,
+                                   result.packet_iv,
+                                   struct.pack("<I", api_version))
 
     result.api_version = api_version
 
@@ -458,8 +463,8 @@ class Communicator(object):
     try:
       response_comms = rdf_flows.ClientCommunication(encrypted_response)
       return self.DecodeMessages(response_comms)
-    except (rdfvalue.DecodeError, type_info.TypeValueError,
-            ValueError, AttributeError) as e:
+    except (rdfvalue.DecodeError, type_info.TypeValueError, ValueError,
+            AttributeError) as e:
       raise DecodingError("Protobuf parsing error: %s" % e)
 
   def DecompressMessageList(self, signed_message_list):
@@ -529,8 +534,7 @@ class Communicator(object):
       cipher.VerifyHMAC(response_comms)
 
       # Decrypt the message with the per packet IV.
-      plain = cipher.Decrypt(
-          response_comms.encrypted, response_comms.packet_iv)
+      plain = cipher.Decrypt(response_comms.encrypted, response_comms.packet_iv)
       try:
         signed_message_list = rdf_flows.SignedMessageList(plain)
       except rdfvalue.DecodeError as e:
@@ -544,9 +548,9 @@ class Communicator(object):
       raise DecryptionError("Server response is not encrypted.")
 
     # Are these messages authenticated?
-    auth_state = self.VerifyMessageSignature(
-        response_comms, signed_message_list, cipher,
-        response_comms.api_version)
+    auth_state = self.VerifyMessageSignature(response_comms,
+                                             signed_message_list, cipher,
+                                             response_comms.api_version)
 
     # Mark messages as authenticated and where they came from.
     for msg in message_list.job:
@@ -556,8 +560,8 @@ class Communicator(object):
     return (message_list.job, cipher.cipher_metadata.source,
             signed_message_list.timestamp)
 
-  def VerifyMessageSignature(
-      self, unused_response_comms, signed_message_list, cipher, api_version):
+  def VerifyMessageSignature(self, unused_response_comms, signed_message_list,
+                             cipher, api_version):
     """Verify the message list signature.
 
     This is the way the messages are verified in the client.

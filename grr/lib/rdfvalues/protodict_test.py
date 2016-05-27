@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Test protodict implementation.
 
 An Dict is a generic dictionary implementation which has keys of type
@@ -90,22 +89,17 @@ class DictTest(test_base.RDFProtoTestCase):
     self.CheckTestDict(test_dict, sample.ToDict())
 
   def testNestedDicts(self):
-    test_dict = dict(
-        key1={"A": 1},
-        key2=rdf_protodict.Dict({"A": 1}),
-    )
+    test_dict = dict(key1={"A": 1}, key2=rdf_protodict.Dict({"A": 1}),)
 
     sample = rdf_protodict.Dict(**test_dict)
     self.CheckTestDict(test_dict, sample)
     self.CheckTestDict(test_dict, sample.ToDict())
 
   def testNestedDictsMultipleTypes(self):
-    test_dict = dict(
-        key1={"A": 1},
-        key2=rdf_protodict.Dict({"A": 1}),
-        key3=[1, 2, 3, [1, 2, [3]]],
-        key4=[[], None, ["abc"]]
-    )
+    test_dict = dict(key1={"A": 1},
+                     key2=rdf_protodict.Dict({"A": 1}),
+                     key3=[1, 2, 3, [1, 2, [3]]],
+                     key4=[[], None, ["abc"]])
 
     sample = rdf_protodict.Dict(**test_dict)
     self.CheckTestDict(test_dict, sample)
@@ -116,14 +110,12 @@ class DictTest(test_base.RDFProtoTestCase):
     class UnSerializable(object):
       pass
 
-    test_dict = dict(
-        key1={"A": 1},
-        key2=rdf_protodict.Dict({"A": 1}),
-        key3=[1, UnSerializable(), 3, [1, 2, [3]]],
-        key4=[[], None, ["abc"]],
-        key5=UnSerializable(),
-        key6=["a", UnSerializable(), "b"]
-    )
+    test_dict = dict(key1={"A": 1},
+                     key2=rdf_protodict.Dict({"A": 1}),
+                     key3=[1, UnSerializable(), 3, [1, 2, [3]]],
+                     key4=[[], None, ["abc"]],
+                     key5=UnSerializable(),
+                     key6=["a", UnSerializable(), "b"])
 
     self.assertRaises(TypeError, rdf_protodict.Dict, **test_dict)
 
@@ -221,8 +213,9 @@ class RDFValueArrayTest(test_base.RDFProtoTestCase):
     self.assertIsInstance(sample_list[1], rdfvalue.RDFString)
 
     # Test initialization from a list of variable types.
-    test_list = [1, 2,   # Integers.
-                 None,   # None.
+    test_list = [1,
+                 2,  # Integers.
+                 None,  # None.
                  rdfvalue.RDFDatetime().Now(),  # An RDFValue instance.
                  [1, 2],  # A nested list.
                  u"升级程序",  # Unicode.
@@ -242,8 +235,7 @@ class RDFValueArrayTest(test_base.RDFProtoTestCase):
     self.assertIsInstance(sample[0], rdfvalue.RDFString)
 
     # Reject appending invalid types.
-    self.assertRaises(ValueError,
-                      sample.Append, rdfvalue.RDFDatetime().Now())
+    self.assertRaises(ValueError, sample.Append, rdfvalue.RDFDatetime().Now())
 
   def testPop(self):
     sample = TestRDFValueArray()

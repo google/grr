@@ -22,15 +22,18 @@ class YamlConfigTest(test_lib.GRRBaseTest):
     conf.DEFINE_list("Section1.test_list", ["a", "b"], "A test integer.")
     conf.DEFINE_integer("Section1.test", 0, "An integer")
     conf.DEFINE_integer("Section1.test2", 0, "An integer")
-    self.assertRaises(config_lib.MissingConfigDefinitionError, conf.Initialize,
-                      parser=config_lib.YamlParser, data="""
+    self.assertRaises(config_lib.MissingConfigDefinitionError,
+                      conf.Initialize,
+                      parser=config_lib.YamlParser,
+                      data="""
                       Section2.test: 2
                       """)
 
     conf.DEFINE_string("Section2.test", "", "A string")
     conf.DEFINE_context("Client Context")
     conf.DEFINE_context("Windows Context")
-    conf.Initialize(parser=config_lib.YamlParser, data="""
+    conf.Initialize(parser=config_lib.YamlParser,
+                    data="""
 
 # Configuration options can be written as long hand, dot separated parameters.
 Section1.test: 2
@@ -56,25 +59,21 @@ Windows Context:
     self.assertEqual(conf["Section2.test"], "32")
     self.assertEqual(conf["Section1.test_list"], ["x", "y"])
 
-    self.assertEqual(conf.Get("Section1.test_list",
-                              context=["Client Context", "Windows Context"]),
-                     ["x", "y"])
+    self.assertEqual(
+        conf.Get("Section1.test_list",
+                 context=["Client Context", "Windows Context"]), ["x", "y"])
 
     # Test that contexts affect option selection.
-    self.assertEqual(
-        conf.Get("Section1.test", context=["Client Context"]), 6)
+    self.assertEqual(conf.Get("Section1.test", context=["Client Context"]), 6)
 
-    self.assertEqual(
-        conf.Get("Section1.test", context=["Windows Context"]), 5)
+    self.assertEqual(conf.Get("Section1.test", context=["Windows Context"]), 5)
 
     context = ["Client Context", "Windows Context"]
-    self.assertEqual(
-        conf.Get("Section1.test", context=context), 10)
+    self.assertEqual(conf.Get("Section1.test", context=context), 10)
 
     context = ["Windows Context", "Client Context"]
     # Order of the context parameters should not matter.
-    self.assertEqual(
-        conf.Get("Section1.test", context=context), 10)
+    self.assertEqual(conf.Get("Section1.test", context=context), 10)
 
   def testConflictingContexts(self):
     """Test that conflicting contexts are resolved by precedence."""
@@ -84,7 +83,8 @@ Windows Context:
     conf.DEFINE_context("Client Context")
     conf.DEFINE_context("Platform:Windows")
     conf.DEFINE_context("Extra Context")
-    conf.Initialize(parser=config_lib.YamlParser, data="""
+    conf.Initialize(parser=config_lib.YamlParser,
+                    data="""
 
 Section1.test: 2
 
@@ -127,7 +127,8 @@ Extra Context:
     conf.DEFINE_context("Client Context")
     conf.DEFINE_context("Platform:Windows")
     conf.DEFINE_context("Extra Context")
-    conf.Initialize(parser=config_lib.YamlParser, data="""
+    conf.Initialize(parser=config_lib.YamlParser,
+                    data="""
 
 Section1.test: 2
 
@@ -172,7 +173,8 @@ Extra Context:
     conf.DEFINE_integer("Section1.test", 0, "An integer")
     conf.DEFINE_context("Client Context")
     conf.DEFINE_context("Unused Context")
-    conf.Initialize(parser=config_lib.YamlParser, data="""
+    conf.Initialize(parser=config_lib.YamlParser,
+                    data="""
 Client Context:
   Section1.test: 6
 """)
@@ -192,7 +194,8 @@ Client Context:
     conf.DEFINE_string("Section1.parameter2", "", "A test.")
     conf.DEFINE_string("Section1.parameter3", "", "A test.")
 
-    conf.Initialize(parser=config_lib.YamlParser, data=r"""
+    conf.Initialize(parser=config_lib.YamlParser,
+                    data=r"""
 
 Section1.parameter: |
    a\\b\\c\\d
@@ -232,13 +235,15 @@ Platform:Windows:
 
     # Check that the linux client have a different value from the windows
     # client.
-    self.assertEqual(conf.Get("MemoryDriver.device_path",
-                              context=("Client Context", "Platform:Linux")),
-                     "/dev/pmem")
+    self.assertEqual(
+        conf.Get("MemoryDriver.device_path",
+                 context=("Client Context", "Platform:Linux")),
+        "/dev/pmem")
 
-    self.assertEqual(conf.Get("MemoryDriver.device_path",
-                              context=("Client Context", "Platform:Windows")),
-                     r"\\.\pmem")
+    self.assertEqual(
+        conf.Get("MemoryDriver.device_path",
+                 context=("Client Context", "Platform:Windows")),
+        r"\\.\pmem")
 
   def testSet(self):
     """Test setting options."""
@@ -282,8 +287,8 @@ test = val2"""
 
     # This should raise since the config file is incorrect.
     errors = conf.Validate("Section1")
-    self.assertTrue(
-        "Invalid value val2 for Integer" in str(errors["Section1.test"]))
+    self.assertTrue("Invalid value val2 for Integer" in str(errors[
+        "Section1.test"]))
 
   def testEmptyClientPrivateKey(self):
     """Check an empty client private_key passes."""
@@ -508,19 +513,19 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
 
     # Test direct access.
     self.assertEqual(conf["Section1.foo"], "X")
-    self.assertRaises(config_lib.ConfigFormatError,
-                      conf.__getitem__, "Section1.foo1")
+    self.assertRaises(config_lib.ConfigFormatError, conf.__getitem__,
+                      "Section1.foo1")
 
-    self.assertRaises(config_lib.ConfigFormatError,
-                      conf.__getitem__, "Section1.foo2")
+    self.assertRaises(config_lib.ConfigFormatError, conf.__getitem__,
+                      "Section1.foo2")
 
     self.assertEqual(conf["Section1.foo3"], "foo)")
 
     # Test literal expansion.
     self.assertEqual(conf["Section1.foo4"], "%(hello)")
 
-    self.assertRaises(config_lib.ConfigFormatError,
-                      conf.__getitem__, "Section1.foo5")
+    self.assertRaises(config_lib.ConfigFormatError, conf.__getitem__,
+                      "Section1.foo5")
 
     self.assertEqual(conf["Section1.foo6"], "foo)")
 
@@ -542,16 +547,16 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     self.assertEqual(conf["Section1.foo6"], "foo)")
 
     # A complex regex which gets literally expanded.
-    self.assertEqual(
-        conf["Section1.literal"], r"aff4:/C\.(?P<path>.{1,16}?)($|/.*)")
+    self.assertEqual(conf["Section1.literal"],
+                     r"aff4:/C\.(?P<path>.{1,16}?)($|/.*)")
 
   def testDataTypes(self):
     conf = config_lib.GrrConfigManager()
     conf.DEFINE_float("Section1.float", 0, "A float")
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.float: abc")
     errors = conf.Validate("Section1")
-    self.assertTrue(
-        "Invalid value abc for Float" in str(errors["Section1.float"]))
+    self.assertTrue("Invalid value abc for Float" in str(errors[
+        "Section1.float"]))
 
     self.assertRaises(config_lib.ConfigFormatError, conf.Get, "Section1.float")
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.float: 2")
@@ -570,8 +575,8 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     errors = conf.Validate("Section1")
 
     # Floats can not be coerced to an int because that will lose data.
-    self.assertTrue(
-        "Invalid value 2.0 for Integer" in str(errors["Section1.int"]))
+    self.assertTrue("Invalid value 2.0 for Integer" in str(errors[
+        "Section1.int"]))
 
     # A string can be coerced to an int if it makes sense:
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.int: '2'")
@@ -641,12 +646,16 @@ Section1.int: 3
       conf = self._GetNewConf()
       fd = StringIO.StringIO(one)
       self.assertRaises(config_lib.ConfigFileNotFound,
-                        conf.Initialize, parser=config_lib.YamlParser, fd=fd)
+                        conf.Initialize,
+                        parser=config_lib.YamlParser,
+                        fd=fd)
 
       # Using data
       conf = self._GetNewConf()
       self.assertRaises(config_lib.ConfigFileNotFound,
-                        conf.Initialize, parser=config_lib.YamlParser, data=one)
+                        conf.Initialize,
+                        parser=config_lib.YamlParser,
+                        data=one)
 
   def testConfigFileInclusionWithContext(self):
     one = r"""

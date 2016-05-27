@@ -12,6 +12,7 @@ from grr.lib import test_lib
 
 # pylint: disable=unused-import
 from grr.parsers import registry_init
+
 # pylint: enable=unused-import
 
 
@@ -21,13 +22,11 @@ class ArtifactParserTests(test_lib.GRRBaseTest):
   def ValidateParser(self, parser):
     """Validate a parser is well defined."""
     for artifact_to_parse in parser.supported_artifacts:
-      art_obj = artifact_registry.REGISTRY.GetArtifact(
-          artifact_to_parse)
+      art_obj = artifact_registry.REGISTRY.GetArtifact(artifact_to_parse)
       if art_obj is None:
         raise parsers.ParserDefinitionError(
             "Artifact parser %s has an invalid artifact"
-            " %s. Artifact is undefined" %
-            (parser.__name__, artifact_to_parse))
+            " %s. Artifact is undefined" % (parser.__name__, artifact_to_parse))
 
     for out_type in parser.output_types:
       if out_type not in rdfvalue.RDFValue.classes:
@@ -39,16 +38,15 @@ class ArtifactParserTests(test_lib.GRRBaseTest):
       if not hasattr(parser, "ParseMultiple"):
         raise parsers.ParserDefinitionError(
             "Parser %s has set process_together, but "
-            "has not defined a ParseMultiple method." %
-            parser.__name__)
+            "has not defined a ParseMultiple method." % parser.__name__)
 
     # Additional, parser specific validation.
     parser.Validate()
 
   def testValidation(self):
     """Ensure all parsers pass validation."""
-    test_artifacts_file = os.path.join(
-        config_lib.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json")
+    test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                                       "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
     for p_cls in parsers.Parser.classes:
@@ -58,6 +56,7 @@ class ArtifactParserTests(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

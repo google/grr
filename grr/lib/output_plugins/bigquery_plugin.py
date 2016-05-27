@@ -22,8 +22,11 @@ from grr.proto import output_plugin_pb2
 class TempOutputTracker(object):
   """Track temp output files for BigQuery JSON data and schema."""
 
-  def __init__(self, output_type=None, gzip_filehandle=None,
-               gzip_filehandle_parent=None, schema=None):
+  def __init__(self,
+               output_type=None,
+               gzip_filehandle=None,
+               gzip_filehandle_parent=None,
+               schema=None):
     """Create tracker.
 
     This class is used to track a gzipped filehandle for each type of output
@@ -93,7 +96,9 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
     if self.args.convert_values:
       # This is thread-safe - we just convert the values.
       converted_responses = export.ConvertValues(
-          default_metadata, responses, token=self.token,
+          default_metadata,
+          responses,
+          token=self.token,
           options=self.args.export_options)
     else:
       converted_responses = responses
@@ -115,8 +120,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
 
   def _WriteJSONValue(self, output_file, value, delimiter=None):
     if delimiter:
-      output_file.write("{0}{1}".format(
-          delimiter, json.dumps(self._GetNestedDict(value))))
+      output_file.write("{0}{1}".format(delimiter, json.dumps(
+          self._GetNestedDict(value))))
     else:
       output_file.write(json.dumps(self._GetNestedDict(value)))
 
@@ -138,7 +143,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
                                     self.GZIP_COMPRESSION_LEVEL,
                                     gzip_filehandle_parent)
     self.temp_output_trackers[output_type] = TempOutputTracker(
-        output_type=output_type, gzip_filehandle=gzip_filehandle,
+        output_type=output_type,
+        gzip_filehandle=gzip_filehandle,
         gzip_filehandle_parent=gzip_filehandle_parent)
     return self.temp_output_trackers[output_type]
 
@@ -151,12 +157,11 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
 
   def _WriteToAFF4(self, job_id, schema, gzip_filehandle_parent, token):
     """When upload to bigquery fails, write to AFF4."""
-    with self._CreateOutputStream(
-        ".".join((job_id, "schema"))) as schema_stream:
+    with self._CreateOutputStream(".".join((job_id, "schema"
+                                           ))) as schema_stream:
 
-      logging.error(
-          "Upload to bigquery failed, will write schema to %s",
-          schema_stream.urn)
+      logging.error("Upload to bigquery failed, will write schema to %s",
+                    schema_stream.urn)
 
       # Only need to write the schema once.
       if schema_stream.size == 0:
@@ -164,9 +169,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
 
     with self._CreateOutputStream(".".join((job_id, "data"))) as data_stream:
 
-      logging.error(
-          "Upload to bigquery failed, will write results to %s",
-          data_stream.urn)
+      logging.error("Upload to bigquery failed, will write results to %s",
+                    data_stream.urn)
 
       gzip_filehandle_parent.flush()
       gzip_filehandle_parent.seek(0)
@@ -177,8 +181,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
     """Finish writing JSON files, upload to cloudstorage and bigquery."""
     self.bigquery = bigquery.GetBigQueryClient()
     # BigQuery job ids must be alphanum plus dash and underscore.
-    urn_str = self.state.source_urn.RelativeName(
-        "aff4:/").replace("/", "_").replace(":", "").replace(".", "-")
+    urn_str = self.state.source_urn.RelativeName("aff4:/").replace(
+        "/", "_").replace(":", "").replace(".", "-")
 
     for tracker in self.temp_output_trackers.values():
       # Close out the gzip handle and pass the original file handle to the
@@ -226,19 +230,22 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
       # Nested structures are indicated by setting type "RECORD"
       if type_info.__class__.__name__ == "ProtoEmbedded":
         fields_array.append({
-            "name": type_info.name, "type": "RECORD",
+            "name": type_info.name,
+            "type": "RECORD",
             "description": type_info.description,
-            "fields": self.RDFValueToBigQuerySchema(value.Get(type_info.name))})
+            "fields": self.RDFValueToBigQuerySchema(value.Get(type_info.name))
+        })
       else:
         # If we don't have a specific map use string.
-        bq_type = self.RDF_BIGQUERY_TYPE_MAP.get(
-            type_info.proto_type_name, None) or "STRING"
+        bq_type = self.RDF_BIGQUERY_TYPE_MAP.get(type_info.proto_type_name,
+                                                 None) or "STRING"
 
         # For protos with RDF types we need to do some more checking to properly
         # covert types.
         if hasattr(type_info, "original_proto_type_name"):
           if type_info.original_proto_type_name in [
-              "RDFDatetime", "RDFDatetimeSeconds"]:
+              "RDFDatetime", "RDFDatetimeSeconds"
+          ]:
             bq_type = "TIMESTAMP"
           elif type_info.proto_type_name == "uint64":
             # This is to catch fields like st_mode which are stored as ints but
@@ -247,7 +254,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
             # INTEGER
             bq_type = "STRING"
 
-        fields_array.append({"name": type_info.name, "type": bq_type,
+        fields_array.append({"name": type_info.name,
+                             "type": bq_type,
                              "description": type_info.description})
     return fields_array
 
@@ -272,7 +280,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
       # range of the limit because we need to flush the stream to check the
       # size. Start counting at 0 so we check each file the first time.
       value_counters[class_name] = value_counters.get(class_name, -1) + 1
-      if not value_counters[class_name] % max_post_size//1000:
+      if not value_counters[class_name] % max_post_size // 1000:
 
         # Flush our temp gzip handle so we can stat it to see how big it is.
         output_tracker.gzip_filehandle.flush()
@@ -289,7 +297,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
         # Omit the leading newline for the first entry in the file.
         self._WriteJSONValue(output_tracker.gzip_filehandle, value)
       else:
-        self._WriteJSONValue(output_tracker.gzip_filehandle, value,
+        self._WriteJSONValue(output_tracker.gzip_filehandle,
+                             value,
                              delimiter="\n")
 
     for output_tracker in self.temp_output_trackers.values():

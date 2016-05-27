@@ -72,14 +72,14 @@ class RegistryFinder(flow.GRRFlow):
 
   @flow.StateHandler(next_state="Done")
   def Start(self):
-    self.CallFlow("FileFinder",
-                  paths=self.args.keys_paths,
-                  pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
-                  conditions=self.ConditionsToFileFinderConditions(
-                      self.args.conditions),
-                  action=file_finder.FileFinderAction(
-                      action_type=file_finder.FileFinderAction.Action.STAT),
-                  next_state="Done")
+    self.CallFlow(
+        "FileFinder",
+        paths=self.args.keys_paths,
+        pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
+        conditions=self.ConditionsToFileFinderConditions(self.args.conditions),
+        action=file_finder.FileFinderAction(
+            action_type=file_finder.FileFinderAction.Action.STAT),
+        next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -105,8 +105,10 @@ class CollectRunKeyBinaries(flow.GRRFlow):
   @flow.StateHandler(next_state="ParseRunKeys")
   def Start(self):
     """Get runkeys via the ArtifactCollectorFlow."""
-    self.CallFlow("ArtifactCollectorFlow", artifact_list=["WindowsRunKeys"],
-                  use_tsk=True, store_results_in_aff4=False,
+    self.CallFlow("ArtifactCollectorFlow",
+                  artifact_list=["WindowsRunKeys"],
+                  use_tsk=True,
+                  store_results_in_aff4=False,
                   next_state="ParseRunKeys")
 
   @flow.StateHandler(next_state="Done")
@@ -131,8 +133,7 @@ class CollectRunKeyBinaries(flow.GRRFlow):
             path=path, pathtype=rdf_paths.PathSpec.PathType.TSK))
 
     if filenames:
-      self.CallFlow("MultiGetFile", pathspecs=filenames,
-                    next_state="Done")
+      self.CallFlow("MultiGetFile", pathspecs=filenames, next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -161,7 +162,9 @@ class GetMRU(flow.GRRFlow):
       findspec.pathspec.path = mru_path
       findspec.pathspec.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
 
-      self.CallFlow("FindFiles", findspec=findspec, output=None,
+      self.CallFlow("FindFiles",
+                    findspec=findspec,
+                    output=None,
                     next_state="StoreMRUs",
                     request_data=dict(username=user.username))
 
@@ -169,8 +172,8 @@ class GetMRU(flow.GRRFlow):
   def StoreMRUs(self, responses):
     """Store the MRU data for each user in a special structure."""
     for response in responses:
-      urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-          response.pathspec, self.client_id)
+      urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(response.pathspec,
+                                                       self.client_id)
 
       if stat.S_ISDIR(response.st_mode):
         obj_type = standard.VFSDirectory
@@ -187,11 +190,10 @@ class GetMRU(flow.GRRFlow):
       if m:
         extension = m.group(1)
         fd = aff4.FACTORY.Create(
-            rdf_client.ClientURN(self.client_id)
-            .Add("analysis/MRU/Explorer")
-            .Add(extension)
-            .Add(username),
-            "MRUCollection", token=self.token,
+            rdf_client.ClientURN(self.client_id).Add("analysis/MRU/Explorer")
+            .Add(extension).Add(username),
+            "MRUCollection",
+            token=self.token,
             mode="rw")
 
         # TODO(user): Implement the actual parsing of the MRU.

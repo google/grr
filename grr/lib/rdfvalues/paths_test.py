@@ -29,27 +29,23 @@ class PathSpecTest(test_base.RDFProtoTestCase):
 
   def testPop(self):
     """Test we can pop arbitrary elements from the pathspec."""
-    sample = rdf_paths.PathSpec(
-        path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
+    sample = rdf_paths.PathSpec(path="/",
+                                pathtype=rdf_paths.PathSpec.PathType.OS)
 
     for i in range(5):
-      sample.Append(
-          path=str(i), pathtype=rdf_paths.PathSpec.PathType.OS)
+      sample.Append(path=str(i), pathtype=rdf_paths.PathSpec.PathType.OS)
 
-    self.assertEqual([x.path for x in sample],
-                     list("/01234"))
+    self.assertEqual([x.path for x in sample], list("/01234"))
 
     # Check we pop the right element.
     popped = sample.Pop(2)
     self.assertIsInstance(popped, rdf_paths.PathSpec)
     self.assertEqual(popped.path, "1")
-    self.assertEqual([x.path for x in sample],
-                     list("/0234"))
+    self.assertEqual([x.path for x in sample], list("/0234"))
 
     # The first element needs special treatment.
     self.assertEqual(sample.Pop(0).path, "/")
-    self.assertEqual([x.path for x in sample],
-                     list("0234"))
+    self.assertEqual([x.path for x in sample], list("0234"))
 
   def testPathSpec(self):
     """Test that PathSpec works."""
@@ -118,16 +114,15 @@ class PathSpecTest(test_base.RDFProtoTestCase):
 
   def testUnicodePaths(self):
     """Test that we can manipulate paths in unicode."""
-    sample = rdf_paths.PathSpec(pathtype=1,
-                                path=u"/dev/c/msn升级程序[1].exe")
+    sample = rdf_paths.PathSpec(pathtype=1, path=u"/dev/c/msn升级程序[1].exe")
 
     # Ensure we can convert to a string.
     str(sample)
     unicode(sample)
 
   def testCopy(self):
-    sample = rdf_paths.PathSpec(
-        path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
+    sample = rdf_paths.PathSpec(path="/",
+                                pathtype=rdf_paths.PathSpec.PathType.OS)
     sample.Append(path="foo", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     # Make a copy of the original and change it.
@@ -141,12 +136,13 @@ class PathSpecTest(test_base.RDFProtoTestCase):
 class GlobExpressionTest(test_base.RDFValueTestCase):
   rdfvalue_class = rdf_paths.GlobExpression
 
-  USER_ACCOUNT = dict(
-      username=u"user", full_name=u"John Smith",
-      comment=u"This is a user", last_logon=10000,
-      domain=u"Some domain name",
-      homedir=u"/home/user",
-      sid=u"some sid")
+  USER_ACCOUNT = dict(username=u"user",
+                      full_name=u"John Smith",
+                      comment=u"This is a user",
+                      last_logon=10000,
+                      domain=u"Some domain name",
+                      homedir=u"/home/user",
+                      sid=u"some sid")
 
   def GenerateSample(self, number=0):
     return self.rdfvalue_class("/home/%%User.username%%/*" + str(number))
@@ -154,22 +150,20 @@ class GlobExpressionTest(test_base.RDFValueTestCase):
   def testGroupingInterpolation(self):
     glob_expression = rdf_paths.GlobExpression()
 
-    interpolated = glob_expression.InterpolateGrouping(
-        "/home/*.{sh,deb}")
+    interpolated = glob_expression.InterpolateGrouping("/home/*.{sh,deb}")
     self.assertItemsEqual(interpolated, [u"/home/*.deb", u"/home/*.sh"])
-    interpolated = glob_expression.InterpolateGrouping(
-        "/home/*.{sh, deb}")
+    interpolated = glob_expression.InterpolateGrouping("/home/*.{sh, deb}")
     self.assertItemsEqual(interpolated, [u"/home/*. deb", u"/home/*.sh"])
     interpolated = glob_expression.InterpolateGrouping(
         "HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}")
     self.assertItemsEqual(interpolated, [
-        u"HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}"])
+        u"HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}"
+    ])
 
   def testValidation(self):
     glob_expression = rdf_paths.GlobExpression(
         "/home/%%Users.username%%/**/.mozilla/")
     glob_expression.Validate()
 
-    glob_expression = rdf_paths.GlobExpression(
-        "/home/**/**")
+    glob_expression = rdf_paths.GlobExpression("/home/**/**")
     self.assertRaises(ValueError, glob_expression.Validate)

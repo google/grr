@@ -52,7 +52,8 @@ class ExportedMetadata(rdf_structs.RDFProtoStruct):
 
   def __init__(self, initializer=None, age=None, payload=None, **kwarg):
     super(ExportedMetadata, self).__init__(initializer=initializer,
-                                           age=age, **kwarg)
+                                           age=age,
+                                           **kwarg)
 
     if not self.timestamp:
       self.timestamp = rdfvalue.RDFDatetime().Now()
@@ -246,14 +247,14 @@ class DataAgnosticExportConverter(ExportConverter):
         if hasattr(self, desc.name) and value_to_flatten.HasField(desc.name):
           setattr(self, desc.name, getattr(value_to_flatten, desc.name))
 
-    output_class = type(self.ExportedClassNameForValue(value),
-                        (AutoExportedProtoStruct,),
-                        dict(Flatten=Flatten))
+    output_class = type(
+        self.ExportedClassNameForValue(value), (AutoExportedProtoStruct,),
+        dict(Flatten=Flatten))
 
     # Metadata is always the first field of exported data.
     output_class.AddDescriptor(rdf_structs.ProtoEmbedded(
-        name="metadata", field_number=1,
-        nested=ExportedMetadata))
+        name="metadata",
+        field_number=1, nested=ExportedMetadata))
 
     for number, desc in sorted(value.type_infos_by_field_number.items()):
       # Name 'metadata' is reserved to store ExportedMetadata value.
@@ -264,8 +265,7 @@ class DataAgnosticExportConverter(ExportConverter):
 
       # Copy descriptors for primivie values as-is, just make sure their
       # field number is correct.
-      if isinstance(desc, (type_info.ProtoBinary,
-                           type_info.ProtoString,
+      if isinstance(desc, (type_info.ProtoBinary, type_info.ProtoString,
                            type_info.ProtoUnsignedInteger,
                            type_info.ProtoEnum)):
         # Incrementing field number by 1, as 1 is always occuppied by metadata.
@@ -390,8 +390,8 @@ class StatEntryToExportedFileConverter(ExportConverter):
       result.pecoff_hash_sha1 = str(hash_obj.pecoff_sha1)
 
     if hash_obj.HasField("signed_data"):
-      StatEntryToExportedFileConverter.ParseSignedData(
-          hash_obj.signed_data[0], result)
+      StatEntryToExportedFileConverter.ParseSignedData(hash_obj.signed_data[0],
+                                                       result)
 
   def Convert(self, metadata, stat_entry, token=None):
     """Converts StatEntry to ExportedFile.
@@ -441,22 +441,26 @@ class StatEntryToExportedFileConverter(ExportConverter):
         result.content = aff4_object.Read(self.MAX_CONTENT_SIZE)
         result.content_sha256 = hashlib.sha256(result.content).hexdigest()
       except (IOError, AttributeError) as e:
-        logging.warning("Can't read content of %s: %s",
-                        result.aff4path, e)
+        logging.warning("Can't read content of %s: %s", result.aff4path, e)
 
   def _CreateExportedFile(self, metadata, stat_entry):
-    return ExportedFile(metadata=metadata, urn=stat_entry.aff4path,
+    return ExportedFile(metadata=metadata,
+                        urn=stat_entry.aff4path,
                         basename=stat_entry.pathspec.Basename(),
-                        st_mode=stat_entry.st_mode, st_ino=stat_entry.st_ino,
-                        st_dev=stat_entry.st_dev, st_nlink=stat_entry.st_nlink,
-                        st_uid=stat_entry.st_uid, st_gid=stat_entry.st_gid,
+                        st_mode=stat_entry.st_mode,
+                        st_ino=stat_entry.st_ino,
+                        st_dev=stat_entry.st_dev,
+                        st_nlink=stat_entry.st_nlink,
+                        st_uid=stat_entry.st_uid,
+                        st_gid=stat_entry.st_gid,
                         st_size=stat_entry.st_size,
                         st_atime=stat_entry.st_atime,
                         st_mtime=stat_entry.st_mtime,
                         st_ctime=stat_entry.st_ctime,
                         st_blocks=stat_entry.st_blocks,
                         st_blksize=stat_entry.st_blksize,
-                        st_rdev=stat_entry.st_rdev, symlink=stat_entry.symlink)
+                        st_rdev=stat_entry.st_rdev,
+                        symlink=stat_entry.symlink)
 
   def BatchConvert(self, metadata_value_pairs, token=None):
     """Converts a batch of StatEntry value to ExportedFile values at once.
@@ -596,9 +600,9 @@ class ProcessToExportedNetworkConnectionConverter(ExportConverter):
 
     conn_converter = NetworkConnectionToExportedNetworkConnectionConverter(
         options=self.options)
-    return conn_converter.BatchConvert([(metadata, conn)
-                                        for conn in process.connections],
-                                       token=token)
+    return conn_converter.BatchConvert(
+        [(metadata, conn) for conn in process.connections],
+        token=token)
 
 
 class ProcessToExportedOpenFileConverter(ExportConverter):
@@ -610,9 +614,7 @@ class ProcessToExportedOpenFileConverter(ExportConverter):
     """Converts Process to ExportedOpenFile."""
 
     for f in process.open_files:
-      yield ExportedOpenFile(metadata=metadata,
-                             pid=process.pid,
-                             path=f)
+      yield ExportedOpenFile(metadata=metadata, pid=process.pid, path=f)
 
 
 class InterfaceToExportedNetworkInterfaceConverter(ExportConverter):
@@ -630,11 +632,10 @@ class InterfaceToExportedNetworkInterfaceConverter(ExportConverter):
       else:
         raise ValueError("Invalid address type: %s", addr.address_type)
 
-    result = ExportedNetworkInterface(
-        metadata=metadata,
-        ifname=interface.ifname,
-        ip4_addresses=" ".join(ip4_addresses),
-        ip6_addresses=" ".join(ip6_addresses))
+    result = ExportedNetworkInterface(metadata=metadata,
+                                      ifname=interface.ifname,
+                                      ip4_addresses=" ".join(ip4_addresses),
+                                      ip6_addresses=" ".join(ip6_addresses))
 
     if interface.mac_address:
       result.mac_address = interface.mac_address.human_readable_address
@@ -661,9 +662,9 @@ class ClientSummaryToExportedNetworkInterfaceConverter(
   def Convert(self, metadata, client_summary, token=None):
     """Converts ClientSummary to ExportedNetworkInterfaces."""
     for interface in client_summary.interfaces:
-      yield super(
-          ClientSummaryToExportedNetworkInterfaceConverter, self).Convert(
-              metadata, interface, token=token).next()
+      yield super(ClientSummaryToExportedNetworkInterfaceConverter,
+                  self).Convert(metadata, interface,
+                                token=token).next()
 
 
 class ClientSummaryToExportedClientConverter(ExportConverter):
@@ -684,8 +685,7 @@ class BufferReferenceToExportedMatchConverter(ExportConverter):
                         length=buffer_reference.length,
                         data=buffer_reference.data,
                         urn=aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-                            buffer_reference.pathspec,
-                            metadata.client_urn))
+                            buffer_reference.pathspec, metadata.client_urn))
 
 
 class FileFinderResultConverter(StatEntryToExportedFileConverter):
@@ -758,12 +758,14 @@ class FileFinderResultConverter(StatEntryToExportedFileConverter):
       yield result
 
     # Now export the registry keys
-    for result in ConvertValuesWithMetadata(registry_pairs, token=token,
+    for result in ConvertValuesWithMetadata(registry_pairs,
+                                            token=token,
                                             options=self.options):
       yield result
 
     # Now export the grep matches.
-    for result in ConvertValuesWithMetadata(match_pairs, token=token,
+    for result in ConvertValuesWithMetadata(match_pairs,
+                                            token=token,
                                             options=self.options):
       yield result
 
@@ -816,7 +818,9 @@ class RDFValueCollectionConverter(ExportConverter):
       return
 
     for batch in utils.Grouper(collection, self.BATCH_SIZE):
-      converted_batch = ConvertValues(metadata, batch, token=token,
+      converted_batch = ConvertValues(metadata,
+                                      batch,
+                                      token=token,
                                       options=self.options)
       for v in converted_batch:
         yield v
@@ -940,7 +944,8 @@ class GrrMessageConverter(ExportConverter):
         metadata_to_fetch.append(client_urn)
 
     if metadata_to_fetch:
-      client_fds = aff4.FACTORY.MultiOpen(metadata_to_fetch, mode="r",
+      client_fds = aff4.FACTORY.MultiOpen(metadata_to_fetch,
+                                          mode="r",
                                           token=token)
       fetched_metadata = [GetMetadata(client_fd, token=token)
                           for client_fd in client_fds]
@@ -967,10 +972,11 @@ class GrrMessageConverter(ExportConverter):
                 message.payload)
             data_by_type[cls_name] = {
                 "converters": [cls(self.options) for cls in converters_classes],
-                "batch_data": [(new_metadata, message.payload)]}
+                "batch_data": [(new_metadata, message.payload)]
+            }
           else:
-            data_by_type[cls_name]["batch_data"].append(
-                (new_metadata, message.payload))
+            data_by_type[cls_name]["batch_data"].append((new_metadata,
+                                                         message.payload))
 
       except KeyError:
         pass
@@ -997,8 +1003,8 @@ class FileStoreHashConverter(ExportConverter):
     """Convert batch of FileStoreHashs."""
 
     urns = [urn for metadata, urn in metadata_value_pairs]
-    urns_dict = dict([(urn, metadata)
-                      for metadata, urn in metadata_value_pairs])
+    urns_dict = dict([(urn, metadata) for metadata, urn in metadata_value_pairs
+                     ])
 
     results = []
     for hash_urn, client_files in filestore.HashFileStore.GetClientsForHashes(
@@ -1035,10 +1041,9 @@ class CheckResultConverter(ExportConverter):
     """
     if checkresult.HasField("anomaly"):
       for anomaly in checkresult.anomaly:
-        exported_anomaly = ExportedAnomaly(
-            type=anomaly.type,
-            severity=anomaly.severity,
-            confidence=anomaly.confidence)
+        exported_anomaly = ExportedAnomaly(type=anomaly.type,
+                                           severity=anomaly.severity,
+                                           confidence=anomaly.confidence)
         if anomaly.symptom:
           exported_anomaly.symptom = anomaly.symptom
         if anomaly.explanation:
@@ -1050,14 +1055,12 @@ class CheckResultConverter(ExportConverter):
               anomaly.anomaly_reference_id)
         if anomaly.finding:
           exported_anomaly.finding = "\n".join(anomaly.finding)
-        yield ExportedCheckResult(
-            metadata=metadata,
-            check_id=checkresult.check_id,
-            anomaly=exported_anomaly)
+        yield ExportedCheckResult(metadata=metadata,
+                                  check_id=checkresult.check_id,
+                                  anomaly=exported_anomaly)
     else:
-      yield ExportedCheckResult(
-          metadata=metadata,
-          check_id=checkresult.check_id)
+      yield ExportedCheckResult(metadata=metadata,
+                                check_id=checkresult.check_id)
 
 
 class ArtifactFilesDownloaderResultConverter(ExportConverter):
@@ -1068,8 +1071,8 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
   def GetExportedResult(self, original_result, converter, token=None):
     """Converts original result via given converter.."""
 
-    exported_results = list(converter.Convert(
-        ExportedMetadata(), original_result, token=token))
+    exported_results = list(converter.Convert(ExportedMetadata(
+    ), original_result, token=token))
 
     if not exported_results:
       raise RuntimeError("Got 0 exported result when a single one "
@@ -1103,13 +1106,17 @@ class ArtifactFilesDownloaderResultConverter(ExportConverter):
 
       if self.IsRegistryStatEntry(original_result):
         exported_registry_key = self.GetExportedResult(
-            original_result, StatEntryToExportedRegistryKeyConverter(),
+            original_result,
+            StatEntryToExportedRegistryKeyConverter(),
             token=token)
         result = ExportedArtifactFilesDownloaderResult(
-            metadata=metadata, original_registry_key=exported_registry_key)
+            metadata=metadata,
+            original_registry_key=exported_registry_key)
       elif self.IsFileStatEntry(original_result):
         exported_file = self.GetExportedResult(
-            original_result, StatEntryToExportedFileConverter(), token=token)
+            original_result,
+            StatEntryToExportedFileConverter(),
+            token=token)
         result = ExportedArtifactFilesDownloaderResult(
             metadata=metadata, original_file=exported_file)
       else:
@@ -1258,7 +1265,7 @@ def RekallStringRenderer(x):
 
 def RekallEProcessRenderer(x):
   """Function used to render Rekall '_EPROCESS' objects."""
-  return"%s (%s)" % (x["Cybox"]["Name"], x["Cybox"]["PID"])
+  return "%s (%s)" % (x["Cybox"]["Name"], x["Cybox"]["PID"])
 
 
 class DynamicRekallResponseConverter(RekallResponseConverter):
@@ -1312,9 +1319,8 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
   def _GenerateOutputClass(self, class_name, tables):
     """Generates output class with a given name for a given set of tables."""
 
-    output_class = type(utils.SmartStr(class_name),
-                        (rdf_structs.RDFProtoStruct,),
-                        {})
+    output_class = type(
+        utils.SmartStr(class_name), (rdf_structs.RDFProtoStruct,), {})
 
     if not tables:
       raise RuntimeError("Can't generate output class without Rekall table "
@@ -1322,18 +1328,17 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
 
     field_number = 1
     output_class.AddDescriptor(rdf_structs.ProtoEmbedded(
-        name="metadata", field_number=field_number,
+        name="metadata",
+        field_number=field_number,
         nested=ExportedMetadata))
 
     field_number += 1
-    output_class.AddDescriptor(
-        rdf_structs.ProtoString(name="section_name",
-                                field_number=field_number))
+    output_class.AddDescriptor(rdf_structs.ProtoString(
+        name="section_name", field_number=field_number))
 
     field_number += 1
-    output_class.AddDescriptor(
-        rdf_structs.ProtoString(name="text",
-                                field_number=field_number))
+    output_class.AddDescriptor(rdf_structs.ProtoString(
+        name="text", field_number=field_number))
 
     # All the tables are merged into one. This is done so that if plugin
     # outputs multiple tables, we get all possible columns in the output
@@ -1358,9 +1363,8 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
 
         field_number += 1
         used_names.add(column_name)
-        output_class.AddDescriptor(
-            rdf_structs.ProtoString(name=column_name,
-                                    field_number=field_number))
+        output_class.AddDescriptor(rdf_structs.ProtoString(
+            name=column_name, field_number=field_number))
 
     return output_class
 
@@ -1390,8 +1394,8 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
     result.metadata = metadata
 
     try:
-      result.section_name = self._RenderObject(
-          context_dict[self.REKALL_MESSAGE_SECTION]["name"])
+      result.section_name = self._RenderObject(context_dict[
+          self.REKALL_MESSAGE_SECTION]["name"])
     except KeyError:
       pass
 
@@ -1419,8 +1423,8 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
         tables.append(message[1])
 
     # Generate output class based on all table definitions.
-    output_class = self._GetOutputClass(
-        self.rekall_response.plugin, self.metadata, tables)
+    output_class = self._GetOutputClass(self.rekall_response.plugin,
+                                        self.metadata, tables)
 
     # Fill generated output class instances with values from every row.
     for message in parsed_messages:
@@ -1436,8 +1440,7 @@ class ExportedRekallProcess(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedRekallProcess
 
 
-class RekallResponseToExportedRekallProcessConverter(
-    RekallResponseConverter):
+class RekallResponseToExportedRekallProcessConverter(RekallResponseConverter):
   """Converts free-form RekallResponse to ExportedRekallProcess."""
 
   @staticmethod
@@ -1527,8 +1530,7 @@ class ExportedLinuxSyscallTableEntry(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedLinuxSyscallTableEntry
 
 
-class ExportedLinuxSyscallTableEntryConverter(
-    RekallResponseConverter):
+class ExportedLinuxSyscallTableEntryConverter(RekallResponseConverter):
   """Converts suitable RekallResponses to ExportedLinuxSyscallTableEntrys."""
 
   input_rdf_type = "RekallResponse"
@@ -1548,8 +1550,7 @@ class ExportedLinuxSyscallTableEntryConverter(
             metadata=metadata,
             table=row["table"],
             index=row["index"],
-            handler_address=row["address"]["target"],
-            symbol=symbol)
+            handler_address=row["address"]["target"], symbol=symbol)
         yield result
       except KeyError:
         pass
@@ -1559,8 +1560,7 @@ class ExportedRekallLinuxTask(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedRekallLinuxTask
 
 
-class RekallResponseToExportedRekallLinuxTaskConverter(
-    RekallResponseConverter):
+class RekallResponseToExportedRekallLinuxTaskConverter(RekallResponseConverter):
   """Converts suitable RekallResponses to ExportedRekallLinuxTasks."""
 
   input_rdf_type = "RekallResponse"
@@ -1572,10 +1572,9 @@ class RekallResponseToExportedRekallLinuxTaskConverter(
     row = message[1]
     try:
       # TODO(user): Add additional fields once they've been added to Rekall.
-      result = ExportedRekallLinuxTask(
-          metadata=metadata,
-          pid=row["pid"],
-          name=row["comm"])
+      result = ExportedRekallLinuxTask(metadata=metadata,
+                                       pid=row["pid"],
+                                       name=row["comm"])
     except KeyError:
       return
 
@@ -1602,8 +1601,7 @@ class RekallResponseToExportedRekallLinuxTaskOpConverter(
       result = ExportedRekallLinuxTaskOp(
           metadata=metadata,
           operation=row["member"],
-          handler_address=row["address"]["offset"],
-          module=row["module"])
+          handler_address=row["address"]["offset"], module=row["module"])
     except KeyError:
       return
 
@@ -1637,8 +1635,7 @@ class RekallResponseToExportedRekallLinuxProcOpConverter(
           metadata=metadata,
           fullpath=row["path"],
           operation=row["member"],
-          handler_address=row["address"]["offset"],
-          module=row["module"],
+          handler_address=row["address"]["offset"], module=row["module"],
           symbol=row.get("symbol"))
     except KeyError:
       return
@@ -1667,20 +1664,19 @@ def GetMetadata(client, token=None):
   metadata.client_urn = client_fd.urn
   metadata.client_age = client_fd.urn.age
 
-  metadata.hostname = utils.SmartUnicode(
-      client_fd.Get(client_fd.Schema.HOSTNAME, u""))
+  metadata.hostname = utils.SmartUnicode(client_fd.Get(
+      client_fd.Schema.HOSTNAME, u""))
 
-  metadata.os = utils.SmartUnicode(
-      client_fd.Get(client_fd.Schema.SYSTEM, u""))
+  metadata.os = utils.SmartUnicode(client_fd.Get(client_fd.Schema.SYSTEM, u""))
 
-  metadata.uname = utils.SmartUnicode(
-      client_fd.Get(client_fd.Schema.UNAME, u""))
+  metadata.uname = utils.SmartUnicode(client_fd.Get(client_fd.Schema.UNAME,
+                                                    u""))
 
-  metadata.os_release = utils.SmartUnicode(
-      client_fd.Get(client_fd.Schema.OS_RELEASE, u""))
+  metadata.os_release = utils.SmartUnicode(client_fd.Get(
+      client_fd.Schema.OS_RELEASE, u""))
 
-  metadata.os_version = utils.SmartUnicode(
-      client_fd.Get(client_fd.Schema.OS_VERSION, u""))
+  metadata.os_version = utils.SmartUnicode(client_fd.Get(
+      client_fd.Schema.OS_VERSION, u""))
 
   kb = client_fd.Get(client_fd.Schema.KNOWLEDGE_BASE)
   usernames = u""
@@ -1688,8 +1684,8 @@ def GetMetadata(client, token=None):
     usernames = [user.username for user in kb.users] or u""
   metadata.usernames = utils.SmartUnicode(usernames)
 
-  metadata.mac_address = utils.SmartUnicode(
-      client_fd.Get(client_fd.Schema.MAC_ADDRESS, u""))
+  metadata.mac_address = utils.SmartUnicode(client_fd.Get(
+      client_fd.Schema.MAC_ADDRESS, u""))
 
   metadata.labels = u",".join(client_fd.GetLabelsNames())
 

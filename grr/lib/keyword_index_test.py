@@ -19,15 +19,13 @@ class KeywordIndexTest(test_lib.AFF4ObjectTest):
 
     # "popular_keyword1" is relevant for 50 subjects.
     for i in range(50):
-      index.AddKeywordsForName("C.%X" % i,
-                               ["popular_keyword1"], sync=self.sync)
+      index.AddKeywordsForName("C.%X" % i, ["popular_keyword1"], sync=self.sync)
     results = index.Lookup(["popular_keyword1"])
     self.assertEqual(len(results), 50)
 
     # "popular_keyword2" is relevant for 75 subjects.
     for i in range(25, 100):
-      index.AddKeywordsForName("C.%X" % i,
-                               ["popular_keyword2"], sync=self.sync)
+      index.AddKeywordsForName("C.%X" % i, ["popular_keyword2"], sync=self.sync)
     results = index.Lookup(["popular_keyword2"])
     self.assertEqual(len(results), 75)
 
@@ -95,6 +93,7 @@ class AsyncKeywordIndexTest(KeywordIndexTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

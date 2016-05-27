@@ -21,7 +21,8 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
   def testCompactsSingleCollection(self):
     with aff4.FACTORY.Create("aff4:/tmp/coll",
                              collects.PackedVersionedCollection,
-                             mode="w", token=self.token) as fd:
+                             mode="w",
+                             token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=1))
 
     # Collection is not compacted, so recorded size is 0.
@@ -40,14 +41,14 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
   def testNotificationIsRemovedAfterCompaction(self):
     with aff4.FACTORY.Create("aff4:/tmp/coll",
                              collects.PackedVersionedCollection,
-                             mode="w", token=self.token) as fd:
+                             mode="w",
+                             token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=1))
 
     # Check that there's 1 compaction notification for our collection.
     notifications = aff4.PackedVersionedCollection.QueryNotifications(
         token=self.token)
-    notifications = [n for n in notifications
-                     if n == "aff4:/tmp/coll"]
+    notifications = [n for n in notifications if n == "aff4:/tmp/coll"]
     self.assertEqual(len(list(notifications)), 1)
 
     # Run the compactor.
@@ -58,15 +59,16 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
     # Check that notification for our collection is deleted after compaction.
     notifications = aff4.PackedVersionedCollection.QueryNotifications(
         token=self.token)
-    notifications = [n for n in notifications
-                     if n == "aff4:/tmp/coll"]
+    notifications = [n for n in notifications if n == "aff4:/tmp/coll"]
     self.assertEqual(len(list(notifications)), 0)
 
   def testNewNotificationsAreNotRemovedAfterCompaction(self):
+
     def AddNewElementToCollection(*unused_args, **unused_kwargs):
       with aff4.FACTORY.Create("aff4:/tmp/coll",
                                collects.PackedVersionedCollection,
-                               mode="w", token=self.token) as fd:
+                               mode="w",
+                               token=self.token) as fd:
         fd.Add(rdf_flows.GrrMessage(request_id=1))
 
     AddNewElementToCollection()
@@ -74,8 +76,7 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
     # Check that there's 1 compaction notification for our collection.
     notifications = aff4.PackedVersionedCollection.QueryNotifications(
         token=self.token)
-    notifications = [n for n in notifications
-                     if n == "aff4:/tmp/coll"]
+    notifications = [n for n in notifications if n == "aff4:/tmp/coll"]
     self.assertEqual(len(list(notifications)), 1)
 
     # When Compact() is called on collection, we add additional element to
@@ -94,19 +95,20 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
     # Check that notification for our collection is deleted after compaction.
     notifications = aff4.PackedVersionedCollection.QueryNotifications(
         token=self.token)
-    notifications = [n for n in notifications
-                     if n == "aff4:/tmp/coll"]
+    notifications = [n for n in notifications if n == "aff4:/tmp/coll"]
     self.assertEqual(len(list(notifications)), 1)
 
   def testCompactsTwoCollections(self):
     with aff4.FACTORY.Create("aff4:/tmp/coll1",
                              collects.PackedVersionedCollection,
-                             mode="w", token=self.token) as fd:
+                             mode="w",
+                             token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=1))
 
     with aff4.FACTORY.Create("aff4:/tmp/coll2",
                              collects.PackedVersionedCollection,
-                             mode="w", token=self.token) as fd:
+                             mode="w",
+                             token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=1))
 
     # Collection is not compacted, so recorded size is 0 for both collections.
@@ -131,7 +133,8 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
   def testSecondConsecutiveRunDoesNothing(self):
     with aff4.FACTORY.Create("aff4:/tmp/coll",
                              collects.PackedVersionedCollection,
-                             mode="w", token=self.token) as fd:
+                             mode="w",
+                             token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=1))
 
     # Collection is not compacted, so recorded size is 0.
@@ -141,7 +144,8 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
     # Run the compactor and check that it reports that our collection
     # got compacted.
     flow_urn = flow.GRRFlow.StartFlow(
-        flow_name="PackedVersionedCollectionCompactor", sync=True,
+        flow_name="PackedVersionedCollectionCompactor",
+        sync=True,
         token=self.token)
     flow_fd = aff4.FACTORY.Open(flow_urn, token=self.token)
     self.assertTrue(list(l.log_message for l in flow_fd.GetLog()
@@ -150,7 +154,8 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
     # Run the compactor again and check that our collection isn't
     # mentioned.
     flow_urn = flow.GRRFlow.StartFlow(
-        flow_name="PackedVersionedCollectionCompactor", sync=True,
+        flow_name="PackedVersionedCollectionCompactor",
+        sync=True,
         token=self.token)
     flow_fd = aff4.FACTORY.Open(flow_urn, token=self.token)
     self.assertFalse(list(l.log_message for l in flow_fd.GetLog()
@@ -160,6 +165,7 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

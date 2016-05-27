@@ -69,8 +69,8 @@ class FlowThrottler(object):
     dup_boundary = now - self.dup_interval
 
     flow_count = 0
-    flow_list = flows_dir.ListChildren(age=(
-        earlier.AsMicroSecondsFromEpoch(), now.AsMicroSecondsFromEpoch()))
+    flow_list = flows_dir.ListChildren(age=(earlier.AsMicroSecondsFromEpoch(),
+                                            now.AsMicroSecondsFromEpoch()))
 
     # Save DB roundtrips by checking both conditions at once. This means the dup
     # interval has a maximum of 1 day.
@@ -88,8 +88,9 @@ class FlowThrottler(object):
           if flow_state.args == flow_args or (
               isinstance(flow_state.args, flow.EmptyFlowArgs) and
               flow_args is None):
-            raise ErrorFlowDuplicate("Identical %s already run on %s at %s" % (
-                flow_name, client_id, flow_context.create_time))
+            raise ErrorFlowDuplicate("Identical %s already run on %s at %s" %
+                                     (flow_name, client_id,
+                                      flow_context.create_time))
 
       # Filter for flows started by user within the 1 day window.
       if flow_context.creator == user and flow_context.create_time > earlier:
@@ -98,6 +99,5 @@ class FlowThrottler(object):
     # If limit is set, enforce it.
     if self.daily_req_limit and flow_count >= self.daily_req_limit:
       raise ErrorDailyFlowRequestLimitExceeded(
-          "%s flows run since %s, limit: %s" % (
-              flow_count, earlier, self.daily_req_limit))
-
+          "%s flows run since %s, limit: %s" % (flow_count, earlier,
+                                                self.daily_req_limit))

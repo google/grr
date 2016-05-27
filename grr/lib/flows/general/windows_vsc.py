@@ -19,9 +19,9 @@ class ListVolumeShadowCopies(flow.GRRFlow):
     self.state.Register("shadows", [])
     self.state.Register("raw_device", None)
 
-    self.CallClient(
-        "WmiQuery", query="SELECT * FROM Win32_ShadowCopy",
-        next_state="ListDeviceDirectories")
+    self.CallClient("WmiQuery",
+                    query="SELECT * FROM Win32_ShadowCopy",
+                    next_state="ListDeviceDirectories")
 
   @flow.StateHandler(next_state="ProcessListDirectory")
   def ListDeviceDirectories(self, responses):
@@ -38,14 +38,14 @@ class ListVolumeShadowCopies(flow.GRRFlow):
         #  \\.\HarddiskVolumeShadowCopy1 to the ListDirectory flow
         device_object = r"\\." + device_object[len(global_root):]
 
-        path_spec = rdf_paths.PathSpec(
-            path=device_object,
-            pathtype=rdf_paths.PathSpec.PathType.OS)
+        path_spec = rdf_paths.PathSpec(path=device_object,
+                                       pathtype=rdf_paths.PathSpec.PathType.OS)
 
         path_spec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
         self.Log("Listing Volume Shadow Copy device: %s.", device_object)
-        self.CallClient("ListDirectory", pathspec=path_spec,
+        self.CallClient("ListDirectory",
+                        pathspec=path_spec,
                         next_state="ProcessListDirectory")
 
         self.state.raw_device = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
@@ -66,8 +66,10 @@ class ListVolumeShadowCopies(flow.GRRFlow):
 
     for response in responses:
       stat_entry = rdf_client.StatEntry(response)
-      filesystem.CreateAFF4Object(
-          stat_entry, self.client_id, self.token, sync=False)
+      filesystem.CreateAFF4Object(stat_entry,
+                                  self.client_id,
+                                  self.token,
+                                  sync=False)
       self.SendReply(stat_entry)
 
       aff4.FACTORY.Flush()

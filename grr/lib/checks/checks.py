@@ -97,8 +97,14 @@ class Check(rdf_structs.RDFProtoStruct):
   """
   protobuf = checks_pb2.Check
 
-  def __init__(self, initializer=None, age=None, check_id=None, target=None,
-               match=None, method=None, hint=None):
+  def __init__(self,
+               initializer=None,
+               age=None,
+               check_id=None,
+               target=None,
+               match=None,
+               method=None,
+               hint=None):
     super(Check, self).__init__(initializer=initializer, age=age)
     self.check_id = check_id
     self.match = MatchStrToList(match)
@@ -562,7 +568,11 @@ class CheckRegistry(object):
       yield condition
 
   @classmethod
-  def FindChecks(cls, artifact=None, os_name=None, cpe=None, labels=None,
+  def FindChecks(cls,
+                 artifact=None,
+                 os_name=None,
+                 cpe=None,
+                 labels=None,
                  restrict_checks=None):
     """Takes targeting info, identifies relevant checks.
 
@@ -594,7 +604,10 @@ class CheckRegistry(object):
     return check_ids
 
   @classmethod
-  def SelectArtifacts(cls, os_name=None, cpe=None, labels=None,
+  def SelectArtifacts(cls,
+                      os_name=None,
+                      cpe=None,
+                      labels=None,
                       restrict_checks=None):
     """Takes targeting info, identifies artifacts to fetch.
 
@@ -617,8 +630,13 @@ class CheckRegistry(object):
     return results
 
   @classmethod
-  def Process(cls, host_data, os_name=None, cpe=None, labels=None,
-              exclude_checks=None, restrict_checks=None):
+  def Process(cls,
+              host_data,
+              os_name=None,
+              cpe=None,
+              labels=None,
+              exclude_checks=None,
+              restrict_checks=None):
     """Runs checks over all host data.
 
     Args:
@@ -647,11 +665,15 @@ class CheckRegistry(object):
         chk = cls.checks[check_id]
         yield chk.Parse(conditions, host_data)
       except ProcessingError as e:
-        logging.warn("Check ID %s raised: %s" % (check_id, e))
+        logging.warn("Check ID %s raised: %s", check_id, e)
 
 
-def CheckHost(host_data, os_name=None, cpe=None, labels=None,
-              exclude_checks=None, restrict_checks=None):
+def CheckHost(host_data,
+              os_name=None,
+              cpe=None,
+              labels=None,
+              exclude_checks=None,
+              restrict_checks=None):
   """Perform all checks on a host using acquired artifacts.
 
   Checks are selected based on the artifacts available and the host attributes
@@ -691,8 +713,11 @@ def CheckHost(host_data, os_name=None, cpe=None, labels=None,
     # TODO(user): Get labels (see grr/lib/export.py for acquisition
     # from client)
     pass
-  return CheckRegistry.Process(host_data, os_name=os_name, cpe=cpe,
-                               labels=labels, restrict_checks=restrict_checks,
+  return CheckRegistry.Process(host_data,
+                               os_name=os_name,
+                               cpe=cpe,
+                               labels=labels,
+                               restrict_checks=restrict_checks,
                                exclude_checks=exclude_checks)
 
 
@@ -708,7 +733,8 @@ def LoadCheckFromFile(file_path, check_id, overwrite_if_exists=True):
   conf = configs.get(check_id)
   check = Check(**conf)
   check.Validate()
-  CheckRegistry.RegisterCheck(check, source="file:%s" % file_path,
+  CheckRegistry.RegisterCheck(check,
+                              source="file:%s" % file_path,
                               overwrite_if_exists=overwrite_if_exists)
   logging.debug("Loaded check %s from %s", check.check_id, file_path)
   return check
@@ -724,7 +750,8 @@ def LoadChecksFromFiles(file_paths, overwrite_if_exists=True):
       # Validate will raise if the check doesn't load.
       check.Validate()
       loaded.append(check)
-      CheckRegistry.RegisterCheck(check, source="file:%s" % file_path,
+      CheckRegistry.RegisterCheck(check,
+                                  source="file:%s" % file_path,
                                   overwrite_if_exists=overwrite_if_exists)
       logging.debug("Loaded check %s from %s", check.check_id, file_path)
   return loaded

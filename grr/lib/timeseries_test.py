@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Tests for grr.lib.timeseries."""
 
-
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import timeseries
@@ -12,7 +11,7 @@ class TimeseriesTest(test_lib.GRRBaseTest):
   def makeSeries(self):
     s = timeseries.Timeseries()
     for i in range(1, 101):
-      s.Append(i, (i+5) * 10000)
+      s.Append(i, (i + 5) * 10000)
     return s
 
   def testAppendFilterRange(self):
@@ -74,10 +73,10 @@ class TimeseriesTest(test_lib.GRRBaseTest):
   def testNormalizeFillsGapsWithNone(self):
     s = timeseries.Timeseries()
     for i in range(21, 51):
-      s.Append(i, (i+5) * 10000)
+      s.Append(i, (i + 5) * 10000)
     for i in range(81, 101):
-      s.Append(i, (i+5) * 10000)
-    s.Normalize(10 * 10000, 10 * 10000, 120 *  10000)
+      s.Append(i, (i + 5) * 10000)
+    s.Normalize(10 * 10000, 10 * 10000, 120 * 10000)
     self.assertEqual(11, len(s.data))
     self.assertEqual([None, 100000], s.data[0])
     self.assertEqual([22.5, 200000], s.data[1])
@@ -89,7 +88,7 @@ class TimeseriesTest(test_lib.GRRBaseTest):
     for i in range(0, 5):
       s.Append(i, i * 1000)
     for i in range(0, 5):
-      s.Append(i, (i+6) * 1000)
+      s.Append(i, (i + 6) * 1000)
     self.assertEqual(10, len(s.data))
     self.assertEqual([4, 10000], s.data[-1])
     s.MakeIncreasing()
@@ -102,13 +101,13 @@ class TimeseriesTest(test_lib.GRRBaseTest):
       s1.Append(i, i * 1000)
     s2 = timeseries.Timeseries()
     for i in range(0, 5):
-      s2.Append(2*i, i * 1000)
+      s2.Append(2 * i, i * 1000)
     s1.Add(s2)
 
     for i in range(0, 5):
       self.assertEqual(3 * i, s1.data[i][0])
 
-    s1.Rescale(1/3.0)
+    s1.Rescale(1 / 3.0)
     for i in range(0, 5):
       self.assertEqual(i, s1.data[i][0])
 
@@ -123,6 +122,7 @@ class TimeseriesTest(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

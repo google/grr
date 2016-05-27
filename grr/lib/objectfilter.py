@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
-
 """Classes to perform filtering of objects based on their data members.
 
 Given a list of objects and a textual filter expression, these classes allow
@@ -89,7 +88,6 @@ filter is easy. Three basic filter implementations are given:
 
 
 
-
 import abc
 import binascii
 import collections
@@ -136,8 +134,8 @@ class Filter(object):
     self.value_expander_cls = value_expander
     if self.value_expander_cls:
       if not issubclass(self.value_expander_cls, ValueExpander):
-        raise Error("%s is not a valid value expander" % (
-            self.value_expander_cls))
+        raise Error("%s is not a valid value expander" %
+                    (self.value_expander_cls))
       self.value_expander = self.value_expander_cls()
     self.args = arguments or []
     logging.debug("Adding %s", arguments)
@@ -175,7 +173,8 @@ class OrFilter(Filter):
   """
 
   def Matches(self, obj):
-    if not self.args: return True
+    if not self.args:
+      return True
     for child_filter in self.args:
       if child_filter.Matches(obj):
         return True
@@ -325,8 +324,7 @@ class InSet(GenericBinaryOperator):
 
     # x might be an iterable
     # first we need to skip strings or we'll do silly things
-    if (isinstance(x, basestring)
-        or isinstance(x, bytes)):
+    if isinstance(x, basestring) or isinstance(x, bytes):
       return False
 
     try:
@@ -589,12 +587,12 @@ class ContextExpression(lexer.Expression):
   def __init__(self, attribute="", part=None):
     self.attribute = attribute
     self.args = []
-    if part: self.args.append(part)
+    if part:
+      self.args.append(part)
     super(ContextExpression, self).__init__()
 
   def __str__(self):
-    return "Context(%s %s)" % (
-        self.attribute, [str(x) for x in self.args])
+    return "Context(%s %s)" % (self.attribute, [str(x) for x in self.args])
 
   def SetExpression(self, expression):
     if isinstance(expression, lexer.Expression):
@@ -608,8 +606,7 @@ class ContextExpression(lexer.Expression):
       arguments.append(arg.Compile(filter_implementation))
     expander = filter_implementation.FILTERS["ValueExpander"]
     context_cls = filter_implementation.FILTERS["Context"]
-    return context_cls(arguments=arguments,
-                       value_expander=expander)
+    return context_cls(arguments=arguments, value_expander=expander)
 
 
 class BinaryExpression(lexer.BinaryExpression):
@@ -651,8 +648,8 @@ class Parser(lexer.SearchParser):
 
   tokens = [
       # Operators and related tokens
-      lexer.Token("INITIAL", r"\@[\w._0-9]+",
-                  "ContextOperator,PushState", "CONTEXTOPEN"),
+      lexer.Token("INITIAL", r"\@[\w._0-9]+", "ContextOperator,PushState",
+                  "CONTEXTOPEN"),
       lexer.Token("INITIAL", r"[^\s\(\)]", "PushState,PushBack", "ATTRIBUTE"),
       lexer.Token("INITIAL", r"\(", "PushState,BracketOpen", None),
       lexer.Token("INITIAL", r"\)", "BracketClose", "BINARY"),
@@ -693,8 +690,8 @@ class Parser(lexer.SearchParser):
       # When the last parameter from arg_list has been pushed
 
       # State where binary operators are supported (AND, OR)
-      lexer.Token("BINARY", r"(?i)(and|or|\&\&|\|\|)",
-                  "BinaryOperator", "INITIAL"),
+      lexer.Token("BINARY", r"(?i)(and|or|\&\&|\|\|)", "BinaryOperator",
+                  "INITIAL"),
       # - We can also skip spaces
       lexer.Token("BINARY", r"\s+", None, None),
       # - But if it's not "and" or just spaces we have to go back
@@ -804,7 +801,8 @@ class Parser(lexer.SearchParser):
       self._CombineContext()
 
       # No change
-      if len(self.stack) == length: break
+      if len(self.stack) == length:
+        break
       length = len(self.stack)
 
     if length != 1:
@@ -813,9 +811,9 @@ class Parser(lexer.SearchParser):
     return self.stack[0]
 
   def Error(self, message=None, _=None):
-    raise ParseError("%s in position %s: %s <----> %s )" % (
-        message, len(self.processed_buffer), self.processed_buffer,
-        self.buffer))
+    raise ParseError("%s in position %s: %s <----> %s )" %
+                     (message, len(self.processed_buffer),
+                      self.processed_buffer, self.buffer))
 
   def _CombineBinaryExpressions(self, operator):
     for i in range(1, len(self.stack) - 1):
@@ -844,7 +842,6 @@ class Parser(lexer.SearchParser):
         self.stack[i] = None
 
     self.stack = filter(None, self.stack)
-
 
 # FILTER IMPLEMENTATIONS
 

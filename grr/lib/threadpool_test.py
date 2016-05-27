@@ -28,7 +28,8 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
 
     prefix = "pool-%s" % self._testMethodName
     self.test_pool = threadpool.ThreadPool.Factory(
-        prefix, self.NUMBER_OF_THREADS, max_threads=self.MAXIMUM_THREADS)
+        prefix, self.NUMBER_OF_THREADS,
+        max_threads=self.MAXIMUM_THREADS)
     self.test_pool.Start()
 
   def tearDown(self):
@@ -58,15 +59,13 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
 
   def testStopping(self):
     """Tests if all worker threads terminate if the thread pool is stopped."""
-    self.assertEqual(
-        self.Count("pool-testStopping"), self.NUMBER_OF_THREADS)
+    self.assertEqual(self.Count("pool-testStopping"), self.NUMBER_OF_THREADS)
     self.test_pool.Stop()
 
     self.assertEqual(self.Count("pool-testStopping"), 0)
     self.test_pool.Start()
 
-    self.assertEqual(
-        self.Count("pool-testStopping"), self.NUMBER_OF_THREADS)
+    self.assertEqual(self.Count("pool-testStopping"), self.NUMBER_OF_THREADS)
     self.test_pool.Stop()
     self.assertEqual(self.Count("pool-testStopping"), 0)
 
@@ -119,14 +118,12 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
       self.test_pool.Join()
 
     # Check that an exception is raised.
-    self.assertTrue(self.exception_args[0],
-                    "exception in worker thread")
+    self.assertTrue(self.exception_args[0], "exception in worker thread")
     self.assertTrue(self.exception_args[1], "Raising")
 
     # Make sure that both exceptions have been counted.
     self.assertEqual(
-        stats.STATS.GetMetricValue(self.test_pool.name + "_task_exceptions"),
-        2)
+        stats.STATS.GetMetricValue(self.test_pool.name + "_task_exceptions"), 2)
 
   def testFailToCreateThread(self):
     """Test that we handle thread creation problems ok."""
@@ -155,10 +152,11 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
       # Trying to push this task will overflow the queue, and would normally
       # cause a new thread to start. We use non blocking mode to receive the
       # exception.
-      self.assertRaises(
-          threadpool.Full,
-          self.test_pool.AddTask, Block, (done_event,), blocking=False,
-          inline=False)
+      self.assertRaises(threadpool.Full,
+                        self.test_pool.AddTask,
+                        Block, (done_event,),
+                        blocking=False,
+                        inline=False)
 
       # Release the blocking tasks.
       done_event.set()
@@ -200,7 +198,9 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
       # Now as we push these tasks on the queue, new threads will be created and
       # they will receive the blocking tasks from the queue.
       for i in range(self.MAXIMUM_THREADS):
-        self.test_pool.AddTask(Insert, (res, i), "Insert", blocking=True,
+        self.test_pool.AddTask(Insert, (res, i),
+                               "Insert",
+                               blocking=True,
                                inline=False)
 
       # There should be 20 workers created and they should consume all the
@@ -274,8 +274,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     for i in range(10):
       pool.AddTask(lambda: None, ())
       self.assertEqual(
-          stats.STATS.GetMetricValue("test_pool3_outstanding_tasks"),
-          i + 1)
+          stats.STATS.GetMetricValue("test_pool3_outstanding_tasks"), i + 1)
 
   def testDuplicateNameError(self):
     """Tests that creating two pools with the same name fails."""
@@ -331,7 +330,9 @@ class BatchConverterTest(test_lib.GRRBaseTest):
   """BatchConverter tests."""
 
   def testMultiThreadedConverter(self):
-    converter = DummyConverter(threadpool_size=10, batch_size=2, sleep_time=0.1,
+    converter = DummyConverter(threadpool_size=10,
+                               batch_size=2,
+                               sleep_time=0.1,
                                threadpool_prefix="multi_threaded")
     test_data = [str(i) for i in range(10)]
 
@@ -348,7 +349,9 @@ class BatchConverterTest(test_lib.GRRBaseTest):
       self.assertEqual(r, str(i) + "*")
 
   def testSingleThreadedConverter(self):
-    converter = DummyConverter(threadpool_size=0, batch_size=2, sleep_time=0,
+    converter = DummyConverter(threadpool_size=0,
+                               batch_size=2,
+                               sleep_time=0,
                                threadpool_prefix="single_threaded")
     test_data = [str(i) for i in range(10)]
 
@@ -367,6 +370,7 @@ class BatchConverterTest(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

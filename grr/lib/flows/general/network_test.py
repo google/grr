@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Test the connections listing module."""
 
-
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import test_lib
@@ -25,23 +24,19 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
         conn1 = rdf_client.NetworkConnection(
             state=rdf_client.NetworkConnection.State.LISTEN,
             type=rdf_client.NetworkConnection.Type.SOCK_STREAM,
-            local_address=rdf_client.NetworkEndpoint(
-                ip="0.0.0.0",
-                port=22),
-            remote_address=rdf_client.NetworkEndpoint(
-                ip="0.0.0.0",
-                port=0),
+            local_address=rdf_client.NetworkEndpoint(ip="0.0.0.0",
+                                                     port=22),
+            remote_address=rdf_client.NetworkEndpoint(ip="0.0.0.0",
+                                                      port=0),
             pid=2136,
             ctime=0)
         conn2 = rdf_client.NetworkConnection(
             state=rdf_client.NetworkConnection.State.LISTEN,
             type=rdf_client.NetworkConnection.Type.SOCK_STREAM,
-            local_address=rdf_client.NetworkEndpoint(
-                ip="192.168.1.1",
-                port=31337),
-            remote_address=rdf_client.NetworkEndpoint(
-                ip="1.2.3.4",
-                port=6667),
+            local_address=rdf_client.NetworkEndpoint(ip="192.168.1.1",
+                                                     port=31337),
+            remote_address=rdf_client.NetworkEndpoint(ip="1.2.3.4",
+                                                      port=6667),
             pid=1,
             ctime=0)
 
@@ -49,13 +44,16 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
 
     # Set the system to Windows so the netstat flow will run as its the only
     # one that works at the moment.
-    fd = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
+    fd = aff4.FACTORY.Create(self.client_id,
+                             aff4_grr.VFSGRRClient,
                              token=self.token)
     fd.Set(fd.Schema.SYSTEM("Windows"))
     fd.Close()
 
-    for _ in test_lib.TestFlowHelper(
-        "Netstat", ClientMock(), client_id=self.client_id, token=self.token):
+    for _ in test_lib.TestFlowHelper("Netstat",
+                                     ClientMock(),
+                                     client_id=self.client_id,
+                                     token=self.token):
       pass
 
     # Check the output file is created
@@ -73,6 +71,7 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

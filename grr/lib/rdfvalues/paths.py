@@ -220,8 +220,7 @@ class GlobExpression(rdfvalue.RDFString):
   def Validate(self):
     """GlobExpression is valid."""
     if len(self.RECURSION_REGEX.findall(self._value)) > 1:
-      raise ValueError("Only one ** is permitted per path: %s." %
-                       self._value)
+      raise ValueError("Only one ** is permitted per path: %s." % self._value)
 
   def Interpolate(self, client=None):
     kb = client.Get(client.Schema.KNOWLEDGE_BASE)
@@ -261,5 +260,5 @@ class GlobExpression(rdfvalue.RDFString):
     Returns:
       A RegularExpression() object.
     """
-    return rdf_standard.RegularExpression(
-        "(?i)^" + fnmatch.translate(self._value))
+    return rdf_standard.RegularExpression("(?i)^" + fnmatch.translate(
+        self._value))

@@ -31,7 +31,6 @@ from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
 
-
 # Default is set in distro_entry.py to be taken from package resource.
 flags.DEFINE_string("config", None,
                     "Primary Configuration file to use. This is normally "
@@ -42,21 +41,19 @@ flags.DEFINE_list("secondary_configs", [],
                   "Secondary configuration files to load (These override "
                   "previous configuration files.).")
 
-flags.DEFINE_bool("config_help", False,
-                  "Print help about the configuration.")
+flags.DEFINE_bool("config_help", False, "Print help about the configuration.")
 
-flags.DEFINE_list("context", [],
-                  "Use these contexts for the config.")
+flags.DEFINE_list("context", [], "Use these contexts for the config.")
 
-flags.DEFINE_list("plugins", [],
-                  "Load these files as additional plugins.")
+flags.DEFINE_list("plugins", [], "Load these files as additional plugins.")
 
 flags.DEFINE_bool("disallow_missing_config_definitions", False,
                   "If true, we raise an error on undefined config options.")
 
-
 flags.PARSER.add_argument(
-    "-p", "--parameter", action="append",
+    "-p",
+    "--parameter",
+    action="append",
     default=[],
     help="Global override of config values. "
     "For example -p DataStore.implementation=MySQLDataStore")
@@ -282,7 +279,6 @@ class ModulePath(ConfigFilter):
 
 
 class GRRConfigParser(object):
-
   """The base class for all GRR configuration parsers."""
   __metaclass__ = registry.MetaclassRegistry
 
@@ -420,9 +416,10 @@ class OrderedYamlDict(yaml.YAMLObject, collections.OrderedDict):
       try:
         hash(key)
       except TypeError, exc:
-        raise yaml.loader.ConstructorError(
-            "while constructing a mapping", node.start_mark,
-            "found unacceptable key (%s)" % exc, key_node.start_mark)
+        raise yaml.loader.ConstructorError("while constructing a mapping",
+                                           node.start_mark,
+                                           "found unacceptable key (%s)" % exc,
+                                           key_node.start_mark)
       value = loader.construct_object(value_node, deep=deep)
       mapping[key] = value
 
@@ -611,7 +608,11 @@ class StringInterpolator(lexer.Lexer):
                     "\\}": "}",
                     "\\%": "%"}
 
-  def __init__(self, data, config, default_section="", parameter=None,
+  def __init__(self,
+               data,
+               config,
+               default_section="",
+               parameter=None,
                context=None):
     self.stack = [""]
     self.default_section = default_section
@@ -636,9 +637,8 @@ class StringInterpolator(lexer.Lexer):
 
   def EndLiteralExpression(self, **_):
     if len(self.stack) <= 1:
-      raise lexer.ParseError(
-          "Unbalanced literal sequence: Can not expand '%s'" %
-          self.processed_buffer)
+      raise lexer.ParseError("Unbalanced literal sequence: Can not expand '%s'"
+                             % self.processed_buffer)
 
     arg = self.stack.pop(-1)
     self.stack[-1] += arg
@@ -663,8 +663,8 @@ class StringInterpolator(lexer.Lexer):
     # This function is called when we see close ) and the stack depth has to
     # exactly match the number of (.
     if len(self.stack) <= 1:
-      raise lexer.ParseError(
-          "Unbalanced parenthesis: Can not expand '%s'" % self.processed_buffer)
+      raise lexer.ParseError("Unbalanced parenthesis: Can not expand '%s'" %
+                             self.processed_buffer)
 
     # This is the full parameter name: e.g. Logging.path
     parameter_name = self.stack.pop(-1)
@@ -852,8 +852,8 @@ class GrrConfigManager(object):
     """
     if context_string not in self.context:
       if context_string not in self.valid_contexts:
-        raise InvalidContextError(
-            "Invalid context specified: %s" % context_string)
+        raise InvalidContextError("Invalid context specified: %s" %
+                                  context_string)
 
       self.context.append(context_string)
       self.context_descriptions[context_string] = description
@@ -879,8 +879,8 @@ class GrrConfigManager(object):
     if self.writeback is None:
       logging.warn("Attempting to modify a read only config object.")
     if name in self.constants:
-      raise ConstModificationError(
-          "Attempting to modify constant value %s" % name)
+      raise ConstModificationError("Attempting to modify constant value %s" %
+                                   name)
 
     self.writeback_data[name] = value
     self.FlushCache()
@@ -904,8 +904,8 @@ class GrrConfigManager(object):
       logging.warn("Attempting to modify a read only config object for %s.",
                    name)
     if name in self.constants:
-      raise ConstModificationError(
-          "Attempting to modify constant value %s" % name)
+      raise ConstModificationError("Attempting to modify constant value %s" %
+                                   name)
 
     writeback_data = self.writeback_data
 
@@ -980,8 +980,8 @@ class GrrConfigManager(object):
       try:
         result += "* Value = %s\n" % self.Get(descriptor.name)
       except Exception as e:  # pylint:disable=broad-except
-        result += "* Value = %s (Error: %s)\n" % (
-            self.GetRaw(descriptor.name), e)
+        result += "* Value = %s (Error: %s)\n" % (self.GetRaw(descriptor.name),
+                                                  e)
     return result
 
   def PrintHelp(self):
@@ -1103,8 +1103,13 @@ class GrrConfigManager(object):
 
     return parser
 
-  def Initialize(self, filename=None, data=None, fd=None, reset=True,
-                 must_exist=False, parser=ConfigFileParser):
+  def Initialize(self,
+                 filename=None,
+                 data=None,
+                 fd=None,
+                 reset=True,
+                 must_exist=False,
+                 parser=ConfigFileParser):
     """Initializes the config manager.
 
     This method is used to add more config options to the manager. The config
@@ -1145,8 +1150,7 @@ class GrrConfigManager(object):
     elif filename is not None:
       self.parser = self.LoadSecondaryConfig(filename)
       if must_exist and not self.parser.parsed:
-        raise ConfigFormatError(
-            "Unable to parse config file %s" % filename)
+        raise ConfigFormatError("Unable to parse config file %s" % filename)
 
     elif data is not None:
       self.parser = self.LoadSecondaryConfig(parser=parser(data=data))
@@ -1218,17 +1222,19 @@ class GrrConfigManager(object):
       calc_context = self.context
 
     type_info_obj = self.FindTypeInfo(name)
-    _, return_value = self._GetValue(
-        name, context=calc_context, default=default)
+    _, return_value = self._GetValue(name,
+                                     context=calc_context,
+                                     default=default)
 
     # If we returned the specified default, we just return it here.
     if return_value is default:
       return default
 
     try:
-      return_value = self.InterpolateValue(
-          return_value, default_section=name.split(".")[0],
-          type_info_obj=type_info_obj, context=calc_context)
+      return_value = self.InterpolateValue(return_value,
+                                           default_section=name.split(".")[0],
+                                           type_info_obj=type_info_obj,
+                                           context=calc_context)
     except (lexer.ParseError, ValueError) as e:
       # We failed to parse the value, but a default was specified, so we just
       # return that.
@@ -1275,7 +1281,9 @@ class GrrConfigManager(object):
 
         # Recurse into the new context configuration.
         for context_raw_data, value, new_path in self._ResolveContext(
-            context, name, context_raw_data, path=path + [element]):
+            context, name,
+            context_raw_data,
+            path=path + [element]):
           yield context_raw_data, value, new_path
 
   def _GetValue(self, name, context, default=utils.NotAValue):
@@ -1312,8 +1320,7 @@ class GrrConfigManager(object):
       value = matches[-1][1]
       container = matches[-1][0]
 
-      if (len(matches) >= 2 and
-          len(matches[-1][2]) == len(matches[-2][2]) and
+      if (len(matches) >= 2 and len(matches[-1][2]) == len(matches[-2][2]) and
           matches[-1][2] != matches[-2][2] and
           matches[-1][1] != matches[-2][1]):
         # This warning specifies that there is an ambiguous match, the config
@@ -1323,9 +1330,9 @@ class GrrConfigManager(object):
         # A,B and one in A,C. The config doesn't know which one to pick so picks
         # one and displays this warning.
         logging.warn("Ambiguous configuration for key %s: "
-                     "Contexts of equal length: %s (%s) and %s (%s)",
-                     name, matches[-1][2], matches[-1][1],
-                     matches[-2][2], matches[-2][1])
+                     "Contexts of equal length: %s (%s) and %s (%s)", name,
+                     matches[-1][2], matches[-1][1], matches[-2][2],
+                     matches[-2][1])
 
     # If there is a writeback location this overrides any previous
     # values.
@@ -1350,15 +1357,20 @@ class GrrConfigManager(object):
 
     return result
 
-  def InterpolateValue(self, value, type_info_obj=type_info.String(),
-                       default_section=None, context=None):
+  def InterpolateValue(self,
+                       value,
+                       type_info_obj=type_info.String(),
+                       default_section=None,
+                       context=None):
     """Interpolate the value and parse it with the appropriate type."""
     # It is only possible to interpolate strings...
     if isinstance(value, basestring):
       try:
-        value = StringInterpolator(
-            value, self, default_section=default_section,
-            parameter=type_info_obj.name, context=context).Parse()
+        value = StringInterpolator(value,
+                                   self,
+                                   default_section=default_section,
+                                   parameter=type_info_obj.name,
+                                   context=context).Parse()
       except InterpolationError as e:
         e.AddContext(value)
         raise
@@ -1368,8 +1380,9 @@ class GrrConfigManager(object):
 
     # ... and lists of strings.
     if isinstance(value, list):
-      value = [self.InterpolateValue(
-          v, default_section=default_section, context=context) for v in value]
+      value = [self.InterpolateValue(v,
+                                     default_section=default_section,
+                                     context=context) for v in value]
 
     return value
 
@@ -1380,7 +1393,10 @@ class GrrConfigManager(object):
 
     return result
 
-  def MatchBuildContext(self, target_os, target_arch, target_package,
+  def MatchBuildContext(self,
+                        target_os,
+                        target_arch,
+                        target_package,
                         context=None):
     """Return true if target_platforms matches the supplied parameters.
 
@@ -1421,21 +1437,24 @@ class GrrConfigManager(object):
   def DEFINE_integer(self, name, default, help, constant=False):
     """A helper for defining integer options."""
     self.AddOption(
-        type_info.Integer(name=name, default=default,
+        type_info.Integer(name=name,
+                          default=default,
                           description=help),
         constant=constant)
 
   def DEFINE_string(self, name, default, help, constant=False):
     """A helper for defining string options."""
     self.AddOption(
-        type_info.String(name=name, default=default or "",
+        type_info.String(name=name,
+                         default=default or "",
                          description=help),
         constant=constant)
 
   def DEFINE_integer_list(self, name, default, help, constant=False):
     """A helper for defining lists of integer options."""
     self.AddOption(
-        type_info.List(name=name, default=default,
+        type_info.List(name=name,
+                       default=default,
                        description=help,
                        validator=type_info.Integer()),
         constant=constant)
@@ -1443,23 +1462,28 @@ class GrrConfigManager(object):
   def DEFINE_list(self, name, default, help, constant=False):
     """A helper for defining lists of strings options."""
     self.AddOption(
-        type_info.List(name=name, default=default,
+        type_info.List(name=name,
+                       default=default,
                        description=help,
                        validator=type_info.String()),
         constant=constant)
 
   def DEFINE_constant_string(self, name, default, help):
     """A helper for defining constant strings."""
-    self.AddOption(type_info.String(name=name, default=default or "",
-                                    description=help), constant=True)
+    self.AddOption(
+        type_info.String(name=name,
+                         default=default or "",
+                         description=help),
+        constant=True)
 
   def DEFINE_context(self, name):
     self.DefineContext(name)
 
   # pylint: enable=g-bad-name
 
+  # Global for storing the config.
 
-# Global for storing the config.
+
 CONFIG = GrrConfigManager()
 
 
@@ -1474,71 +1498,77 @@ def ImportConfigManger(pickled_manager):
 # pylint: disable=g-bad-name,redefined-builtin
 def DEFINE_bool(name, default, help):
   """A helper for defining boolean options."""
-  CONFIG.AddOption(type_info.Bool(name=name, default=default,
-                                  description=help))
+  CONFIG.AddOption(type_info.Bool(name=name, default=default, description=help))
 
 
 def DEFINE_float(name, default, help):
   """A helper for defining float options."""
-  CONFIG.AddOption(type_info.Float(name=name, default=default,
-                                   description=help))
+  CONFIG.AddOption(type_info.Float(
+      name=name, default=default, description=help))
 
 
 def DEFINE_integer(name, default, help):
   """A helper for defining integer options."""
-  CONFIG.AddOption(type_info.Integer(name=name, default=default,
-                                     description=help))
+  CONFIG.AddOption(type_info.Integer(
+      name=name, default=default, description=help))
 
 
 def DEFINE_boolean(name, default, help):
   """A helper for defining boolean options."""
-  CONFIG.AddOption(type_info.Bool(name=name, default=default,
-                                  description=help))
+  CONFIG.AddOption(type_info.Bool(name=name, default=default, description=help))
 
 
 def DEFINE_string(name, default, help):
   """A helper for defining string options."""
-  CONFIG.AddOption(type_info.String(name=name, default=default or "",
+  CONFIG.AddOption(type_info.String(name=name,
+                                    default=default or "",
                                     description=help))
 
 
 def DEFINE_bytes(name, default, help):
   """A helper for defining bytes options."""
-  CONFIG.AddOption(type_info.Bytes(name=name, default=default or "",
+  CONFIG.AddOption(type_info.Bytes(name=name,
+                                   default=default or "",
                                    description=help))
 
 
 def DEFINE_choice(name, default, choices, help):
   """A helper for defining choice string options."""
-  CONFIG.AddOption(type_info.Choice(
-      name=name, default=default, choices=choices,
-      description=help))
+  CONFIG.AddOption(type_info.Choice(name=name,
+                                    default=default,
+                                    choices=choices,
+                                    description=help))
 
 
 def DEFINE_multichoice(name, default, choices, help):
   """Choose multiple options from a list."""
-  CONFIG.AddOption(type_info.MultiChoice(
-      name=name, default=default, choices=choices,
-      description=help))
+  CONFIG.AddOption(type_info.MultiChoice(name=name,
+                                         default=default,
+                                         choices=choices,
+                                         description=help))
 
 
 def DEFINE_integer_list(name, default, help):
   """A helper for defining lists of integer options."""
-  CONFIG.AddOption(type_info.List(name=name, default=default,
+  CONFIG.AddOption(type_info.List(name=name,
+                                  default=default,
                                   description=help,
                                   validator=type_info.Integer()))
 
 
 def DEFINE_list(name, default, help):
   """A helper for defining lists of strings options."""
-  CONFIG.AddOption(type_info.List(name=name, default=default,
+  CONFIG.AddOption(type_info.List(name=name,
+                                  default=default,
                                   description=help,
                                   validator=type_info.String()))
 
 
 def DEFINE_semantic(semantic_type, name, default=None, description=""):
-  CONFIG.AddOption(type_info.RDFValueType(
-      rdfclass=semantic_type, name=name, default=default, help=description))
+  CONFIG.AddOption(type_info.RDFValueType(rdfclass=semantic_type,
+                                          name=name,
+                                          default=default,
+                                          help=description))
 
 
 def DEFINE_option(type_descriptor):
@@ -1547,14 +1577,21 @@ def DEFINE_option(type_descriptor):
 
 def DEFINE_constant_string(name, default, help):
   """A helper for defining constant strings."""
-  CONFIG.AddOption(type_info.String(name=name, default=default or "",
-                                    description=help), constant=True)
+  CONFIG.AddOption(
+      type_info.String(name=name,
+                       default=default or "",
+                       description=help),
+      constant=True)
 
 # pylint: enable=g-bad-name
 
 
-def LoadConfig(config_obj, config_file, secondary_configs=None,
-               contexts=None, reset=False, parser=ConfigFileParser):
+def LoadConfig(config_obj,
+               config_file,
+               secondary_configs=None,
+               contexts=None,
+               reset=False,
+               parser=ConfigFileParser):
   """Initialize a ConfigManager with the specified options.
 
   Args:
@@ -1607,8 +1644,7 @@ def ParseConfigCommandLine():
   # Allow individual options to be specified as global overrides.
   for statement in flags.FLAGS.parameter:
     if "=" not in statement:
-      raise RuntimeError(
-          "statement %s on command line not valid." % statement)
+      raise RuntimeError("statement %s on command line not valid." % statement)
 
     name, value = statement.split("=", 1)
     CONFIG.global_override[name] = value
@@ -1675,14 +1711,12 @@ class PluginLoader(registry.InitHook):
           # Change from filename to python package name.
           module_name, ext = os.path.splitext(name)
           if ext in cls.PYTHON_EXTENSIONS:
-            module_name = module_name.replace("/", ".").replace(
-                "\\", ".")
+            module_name = module_name.replace("/", ".").replace("\\", ".")
 
             try:
               __import__(module_name.strip("\\/"))
             except Exception as e:  # pylint: disable=broad-except
-              logging.error("Error loading user plugin %s: %s",
-                            path, e)
+              logging.error("Error loading user plugin %s: %s", path, e)
 
       finally:
         sys.path.pop(0)

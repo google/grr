@@ -12,6 +12,8 @@ import sys
 import traceback
 
 
+import psutil
+
 # Initialize the Rekall plugins, so pylint: disable=unused-import
 from rekall import addrspace
 from rekall import config
@@ -186,7 +188,18 @@ class GrrRekallSession(session.Session):
 
     # Ensure the action's Progress() method is called when Rekall reports
     # progress.
-    self.progress.Register(id(self), lambda *_, **__: self.action.Progress())
+    self.proc = psutil.Process()
+    self.memory_quota = config_lib.CONFIG["Client.rss_max"] * 1024 * 1024
+    self.progress.Register(id(self), lambda *_, **__: self._CheckQuota())
+
+  def _CheckQuota(self):
+    """Ensures we do not exceed the allowed memory limit."""
+    # Check the memory use is not exceeded.
+    if self.proc.memory_info().rss > self.memory_quota:
+      raise MemoryError("Exceeded memory quota")
+
+    # Ensure the action progress is reported so we do not get killed.
+    self.action.Progress()
 
   def GetRenderer(self, **kwargs):
     # We will use this renderer to push results to the server.

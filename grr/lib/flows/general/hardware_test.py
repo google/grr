@@ -22,8 +22,7 @@ class DumpFlashImageMock(action_mocks.ActionMock):
     flash_fd.write("\xff" * 1024)
     flash_fd.close()
     logs = ["test"] if args.log_level else []
-    response = chipsec_types.DumpFlashImageResponse(path=flash_path,
-                                                    logs=logs)
+    response = chipsec_types.DumpFlashImageResponse(path=flash_path, logs=logs)
     return [response]
 
 
@@ -52,9 +51,10 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
     # Create a fake component so we can launch the LoadComponent flow.
-    fd = aff4.FACTORY.Create(
-        "aff4:/config/components/grr-chipsec_0.1", "ComponentObject",
-        mode="w", token=self.token)
+    fd = aff4.FACTORY.Create("aff4:/config/components/grr-chipsec_0.1",
+                             "ComponentObject",
+                             mode="w",
+                             token=self.token)
     fd.Set(fd.Schema.COMPONENT(name="grr-chipsec", version="0.1"))
     fd.Close()
 
@@ -64,14 +64,14 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
 
   def testDumpFlash(self):
     """Dump Flash Image."""
-    client_mock = DumpFlashImageMock("StatFile", "MultiGetFile",
-                                     "HashFile", "HashBuffer",
-                                     "LoadComponent", "TransferBuffer",
-                                     "DeleteGRRTempFiles")
+    client_mock = DumpFlashImageMock("StatFile", "MultiGetFile", "HashFile",
+                                     "HashBuffer", "LoadComponent",
+                                     "TransferBuffer", "DeleteGRRTempFiles")
 
-    for _ in test_lib.TestFlowHelper(
-        "DumpFlashImage", client_mock, client_id=self.client_id,
-        token=self.token):
+    for _ in test_lib.TestFlowHelper("DumpFlashImage",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     token=self.token):
       pass
 
     fd = aff4.FACTORY.Open(self.client_id.Add("spiflash"), token=self.token)
@@ -79,19 +79,19 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
 
   def testUnknownChipset(self):
     """Fail to dump flash of unknown chipset."""
-    client_mock = UnknownChipsetDumpMock("StatFile", "MultiGetFile",
-                                         "HashFile", "HashBuffer",
-                                         "LoadComponent", "TransferBuffer",
-                                         "DeleteGRRTempFiles")
+    client_mock = UnknownChipsetDumpMock("StatFile", "MultiGetFile", "HashFile",
+                                         "HashBuffer", "LoadComponent",
+                                         "TransferBuffer", "DeleteGRRTempFiles")
 
     # Manually start the flow in order to be able to read the logs
     flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
                                       flow_name="DumpFlashImage",
                                       token=self.token)
 
-    for _ in test_lib.TestFlowHelper(
-        flow_urn, client_mock, client_id=self.client_id,
-        token=self.token):
+    for _ in test_lib.TestFlowHelper(flow_urn,
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     token=self.token):
       pass
 
     logs = aff4.FACTORY.Open(flow_urn.Add("Logs"), token=self.token)
@@ -103,15 +103,18 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
                                "HashFile", "HashBuffer", "TransferBuffer",
                                "DeleteGRRTempFiles")
 
-    for _ in test_lib.TestFlowHelper(
-        "DumpFlashImage", client_mock, client_id=self.client_id,
-        token=self.token, check_flow_errors=False):
+    for _ in test_lib.TestFlowHelper("DumpFlashImage",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     token=self.token,
+                                     check_flow_errors=False):
       pass
 
 
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

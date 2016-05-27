@@ -58,11 +58,10 @@ class HintsTests(test_lib.GRRBaseTest):
     rdf.system_info.system = "Linux"
     rdf.system_info.node = "coreai.skynet.com"
     # Users (repeated)
-    rdf.users = [
-        rdf_client.User(username=u) for u in ("root", "jconnor")]
+    rdf.users = [rdf_client.User(username=u) for u in ("root", "jconnor")]
     # Interface (nested, repeated)
-    addresses = [rdf_client.NetworkAddress(human_readable=a) for a in (
-        "1.1.1.1", "2.2.2.2", "3.3.3.3")]
+    addresses = [rdf_client.NetworkAddress(human_readable=a)
+                 for a in ("1.1.1.1", "2.2.2.2", "3.3.3.3")]
     eth0 = rdf_client.Interface(ifname="eth0", addresses=addresses[:2])
     ppp0 = rdf_client.Interface(ifname="ppp0", addresses=addresses[2])
     rdf.interfaces = [eth0, ppp0]
@@ -121,6 +120,7 @@ class HintsTests(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

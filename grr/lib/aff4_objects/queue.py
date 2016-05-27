@@ -81,8 +81,12 @@ class Queue(aff4.AFF4Object):
     """
     self.StaticAdd(self.urn, self.token, rdf_value)
 
-  def ClaimRecords(self, limit=10000, timeout="30m", start_time=None,
-                   record_filter=lambda x: False, max_filtered=1000):
+  def ClaimRecords(self,
+                   limit=10000,
+                   timeout="30m",
+                   start_time=None,
+                   record_filter=lambda x: False,
+                   max_filtered=1000):
     """Returns and claims up to limit unclaimed records for timeout seconds.
 
     Returns a list of records which are now "claimed", a claimed record will
@@ -130,9 +134,8 @@ class Queue(aff4.AFF4Object):
     filtered_count = 0
 
     for subject, values in data_store.DB.ScanAttributes(
-        self.urn.Add("Records"),
-        [self.VALUE_ATTRIBUTE, self.LOCK_ATTRIBUTE],
-        max_records=4*limit,
+        self.urn.Add("Records"), [self.VALUE_ATTRIBUTE, self.LOCK_ATTRIBUTE],
+        max_records=4 * limit,
         after_urn=after_urn,
         token=self.token):
       if self.VALUE_ATTRIBUTE not in values:
@@ -158,9 +161,7 @@ class Queue(aff4.AFF4Object):
 
     with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
       for subject, _ in results:
-        mutation_pool.Set(subject,
-                          self.LOCK_ATTRIBUTE,
-                          expiration)
+        mutation_pool.Set(subject, self.LOCK_ATTRIBUTE, expiration)
     return results
 
   def RefreshClaims(self, ids, timeout="30m"):
@@ -178,9 +179,7 @@ class Queue(aff4.AFF4Object):
     expiration = rdfvalue.RDFDatetime().Now() + rdfvalue.Duration(timeout)
     with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
       for subject in ids:
-        mutation_pool.Set(subject,
-                          self.LOCK_ATTRIBUTE,
-                          expiration)
+        mutation_pool.Set(subject, self.LOCK_ATTRIBUTE, expiration)
 
   def DeleteRecords(self, ids):
     """Delete records identified by ids.
@@ -211,8 +210,7 @@ class Queue(aff4.AFF4Object):
     Raises:
       LockError: If the queue is not locked.
     """
-    data_store.DB.MultiDeleteAttributes(ids,
-                                        [self.LOCK_ATTRIBUTE],
+    data_store.DB.MultiDeleteAttributes(ids, [self.LOCK_ATTRIBUTE],
                                         token=self.token)
 
   def ReleaseRecord(self, record_id):

@@ -26,8 +26,10 @@ class MemoryStreamBlobstore(blob_store.Blobstore):
 
     mutation_pool = data_store.DB.GetMutationPool(token=token)
 
-    existing = aff4.FACTORY.MultiOpen(
-        urns, aff4_type=aff4.AFF4MemoryStreamBase, mode="r", token=token)
+    existing = aff4.FACTORY.MultiOpen(urns,
+                                      aff4_type=aff4.AFF4MemoryStreamBase,
+                                      mode="r",
+                                      token=token)
 
     for blob_urn, digest in urns.iteritems():
       if blob_urn in existing:
@@ -50,8 +52,7 @@ class MemoryStreamBlobstore(blob_store.Blobstore):
     return contents_by_digest.keys()
 
   def ReadBlobs(self, digests, token=None):
-    res = {digest: None
-           for digest in digests}
+    res = {digest: None for digest in digests}
     urns = {self._BlobUrn(digest): digest for digest in digests}
 
     fds = aff4.FACTORY.MultiOpen(urns, mode="r", token=token)
@@ -63,13 +64,14 @@ class MemoryStreamBlobstore(blob_store.Blobstore):
 
   def BlobsExist(self, digests, token=None):
     """Check if blobs for the given digests already exist."""
-    res = {digest: False
-           for digest in digests}
+    res = {digest: False for digest in digests}
 
     urns = {self._BlobUrn(digest): digest for digest in digests}
 
-    existing = aff4.FACTORY.MultiOpen(
-        urns, aff4_type=aff4.AFF4MemoryStreamBase, mode="r", token=token)
+    existing = aff4.FACTORY.MultiOpen(urns,
+                                      aff4_type=aff4.AFF4MemoryStreamBase,
+                                      mode="r",
+                                      token=token)
 
     for blob in existing:
       res[urns[blob.urn]] = True

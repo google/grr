@@ -24,8 +24,8 @@ def GetUserInfo(client, user):
   kb = client.Get(client.Schema.KNOWLEDGE_BASE)
   if "\\" in user:
     domain, user = user.split("\\", 1)
-    users = [u for u in kb.users if u.username == user
-             and u.userdomain == domain]
+    users = [u for u in kb.users
+             if u.username == user and u.userdomain == domain]
   else:
     users = [u for u in kb.users if u.username == user]
 
@@ -35,7 +35,9 @@ def GetUserInfo(client, user):
     return users[0]
 
 
-def UpdateVFSFileAndWait(client_id, vfs_file_urn, token=None,
+def UpdateVFSFileAndWait(client_id,
+                         vfs_file_urn,
+                         token=None,
                          timeout=DEFAULT_TIMEOUT):
   """Waits for a file to be updated on the client.
 
@@ -53,12 +55,14 @@ def UpdateVFSFileAndWait(client_id, vfs_file_urn, token=None,
     timeout: How long to wait for a flow to finish, maximum.
   """
   # Wait for the UpdateVFSFile flow.
-  update_flow_urn = StartFlowAndWait(client_id, token=token,
+  update_flow_urn = StartFlowAndWait(client_id,
+                                     token=token,
                                      timeout=timeout,
                                      flow_name="UpdateVFSFile",
                                      vfs_file_urn=vfs_file_urn)
 
-  update_flow_obj = aff4.FACTORY.Open(update_flow_urn, token=token,
+  update_flow_obj = aff4.FACTORY.Open(update_flow_urn,
+                                      token=token,
                                       aff4_type=flow.GRRFlow)
 
   # Get the child flow so we can wait for it too.
@@ -68,12 +72,15 @@ def UpdateVFSFileAndWait(client_id, vfs_file_urn, token=None,
   if not sub_flow_urn:
     return
 
-  WaitForFlow(sub_flow_urn, token=token,
-              timeout=timeout)
+  WaitForFlow(sub_flow_urn, token=token, timeout=timeout)
 
 
-def WaitForFlow(flow_urn, token=None, timeout=DEFAULT_TIMEOUT, max_sleep_time=1,
-                min_sleep_time=0.2, dampening_multiplier=0.9):
+def WaitForFlow(flow_urn,
+                token=None,
+                timeout=DEFAULT_TIMEOUT,
+                max_sleep_time=1,
+                min_sleep_time=0.2,
+                dampening_multiplier=0.9):
   """Waits for a flow to finish, polling while we wait.
 
   Args:
@@ -97,24 +104,25 @@ def WaitForFlow(flow_urn, token=None, timeout=DEFAULT_TIMEOUT, max_sleep_time=1,
   while True:
     # Reopen the AFF4Object to check if its status has changed, and also make
     # sure it's a flow.
-    with aff4.FACTORY.Open(
-        flow_urn, token=token, aff4_type=flow.GRRFlow) as flow_obj:
+    with aff4.FACTORY.Open(flow_urn,
+                           token=token,
+                           aff4_type=flow.GRRFlow) as flow_obj:
 
       # Stop if the flow is done or has timed out.
       if time.time() - start_time > timeout:
-        logging.warn("Timed out after waiting %ss for %s!",
-                     timeout, flow_obj)
+        logging.warn("Timed out after waiting %ss for %s!", timeout, flow_obj)
         raise IOError("Timed out trying to access client! Is it connected?")
       if not flow_obj.GetRunner().IsRunning():
         break
     # Decrease the time we sleep each iteration.
-    sleep_time = max(sleep_time * dampening_multiplier,
-                     min_sleep_time)
+    sleep_time = max(sleep_time * dampening_multiplier, min_sleep_time)
     time.sleep(sleep_time)
     logging.debug("Waiting for %s, sleeping for %.3fs", flow_obj, sleep_time)
 
 
-def StartFlowAndWait(client_id, token=None, timeout=DEFAULT_TIMEOUT,
+def StartFlowAndWait(client_id,
+                     token=None,
+                     timeout=DEFAULT_TIMEOUT,
                      **flow_args):
   """Runs a flow and waits for it to finish.
 
@@ -176,7 +184,7 @@ def InterpolatePath(path, client, users=None, path_args=None, depth=0):
         try:
           results.append(path.format(**formatters))
         except KeyError:
-          pass   # We may be missing values for some users.
+          pass  # We may be missing values for some users.
     return results
   else:
     try:
@@ -185,6 +193,9 @@ def InterpolatePath(path, client, users=None, path_args=None, depth=0):
       logging.warn("Failed path interpolation on %s", path)
       return ""
     if "{" in path and depth < 10:
-      path = InterpolatePath(path, client=client, users=users,
-                             path_args=path_args, depth=depth + 1)
+      path = InterpolatePath(path,
+                             client=client,
+                             users=users,
+                             path_args=path_args,
+                             depth=depth + 1)
     return path

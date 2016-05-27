@@ -12,14 +12,14 @@ class HTTPDataStoreBenchmarks(http_data_store_test.HTTPDataStoreMixin,
   """Benchmark the HTTP remote data store abstraction."""
 
 
-class HTTPDataStoreCSVBenchmarks(
-    http_data_store_test.HTTPDataStoreMixin,
-    data_store_test.DataStoreCSVBenchmarks):
+class HTTPDataStoreCSVBenchmarks(http_data_store_test.HTTPDataStoreMixin,
+                                 data_store_test.DataStoreCSVBenchmarks):
   """Benchmark the HTTP remote data store."""
 
 
 def main(args):
   test_lib.main(args)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

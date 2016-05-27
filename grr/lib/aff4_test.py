@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Tests for the flow."""
 
 import itertools
@@ -63,9 +62,9 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
     self.pool.MarkForDeletion(rdfvalue.RDFURN("aff4:/a"))
     self.pool.MarkForDeletion(rdfvalue.RDFURN("aff4:/b"))
 
-    self.assertEqual(self.pool.urns_for_deletion,
-                     set([rdfvalue.RDFURN("aff4:/a"),
-                          rdfvalue.RDFURN("aff4:/b")]))
+    self.assertEqual(
+        self.pool.urns_for_deletion,
+        set([rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN("aff4:/b")]))
 
   def testMarkForDeletionAddsChildrenToDeletionSet(self):
     self._CreateObject("aff4:/a", aff4.AFF4MemoryStream)
@@ -73,17 +72,17 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
 
     self.pool.MarkForDeletion(rdfvalue.RDFURN("aff4:/a"))
 
-    self.assertEqual(self.pool.urns_for_deletion,
-                     set([rdfvalue.RDFURN("aff4:/a"),
-                          rdfvalue.RDFURN("aff4:/a/b")]))
+    self.assertEqual(
+        self.pool.urns_for_deletion,
+        set([rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN("aff4:/a/b")]))
 
   def testMultiMarkForDeletionAddsMultipleObjectsToDeletionSet(self):
-    self.pool.MultiMarkForDeletion([rdfvalue.RDFURN("aff4:/a"),
-                                    rdfvalue.RDFURN("aff4:/b")])
+    self.pool.MultiMarkForDeletion([rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN(
+        "aff4:/b")])
 
-    self.assertEqual(self.pool.urns_for_deletion,
-                     set([rdfvalue.RDFURN("aff4:/a"),
-                          rdfvalue.RDFURN("aff4:/b")]))
+    self.assertEqual(
+        self.pool.urns_for_deletion,
+        set([rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN("aff4:/b")]))
 
   def testMultiMarkForDeletionAddsMultipleObjectsAndChildrenToDeletionSet(self):
     self._CreateObject("aff4:/a", aff4.AFF4MemoryStream)
@@ -92,15 +91,14 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
     self._CreateObject("aff4:/c/d", aff4.AFF4MemoryStream)
     self._CreateObject("aff4:/c/e", aff4.AFF4MemoryStream)
 
-    self.pool.MultiMarkForDeletion([rdfvalue.RDFURN("aff4:/a"),
-                                    rdfvalue.RDFURN("aff4:/c")])
+    self.pool.MultiMarkForDeletion([rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN(
+        "aff4:/c")])
 
-    self.assertEqual(self.pool.urns_for_deletion,
-                     set([rdfvalue.RDFURN("aff4:/a"),
-                          rdfvalue.RDFURN("aff4:/a/b"),
-                          rdfvalue.RDFURN("aff4:/c"),
-                          rdfvalue.RDFURN("aff4:/c/d"),
-                          rdfvalue.RDFURN("aff4:/c/e")]))
+    self.assertEqual(
+        self.pool.urns_for_deletion,
+        set([rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN("aff4:/a/b"),
+             rdfvalue.RDFURN("aff4:/c"), rdfvalue.RDFURN("aff4:/c/d"),
+             rdfvalue.RDFURN("aff4:/c/e")]))
 
   def testReturnsEmptyListOfRootsWhenNoUrnsMarked(self):
     self.assertEqual(self.pool.root_urns_for_deletion, set())
@@ -116,17 +114,14 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
     self.pool.MarkForDeletion(rdfvalue.RDFURN("aff4:/a/b"))
     self.pool.MarkForDeletion(rdfvalue.RDFURN("aff4:/b/c"))
 
-    self.assertEqual(self.pool.root_urns_for_deletion,
-                     set([rdfvalue.RDFURN("aff4:/a/b"),
-                          rdfvalue.RDFURN("aff4:/b/c")]))
+    self.assertEqual(
+        self.pool.root_urns_for_deletion,
+        set([rdfvalue.RDFURN("aff4:/a/b"), rdfvalue.RDFURN("aff4:/b/c")]))
 
   def testReturnsCorrectRootsForShuffledMarkForDeletionCalls(self):
     urns = [
-        "aff4:/a/f",
-        "aff4:/a/b",
-        "aff4:/a/b/c",
-        "aff4:/a/b/d",
-        "aff4:/a/b/e"]
+        "aff4:/a/f", "aff4:/a/b", "aff4:/a/b/c", "aff4:/a/b/d", "aff4:/a/b/e"
+    ]
 
     for urns_permutation in itertools.permutations(urns):
       pool = aff4.DeletionPool(token=self.token)
@@ -135,8 +130,7 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
 
       self.assertEqual(
           pool.root_urns_for_deletion,
-          set([rdfvalue.RDFURN("aff4:/a/b"),
-               rdfvalue.RDFURN("aff4:/a/f")]))
+          set([rdfvalue.RDFURN("aff4:/a/b"), rdfvalue.RDFURN("aff4:/a/f")]))
 
   def testOpenCachesObjectBasedOnUrnAndMode(self):
     self._CreateObject("aff4:/obj", aff4.AFF4MemoryStream)
@@ -154,8 +148,10 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
 
   def testOpenCachesObjectEvenIfRequestedAff4TypeIsWrong(self):
     self._CreateObject("aff4:/obj", aff4.AFF4MemoryStream)
-    self.assertRaises(IOError, self.pool.Open,
-                      "aff4:/obj", aff4_type=collects.RDFValueCollection)
+    self.assertRaises(IOError,
+                      self.pool.Open,
+                      "aff4:/obj",
+                      aff4_type=collects.RDFValueCollection)
 
     self._CreateObject("aff4:/obj", aff4.AFF4Volume)
     obj = self.pool.Open("aff4:/obj")
@@ -188,8 +184,9 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
     self._CreateObject("aff4:/obj1", aff4.AFF4MemoryStream)
     self._CreateObject("aff4:/obj2", aff4.AFF4MemoryStream)
 
-    result = self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"],
-                                 aff4_type=collects.RDFValueCollection)
+    result = self.pool.MultiOpen(
+        ["aff4:/obj1", "aff4:/obj2"],
+        aff4_type=collects.RDFValueCollection)
     self.assertFalse(result)
 
     self._CreateObject("aff4:/obj1", aff4.AFF4Volume)
@@ -212,8 +209,8 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
     self._CreateObject("aff4:/obj1", aff4.AFF4Volume)
     self._CreateObject("aff4:/obj2", aff4.AFF4Volume)
 
-    result = dict((obj.urn.Basename(), obj) for obj in
-                  self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"]))
+    result = dict((obj.urn.Basename(), obj)
+                  for obj in self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"]))
     # Check that only previously uncached objects got fetched. Cached objects
     # were left intact.
     self.assertEqual(result["obj1"].Get(result["obj1"].Schema.TYPE),
@@ -569,8 +566,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
   def testNonVersionedAttribute(self):
     """Test that non versioned attributes work."""
-    client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
-                                 mode="w", token=self.token)
+    client = aff4.FACTORY.Create(self.client_id,
+                                 aff4_grr.VFSGRRClient,
+                                 mode="w",
+                                 token=self.token)
 
     # We update the client hostname twice - Since hostname is versioned we
     # expect two versions of this object.
@@ -580,7 +579,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     client.Set(client.Schema.HOSTNAME("client1"))
     client.Flush()
 
-    client_fd = aff4.FACTORY.Open(self.client_id, age=aff4.ALL_TIMES,
+    client_fd = aff4.FACTORY.Open(self.client_id,
+                                  age=aff4.ALL_TIMES,
                                   token=self.token)
 
     # Versions are represented by the TYPE attribute.
@@ -595,7 +595,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     client.Set(client.Schema.CLOCK())
     client.Flush()
 
-    client_fd = aff4.FACTORY.Open(self.client_id, age=aff4.ALL_TIMES,
+    client_fd = aff4.FACTORY.Open(self.client_id,
+                                  age=aff4.ALL_TIMES,
                                   token=self.token)
 
     # Versions are represented by the TYPE attribute.
@@ -620,8 +621,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
   def testGetVersions(self):
     """Test we can retrieve versions."""
-    client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
-                                 mode="w", token=self.token)
+    client = aff4.FACTORY.Create(self.client_id,
+                                 aff4_grr.VFSGRRClient,
+                                 mode="w",
+                                 token=self.token)
     # Update the hostname twice, expect two versions of this object.
     client.Set(client.Schema.HOSTNAME("client1"))
     client.Flush()
@@ -629,7 +632,9 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     client.Flush()
 
     # Now create as a different type.
-    vfsfile = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSFile, mode="w",
+    vfsfile = aff4.FACTORY.Create(self.client_id,
+                                  aff4_grr.VFSFile,
+                                  mode="w",
                                   token=self.token)
     vfsfile.Flush()
 
@@ -640,21 +645,21 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     self.assertTrue(isinstance(v1, aff4_grr.VFSFile))
     self.assertTrue(isinstance(v3, aff4_grr.VFSGRRClient))
-    self.assertTrue(int(v1.Get(v1.Schema.TYPE).age) >
-                    int(v2.Get(v2.Schema.TYPE).age))
+    self.assertTrue(int(v1.Get(v1.Schema.TYPE).age) > int(v2.Get(
+        v2.Schema.TYPE).age))
     self.assertEqual(v2.Get(v2.Schema.TYPE), "VFSGRRClient")
     self.assertEqual(str(v2.Get(v2.Schema.HOSTNAME)), "client2")
 
   def _CheckAFF4AttributeDefaults(self, client):
     self.assertEqual(client.Get(client.Schema.HOSTNAME), "client1")
-    self.assertEqual(client.Get(client.Schema.DOESNOTEXIST, "mydefault"),
-                     "mydefault")
-    self.assertEqual(client.Get(client.Schema.DOESNOTEXIST,
-                                default="mydefault"), "mydefault")
-    self.assertEqual(client.Get(client.Schema.DOESNOTEXIST,
-                                None), None)
-    self.assertEqual(client.Get(client.Schema.DOESNOTEXIST,
-                                default=None), None)
+    self.assertEqual(
+        client.Get(client.Schema.DOESNOTEXIST, "mydefault"), "mydefault")
+    self.assertEqual(
+        client.Get(client.Schema.DOESNOTEXIST,
+                   default="mydefault"),
+        "mydefault")
+    self.assertEqual(client.Get(client.Schema.DOESNOTEXIST, None), None)
+    self.assertEqual(client.Get(client.Schema.DOESNOTEXIST, default=None), None)
 
   def testGetBadAttribute(self):
     """Test checking of non-existent attributes."""
@@ -705,14 +710,14 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     # Make sure we don't raise if no type specified. No need to check create,
     # since a type must always be specified.
-    client = aff4.FACTORY.Open(self.client_id, mode="rw",
-                               token=self.token)
+    client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     self.assertEqual(client.Get(client.Schema.HOSTNAME), "client1")
     self.assertEqual(client.Get(client.Schema.DOESNOTEXIST), None)
 
     # Check we get the same result from MultiOpen
-    clients = aff4.FACTORY.MultiOpen([self.client_id], mode="rw",
-                                     token=self.token)
+    clients = aff4.FACTORY.MultiOpen(
+        [self.client_id], mode="rw",
+        token=self.token)
     for client in clients:
       self.assertEqual(client.Get(client.Schema.HOSTNAME), "client1")
       self.assertEqual(client.Get(client.Schema.DOESNOTEXIST), None)
@@ -724,7 +729,9 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     obj.Set(obj.Schema.STORED("www.google.com"))
     obj.Close()
 
-    obj = aff4.FACTORY.Open("foobar", mode="rw", token=self.token,
+    obj = aff4.FACTORY.Open("foobar",
+                            mode="rw",
+                            token=self.token,
                             age=aff4.ALL_TIMES)
     self.assertEqual(1, len(list(obj.GetValuesForAttribute(obj.Schema.STORED))))
 
@@ -742,8 +749,9 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
   def testLastAddedAttributeWinsWhenTimestampsAreEqual(self):
     with test_lib.FakeTime(42):
-      with aff4.FACTORY.Create(
-          "foobar", aff4.AFF4Object, token=self.token) as obj:
+      with aff4.FACTORY.Create("foobar",
+                               aff4.AFF4Object,
+                               token=self.token) as obj:
         obj.Set(obj.Schema.STORED("foo"))
         obj.Set(obj.Schema.STORED("bar"))
 
@@ -757,7 +765,9 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     obj.Set(obj.Schema.STORED("www.google.com"))
     obj.Close()
 
-    obj = aff4.FACTORY.Open("foobar", mode="rw", token=self.token,
+    obj = aff4.FACTORY.Open("foobar",
+                            mode="rw",
+                            token=self.token,
                             age=aff4.NEWEST_TIME)
 
     self.assertEqual(1, len(obj.synced_attributes[obj.Schema.STORED.predicate]))
@@ -788,21 +798,27 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       obj.AddAttribute(obj.Schema.STORED("example.com/%s" % i))
     obj.Close()
 
-    obj = aff4.FACTORY.Open("foobar", mode="r", token=self.token,
+    obj = aff4.FACTORY.Open("foobar",
+                            mode="r",
+                            token=self.token,
                             age=aff4.ALL_TIMES)
     # There should be 5 attributes now
     self.assertEqual(5, len(list(obj.GetValuesForAttribute(obj.Schema.STORED))))
 
-    new_obj = aff4.FACTORY.Create("new_foobar", aff4.AFF4Object,
+    new_obj = aff4.FACTORY.Create("new_foobar",
+                                  aff4.AFF4Object,
                                   token=self.token)
     new_obj.Copy(new_obj.Schema.STORED, obj, obj.Schema.STORED)
     new_obj.Close()
 
-    new_obj = aff4.FACTORY.Open("new_foobar", mode="r", token=self.token,
+    new_obj = aff4.FACTORY.Open("new_foobar",
+                                mode="r",
+                                token=self.token,
                                 age=aff4.ALL_TIMES)
     # Check that attribute got copied properly
-    self.assertListEqual(list(obj.GetValuesForAttribute(obj.Schema.STORED)),
-                         list(new_obj.GetValuesForAttribute(obj.Schema.STORED)))
+    self.assertListEqual(
+        list(obj.GetValuesForAttribute(obj.Schema.STORED)),
+        list(new_obj.GetValuesForAttribute(obj.Schema.STORED)))
 
   def testAttributeSet(self):
     obj = aff4.FACTORY.Create("foobar", aff4.AFF4Object, token=self.token)
@@ -844,9 +860,11 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     pool = data_store.DB.GetMutationPool(token=self.token)
 
     for path in [path1, path2]:
-      fd = aff4.FACTORY.Create(
-          path, aff4.AFF4UnversionedMemoryStream,
-          mode="w", mutation_pool=pool, token=self.token)
+      fd = aff4.FACTORY.Create(path,
+                               aff4.AFF4UnversionedMemoryStream,
+                               mode="w",
+                               mutation_pool=pool,
+                               token=self.token)
       content = "TestData" * 10
       fd.Write(content)
       fd.Close()
@@ -911,11 +929,16 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     # Delete the directory and check that the file in it is also removed.
     aff4.FACTORY.Delete(os.path.dirname(path), token=self.token)
-    self.assertRaises(IOError, aff4.FACTORY.Open, path, aff4.AFF4MemoryStream,
+    self.assertRaises(IOError,
+                      aff4.FACTORY.Open,
+                      path,
+                      aff4.AFF4MemoryStream,
                       token=self.token)
 
   def testDeleteRaisesWhenTryingToDeleteRoot(self):
-    self.assertRaises(RuntimeError, aff4.FACTORY.Delete, "aff4:/",
+    self.assertRaises(RuntimeError,
+                      aff4.FACTORY.Delete,
+                      "aff4:/",
                       token=self.token)
 
   def testRecursiveDelete(self):
@@ -927,42 +950,46 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     safe_paths = ["aff4:/tmp/dir2/hello4.txt"]
 
     for path in paths_to_delete + safe_paths:
-      with aff4.FACTORY.Create(path, aff4.AFF4MemoryStream,
+      with aff4.FACTORY.Create(path,
+                               aff4.AFF4MemoryStream,
                                token=self.token) as fd:
         fd.Write("hello")
 
     fd = aff4.FACTORY.Open("aff4:/tmp", token=self.token)
-    self.assertListEqual(sorted(fd.ListChildren()),
-                         ["aff4:/tmp/dir1", "aff4:/tmp/dir2"])
+    self.assertListEqual(
+        sorted(fd.ListChildren()), ["aff4:/tmp/dir1", "aff4:/tmp/dir2"])
 
     aff4.FACTORY.Delete("aff4:/tmp/dir1", token=self.token)
     for path in paths_to_delete:
-      self.assertRaises(IOError, aff4.FACTORY.Open, path, aff4.AFF4MemoryStream,
+      self.assertRaises(IOError,
+                        aff4.FACTORY.Open,
+                        path,
+                        aff4.AFF4MemoryStream,
                         token=self.token)
 
       fd = aff4.FACTORY.Open(os.path.dirname(path), token=self.token)
       self.assertFalse(list(fd.ListChildren()))
 
     fd = aff4.FACTORY.Open("aff4:/tmp", token=self.token)
-    self.assertListEqual(list(fd.ListChildren()),
-                         ["aff4:/tmp/dir2"])
+    self.assertListEqual(list(fd.ListChildren()), ["aff4:/tmp/dir2"])
 
     fd = aff4.FACTORY.Open("aff4:/tmp/dir2", token=self.token)
-    self.assertListEqual(list(fd.ListChildren()),
-                         ["aff4:/tmp/dir2/hello4.txt"])
+    self.assertListEqual(list(fd.ListChildren()), ["aff4:/tmp/dir2/hello4.txt"])
 
   def testMultiDeleteRaisesWhenTryingToDeleteRoot(self):
-    self.assertRaises(RuntimeError, aff4.FACTORY.MultiDelete,
-                      ["aff4:/a", "aff4:/"], token=self.token)
+    self.assertRaises(RuntimeError,
+                      aff4.FACTORY.MultiDelete, ["aff4:/a", "aff4:/"],
+                      token=self.token)
 
   def testMultiDeleteRemovesAllTracesOfObjectsFromDataStore(self):
     unique_token = "recursive_delete"
 
     for i in range(5):
       for j in range(5):
-        with aff4.FACTORY.Create(
-            "aff4:" + ("/%s%d" % (unique_token, i)) * (j + 1),
-            aff4.AFF4Volume, token=self.token):
+        with aff4.FACTORY.Create("aff4:" + ("/%s%d" % (unique_token, i)) *
+                                 (j + 1),
+                                 aff4.AFF4Volume,
+                                 token=self.token):
           pass
 
     aff4.FACTORY.MultiDelete(
@@ -980,7 +1007,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
           self.assertFalse(unique_token in utils.SmartUnicode(value))
 
   def testClientObject(self):
-    fd = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
+    fd = aff4.FACTORY.Create(self.client_id,
+                             aff4_grr.VFSGRRClient,
                              token=self.token)
 
     # Certs invalid - The RDFX509Cert should check the validity of the cert
@@ -1039,7 +1067,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       for i in range(10):
         self.assertEqual(fd.Read(13), "Test%08X\n" % i)
 
-    with aff4.FACTORY.Create(path, classname, mode="rw",
+    with aff4.FACTORY.Create(path, classname,
+                             mode="rw",
                              token=self.token) as fd:
       fd.Set(fd.Schema._CHUNKSIZE(10))
 
@@ -1065,10 +1094,11 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     # Set the max_unbound_read_size to last size of object at path
     # before object creation for unbound read() tests.
-    with test_lib.ConfigOverrider({
-        "Server.max_unbound_read_size": 1110}):
+    with test_lib.ConfigOverrider({"Server.max_unbound_read_size": 1110}):
 
-      with aff4.FACTORY.Create(path, classname, mode="rw",
+      with aff4.FACTORY.Create(path,
+                               classname,
+                               mode="rw",
                                token=self.token) as fd:
         fd.Set(fd.Schema._CHUNKSIZE(10))
         # Verify the unbound read returns 110 bytes
@@ -1145,7 +1175,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     for i in range(100):
       self.assertEqual(fd.Read(13), "Test%08X\n" % i)
 
-  def WriteImage(self, path, prefix="Test", timestamp=0,
+  def WriteImage(self,
+                 path,
+                 prefix="Test",
+                 timestamp=0,
                  classname=aff4.AFF4Image):
     with utils.Stubber(time, "time", lambda: timestamp):
       fd = aff4.FACTORY.Create(path, classname, mode="w", token=self.token)
@@ -1190,11 +1223,15 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     """Make sure the AFF4UnversionedImage does not do multiple versions."""
     path = "/C.12345/foowithtime"
 
-    self.WriteImage(path, "Time1", timestamp=1000,
+    self.WriteImage(path,
+                    "Time1",
+                    timestamp=1000,
                     classname=aff4.AFF4UnversionedImage)
 
     # Write a newer version.
-    self.WriteImage(path, "Time2", timestamp=2000,
+    self.WriteImage(path,
+                    "Time2",
+                    timestamp=2000,
                     classname=aff4.AFF4UnversionedImage)
 
     fd = aff4.FACTORY.Open(path, token=self.token, age=(0, 1150 * 1e6))
@@ -1226,16 +1263,17 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
   def testAFF4FlowObject(self):
     """Test the AFF4 Flow object."""
-    client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
+    client = aff4.FACTORY.Create(self.client_id,
+                                 aff4_grr.VFSGRRClient,
                                  token=self.token)
     client.Close()
 
     # Start some new flows on it
     session_ids = []
     for _ in range(10):
-      session_ids.append(
-          flow.GRRFlow.StartFlow(client_id=self.client_id,
-                                 flow_name="FlowOrderTest", token=self.token))
+      session_ids.append(flow.GRRFlow.StartFlow(client_id=self.client_id,
+                                                flow_name="FlowOrderTest",
+                                                token=self.token))
 
     # Try to open a single flow.
     flow_obj = aff4.FACTORY.Open(session_ids[0], mode="r", token=self.token)
@@ -1251,34 +1289,37 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     client_id = "C.%016X" % 0
     test_lib.ClientFixture(client_id, token=self.token)
 
-    fd = aff4.FACTORY.Open(rdf_client.ClientURN(client_id).Add(
-        "/fs/os/c"), token=self.token)
+    fd = aff4.FACTORY.Open(
+        rdf_client.ClientURN(client_id).Add("/fs/os/c"),
+        token=self.token)
 
     # Test that we can match a unicode char.
     matched = list(fd.Query(u"subject matches '中'"))
     self.assertEqual(len(matched), 1)
-    self.assertEqual(utils.SmartUnicode(matched[0].urn),
-                     u"aff4:/C.0000000000000000/"
-                     u"fs/os/c/中国新闻网新闻中")
+    self.assertEqual(
+        utils.SmartUnicode(matched[0].urn), u"aff4:/C.0000000000000000/"
+        u"fs/os/c/中国新闻网新闻中")
 
     # Test that we can match special chars.
     matched = list(fd.Query(ur"subject matches '\]\['"))
     self.assertEqual(len(matched), 1)
-    self.assertEqual(utils.SmartUnicode(matched[0].urn),
-                     u"aff4:/C.0000000000000000/"
-                     u"fs/os/c/regex.*?][{}--")
+    self.assertEqual(
+        utils.SmartUnicode(matched[0].urn), u"aff4:/C.0000000000000000/"
+        u"fs/os/c/regex.*?][{}--")
 
     # Test the OpenChildren function on files that contain regex chars.
-    fd = aff4.FACTORY.Open(rdf_client.ClientURN(client_id).Add(
-        r"/fs/os/c/regex\V.*?]xx[{}--"), token=self.token)
+    fd = aff4.FACTORY.Open(
+        rdf_client.ClientURN(client_id).Add(r"/fs/os/c/regex\V.*?]xx[{}--"),
+        token=self.token)
 
     children = list(fd.OpenChildren())
     self.assertEqual(len(children), 1)
     self.assertTrue("regexchild" in utils.SmartUnicode(children[0].urn))
 
     # Test that OpenChildren works correctly on Unicode names.
-    fd = aff4.FACTORY.Open(rdf_client.ClientURN(client_id).Add(
-        "/fs/os/c"), token=self.token)
+    fd = aff4.FACTORY.Open(
+        rdf_client.ClientURN(client_id).Add("/fs/os/c"),
+        token=self.token)
 
     children = list(fd.OpenChildren())
     # All children must have a valid type.
@@ -1286,11 +1327,11 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertNotEqual(child.Get(child.Schema.TYPE), "VFSVolume")
 
     urns = [utils.SmartUnicode(x.urn) for x in children]
-    self.assertTrue(u"aff4:/C.0000000000000000/fs/os/c/中国新闻网新闻中"
-                    in urns)
+    self.assertTrue(u"aff4:/C.0000000000000000/fs/os/c/中国新闻网新闻中" in urns)
 
-    fd = aff4.FACTORY.Open(rdf_client.ClientURN(client_id).Add(
-        "/fs/os/c/中国新闻网新闻中"), token=self.token)
+    fd = aff4.FACTORY.Open(
+        rdf_client.ClientURN(client_id).Add("/fs/os/c/中国新闻网新闻中"),
+        token=self.token)
 
     children = list(fd.OpenChildren())
     self.assertEqual(len(children), 1)
@@ -1298,20 +1339,21 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(child.Get(child.Schema.TYPE), "VFSFile")
 
     # This tests filtering through the AFF4Filter.
-    fd = aff4.FACTORY.Open(rdf_client.ClientURN(client_id).Add(
-        "/fs/os/c/bin %s" % client_id), token=self.token)
+    fd = aff4.FACTORY.Open(
+        rdf_client.ClientURN(client_id).Add("/fs/os/c/bin %s" % client_id),
+        token=self.token)
 
-    matched = list(fd.Query(
-        "subject matches '%s/r?bash'" % utils.EscapeRegex(fd.urn)))
+    matched = list(fd.Query("subject matches '%s/r?bash'" % utils.EscapeRegex(
+        fd.urn)))
     self.assertEqual(len(matched), 2)
 
     matched.sort(key=lambda x: str(x.urn))
-    self.assertEqual(utils.SmartUnicode(matched[0].urn),
-                     u"aff4:/C.0000000000000000/fs/os/"
-                     u"c/bin C.0000000000000000/bash")
-    self.assertEqual(utils.SmartUnicode(matched[1].urn),
-                     u"aff4:/C.0000000000000000/fs/os/"
-                     u"c/bin C.0000000000000000/rbash")
+    self.assertEqual(
+        utils.SmartUnicode(matched[0].urn), u"aff4:/C.0000000000000000/fs/os/"
+        u"c/bin C.0000000000000000/bash")
+    self.assertEqual(
+        utils.SmartUnicode(matched[1].urn), u"aff4:/C.0000000000000000/fs/os/"
+        u"c/bin C.0000000000000000/rbash")
 
   def testQueryWithTimestamp(self):
     """Tests aff4 querying using timestamps."""
@@ -1322,15 +1364,18 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     file_url = rdf_client.ClientURN(client_id).Add("/fs/os/c/time/file.txt")
     for t in [1000, 1500, 2000, 2500]:
       with test_lib.FakeTime(t):
-        f = aff4.FACTORY.Create(rdfvalue.RDFURN(file_url), aff4_grr.VFSFile,
-                                token=self.token)
+        f = aff4.FACTORY.Create(
+            rdfvalue.RDFURN(file_url),
+            aff4_grr.VFSFile,
+            token=self.token)
         f.write(str(t))
         f.Close()
 
     # The following tests occur sometime in the future (time 3000).
     with test_lib.FakeTime(3000):
-      fd = aff4.FACTORY.Open(rdf_client.ClientURN(client_id).Add(
-          "/fs/os/c/time"), token=self.token)
+      fd = aff4.FACTORY.Open(
+          rdf_client.ClientURN(client_id).Add("/fs/os/c/time"),
+          token=self.token)
 
       # Query for all entries.
       matched = list(fd.Query(u"subject matches 'file'", age=aff4.ALL_TIMES))
@@ -1339,8 +1384,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertEqual(matched[0].read(100), "2500")
 
       # Query for the latest entry.
-      matched = list(fd.Query(u"subject matches 'file'",
-                              age=aff4.NEWEST_TIME))
+      matched = list(fd.Query(u"subject matches 'file'", age=aff4.NEWEST_TIME))
       self.assertEqual(len(matched), 1)
       self.assertEqual(matched[0].read(100), "2500")
 
@@ -1364,79 +1408,94 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
   def testMultiOpen(self):
     root_urn = aff4.ROOT_URN.Add("path")
 
-    f = aff4.FACTORY.Create(root_urn.Add("some1"), aff4.AFF4Volume,
-                            token=self.token)
+    f = aff4.FACTORY.Create(
+        root_urn.Add("some1"),
+        aff4.AFF4Volume,
+        token=self.token)
     f.Close()
 
-    f = aff4.FACTORY.Create(root_urn.Add("some2"), aff4.AFF4Volume,
-                            token=self.token)
+    f = aff4.FACTORY.Create(
+        root_urn.Add("some2"),
+        aff4.AFF4Volume,
+        token=self.token)
     f.Close()
 
     root = aff4.FACTORY.Open(root_urn, token=self.token)
     all_children = list(aff4.FACTORY.MultiOpen(root.ListChildren(),
                                                token=self.token))
-    self.assertListEqual(sorted([x.urn for x in all_children]),
-                         [root_urn.Add("some1"), root_urn.Add("some2")])
+    self.assertListEqual(
+        sorted([x.urn for x in all_children]),
+        [root_urn.Add("some1"), root_urn.Add("some2")])
 
   def testObjectListChildren(self):
     root_urn = aff4.ROOT_URN.Add("path")
 
-    f = aff4.FACTORY.Create(root_urn.Add("some1"), aff4.AFF4Volume,
-                            token=self.token)
+    f = aff4.FACTORY.Create(
+        root_urn.Add("some1"),
+        aff4.AFF4Volume,
+        token=self.token)
     f.Close()
 
-    f = aff4.FACTORY.Create(root_urn.Add("some2"), aff4.AFF4Volume,
-                            token=self.token)
+    f = aff4.FACTORY.Create(
+        root_urn.Add("some2"),
+        aff4.AFF4Volume,
+        token=self.token)
     f.Close()
 
     root = aff4.FACTORY.Open(root_urn, token=self.token)
     all_children = sorted(list(root.ListChildren()))
 
-    self.assertListEqual(sorted(all_children),
-                         [root_urn.Add("some1"), root_urn.Add("some2")])
+    self.assertListEqual(
+        sorted(all_children), [root_urn.Add("some1"), root_urn.Add("some2")])
 
   def testMultiListChildren(self):
     client1_urn = rdfvalue.RDFURN("C.%016X" % 0)
     client2_urn = rdfvalue.RDFURN("C.%016X" % 1)
 
-    with aff4.FACTORY.Create(client1_urn.Add("some1"), aff4.AFF4Volume,
-                             token=self.token):
+    with aff4.FACTORY.Create(
+        client1_urn.Add("some1"),
+        aff4.AFF4Volume,
+        token=self.token):
       pass
 
-    with aff4.FACTORY.Create(client2_urn.Add("some2"), aff4.AFF4Volume,
-                             token=self.token):
+    with aff4.FACTORY.Create(
+        client2_urn.Add("some2"),
+        aff4.AFF4Volume,
+        token=self.token):
       pass
 
-    children = dict(aff4.FACTORY.MultiListChildren([client1_urn, client2_urn],
-                                                   token=self.token))
+    children = dict(aff4.FACTORY.MultiListChildren(
+        [client1_urn, client2_urn], token=self.token))
 
-    self.assertListEqual(sorted(children.keys()),
-                         [client1_urn, client2_urn])
-    self.assertListEqual(children[client1_urn],
-                         [client1_urn.Add("some1")])
-    self.assertListEqual(children[client2_urn],
-                         [client2_urn.Add("some2")])
+    self.assertListEqual(sorted(children.keys()), [client1_urn, client2_urn])
+    self.assertListEqual(children[client1_urn], [client1_urn.Add("some1")])
+    self.assertListEqual(children[client2_urn], [client2_urn.Add("some2")])
 
   def testFactoryListChildren(self):
     client_urn = rdfvalue.RDFURN("C.%016X" % 0)
 
-    with aff4.FACTORY.Create(client_urn.Add("some1"), aff4.AFF4Volume,
-                             token=self.token):
+    with aff4.FACTORY.Create(
+        client_urn.Add("some1"),
+        aff4.AFF4Volume,
+        token=self.token):
       pass
 
-    with aff4.FACTORY.Create(client_urn.Add("some2"), aff4.AFF4Volume,
-                             token=self.token):
+    with aff4.FACTORY.Create(
+        client_urn.Add("some2"),
+        aff4.AFF4Volume,
+        token=self.token):
       pass
 
     children = aff4.FACTORY.ListChildren(client_urn, token=self.token)
-    self.assertListEqual(sorted(children),
-                         [client_urn.Add("some1"), client_urn.Add("some2")])
+    self.assertListEqual(
+        sorted(children), [client_urn.Add("some1"), client_urn.Add("some2")])
 
   def testIndexNotUpdatedWhenWrittenWithinIntermediateCacheAge(self):
     with utils.Stubber(time, "time", lambda: 100):
       fd = aff4.FACTORY.Create(
           self.client_id.Add("parent").Add("child1"),
-          aff4_type=aff4.AFF4Volume, token=self.token)
+          aff4_type=aff4.AFF4Volume,
+          token=self.token)
       fd.Close()
 
     fd = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -1449,7 +1508,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     with utils.Stubber(time, "time", lambda: latest_time):
       fd = aff4.FACTORY.Create(
           self.client_id.Add("parent").Add("child2"),
-          aff4_type=aff4.AFF4Volume, token=self.token)
+          aff4_type=aff4.AFF4Volume,
+          token=self.token)
       fd.Close()
 
     fd = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -1462,7 +1522,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     with utils.Stubber(time, "time", lambda: 100):
       fd = aff4.FACTORY.Create(
           self.client_id.Add("parent").Add("child1"),
-          aff4_type=aff4.AFF4Volume, token=self.token)
+          aff4_type=aff4.AFF4Volume,
+          token=self.token)
       fd.Close()
 
     fd = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -1475,7 +1536,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     with utils.Stubber(time, "time", lambda: latest_time):
       fd = aff4.FACTORY.Create(
           self.client_id.Add("parent").Add("child2"),
-          aff4_type=aff4.AFF4Volume, token=self.token)
+          aff4_type=aff4.AFF4Volume,
+          token=self.token)
       fd.Close()
 
     fd = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -1486,8 +1548,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
   def testClose(self):
     """Ensure that closed objects can not be used again."""
-    client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
-                                 mode="w", token=self.token)
+    client = aff4.FACTORY.Create(self.client_id,
+                                 aff4_grr.VFSGRRClient,
+                                 mode="w",
+                                 token=self.token)
     client.Close()
 
     self.assertRaises(IOError, client.Get, client.Schema.HOSTNAME)
@@ -1495,8 +1559,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
   def testVersionOrder(self):
     """Test that GetValuesForAttribute returns versions in the right order."""
-    client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
-                                 mode="w", token=self.token)
+    client = aff4.FACTORY.Create(self.client_id,
+                                 aff4_grr.VFSGRRClient,
+                                 mode="w",
+                                 token=self.token)
 
     client.Set(client.Schema.HOSTNAME("Host1"))
     client.Flush()
@@ -1507,13 +1573,14 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     # Get() returns the most recent version.
     self.assertEqual(client.Get(client.Schema.HOSTNAME), "Host2")
 
-    client = aff4.FACTORY.Open(self.client_id, token=self.token,
+    client = aff4.FACTORY.Open(self.client_id,
+                               token=self.token,
                                age=aff4.ALL_TIMES)
 
     # Versioned attributes must be returned in most recent order first.
-    self.assertEqual(list(
-        client.GetValuesForAttribute(client.Schema.HOSTNAME)),
-                     ["Host2", "Host1"])
+    self.assertEqual(
+        list(client.GetValuesForAttribute(client.Schema.HOSTNAME)),
+        ["Host2", "Host1"])
 
     # Get() returns the most recent version.
     self.assertEqual(client.Get(client.Schema.HOSTNAME), "Host2")
@@ -1521,8 +1588,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
   def testAsynchronousOpenWithLockWorksCorrectly(self):
     self.client_id = rdfvalue.RDFURN(self.client_id)
 
-    client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
-                                 mode="w", token=self.token)
+    client = aff4.FACTORY.Create(self.client_id,
+                                 aff4_grr.VFSGRRClient,
+                                 mode="w",
+                                 token=self.token)
     client.Set(client.Schema.HOSTNAME("client1"))
     client.Close()
 
@@ -1531,7 +1600,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertEqual(obj1.Get(obj1.Schema.HOSTNAME), "client1")
 
       def TryOpen():
-        with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+        with aff4.FACTORY.OpenWithLock(self.client_id,
+                                       token=self.token,
                                        blocking=False):
           pass
 
@@ -1539,20 +1609,23 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertRaises(aff4.LockError, TryOpen)
 
     # This shouldn't raise now, as previous Close() call has released the lock.
-    with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+    with aff4.FACTORY.OpenWithLock(self.client_id,
+                                   token=self.token,
                                    blocking=False):
       pass
 
   def testAsynchronousCreateWithLock(self):
     self.client_id = rdfvalue.RDFURN(self.client_id)
 
-    with aff4.FACTORY.CreateWithLock(
-        self.client_id, aff4_grr.VFSGRRClient, token=self.token) as obj:
+    with aff4.FACTORY.CreateWithLock(self.client_id,
+                                     aff4_grr.VFSGRRClient,
+                                     token=self.token) as obj:
 
       obj.Set(obj.Schema.HOSTNAME("client1"))
 
       def TryOpen():
-        with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+        with aff4.FACTORY.OpenWithLock(self.client_id,
+                                       token=self.token,
                                        blocking=False):
           pass
 
@@ -1560,14 +1633,17 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertRaises(aff4.LockError, TryOpen)
 
     # This shouldn't raise now, as previous Close() call has released the lock.
-    with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+    with aff4.FACTORY.OpenWithLock(self.client_id,
+                                   token=self.token,
                                    blocking=False) as obj:
       # Check that the object is correctly opened by reading the attribute
       self.assertEqual(obj.Get(obj.Schema.HOSTNAME), "client1")
 
   def testSynchronousOpenWithLockWorksCorrectly(self):
-    client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
-                                 mode="w", token=self.token)
+    client = aff4.FACTORY.Create(self.client_id,
+                                 aff4_grr.VFSGRRClient,
+                                 mode="w",
+                                 token=self.token)
     client.Set(client.Schema.HOSTNAME("client1"))
     client.Close()
 
@@ -1578,8 +1654,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       try:
         # Using blocking_lock_timeout of 10 minutes to avoid possible
         # timeouts when running tests on slow hardware.
-        with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
-                                       blocking=True, blocking_sleep_interval=0,
+        with aff4.FACTORY.OpenWithLock(self.client_id,
+                                       token=self.token,
+                                       blocking=True,
+                                       blocking_sleep_interval=0,
                                        blocking_lock_timeout=600):
           pass
         t_state["parallel_thread_got_lock"] = True
@@ -1607,8 +1685,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertFalse(t_state["parallel_thread_raised"])
 
   def testSynchronousOpenWithLockTimesOutCorrectly(self):
-    client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
-                                 mode="w", token=self.token)
+    client = aff4.FACTORY.Create(self.client_id,
+                                 aff4_grr.VFSGRRClient,
+                                 mode="w",
+                                 token=self.token)
     client.Set(client.Schema.HOSTNAME("client1"))
     client.Close()
 
@@ -1617,27 +1697,32 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       self.assertEqual(obj1.Get(obj1.Schema.HOSTNAME), "client1")
 
       def TryOpen():
-        with aff4.FACTORY.OpenWithLock(
-            self.client_id, token=self.token,
-            blocking=True, blocking_lock_timeout=0.1,
-            blocking_sleep_interval=0.1):
+        with aff4.FACTORY.OpenWithLock(self.client_id,
+                                       token=self.token,
+                                       blocking=True,
+                                       blocking_lock_timeout=0.1,
+                                       blocking_sleep_interval=0.1):
           pass
 
       self.assertRaises(aff4.LockError, TryOpen)
 
   def testLockHasLimitedLeaseTime(self):
     with test_lib.FakeTime(100):
-      client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
-                                   mode="w", token=self.token)
+      client = aff4.FACTORY.Create(self.client_id,
+                                   aff4_grr.VFSGRRClient,
+                                   mode="w",
+                                   token=self.token)
       client.Set(client.Schema.HOSTNAME("client1"))
       client.Close()
 
       with self.assertRaises(aff4.LockError):
-        with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+        with aff4.FACTORY.OpenWithLock(self.client_id,
+                                       token=self.token,
                                        lease_time=100) as fd:
 
           def TryOpen():
-            with aff4.FACTORY.OpenWithLock(self.client_id, token=self.token,
+            with aff4.FACTORY.OpenWithLock(self.client_id,
+                                           token=self.token,
                                            blocking=False):
               pass
 
@@ -1652,7 +1737,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
           self.assertRaises(aff4.LockError, fd.Flush)
 
   def testUpdateLeaseRaisesIfObjectIsNotLocked(self):
-    client = aff4.FACTORY.Create(self.client_id, aff4_grr.VFSGRRClient,
+    client = aff4.FACTORY.Create(self.client_id,
+                                 aff4_grr.VFSGRRClient,
                                  mode="w",
                                  token=self.token)
     client.Set(client.Schema.HOSTNAME("client1"))
@@ -1725,15 +1811,15 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
         self.assertRaises(aff4.LockError, TryOpen)
 
   def testLockProtectedAttributesWorkCorrectly(self):
-    obj = aff4.FACTORY.Create("aff4:/obj", ObjectWithLockProtectedAttribute,
+    obj = aff4.FACTORY.Create("aff4:/obj",
+                              ObjectWithLockProtectedAttribute,
                               token=self.token)
     obj.Close()
 
     # Lock-protected attribute can't be set when plain Open() is used.
     obj = aff4.FACTORY.Open("aff4:/obj", mode="rw", token=self.token)
     obj.Set(obj.Schema.UNPROTECTED_ATTR("value"))
-    self.assertRaises(IOError, obj.Set,
-                      obj.Schema.LOCK_PROTECTED_ATTR("value"))
+    self.assertRaises(IOError, obj.Set, obj.Schema.LOCK_PROTECTED_ATTR("value"))
     obj.Close()
 
     # Lock-protected attribute is successfully set, because the object is
@@ -1743,7 +1829,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
       obj.Set(obj.Schema.LOCK_PROTECTED_ATTR("value"))
 
     # We can't respect locks during blind-write operations.
-    obj = aff4.FACTORY.Create("aff4:/obj", ObjectWithLockProtectedAttribute,
+    obj = aff4.FACTORY.Create("aff4:/obj",
+                              ObjectWithLockProtectedAttribute,
                               token=self.token)
     obj.Set(obj.Schema.UNPROTECTED_ATTR("value"))
     obj.Set(obj.Schema.LOCK_PROTECTED_ATTR("value"))
@@ -1751,8 +1838,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
   def testAddLabelsCallAddsMultipleLabels(self):
     """Check we can set and remove labels."""
-    with aff4.FACTORY.Create("C.0000000000000001", aff4_grr.VFSGRRClient,
-                             mode="rw", token=self.token) as client:
+    with aff4.FACTORY.Create("C.0000000000000001",
+                             aff4_grr.VFSGRRClient,
+                             mode="rw",
+                             token=self.token) as client:
       labels = ["label1", "label2", "label3"]
       client.AddLabels(*labels)
 
@@ -1765,17 +1854,20 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertListEqual(labels, client.GetLabelsNames())
 
   def testRemoveLabelsCallRemovesMultipleLabels(self):
-    with aff4.FACTORY.Create("C.0000000000000001", aff4_grr.VFSGRRClient,
-                             mode="rw", token=self.token) as client:
+    with aff4.FACTORY.Create("C.0000000000000001",
+                             aff4_grr.VFSGRRClient,
+                             mode="rw",
+                             token=self.token) as client:
       labels = ["label1", "label2", "label3"]
       client.AddLabels(*labels)
 
-    with aff4.FACTORY.Create("C.0000000000000001", aff4_grr.VFSGRRClient,
-                             mode="rw", token=self.token) as client:
+    with aff4.FACTORY.Create("C.0000000000000001",
+                             aff4_grr.VFSGRRClient,
+                             mode="rw",
+                             token=self.token) as client:
       client.RemoveLabels("label1")
 
-    self.assertEqual(["label2", "label3"],
-                     list(client.GetLabelsNames()))
+    self.assertEqual(["label2", "label3"], list(client.GetLabelsNames()))
 
   def testPathSpecInterpolation(self):
     # Create a base directory containing a pathspec.
@@ -1806,8 +1898,7 @@ class AFF4SymlinkTestSubject(aff4.AFF4Volume):
   """A test subject for AFF4SymlinkTest."""
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
-    SOME_STRING = aff4.Attribute("metadata:some_string",
-                                 rdfvalue.RDFString,
+    SOME_STRING = aff4.Attribute("metadata:some_string", rdfvalue.RDFString,
                                  "SomeString")
 
   def Initialize(self):
@@ -1824,11 +1915,13 @@ class AFF4SymlinkTest(test_lib.AFF4ObjectTest):
   symlink_target_urn = rdfvalue.RDFURN("aff4:/C.0000000000000001")
 
   def CreateAndOpenObjectAndSymlink(self):
-    with aff4.FACTORY.Create(self.symlink_target_urn, AFF4SymlinkTestSubject,
+    with aff4.FACTORY.Create(self.symlink_target_urn,
+                             AFF4SymlinkTestSubject,
                              token=self.token) as fd:
       fd.Set(fd.Schema.SOME_STRING, rdfvalue.RDFString("the_string"))
 
-    with aff4.FACTORY.Create(self.symlink_source_urn, aff4.AFF4Symlink,
+    with aff4.FACTORY.Create(self.symlink_source_urn,
+                             aff4.AFF4Symlink,
                              token=self.token) as symlink:
       symlink.Set(symlink.Schema.SYMLINK_TARGET, self.symlink_target_urn)
 
@@ -1855,12 +1948,12 @@ class AFF4SymlinkTest(test_lib.AFF4ObjectTest):
     fd_urn1 = fd.urn
 
     fd_urn2 = rdfvalue.RDFURN("aff4:/C.0000000000000002")
-    fd = aff4.FACTORY.Create(fd_urn2, aff4.AFF4Image,
-                             token=self.token)
+    fd = aff4.FACTORY.Create(fd_urn2, aff4.AFF4Image, token=self.token)
     fd.Close()
 
-    for fd in aff4.FACTORY.MultiOpen([self.symlink_source_urn, fd_urn2],
-                                     token=self.token):
+    for fd in aff4.FACTORY.MultiOpen(
+        [self.symlink_source_urn, fd_urn2],
+        token=self.token):
       if fd.urn == fd_urn2:
         self.assertTrue(isinstance(fd, aff4.AFF4Image))
       elif fd.urn == fd_urn1:
@@ -1875,24 +1968,25 @@ class AFF4SymlinkTest(test_lib.AFF4ObjectTest):
     fd, _ = self.CreateAndOpenObjectAndSymlink()
 
     fd_urn2 = rdfvalue.RDFURN("aff4:/C.0000000000000002")
-    fd = aff4.FACTORY.Create(fd_urn2, aff4.AFF4Image,
-                             token=self.token)
+    fd = aff4.FACTORY.Create(fd_urn2, aff4.AFF4Image, token=self.token)
     fd.Close()
 
     # AFF4Image object should be ignored due to aff4_type check.
     # At the same, type check shouldn't filter out the symlink,
     # but should check the symlinked object.
-    fds = list(aff4.FACTORY.MultiOpen([self.symlink_source_urn, fd_urn2],
-                                      aff4_type=AFF4SymlinkTestSubject,
-                                      token=self.token))
+    fds = list(aff4.FACTORY.MultiOpen(
+        [self.symlink_source_urn, fd_urn2],
+        aff4_type=AFF4SymlinkTestSubject,
+        token=self.token))
     self.assertEqual(len(fds), 1)
     self.assertTrue(isinstance(fds[0], AFF4SymlinkTestSubject))
 
     # AFF4Image should be returned, but symlinked AFF4SymlinkTestSubject should
     # get filtered out due to aff4_type restriction.
-    fds = list(aff4.FACTORY.MultiOpen([self.symlink_source_urn, fd_urn2],
-                                      aff4_type=aff4.AFF4Image,
-                                      token=self.token))
+    fds = list(aff4.FACTORY.MultiOpen(
+        [self.symlink_source_urn, fd_urn2],
+        aff4_type=aff4.AFF4Image,
+        token=self.token))
     self.assertEqual(len(fds), 1)
     self.assertTrue(isinstance(fds[0], aff4.AFF4Image))
 
@@ -1924,17 +2018,20 @@ class ForemanTests(test_lib.AFF4ObjectTest):
 
   def testOperatingSystemSelection(self):
     """Tests that we can distinguish based on operating system."""
-    fd = aff4.FACTORY.Create("C.0000000000000001", aff4_grr.VFSGRRClient,
+    fd = aff4.FACTORY.Create("C.0000000000000001",
+                             aff4_grr.VFSGRRClient,
                              token=self.token)
     fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows XP"))
     fd.Close()
 
-    fd = aff4.FACTORY.Create("C.0000000000000002", aff4_grr.VFSGRRClient,
+    fd = aff4.FACTORY.Create("C.0000000000000002",
+                             aff4_grr.VFSGRRClient,
                              token=self.token)
     fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Linux"))
     fd.Close()
 
-    fd = aff4.FACTORY.Create("C.0000000000000003", aff4_grr.VFSGRRClient,
+    fd = aff4.FACTORY.Create("C.0000000000000003",
+                             aff4_grr.VFSGRRClient,
                              token=self.token)
     fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows 7"))
     fd.Close()
@@ -1946,7 +2043,8 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
 
       # Make a new rule
-      rule = rdf_foreman.ForemanRule(created=int(now), expires=int(expires),
+      rule = rdf_foreman.ForemanRule(created=int(now),
+                                     expires=int(expires),
                                      description="Test rule")
 
       # Matches Windows boxes
@@ -1989,26 +2087,30 @@ class ForemanTests(test_lib.AFF4ObjectTest):
   def testIntegerComparisons(self):
     """Tests that we can use integer matching rules on the foreman."""
 
-    fd = aff4.FACTORY.Create("C.0000000000000011", aff4_grr.VFSGRRClient,
+    fd = aff4.FACTORY.Create("C.0000000000000011",
+                             aff4_grr.VFSGRRClient,
                              token=self.token)
     fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows XP"))
     fd.Set(fd.Schema.INSTALL_DATE(1336480583077736))
     fd.Close()
 
-    fd = aff4.FACTORY.Create("C.0000000000000012", aff4_grr.VFSGRRClient,
+    fd = aff4.FACTORY.Create("C.0000000000000012",
+                             aff4_grr.VFSGRRClient,
                              token=self.token)
     fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows 7"))
     fd.Set(fd.Schema.INSTALL_DATE(1336480583077736))
     fd.Close()
 
-    fd = aff4.FACTORY.Create("C.0000000000000013", aff4_grr.VFSGRRClient,
+    fd = aff4.FACTORY.Create("C.0000000000000013",
+                             aff4_grr.VFSGRRClient,
                              token=self.token)
     fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows 7"))
     # This one was installed one week earlier.
     fd.Set(fd.Schema.INSTALL_DATE(1336480583077736 - 7 * 24 * 3600 * 1e6))
     fd.Close()
 
-    fd = aff4.FACTORY.Create("C.0000000000000014", aff4_grr.VFSGRRClient,
+    fd = aff4.FACTORY.Create("C.0000000000000014",
+                             aff4_grr.VFSGRRClient,
                              token=self.token)
     fd.Set(fd.Schema.SYSTEM, rdfvalue.RDFString("Windows 7"))
     fd.Set(fd.Schema.LAST_BOOT_TIME(1336300000000000))
@@ -2021,7 +2123,8 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
 
       # Make a new rule
-      rule = rdf_foreman.ForemanRule(created=int(now), expires=int(expires),
+      rule = rdf_foreman.ForemanRule(created=int(now),
+                                     expires=int(expires),
                                      description="Test rule(old)")
 
       # Matches the old client
@@ -2040,7 +2143,8 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       rule_set.Append(rule)
 
       # Make a new rule
-      rule = rdf_foreman.ForemanRule(created=int(now), expires=int(expires),
+      rule = rdf_foreman.ForemanRule(created=int(now),
+                                     expires=int(expires),
                                      description="Test rule(new)")
 
       # Matches the newer clients
@@ -2058,7 +2162,8 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       rule_set.Append(rule)
 
       # Make a new rule
-      rule = rdf_foreman.ForemanRule(created=int(now), expires=int(expires),
+      rule = rdf_foreman.ForemanRule(created=int(now),
+                                     expires=int(expires),
                                      description="Test rule(eq)")
 
       # Note that this also tests the handling of nonexistent attributes.
@@ -2118,7 +2223,8 @@ class ForemanTests(test_lib.AFF4ObjectTest):
                                            description="Test rule4"))
 
       client_id = "C.0000000000000021"
-      fd = aff4.FACTORY.Create(client_id, aff4_grr.VFSGRRClient,
+      fd = aff4.FACTORY.Create(client_id,
+                               aff4_grr.VFSGRRClient,
                                token=self.token)
       fd.Close()
 
@@ -2132,13 +2238,13 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       foreman.Set(foreman.Schema.RULES, rule_set)
       foreman.Close()
 
-    fd = aff4.FACTORY.Create(client_id, aff4_grr.VFSGRRClient,
-                             token=self.token)
+    fd = aff4.FACTORY.Create(client_id, aff4_grr.VFSGRRClient, token=self.token)
     for now, num_rules in [(1000, 4), (1250, 3), (1350, 2), (1600, 0)]:
       with test_lib.FakeTime(now):
         fd.Set(fd.Schema.LAST_FOREMAN_TIME(100))
         fd.Flush()
-        foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw",
+        foreman = aff4.FACTORY.Open("aff4:/foreman",
+                                    mode="rw",
                                     token=self.token)
         foreman.AssignTasksToClient(client_id)
         rules = foreman.Get(foreman.Schema.RULES)
@@ -2152,6 +2258,7 @@ class AFF4TestLoader(test_lib.GRRTestLoader):
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv, testLoader=AFF4TestLoader())
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

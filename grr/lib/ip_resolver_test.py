@@ -27,7 +27,7 @@ class IPResolverTest(test_lib.GRRBaseTest):
           ("::1", ip_resolver.IPInfo.INTERNAL),
           ("69.50.225.155", ip_resolver.IPInfo.EXTERNAL),
           ("69.50.225.155", ip_resolver.IPInfo.EXTERNAL),
-          ]:
+      ]:
         rdf_ip = rdfvalue.RDFString(ip)
         info, _ = resolver.RetrieveIPInfo(rdf_ip)
         self.assertEqual(info, result)
@@ -39,6 +39,7 @@ class IPResolverTest(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -4,7 +4,6 @@
 
 import gc
 import logging
-import os
 import pdb
 import threading
 import time
@@ -95,6 +94,9 @@ class ActionPlugin(object):
         status=rdf_flows.GrrStatus.ReturnedStatus.OK)
     self._last_gc_run = rdfvalue.RDFDatetime().Now()
     self._gc_frequency = config_lib.CONFIG["Client.gc_frequency"]
+    self.proc = psutil.Process()
+    self.cpu_start = self.proc.cpu_times()
+    self.cpu_limit = rdf_flows.GrrMessage().cpu_limit
 
   def Execute(self, message):
     """This function parses the RDFValue from the server.
@@ -137,10 +139,7 @@ class ActionPlugin(object):
         raise RuntimeError("Message for %s was not Authenticated." %
                            self.message.name)
 
-      pid = os.getpid()
-      self.proc = psutil.Process(pid)
-      user_start, system_start = self.proc.cpu_times()
-      self.cpu_start = (user_start, system_start)
+      self.cpu_start = self.proc.cpu_times()
       self.cpu_limit = self.message.cpu_limit
       self.network_bytes_limit = self.message.network_bytes_limit
 
@@ -150,11 +149,11 @@ class ActionPlugin(object):
       try:
         self.Run(args)
 
-      # Ensure we always add CPU usage even if an exception occured.
+      # Ensure we always add CPU usage even if an exception occurred.
       finally:
-        user_end, system_end = self.proc.cpu_times()
-
-        self.cpu_used = (user_end - user_start, system_end - system_start)
+        used = self.proc.cpu_times()
+        self.cpu_used = (used.user - self.cpu_start.user,
+                         used.system - self.cpu_start.system)
 
     except NetworkBytesExceededError as e:
       self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED,
@@ -270,18 +269,15 @@ class ActionPlugin(object):
       self.nanny_controller = client_utils.NannyController()
 
     self.nanny_controller.Heartbeat()
-    try:
-      user_start, system_start = self.cpu_start
-      user_end, system_end = self.proc.cpu_times()
 
-      used_cpu = user_end - user_start + system_end - system_start
+    user_start, system_start = self.cpu_start
+    user_end, system_end = self.proc.cpu_times()
 
-      if used_cpu > self.cpu_limit:
-        self.grr_worker.SendClientAlert("Cpu limit exceeded.")
-        raise CPUExceededError("Action exceeded cpu limit.")
+    used_cpu = user_end - user_start + system_end - system_start
 
-    except AttributeError:
-      pass
+    if used_cpu > self.cpu_limit:
+      self.grr_worker.SendClientAlert("Cpu limit exceeded.")
+      raise CPUExceededError("Action exceeded cpu limit.")
 
   def SyncTransactionLog(self):
     """This flushes the transaction log.

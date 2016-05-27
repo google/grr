@@ -118,8 +118,12 @@ class FlowRunner(object):
 
   client_id = None
 
-  def __init__(self, flow_obj, parent_runner=None, runner_args=None,
-               _store=None, token=None):
+  def __init__(self,
+               flow_obj,
+               parent_runner=None,
+               runner_args=None,
+               _store=None,
+               token=None):
     """Constructor for the Flow Runner.
 
     Args:
@@ -139,8 +143,8 @@ class FlowRunner(object):
       self.queue_manager = parent_runner.queue_manager
     else:
       # Otherwise we use a new queue manager.
-      self.queue_manager = queue_manager.QueueManager(
-          token=self.token, store=self.data_store)
+      self.queue_manager = queue_manager.QueueManager(token=self.token,
+                                                      store=self.data_store)
 
     self.outbound_lock = threading.Lock()
     self.flow_obj = flow_obj
@@ -151,8 +155,7 @@ class FlowRunner(object):
       self.context = self.InitializeContext(runner_args)
       self.args = runner_args
 
-      self.context.Register(
-          "session_id", self.GetNewSessionID())
+      self.context.Register("session_id", self.GetNewSessionID())
 
     else:
       # Retrieve args from the flow object's context. The flow object is
@@ -194,12 +197,13 @@ class FlowRunner(object):
   def _CreateOutputCollection(self, args):
     # Can only really have an output collection if we are using a client.
     if args.client_id and args.output:
-      output_name = args.output.format(
-          t=time.time(), p=self.flow_obj.__class__.__name__,
-          u=self.token.username)
+      output_name = args.output.format(t=time.time(),
+                                       p=self.flow_obj.__class__.__name__,
+                                       u=self.token.username)
 
       return aff4.FACTORY.Create(
-          args.client_id.Add(output_name), collects.RDFValueCollection,
+          args.client_id.Add(output_name),
+          collects.RDFValueCollection,
           token=self.token)
 
   def _GetLogsCollectionURN(self, logs_collection_urn):
@@ -233,9 +237,12 @@ class FlowRunner(object):
     Raises:
       RuntimeError: on parent missing logs_collection.
     """
-    return aff4.FACTORY.Create(self._GetLogsCollectionURN(logs_collection_urn),
-                               FlowLogCollection, mode=mode,
-                               object_exists=True, token=self.token)
+    return aff4.FACTORY.Create(
+        self._GetLogsCollectionURN(logs_collection_urn),
+        FlowLogCollection,
+        mode=mode,
+        object_exists=True,
+        token=self.token)
 
   def InitializeContext(self, args):
     """Initializes the context of this flow."""
@@ -260,16 +267,17 @@ class FlowRunner(object):
                  plugin_descriptor.plugin_name)
         continue
 
-      output_path = args.output.format(
-          t=time.time(),
-          p=(self.flow_obj.__class__.__name__ + "-" +
-             plugin_descriptor.plugin_name),
-          u=self.token.username)
+      output_path = args.output.format(t=time.time(),
+                                       p=(self.flow_obj.__class__.__name__ + "-"
+                                          + plugin_descriptor.plugin_name),
+                                       u=self.token.username)
       output_base_urn = args.client_id.Add(output_path)
 
       plugin_class = plugin_descriptor.GetPluginClass()
-      plugin = plugin_class(output_urn, args=plugin_descriptor.plugin_args,
-                            output_base_urn=output_base_urn, token=self.token)
+      plugin = plugin_class(output_urn,
+                            args=plugin_descriptor.plugin_args,
+                            output_base_urn=output_base_urn,
+                            token=self.token)
       try:
         plugin.Initialize()
 
@@ -303,8 +311,7 @@ class FlowRunner(object):
         state=rdf_flows.Flow.State.RUNNING,
 
         # Have we sent a notification to the user.
-        user_notified=False,
-    )
+        user_notified=False,)
 
     # Store the context in the flow_obj for next time.
     self.flow_obj.state.Register("context", context)
@@ -344,7 +351,10 @@ class FlowRunner(object):
     """
     return self.context.outstanding_requests
 
-  def CallState(self, messages=None, next_state="", request_data=None,
+  def CallState(self,
+                messages=None,
+                next_state="",
+                request_data=None,
                 start_time=None):
     """This method is used to schedule a new state on a different worker.
 
@@ -395,7 +405,8 @@ class FlowRunner(object):
     for i, payload in enumerate(messages):
       if isinstance(payload, rdfvalue.RDFValue):
         msg = rdf_flows.GrrMessage(
-            session_id=self.session_id, request_id=request_state.id,
+            session_id=self.session_id,
+            request_id=request_state.id,
             response_id=1 + i,
             auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
             payload=payload,
@@ -435,7 +446,8 @@ class FlowRunner(object):
     # client requests are removed from the client queues.
     with queue_manager.QueueManager(token=self.token) as manager:
       for request, _ in manager.FetchCompletedRequests(
-          self.session_id, timestamp=(0, notification.timestamp)):
+          self.session_id,
+          timestamp=(0, notification.timestamp)):
         # Requests which are not destined to clients have no embedded request
         # message.
         if request.HasField("request"):
@@ -454,7 +466,8 @@ class FlowRunner(object):
         # Here we only care about completed requests - i.e. those requests with
         # responses followed by a status message.
         for request, responses in self.queue_manager.FetchCompletedResponses(
-            self.session_id, timestamp=(0, notification.timestamp)):
+            self.session_id,
+            timestamp=(0, notification.timestamp)):
 
           if request.id == 0:
             continue
@@ -471,8 +484,8 @@ class FlowRunner(object):
             # Not the request we are looking for - we have seen it before
             # already.
             if request.id < self.context.next_processed_request:
-              self.queue_manager.DeleteFlowRequestStates(
-                  self.session_id, request)
+              self.queue_manager.DeleteFlowRequestStates(self.session_id,
+                                                         request)
               continue
 
           if not responses:
@@ -493,7 +506,9 @@ class FlowRunner(object):
           # If we get here its all good - run the flow.
           if self.IsRunning():
             self.flow_obj.HeartBeat()
-            self._Process(request, responses, thread_pool=thread_pool,
+            self._Process(request,
+                          responses,
+                          thread_pool=thread_pool,
                           events=processing)
 
           # Quit early if we are no longer alive.
@@ -550,7 +565,11 @@ class FlowRunner(object):
     """Flows process responses serially in the same thread."""
     self.RunStateMethod(request.next_state, request, responses, event=None)
 
-  def RunStateMethod(self, method, request=None, responses=None, event=None,
+  def RunStateMethod(self,
+                     method,
+                     request=None,
+                     responses=None,
+                     event=None,
                      direct_response=None):
     """Completes the request by calling the state method.
 
@@ -576,8 +595,7 @@ class FlowRunner(object):
       if request and responses:
         client_id = request.client_id or self.args.client_id
         logging.debug("%s Running %s with %d responses from %s",
-                      self.session_id, method,
-                      len(responses), client_id)
+                      self.session_id, method, len(responses), client_id)
 
       else:
         logging.debug("%s Running state method %s", self.session_id, method)
@@ -587,8 +605,8 @@ class FlowRunner(object):
       try:
         method = getattr(self.flow_obj, method)
       except AttributeError:
-        raise FlowRunnerError("Flow %s has no state method %s" % (
-            self.flow_obj.__class__.__name__, method))
+        raise FlowRunnerError("Flow %s has no state method %s" %
+                              (self.flow_obj.__class__.__name__, method))
 
       method(direct_response=direct_response,
              request=request,
@@ -606,8 +624,7 @@ class FlowRunner(object):
       # TODO(user): Deprecate in favor of 'flow_errors'.
       stats.STATS.IncrementCounter("grr_flow_errors")
 
-      stats.STATS.IncrementCounter("flow_errors",
-                                   fields=[self.flow_obj.Name()])
+      stats.STATS.IncrementCounter("flow_errors", fields=[self.flow_obj.Name()])
       logging.exception("Flow %s raised %s.", self.session_id, e)
 
       self.Error(traceback.format_exc(), client_id=client_id)
@@ -622,8 +639,14 @@ class FlowRunner(object):
       self.context.next_outbound_id += 1
     return my_id
 
-  def CallClient(self, action_name, request=None, next_state=None,
-                 client_id=None, request_data=None, start_time=None, **kwargs):
+  def CallClient(self,
+                 action_name,
+                 request=None,
+                 next_state=None,
+                 client_id=None,
+                 request_data=None,
+                 start_time=None,
+                 **kwargs):
     """Calls the client asynchronously.
 
     This sends a message to the client to invoke an Action. The run
@@ -692,36 +715,36 @@ class FlowRunner(object):
       else:
         # Verify that the request type matches the client action requirements.
         if not isinstance(request, action.in_rdfvalue):
-          raise RuntimeError("Client action expected %s but got %s" % (
-              action.in_rdfvalue, type(request)))
+          raise RuntimeError("Client action expected %s but got %s" %
+                             (action.in_rdfvalue, type(request)))
 
     outbound_id = self.GetNextOutboundId()
 
     # Create a new request state
-    state = rdf_flows.RequestState(
-        id=outbound_id,
-        session_id=self.session_id,
-        next_state=next_state,
-        client_id=client_id)
+    state = rdf_flows.RequestState(id=outbound_id,
+                                   session_id=self.session_id,
+                                   next_state=next_state,
+                                   client_id=client_id)
 
     if request_data is not None:
       state.data = rdf_protodict.Dict(request_data)
 
     # Send the message with the request state
-    msg = rdf_flows.GrrMessage(
-        session_id=utils.SmartUnicode(self.session_id), name=action_name,
-        request_id=outbound_id, priority=self.args.priority,
-        require_fastpoll=self.args.require_fastpoll,
-        queue=client_id.Queue(), payload=request)
+    msg = rdf_flows.GrrMessage(session_id=utils.SmartUnicode(self.session_id),
+                               name=action_name,
+                               request_id=outbound_id,
+                               priority=self.args.priority,
+                               require_fastpoll=self.args.require_fastpoll,
+                               queue=client_id.Queue(),
+                               payload=request)
 
     if self.context.remaining_cpu_quota:
       msg.cpu_limit = int(self.context.remaining_cpu_quota)
 
     cpu_usage = self.context.client_resources.cpu_usage
     if self.context.args.cpu_limit:
-      msg.cpu_limit = max(
-          self.context.args.cpu_limit - cpu_usage.user_cpu_time -
-          cpu_usage.system_cpu_time, 0)
+      msg.cpu_limit = max(self.context.args.cpu_limit - cpu_usage.user_cpu_time
+                          - cpu_usage.system_cpu_time, 0)
 
       if msg.cpu_limit == 0:
         raise FlowRunnerError("CPU limit exceeded.")
@@ -770,18 +793,25 @@ class FlowRunner(object):
 
     timestamp = None
     if delay:
-      timestamp = (rdfvalue.RDFDatetime().Now() +
-                   delay).AsMicroSecondsFromEpoch()
+      timestamp = (
+          rdfvalue.RDFDatetime().Now() + delay).AsMicroSecondsFromEpoch()
 
     # Forward the message to the well known flow's queue.
     for event_urn in handler_urns:
       self.queue_manager.QueueResponse(event_urn, msg)
-      self.queue_manager.QueueNotification(
-          session_id=event_urn, priority=msg.priority, timestamp=timestamp)
+      self.queue_manager.QueueNotification(session_id=event_urn,
+                                           priority=msg.priority,
+                                           timestamp=timestamp)
 
-  def CallFlow(self, flow_name=None, next_state=None, sync=True,
-               request_data=None, client_id=None, base_session_id=None,
-               output=None, **kwargs):
+  def CallFlow(self,
+               flow_name=None,
+               next_state=None,
+               sync=True,
+               request_data=None,
+               client_id=None,
+               base_session_id=None,
+               output=None,
+               **kwargs):
     """Creates a new flow and send its responses to a state.
 
     This creates a new flow. The flow may send back many responses which will be
@@ -823,10 +853,9 @@ class FlowRunner(object):
       # Check that the next state is allowed
       if next_state and next_state not in self.context.next_states:
         raise FlowRunnerError("Flow %s: State '%s' called to '%s' which is "
-                              "not declared in decorator." % (
-                                  self.__class__.__name__,
-                                  self.context.current_state,
-                                  next_state))
+                              "not declared in decorator." %
+                              (self.__class__.__name__,
+                               self.context.current_state, next_state))
 
     client_id = client_id or self.args.client_id
 
@@ -848,9 +877,8 @@ class FlowRunner(object):
     # If the urn is passed explicitly (e.g. from the hunt runner) use that,
     # otherwise use the urn from the flow_runner args. If both are None, create
     # a new collection and give the urn to the flow object.
-    logs_urn = self._GetLogsCollectionURN(
-        kwargs.pop("logs_collection_urn", None) or
-        self.args.logs_collection_urn)
+    logs_urn = self._GetLogsCollectionURN(kwargs.pop(
+        "logs_collection_urn", None) or self.args.logs_collection_urn)
 
     # If we were called with write_intermediate_results, propagate down to
     # child flows.  This allows write_intermediate_results to be set to True
@@ -862,15 +890,22 @@ class FlowRunner(object):
 
     # Create the new child flow but do not notify the user about it.
     child_urn = self.flow_obj.StartFlow(
-        client_id=client_id, flow_name=flow_name,
+        client_id=client_id,
+        flow_name=flow_name,
         base_session_id=base_session_id or self.session_id,
         event_id=self.context.get("event_id"),
-        request_state=state, token=self.token, notify_to_user=False,
-        parent_flow=self.flow_obj, _store=self.data_store,
-        sync=sync, output=output,
+        request_state=state,
+        token=self.token,
+        notify_to_user=False,
+        parent_flow=self.flow_obj,
+        _store=self.data_store,
+        sync=sync,
+        output=output,
         queue=self.args.queue,
         write_intermediate_results=write_intermediate,
-        logs_collection_urn=logs_urn, creator=self.context.creator, **kwargs)
+        logs_collection_urn=logs_urn,
+        creator=self.context.creator,
+        **kwargs)
 
     self.QueueRequest(state)
 
@@ -957,12 +992,10 @@ class FlowRunner(object):
                       client_id, backtrace)
         self.context.backtrace = backtrace
       else:
-        logging.error("Error in flow %s (%s).", self.session_id,
-                      client_id)
+        logging.error("Error in flow %s (%s).", self.session_id, client_id)
 
-      self.Notify(
-          "FlowStatus", client_id,
-          "Flow (%s) terminated due to error" % self.session_id)
+      self.Notify("FlowStatus", client_id,
+                  "Flow (%s) terminated due to error" % self.session_id)
 
   def GetState(self):
     return self.context.state
@@ -1099,10 +1132,11 @@ class FlowRunner(object):
   def _QueueRequest(self, request, timestamp=None):
     if request.HasField("request") and request.request.name:
       # This message contains a client request as well.
-      self.queue_manager.QueueClientMessage(
-          request.request, timestamp=timestamp)
+      self.queue_manager.QueueClientMessage(request.request,
+                                            timestamp=timestamp)
 
-    self.queue_manager.QueueRequest(self.session_id, request,
+    self.queue_manager.QueueRequest(self.session_id,
+                                    request,
                                     timestamp=timestamp)
 
   def IncrementOutstandingRequests(self):
@@ -1122,7 +1156,8 @@ class FlowRunner(object):
     self._QueueRequest(request, timestamp=timestamp)
 
   def QueueResponse(self, response, timestamp=None):
-    self.queue_manager.QueueResponse(self.session_id, response,
+    self.queue_manager.QueueResponse(self.session_id,
+                                     response,
                                      timestamp=timestamp)
 
   def QueueNotification(self, *args, **kw):
@@ -1157,10 +1192,11 @@ class FlowRunner(object):
 
     with self.OpenLogsCollection(self.args.logs_collection_urn,
                                  mode="w") as logs_collection:
-      logs_collection.Add(
-          rdf_flows.FlowLog(client_id=self.args.client_id, urn=self.session_id,
-                            flow_name=self.flow_obj.__class__.__name__,
-                            log_message=status))
+      logs_collection.Add(rdf_flows.FlowLog(
+          client_id=self.args.client_id,
+          urn=self.session_id,
+          flow_name=self.flow_obj.__class__.__name__,
+          log_message=status))
 
   def GetLog(self):
     return self.OpenLogsCollection(self.args.logs_collection_urn, mode="r")
@@ -1185,7 +1221,8 @@ class FlowRunner(object):
       # Prefix the message with the hostname of the client we are running
       # against.
       if self.args.client_id:
-        client_fd = aff4.FACTORY.Open(self.args.client_id, mode="rw",
+        client_fd = aff4.FACTORY.Open(self.args.client_id,
+                                      mode="rw",
                                       token=self.token)
         hostname = client_fd.Get(client_fd.Schema.HOSTNAME) or ""
         client_msg = "%s: %s" % (hostname, msg)
@@ -1193,8 +1230,11 @@ class FlowRunner(object):
         client_msg = msg
 
       # Add notification to the User object.
-      fd = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(
-          user), aff4_users.GRRUser, mode="rw", token=self.token)
+      fd = aff4.FACTORY.Create(
+          aff4.ROOT_URN.Add("users").Add(user),
+          aff4_users.GRRUser,
+          mode="rw",
+          token=self.token)
 
       # Queue notifications to the user.
       fd.Notify(message_type, subject, client_msg, self.session_id)
@@ -1202,14 +1242,17 @@ class FlowRunner(object):
 
       # Add notifications to the flow.
       notification = rdf_flows.Notification(
-          type=message_type, subject=utils.SmartUnicode(subject),
+          type=message_type,
+          subject=utils.SmartUnicode(subject),
           message=utils.SmartUnicode(msg),
           source=self.session_id,
           timestamp=rdfvalue.RDFDatetime().Now())
 
       data_store.DB.Set(self.session_id,
                         aff4.AFF4Object.GRRFlow.SchemaCls.NOTIFICATION,
-                        notification, replace=False, sync=False,
+                        notification,
+                        replace=False,
+                        sync=False,
                         token=self.token)
 
       # Disable further notifications.
@@ -1225,10 +1268,9 @@ class FlowRunner(object):
       else:
         status = rdf_flows.FlowNotification.Status.OK
 
-      event = rdf_flows.FlowNotification(
-          session_id=self.context.session_id,
-          flow_name=self.args.flow_name,
-          client_id=self.args.client_id,
-          status=status)
+      event = rdf_flows.FlowNotification(session_id=self.context.session_id,
+                                         flow_name=self.args.flow_name,
+                                         client_id=self.args.client_id,
+                                         status=status)
 
       self.flow_obj.Publish(notification_event, message=event)

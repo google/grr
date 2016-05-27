@@ -10,6 +10,7 @@ from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
 # For FilestoreStats. pylint: disable=unused-import
 from grr.lib.aff4_objects import stats as _
+
 # pylint: enable=unused-import
 
 
@@ -38,8 +39,8 @@ class ClassFileSizeCounter(ClassCounter):
 
   def ProcessFile(self, fd):
     classname = fd.__class__.__name__
-    self.value_dict[classname] = self.value_dict.get(classname, 0) + fd.Get(
-        fd.Schema.SIZE)
+    self.value_dict[classname] = self.value_dict.get(classname,
+                                                     0) + fd.Get(fd.Schema.SIZE)
 
   def Save(self, fd):
     for classname, count in self.value_dict.items():
@@ -71,8 +72,8 @@ class GraphDistribution(stats_lib.Distribution):
 class FileSizeHistogram(GraphDistribution):
   """Graph filesize."""
 
-  _bins = [0, 2, 50, 100, 1e3, 10e3, 100e3, 500e3, 1e6, 5e6, 10e6, 50e6,
-           100e6, 500e6, 1e9, 5e9, 10e9]
+  _bins = [0, 2, 50, 100, 1e3, 10e3, 100e3, 500e3, 1e6, 5e6, 10e6, 50e6, 100e6,
+           500e6, 1e9, 5e9, 10e9]
 
   def ProcessFile(self, fd):
     self.Record(fd.Get(fd.Schema.SIZE))
@@ -118,8 +119,10 @@ class FilestoreStatsCronFlow(cronjobs.SystemCronFlow):
   @flow.StateHandler()
   def Start(self):
     """Retrieve all the clients for the AbstractClientStatsCollectors."""
-    self.stats = aff4.FACTORY.Create(self.FILESTORE_STATS_URN, "FilestoreStats",
-                                     mode="w", token=self.token)
+    self.stats = aff4.FACTORY.Create(self.FILESTORE_STATS_URN,
+                                     "FilestoreStats",
+                                     mode="w",
+                                     token=self.token)
 
     self._CreateConsumers()
     hashes = list(aff4.FACTORY.Open(self.HASH_PATH,
@@ -127,7 +130,9 @@ class FilestoreStatsCronFlow(cronjobs.SystemCronFlow):
 
     try:
       for urns in utils.Grouper(hashes, self.OPEN_FILES_LIMIT):
-        for fd in aff4.FACTORY.MultiOpen(urns, mode="r", token=self.token,
+        for fd in aff4.FACTORY.MultiOpen(urns,
+                                         mode="r",
+                                         token=self.token,
                                          age=aff4.NEWEST_TIME):
 
           for consumer in self.consumers:

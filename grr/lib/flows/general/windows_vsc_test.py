@@ -89,8 +89,10 @@ class TestListVolumeShadowCopies(test_lib.FlowTestsBaseclass):
     flow_name = "ListVolumeShadowCopies"
 
     # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper(
-        flow_name, TestClient(), token=self.token, client_id=self.client_id):
+    for _ in test_lib.TestFlowHelper(flow_name,
+                                     TestClient(),
+                                     token=self.token,
+                                     client_id=self.client_id):
       pass
 
     fd = aff4.FACTORY.Open(
@@ -107,6 +109,7 @@ class TestListVolumeShadowCopies(test_lib.FlowTestsBaseclass):
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

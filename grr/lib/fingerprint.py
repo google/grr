@@ -16,7 +16,6 @@
 #
 # This file was imported with permission from
 # http://verify-sigs.googlecode.com/files/verify-sigs-1.1.tar.bz2
-
 """Fingerprinter class and some utilty functions to exercise it.
 
 While this file contains a main and some top-level functions, those
@@ -24,17 +23,16 @@ are meant for exploration and debugging. Intended use is through the
 Fingerprinter, as exemplified in main.
 """
 
-
 import collections
 import hashlib
 import os
 import struct
 
-
 # pylint: disable=g-bad-name
 # Two classes given named tupes for ranges and relative ranges.
 Range = collections.namedtuple('Range', 'start end')
 RelRange = collections.namedtuple('RelRange', 'start len')
+
 # pylint: enable=g-bad-name
 
 
@@ -220,8 +218,7 @@ class Fingerprinter(object):
       res = {}
       leftover = finger.CurrentRange()
       if leftover:
-        if (len(finger.ranges) > 1 or
-            leftover.start != self.filelength or
+        if (len(finger.ranges) > 1 or leftover.start != self.filelength or
             leftover.end != self.filelength):
           raise RuntimeError('Non-empty range remains.')
       res.update(finger.metadata)
@@ -254,9 +251,7 @@ class Fingerprinter(object):
     if hashers is None:
       hashers = Fingerprinter.GENERIC_HASH_CLASSES
     hashfuncs = [x() for x in hashers]
-    finger = Finger(hashfuncs,
-                    [Range(0, self.filelength)],
-                    {'name': 'generic'})
+    finger = Finger(hashfuncs, [Range(0, self.filelength)], {'name': 'generic'})
     self.fingers.append(finger)
     return True
 
@@ -326,8 +321,7 @@ class Fingerprinter(object):
     self.file.seek(cert_base, os.SEEK_SET)
     buf = self.file.read(8)
     start, length = struct.unpack('<II', buf)
-    if (length == 0 or
-        start < optional_header_offset + optional_header_size or
+    if (length == 0 or start < optional_header_offset + optional_header_size or
         start + length > self.filelength):
       # The location of the SignedData blob is just wrong (or there is none).
       # Ignore it -- everything else we did still makes sense.
@@ -346,7 +340,7 @@ class Fingerprinter(object):
       if dw_length < 8:
         # If the entire blob is smaller than its header, bail out.
         return signed_data
-      b_cert = buf[8: dw_length]
+      b_cert = buf[8:dw_length]
       buf = buf[(dw_length + 7) & 0x7ffffff8:]
       signed_data.append((w_revision, w_cert_type, b_cert))
     return signed_data

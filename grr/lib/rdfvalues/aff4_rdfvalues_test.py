@@ -37,18 +37,23 @@ class AFF4ObjectLabelTest(test_base.RDFValueTestCase):
     aff4_rdfvalues.AFF4ObjectLabel(name="b/label.42:1", owner="test")
 
   def testEmptyStringNameIsNotAllowed(self):
-    self.assertRaises(type_info.TypeValueError, aff4_rdfvalues.AFF4ObjectLabel,
+    self.assertRaises(type_info.TypeValueError,
+                      aff4_rdfvalues.AFF4ObjectLabel,
                       name="",
                       owner="test")
 
   def testNonAlphanumericsDotsColonOrForwardSlashAreNotAllowed(self):
-    self.assertRaises(type_info.TypeValueError, aff4_rdfvalues.AFF4ObjectLabel,
+    self.assertRaises(type_info.TypeValueError,
+                      aff4_rdfvalues.AFF4ObjectLabel,
                       name="label,42")
-    self.assertRaises(type_info.TypeValueError, aff4_rdfvalues.AFF4ObjectLabel,
+    self.assertRaises(type_info.TypeValueError,
+                      aff4_rdfvalues.AFF4ObjectLabel,
                       name="label[42")
-    self.assertRaises(type_info.TypeValueError, aff4_rdfvalues.AFF4ObjectLabel,
+    self.assertRaises(type_info.TypeValueError,
+                      aff4_rdfvalues.AFF4ObjectLabel,
                       name="label]42")
-    self.assertRaises(type_info.TypeValueError, aff4_rdfvalues.AFF4ObjectLabel,
+    self.assertRaises(type_info.TypeValueError,
+                      aff4_rdfvalues.AFF4ObjectLabel,
                       name="label\\42")
 
 
@@ -180,6 +185,6 @@ class AFF4ObjectLabelsListTest(test_base.RDFValueTestCase):
                                                         owner="test2"))
 
     self.assertItemsEqual(labels_list.GetLabelNames(), ["foo", "foo2", "foo3"])
-    self.assertItemsEqual(labels_list.GetLabelNames(owner="test2"), ["foo2",
-                                                                     "foo3"])
+    self.assertItemsEqual(
+        labels_list.GetLabelNames(owner="test2"), ["foo2", "foo3"])
     self.assertEqual(labels_list.GetLabelNames(owner="test4"), [])

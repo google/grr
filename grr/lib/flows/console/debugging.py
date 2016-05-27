@@ -44,7 +44,8 @@ class ClientAction(flow.GRRFlow):
     if self.args.save_to:
       if not os.path.isdir(self.args.save_to):
         os.makedirs(self.args.save_to, 0700)
-    self.CallClient(self.args.action, request=self.args.action_args,
+    self.CallClient(self.args.action,
+                    request=self.args.action_args,
                     next_state="Print")
 
   @flow.StateHandler()
@@ -96,8 +97,7 @@ class ConsoleDebugFlow(flow.GRRFlow):
     if self.args.save_to:
       if not os.path.isdir(self.args.save_to):
         os.makedirs(self.args.save_to, 0700)
-    self.CallFlow(self.args.flow, next_state="Print",
-                  **self.args.args.ToDict())
+    self.CallFlow(self.args.flow, next_state="Print", **self.args.args.ToDict())
 
   @flow.StateHandler()
   def Print(self, responses):
@@ -150,11 +150,11 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
     token = access_control.ACLToken(username="GRRConsole")
 
   session_id = flow.GRRFlow.StartFlow(client_id=client_id,
-                                      flow_name=flow_name, queue=queue,
-                                      token=token, **kwargs)
-  worker_thrd = worker.GRRWorker(
-      queues=[queue], token=token,
-      threadpool_size=1)
+                                      flow_name=flow_name,
+                                      queue=queue,
+                                      token=token,
+                                      **kwargs)
+  worker_thrd = worker.GRRWorker(queues=[queue], token=token, threadpool_size=1)
   while True:
     try:
       worker_thrd.RunOnce()
@@ -174,15 +174,21 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
   return session_id
 
 
-def TestClientActionWithWorker(client_id, client_action, print_request=False,
-                               break_pdb=True, **kwargs):
+def TestClientActionWithWorker(client_id,
+                               client_action,
+                               print_request=False,
+                               break_pdb=True,
+                               **kwargs):
   """Run a client action on a client and break on return."""
   action_cls = actions.ActionPlugin.classes[client_action]
   request = action_cls.in_rdfvalue(**kwargs)
   if print_request:
     print str(request)
-  StartFlowAndWorker(client_id, flow_name="ClientAction", action=client_action,
-                     break_pdb=break_pdb, action_args=request)
+  StartFlowAndWorker(client_id,
+                     flow_name="ClientAction",
+                     action=client_action,
+                     break_pdb=break_pdb,
+                     action_args=request)
 
 
 def WakeStuckFlow(session_id):
@@ -216,8 +222,8 @@ def WakeStuckFlow(session_id):
 
         checked_pending = True
 
-      if (not responses or responses[-1].type !=
-          rdf_flows.GrrMessage.Type.STATUS):
+      if (not responses or
+          responses[-1].type != rdf_flows.GrrMessage.Type.STATUS):
         manager.QueueClientMessage(request.request)
         woken += 1
 

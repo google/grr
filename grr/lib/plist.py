@@ -28,8 +28,8 @@ class PlistFilterParser(objectfilter.Parser):
 
   tokens = [
       # Operators and related tokens
-      lexer.Token("INITIAL", r"\@[\w._0-9]+",
-                  "ContextOperator,PushState", "CONTEXTOPEN"),
+      lexer.Token("INITIAL", r"\@[\w._0-9]+", "ContextOperator,PushState",
+                  "CONTEXTOPEN"),
       lexer.Token("INITIAL", r"[^\s\(\)]", "PushState,PushBack", "ATTRIBUTE"),
       lexer.Token("INITIAL", r"\(", "PushState,BracketOpen", None),
       lexer.Token("INITIAL", r"\)", "BracketClose", "BINARY"),
@@ -53,13 +53,9 @@ class PlistFilterParser(objectfilter.Parser):
       lexer.Token("ATTRIBUTE", r"\.", "AddAttributePath", "ATTRIBUTE"),
       lexer.Token("ATTRIBUTE", r"\s+", "AddAttributePath", "OPERATOR"),
       lexer.Token("ATTRIBUTE", "\"", "PushState,StringStart", "STRING"),
-      lexer.Token("ATTRIBUTE",
-                  r"[\w_0-9\-]+",
-                  "StringStart,StringInsert",
+      lexer.Token("ATTRIBUTE", r"[\w_0-9\-]+", "StringStart,StringInsert",
                   "ATTRIBUTE"),
-
       lexer.Token("OPERATOR", r"(\w+|[<>!=]=?)", "StoreOperator", "ARG"),
-
       lexer.Token("ARG", r"(\d+\.\d+)", "InsertFloatArg", "ARG"),
       lexer.Token("ARG", r"(0x\d+)", "InsertInt16Arg", "ARG"),
       lexer.Token("ARG", r"(\d+)", "InsertIntArg", "ARG"),
@@ -68,8 +64,8 @@ class PlistFilterParser(objectfilter.Parser):
       # When the last parameter from arg_list has been pushed
 
       # State where binary operators are supported (AND, OR)
-      lexer.Token("BINARY", r"(?i)(and|or|\&\&|\|\|)",
-                  "BinaryOperator", "INITIAL"),
+      lexer.Token("BINARY", r"(?i)(and|or|\&\&|\|\|)", "BinaryOperator",
+                  "INITIAL"),
       # - We can also skip spaces
       lexer.Token("BINARY", r"\s+", None, None),
       # - But if it's not "and" or just spaces we have to go back
@@ -142,8 +138,8 @@ def PlistValueToPlainValue(plist):
     return [PlistValueToPlainValue(value) for value in plist]
   elif isinstance(plist, binplist.RawValue):
     return plist.value
-  elif (isinstance(plist, binplist.CorruptReference)
-        or isinstance(plist, binplist.UnknownObject)):
+  elif (isinstance(plist, binplist.CorruptReference) or
+        isinstance(plist, binplist.UnknownObject)):
     return None
   elif isinstance(plist, datetime.datetime):
     return (calendar.timegm(plist.utctimetuple()) * 1000000) + plist.microsecond

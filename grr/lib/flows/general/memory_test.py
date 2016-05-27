@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Tests for memory related flows."""
 
 import copy
@@ -30,13 +29,15 @@ class DummyDiskVolumeInfo(flow.GRRFlow):
   def Start(self):
     if "/opt" in self.args.path_list[0]:
       mnt = rdf_client.UnixVolume(mount_point="/opt")
-      self.SendReply(rdf_client.Volume(unixvolume=mnt, bytes_per_sector=4096,
+      self.SendReply(rdf_client.Volume(unixvolume=mnt,
+                                       bytes_per_sector=4096,
                                        sectors_per_allocation_unit=1,
                                        actual_available_allocation_units=10,
                                        total_allocation_units=100))
     else:
       mnt = rdf_client.UnixVolume(mount_point="/var")
-      self.SendReply(rdf_client.Volume(unixvolume=mnt, bytes_per_sector=1,
+      self.SendReply(rdf_client.Volume(unixvolume=mnt,
+                                       bytes_per_sector=1,
                                        sectors_per_allocation_unit=1,
                                        actual_available_allocation_units=784165,
                                        total_allocation_units=78416500))
@@ -60,9 +61,12 @@ class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
     with open(self.memory_file, "r") as f:
       self.memory_dump = f.read()
 
-    super(MemoryCollectorClientMock, self).__init__(
-        "TransferBuffer", "StatFile", "Find", "HashBuffer", "FingerprintFile",
-        "ListDirectory", "WmiQuery", "HashFile", "LoadComponent")
+    super(MemoryCollectorClientMock, self).__init__("TransferBuffer",
+                                                    "StatFile", "Find",
+                                                    "HashBuffer",
+                                                    "FingerprintFile",
+                                                    "ListDirectory", "WmiQuery",
+                                                    "HashFile", "LoadComponent")
 
   def DeleteGRRTempFiles(self, request):
     self.delete_request = request
@@ -73,11 +77,11 @@ class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
     self.rekall_request = request
 
     # Pretend Rekall returned the memory file.
-    return [rdf_rekall_types.RekallResponse(
-        json_messages="""
+    return [rdf_rekall_types.RekallResponse(json_messages="""
         [["file",{"path": "%s", "pathtype": "TMPFILE"}]]
         """ % self.memory_file,
-        plugin="aff4acquire"), rdf_client.Iterator(state="FINISHED")]
+                                            plugin="aff4acquire"),
+            rdf_client.Iterator(state="FINISHED")]
 
 
 class TestMemoryCollector(MemoryTest):
@@ -110,14 +114,15 @@ class TestMemoryCollector(MemoryTest):
     flow.GRRFlow.classes["DiskVolumeInfo"] = self.old_diskvolume_flow
 
   def RunWithDownload(self):
-    self.flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id, flow_name="MemoryCollector",
-        token=self.token, output=self.output_path)
+    self.flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
+                                           flow_name="MemoryCollector",
+                                           token=self.token,
+                                           output=self.output_path)
 
-    for _ in test_lib.TestFlowHelper(
-        self.flow_urn, self.client_mock,
-        client_id=self.client_id,
-        token=self.token):
+    for _ in test_lib.TestFlowHelper(self.flow_urn,
+                                     self.client_mock,
+                                     client_id=self.client_id,
+                                     token=self.token):
       pass
 
     return aff4.FACTORY.Open(self.flow_urn, token=self.token)
@@ -133,7 +138,8 @@ class TestMemoryCollector(MemoryTest):
 
   def testChecksDiskSpace(self):
     client = aff4.FACTORY.Create(self.client_id,
-                                 aff4_grr.VFSGRRClient, token=self.token)
+                                 aff4_grr.VFSGRRClient,
+                                 token=self.token)
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Set(client.Schema.MEMORY_SIZE(64 * 1024 * 1024 * 1024))
     client.Close()
@@ -167,9 +173,12 @@ class ListVADBinariesActionMock(action_mocks.MemoryClientMock):
   """Client with real file actions and mocked-out RekallAction."""
 
   def __init__(self, process_list=None):
-    super(ListVADBinariesActionMock, self).__init__(
-        "TransferBuffer", "StatFile", "Find", "HashBuffer", "FingerprintFile",
-        "ListDirectory", "WmiQuery", "HashFile", "LoadComponent")
+    super(ListVADBinariesActionMock, self).__init__("TransferBuffer",
+                                                    "StatFile", "Find",
+                                                    "HashBuffer",
+                                                    "FingerprintFile",
+                                                    "ListDirectory", "WmiQuery",
+                                                    "HashFile", "LoadComponent")
     self.process_list = process_list or []
 
   def RekallAction(self, _):
@@ -203,8 +212,8 @@ class ListVADBinariesTest(MemoryTest):
   def setUp(self):
     super(ListVADBinariesTest, self).setUp()
     self.SetupClients(1, system="Windows", os_version="6.2", arch="AMD64")
-    self.os_overrider = test_lib.VFSOverrider(
-        rdf_paths.PathSpec.PathType.OS, test_lib.ClientVFSHandlerFixture)
+    self.os_overrider = test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                              test_lib.ClientVFSHandlerFixture)
     self.reg_overrider = test_lib.VFSOverrider(
         rdf_paths.PathSpec.PathType.REGISTRY, test_lib.FakeRegistryVFSHandler)
     self.os_overrider.Start()
@@ -230,16 +239,14 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock()
     output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper(
-        "ListVADBinaries",
-        client_mock,
-        client_id=self.client_id,
-        token=self.token,
-        output=output_path):
+    for _ in test_lib.TestFlowHelper("ListVADBinaries",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     token=self.token,
+                                     output=output_path):
       pass
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
 
     # Sorting output collection to make the test deterministic
     paths = sorted([x.CollapsePath() for x in fd])
@@ -253,27 +260,23 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
     output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper(
-        "ListVADBinaries",
-        client_mock,
-        client_id=self.client_id,
-        token=self.token,
-        fetch_binaries=True,
-        output=output_path):
+    for _ in test_lib.TestFlowHelper("ListVADBinaries",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     token=self.token,
+                                     fetch_binaries=True,
+                                     output=output_path):
       pass
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
 
     # Sorting output collection to make the test deterministic
     binaries = sorted(fd, key=lambda x: x.aff4path)
 
     self.assertEqual(len(binaries), 2)
 
-    self.assertEqual(binaries[0].pathspec.CollapsePath(),
-                     "/C:/WINDOWS/bar.exe")
-    self.assertEqual(binaries[1].pathspec.CollapsePath(),
-                     "/C:/WINDOWS/foo.exe")
+    self.assertEqual(binaries[0].pathspec.CollapsePath(), "/C:/WINDOWS/bar.exe")
+    self.assertEqual(binaries[1].pathspec.CollapsePath(), "/C:/WINDOWS/foo.exe")
 
     fd = aff4.FACTORY.Open(binaries[0].aff4path, token=self.token)
     self.assertEqual(fd.Read(1024), "just bar")
@@ -285,22 +288,19 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process, process])
     output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper(
-        "ListVADBinaries",
-        client_mock,
-        client_id=self.client_id,
-        fetch_binaries=True,
-        token=self.token,
-        output=output_path):
+    for _ in test_lib.TestFlowHelper("ListVADBinaries",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     fetch_binaries=True,
+                                     token=self.token,
+                                     output=output_path):
       pass
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
     binaries = list(fd)
 
     self.assertEqual(len(binaries), 1)
-    self.assertEqual(binaries[0].pathspec.CollapsePath(),
-                     "/C:/WINDOWS/bar.exe")
+    self.assertEqual(binaries[0].pathspec.CollapsePath(), "/C:/WINDOWS/bar.exe")
     fd = aff4.FACTORY.Open(binaries[0].aff4path, token=self.token)
     self.assertEqual(fd.Read(1024), "just bar")
 
@@ -311,23 +311,20 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
     output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper(
-        "ListVADBinaries",
-        client_mock,
-        client_id=self.client_id,
-        token=self.token,
-        output=output_path,
-        filename_regex=".*bar\\.exe$",
-        fetch_binaries=True):
+    for _ in test_lib.TestFlowHelper("ListVADBinaries",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     token=self.token,
+                                     output=output_path,
+                                     filename_regex=".*bar\\.exe$",
+                                     fetch_binaries=True):
       pass
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
     binaries = list(fd)
 
     self.assertEqual(len(binaries), 1)
-    self.assertEqual(binaries[0].pathspec.CollapsePath(),
-                     "/C:/WINDOWS/bar.exe")
+    self.assertEqual(binaries[0].pathspec.CollapsePath(), "/C:/WINDOWS/bar.exe")
     fd = aff4.FACTORY.Open(binaries[0].aff4path, token=self.token)
     self.assertEqual(fd.Read(1024), "just bar")
 
@@ -337,23 +334,20 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe])
     output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper(
-        "ListVADBinaries",
-        client_mock,
-        check_flow_errors=False,
-        client_id=self.client_id,
-        token=self.token,
-        output=output_path,
-        fetch_binaries=True):
+    for _ in test_lib.TestFlowHelper("ListVADBinaries",
+                                     client_mock,
+                                     check_flow_errors=False,
+                                     client_id=self.client_id,
+                                     token=self.token,
+                                     output=output_path,
+                                     fetch_binaries=True):
       pass
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
     binaries = list(fd)
 
     self.assertEqual(len(binaries), 1)
-    self.assertEqual(binaries[0].pathspec.CollapsePath(),
-                     "/C:/WINDOWS/bar.exe")
+    self.assertEqual(binaries[0].pathspec.CollapsePath(), "/C:/WINDOWS/bar.exe")
     fd = aff4.FACTORY.Open(binaries[0].aff4path, token=self.token)
     self.assertEqual(fd.Read(1024), "just bar")
 
@@ -361,6 +355,7 @@ class ListVADBinariesTest(MemoryTest):
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

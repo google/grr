@@ -21,41 +21,54 @@ class ThrottleTest(test_lib.GRRBaseTest):
   def testCheckFlowRequestLimit(self):
     # Create a flow
     with test_lib.FakeTime(self.BASE_TIME):
-      flow.GRRFlow.StartFlow(client_id=self.client_id, flow_name="DummyLogFlow",
+      flow.GRRFlow.StartFlow(client_id=self.client_id,
+                             flow_name="DummyLogFlow",
                              token=self.token)
 
     # One day + 1s later
-    with test_lib.FakeTime(self.BASE_TIME+86400+1):
-      flow.GRRFlow.StartFlow(client_id=self.client_id, flow_name="DummyLogFlow",
+    with test_lib.FakeTime(self.BASE_TIME + 86400 + 1):
+      flow.GRRFlow.StartFlow(client_id=self.client_id,
+                             flow_name="DummyLogFlow",
                              token=self.token)
 
       # Disable the dup interval checking by setting it to 0.
-      throttler = throttle.FlowThrottler(
-          daily_req_limit=2, dup_interval=rdfvalue.Duration("0s"))
+      throttler = throttle.FlowThrottler(daily_req_limit=2,
+                                         dup_interval=rdfvalue.Duration("0s"))
 
       # Should succeeed, only one flow present in the 1 day window.
-      throttler.EnforceLimits(self.client_id, self.token.username,
-                              "DummyLogFlow", None, token=self.token)
+      throttler.EnforceLimits(self.client_id,
+                              self.token.username,
+                              "DummyLogFlow",
+                              None,
+                              token=self.token)
 
       # Start some more flows with a different user
-      token2 = access_control.ACLToken(username="test2",
-                                       reason="Running tests")
-      flow.GRRFlow.StartFlow(client_id=self.client_id, flow_name="DummyLogFlow",
+      token2 = access_control.ACLToken(username="test2", reason="Running tests")
+      flow.GRRFlow.StartFlow(client_id=self.client_id,
+                             flow_name="DummyLogFlow",
                              token=token2)
-      flow.GRRFlow.StartFlow(client_id=self.client_id, flow_name="DummyLogFlow",
+      flow.GRRFlow.StartFlow(client_id=self.client_id,
+                             flow_name="DummyLogFlow",
                              token=token2)
 
       # Should still succeed, since we count per-user
-      throttler.EnforceLimits(self.client_id, self.token.username,
-                              "DummyLogFlow", None, token=self.token)
+      throttler.EnforceLimits(self.client_id,
+                              self.token.username,
+                              "DummyLogFlow",
+                              None,
+                              token=self.token)
 
       # Add another flow at current time
-      flow.GRRFlow.StartFlow(client_id=self.client_id, flow_name="DummyLogFlow",
+      flow.GRRFlow.StartFlow(client_id=self.client_id,
+                             flow_name="DummyLogFlow",
                              token=self.token)
 
       with self.assertRaises(throttle.ErrorDailyFlowRequestLimitExceeded):
-        throttler.EnforceLimits(self.client_id, self.token.username,
-                                "DummyLogFlow", None, token=self.token)
+        throttler.EnforceLimits(self.client_id,
+                                self.token.username,
+                                "DummyLogFlow",
+                                None,
+                                token=self.token)
 
   def testFlowDuplicateLimit(self):
     # Disable the request limit checking by setting it to 0.
@@ -64,27 +77,41 @@ class ThrottleTest(test_lib.GRRBaseTest):
 
     # Running the same flow immediately should fail
     with test_lib.FakeTime(self.BASE_TIME):
-      throttler.EnforceLimits(self.client_id, self.token.username,
-                              "DummyLogFlow", None, token=self.token)
+      throttler.EnforceLimits(self.client_id,
+                              self.token.username,
+                              "DummyLogFlow",
+                              None,
+                              token=self.token)
 
-      flow.GRRFlow.StartFlow(client_id=self.client_id, flow_name="DummyLogFlow",
+      flow.GRRFlow.StartFlow(client_id=self.client_id,
+                             flow_name="DummyLogFlow",
                              token=self.token)
 
       with self.assertRaises(throttle.ErrorFlowDuplicate):
-        throttler.EnforceLimits(self.client_id, self.token.username,
-                                "DummyLogFlow", None, token=self.token)
+        throttler.EnforceLimits(self.client_id,
+                                self.token.username,
+                                "DummyLogFlow",
+                                None,
+                                token=self.token)
 
     # Doing the same outside the window should work
-    with test_lib.FakeTime(self.BASE_TIME+1200+1):
-      throttler.EnforceLimits(self.client_id, self.token.username,
-                              "DummyLogFlow", None, token=self.token)
+    with test_lib.FakeTime(self.BASE_TIME + 1200 + 1):
+      throttler.EnforceLimits(self.client_id,
+                              self.token.username,
+                              "DummyLogFlow",
+                              None,
+                              token=self.token)
 
-      flow.GRRFlow.StartFlow(client_id=self.client_id, flow_name="DummyLogFlow",
+      flow.GRRFlow.StartFlow(client_id=self.client_id,
+                             flow_name="DummyLogFlow",
                              token=self.token)
 
       with self.assertRaises(throttle.ErrorFlowDuplicate):
-        throttler.EnforceLimits(self.client_id, self.token.username,
-                                "DummyLogFlow", None, token=self.token)
+        throttler.EnforceLimits(self.client_id,
+                                self.token.username,
+                                "DummyLogFlow",
+                                None,
+                                token=self.token)
 
     # Now try a flow with more complicated args
     args = file_finder.FileFinderArgs(
@@ -92,30 +119,42 @@ class ThrottleTest(test_lib.GRRBaseTest):
         action=file_finder.FileFinderAction(action_type="STAT"))
 
     with test_lib.FakeTime(self.BASE_TIME):
-      throttler.EnforceLimits(self.client_id, self.token.username,
-                              "FileFinder", args, token=self.token)
+      throttler.EnforceLimits(self.client_id,
+                              self.token.username,
+                              "FileFinder",
+                              args,
+                              token=self.token)
 
-      flow.GRRFlow.StartFlow(client_id=self.client_id, flow_name="FileFinder",
-                             token=self.token, paths=["/tmp/1", "/tmp/2"],
+      flow.GRRFlow.StartFlow(client_id=self.client_id,
+                             flow_name="FileFinder",
+                             token=self.token,
+                             paths=["/tmp/1", "/tmp/2"],
                              action=file_finder.FileFinderAction(
                                  action_type="STAT"))
 
       with self.assertRaises(throttle.ErrorFlowDuplicate):
-        throttler.EnforceLimits(self.client_id, self.token.username,
-                                "FileFinder", args, token=self.token)
+        throttler.EnforceLimits(self.client_id,
+                                self.token.username,
+                                "FileFinder",
+                                args,
+                                token=self.token)
 
       # Different args should succeed.
       args = file_finder.FileFinderArgs(
           paths=["/tmp/1", "/tmp/3"],
           action=file_finder.FileFinderAction(action_type="STAT"))
 
-      throttler.EnforceLimits(self.client_id, self.token.username,
-                              "FileFinder", args, token=self.token)
+      throttler.EnforceLimits(self.client_id,
+                              self.token.username,
+                              "FileFinder",
+                              args,
+                              token=self.token)
 
 
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

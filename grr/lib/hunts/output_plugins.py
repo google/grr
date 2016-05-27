@@ -9,6 +9,5 @@
 
 from grr.lib import output_plugin
 
-
 # pylint: disable=invalid-name
 OutputPlugin = output_plugin.OutputPluginDescriptor

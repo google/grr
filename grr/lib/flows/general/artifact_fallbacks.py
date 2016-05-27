@@ -31,7 +31,8 @@ class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
     for drive in system_drive_opts:
       pathspec = rdf_paths.PathSpec(path=drive,
                                     pathtype=rdf_paths.PathSpec.PathType.OS)
-      self.CallClient("ListDirectory", pathspec=pathspec,
+      self.CallClient("ListDirectory",
+                      pathspec=pathspec,
                       next_state="ProcessFileStats")
 
   @flow.StateHandler()

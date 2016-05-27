@@ -32,11 +32,8 @@ class TestSearchFileContentWithFixture(GrepTests):
     # Delete the fixture cache so this will be included.
     self.FlushVFSCache()
 
-    test_lib.client_fixture.VFS.append(
-        (filename,
-         (aff4_grr.VFSFile,
-          {"aff4:stat": (
-              "\n"
+    test_lib.client_fixture.VFS.append((filename, (aff4_grr.VFSFile,
+                                                   {"aff4:stat": ("\n"
               "st_mode: 33261\n"
               "st_ino: 1026267\n"
               "st_dev: 51713\n"
@@ -55,7 +52,7 @@ class TestSearchFileContentWithFixture(GrepTests):
               "  path: '%s'\n"
               "}\n"
               "resident: '%s'\n" % (filename, data)),
-           "aff4:size": len(data)})))
+                                                    "aff4:size": len(data)})))
 
   def DeleteFile(self, filename):
 
@@ -69,8 +66,8 @@ class TestSearchFileContentWithFixture(GrepTests):
     super(TestSearchFileContentWithFixture, self).setUp()
 
     self.client_mock = action_mocks.ActionMock("Grep", "StatFile", "Find")
-    self.vfs_overrider = test_lib.VFSOverrider(
-        rdf_paths.PathSpec.PathType.OS, test_lib.ClientVFSHandlerFixture)
+    self.vfs_overrider = test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                                               test_lib.ClientVFSHandlerFixture)
     self.vfs_overrider.Start()
 
   def tearDown(self):
@@ -82,10 +79,14 @@ class TestSearchFileContentWithFixture(GrepTests):
     grepspec = rdf_client.BareGrepSpec(mode=rdf_client.GrepSpec.Mode.FIRST_HIT,
                                        literal="hello")
 
-    for _ in test_lib.TestFlowHelper(
-        "SearchFileContent", self.client_mock, client_id=self.client_id,
-        paths=["/proc/10/cmdline"], pathtype=rdf_paths.PathSpec.PathType.OS,
-        token=self.token, output=output_path, grep=grepspec):
+    for _ in test_lib.TestFlowHelper("SearchFileContent",
+                                     self.client_mock,
+                                     client_id=self.client_id,
+                                     paths=["/proc/10/cmdline"],
+                                     pathtype=rdf_paths.PathSpec.PathType.OS,
+                                     token=self.token,
+                                     output=output_path,
+                                     grep=grepspec):
       pass
 
     # Check the output file is created
@@ -107,11 +108,14 @@ class TestSearchFileContentWithFixture(GrepTests):
     grepspec = rdf_client.BareGrepSpec(mode=rdf_client.GrepSpec.Mode.ALL_HITS,
                                        literal="HIT")
 
-    for _ in test_lib.TestFlowHelper(
-        "SearchFileContent", self.client_mock, client_id=self.client_id,
-        paths=["/c/Downloads/grepfile.txt"],
-        pathtype=rdf_paths.PathSpec.PathType.OS,
-        grep=grepspec, token=self.token, output=output_path):
+    for _ in test_lib.TestFlowHelper("SearchFileContent",
+                                     self.client_mock,
+                                     client_id=self.client_id,
+                                     paths=["/c/Downloads/grepfile.txt"],
+                                     pathtype=rdf_paths.PathSpec.PathType.OS,
+                                     grep=grepspec,
+                                     token=self.token,
+                                     output=output_path):
       pass
 
     # Check the output file is created
@@ -141,11 +145,14 @@ class TestSearchFileContentWithFixture(GrepTests):
           mode=rdf_client.GrepSpec.Mode.FIRST_HIT,
           literal="HIT")
 
-      for _ in test_lib.TestFlowHelper(
-          "SearchFileContent", self.client_mock, client_id=self.client_id,
-          paths=["/c/Downloads/grepfile.txt"],
-          pathtype=rdf_paths.PathSpec.PathType.OS,
-          token=self.token, output=output_path, grep=grepspec):
+      for _ in test_lib.TestFlowHelper("SearchFileContent",
+                                       self.client_mock,
+                                       client_id=self.client_id,
+                                       paths=["/c/Downloads/grepfile.txt"],
+                                       pathtype=rdf_paths.PathSpec.PathType.OS,
+                                       token=self.token,
+                                       output=output_path,
+                                       grep=grepspec):
         pass
 
       # Check the output file is created
@@ -167,17 +174,20 @@ class TestSearchFileContent(GrepTests):
     client_mock = action_mocks.ActionMock("Find", "Grep", "StatFile")
     path = os.path.join(self.base_path, pattern)
 
-    args = grep.SearchFileContentArgs(
-        paths=[path], pathtype=rdf_paths.PathSpec.PathType.OS)
+    args = grep.SearchFileContentArgs(paths=[path],
+                                      pathtype=rdf_paths.PathSpec.PathType.OS)
 
     args.grep.literal = rdf_standard.LiteralExpression(
         "session opened for user dearjohn")
     args.grep.mode = rdf_client.GrepSpec.Mode.ALL_HITS
 
     # Run the flow.
-    for _ in test_lib.TestFlowHelper(
-        "SearchFileContent", client_mock, client_id=self.client_id,
-        output="analysis/grep/testing", args=args, token=self.token):
+    for _ in test_lib.TestFlowHelper("SearchFileContent",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     output="analysis/grep/testing",
+                                     args=args,
+                                     token=self.token):
       pass
 
     fd = aff4.FACTORY.Open(
@@ -203,9 +213,12 @@ class TestSearchFileContent(GrepTests):
     args = grep.SearchFileContentArgs(paths=[path])
 
     # Run the flow.
-    for _ in test_lib.TestFlowHelper(
-        "SearchFileContent", client_mock, client_id=self.client_id,
-        output="analysis/grep/testing", args=args, token=self.token):
+    for _ in test_lib.TestFlowHelper("SearchFileContent",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     output="analysis/grep/testing",
+                                     args=args,
+                                     token=self.token):
       pass
 
     fd = aff4.FACTORY.Open(
@@ -224,13 +237,15 @@ class TestSearchFileContent(GrepTests):
     path = os.path.join(self.base_path, pattern)
 
     # Do not provide a Grep expression - should match all files.
-    args = grep.SearchFileContentArgs(paths=[path],
-                                      also_download=True)
+    args = grep.SearchFileContentArgs(paths=[path], also_download=True)
 
     # Run the flow.
-    for _ in test_lib.TestFlowHelper(
-        "SearchFileContent", client_mock, client_id=self.client_id,
-        output="analysis/grep/testing", args=args, token=self.token):
+    for _ in test_lib.TestFlowHelper("SearchFileContent",
+                                     client_mock,
+                                     client_id=self.client_id,
+                                     output="analysis/grep/testing",
+                                     args=args,
+                                     token=self.token):
       pass
 
     fd = aff4.FACTORY.Open(
@@ -240,8 +255,8 @@ class TestSearchFileContent(GrepTests):
     self.assertEqual(len(fd), 3)
 
     for log in aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("/fs/os/").Add(
-            self.base_path).Add("searching"),
+        rdfvalue.RDFURN(self.client_id).Add("/fs/os/").Add(self.base_path).Add(
+            "searching"),
         token=self.token).OpenChildren():
       self.assertTrue(isinstance(log, aff4_grr.VFSBlobImage))
       # Make sure there is some data.
@@ -251,6 +266,7 @@ class TestSearchFileContent(GrepTests):
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -29,9 +29,9 @@ class ComponentObject(aff4.AFF4Object):
   """An object holding a component."""
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
-    COMPONENT = aff4.Attribute(
-        "aff4:component", rdf_client.ClientComponentSummary,
-        "The component of the client.")
+    COMPONENT = aff4.Attribute("aff4:component",
+                               rdf_client.ClientComponentSummary,
+                               "The component of the client.")
 
 
 class AFF4CollectionView(rdf_protodict.RDFValueArray):
@@ -60,19 +60,22 @@ class RDFValueCollection(aff4.AFF4Object):
     DESCRIPTION = aff4.Attribute("aff4:description", rdfvalue.RDFString,
                                  "This collection's description", "description")
 
-    VIEW = aff4.Attribute("aff4:rdfview", RDFValueCollectionView,
+    VIEW = aff4.Attribute("aff4:rdfview",
+                          RDFValueCollectionView,
                           "The list of attributes which will show up in "
-                          "the table.", default="")
+                          "the table.",
+                          default="")
 
   def Initialize(self):
     """Initialize the internal storage stream."""
     self.stream_dirty = False
 
     try:
-      self.fd = aff4.FACTORY.Open(self.urn.Add("UnversionedStream"),
-                                  aff4_type=aff4.AFF4UnversionedImage,
-                                  mode=self.mode,
-                                  token=self.token)
+      self.fd = aff4.FACTORY.Open(
+          self.urn.Add("UnversionedStream"),
+          aff4_type=aff4.AFF4UnversionedImage,
+          mode=self.mode,
+          token=self.token)
       self.size = int(self.Get(self.Schema.SIZE))
       return
     except IOError:
@@ -82,9 +85,11 @@ class RDFValueCollection(aff4.AFF4Object):
     # which wastes space. Check if this is such a collection and revert to the
     # old behavior if necessary.
     try:
-      self.fd = aff4.FACTORY.Open(self.urn.Add("Stream"),
-                                  aff4_type=aff4.AFF4Image, mode=self.mode,
-                                  token=self.token)
+      self.fd = aff4.FACTORY.Open(
+          self.urn.Add("Stream"),
+          aff4_type=aff4.AFF4Image,
+          mode=self.mode,
+          token=self.token)
       self.size = int(self.Get(self.Schema.SIZE))
       return
     except IOError:
@@ -92,9 +97,11 @@ class RDFValueCollection(aff4.AFF4Object):
 
     # If we get here, the stream does not already exist - we create a new
     # stream.
-    self.fd = aff4.FACTORY.Create(self.urn.Add("UnversionedStream"),
-                                  aff4.AFF4UnversionedImage,
-                                  mode=self.mode, token=self.token)
+    self.fd = aff4.FACTORY.Create(
+        self.urn.Add("UnversionedStream"),
+        aff4.AFF4UnversionedImage,
+        mode=self.mode,
+        token=self.token)
     self.fd.seek(0, 2)
     self.size = 0
 
@@ -268,9 +275,11 @@ class AFF4Collection(aff4.AFF4Volume, RDFValueCollection):
   _behaviours = frozenset(["Collection"])
 
   class SchemaCls(aff4.AFF4Volume.SchemaCls, RDFValueCollection.SchemaCls):
-    VIEW = aff4.Attribute("aff4:view", AFF4CollectionView,
+    VIEW = aff4.Attribute("aff4:view",
+                          AFF4CollectionView,
                           "The list of attributes which will show up in "
-                          "the table.", default="")
+                          "the table.",
+                          default="")
 
   def CreateView(self, attributes):
     """Given a list of attributes, update our view.
@@ -322,8 +331,13 @@ class GRRSignedBlob(aff4.AFF4Stream):
   collection = None
 
   @classmethod
-  def NewFromContent(cls, content, urn, chunk_size=1024,
-                     token=None, private_key=None, public_key=None,
+  def NewFromContent(cls,
+                     content,
+                     urn,
+                     chunk_size=1024,
+                     token=None,
+                     private_key=None,
+                     public_key=None,
                      prompt=True):
     """Alternate constructor for GRRSignedBlob.
 
@@ -372,7 +386,8 @@ class GRRSignedBlob(aff4.AFF4Stream):
     if self.collection is None:
       if self.mode == "r":
         self.collection = aff4.FACTORY.Open(
-            self.urn.Add("collection"), mode="r", token=self.token)
+            self.urn.Add("collection"),
+            mode="r", token=self.token)
         self.fd = cStringIO.StringIO()
         for x in self.collection:
           self.fd.write(x.data)
@@ -386,7 +401,9 @@ class GRRSignedBlob(aff4.AFF4Stream):
 
         # Blind write.
         self.collection = aff4.FACTORY.Create(
-            self.urn.Add("collection"), GRRSignedBlobCollection, mode="w",
+            self.urn.Add("collection"),
+            GRRSignedBlobCollection,
+            mode="w",
             token=self.token)
 
       else:
@@ -477,8 +494,12 @@ class PackedVersionedCollection(RDFValueCollection):
   @classmethod
   def ScheduleNotification(cls, urn, sync=False, token=None):
     """Schedule notification for a given urn."""
-    data_store.DB.Set(cls.notification_queue, cls.index_format % urn,
-                      urn, replace=True, token=token, sync=sync)
+    data_store.DB.Set(cls.notification_queue,
+                      cls.index_format % urn,
+                      urn,
+                      replace=True,
+                      token=token,
+                      sync=sync)
 
   @classmethod
   def QueryNotifications(cls, timestamp=None, token=None):
@@ -491,8 +512,10 @@ class PackedVersionedCollection(RDFValueCollection):
       timestamp = rdfvalue.RDFDatetime().Now()
 
     for _, urn, urn_timestamp in data_store.DB.ResolvePrefix(
-        cls.notification_queue, cls.index_prefix,
-        timestamp=(0, timestamp), token=token):
+        cls.notification_queue,
+        cls.index_prefix,
+        timestamp=(0, timestamp),
+        token=token):
       yield rdfvalue.RDFURN(urn, age=urn_timestamp)
 
   @classmethod
@@ -503,12 +526,14 @@ class PackedVersionedCollection(RDFValueCollection):
       raise ValueError("token can't be None")
 
     predicates = [cls.index_format % urn for urn in urns]
-    data_store.DB.DeleteAttributes(cls.notification_queue, predicates,
-                                   end=end, token=token, sync=True)
+    data_store.DB.DeleteAttributes(cls.notification_queue,
+                                   predicates,
+                                   end=end,
+                                   token=token,
+                                   sync=True)
 
   @classmethod
-  def AddToCollection(cls, collection_urn, rdf_values, sync=True,
-                      token=None):
+  def AddToCollection(cls, collection_urn, rdf_values, sync=True, token=None):
     """Adds RDFValues to the collection with a given urn."""
     if token is None:
       raise ValueError("Token can't be None.")
@@ -525,16 +550,19 @@ class PackedVersionedCollection(RDFValueCollection):
       if not rdf_value.age:
         rdf_value.age.Now()
 
-      data_attrs.append(cls.SchemaCls.DATA(
-          rdf_protodict.EmbeddedRDFValue(payload=rdf_value)))
+      data_attrs.append(cls.SchemaCls.DATA(rdf_protodict.EmbeddedRDFValue(
+          payload=rdf_value)))
 
     attrs_to_set = {cls.SchemaCls.DATA: data_attrs}
     if cls.IsJournalingEnabled():
       journal_entry = cls.SchemaCls.ADDITION_JOURNAL(len(rdf_values))
       attrs_to_set[cls.SchemaCls.ADDITION_JOURNAL] = [journal_entry]
 
-    aff4.FACTORY.SetAttributes(collection_urn, attrs_to_set, set(),
-                               add_child_index=False, sync=sync,
+    aff4.FACTORY.SetAttributes(collection_urn,
+                               attrs_to_set,
+                               set(),
+                               add_child_index=False,
+                               sync=sync,
                                token=token)
     cls.ScheduleNotification(collection_urn, token=token)
 
@@ -545,11 +573,15 @@ class PackedVersionedCollection(RDFValueCollection):
   class SchemaCls(RDFValueCollection.SchemaCls):
     """Schema for PackedVersionedCollection."""
 
-    DATA = aff4.Attribute("aff4:data", rdf_protodict.EmbeddedRDFValue,
-                          "The embedded semantic value.", versioned=True)
+    DATA = aff4.Attribute("aff4:data",
+                          rdf_protodict.EmbeddedRDFValue,
+                          "The embedded semantic value.",
+                          versioned=True)
 
-    SEEK_INDEX = aff4.Attribute("aff4:seek_index", SeekIndex,
-                                "Index for seek operations.", versioned=False)
+    SEEK_INDEX = aff4.Attribute("aff4:seek_index",
+                                SeekIndex,
+                                "Index for seek operations.",
+                                versioned=False)
 
     ADDITION_JOURNAL = aff4.Attribute("aff4:addition_journal",
                                       rdfvalue.RDFInteger,
@@ -557,7 +589,8 @@ class PackedVersionedCollection(RDFValueCollection):
                                       "AddToCollection() operations. Every "
                                       "element in the journal is the number of "
                                       "items added to collection when Add*() "
-                                      "was called.", versioned=True)
+                                      "was called.",
+                                      versioned=True)
 
     COMPACTION_JOURNAL = aff4.Attribute("aff4:compaction_journal",
                                         rdfvalue.RDFInteger,
@@ -628,13 +661,14 @@ class PackedVersionedCollection(RDFValueCollection):
     stats.STATS.IncrementCounter("packed_collection_added",
                                  delta=len(rdf_values))
 
-  def GenerateUncompactedItems(self, max_reversed_results=0,
-                               timestamp=None):
+  def GenerateUncompactedItems(self, max_reversed_results=0, timestamp=None):
     if self.IsAttributeSet(self.Schema.DATA):
       freeze_timestamp = timestamp or rdfvalue.RDFDatetime().Now()
       results = []
       for _, value, _ in data_store.DB.ResolvePrefix(
-          self.urn, self.Schema.DATA.predicate, token=self.token,
+          self.urn,
+          self.Schema.DATA.predicate,
+          token=self.token,
           timestamp=(0, freeze_timestamp)):
 
         if results is not None:
@@ -740,13 +774,17 @@ class PackedVersionedCollection(RDFValueCollection):
       """Removes versioned attributes and flushes the stream."""
       data_store.DB.DeleteAttributes(self.urn, [self.Schema.DATA.predicate],
                                      end=freeze_timestamp,
-                                     token=self.token, sync=True)
+                                     token=self.token,
+                                     sync=True)
       if self.IsJournalingEnabled():
         journal_entry = self.Schema.COMPACTION_JOURNAL(compacted_count,
                                                        age=freeze_timestamp)
         attrs_to_set = {self.Schema.COMPACTION_JOURNAL: [journal_entry]}
-        aff4.FACTORY.SetAttributes(self.urn, attrs_to_set, set(),
-                                   add_child_index=False, sync=True,
+        aff4.FACTORY.SetAttributes(self.urn,
+                                   attrs_to_set,
+                                   set(),
+                                   add_child_index=False,
+                                   sync=True,
                                    token=self.token)
 
       if self.Schema.DATA in self.synced_attributes:
@@ -771,7 +809,9 @@ class PackedVersionedCollection(RDFValueCollection):
     # self.COMPACTION_BATCH_SIZE, we write the data to temporary
     # stream in the reversed order.
     for _, value, _ in data_store.DB.ResolvePrefix(
-        self.urn, self.Schema.DATA.predicate, token=self.token,
+        self.urn,
+        self.Schema.DATA.predicate,
+        token=self.token,
         timestamp=(0, freeze_timestamp)):
 
       HeartBeat()
@@ -780,8 +820,8 @@ class PackedVersionedCollection(RDFValueCollection):
       compacted_count += 1
 
       if len(current_batch) >= self.COMPACTION_BATCH_SIZE:
-        batch_urn = rdfvalue.RDFURN("aff4:/tmp").Add(
-            "%X" % utils.PRNG.GetULong())
+        batch_urn = rdfvalue.RDFURN("aff4:/tmp").Add("%X" %
+                                                     utils.PRNG.GetULong())
         batches_urns.append(batch_urn)
 
         buf = cStringIO.StringIO()
@@ -791,7 +831,9 @@ class PackedVersionedCollection(RDFValueCollection):
 
         # We use AFF4Image to avoid serializing/deserializing data stored
         # in versioned attributes.
-        with aff4.FACTORY.Create(batch_urn, aff4.AFF4Image, mode="w",
+        with aff4.FACTORY.Create(batch_urn,
+                                 aff4.AFF4Image,
+                                 mode="w",
                                  token=self.token) as batch_stream:
           batch_stream.Write(buf.getvalue())
 
@@ -823,7 +865,8 @@ class PackedVersionedCollection(RDFValueCollection):
         return compacted_count
 
     batches = {}
-    for batch in aff4.FACTORY.MultiOpen(batches_urns, aff4_type=aff4.AFF4Image,
+    for batch in aff4.FACTORY.MultiOpen(batches_urns,
+                                        aff4_type=aff4.AFF4Image,
                                         token=self.token):
       batches[batch.urn] = batch
 
@@ -863,7 +906,8 @@ class PackedVersionedCollection(RDFValueCollection):
         length += len(list(self.GetValuesForAttribute(self.Schema.DATA)))
       else:
         length += len(list(data_store.DB.ResolveMulti(
-            self.urn, [self.Schema.DATA.predicate], token=self.token,
+            self.urn, [self.Schema.DATA.predicate],
+            token=self.token,
             timestamp=data_store.DB.ALL_TIMESTAMPS)))
 
     return length

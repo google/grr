@@ -46,7 +46,7 @@ class RunningStats(rdf_structs.RDFProtoStruct):
   def RegisterValue(self, value):
     self.num += 1
     self.sum += value
-    self.sum_sq += value ** 2
+    self.sum_sq += value**2
 
     self.histogram.RegisterValue(value)
 
@@ -62,15 +62,15 @@ class RunningStats(rdf_structs.RDFProtoStruct):
     if self.num == 0:
       return 0
     else:
-      return math.sqrt(self.sum_sq / float(self.num) - self.mean ** 2)
+      return math.sqrt(self.sum_sq / float(self.num) - self.mean**2)
 
 
 class ClientResourcesStats(rdf_structs.RDFProtoStruct):
   """RDF value representing clients' resources usage statistics for hunts."""
   protobuf = jobs_pb2.ClientResourcesStats
 
-  CPU_STATS_BINS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5,
-                    6, 7, 8, 9, 10, 15, 20]
+  CPU_STATS_BINS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 6,
+                    7, 8, 9, 10, 15, 20]
   NETWORK_STATS_BINS = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
                         16384, 32768, 65536, 131072, 262144, 524288, 1048576,
                         2097152]
@@ -99,8 +99,7 @@ class ClientResourcesStats(rdf_structs.RDFProtoStruct):
   @utils.Synchronized
   def RegisterResources(self, client_resources):
     """Update stats with info about resources consumed by a single client."""
-    self.user_cpu_stats.RegisterValue(
-        client_resources.cpu_usage.user_cpu_time)
+    self.user_cpu_stats.RegisterValue(client_resources.cpu_usage.user_cpu_time)
     self.system_cpu_stats.RegisterValue(
         client_resources.cpu_usage.system_cpu_time)
     self.network_bytes_sent_stats.RegisterValue(

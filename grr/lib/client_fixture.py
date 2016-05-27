@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
+# pyformat: disable
 
 """This is a test fixture for client objects.."""
 

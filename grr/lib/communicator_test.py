@@ -81,14 +81,14 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     """Tests the end to end encrypted communicators."""
     message_list = rdf_flows.MessageList()
     for i in range(1, 11):
-      message_list.job.Append(
-          session_id=rdfvalue.SessionID(base="aff4:/flows",
-                                        queue=queues.FLOWS,
-                                        flow_name=i),
-          name="OMG it's a string")
+      message_list.job.Append(session_id=rdfvalue.SessionID(base="aff4:/flows",
+                                                            queue=queues.FLOWS,
+                                                            flow_name=i),
+                              name="OMG it's a string")
 
     result = rdf_flows.ClientCommunication()
-    timestamp = self.client_communicator.EncodeMessages(message_list, result,
+    timestamp = self.client_communicator.EncodeMessages(message_list,
+                                                        result,
                                                         timestamp=timestamp)
     self.cipher_text = result.SerializeToString()
 
@@ -99,7 +99,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.assertEqual(client_timestamp, timestamp)
     self.assertEqual(len(decoded_messages), 10)
     for i in range(1, 11):
-      self.assertEqual(decoded_messages[i-1].session_id,
+      self.assertEqual(decoded_messages[i - 1].session_id,
                        rdfvalue.SessionID(base="aff4:/flows",
                                           queue=queues.FLOWS,
                                           flow_name=i))
@@ -145,8 +145,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
                      rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
 
     # Now replay the last message to the server
-    (decoded_messages, _, _) = self.server_communicator.DecryptMessage(
-        self.cipher_text)
+    (decoded_messages, _,
+     _) = self.server_communicator.DecryptMessage(self.cipher_text)
 
     # Messages should now be tagged as desynced
     self.assertEqual(decoded_messages[0].auth_state,
@@ -154,15 +154,13 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
   def testCompression(self):
     """Tests that the compression works."""
-    with test_lib.ConfigOverrider({
-        "Network.compression": "UNCOMPRESSED"}):
+    with test_lib.ConfigOverrider({"Network.compression": "UNCOMPRESSED"}):
       self.testCommunications()
       uncompressed_len = len(self.cipher_text)
 
     # If the client compresses, the server should still be able to
     # parse it:
-    with test_lib.ConfigOverrider({
-        "Network.compression": "ZCOMPRESS"}):
+    with test_lib.ConfigOverrider({"Network.compression": "ZCOMPRESS"}):
       self.testCommunications()
       compressed_len = len(self.cipher_text)
 
@@ -171,7 +169,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     # If we chose a crazy compression scheme, the client should not
     # compress.
     with test_lib.ConfigOverrider({
-        "Network.compression": "SOMECRAZYCOMPRESSION"}):
+        "Network.compression": "SOMECRAZYCOMPRESSION"
+    }):
       self.testCommunications()
       compressed_len = len(self.cipher_text)
 
@@ -187,15 +186,15 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
       # Mock the verify function to simulate certificate failures.
       X509.X509.verify = lambda self, pkey=None: 0
-      self.assertRaises(
-          IOError, self.client_communicator.LoadServerCertificate,
-          self.server_certificate, config_lib.CONFIG["CA.certificate"])
+      self.assertRaises(IOError, self.client_communicator.LoadServerCertificate,
+                        self.server_certificate,
+                        config_lib.CONFIG["CA.certificate"])
 
       # Verification can also fail with a -1 error.
       X509.X509.verify = lambda self, pkey=None: -1
-      self.assertRaises(
-          IOError, self.client_communicator.LoadServerCertificate,
-          self.server_certificate, config_lib.CONFIG["CA.certificate"])
+      self.assertRaises(IOError, self.client_communicator.LoadServerCertificate,
+                        self.server_certificate,
+                        config_lib.CONFIG["CA.certificate"])
 
   def testErrorDetection(self):
     """Tests the end to end encrypted communicators."""
@@ -219,9 +218,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     # 4) The modification may have no effect on the data at all.
     for x in range(0, len(cipher_text), 50):
       # Futz with the cipher text (Make sure it's really changed)
-      mod_cipher_text = (cipher_text[:x] +
-                         chr((ord(cipher_text[x]) % 250) + 1) +
-                         cipher_text[x + 1:])
+      mod_cipher_text = (cipher_text[:x] + chr((ord(cipher_text[x]) % 250) + 1)
+                         + cipher_text[x + 1:])
 
       try:
         decoded, client_id, _ = self.server_communicator.DecryptMessage(
@@ -245,8 +243,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
   def testEnrollingCommunicator(self):
     """Test that the ClientCommunicator generates good keys."""
-    self.client_communicator = comms.ClientCommunicator(
-        certificate="")
+    self.client_communicator = comms.ClientCommunicator(certificate="")
 
     self.client_communicator.LoadServerCertificate(
         self.server_certificate, config_lib.CONFIG["CA.certificate"])
@@ -271,8 +268,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.config_stubber = test_lib.PreserveConfig()
     self.config_stubber.Start()
 
-    self.certificate = self.ClientCertFromPrivateKey(
-        config_lib.CONFIG["Client.private_key"]).as_pem()
+    self.certificate = self.ClientCertFromPrivateKey(config_lib.CONFIG[
+        "Client.private_key"]).as_pem()
     self.server_serial_number = 0
 
     self.server_private_key = config_lib.CONFIG["PrivateKeys.server_key"]
@@ -290,7 +287,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     stats.StatsCollector.exit = True
 
     # Make a client mock
-    self.client = aff4.FACTORY.Create(self.client_cn, aff4_grr.VFSGRRClient,
+    self.client = aff4.FACTORY.Create(self.client_cn,
+                                      aff4_grr.VFSGRRClient,
                                       mode="rw",
                                       token=self.token)
     self.client.Set(self.client.Schema.CERT(self.certificate))
@@ -298,7 +296,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     # Stop the client from actually processing anything
     self.out_queue_overrider = test_lib.ConfigOverrider({
-        "Client.max_out_queue": 0})
+        "Client.max_out_queue": 0
+    })
     self.out_queue_overrider.Start()
 
     # And cache it in the server
@@ -314,7 +313,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     ca_enroller.enrolment_cache.Flush()
 
     # Response to send back to clients.
-    self.server_response = dict(session_id="aff4:/W:session", name="Echo",
+    self.server_response = dict(session_id="aff4:/W:session",
+                                name="Echo",
                                 response_id=2)
 
   def CreateNewServerCommunicator(self):
@@ -323,8 +323,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         private_key=self.server_private_key,
         token=self.token)
 
-    self.server_communicator.client_cache.Put(
-        self.client_cn, self.client)
+    self.server_communicator.client_cache.Put(self.client_cn, self.client)
 
   def tearDown(self):
     self.urlopen_stubber.Stop()
@@ -378,8 +377,11 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
       # Preserve the timestamp as a nonce
       self.server_communicator.EncodeMessages(
-          message_list, response_comms, destination=source,
-          timestamp=ts, api_version=self.client_communication.api_version)
+          message_list,
+          response_comms,
+          destination=source,
+          timestamp=ts,
+          api_version=self.client_communication.api_version)
 
       return StringIO.StringIO(response_comms.SerializeToString())
     except communicator.UnknownClientCert:
@@ -419,7 +421,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       self.client_communicator.client_worker.SendReply(
           rdf_flows.GrrStatus(),
           session_id=rdfvalue.SessionID("W:session"),
-          response_id=i, request_id=1)
+          response_id=i,
+          request_id=1)
 
   def testInitialEnrollment(self):
     """If the client has no certificate initially it should enroll."""
@@ -427,7 +430,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # Clear the certificate so we can generate a new one.
     with test_lib.ConfigOverrider({
         "Client.private_key": "",
-        "Client.retry_error_limit": 5}):
+        "Client.retry_error_limit": 5
+    }):
       self.CreateNewClientObject()
 
       # Client should get a new Common Name.
@@ -455,7 +459,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.server_communicator.client_cache.Flush()
 
     # Assume we do not know the client yet by clearing its certificate.
-    self.client = aff4.FACTORY.Create(self.client_cn, aff4_grr.VFSGRRClient,
+    self.client = aff4.FACTORY.Create(self.client_cn,
+                                      aff4_grr.VFSGRRClient,
                                       mode="rw",
                                       token=self.token)
     self.client.DeleteAttribute(self.client.Schema.CERT)
@@ -482,7 +487,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # Now we manually run the enroll well known flow with the enrollment
     # request. This will start a new flow for enrolling the client, sign the
     # cert and add it to the data store.
-    flow_obj = aff4.Enroler(aff4.Enroler.well_known_session_id, mode="rw",
+    flow_obj = aff4.Enroler(aff4.Enroler.well_known_session_id,
+                            mode="rw",
                             token=self.token)
     flow_obj.ProcessMessage(self.messages[-1])
 
@@ -492,7 +498,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.assertEqual(status.code, 200)
 
     # There should be a cert for the client right now.
-    self.client = aff4.FACTORY.Create(self.client_cn, aff4_grr.VFSGRRClient,
+    self.client = aff4.FACTORY.Create(self.client_cn,
+                                      aff4_grr.VFSGRRClient,
                                       mode="rw",
                                       token=self.token)
     self.assertTrue(self.client.Get(self.client.Schema.CERT))
@@ -519,16 +526,17 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     # Simulate the server rebooting
     self.CreateNewServerCommunicator()
-    self.server_communicator.client_cache.Put(
-        self.client_cn, self.client)
+    self.server_communicator.client_cache.Put(self.client_cn, self.client)
 
     self.SendToServer()
     self.client_communicator.RunOnce()
     self.CheckClientQueue()
 
   def _CheckFastPoll(self, require_fastpoll, expected_sleeptime):
-    self.server_response = dict(session_id="aff4:/W:session", name="Echo",
-                                response_id=2, priority="LOW_PRIORITY",
+    self.server_response = dict(session_id="aff4:/W:session",
+                                name="Echo",
+                                response_id=2,
+                                priority="LOW_PRIORITY",
                                 require_fastpoll=require_fastpoll)
 
     # Make sure we don't have any output messages that might override the
@@ -537,8 +545,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     self.client_communicator.RunOnce()
     # Make sure the timer is set to the correct value.
-    self.assertEqual(
-        self.client_communicator.timer.sleep_time, expected_sleeptime)
+    self.assertEqual(self.client_communicator.timer.sleep_time,
+                     expected_sleeptime)
     self.CheckClientQueue()
 
   def testNoFastPoll(self):
@@ -571,8 +579,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       self.CheckClientQueue()
 
     # There should not have been any expensive operations any more
-    self.assertEqual(stats.STATS.GetMetricValue("grr_rsa_operations"),
-                     metric_value)
+    self.assertEqual(
+        stats.STATS.GetMetricValue("grr_rsa_operations"), metric_value)
 
   def testCorruption(self):
     """Simulate corruption of the http payload."""
@@ -610,8 +618,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         status = self.client_communicator.RunOnce()
 
         self.assertEqual(status.code, 500)
-        self.assertTrue(
-            "HMAC verification failed" in str(self.last_urlmock_error))
+        self.assertTrue("HMAC verification failed" in str(
+            self.last_urlmock_error))
 
       # Corruption of these fields will likely result in RSA errors, since we do
       # the RSA operations before the HMAC verification (in order to recover the
@@ -748,8 +756,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         self.client_communicator.client_worker.CheckStats()
         self.assertEqual(len(runs), 0)
 
-      self.client_communicator.client_worker.HandleMessage(
-          rdf_flows.GrrMessage(name="HashFile"))
+      self.client_communicator.client_worker.HandleMessage(rdf_flows.GrrMessage(
+          name="HashFile"))
 
       # HandleMessage was called, but one minute hasn't passed, so
       # stats should not be sent.
@@ -769,8 +777,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
   def testClientConnectionErrors(self):
     client_obj = comms.GRRHTTPClient()
     # Make the connection unavailable and skip the retry interval.
-    with utils.MultiStubber((urllib2, "urlopen", self.RaiseError),
-                            (time, "sleep", lambda s: None)):
+    with utils.MultiStubber(
+        (urllib2, "urlopen", self.RaiseError), (time, "sleep", lambda s: None)):
 
       with test_lib.ConfigOverrider({"Client.connection_error_limit": 8}):
         # Simulate a client run. The client will retry the connection limit by
@@ -778,13 +786,13 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         # reached. This will make the real client quit.
         client_obj.Run()
 
-        self.assertEqual(
-            client_obj.http_manager.consecutive_connection_errors,
-            config_lib.CONFIG["Client.connection_error_limit"] + 1)
+        self.assertEqual(client_obj.http_manager.consecutive_connection_errors,
+                         config_lib.CONFIG["Client.connection_error_limit"] + 1)
 
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

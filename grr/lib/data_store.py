@@ -50,10 +50,7 @@ from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
 
-
-flags.DEFINE_bool("list_storage", False,
-                  "List all storage subsystems present.")
-
+flags.DEFINE_bool("list_storage", False, "List all storage subsystems present.")
 
 # A global data store handle
 DB = None
@@ -75,7 +72,6 @@ class TimeoutError(Exception):
 class TransactionError(Error):
   """Raised when a transaction fails to commit."""
   counter = "grr_commit_failure"
-
 
 # This token will be used by default if no token was provided.
 default_token = None
@@ -101,12 +97,17 @@ class MutationPool(object):
   def DeleteSubject(self, subject):
     self.delete_subject_requests.append(subject)
 
-  def MultiSet(self, subject, values, timestamp=None, replace=True,
+  def MultiSet(self,
+               subject,
+               values,
+               timestamp=None,
+               replace=True,
                to_delete=None):
     self.set_requests.append((subject, values, timestamp, replace, to_delete))
 
   def Set(self, subject, attribute, value, timestamp=None, replace=True):
-    self.MultiSet(subject, {attribute: [value]}, timestamp=timestamp,
+    self.MultiSet(subject, {attribute: [value]},
+                  timestamp=timestamp,
                   replace=replace)
 
   def DeleteAttributes(self, subject, attributes, start=None, end=None):
@@ -114,21 +115,30 @@ class MutationPool(object):
 
   def Flush(self):
     """Flushing actually applies all the operations in the pool."""
-    DB.DeleteSubjects(self.delete_subject_requests, token=self.token,
+    DB.DeleteSubjects(self.delete_subject_requests,
+                      token=self.token,
                       sync=False)
 
     for req in self.delete_attributes_requests:
       subject, attributes, start, end = req
-      DB.DeleteAttributes(subject, attributes, start=start, end=end,
-                          token=self.token, sync=False)
+      DB.DeleteAttributes(subject,
+                          attributes,
+                          start=start,
+                          end=end,
+                          token=self.token,
+                          sync=False)
 
     for req in self.set_requests:
       subject, values, timestamp, replace, to_delete = req
-      DB.MultiSet(subject, values, timestamp=timestamp, replace=replace,
-                  to_delete=to_delete, token=self.token, sync=False)
+      DB.MultiSet(subject,
+                  values,
+                  timestamp=timestamp,
+                  replace=replace,
+                  to_delete=to_delete,
+                  token=self.token,
+                  sync=False)
 
-    if (self.delete_subject_requests or
-        self.delete_attributes_requests or
+    if (self.delete_subject_requests or self.delete_attributes_requests or
         self.set_requests):
       DB.Flush()
 
@@ -244,8 +254,14 @@ class DataStore(object):
     for subject in subjects:
       self.DeleteSubject(subject, sync=sync, token=token)
 
-  def Set(self, subject, attribute, value, timestamp=None, token=None,
-          replace=True, sync=True):
+  def Set(self,
+          subject,
+          attribute,
+          value,
+          timestamp=None,
+          token=None,
+          replace=True,
+          sync=True):
     """Set a single value for this subject's attribute.
 
     Args:
@@ -259,11 +275,19 @@ class DataStore(object):
       sync: If true we ensure the new values are committed before returning.
     """
     # TODO(user): don't allow subject = None
-    self.MultiSet(subject, {attribute: [value]}, timestamp=timestamp,
-                  token=token, replace=replace, sync=sync)
+    self.MultiSet(subject, {attribute: [value]},
+                  timestamp=timestamp,
+                  token=token,
+                  replace=replace,
+                  sync=sync)
 
-  def RetryWrapper(self, subject, callback, retrywrap_timeout=1, token=None,
-                   retrywrap_max_timeout=10, **kw):
+  def RetryWrapper(self,
+                   subject,
+                   callback,
+                   retrywrap_timeout=1,
+                   token=None,
+                   retrywrap_max_timeout=10,
+                   **kw):
     """Retry a Transaction until it succeeds.
 
     Args:
@@ -341,8 +365,14 @@ class DataStore(object):
     """
 
   @abc.abstractmethod
-  def MultiSet(self, subject, values, timestamp=None, replace=True, sync=True,
-               to_delete=None, token=None):
+  def MultiSet(self,
+               subject,
+               values,
+               timestamp=None,
+               replace=True,
+               sync=True,
+               to_delete=None,
+               token=None):
     """Set multiple attributes' values for this subject in one operation.
 
     Args:
@@ -358,8 +388,13 @@ class DataStore(object):
       token: An ACL token.
     """
 
-  def MultiDeleteAttributes(self, subjects, attributes, start=None, end=None,
-                            sync=True, token=None):
+  def MultiDeleteAttributes(self,
+                            subjects,
+                            attributes,
+                            start=None,
+                            end=None,
+                            sync=True,
+                            token=None):
     """Remove all specified attributes from a list of subjects.
 
     Args:
@@ -371,12 +406,21 @@ class DataStore(object):
       token: An ACL token.
     """
     for subject in subjects:
-      self.DeleteAttributes(subject, attributes, start=start, end=end,
-                            sync=sync, token=token)
+      self.DeleteAttributes(subject,
+                            attributes,
+                            start=start,
+                            end=end,
+                            sync=sync,
+                            token=token)
 
   @abc.abstractmethod
-  def DeleteAttributes(self, subject, attributes, start=None, end=None,
-                       sync=True, token=None):
+  def DeleteAttributes(self,
+                       subject,
+                       attributes,
+                       start=None,
+                       end=None,
+                       sync=True,
+                       token=None):
     """Remove all specified attributes.
 
     Args:
@@ -408,7 +452,9 @@ class DataStore(object):
       AccessError: if anything goes wrong.
     """
     for _, value, timestamp in self.ResolveMulti(
-        subject, [attribute], token=token, timestamp=self.NEWEST_TIMESTAMP):
+        subject, [attribute],
+        token=token,
+        timestamp=self.NEWEST_TIMESTAMP):
 
       # Just return the first one.
       return value, timestamp
@@ -416,8 +462,12 @@ class DataStore(object):
     return (None, 0)
 
   @abc.abstractmethod
-  def MultiResolvePrefix(self, subjects, attribute_prefix, timestamp=None,
-                         limit=None, token=None):
+  def MultiResolvePrefix(self,
+                         subjects,
+                         attribute_prefix,
+                         timestamp=None,
+                         limit=None,
+                         token=None):
     """Generate a set of values matching for subjects' attribute.
 
     This method provides backwards compatibility for the old method of
@@ -447,8 +497,12 @@ class DataStore(object):
       AccessError: if anything goes wrong.
     """
 
-  def ResolvePrefix(self, subject, attribute_prefix, timestamp=None,
-                    limit=None, token=None):
+  def ResolvePrefix(self,
+                    subject,
+                    attribute_prefix,
+                    timestamp=None,
+                    limit=None,
+                    token=None):
     """Retrieve a set of value matching for this subject's attribute.
 
     Args:
@@ -473,14 +527,21 @@ class DataStore(object):
       AccessError: if anything goes wrong.
     """
     for _, values in self.MultiResolvePrefix(
-        [subject], attribute_prefix, timestamp=timestamp, token=token,
+        [subject],
+        attribute_prefix,
+        timestamp=timestamp,
+        token=token,
         limit=limit):
       values.sort(key=lambda a: a[0])
       return values
 
     return []
 
-  def ResolveMulti(self, subject, attributes, timestamp=None, limit=None,
+  def ResolveMulti(self,
+                   subject,
+                   attributes,
+                   timestamp=None,
+                   limit=None,
                    token=None):
     """Resolve multiple attributes for a subject."""
 
@@ -505,8 +566,12 @@ class DataStore(object):
       pass
 
   @abc.abstractmethod
-  def ScanAttributes(self, subject_prefix, attributes,
-                     after_urn=None, max_records=None, token=None,
+  def ScanAttributes(self,
+                     subject_prefix,
+                     attributes,
+                     after_urn=None,
+                     max_records=None,
+                     token=None,
                      relaxed_order=False):
     """Scan for values of an attribute accross a range of rows.
 
@@ -537,8 +602,12 @@ class DataStore(object):
 
     """
 
-  def ScanAttribute(self, subject_prefix, attribute,
-                    after_urn=None, max_records=None, token=None,
+  def ScanAttribute(self,
+                    subject_prefix,
+                    attribute,
+                    after_urn=None,
+                    max_records=None,
+                    token=None,
                     relaxed_order=False):
     for s, r in self.ScanAttributes(subject_prefix, [attribute],
                                     after_urn=after_urn,
@@ -684,8 +753,10 @@ class CommonTransaction(Transaction):
   """A common transaction that saves set/delete data before commiting."""
 
   def __init__(self, table, subject, lease_time=None, token=None):
-    super(CommonTransaction, self).__init__(table, subject,
-                                            lease_time=lease_time, token=token)
+    super(CommonTransaction, self).__init__(table,
+                                            subject,
+                                            lease_time=lease_time,
+                                            token=token)
     self.to_set = {}
     self.to_delete = set()
     self.subject = subject
@@ -709,10 +780,10 @@ class CommonTransaction(Transaction):
       start = timestamp
       end = timestamp
     elif timestamp == DataStore.ALL_TIMESTAMPS or timestamp is None:
-      start, end = 0, (2 ** 63) - 1
+      start, end = 0, (2**63) - 1
       timestamp = (start, end)
     elif timestamp == DataStore.NEWEST_TIMESTAMP:
-      start, end = 0, (2 ** 63) - 1
+      start, end = 0, (2**63) - 1
       # Do not change 'timestamp' since we will use it later.
     else:
       raise ValueError("Value %s is not a valid timestamp" %
@@ -730,7 +801,8 @@ class CommonTransaction(Transaction):
                           if start <= ts <= end])
 
     # And also the results from the database.
-    ds_results = self.store.ResolvePrefix(self.subject, prefix,
+    ds_results = self.store.ResolvePrefix(self.subject,
+                                          prefix,
                                           timestamp=timestamp,
                                           token=self.token)
 
@@ -780,7 +852,9 @@ class CommonTransaction(Transaction):
     if not self.CheckLease():
       raise TransactionError("Lease is no longer valid.")
 
-    self.store.DeleteAttributes(self.subject, self.to_delete, sync=True,
+    self.store.DeleteAttributes(self.subject,
+                                self.to_delete,
+                                sync=True,
                                 token=self.token)
 
     self.store.MultiSet(self.subject, self.to_set, token=self.token)
@@ -852,7 +926,8 @@ class DataStoreInit(registry.InitHook):
     atexit.register(DB.Flush)
     monitor_port = config_lib.CONFIG["Monitoring.http_port"]
     if monitor_port != 0:
-      stats.STATS.RegisterGaugeMetric("datastore_size", int,
+      stats.STATS.RegisterGaugeMetric("datastore_size",
+                                      int,
                                       docstring="Size of data store in bytes",
                                       units="BYTES")
       DB.InitializeMonitorThread()

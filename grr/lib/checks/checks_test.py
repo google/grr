@@ -17,7 +17,6 @@ from grr.parsers import config_file as config_file_parsers
 from grr.parsers import linux_cmd_parser
 from grr.parsers import wmi_parser
 
-
 CHECKS_DIR = os.path.join(config_lib.CONFIG["Test.data_dir"], "checks")
 TRIGGER_1 = ("DebianPackagesStatus", "Linux", None, None)
 TRIGGER_2 = ("WMIInstalledSoftware", "Windows", None, None)
@@ -36,8 +35,8 @@ def GetDPKGData():
   parser = linux_cmd_parser.DpkgCmdParser()
   test_data = os.path.join(CHECKS_DIR, "data/dpkg.out")
   with open(test_data) as f:
-    DPKG_SW.extend(parser.Parse(
-        "/usr/bin/dpkg", ["-l"], f.read(), "", 0, 5, None))
+    DPKG_SW.extend(parser.Parse("/usr/bin/dpkg", ["-l"], f.read(), "", 0, 5,
+                                None))
   return DPKG_SW
 
 
@@ -82,8 +81,8 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     """NONE returns an anomaly if there are no results."""
     matcher = checks.Matcher(["NONE"], self.hint)
     for baseline in self.baselines:
-      self.assertIsInstance(matcher.Detect(baseline, self.none),
-                            checks.CheckResult)
+      self.assertIsInstance(
+          matcher.Detect(baseline, self.none), checks.CheckResult)
       for result in [self.one, self.some]:
         self.assertFalse(matcher.Detect(baseline, result))
 
@@ -91,8 +90,8 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     """ONE operations should return anomalies if there is not one result."""
     matcher = checks.Matcher(["ONE"], self.hint)
     for baseline in self.baselines:
-      self.assertIsInstance(matcher.Detect(baseline, self.one),
-                            checks.CheckResult)
+      self.assertIsInstance(
+          matcher.Detect(baseline, self.one), checks.CheckResult)
       for result in [self.none, self.some]:
         self.assertFalse(matcher.Detect(baseline, result))
 
@@ -100,8 +99,8 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     """SOME operations should return anomalies if there is >1 result."""
     matcher = checks.Matcher(["SOME"], self.hint)
     for baseline in self.baselines:
-      self.assertIsInstance(matcher.Detect(baseline, self.some),
-                            checks.CheckResult)
+      self.assertIsInstance(
+          matcher.Detect(baseline, self.some), checks.CheckResult)
       for result in [self.none, self.one]:
         self.assertFalse(matcher.Detect(baseline, result))
 
@@ -110,8 +109,8 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     matcher = checks.Matcher(["ANY"], self.hint)
     for baseline in self.baselines:
       for result in [self.one, self.some]:
-        self.assertIsInstance(matcher.Detect(baseline, result),
-                              checks.CheckResult)
+        self.assertIsInstance(
+            matcher.Detect(baseline, result), checks.CheckResult)
       self.assertFalse(matcher.Detect(baseline, self.none))
 
   def testCheckAll(self):
@@ -134,8 +133,8 @@ class MatchMethodTests(test_lib.GRRBaseTest):
     matcher = checks.Matcher(["NONE", "ONE"], self.hint)
     for baseline in self.baselines:
       for result in [self.none, self.one]:
-        self.assertIsInstance(matcher.Detect(baseline, result),
-                              checks.CheckResult)
+        self.assertIsInstance(
+            matcher.Detect(baseline, result), checks.CheckResult)
       self.assertFalse(matcher.Detect(baseline, self.some))
 
 
@@ -221,24 +220,24 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
   def testMapChecksToTriggers(self):
     """Checks are identified and run when their prerequisites are met."""
     expect = ["SW-CHECK"]
-    result = checks.CheckRegistry.FindChecks(
-        artifact="WMIInstalledSoftware", os_name="Windows")
+    result = checks.CheckRegistry.FindChecks(artifact="WMIInstalledSoftware",
+                                             os_name="Windows")
     self.assertItemsEqual(expect, result)
-    result = checks.CheckRegistry.FindChecks(
-        artifact="DebianPackagesStatus", os_name="Linux")
+    result = checks.CheckRegistry.FindChecks(artifact="DebianPackagesStatus",
+                                             os_name="Linux")
     self.assertItemsEqual(expect, result)
-    result = checks.CheckRegistry.FindChecks(
-        artifact="DebianPackagesStatus", labels="foo")
+    result = checks.CheckRegistry.FindChecks(artifact="DebianPackagesStatus",
+                                             labels="foo")
     self.assertItemsEqual(expect, result)
 
     expect = set(["SSHD-CHECK"])
-    result = set(checks.CheckRegistry.FindChecks(
-        artifact="SshdConfigFile", os_name="Darwin"))
+    result = set(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
+                                                 os_name="Darwin"))
     residual = expect - result
     self.assertFalse(residual)
 
-    result = set(checks.CheckRegistry.FindChecks(
-        artifact="SshdConfigFile", os_name="Linux"))
+    result = set(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
+                                                 os_name="Linux"))
     residual = expect - result
     self.assertFalse(residual)
 
@@ -247,19 +246,20 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     result = set(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile"))
     residual = expect - result
     self.assertFalse(residual)
-    result = set(checks.CheckRegistry.FindChecks(
-        artifact="SshdConfigFile", os_name="Windows"))
+    result = set(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
+                                                 os_name="Windows"))
     residual = expect - result
     self.assertFalse(residual)
 
   def testRestrictChecksFiltersCheckOptions(self):
-    result = set(checks.CheckRegistry.FindChecks(
-        artifact="SshdConfigFile", os_name="Linux",
-        restrict_checks=["SSHD-CHECK"]))
+    result = set(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
+                                                 os_name="Linux",
+                                                 restrict_checks=["SSHD-CHECK"
+                                                                 ]))
     self.assertItemsEqual(["SSHD-CHECK"], result)
-    result = set(checks.CheckRegistry.FindChecks(
-        artifact="SshdConfigFile", os_name="Linux",
-        restrict_checks=["SW_CHECK"]))
+    result = set(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
+                                                 os_name="Linux",
+                                                 restrict_checks=["SW_CHECK"]))
     self.assertFalse(result)
 
   def testMapArtifactsToTriggers(self):
@@ -302,30 +302,31 @@ class ProcessHostDataTests(checks_test_lib.HostCheckTest):
             rdf_anomaly.Anomaly(
                 finding=["netcat-traditional 1.10-40 is installed"],
                 symptom="Found: l337 software installed",
-                type="ANALYSIS_ANOMALY")])
+                type="ANALYSIS_ANOMALY")
+        ])
     self.sshd = checks.CheckResult(
         check_id="SSHD-CHECK",
         anomaly=[
-            rdf_anomaly.Anomaly(
-                finding=["Configured protocols: 2,1"],
-                symptom="Found: Sshd allows protocol 1.",
-                type="ANALYSIS_ANOMALY")])
+            rdf_anomaly.Anomaly(finding=["Configured protocols: 2,1"],
+                                symptom="Found: Sshd allows protocol 1.",
+                                type="ANALYSIS_ANOMALY")
+        ])
     self.windows = checks.CheckResult(
         check_id="SW-CHECK",
         anomaly=[
-            rdf_anomaly.Anomaly(
-                finding=["Java 6.0.240 is installed"],
-                symptom="Found: Old Java installation.",
-                type="ANALYSIS_ANOMALY"),
-            rdf_anomaly.Anomaly(
-                finding=["Adware 2.1.1 is installed"],
-                symptom="Found: Malicious software.",
-                type="ANALYSIS_ANOMALY")])
+            rdf_anomaly.Anomaly(finding=["Java 6.0.240 is installed"],
+                                symptom="Found: Old Java installation.",
+                                type="ANALYSIS_ANOMALY"),
+            rdf_anomaly.Anomaly(finding=["Adware 2.1.1 is installed"],
+                                symptom="Found: Malicious software.",
+                                type="ANALYSIS_ANOMALY")
+        ])
 
     self.data = {
         "WMIInstalledSoftware": self.SetArtifactData(parsed=GetWMIData()),
         "DebianPackagesStatus": self.SetArtifactData(parsed=GetDPKGData()),
-        "SshdConfigFile": self.SetArtifactData(parsed=GetSSHDConfig())}
+        "SshdConfigFile": self.SetArtifactData(parsed=GetSSHDConfig())
+    }
 
   def testProcessLinuxHost(self):
     """Checks detect issues and return anomalies as check results."""
@@ -472,9 +473,16 @@ class CheckTest(ChecksTestBase):
         self.cfg = yaml.safe_load(data)
       self.host_data = {
           "DebianPackagesStatus": {
-              "ANOMALY": [], "PARSER": GetDPKGData(), "RAW": []},
+              "ANOMALY": [],
+              "PARSER": GetDPKGData(),
+              "RAW": []
+          },
           "WMIInstalledSoftware": {
-              "ANOMALY": [], "PARSER": GetWMIData(), "RAW": []}}
+              "ANOMALY": [],
+              "PARSER": GetWMIData(),
+              "RAW": []
+          }
+      }
 
   def testInitializeCheck(self):
     chk = checks.Check(**self.cfg)
@@ -582,6 +590,7 @@ class HintDefinitionTests(ChecksTestBase):
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -26,8 +26,10 @@ class UsersTest(test_lib.AFF4ObjectTest):
                              mode="rw",
                              token=self.token) as storage:
       storage.AddNotification(users.GlobalNotification(
-          type=users.GlobalNotification.Type.ERROR, header="foo",
-          content="bar", link="http://www.google.com"))
+          type=users.GlobalNotification.Type.ERROR,
+          header="foo",
+          content="bar",
+          link="http://www.google.com"))
 
     notifications = self.user.GetPendingGlobalNotifications()
     self.assertTrue(notifications)
@@ -42,8 +44,10 @@ class UsersTest(test_lib.AFF4ObjectTest):
                                mode="rw",
                                token=self.token) as storage:
         storage.AddNotification(users.GlobalNotification(
-            type=users.GlobalNotification.Type.ERROR, header="foo",
-            content="bar", duration=rdfvalue.Duration("1h"),))
+            type=users.GlobalNotification.Type.ERROR,
+            header="foo",
+            content="bar",
+            duration=rdfvalue.Duration("1h"),))
 
     with test_lib.FakeTime(101):
       notifications = self.user.GetPendingGlobalNotifications()
