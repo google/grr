@@ -23,8 +23,8 @@ class MockAction(actions.ActionPlugin):
   out_rdfvalues = [rdf_client.LogMessage]
 
   def Run(self, message):
-    self.SendReply(rdf_client.EchoRequest(
-        data="Received Message: %s. Data %s" % (message.data, "x" * 100)))
+    self.SendReply(rdf_client.EchoRequest(data="Received Message: %s. Data %s" %
+                                          (message.data, "x" * 100)))
 
 
 class RaiseAction(actions.ActionPlugin):
@@ -179,6 +179,7 @@ class BasicContextTests(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

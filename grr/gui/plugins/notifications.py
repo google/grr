@@ -23,8 +23,9 @@ class NotificationCount(renderers.TemplateRenderer):
     number = 0
 
     try:
-      user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add(
-          request.user), token=request.token)
+      user_fd = aff4.FACTORY.Open(
+          aff4.ROOT_URN.Add("users").Add(request.user),
+          token=request.token)
       notifications = user_fd.Get(user_fd.Schema.PENDING_NOTIFICATIONS)
       if notifications:
         number = len(notifications)
@@ -91,7 +92,8 @@ class UpdateSettingsFlow(flow.GRRFlow):
   def Start(self):
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type="GRRUser", mode="w",
+        aff4_type="GRRUser",
+        mode="w",
         token=self.token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS(self.args))
 
@@ -113,7 +115,8 @@ Settings were successfully updated. Reloading...
   def GetUserSettings(self, request):
     try:
       user_record = aff4.FACTORY.Open(
-          aff4.ROOT_URN.Add("users").Add(request.user), "GRRUser",
+          aff4.ROOT_URN.Add("users").Add(request.user),
+          "GRRUser",
           token=request.token)
 
       return user_record.Get(user_record.Schema.GUI_SETTINGS)
@@ -134,9 +137,11 @@ Settings were successfully updated. Reloading...
         prefix="settings").ParseArgs(request)
 
     flow.GRRFlow.StartFlow(flow_name="UpdateSettingsFlow",
-                           args=settings, token=request.token)
+                           args=settings,
+                           token=request.token)
 
-    response = self.RenderFromTemplate(self.ajax_template, response,
+    response = self.RenderFromTemplate(self.ajax_template,
+                                       response,
                                        unique=self.unique)
     return self.CallJavascript(response, "RenderAjax")
 
@@ -149,8 +154,11 @@ class ResetUserNotifications(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add(
-        self.token.username), aff4_type="GRRUser", mode="rw", token=self.token)
+    user_fd = aff4.FACTORY.Open(
+        aff4.ROOT_URN.Add("users").Add(self.token.username),
+        aff4_type="GRRUser",
+        mode="rw",
+        token=self.token)
     user_fd.ShowNotifications(reset=True)
 
 
@@ -182,17 +190,22 @@ class ViewNotifications(renderers.TableRenderer):
     # We modify this object by changing the notification from pending to
     # shown.
     try:
-      user_fd = aff4.FACTORY.Open(aff4.ROOT_URN.Add("users").Add(
-          request.user), aff4_type="GRRUser", token=request.token)
+      user_fd = aff4.FACTORY.Open(
+          aff4.ROOT_URN.Add("users").Add(request.user),
+          aff4_type="GRRUser",
+          token=request.token)
     except IOError:
       return
 
     # Hack for sorting. Requires retrieval of all notifications.
     notifications = list(user_fd.ShowNotifications(reset=False))
-    for notification in sorted(notifications, key=lambda x: x.timestamp,
+    for notification in sorted(notifications,
+                               key=lambda x: x.timestamp,
                                reverse=True):
-      if row_index < start_row: continue
-      if row_index > end_row: break
+      if row_index < start_row:
+        continue
+      if row_index > end_row:
+        break
 
       if (search_term and
           search_term.lower() not in notification.message.lower()):
@@ -264,5 +277,5 @@ class ViewNotifications(renderers.TableRenderer):
       h["main"] = "GrantAccess"
       h["acl"] = notification.subject
 
-    return urllib.urlencode(
-        dict([(x, utils.SmartStr(y)) for x, y in h.items()]))
+    return urllib.urlencode(dict([(x, utils.SmartStr(y)) for x, y in h.items()
+                                 ]))

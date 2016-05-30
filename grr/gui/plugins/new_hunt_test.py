@@ -36,7 +36,9 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
   @staticmethod
   def FindForemanRules(hunt, token):
-    fman = aff4.FACTORY.Open("aff4:/foreman", mode="r", aff4_type="GRRForeman",
+    fman = aff4.FACTORY.Open("aff4:/foreman",
+                             mode="r",
+                             aff4_type="GRRForeman",
                              token=token)
     hunt_rules = []
     rules = fman.Get(fman.Schema.RULES, [])
@@ -58,15 +60,19 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     # Add 2 distinct clients
     client_id = "C.1%015d" % 0
-    fd = aff4.FACTORY.Create(rdf_client.ClientURN(client_id), "VFSGRRClient",
-                             token=token)
+    fd = aff4.FACTORY.Create(
+        rdf_client.ClientURN(client_id),
+        "VFSGRRClient",
+        token=token)
     fd.Set(fd.Schema.SYSTEM("Windows"))
     fd.Set(fd.Schema.CLOCK(2336650631137737))
     fd.Close()
 
     client_id = "C.1%015d" % 1
-    fd = aff4.FACTORY.Create(rdf_client.ClientURN(client_id), "VFSGRRClient",
-                             token=token)
+    fd = aff4.FACTORY.Create(
+        rdf_client.ClientURN(client_id),
+        "VFSGRRClient",
+        token=token)
     fd.Set(fd.Schema.SYSTEM("Linux"))
     fd.Set(fd.Schema.CLOCK(2336650631137737))
     fd.Close()
@@ -76,7 +82,9 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     with self.ACLChecksDisabled():
       # Create a Foreman with an empty rule set.
-      with aff4.FACTORY.Create("aff4:/foreman", "GRRForeman", mode="rw",
+      with aff4.FACTORY.Create("aff4:/foreman",
+                               "GRRForeman",
+                               mode="rw",
                                token=self.token) as self.foreman:
         self.foreman.Set(self.foreman.Schema.RULES())
         self.foreman.Close()
@@ -140,8 +148,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     # Configure the hunt to use dummy output plugin.
     self.Click("css=grr-new-hunt-wizard-form button[name=Add]")
-    self.Select("css=grr-new-hunt-wizard-form select",
-                "DummyOutputPlugin")
+    self.Select("css=grr-new-hunt-wizard-form select", "DummyOutputPlugin")
     self.Type(
         "css=grr-new-hunt-wizard-form "
         "grr-form-proto-single-field:has(label:contains('Filename Regex')) "
@@ -156,7 +163,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     # A note informs what an empty set of rules means.
     self.WaitUntil(self.IsTextPresent, "No rules specified! "
-                                       "The hunt will run on all clients.")
+                   "The hunt will run on all clients.")
 
     # Alternative match mode that matches a client if
     # any of the rules evaluates to true can be selected.
@@ -165,14 +172,13 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     # The note depends on the match mode.
     self.WaitUntil(self.IsTextPresent, "No rules specified! "
-                                       "The hunt won't run on any client.")
+                   "The hunt won't run on any client.")
 
     # Create 3 foreman rules. Note that "Add" button adds rules
     # to the beginning of a list. So we always use :nth(0) selector.
     self.Click("css=grr-configure-rules-page button[name=Add]")
 
-    self.Select("css=grr-configure-rules-page div.well:nth(0) select",
-                "Regex")
+    self.Select("css=grr-configure-rules-page div.well:nth(0) select", "Regex")
     self.Select("css=grr-configure-rules-page div.well:nth(0) "
                 "label:contains('Attribute name') ~ * select", "System")
     self.Type("css=grr-configure-rules-page div.well:nth(0) "
@@ -184,11 +190,9 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.Select("css=grr-configure-rules-page div.well:nth(0) "
                 "label:contains('Attribute name') ~ * select", "Clock")
     self.Select("css=grr-configure-rules-page div.well:nth(0) "
-                "label:contains('Operator') ~ * select",
-                "GREATER_THAN")
+                "label:contains('Operator') ~ * select", "GREATER_THAN")
     self.Type("css=grr-configure-rules-page div.well:nth(0) "
-              "label:contains('Value') ~ * input",
-              "1336650631137737")
+              "label:contains('Value') ~ * input", "1336650631137737")
 
     self.Click("css=grr-configure-rules-page button[name=Add]")
     self.Click("css=grr-configure-rules-page div.well:nth(0) "
@@ -284,9 +288,9 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
       hunt_rules = self.FindForemanRules(hunt, token=self.token)
 
     self.assertEqual(len(hunt_rules), 1)
-    self.assertTrue(
-        abs(int(hunt_rules[0].expires - hunt_rules[0].created) -
-            14 * 24 * 60 * 60) <= 1)
+    f = 14 * 24 * 60 * 60
+    self.assertTrue(abs(int(hunt_rules[0].expires - hunt_rules[0].created) - f)
+                    <= 1)
 
     r = hunt_rules[0].client_rule_set
 
@@ -305,8 +309,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.assertEqual(r.rules[1].integer.path, "/")
     self.assertEqual(r.rules[1].integer.attribute_name, "Clock")
     self.assertEqual(r.rules[1].integer.operator,
-                     rdf_foreman.ForemanIntegerClientRule.Operator.
-                     GREATER_THAN)
+                     rdf_foreman.ForemanIntegerClientRule.Operator.GREATER_THAN)
     self.assertEqual(r.rules[1].integer.value, 1336650631137737)
 
     self.assertEqual(r.rules[2].rule_type,
@@ -317,7 +320,8 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
   def testNewHuntDeprecatedWizard(self):
     with test_lib.ConfigOverrider({
-        "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules": False}):
+        "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules": False
+    }):
       with self.ACLChecksDisabled():
         self.CreateHuntFixtureWithTwoClients()
 
@@ -376,8 +380,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
       # Configure the hunt to use dummy output plugin.
       self.Click("css=grr-new-hunt-wizard-form button[name=Add]")
-      self.Select("css=grr-new-hunt-wizard-form select",
-                  "DummyOutputPlugin")
+      self.Select("css=grr-new-hunt-wizard-form select", "DummyOutputPlugin")
       self.Type(
           "css=grr-new-hunt-wizard-form "
           "grr-form-proto-single-field:has(label:contains('Filename Regex')) "
@@ -417,8 +420,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
           "1336650631137737")
 
       self.Click("css=grr-new-hunt-wizard-form button[name=Add]")
-      self.Select("css=grr-new-hunt-wizard-form div.Rule:nth(0) select",
-                  "OS X")
+      self.Select("css=grr-new-hunt-wizard-form div.Rule:nth(0) select", "OS X")
 
       # Click on "Back" button
       self.Click("css=grr-new-hunt-wizard-form button.Back")
@@ -499,9 +501,8 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
         hunt_rules = self.FindForemanRules(hunt, token=self.token)
 
       self.assertEqual(len(hunt_rules), 1)
-      self.assertTrue(
-          abs(int(hunt_rules[0].expires - hunt_rules[0].created) -
-              14 * 24 * 60 * 60) <= 1)
+      self.assertTrue(abs(int(hunt_rules[0].expires - hunt_rules[0].created) -
+                          14 * 24 * 60 * 60) <= 1)
 
       self.assertEqual(len(hunt_rules[0].regex_rules), 2)
       self.assertEqual(hunt_rules[0].regex_rules[0].path, "/")
@@ -515,9 +516,9 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
       self.assertEqual(len(hunt_rules[0].integer_rules), 1)
       self.assertEqual(hunt_rules[0].integer_rules[0].path, "/")
       self.assertEqual(hunt_rules[0].integer_rules[0].attribute_name, "Clock")
-      self.assertEqual(hunt_rules[0].integer_rules[0].operator,
-                       rdf_foreman.ForemanAttributeInteger.Operator.
-                       GREATER_THAN)
+      self.assertEqual(
+          hunt_rules[0].integer_rules[0].operator,
+          rdf_foreman.ForemanAttributeInteger.Operator.GREATER_THAN)
       self.assertEqual(hunt_rules[0].integer_rules[0].value, 1336650631137737)
 
   def testLiteralExpressionIsProcessedCorrectly(self):
@@ -591,8 +592,8 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
   def testDefaultOutputPluginIsCorrectlyAddedToThePluginsList(self):
     with test_lib.ConfigOverrider({
-        "AdminUI.new_hunt_wizard.default_output_plugin":
-        "DummyOutputPlugin"}):
+        "AdminUI.new_hunt_wizard.default_output_plugin": "DummyOutputPlugin"
+    }):
       self.Open("/#main=ManageHunts")
       self.Click("css=button[name=NewHunt]")
 
@@ -607,8 +608,10 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
   def testLabelsHuntRuleDisplaysAvailableLabels(self):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Open("C.0000000000000001", aff4_type="VFSGRRClient",
-                             mode="rw", token=self.token) as client:
+      with aff4.FACTORY.Open("C.0000000000000001",
+                             aff4_type="VFSGRRClient",
+                             mode="rw",
+                             token=self.token) as client:
         client.AddLabels("foo", owner="owner1")
         client.AddLabels("bar", owner="owner2")
 
@@ -628,8 +631,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.Click("css=grr-new-hunt-wizard-form button[name=Add]")
 
     # Select 'Clients With Label' rule.
-    self.Select("css=grr-new-hunt-wizard-form div.well select",
-                "Label")
+    self.Select("css=grr-new-hunt-wizard-form div.well select", "Label")
     # Check that there's an option present for labels 'bar' (this option
     # should be selected) and for label 'foo'.
     self.WaitUntil(self.IsElementPresent,
@@ -643,10 +645,13 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
   def testLabelsHuntDeprecatedRuleDisplaysAvailableLabels(self):
     with test_lib.ConfigOverrider({
-        "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules": False}):
+        "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules": False
+    }):
       with self.ACLChecksDisabled():
-        with aff4.FACTORY.Open("C.0000000000000001", aff4_type="VFSGRRClient",
-                               mode="rw", token=self.token) as client:
+        with aff4.FACTORY.Open("C.0000000000000001",
+                               aff4_type="VFSGRRClient",
+                               mode="rw",
+                               token=self.token) as client:
           client.AddLabels("foo", owner="owner1")
           client.AddLabels("bar", owner="owner2")
 
@@ -680,9 +685,11 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
   def testLabelsHuntDeprecatedRuleCreatesForemanRegexRuleInResultingHunt(self):
     with test_lib.ConfigOverrider({
-        "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules": False}):
+        "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules": False
+    }):
       with self.ACLChecksDisabled():
-        with aff4.FACTORY.Open("C.0000000000000001", mode="rw",
+        with aff4.FACTORY.Open("C.0000000000000001",
+                               mode="rw",
                                token=self.token) as client:
           client.AddLabels("foo", owner="test")
 
@@ -735,12 +742,14 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
       client_ids = self.SetupClients(10)
 
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Open(client_ids[1], mode="rw",
+      with aff4.FACTORY.Open(client_ids[1],
+                             mode="rw",
                              token=self.token) as client:
         client.AddLabels("foo", owner="owner1")
         client.AddLabels("bar", owner="owner2")
 
-      with aff4.FACTORY.Open(client_ids[7], mode="rw",
+      with aff4.FACTORY.Open(client_ids[7],
+                             mode="rw",
                              token=self.token) as client:
         client.AddLabels("bar", owner="GRR")
 
@@ -758,8 +767,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     # Select 'Clients With Label' rule.
     self.Click("css=grr-configure-rules-page button[name=Add]")
-    self.Select("css=grr-new-hunt-wizard-form div.well select",
-                "Label")
+    self.Select("css=grr-new-hunt-wizard-form div.well select", "Label")
     self.Select("css=grr-new-hunt-wizard-form div.well .form-group "
                 ".form-group:has(label:contains('Label')):nth-last-of-type(1) "
                 "select", "foo")
@@ -785,8 +793,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
       hunt.Run()  # Run the hunt so that rules are added to the foreman.
 
-      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw",
-                                  token=self.token)
+      foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
       for client_id in client_ids:
         tasks_assigned = foreman.AssignTasksToClient(client_id)
         if client_id in [client_ids[1], client_ids[7]]:
@@ -796,17 +803,20 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
   def testLabelsHuntDeprecatedRuleMatchesCorrectClients(self):
     with test_lib.ConfigOverrider({
-        "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules": False}):
+        "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules": False
+    }):
       with self.ACLChecksDisabled():
         client_ids = self.SetupClients(10)
 
       with self.ACLChecksDisabled():
-        with aff4.FACTORY.Open(client_ids[1], mode="rw",
+        with aff4.FACTORY.Open(client_ids[1],
+                               mode="rw",
                                token=self.token) as client:
           client.AddLabels("foo", owner="owner1")
           client.AddLabels("bar", owner="owner2")
 
-        with aff4.FACTORY.Open(client_ids[7], mode="rw",
+        with aff4.FACTORY.Open(client_ids[7],
+                               mode="rw",
                                token=self.token) as client:
           client.AddLabels("bar", owner="GRR")
 
@@ -841,7 +851,8 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
         hunt.Run()  # Run the hunt so that rules are added to the foreman.
 
-        foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw",
+        foreman = aff4.FACTORY.Open("aff4:/foreman",
+                                    mode="rw",
                                     token=self.token)
         for client_id in client_ids:
           tasks_assigned = foreman.AssignTasksToClient(client_id)
@@ -855,24 +866,21 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
         description=description,
-        flow_runner_args=flow_runner.FlowRunnerArgs(
-            flow_name="GetFile"),
-        flow_args=transfer.GetFileArgs(
-            pathspec=rdf_paths.PathSpec(
-                path="/tmp/evil.txt",
-                pathtype=rdf_paths.PathSpec.PathType.TSK,
-            )
-        ),
+        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+        flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
+            path="/tmp/evil.txt",
+            pathtype=rdf_paths.PathSpec.PathType.TSK,)),
         regex_rules=[rdf_foreman.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
         output_plugins=[
             output_plugin.OutputPluginDescriptor(
                 plugin_name="DummyOutputPlugin",
-                plugin_args=DummyOutputPlugin.args_type(
-                    filename_regex="blah!",
-                    fetch_binaries=True))],
-        client_rate=60, token=token)
+                plugin_args=DummyOutputPlugin.args_type(filename_regex="blah!",
+                                                        fetch_binaries=True))
+        ],
+        client_rate=60,
+        token=token)
 
   def testCopyHuntPrefillsNewHuntWizard(self):
     with self.ACLChecksDisabled():
@@ -890,16 +898,14 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
                         "css=grr-new-hunt-wizard-form "
                         "label:contains('Path') ~ * input:text")
 
-    self.WaitUntilEqual("TSK", self.GetText,
-                        "css=grr-new-hunt-wizard-form "
+    self.WaitUntilEqual("TSK", self.GetText, "css=grr-new-hunt-wizard-form "
                         "label:contains('Pathtype') ~ * select option:selected")
 
     self.WaitUntilEqual("model hunt (copy)", self.GetValue,
                         "css=grr-new-hunt-wizard-form "
                         "label:contains('Description') ~ * input:text")
 
-    self.WaitUntilEqual("60", self.GetValue,
-                        "css=grr-new-hunt-wizard-form "
+    self.WaitUntilEqual("60", self.GetValue, "css=grr-new-hunt-wizard-form "
                         "label:contains('Client rate') ~ * input")
 
     # Click on "Next" button.
@@ -911,12 +917,10 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
                         "css=grr-new-hunt-wizard-form "
                         "label:contains('Plugin') ~ * select option:selected")
 
-    self.WaitUntilEqual("blah!", self.GetValue,
-                        "css=grr-new-hunt-wizard-form "
+    self.WaitUntilEqual("blah!", self.GetValue, "css=grr-new-hunt-wizard-form "
                         "label:contains('Filename Regex') ~ * input:text")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-new-hunt-wizard-form "
+    self.WaitUntil(self.IsElementPresent, "css=grr-new-hunt-wizard-form "
                    "label:contains('Fetch Binaries') ~ * input:checked")
 
     # Click on "Next" button.
@@ -934,8 +938,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
                         "label:contains('Attribute name') "
                         "~ * select option:selected")
 
-    self.WaitUntilEqual("GRR", self.GetValue,
-                        "css=grr-new-hunt-wizard-form "
+    self.WaitUntilEqual("GRR", self.GetValue, "css=grr-new-hunt-wizard-form "
                         "label:contains('Attribute regex') ~ * input:text")
 
     # Click on "Next" button.
@@ -981,8 +984,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     with self.ACLChecksDisabled():
       hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
-      hunts_list = sorted(list(hunts_root.ListChildren()),
-                          key=lambda x: x.age)
+      hunts_list = sorted(list(hunts_root.ListChildren()), key=lambda x: x.age)
 
       self.assertEqual(len(hunts_list), 2)
 
@@ -1001,8 +1003,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
                        last_runner_args.description)
       self.assertEqual(first_runner_args.client_rate,
                        last_runner_args.client_rate)
-      self.assertEqual(first_runner_args.hunt_name,
-                       last_runner_args.hunt_name)
+      self.assertEqual(first_runner_args.hunt_name, last_runner_args.hunt_name)
       self.assertEqual(first_runner_args.regex_rules,
                        last_runner_args.regex_rules)
 
@@ -1073,8 +1074,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     with self.ACLChecksDisabled():
       hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
-      hunts_list = sorted(list(hunts_root.ListChildren()),
-                          key=lambda x: x.age)
+      hunts_list = sorted(list(hunts_root.ListChildren()), key=lambda x: x.age)
 
       self.assertEqual(len(hunts_list), 2)
       last_hunt = aff4.FACTORY.Open(hunts_list[-1], token=self.token)
@@ -1085,15 +1085,15 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
       self.assertEqual(last_hunt.args.flow_runner_args.flow_name, "GetFile")
 
       self.assertEqual(len(last_hunt.args.output_plugins), 2)
-      self.assertEqual(
-          last_hunt.args.output_plugins[0].plugin_name, "DummyOutputPlugin")
+      self.assertEqual(last_hunt.args.output_plugins[0].plugin_name,
+                       "DummyOutputPlugin")
       self.assertEqual(
           last_hunt.args.output_plugins[0].plugin_args.filename_regex,
           "foobar!")
       self.assertEqual(
           last_hunt.args.output_plugins[0].plugin_args.fetch_binaries, False)
-      self.assertEqual(
-          last_hunt.args.output_plugins[1].plugin_name, "DummyOutputPlugin")
+      self.assertEqual(last_hunt.args.output_plugins[1].plugin_name,
+                       "DummyOutputPlugin")
       self.assertEqual(
           last_hunt.args.output_plugins[1].plugin_args.filename_regex, "blah!")
       self.assertEqual(
@@ -1117,15 +1117,12 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
           description="model hunt",
           flow_runner_args=flow_runner.FlowRunnerArgs(
               flow_name=file_finder.FileFinder.__name__),
-          flow_args=file_finder.FileFinderArgs(
-              conditions=[
-                  file_finder.FileFinderCondition(
-                      condition_type="CONTENTS_LITERAL_MATCH",
-                      contents_literal_match=literal_match
-                      )
-                  ],
-              paths=["/tmp/evil.txt"]
-              ),
+          flow_args=file_finder.FileFinderArgs(conditions=[
+              file_finder.FileFinderCondition(
+                  condition_type="CONTENTS_LITERAL_MATCH",
+                  contents_literal_match=literal_match)
+          ],
+                                               paths=["/tmp/evil.txt"]),
           token=self.token)
 
     self.Open("/#main=ManageHunts")
@@ -1161,8 +1158,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.Click("css=button.Next")
 
     hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
-    hunts_list = sorted(list(hunts_root.ListChildren()),
-                        key=lambda x: x.age)
+    hunts_list = sorted(list(hunts_root.ListChildren()), key=lambda x: x.age)
 
     self.assertEqual(len(hunts_list), 2)
     last_hunt = aff4.FACTORY.Open(hunts_list[-1], token=self.token)
@@ -1170,27 +1166,22 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     # Check that the hunt was created with a correct literal value.
     self.assertEqual(last_hunt.state.args.flow_runner_args.flow_name,
                      file_finder.FileFinder.__name__)
-    self.assertEqual(
-        last_hunt.state.args.flow_args.conditions[0]
-        .contents_literal_match.literal,
-        "foo\x0d\xc8bar")
+    self.assertEqual(last_hunt.state.args.flow_args.conditions[0]
+                     .contents_literal_match.literal, "foo\x0d\xc8bar")
 
   def testCopyHuntPreservesRuleType(self):
     with self.ACLChecksDisabled():
       hunts.GRRHunt.StartHunt(
           hunt_name="GenericHunt",
           description="model hunt",
-          flow_runner_args=flow_runner.FlowRunnerArgs(
-              flow_name="GetFile"),
-          flow_args=transfer.GetFileArgs(
-              pathspec=rdf_paths.PathSpec(
-                  path="/tmp/evil.txt",
-                  pathtype=rdf_paths.PathSpec.PathType.TSK,
-              )
-          ),
+          flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+          flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
+              path="/tmp/evil.txt",
+              pathtype=rdf_paths.PathSpec.PathType.TSK,)),
           regex_rules=[rdf_foreman.ForemanAttributeRegex(
               attribute_name="System",
-              attribute_regex="Darwin")], token=self.token)
+              attribute_regex="Darwin")],
+          token=self.token)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=tr:contains('model hunt')")
@@ -1204,27 +1195,24 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
     self.WaitUntil(self.IsTextPresent, "Where to run?")
-    self.WaitUntil(self.IsTextPresent,
-                   "This rule will match all OS X systems.")
+    self.WaitUntil(self.IsTextPresent, "This rule will match all OS X systems.")
 
   def testCopyHuntPreservesDeprecatedRuleType(self):
     with test_lib.ConfigOverrider({
-        "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules": False}):
+        "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules": False
+    }):
       with self.ACLChecksDisabled():
         hunts.GRRHunt.StartHunt(
             hunt_name="GenericHunt",
             description="model hunt",
-            flow_runner_args=flow_runner.FlowRunnerArgs(
-                flow_name="GetFile"),
-            flow_args=transfer.GetFileArgs(
-                pathspec=rdf_paths.PathSpec(
-                    path="/tmp/evil.txt",
-                    pathtype=rdf_paths.PathSpec.PathType.TSK,
-                )
-            ),
+            flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+            flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
+                path="/tmp/evil.txt",
+                pathtype=rdf_paths.PathSpec.PathType.TSK,)),
             regex_rules=[rdf_foreman.ForemanAttributeRegex(
                 attribute_name="System",
-                attribute_regex="Darwin")], token=self.token)
+                attribute_regex="Darwin")],
+            token=self.token)
 
       self.Open("/#main=ManageHunts")
       self.Click("css=tr:contains('model hunt')")
@@ -1245,6 +1233,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 def main(argv):
   # Run the full test suite
   runtests_test.SeleniumTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

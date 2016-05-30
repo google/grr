@@ -10,7 +10,6 @@ from django.conf import urls
 from grr.lib import config_lib
 from grr.lib import registry
 
-
 django_base = "django."
 view_base = "grr.gui.views."
 handler404 = "urls.handler404"

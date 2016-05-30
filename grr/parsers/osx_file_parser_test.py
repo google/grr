@@ -27,8 +27,8 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
           st_mode=16877))
 
     statentries.append(rdf_client.StatEntry(
-        aff4path=rdf_client.ClientURN(client).Add(
-            "fs/os").Add("/Users/.localized"),
+        aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(
+            "/Users/.localized"),
         pathspec=rdf_paths.PathSpec(path="/Users/.localized",
                                     pathtype=rdf_paths.PathSpec.PathType.OS),
         st_mode=33261))
@@ -43,8 +43,8 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     parser = osx_file_parser.OSXSPHardwareDataTypeParser()
     content = open(os.path.join(self.base_path, "system_profiler.xml")).read()
     result = list(parser.Parse("/usr/sbin/system_profiler",
-                               ["SPHardwareDataType -xml"],
-                               content, "", 0, 5, None))
+                               ["SPHardwareDataType -xml"], content, "", 0, 5,
+                               None))
     self.assertEqual(result[0].serial_number, "C02JQ0F5F6L9")
 
   def testOSXLaunchdPlistParser(self):
@@ -64,10 +64,10 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
 
     for result in results:
       self.assertEqual(result.Label, "com.google.code.grr")
-      self.assertItemsEqual(result.ProgramArguments,
-                            ["/usr/lib/grr/grr_3.0.0.5_amd64/grr",
-                             "--config=/usr/lib/grr/grr_3.0.0.5_amd64/grr.yaml"]
-                           )
+      self.assertItemsEqual(
+          result.ProgramArguments,
+          ["/usr/lib/grr/grr_3.0.0.5_amd64/grr",
+           "--config=/usr/lib/grr/grr_3.0.0.5_amd64/grr.yaml"])
 
 
 def main(argv):

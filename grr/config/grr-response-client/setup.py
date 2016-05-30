@@ -14,7 +14,6 @@ import shutil
 from setuptools import setup
 from setuptools.command.sdist import sdist
 
-
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
 # If you run setup.py from the root GRR dir you get very different results since
@@ -47,8 +46,8 @@ class Sdist(sdist):
     sdist_version_ini = os.path.join(base_dir, "version.ini")
     if os.path.exists(sdist_version_ini):
       os.unlink(sdist_version_ini)
-    shutil.copy(os.path.join(THIS_DIRECTORY, "../../../version.ini"),
-                sdist_version_ini)
+    shutil.copy(
+        os.path.join(THIS_DIRECTORY, "../../../version.ini"), sdist_version_ini)
 
 
 if "VIRTUAL_ENV" not in os.environ:
@@ -57,7 +56,6 @@ if "VIRTUAL_ENV" not in os.environ:
   print "  environment. This configuration is not supported!!!"
   print "  Expect breakage."
   print "*****************************************************"
-
 
 setup_args = dict(
     name="grr-response-client",
@@ -76,9 +74,9 @@ setup_args = dict(
     # https://github.com/google/grr/issues/367
     install_requires=[
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-    ] + (["pyinstaller==3.2"] if (
-        platform.linux_distribution()[0] == "CentOS") else [
-            "pyinstaller==3.1.1"]),
-)
+    ] + (["pyinstaller==3.2"] if
+         (platform.linux_distribution()[0] == "CentOS") else [
+             "pyinstaller==3.1.1"
+         ]),)
 
 setup(**setup_args)

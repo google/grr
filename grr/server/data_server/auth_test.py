@@ -20,8 +20,8 @@ class AuthTest(test_lib.GRRBaseTest):
     self.config_overrider = test_lib.ConfigOverrider({
         "Dataserver.server_username": "rootuser1",
         "Dataserver.server_password": "somelongpasswordaabb",
-        "Dataserver.client_credentials":
-        ["rootuser1:somelongpasswordaabb:rw"]})
+        "Dataserver.client_credentials": ["rootuser1:somelongpasswordaabb:rw"]
+    })
     self.config_overrider.Start()
 
   def tearDown(self):
@@ -44,8 +44,9 @@ class AuthTest(test_lib.GRRBaseTest):
     self.assertEqual(None, store.GetNonce(nonce2))
 
   def testNonceStoreInvalidateOldNonces(self):
-    with utils.MultiStubber((auth.NonceStore, "NONCE_LEASE", 1),
-                            (auth.NonceStore, "MAX_NONCES", 5)):
+    with utils.MultiStubber(
+        (auth.NonceStore, "NONCE_LEASE", 1),
+        (auth.NonceStore, "MAX_NONCES", 5)):
       store = auth.NonceStore()
 
       now = 1000000
@@ -134,15 +135,15 @@ class AuthTest(test_lib.GRRBaseTest):
 
     # Create new credentials with wrong password.
     creds3 = auth.ClientCredentials()
-    self.assertRaises(
-        crypto.CipherError,
-        creds3.InitializeFromEncryption, cipher, user, "badpassword")
+    self.assertRaises(crypto.CipherError, creds3.InitializeFromEncryption,
+                      cipher, user, "badpassword")
 
     self.assertFalse(creds3.HasUser(user))
 
 
 def main(args):
   test_lib.main(args)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

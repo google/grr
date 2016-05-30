@@ -8,9 +8,7 @@ from grr.lib import parsers
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
-
-ParsedRelease = collections.namedtuple('ParsedRelease',
-                                       'release, major, minor')
+ParsedRelease = collections.namedtuple('ParsedRelease', 'release, major, minor')
 WeightedReleaseFile = collections.namedtuple('WeightedReleaseFile',
                                              'weight, path, processor')
 
@@ -147,8 +145,7 @@ class LinuxReleaseParser(parsers.FileParser):
                           ReleaseFileParseHandler('RedHat')),
       # Debian-based.
       WeightedReleaseFile(20, '/etc/debian_version',
-                          ReleaseFileParseHandler('Debian')),
-  )
+                          ReleaseFileParseHandler('Debian')),)
 
   def _Combine(self, stats, file_objects):
     result = {}
@@ -181,7 +178,8 @@ class LinuxReleaseParser(parsers.FileParser):
         yield rdf_protodict.Dict({
             'os_release': result.release,
             'os_major_version': result.major,
-            'os_minor_version': result.minor})
+            'os_minor_version': result.minor
+        })
         break
     else:
       # No successful parse.

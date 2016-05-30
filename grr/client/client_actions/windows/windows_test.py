@@ -61,7 +61,8 @@ class WindowsActionTests(test_lib.OSSpecificClientTests):
     # Stub out wmi.WMI().Win32_NetworkAdapterConfiguration(IPEnabled=1)
     wmi_object = self.windows.wmi.WMI.return_value
     wmi_object.Win32_NetworkAdapterConfiguration.return_value = [
-        client_fixture.WMIWin32NetworkAdapterConfigurationMock()]
+        client_fixture.WMIWin32NetworkAdapterConfigurationMock()
+    ]
 
     enumif = self.windows.EnumerateInterfaces()
     interface_dict_list = list(enumif.RunNetAdapterWMIQuery())
@@ -70,17 +71,17 @@ class WindowsActionTests(test_lib.OSSpecificClientTests):
     interface = interface_dict_list[0]
     self.assertEqual(len(interface["addresses"]), 4)
     addresses = [x.human_readable_address for x in interface["addresses"]]
-    self.assertItemsEqual(addresses,
-                          ["192.168.1.20", "ffff::ffff:aaaa:1111:aaaa",
-                           "dddd:0:8888:6666:bbbb:aaaa:eeee:bbbb",
-                           "dddd:0:8888:6666:bbbb:aaaa:ffff:bbbb"])
+    self.assertItemsEqual(addresses, ["192.168.1.20",
+                                      "ffff::ffff:aaaa:1111:aaaa",
+                                      "dddd:0:8888:6666:bbbb:aaaa:eeee:bbbb",
+                                      "dddd:0:8888:6666:bbbb:aaaa:ffff:bbbb"])
 
   def testRunWMI(self):
     wmi_obj = self.windows.win32com.client.GetObject.return_value
     mock_query_result = mock.MagicMock()
     mock_query_result.Properties_ = []
-    wmi_properties = (client_fixture.WMIWin32NetworkAdapterConfigurationMock.
-                      __dict__.iteritems())
+    mock_config = client_fixture.WMIWin32NetworkAdapterConfigurationMock
+    wmi_properties = mock_config.__dict__.iteritems()
     for key, value in wmi_properties:
       keyval = mock.MagicMock()
       keyval.Name, keyval.Value = key, value
@@ -231,13 +232,12 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
 
   def testRegistryListing(self):
 
-    pathspec = rdf_paths.PathSpec(
-        pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
-        path=("/HKEY_USERS/S-1-5-20/Software/Microsoft"
-              "/Windows/CurrentVersion/Run"))
+    pathspec = rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
+                                  path=(
+                                      "/HKEY_USERS/S-1-5-20/Software/Microsoft"
+                                      "/Windows/CurrentVersion/Run"))
 
-    expected_names = {"MctAdmin": stat.S_IFDIR,
-                      "Sidebar": stat.S_IFDIR}
+    expected_names = {"MctAdmin": stat.S_IFDIR, "Sidebar": stat.S_IFDIR}
     expected_data = [u"%ProgramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun",
                      u"%TEMP%\\Sidebar.exe"]
 
@@ -248,26 +248,29 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
       self.assertIn(f.registry_data.GetValue(), expected_data)
 
   def _RunRegistryFinder(self, paths=None):
-    client_mock = action_mocks.ActionMock(
-        "Find", "TransferBuffer", "HashBuffer", "FingerprintFile",
-        "FingerprintFile", "Grep", "StatFile")
+    client_mock = action_mocks.ActionMock("Find", "TransferBuffer",
+                                          "HashBuffer", "FingerprintFile",
+                                          "FingerprintFile", "Grep", "StatFile")
 
     output_path = "analysis/file_finder"
     client_id = self.SetupClients(1)[0]
 
-    aff4.FACTORY.Delete(client_id.Add(output_path),
-                        token=self.token)
+    aff4.FACTORY.Delete(client_id.Add(output_path), token=self.token)
 
-    for _ in test_lib.TestFlowHelper(
-        "RegistryFinder", client_mock, client_id=client_id,
-        keys_paths=paths,
-        conditions=[], token=self.token, output=output_path):
+    for _ in test_lib.TestFlowHelper("RegistryFinder",
+                                     client_mock,
+                                     client_id=client_id,
+                                     keys_paths=paths,
+                                     conditions=[],
+                                     token=self.token,
+                                     output=output_path):
       pass
 
     try:
-      return list(aff4.FACTORY.Open(client_id.Add(output_path),
-                                    aff4_type="RDFValueCollection",
-                                    token=self.token))
+      return list(aff4.FACTORY.Open(
+          client_id.Add(output_path),
+          aff4_type="RDFValueCollection",
+          token=self.token))
     except aff4.InstantiationError:
       return []
 
@@ -281,16 +284,15 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
         ["Value1", "Value2"])
 
     # This is a key so we should get back the default value.
-    results = self._RunRegistryFinder(
-        ["HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest"])
+    results = self._RunRegistryFinder(["HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest"
+                                      ])
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].stat_entry.registry_data.GetValue(),
                      "DefaultValue")
 
     # The same should work using a wildcard.
-    results = self._RunRegistryFinder(
-        ["HKEY_LOCAL_MACHINE/SOFTWARE/*"])
+    results = self._RunRegistryFinder(["HKEY_LOCAL_MACHINE/SOFTWARE/*"])
 
     self.assertTrue(results)
     paths = [x.stat_entry.pathspec.path for x in results]
@@ -303,6 +305,7 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

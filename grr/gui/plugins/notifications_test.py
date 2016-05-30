@@ -47,8 +47,7 @@ class TestNotifications(test_lib.GRRSeleniumTest):
 
       # Generate temp file and notification
       file_urn = "aff4:/tmp/foo/bar"
-      with aff4.FACTORY.Create(file_urn, "AFF4MemoryStream",
-                               token=token) as fd:
+      with aff4.FACTORY.Create(file_urn, "AFF4MemoryStream", token=token) as fd:
         fd.Write("hello")
 
       flow_obj.Notify("DownloadFile", file_urn, "Fake file download message.")
@@ -70,22 +69,19 @@ class TestNotifications(test_lib.GRRSeleniumTest):
 
     # There should be 6 notifications ready (5 that we generate + 1 about
     # approval).
-    self.WaitUntilEqual(
-        "6", self.GetText, "css=button[id=notification_button]")
+    self.WaitUntilEqual("6", self.GetText, "css=button[id=notification_button]")
 
     # Clicking on this should show the table
     self.Click("css=button[id=notification_button]")
 
     # This should clear the notifications.
     self.Click("css=button:contains('Close')")
-    self.WaitUntilEqual(
-        "0", self.GetText, "css=button[id=notification_button]")
+    self.WaitUntilEqual("0", self.GetText, "css=button[id=notification_button]")
 
     # Notifications should be clear even after we reload the page.
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
-    self.WaitUntilEqual("0", self.GetText,
-                        "css=button[id=notification_button]")
+    self.WaitUntilEqual("0", self.GetText, "css=button[id=notification_button]")
 
     # Clicking on this should show the table
     self.Click("css=button[id=notification_button]")
@@ -107,16 +103,15 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     self.Click("css=td:contains(exe)")
 
     # The stats pane shows the target file
-    self.WaitUntilContains(
-        "aff4:/C.0000000000000001/fs/os/proc/10/exe",
-        self.GetText, "css=.tab-content h3")
+    self.WaitUntilContains("aff4:/C.0000000000000001/fs/os/proc/10/exe",
+                           self.GetText, "css=.tab-content h3")
 
     # Now select a FlowStatus notification,
     # should navigate to the broken flow.
     self.Click("css=button[id=notification_button]")
 
-    self.WaitUntilContains("terminated due to error",
-                           self.GetText, "css=td:contains('error')")
+    self.WaitUntilContains("terminated due to error", self.GetText,
+                           "css=td:contains('error')")
 
     self.ClickUntil("css=td:contains('terminated due to error')",
                     self.IsTextPresent, "Flow Information")
@@ -126,8 +121,7 @@ class TestNotifications(test_lib.GRRSeleniumTest):
                    "css=li.active a[grrtarget='client.flows']")
 
     # The stats pane shows the relevant flow
-    self.WaitUntilContains(
-        self.session_id, self.GetText, "css=.tab-content h3")
+    self.WaitUntilContains(self.session_id, self.GetText, "css=.tab-content h3")
 
   def testUserSettings(self):
     """Tests that user settings UI is working."""
@@ -145,14 +139,14 @@ class TestNotifications(test_lib.GRRSeleniumTest):
 
     # Check that the mode value was saved
     self.Click("css=grr-user-settings-button")
-    self.assertEqual(
-        "BASIC (default)",
-        self.GetSelectedLabel(mode_selector).strip())
+    self.assertEqual("BASIC (default)",
+                     self.GetSelectedLabel(mode_selector).strip())
 
   def testClickOnDownloadFileNotificationLeadsToImmediateFileDownload(self):
     file_urn = "aff4:/tmp/foo/bar"
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create(file_urn, "AFF4MemoryStream",
+      with aff4.FACTORY.Create(file_urn,
+                               "AFF4MemoryStream",
                                token=self.token) as fd:
         fd.Write("hello")
 
@@ -173,6 +167,7 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     # import until the Django server is properly set up.
     # pylint: disable=g-import-not-at-top
     from grr.gui.plugins.configuration_view import ConfigFileTableToolbar
+
     # pylint: enable=g-import-not-at-top
 
     # pylint: disable=unused-argument
@@ -192,8 +187,8 @@ class TestNotifications(test_lib.GRRSeleniumTest):
         self.Click("css=button#show_backtrace")
 
         # Check if message and traceback are shown.
-        self.WaitUntilContains("This is a forced exception",
-                               self.GetText, "css=div[name=ServerErrorDialog]")
+        self.WaitUntilContains("This is a forced exception", self.GetText,
+                               "css=div[name=ServerErrorDialog]")
         self.WaitUntilContains("Traceback (most recent call last):",
                                self.GetText, "css=div[name=ServerErrorDialog]")
 
@@ -213,17 +208,16 @@ class TestNotifications(test_lib.GRRSeleniumTest):
       self.Click("css=button#show_backtrace")
 
       # Check if message and traceback are shown.
-      self.WaitUntilContains("This is a another forced exception",
-                             self.GetText,
+      self.WaitUntilContains("This is a another forced exception", self.GetText,
                              "css=div[name=ServerErrorDialog]")
-      self.WaitUntilContains("Traceback (most recent call last):",
-                             self.GetText,
+      self.WaitUntilContains("Traceback (most recent call last):", self.GetText,
                              "css=div[name=ServerErrorDialog]")
 
 
 def main(argv):
   # Run the full test suite
   runtests_test.SeleniumTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

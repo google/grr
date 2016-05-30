@@ -17,9 +17,8 @@ def version():
 
   config = ConfigParser.SafeConfigParser()
   config.read(version_ini)
-  return dict(
-      packageversion=config.get("Version", "packageversion"),
-      major=config.getint("Version", "major"),
-      minor=config.getint("Version", "minor"),
-      revision=config.getint("Version", "revision"),
-      release=config.getint("Version", "release"))
+  return dict(packageversion=config.get("Version", "packageversion"),
+              major=config.getint("Version", "major"),
+              minor=config.getint("Version", "minor"),
+              revision=config.getint("Version", "revision"),
+              release=config.getint("Version", "release"))

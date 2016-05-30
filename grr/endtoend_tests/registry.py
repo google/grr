@@ -35,19 +35,22 @@ class TestFindWindowsRegistry(base.ClientTestBase):
         ("ListDirectory", {"pathspec": rdf_paths.PathSpec(
             pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
             path=self.reg_path)}),
-        ("FindFiles", {"findspec": rdf_client.FindSpec(
-            pathspec=rdf_paths.PathSpec(
-                path=self.reg_path,
-                pathtype=rdf_paths.PathSpec.PathType.REGISTRY),
-            path_regex="ProfileImagePath"),
-                       "output": self.output_path})]:
+        ("FindFiles",
+         {"findspec": rdf_client.FindSpec(pathspec=rdf_paths.PathSpec(
+             path=self.reg_path,
+             pathtype=rdf_paths.PathSpec.PathType.REGISTRY),
+                                          path_regex="ProfileImagePath"),
+          "output": self.output_path})
+    ]:
 
       if self.local_worker:
-        self.session_id = debugging.StartFlowAndWorker(
-            self.client_id, flow, **args)
+        self.session_id = debugging.StartFlowAndWorker(self.client_id, flow,
+                                                       **args)
       else:
-        self.session_id = flow_utils.StartFlowAndWait(
-            self.client_id, flow_name=flow, token=self.token, **args)
+        self.session_id = flow_utils.StartFlowAndWait(self.client_id,
+                                                      flow_name=flow,
+                                                      token=self.token,
+                                                      **args)
 
     self.CheckFlow()
 

@@ -14,7 +14,6 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client
 from grr.lib.rdfvalues import paths
 
-
 # File handles are cached here. They expire after a couple minutes so
 # we don't keep files locked on the client.
 FILE_HANDLE_CACHE = utils.TimeBasedCache(max_age=300)
@@ -75,22 +74,13 @@ def MakeStatResponse(st, pathspec):
     pass
   else:
     # Now fill in the stat value
-    for attr in ["st_mode",
-                 "st_ino",
-                 "st_dev",
-                 "st_nlink",
-                 "st_uid",
-                 "st_gid",
-                 "st_size",
-                 "st_atime",
-                 "st_mtime",
-                 "st_ctime",
-                 "st_blocks",
-                 "st_blksize",
-                 "st_rdev"]:
+    for attr in ["st_mode", "st_ino", "st_dev", "st_nlink", "st_uid", "st_gid",
+                 "st_size", "st_atime", "st_mtime", "st_ctime", "st_blocks",
+                 "st_blksize", "st_rdev"]:
       try:
         value = long(getattr(st, attr))
-        if value < 0: value &= 0xFFFFFFFF
+        if value < 0:
+          value &= 0xFFFFFFFF
 
         setattr(response, attr, value)
       except AttributeError:
@@ -114,9 +104,13 @@ class File(vfs.VFSHandler):
   alignment = 1
   file_offset = 0
 
-  def __init__(self, base_fd, pathspec=None, progress_callback=None,
+  def __init__(self,
+               base_fd,
+               pathspec=None,
+               progress_callback=None,
                full_pathspec=None):
-    super(File, self).__init__(base_fd, pathspec=pathspec,
+    super(File, self).__init__(base_fd,
+                               pathspec=pathspec,
                                full_pathspec=full_pathspec,
                                progress_callback=progress_callback)
     if base_fd is None:
@@ -148,8 +142,8 @@ class File(vfs.VFSHandler):
       if not self.files:
         # Note that the encoding of local path is system specific
         local_path = client_utils.CanonicalPathToLocalPath(self.path + "/")
-        self.files = [utils.SmartUnicode(entry) for entry in
-                      os.listdir(local_path)]
+        self.files = [utils.SmartUnicode(entry)
+                      for entry in os.listdir(local_path)]
     # Some filesystems do not support unicode properly
     except UnicodeEncodeError as e:
       raise IOError(str(e))
@@ -350,8 +344,7 @@ class File(vfs.VFSHandler):
     if platform.system() == "Windows":
       raise RuntimeError("os.statvfs not available on Windows")
 
-    local_path = client_utils.CanonicalPathToLocalPath(
-        path or self.path)
+    local_path = client_utils.CanonicalPathToLocalPath(path or self.path)
 
     return os.statvfs(local_path)
 
@@ -365,8 +358,8 @@ class File(vfs.VFSHandler):
     Returns:
       path string of the mount point
     """
-    path = os.path.abspath(client_utils.CanonicalPathToLocalPath(
-        path or self.path))
+    path = os.path.abspath(client_utils.CanonicalPathToLocalPath(path or
+                                                                 self.path))
 
     while not os.path.ismount(path):
       path = os.path.dirname(path)

@@ -29,14 +29,16 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     super(CollectionArchiveGeneratorTest, self).setUp()
 
     path1 = "aff4:/C.0000000000000000/fs/os/foo/bar/hello1.txt"
-    with aff4.FACTORY.Create(path1, aff4.AFF4MemoryStream.__name__,
+    with aff4.FACTORY.Create(path1,
+                             aff4.AFF4MemoryStream.__name__,
                              token=self.token) as fd:
       fd.Write("hello1")
       fd.Set(fd.Schema.HASH,
              rdf_crypto.Hash(sha256=hashlib.sha256("hello1").digest()))
 
     path2 = u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
-    with aff4.FACTORY.Create(path2, aff4.AFF4MemoryStream.__name__,
+    with aff4.FACTORY.Create(path2,
+                             aff4.AFF4MemoryStream.__name__,
                              token=self.token) as fd:
       fd.Write("hello2")
       fd.Set(fd.Schema.HASH,
@@ -47,20 +49,21 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     for path in self.paths:
       self.stat_entries.append(rdf_client.StatEntry(
           aff4path=path,
-          pathspec=rdf_paths.PathSpec(
-              path="fs/os/foo/bar/" + path.split("/")[-1],
-              pathtype=rdf_paths.PathSpec.PathType.OS)))
+          pathspec=rdf_paths.PathSpec(path="fs/os/foo/bar/" + path.split("/")[
+              -1], pathtype=rdf_paths.PathSpec.PathType.OS)))
 
     self.fd = None
 
   def _GenerateArchive(
-      self, collection,
+      self,
+      collection,
       archive_format=api_call_handler_utils.CollectionArchiveGenerator.ZIP):
 
     self.fd_path = os.path.join(self.temp_dir, "archive")
 
     archive_generator = api_call_handler_utils.CollectionArchiveGenerator(
-        archive_format=archive_format, prefix="test_prefix",
+        archive_format=archive_format,
+        prefix="test_prefix",
         description="Test description")
     with open(self.fd_path, "w") as out_fd:
       for chunk in archive_generator.Generate(collection, token=self.token):
@@ -124,9 +127,9 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
                   "e21ed95e98bdac9c4e1504ea16f486e4")
     manifest_name = "test_prefix/MANIFEST"
 
-    self.assertEqual(names, sorted([link1_name, link2_name,
-                                    link1_dest, link2_dest,
-                                    manifest_name]))
+    self.assertEqual(
+        names,
+        sorted([link1_name, link2_name, link1_dest, link2_dest, manifest_name]))
 
     link_info = zip_fd.getinfo(link1_name)
     self.assertEqual(link_info.external_attr, (0644 | 0120000) << 16)
@@ -149,14 +152,13 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     self.assertEqual(dest_contents, "hello2")
 
     manifest = yaml.safe_load(zip_fd.read(manifest_name))
-    self.assertEqual(manifest,
-                     {
-                         "description": "Test description",
-                         "processed_files": 2,
-                         "archived_files": 2,
-                         "skipped_files": 0,
-                         "failed_files": 0
-                     })
+    self.assertEqual(manifest, {
+        "description": "Test description",
+        "processed_files": 2,
+        "archived_files": 2,
+        "skipped_files": 0,
+        "failed_files": 0
+    })
 
   def testCreatesTarContainingDeduplicatedCollectionFilesAndReadme(self):
     _, fd_path = self._GenerateArchive(
@@ -181,24 +183,26 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
       self.assertEqual(tar_fd.extractfile(link2_dest).read(), "hello2")
 
       manifest_fd = tar_fd.extractfile("test_prefix/MANIFEST")
-      self.assertEqual(yaml.safe_load(manifest_fd.read()),
-                       {
-                           "description": "Test description",
-                           "processed_files": 2,
-                           "archived_files": 2,
-                           "skipped_files": 0,
-                           "failed_files": 0
-                       })
+      self.assertEqual(
+          yaml.safe_load(manifest_fd.read()), {
+              "description": "Test description",
+              "processed_files": 2,
+              "archived_files": 2,
+              "skipped_files": 0,
+              "failed_files": 0
+          })
 
   def testCorrectlyAccountsForFailedFiles(self):
     path2 = u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
-    with aff4.FACTORY.Create(path2, aff4.AFF4Image.__name__,
+    with aff4.FACTORY.Create(path2,
+                             aff4.AFF4Image.__name__,
                              token=self.token) as fd:
       fd.Write("hello2")
 
     # Delete a single chunk
     aff4.FACTORY.Delete("aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
-                        "/0000000000", token=self.token)
+                        "/0000000000",
+                        token=self.token)
 
     _, fd_path = self._GenerateArchive(
         self.stat_entries,
@@ -215,8 +219,8 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     manifest_name = "test_prefix/MANIFEST"
 
     # Link 2 should be present, but the contents should be missing.
-    self.assertEqual(names, sorted([link1_name, link1_dest, link2_name,
-                                    manifest_name]))
+    self.assertEqual(
+        names, sorted([link1_name, link1_dest, link2_name, manifest_name]))
 
     link_info = zip_fd.getinfo(link1_name)
     self.assertEqual(link_info.external_attr, (0644 | 0120000) << 16)
@@ -247,7 +251,8 @@ class FilterAff4CollectionTest(test_lib.GRRBaseTest):
   def setUp(self):
     super(FilterAff4CollectionTest, self).setUp()
 
-    with aff4.FACTORY.Create("aff4:/tmp/foo/bar", "RDFValueCollection",
+    with aff4.FACTORY.Create("aff4:/tmp/foo/bar",
+                             "RDFValueCollection",
                              token=self.token) as fd:
       for i in range(10):
         fd.Add(rdf_paths.PathSpec(path="/var/os/tmp-%d" % i, pathtype="OS"))

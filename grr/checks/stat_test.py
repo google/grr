@@ -52,7 +52,8 @@ class StatOnlyTests(checks_test_lib.HostCheckTest):
         # Safe cases:
         self.CreateStat("/usr/local", 0, 0, 0o0040755),  # Root owned directory.
         self.CreateStat("/usr/bin", 0, 0, 0o0120777),  # Root owned symlink.
-        self.CreateStat("/usr/sbin", 0, 0, 0o0100775)]  # Root owned file.
+        self.CreateStat("/usr/sbin", 0, 0, 0o0100775)
+    ]  # Root owned file.
 
     results = self.GenResults(["RootEnvPathDirs"], [data])
 
@@ -161,4 +162,3 @@ def main(argv):
 
 if __name__ == "__main__":
   flags.StartMain(main)
-

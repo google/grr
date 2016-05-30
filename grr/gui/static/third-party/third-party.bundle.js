@@ -3704,7 +3704,7 @@ goog.addDependency('structs/collection.js', ['goog.structs.Collection'], [], {})
 goog.addDependency('structs/collection_test.js', ['goog.structs.CollectionTest'], ['goog.structs.AvlTree', 'goog.structs.Set', 'goog.testing.jsunit'], {});
 goog.addDependency('structs/heap.js', ['goog.structs.Heap'], ['goog.array', 'goog.object', 'goog.structs.Node'], {});
 goog.addDependency('structs/heap_test.js', ['goog.structs.HeapTest'], ['goog.structs', 'goog.structs.Heap', 'goog.testing.jsunit'], {});
-goog.addDependency('structs/inversionmap.js', ['goog.structs.InversionMap'], ['goog.array'], {});
+goog.addDependency('structs/inversionmap.js', ['goog.structs.InversionMap'], ['goog.array', 'goog.asserts'], {});
 goog.addDependency('structs/inversionmap_test.js', ['goog.structs.InversionMapTest'], ['goog.structs.InversionMap', 'goog.testing.jsunit'], {});
 goog.addDependency('structs/linkedmap.js', ['goog.structs.LinkedMap'], ['goog.structs.Map'], {});
 goog.addDependency('structs/linkedmap_test.js', ['goog.structs.LinkedMapTest'], ['goog.structs.LinkedMap', 'goog.testing.jsunit', 'goog.testing.recordFunction'], {});

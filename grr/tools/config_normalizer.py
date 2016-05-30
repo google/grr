@@ -9,9 +9,7 @@ import yaml
 from grr.lib import flags
 from grr.lib import lexer
 
-
-flags.PARSER.add_argument("filename", type=str,
-                          help="Filename to normalize")
+flags.PARSER.add_argument("filename", type=str, help="Filename to normalize")
 
 
 class Option(object):
@@ -31,8 +29,7 @@ class Option(object):
     comments = "".join([x for x in self.comments if x != "\n"])
 
     indent = self.indent or ""
-    return "%s%s%s%s" % (
-        comments, indent, self.name, "".join(self.lines))
+    return "%s%s%s%s" % (comments, indent, self.name, "".join(self.lines))
 
 
 class Context(object):
@@ -79,8 +76,7 @@ class Context(object):
     subcontexts = sorted(self.subcontexts, key=lambda x: x.name)
 
     result = [str(x) for x in options] + [str(x) for x in subcontexts]
-    return "%s%s%s%s" % (
-        comments, indent, self.name, "".join(result))
+    return "%s%s%s%s" % (comments, indent, self.name, "".join(result))
 
 
 class YamlConfigLexer(lexer.Lexer):
@@ -95,12 +91,9 @@ class YamlConfigLexer(lexer.Lexer):
   tokens = [
       lexer.Token("OPTION", r"( *)[^\n]+\n", "OptionData", None),
       lexer.Token("OPTION", r" +", "OptionIndent", None),
-
       lexer.Token(None, r" *#[^\n]*\n", "Comment", None),
       lexer.Token(None, r"\n", "NewLine", None),
-      lexer.Token(None, r"( *)([A-Z][^\n]+?:[ \n])", "Option",
-                  "OPTION"),
-
+      lexer.Token(None, r"( *)([A-Z][^\n]+?:[ \n])", "Option", "OPTION"),
       lexer.Token(None, "---\n", "StartDocument", None),
   ]
 
@@ -164,8 +157,8 @@ class YamlConfigLexer(lexer.Lexer):
       self.current_option.indent = match.group(1)
       self.current_option.comments = self.current_comments
       self.current_comments = []
-      logging.debug("Added Option %s to context %s",
-                    string, self.current_context.name)
+      logging.debug("Added Option %s to context %s", string,
+                    self.current_context.name)
 
     else:  # This is a new context.
       context = Context()
@@ -252,6 +245,7 @@ def main(_):
   parser.root.Validate()
 
   print normalized_form
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

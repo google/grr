@@ -22,7 +22,7 @@ class ApiOutputPluginsListHandlerRegressionTest(
     with utils.Stubber(output_plugin.OutputPlugin, "classes", {
         "EmailOutputPlugin": email_plugin.EmailOutputPlugin,
         "CSVOutputPlugin": csv_plugin.CSVOutputPlugin
-        }):
+    }):
       self.Check("GET", "/api/output-plugins/all")
 
 

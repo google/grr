@@ -75,8 +75,12 @@ class ClientTestBase(unittest.TestCase):
   def __str__(self):
     return self.__class__.__name__
 
-  def __init__(self, client_id=None, platform=None, local_worker=False,
-               token=None, local_client=True):
+  def __init__(self,
+               client_id=None,
+               platform=None,
+               local_worker=False,
+               token=None,
+               local_client=True):
     # If we get passed a string, turn it into a urn.
     self.client_id = rdf_client.ClientURN(client_id)
     self.platform = platform
@@ -112,12 +116,14 @@ class ClientTestBase(unittest.TestCase):
         return self.skipTest(message)
 
     if self.local_worker:
-      self.session_id = debugging.StartFlowAndWorker(
-          self.client_id, self.flow, **self.args)
+      self.session_id = debugging.StartFlowAndWorker(self.client_id, self.flow,
+                                                     **self.args)
     else:
-      self.session_id = flow_utils.StartFlowAndWait(
-          self.client_id, flow_name=self.flow,
-          timeout=self.timeout, token=self.token, **self.args)
+      self.session_id = flow_utils.StartFlowAndWait(self.client_id,
+                                                    flow_name=self.flow,
+                                                    timeout=self.timeout,
+                                                    token=self.token,
+                                                    **self.args)
 
     self.CheckFlow()
 
@@ -133,8 +139,8 @@ class ClientTestBase(unittest.TestCase):
         # just one path anyway.
         aff4.FACTORY.Open(urn, aff4_type="AFF4Volume", token=self.token)
     except aff4.InstantiationError:
-      raise TestStateUncleanError(
-          "Path wasn't deleted: %s" % traceback.format_exc())
+      raise TestStateUncleanError("Path wasn't deleted: %s" %
+                                  traceback.format_exc())
 
   def DeleteUrn(self, urn):
     """Deletes an object from the db and the index, and flushes the caches."""
@@ -151,7 +157,8 @@ class ClientTestBase(unittest.TestCase):
       # Try running Interrogate once.
       if run_interrogate:
         flow_utils.StartFlowAndWait(self.client_id,
-                                    flow_name="Interrogate", token=self.token)
+                                    flow_name="Interrogate",
+                                    token=self.token)
         return self.GetGRRBinaryName(run_interrogate=False)
       else:
         self.fail("No valid configuration found, interrogate the client before "
@@ -202,7 +209,9 @@ class LocalClientTest(ClientTestBase):
     super(LocalClientTest, self).runTest()
 
 
-def GetClientTestTargets(client_ids=None, hostnames=None, token=None,
+def GetClientTestTargets(client_ids=None,
+                         hostnames=None,
+                         token=None,
                          checkin_duration_threshold="20m"):
   """Get client urns for end-to-end tests.
 

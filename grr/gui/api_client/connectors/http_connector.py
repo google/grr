@@ -16,7 +16,6 @@ from grr.gui.api_client import connector
 from grr.gui.api_client import utils
 from grr.proto import semantic_pb2
 
-
 logger = logging.getLogger(__name__)
 
 
@@ -28,21 +27,28 @@ class HttpConnector(connector.Connector):
     TYPED_JSON = 1
 
   HANDLERS_MAP = routing.Map([
-      routing.Rule("/api/clients", methods=["GET"],
+      routing.Rule("/api/clients",
+                   methods=["GET"],
                    endpoint="SearchClients"),
-      routing.Rule("/api/clients/<client_id>", methods=["GET"],
+      routing.Rule("/api/clients/<client_id>",
+                   methods=["GET"],
                    endpoint="GetClient"),
-      routing.Rule("/api/clients/<client_id>/flows", methods=["GET"],
+      routing.Rule("/api/clients/<client_id>/flows",
+                   methods=["GET"],
                    endpoint="ListClientFlows"),
-      routing.Rule("/api/clients/<client_id>/flows", methods=["POST"],
+      routing.Rule("/api/clients/<client_id>/flows",
+                   methods=["POST"],
                    endpoint="CreateFlow"),
-      ])
+  ])
 
   JSON_PREFIX = ")]}\'\n"
   DEFAULT_PAGE_SIZE = 50
 
-  def __init__(self, api_endpoint=None, auth=None,
-               response_format=ResponseFormat.JSON, page_size=None):
+  def __init__(self,
+               api_endpoint=None,
+               auth=None,
+               response_format=ResponseFormat.JSON,
+               page_size=None):
     super(HttpConnector, self).__init__()
 
     self.api_endpoint = api_endpoint
@@ -116,13 +122,11 @@ class HttpConnector(connector.Connector):
     headers = {
         "x-csrftoken": self.csrf_token,
         "x-requested-with": "XMLHttpRequest"
-        }
-    cookies = {
-        "csrftoken": self.csrf_token
     }
+    cookies = {"csrftoken": self.csrf_token}
 
-    method, url, query_params = self._GetMethodUrlAndQueryParams(
-        handler_name, args)
+    method, url, query_params = self._GetMethodUrlAndQueryParams(handler_name,
+                                                                 args)
 
     body = None
     if method != "GET":
@@ -132,22 +136,25 @@ class HttpConnector(connector.Connector):
     if self.response_format == self.ResponseFormat.JSON:
       query_params["strip_type_info"] = "1"
 
-    logger.debug("%s request: %s (query: %s, body: %s, headers %s)",
-                 method, url, query_params, body, headers)
-    request = requests.Request(
-        method, url, json=body, params=query_params,
-        headers=headers, cookies=cookies)
+    logger.debug("%s request: %s (query: %s, body: %s, headers %s)", method,
+                 url, query_params, body, headers)
+    request = requests.Request(method,
+                               url,
+                               json=body,
+                               params=query_params,
+                               headers=headers,
+                               cookies=cookies)
     prepped_request = request.prepare()
 
     session = requests.Session()
     response = session.send(prepped_request)
     content = response.content
 
-    logger.debug("%s response (%s, %d):\n%s", method, url,
-                 response.status_code, content)
+    logger.debug("%s response (%s, %d):\n%s", method, url, response.status_code,
+                 content)
     if content[:len(self.JSON_PREFIX)] != self.JSON_PREFIX:
-      raise RuntimeError("JSON prefix %s is not in response:\n%s" % (
-          self.JSON_PREFIX, content))
+      raise RuntimeError("JSON prefix %s is not in response:\n%s" %
+                         (self.JSON_PREFIX, content))
 
     json_str = content[len(self.JSON_PREFIX):]
     parsed_json = json.loads(json_str)
@@ -166,8 +173,7 @@ class HttpConnector(connector.Connector):
     except KeyError:
       pass
 
-    return utils.ItemsIterator(items=response["items"],
-                               total_count=total_count)
+    return utils.ItemsIterator(items=response["items"], total_count=total_count)
 
   def GetDataAttribute(self, data, attribute_name):
     if self.response_format == self.ResponseFormat.JSON:

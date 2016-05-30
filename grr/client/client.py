@@ -19,9 +19,7 @@ from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import startup
 
-
-flags.DEFINE_bool("install", False,
-                  "Specify this to install the client.")
+flags.DEFINE_bool("install", False, "Specify this to install the client.")
 
 flags.DEFINE_bool("break_on_start", False,
                   "If True break into a pdb shell immediately on startup. This"
@@ -35,8 +33,7 @@ flags.DEFINE_bool("debug_client_actions", False,
 def main(unused_args):
   # Allow per platform configuration.
   config_lib.CONFIG.AddContext(
-      "Client Context",
-      "Context applied when we run the client process.")
+      "Client Context", "Context applied when we run the client process.")
 
   startup.ClientInit()
 
@@ -52,7 +49,8 @@ def main(unused_args):
   # Instantiating the client will create a private_key so we need to use a flag.
   client = comms.GRRHTTPClient(
       ca_cert=config_lib.CONFIG["CA.certificate"],
-      private_key=config_lib.CONFIG.Get("Client.private_key", default=None))
+      private_key=config_lib.CONFIG.Get("Client.private_key",
+                                        default=None))
 
   if enrollment_necessary:
     logging.info("No private key found, starting enrollment.")

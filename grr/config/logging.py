@@ -5,7 +5,6 @@ from grr.lib import config_lib
 from grr.lib import type_info
 from grr.lib.rdfvalues import standard
 
-
 config_lib.DEFINE_string("Logging.domain", "localhost",
                          "The email domain belonging to this installation. "
                          "Leave blank to not restrict email to this domain")
@@ -14,17 +13,21 @@ config_lib.DEFINE_list("Logging.engines", ["stderr"],
                        "Enabled logging engines. Valid values are "
                        "combinations of stderr,file,syslog,event_log.")
 
-config_lib.DEFINE_bool("Logging.verbose", False,
+config_lib.DEFINE_bool("Logging.verbose",
+                       False,
                        help="If true log more verbosely.")
 
-config_lib.DEFINE_string("Logging.path", "%(Config.prefix)/var/log/",
+config_lib.DEFINE_string("Logging.path",
+                         "%(Config.prefix)/var/log/",
                          help="Path to log file directory.")
 
-config_lib.DEFINE_string("Logging.syslog_path", "/dev/log",
+config_lib.DEFINE_string("Logging.syslog_path",
+                         "/dev/log",
                          help="Path to syslog socket. This can be a unix "
                          "domain socket or in a UDP host:port notation.")
 
-config_lib.DEFINE_string("Logging.filename", "%(Logging.path)/GRRlog.txt",
+config_lib.DEFINE_string("Logging.filename",
+                         "%(Logging.path)/GRRlog.txt",
                          help="Filename of the grr log file.")
 
 config_lib.DEFINE_string(
@@ -34,7 +37,8 @@ config_lib.DEFINE_string(
     "%{%(levelname)s:%(asctime)s %(module)s:%(lineno)s] %(message)s}",
     help="Log line format (using python's standard logging expansions).")
 
-config_lib.DEFINE_string("Logging.service_name", "GRR",
+config_lib.DEFINE_string("Logging.service_name",
+                         "GRR",
                          help="The service name that will be logged with the "
                          "event log engine.")
 

@@ -22,7 +22,6 @@ from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import structs as rdf_structs
 
-
 # Caches for GetTypeDescriptorRenderer(), We can have a renderer for a repeated
 # member by extending RepeatedFieldFormRenderer and a renderer for a single item
 # by extending TypeDescriptorFormRenderer.
@@ -109,8 +108,12 @@ class SemanticProtoFormRenderer(renderers.TemplateRenderer):
 </div>
 """)
 
-  def __init__(self, proto_obj=None, prefix="v_", supressions=None,
-               opened=True, **kwargs):
+  def __init__(self,
+               proto_obj=None,
+               prefix="v_",
+               supressions=None,
+               opened=True,
+               **kwargs):
     """Create a semantic protobuf form renderer.
 
     How to use this renderer:
@@ -206,7 +209,8 @@ class SemanticProtoFormRenderer(renderers.TemplateRenderer):
         continue
 
       type_renderer = GetTypeDescriptorRenderer(descriptor)(
-          descriptor=descriptor, container=self.proto_obj,
+          descriptor=descriptor,
+          container=self.proto_obj,
           prefix=self.prefix + "-" + descriptor.name)
 
       # Delegate the arg parsing to the type descriptor renderer and set it
@@ -241,8 +245,15 @@ class TypeDescriptorFormRenderer(renderers.TemplateRenderer):
 
   friendly_name = None
 
-  def __init__(self, descriptor=None, prefix="v_", opened=False, default=None,
-               value=None, container=None, render_label=True, **kwargs):
+  def __init__(self,
+               descriptor=None,
+               prefix="v_",
+               opened=False,
+               default=None,
+               value=None,
+               container=None,
+               render_label=True,
+               **kwargs):
     """Create a new renderer for a type descriptor.
 
     Args:
@@ -279,8 +290,7 @@ class TypeDescriptorFormRenderer(renderers.TemplateRenderer):
     super(TypeDescriptorFormRenderer, self).__init__(**kwargs)
 
   def Layout(self, request, response):
-    self.friendly_name = (self.friendly_name or
-                          self.descriptor.friendly_name or
+    self.friendly_name = (self.friendly_name or self.descriptor.friendly_name or
                           self.descriptor.name)
 
     return super(TypeDescriptorFormRenderer, self).Layout(request, response)
@@ -422,9 +432,10 @@ class EmbeddedProtoFormRenderer(TypeDescriptorFormRenderer):
       self.opened = True
 
     if self.opened:
-      delegated_renderer = SemanticProtoFormRenderer(
-          proto_obj=self.value or self.default, opened=False,
-          prefix=self.prefix)
+      delegated_renderer = SemanticProtoFormRenderer(proto_obj=self.value or
+                                                     self.default,
+                                                     opened=False,
+                                                     prefix=self.prefix)
 
       self.prefetched = delegated_renderer.RawHTML(request)
 
@@ -447,7 +458,8 @@ class EmbeddedProtoFormRenderer(TypeDescriptorFormRenderer):
     self.delegated_renderer_layout = delegated_renderer.RawHTML(request)
 
     response = renderers.TemplateRenderer.Layout(
-        self, request, response, apply_template=self.ajax_template)
+        self, request,
+        response, apply_template=self.ajax_template)
     return self.CallJavascript(response, "RenderAjax")
 
   def ParseArgs(self, request):
@@ -473,7 +485,8 @@ class EmbeddedProtoFormRenderer(TypeDescriptorFormRenderer):
         continue
 
       type_renderer = GetTypeDescriptorRenderer(descriptor)(
-          descriptor=descriptor, container=self.container,
+          descriptor=descriptor,
+          container=self.container,
           prefix=self.prefix + "-" + descriptor.name)
 
       # Delegate the arg parsing to the type descriptor renderer and set it
@@ -540,7 +553,8 @@ class RepeatedFieldFormRenderer(TypeDescriptorFormRenderer):
 
     parameters = dict(owner=self.descriptor.owner.__name__,
                       field=self.descriptor.name,
-                      prefix=self.prefix, index=0)
+                      prefix=self.prefix,
+                      index=0)
     request.REQ.update(parameters)
 
     if self.add_element_on_first_show:
@@ -568,7 +582,9 @@ class RepeatedFieldFormRenderer(TypeDescriptorFormRenderer):
       delegate_prefix = "%s-%s" % (self.prefix, index)
       delegate = self.descriptor.delegate
       delegate_renderer = GetTypeDescriptorRenderer(delegate)(
-          descriptor=delegate, opened=True, container=self.container,
+          descriptor=delegate,
+          opened=True,
+          container=self.container,
           prefix=delegate_prefix)
 
       child = delegate_renderer.ParseArgs(request)
@@ -596,13 +612,17 @@ class RepeatedFieldFormRenderer(TypeDescriptorFormRenderer):
       value = None
 
     delegated_renderer = GetTypeDescriptorRenderer(delegate)(
-        descriptor=delegate, opened=True, container=self.container,
-        prefix=self.delegate_prefix, render_label=False, value=value)
+        descriptor=delegate,
+        opened=True,
+        container=self.container,
+        prefix=self.delegate_prefix,
+        render_label=False,
+        value=value)
 
     self.delegated = delegated_renderer.RawHTML(request)
 
-    response = super(RepeatedFieldFormRenderer, self).RenderAjax(
-        request, response)
+    response = super(RepeatedFieldFormRenderer, self).RenderAjax(request,
+                                                                 response)
     return self.CallJavascript(response, "RepeatedFieldFormRenderer.RenderAjax")
 
 
@@ -634,8 +654,10 @@ class EnumFormRenderer(TypeDescriptorFormRenderer):
     enum_dict = dict(self.descriptor.enum.items())
     self.items = sorted(enum_dict.keys(), key=lambda k: enum_dict[k])
     super(EnumFormRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "Layout",
-                               default=self.default, value=self.value,
+    return self.CallJavascript(response,
+                               "Layout",
+                               default=self.default,
+                               value=self.value,
                                prefix=self.prefix)
 
 
@@ -669,7 +691,8 @@ class ProtoBoolFormRenderer(TypeDescriptorFormRenderer):
     if self.value is not None:
       self.value = bool(self.default)
 
-    return self.CallJavascript(response, "Layout",
+    return self.CallJavascript(response,
+                               "Layout",
                                default=self.default,
                                value=self.value,
                                prefix=self.prefix)
@@ -713,7 +736,8 @@ class RDFDatetimeFormRenderer(StringTypeFormRenderer):
     self.default = str(self.default)
 
     response = super(RDFDatetimeFormRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "RDFDatetimeFormRenderer.Layout",
+    return self.CallJavascript(response,
+                               "RDFDatetimeFormRenderer.Layout",
                                prefix=self.prefix)
 
   def ParseArgs(self, request):
@@ -769,8 +793,11 @@ class OptionFormRenderer(TypeDescriptorFormRenderer):
 </div>
 """)
 
-  def __init__(self, prefix="option", default_item_type=None,
-               render_label=False, **kwargs):
+  def __init__(self,
+               prefix="option",
+               default_item_type=None,
+               render_label=False,
+               **kwargs):
     """Constructor.
 
     Args:
@@ -800,7 +827,8 @@ class OptionFormRenderer(TypeDescriptorFormRenderer):
 
   def Layout(self, request, response):
     super(OptionFormRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "OptionFormRenderer.Layout",
+    return self.CallJavascript(response,
+                               "OptionFormRenderer.Layout",
                                prefix=self.prefix,
                                default_item_type=self.default_item_type)
 
@@ -843,9 +871,9 @@ class MultiFormRenderer(renderers.TemplateRenderer):
     result = []
     count = int(request.REQ.get("%s_count" % self.option_name, 0))
     for item in range(count):
-      parsed_item = self.child_renderer(
-          prefix="%s_%s" % (self.option_name, item),
-          item=item).ParseArgs(request)
+      parsed_item = self.child_renderer(prefix="%s_%s" %
+                                        (self.option_name, item),
+                                        item=item).ParseArgs(request)
       if parsed_item is not None:
         result.append(parsed_item)
 
@@ -862,10 +890,12 @@ class MultiFormRenderer(renderers.TemplateRenderer):
           item=self.item,
           default_item_type=default_item_type).RawHTML(request)
 
-      self.CallJavascript(response, "MultiFormRenderer.LayoutItem",
+      self.CallJavascript(response,
+                          "MultiFormRenderer.LayoutItem",
                           option=self.option_name)
     else:
-      self.CallJavascript(response, "MultiFormRenderer.Layout",
+      self.CallJavascript(response,
+                          "MultiFormRenderer.Layout",
                           option=self.option_name,
                           add_one_default=self.add_one_default)
 
@@ -897,7 +927,8 @@ class MultiSelectListRenderer(RepeatedFieldFormRenderer):
 
   def Layout(self, request, response):
     response = super(MultiSelectListRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "MultiSelectListRenderer.Layout",
+    return self.CallJavascript(response,
+                               "MultiSelectListRenderer.Layout",
                                prefix=self.prefix)
 
   def ParseArgs(self, request):
@@ -962,9 +993,12 @@ class UnionMultiFormRenderer(OptionFormRenderer):
 
     union_field_name = union_field_enum.reverse_enum[int(option)].lower()
     if hasattr(result, union_field_name):
-      setattr(result, union_field_name, SemanticProtoFormRenderer(
-          getattr(result, union_field_name), id=self.id,
-          prefix=self.prefix).ParseArgs(request))
+      setattr(result,
+              union_field_name,
+              SemanticProtoFormRenderer(
+                  getattr(result, union_field_name),
+                  id=self.id,
+                  prefix=self.prefix).ParseArgs(request))
     return result
 
   def RenderOption(self, option, request, response):
@@ -973,5 +1007,6 @@ class UnionMultiFormRenderer(OptionFormRenderer):
     union_field_name = union_field_enum.reverse_enum[int(option)].lower()
     if hasattr(result, union_field_name):
       SemanticProtoFormRenderer(
-          getattr(result, union_field_name), id=self.id,
+          getattr(result, union_field_name),
+          id=self.id,
           prefix=self.prefix).Layout(request, response)

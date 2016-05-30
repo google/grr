@@ -33,7 +33,8 @@ class TestServerLoadView(test_lib.GRRSeleniumTest):
                    (0, now - rdfvalue.Duration("15m")),
                    (0, now - rdfvalue.Duration("10m")),
                    (5, now - rdfvalue.Duration("5m")),
-                   (0, now)]
+                   (0, now)]  # pyformat: disable
+
     handle_data = [(value, timestamp.AsMicroSecondsFromEpoch())
                    for value, timestamp in handle_data]
     for value, timestamp in handle_data:
@@ -51,7 +52,8 @@ class TestServerLoadView(test_lib.GRRSeleniumTest):
                      (0, now - rdfvalue.Duration("15m")),
                      (0, now - rdfvalue.Duration("10m")),
                      (0, now - rdfvalue.Duration("5m")),
-                     (0, now)]
+                     (0, now)]  # pyformat: disable
+
     throttle_data = [(value, timestamp.AsMicroSecondsFromEpoch())
                      for value, timestamp in throttle_data]
 
@@ -88,6 +90,7 @@ class TestServerLoadView(test_lib.GRRSeleniumTest):
 def main(argv):
   # Run the full test suite
   runtests_test.SeleniumTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

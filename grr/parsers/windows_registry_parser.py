@@ -12,7 +12,6 @@ from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 
-
 SID_RE = re.compile(r"^S-\d-\d+-(\d+-){1,14}\d+$")
 
 
@@ -70,8 +69,8 @@ class WinSystemDriveParser(parsers.RegistryValueParser):
     if re.match(r"^[A-Za-z]:$", systemdrive):
       yield rdfvalue.RDFString(systemdrive)
     else:
-      raise parsers.ParseError(
-          "Bad drive letter for key %s" % stat.pathspec.path)
+      raise parsers.ParseError("Bad drive letter for key %s" %
+                               stat.pathspec.path)
 
 
 class WinSystemRootParser(parsers.RegistryValueParser):
@@ -300,9 +299,9 @@ class WinServicesParser(parsers.RegistryValueParser):
           # Flatten multi strings into a simple string
           if (stat.registry_type ==
               rdf_client.StatEntry.RegistryType.REG_MULTI_SZ):
-            services[service_name].Set(field_map[key],
-                                       utils.SmartUnicode(
-                                           stat.registry_data.GetValue()))
+            services[service_name].Set(
+                field_map[key],
+                utils.SmartUnicode(stat.registry_data.GetValue()))
           else:
             # Log failures for everything else
             # TODO(user): change this to yield a ParserAnomaly object.
@@ -329,7 +328,6 @@ class WinTimezoneParser(parsers.RegistryValueParser):
       yield rdfvalue.RDFString("Unknown (%s)" % value.strip())
 
     yield rdfvalue.RDFString(result)
-
 
 # Prebuilt from HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT"
 # \CurrentVersion\Time Zones\

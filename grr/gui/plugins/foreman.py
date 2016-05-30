@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 #
 # Copyright 2010 Google Inc. All Rights Reserved.
-
 """This is the interface for managing the foreman."""
 
 
@@ -43,10 +42,10 @@ class ReadOnlyForemanRuleTable(renderers.UserLabelCheckMixin,
     self.AddColumn(semantic.RDFValueColumn("Created"))
     self.AddColumn(semantic.RDFValueColumn("Expires"))
     self.AddColumn(semantic.RDFValueColumn("Description"))
-    self.AddColumn(semantic.RDFValueColumn(
-        "Rules", renderer=RegexRuleArray, width="40%"))
-    self.AddColumn(semantic.RDFValueColumn(
-        "Actions", width="40%"))
+    self.AddColumn(semantic.RDFValueColumn("Rules",
+                                           renderer=RegexRuleArray,
+                                           width="40%"))
+    self.AddColumn(semantic.RDFValueColumn("Actions", width="40%"))
 
   def RenderAjax(self, request, response):
     """Renders the table."""

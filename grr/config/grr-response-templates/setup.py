@@ -8,7 +8,6 @@ import shutil
 from setuptools import setup
 from setuptools.command.sdist import sdist
 
-
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
 # If you run setup.py from the root GRR dir you get very different results since
@@ -41,7 +40,6 @@ class Sdist(sdist):
       r"grr-chipsec_.+_Linux_CentOS.+amd64.bin",
       r"grr-chipsec_.+_Linux_debian.+i386.bin",
       r"grr-chipsec_.+_Linux_debian.+amd64.bin",
-
       r"grr-rekall_.+_Darwin_OSX.+amd64.bin",
       r"grr-rekall_.+_Linux_CentOS.+i386.bin",
       r"grr-rekall_.+_Linux_CentOS.+amd64.bin",
@@ -64,18 +62,19 @@ class Sdist(sdist):
   def CheckTemplates(self, base_dir, version):
     """Verify we have at least one template that matches maj.minor version."""
     major_minor = ".".join(version.split(".")[0:2])
-    templates = glob.glob(os.path.join(base_dir,
-                                       "templates/*%s*.zip" % major_minor))
-    templates.extend(glob.glob(os.path.join(
-        base_dir, "templates/*%s*.xar" % major_minor)))
+    templates = glob.glob(os.path.join(base_dir, "templates/*%s*.zip" %
+                                       major_minor))
+    templates.extend(glob.glob(os.path.join(base_dir, "templates/*%s*.xar" %
+                                            major_minor)))
 
-    required_templates = set([x.replace("maj.minor", major_minor) for x in
-                              self.REQUIRED_TEMPLATES])
+    required_templates = set([x.replace("maj.minor", major_minor)
+                              for x in self.REQUIRED_TEMPLATES])
 
     # Client templates have an extra version digit, e.g. 3.1.0.0
     templates_present = set([
         re.sub(r"_%s[^_]+_" % major_minor, "_%s_" % major_minor,
-               os.path.basename(x)) for x in templates])
+               os.path.basename(x)) for x in templates
+    ])
 
     difference = required_templates - templates_present
     if difference:
@@ -83,8 +82,9 @@ class Sdist(sdist):
 
   def CheckComponents(self, base_dir):
     """Verify we have components for each supported system."""
-    components = [os.path.basename(x) for x in glob.glob(
-        os.path.join(base_dir, "components/*.bin"))]
+    components = [os.path.basename(x)
+                  for x in glob.glob(os.path.join(base_dir, "components/*.bin"))
+                 ]
     missing = set()
     for requirement in self.REQUIRED_COMPONENTS:
       for component in components:
@@ -107,8 +107,8 @@ class Sdist(sdist):
     sdist_version_ini = os.path.join(base_dir, "version.ini")
     if os.path.exists(sdist_version_ini):
       os.unlink(sdist_version_ini)
-    shutil.copy(os.path.join(THIS_DIRECTORY, "../../../version.ini"),
-                sdist_version_ini)
+    shutil.copy(
+        os.path.join(THIS_DIRECTORY, "../../../version.ini"), sdist_version_ini)
 
 
 def find_data_files(source, prefix=None):
@@ -130,7 +130,6 @@ if "VIRTUAL_ENV" not in os.environ:
   print "  Expect breakage."
   print "*****************************************************"
 
-
 setup_args = dict(
     name="grr-response-templates",
     version=VERSION.get("Version", "packageversion"),
@@ -142,11 +141,11 @@ setup_args = dict(
                       "installfrompip.adoc for installation instructions."),
     license="Apache License, Version 2.0",
     url="https://github.com/google/grr",
-    data_files=(find_data_files("components", prefix="grr-response-templates") +
-                find_data_files("templates", prefix="grr-response-templates")),
+    data_files=(find_data_files(
+        "components", prefix="grr-response-templates") + find_data_files(
+            "templates", prefix="grr-response-templates")),
     cmdclass={
         "sdist": Sdist,
     })
 
 setup(**setup_args)
-

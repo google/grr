@@ -8,7 +8,6 @@ from grr.lib import aff4
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
-
 ####################
 # Linux and Darwin #
 ####################
@@ -19,8 +18,7 @@ class TestListDirectoryOSLinuxDarwin(base.AutomatedTest):
   platforms = ["Linux", "Darwin"]
   flow = "ListDirectory"
   args = {"pathspec": rdf_paths.PathSpec(
-      path="/bin",
-      pathtype=rdf_paths.PathSpec.PathType.OS)}
+      path="/bin", pathtype=rdf_paths.PathSpec.PathType.OS)}
 
   output_path = "/fs/os/bin"
   file_to_find = "ls"
@@ -39,8 +37,9 @@ class TestListDirectoryOSLinuxDarwin(base.AutomatedTest):
     else:
       urn = self.client_id.Add(self.output_path)
 
-    fd = aff4.FACTORY.Open(urn.Add(self.file_to_find),
-                           mode="r", token=self.token)
+    fd = aff4.FACTORY.Open(
+        urn.Add(self.file_to_find),
+        mode="r", token=self.token)
     if type(fd) == aff4.AFF4Volume:
       self.fail(("No results were written to the data store. Maybe the GRR "
                  "client is not running with root privileges?"))
@@ -48,8 +47,8 @@ class TestListDirectoryOSLinuxDarwin(base.AutomatedTest):
 
   def tearDown(self):
     if not self.delete_urns:
-      self.delete_urns.add(
-          self.client_id.Add(self.output_path).Add(self.file_to_find))
+      self.delete_urns.add(self.client_id.Add(self.output_path).Add(
+          self.file_to_find))
     super(TestListDirectoryOSLinuxDarwin, self).tearDown()
 
 
@@ -60,8 +59,7 @@ class TestListDirectoryTSKLinux(TestListDirectoryOSLinuxDarwin):
   # CentOS and isn't symlinked (/bin is a symlink to /usr/bin on CentOS).
   platforms = ["Linux"]
   args = {"pathspec": rdf_paths.PathSpec(
-      path="/usr/bin",
-      pathtype=rdf_paths.PathSpec.PathType.TSK)}
+      path="/usr/bin", pathtype=rdf_paths.PathSpec.PathType.TSK)}
   output_path = "/fs/tsk/.*/usr/bin"
   file_to_find = "diff"
 
@@ -83,9 +81,8 @@ class TestFindTSKLinux(TestListDirectoryTSKLinux):
 
   args = {"findspec": rdf_client.FindSpec(
       path_regex=".",
-      pathspec=rdf_paths.PathSpec(
-          path="/usr/bin/",
-          pathtype=rdf_paths.PathSpec.PathType.TSK))}
+      pathspec=rdf_paths.PathSpec(path="/usr/bin/",
+                                  pathtype=rdf_paths.PathSpec.PathType.TSK))}
 
 
 class TestFindOSLinuxDarwin(TestListDirectoryOSLinuxDarwin):
@@ -94,10 +91,8 @@ class TestFindOSLinuxDarwin(TestListDirectoryOSLinuxDarwin):
 
   args = {"findspec": rdf_client.FindSpec(
       path_regex=".",
-      pathspec=rdf_paths.PathSpec(
-          path="/bin/",
-          pathtype=rdf_paths.PathSpec.PathType.OS))}
-
+      pathspec=rdf_paths.PathSpec(path="/bin/",
+                                  pathtype=rdf_paths.PathSpec.PathType.OS))}
 
 ###########
 # Windows #
@@ -130,8 +125,9 @@ class TestListDirectoryTSKWindows(TestListDirectoryTSKLinux):
       fd = aff4.FACTORY.Open(urn, mode="r", token=self.token)
       volumes = list(fd.OpenChildren())
       for volume in volumes:
-        fd = aff4.FACTORY.Open(volume.urn.Add(windir), mode="r",
-                               token=self.token)
+        fd = aff4.FACTORY.Open(
+            volume.urn.Add(windir),
+            mode="r", token=self.token)
         children = list(fd.OpenChildren())
         for child in children:
           if self.file_to_find == child.urn.Basename():
@@ -146,8 +142,7 @@ class TestListDirectoryTSKWindows(TestListDirectoryTSKLinux):
 class TestRecursiveListDirectoryOSWindows(TestListDirectoryOSWindows):
   flow = "RecursiveListDirectory"
   args = {"pathspec": rdf_paths.PathSpec(
-      path="C:\\",
-      pathtype=rdf_paths.PathSpec.PathType.OS),
+      path="C:\\", pathtype=rdf_paths.PathSpec.PathType.OS),
           "max_depth": 1}
   file_to_find = "regedit.exe"
   output_path = "/fs/os/C:/Windows"

@@ -72,8 +72,8 @@ class WizardRenderer(renderers.TemplateRenderer):
     for i, page_cls in enumerate(self.pages):
       # Make the page renderers dump all their data to the wizard DOM node.
       page_renderer = page_cls(id="Page_%d" % i)
-      self.raw_pages.append((i, page_renderer.RawHTML(request),
-                             page_cls, page_cls.__name__))
+      self.raw_pages.append((i, page_renderer.RawHTML(request), page_cls,
+                             page_cls.__name__))
 
     self.max_pages = len(self.pages) - 1
     super(WizardRenderer, self).Layout(request, response)

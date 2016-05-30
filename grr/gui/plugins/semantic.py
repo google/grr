@@ -20,7 +20,6 @@ from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 
-
 # Caches for FindRendererForObject(), We can have a renderer for a repeated
 # member by extending RDFValueArrayRenderer and a renderer for a single item by
 # extending RDFValueRenderer.
@@ -44,23 +43,23 @@ def FindRendererForObject(rdf_obj):
   # Try to find an RDFValueArray renderer for repeated types. This allows
   # renderers to be specified for repeated fields.
   if isinstance(rdf_obj, rdf_protodict.RDFValueArray):
-    return repeated_renderer_cache.get(
-        rdf_obj_classname, RDFValueArrayRenderer)(rdf_obj)
+    return repeated_renderer_cache.get(rdf_obj_classname,
+                                       RDFValueArrayRenderer)(rdf_obj)
 
   if isinstance(rdf_obj, rdf_structs.RepeatedFieldHelper):
     rdf_obj_classname = rdf_obj.type_descriptor.type.__name__
-    return repeated_renderer_cache.get(
-        rdf_obj_classname, RDFValueArrayRenderer)(rdf_obj)
+    return repeated_renderer_cache.get(rdf_obj_classname,
+                                       RDFValueArrayRenderer)(rdf_obj)
 
   # If it is a semantic proto, we just use the RDFProtoRenderer.
   if isinstance(rdf_obj, rdf_structs.RDFProtoStruct):
-    return semantic_renderer_cache.get(
-        rdf_obj_classname, RDFProtoRenderer)(rdf_obj)
+    return semantic_renderer_cache.get(rdf_obj_classname,
+                                       RDFProtoRenderer)(rdf_obj)
 
   # If it is a semantic value, we just use the RDFValueRenderer.
   if isinstance(rdf_obj, rdfvalue.RDFValue):
-    return semantic_renderer_cache.get(
-        rdf_obj_classname, RDFValueRenderer)(rdf_obj)
+    return semantic_renderer_cache.get(rdf_obj_classname,
+                                       RDFValueRenderer)(rdf_obj)
 
   elif isinstance(rdf_obj, dict):
     return DictRenderer(rdf_obj)
@@ -186,8 +185,8 @@ class SubjectRenderer(RDFValueRenderer):
     aff4_path = rdfvalue.RDFURN(aff4_path)
     self.basename = self.proxy.RelativeName(aff4_path) or self.proxy
     self.aff4_path = self.proxy
-    self.tree_node_id = renderers.DeriveIDFromPath(
-        "/".join(self.aff4_path.Split()[1:]))
+    self.tree_node_id = renderers.DeriveIDFromPath("/".join(
+        self.aff4_path.Split()[1:]))
 
     return super(SubjectRenderer, self).Layout(request, response)
 
@@ -366,7 +365,8 @@ class RDFValueArrayRenderer(RDFValueRenderer):
       # We need to create a cache if this is too long.
       if len(self.proxy) > length:
         # Make a cache
-        with aff4.FACTORY.Create(None, "TempMemoryFile",
+        with aff4.FACTORY.Create(None,
+                                 "TempMemoryFile",
                                  token=request.token) as self.cache:
           data = rdf_protodict.RDFValueArray()
           data.Extend(self.proxy)
@@ -389,12 +389,13 @@ class RDFValueArrayRenderer(RDFValueRenderer):
         try:
           self.data.append(renderer.RawHTML(request))
         except Exception as e:  # pylint: disable=broad-except
-          logging.error(
-              "Unable to render %s with %s: %s", type(element), renderer, e)
+          logging.error("Unable to render %s with %s: %s", type(element),
+                        renderer, e)
 
     response = super(RDFValueArrayRenderer, self).Layout(request, response)
     if self.next_start:
-      response = self.CallJavascript(response, "RDFValueArrayRenderer.Layout",
+      response = self.CallJavascript(response,
+                                     "RDFValueArrayRenderer.Layout",
                                      next_start=self.next_start,
                                      cache_urn=self.cache.urn,
                                      array_length=self.length)
@@ -516,7 +517,8 @@ class RDFValueCollectionRenderer(renderers.TableRenderer):
   def Layout(self, request, response, aff4_path=None):
     if aff4_path:
       self.state["aff4_path"] = str(aff4_path)
-      collection = aff4.FACTORY.Create(aff4_path, mode="r",
+      collection = aff4.FACTORY.Create(aff4_path,
+                                       mode="r",
                                        aff4_type="RDFValueCollection",
                                        token=request.token)
 
@@ -525,8 +527,7 @@ class RDFValueCollectionRenderer(renderers.TableRenderer):
       except AttributeError:
         self.show_total_count = False
 
-    return super(RDFValueCollectionRenderer, self).Layout(
-        request, response)
+    return super(RDFValueCollectionRenderer, self).Layout(request, response)
 
 
 class FlowStateRenderer(DictRenderer):
@@ -559,7 +560,8 @@ class AES128KeyFormRenderer(forms.StringTypeFormRenderer):
   def Layout(self, request, response):
     self.default = str(self.descriptor.type().Generate())
     response = super(AES128KeyFormRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "AES128KeyFormRenderer.Layout",
+    return self.CallJavascript(response,
+                               "AES128KeyFormRenderer.Layout",
                                prefix=self.prefix)
 
 
@@ -604,7 +606,8 @@ class ClientURNRenderer(RDFValueRenderer):
     h = dict(main="HostInformation", c=self.proxy)
     self.hash = urllib.urlencode(sorted(h.items()))
     response = super(ClientURNRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "Layout",
+    return self.CallJavascript(response,
+                               "Layout",
                                urn=utils.SmartStr(self.proxy))
 
   def RenderAjax(self, request, response):

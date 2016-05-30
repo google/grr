@@ -81,11 +81,12 @@ class LinuxLSBInitParserTest(test_lib.GRRBaseTest):
     self.assertEqual("INIT", result.start_mode)
     self.assertItemsEqual([2, 3, 4, 5], result.start_on)
     self.assertItemsEqual([1], result.stop_on)
-    self.assertItemsEqual(["umountfs", "umountnfs", "sendsigs", "rsyslog",
-                           "sysklogd", "syslog-ng", "dsyslog",
-                           "inetutils-syslogd"], result.start_after)
-    self.assertItemsEqual(["rsyslog", "sysklogd", "syslog-ng", "dsyslog",
-                           "inetutils-syslogd"], result.stop_after)
+    self.assertItemsEqual(
+        ["umountfs", "umountnfs", "sendsigs", "rsyslog", "sysklogd",
+         "syslog-ng", "dsyslog", "inetutils-syslogd"], result.start_after)
+    self.assertItemsEqual(
+        ["rsyslog", "sysklogd", "syslog-ng", "dsyslog", "inetutils-syslogd"],
+        result.stop_after)
 
   def testSkipBadLSBInit(self):
     """Bad Init entries fail gracefully."""
@@ -155,8 +156,9 @@ class LinuxSysVInitParserTest(test_lib.GRRBaseTest):
 
   def testParseServices(self):
     """SysV init links return accurate LinuxServiceInformation values."""
-    services = {s.name: s for s in self.results if isinstance
-                (s, rdf_client.LinuxServiceInformation)}
+    services = {s.name: s
+                for s in self.results
+                if isinstance(s, rdf_client.LinuxServiceInformation)}
     self.assertEqual(5, len(services))
     self.assertItemsEqual(["single", "ssh", "ntp", "ufw", "firewall"], services)
     self.assertItemsEqual([2], services["ssh"].start_on)
@@ -176,6 +178,7 @@ class LinuxSysVInitParserTest(test_lib.GRRBaseTest):
 
 def main(args):
   test_lib.main(args)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

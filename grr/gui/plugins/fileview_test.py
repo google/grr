@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Test the fileview interface."""
 
 
@@ -52,8 +51,8 @@ class TestLegacyFileView(FileViewTestBase):
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001",
-                        self.GetText, "css=span[type=subject]")
+    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
+                        "css=span[type=subject]")
 
     # Choose client 1
     self.Click("css=td:contains('0001')")
@@ -111,14 +110,20 @@ class TestFileView(FileViewTestBase):
     # This file already exists in the fixture at TIME_0, we write a later
     # version.
     self._CreateFileVersion("aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
-                            "Hello World", timestamp=TIME_1, token=self.token)
+                            "Hello World",
+                            timestamp=TIME_1,
+                            token=self.token)
     self._CreateFileVersion("aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
-                            "Goodbye World", timestamp=TIME_2, token=self.token)
+                            "Goodbye World",
+                            timestamp=TIME_2,
+                            token=self.token)
 
   def _CreateFileVersion(self, path, content, timestamp, token=None):
     """Add a new version for a file."""
     with test_lib.FakeTime(timestamp):
-      with aff4.FACTORY.Create(path, aff4_type="VFSFile", mode="w",
+      with aff4.FACTORY.Create(path,
+                               aff4_type="VFSFile",
+                               mode="w",
                                token=token) as fd:
         fd.Write(content)
         fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime().Now())
@@ -132,7 +137,8 @@ class TestFileView(FileViewTestBase):
                                   (TIME_1, "HostnameV2"),
                                   (TIME_2, "HostnameV3")]:
         with test_lib.FakeTime(fake_time):
-          client = aff4.FACTORY.Open(u"C.0000000000000001", mode="rw",
+          client = aff4.FACTORY.Open(u"C.0000000000000001",
+                                     mode="rw",
                                      token=self.token)
           client.Set(client.Schema.HOSTNAME(hostname))
           client.Close()
@@ -142,8 +148,8 @@ class TestFileView(FileViewTestBase):
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001",
-                        self.GetText, "css=span[type=subject]")
+    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
+                        "css=span[type=subject]")
 
     # Choose client 1.
     self.Click("css=td:contains('0001')")
@@ -160,15 +166,15 @@ class TestFileView(FileViewTestBase):
     self.Click("link=Downloads")
 
     # Verify that we have the latest version in the table by default.
-    self.assertTrue(
-        DateString(TIME_2) in self.GetText("css=tr:contains(\"a.txt\")"))
+    self.assertTrue(DateString(TIME_2) in self.GetText(
+        "css=tr:contains(\"a.txt\")"))
 
     # Click on the row.
     self.Click("css=tr:contains(\"a.txt\")")
-    self.WaitUntilContains("a.txt", self.GetText,
-                           "css=div#main_bottomPane h1")
-    self.WaitUntilContains(DateString(TIME_2), self.GetText,
-                           "css=.version-dropdown > option[selected]")
+    self.WaitUntilContains("a.txt", self.GetText, "css=div#main_bottomPane h1")
+    self.WaitUntilContains(
+        DateString(TIME_2), self.GetText,
+        "css=.version-dropdown > option[selected]")
 
     # Check the data in this file.
     self.Click("css=li[heading=TextView]")
@@ -184,15 +190,16 @@ class TestFileView(FileViewTestBase):
       downloaded_files.append((aff4_path, age))
 
       return api_call_handler_base.ApiBinaryStream(
-          filename=aff4_path.Basename(), content_generator=xrange(42))
+          filename=aff4_path.Basename(),
+          content_generator=xrange(42))
 
     with utils.Stubber(api_vfs.ApiGetFileBlobHandler, "Handle",
                        FakeDownloadHandle):
       # Try to download the file.
       self.Click("css=li[heading=Download]")
 
-      self.WaitUntilContains(DateTimeString(TIME_2), self.GetText,
-                             "css=grr-file-download-view")
+      self.WaitUntilContains(
+          DateTimeString(TIME_2), self.GetText, "css=grr-file-download-view")
       self.Click("css=button:contains(\"Download\")")
 
       # Select the previous version.
@@ -200,8 +207,8 @@ class TestFileView(FileViewTestBase):
                  DateString(TIME_1))
 
       # Now we should have a different time.
-      self.WaitUntilContains(DateTimeString(TIME_1), self.GetText,
-                             "css=grr-file-download-view")
+      self.WaitUntilContains(
+          DateTimeString(TIME_1), self.GetText, "css=grr-file-download-view")
       self.Click("css=button:contains(\"Download\")")
 
       self.WaitUntil(self.IsElementPresent, "css=li[heading=TextView]")
@@ -226,8 +233,7 @@ class TestFileView(FileViewTestBase):
 
     # Make sure the file content has changed. This version has "Hello World" in
     # it.
-    self.WaitUntilContains("Hello World", self.GetText,
-                           "css=div.monospace pre")
+    self.WaitUntilContains("Hello World", self.GetText, "css=div.monospace pre")
 
   def testRefreshFileStartsFlow(self):
     self.Open("/")
@@ -235,8 +241,8 @@ class TestFileView(FileViewTestBase):
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001",
-                        self.GetText, "css=span[type=subject]")
+    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
+                        "css=span[type=subject]")
 
     # Choose client 1.
     self.Click("css=td:contains('0001')")
@@ -263,11 +269,13 @@ class TestFileView(FileViewTestBase):
       client_id = rdf_client.ClientURN("C.0000000000000001")
 
       fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
+
       # Make sure that the flow has started (when button is clicked, the HTTP
       # API request is sent asynchronously).
       def MultiGetFileStarted():
-        return "MultiGetFile" in list(
-            x.__class__.__name__ for x in fd.OpenChildren())
+        return "MultiGetFile" in list(x.__class__.__name__
+                                      for x in fd.OpenChildren())
+
       self.WaitUntil(MultiGetFileStarted)
 
       flows = list(fd.ListChildren())
@@ -275,9 +283,11 @@ class TestFileView(FileViewTestBase):
       client_mock = action_mocks.ActionMock("StatFile", "HashFile",
                                             "FingerprintFile")
       for flow_urn in flows:
-        for _ in test_lib.TestFlowHelper(
-            flow_urn, client_mock, client_id=client_id, check_flow_errors=False,
-            token=self.token):
+        for _ in test_lib.TestFlowHelper(flow_urn,
+                                         client_mock,
+                                         client_id=client_id,
+                                         check_flow_errors=False,
+                                         token=self.token):
           pass
 
       time_in_future = rdfvalue.RDFDatetime().Now() + rdfvalue.Duration("1h")
@@ -288,18 +298,21 @@ class TestFileView(FileViewTestBase):
       with test_lib.FakeTime(time_in_future):
         with aff4.FACTORY.Open(
             "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
-            aff4_type="VFSFile", mode="rw", token=self.token) as fd:
+            aff4_type="VFSFile",
+            mode="rw",
+            token=self.token) as fd:
           fd.Write("The newest version!")
 
     # Once the flow has finished, the file view should update and select the
     # newly created, latest version of the file.
-    self.WaitUntilContains(DateTimeString(time_in_future), self.GetText,
-                           "css=.version-dropdown > option[selected]")
+    self.WaitUntilContains(
+        DateTimeString(time_in_future), self.GetText,
+        "css=.version-dropdown > option[selected]")
 
     # The file table should also update and display the new timestamp.
     self.WaitUntil(self.IsElementPresent,
-                   "css=grr-file-table tbody > tr td:contains(\"%s\")" % (
-                       DateTimeString(time_in_future)))
+                   "css=grr-file-table tbody > tr td:contains(\"%s\")" %
+                   (DateTimeString(time_in_future)))
 
     # Make sure the file content has changed.
     self.Click("css=li[heading=TextView]")
@@ -309,8 +322,7 @@ class TestFileView(FileViewTestBase):
     # Go to the flow management screen and check that there was a new flow.
     self.Click("css=a:contains('Manage launched flows')")
     self.Click("css=grr-flows-list tr:contains('MultiGetFile')")
-    self.WaitUntilContains("MultiGetFile", self.GetText,
-                           "css=#main_bottomPane")
+    self.WaitUntilContains("MultiGetFile", self.GetText, "css=#main_bottomPane")
     self.WaitUntilContains(
         "c/Downloads/a.txt", self.GetText,
         "css=#main_bottomPane table > tbody td.proto_key:contains(\"Path\") "
@@ -361,7 +373,9 @@ class TestFileView(FileViewTestBase):
     with self.ACLChecksDisabled():
       self._CreateFileVersion(
           "aff4:/C.0000000000000001/fs/os/c/foo?bar&oh/a&=?b.txt",
-          "Hello World", timestamp=TIME_1, token=self.token)
+          "Hello World",
+          timestamp=TIME_1,
+          token=self.token)
 
     # Open VFS view for client 1 on a specific location.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView&t=_fs-os-c")
@@ -381,14 +395,15 @@ class TestFileView(FileViewTestBase):
 
     # Test the text viewer.
     self.Click("css=li[heading=TextView]")
-    self.WaitUntilContains("Hello World", self.GetText,
-                           "css=div.monospace pre")
+    self.WaitUntilContains("Hello World", self.GetText, "css=div.monospace pre")
 
   def testFolderPathCanContainUrlSensitiveCharacters(self):
     with self.ACLChecksDisabled():
       self._CreateFileVersion(
           "aff4:/C.0000000000000001/fs/os/c/foo?bar&oh/a&=?b.txt",
-          "Hello World", timestamp=TIME_1, token=self.token)
+          "Hello World",
+          timestamp=TIME_1,
+          token=self.token)
 
     # Open VFS view for client 1 on a location containing unicode characters.
     self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView&t=_fs-os-c"
@@ -494,8 +509,8 @@ class TestFileView(FileViewTestBase):
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001",
-                        self.GetText, "css=span[type=subject]")
+    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
+                        "css=span[type=subject]")
 
     # Choose client 1
     self.Click("css=td:contains('0001')")
@@ -514,8 +529,7 @@ class TestFileView(FileViewTestBase):
     self.Click("css=button[id^=refresh]")
 
     # Check that the button got disabled
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[id^=refresh][disabled]")
+    self.WaitUntil(self.IsElementPresent, "css=button[id^=refresh][disabled]")
 
     # Get the flows that should have been started and finish them.
     with self.ACLChecksDisabled():
@@ -526,9 +540,11 @@ class TestFileView(FileViewTestBase):
 
       client_mock = action_mocks.ActionMock()
       for flow_urn in flows:
-        for _ in test_lib.TestFlowHelper(
-            flow_urn, client_mock, client_id=client_id, token=self.token,
-            check_flow_errors=False):
+        for _ in test_lib.TestFlowHelper(flow_urn,
+                                         client_mock,
+                                         client_id=client_id,
+                                         token=self.token,
+                                         check_flow_errors=False):
           pass
 
     # Ensure that refresh button is enabled again.
@@ -565,8 +581,8 @@ class TestFileView(FileViewTestBase):
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001",
-                        self.GetText, "css=span[type=subject]")
+    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
+                        "css=span[type=subject]")
 
     # Choose client 1
     self.Click("css=td:contains('0001')")
@@ -607,8 +623,8 @@ class TestFileView(FileViewTestBase):
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001",
-                        self.GetText, "css=span[type=subject]")
+    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
+                        "css=span[type=subject]")
 
     # Choose client 1 and go to 'Browse Virtual Filesystem'
     self.Click("css=td:contains('0001')")
@@ -622,8 +638,7 @@ class TestFileView(FileViewTestBase):
     self.DoubleClick("css=td:contains('os')")
 
     # Now we should be inside the folder, and the tree should open.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=#_fs-os-c i.jstree-icon")
+    self.WaitUntil(self.IsElementPresent, "css=#_fs-os-c i.jstree-icon")
     # Check that breadcrumbs got updated.
     self.WaitUntil(self.IsElementPresent,
                    "css=#content_rightPane .breadcrumb li:contains('os')")
@@ -661,7 +676,9 @@ class TestTimeline(FileViewTestBase):
     # Add a version of the file at TIME_0. Since we write all MAC times,
     # this will result in three timeline items.
     with test_lib.FakeTime(TIME_0):
-      with aff4.FACTORY.Create(file_path, "VFSAnalysisFile", mode="w",
+      with aff4.FACTORY.Create(file_path,
+                               "VFSAnalysisFile",
+                               mode="w",
                                token=token) as fd:
         stats = rdf_client.StatEntry(
             st_atime=TIME_0.AsSecondsFromEpoch() + 1000,
@@ -671,7 +688,9 @@ class TestTimeline(FileViewTestBase):
 
     # Add a version with a stat entry, but without timestamps.
     with test_lib.FakeTime(TIME_1):
-      with aff4.FACTORY.Create(file_path, "VFSAnalysisFile", mode="w",
+      with aff4.FACTORY.Create(file_path,
+                               "VFSAnalysisFile",
+                               mode="w",
                                token=token) as fd:
         stats = rdf_client.StatEntry(st_ino=99)
         fd.Set(fd.Schema.STAT, stats)
@@ -692,8 +711,8 @@ class TestTimeline(FileViewTestBase):
     self.Click("css=.btn:contains('Timeline')")
 
     # We need to have one entry per timestamp per file.
-    self.WaitUntilEqual(2*self.TIMELINE_ITEMS_PER_FILE,
-                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+    self.WaitUntilEqual(2 * self.TIMELINE_ITEMS_PER_FILE, self.GetCssCount,
+                        "css=grr-file-timeline tbody tr")
 
   def testTimelineShowsClosestFileVersionOnFileSelection(self):
     # Open VFS view for client 1 on a specific location.
@@ -715,8 +734,9 @@ class TestTimeline(FileViewTestBase):
     self.Click("css=grr-file-timeline table td:contains('changed.txt'):first")
     self.WaitUntilContains("changed.txt", self.GetText,
                            "css=div#main_bottomPane h1")
-    self.WaitUntilContains(DateString(TIME_1), self.GetText,
-                           "css=.version-dropdown > option[selected]")
+    self.WaitUntilContains(
+        DateString(TIME_1), self.GetText,
+        "css=.version-dropdown > option[selected]")
 
     # The last timeline item for changed.txt has a timestamp before TIME_0,
     # which is the first available file version.
@@ -724,8 +744,9 @@ class TestTimeline(FileViewTestBase):
                "td:contains('changed.txt'):last")
     self.WaitUntilContains("changed.txt", self.GetText,
                            "css=div#main_bottomPane h1")
-    self.WaitUntilContains(DateString(TIME_0), self.GetText,
-                           "css=.version-dropdown > option[selected]")
+    self.WaitUntilContains(
+        DateString(TIME_0), self.GetText,
+        "css=.version-dropdown > option[selected]")
     self.WaitUntilContains("Newer Version available.", self.GetText,
                            "css=grr-file-details")
 
@@ -745,18 +766,18 @@ class TestTimeline(FileViewTestBase):
     self.Click("css=.btn:contains('Timeline')")
 
     # Wait until the UI finished loading.
-    self.WaitUntilEqual(2*self.TIMELINE_ITEMS_PER_FILE,
-                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+    self.WaitUntilEqual(2 * self.TIMELINE_ITEMS_PER_FILE, self.GetCssCount,
+                        "css=grr-file-timeline tbody tr")
 
     # Search for one file.
     self.Type("css=input.file-search", "changed.txt", end_with_enter=True)
-    self.WaitUntilEqual(self.TIMELINE_ITEMS_PER_FILE,
-                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+    self.WaitUntilEqual(self.TIMELINE_ITEMS_PER_FILE, self.GetCssCount,
+                        "css=grr-file-timeline tbody tr")
 
     # Search both files.
     self.Type("css=input.file-search", ".txt", end_with_enter=True)
-    self.WaitUntilEqual(2*self.TIMELINE_ITEMS_PER_FILE,
-                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+    self.WaitUntilEqual(2 * self.TIMELINE_ITEMS_PER_FILE, self.GetCssCount,
+                        "css=grr-file-timeline tbody tr")
 
   def testSearchInputAllowsFilteringTimelineByActionType(self):
     # Open VFS view for client 1 on a specific location.
@@ -774,15 +795,15 @@ class TestTimeline(FileViewTestBase):
     self.Click("css=.btn:contains('Timeline')")
 
     # Wait until the UI finished loading.
-    self.WaitUntilEqual(2*self.TIMELINE_ITEMS_PER_FILE,
-                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+    self.WaitUntilEqual(2 * self.TIMELINE_ITEMS_PER_FILE, self.GetCssCount,
+                        "css=grr-file-timeline tbody tr")
 
     # Search for "changed" will return timeline items for files having "changed"
     # in their names (i.e. all items for changed.txt) plus any items with a
     # methadata change action (i.e. one action on other.txt).
     self.Type("css=input.file-search", "changed", end_with_enter=True)
-    self.WaitUntilEqual(self.TIMELINE_ITEMS_PER_FILE + 1,
-                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+    self.WaitUntilEqual(self.TIMELINE_ITEMS_PER_FILE + 1, self.GetCssCount,
+                        "css=grr-file-timeline tbody tr")
 
     # Search for items with file modifications, i.e. one for each file.
     self.Type("css=input.file-search", "modif", end_with_enter=True)
@@ -804,8 +825,8 @@ class TestTimeline(FileViewTestBase):
     self.Click("css=.btn:contains('Timeline')")
 
     # Wait until the UI finished loading.
-    self.WaitUntilEqual(2*self.TIMELINE_ITEMS_PER_FILE,
-                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+    self.WaitUntilEqual(2 * self.TIMELINE_ITEMS_PER_FILE, self.GetCssCount,
+                        "css=grr-file-timeline tbody tr")
 
     # Add a new file with several versions.
     with self.ACLChecksDisabled():
@@ -816,8 +837,8 @@ class TestTimeline(FileViewTestBase):
     self.Click("link=proc")
 
     # Wait until the UI finished loading.
-    self.WaitUntilEqual(3*self.TIMELINE_ITEMS_PER_FILE,
-                        self.GetCssCount, "css=grr-file-timeline tbody tr")
+    self.WaitUntilEqual(3 * self.TIMELINE_ITEMS_PER_FILE, self.GetCssCount,
+                        "css=grr-file-timeline tbody tr")
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-file-timeline td:contains('newly_added.txt')")
 
@@ -833,19 +854,22 @@ class TestHostInformation(FileViewTestBase):
       self.RequestAndGrantClientApproval(self.client_id)
 
       with test_lib.FakeTime(TIME_0):
-        with aff4.FACTORY.Open(self.client_id, mode="rw",
+        with aff4.FACTORY.Open(self.client_id,
+                               mode="rw",
                                token=self.token) as fd:
           fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.7000"))
           fd.Set(fd.Schema.HOSTNAME("Hostname T0"))
 
       with test_lib.FakeTime(TIME_1):
-        with aff4.FACTORY.Open(self.client_id, mode="rw",
+        with aff4.FACTORY.Open(self.client_id,
+                               mode="rw",
                                token=self.token) as fd:
           fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.8000"))
           fd.Set(fd.Schema.HOSTNAME("Hostname T1"))
 
       with test_lib.FakeTime(TIME_2):
-        with aff4.FACTORY.Open(self.client_id, mode="rw",
+        with aff4.FACTORY.Open(self.client_id,
+                               mode="rw",
                                token=self.token) as fd:
           fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("7.0.0000"))
           fd.Set(fd.Schema.HOSTNAME("Hostname T2"))
@@ -870,9 +894,11 @@ class TestHostInformation(FileViewTestBase):
 
       client_mock = action_mocks.ActionMock()
       for flow_urn in flows:
-        for _ in test_lib.TestFlowHelper(
-            flow_urn, client_mock, client_id=client_id, token=self.token,
-            check_flow_errors=False):
+        for _ in test_lib.TestFlowHelper(flow_urn,
+                                         client_mock,
+                                         client_id=client_id,
+                                         token=self.token,
+                                         check_flow_errors=False):
           pass
 
     self.WaitUntilNot(self.IsElementPresent,
@@ -889,8 +915,9 @@ class TestHostInformation(FileViewTestBase):
     self.Open("/#c=" + self.client_id)
 
     # Check that the newest version is selected.
-    self.WaitUntilContains(DateString(TIME_2), self.GetText,
-                           "css=.version-dropdown > option[selected]")
+    self.WaitUntilContains(
+        DateString(TIME_2), self.GetText,
+        "css=.version-dropdown > option[selected]")
     self.WaitUntil(self.IsTextPresent, "Hostname T2")
 
     self.Click("css=select.version-dropdown > option:contains(\"%s\")" %
@@ -915,6 +942,7 @@ class TestHostInformation(FileViewTestBase):
 def main(argv):
   # Run the full test suite
   runtests_test.SeleniumTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

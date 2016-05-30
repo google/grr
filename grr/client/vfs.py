@@ -8,7 +8,6 @@ from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import paths as rdf_paths
 
-
 # A central Cache for vfs handlers. This can be used to keep objects alive
 # for a limited time.
 DEVICE_CACHE = utils.TimeBasedCache()
@@ -35,7 +34,10 @@ class VFSHandler(object):
 
   __metaclass__ = registry.MetaclassRegistry
 
-  def __init__(self, base_fd, pathspec=None, progress_callback=None,
+  def __init__(self,
+               base_fd,
+               pathspec=None,
+               progress_callback=None,
                full_pathspec=None):
     """Constructor.
 
@@ -106,8 +108,9 @@ class VFSHandler(object):
     # files etc).
     else:  # For now just guess TSK.
       return VFS_HANDLERS[rdf_paths.PathSpec.PathType.TSK](
-          self, rdf_paths.PathSpec(path="/",
-                                   pathtype=rdf_paths.PathSpec.PathType.TSK),
+          self,
+          rdf_paths.PathSpec(path="/",
+                             pathtype=rdf_paths.PathSpec.PathType.TSK),
           progress_callback=self.progress_callback)
 
   def MatchBestComponentName(self, component):
@@ -167,7 +170,11 @@ class VFSHandler(object):
   close = utils.Proxy("Close")
 
   @classmethod
-  def Open(cls, fd, component, pathspec=None, progress_callback=None,
+  def Open(cls,
+           fd,
+           component,
+           pathspec=None,
+           progress_callback=None,
            full_pathspec=None):
     """Try to correct the casing of component.
 
@@ -195,8 +202,7 @@ class VFSHandler(object):
     try:
       handler = VFS_HANDLERS[component.pathtype]
     except KeyError:
-      raise IOError(
-          "VFS handler %d not supported." % component.pathtype)
+      raise IOError("VFS handler %d not supported." % component.pathtype)
 
     # We will not do any case folding unless requested.
     if component.path_options == rdf_paths.PathSpec.Options.CASE_LITERAL:
@@ -216,10 +222,10 @@ class VFSHandler(object):
         try:
           handler = VFS_HANDLERS[new_pathspec.pathtype]
         except KeyError:
-          raise IOError(
-              "VFS handler %d not supported." % new_pathspec.pathtype)
+          raise IOError("VFS handler %d not supported." % new_pathspec.pathtype)
 
-        fd = handler(base_fd=fd, pathspec=new_pathspec,
+        fd = handler(base_fd=fd,
+                     pathspec=new_pathspec,
                      full_pathspec=full_pathspec,
                      progress_callback=progress_callback)
       except IOError:
@@ -228,7 +234,8 @@ class VFSHandler(object):
           raise IOError("File not found")
 
         # Insert the remaining path at the front of the pathspec.
-        pathspec.Insert(0, path=utils.JoinPath(*path_components[i:]),
+        pathspec.Insert(0,
+                        path=utils.JoinPath(*path_components[i:]),
                         pathtype=rdf_paths.PathSpec.PathType.TSK)
         break
 
@@ -236,7 +243,6 @@ class VFSHandler(object):
 
   def GetMetadata(self):
     return self.metadata
-
 
 # A registry of all VFSHandler registered
 VFS_HANDLERS = {}
@@ -275,8 +281,9 @@ class VFSInit(registry.InitHook):
           rdf_paths.PathSpec.PathType.TSK: rdf_paths.PathSpec.PathType.OS
       }
       base_type = base_types.get(handler, handler)
-      VFS_VIRTUALROOTS[handler] = rdf_paths.PathSpec(
-          path=root, pathtype=base_type, is_virtualroot=True)
+      VFS_VIRTUALROOTS[handler] = rdf_paths.PathSpec(path=root,
+                                                     pathtype=base_type,
+                                                     is_virtualroot=True)
 
 
 def VFSOpen(pathspec, progress_callback=None):
@@ -369,8 +376,7 @@ def VFSOpen(pathspec, progress_callback=None):
   # it to the incoming pathspec except if the pathspec is explicitly
   # marked as containing a virtual root already or if it isn't marked but
   # the path already contains the virtual root.
-  if (not vroot or
-      pathspec.is_virtualroot or
+  if (not vroot or pathspec.is_virtualroot or
       pathspec.CollapsePath().startswith(vroot.CollapsePath())):
     # No virtual root but opening changes the pathspec so we always work on a
     # copy.
@@ -388,12 +394,13 @@ def VFSOpen(pathspec, progress_callback=None):
     try:
       handler = VFS_HANDLERS[component.pathtype]
     except KeyError:
-      raise IOError(
-          "VFS handler %d not supported." % component.pathtype)
+      raise IOError("VFS handler %d not supported." % component.pathtype)
 
     try:
       # Open the component.
-      fd = handler.Open(fd, component, pathspec=working_pathspec,
+      fd = handler.Open(fd,
+                        component,
+                        pathspec=working_pathspec,
                         full_pathspec=pathspec,
                         progress_callback=progress_callback)
     except IOError as e:

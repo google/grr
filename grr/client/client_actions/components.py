@@ -140,8 +140,8 @@ class LoadComponent(actions.ActionPlugin):
 
     # Try to add an existing component path.
     component_path = utils.JoinPath(
-        config_lib.CONFIG.Get("Client.component_path"),
-        summary.name, summary.version)
+        config_lib.CONFIG.Get("Client.component_path"), summary.name,
+        summary.version)
 
     # Add the component path to the site packages:
     site = Site()

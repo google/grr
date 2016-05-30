@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
-
 """Tests for grr.client.lib.osx.objc.
 
 These tests don't have OS X dependencies and will run on linux.
@@ -28,11 +27,7 @@ class ObjcTest(test_lib.GRRBaseTest):
     self.dll.CFMockFunc = self.function
     self.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
     self.restype = ctypes.c_void_p
-    self.cftable = [
-        ('CFMockFunc',
-         self.argtypes,
-         self.restype)
-    ]
+    self.cftable = [('CFMockFunc', self.argtypes, self.restype)]
 
   def tearDown(self):
     self.mox.UnsetStubs()
@@ -40,8 +35,8 @@ class ObjcTest(test_lib.GRRBaseTest):
   def testSetCTypesForLibraryLibNotFound(self):
     objc.ctypes.util.find_library('mock').AndReturn(None)
     self.mox.ReplayAll()
-    self.assertRaises(objc.ErrorLibNotFound, objc.SetCTypesForLibrary,
-                      'mock', self.cftable)
+    self.assertRaises(objc.ErrorLibNotFound, objc.SetCTypesForLibrary, 'mock',
+                      self.cftable)
     self.mox.VerifyAll()
 
   def testSetCTypesForLibrary(self):
@@ -56,6 +51,7 @@ class ObjcTest(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == '__main__':
   flags.StartMain(main)

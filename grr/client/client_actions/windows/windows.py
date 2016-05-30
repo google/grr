@@ -27,7 +27,6 @@ from grr.lib import config_lib
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
-
 # Properties to remove from results sent to the server.
 # These properties are included with nearly every WMI object and use space.
 IGNORE_PROPS = ["CSCreationClassName", "CreationClassName", "OSName",
@@ -56,10 +55,9 @@ class GetInstallDate(actions.ActionPlugin):
   def Run(self, unused_args):
     """Estimate the install date of this system."""
     # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
-    subkey = _winreg.OpenKey(
-        _winreg.HKEY_LOCAL_MACHINE,
-        "Software\\Microsoft\\Windows NT\\CurrentVersion",
-        0, _winreg.KEY_READ)
+    subkey = _winreg.OpenKey(_winreg.HKEY_LOCAL_MACHINE,
+                             "Software\\Microsoft\\Windows NT\\CurrentVersion",
+                             0, _winreg.KEY_READ)
     install_date = _winreg.QueryValueEx(subkey, "InstallDate")
     self.SendReply(integer=install_date[0])
 
@@ -81,8 +79,8 @@ class EnumerateInterfaces(actions.ActionPlugin):
             human_readable_address=ip_address))
 
       args = {"ifname": interface.Description}
-      args["mac_address"] = binascii.unhexlify(
-          interface.MACAddress.replace(":", ""))
+      args["mac_address"] = binascii.unhexlify(interface.MACAddress.replace(":",
+                                                                            ""))
       if addresses:
         args["addresses"] = addresses
 
@@ -103,13 +101,14 @@ class EnumerateFilesystems(actions.ActionPlugin):
     for drive in win32api.GetLogicalDriveStrings().split("\x00"):
       if drive:
         try:
-          volume = win32file.GetVolumeNameForVolumeMountPoint(
-              drive).rstrip("\\")
+          volume = win32file.GetVolumeNameForVolumeMountPoint(drive).rstrip(
+              "\\")
 
           label, _, _, _, fs_type = win32api.GetVolumeInformation(drive)
           self.SendReply(device=volume,
                          mount_point="/%s:/" % drive[0],
-                         type=fs_type, label=UnicodeFromCodePage(label))
+                         type=fs_type,
+                         label=UnicodeFromCodePage(label))
         except win32api.error:
           pass
 
@@ -123,7 +122,8 @@ class Uninstall(actions.ActionPlugin):
     logging.debug("Disabling service")
 
     win32serviceutil.ChangeServiceConfig(
-        None, config_lib.CONFIG["Nanny.service_name"],
+        None,
+        config_lib.CONFIG["Nanny.service_name"],
         startType=win32service.SERVICE_DISABLED)
     svc_config = QueryService(config_lib.CONFIG["Nanny.service_name"])
     if svc_config[1] == win32service.SERVICE_DISABLED:
@@ -177,7 +177,7 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
     rdf_protodict.Dicts containing key value pairs from the resulting COM
     objects.
   """
-  pythoncom.CoInitialize()   # Needs to be called if using com from a thread.
+  pythoncom.CoInitialize()  # Needs to be called if using com from a thread.
   wmi_obj = win32com.client.GetObject(baseobj)
   # This allows our WMI to do some extra things, in particular
   # it gives it access to find the executable path for all processes.
@@ -187,8 +187,7 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
   try:
     query_results = wmi_obj.ExecQuery(query)
   except pythoncom.com_error as e:
-    raise RuntimeError("Failed to run WMI query \'%s\' err was %s" %
-                       (query, e))
+    raise RuntimeError("Failed to run WMI query \'%s\' err was %s" % (query, e))
 
   # Extract results from the returned COMObject and return dicts.
   try:

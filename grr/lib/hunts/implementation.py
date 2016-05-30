@@ -805,8 +805,9 @@ class GRRHunt(flow.GRRFlow):
       with self.lock:
         self.processed_responses = True
 
-        msgs = [rdf_flows.GrrMessage(
-            payload=response, source=client_id) for response in responses]
+        msgs = [rdf_flows.GrrMessage(payload=response,
+                                     source=client_id)
+                for response in responses]
         try:
           with aff4.FACTORY.Open(self.state.context.results_collection_urn,
                                  hunts_results.HuntResultCollection,

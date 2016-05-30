@@ -2,7 +2,6 @@
 """End to end tests that run ArtifactCollectorFlow."""
 
 
-
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib.rdfvalues import client as rdf_client
@@ -97,7 +96,8 @@ class TestParserDependencyTemp(TestParserDependency):
 
 class TestParserDependencyUserShellFolders(TestParserDependency):
   test_output_path = "analysis/testing/TestParserDependencyUserShellFolders"
-  args = {"artifact_list": ["UserShellFolders"], "dependencies": "FETCH_NOW",
+  args = {"artifact_list": ["UserShellFolders"],
+          "dependencies": "FETCH_NOW",
           "output": test_output_path}
 
   def CheckFlow(self):

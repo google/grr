@@ -2,7 +2,6 @@
 """Implement low level disk access using the sleuthkit."""
 
 
-
 import stat
 
 import pytsk3
@@ -85,10 +84,13 @@ class TSKFile(vfs.VFSHandler):
 
   # This is all bits that define the type of the file in the stat mode. Equal to
   # 0b1111000000000000.
-  stat_type_mask = (stat.S_IFREG | stat.S_IFDIR | stat.S_IFLNK | stat.S_IFBLK |
-                    stat.S_IFCHR | stat.S_IFIFO | stat.S_IFSOCK)
+  stat_type_mask = (stat.S_IFREG | stat.S_IFDIR | stat.S_IFLNK | stat.S_IFBLK
+                    | stat.S_IFCHR | stat.S_IFIFO | stat.S_IFSOCK)
 
-  def __init__(self, base_fd, pathspec=None, progress_callback=None,
+  def __init__(self,
+               base_fd,
+               pathspec=None,
+               progress_callback=None,
                full_pathspec=None):
     """Use TSK to read the pathspec.
 
@@ -101,7 +103,8 @@ class TSKFile(vfs.VFSHandler):
     Raises:
       IOError: If the file can not be opened.
     """
-    super(TSKFile, self).__init__(base_fd, pathspec=pathspec,
+    super(TSKFile, self).__init__(base_fd,
+                                  pathspec=pathspec,
                                   progress_callback=progress_callback,
                                   full_pathspec=full_pathspec)
     if self.base_fd is None:
@@ -151,8 +154,8 @@ class TSKFile(vfs.VFSHandler):
     # efficient.
     if pathspec.HasField("inode"):
       self.fd = self.fs.open_meta(pathspec.inode)
-      self.tsk_attribute = self.GetAttribute(
-          pathspec.ntfs_type, pathspec.ntfs_id)
+      self.tsk_attribute = self.GetAttribute(pathspec.ntfs_type,
+                                             pathspec.ntfs_id)
       if self.tsk_attribute:
         self.size = self.tsk_attribute.info.size
       else:
@@ -208,18 +211,12 @@ class TSKFile(vfs.VFSHandler):
     meta = info.meta
     if meta:
       response.st_ino = meta.addr
-      for attribute in ["mode",
-                        "nlink",
-                        "uid",
-                        "gid",
-                        "size",
-                        "atime",
-                        "mtime",
-                        "ctime",
-                        "crtime"]:
+      for attribute in ["mode", "nlink", "uid", "gid", "size", "atime", "mtime",
+                        "ctime", "crtime"]:
         try:
           value = int(getattr(meta, attribute))
-          if value < 0: value &= 0xFFFFFFFF
+          if value < 0:
+            value &= 0xFFFFFFFF
 
           setattr(response, "st_%s" % attribute, value)
         except AttributeError:
@@ -310,7 +307,8 @@ class TSKFile(vfs.VFSHandler):
             if attribute.info.type in [pytsk3.TSK_FS_ATTR_TYPE_NTFS_DATA,
                                        pytsk3.TSK_FS_ATTR_TYPE_DEFAULT]:
               if attribute.info.name:
-                yield self.MakeStatResponse(f, append_name=name,
+                yield self.MakeStatResponse(f,
+                                            append_name=name,
                                             tsk_attribute=attribute)
         except AttributeError:
           pass
@@ -336,7 +334,11 @@ class TSKFile(vfs.VFSHandler):
     return self.fd.info.meta.type == pytsk3.TSK_FS_META_TYPE_REG
 
   @classmethod
-  def Open(cls, fd, component, pathspec=None, progress_callback=None,
+  def Open(cls,
+           fd,
+           component,
+           pathspec=None,
+           progress_callback=None,
            full_pathspec=None):
     # A Pathspec which starts with TSK means we need to resolve the mount point
     # at runtime.
@@ -357,8 +359,7 @@ class TSKFile(vfs.VFSHandler):
       # conventions.
       for component in pathspec:
         if component.path:
-          component.path = client_utils.LocalPathToCanonicalPath(
-              component.path)
+          component.path = client_utils.LocalPathToCanonicalPath(component.path)
 
       # We have not actually opened anything in this iteration, but modified the
       # pathspec. Next time we should be able to open it properly.
@@ -366,11 +367,15 @@ class TSKFile(vfs.VFSHandler):
 
     # If an inode is specified, just use it directly.
     elif component.HasField("inode"):
-      return TSKFile(fd, component, progress_callback=progress_callback,
+      return TSKFile(fd,
+                     component,
+                     progress_callback=progress_callback,
                      full_pathspec=full_pathspec)
 
     # Otherwise do the usual case folding.
     else:
-      return vfs.VFSHandler.Open(fd, component, pathspec=pathspec,
+      return vfs.VFSHandler.Open(fd,
+                                 component,
+                                 pathspec=pathspec,
                                  progress_callback=progress_callback,
                                  full_pathspec=full_pathspec)

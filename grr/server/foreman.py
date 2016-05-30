@@ -110,8 +110,8 @@ class ForemanOsClientRule(ForemanClientRuleBase):
     value = utils.SmartStr(fd.Get(attribute))
 
     return ((self.os_windows and value == "Windows") or
-            (self.os_linux   and value == "Linux") or
-            (self.os_darwin  and value == "Darwin"))
+            (self.os_linux and value == "Linux") or
+            (self.os_darwin and value == "Darwin"))
 
   def Validate(self):
     pass

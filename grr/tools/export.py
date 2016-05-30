@@ -16,9 +16,7 @@ from grr.lib import flags
 from grr.lib import startup
 from grr.tools import export_plugins
 
-
 DESCRIPTION = "Tool for exporting data from GRR to the outside world."
-
 
 flags.DEFINE_string("username", None,
                     "Username to use for export operations authorization.")
@@ -53,12 +51,10 @@ def AddPluginsSubparsers():
 
 def main(unused_argv):
   """Main."""
-  config_lib.CONFIG.AddContext(
-      "Commandline Context",
-      "Context applied for all command line tools")
-  config_lib.CONFIG.AddContext(
-      "ExportTool Context",
-      "Context applied to the export tool.")
+  config_lib.CONFIG.AddContext("Commandline Context",
+                               "Context applied for all command line tools")
+  config_lib.CONFIG.AddContext("ExportTool Context",
+                               "Context applied to the export tool.")
   startup.Init()
 
   data_store.default_token = access_control.ACLToken(

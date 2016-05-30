@@ -25,6 +25,7 @@ from grr.lib.rdfvalues import data_server as rdf_data_server
 from grr.server.data_server import constants
 from grr.server.data_server import rebalance
 from grr.server.data_server import utils as sutils
+
 # pylint: enable=g-import-not-at-top
 
 
@@ -65,11 +66,10 @@ class DataServer(object):
     else:
       # Handle hostnames and IPs.
       # TODO(user): Make this work for non IPv4.
-      myip = socket.getaddrinfo(
-          self.Address(), self.Port(), socket.AF_INET, 0,
-          socket.IPPROTO_TCP)[0][4][0]
-      other_ip = socket.getaddrinfo(
-          addr, port, socket.AF_INET, 0, socket.IPPROTO_TCP)[0][4][0]
+      myip = socket.getaddrinfo(self.Address(), self.Port(), socket.AF_INET, 0,
+                                socket.IPPROTO_TCP)[0][4][0]
+      other_ip = socket.getaddrinfo(addr, port, socket.AF_INET, 0,
+                                    socket.IPPROTO_TCP)[0][4][0]
       if myip != other_ip:
         return False
     return self.Port() == port
@@ -164,14 +164,14 @@ class DataMaster(object):
       logging.warning("First server in Dataserver.server_list is not the "
                       "master. Found port '%i' but my port is '%i'. If you"
                       " really are running master, you may want to specify"
-                      " flag --port %i.",
-                      self.myself.Port(), myport, myport)
+                      " flag --port %i.", self.myself.Port(), myport, myport)
       raise DataMasterError("First server in Dataserver.server_list must be "
                             "the master.")
     # Start database measuring thread.
     sleep = config_lib.CONFIG["Dataserver.stats_frequency"]
     self.periodic_thread = utils.InterruptableThread(
-        target=self._PeriodicThread, sleep_time=sleep)
+        target=self._PeriodicThread,
+        sleep_time=sleep)
     self.periodic_thread.start()
     # Holds current rebalance operation.
     self.rebalance = None
@@ -315,8 +315,7 @@ class DataMaster(object):
       body = self.mapping.SerializeToString()
       headers = {"Content-Length": len(body)}
       for serv, pool in pools:
-        res = pool.urlopen("POST", "/servers/sync", headers=headers,
-                           body=body)
+        res = pool.urlopen("POST", "/servers/sync", headers=headers, body=body)
         if res.status != constants.RESPONSE_OK:
           logging.warning("Could not sync with server %s:%d", serv.Address(),
                           serv.Port())
@@ -338,7 +337,9 @@ class DataMaster(object):
     headers = {"Content-Length": size}
     for pool in self.rebalance_pool:
       try:
-        res = pool.urlopen("POST", "/rebalance/statistics", headers=headers,
+        res = pool.urlopen("POST",
+                           "/rebalance/statistics",
+                           headers=headers,
                            body=body)
         if res.status != constants.RESPONSE_OK:
           self.CancelRebalancing()
@@ -364,7 +365,9 @@ class DataMaster(object):
     headers = {"Content-Length": size}
     for pool in self.rebalance_pool:
       try:
-        res = pool.urlopen("POST", "/rebalance/copy", headers=headers,
+        res = pool.urlopen("POST",
+                           "/rebalance/copy",
+                           headers=headers,
                            body=body)
         if res.status != constants.RESPONSE_OK:
           self.CancelRebalancing()
@@ -383,7 +386,9 @@ class DataMaster(object):
     headers = {"Content-Length": size}
     for i, pool in enumerate(self.rebalance_pool):
       try:
-        res = pool.urlopen("POST", "/rebalance/perform", headers=headers,
+        res = pool.urlopen("POST",
+                           "/rebalance/perform",
+                           headers=headers,
                            body=body)
         if res.status != constants.RESPONSE_OK:
           logging.error("Server %d failed to perform transaction %s", i,

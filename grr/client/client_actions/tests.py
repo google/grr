@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Loads up all client action tests."""
 
 # pylint: disable=unused-import

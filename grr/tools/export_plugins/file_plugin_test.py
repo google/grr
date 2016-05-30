@@ -49,10 +49,8 @@ class FileExportPluginTest(test_lib.GRRBaseTest):
 
     with utils.TempDirectory() as tmpdir:
       plugin.Run(parser.parse_args(args=[
-          "--path",
-          str(self.out.Add("testfile1")),
-          "--output",
-          tmpdir]))
+          "--path", str(self.out.Add("testfile1")), "--output", tmpdir
+      ]))
 
       expected_outdir = os.path.join(tmpdir, self.out.Path()[1:])
       self.assertTrue("testfile1" in os.listdir(expected_outdir))
@@ -73,13 +71,10 @@ class FileExportPluginTest(test_lib.GRRBaseTest):
 
     with utils.TempDirectory() as tmpdir:
       plugin.Run(parser.parse_args(args=[
-          "--path",
-          str(self.out.Add("testdir")),
-          "--output",
-          tmpdir]))
+          "--path", str(self.out.Add("testdir")), "--output", tmpdir
+      ]))
 
-      expected_outdir = os.path.join(tmpdir,
-                                     self.out.Add("testdir").Path()[1:])
+      expected_outdir = os.path.join(tmpdir, self.out.Add("testdir").Path()[1:])
       self.assertTrue("testfile1" in os.listdir(expected_outdir))
       full_outdir = os.path.join(expected_outdir, "testdir1", "testdir2")
       self.assertTrue("testfile4" in os.listdir(full_outdir))
@@ -87,6 +82,7 @@ class FileExportPluginTest(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

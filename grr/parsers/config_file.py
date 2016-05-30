@@ -58,8 +58,13 @@ class FieldParser(lexer.Lexer):
   compatible regex string.
   """
 
-  def __init__(self, comments=r"#", cont=r"\\\s*\n", ml_quote=False,
-               quot=(r"\"", r"'"), sep=r"[ \t\f\v]+", term=r"[\r\n]",
+  def __init__(self,
+               comments=r"#",
+               cont=r"\\\s*\n",
+               ml_quote=False,
+               quot=(r"\"", r"'"),
+               sep=r"[ \t\f\v]+",
+               term=r"[\r\n]",
                verbose=0):
     """A generalized field-based parser. Handles whitespace, csv etc.
 
@@ -171,7 +176,7 @@ class FieldParser(lexer.Lexer):
       self.field = ""
 
   def BadLine(self, **_):
-    logging.debug("Skipped bad line in file at %s" % self.processed)
+    logging.debug("Skipped bad line in file at %s", self.processed)
     self.field = ""
 
   def ParseEntries(self, data):
@@ -194,8 +199,14 @@ class KeyValueParser(FieldParser):
   kv_sep defaults to "="
   """
 
-  def __init__(self, comments=r"#", cont=r"\\\s*\n", kv_sep="=", ml_quote=False,
-               quot=(r"\"", r"'"), sep=r"[ \t\f\v]+", term=r"[\r\n]",
+  def __init__(self,
+               comments=r"#",
+               cont=r"\\\s*\n",
+               kv_sep="=",
+               ml_quote=False,
+               quot=(r"\"", r"'"),
+               sep=r"[ \t\f\v]+",
+               term=r"[\r\n]",
                verbose=0):
     """A generalized key-value parser. Handles whitespace, csv etc.
 
@@ -210,9 +221,13 @@ class KeyValueParser(FieldParser):
       verbose: Enable verbose mode for the lexer. Useful for debugging.
     """
     self.kv_sep = AsIter(kv_sep)
-    super(KeyValueParser, self).__init__(comments=comments, cont=cont,
-                                         ml_quote=ml_quote, quot=quot, sep=sep,
-                                         term=term, verbose=verbose)
+    super(KeyValueParser, self).__init__(comments=comments,
+                                         cont=cont,
+                                         ml_quote=ml_quote,
+                                         quot=quot,
+                                         sep=sep,
+                                         term=term,
+                                         verbose=verbose)
     self.key_field = ""
 
   def _GenStates(self):
@@ -330,7 +345,7 @@ class SshdConfigParser(parsers.FileParser):
                "port",
                "protocol",
                "serverkeybits",
-               "x11displayoffset"]
+               "x11displayoffset"]  # pyformat: disable
   _booleans = ["allowagentforwarding",
                "challengeresponseauthentication",
                "dsaauthentication"
@@ -355,7 +370,7 @@ class SshdConfigParser(parsers.FileParser):
                "uselogin",
                "usepam",
                "x11forwarding",
-               "x11uselocalhost"]
+               "x11uselocalhost"]  # pyformat: disable
   # Valid ways that parameters can repeat
   _repeated = {"acceptenv": r"[\n\s]+",
                "allowgroups": r"[\s]+",
@@ -390,7 +405,8 @@ class SshdConfigParser(parsers.FileParser):
       "permittemphomedir", "permittty", "permittunnel",
       "pubkeyacceptedkeytypes", "pubkeyauthentication", "rekeylimit",
       "rhostsrsaauthentication", "rsaauthentication", "temphomedirpath",
-      "x11displayoffset", "x11forwarding", "x11uselocalhost"]
+      "x11displayoffset", "x11forwarding", "x11uselocalhost"
+  ]
 
   def __init__(self):
     super(SshdConfigParser, self).__init__()
@@ -586,8 +602,8 @@ class RsyslogParser(parsers.FileParser, FieldParser):
       ("NONE", re.compile(r"(?:~)([^;]*)")),
       ("SCRIPT", re.compile(r"(?:\^)([^;]*)")),
       ("MODULE", re.compile(r"(?::om\w:)([^;]*)")),
-      ("FILE", re.compile(r"-?(/[^;]*)")),
-      ("WALL", re.compile(r"(\*)"))])
+      ("FILE", re.compile(r"-?(/[^;]*)")), ("WALL", re.compile(r"(\*)"))
+  ])  # pyformat: disable
 
   def _ParseAction(self, action):
     """Extract log configuration data from rsyslog actions.
@@ -695,9 +711,8 @@ class PackageSourceParser(parsers.FileParser):
       for k, v in kv_entry.iteritems():
         # This line could be a URL if a) from  key:value, value is empty OR
         # b) if separator is : and first character of v starts with /.
-        if (check_uri_on_next_line and
-            (not v or (separator == ":" and
-                       v and v[0].startswith("/")))):
+        if (check_uri_on_next_line and (not v or (separator == ":" and
+                                                  v[0].startswith("/")))):
           uris.append(sp_entry[0])
         else:
           check_uri_on_next_line = False
@@ -714,7 +729,7 @@ class APTPackageSourceParser(PackageSourceParser):
 
   def FindPotentialURIs(self, file_obj):
     """Given a file, this will return all potenial APT source URIs."""
-    rfc822_format = ""   # will contain all lines not in legacy format
+    rfc822_format = ""  # will contain all lines not in legacy format
     uris_to_parse = []
 
     for line in file_obj.read().splitlines(True):
@@ -749,9 +764,11 @@ class CronAtAllowDenyParser(parsers.FileParser):
     users = []
     bad_lines = []
     for line in lines:
-      if " " in line:           # behaviour of At/Cron is undefined for lines
-        bad_lines.append(line)  # with whitespace separated fields/usernames
-      elif line:                # drop empty lines
+      # behaviour of At/Cron is undefined for lines with whitespace separated
+      # fields/usernames
+      if " " in line:
+        bad_lines.append(line)
+      elif line:  # drop empty lines
         users.append(line)
 
     filename = stat.pathspec.path
@@ -784,7 +801,8 @@ class NtpdParser(parsers.FileParser, FieldParser):
   # keywords that are keyed to their first argument, an address.
   _address_based = set([
       "trap", "fudge", "server", "restrict", "peer", "broadcast",
-      "manycastclient"])
+      "manycastclient"
+  ])
   # keywords that append/augment the config.
   _accumulators = set(["includefile", "setvar"])
   # keywords that can appear multiple times, accumulating data each time.
@@ -794,11 +812,17 @@ class NtpdParser(parsers.FileParser, FieldParser):
       "autokey", "revoke", "multicastclient", "driftfile", "broadcastclient",
       "manycastserver", "includefile", "interface", "disable", "includefile",
       "discard", "logconfig", "logfile", "tos", "tinker", "keys", "keysdir",
-      "requestkey", "trustedkey", "crypto", "control", "statsdir", "filegen"])
+      "requestkey", "trustedkey", "crypto", "control", "statsdir", "filegen"
+  ])
 
-  _defaults = {"auth": True, "bclient": False, "calibrate": False,
-               "kernel": False, "monitor": True, "ntp": True,
-               "pps": False, "stats": False}
+  _defaults = {"auth": True,
+               "bclient": False,
+               "calibrate": False,
+               "kernel": False,
+               "monitor": True,
+               "ntp": True,
+               "pps": False,
+               "stats": False}
 
   def ParseLine(self, entries):
     """Extracts keyword/value settings from the ntpd config.
@@ -956,7 +980,8 @@ class SudoersParser(parsers.FileParser, FieldParser):
     if key in SudoersParser.ALIAS_TYPES.keys():
       # Alias.
       alias_entry = rdf_config_file.SudoersAlias(
-          type=SudoersParser.ALIAS_TYPES.get(key), name=entry[1])
+          type=SudoersParser.ALIAS_TYPES.get(key),
+          name=entry[1])
 
       # Members of this alias, comma-separated.
       members, _ = self._ExtractList(entry[2:], ignores=(",", "="))
@@ -1001,7 +1026,8 @@ class SudoersParser(parsers.FileParser, FieldParser):
         entry = entry[1:]
 
       # Command specification.
-      sudoers_entry = rdf_config_file.SudoersEntry(users=users, hosts=hosts,
+      sudoers_entry = rdf_config_file.SudoersEntry(users=users,
+                                                   hosts=hosts,
                                                    cmdspec=entry)
 
       sudoers_config.entries.append(sudoers_entry)

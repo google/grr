@@ -64,7 +64,8 @@ class Kill(actions.ActionPlugin):
     # Send a message back to the service to say that we are about to shutdown.
     reply = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
     # Queue up the response message, jump the queue.
-    self.SendReply(reply, message_type=rdf_flows.GrrMessage.Type.STATUS,
+    self.SendReply(reply,
+                   message_type=rdf_flows.GrrMessage.Type.STATUS,
                    priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY + 1)
 
     # Give the http thread some time to send the reply.
@@ -172,7 +173,7 @@ class GetLibraryVersions(actions.ActionPlugin):
       "M2Crypto": GetM2CryptoVersion,
       "SSL": GetSSLVersion,
       "psutil": GetPSUtilVersion,
-      }
+  }
 
   error_str = "Unable to determine library version: %s"
 
@@ -199,7 +200,7 @@ class UpdateConfiguration(actions.ActionPlugin):
                        "Client.poll_min",
                        "Client.poll_max",
                        "Client.poll_slew",
-                       "Client.rss_max"]
+                       "Client.rss_max"]  # pyformat: disable
 
   def Run(self, arg):
     """Does the actual work."""
@@ -228,7 +229,8 @@ def GetClientInformation():
       client_description=config_lib.CONFIG["Client.description"],
       client_version=int(config_lib.CONFIG["Client.version_numeric"]),
       build_time=config_lib.CONFIG["Client.build_time"],
-      labels=config_lib.CONFIG.Get("Client.labels", default=None))
+      labels=config_lib.CONFIG.Get("Client.labels",
+                                   default=None))
 
 
 class GetClientInfo(actions.ActionPlugin):
@@ -255,30 +257,26 @@ class GetClientStats(actions.ActionPlugin):
         RSS_size=meminfo.rss,
         VMS_size=meminfo.vms,
         memory_percent=proc.memory_percent(),
-        bytes_received=stats.STATS.GetMetricValue(
-            "grr_client_received_bytes"),
-        bytes_sent=stats.STATS.GetMetricValue(
-            "grr_client_sent_bytes"),
+        bytes_received=stats.STATS.GetMetricValue("grr_client_received_bytes"),
+        bytes_sent=stats.STATS.GetMetricValue("grr_client_sent_bytes"),
         create_time=long(proc.create_time() * 1e6),
         boot_time=long(psutil.boot_time() * 1e6))
 
     samples = self.grr_worker.stats_collector.cpu_samples
     for (timestamp, user, system, percent) in samples:
       if arg.start_time < timestamp < arg.end_time:
-        sample = rdf_client.CpuSample(
-            timestamp=timestamp,
-            user_cpu_time=user,
-            system_cpu_time=system,
-            cpu_percent=percent)
+        sample = rdf_client.CpuSample(timestamp=timestamp,
+                                      user_cpu_time=user,
+                                      system_cpu_time=system,
+                                      cpu_percent=percent)
         response.cpu_samples.Append(sample)
 
     samples = self.grr_worker.stats_collector.io_samples
     for (timestamp, read_bytes, write_bytes) in samples:
       if arg.start_time < timestamp < arg.end_time:
-        sample = rdf_client.IOSample(
-            timestamp=timestamp,
-            read_bytes=read_bytes,
-            write_bytes=write_bytes)
+        sample = rdf_client.IOSample(timestamp=timestamp,
+                                     read_bytes=read_bytes,
+                                     write_bytes=write_bytes)
         response.io_samples.Append(sample)
 
     self.Send(response)
@@ -315,9 +313,8 @@ class SendStartupInfo(actions.ActionPlugin):
     """Returns the startup information."""
     logging.debug("Sending startup information.")
 
-    response = rdf_client.StartupInfo(
-        boot_time=long(psutil.boot_time() * 1e6),
-        client_info=GetClientInformation())
+    response = rdf_client.StartupInfo(boot_time=long(psutil.boot_time() * 1e6),
+                                      client_info=GetClientInformation())
 
     self.grr_worker.SendReply(
         response,

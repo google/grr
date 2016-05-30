@@ -332,8 +332,9 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         condition_type=(
             file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
         contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
-            mode=(file_finder.FileFinderContentsRegexMatchCondition.Mode.
-                  ALL_HITS),
+            mode=(
+                file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS
+            ),
             bytes_before=10,
             bytes_after=10,
             regex="session opened for user .*?john"))
@@ -363,8 +364,9 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         condition_type=(
             file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
         contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
-            mode=(file_finder.FileFinderContentsRegexMatchCondition.Mode.
-                  ALL_HITS),
+            mode=(
+                file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS
+            ),
             bytes_before=10,
             bytes_after=10,
             regex="session opened for user .*?john"))
@@ -372,8 +374,9 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         condition_type=(
             file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
         contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
-            mode=(file_finder.FileFinderContentsRegexMatchCondition.Mode.
-                  ALL_HITS),
+            mode=(
+                file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS
+            ),
             bytes_before=10,
             bytes_after=10,
             regex="format.*should"))
@@ -409,8 +412,9 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         condition_type=(
             file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
         contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
-            mode=(file_finder.FileFinderContentsRegexMatchCondition.Mode.
-                  ALL_HITS),
+            mode=(
+                file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS
+            ),
             bytes_before=10,
             bytes_after=10,
             regex="session opened for user .*?john"))
@@ -508,8 +512,9 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         condition_type=(
             file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
         contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
-            mode=(file_finder.FileFinderContentsRegexMatchCondition.Mode.
-                  ALL_HITS),
+            mode=(
+                file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS
+            ),
             bytes_before=10,
             bytes_after=10,
             regex="session opened for user .*?john"))

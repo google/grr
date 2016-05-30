@@ -100,5 +100,6 @@ class TestDumpFlashImage(test_lib.EmptyActionTest):
 def main(argv):
   test_lib.main(argv)
 
+
 if __name__ == "__main__":
   flags.StartMain(main)

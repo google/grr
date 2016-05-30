@@ -36,9 +36,8 @@ class CheckForWow64(installer.Installer):
 
   def RunOnce(self):
     if win32process.IsWow64Process():
-      raise RuntimeError(
-          "Will not install a 32 bit client on a 64 bit system. "
-          "Please use the correct client.")
+      raise RuntimeError("Will not install a 32 bit client on a 64 bit system. "
+                         "Please use the correct client.")
 
 
 class CopyToSystemDir(installer.Installer):
@@ -67,8 +66,7 @@ class CopyToSystemDir(installer.Installer):
         try:
           win32serviceutil.StopService(service)
         except pywintypes.error, e:
-          logging.info("Unable to stop service: %s with error: %s",
-                       service, e)
+          logging.info("Unable to stop service: %s with error: %s", service, e)
       time.sleep(1)
       status = win32serviceutil.QueryServiceStatus(service)[1]
 
@@ -78,8 +76,10 @@ class CopyToSystemDir(installer.Installer):
       # Taskkill will fail on systems predating Windows XP, this is a best
       # effort fallback solution.
       output = subprocess.check_output(
-          ["taskkill", "/im", "%s*" % service_binary, "/f"], shell=True,
-          stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+          ["taskkill", "/im", "%s*" % service_binary, "/f"],
+          shell=True,
+          stdin=subprocess.PIPE,
+          stderr=subprocess.PIPE)
 
       logging.debug("%s", output)
 
@@ -137,10 +137,10 @@ class WindowsInstaller(installer.Installer):
   pre = ["CopyToSystemDir", "UpdateClients"]
 
   # These options will be copied to the registry to configure the nanny service.
-  nanny_options = (
-      "Nanny.child_binary", "Nanny.child_command_line",
-      "Nanny.service_name", "Nanny.service_description",
-  )
+  nanny_options = ("Nanny.child_binary",
+                   "Nanny.child_command_line",
+                   "Nanny.service_name",
+                   "Nanny.service_description",)
 
   def InstallNanny(self):
     """Install the nanny program."""
@@ -154,14 +154,14 @@ class WindowsInstaller(installer.Installer):
 
     new_config.Write()
 
-    args = [config_lib.CONFIG["Nanny.binary"],
-            "--service_key",
-            config_lib.CONFIG["Nanny.service_key"],
-            "install"]
+    args = [config_lib.CONFIG["Nanny.binary"], "--service_key",
+            config_lib.CONFIG["Nanny.service_key"], "install"]
 
     logging.debug("Calling %s", (args,))
-    output = subprocess.check_output(
-        args, shell=True, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
+    output = subprocess.check_output(args,
+                                     shell=True,
+                                     stdin=subprocess.PIPE,
+                                     stderr=subprocess.PIPE)
     logging.debug("%s", output)
 
   def Run(self):
@@ -184,9 +184,9 @@ class UpdateClients(installer.Installer):
 
           key_name = "\\".join(src_components[1:-1])
           value_name = src_components[-1]
-          key = _winreg.CreateKeyEx(getattr(_winreg, src_components[0]),
-                                    key_name, 0,
-                                    _winreg.KEY_ALL_ACCESS)
+          key = _winreg.CreateKeyEx(
+              getattr(_winreg, src_components[0]), key_name, 0,
+              _winreg.KEY_ALL_ACCESS)
 
           value, _ = _winreg.QueryValueEx(key, value_name)
 

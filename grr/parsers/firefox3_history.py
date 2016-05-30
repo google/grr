@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Copyright 2011 Google Inc. All Rights Reserved.
-
 """Parser for Mozilla Firefox3 3 History files."""
 
 
@@ -31,8 +30,11 @@ class FirefoxHistoryParser(parsers.FileParser):
     ff = Firefox3History(file_object)
     for timestamp, unused_entry_type, url, title in ff.Parse():
       yield rdf_webhistory.BrowserHistoryItem(
-          url=url, domain=urlparse.urlparse(url).netloc, access_time=timestamp,
-          program_name="Firefox", source_urn=stat.aff4path,
+          url=url,
+          domain=urlparse.urlparse(url).netloc,
+          access_time=timestamp,
+          program_name="Firefox",
+          source_urn=stat.aff4path,
           title=title)
 
 
@@ -89,8 +91,7 @@ def main(argv):
       except ValueError:
         date_string = timestamp
 
-      output_string = "%s\t%s\t%s\t%s" % (
-          date_string, entry_type, url, title)
+      output_string = "%s\t%s\t%s\t%s" % (date_string, entry_type, url, title)
 
       print output_string.encode("UTF-8")
 

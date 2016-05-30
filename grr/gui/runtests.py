@@ -50,8 +50,8 @@ class DjangoThread(threading.Thread):
       server = simple_server.make_server("0.0.0.0", port,
                                          django_lib.GetWSGIHandler())
     except socket.error as e:
-      raise socket.error(
-          "Error while listening on port %d: %s." % (port, str(e)))
+      raise socket.error("Error while listening on port %d: %s." %
+                         (port, str(e)))
 
     # We want to notify other threads that we are now ready to serve right
     # before we enter the serving loop.

@@ -80,9 +80,9 @@ class ApiGetConfigHandlerTest(test_lib.GRRBaseTest):
   def _ConfigStub(self, sections=None):
     mock = GetConfigMockClass(sections)
     config = config_lib.CONFIG
-    return utils.MultiStubber((config, "GetRaw", mock["GetRaw"]),
-                              (config, "Get", mock["Get"]),
-                              (config, "type_infos", mock["type_infos"]))
+    return utils.MultiStubber(
+        (config, "GetRaw", mock["GetRaw"]), (config, "Get", mock["Get"]),
+        (config, "type_infos", mock["type_infos"]))
 
   def _HandleConfig(self, sections):
     with self._ConfigStub(sections):
@@ -139,7 +139,8 @@ SectionFoo.sample_boolean_option: True
 SectionBar.sample_string_option: "%(sAmPlE|lower)"
 """
 
-    config_lib.LoadConfig(config_obj, StringIO.StringIO(config),
+    config_lib.LoadConfig(config_obj,
+                          StringIO.StringIO(config),
                           parser=config_lib.YamlParser)
 
     with utils.Stubber(config_lib, "CONFIG", config_obj):
@@ -156,14 +157,14 @@ class ApiGetConfigOptionHandlerTest(test_lib.GRRBaseTest):
   def _ConfigStub(self, sections=None):
     mock = GetConfigMockClass(sections)
     config = config_lib.CONFIG
-    return utils.MultiStubber((config, "GetRaw", mock["GetRaw"]),
-                              (config, "Get", mock["Get"]),
-                              (config, "type_infos", mock["type_infos"]))
+    return utils.MultiStubber(
+        (config, "GetRaw", mock["GetRaw"]), (config, "Get", mock["Get"]),
+        (config, "type_infos", mock["type_infos"]))
 
   def _HandleConfigOption(self, stub_sections, name):
     with self._ConfigStub(stub_sections):
-      result = self.handler.Handle(
-          config_plugin.ApiGetConfigOptionArgs(name=name))
+      result = self.handler.Handle(config_plugin.ApiGetConfigOptionArgs(
+          name=name))
 
     return result
 
@@ -184,15 +185,15 @@ class ApiGetConfigOptionHandlerRegressionTest(
     config_obj = config_lib.GrrConfigManager()
     config_obj.DEFINE_string("SectionFoo.sample_string_option", "",
                              "Sample string option.")
-    config_obj.DEFINE_string("Mysql.database_password", "",
-                             "Secret password.")
+    config_obj.DEFINE_string("Mysql.database_password", "", "Secret password.")
 
     config = """
 SectionBar.sample_string_option: "%(sAmPlE|lower)"
 Mysql.database_password: "THIS IS SECRET AND SHOULD NOT BE SEEN"
 """
 
-    config_lib.LoadConfig(config_obj, StringIO.StringIO(config),
+    config_lib.LoadConfig(config_obj,
+                          StringIO.StringIO(config),
                           parser=config_lib.YamlParser)
 
     with utils.Stubber(config_lib, "CONFIG", config_obj):

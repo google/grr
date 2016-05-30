@@ -18,16 +18,24 @@ class CollectionExportPlugin(plugin.OutputPluginBasedExportPlugin):
   def ConfigureArgParser(self, parser):
     """Configure args parser for CollectionExportPlugin."""
 
-    parser.add_argument("--path", type=rdfvalue.RDFURN, required=True,
+    parser.add_argument("--path",
+                        type=rdfvalue.RDFURN,
+                        required=True,
                         help="AFF4 path to the collection to export.")
 
-    parser.add_argument("--threads", type=int, default=8,
+    parser.add_argument("--threads",
+                        type=int,
+                        default=8,
                         help="Maximum number of threads to use.")
 
-    parser.add_argument("--batch", type=int, default=1000,
+    parser.add_argument("--batch",
+                        type=int,
+                        default=1000,
                         help="Size of batches processed by each thread.")
 
-    parser.add_argument("--checkpoint_every", type=int, default=1000 * 1000,
+    parser.add_argument("--checkpoint_every",
+                        type=int,
+                        default=1000 * 1000,
                         help="Flush the results every time after processing "
                         "this number of values.")
 
@@ -43,6 +51,6 @@ class CollectionExportPlugin(plugin.OutputPluginBasedExportPlugin):
         break
     else:
       raise aff4.InstantiationError(
-          "Object %s is of type %s, but required_type is one of %s" % (
-              collection, collection.__class__.__name__, self.export_types))
+          "Object %s is of type %s, but required_type is one of %s" %
+          (collection, collection.__class__.__name__, self.export_types))
     return collection

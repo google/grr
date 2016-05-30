@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Tests for components.
 
 This test can be used to ensure that a component is self contained by replacing
@@ -52,10 +51,11 @@ os._grr_component_was_here = True
     new_zip_file.writestr("mock_mod.py", self.component_payload)
     new_zip_file.close()
 
-    self.component = test_lib.WriteComponent(
-        name="mock_component", version="1.0",
-        token=self.token, modules=["mock_mod"],
-        raw_data=fp.getvalue())
+    self.component = test_lib.WriteComponent(name="mock_component",
+                                             version="1.0",
+                                             token=self.token,
+                                             modules=["mock_mod"],
+                                             raw_data=fp.getvalue())
 
   def testComponentLoading(self):
     """Ensure we can load the component."""
@@ -67,8 +67,10 @@ os._grr_component_was_here = True
     # earlier.
     with test_lib.ConfigOverrider({
         "Client.build_environment": self.component.build_system.signature(),
-        "Client.component_path": os.path.join(self.temp_dir, "components")}):
-      self.RunAction("LoadComponent", message,
+        "Client.component_path": os.path.join(self.temp_dir, "components")
+    }):
+      self.RunAction("LoadComponent",
+                     message,
                      grr_worker=MockClientWorker(self.token))
 
       # Make sure that the component was loaded.
@@ -78,6 +80,7 @@ os._grr_component_was_here = True
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

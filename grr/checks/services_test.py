@@ -17,8 +17,14 @@ class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
     cls.LoadCheck("services.yaml")
     cls.parser = linux_service_parser.LinuxXinetdParser().ParseMultiple
 
-  def RunXinetdCheck(self, chk_id, svc, disabled, sym, found,
-                     xinetd=False, should_detect=True):
+  def RunXinetdCheck(self,
+                     chk_id,
+                     svc,
+                     disabled,
+                     sym,
+                     found,
+                     xinetd=False,
+                     should_detect=True):
     host_data = self.SetKnowledgeBase()
     cfgs = linux_service_parser_test.GenXinetd(svc, disabled)
     stats, files = linux_service_parser_test.GenTestData(cfgs, cfgs.values())
@@ -46,17 +52,37 @@ class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
     found = ["Expected state was not found"]
 
     # xinetd is running and the only service is disabled - there should be a hit
-    self.RunXinetdCheck(chk_id, "finger", "yes", sym, found, xinetd=True,
+    self.RunXinetdCheck(chk_id,
+                        "finger",
+                        "yes",
+                        sym,
+                        found,
+                        xinetd=True,
                         should_detect=True)
 
     # xinetd is running and there is a service enabled - no hit
-    self.RunXinetdCheck(chk_id, "finger", "no", sym, found, xinetd=True,
+    self.RunXinetdCheck(chk_id,
+                        "finger",
+                        "no",
+                        sym,
+                        found,
+                        xinetd=True,
                         should_detect=False)
     # xinetd not running and the only service is disabled - no hit
-    self.RunXinetdCheck(chk_id, "finger", "yes", sym, found, xinetd=False,
+    self.RunXinetdCheck(chk_id,
+                        "finger",
+                        "yes",
+                        sym,
+                        found,
+                        xinetd=False,
                         should_detect=False)
     # xinetd not running and there is a service enabled - no hit
-    self.RunXinetdCheck(chk_id, "finger", "no", sym, found, xinetd=False,
+    self.RunXinetdCheck(chk_id,
+                        "finger",
+                        "no",
+                        sym,
+                        found,
+                        xinetd=False,
                         should_detect=False)
 
   def testLegacyXinetdServicesCheck(self):
@@ -64,7 +90,11 @@ class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
     sym = "Found: Legacy services are running."
     found = ["telnet is started by XINETD"]
     self.RunXinetdCheck(chk_id, "telnet", "no", sym, found)
-    self.RunXinetdCheck(chk_id, "telnet", "yes", sym, found,
+    self.RunXinetdCheck(chk_id,
+                        "telnet",
+                        "yes",
+                        sym,
+                        found,
                         should_detect=False)
 
   def testUnwantedServicesCheck(self):
@@ -72,7 +102,11 @@ class XinetdServiceStateTests(checks_test_lib.HostCheckTest):
     sym = "Found: Remote administration services are running."
     found = ["webmin is started by XINETD"]
     self.RunXinetdCheck(chk_id, "webmin", "no", sym, found)
-    self.RunXinetdCheck(chk_id, "webmin", "yes", sym, found,
+    self.RunXinetdCheck(chk_id,
+                        "webmin",
+                        "yes",
+                        sym,
+                        found,
                         should_detect=False)
 
 
@@ -93,8 +127,9 @@ class SysVInitStateTests(checks_test_lib.HostCheckTest):
     host_data = self.SetKnowledgeBase()
     links = ["/etc/rc2.d/S50xinetd", "/etc/rc2.d/S60wu-ftpd",
              "/etc/rc2.d/S10ufw"]
-    stats, files = linux_service_parser_test.GenTestData(
-        links, [""] * len(links), st_mode=41471)
+    stats, files = linux_service_parser_test.GenTestData(links,
+                                                         [""] * len(links),
+                                                         st_mode=41471)
     parsed = list(self.parser(stats, files, None))
     host_data["LinuxServices"] = self.SetArtifactData(parsed=parsed)
     self.results = self.RunChecks(host_data)
@@ -130,14 +165,15 @@ class ListeningServiceTests(checks_test_lib.HostCheckTest):
     ext4 = self.AddListener("10.1.1.1", 6000)
     ext6 = self.AddListener("fc00::1", 6000, "INET6")
     x11 = rdf_client.Process(name="x11", pid=1233, connections=[loop4, loop6])
-    xorg = rdf_client.Process(name="xorg", pid=1234,
+    xorg = rdf_client.Process(name="xorg",
+                              pid=1234,
                               connections=[loop4, loop6, ext4, ext6])
-    sshd = rdf_client.Process(name="sshd", pid=1235,
+    sshd = rdf_client.Process(name="sshd",
+                              pid=1235,
                               connections=[loop4, loop6, ext4, ext6])
     # Note: ListProcessesGrr is a flow artifact, hence it needs to be of
     # raw context.
-    host_data["ListProcessesGrr"] = self.SetArtifactData(
-        raw=[x11, xorg, sshd])
+    host_data["ListProcessesGrr"] = self.SetArtifactData(raw=[x11, xorg, sshd])
     return host_data
 
   def testFindListeningServicesCheck(self):
@@ -165,10 +201,11 @@ class ListeningServiceTests(checks_test_lib.HostCheckTest):
     # Check with some problematic real-world data.
     host_data = self.GenHostData()  # Reset the host_data.
     # Added a non-logger process. We expect to raise an anom.
-    proc1 = rdf_client.Process(name="python", pid=10554, ppid=1,
+    proc1 = rdf_client.Process(name="python",
+                               pid=10554,
+                               ppid=1,
                                exe="/usr/bin/python",
-                               cmdline=["/usr/bin/python",
-                                        "-E",
+                               cmdline=["/usr/bin/python", "-E",
                                         "/usr/sbin/foo_agent",
                                         "/etc/foo/conf.d/rsyslogd.conf",
                                         "/etc/foo/foobar.conf"])
@@ -177,22 +214,22 @@ class ListeningServiceTests(checks_test_lib.HostCheckTest):
     self.assertCheckDetectedAnom(chk_id, results, sym, found)
 
     # Now added a logging service proc. We expect no anom. this time.
-    proc2 = rdf_client.Process(name="rsyslogd", pid=10200, ppid=1,
+    proc2 = rdf_client.Process(name="rsyslogd",
+                               pid=10200,
+                               ppid=1,
                                exe="/sbin/rsyslogd",
-                               cmdline=["/sbin/rsyslogd",
-                                        "-i",
-                                        "/var/run/rsyslogd.pid",
-                                        "-m",
-                                        "0"])
+                               cmdline=["/sbin/rsyslogd", "-i",
+                                        "/var/run/rsyslogd.pid", "-m", "0"])
     host_data["ListProcessesGrr"][context].append(proc2)
     results = self.RunChecks(host_data)
     self.assertCheckUndetected(chk_id, results)
 
     # Add yet another non-logger process. We should still raise no anom.
-    proc3 = rdf_client.Process(name="foobar", pid=31337, ppid=1,
+    proc3 = rdf_client.Process(name="foobar",
+                               pid=31337,
+                               ppid=1,
                                exe="/usr/local/bin/foobar",
-                               cmdline=["/usr/local/bin/foobar",
-                                        "--test",
+                               cmdline=["/usr/local/bin/foobar", "--test",
                                         "args"])
     host_data["ListProcessesGrr"][context].append(proc3)
     results = self.RunChecks(host_data)

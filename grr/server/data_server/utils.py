@@ -5,10 +5,8 @@
 import hashlib
 import struct
 
-
 from grr.lib.rdfvalues import data_server as rdf_data_server
 from grr.server.data_server import constants
-
 
 SIZE_PACKER = struct.Struct("I")
 PORT_PACKER = struct.Struct("I")

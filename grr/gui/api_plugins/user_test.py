@@ -39,9 +39,8 @@ class ApiGetUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
                            approver="approver",
                            email_cc_address="test@example.com",
                            token=self.token)
-    args = user_plugin.ApiGetUserClientApprovalArgs(
-        client_id=self.client_id,
-        reason="blah")
+    args = user_plugin.ApiGetUserClientApprovalArgs(client_id=self.client_id,
+                                                    reason="blah")
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(result.subject.urn, self.client_id)
@@ -72,19 +71,18 @@ class ApiGetUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
                            subject_urn=self.client_id,
                            token=approver_token)
 
-    args = user_plugin.ApiGetUserClientApprovalArgs(
-        client_id=self.client_id,
-        reason="blah")
+    args = user_plugin.ApiGetUserClientApprovalArgs(client_id=self.client_id,
+                                                    reason="blah")
     result = self.handler.Handle(args, token=self.token)
 
     self.assertTrue(result.is_valid)
-    self.assertEqual(sorted(result.approvers),
-                     sorted([approver_token.username, self.token.username]))
+    self.assertEqual(
+        sorted(result.approvers),
+        sorted([approver_token.username, self.token.username]))
 
   def testRaisesWhenApprovalIsNotFound(self):
-    args = user_plugin.ApiGetUserClientApprovalArgs(
-        client_id=self.client_id,
-        reason="blah")
+    args = user_plugin.ApiGetUserClientApprovalArgs(client_id=self.client_id,
+                                                    reason="blah")
 
     # TODO(user): throw some standard exception that can be converted to
     # HTTP 404 status code.
@@ -156,9 +154,8 @@ class ApiCreateUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
     self.args.approval.notified_users = ["approver"]
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
-    self.approval_urn = aff4.ROOT_URN.Add("ACL").Add(
-        self.client_id.Basename()).Add(self.token.username).Add(
-            utils.EncodeReasonString(self.token.reason))
+    self.approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.client_id.Basename(
+    )).Add(self.token.username).Add(utils.EncodeReasonString(self.token.reason))
 
     self.CreateUser("test")
     self.CreateUser("approver")
@@ -173,7 +170,8 @@ class ApiCreateUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
 
     fd = aff4.FACTORY.Open(self.approval_urn,
                            aff4_type=aff4_security.ClientApproval.__name__,
-                           age=aff4.ALL_TIMES, token=self.token)
+                           age=aff4.ALL_TIMES,
+                           token=self.token)
     self.assertEqual(fd.Get(fd.Schema.SUBJECT), self.client_id)
     self.assertEqual(fd.Get(fd.Schema.REASON), self.token.reason)
     self.assertEqual(fd.GetNonExpiredApprovers(), [self.token.username])
@@ -189,7 +187,8 @@ class ApiCreateUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
 
     fd = aff4.FACTORY.Open(self.approval_urn,
                            aff4_type=aff4_security.ClientApproval.__name__,
-                           age=aff4.ALL_TIMES, token=self.token)
+                           age=aff4.ALL_TIMES,
+                           token=self.token)
     self.assertEqual(fd.GetNonExpiredApprovers(), [self.token.username])
 
   def testRaisesOnEmptyReason(self):
@@ -210,8 +209,13 @@ class ApiCreateUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
 
   def testSendsEmailsToGrrUsersAndCcAddresses(self):
     addresses = []
-    def SendEmailStub(to_user, from_user, unused_subject, unused_message,
-                      cc_addresses=None, **unused_kwargs):
+
+    def SendEmailStub(to_user,
+                      from_user,
+                      unused_subject,
+                      unused_message,
+                      cc_addresses=None,
+                      **unused_kwargs):
       addresses.append((to_user, from_user, cc_addresses))
 
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub):
@@ -240,14 +244,13 @@ class ApiCreateUserClientApprovalHandlerRegressionTest(
         grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(126):
-      self.Check("POST", "/api/users/me/approvals/client/%s" %
-                 client_id.Basename(),
+      self.Check("POST",
+                 "/api/users/me/approvals/client/%s" % client_id.Basename(),
                  {"approval": {
                      "reason": "really important reason!",
                      "notified_users": ["approver1", "approver2"],
                      "email_cc_addresses": ["test@example.com"]
-                     }
-                 })
+                 }})
 
 
 class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
@@ -296,10 +299,11 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(len(result.items), self.CLIENT_COUNT)
 
     # Grant access to one client. Now all but one should be invalid.
-    self.GrantClientApproval(self.client_ids[0], self.token.username,
+    self.GrantClientApproval(self.client_ids[0],
+                             self.token.username,
                              reason=self.token.reason)
     result = self.handler.Handle(args, token=self.token)
-    self.assertEqual(len(result.items), self.CLIENT_COUNT-1)
+    self.assertEqual(len(result.items), self.CLIENT_COUNT - 1)
 
   def testFiltersApprovalsByValidState(self):
     self._RequestClientApprovals()
@@ -313,7 +317,8 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(len(result.items), 0)
 
     # Grant access to one client. Now exactly one approval should be valid.
-    self.GrantClientApproval(self.client_ids[0], self.token.username,
+    self.GrantClientApproval(self.client_ids[0],
+                             self.token.username,
                              reason=self.token.reason)
     result = self.handler.Handle(args, token=self.token)
     self.assertEqual(len(result.items), 1)
@@ -325,7 +330,8 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
     self._RequestClientApprovals()
 
     # Grant approval to a certain client.
-    self.GrantClientApproval(client_id, self.token.username,
+    self.GrantClientApproval(client_id,
+                             self.token.username,
                              reason=self.token.reason)
 
     args = user_plugin.ApiListUserClientApprovalsArgs(
@@ -351,8 +357,9 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
         self.token.reason = "Request reason %d" % i
         self.RequestClientApproval(client_id, token=self.token)
 
-    args = user_plugin.ApiListUserClientApprovalsArgs(
-        client_id=client_id, offset=0, count=5)
+    args = user_plugin.ApiListUserClientApprovalsArgs(client_id=client_id,
+                                                      offset=0,
+                                                      count=5)
     result = self.handler.Handle(args, token=self.token)
 
     # Approvals are returned newest to oldest, so the first five approvals
@@ -362,8 +369,8 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
       self.assertEqual(item.reason, "Request reason %d" % i)
 
     # When no count is specified, take all items from offset to the end.
-    args = user_plugin.ApiListUserClientApprovalsArgs(
-        client_id=client_id, offset=7)
+    args = user_plugin.ApiListUserClientApprovalsArgs(client_id=client_id,
+                                                      offset=7)
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), 4)
@@ -379,9 +386,8 @@ class ApiListUserHuntApprovalsHandlerTest(test_lib.GRRBaseTest):
     self.handler = user_plugin.ApiListUserHuntApprovalsHandler()
 
   def testRendersRequestedHuntAppoval(self):
-    with hunts.GRRHunt.StartHunt(
-        hunt_name=standard.SampleHunt.__name__,
-        token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(hunt_name=standard.SampleHunt.__name__,
+                                 token=self.token) as hunt:
       pass
 
     flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
@@ -467,8 +473,8 @@ class ApiListUserClientApprovalsHandlerRegressionTest(
 
     with test_lib.FakeTime(126):
       self.Check("GET", "/api/users/me/approvals/client")
-      self.Check("GET", "/api/users/me/approvals/client/%s" % (
-          clients[0].Basename()))
+      self.Check("GET",
+                 "/api/users/me/approvals/client/%s" % (clients[0].Basename()))
 
 
 class ApiListUserHuntApprovalsHandlerRegressionTest(
@@ -481,8 +487,7 @@ class ApiListUserHuntApprovalsHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.CreateAdminUser("approver")
 
-      hunt = hunts.GRRHunt.StartHunt(
-          hunt_name="GenericHunt", token=self.token)
+      hunt = hunts.GRRHunt.StartHunt(hunt_name="GenericHunt", token=self.token)
 
     with test_lib.FakeTime(43):
       flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
@@ -492,7 +497,8 @@ class ApiListUserHuntApprovalsHandlerRegressionTest(
                              token=self.token)
 
     with test_lib.FakeTime(126):
-      self.Check("GET", "/api/users/me/approvals/hunt",
+      self.Check("GET",
+                 "/api/users/me/approvals/hunt",
                  replace={utils.SmartStr(hunt.urn.Basename()): "H:123456"})
 
 
@@ -511,7 +517,8 @@ class ApiGetGrrUserHandlerTest(test_lib.GRRBaseTest):
   def testRendersSettingsForUserCorrespondingToToken(self):
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add("foo"),
-        aff4_type=aff4_users.GRRUser.__name__, mode="w",
+        aff4_type=aff4_users.GRRUser.__name__,
+        mode="w",
         token=self.token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS,
                   aff4_users.GUISettings(mode="ADVANCED",
@@ -531,10 +538,8 @@ class ApiGetGrrUserHandlerTest(test_lib.GRRBaseTest):
 
     handler = user_plugin.ApiGetGrrUserHandler(
         interface_traits=user_plugin.ApiGrrUserInterfaceTraits(
-            create_hunt_action_enabled=True
-        ))
-    result = handler.Handle(None,
-                            token=access_control.ACLToken(username="foo"))
+            create_hunt_action_enabled=True))
+    result = handler.Handle(None, token=access_control.ACLToken(username="foo"))
     self.assertTrue(result.interface_traits.create_hunt_action_enabled)
 
 
@@ -548,7 +553,8 @@ class ApiGetGrrUserHandlerRegresstionTest(
     with test_lib.FakeTime(42):
       with aff4.FACTORY.Create(
           aff4.ROOT_URN.Add("users").Add(self.token.username),
-          aff4_type=aff4_users.GRRUser.__name__, mode="w",
+          aff4_type=aff4_users.GRRUser.__name__,
+          mode="w",
           token=self.token) as user_fd:
         user_fd.Set(user_fd.Schema.GUI_SETTINGS,
                     aff4_users.GUISettings(canary_mode=True))
@@ -566,20 +572,17 @@ class ApiUpdateGrrUserHandlerTest(test_lib.GRRBaseTest):
   def testRaisesIfUsernameSetInRequest(self):
     user = user_plugin.ApiGrrUser(username="foo")
     with self.assertRaises(ValueError):
-      self.handler.Handle(user,
-                          token=access_control.ACLToken(username="foo"))
+      self.handler.Handle(user, token=access_control.ACLToken(username="foo"))
 
     user = user_plugin.ApiGrrUser(username="bar")
     with self.assertRaises(ValueError):
-      self.handler.Handle(user,
-                          token=access_control.ACLToken(username="foo"))
+      self.handler.Handle(user, token=access_control.ACLToken(username="foo"))
 
   def testRaisesIfTraitsSetInRequest(self):
     user = user_plugin.ApiGrrUser(
         interface_traits=user_plugin.ApiGrrUserInterfaceTraits())
     with self.assertRaises(ValueError):
-      self.handler.Handle(user,
-                          token=access_control.ACLToken(username="foo"))
+      self.handler.Handle(user, token=access_control.ACLToken(username="foo"))
 
   def testSetsSettingsForUserCorrespondingToToken(self):
     settings = aff4_users.GUISettings(mode="ADVANCED",
@@ -587,8 +590,7 @@ class ApiUpdateGrrUserHandlerTest(test_lib.GRRBaseTest):
                                       docs_location="REMOTE")
     user = user_plugin.ApiGrrUser(settings=settings)
 
-    self.handler.Handle(user,
-                        token=access_control.ACLToken(username="foo"))
+    self.handler.Handle(user, token=access_control.ACLToken(username="foo"))
 
     # Check that settings for user "foo" were applied.
     fd = aff4.FACTORY.Open("aff4:/users/foo", token=self.token)
@@ -626,8 +628,7 @@ class ApiGetPendingUserNotificationsHandlerRegressionTest(
   handler = "ApiGetPendingUserNotificationsHandler"
 
   def setUp(self):
-    super(ApiGetPendingUserNotificationsHandlerRegressionTest,
-          self).setUp()
+    super(ApiGetPendingUserNotificationsHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
@@ -680,7 +681,9 @@ class ApiDeletePendingUserNotificationHandlerTest(test_lib.GRRBaseTest):
   def _GetNotifications(self):
     user_record = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type="GRRUser", mode="r", token=self.token)
+        aff4_type="GRRUser",
+        mode="r",
+        token=self.token)
 
     pending = user_record.Get(user_record.Schema.PENDING_NOTIFICATIONS)
     shown = user_record.Get(user_record.Schema.SHOWN_NOTIFICATIONS)
@@ -790,36 +793,32 @@ class ApiGetPendingGlobalNotificationsHandlerRegressionTest(
   def Run(self):
     with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
                              aff4_type="GlobalNotificationStorage",
-                             mode="rw", token=self.token) as storage:
-      storage.AddNotification(
-          aff4_users.GlobalNotification(
-              type=aff4_users.GlobalNotification.Type.ERROR,
-              header="Oh no, we're doomed!",
-              content="Houston, Houston, we have a prob...",
-              link="http://www.google.com",
-              show_from=self.TIME_0
-          ))
+                             mode="rw",
+                             token=self.token) as storage:
+      storage.AddNotification(aff4_users.GlobalNotification(
+          type=aff4_users.GlobalNotification.Type.ERROR,
+          header="Oh no, we're doomed!",
+          content="Houston, Houston, we have a prob...",
+          link="http://www.google.com",
+          show_from=self.TIME_0))
 
-      storage.AddNotification(
-          aff4_users.GlobalNotification(
-              type=aff4_users.GlobalNotification.Type.INFO,
-              header="Nothing to worry about!",
-              link="http://www.google.com",
-              show_from=self.TIME_1
-          ))
+      storage.AddNotification(aff4_users.GlobalNotification(
+          type=aff4_users.GlobalNotification.Type.INFO,
+          header="Nothing to worry about!",
+          link="http://www.google.com",
+          show_from=self.TIME_1))
 
-      storage.AddNotification(
-          aff4_users.GlobalNotification(
-              type=aff4_users.GlobalNotification.Type.WARNING,
-              header="Nothing to worry, we won't see this!",
-              link="http://www.google.com",
-              show_from=self.TIME_TOO_EARLY
-          ))
+      storage.AddNotification(aff4_users.GlobalNotification(
+          type=aff4_users.GlobalNotification.Type.WARNING,
+          header="Nothing to worry, we won't see this!",
+          link="http://www.google.com",
+          show_from=self.TIME_TOO_EARLY))
 
     replace = {("%d" % self.TIME_0.AsMicroSecondsFromEpoch()): "0",
                ("%d" % self.TIME_1.AsMicroSecondsFromEpoch()): "0"}
 
-    self.Check("GET", "/api/users/me/notifications/pending/global",
+    self.Check("GET",
+               "/api/users/me/notifications/pending/global",
                replace=replace)
 
 
@@ -832,29 +831,27 @@ class ApiDeletePendingGlobalNotificationHandlerTest(test_lib.GRRBaseTest):
 
     with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
                              aff4_type="GlobalNotificationStorage",
-                             mode="rw", token=self.token) as storage:
-      storage.AddNotification(
-          aff4_users.GlobalNotification(
-              type=aff4_users.GlobalNotification.Type.ERROR,
-              header="Oh no, we're doomed!",
-              content="Houston, Houston, we have a prob...",
-              link="http://www.google.com"
-          ))
-      storage.AddNotification(
-          aff4_users.GlobalNotification(
-              type=aff4_users.GlobalNotification.Type.INFO,
-              header="Nothing to worry about!",
-              link="http://www.google.com"
-          ))
+                             mode="rw",
+                             token=self.token) as storage:
+      storage.AddNotification(aff4_users.GlobalNotification(
+          type=aff4_users.GlobalNotification.Type.ERROR,
+          header="Oh no, we're doomed!",
+          content="Houston, Houston, we have a prob...",
+          link="http://www.google.com"))
+      storage.AddNotification(aff4_users.GlobalNotification(
+          type=aff4_users.GlobalNotification.Type.INFO,
+          header="Nothing to worry about!",
+          link="http://www.google.com"))
 
   def _GetGlobalNotifications(self):
     user_record = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type="GRRUser", mode="r", token=self.token)
+        aff4_type="GRRUser",
+        mode="r",
+        token=self.token)
 
     pending = user_record.GetPendingGlobalNotifications()
-    shown = list(user_record.Get(
-        user_record.Schema.SHOWN_GLOBAL_NOTIFICATIONS))
+    shown = list(user_record.Get(user_record.Schema.SHOWN_GLOBAL_NOTIFICATIONS))
     return (pending, shown)
 
   def testDeletesFromPendingAndAddsToShown(self):

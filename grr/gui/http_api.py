@@ -72,7 +72,8 @@ class RouterMatcher(object):
     # don't want the HTTP API to depend on a particular router implementation.
     for _, metadata in router_cls.GetAnnotatedMethods().items():
       for http_method, path in metadata.http_methods:
-        routing_map.add(routing.Rule(path, methods=[http_method],
+        routing_map.add(routing.Rule(path,
+                                     methods=[http_method],
                                      endpoint=metadata))
 
     return routing_map
@@ -94,15 +95,13 @@ class RouterMatcher(object):
     router = api_auth_manager.API_AUTH_MGR.GetRouterForUser(request.user)
     routing_map = self._GetRoutingMap(router)
 
-    matcher = routing_map.bind(
-        "%s:%s" % (request.environ["SERVER_NAME"],
-                   request.environ["SERVER_PORT"]))
+    matcher = routing_map.bind("%s:%s" % (request.environ["SERVER_NAME"],
+                                          request.environ["SERVER_PORT"]))
     try:
       match = matcher.match(request.path, request.method)
     except werkzeug_exceptions.NotFound:
-      raise ApiCallRouterNotFoundError(
-          "No API router was found for (%s) %s" % (request.path,
-                                                   request.method))
+      raise ApiCallRouterNotFoundError("No API router was found for (%s) %s" %
+                                       (request.path, request.method))
 
     router_method_metadata, route_args = match
     return (router, router_method_metadata, route_args)
@@ -122,8 +121,7 @@ class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
   """
 
   def default(self, obj):
-    if isinstance(obj, (rdfvalue.RDFInteger,
-                        rdfvalue.RDFBool,
+    if isinstance(obj, (rdfvalue.RDFInteger, rdfvalue.RDFBool,
                         rdfvalue.RDFString)):
       return obj.SerializeToDataStore()
 
@@ -160,8 +158,8 @@ class HttpRequestHandler(object):
     elif request.method == "POST":
       # The header X-GRR-REASON is set in api-service.js, which django converts
       # to HTTP_X_GRR_REASON.
-      reason = utils.SmartUnicode(urllib2.unquote(
-          request.META.get("HTTP_X_GRR_REASON", "")))
+      reason = utils.SmartUnicode(urllib2.unquote(request.META.get(
+          "HTTP_X_GRR_REASON", "")))
 
     # We assume that request.user contains the username that we can trust.
     # No matter what authentication method is used, the WebAuthManager is
@@ -198,8 +196,9 @@ class HttpRequestHandler(object):
       expected_type = None.__class__
 
     if result.__class__ != expected_type:
-      raise UnexpectedResultTypeError("Expected %s, but got %s." % (
-          expected_type.__name__, result.__class__.__name__))
+      raise UnexpectedResultTypeError("Expected %s, but got %s." %
+                                      (expected_type.__name__,
+                                       result.__class__.__name__))
 
     if result is None:
       return dict(status="OK")
@@ -212,8 +211,8 @@ class HttpRequestHandler(object):
                                 rdf_structs.ProtoList)):
             result_dict[field.name] = api_value_renderers.RenderValue(value)
           else:
-            result_dict[field.name] = api_value_renderers.RenderValue(
-                value)["value"]
+            result_dict[field.name] = api_value_renderers.RenderValue(value)[
+                "value"]
       else:
         result_dict = api_value_renderers.RenderValue(result)
 
@@ -296,9 +295,8 @@ class HttpRequestHandler(object):
           if payload:
             args.FromDict(payload)
       except Exception as e:  # pylint: disable=broad-except
-        logging.exception(
-            "Error while parsing POST request %s (%s): %s",
-            request.path, request.method, e)
+        logging.exception("Error while parsing POST request %s (%s): %s",
+                          request.path, request.method, e)
         raise PostRequestParsingError(e)
     else:
       raise UnsupportedHttpMethod("Unsupported method: %s." % request.method)
@@ -317,24 +315,27 @@ class HttpRequestHandler(object):
           request)
       args = self._GetArgsFromRequest(request, method_metadata, route_args)
     except access_control.UnauthorizedAccess as e:
-      logging.exception(
-          "Access denied to %s (%s): %s", request.path, request.method, e)
+      logging.exception("Access denied to %s (%s): %s", request.path,
+                        request.method, e)
 
       additional_headers = {
           "X-GRR-Unauthorized-Access-Reason": utils.SmartStr(e.message),
           "X-GRR-Unauthorized-Access-Subject": utils.SmartStr(e.subject)
       }
-      return self._BuildResponse(403, dict(
-          message="Access denied by ACL: %s" % utils.SmartStr(e.message),
-          subject=utils.SmartStr(e.subject)), headers=additional_headers)
+      return self._BuildResponse(403,
+                                 dict(message="Access denied by ACL: %s" %
+                                      utils.SmartStr(e.message),
+                                      subject=utils.SmartStr(e.subject)),
+                                 headers=additional_headers)
 
     except ApiCallRouterNotFoundError as e:
       return self._BuildResponse(404, dict(message=e.message))
     except werkzeug_exceptions.MethodNotAllowed as e:
       return self._BuildResponse(405, dict(message=e.message))
     except Error as e:
-      return self._BuildResponse(500, dict(message=str(e),
-                                           traceBack=traceback.format_exc()))
+      return self._BuildResponse(500,
+                                 dict(message=str(e),
+                                      traceBack=traceback.format_exc()))
 
     # SetUID() is called here so that ACL checks done by the router do not
     # clash with datastore ACL checks.
@@ -350,20 +351,18 @@ class HttpRequestHandler(object):
 
       if handler.args_type != method_metadata.args_type:
         raise RuntimeError("Handler args type doesn't match "
-                           "method args type: %s vs %s" % (
-                               handler.args_type,
-                               method_metadata.args_type))
+                           "method args type: %s vs %s" %
+                           (handler.args_type, method_metadata.args_type))
 
-      binary_result_type = (api_call_router.RouterMethodMetadata
-                            .BINARY_STREAM_RESULT_TYPE)
+      binary_result_type = (
+          api_call_router.RouterMethodMetadata.BINARY_STREAM_RESULT_TYPE)
 
       if (handler.result_type != method_metadata.result_type and
           not (handler.result_type is None and
                method_metadata.result_type == binary_result_type)):
         raise RuntimeError("Handler result type doesn't match "
-                           "method result type: %s vs %s" % (
-                               handler.result_type,
-                               method_metadata.result_type))
+                           "method result type: %s vs %s" %
+                           (handler.result_type, method_metadata.result_type))
 
       # HEAD method is only used for checking the ACLs for particular API
       # methods.
@@ -392,28 +391,30 @@ class HttpRequestHandler(object):
 
         return self._BuildResponse(200, rendered_data)
     except access_control.UnauthorizedAccess as e:
-      logging.exception(
-          "Access denied to %s (%s) with %s: %s", request.path,
-          request.method, method_metadata.name, e)
+      logging.exception("Access denied to %s (%s) with %s: %s", request.path,
+                        request.method, method_metadata.name, e)
 
       additional_headers = {
           "X-GRR-Unauthorized-Access-Reason": utils.SmartStr(e.message),
           "X-GRR-Unauthorized-Access-Subject": utils.SmartStr(e.subject)
       }
-      return self._BuildResponse(403, dict(
-          message="Access denied by ACL: %s" % e.message,
-          subject=utils.SmartStr(e.subject)), headers=additional_headers)
+      return self._BuildResponse(403,
+                                 dict(message="Access denied by ACL: %s" %
+                                      e.message,
+                                      subject=utils.SmartStr(e.subject)),
+                                 headers=additional_headers)
     except api_call_handler_base.ResourceNotFoundError as e:
       return self._BuildResponse(404, dict(message=e.message))
     except NotImplementedError as e:
       return self._BuildResponse(501, dict(message=e.message))
     except Exception as e:  # pylint: disable=broad-except
-      logging.exception(
-          "Error while processing %s (%s) with %s: %s", request.path,
-          request.method, handler.__class__.__name__, e)
+      logging.exception("Error while processing %s (%s) with %s: %s",
+                        request.path, request.method,
+                        handler.__class__.__name__, e)
 
-      return self._BuildResponse(500, dict(message=str(e),
-                                           traceBack=traceback.format_exc()))
+      return self._BuildResponse(500,
+                                 dict(message=str(e),
+                                      traceBack=traceback.format_exc()))
 
 
 def RenderHttpResponse(request):

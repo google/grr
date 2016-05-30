@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 #
 # Copyright 2011 Google Inc. All Rights Reserved.
-
 """This plugin renders AFF4 objects contained within a container."""
 
 import locale
@@ -21,7 +20,7 @@ from grr.lib import utils
 try:
   locale.setlocale(locale.LC_ALL, "")
 except locale.Error as e:
-  logging.warn("%s, falling back to 'en_US.UTF-8'" % e)
+  logging.warn("%s, falling back to 'en_US.UTF-8'", e)
   locale.setlocale(locale.LC_ALL, "en_US.UTF-8")
 
 
@@ -38,8 +37,10 @@ class RDFValueCollectionViewRenderer(semantic.RDFValueArrayRenderer):
 """)
 
   def GenerateHash(self, aff4_path, client_id, token):
-    h = dict(aff4_path=aff4_path, main="RDFValueCollectionRenderer",
-             c=client_id, reason=token.reason)
+    h = dict(aff4_path=aff4_path,
+             main="RDFValueCollectionRenderer",
+             c=client_id,
+             reason=token.reason)
 
     self.hash = urllib.urlencode(sorted(h.items()))
 
@@ -60,7 +61,9 @@ class AFF4ValueCollectionViewRenderer(RDFValueCollectionViewRenderer):
   def GenerateHash(self, aff4_path, client_id, token):
 
     self.container = aff4_path
-    h = dict(container=self.container, main="ContainerViewer", c=client_id,
+    h = dict(container=self.container,
+             main="ContainerViewer",
+             c=client_id,
              reason=token.reason)
 
     self.hash = urllib.urlencode(sorted(h.items()))
@@ -97,8 +100,9 @@ class ContainerFileTable(renderers.TableRenderer):
 
     super(ContainerFileTable, self).__init__(**kwargs)
 
-    self.AddColumn(semantic.RDFValueColumn(
-        "Icon", renderer=semantic.IconRenderer, width="40px"))
+    self.AddColumn(semantic.RDFValueColumn("Icon",
+                                           renderer=semantic.IconRenderer,
+                                           width="40px"))
     self.AddColumn(semantic.AttributeColumn("subject", width="100%"))
 
   def Layout(self, request, response):
@@ -110,7 +114,8 @@ class ContainerFileTable(renderers.TableRenderer):
     self.AddDynamicColumns(container)
 
     response = super(ContainerFileTable, self).Layout(request, response)
-    return self.CallJavascript(response, "ContainerFileTable.Layout",
+    return self.CallJavascript(response,
+                               "ContainerFileTable.Layout",
                                renderer=self.__class__.__name__,
                                container=self.state["container"])
 

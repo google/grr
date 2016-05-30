@@ -36,7 +36,6 @@ class Error(Exception):
 class UnsupportedOSVersionError(Error):
   """This action not supported on this os version."""
 
-
 # struct sockaddr_dl {
 #       u_char  sdl_len;        /* Total length of sockaddr */
 #       u_char  sdl_family;     /* AF_LINK */
@@ -48,7 +47,6 @@ class UnsupportedOSVersionError(Error):
 #       char    sdl_data[12];   /* minimum work area, can be larger;
 #                                  contains both if name and ll address */
 # };
-
 
 # Interfaces can have names up to 15 chars long and sdl_data contains name + mac
 # but no separators - we need to make sdl_data at least 15+6 bytes.
@@ -84,7 +82,7 @@ class Sockaddrin(ctypes.Structure):
       ("sin_port", ctypes.c_ushort),
       ("sin_addr", ctypes.c_ubyte * 4),
       ("sin_zero", ctypes.c_char * 8)
-  ]
+  ]  # pyformat: disable
 
 # struct sockaddr_in6 {
 #         __uint8_t       sin6_len;       /* length of this struct */
@@ -105,8 +103,7 @@ class Sockaddrin6(ctypes.Structure):
       ("sin6_flowinfo", ctypes.c_ubyte * 4),
       ("sin6_addr", ctypes.c_ubyte * 16),
       ("sin6_scope_id", ctypes.c_ubyte * 4)
-  ]
-
+  ]  # pyformat: disable
 
 # struct ifaddrs   *ifa_next;         /* Pointer to next struct */
 #          char             *ifa_name;         /* Interface name */
@@ -121,6 +118,7 @@ class Sockaddrin6(ctypes.Structure):
 class Ifaddrs(ctypes.Structure):
   pass
 
+
 setattr(Ifaddrs, "_fields_", [
     ("ifa_next", ctypes.POINTER(Ifaddrs)),
     ("ifa_name", ctypes.POINTER(ctypes.c_char)),
@@ -130,7 +128,7 @@ setattr(Ifaddrs, "_fields_", [
     ("ifa_broadaddr", ctypes.POINTER(ctypes.c_char)),
     ("ifa_destaddr", ctypes.POINTER(ctypes.c_char)),
     ("ifa_data", ctypes.POINTER(ctypes.c_char))
-])
+])  # pyformat: disable
 
 
 class EnumerateInterfaces(actions.ActionPlugin):
@@ -154,7 +152,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
       ifs.add(ifname)
       try:
         iffamily = ord(m.contents.ifa_addr[1])
-        if iffamily == 0x2:     # AF_INET
+        if iffamily == 0x2:  # AF_INET
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
           ip4 = "".join(map(chr, data.contents.sin_addr))
           address_type = rdf_client.NetworkAddress.Family.INET
@@ -162,14 +160,14 @@ class EnumerateInterfaces(actions.ActionPlugin):
                                               packed_bytes=ip4)
           addresses.setdefault(ifname, []).append(address)
 
-        if iffamily == 0x12:    # AF_LINK
+        if iffamily == 0x12:  # AF_LINK
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrdl))
           iflen = data.contents.sdl_nlen
           addlen = data.contents.sdl_alen
-          macs[ifname] = "".join(
-              map(chr, data.contents.sdl_data[iflen:iflen + addlen]))
+          macs[ifname] = "".join(map(chr, data.contents.sdl_data[iflen:iflen +
+                                                                 addlen]))
 
-        if iffamily == 0x1E:     # AF_INET6
+        if iffamily == 0x1E:  # AF_INET6
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
           ip6 = "".join(map(chr, data.contents.sin6_addr))
           address_type = rdf_client.NetworkAddress.Family.INET6
@@ -238,8 +236,7 @@ class EnumerateFilesystems(actions.ActionPlugin):
         for volume in vol_inf:
           if volume.flags == pytsk3.TSK_VS_PART_FLAG_ALLOC:
             offset = volume.start * vol_inf.info.block_size
-            self.SendReply(device=path + ":" + str(offset),
-                           type="partition")
+            self.SendReply(device=path + ":" + str(offset), type="partition")
 
       except (IOError, RuntimeError):
         continue
@@ -286,10 +283,12 @@ class OSXEnumerateRunningServices(actions.ActionPlugin):
       sysinfo_pb2.OSXServiceInformation proto
     """
     service = rdf_client.OSXServiceInformation(
-        label=job.get("Label"), program=job.get("Program"),
+        label=job.get("Label"),
+        program=job.get("Program"),
         sessiontype=job.get("LimitLoadToSessionType"),
         lastexitstatus=int(job["LastExitStatus"]),
-        timeout=int(job["TimeOut"]), ondemand=bool(job["OnDemand"]))
+        timeout=int(job["TimeOut"]),
+        ondemand=bool(job["OnDemand"]))
 
     for arg in job.get("ProgramArguments", "", stringify=False):
       # Returns CFArray of CFStrings
@@ -355,7 +354,9 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
     cmd_args = ["-pkg", path, "-target", "/"]
     time_limit = args.time_limit
 
-    res = client_utils_common.Execute(cmd, cmd_args, time_limit=time_limit,
+    res = client_utils_common.Execute(cmd,
+                                      cmd_args,
+                                      time_limit=time_limit,
                                       bypass_whitelist=True)
     (stdout, stderr, status, time_used) = res
 

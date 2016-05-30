@@ -32,7 +32,6 @@ from grr.tools.export_plugins import tests
 from grr.worker import worker_test
 # pylint: enable=unused-import,g-bad-import-order
 
-
 flags.DEFINE_string("output", None,
                     "The name of the file we write on (default stderr).")
 
@@ -116,8 +115,7 @@ def RunTest(test_suite, stream=None):
     test_lib.GrrTestProgram(argv=[sys.argv[0], test_suite],
                             testLoader=GRREverythingTestLoader(
                                 labels=flags.FLAGS.labels),
-                            testRunner=unittest.TextTestRunner(
-                                stream=out_fd))
+                            testRunner=unittest.TextTestRunner(stream=out_fd))
   finally:
     # Clean up before the program exits.
     if stream:
@@ -166,8 +164,8 @@ def ReportTestResult(name, metadata):
     result = colorizer.Render("RED", "FAILED")
     result += open(metadata["output_path"], "rb").read()
 
-  print "\t{0: <40} {1} in {2: >6.2f}s".format(
-      name, result, now - metadata["start"])
+  print "\t{0: <40} {1} in {2: >6.2f}s".format(name, result,
+                                               now - metadata["start"])
 
 
 def DoesTestHaveLabels(cls, labels):
@@ -205,8 +203,7 @@ def main(argv=None):
 
     if len(suites) != 1:
       raise ValueError("Only a single test is supported in single "
-                       "processing mode, but %i were specified" %
-                       len(suites))
+                       "processing mode, but %i were specified" % len(suites))
 
     test_suite = suites[0]
     print "Running test %s in single process mode" % test_suite
@@ -250,27 +247,29 @@ def main(argv=None):
 
         # Maintain metadata about each test.
         processes[name] = dict(pipe=subprocess.Popen(argv),
-                               start=time.time(), output_path=result_filename,
+                               start=time.time(),
+                               output_path=result_filename,
                                test=name)
 
         max_processes = flags.FLAGS.processes
         if not max_processes:
           max_processes = max(psutil.cpu_count() - 1, 1)
-        WaitForAvailableProcesses(
-            processes, max_processes=max_processes,
-            completion_cb=ReportTestResult)
+        WaitForAvailableProcesses(processes,
+                                  max_processes=max_processes,
+                                  completion_cb=ReportTestResult)
 
       # Wait for all jobs to finish.
-      WaitForAvailableProcesses(processes, max_processes=0,
+      WaitForAvailableProcesses(processes,
+                                max_processes=0,
                                 completion_cb=ReportTestResult)
 
       passed_tests = [p for p in processes.values() if p["exit_code"] == 0]
       failed_tests = [p for p in processes.values() if p["exit_code"] != 0]
 
-      print ("\nRan %s tests in %0.2f sec, %s tests passed, %s tests failed"
-             ", %s skipped.") % (
-                 len(processes), time.time() - start, len(passed_tests),
-                 len(failed_tests), skipped_tests)
+      print("\nRan %s tests in %0.2f sec, %s tests passed, %s tests failed"
+            ", %s skipped.") % (len(processes), time.time() - start,
+                                len(passed_tests), len(failed_tests),
+                                skipped_tests)
 
       if failed_tests:
         colorizer = Colorizer()

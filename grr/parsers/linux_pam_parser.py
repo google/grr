@@ -170,12 +170,11 @@ class PAMParser(parsers.FileParser, config_file.FieldParser):
           # Trim a leading "-" from the type field if present.
           if p_type.startswith("-"):
             p_type = p_type[1:]
-          result.append(rdf_config_file.PamConfigEntry(
-              service=service,
-              type=p_type,
-              control=control,
-              module_path=module_path,
-              module_args=module_args))
+          result.append(rdf_config_file.PamConfigEntry(service=service,
+                                                       type=p_type,
+                                                       control=control,
+                                                       module_path=module_path,
+                                                       module_args=module_args))
     return result, external
 
   def ParseMultiple(self, stats, file_objects, knowledge_base):

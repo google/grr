@@ -4,7 +4,6 @@
 
 
 
-
 import mock
 
 from grr.gui import api_call_router_with_approval_checks as api_router
@@ -40,7 +39,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     self.legacy_manager_mock = mock.MagicMock()
 
     self.router = api_router.ApiCallRouterWithApprovalChecksWithoutRobotAccess(
-        delegate=self.delegate_mock, legacy_manager=self.legacy_manager_mock)
+        delegate=self.delegate_mock,
+        legacy_manager=self.legacy_manager_mock)
 
   def CheckMethodIsAccessChecked(self, method, access_type, args=None):
     # Check that legacy access control manager is called and that the method
@@ -85,14 +85,13 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     self.delegate_mock.reset_mock()
     self.legacy_manager_mock.reset_mock()
 
-  ACCESS_CHECKED_METHODS.extend([
-      "InterrogateClient"
-  ])
+  ACCESS_CHECKED_METHODS.extend(["InterrogateClient"])
 
   def testClientMethodsAreAccessChecked(self):
     args = api_client.ApiInterrogateClientArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.InterrogateClient, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.InterrogateClient,
+                                    "CheckClientAccess",
+                                    args=args)
 
   ACCESS_CHECKED_METHODS.extend([
       "CreateVfsRefreshOperation",
@@ -106,48 +105,58 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
       "GetVfsTimeline",
       "GetVfsTimelineAsCsv",
       "UpdateVfsFileContent"
-  ])
+  ])  # pyformat: disable
 
   def testVfsMethodsAreAccessChecked(self):
     args = api_vfs.ApiGetFileDetailsArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetFileDetails, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.GetFileDetails,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_vfs.ApiGetFileListArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetFileList, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.GetFileList,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_vfs.ApiGetFileTextArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetFileText, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.GetFileText,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_vfs.ApiGetFileBlobArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetFileBlob, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.GetFileBlob,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_vfs.ApiGetFileVersionTimesArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetFileVersionTimes, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.GetFileVersionTimes,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_vfs.ApiGetFileDownloadCommandArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetFileDownloadCommand, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.GetFileDownloadCommand,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_vfs.ApiCreateVfsRefreshOperationArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.CreateVfsRefreshOperation, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.CreateVfsRefreshOperation,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_vfs.ApiGetVfsTimelineArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetVfsTimeline, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.GetVfsTimeline,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_vfs.ApiGetVfsTimelineAsCsvArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetVfsTimelineAsCsv, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.GetVfsTimelineAsCsv,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_vfs.ApiUpdateVfsFileContentArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.UpdateVfsFileContent, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.UpdateVfsFileContent,
+                                    "CheckClientAccess",
+                                    args=args)
 
   ACCESS_CHECKED_METHODS.extend([
       "ListClientFlows",
@@ -161,93 +170,99 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
       "ListFlowOutputPluginLogs",
       "ListFlowOutputPluginErrors",
       "ListFlowLogs"
-  ])
+  ])  # pyformat: disable
 
   def testAllClientFlowsMethodsAreAccessChecked(self):
     args = api_flow.ApiListClientFlowsArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.ListClientFlows, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.ListClientFlows,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_flow.ApiGetFlowArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetFlow, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.GetFlow,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_flow.ApiCreateFlowArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.CreateFlow, "CheckClientAccess", args=args)
-    self.CheckMethodIsAccessChecked(
-        self.router.CreateFlow, "CheckIfCanStartFlow", args=args)
+    self.CheckMethodIsAccessChecked(self.router.CreateFlow,
+                                    "CheckClientAccess",
+                                    args=args)
+    self.CheckMethodIsAccessChecked(self.router.CreateFlow,
+                                    "CheckIfCanStartFlow",
+                                    args=args)
 
     args = api_flow.ApiCancelFlowArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.CancelFlow, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.CancelFlow,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_flow.ApiListFlowResultsArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.ListFlowResults, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.ListFlowResults,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_flow.ApiGetFlowResultsExportCommandArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetFlowResultsExportCommand, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.GetFlowResultsExportCommand,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_flow.ApiGetFlowFilesArchiveArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.GetFlowFilesArchive, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.GetFlowFilesArchive,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_flow.ApiListFlowOutputPluginsArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.ListFlowOutputPlugins, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.ListFlowOutputPlugins,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_flow.ApiListFlowOutputPluginLogsArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.ListFlowOutputPluginLogs, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.ListFlowOutputPluginLogs,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_flow.ApiListFlowOutputPluginErrorsArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.ListFlowOutputPluginErrors, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.ListFlowOutputPluginErrors,
+                                    "CheckClientAccess",
+                                    args=args)
 
     args = api_flow.ApiListFlowLogsArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(
-        self.router.ListFlowLogs, "CheckClientAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.ListFlowLogs,
+                                    "CheckClientAccess",
+                                    args=args)
 
-  ACCESS_CHECKED_METHODS.extend([
-      "CreateGlobalFlow"
-  ])
+  ACCESS_CHECKED_METHODS.extend(["CreateGlobalFlow"])
 
   def testAllGlobalFlowsMethodsAreAccessChecked(self):
     args = api_flow.ApiCreateFlowArgs(
         flow=api_flow.ApiFlow(name="ListProcesses"))
-    self.CheckMethodIsAccessChecked(
-        self.router.CreateGlobalFlow, "CheckIfCanStartFlow", args=args)
+    self.CheckMethodIsAccessChecked(self.router.CreateGlobalFlow,
+                                    "CheckIfCanStartFlow",
+                                    args=args)
 
-  ACCESS_CHECKED_METHODS.extend([
-      "DeleteCronJob"
-  ])
+  ACCESS_CHECKED_METHODS.extend(["DeleteCronJob"])
 
   def testCronJobMethodsAreAccessChecked(self):
     args = api_cron.ApiDeleteCronJobArgs(cron_job_id="TestCronJob")
-    self.CheckMethodIsAccessChecked(
-        self.router.DeleteCronJob, "CheckCronJobAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.DeleteCronJob,
+                                    "CheckCronJobAccess",
+                                    args=args)
 
-  ACCESS_CHECKED_METHODS.extend([
-      "GetHuntFilesArchive",
-      "GetHuntFile"
-  ])
+  ACCESS_CHECKED_METHODS.extend(["GetHuntFilesArchive", "GetHuntFile"])
 
   def testGetHuntFilesArchiveIsAccessChecked(self):
     args = api_hunt.ApiGetHuntFilesArchiveArgs(hunt_id="H:123456")
-    self.CheckMethodIsAccessChecked(
-        self.router.GetHuntFilesArchive, "CheckHuntAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.GetHuntFilesArchive,
+                                    "CheckHuntAccess",
+                                    args=args)
 
   def testGetHuntFileIsAccessChecked(self):
     args = api_hunt.ApiGetHuntFileArgs(hunt_id="H:123456")
-    self.CheckMethodIsAccessChecked(
-        self.router.GetHuntFilesArchive, "CheckHuntAccess", args=args)
+    self.CheckMethodIsAccessChecked(self.router.GetHuntFilesArchive,
+                                    "CheckHuntAccess",
+                                    args=args)
 
-  ACCESS_CHECKED_METHODS.extend([
-      "StartGetFileOperation",
-      "GetFlowStatus"
-  ])
+  ACCESS_CHECKED_METHODS.extend(["StartGetFileOperation", "GetFlowStatus"])
 
   def testRobotMethodsAreRejected(self):
     with self.assertRaises(access_control.UnauthorizedAccess):
@@ -257,17 +272,15 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
       self.router.GetFlowStatus(None, token=self.token)
 
   def testAllOtherMethodsAreNotAccessChecked(self):
-    unchecked_methods = (
-        set(self.router.__class__.GetAnnotatedMethods().keys()) -
-        set(self.ACCESS_CHECKED_METHODS))
+    unchecked_methods = (set(self.router.__class__.GetAnnotatedMethods().keys())
+                         - set(self.ACCESS_CHECKED_METHODS))
     self.assertTrue(unchecked_methods)
 
     for method_name in unchecked_methods:
       self.CheckMethodIsNotAccessChecked(getattr(self.router, method_name))
 
 
-class ApiCallRouterWithApprovalChecksWithRobotAccessTest(
-    test_lib.GRRBaseTest):
+class ApiCallRouterWithApprovalChecksWithRobotAccessTest(test_lib.GRRBaseTest):
   """Tests for ApiCallRouterWithApprovalChecksWithRobotAccess."""
 
   def setUp(self):

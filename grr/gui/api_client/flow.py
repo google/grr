@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Flows-related part of GRR API client library."""
 
-
 from grr.gui.api_client import utils
 from grr.proto import api_pb2
 
@@ -52,7 +51,8 @@ class Flow(FlowBase):
     client_id = utils.UrnToClientId(urn)
     flow_id = utils.UrnToFlowId(urn)
 
-    super(Flow, self).__init__(client_id=client_id, flow_id=flow_id,
+    super(Flow, self).__init__(client_id=client_id,
+                               flow_id=flow_id,
                                context=context)
 
     self.data = data

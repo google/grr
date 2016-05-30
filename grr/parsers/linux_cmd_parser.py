@@ -104,12 +104,13 @@ class RpmCmdParser(parsers.CommandParser):
       if pkg_match:
         name, version = pkg_match.groups()
         status = rdf_client.SoftwarePackage.InstallState.INSTALLED
-        yield rdf_client.SoftwarePackage(name=name, version=version,
+        yield rdf_client.SoftwarePackage(name=name,
+                                         version=version,
                                          install_state=status)
     for line in stderr.splitlines():
       if "error: rpmdbNextIterator: skipping h#" in line:
-        yield rdf_anomaly.Anomaly(
-            type="PARSER_ANOMALY", symptom="Broken rpm database.")
+        yield rdf_anomaly.Anomaly(type="PARSER_ANOMALY",
+                                  symptom="Broken rpm database.")
         break
 
 
@@ -150,9 +151,8 @@ class DpkgCmdParser(parsers.CommandParser):
           status, name, version, desc = cols
           arch = None
         else:
-          raise RuntimeError(
-              "Bad number of columns in dpkg --list output: %s" % len(
-                  column_lengths))
+          raise RuntimeError("Bad number of columns in dpkg --list output: %s" %
+                             len(column_lengths))
 
         # Status is potentially 3 columns, but always at least two, desired and
         # actual state. We only care about actual state.
@@ -160,8 +160,10 @@ class DpkgCmdParser(parsers.CommandParser):
           status = rdf_client.SoftwarePackage.InstallState.INSTALLED
         else:
           status = rdf_client.SoftwarePackage.InstallState.UNKNOWN
-        yield rdf_client.SoftwarePackage(name=name, description=desc,
-                                         version=version, architecture=arch,
+        yield rdf_client.SoftwarePackage(name=name,
+                                         description=desc,
+                                         version=version,
+                                         architecture=arch,
                                          install_state=status)
 
 
@@ -190,7 +192,8 @@ class DmidecodeCmdParser(parsers.CommandParser):
         "system_uuid": self._re_compile("UUID"),
         "system_sku_number": self._re_compile("SKU Number"),
         "system_family": self._re_compile("Family"),
-        "system_assettag": self._re_compile("Asset Tag")}
+        "system_assettag": self._re_compile("Asset Tag")
+    }
 
     bios_info_re = re.compile(r"\s*BIOS Information")
     bios_regexes = {
@@ -198,7 +201,8 @@ class DmidecodeCmdParser(parsers.CommandParser):
         "bios_version": self._re_compile("Version"),
         "bios_release_date": self._re_compile("Release Date"),
         "bios_rom_size": self._re_compile("ROM Size"),
-        "bios_revision": self._re_compile("BIOS Revision")}
+        "bios_revision": self._re_compile("BIOS Revision")
+    }
 
     # Initialize RDF.
     dmi_info = rdf_client.HardwareInfo()
@@ -255,7 +259,7 @@ class PsCmdParser(parsers.CommandParser):
       if "," in arg:
         output_format.extend(arg.split(","))
     if not output_format:
-        # Assume a default format for the "-f" style formating.
+      # Assume a default format for the "-f" style formating.
       output_format = ["user", "pid", "ppid", "pcpu", "not_implemented", "tty",
                        "not_implemented", "cmd"]
     # Do some sanity checking for the cmd/cmdline if present.

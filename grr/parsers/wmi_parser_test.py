@@ -16,8 +16,8 @@ class WMIParserTest(test_lib.FlowTestsBaseclass):
   def testInterfaceParsing(self):
     parser = wmi_parser.WMIInterfacesParser()
     rdf_dict = rdf_protodict.Dict()
-    wmi_properties = (client_fixture.WMIWin32NetworkAdapterConfigurationMock.
-                      __dict__.iteritems())
+    mock_config = client_fixture.WMIWin32NetworkAdapterConfigurationMock
+    wmi_properties = mock_config.__dict__.iteritems()
     for key, value in wmi_properties:
       if not key.startswith("__"):
         try:
@@ -25,8 +25,7 @@ class WMIParserTest(test_lib.FlowTestsBaseclass):
         except TypeError:
           rdf_dict[key] = "Failed to encode: %s" % value
 
-    result_list = list(parser.Parse(
-        None, rdf_dict, None))
+    result_list = list(parser.Parse(None, rdf_dict, None))
     self.assertEqual(len(result_list), 2)
     for result in result_list:
       if isinstance(result, rdf_client.Interface):
@@ -51,17 +50,15 @@ class WMIParserTest(test_lib.FlowTestsBaseclass):
                                                   "192.168.255.81",
                                                   "192.168.128.88"])
 
-        self.assertItemsEqual(result.dns_suffix, ["blah.example.com",
-                                                  "ad.example.com",
-                                                  "internal.example.com",
-                                                  "example.com"])
+        self.assertItemsEqual(result.dns_suffix,
+                              ["blah.example.com", "ad.example.com",
+                               "internal.example.com", "example.com"])
 
   def testWMIActiveScriptEventConsumerParser(self):
     parser = wmi_parser.WMIActiveScriptEventConsumerParser()
     rdf_dict = rdf_protodict.Dict()
-    rdf_dict["CreatorSID"] = [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0,
-                              152, 18, 57, 8, 206, 29, 80, 44, 70, 38, 82, 8,
-                              244, 1, 0, 0]
+    rdf_dict["CreatorSID"] = [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 152, 18, 57,
+                              8, 206, 29, 80, 44, 70, 38, 82, 8, 244, 1, 0, 0]
     rdf_dict["KillTimeout"] = 0
     rdf_dict["MachineName"] = None
     rdf_dict["MaximumQueueSize"] = None
@@ -77,8 +74,7 @@ TargetEvent.TargetInstance.UserModeTime &_ "; KernelModeTime: " &
 TargetEvent.TargetInstance.KernelModeTime & " [hundreds of nanoseconds]"
 objFile.Close"""
 
-    result_list = list(parser.Parse(
-        None, rdf_dict, None))
+    result_list = list(parser.Parse(None, rdf_dict, None))
     self.assertEqual(len(result_list), 1)
     result = result_list[0]
     self.assertEqual(result.CreatorSID,
@@ -94,7 +90,8 @@ objFile.Close"""
         "(1, 2, 3)",  # Older clients (3.0.0.3) return a the SID like this
         1,
         {1: 2},
-        (1, 2)]
+        (1, 2)
+    ]
 
     for test in tests:
       rdf_dict["CreatorSID"] = test
@@ -135,9 +132,9 @@ objFile.Close"""
     rdf_dict["CreateNewProcessGroup"] = False
     rdf_dict["CreateSeparateWowVdm"] = False
     rdf_dict["CreateSharedWowVdm"] = False
-    rdf_dict["CreatorSID"] = [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0,
-                              133, 116, 119, 185, 124, 13, 122, 150,
-                              111, 189, 41, 154, 244, 1, 0, 0]
+    rdf_dict["CreatorSID"] = [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116,
+                              119, 185, 124, 13, 122, 150, 111, 189, 41, 154,
+                              244, 1, 0, 0]
     rdf_dict["DesktopName"] = None
     rdf_dict["ExecutablePath"] = None
     rdf_dict["FillAttribute"] = None
@@ -160,8 +157,7 @@ objFile.Close"""
     rdf_dict["YNumCharacters"] = None
     rdf_dict["YSize"] = None
 
-    result_list = list(parser.Parse(
-        None, rdf_dict, None))
+    result_list = list(parser.Parse(None, rdf_dict, None))
     self.assertEqual(len(result_list), 1)
     result = result_list[0]
     self.assertEqual(result.CreatorSID,
@@ -193,13 +189,12 @@ class BinarySIDToStringSIDTest(test_lib.GRRBaseTest):
         ["S-1-5", [1, 5, 0, 0, 0, 0, 0, 5]],
         # 5 subauthorities
         ["S-1-5-21-3111613573-2524581244-2586426735-500",
-         [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116, 119, 185,
-          124, 13, 122, 150, 111, 189, 41, 154, 244, 1, 0, 0]],
+         [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116, 119, 185, 124, 13, 122,
+          150, 111, 189, 41, 154, 244, 1, 0, 0]],
         # Last subauthority truncated
-        [None,
-         [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116, 119, 185,
-          124, 13, 122, 150, 111, 189, 41, 154, 244]],
-        ]
+        [None, [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116, 119, 185, 124,
+                13, 122, 150, 111, 189, 41, 154, 244]],
+    ]
 
   def testConversion(self):
     for expected_value, binary in self.tests:
@@ -207,15 +202,16 @@ class BinarySIDToStringSIDTest(test_lib.GRRBaseTest):
 
       if expected_value is None:
         # Test is meant to raise
-        self.assertRaises(ValueError,
-                          wmi_parser.BinarySIDtoStringSID, binary_sid)
+        self.assertRaises(ValueError, wmi_parser.BinarySIDtoStringSID,
+                          binary_sid)
       else:
-        self.assertEqual(wmi_parser.BinarySIDtoStringSID(binary_sid),
-                         expected_value)
+        self.assertEqual(
+            wmi_parser.BinarySIDtoStringSID(binary_sid), expected_value)
 
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

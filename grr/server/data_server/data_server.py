@@ -43,15 +43,11 @@ from grr.server.data_server import rebalance
 from grr.server.data_server import store
 from grr.server.data_server import utils as sutils
 
+flags.DEFINE_integer("port", None, "Specify the data server port.")
 
-flags.DEFINE_integer("port", None,
-                     "Specify the data server port.")
+flags.DEFINE_string("path", None, "Specify the data store path.")
 
-flags.DEFINE_string("path", None,
-                    "Specify the data store path.")
-
-flags.DEFINE_bool("master", False,
-                  "Mark this data server as the master.")
+flags.DEFINE_bool("master", False, "Mark this data server as the master.")
 
 
 class DataServerHandler(BaseHTTPRequestHandler, object):
@@ -115,11 +111,11 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
         "/servers/rem": cls.HandleServerRem,
         "/servers/sync": cls.HandleServerSync,
         "/servers/sync-all": cls.HandleServerSyncAll
-        }
+    }
 
     cls.STREAMING_TABLE = {
         "/rebalance/copy-file": cls.HandleRebalanceCopyFile,
-        }
+    }
 
   @classmethod
   def GetStatistics(cls):
@@ -148,10 +144,9 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     BaseHTTPRequestHandler.__init__(self, request, client_address, server)
 
   def _Response(self, code, body):
-    reply = (
-        "HTTP/1.1 " + str(code) + " OK\n"
-        "Content-Length: " + str(len(body)) + "\n"
-        "\n" + body)
+    reply = ("HTTP/1.1 " + str(code) + " OK\n"
+             "Content-Length: " + str(len(body)) + "\n"
+             "\n" + body)
     self.wfile.write(reply)
     return
 
@@ -214,7 +209,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
       status_desc = ("Operation not allowed: required %s but only have "
                      "%s permissions" % (perm, permissions))
       resp = rdf_data_store.DataStoreResponse(
-          request=cmd.request, status_desc=status_desc,
+          request=cmd.request,
+          status_desc=status_desc,
           status=rdf_data_store.DataStoreResponse.Status.AUTHORIZATION_DENIED)
       response = resp.SerializeToString()
 
@@ -654,7 +650,9 @@ class StandardDataServer(object):
                                                              port=self.my_port)
       body = request.SerializeToString()
       headers = {"Content-Length": len(body)}
-      res = self.pool.urlopen("POST", "/server/register", headers=headers,
+      res = self.pool.urlopen("POST",
+                              "/server/register",
+                              headers=headers,
                               body=body)
       if res.status == constants.RESPONSE_SERVER_NOT_AUTHORIZED:
         raise errors.DataServerError("Wrong server password.")
@@ -675,8 +673,7 @@ class StandardDataServer(object):
       creds.InitializeFromEncryption(creds_str, username, password)
       self.handler_cls.NONCE_STORE.SetClientCredentials(creds)
       return True
-    except (urllib3.exceptions.HTTPError,
-            urllib3.exceptions.PoolError):
+    except (urllib3.exceptions.HTTPError, urllib3.exceptions.PoolError):
       return False
 
   def Register(self):
@@ -710,7 +707,9 @@ class StandardDataServer(object):
       stat = self.handler_cls.GetStatistics()
       body = stat.SerializeToString()
       headers = {"Content-Length": len(body)}
-      res = self.pool.urlopen("POST", "/server/state", headers=headers,
+      res = self.pool.urlopen("POST",
+                              "/server/state",
+                              headers=headers,
                               body=body)
       if res.status == constants.RESPONSE_SERVER_NOT_REGISTERED:
         # The connection has probably been dropped and we need to register
@@ -773,7 +772,10 @@ class StandardDataServer(object):
       self.stat_thread.Stop()
 
 
-def Start(db, port=0, is_master=False, server_cls=ThreadedHTTPServer,
+def Start(db,
+          port=0,
+          is_master=False,
+          server_cls=ThreadedHTTPServer,
           reqhandler_cls=DataServerHandler):
   """Start the data server."""
   # This is the service that will handle requests to the data store.
@@ -829,8 +831,7 @@ def Start(db, port=0, is_master=False, server_cls=ThreadedHTTPServer,
     server = server_cls(("", server_port), reqhandler_cls)
     server.serve_forever()
   except KeyboardInterrupt:
-    print ("Caught keyboard interrupt, stopping server at port %s" %
-           server_port)
+    print "Caught keyboard interrupt, stopping server at port %s" % server_port
   except socket.error:
     print "Service already running at port %s" % server_port
   finally:
@@ -859,6 +860,7 @@ def main(unused_argv):
   registry.Init(skip_set=do_not_start)
 
   Start(data_store.DB, port=flags.FLAGS.port, is_master=flags.FLAGS.master)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

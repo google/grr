@@ -3,35 +3,23 @@
 
 from grr.lib import config_lib
 
-
-config_lib.DEFINE_list(
-    "Artifacts.artifact_dirs",
-    ["%(grr/artifacts|resource)",
-     "%(grr/artifacts/flow_templates|resource)",
-     "%(grr/artifacts/local|resource)"],
-    "A list directories to load artifacts from.")
+config_lib.DEFINE_list("Artifacts.artifact_dirs",
+                       ["%(grr/artifacts|resource)",
+                        "%(grr/artifacts/flow_templates|resource)",
+                        "%(grr/artifacts/local|resource)"],
+                       "A list directories to load artifacts from.")
 
 config_lib.DEFINE_list("Artifacts.knowledge_base",
                        ["AllUsersAppDataEnvironmentVariable",
                         "AllUsersProfileEnvironmentVariable",
-                        "CurrentControlSet",
-                        "ProgramFiles",
-                        "ProgramFilesx86",
-                        "SystemDriveEnvironmentVariable",
-                        "SystemRoot",
-                        "TempEnvironmentVariable",
-                        "UserShellFolders",
-                        "WinCodePage",
-                        "WinDirEnvironmentVariable",
-                        "WinDomainName",
-                        "WinPathEnvironmentVariable",
-                        "WinTimeZone",
-                        "WindowsRegistryProfiles",
-                        "WMIProfileUsersHomeDir",
-                        "WMIAccountUsersDomain",
-                        "OSXUsers",
-                        "LinuxUserProfiles",
-                        "LinuxRelease"],
+                        "CurrentControlSet", "ProgramFiles", "ProgramFilesx86",
+                        "SystemDriveEnvironmentVariable", "SystemRoot",
+                        "TempEnvironmentVariable", "UserShellFolders",
+                        "WinCodePage", "WinDirEnvironmentVariable",
+                        "WinDomainName", "WinPathEnvironmentVariable",
+                        "WinTimeZone", "WindowsRegistryProfiles",
+                        "WMIProfileUsersHomeDir", "WMIAccountUsersDomain",
+                        "OSXUsers", "LinuxUserProfiles", "LinuxRelease"],
                        "List of artifacts that are collected regularly by"
                        " interrogate and used for interpolation of client-side"
                        " variables. Includes artifacts for all supported OSes. "
@@ -56,23 +44,19 @@ config_lib.DEFINE_list("Artifacts.knowledge_base_heavyweight",
                        " or slow to collect regularly from all machines.")
 
 config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4",
-                       ["WMILogicalDisks",
-                        "RootDiskVolumeUsage",
-                        "WMIComputerSystemProduct",
-                        "LinuxHardwareInfo",
+                       ["WMILogicalDisks", "RootDiskVolumeUsage",
+                        "WMIComputerSystemProduct", "LinuxHardwareInfo",
                         "OSXSPHardwareDataType"],
                        "Artifacts to collect during interrogate that don't"
                        " populate the knowledgebase, but store results "
                        "elsewhere in aff4.")
 
-config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4_additions",
-                       [],
+config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4_additions", [],
                        "Extra artifacts to add to the "
                        "interrogate_store_in_aff4 list. This allows per-site "
                        "tweaks without having to redefine the whole list.")
 
-config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4_skip",
-                       [],
+config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4_skip", [],
                        "Artifacts to remove from the "
                        "interrogate_store_in_aff4 list. This allows per-site "
                        "tweaks without having to redefine the whole list.")

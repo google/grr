@@ -12,14 +12,14 @@ class TestFingerprintFileOSLinux(base.AutomatedTest):
   platforms = ["Linux"]
   flow = "FingerprintFile"
   args = {"pathspec": rdf_paths.PathSpec(
-      path="/bin/ls",
-      pathtype=rdf_paths.PathSpec.PathType.OS)}
+      path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.OS)}
   test_output_path = "/fs/os/bin/ls"
 
   def CheckFlow(self):
     """Check results of flow."""
-    fd = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.client_id.Add(self.test_output_path),
+        token=self.token)
     hash_obj = fd.Get(fd.Schema.HASH)
     self.assertNotEqual(hash_obj, None)
     self.assertEqual(len(hash_obj.md5), 16)

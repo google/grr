@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 #
-
 """This plugin renders the results from Rekall."""
 
 
@@ -34,9 +33,8 @@ class GRRRekallViewerObjectRenderer(grr_rekall.GRRObjectRenderer):
 
   def RawHTML(self, item, **options):
     """Returns escaped object's summary."""
-    return django_html.escape(
-        utils.SmartStr(
-            self._GetDelegateObjectRenderer(item).Summary(item, **options)))
+    return django_html.escape(utils.SmartStr(self._GetDelegateObjectRenderer(
+        item).Summary(item, **options)))
 
 
 class GRREProcessObjectRenderer(GRRRekallViewerObjectRenderer):
@@ -202,7 +200,11 @@ class SectionHeader(renderers.TemplateRenderer):
 <h3>{{this.header|escape}}</h3>
 """)
 
-  def __init__(self, header=None, name=None, width=50, keep_sort=False,
+  def __init__(self,
+               header=None,
+               name=None,
+               width=50,
+               keep_sort=False,
                **kwargs):
     super(SectionHeader, self).__init__(**kwargs)
     self.header = header or name or ""
@@ -265,9 +267,9 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
     else:
       try:
         aff4_path = self.state.get("aff4_path") or request.REQ.get("aff4_path")
-        collection = aff4.FACTORY.Open(
-            aff4_path, aff4_type="RekallResponseCollection",
-            token=request.token)
+        collection = aff4.FACTORY.Open(aff4_path,
+                                       aff4_type="RekallResponseCollection",
+                                       token=request.token)
       except IOError:
         return
 
@@ -345,8 +347,7 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
           # the directory in the virtual file system, not the particular
           # file. So we just render one link for each output directory.
           file_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
-              rdf_paths.PathSpec(**statement[1]),
-              rekall_response.client_urn)
+              rdf_paths.PathSpec(**statement[1]), rekall_response.client_urn)
           output_directories.add(rdfvalue.RDFURN(file_urn.Dirname()))
 
         elif command == "p":
@@ -358,5 +359,5 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
     for directory in output_directories:
       self.elements.append(semantic.RDFURNRenderer(directory))
 
-    return super(RekallResponseCollectionRenderer, self).Layout(
-        request, response)
+    return super(RekallResponseCollectionRenderer, self).Layout(request,
+                                                                response)

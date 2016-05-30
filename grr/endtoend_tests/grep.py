@@ -18,8 +18,9 @@ class TestSearchFilesGrep(base.AutomatedTest):
           "also_download": True}
 
   def CheckFlow(self):
-    results = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
-                                token=self.token)
+    results = aff4.FACTORY.Open(
+        self.client_id.Add(self.test_output_path),
+        token=self.token)
     self.assertGreaterEqual(len(results), 1)
     for result in results:
       self.assertTrue("ELF" in result.data)

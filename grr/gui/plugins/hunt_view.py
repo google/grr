@@ -53,9 +53,11 @@ class RunHuntConfirmationDialog(renderers.ConfirmationDialogRenderer):
     return super(RunHuntConfirmationDialog, self).Layout(request, response)
 
   def RenderAjax(self, request, response):
-    flow.GRRFlow.StartFlow(flow_name="StartHuntFlow", token=request.token,
+    flow.GRRFlow.StartFlow(flow_name="StartHuntFlow",
+                           token=request.token,
                            hunt_urn=rdfvalue.RDFURN(request.REQ.get("hunt_id")))
-    return self.RenderFromTemplate(self.ajax_template, response,
+    return self.RenderFromTemplate(self.ajax_template,
+                                   response,
                                    unique=self.unique)
 
 
@@ -80,9 +82,11 @@ stopped, restarting it will run it on all clients again.</p>
     return super(StopHuntConfirmationDialog, self).Layout(request, response)
 
   def RenderAjax(self, request, response):
-    flow.GRRFlow.StartFlow(flow_name="StopHuntFlow", token=request.token,
+    flow.GRRFlow.StartFlow(flow_name="StopHuntFlow",
+                           token=request.token,
                            hunt_urn=rdfvalue.RDFURN(request.REQ.get("hunt_id")))
-    return self.RenderFromTemplate(self.ajax_template, response,
+    return self.RenderFromTemplate(self.ajax_template,
+                                   response,
                                    unique=self.unique)
 
 
@@ -94,8 +98,8 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
   header = "Modify a hunt"
   proceed_button_title = "Modify!"
 
-  expiry_time_dividers = (
-      (60 * 60 * 24, "d"), (60 * 60, "h"), (60, "m"), (1, "s"))
+  expiry_time_dividers = ((60 * 60 * 24, "d"), (60 * 60, "h"), (60, "m"),
+                          (1, "s"))
 
   content_template = renderers.Template("""
 {{this.hunt_params_form|safe}}
@@ -108,15 +112,15 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
   def Layout(self, request, response):
     """Layout handler."""
     hunt_urn = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
-    with aff4.FACTORY.Open(hunt_urn, aff4_type="GRRHunt",
+    with aff4.FACTORY.Open(hunt_urn,
+                           aff4_type="GRRHunt",
                            token=request.token) as hunt:
 
       runner = hunt.GetRunner()
 
       hunt_args = hunts_standard.ModifyHuntFlowArgs(
           client_limit=runner.args.client_limit,
-          expiry_time=runner.context.expires,
-      )
+          expiry_time=runner.context.expires,)
 
       self.hunt_params_form = forms.SemanticProtoFormRenderer(
           hunt_args, supressions=["hunt_urn"]).RawHTML(request)
@@ -129,13 +133,16 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
     """Starts ModifyHuntFlow that actually modifies a hunt."""
     hunt_urn = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
 
-    args = forms.SemanticProtoFormRenderer(
-        hunts_standard.ModifyHuntFlowArgs()).ParseArgs(request)
+    args = forms.SemanticProtoFormRenderer(hunts_standard.ModifyHuntFlowArgs(
+    )).ParseArgs(request)
 
-    flow.GRRFlow.StartFlow(flow_name="ModifyHuntFlow", token=request.token,
-                           hunt_urn=hunt_urn, args=args)
+    flow.GRRFlow.StartFlow(flow_name="ModifyHuntFlow",
+                           token=request.token,
+                           hunt_urn=hunt_urn,
+                           args=args)
 
-    return self.RenderFromTemplate(self.ajax_template, response,
+    return self.RenderFromTemplate(self.ajax_template,
+                                   response,
                                    unique=self.unique)
 
 
@@ -164,9 +171,11 @@ hunts can only be deleted if there are no results. </p>
 
   def RenderAjax(self, request, response):
     """Starts DeleteHuntFlow that actually modifies a hunt."""
-    flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow", token=request.token,
+    flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
+                           token=request.token,
                            hunt_urn=rdfvalue.RDFURN(request.REQ.get("hunt_id")))
-    return self.RenderFromTemplate(self.ajax_template, response,
+    return self.RenderFromTemplate(self.ajax_template,
+                                   response,
                                    unique=self.unique)
 
 
@@ -225,13 +234,16 @@ back to hunt view</a>
 
   def __init__(self, **kwargs):
     super(HuntClientTableRenderer, self).__init__(**kwargs)
-    self.AddColumn(semantic.RDFValueColumn(
-        "Client ID", width="20%", renderer=semantic.SubjectRenderer))
+    self.AddColumn(semantic.RDFValueColumn("Client ID",
+                                           width="20%",
+                                           renderer=semantic.SubjectRenderer))
     self.AddColumn(semantic.RDFValueColumn("Hostname", width="10%"))
     self.AddColumn(semantic.RDFValueColumn("Status", width="10%"))
-    self.AddColumn(semantic.RDFValueColumn("User CPU seconds", width="10%",
+    self.AddColumn(semantic.RDFValueColumn("User CPU seconds",
+                                           width="10%",
                                            renderer=FloatRenderer))
-    self.AddColumn(semantic.RDFValueColumn("System CPU seconds", width="10%",
+    self.AddColumn(semantic.RDFValueColumn("System CPU seconds",
+                                           width="10%",
                                            renderer=FloatRenderer))
     self.AddColumn(semantic.RDFValueColumn("CPU",
                                            renderer=ResourceRenderer,
@@ -250,7 +262,8 @@ back to hunt view</a>
     self.hunt_hash = urllib.urlencode(sorted(h.items()))
 
     response = super(HuntClientTableRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "HuntClientTableRenderer.Layout",
+    return self.CallJavascript(response,
+                               "HuntClientTableRenderer.Layout",
                                hunt_hash=self.hunt_hash)
 
   def BuildTable(self, start_row, end_row, request):
@@ -260,7 +273,8 @@ back to hunt view</a>
     if hunt_id is None:
       return
     try:
-      self.hunt = aff4.FACTORY.Open(hunt_id, token=request.token,
+      self.hunt = aff4.FACTORY.Open(hunt_id,
+                                    token=request.token,
                                     aff4_type="GRRHunt")
     except IOError:
       logging.error("Invalid hunt %s", hunt_id)
@@ -292,8 +306,8 @@ back to hunt view</a>
       row = {"Client ID": c_urn,
              "Hostname": cdict.get("hostname"),
              "Status": results[c_urn],
-             "Last Checkin": searchclient.FormatLastSeenTime(
-                 cdict.get("age") or 0)}
+             "Last Checkin":
+                 searchclient.FormatLastSeenTime(cdict.get("age") or 0)}
 
       client_id = c_urn.Basename()
       if client_id in resource_usage:
@@ -440,8 +454,7 @@ class HuntOverviewRenderer(AbstractLogRenderer):
 </dl>
 """)
 
-  error_template = renderers.Template(
-      "No information available for this Hunt.")
+  error_template = renderers.Template("No information available for this Hunt.")
 
   ajax_template = renderers.Template("""
 <div id="RunHuntResult_{{unique|escape}}"></div>
@@ -452,9 +465,12 @@ class HuntOverviewRenderer(AbstractLogRenderer):
     self.subject = rdfvalue.RDFURN(self.hunt_id)
 
     response = renderers.TemplateRenderer.Layout(
-        self, request, response, apply_template=self.ajax_template)
-    return self.CallJavascript(response, "HuntOverviewRenderer.RenderAjax",
-                               subject=self.subject, hunt_id=self.hunt_id)
+        self, request,
+        response, apply_template=self.ajax_template)
+    return self.CallJavascript(response,
+                               "HuntOverviewRenderer.RenderAjax",
+                               subject=self.subject,
+                               hunt_id=self.hunt_id)
 
   def Layout(self, request, response):
     """Display the overview."""
@@ -468,7 +484,8 @@ class HuntOverviewRenderer(AbstractLogRenderer):
 
     if self.hunt_id:
       try:
-        self.hunt = aff4.FACTORY.Open(self.hunt_id, aff4_type="GRRHunt",
+        self.hunt = aff4.FACTORY.Open(self.hunt_id,
+                                      aff4_type="GRRHunt",
                                       token=request.token)
 
         if self.hunt.state.Empty():
@@ -478,10 +495,10 @@ class HuntOverviewRenderer(AbstractLogRenderer):
         self.cpu_sum = "%.2f" % hunt_stats.user_cpu_stats.sum
         self.net_sum = hunt_stats.network_bytes_sent_stats.sum
 
-        (self.all_clients_count,
-         self.completed_clients_count, _) = self.hunt.GetClientsCounts()
-        self.outstanding_clients_count = (self.all_clients_count -
-                                          self.completed_clients_count)
+        (self.all_clients_count, self.completed_clients_count,
+         _) = self.hunt.GetClientsCounts()
+        self.outstanding_clients_count = (
+            self.all_clients_count - self.completed_clients_count)
 
         runner = self.hunt.GetRunner()
         self.hunt_name = runner.args.hunt_name
@@ -533,13 +550,14 @@ class HuntContextView(renderers.TemplateRenderer):
     """Display hunt's context presented as dict."""
     if not hasattr(self, "hunt_id"):
       self.hunt_id = request.REQ.get("hunt_id")
-    self.hunt = aff4.FACTORY.Open(self.hunt_id, aff4_type="GRRHunt",
+    self.hunt = aff4.FACTORY.Open(self.hunt_id,
+                                  aff4_type="GRRHunt",
                                   token=request.token)
     if self.hunt.state.Empty():
       raise IOError("No valid state could be found.")
 
-    self.args_str = renderers.DictRenderer(
-        self.hunt.state.context).RawHTML(request)
+    self.args_str = renderers.DictRenderer(self.hunt.state.context).RawHTML(
+        request)
 
     return super(HuntContextView, self).Layout(request, response)
 
@@ -573,7 +591,8 @@ class HuntClientViewTabs(renderers.TabLayout):
 
   def Layout(self, request, response):
     response = super(HuntClientViewTabs, self).Layout(request, response)
-    return self.CallJavascript(response, "HuntClientViewTabs.Layout",
+    return self.CallJavascript(response,
+                               "HuntClientViewTabs.Layout",
                                hunt_id=self.state["hunt_id"])
 
 
@@ -597,10 +616,11 @@ class HuntClientOverviewRenderer(renderers.TemplateRenderer):
     hunt_client = request.REQ.get("hunt_client")
     if hunt_id is not None and hunt_client is not None:
       try:
-        self.client = aff4.FACTORY.Open(hunt_client, token=request.token,
+        self.client = aff4.FACTORY.Open(hunt_client,
+                                        token=request.token,
                                         aff4_type="VFSGRRClient")
-        self.last_checkin = rdfvalue.RDFDatetime(
-            self.client.Get(self.client.Schema.PING))
+        self.last_checkin = rdfvalue.RDFDatetime(self.client.Get(
+            self.client.Schema.PING))
 
         h = dict(main="HostInformation", c=self.client.client_id)
         self.hash = urllib.urlencode(sorted(h.items()))
@@ -631,7 +651,8 @@ No data to graph yet.
     self.clients = bool(all_count)
 
     response = super(HuntClientGraphRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "HuntClientGraphRenderer.Layout",
+    return self.CallJavascript(response,
+                               "HuntClientGraphRenderer.Layout",
                                hunt_id=self.hunt_id)
 
 
@@ -648,7 +669,9 @@ class HuntHostInformationRenderer(fileview.AFF4Stats):
     client_id = request.REQ.get("hunt_client")
     if client_id:
       super(HuntHostInformationRenderer, self).Layout(
-          request, response, client_id=client_id,
+          request,
+          response,
+          client_id=client_id,
           aff4_path=rdf_client.ClientURN(client_id),
           age=aff4.ALL_TIMES)
 
@@ -726,8 +749,7 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
 </div>
 </div>
 """)
-  error_template = renderers.Template(
-      "No information available for this Hunt.")
+  error_template = renderers.Template("No information available for this Hunt.")
 
   def _HistogramToJSON(self, histogram):
     hist_data = [(b.range_max_value, b.num) for b in histogram.bins]
@@ -756,7 +778,8 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
 
         response = super(HuntStatsRenderer, self).Layout(request, response)
         return self.CallJavascript(
-            response, "HuntStatsRenderer.Layout",
+            response,
+            "HuntStatsRenderer.Layout",
             user_cpu_json_data=self.user_cpu_json_data,
             system_cpu_json_data=self.system_cpu_json_data,
             network_bytes_sent_json_data=self.network_bytes_sent_json_data)
@@ -786,7 +809,8 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
     """Returns all client requests for the given client urns."""
     task_urns = [urn.Add("tasks") for urn in client_urns]
 
-    client_requests_raw = data_store.DB.MultiResolvePrefix(task_urns, "task:",
+    client_requests_raw = data_store.DB.MultiResolvePrefix(task_urns,
+                                                           "task:",
                                                            token=token)
 
     client_requests = {}
@@ -823,8 +847,9 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
     flow_requests = {}
     flow_request_urns = [flow_urn.Add("state") for flow_urn in flow_urns]
 
-    for flow_urn, values in data_store.DB.MultiResolvePrefix(
-        flow_request_urns, "flow:", token=token):
+    for flow_urn, values in data_store.DB.MultiResolvePrefix(flow_request_urns,
+                                                             "flow:",
+                                                             token=token):
       for subject, serialized, _ in values:
         try:
           if "status" in subject:
@@ -847,7 +872,9 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
       return
 
     hunt_id = rdfvalue.RDFURN(hunt_id)
-    hunt = aff4.FACTORY.Open(hunt_id, aff4_type="GRRHunt", age=aff4.ALL_TIMES,
+    hunt = aff4.FACTORY.Open(hunt_id,
+                             aff4_type="GRRHunt",
+                             age=aff4.ALL_TIMES,
                              token=token)
 
     clients_by_status = hunt.GetClientsByStatus()
@@ -881,8 +908,8 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
     response_urns = []
 
     for request_base_urn, request in waitingfor.iteritems():
-      response_urns.append(rdfvalue.RDFURN(request_base_urn).Add(
-          "request:%08X" % request.id))
+      response_urns.append(rdfvalue.RDFURN(request_base_urn).Add("request:%08X"
+                                                                 % request.id))
 
     response_dict = dict(data_store.DB.MultiResolvePrefix(
         response_urns, "flow:", token=token))
@@ -894,8 +921,8 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
       client_id = flow_urn.Split()[2]
       try:
         request_obj = waitingfor[request_urn]
-        response_urn = rdfvalue.RDFURN(request_urn).Add(
-            "request:%08X" % request_obj.id)
+        response_urn = rdfvalue.RDFURN(request_urn).Add("request:%08X" %
+                                                        request_obj.id)
         responses_available = len(response_dict.setdefault(response_urn, []))
         status_available = "No"
         responses_expected = "Unknown"
@@ -921,12 +948,14 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
             "Available Responses": responses_available,
             "Status": status_available,
             "Expected Responses": responses_expected,
-            "Client Requests Pending": client_requests_available}
+            "Client Requests Pending": client_requests_available
+        }
       except KeyError:
         row_data = {
             "Client": client_id,
             "Flow": flow_urn,
-            "Incomplete Request #": "No request found"}
+            "Incomplete Request #": "No request found"
+        }
 
       self.AddRow(row_data, row_index=row_index)
       row_index += 1

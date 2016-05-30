@@ -54,7 +54,10 @@ def GetDefaultGRRTempDirectory():
   return GetTempDirForRoot(config_lib.CONFIG["Client.tempdir_roots"][0])
 
 
-def CreateGRRTempFile(directory=None, filename=None, lifetime=0, mode="w+b",
+def CreateGRRTempFile(directory=None,
+                      filename=None,
+                      lifetime=0,
+                      mode="w+b",
                       suffix=""):
   """Open file with GRR prefix in directory to allow easy deletion.
 
@@ -113,8 +116,10 @@ def CreateGRRTempFile(directory=None, filename=None, lifetime=0, mode="w+b",
 
   prefix = config_lib.CONFIG.Get("Client.tempfile_prefix")
   if filename is None:
-    outfile = tempfile.NamedTemporaryFile(prefix=prefix, suffix=suffix,
-                                          dir=directory, delete=False)
+    outfile = tempfile.NamedTemporaryFile(prefix=prefix,
+                                          suffix=suffix,
+                                          dir=directory,
+                                          delete=False)
   else:
     if suffix:
       filename = "%s.%s" % (filename, suffix)
@@ -135,7 +140,10 @@ def CreateGRRTempFile(directory=None, filename=None, lifetime=0, mode="w+b",
   return outfile
 
 
-def CreateGRRTempFileVFS(directory=None, filename=None, lifetime=0, mode="w+b",
+def CreateGRRTempFileVFS(directory=None,
+                         filename=None,
+                         lifetime=0,
+                         mode="w+b",
                          suffix=""):
   """Creates a GRR VFS temp file.
 
@@ -160,10 +168,13 @@ def CreateGRRTempFileVFS(directory=None, filename=None, lifetime=0, mode="w+b",
     An open file handle to the new file and the corresponding pathspec.
   """
 
-  fd = CreateGRRTempFile(directory=directory, filename=filename,
-                         lifetime=lifetime, mode=mode, suffix=suffix)
-  pathspec = rdf_paths.PathSpec(
-      path=fd.name, pathtype=rdf_paths.PathSpec.PathType.TMPFILE)
+  fd = CreateGRRTempFile(directory=directory,
+                         filename=filename,
+                         lifetime=lifetime,
+                         mode=mode,
+                         suffix=suffix)
+  pathspec = rdf_paths.PathSpec(path=fd.name,
+                                pathtype=rdf_paths.PathSpec.PathType.TMPFILE)
   return fd, pathspec
 
 
@@ -242,8 +253,9 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
     if args.path:
       # Normalize the path, so DeleteGRRTempFile can correctly check if
       # it is within Client.tempdir.
-      paths = [client_utils.CanonicalPathToLocalPath(
-          utils.NormalizePath(args.path))]
+      paths = [
+          client_utils.CanonicalPathToLocalPath(utils.NormalizePath(args.path))
+      ]
     else:
       paths = allowed_temp_dirs
 

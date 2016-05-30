@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Copyright 2011 Google Inc. All Rights Reserved.
-
 """Tests for grr.parsers.firefox3_history."""
 
 
@@ -61,6 +60,7 @@ class Firefox3HistoryTest(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

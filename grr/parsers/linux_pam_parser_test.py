@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Unit test for the linux pam config parser."""
 
 
@@ -9,7 +8,6 @@ from grr.lib import test_lib
 from grr.lib.checks import checks_test_lib
 from grr.lib.rdfvalues import config_file as rdf_config
 from grr.parsers import linux_pam_parser
-
 
 ETC_PAM_CONF_EMPTY = """
 # Nothing to do here.
@@ -53,8 +51,9 @@ auth optional testing.so
 TELNET_ONLY_CONFIG = {'/etc/pam.d/telnet': ETC_PAMD_TELNET}
 TELNET_ONLY_CONFIG_EXPECTED = [
     ('telnet', 'auth',
-     '[success=ok new_authtok_reqd=ok ignore=ignore default=bad]',
-     'testing.so', 'module arguments')]
+     '[success=ok new_authtok_reqd=ok ignore=ignore default=bad]', 'testing.so',
+     'module arguments')
+]
 
 TELNET_WITH_PAMCONF = {'/etc/pam.conf': ETC_PAM_CONF_EMPTY,
                        '/etc/pam.d/telnet': ETC_PAMD_TELNET}
@@ -64,7 +63,8 @@ PAM_CONF_SIMPLE = {'/etc/pam.conf': ETC_PAM_CONF_SIMPLE}
 PAM_CONF_SIMPLE_EXPECTED = [
     ('ssh', 'auth', 'required', 'test.so', ''),
     ('telnet', 'auth', 'required', 'unix.so', ''),
-    ('ssh', 'session', 'required', 'pam_limits.so', '')]
+    ('ssh', 'session', 'required', 'pam_limits.so', '')
+]
 
 PAM_CONF_OVERRIDE = {'/etc/pam.conf': ETC_PAM_CONF_SIMPLE,
                      '/etc/pam.d/telnet': ETC_PAMD_TELNET}
@@ -78,7 +78,8 @@ PAM_CONF_OVERRIDE_COMPLEX = {'/etc/pam.conf': ETC_PAM_CONF_COMPLEX,
 PAM_CONF_OVERRIDE_COMPLEX_EXPECTED = PAM_CONF_SIMPLE_EXPECTED + [
     ('telnet', 'account', 'required', 'pam_nologin.so', ''),
     ('ssh', 'account', 'required', 'pam_nologin.so', ''),
-    ('ssh', 'auth', 'required', 'pam_env.so', 'envfile=/etc/default/locale')]
+    ('ssh', 'auth', 'required', 'pam_env.so', 'envfile=/etc/default/locale')
+]
 
 PAM_CONF_TYPICAL = {'/etc/pam.conf': ETC_PAM_CONF_EMPTY,
                     '/etc/pam.d/ssh': ETC_PAMD_SSH,
@@ -96,12 +97,14 @@ PAM_CONF_TYPICAL_EXPECTED = TELNET_ONLY_CONFIG_EXPECTED + [
      'envfile=/etc/default/locale'),
     ('full_include', 'account', 'required', 'pam_nologin.so', ''),
     ('full_include', 'auth', 'required', 'pam_env.so',
-     'envfile=/etc/default/locale')]
+     'envfile=/etc/default/locale')
+]
 
 PAM_CONF_EXTERNAL_REF = {'/etc/pam.conf': ETC_PAM_CONF_EMPTY,
                          '/etc/pam.d/external': ETC_PAMD_EXTERNAL}
 PAM_CONF_EXTERNAL_REF_EXPECTED = [
-    ('external', 'auth', 'optional', 'testing.so', '')]
+    ('external', 'auth', 'optional', 'testing.so', '')
+]
 PAM_CONF_EXTERNAL_REF_ERRORS = ['/etc/pam.d/external -> /etc/pam.d/nonexistant',
                                 '/etc/pam.d/external -> /external/nonexistant']
 
@@ -114,8 +117,8 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
     self.kb = checks_test_lib.HostCheckTest.SetKnowledgeBase()['KnowledgeBase']
 
   def _EntryToTuple(self, entry):
-    return (entry.service, entry.type, entry.control,
-            entry.module_path, entry.module_args)
+    return (entry.service, entry.type, entry.control, entry.module_path,
+            entry.module_args)
 
   def _EntriesToTuples(self, entries):
     return [self._EntryToTuple(x) for x in entries]
@@ -147,8 +150,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
     self.assertEqual(
         ('telnet', 'auth',
          '[success=ok new_authtok_reqd=ok ignore=ignore default=bad]',
-         'testing.so', 'module arguments'),
-        self._EntryToTuple(entry))
+         'testing.so', 'module arguments'), self._EntryToTuple(entry))
     self.assertItemsEqual(TELNET_WITH_PAMCONF_EXPECTED,
                           self._EntriesToTuples(out[0].entries))
     self.assertEqual([], out[0].external_config)
@@ -212,6 +214,7 @@ class LinuxPAMParserTest(test_lib.GRRBaseTest):
 
 def main(args):
   test_lib.main(args)
+
 
 if __name__ == '__main__':
   flags.StartMain(main)

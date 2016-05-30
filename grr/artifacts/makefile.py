@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """Update the artifacts directory from upstream."""
 import fnmatch
 import glob
@@ -11,8 +10,8 @@ import zipfile
 
 def main():
   data = urllib2.urlopen(
-      "https://github.com/ForensicArtifacts/artifacts/archive/master.zip"
-  ).read()
+      "https://github.com/ForensicArtifacts/artifacts/archive/master.zip").read(
+      )
 
   zip_obj = zipfile.ZipFile(StringIO.StringIO(data))
   # Remove all existing yaml files.
@@ -24,6 +23,7 @@ def main():
       print "Extracting %s" % name
       with open(os.path.basename(name), "wb") as fd:
         fd.write(zip_obj.open(name).read())
+
 
 if __name__ == "__main__":
   main()

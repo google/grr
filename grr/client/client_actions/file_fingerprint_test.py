@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 
 # Copyright 2010 Google Inc. All Rights Reserved.
-
 """Test client vfs."""
 
 
@@ -26,8 +25,7 @@ class FilehashTest(test_lib.EmptyActionTest):
   def testHashFile(self):
     """Can we hash a file?"""
     path = os.path.join(self.base_path, "numbers.txt")
-    p = rdf_paths.PathSpec(path=path,
-                           pathtype=rdf_paths.PathSpec.PathType.OS)
+    p = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
     result = self.RunAction("FingerprintFile",
                             rdf_client.FingerprintRequest(pathspec=p))
     types = result[0].matching_types
@@ -35,8 +33,7 @@ class FilehashTest(test_lib.EmptyActionTest):
     for f in result[0].results:
       fingers[f["name"]] = f
     generic_sha256 = fingers["generic"]["sha256"]
-    self.assertEqual(generic_sha256,
-                     hashlib.sha256(open(path).read()).digest())
+    self.assertEqual(generic_sha256, hashlib.sha256(open(path).read()).digest())
 
     # Make sure all fingers are listed in types and vice versa.
     t_map = {rdf_client.FingerprintTuple.Type.FPT_GENERIC: "generic",
@@ -52,14 +49,16 @@ class FilehashTest(test_lib.EmptyActionTest):
   def testMissingFile(self):
     """Fail on missing file?"""
     path = os.path.join(self.base_path, "this file does not exist")
-    p = rdf_paths.PathSpec(path=path,
-                           pathtype=rdf_paths.PathSpec.PathType.OS)
-    self.assertRaises(IOError, self.RunAction, "FingerprintFile",
+    p = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
+    self.assertRaises(IOError,
+                      self.RunAction,
+                      "FingerprintFile",
                       rdf_client.FingerprintRequest(pathspec=p))
 
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -17,7 +17,6 @@ from grr.lib import utils
 
 from grr.lib.aff4_objects import filestore
 
-
 flags.DEFINE_string("filename", "", "File with hashes.")
 flags.DEFINE_integer("start", None, "Start row in the file.")
 
@@ -29,8 +28,8 @@ def _ImportRow(store, row, product_code_list, op_system_code_list):
   file_name = utils.SmartUnicode(row[3])
   file_size = int(row[4])
   special_code = row[7]
-  store.AddHash(sha1, md5, crc, file_name, file_size,
-                product_code_list, op_system_code_list, special_code)
+  store.AddHash(sha1, md5, crc, file_name, file_size, product_code_list,
+                op_system_code_list, special_code)
 
 
 def ImportFile(store, filename, start):
@@ -66,8 +65,7 @@ def ImportFile(store, filename, start):
             product_code_list = [int(row[5])]
             op_system_code_list = [row[6]]
             continue
-          _ImportRow(store, current_row, product_code_list,
-                     op_system_code_list)
+          _ImportRow(store, current_row, product_code_list, op_system_code_list)
           # Set new hash.
           current_row = row
           product_code_list = [int(row[5])]
@@ -89,11 +87,14 @@ def main(unused_argv):
     print "File %s does not exist" % filename
     return
 
-  with aff4.FACTORY.Create(filestore.NSRLFileStore.PATH, "NSRLFileStore",
-                           mode="rw", token=aff4.FACTORY.root_token) as store:
+  with aff4.FACTORY.Create(filestore.NSRLFileStore.PATH,
+                           "NSRLFileStore",
+                           mode="rw",
+                           token=aff4.FACTORY.root_token) as store:
     imported = ImportFile(store, filename, flags.FLAGS.start)
     data_store.DB.Flush()
     print "Imported %d hashes" % imported
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

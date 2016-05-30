@@ -21,7 +21,6 @@ from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
-
 # Our first response in the session is this:
 INITIAL_RESPONSE_ID = 1
 
@@ -133,7 +132,7 @@ class ActionPlugin(object):
         args = self.message.payload
 
       # Only allow authenticated messages in the client
-      if (self._authentication_required and
+      if self._authentication_required and (
           self.message.auth_state !=
           rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED):
         raise RuntimeError("Message for %s was not Authenticated." %
@@ -157,15 +156,13 @@ class ActionPlugin(object):
 
     except NetworkBytesExceededError as e:
       self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED,
-                     "%r: %s" % (e, e),
-                     traceback.format_exc())
+                     "%r: %s" % (e, e), traceback.format_exc())
 
     # We want to report back all errors and map Python exceptions to
     # Grr Errors.
     except Exception as e:  # pylint: disable=broad-except
       self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
-                     "%r: %s" % (e, e),
-                     traceback.format_exc())
+                     "%r: %s" % (e, e), traceback.format_exc())
 
       if flags.FLAGS.debug:
         self.DisableNanny()
@@ -221,8 +218,10 @@ class ActionPlugin(object):
     if backtrace:
       self.status.backtrace = utils.SmartUnicode(backtrace)
 
-  def SendReply(self, rdf_value=None,
-                message_type=rdf_flows.GrrMessage.Type.MESSAGE, **kw):
+  def SendReply(self,
+                rdf_value=None,
+                message_type=rdf_flows.GrrMessage.Type.MESSAGE,
+                **kw):
     """Send response back to the server."""
     if rdf_value is None:
       # The only client actions with multiple out_rdfvalues have them for
@@ -231,17 +230,18 @@ class ActionPlugin(object):
       # using the rdf_value keyword.
       rdf_value = self.out_rdfvalues[0](**kw)  # pylint: disable=not-callable
 
-    self.grr_worker.SendReply(rdf_value,
-                              # This is not strictly necessary but adds context
-                              # to this response.
-                              name=self.__class__.__name__,
-                              session_id=self.message.session_id,
-                              response_id=self.response_id,
-                              request_id=self.message.request_id,
-                              message_type=message_type,
-                              task_id=self.message.task_id,
-                              priority=self.priority,
-                              require_fastpoll=self.require_fastpoll)
+    self.grr_worker.SendReply(
+        rdf_value,
+        # This is not strictly necessary but adds context
+        # to this response.
+        name=self.__class__.__name__,
+        session_id=self.message.session_id,
+        response_id=self.response_id,
+        request_id=self.message.request_id,
+        message_type=message_type,
+        task_id=self.message.task_id,
+        priority=self.priority,
+        require_fastpoll=self.require_fastpoll)
 
     self.response_id += 1
 
@@ -292,7 +292,8 @@ class ActionPlugin(object):
     self.nanny_controller.SyncTransactionLog()
 
   def ChargeBytesToSession(self, length):
-    self.grr_worker.ChargeBytesToSession(self.message.session_id, length,
+    self.grr_worker.ChargeBytesToSession(self.message.session_id,
+                                         length,
                                          limit=self.network_bytes_limit)
 
   def DisableNanny(self):
@@ -475,8 +476,8 @@ class SuspendableAction(ActionPlugin):
     # An exception occured in the worker thread and it was terminated. We
     # re-raise it here.
     if self.worker.exception_status:
-      raise RuntimeError("Exception in child thread: %s" % (
-          self.worker.exception_status))
+      raise RuntimeError("Exception in child thread: %s" %
+                         (self.worker.exception_status))
 
     # Return the iterator
     self.SendReply(self.request.iterator,

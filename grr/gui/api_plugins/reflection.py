@@ -11,7 +11,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-
 CATEGORY = "Other"
 
 
@@ -67,5 +66,4 @@ class ApiListAff4AttributesDescriptorsHandler(
     for name in sorted(aff4.Attribute.NAMES.keys()):
       attributes[name] = dict(name=name)
 
-    return dict(status="OK",
-                attributes=attributes)
+    return dict(status="OK", attributes=attributes)

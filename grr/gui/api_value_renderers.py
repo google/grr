@@ -94,9 +94,7 @@ class ApiValueRenderer(object):
     else:
       age = 0
 
-    return dict(type=original_value.__class__.__name__,
-                value=result,
-                age=age)
+    return dict(type=original_value.__class__.__name__, value=result, age=age)
 
   def RenderValue(self, value):
     """Renders given value into plain old python objects."""
@@ -117,11 +115,10 @@ class ApiValueRenderer(object):
     """
     try:
       return RenderValue(value_cls())
-    except Exception as e:   # pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
       logging.exception(e)
-      raise DefaultValueRenderingError(
-          "Can't create default for value %s: %s" % (
-              value_cls.__name__, e))
+      raise DefaultValueRenderingError("Can't create default for value %s: %s" %
+                                       (value_cls.__name__, e))
 
   def RenderMetadata(self, value_cls):
     """Renders metadata of a given value class.
@@ -340,9 +337,7 @@ class ApiRDFURNRenderer(ApiValueRenderer):
   value_class = rdfvalue.RDFURN
 
   def RenderDefaultValue(self, value_cls):
-    return dict(type=value_cls.__name__,
-                value="",
-                age=0)
+    return dict(type=value_cls.__name__, value="", age=0)
 
 
 class ApiEmbeddedRDFValueRenderer(ApiValueRenderer):
@@ -408,9 +403,9 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
         field["allowed_values"] = allowed_values
 
       field_default = None
-      if (field_desc.default is not None
-          and not aff4.issubclass(field_type, rdf_structs.RDFStruct)
-          and hasattr(field_desc, "GetDefault")):
+      if (field_desc.default is not None and
+          not aff4.issubclass(field_type, rdf_structs.RDFStruct) and
+          hasattr(field_desc, "GetDefault")):
         field_default = field_desc.GetDefault()
         field["default"] = RenderValue(field_default)
 
@@ -441,7 +436,7 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
     struct_default = None
     try:
       struct_default = value_cls()
-    except Exception as e:   # pylint: disable=broad-except
+    except Exception as e:  # pylint: disable=broad-except
       # TODO(user): Some RDFStruct classes can't be constructed using
       # default constructor (without arguments). Fix the code so that
       # we can either construct all the RDFStruct classes with default

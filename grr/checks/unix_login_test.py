@@ -47,11 +47,13 @@ class LoginPolicyConfigurationTests(checks_test_lib.HostCheckTest):
               nopasswd:::nopasswd
               md5:::md5
               undying:::undying
-              disabled:::disabled"""}
-      modes = {"/etc/passwd": {"st_mode": 0o100666},   # Bad write perm.
-               "/etc/group": {"st_uid": 1},            # Bad owner.
-               "/etc/shadow": {"st_mode": 0o100444},   # Bad read perm.
-               "/etc/gshadow": {"st_gid": 1, "st_mode": 0o100400}}  # Bad group.
+              disabled:::disabled"""
+      }
+      modes = {"/etc/passwd": {"st_mode": 0o100666},  # Bad write perm.
+               "/etc/group": {"st_uid": 1},  # Bad owner.
+               "/etc/shadow": {"st_mode": 0o100444},  # Bad read perm.
+               "/etc/gshadow": {"st_gid": 1,
+                                "st_mode": 0o100400}}  # Bad group.
       host_data = self.GenFileData("LoginPolicyConfiguration", login, parser,
                                    modes)
       return self.RunChecks(host_data)
@@ -59,8 +61,7 @@ class LoginPolicyConfigurationTests(checks_test_lib.HostCheckTest):
   def testPasswdHash(self):
     chk_id = "CIS-LOGIN-UNIX-HASH"
     sym = "Found: Insecure password hash method."
-    found = ["password for +nisuser uses DES",
-             "password for md5 uses MD5"]
+    found = ["password for +nisuser uses DES", "password for md5 uses MD5"]
     self.assertCheckDetectedAnom(chk_id, self.results, sym, found)
 
   def testEmptyPasswordCheck(self):

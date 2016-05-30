@@ -5,7 +5,9 @@ import platform
 import re
 
 
-def NetshStaticIp(interface, ip=u'127.0.0.9', subnet=u'255.255.255.255',
+def NetshStaticIp(interface,
+                  ip=u'127.0.0.9',
+                  subnet=u'255.255.255.255',
                   gw=u'127.0.0.1'):
   """Changes interface to a staticly set IP.
 
@@ -20,11 +22,13 @@ def NetshStaticIp(interface, ip=u'127.0.0.9', subnet=u'255.255.255.255',
   Returns:
     A tuple of stdout, stderr, exit_status.
   """
-  args = ['/c', 'netsh', 'interface', 'ip', 'set', 'address',
-          interface, 'static', ip, subnet, gw, '1']
+  args = ['/c', 'netsh', 'interface', 'ip', 'set', 'address', interface,
+          'static', ip, subnet, gw, '1']
   # pylint: disable=undefined-variable
-  res = client_utils_common.Execute('cmd', args,
-                                    time_limit=-1, bypass_whitelist=True)
+  res = client_utils_common.Execute('cmd',
+                                    args,
+                                    time_limit=-1,
+                                    bypass_whitelist=True)
   return res
 
 
@@ -43,8 +47,10 @@ def DisableInterfaces(interface):
   for version in set_tested_versions:
     if host_version.find(version) != -1:
       # pylint: disable=undefined-variable
-      res = client_utils_common.Execute('cmd', set_args,
-                                        time_limit=-1, bypass_whitelist=True)
+      res = client_utils_common.Execute('cmd',
+                                        set_args,
+                                        time_limit=-1,
+                                        bypass_whitelist=True)
       return res
   return ('', 'Command not available for this version.', 99, '')
 
@@ -58,10 +64,12 @@ def GetEnabledInterfaces():
   interfaces = []
   show_args = ['/c', 'netsh', 'show', 'interface']
   # pylint: disable=undefined-variable
-  res = client_utils_common.Execute('cmd', show_args,
-                                    time_limit=-1, bypass_whitelist=True)
+  res = client_utils_common.Execute('cmd',
+                                    show_args,
+                                    time_limit=-1,
+                                    bypass_whitelist=True)
   pattern = re.compile(r'\s*')
-  for line in res[0].split('\r\n'):   # res[0] is stdout.
+  for line in res[0].split('\r\n'):  # res[0] is stdout.
     interface_info = pattern.split(line)
     if 'Enabled' in interface_info:
       interfaces.extend(interface_info[-1:])
@@ -87,8 +95,10 @@ def MsgUser(msg):
   for version in msg_tested_versions:
     if host_version.find(version) != -1:
       # pylint: disable=undefined-variable
-      res = client_utils_common.Execute('cmd', msg_args,
-                                        time_limit=-1, bypass_whitelist=True)
+      res = client_utils_common.Execute('cmd',
+                                        msg_args,
+                                        time_limit=-1,
+                                        bypass_whitelist=True)
       return res
   return ('', 'Command not available for this version.', -1)
 
@@ -114,8 +124,7 @@ def main():
       # Change interface config to be unroutable.
       if return_str[interface][2] == 99:
         if all([key in py_args for key in ['ip', 'subnet', 'gw']]):
-          return_str[interface] = NetshStaticIp(interface,
-                                                py_args['ip'],
+          return_str[interface] = NetshStaticIp(interface, py_args['ip'],
                                                 py_args['subnet'],
                                                 py_args['gw'])
         else:
@@ -125,10 +134,8 @@ def main():
   magic_list = []
   for key in return_str:
     stdout, stderr, exit_status, time_taken = return_str[key]
-    key_str = '%s, %s, %s, %s, %s' % (key,
-                                      stdout.encode('base64'),
-                                      stderr.encode('base64'),
-                                      exit_status,
+    key_str = '%s, %s, %s, %s, %s' % (key, stdout.encode('base64'),
+                                      stderr.encode('base64'), exit_status,
                                       time_taken)
     magic_list.append(key_str)
 

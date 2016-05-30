@@ -6,7 +6,6 @@
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import reflection as reflection
 
-
 from grr.lib import flags
 from grr.lib import test_lib
 

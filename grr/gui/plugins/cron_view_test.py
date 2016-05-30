@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Test the cron_view interface."""
 
 
@@ -20,8 +19,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
   def AddJobStatus(self, job_urn, status):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.OpenWithLock(job_urn,
-                                     token=self.token) as job:
+      with aff4.FACTORY.OpenWithLock(job_urn, token=self.token) as job:
         job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime().Now()))
         job.Set(job.Schema.LAST_RUN_STATUS(status=status))
 
@@ -100,8 +98,8 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
   def testToolbarStateForDisabledCronJob(self):
     with self.ACLChecksDisabled():
-      cronjobs.CRON_MANAGER.DisableJob(
-          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+      cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN(
+          "aff4:/cron/OSBreakDown"))
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -116,8 +114,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
   def testToolbarStateForEnabledCronJob(self):
     with self.ACLChecksDisabled():
-      cronjobs.CRON_MANAGER.EnableJob(
-          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+      cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -132,8 +129,8 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
   def testEnableCronJob(self):
     with self.ACLChecksDisabled():
-      cronjobs.CRON_MANAGER.DisableJob(
-          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+      cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN(
+          "aff4:/cron/OSBreakDown"))
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -180,8 +177,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
   def testDisableCronJob(self):
     with self.ACLChecksDisabled():
-      cronjobs.CRON_MANAGER.EnableJob(
-          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+      cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -226,8 +222,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
   def testDeleteCronJob(self):
     with self.ACLChecksDisabled():
-      cronjobs.CRON_MANAGER.EnableJob(
-          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+      cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
@@ -266,17 +261,14 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     # View should be refreshed automatically.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-cron-jobs-list "
+    self.WaitUntil(self.IsElementPresent, "css=grr-cron-jobs-list "
                    "td:contains('GRRVersionBreakDown')")
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=grr-cron-jobs-list "
+    self.WaitUntilNot(self.IsElementPresent, "css=grr-cron-jobs-list "
                       "td:contains('OSBreakDown')")
 
   def testForceRunCronJob(self):
     with self.ACLChecksDisabled():
-      cronjobs.CRON_MANAGER.EnableJob(
-          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+      cronjobs.CRON_MANAGER.EnableJob(rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     with test_lib.FakeTime(
         # 2274264646 corresponds to Sat, 25 Jan 2042 12:10:46 GMT.
@@ -320,8 +312,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
       self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
       # View should be refreshed automatically. The last run date should appear.
-      self.WaitUntil(self.IsElementPresent,
-                     "css=grr-cron-jobs-list "
+      self.WaitUntil(self.IsElementPresent, "css=grr-cron-jobs-list "
                      "tr:contains('OSBreakDown') td:contains('2042')")
 
   def testHuntSchedulingWorksCorrectly(self):
@@ -361,8 +352,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
     # Configure the hunt to use dummy output plugin.
     self.Click("css=grr-new-cron-job-wizard-form button[name=Add]")
-    self.Select("css=grr-new-cron-job-wizard-form select",
-                "DummyOutputPlugin")
+    self.Select("css=grr-new-cron-job-wizard-form select", "DummyOutputPlugin")
     self.Type(
         "css=grr-new-cron-job-wizard-form "
         "grr-form-proto-single-field:has(label:contains('Filename Regex')) "
@@ -416,8 +406,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.Click("css=grr-new-cron-job-wizard-form button.Next")
 
     # Anyone can schedule a hunt but we need an approval to actually start it.
-    self.WaitUntil(self.IsTextPresent,
-                   "Created Cron Job:")
+    self.WaitUntil(self.IsTextPresent, "Created Cron Job:")
 
     # Close the window and check that cron job object was created.
     self.Click("css=grr-new-cron-job-wizard-form button.Next")
@@ -435,7 +424,8 @@ class TestCronView(test_lib.GRRSeleniumTest):
   def testDeprecatedHuntSchedulingWorksCorrectly(self):
     with test_lib.ConfigOverrider({
         "AdminUI.new_hunt_wizard.use_oo_hunt_rules_in_new_cron_job_wizard":
-        False}):
+            False
+    }):
       self.Open("/")
       self.Click("css=a[grrtarget=crons]")
 
@@ -486,8 +476,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
       # Create 3 foreman rules. Note that "Add" button adds rules to the
       # beginning of a list. So we always use :nth(0) selector.
       self.Select("css=grr-new-cron-job-deprecated-wizard-form div.Rule:nth(0) "
-                  "select",
-                  "Regular Expression")
+                  "select", "Regular Expression")
       self.Select(
           "css=grr-new-cron-job-deprecated-wizard-form div.Rule:nth(0) "
           "grr-form-proto-single-field:has(label:contains('Attribute name')) "
@@ -499,8 +488,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
       self.Click("css=grr-new-cron-job-deprecated-wizard-form button[name=Add]")
       self.Select("css=grr-new-cron-job-deprecated-wizard-form div.Rule:nth(0) "
-                  "select",
-                  "Integer Rule")
+                  "select", "Integer Rule")
       self.Select(
           "css=grr-new-cron-job-deprecated-wizard-form div.Rule:nth(0) "
           "grr-form-proto-single-field:has(label:contains('Attribute name')) "
@@ -516,8 +504,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
       self.Click("css=grr-new-cron-job-deprecated-wizard-form button[name=Add]")
       self.Select("css=grr-new-cron-job-deprecated-wizard-form div.Rule:nth(0) "
-                  "select",
-                  "OS X")
+                  "select", "OS X")
 
       # Click on "Next" button
       self.Click("css=grr-new-cron-job-deprecated-wizard-form button.Next")
@@ -541,8 +528,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
       self.Click("css=grr-new-cron-job-deprecated-wizard-form button.Next")
 
       # Anyone can schedule a hunt but we need an approval to actually start it.
-      self.WaitUntil(self.IsTextPresent,
-                     "Created Cron Job:")
+      self.WaitUntil(self.IsTextPresent, "Created Cron Job:")
 
       # Close the window and check that cron job object was created.
       self.Click("css=grr-new-cron-job-deprecated-wizard-form button.Next")
@@ -612,6 +598,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
 def main(argv):
   # Run the full test suite
   runtests_test.SeleniumTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

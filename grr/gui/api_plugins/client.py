@@ -24,7 +24,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-
 CATEGORY = "Clients"
 
 
@@ -48,13 +47,12 @@ class ApiClient(rdf_structs.RDFProtoStruct):
         # TODO(user): Check if ProtoString.Validate should be fixed
         # to do an isinstance() check on a value. Is simple type
         # equality check used there for performance reasons?
-        version=utils.SmartStr(
-            client_obj.Get(client_obj.Schema.OS_VERSION, "")),
+        version=utils.SmartStr(client_obj.Get(client_obj.Schema.OS_VERSION,
+                                              "")),
         kernel=client_obj.Get(client_obj.Schema.KERNEL),
         machine=client_obj.Get(client_obj.Schema.ARCH),
         fqdn=client_obj.Get(client_obj.Schema.FQDN),
-        install_date=client_obj.Get(client_obj.Schema.INSTALL_DATE)
-        )
+        install_date=client_obj.Get(client_obj.Schema.INSTALL_DATE))
 
     self.first_seen_at = client_obj.Get(client_obj.Schema.FIRST_SEEN)
     self.last_seen_at = client_obj.Get(client_obj.Schema.PING)
@@ -102,8 +100,8 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
                                 aff4_type="ClientIndex",
                                 mode="rw",
                                 token=token)
-    result_urns = sorted(index.LookupClients(keywords),
-                         key=str)[args.offset:args.offset + end]
+    result_urns = sorted(
+        index.LookupClients(keywords), key=str)[args.offset:args.offset + end]
     result_set = aff4.FACTORY.MultiOpen(result_urns, token=token)
 
     api_clients = []
@@ -154,7 +152,8 @@ class ApiLabelsRestrictedSearchClientsHandler(
       all_urns.update(index.LookupClients(label_filter))
 
     all_objs = aff4.FACTORY.MultiOpen(
-        sorted(all_urns, key=str), aff4_type=aff4_grr.VFSGRRClient.__name__,
+        sorted(all_urns, key=str),
+        aff4_type=aff4_grr.VFSGRRClient.__name__,
         token=token)
 
     api_clients = []
@@ -195,10 +194,10 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
 
     client = aff4.FACTORY.Open(args.client_id,
                                aff4_type=aff4_grr.VFSGRRClient.__name__,
-                               age=age, token=token)
+                               age=age,
+                               token=token)
 
-    return ApiGetClientResult(
-        client=ApiClient().InitFromAff4Object(client))
+    return ApiGetClientResult(client=ApiClient().InitFromAff4Object(client))
 
 
 class ApiGetClientVersionTimesArgs(rdf_structs.RDFProtoStruct):
@@ -218,7 +217,9 @@ class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetClientVersionTimesResult
 
   def Handle(self, args, token=None):
-    fd = aff4.FACTORY.Open(args.client_id, mode="r", age=aff4.ALL_TIMES,
+    fd = aff4.FACTORY.Open(args.client_id,
+                           mode="r",
+                           age=aff4.ALL_TIMES,
                            token=token)
 
     type_values = list(fd.GetValuesForAttribute(fd.Schema.TYPE))
@@ -243,8 +244,9 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiInterrogateClientResult
 
   def Handle(self, args, token=None):
-    flow_urn = flow.GRRFlow.StartFlow(
-        client_id=args.client_id, flow_name="Interrogate", token=token)
+    flow_urn = flow.GRRFlow.StartFlow(client_id=args.client_id,
+                                      flow_name="Interrogate",
+                                      token=token)
 
     return ApiInterrogateClientResult(operation_id=str(flow_urn))
 
@@ -273,8 +275,8 @@ class ApiGetInterrogateOperationStateHandler(
 
       complete = not flow_obj.GetRunner().IsRunning()
     except aff4.InstantiationError:
-      raise InterrogateOperationNotFoundError(
-          "Operation with id %s not found" % args.operation_id)
+      raise InterrogateOperationNotFoundError("Operation with id %s not found" %
+                                              args.operation_id)
 
     result = ApiGetInterrogateOperationStateResult()
     if complete:
@@ -324,9 +326,8 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   privileged = True
 
   def Handle(self, args, token=None):
-    audit_description = ",".join(
-        [token.username + u"." + utils.SmartUnicode(name)
-         for name in args.labels])
+    audit_description = ",".join([token.username + u"." + utils.SmartUnicode(
+        name) for name in args.labels])
     audit_events = []
 
     try:
@@ -335,21 +336,25 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
                                   mode="rw",
                                   token=token)
       client_objs = aff4.FACTORY.MultiOpen(
-          args.client_ids, aff4_type=aff4_grr.VFSGRRClient.__name__,
-          mode="rw", token=token)
+          args.client_ids,
+          aff4_type=aff4_grr.VFSGRRClient.__name__,
+          mode="rw",
+          token=token)
       for client_obj in client_objs:
         client_obj.AddLabels(*args.labels)
         index.AddClient(client_obj)
         client_obj.Close()
 
-        audit_events.append(
-            flow.AuditEvent(
-                user=token.username, action="CLIENT_ADD_LABEL",
-                flow_name="handler.ApiAddClientsLabelsHandler",
-                client=client_obj.urn, description=audit_description))
+        audit_events.append(flow.AuditEvent(
+            user=token.username,
+            action="CLIENT_ADD_LABEL",
+            flow_name="handler.ApiAddClientsLabelsHandler",
+            client=client_obj.urn,
+            description=audit_description))
     finally:
-      flow.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
-                                        token=token)
+      flow.Events.PublishMultipleEvents(
+          {audit.AUDIT_EVENT: audit_events},
+          token=token)
 
 
 class ApiRemoveClientsLabelsArgs(rdf_structs.RDFProtoStruct):
@@ -375,9 +380,8 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
       client.RemoveLabels(*labels_names, owner=owner)
 
   def Handle(self, args, token=None):
-    audit_description = ",".join(
-        [token.username + u"." + utils.SmartUnicode(name)
-         for name in args.labels])
+    audit_description = ",".join([token.username + u"." + utils.SmartUnicode(
+        name) for name in args.labels])
     audit_events = []
 
     try:
@@ -386,22 +390,26 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
                                   mode="rw",
                                   token=token)
       client_objs = aff4.FACTORY.MultiOpen(
-          args.client_ids, aff4_type=aff4_grr.VFSGRRClient.__name__,
-          mode="rw", token=token)
+          args.client_ids,
+          aff4_type=aff4_grr.VFSGRRClient.__name__,
+          mode="rw",
+          token=token)
       for client_obj in client_objs:
         index.RemoveClientLabels(client_obj)
         self.RemoveClientLabels(client_obj, args.labels)
         index.AddClient(client_obj)
         client_obj.Close()
 
-        audit_events.append(
-            flow.AuditEvent(
-                user=token.username, action="CLIENT_REMOVE_LABEL",
-                flow_name="handler.ApiRemoveClientsLabelsHandler",
-                client=client_obj.urn, description=audit_description))
+        audit_events.append(flow.AuditEvent(
+            user=token.username,
+            action="CLIENT_REMOVE_LABEL",
+            flow_name="handler.ApiRemoveClientsLabelsHandler",
+            client=client_obj.urn,
+            description=audit_description))
     finally:
-      flow.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
-                                        token=token)
+      flow.Events.PublishMultipleEvents(
+          {audit.AUDIT_EVENT: audit_events},
+          token=token)
 
 
 class ApiListClientsLabelsResult(rdf_structs.RDFProtoStruct):

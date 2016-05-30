@@ -30,7 +30,8 @@ class Find(actions.IteratedAction):
   def ListDirectory(self, pathspec, state, depth=0):
     """A Recursive generator of files."""
     # Limit recursion depth
-    if depth >= self.request.max_depth: return
+    if depth >= self.request.max_depth:
+      return
 
     try:
       fd = vfs.VFSOpen(pathspec, progress_callback=self.Progress)
@@ -43,8 +44,8 @@ class Find(actions.IteratedAction):
         self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.IOERROR, e)
       else:
         # Can't open the directory we're searching, ignore the directory.
-        logging.info("Find failed to ListDirectory for %s. Err: %s",
-                     pathspec, e)
+        logging.info("Find failed to ListDirectory for %s. Err: %s", pathspec,
+                     e)
       return
 
     # If we are not supposed to cross devices, and don't know yet
@@ -59,13 +60,14 @@ class Find(actions.IteratedAction):
 
     for i, file_stat in enumerate(files):
       # Skip the files we already did before
-      if i < start: continue
+      if i < start:
+        continue
 
       if stat.S_ISDIR(file_stat.st_mode):
         # Do not traverse directories in a different filesystem.
         if self.request.cross_devs or self.filesystem_id == file_stat.st_dev:
-          for child_stat in self.ListDirectory(file_stat.pathspec,
-                                               state, depth + 1):
+          for child_stat in self.ListDirectory(file_stat.pathspec, state,
+                                               depth + 1):
             yield child_stat
 
       state[pathspec.CollapsePath()] = i + 1
@@ -88,7 +90,8 @@ class Find(actions.IteratedAction):
         # Only read this much data from the file.
         while fd.Tell() < self.request.max_data:
           data_read = fd.read(1024000)
-          if not data_read: break
+          if not data_read:
+            break
           data += data_read
 
           # Got it.
@@ -119,6 +122,7 @@ class Find(actions.IteratedAction):
     """
     result = []
     if request.HasField("start_time") or request.HasField("end_time"):
+
       def FilterTimestamp(file_stat, request=request):
         return file_stat.HasField("st_mtime") and (
             file_stat.st_mtime < request.start_time or
@@ -127,6 +131,7 @@ class Find(actions.IteratedAction):
       result.append(FilterTimestamp)
 
     if request.HasField("min_file_size") or request.HasField("max_file_size"):
+
       def FilterSize(file_stat, request=request):
         return file_stat.HasField("st_size") and (
             file_stat.st_size < request.min_file_size or
@@ -135,18 +140,21 @@ class Find(actions.IteratedAction):
       result.append(FilterSize)
 
     if request.HasField("perm_mode"):
+
       def FilterPerms(file_stat, request=request):
         return (file_stat.st_mode & request.perm_mask) != request.perm_mode
 
       result.append(FilterPerms)
 
     if request.HasField("uid"):
+
       def FilterUID(file_stat, request=request):
         return file_stat.st_uid != request.uid
 
       result.append(FilterUID)
 
     if request.HasField("gid"):
+
       def FilterGID(file_stat, request=request):
         return file_stat.st_gid != request.gid
 
@@ -154,6 +162,7 @@ class Find(actions.IteratedAction):
 
     if request.HasField("path_regex"):
       regex = request.path_regex
+
       def FilterPath(file_stat, regex=regex):
         """Suppress any filename not matching the regular expression."""
         return not regex.Search(file_stat.pathspec.Basename())
@@ -161,6 +170,7 @@ class Find(actions.IteratedAction):
       result.append(FilterPath)
 
     if request.HasField("data_regex"):
+
       def FilterData(file_stat, **_):
         """Suppress files that do not match the content."""
         return not self.TestFileContent(file_stat)
@@ -176,8 +186,8 @@ class Find(actions.IteratedAction):
     limit = request.iterator.number
 
     # TODO(user): What is a reasonable measure of work here?
-    for count, f in enumerate(
-        self.ListDirectory(request.pathspec, client_state)):
+    for count, f in enumerate(self.ListDirectory(request.pathspec,
+                                                 client_state)):
       self.Progress()
 
       # Ignore this file if any of the checks fail.
@@ -316,7 +326,8 @@ class Grep(actions.ActionPlugin):
       postscript_size = max(0, self.ENVELOPE_SIZE - (to_read - len(read_data)))
       data_size = len(data) - preamble_size - postscript_size
 
-      if data_size == 0 and postscript_size == 0: break
+      if data_size == 0 and postscript_size == 0:
+        break
 
       for (start, end) in find_func(data):
         # Ignore hits in the preamble.
@@ -332,13 +343,15 @@ class Grep(actions.ActionPlugin):
           break
 
         out_data = ""
-        for i in xrange(max(0, start - args.bytes_before),
-                        min(len(data), end + args.bytes_after)):
+        for i in xrange(
+            max(0, start - args.bytes_before),
+            min(len(data), end + args.bytes_after)):  # pyformat: disable
           out_data += chr(ord(data[i]) ^ self.xor_out_key)
 
         hits += 1
         self.SendReply(offset=base_offset + start - preamble_size,
-                       data=out_data, length=len(out_data),
+                       data=out_data,
+                       length=len(out_data),
                        pathspec=fd.pathspec)
 
         if args.mode == rdf_client.GrepSpec.Mode.FIRST_HIT:
@@ -347,8 +360,7 @@ class Grep(actions.ActionPlugin):
         if hits >= self.HIT_LIMIT:
           msg = utils.Xor("This Grep has reached the maximum number of hits"
                           " (%d)." % self.HIT_LIMIT, self.xor_out_key)
-          self.SendReply(offset=0,
-                         data=msg, length=len(msg))
+          self.SendReply(offset=0, data=msg, length=len(msg))
           return
 
       self.Progress()

@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Copyright 2011 Google Inc. All Rights Reserved.
-
 """Parser for IE index.dat files.
 
 Note that this is a very naive and incomplete implementation and should be
@@ -11,7 +10,6 @@ For anyone who wants a useful reference, see this:
 http://heanet.dl.sourceforge.net/project/libmsiecf/Documentation/MSIE%20Cache%20
 File%20format/MSIE%20Cache%20File%20%28index.dat%29%20format.pdf
 """
-
 
 
 
@@ -45,9 +43,11 @@ class IEHistoryParser(parsers.FileParser):
     ie = IEParser(file_object)
     for dat in ie.Parse():
       yield webhistory.BrowserHistoryItem(
-          url=dat["url"], domain=urlparse.urlparse(dat["url"]).netloc,
+          url=dat["url"],
+          domain=urlparse.urlparse(dat["url"]).netloc,
           access_time=dat.get("mtime"),
-          program_name="Internet Explorer", source_urn=stat.aff4path)
+          program_name="Internet Explorer",
+          source_urn=stat.aff4path)
 
 
 class IEParser(object):
@@ -121,18 +121,20 @@ class IEParser(object):
     dat = struct.unpack(fmt, self.input_dat[offset:offset + record_size])
     header, blocks, mtime, ctime, ftime, _, url = dat
     url = url.split(chr(0x00))[0]
-    if mtime: mtime = mtime/10 - WIN_UNIX_DIFF_MSECS
-    if ctime: ctime = ctime/10 - WIN_UNIX_DIFF_MSECS
-    return {"header": header,            # the header
-            "blocks": blocks,            # number of blocks
-            "urloffset": url_offset,     # offset of URL in file
+    if mtime:
+      mtime = mtime / 10 - WIN_UNIX_DIFF_MSECS
+    if ctime:
+      ctime = ctime / 10 - WIN_UNIX_DIFF_MSECS
+    return {"header": header,  # the header
+            "blocks": blocks,  # number of blocks
+            "urloffset": url_offset,  # offset of URL in file
             "data_offset": data_offset,  # offset for start of data
-            "data_size": data_size,      # size of data
-            "data": data,                # actual data
-            "mtime": mtime,              # modified time
-            "ctime": ctime,              # created time
-            "ftime": ftime,              # file time
-            "url": url                   # the url visited
+            "data_size": data_size,  # size of data
+            "data": data,  # actual data
+            "mtime": mtime,  # modified time
+            "ctime": ctime,  # created time
+            "ftime": ftime,  # file time
+            "url": url  # the url visited
            }
 
   def _DoParse(self):
@@ -168,6 +170,7 @@ def main(argv):
       for dat in ie.Parse():
         dat["ctime"] = datetime.datetime.utcfromtimestamp(dat["ctime"] / 1e6)
         print "{ctime} {header} {url}".format(**dat)
+
 
 if __name__ == "__main__":
   main(sys.argv)

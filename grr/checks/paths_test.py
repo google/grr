@@ -35,14 +35,25 @@ class PathsCheckTests(checks_test_lib.HostCheckTest):
     paths = {"/root/.bashrc": "PATH=$PATH::other",
              "/etc/csh.login": "set path=(/foo/bar . /baz)",
              "/home/user1": "export PYTHONPATH=."}
-    modes = {"/root/.bashrc": {"st_uid": 1, "st_gid": 0, "st_mode": 0o100666},
-             "/etc/csh.login": {"st_uid": 0, "st_gid": 1, "st_mode": 0o100644},
-             "/home/user1": {"st_uid": 1, "st_gid": 1, "st_mode": 0o100664}}
+    modes = {"/root/.bashrc": {"st_uid": 1,
+                               "st_gid": 0,
+                               "st_mode": 0o100666},
+             "/etc/csh.login": {"st_uid": 0,
+                                "st_gid": 1,
+                                "st_mode": 0o100644},
+             "/home/user1": {"st_uid": 1,
+                             "st_gid": 1,
+                             "st_mode": 0o100664}}
     host_data = self.GenFileData("AllShellConfigs", paths, self.parser, modes)
-    host_data.update(self.GenFileData("GlobalShellConfigs", paths, self.parser,
-                                      modes, include=["/etc/csh.login"]))
-    host_data.update(self.GenFileData("RootUserShellConfigs", paths,
-                                      self.parser, modes,
+    host_data.update(self.GenFileData("GlobalShellConfigs",
+                                      paths,
+                                      self.parser,
+                                      modes,
+                                      include=["/etc/csh.login"]))
+    host_data.update(self.GenFileData("RootUserShellConfigs",
+                                      paths,
+                                      self.parser,
+                                      modes,
                                       include=["/root.bashrc"]))
     results = self.RunChecks(host_data)
 
@@ -66,4 +77,3 @@ def main(argv):
 
 if __name__ == "__main__":
   flags.StartMain(main)
-

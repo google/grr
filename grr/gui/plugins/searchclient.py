@@ -43,10 +43,11 @@ class ContentView(renderers.Splitter2WayVertical):
     canary_mode = False
 
     user_record = aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(request.user), aff4_type="GRRUser",
-        mode="r", token=request.token)
-    canary_mode = user_record.Get(
-        user_record.Schema.GUI_SETTINGS).canary_mode
+        aff4.ROOT_URN.Add("users").Add(request.user),
+        aff4_type="GRRUser",
+        mode="r",
+        token=request.token)
+    canary_mode = user_record.Get(user_record.Schema.GUI_SETTINGS).canary_mode
 
     if canary_mode:
       response.set_cookie("canary_mode", "true")
@@ -56,7 +57,8 @@ class ContentView(renderers.Splitter2WayVertical):
     # Ensure that Javascript will be executed before the rest of the template
     # gets processed.
     response = self.CallJavascript(
-        response, "ContentView.Layout",
+        response,
+        "ContentView.Layout",
         global_notification_poll_time=GlobalNotificationBar.POLL_TIME,
         canary=int(canary_mode))
     response = super(ContentView, self).Layout(request, response)
@@ -81,7 +83,8 @@ class SetGlobalNotification(flow.GRRGlobalFlow):
   def Start(self):
     with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
                              aff4_type="GlobalNotificationStorage",
-                             mode="rw", token=self.token) as storage:
+                             mode="rw",
+                             token=self.token) as storage:
       storage.AddNotification(self.args)
 
 
@@ -96,8 +99,10 @@ class MarkGlobalNotificationAsShown(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(self.token.username), "GRRUser",
-        token=self.token, mode="rw") as user_record:
+        aff4.ROOT_URN.Add("users").Add(self.token.username),
+        "GRRUser",
+        token=self.token,
+        mode="rw") as user_record:
       user_record.MarkGlobalNotificationAsShown(self.args)
 
 
@@ -123,7 +128,8 @@ class GlobalNotificationBar(renderers.TemplateRenderer):
   def Layout(self, request, response):
     try:
       user_record = aff4.FACTORY.Open(
-          aff4.ROOT_URN.Add("users").Add(request.user), "GRRUser",
+          aff4.ROOT_URN.Add("users").Add(request.user),
+          "GRRUser",
           token=request.token)
 
       self.notifications = user_record.GetPendingGlobalNotifications()
@@ -139,14 +145,17 @@ class GlobalNotificationBar(renderers.TemplateRenderer):
       hash_to_remove = int(request.REQ["notification_hash"])
 
       user_record = aff4.FACTORY.Create(
-          aff4.ROOT_URN.Add("users").Add(request.user), "GRRUser",
-          mode="r", token=request.token)
+          aff4.ROOT_URN.Add("users").Add(request.user),
+          "GRRUser",
+          mode="r",
+          token=request.token)
 
       notifications = user_record.GetPendingGlobalNotifications()
       for notification in notifications:
         if notification.hash == hash_to_remove:
           flow.GRRFlow.StartFlow(flow_name="MarkGlobalNotificationAsShown",
-                                 args=notification, token=request.token)
+                                 args=notification,
+                                 token=request.token)
           break
     else:
       return self.Layout(request, response)
@@ -184,15 +193,15 @@ def GetLowDiskWarnings(client):
   # Avoid showing warnings for the CDROM.  This is isn't a problem for linux and
   # OS X since we only check usage on the disk mounted at "/".
   exclude_windows_types = [
-      rdf_client.WindowsVolume.WindowsDriveTypeEnum.DRIVE_CDROM]
+      rdf_client.WindowsVolume.WindowsDriveTypeEnum.DRIVE_CDROM
+  ]
 
   if volumes:
     for volume in volumes:
       if volume.windowsvolume.drive_type not in exclude_windows_types:
         freespace = volume.FreeSpacePercent()
         if freespace < 5.0:
-          warnings.append("{0} {1:.0f}% free".format(volume.Name(),
-                                                     freespace))
+          warnings.append("{0} {1:.0f}% free".format(volume.Name(), freespace))
   return warnings
 
 
@@ -358,8 +367,8 @@ class Navigator(renderers.TemplateRenderer):
     self.host_advanced_headings = []
     self.host_headings = []
     self.general_headings = datastructures.SortedDict([
-        ("General", ("Management", [], [])),
-        ("Configuration", ("Configuration", [], []))
+        ("General", ("Management", [], [])), ("Configuration", ("Configuration",
+                                                                [], []))
     ])
 
     # Introspect all the categories
@@ -387,7 +396,8 @@ class Navigator(renderers.TemplateRenderer):
     for heading in self.general_headings:
       # pylint: disable=g-long-lambda
       lkey = lambda x: (getattr(x[0], "order", 10),
-                        getattr(x[0], "description", ""))
+                        getattr(x[0], "description", ""))  # pyformat: disable
+      # pylint: enable=g-long-lambda
       self.general_headings[heading][1].sort(key=lkey)
     self.host_headings.sort(key=lambda x: getattr(x[0], "order", 10))
 
@@ -399,7 +409,8 @@ class Navigator(renderers.TemplateRenderer):
       # and show the reason.
       try:
         approved_token = aff4_security.Approval.GetApprovalForObject(
-            rdf_client.ClientURN(self.client_id), token=request.token)
+            rdf_client.ClientURN(self.client_id),
+            token=request.token)
         self.reason = approved_token.reason
       except access_control.UnauthorizedAccess as e:
         pass
@@ -417,10 +428,12 @@ class Navigator(renderers.TemplateRenderer):
 
     super(Navigator, self).Layout(request, response)
     if self.unauthorized:
-      renderers.Renderer.GetPlugin("UnauthorizedRenderer")().Layout(
-          request, response, exception=e)
+      renderers.Renderer.GetPlugin("UnauthorizedRenderer")().Layout(request,
+                                                                    response,
+                                                                    exception=e)
 
-    return self.CallJavascript(response, "Navigator.Layout",
+    return self.CallJavascript(response,
+                               "Navigator.Layout",
                                renderer=self.__class__.__name__,
                                client_id=self.client_id,
                                poll_time=self.poll_time)
@@ -498,7 +511,8 @@ class FilestoreTable(renderers.TableRenderer):
       if i > end:
         break
 
-      self.AddRow(row_index=i, File=value,
+      self.AddRow(row_index=i,
+                  File=value,
                   Client=aff4_grr.VFSGRRClient.ClientURNFromURN(value),
                   Timestamp=rdfvalue.RDFDatetime(timestamp))
 

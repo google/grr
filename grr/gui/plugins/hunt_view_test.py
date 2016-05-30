@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Test the hunt_view interface."""
 
 
@@ -42,37 +41,41 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
   reason = "Felt like it!"
 
-  def CreateSampleHunt(self, path=None, stopped=False, output_plugins=None,
-                       client_limit=0, client_count=10, token=None):
+  def CreateSampleHunt(self,
+                       path=None,
+                       stopped=False,
+                       output_plugins=None,
+                       client_limit=0,
+                       client_count=10,
+                       token=None):
     token = token or self.token
     self.client_ids = self.SetupClients(client_count)
 
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=flow_runner.FlowRunnerArgs(
-            flow_name="GetFile"),
-        flow_args=transfer.GetFileArgs(
-            pathspec=rdf_paths.PathSpec(
-                path=path or "/tmp/evil.txt",
-                pathtype=rdf_paths.PathSpec.PathType.OS,
-            )
-        ),
+        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+        flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
+            path=path or "/tmp/evil.txt",
+            pathtype=rdf_paths.PathSpec.PathType.OS,)),
         regex_rules=[rdf_foreman.ForemanAttributeRegex(
             attribute_name="GRR client",
             attribute_regex="GRR")],
         output_plugins=output_plugins or [],
-        client_rate=0, client_limit=client_limit, token=token) as hunt:
+        client_rate=0,
+        client_limit=client_limit,
+        token=token) as hunt:
       if not stopped:
         hunt.Run()
 
-    with aff4.FACTORY.Open("aff4:/foreman", mode="rw",
-                           token=token) as foreman:
+    with aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=token) as foreman:
 
       for client_id in self.client_ids:
         foreman.AssignTasksToClient(client_id)
 
     self.hunt_urn = hunt.urn
-    return aff4.FACTORY.Open(hunt.urn, mode="rw", token=token,
+    return aff4.FACTORY.Open(hunt.urn,
+                             mode="rw",
+                             token=token,
                              age=aff4.ALL_TIMES)
 
   def CreateGenericHuntWithCollection(self, values=None):
@@ -83,21 +86,20 @@ class TestHuntView(test_lib.GRRSeleniumTest):
                 rdfvalue.RDFURN("aff4:/C.0000000000000001/fs/os/c/bin/bash"),
                 rdfvalue.RDFURN("aff4:/sample/3")]
 
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
-        regex_rules=[rdf_foreman.ForemanAttributeRegex(
-            attribute_name="GRR client",
-            attribute_regex="GRR")],
-        output_plugins=[],
-        token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(hunt_name="GenericHunt",
+                                 regex_rules=[rdf_foreman.ForemanAttributeRegex(
+                                     attribute_name="GRR client",
+                                     attribute_regex="GRR")],
+                                 output_plugins=[],
+                                 token=self.token) as hunt:
 
       runner = hunt.GetRunner()
       runner.Start()
 
-      with aff4.FACTORY.Open(
-          runner.context.results_collection_urn,
-          aff4_type="HuntResultCollection", mode="w",
-          token=self.token) as collection:
+      with aff4.FACTORY.Open(runner.context.results_collection_urn,
+                             aff4_type="HuntResultCollection",
+                             mode="w",
+                             token=self.token) as collection:
 
         for value in values:
           collection.Add(rdf_flows.GrrMessage(payload=value))
@@ -176,8 +178,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=RunHunt]:not([disabled])")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=StopHunt][disabled]")
+    self.WaitUntil(self.IsElementPresent, "css=button[name=StopHunt][disabled]")
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=ModifyHunt]:not([disabled])")
 
@@ -198,8 +199,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Clients Scheduled")
     self.WaitUntil(self.IsTextPresent, "Hunt URN")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button[name=RunHunt][disabled]")
+    self.WaitUntil(self.IsElementPresent, "css=button[name=RunHunt][disabled]")
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=StopHunt]:not([disabled])")
     self.WaitUntil(self.IsElementPresent,
@@ -226,12 +226,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=Proceed]")
 
     # This should be rejected now and a form request is made.
-    self.WaitUntil(self.IsTextPresent,
-                   "Create a new approval")
+    self.WaitUntil(self.IsTextPresent, "Create a new approval")
     self.Click("css=#acl_dialog button[name=Close]")
     # Wait for dialog to disappear.
-    self.WaitUntilNot(self.IsVisible,
-                      "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     with self.ACLChecksDisabled():
       self.GrantHuntApproval(hunt.urn)
@@ -250,8 +248,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Cancel]")
-    self.WaitUntilNot(self.IsVisible,
-                      "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
@@ -279,13 +276,11 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=Proceed]")
 
     # This should be rejected now and a form request is made.
-    self.WaitUntil(self.IsTextPresent,
-                   "Create a new approval")
+    self.WaitUntil(self.IsTextPresent, "Create a new approval")
     self.Click("css=#acl_dialog button[name=Close]")
 
     # Wait for dialog to disappear.
-    self.WaitUntilNot(self.IsVisible,
-                      "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     with self.ACLChecksDisabled():
       self.GrantHuntApproval(hunt.session_id)
@@ -303,8 +298,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # Click on "Cancel" and check that dialog disappears.
     self.Click("css=button[name=Cancel]")
-    self.WaitUntilNot(self.IsVisible,
-                      "css=.modal-backdrop")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
@@ -329,8 +323,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Modify a hunt")
 
     self.Type("css=input[id=v_-client_limit]", "4483")
-    self.Type("css=input[id=v_-expiry_time]", str(
-        rdfvalue.Duration("5m").Expiry()))
+    self.Type("css=input[id=v_-expiry_time]",
+              str(rdfvalue.Duration("5m").Expiry()))
 
     # Click on Proceed.
     self.Click("css=button[name=Proceed]")
@@ -350,8 +344,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Modify a hunt")
 
     self.Type("css=input[id=v_-client_limit]", "4483")
-    self.Type("css=input[id=v_-expiry_time]", str(
-        rdfvalue.Duration("5m").Expiry()))
+    self.Type("css=input[id=v_-expiry_time]",
+              str(rdfvalue.Duration("5m").Expiry()))
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
@@ -372,9 +366,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     with self.ACLChecksDisabled():
       # This needs to be created by a different user so we can test the
       # approval dialog.
-      hunt = self.CreateSampleHunt(
-          stopped=True, token=access_control.ACLToken(
-              username="random user", reason="test"))
+      hunt = self.CreateSampleHunt(stopped=True,
+                                   token=access_control.ACLToken(
+                                       username="random user",
+                                       reason="test"))
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
@@ -550,8 +545,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "8.6")
 
   def testDoesNotShowPerFileDownloadButtonForNonExportableRDFValues(self):
-    values = [rdf_client.Process(pid=1),
-              rdf_client.Process(pid=42423)]
+    values = [rdf_client.Process(pid=1), rdf_client.Process(pid=42423)]
 
     with self.ACLChecksDisabled():
       self.CreateGenericHuntWithCollection(values=values)
@@ -606,10 +600,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
           path=os.path.join(self.base_path, "test.plist"),
           client_count=1)
 
-      action_mock = action_mocks.ActionMock(
-          "TransferBuffer", "StatFile", "HashFile", "HashBuffer")
-      test_lib.TestHuntHelper(action_mock, self.client_ids, False,
-                              self.token)
+      action_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
+                                            "HashFile", "HashBuffer")
+      test_lib.TestHuntHelper(action_mock, self.client_ids, False, self.token)
 
       return hunt
 
@@ -628,8 +621,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     hunt = self._CreateHuntWithDownloadedFile()
     with self.ACLChecksDisabled():
       results = aff4.FACTORY.Open(hunt.urn.Add("Results"), token=self.token)
-      fd = aff4.FACTORY.Open(flow_export.CollectionItemToAff4Path(results[0]),
-                             token=self.token)
+      fd = aff4.FACTORY.Open(
+          flow_export.CollectionItemToAff4Path(results[0]),
+          token=self.token)
 
       self.GrantHuntApproval(hunt.urn)
 
@@ -647,7 +641,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     with self.ACLChecksDisabled():
       results = aff4.FACTORY.Open(hunt.urn.Add("Results"), token=self.token)
       aff4_path = flow_export.CollectionItemToAff4Path(results[0])
-      with aff4.FACTORY.Create(aff4_path, aff4_type=aff4.AFF4Volume.__name__,
+      with aff4.FACTORY.Create(aff4_path,
+                               aff4_type=aff4.AFF4Volume.__name__,
                                token=self.token) as _:
         pass
 
@@ -661,8 +656,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Couldn't download the file.")
 
   def testDoesNotShowGenerateArchiveButtonForNonExportableRDFValues(self):
-    values = [rdf_client.Process(pid=1),
-              rdf_client.Process(pid=42423)]
+    values = [rdf_client.Process(pid=1), rdf_client.Process(pid=42423)]
 
     with self.ACLChecksDisabled():
       self.CreateGenericHuntWithCollection(values=values)
@@ -749,8 +743,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=li[heading=Results]")
     self.Click("css=button.DownloadButton")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=button.DownloadButton[disabled]")
+    self.WaitUntil(self.IsElementPresent, "css=button.DownloadButton[disabled]")
     self.WaitUntil(self.IsTextPresent, "Generation has started")
 
   def testShowsNotificationWhenArchiveGenerationIsDone(self):
@@ -768,8 +761,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsUserNotificationPresent,
                    "Downloaded archive of hunt %s" % hunt.urn.Basename())
     # Check that the archive generating flow does not end with an error.
-    self.WaitUntilNot(self.IsUserNotificationPresent,
-                      "terminated due to error")
+    self.WaitUntilNot(self.IsUserNotificationPresent, "terminated due to error")
 
   def testShowsErrorMessageIfArchiveStreamingFailsBeforeFirstChunkIsSent(self):
     hunt = self._CreateHuntWithDownloadedFile()
@@ -838,7 +830,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       # Create hunt without results.
       self.CreateSampleHunt(output_plugins=[
           output_plugin.OutputPluginDescriptor(
-              plugin_name=csv_plugin.CSVOutputPlugin.__name__)])
+              plugin_name=csv_plugin.CSVOutputPlugin.__name__)
+      ])
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -855,7 +848,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       # Create hunt.
       self.CreateSampleHunt(output_plugins=[
           output_plugin.OutputPluginDescriptor(
-              plugin_name=csv_plugin.CSVOutputPlugin.__name__)])
+              plugin_name=csv_plugin.CSVOutputPlugin.__name__)
+      ])
 
       # Actually run created hunt.
       client_mock = test_lib.SampleHuntMock()
@@ -863,8 +857,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
       # Make sure results are processed.
       flow_urn = flow.GRRFlow.StartFlow(
-          flow_name=
-          process_results.ProcessHuntResultCollectionsCronFlow.__name__,
+          flow_name=process_results.ProcessHuntResultCollectionsCronFlow.
+          __name__,
           token=self.token)
       for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
         pass
@@ -890,8 +884,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     for client_id in self.client_ids:
       self.WaitUntil(self.IsTextPresent, str(client_id))
-      self.WaitUntil(self.IsTextPresent, "Finished reading " +
-                     str(client_id.Add("fs/os/tmp/evil.txt")))
+      self.WaitUntil(
+          self.IsTextPresent,
+          "Finished reading " + str(client_id.Add("fs/os/tmp/evil.txt")))
 
   def testLogsTabFiltersLogsByString(self):
     with self.ACLChecksDisabled():
@@ -911,8 +906,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     for client_id in self.client_ids[:-1]:
       self.WaitUntilNot(self.IsTextPresent, str(client_id))
-      self.WaitUntilNot(self.IsTextPresent, "Finished reading " +
-                        str(client_id.Add("fs/os/tmp/evil.txt")))
+      self.WaitUntilNot(
+          self.IsTextPresent,
+          "Finished reading " + str(client_id.Add("fs/os/tmp/evil.txt")))
 
   def testLogsTabShowsDatesInUTC(self):
     with self.ACLChecksDisabled():
@@ -1008,8 +1004,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     outstanding_client_ids = self.client_ids[:5]
 
     client_mock = test_lib.SampleHuntMock()
-    test_lib.TestHuntHelper(client_mock, finished_client_ids, False,
-                            self.token)
+    test_lib.TestHuntHelper(client_mock, finished_client_ids, False, self.token)
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
@@ -1054,6 +1049,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 def main(argv):
   # Run the full test suite
   runtests_test.SeleniumTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

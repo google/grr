@@ -148,8 +148,7 @@ def _SendFileToServer(pool, fullpath, subpath, basename, rebalance):
     # Content-Length is 0 since we do not know the size of the compressed data.
     # We write the compressed data by blocks.
     headers = {"Content-Length": 0}
-    res = pool.urlopen("POST", "/rebalance/copy-file", headers=headers,
-                       body=fp)
+    res = pool.urlopen("POST", "/rebalance/copy-file", headers=headers, body=fp)
     if res.status != constants.RESPONSE_OK:
       return False
   except urllib3.exceptions.MaxRetryError:
@@ -162,8 +161,7 @@ def _SendFileToServer(pool, fullpath, subpath, basename, rebalance):
 
 def _GetTransactionDirectory(database_dir, rebalance_id):
   dirname = common.ConvertStringToFilename(rebalance_id)
-  tempdir = utils.JoinPath(database_dir, constants.REBALANCE_DIRECTORY,
-                           dirname)
+  tempdir = utils.JoinPath(database_dir, constants.REBALANCE_DIRECTORY, dirname)
   return tempdir
 
 
@@ -181,8 +179,8 @@ def _FileWithRemoveList(database_dir, rebalance):
   return utils.JoinPath(tempdir, constants.REMOVE_FILENAME)
 
 
-def _RecCopyFiles(rebalance, server_id, dspath, subpath,
-                  pool_cache, removed_list):
+def _RecCopyFiles(rebalance, server_id, dspath, subpath, pool_cache,
+                  removed_list):
   """Recursively send files for moving to the required data server."""
   fulldir = utils.JoinPath(dspath, subpath)
   mapping = rebalance.mapping

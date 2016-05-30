@@ -36,9 +36,8 @@ class RegistryConfigParser(config_lib.GRRConfigParser):
 
     try:
       # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
-      self.root_key = _winreg.CreateKeyEx(getattr(_winreg, self.hive),
-                                          self.path, 0,
-                                          _winreg.KEY_ALL_ACCESS)
+      self.root_key = _winreg.CreateKeyEx(
+          getattr(_winreg, self.hive), self.path, 0, _winreg.KEY_ALL_ACCESS)
       self.parsed = self.path
     except exceptions.WindowsError as e:
       logging.debug("Unable to open config registry key: %s", e)

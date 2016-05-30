@@ -17,7 +17,6 @@ from grr.server.data_server import data_server
 from grr.tools import http_server
 from grr.worker import worker
 
-
 flags.DEFINE_string("component", None,
                     "Component to start: [http_server|ui|worker|dataserver].")
 

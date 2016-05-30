@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 # -*- Mode: python; encoding: utf-8 -*-
 #
-
 """This is the interface for managing cron jobs."""
 
 
@@ -30,7 +29,8 @@ class CronJobInformation(fileview.AFF4Stats):
     if not hasattr(self, "cron_job_urn"):
       self.cron_job_urn = rdfvalue.RDFURN(request.REQ.get("cron_job_urn"))
 
-    return super(CronJobInformation, self).Layout(request, response,
+    return super(CronJobInformation, self).Layout(request,
+                                                  response,
                                                   aff4_path=self.cron_job_urn)
 
 
@@ -103,18 +103,21 @@ successfully!</p>
 
   def Layout(self, request, response):
     self.check_access_subject = rdfvalue.RDFURN(request.REQ.get("cron_urn"))
-    return super(CronJobManagementConfirmationDialog, self).Layout(
-        request, response)
+    return super(CronJobManagementConfirmationDialog, self).Layout(request,
+                                                                   response)
 
   def RenderAjax(self, request, response):
     cron_urn = rdfvalue.RDFURN(request.REQ.get("cron_urn"))
 
-    flow.GRRFlow.StartFlow(
-        flow_name="ManageCronJobFlow", action=self.action_name,
-        urn=cron_urn, token=request.token)
+    flow.GRRFlow.StartFlow(flow_name="ManageCronJobFlow",
+                           action=self.action_name,
+                           urn=cron_urn,
+                           token=request.token)
 
-    return self.RenderFromTemplate(self.ajax_template, response,
-                                   unique=self.unique, this=self)
+    return self.RenderFromTemplate(self.ajax_template,
+                                   response,
+                                   unique=self.unique,
+                                   this=self)
 
 
 class DisableCronJobConfirmationDialog(CronJobManagementConfirmationDialog):

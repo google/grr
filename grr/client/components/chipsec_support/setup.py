@@ -21,9 +21,7 @@ setup_args = dict(
         "Programming Language :: Python",
     ],
     py_modules=[
-        "grr_chipsec",
-        "chipsec_types",
-        "chipsec_pb2"
+        "grr_chipsec", "chipsec_types", "chipsec_pb2"
     ],
     install_requires=[
         "chipsec"
@@ -36,15 +34,12 @@ setup_args = dict(
         ("http://www.googledrive.com/host/"
          "0B1syiKu7qItDYU13X25qQ2U4LU0/chipsec-1.2.2.tar.gz"),
     ],
-    zip_safe=False,
-)
-
+    zip_safe=False)
 
 # Currently this is only enabled in Linux.
 if platform.system() != "Linux":
   setup_args["install_requires"] = []
   setup_args["py_modules"] = []
-
 
 if __name__ == "__main__":
   setup(**setup_args)

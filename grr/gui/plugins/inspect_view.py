@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
-
 """Inspect current state of in flight flows.
 
 This module provides a UI for inspecting the messages outstanding for a client
@@ -112,30 +111,33 @@ No actions currently in progress.
     flows_map = {}
     for flow_obj in aff4.FACTORY.MultiOpen(
         set(task.session_id for task in leased_tasks),
-        mode="r", token=request.token):
+        mode="r",
+        token=request.token):
       flows_map[flow_obj.urn] = flow_obj
 
     for task in leased_tasks:
       flow_obj = flows_map.get(task.session_id, None)
       if flow_obj:
-        self.client_actions.append(dict(
-            name=task.name,
-            priority=str(task.priority),
-            lease_time_left=str(task.eta - current_time),
-            parent_flow=dict(name=flow_obj.Name(),
-                             urn=flow_obj.urn)))
+        self.client_actions.append(dict(name=task.name,
+                                        priority=str(task.priority),
+                                        lease_time_left=str(task.eta -
+                                                            current_time),
+                                        parent_flow=dict(name=flow_obj.Name(),
+                                                         urn=flow_obj.urn)))
 
     now = rdfvalue.RDFDatetime().Now()
     hour_before_now = now - rdfvalue.Duration("1h")
 
     stats_urn = self.client_id.Add("stats")
     stats_obj = aff4.FACTORY.Create(
-        stats_urn, "ClientStats", mode="r",
+        stats_urn,
+        "ClientStats",
+        mode="r",
         age=(hour_before_now.AsMicroSecondsFromEpoch(),
              now.AsMicroSecondsFromEpoch()),
         token=request.token)
-    client_stats_list = list(
-        stats_obj.GetValuesForAttribute(stats_obj.Schema.STATS))
+    client_stats_list = list(stats_obj.GetValuesForAttribute(
+        stats_obj.Schema.STATS))
 
     cpu_samples = []
     io_samples = []
@@ -186,7 +188,8 @@ No actions currently in progress.
                                  sample.write_count))
 
     response = super(ClientLoadView, self).Layout(request, response)
-    return self.CallJavascript(response, "ClientLoadView.Layout",
+    return self.CallJavascript(response,
+                               "ClientLoadView.Layout",
                                user_cpu_data=user_cpu_data,
                                system_cpu_data=system_cpu_data,
                                read_bytes_data=read_bytes_data,
@@ -220,11 +223,12 @@ class RequestTable(renderers.TableRenderer):
 
   def __init__(self, **kwargs):
     super(RequestTable, self).__init__(**kwargs)
-    self.AddColumn(semantic.RDFValueColumn(
-        "Status", renderer=semantic.IconRenderer, width="40px"))
+    self.AddColumn(semantic.RDFValueColumn("Status",
+                                           renderer=semantic.IconRenderer,
+                                           width="40px"))
 
-    self.AddColumn(semantic.RDFValueColumn(
-        "ID", renderer=renderers.ValueRenderer))
+    self.AddColumn(semantic.RDFValueColumn("ID",
+                                           renderer=renderers.ValueRenderer))
     self.AddColumn(semantic.RDFValueColumn("Due"))
     self.AddColumn(semantic.RDFValueColumn("Flow", width="70%"))
     self.AddColumn(semantic.RDFValueColumn("Client Action", width="30%"))
@@ -242,12 +246,16 @@ class RequestTable(renderers.TableRenderer):
 
       difference = now - task.eta
       if difference > 0:
-        self.AddCell(i, "Status", dict(
-            icon="stock_yes", description="Available for Lease"))
+        self.AddCell(i,
+                     "Status",
+                     dict(icon="stock_yes",
+                          description="Available for Lease"))
       else:
-        self.AddCell(i, "Status", dict(
-            icon="clock",
-            description="Leased for %s Seconds" % (difference / 1e6)))
+        self.AddCell(i,
+                     "Status",
+                     dict(icon="clock",
+                          description="Leased for %s Seconds" %
+                          (difference / 1e6)))
 
       self.AddCell(i, "ID", task.task_id)
       self.AddCell(i, "Flow", task.session_id)
@@ -272,8 +280,9 @@ class ResponsesTable(renderers.TableRenderer):
   def __init__(self, **kwargs):
     super(ResponsesTable, self).__init__(**kwargs)
     self.AddColumn(semantic.RDFValueColumn("Task ID"))
-    self.AddColumn(semantic.RDFValueColumn(
-        "Response", renderer=fileview.GrrMessageRenderer, width="100%"))
+    self.AddColumn(semantic.RDFValueColumn("Response",
+                                           renderer=fileview.GrrMessageRenderer,
+                                           width="100%"))
 
   def BuildTable(self, start_row, end_row, request):
     """Builds the table."""
@@ -292,15 +301,17 @@ class ResponsesTable(renderers.TableRenderer):
 
     request_message = request_messages[0]
 
-    state_queue = request_message.session_id.Add(
-        "state/request:%08X" % request_message.request_id)
+    state_queue = request_message.session_id.Add("state/request:%08X" %
+                                                 request_message.request_id)
 
-    predicate_pre = (manager.FLOW_RESPONSE_PREFIX + "%08X" %
-                     request_message.request_id)
+    predicate_pre = (
+        manager.FLOW_RESPONSE_PREFIX + "%08X" % request_message.request_id)
     # Get all the responses for this request.
-    for i, (predicate, serialized_message, _) in enumerate(
-        data_store.DB.ResolvePrefix(state_queue, predicate_pre,
-                                    limit=end_row, token=request.token)):
+    for i, (predicate, serialized_message,
+            _) in enumerate(data_store.DB.ResolvePrefix(state_queue,
+                                                        predicate_pre,
+                                                        limit=end_row,
+                                                        token=request.token)):
 
       message = rdf_flows.GrrMessage(serialized_message)
 
@@ -380,7 +391,6 @@ class RequestRenderer(renderers.TemplateRenderer):
     msgs = manager.Query(client_id, task_id=task_id)
     if msgs:
       self.msg = msgs[0]
-      self.view = semantic.FindRendererForObject(
-          self.msg).RawHTML(request)
+      self.view = semantic.FindRendererForObject(self.msg).RawHTML(request)
 
     return super(RequestRenderer, self).Layout(request, response)

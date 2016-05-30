@@ -3,7 +3,7 @@
 
 
 # Range for consistent hashing.
-MAX_RANGE = 2 ** 64
+MAX_RANGE = 2**64
 
 # Important file names for rebalancing.
 REBALANCE_DIRECTORY = ".GRR_REBALANCE"

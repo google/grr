@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """Update the local documentation from upstream."""
 import os
 import StringIO
@@ -10,8 +9,7 @@ import zipfile
 
 def main():
   data = urllib2.urlopen(
-      "https://github.com/google/grr-doc/archive/master.zip"
-  ).read()
+      "https://github.com/google/grr-doc/archive/master.zip").read()
 
   zip_obj = zipfile.ZipFile(StringIO.StringIO(data))
   for name in zip_obj.namelist():

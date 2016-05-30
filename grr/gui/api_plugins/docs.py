@@ -3,7 +3,6 @@
 
 from grr.gui import api_call_handler_base
 
-
 CATEGORY = "Other"
 
 
@@ -29,13 +28,12 @@ class ApiGetDocsHandler(api_call_handler_base.ApiCallHandler):
     for router_method in router_methods.values():
       handler = getattr(router, router_method.name)(None)
 
-      result.append(dict(route=router_method.http_methods[-1][1],
-                         handler=handler.__class__.__name__,
-                         category=router_method.category,
-                         methods=[router_method.http_methods[-1][0]],
-                         doc=handler.__doc__,
-                         args_type=(router_method.args_type and
-                                    router_method.args_type.__name__)))
+      result.append(dict(
+          route=router_method.http_methods[-1][1],
+          handler=handler.__class__.__name__, category=router_method.category,
+          methods=[router_method.http_methods[-1][0]], doc=handler.__doc__,
+          args_type=(router_method.args_type and
+                     router_method.args_type.__name__)))
 
     return result
 
@@ -45,14 +43,12 @@ class ApiGetDocsHandler(api_call_handler_base.ApiCallHandler):
       if not renderer.aff4_type:
         continue
 
-      result[renderer.aff4_type] = dict(
-          name=renderer.__name__,
-          doc=renderer.__doc__,
-          args_type=renderer.args_type and renderer.args_type.__name__)
+      result[renderer.aff4_type] = dict(name=renderer.__name__,
+                                        doc=renderer.__doc__,
+                                        args_type=renderer.args_type and
+                                        renderer.args_type.__name__)
 
     return result
 
   def Render(self, unused_args, token=None):
-    return dict(
-        api_call_handlers=self.RenderApiCallHandlers()
-        )
+    return dict(api_call_handlers=self.RenderApiCallHandlers())

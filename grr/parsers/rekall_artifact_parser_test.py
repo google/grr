@@ -22,8 +22,7 @@ class RekallVADParserTest(test_lib.GRRBaseTest):
 
     result = rdf_rekall_types.RekallResponse(
         json_messages=gzip.open(ps_list_file).read(10000000),
-        plugin="pslist",
-    )
+        plugin="pslist")
 
     knowledge_base = rdf_client.KnowledgeBase()
     knowledge_base.environ_systemdrive = "C:"
@@ -37,6 +36,7 @@ class RekallVADParserTest(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -18,13 +18,19 @@ class HashFileStoreExportPlugin(plugin.OutputPluginBasedExportPlugin):
   def ConfigureArgParser(self, parser):
     """Configures args parser for HshFileStoreExportPlugin."""
 
-    parser.add_argument("--threads", type=int, default=8,
+    parser.add_argument("--threads",
+                        type=int,
+                        default=8,
                         help="Maximum number of threads to use.")
 
-    parser.add_argument("--batch", type=int, default=1000,
+    parser.add_argument("--batch",
+                        type=int,
+                        default=1000,
                         help="Size of batches processed by each thread.")
 
-    parser.add_argument("--checkpoint_every", type=int, default=1000 * 1000,
+    parser.add_argument("--checkpoint_every",
+                        type=int,
+                        default=1000 * 1000,
                         help="Flush the results every time after processing "
                         "this number of values.")
 

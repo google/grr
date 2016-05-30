@@ -30,7 +30,6 @@ from grr.lib import stats
 
 from grr.lib.authorization import auth_manager
 
-
 LEGACY_RENDERERS_AUTH_MANAGER = None
 
 
@@ -39,13 +38,13 @@ class ViewsInit(registry.InitHook):
   def RunOnce(self):
     """Run this once on init."""
     # Renderer-aware metrics
-    stats.STATS.RegisterEventMetric(
-        "ui_renderer_latency", fields=[("renderer", str)])
-    stats.STATS.RegisterEventMetric(
-        "ui_renderer_response_size", fields=[("renderer", str)],
-        units=stats.MetricUnits.BYTES)
-    stats.STATS.RegisterCounterMetric(
-        "ui_renderer_failure", fields=[("renderer", str)])
+    stats.STATS.RegisterEventMetric("ui_renderer_latency",
+                                    fields=[("renderer", str)])
+    stats.STATS.RegisterEventMetric("ui_renderer_response_size",
+                                    fields=[("renderer", str)],
+                                    units=stats.MetricUnits.BYTES)
+    stats.STATS.RegisterCounterMetric("ui_renderer_failure",
+                                      fields=[("renderer", str)])
 
     # General metrics
     stats.STATS.RegisterCounterMetric("ui_unknown_renderer")
@@ -62,7 +61,7 @@ class ViewsInit(registry.InitHook):
 
 
 @webauth.SecurityCheck
-@csrf.ensure_csrf_cookie     # Set the csrf cookie on the homepage.
+@csrf.ensure_csrf_cookie  # Set the csrf cookie on the homepage.
 def Homepage(request):
   """Basic handler to render the index page."""
   # DEPRECATED: renderers are now legacy, so just hardcoding the list
@@ -97,7 +96,7 @@ def Homepage(request):
       "timeline_view.js",
       "usage.js",
       "wizards.js"
-  ])
+  ])  # pyformat: disable
 
   create_time = psutil.Process(os.getpid()).create_time()
   context = {"page_title": config_lib.CONFIG["AdminUI.page_title"],
@@ -105,20 +104,24 @@ def Homepage(request):
              "report_url": config_lib.CONFIG["AdminUI.report_url"],
              "help_url": config_lib.CONFIG["AdminUI.help_url"],
              "use_precompiled_js": config_lib.CONFIG[
-                 "AdminUI.use_precompiled_js"],
+                 "AdminUI.use_precompiled_js"
+             ],
              "renderers_js": renderers_js_files,
              "timestamp": create_time}
   response = shortcuts.render_to_response(
-      "base.html", context, context_instance=template.RequestContext(request))
+      "base.html",
+      context,
+      context_instance=template.RequestContext(request))
 
   # Check if we need to set the canary_mode cookie.
   request.REQ = request.GET.dict()
   request.token = BuildToken(request, 60)
   user_record = aff4.FACTORY.Create(
-      aff4.ROOT_URN.Add("users").Add(request.user), aff4_type="GRRUser",
-      mode="r", token=request.token)
-  canary_mode = user_record.Get(
-      user_record.Schema.GUI_SETTINGS).canary_mode
+      aff4.ROOT_URN.Add("users").Add(request.user),
+      aff4_type="GRRUser",
+      mode="r",
+      token=request.token)
+  canary_mode = user_record.Get(user_record.Schema.GUI_SETTINGS).canary_mode
 
   if canary_mode:
     response.set_cookie("canary_mode", "true")
@@ -132,8 +135,8 @@ def Homepage(request):
 def RenderBinaryDownload(request):
   """Basic handler to allow downloads of aff4:/config/executables files."""
   if (LEGACY_RENDERERS_AUTH_MANAGER and
-      not LEGACY_RENDERERS_AUTH_MANAGER.CheckPermissions(
-          request.user, "legacy_renderers")):
+      not LEGACY_RENDERERS_AUTH_MANAGER.CheckPermissions(request.user,
+                                                         "legacy_renderers")):
     return AccessDenied("User is not allowed to use legacy renderers.")
 
   path, filename = request.path.split("/", 2)[-1].rsplit("/", 1)
@@ -142,11 +145,13 @@ def RenderBinaryDownload(request):
   request.REQ = request.REQUEST
 
   def Generator():
-    with aff4.FACTORY.Open(aff4_path, aff4_type="GRRSignedBlob",
+    with aff4.FACTORY.Open(aff4_path,
+                           aff4_type="GRRSignedBlob",
                            token=BuildToken(request, 60)) as fd:
       while True:
         data = fd.Read(1000000)
-        if not data: break
+        if not data:
+          break
         yield data
 
   base_path = rdfvalue.RDFURN("aff4:/config/executables")
@@ -155,9 +160,8 @@ def RenderBinaryDownload(request):
     # Check for path traversals.
     return AccessDenied("Error: Invalid path.")
   filename = aff4_path.Basename()
-  response = http.StreamingHttpResponse(
-      streaming_content=Generator(),
-      content_type="binary/octet-stream")
+  response = http.StreamingHttpResponse(streaming_content=Generator(),
+                                        content_type="binary/octet-stream")
   response["Content-Disposition"] = ("attachment; filename=%s" % filename)
   return response
 
@@ -174,8 +178,8 @@ def RenderApi(request):
 def RenderGenericRenderer(request):
   """Django handler for rendering registered GUI Elements."""
   if (LEGACY_RENDERERS_AUTH_MANAGER and
-      not LEGACY_RENDERERS_AUTH_MANAGER.CheckPermissions(
-          request.user, "legacy_renderers")):
+      not LEGACY_RENDERERS_AUTH_MANAGER.CheckPermissions(request.user,
+                                                         "legacy_renderers")):
     return AccessDenied("User is not allowed to use legacy renderers.")
 
   try:
@@ -219,7 +223,8 @@ def RenderGenericRenderer(request):
     finally:
       total_time = time.time() - start_time
       stats.STATS.RecordEvent("ui_renderer_latency",
-                              total_time, fields=[renderer_name])
+                              total_time,
+                              fields=[renderer_name])
 
   except access_control.UnauthorizedAccess, e:
     result = http.HttpResponse(content_type="text/html")
@@ -227,16 +232,14 @@ def RenderGenericRenderer(request):
         request, result, exception=e)
 
   except Exception:
-    stats.STATS.IncrementCounter("ui_renderer_failure",
-                                 fields=[renderer_name])
+    stats.STATS.IncrementCounter("ui_renderer_failure", fields=[renderer_name])
 
     if flags.FLAGS.debug:
       pdb.post_mortem()
 
     raise
 
-  if not isinstance(result, (http.HttpResponse,
-                             http.StreamingHttpResponse)):
+  if not isinstance(result, (http.HttpResponse, http.StreamingHttpResponse)):
     raise RuntimeError("Renderer returned invalid response %r" % result)
 
   return result
@@ -278,7 +281,8 @@ def RenderHelp(request, path, document_root=None, content_type=None):
 
   try:
     user_record = aff4.FACTORY.Open(
-        aff4.ROOT_URN.Add("users").Add(request.user), "GRRUser",
+        aff4.ROOT_URN.Add("users").Add(request.user),
+        "GRRUser",
         token=BuildToken(request, 60))
 
     settings = user_record.Get(user_record.Schema.GUI_SETTINGS)
@@ -296,8 +300,9 @@ def RenderHelp(request, path, document_root=None, content_type=None):
         static_handler_components[0:-1]))
     static_handler = getattr(static_handler_module,
                              static_handler_components[-1])
-    return static_handler(
-        request, path, document_root=config_lib.CONFIG["AdminUI.help_root"])
+    return static_handler(request,
+                          path,
+                          document_root=config_lib.CONFIG["AdminUI.help_root"])
 
 
 def BuildToken(request, execution_time):

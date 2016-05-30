@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Test client actions."""
 
 import __builtin__
@@ -29,7 +28,6 @@ from grr.lib import worker_mocks
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
-
 
 # pylint: mode=test
 # pylint: disable=g-bad-name
@@ -130,11 +128,11 @@ class ActionTest(test_lib.EmptyActionTest):
   def testReadBuffer(self):
     """Test reading a buffer."""
     path = os.path.join(self.base_path, "morenumbers.txt")
-    p = rdf_paths.PathSpec(path=path,
-                           pathtype=rdf_paths.PathSpec.PathType.OS)
+    p = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
     result = self.RunAction("ReadBuffer",
-                            rdf_client.BufferReference(
-                                pathspec=p, offset=100, length=10))[0]
+                            rdf_client.BufferReference(pathspec=p,
+                                                       offset=100,
+                                                       length=10))[0]
 
     self.assertEqual(result.offset, 100)
     self.assertEqual(result.length, 10)
@@ -144,8 +142,7 @@ class ActionTest(test_lib.EmptyActionTest):
     """Tests listing directories."""
     p = rdf_paths.PathSpec(path=self.base_path, pathtype=0)
     results = self.RunAction("ListDirectory",
-                             rdf_client.ListDirRequest(
-                                 pathspec=p))
+                             rdf_client.ListDirRequest(pathspec=p))
     # Find the number.txt file
     result = None
     for result in results:
@@ -162,8 +159,8 @@ class ActionTest(test_lib.EmptyActionTest):
     """Tests iterated listing of directories."""
     p = rdf_paths.PathSpec(path=self.base_path,
                            pathtype=rdf_paths.PathSpec.PathType.OS)
-    non_iterated_results = self.RunAction(
-        "ListDirectory", rdf_client.ListDirRequest(pathspec=p))
+    non_iterated_results = self.RunAction("ListDirectory",
+                                          rdf_client.ListDirRequest(pathspec=p))
 
     # Make sure we get some results.
     l = len(non_iterated_results)
@@ -175,7 +172,8 @@ class ActionTest(test_lib.EmptyActionTest):
     while True:
       responses = self.RunAction("IteratedListDirectory", request)
       results = responses[:-1]
-      if not results: break
+      if not results:
+        break
 
       for result in results:
         iterated_results.append(result)
@@ -196,15 +194,16 @@ class ActionTest(test_lib.EmptyActionTest):
     grr_worker = worker_mocks.FakeClientWorker()
 
     while request.iterator.state != request.iterator.State.FINISHED:
-      responses = self.RunAction("SuspendableListDirectory", request,
+      responses = self.RunAction("SuspendableListDirectory",
+                                 request,
                                  grr_worker=grr_worker)
       results.extend(responses)
       for response in responses:
         if isinstance(response, rdf_client.Iterator):
           request.iterator = response
 
-    filenames = [os.path.basename(r.pathspec.path)
-                 for r in results if isinstance(r, rdf_client.StatEntry)]
+    filenames = [os.path.basename(r.pathspec.path) for r in results
+                 if isinstance(r, rdf_client.StatEntry)]
 
     self.assertItemsEqual(filenames, os.listdir(self.base_path))
 
@@ -248,7 +247,8 @@ class ActionTest(test_lib.EmptyActionTest):
 
     grr_worker = worker_mocks.FakeClientWorker()
     while request.iterator.state != request.iterator.State.FINISHED:
-      responses = self.ExecuteAction("RaisingListDirectory", request,
+      responses = self.ExecuteAction("RaisingListDirectory",
+                                     request,
                                      grr_worker=grr_worker,
                                      action_worker_cls=testActionWorker)
       results.extend(responses)
@@ -271,7 +271,8 @@ class ActionTest(test_lib.EmptyActionTest):
   def testEnumerateUsersLinux(self):
     """Enumerate users from the wtmp file."""
     # Linux only
-    if platform.system() != "Linux": return
+    if platform.system() != "Linux":
+      return
 
     path = os.path.join(self.base_path, "VFSFixture/var/log/wtmp")
     old_open = __builtin__.open
@@ -373,8 +374,9 @@ class ActionTest(test_lib.EmptyActionTest):
     message = rdf_flows.GrrMessage(name="ProgressAction", cpu_limit=3600)
 
     action_cls = actions.ActionPlugin.classes[message.name]
-    with utils.MultiStubber((psutil, "Process", FakeProcess),
-                            (action_cls, "SendReply", MockSendReply)):
+    with utils.MultiStubber(
+        (psutil, "Process", FakeProcess),
+        (action_cls, "SendReply", MockSendReply)):
 
       action_cls._authentication_required = False
       action = action_cls(grr_worker=MockWorker())
@@ -423,12 +425,13 @@ class ActionTest(test_lib.EmptyActionTest):
       """Only return True for the root path."""
       return path == "/"
 
-    with utils.MultiStubber((os, "statvfs", MockStatFS),
-                            (os.path, "ismount", MockIsMount)):
+    with utils.MultiStubber(
+        (os, "statvfs", MockStatFS), (os.path, "ismount", MockIsMount)):
 
       # This test assumes "/" is the mount point for /usr/bin
       results = self.RunAction(
-          "StatFS", rdf_client.StatFSRequest(path_list=["/usr/bin", "/"]))
+          "StatFS",
+          rdf_client.StatFSRequest(path_list=["/usr/bin", "/"]))
       self.assertEqual(len(results), 2)
 
       # Both results should have mount_point as "/"
@@ -454,13 +457,8 @@ class ActionTest(test_lib.EmptyActionTest):
     action = actions.ActionPlugin.classes["ProgressAction"]()
 
     with test_lib.Instrument(client_utils, "KeepAlive") as instrument:
-      for time, expected_count in [(100, 1),
-                                   (101, 1),
-                                   (102, 1),
-                                   (103, 2),
-                                   (104, 2),
-                                   (105, 2),
-                                   (106, 3)]:
+      for time, expected_count in [(100, 1), (101, 1), (102, 1), (103, 2),
+                                   (104, 2), (105, 2), (106, 3)]:
         with test_lib.FakeTime(time):
           action.Progress()
           self.assertEqual(instrument.call_count, expected_count)
@@ -472,6 +470,7 @@ class ActionTestLoader(test_lib.GRRTestLoader):
 
 def main(argv):
   test_lib.GrrTestProgram(argv=argv, testLoader=ActionTestLoader())
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

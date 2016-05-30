@@ -34,10 +34,11 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
   def testGetServiceName(self):
     hklm = "HKEY_LOCAL_MACHINE/SYSTEM/CurrentControlSet/services"
     parser = windows_registry_parser.WinServicesParser()
-    self.assertEqual(parser._GetServiceName(
-        "%s/SomeService/Start" % hklm), "SomeService")
-    self.assertEqual(parser._GetServiceName(
-        "%s/SomeService/Parameters/ServiceDLL" % hklm), "SomeService")
+    self.assertEqual(
+        parser._GetServiceName("%s/SomeService/Start" % hklm), "SomeService")
+    self.assertEqual(
+        parser._GetServiceName("%s/SomeService/Parameters/ServiceDLL" % hklm),
+        "SomeService")
 
   def testWinServicesParser(self):
     dword = rdf_client.StatEntry.RegistryType.REG_DWORD_LITTLE_ENDIAN

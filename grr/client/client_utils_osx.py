@@ -27,8 +27,7 @@ def OSXFindProxies():
     return []
 
   try:
-    cf_http_enabled = sc.CFDictRetrieve(settings,
-                                        "kSCPropNetProxiesHTTPEnable")
+    cf_http_enabled = sc.CFDictRetrieve(settings, "kSCPropNetProxiesHTTPEnable")
     if cf_http_enabled and bool(sc.CFNumToInt32(cf_http_enabled)):
       # Proxy settings for HTTP are enabled
       cfproxy = sc.CFDictRetrieve(settings, "kSCPropNetProxiesHTTPProxy")
@@ -63,8 +62,7 @@ def GetMountpoints():
   devices = {}
 
   for filesys in GetFileSystems():
-    devices[filesys.f_mntonname] = (filesys.f_mntfromname,
-                                    filesys.f_fstypename)
+    devices[filesys.f_mntonname] = (filesys.f_mntfromname, filesys.f_fstypename)
 
   return devices
 
@@ -92,7 +90,7 @@ class StatFSStruct(utils.Struct):
       ("90s", "f_mntfromname"),
       ("x", "f_reserved3"),
       ("16x", "f_reserved4")
-  ]
+  ]  # pyformat:disable
 
 
 class StatFS64Struct(utils.Struct):
@@ -115,7 +113,7 @@ class StatFS64Struct(utils.Struct):
       ("1024s", "f_mntonname"),
       ("1024s", "f_mntfromname"),
       ("32s", "f_reserved")
-  ]
+  ]  # pyformat:disable
 
 
 def GetFileSystems():
@@ -220,8 +218,8 @@ def OSXGetRawDevice(path):
   while mount_point:
     try:
       result.path, fs_type = device_map[mount_point]
-      if fs_type in ["ext2", "ext3", "ext4", "vfat", "ntfs",
-                     "Apple_HFS", "hfs", "msdos"]:
+      if fs_type in ["ext2", "ext3", "ext4", "vfat", "ntfs", "Apple_HFS", "hfs",
+                     "msdos"]:
         # These are read filesystems
         result.pathtype = rdf_paths.PathSpec.PathType.OS
       else:
@@ -261,8 +259,9 @@ def InstallDriver(kext_path):
   km = objc.KextManager()
 
   cf_kext_path = km.PyStringToCFString(kext_path)
-  kext_url = km.dll.CFURLCreateWithFileSystemPath(
-      objc.CF_DEFAULT_ALLOCATOR, cf_kext_path, objc.POSIX_PATH_STYLE, True)
+  kext_url = km.dll.CFURLCreateWithFileSystemPath(objc.CF_DEFAULT_ALLOCATOR,
+                                                  cf_kext_path,
+                                                  objc.POSIX_PATH_STYLE, True)
   status = km.iokit.KextManagerLoadKextWithURL(kext_url, None)
 
   km.dll.CFRelease(kext_url)

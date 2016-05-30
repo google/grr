@@ -54,8 +54,7 @@ class Sdist(sdist):
   """Build sdist."""
 
   user_options = sdist.user_options + [
-      ("no-make-docs", None,
-       "Don't build ascii docs when building the sdist."),
+      ("no-make-docs", None, "Don't build ascii docs when building the sdist."),
       ("no-sync-artifacts", None,
        "Don't sync the artifact repo. This is unnecessary for "
        "clients and old client build OSes can't make the SSL connection."),
@@ -100,22 +99,16 @@ CONFIG_FILE = "%(CONFIG_FILE)s"
     # Update the defaults if needed.
     if self.config_file:
       with open("grr/defaults.py", "wb") as fd:
-        fd.write(self.DEFAULT_TEMPLATE % dict(
-            CONFIG_FILE=self.config_file))
+        fd.write(self.DEFAULT_TEMPLATE % dict(CONFIG_FILE=self.config_file))
 
     install.run(self)
 
 
-data_files = (find_data_files("docs") +
-              find_data_files("executables") +
-              find_data_files("install_data") +
-              find_data_files("scripts") +
-              find_data_files("grr/artifacts") +
-              find_data_files("grr/checks") +
+data_files = (find_data_files("docs") + find_data_files("executables") +
+              find_data_files("install_data") + find_data_files("scripts") +
+              find_data_files("grr/artifacts") + find_data_files("grr/checks") +
               find_data_files("grr/gui/static") +
-              find_data_files("grr/gui/local/static") +
-              ["version.ini"])
-
+              find_data_files("grr/gui/local/static") + ["version.ini"])
 
 if "VIRTUAL_ENV" not in os.environ:
   print "*****************************************************"
@@ -123,7 +116,6 @@ if "VIRTUAL_ENV" not in os.environ:
   print "  environment. This configuration is not supported!!!"
   print "  Expect breakage."
   print "*****************************************************"
-
 
 setup_args = dict(
     name="grr-response-core",
@@ -135,10 +127,8 @@ setup_args = dict(
     zip_safe=False,
     include_package_data=True,
     ext_modules=[
-        Extension(
-            "grr._semantic",
-            ["accelerated/accelerated.c"],
-        )
+        Extension("grr._semantic",
+                  ["accelerated/accelerated.c"],)
     ],
     cmdclass={
         "develop": Develop,
@@ -171,7 +161,6 @@ setup_args = dict(
     },
 
     # Data files used by GRR. Access these via the config_lib "resource" filter.
-    data_files=data_files
-)
+    data_files=data_files)
 
 setup(**setup_args)

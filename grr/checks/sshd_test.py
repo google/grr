@@ -20,8 +20,7 @@ class SshdCheckTests(checks_test_lib.HostCheckTest):
   def testProtocolFail(self):
     chk_id = "CIS-SSH-PROTOCOL"
 
-    test_data = {"/etc/ssh/sshd_config":
-                 "# Comment line\nProtocol 2,1"}
+    test_data = {"/etc/ssh/sshd_config": "# Comment line\nProtocol 2,1"}
     host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
     results = self.RunChecks(host_data)
     sym = "Found: Sshd configuration supports protocol 1."
@@ -31,8 +30,7 @@ class SshdCheckTests(checks_test_lib.HostCheckTest):
   def testPermitRootLoginFail(self):
     chk_id = "CIS-SSH-PERMIT-ROOT-LOGIN"
 
-    test_data = {"/etc/ssh/sshd_config":
-                 "PermitRootLogin without-password"}
+    test_data = {"/etc/ssh/sshd_config": "PermitRootLogin without-password"}
     host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
     results = self.RunChecks(host_data)
     sym = "Found: Sshd configuration permits direct root login."
@@ -42,8 +40,7 @@ class SshdCheckTests(checks_test_lib.HostCheckTest):
   def testPermitRootLoginSucceed(self):
     chk_id = "CIS-SSH-PERMIT-ROOT-LOGIN"
 
-    test_data = {"/etc/ssh/sshd_config":
-                 "PermitRootLogin no"}
+    test_data = {"/etc/ssh/sshd_config": "PermitRootLogin no"}
     host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
     results = self.RunChecks(host_data)
     self.assertCheckUndetected(chk_id, results)
@@ -64,7 +61,7 @@ class SshdCheckTests(checks_test_lib.HostCheckTest):
     chk_id = "SSH-AUTHORIZED-KEYS"
 
     test_data = {"/etc/ssh/sshd_config":
-                 "AuthorizedKeysCommand \"/bin/pubkey-helper -s %u\""}
+        "AuthorizedKeysCommand \"/bin/pubkey-helper -s %u\""}
     host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
     results = self.RunChecks(host_data)
     sym = "Found: Sshd configuration sets an authorized key command."
@@ -74,8 +71,7 @@ class SshdCheckTests(checks_test_lib.HostCheckTest):
   def testAuthorizedKeysFileSucceed(self):
     chk_id = "SSH-AUTHORIZED-KEYS"
 
-    test_data = {"/etc/ssh/sshd_config":
-                 "AuthorizedKeysFile none"}
+    test_data = {"/etc/ssh/sshd_config": "AuthorizedKeysFile none"}
     host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
     results = self.RunChecks(host_data)
     self.assertCheckUndetected(chk_id, results)
@@ -83,8 +79,8 @@ class SshdCheckTests(checks_test_lib.HostCheckTest):
   def testAuthorizedKeysFileFail(self):
     chk_id = "SSH-AUTHORIZED-KEYS"
 
-    test_data = {"/etc/ssh/sshd_config":
-                 "AuthorizedKeysFile none /etc/ssh_keys"}
+    test_data = {"/etc/ssh/sshd_config": "AuthorizedKeysFile none /etc/ssh_keys"
+                }
     host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
     results = self.RunChecks(host_data)
     sym = "Found: Sshd configuration sets an authorized key file."
@@ -98,4 +94,3 @@ def main(argv):
 
 if __name__ == "__main__":
   flags.StartMain(main)
-

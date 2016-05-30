@@ -76,9 +76,8 @@ class TimelineTest(test_lib.AFF4ObjectTest):
     self.assertEqual(len(results), 2)
 
     # Match within the embedded stat protobuf
-    results = list(fd.Query(
-        "event.stat.st_mtime >= 2011/11/18 and "
-        "event.stat.st_mtime < 2011/11/19"))
+    results = list(fd.Query("event.stat.st_mtime >= 2011/11/18 and "
+                            "event.stat.st_mtime < 2011/11/19"))
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].event.timestamp, 1321633293629468)
 

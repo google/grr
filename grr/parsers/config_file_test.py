@@ -13,7 +13,6 @@ from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.parsers import config_file
 
-
 CFG = """
 # A comment.
 Protocol 2  # Another comment.
@@ -246,7 +245,8 @@ class RsyslogParserTests(test_lib.GRRBaseTest):
     results = list(parser.ParseMultiple([None], [log_conf], None))
     self.assertEqual(1, len(results))
     tcp, udp, pipe, null, script, fs, wall, async_fs = [
-        target for target in results[0].targets]
+        target for target in results[0].targets
+    ]
 
     self.assertEqual("daemon", tcp.facility)
     self.assertEqual("*", tcp.priority)
@@ -320,8 +320,8 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     parser = config_file.APTPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
-    result = [d for d in results if isinstance(d,
-                                               rdf_protodict.AttributedDict)][0]
+    result = [d for d in results
+              if isinstance(d, rdf_protodict.AttributedDict)][0]
 
     self.assertEqual("/etc/apt/sources.list", result.filename)
     self.assertEqual(5, len(result.uris))
@@ -366,8 +366,8 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     parser = config_file.APTPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
-    result = [d for d in results if isinstance(d,
-                                               rdf_protodict.AttributedDict)][0]
+    result = [d for d in results
+              if isinstance(d, rdf_protodict.AttributedDict)][0]
 
     self.assertEqual("/etc/apt/sources.list.d/test.list", result.filename)
     self.assertEqual(0, len(result.uris))
@@ -416,8 +416,8 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     parser = config_file.APTPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
-    result = [d for d in results if isinstance(d,
-                                               rdf_protodict.AttributedDict)][0]
+    result = [d for d in results
+              if isinstance(d, rdf_protodict.AttributedDict)][0]
 
     self.assertEqual("/etc/apt/sources.list.d/rfc822.list", result.filename)
     self.assertEqual(11, len(result.uris))
@@ -497,8 +497,8 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
     parser = config_file.YumPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
-    result = [d for d in results if isinstance(d,
-                                               rdf_protodict.AttributedDict)][0]
+    result = [d for d in results
+              if isinstance(d, rdf_protodict.AttributedDict)][0]
 
     self.assertEqual("/etc/yum.repos.d/test1.repo", result.filename)
     self.assertEqual(4, len(result.uris))
@@ -535,8 +535,8 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
     parser = config_file.YumPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
-    result = [d for d in results if isinstance(d,
-                                               rdf_protodict.AttributedDict)][0]
+    result = [d for d in results
+              if isinstance(d, rdf_protodict.AttributedDict)][0]
 
     self.assertEqual("/etc/yum.repos.d/emptytest.repo", result.filename)
     self.assertEqual(0, len(result.uris))
@@ -560,8 +560,8 @@ class CronAtAllowDenyParserTests(test_lib.GRRBaseTest):
     parser = config_file.CronAtAllowDenyParser()
     results = list(parser.Parse(stat, file_obj, None))
 
-    result = [d for d in results if isinstance(d,
-                                               rdf_protodict.AttributedDict)][0]
+    result = [d for d in results
+              if isinstance(d, rdf_protodict.AttributedDict)][0]
     filename = result.filename
     users = result.users
     self.assertEqual("/etc/at.allow", filename)
@@ -617,9 +617,9 @@ class NtpParserTests(test_lib.GRRBaseTest):
     results = results[0]
 
     # Check all the expected "simple" config keywords are present.
-    expected_config_keywords = set(
-        ["driftfile", "statsdir", "filegen", "ttl",
-         "broadcastdelay"]) | set(parser._defaults.keys())
+    expected_config_keywords = set(["driftfile", "statsdir", "filegen", "ttl",
+                                    "broadcastdelay"]) | set(
+                                        parser._defaults.keys())
     self.assertEqual(expected_config_keywords, set(results.config.keys()))
 
     # Check all the expected "keyed" config keywords are present.
@@ -803,6 +803,7 @@ class SudoersParserTest(test_lib.GRRBaseTest):
 
 def main(args):
   test_lib.main(args)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

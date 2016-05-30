@@ -53,15 +53,15 @@ def BinarySIDtoStringSID(sid):
 
     start = 8
     for i in range(subauthority_count):
-      authority = sid[start:start+4]
+      authority = sid[start:start + 4]
       if not authority:
         break
 
       if len(authority) < 4:
         raise ValueError("In binary SID '%s', component %d has been truncated. "
                          "Expected 4 bytes, found %d: (%s)",
-                         ",".join([str(ord(c)) for c in sid]),
-                         i, len(authority), authority)
+                         ",".join([str(ord(c)) for c in sid]), i,
+                         len(authority), authority)
       str_sid_components.append(struct.unpack("<L", authority)[0])
       start += 4
 
@@ -80,8 +80,8 @@ class WMIEventConsumerParser(parsers.WMIQueryParser):
     wmi_dict = result.ToDict()
 
     try:
-      wmi_dict["CreatorSID"] = BinarySIDtoStringSID(
-          "".join([chr(i) for i in wmi_dict["CreatorSID"]]))
+      wmi_dict["CreatorSID"] = BinarySIDtoStringSID("".join([chr(
+          i) for i in wmi_dict["CreatorSID"]]))
     except (ValueError, TypeError) as e:
       # We recover from corrupt SIDs by outputting it raw as a string
       wmi_dict["CreatorSID"] = str(wmi_dict["CreatorSID"])
@@ -103,15 +103,13 @@ class WMIEventConsumerParser(parsers.WMIQueryParser):
 
       # Yield anomalies first to help with debugging
       if anomalies:
-        yield rdf_anomaly.Anomaly(
-            type="PARSER_ANOMALY",
-            generated_by=self.__class__.__name__,
-            finding=anomalies)
+        yield rdf_anomaly.Anomaly(type="PARSER_ANOMALY",
+                                  generated_by=self.__class__.__name__,
+                                  finding=anomalies)
 
       # Raise if the parser generated no output but there were fields.
       if wmi_dict and not output:
-        raise ValueError("Non-empty dict %s returned empty output.",
-                         wmi_dict)
+        raise ValueError("Non-empty dict %s returned empty output.", wmi_dict)
 
       yield output
 
@@ -146,11 +144,10 @@ class WMIInstalledSoftwareParser(parsers.WMIQueryParser):
     """Parse the WMI packages output."""
     _ = query, knowledge_base
     status = rdf_client.SoftwarePackage.InstallState.INSTALLED
-    soft = rdf_client.SoftwarePackage(
-        name=result["Name"],
-        description=result["Description"],
-        version=result["Version"],
-        install_state=status)
+    soft = rdf_client.SoftwarePackage(name=result["Name"],
+                                      description=result["Description"],
+                                      version=result["Version"],
+                                      install_state=status)
 
     yield soft
 
@@ -169,12 +166,11 @@ class WMIHotfixesSoftwareParser(parsers.WMIQueryParser):
 
     # InstalledOn comes back in a godawful format such as '7/10/2013'.
     installed_on = time_utils.AmericanDateToEpoch(result.get("InstalledOn", ""))
-    soft = rdf_client.SoftwarePackage(
-        name=result.get("HotFixID"),
-        description=result.get("Caption"),
-        installed_by=result.get("InstalledBy"),
-        install_state=status,
-        installed_on=installed_on)
+    soft = rdf_client.SoftwarePackage(name=result.get("HotFixID"),
+                                      description=result.get("Caption"),
+                                      installed_by=result.get("InstalledBy"),
+                                      install_state=status,
+                                      installed_on=installed_on)
     yield soft
 
 
@@ -182,8 +178,7 @@ class WMIUserParser(parsers.WMIQueryParser):
   """Parser for WMI Win32_UserAccount and Win32_UserProfile output."""
 
   output_types = [rdf_client.User.__name__]
-  supported_artifacts = ["WMIProfileUsersHomeDir",
-                         "WMIAccountUsersDomain",
+  supported_artifacts = ["WMIProfileUsersHomeDir", "WMIAccountUsersDomain",
                          "WMIUsers"]
 
   account_mapping = {
@@ -295,8 +290,8 @@ class WMIInterfacesParser(parsers.WMIQueryParser):
     seconds = timestr[12:14]
     microseconds = timestr[15:21]
 
-    unix_seconds = calendar.timegm(
-        map(int, [year, month, day, hours, minutes, seconds]))
+    unix_seconds = calendar.timegm(map(int, [year, month, day, hours, minutes,
+                                             seconds]))
     unix_seconds -= int(offset_minutes) * 60
     return rdfvalue.RDFDatetime(unix_seconds * 1e6 + int(microseconds))
 
@@ -318,20 +313,20 @@ class WMIInterfacesParser(parsers.WMIQueryParser):
     _ = query, knowledge_base
 
     args = {"ifname": result["Description"]}
-    args["mac_address"] = binascii.unhexlify(
-        result["MACAddress"].replace(":", ""))
+    args["mac_address"] = binascii.unhexlify(result["MACAddress"].replace(":",
+                                                                          ""))
 
-    self._ConvertIPs([("IPAddress", "addresses"),
-                      ("DefaultIPGateway", "ip_gateway_list"),
-                      ("DHCPServer", "dhcp_server_list")], result, args)
+    self._ConvertIPs(
+        [("IPAddress", "addresses"), ("DefaultIPGateway", "ip_gateway_list"),
+         ("DHCPServer", "dhcp_server_list")], result, args)
 
     if "DHCPLeaseExpires" in result:
-      args["dhcp_lease_expires"] = self.WMITimeStrToRDFDatetime(
-          result["DHCPLeaseExpires"])
+      args["dhcp_lease_expires"] = self.WMITimeStrToRDFDatetime(result[
+          "DHCPLeaseExpires"])
 
     if "DHCPLeaseObtained" in result:
-      args["dhcp_lease_obtained"] = self.WMITimeStrToRDFDatetime(
-          result["DHCPLeaseObtained"])
+      args["dhcp_lease_obtained"] = self.WMITimeStrToRDFDatetime(result[
+          "DHCPLeaseObtained"])
 
     yield rdf_client.Interface(**args)
 

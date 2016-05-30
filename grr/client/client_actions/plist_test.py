@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 
 # Copyright 2010 Google Inc. All Rights Reserved.
-
 """Tests for grr.client.client_actions.plist."""
 
 
@@ -19,7 +18,6 @@ from grr.lib import plist as plist_lib
 from grr.lib import test_lib
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import plist as rdf_plist
-
 
 # This variable holds the same contents as the ondisk test plist
 test_plist_dict = {
@@ -38,17 +36,16 @@ test_plist_dict = {
 
 # y Safari History plist
 safari_plist_dict = {
-    "WebHistoryDates":
-        [
-            {"": "http://www.google.com",
-             "title": "Google",
-             "lastVisited": "374606652.9",
-             "visitCount": 2},
-            {"": "http://www.apple.com",
-             "title": "Apple",
-             "lastVisited": "374606652.9",
-             "visitCount": 1},
-        ],
+    "WebHistoryDates": [
+        {"": "http://www.google.com",
+         "title": "Google",
+         "lastVisited": "374606652.9",
+         "visitCount": 2},
+        {"": "http://www.apple.com",
+         "title": "Apple",
+         "lastVisited": "374606652.9",
+         "visitCount": 1},
+    ],
     "WebHistoryFileVersion": 1,
 }
 
@@ -99,18 +96,17 @@ class PlistTest(test_lib.EmptyActionTest):
     results = self._RunQuery(plist="History.plist",
                              query='title contains "oogle"',
                              context="WebHistoryDates")
-    self.assertEqual(results[0][0],
-                     safari_plist_dict["WebHistoryDates"][0])
+    self.assertEqual(results[0][0], safari_plist_dict["WebHistoryDates"][0])
 
     # And now SAFARI XML
     results = self._RunQuery(plist="History.xml.plist",
                              query='title contains "oogle"',
                              context="WebHistoryDates")
-    self.assertEqual(results[0][0],
-                     safari_plist_dict["WebHistoryDates"][0])
+    self.assertEqual(results[0][0], safari_plist_dict["WebHistoryDates"][0])
 
   def testActionNonexistantFile(self):
-    self.assertRaises(IOError, self._RunQuery,
+    self.assertRaises(IOError,
+                      self._RunQuery,
                       query="",
                       context="",
                       plist="nonexistantfile")
@@ -135,6 +131,7 @@ class PlistTest(test_lib.EmptyActionTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

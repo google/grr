@@ -60,7 +60,6 @@ from grr.lib.flows.general import memory
 
 from grr.tools import end_to_end_tests
 
-
 flags.DEFINE_string("client", None,
                     "Initialise the console with this client id "
                     "(e.g. C.1234345).")
@@ -93,8 +92,7 @@ def main(unused_argv):
 
   config_lib.CONFIG.AddContext("Commandline Context")
   config_lib.CONFIG.AddContext(
-      "Console Context",
-      "Context applied when running the console binary.")
+      "Console Context", "Context applied when running the console binary.")
   startup.Init()
 
   # To make the console easier to use, we make a default token which will be
@@ -114,14 +112,14 @@ def main(unused_argv):
       "RunEndToEndTests": end_to_end_tests.RunEndToEndTests,
   }
 
-  locals_vars.update(globals())   # add global variables to console
+  locals_vars.update(globals())  # add global variables to console
   if flags.FLAGS.client is not None:
     locals_vars["client"], locals_vars["token"] = console_utils.OpenClient(
         client_id=flags.FLAGS.client)
 
   if flags.FLAGS.code_to_execute:
     logging.info("Running code from flag: %s", flags.FLAGS.code_to_execute)
-    exec(flags.FLAGS.code_to_execute)  # pylint: disable=exec-used
+    exec (flags.FLAGS.code_to_execute)  # pylint: disable=exec-used
   elif flags.FLAGS.command_file:
     logging.info("Running code from file: %s", flags.FLAGS.command_file)
     execfile(flags.FLAGS.command_file)
@@ -130,8 +128,8 @@ def main(unused_argv):
       (flags.FLAGS.code_to_execute or flags.FLAGS.command_file)):
     return
 
-  else:   # We want the normal shell.
-    locals_vars.update(globals())   # add global variables to console
+  else:  # We want the normal shell.
+    locals_vars.update(globals())  # add global variables to console
     ipshell.IPShell(argv=[], user_ns=locals_vars, banner=banner)
 
 

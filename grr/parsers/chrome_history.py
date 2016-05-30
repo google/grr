@@ -30,14 +30,20 @@ class ChromeHistoryParser(parsers.FileParser):
     for timestamp, entry_type, url, data1, _, _ in chrome.Parse():
       if entry_type == "CHROME_DOWNLOAD":
         yield rdf_webhistory.BrowserHistoryItem(
-            url=url, domain=urlparse.urlparse(url).netloc,
-            access_time=timestamp, program_name="Chrome",
-            source_urn=stat.aff4path, download_path=data1)
+            url=url,
+            domain=urlparse.urlparse(url).netloc,
+            access_time=timestamp,
+            program_name="Chrome",
+            source_urn=stat.aff4path,
+            download_path=data1)
       elif entry_type == "CHROME_VISIT":
         yield rdf_webhistory.BrowserHistoryItem(
-            url=url, domain=urlparse.urlparse(url).netloc,
-            access_time=timestamp, program_name="Chrome",
-            source_urn=stat.aff4path, title=data1)
+            url=url,
+            domain=urlparse.urlparse(url).netloc,
+            access_time=timestamp,
+            program_name="Chrome",
+            source_urn=stat.aff4path,
+            title=data1)
 
 
 class ChromeParser(sqlite_file.SQLiteFile):
@@ -97,8 +103,8 @@ class ChromeParser(sqlite_file.SQLiteFile):
       a list of attributes for each entry
     """
     # Query for old style and newstyle downloads storage.
-    query_iter = itertools.chain(self.Query(self.DOWNLOADS_QUERY),
-                                 self.Query(self.DOWNLOADS_QUERY_2))
+    query_iter = itertools.chain(
+        self.Query(self.DOWNLOADS_QUERY), self.Query(self.DOWNLOADS_QUERY_2))
 
     results = []
     for timestamp, url, path, received_bytes, total_bytes in query_iter:
@@ -143,8 +149,8 @@ def main(argv):
       except ValueError:
         date_string = timestamp
 
-      output_string = u"%s\t%s\t%s\t%s\t%s\t%s" % (
-          date_string, entry_type, url, data1, data2, data3)
+      output_string = u"%s\t%s\t%s\t%s\t%s\t%s" % (date_string, entry_type, url,
+                                                   data1, data2, data3)
 
       print output_string.encode("UTF-8")
 

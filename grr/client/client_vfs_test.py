@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Test client vfs."""
 
 
@@ -23,7 +22,6 @@ from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import paths as rdf_paths
-
 
 # pylint: mode=test
 
@@ -79,9 +77,8 @@ class VFSTest(test_lib.GRRBaseTest):
 
     fds = []
     for _ in range(100):
-      fd = vfs.VFSOpen(
-          rdf_paths.PathSpec(path=path,
-                             pathtype=rdf_paths.PathSpec.PathType.OS))
+      fd = vfs.VFSOpen(rdf_paths.PathSpec(
+          path=path, pathtype=rdf_paths.PathSpec.PathType.OS))
       self.assertEqual(fd.read(20), "1\n2\n3\n4\n5\n6\n7\n8\n9\n10")
       fds.append(fd)
 
@@ -96,15 +93,14 @@ class VFSTest(test_lib.GRRBaseTest):
     num_open_files = len(current_process.open_files())
 
     path = os.path.join(self.base_path, "morenumbers.txt")
-    fd = vfs.VFSOpen(
-        rdf_paths.PathSpec(path=path,
-                           pathtype=rdf_paths.PathSpec.PathType.OS))
+    fd = vfs.VFSOpen(rdf_paths.PathSpec(
+        path=path, pathtype=rdf_paths.PathSpec.PathType.OS))
 
     fds = []
     for filename in fd.ListNames():
-      child_fd = vfs.VFSOpen(
-          rdf_paths.PathSpec(path=os.path.join(path, filename),
-                             pathtype=rdf_paths.PathSpec.PathType.OS))
+      child_fd = vfs.VFSOpen(rdf_paths.PathSpec(
+          path=os.path.join(path, filename),
+          pathtype=rdf_paths.PathSpec.PathType.OS))
       fd.read(20)
       fds.append(child_fd)
 
@@ -134,20 +130,17 @@ class VFSTest(test_lib.GRRBaseTest):
       path2 = os.path.join(temp_dir, "numbers.TXT")
       shutil.copy(os.path.join(self.base_path, "numbers.txt.ver2"), path2)
 
-      fd = vfs.VFSOpen(
-          rdf_paths.PathSpec(path=path1,
-                             pathtype=rdf_paths.PathSpec.PathType.OS))
+      fd = vfs.VFSOpen(rdf_paths.PathSpec(
+          path=path1, pathtype=rdf_paths.PathSpec.PathType.OS))
       self.assertEqual(fd.pathspec.Basename(), "numbers.txt")
 
-      fd = vfs.VFSOpen(
-          rdf_paths.PathSpec(path=path2,
-                             pathtype=rdf_paths.PathSpec.PathType.OS))
+      fd = vfs.VFSOpen(rdf_paths.PathSpec(
+          path=path2, pathtype=rdf_paths.PathSpec.PathType.OS))
       self.assertEqual(fd.pathspec.Basename(), "numbers.TXT")
 
       path = os.path.join(self.base_path, "Numbers.txt")
-      fd = vfs.VFSOpen(
-          rdf_paths.PathSpec(path=path,
-                             pathtype=rdf_paths.PathSpec.PathType.OS))
+      fd = vfs.VFSOpen(rdf_paths.PathSpec(
+          path=path, pathtype=rdf_paths.PathSpec.PathType.OS))
       read_path = fd.pathspec.Basename()
 
       # The exact file now is non deterministic but should be either of the two:
@@ -174,8 +167,7 @@ class VFSTest(test_lib.GRRBaseTest):
 
     p2 = rdf_paths.PathSpec(path=path2,
                             pathtype=rdf_paths.PathSpec.PathType.TSK)
-    p1 = rdf_paths.PathSpec(path=path,
-                            pathtype=rdf_paths.PathSpec.PathType.OS)
+    p1 = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
     p1.Append(p2)
     fd = vfs.VFSOpen(p1)
     self.TestFileHandling(fd)
@@ -185,7 +177,8 @@ class VFSTest(test_lib.GRRBaseTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test_img.dd"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    pathspec.Append(pathtype=rdf_paths.PathSpec.PathType.TSK, inode=12,
+    pathspec.Append(pathtype=rdf_paths.PathSpec.PathType.TSK,
+                    inode=12,
                     path="/Test Directory")
     pathspec.Append(pathtype=rdf_paths.PathSpec.PathType.TSK,
                     path="numbers.txt")
@@ -207,12 +200,10 @@ class VFSTest(test_lib.GRRBaseTest):
     path = os.path.join(self.base_path, "test_img.dd")
     path2 = os.path.join("test directory", "NuMbErS.TxT")
 
-    ps2 = rdf_paths.PathSpec(
-        path=path2,
-        pathtype=rdf_paths.PathSpec.PathType.TSK)
+    ps2 = rdf_paths.PathSpec(path=path2,
+                             pathtype=rdf_paths.PathSpec.PathType.TSK)
 
-    ps = rdf_paths.PathSpec(path=path,
-                            pathtype=rdf_paths.PathSpec.PathType.OS)
+    ps = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
     ps.Append(ps2)
     fd = vfs.VFSOpen(ps)
 
@@ -220,10 +211,8 @@ class VFSTest(test_lib.GRRBaseTest):
     path = path.replace("\\", "/")
     # The pathspec should have 2 components.
 
-    self.assertEqual(fd.pathspec.first.path,
-                     utils.NormalizePath(path))
-    self.assertEqual(fd.pathspec.first.pathtype,
-                     rdf_paths.PathSpec.PathType.OS)
+    self.assertEqual(fd.pathspec.first.path, utils.NormalizePath(path))
+    self.assertEqual(fd.pathspec.first.pathtype, rdf_paths.PathSpec.PathType.OS)
 
     nested = fd.pathspec.last
     self.assertEqual(nested.path, u"/Test Directory/numbers.txt")
@@ -232,10 +221,11 @@ class VFSTest(test_lib.GRRBaseTest):
   def testTSKInodeHandling(self):
     """Test that we can open files by inode."""
     path = os.path.join(self.base_path, "ntfs_img.dd")
-    ps2 = rdf_paths.PathSpec(
-        inode=65, ntfs_type=128, ntfs_id=0,
-        path="/this/will/be/ignored",
-        pathtype=rdf_paths.PathSpec.PathType.TSK)
+    ps2 = rdf_paths.PathSpec(inode=65,
+                             ntfs_type=128,
+                             ntfs_id=0,
+                             path="/this/will/be/ignored",
+                             pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     ps = rdf_paths.PathSpec(path=path,
                             pathtype=rdf_paths.PathSpec.PathType.OS,
@@ -245,7 +235,9 @@ class VFSTest(test_lib.GRRBaseTest):
 
     self.assertEqual(fd.Read(100), "Hello world\n")
 
-    ps2 = rdf_paths.PathSpec(inode=65, ntfs_type=128, ntfs_id=4,
+    ps2 = rdf_paths.PathSpec(inode=65,
+                             ntfs_type=128,
+                             ntfs_id=4,
                              pathtype=rdf_paths.PathSpec.PathType.TSK)
     ps = rdf_paths.PathSpec(path=path,
                             pathtype=rdf_paths.PathSpec.PathType.OS,
@@ -310,15 +302,13 @@ class VFSTest(test_lib.GRRBaseTest):
     self.assertEqual(s.pathspec.nested_path.ntfs_id, 0)
 
     # Check that the name of the ads is consistent.
-    self.assertEqual(pathspecs[1].nested_path.path,
-                     "/Test Directory/notes.txt")
-    self.assertEqual(pathspecs[1].nested_path.stream_name,
-                     "ads")
+    self.assertEqual(pathspecs[1].nested_path.path, "/Test Directory/notes.txt")
+    self.assertEqual(pathspecs[1].nested_path.stream_name, "ads")
 
     # Check that the ADS name is encoded correctly in the AFF4 URN for this
     # file.
-    aff4_urn = aff4_grr.VFSGRRClient.PathspecToURN(
-        pathspecs[1], "C.1234567812345678")
+    aff4_urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspecs[1],
+                                                   "C.1234567812345678")
     self.assertEqual(aff4_urn.Basename(), "notes.txt:ads")
 
     fd = vfs.VFSOpen(pathspecs[1])
@@ -360,17 +350,16 @@ class VFSTest(test_lib.GRRBaseTest):
     ps2 = rdf_paths.PathSpec(path=path2,
                              pathtype=rdf_paths.PathSpec.PathType.TSK)
 
-    ps = rdf_paths.PathSpec(path=path,
-                            pathtype=rdf_paths.PathSpec.PathType.OS)
+    ps = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
     ps.Append(ps2)
     fd = vfs.VFSOpen(ps)
     self.TestFileHandling(fd)
 
   def testListDirectory(self):
     """Test our ability to list a directory."""
-    directory = vfs.VFSOpen(
-        rdf_paths.PathSpec(path=self.base_path,
-                           pathtype=rdf_paths.PathSpec.PathType.OS))
+    directory = vfs.VFSOpen(rdf_paths.PathSpec(
+        path=self.base_path,
+        pathtype=rdf_paths.PathSpec.PathType.OS))
 
     self.CheckDirectoryListing(directory, "morenumbers.txt")
 
@@ -379,8 +368,7 @@ class VFSTest(test_lib.GRRBaseTest):
     path = os.path.join(self.base_path, u"test_img.dd")
     ps2 = rdf_paths.PathSpec(path=u"入乡随俗 海外春节别样过法",
                              pathtype=rdf_paths.PathSpec.PathType.TSK)
-    ps = rdf_paths.PathSpec(path=path,
-                            pathtype=rdf_paths.PathSpec.PathType.OS)
+    ps = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
     ps.Append(ps2)
     directory = vfs.VFSOpen(ps)
     self.CheckDirectoryListing(directory, u"入乡随俗.txt")
@@ -453,8 +441,7 @@ class VFSTest(test_lib.GRRBaseTest):
           path=("/HKEY_USERS/S-1-5-20/Software/Microsoft"
                 "/Windows/CurrentVersion/Run"))
 
-      expected_names = {"MctAdmin": stat.S_IFDIR,
-                        "Sidebar": stat.S_IFDIR}
+      expected_names = {"MctAdmin": stat.S_IFDIR, "Sidebar": stat.S_IFDIR}
       expected_data = [u"%ProgramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun",
                        u"%TEMP%\\Sidebar.exe"]
 
@@ -471,7 +458,8 @@ class VFSTest(test_lib.GRRBaseTest):
     for f in directory.ListFiles():
       # TSK makes virtual files with $ if front of them
       path = f.pathspec.Basename()
-      if path.startswith("$"): continue
+      if path.startswith("$"):
+        continue
 
       # Check the time is reasonable
       self.assertGreater(f.st_mtime, 10000000)
@@ -497,9 +485,9 @@ class VFSTest(test_lib.GRRBaseTest):
       # We need to reset the vfs.VFS_VIRTUALROOTS too.
       vfs.VFSInit().Run()
 
-      fd = vfs.VFSOpen(
-          rdf_paths.PathSpec(path="/morenumbers.txt",
-                             pathtype=rdf_paths.PathSpec.PathType.OS))
+      fd = vfs.VFSOpen(rdf_paths.PathSpec(
+          path="/morenumbers.txt",
+          pathtype=rdf_paths.PathSpec.PathType.OS))
       data = fd.read(10)
       self.assertEqual(data, "1\n2\n3\n4\n5\n")
 
@@ -546,8 +534,8 @@ class VFSTest(test_lib.GRRBaseTest):
     """Test our ability to walk over a directory tree."""
     path = os.path.join(self.base_path, "a")
 
-    directory = vfs.VFSOpen(
-        rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS))
+    directory = vfs.VFSOpen(rdf_paths.PathSpec(
+        path=path, pathtype=rdf_paths.PathSpec.PathType.OS))
 
     # Test the helper method
     self.assertEqual(directory._GetDepth("/"), 0)
@@ -565,16 +553,19 @@ class VFSTest(test_lib.GRRBaseTest):
 
     self.assertEqual(walk_tups_0, [(path, ["b"], [])])
     self.assertEqual(walk_tups_1, [
-        (path, ["b"], []), ("%s/b" % path, ["c", "d"], [])])
+        (path, ["b"], []), ("%s/b" % path, ["c", "d"], [])
+    ])
     self.assertEqual(walk_tups_inf, [
         (path, ["b"], []), ("%s/b" % path, ["c", "d"], []),
         ("%s/b/c" % path, [], ["helloc.txt"]),
-        ("%s/b/d" % path, [], ["hellod.txt"])])
+        ("%s/b/d" % path, [], ["hellod.txt"])
+    ])
 
 
 def main(argv):
   vfs.VFSInit()
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -15,7 +15,6 @@ from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
-
 # struct sockaddr_ll
 #   {
 #     unsigned short int sll_family;
@@ -57,7 +56,7 @@ class Sockaddrin(ctypes.Structure):
       ("sin_port", ctypes.c_ushort),
       ("sin_addr", ctypes.c_ubyte * 4),
       ("sin_zero", ctypes.c_char * 8)
-  ]
+  ]  # pyformat: disable
 
 # struct sockaddr_in6 {
 #         unsigned short int      sin6_family;    /* AF_INET6 */
@@ -76,8 +75,7 @@ class Sockaddrin6(ctypes.Structure):
       ("sin6_flowinfo", ctypes.c_ubyte * 4),
       ("sin6_addr", ctypes.c_ubyte * 16),
       ("sin6_scope_id", ctypes.c_ubyte * 4)
-  ]
-
+  ]  # pyformat: disable
 
 # struct ifaddrs   *ifa_next;         /* Pointer to next struct */
 #          char             *ifa_name;         /* Interface name */
@@ -92,6 +90,7 @@ class Sockaddrin6(ctypes.Structure):
 class Ifaddrs(ctypes.Structure):
   pass
 
+
 Ifaddrs._fields_ = [  # pylint: disable=protected-access
     ("ifa_next", ctypes.POINTER(Ifaddrs)),
     ("ifa_name", ctypes.POINTER(ctypes.c_char)),
@@ -101,7 +100,7 @@ Ifaddrs._fields_ = [  # pylint: disable=protected-access
     ("ifa_broadaddr", ctypes.POINTER(ctypes.c_char)),
     ("ifa_destaddr", ctypes.POINTER(ctypes.c_char)),
     ("ifa_data", ctypes.POINTER(ctypes.c_char))
-]
+]  # pyformat: disable
 
 
 class EnumerateInterfaces(actions.ActionPlugin):
@@ -125,7 +124,7 @@ class EnumerateInterfaces(actions.ActionPlugin):
       ifs.add(ifname)
       try:
         iffamily = ord(m.contents.ifa_addr[0])
-        if iffamily == 0x2:     # AF_INET
+        if iffamily == 0x2:  # AF_INET
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
           ip4 = "".join(map(chr, data.contents.sin_addr))
           address_type = rdf_client.NetworkAddress.Family.INET
@@ -133,12 +132,12 @@ class EnumerateInterfaces(actions.ActionPlugin):
                                               packed_bytes=ip4)
           addresses.setdefault(ifname, []).append(address)
 
-        if iffamily == 0x11:    # AF_PACKET
+        if iffamily == 0x11:  # AF_PACKET
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrll))
           addlen = data.contents.sll_halen
           macs[ifname] = "".join(map(chr, data.contents.sll_addr[:addlen]))
 
-        if iffamily == 0xA:     # AF_INET6
+        if iffamily == 0xA:  # AF_INET6
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
           ip6 = "".join(map(chr, data.contents.sin6_addr))
           address_type = rdf_client.NetworkAddress.Family.INET6
@@ -243,7 +242,7 @@ class EnumerateUsers(actions.ActionPlugin):
       if username:
         try:
           pwdict = pwd.getpwnam(username)
-          homedir = pwdict[5]    # pw_dir
+          homedir = pwdict[5]  # pw_dir
           full_name = pwdict[4]  # pw_gecos
         except KeyError:
           homedir = ""
@@ -267,8 +266,8 @@ class EnumerateFilesystems(actions.ActionPlugin):
   Filesystems picked from:
     https://www.kernel.org/doc/Documentation/filesystems/
   """
-  acceptable_filesystems = set(["ext2", "ext3", "ext4", "vfat", "ntfs",
-                                "btrfs", "Reiserfs", "XFS", "JFS", "squashfs"])
+  acceptable_filesystems = set(["ext2", "ext3", "ext4", "vfat", "ntfs", "btrfs",
+                                "Reiserfs", "XFS", "JFS", "squashfs"])
   out_rdfvalues = [rdf_client.Filesystem]
 
   def CheckMounts(self, filename):
@@ -340,8 +339,11 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
     cmd_args = ["-i", path]
     time_limit = args.time_limit
 
-    client_utils_common.Execute(cmd, cmd_args, time_limit=time_limit,
-                                bypass_whitelist=True, daemon=True)
+    client_utils_common.Execute(cmd,
+                                cmd_args,
+                                time_limit=time_limit,
+                                bypass_whitelist=True,
+                                daemon=True)
 
     # The installer will run in the background and kill the main process
     # so we just wait. If something goes wrong, the nanny will restart the

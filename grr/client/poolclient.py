@@ -22,8 +22,7 @@ from grr.lib import startup
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
 
-flags.DEFINE_integer("nrclients", 1,
-                     "Number of clients to start")
+flags.DEFINE_integer("nrclients", 1, "Number of clients to start")
 
 flags.DEFINE_string("cert_file", "",
                     "Path to a file that stores all certificates for"
@@ -122,8 +121,7 @@ def CreateClientPool(n):
 
   # Note: code below is going to be executed after SIGTERM is sent to this
   # process.
-  logging.info("Pool done in %s seconds.",
-               time.time() - start_time)
+  logging.info("Pool done in %s seconds.", time.time() - start_time)
 
   # The way benchmarking is supposed to work is that we execute poolclient with
   # --enroll_only flag, it dumps the certificates to the flags.FLAGS.cert_file.
@@ -149,9 +147,8 @@ def CheckLocation():
 
 
 def main(unused_argv):
-  config_lib.CONFIG.AddContext(
-      "PoolClient Context",
-      "Context applied when we run the pool client.")
+  config_lib.CONFIG.AddContext("PoolClient Context",
+                               "Context applied when we run the pool client.")
 
   startup.ClientInit()
 
@@ -166,6 +163,7 @@ def main(unused_argv):
   vfs.VFS_HANDLERS[tsk] = vfs.VFS_HANDLERS[os]
 
   CreateClientPool(flags.FLAGS.nrclients)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

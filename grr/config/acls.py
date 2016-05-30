@@ -3,7 +3,6 @@
 
 from grr.lib import config_lib
 
-
 config_lib.DEFINE_string("ACL.approvers_config_file",
                          "%(Config.directory)/approvers.yaml",
                          "File that defines who can approve access to "

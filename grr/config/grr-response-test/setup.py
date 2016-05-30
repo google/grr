@@ -13,7 +13,6 @@ import shutil
 from setuptools import setup
 from setuptools.command.sdist import sdist
 
-
 THIS_DIRECTORY = os.path.dirname(os.path.realpath(__file__))
 
 # If you run setup.py from the root GRR dir you get very different results since
@@ -46,8 +45,8 @@ class Sdist(sdist):
     sdist_version_ini = os.path.join(base_dir, "version.ini")
     if os.path.exists(sdist_version_ini):
       os.unlink(sdist_version_ini)
-    shutil.copy(os.path.join(THIS_DIRECTORY, "../../../version.ini"),
-                sdist_version_ini)
+    shutil.copy(
+        os.path.join(THIS_DIRECTORY, "../../../version.ini"), sdist_version_ini)
 
 
 def find_data_files(source):
@@ -66,27 +65,25 @@ if "VIRTUAL_ENV" not in os.environ:
   print "  Expect breakage."
   print "*****************************************************"
 
-
-setup_args = dict(
-    name="grr-response-test",
-    version=VERSION.get("Version", "packageversion"),
-    description="The GRR Rapid Response test suite.",
-    license="Apache License, Version 2.0",
-    url="https://github.com/google/grr",
-    install_requires=[
-        "mock==1.3.0",
-        "mox==0.5.3",
-        "selenium==2.50.1",
-        "grr-response-server==%s" % VERSION.get("Version", "packagedepends"),
-    ],
-    cmdclass={"sdist": Sdist},
-    data_files=find_data_files("test_data"),
-    entry_points={
-        "console_scripts": [
-            "grr_run_tests = grr.tools.run_tests:DistEntry",
-            "grr_run_tests_gui = grr.gui.runtests_test:DistEntry",
-        ]
-    }
-)
+setup_args = dict(name="grr-response-test",
+                  version=VERSION.get("Version", "packageversion"),
+                  description="The GRR Rapid Response test suite.",
+                  license="Apache License, Version 2.0",
+                  url="https://github.com/google/grr",
+                  install_requires=[
+                      "mock==1.3.0",
+                      "mox==0.5.3",
+                      "selenium==2.50.1",
+                      "grr-response-server==%s" %
+                      VERSION.get("Version", "packagedepends"),
+                  ],
+                  cmdclass={"sdist": Sdist},
+                  data_files=find_data_files("test_data"),
+                  entry_points={
+                      "console_scripts": [
+                          "grr_run_tests = grr.tools.run_tests:DistEntry",
+                          "grr_run_tests_gui = grr.gui.runtests_test:DistEntry",
+                      ]
+                  })
 
 setup(**setup_args)

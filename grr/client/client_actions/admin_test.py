@@ -44,8 +44,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     # Make sure the file is gone
     self.assertRaises(IOError, open, self.config_file)
 
-    location = ["http://www.example1.com/",
-                "http://www.example2.com/"]
+    location = ["http://www.example1.com/", "http://www.example2.com/"]
     request = rdf_protodict.Dict()
     request["Client.server_urls"] = location
     request["Client.foreman_check_frequency"] = 3600
@@ -60,6 +59,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     self.assertTrue("server_urls: {0}".format(",".join(location)) in data)
 
     self.urls = []
+
     # Now test that our location was actually updated.
 
     def FakeUrlOpen(req, timeout=10):
@@ -78,7 +78,8 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     """Tests that disallowed fields are not getting updated."""
     with test_lib.ConfigOverrider({
         "Client.server_urls": ["http://something.com/"],
-        "Client.server_serial_number": 1}):
+        "Client.server_serial_number": 1
+    }):
 
       location = ["http://www.example.com"]
       request = rdf_protodict.Dict()
@@ -114,12 +115,12 @@ class MockStatsCollector(object):
 
   # First value in every tuple is a timestamp (as if it was returned by
   # time.time()).
-  cpu_samples = [(rdfvalue.RDFDatetime().FromSecondsFromEpoch(100),
-                  0.1, 0.1, 10.0),
-                 (rdfvalue.RDFDatetime().FromSecondsFromEpoch(110),
-                  0.1, 0.2, 15.0),
-                 (rdfvalue.RDFDatetime().FromSecondsFromEpoch(120),
-                  0.1, 0.3, 20.0)]
+  cpu_samples = [
+      (rdfvalue.RDFDatetime().FromSecondsFromEpoch(100), 0.1, 0.1, 10.0),
+      (rdfvalue.RDFDatetime().FromSecondsFromEpoch(110), 0.1, 0.2, 15.0),
+      (rdfvalue.RDFDatetime().FromSecondsFromEpoch(120), 0.1, 0.3, 20.0)
+  ]  # pyformat: disable
+
   io_samples = [(rdfvalue.RDFDatetime().FromSecondsFromEpoch(100), 100, 100),
                 (rdfvalue.RDFDatetime().FromSecondsFromEpoch(110), 200, 200),
                 (rdfvalue.RDFDatetime().FromSecondsFromEpoch(120), 300, 300)]
@@ -153,7 +154,8 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
     stats.STATS.RegisterCounterMetric("grr_client_sent_bytes")
     stats.STATS.IncrementCounter("grr_client_sent_bytes", 2000)
 
-    results = self.RunAction("GetClientStats", grr_worker=MockClientWorker(),
+    results = self.RunAction("GetClientStats",
+                             grr_worker=MockClientWorker(),
                              arg=rdf_client.GetClientStatsRequest())
 
     response = results[0]
@@ -162,9 +164,9 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
 
     self.assertEqual(len(response.cpu_samples), 3)
     for i in range(3):
-      self.assertEqual(response.cpu_samples[i].timestamp,
-                       rdfvalue.RDFDatetime().FromSecondsFromEpoch(
-                           100 + i * 10))
+      self.assertEqual(
+          response.cpu_samples[i].timestamp,
+          rdfvalue.RDFDatetime().FromSecondsFromEpoch(100 + i * 10))
       self.assertAlmostEqual(response.cpu_samples[i].user_cpu_time, 0.1)
       self.assertAlmostEqual(response.cpu_samples[i].system_cpu_time,
                              0.1 * (i + 1))
@@ -172,9 +174,9 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
 
     self.assertEqual(len(response.io_samples), 3)
     for i in range(3):
-      self.assertEqual(response.io_samples[i].timestamp,
-                       rdfvalue.RDFDatetime().FromSecondsFromEpoch(
-                           100 + i * 10))
+      self.assertEqual(
+          response.io_samples[i].timestamp,
+          rdfvalue.RDFDatetime().FromSecondsFromEpoch(100 + i * 10))
       self.assertEqual(response.io_samples[i].read_bytes, 100 * (i + 1))
       self.assertEqual(response.io_samples[i].write_bytes, 100 * (i + 1))
 
@@ -183,7 +185,8 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
   def testFiltersDataPointsByStartTime(self):
     start_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(117)
     results = self.RunAction(
-        "GetClientStats", grr_worker=MockClientWorker(),
+        "GetClientStats",
+        grr_worker=MockClientWorker(),
         arg=rdf_client.GetClientStatsRequest(start_time=start_time))
 
     response = results[0]
@@ -198,7 +201,8 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
   def testFiltersDataPointsByEndTime(self):
     end_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(102)
     results = self.RunAction(
-        "GetClientStats", grr_worker=MockClientWorker(),
+        "GetClientStats",
+        grr_worker=MockClientWorker(),
         arg=rdf_client.GetClientStatsRequest(end_time=end_time))
 
     response = results[0]
@@ -213,10 +217,11 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
   def testFiltersDataPointsByStartAndEndTimes(self):
     start_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(109)
     end_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(113)
-    results = self.RunAction(
-        "GetClientStats", grr_worker=MockClientWorker(),
-        arg=rdf_client.GetClientStatsRequest(start_time=start_time,
-                                             end_time=end_time))
+    results = self.RunAction("GetClientStats",
+                             grr_worker=MockClientWorker(),
+                             arg=rdf_client.GetClientStatsRequest(
+                                 start_time=start_time,
+                                 end_time=end_time))
 
     response = results[0]
     self.assertEqual(len(response.cpu_samples), 1)
@@ -230,6 +235,7 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

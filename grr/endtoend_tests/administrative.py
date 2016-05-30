@@ -19,8 +19,9 @@ class TestGetClientStats(base.AutomatedTest):
 
   def CheckFlow(self):
     aff4.FACTORY.Flush()
-    client_stats = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
-                                     token=self.token)
+    client_stats = aff4.FACTORY.Open(
+        self.client_id.Add(self.test_output_path),
+        token=self.token)
     self.assertIsInstance(client_stats, aff4.ClientStats)
 
     stats = list(client_stats.Get(client_stats.Schema.STATS))
@@ -56,10 +57,8 @@ class TestLaunchBinaries(base.ClientTestBase):
   """
   platforms = ["Windows", "Linux"]
   flow = "LaunchBinary"
-  filenames = {"Windows": "hello.exe",
-               "Linux": "hello"}
-  ds_names = {"Windows": "hello.exe",
-              "Linux": "hello"}
+  filenames = {"Windows": "hello.exe", "Linux": "hello"}
+  ds_names = {"Windows": "hello.exe", "Linux": "hello"}
 
   limit = None
 
@@ -67,13 +66,14 @@ class TestLaunchBinaries(base.ClientTestBase):
     super(TestLaunchBinaries, self).__init__(**kwargs)
     self.context = ["Platform:%s" % self.platform.title()]
     self.binary = config_lib.CONFIG.Get(
-        "Executables.aff4_path", context=self.context).Add(
-            "test/%s" % self.ds_names[self.platform])
+        "Executables.aff4_path",
+        context=self.context).Add("test/%s" % self.ds_names[self.platform])
 
     self.args = dict(binary=self.binary)
 
     try:
-      aff4.FACTORY.Open(self.binary, aff4_type="GRRSignedBlob",
+      aff4.FACTORY.Open(self.binary,
+                        aff4_type="GRRSignedBlob",
                         token=self.token)
     except IOError:
       print "Uploading the test binary to the Executables area."
@@ -84,15 +84,18 @@ class TestLaunchBinaries(base.ClientTestBase):
         self.fail("Path %s should exist." % source)
 
       maintenance_utils.UploadSignedConfigBlob(
-          open(source, "rb").read(), aff4_path=self.binary,
-          client_context=self.context, token=self.token, limit=self.limit)
+          open(source, "rb").read(),
+          aff4_path=self.binary,
+          client_context=self.context,
+          token=self.token,
+          limit=self.limit)
 
   def CheckFlow(self):
     # Check that the test binary returned the correct stdout:
-    fd = aff4.FACTORY.Open(self.session_id, age=aff4.ALL_TIMES,
+    fd = aff4.FACTORY.Open(self.session_id,
+                           age=aff4.ALL_TIMES,
                            token=self.token)
-    logs = "\n".join(
-        [x.log_message for x in fd.GetLog()])
+    logs = "\n".join([x.log_message for x in fd.GetLog()])
 
     self.assertTrue("Hello world" in logs)
 
@@ -104,5 +107,4 @@ class TestLaunchChunkedBinaries(TestLaunchBinaries):
 
   # Since we want to store the binary using chunks, we need to assign it a
   # different aff4 path than the one used in the previous test.
-  ds_names = {"Windows": "hello_chunked.exe",
-              "Linux": "hello_chunked"}
+  ds_names = {"Windows": "hello_chunked.exe", "Linux": "hello_chunked"}

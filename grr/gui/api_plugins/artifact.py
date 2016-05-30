@@ -11,7 +11,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-
 CATEGORY = "Artifacts"
 
 
@@ -56,8 +55,10 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
     """Get available artifact information for rendering."""
 
     # Get all artifacts that aren't Bootstrap and aren't the base class.
-    artifacts = sorted(artifact_registry.REGISTRY.GetArtifacts(
-        reload_datastore_artifacts=True), key=lambda art: art.name)
+    artifacts = sorted(
+        artifact_registry.REGISTRY.GetArtifacts(
+            reload_datastore_artifacts=True),
+        key=lambda art: art.name)
 
     total_count = len(artifacts)
 
@@ -67,8 +68,7 @@ class ApiListArtifactsHandler(api_call_handler_base.ApiCallHandler):
       artifacts = artifacts[args.offset:]
 
     descriptors = self.BuildArtifactDescriptors(artifacts)
-    return ApiListArtifactsResult(items=descriptors,
-                                  total_count=total_count)
+    return ApiListArtifactsResult(items=descriptors, total_count=total_count)
 
 
 class ApiUploadArtifactArgs(rdf_structs.RDFProtoStruct):
@@ -106,10 +106,11 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
 
     if deps:
       raise ValueError(
-          "Artifact(s) %s depend(s) on one of the artifacts to delete." % (
-              ",".join(list(deps))))
+          "Artifact(s) %s depend(s) on one of the artifacts to delete." %
+          (",".join(list(deps))))
 
-    with aff4.FACTORY.Create("aff4:/artifact_store", mode="r",
+    with aff4.FACTORY.Create("aff4:/artifact_store",
+                             mode="r",
                              aff4_type="RDFValueCollection",
                              token=token) as store:
       all_artifacts = list(store)
@@ -123,8 +124,8 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
 
     if len(found_artifacts) != len(to_delete):
       not_found = to_delete - set(found_artifacts)
-      raise ValueError(
-          "Artifact(s) to delete (%s) not found." % ",".join(list(not_found)))
+      raise ValueError("Artifact(s) to delete (%s) not found." %
+                       ",".join(list(not_found)))
 
     # TODO(user): this is ugly and error- and race-condition- prone.
     # We need to store artifacts not in an RDFValueCollection, which is an
@@ -133,7 +134,8 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
     # in the same folder.
     aff4.FACTORY.Delete("aff4:/artifact_store", token=token)
 
-    with aff4.FACTORY.Create("aff4:/artifact_store", mode="w",
+    with aff4.FACTORY.Create("aff4:/artifact_store",
+                             mode="w",
                              aff4_type="RDFValueCollection",
                              token=token) as store:
       for artifact_value in filtered_artifacts:

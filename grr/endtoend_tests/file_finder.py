@@ -28,7 +28,8 @@ class TestFileFinderOSWindows(transfer.TestGetFileOSWindows):
       download=download)
 
   args = {"paths": ["%%environ_systemroot%%\\System32\\notepad.*"],
-          "conditions": filecondition, "action": action}
+          "conditions": filecondition,
+          "action": action}
 
 
 class TestFileFinderTSKWindows(TestFileFinderOSWindows):
@@ -40,7 +41,8 @@ class TestFileFinderTSKWindows(TestFileFinderOSWindows):
   test_output_path = "/fs/tsk/.*/Windows/System32/notepad.exe"
 
   args = {"paths": ["%%environ_systemroot%%\\System32\\notepad.*"],
-          "action": action, "pathtype": "TSK"}
+          "action": action,
+          "pathtype": "TSK"}
 
 
 class TestFileFinderOSLinux(transfer.TestGetFileOSLinux):
@@ -60,7 +62,8 @@ class TestFileFinderOSLinux(transfer.TestGetFileOSLinux):
       download=download)
 
   args = {"paths": ["/bin/ps"],
-          "conditions": filecondition, "action": action}
+          "conditions": filecondition,
+          "action": action}
 
 
 class TestFileFinderOSLinuxProc(transfer.TestGetFileOSLinux):
@@ -81,7 +84,8 @@ class TestFileFinderOSLinuxProc(transfer.TestGetFileOSLinux):
       download=download)
 
   args = {"paths": ["/proc/sys/net/ipv4/ip_forward"],
-          "conditions": filecondition, "action": action}
+          "conditions": filecondition,
+          "action": action}
 
   def CheckFile(self, fd):
     data = fd.Read(10)
@@ -105,11 +109,13 @@ class TestFileFinderOSHomedir(TestFileFinderOSLinux):
   test_output_path = "/analysis/test/homedirs"
   action = file_finder.FileFinderAction(
       action_type=file_finder.FileFinderAction.Action.STAT)
-  args = {"paths": ["%%users.homedir%%/*"], "action": action,
+  args = {"paths": ["%%users.homedir%%/*"],
+          "action": action,
           "runner_args": flow_runner.FlowRunnerArgs(output=test_output_path)}
 
   def CheckFlow(self):
-    results = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
-                                token=self.token)
+    results = aff4.FACTORY.Open(
+        self.client_id.Add(self.test_output_path),
+        token=self.token)
     self.assertEqual(type(results), aff4.RDFValueCollection)
     self.assertTrue(len(results) > 1)

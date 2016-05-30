@@ -20,8 +20,9 @@ class RsyslogCheckTests(checks_test_lib.HostCheckTest):
   def testLoggingAuthRemoteOK(self):
     chk_id = "CIS-LOGGING-AUTH-REMOTE"
 
-    test_data = {"/etc/rsyslog.conf":
-                 "*.* @@tcp.example.com.:514;RSYSLOG_ForwardFormat"}
+    test_data = {
+        "/etc/rsyslog.conf": "*.* @@tcp.example.com.:514;RSYSLOG_ForwardFormat"
+    }
     host_data = self.GenFileData("LinuxRsyslogConfigs", test_data, self.parser)
     results = self.RunChecks(host_data)
     self.assertCheckUndetected(chk_id, results)
@@ -54,4 +55,3 @@ def main(argv):
 
 if __name__ == "__main__":
   flags.StartMain(main)
-

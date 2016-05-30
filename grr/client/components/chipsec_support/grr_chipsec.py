@@ -100,15 +100,11 @@ class DumpFlashImage(actions.ActionPlugin):
       if args.log_level:
         logs = self.ReadAndDeleteChipsecLogs()
         logs.append("%r: %s" % (err, err))
-        self.SendReply(chipsec_types.DumpFlashImageResponse(
-            logs=logs
-        ))
+        self.SendReply(chipsec_types.DumpFlashImageResponse(logs=logs))
         tempfiles.DeleteGRRTempFile(dest_pathspec.path)
       if isinstance(err, chipset.UnknownChipsetError):
         # If the chipset is unknown, simply returns an error message
-        self.SendReply(chipsec_types.DumpFlashImageResponse(
-            logs=["%s" % err],
-        ))
+        self.SendReply(chipsec_types.DumpFlashImageResponse(logs=["%s" % err],))
         return
       raise
 
@@ -119,7 +115,5 @@ class DumpFlashImage(actions.ActionPlugin):
       syslog.info("%s: DumpFlashImage has completed successfully",
                   config_lib.CONFIG["Client.name"])
 
-    self.SendReply(chipsec_types.DumpFlashImageResponse(
-        path=dest_pathspec,
-        logs=logs
-    ))
+    self.SendReply(chipsec_types.DumpFlashImageResponse(path=dest_pathspec,
+                                                        logs=logs))

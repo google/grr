@@ -46,7 +46,8 @@ class PkgSourceCheckTests(checks_test_lib.HostCheckTest):
               https://dl.google.com
             Suite: testing
             Section: main contrib
-            """}
+            """
+    }
 
     chk_id = "CIS-PKG-SOURCE-UNSUPPORTED-TRANSPORT"
     sym = "Found: APT sources use unsupported transport."
@@ -93,7 +94,8 @@ class PkgSourceCheckTests(checks_test_lib.HostCheckTest):
             [centosdvdiso]
             name=CentOS DVD ISO
             baseurl=file:///mnt/
-            """}
+            """
+    }
 
     chk_id = "CIS-PKG-SOURCE-UNSUPPORTED-TRANSPORT"
     sym = "Found: Yum sources use unsupported transport."
@@ -110,4 +112,3 @@ def main(argv):
 
 if __name__ == "__main__":
   flags.StartMain(main)
-

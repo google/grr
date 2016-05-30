@@ -70,8 +70,8 @@ def main(argv):
       except ValueError:
         date_string = timestamp
 
-      output_string = u"%s\t%s\t%s\t%s\t%s\t%s" % (
-          date_string, entry_type, url, data1, data2, data3)
+      output_string = u"%s\t%s\t%s\t%s\t%s\t%s" % (date_string, entry_type, url,
+                                                   data1, data2, data3)
 
       print output_string.encode("UTF-8")
 

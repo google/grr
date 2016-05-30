@@ -88,7 +88,8 @@ class ReportRenderer(renderers.TemplateRenderer):
       self.delegated_renderer.Layout(request, response)
 
     response = super(ReportRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "ReportRenderer.Layout",
+    return self.CallJavascript(response,
+                               "ReportRenderer.Layout",
                                renderer=self.__class__.__name__)
 
 
@@ -111,7 +112,8 @@ class StatsTree(renderers.TreeRenderer):
         elements = filter(None, category_name[len(path):].split("/"))
 
         # Do not allow duplicates
-        if elements and elements[0] in self: continue
+        if elements and elements[0] in self:
+          continue
 
         if len(elements) > 1:
           self.AddElement(elements[0], "branch")
@@ -144,8 +146,7 @@ class PieChart(Report):
 
   def Layout(self, request, response):
     response = super(PieChart, self).Layout(request, response)
-    return self.CallJavascript(response, "PieChart.Layout",
-                               data=self.data)
+    return self.CallJavascript(response, "PieChart.Layout", data=self.data)
 
 
 class OSBreakdown(PieChart):
@@ -159,8 +160,9 @@ class OSBreakdown(PieChart):
   def Layout(self, request, response):
     """Extract only the operating system type from the active histogram."""
     try:
-      fd = aff4.FACTORY.Open(self.data_urn.Add(request.label),
-                             token=request.token)
+      fd = aff4.FACTORY.Open(
+          self.data_urn.Add(request.label),
+          token=request.token)
       self.data = []
       for graph in fd.Get(self.attribute):
         # Find the correct graph and merge the OS categories together
@@ -239,16 +241,17 @@ evolves over time.
         days = sample.x_value / 1000000 / 24 / 60 / 60
         if days in self.active_days_display:
           label = "%s day active" % days
-          self.categories.setdefault(label, []).append(
-              (graph_series.age / 1000, sample.y_value))
+          self.categories.setdefault(
+              label, []).append((graph_series.age / 1000, sample.y_value))
 
   def Layout(self, request, response):
     """Show how the last active breakdown evolves over time."""
     try:
       self.start_time, self.end_time = GetAgeTupleFromRequest(request, 180)
-      fd = aff4.FACTORY.Open(self.data_urn.Add(request.label),
-                             token=request.token,
-                             age=(self.start_time, self.end_time))
+      fd = aff4.FACTORY.Open(
+          self.data_urn.Add(request.label),
+          token=request.token,
+          age=(self.start_time, self.end_time))
       self.categories = {}
       for graph_series in fd.GetValuesForAttribute(self.attribute):
         self._ProcessGraphSeries(graph_series)
@@ -261,7 +264,8 @@ evolves over time.
       pass
 
     response = super(LastActiveReport, self).Layout(request, response)
-    return self.CallJavascript(response, "LastActiveReport.Layout",
+    return self.CallJavascript(response,
+                               "LastActiveReport.Layout",
                                graphs=self.graphs)
 
 
@@ -280,8 +284,9 @@ on the GRR version.
       # Find the correct graph and merge the OS categories together
       if "%s day" % self.active_day in graph.title:
         for sample in graph:
-          self.categories.setdefault(sample.label, []).append(
-              (graph_series.age / 1000, sample.y_value))
+          self.categories.setdefault(
+              sample.label,
+              []).append((graph_series.age / 1000, sample.y_value))
         break
 
 
@@ -375,8 +380,10 @@ class AFF4ClientStats(Report):
     self.client_id = rdf_client.ClientURN(request.REQ.get("client_id"))
 
     self.start_time, self.end_time = GetAgeTupleFromRequest(request, 90)
-    fd = aff4.FACTORY.Open(self.client_id.Add("stats"), token=request.token,
-                           age=(self.start_time, self.end_time))
+    fd = aff4.FACTORY.Open(
+        self.client_id.Add("stats"),
+        token=request.token,
+        age=(self.start_time, self.end_time))
 
     self.graphs = []
 
@@ -393,7 +400,8 @@ class AFF4ClientStats(Report):
     for stat_entry in stats:
       for s in stat_entry.cpu_samples:
         series[int(s.timestamp / 1e3)] = s.cpu_percent
-    graph = StatGraph(name="CPU Usage", graph_id="cpu",
+    graph = StatGraph(name="CPU Usage",
+                      graph_id="cpu",
                       click_text="CPU usage on %date: %value")
     graph.AddSeries(series, "CPU Usage in %", max_samples)
     self.graphs.append(graph)
@@ -404,7 +412,8 @@ class AFF4ClientStats(Report):
       for s in stat_entry.io_samples:
         series[int(s.timestamp / 1e3)] = int(s.read_bytes / 1024 / 1024)
     graph = StatGraph(
-        name="IO Bytes Read", graph_id="io_read",
+        name="IO Bytes Read",
+        graph_id="io_read",
         click_text="Number of bytes received (IO) until %date: %value")
     graph.AddSeries(series, "IO Bytes Read in MB", max_samples)
     self.graphs.append(graph)
@@ -414,15 +423,16 @@ class AFF4ClientStats(Report):
       for s in stat_entry.io_samples:
         series[int(s.timestamp / 1e3)] = int(s.write_bytes / 1024 / 1024)
     graph = StatGraph(
-        name="IO Bytes Written", graph_id="io_write",
+        name="IO Bytes Written",
+        graph_id="io_write",
         click_text="Number of bytes written (IO) until %date: %value")
     graph.AddSeries(series, "IO Bytes Written in MB", max_samples)
     self.graphs.append(graph)
 
     # Memory usage graph.
-    graph = StatGraph(
-        name="Memory Usage", graph_id="memory",
-        click_text="Memory usage on %date: %value")
+    graph = StatGraph(name="Memory Usage",
+                      graph_id="memory",
+                      click_text="Memory usage on %date: %value")
     series = dict()
     for stat_entry in stats:
       series[int(stat_entry.age / 1e3)] = int(stat_entry.RSS_size / 1024 / 1024)
@@ -434,19 +444,19 @@ class AFF4ClientStats(Report):
     self.graphs.append(graph)
 
     # Network traffic graphs.
-    graph = StatGraph(
-        name="Network Bytes Received", graph_id="nw_received",
-        click_text="Network bytes received until %date: %value")
+    graph = StatGraph(name="Network Bytes Received",
+                      graph_id="nw_received",
+                      click_text="Network bytes received until %date: %value")
     series = dict()
     for stat_entry in stats:
-      series[int(stat_entry.age / 1e3)] = int(
-          stat_entry.bytes_received / 1024 / 1024)
+      series[int(stat_entry.age / 1e3)] = int(stat_entry.bytes_received / 1024 /
+                                              1024)
     graph.AddSeries(series, "Network Bytes Received in MB", max_samples)
     self.graphs.append(graph)
 
-    graph = StatGraph(
-        name="Network Bytes Sent", graph_id="nw_sent",
-        click_text="Network bytes sent until %date: %value")
+    graph = StatGraph(name="Network Bytes Sent",
+                      graph_id="nw_sent",
+                      click_text="Network bytes sent until %date: %value")
     series = dict()
     for stat_entry in stats:
       series[
@@ -455,7 +465,8 @@ class AFF4ClientStats(Report):
     self.graphs.append(graph)
 
     response = super(AFF4ClientStats, self).Layout(request, response)
-    return self.CallJavascript(response, "AFF4ClientStats.Layout",
+    return self.CallJavascript(response,
+                               "AFF4ClientStats.Layout",
                                graphs=[g.ToDict() for g in self.graphs])
 
 
@@ -491,14 +502,15 @@ class CustomXAxisChart(Report):
       if self.graph:
         for point in self.graph.data:
           self.data.append([[point.x_value, point.y_value]])
-          self.xaxis_ticks.append([point.x_value,
-                                   self.FormatLabel(point.x_value)])
+          self.xaxis_ticks.append([point.x_value, self.FormatLabel(
+              point.x_value)])
 
     except (IOError, TypeError):
       pass
 
     response = super(CustomXAxisChart, self).Layout(request, response)
-    return self.CallJavascript(response, "CustomXAxisChart.Layout",
+    return self.CallJavascript(response,
+                               "CustomXAxisChart.Layout",
                                data=self.data,
                                xaxis_ticks=self.xaxis_ticks)
 
@@ -531,7 +543,8 @@ class LogXAxisChart(CustomXAxisChart):
       pass
 
     response = super(CustomXAxisChart, self).Layout(request, response)
-    return self.CallJavascript(response, "CustomXAxisChart.Layout",
+    return self.CallJavascript(response,
+                               "CustomXAxisChart.Layout",
                                data=self.data,
                                xaxis_ticks=self.xaxis_ticks)
 
@@ -545,8 +558,7 @@ class FileStoreFileTypes(PieChart):
   def Layout(self, request, response):
     """Extract only the operating system type from the active histogram."""
     try:
-      fd = aff4.FACTORY.Open("aff4:/stats/FileStoreStats",
-                             token=request.token)
+      fd = aff4.FACTORY.Open("aff4:/stats/FileStoreStats", token=request.token)
       self.graph = fd.Get(self.attribute)
 
       self.data = []

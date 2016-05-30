@@ -40,8 +40,8 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
 
     found = ["Expected state was not found"]
     bad = [("foo", 233, ["/usr/local/foo", "-flags"])]
-    good = [("ntpd", 42, ["/usr/sbin/ntpd", "-p", "/var/run/ntpd.pid",
-                          "-g", "-u", "117:125"])]
+    good = [("ntpd", 42, ["/usr/sbin/ntpd", "-p", "/var/run/ntpd.pid", "-g",
+                          "-u", "117:125"])]
 
     # Check for when it is not running.
 
@@ -69,8 +69,8 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
         """}
 
     # A good config should pass.
-    results = self.RunChecks(
-        self.GenFileData("NtpConfFile", good_config, parser))
+    results = self.RunChecks(self.GenFileData("NtpConfFile", good_config,
+                                              parser))
     self.assertCheckUndetected(check_id, results)
 
     found = ["Expected state was not found"]
@@ -79,13 +79,12 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
            "recommendation following the Ntp December 2014 Vulnerability "
            "notice. (http://support.ntp.org/bin/view/Main/SecurityNotice)")
     # A bad one should detect a problem.
-    results = self.RunChecks(
-        self.GenFileData(artifact_id, bad_config, parser))
+    results = self.RunChecks(self.GenFileData(artifact_id, bad_config, parser))
     self.assertCheckDetectedAnom(check_id, results, sym, found)
 
     # And as the default is to be queryable, check we detect an empty config.
-    results = self.RunChecks(
-        self.GenFileData(artifact_id, bad_default_config, parser))
+    results = self.RunChecks(self.GenFileData(artifact_id, bad_default_config,
+                                              parser))
     self.assertCheckDetectedAnom(check_id, results, sym, found)
 
   def testNtpHasMonitorDisabled(self):
@@ -116,24 +115,22 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
     sym = ("Found: ntpd.conf is configured to allow monlist NTP reflection "
            "attacks.")
 
-    results = self.RunChecks(
-        self.GenFileData(artifact_id, good_config, parser))
+    results = self.RunChecks(self.GenFileData(artifact_id, good_config, parser))
     self.assertCheckUndetected(check_id, results)
 
-    results = self.RunChecks(
-        self.GenFileData(artifact_id, good_tricky_config, parser))
+    results = self.RunChecks(self.GenFileData(artifact_id, good_tricky_config,
+                                              parser))
     self.assertCheckUndetected(check_id, results)
 
-    results = self.RunChecks(
-        self.GenFileData(artifact_id, bad_config, parser))
+    results = self.RunChecks(self.GenFileData(artifact_id, bad_config, parser))
     self.assertCheckDetectedAnom(check_id, results, sym, found)
 
-    results = self.RunChecks(
-        self.GenFileData(artifact_id, bad_default_config, parser))
+    results = self.RunChecks(self.GenFileData(artifact_id, bad_default_config,
+                                              parser))
     self.assertCheckDetectedAnom(check_id, results, sym, found)
 
-    results = self.RunChecks(
-        self.GenFileData(artifact_id, bad_tricky_config, parser))
+    results = self.RunChecks(self.GenFileData(artifact_id, bad_tricky_config,
+                                              parser))
     self.assertCheckDetectedAnom(check_id, results, sym, found)
 
 

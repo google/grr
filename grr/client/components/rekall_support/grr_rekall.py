@@ -58,18 +58,18 @@ class GRRObjectRenderer(data_export.NativeDataExportObjectRenderer):
   renderers = ["GRRRekallRenderer"]
 
   def _GetDelegateObjectRenderer(self, item):
-    return self.FromEncoded(item, "DataExportRenderer")(
-        renderer=self.renderer, session=self.session)
+    return self.FromEncoded(item, "DataExportRenderer")(renderer=self.renderer,
+                                                        session=self.session)
 
   def EncodeToJsonSafe(self, item, **options):
     object_renderer = self.ForTarget(item, "DataExportRenderer")
-    return object_renderer(
-        renderer=self.renderer, session=self.session).EncodeToJsonSafe(
-            item, **options)
+    return object_renderer(renderer=self.renderer,
+                           session=self.session).EncodeToJsonSafe(item,
+                                                                  **options)
 
   def DecodeFromJsonSafe(self, value, options):
-    return self._GetDelegateObjectRenderer(value).DecodeFromJsonSafe(
-        value, options)
+    return self._GetDelegateObjectRenderer(value).DecodeFromJsonSafe(value,
+                                                                     options)
 
   def RawHTML(self, item, **options):
     raise NotImplementedError("Not producing HTML on the client.")
@@ -161,7 +161,10 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
 class GrrRekallSession(session.Session):
   """A GRR Specific Rekall session."""
 
-  def __init__(self, fhandle=None, action=None, initial_profiles=None,
+  def __init__(self,
+               fhandle=None,
+               action=None,
+               initial_profiles=None,
                **session_args):
     super(GrrRekallSession, self).__init__(
         cache_dir=config_lib.CONFIG["Client.rekall_profile_cache_path"])
@@ -172,7 +175,8 @@ class GrrRekallSession(session.Session):
     # overwritten later if needed.
     self._repository_managers = [
         (None, RekallCachingIOManager(initial_profiles=initial_profiles,
-                                      session=self))]
+                                      session=self))
+    ]
 
     # Apply default configuration options to the session state, unless
     # explicitly overridden by the session_args.
@@ -227,11 +231,9 @@ class RekallIOManager(io_manager.IOManager):
     self.session.logging.info("Asking server for profile %s", name)
     UPLOADED_PROFILES.pop(name, None)
 
-    self.session.action.SendReply(
-        rekall_types.RekallResponse(
-            missing_profile=name,
-            repository_version=constants.PROFILE_REPOSITORY_VERSION,
-        ))
+    self.session.action.SendReply(rekall_types.RekallResponse(
+        missing_profile=name,
+        repository_version=constants.PROFILE_REPOSITORY_VERSION,))
 
     # Wait for the server to wake us up. When we wake up the server should
     # have sent the profile over by calling the WriteRekallProfile.
@@ -281,8 +283,9 @@ class RekallAction(actions.SuspendableAction):
     if "filename" not in session_args and self.request.device:
       session_args["filename"] = self.request.device.path
 
-    rekal_session = GrrRekallSession(
-        action=self, initial_profiles=self.request.profiles, **session_args)
+    rekal_session = GrrRekallSession(action=self,
+                                     initial_profiles=self.request.profiles,
+                                     **session_args)
 
     plugin_errors = []
 
@@ -293,8 +296,8 @@ class RekallAction(actions.SuspendableAction):
         rekal_session.RunPlugin(plugin_request.plugin, **plugin_args)
       except Exception:  # pylint: disable=broad-except
         tb = traceback.format_exc()
-        logging.error("While running plugin (%s): %s",
-                      plugin_request.plugin, tb)
+        logging.error("While running plugin (%s): %s", plugin_request.plugin,
+                      tb)
         plugin_errors.append(tb)
       finally:
         rekal_session.Flush()

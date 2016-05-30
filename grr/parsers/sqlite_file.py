@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Copyright 2011 Google Inc. All Rights Reserved.
-
 """Parser for sqlite database files."""
 
 

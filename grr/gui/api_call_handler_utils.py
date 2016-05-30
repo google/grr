@@ -91,8 +91,8 @@ class CollectionArchiveGenerator(object):
         "description": self.description,
         "processed_files": self.total_files,
         "archived_files": self.archived_files,
-        "skipped_files": (self.total_files - self.archived_files -
-                          len(self.failed_files)),
+        "skipped_files": (
+            self.total_files - self.archived_files - len(self.failed_files)),
         "failed_files": len(self.failed_files)
     }
     if self.failed_files:
@@ -104,11 +104,12 @@ class CollectionArchiveGenerator(object):
     manifest_fd.write(yaml.safe_dump(manifest))
 
     manifest_fd.seek(0)
-    st = os.stat_result((0644, 0, 0, 0, 0, 0,
-                         len(manifest_fd.getvalue()), 0, 0, 0))
+    st = os.stat_result((0644, 0, 0, 0, 0, 0, len(manifest_fd.getvalue()), 0, 0,
+                         0))
 
     for chunk in self.archive_generator.WriteFromFD(
-        manifest_fd, os.path.join(self.prefix, "MANIFEST"), st=st):
+        manifest_fd, os.path.join(self.prefix, "MANIFEST"),
+        st=st):
       yield chunk
 
   def Generate(self, collection, token=None):
@@ -125,8 +126,8 @@ class CollectionArchiveGenerator(object):
       Binary chunks comprising the generated archive.
     """
     hashes = set()
-    for fd_urn_batch in utils.Grouper(self._ItemsToUrns(collection),
-                                      self.BATCH_SIZE):
+    for fd_urn_batch in utils.Grouper(
+        self._ItemsToUrns(collection), self.BATCH_SIZE):
 
       fds_to_write = {}
       for fd in aff4.FACTORY.MultiOpen(fd_urn_batch, token=token):
@@ -254,7 +255,6 @@ def FilterAff4Collection(collection, offset, count=0, filter_value=None):
         if len(items) >= count:
           break
   else:
-    items = list(itertools.islice(
-        collection.GenerateItems(offset), count))
+    items = list(itertools.islice(collection.GenerateItems(offset), count))
 
   return items

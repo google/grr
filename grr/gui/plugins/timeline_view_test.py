@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Tests for the Timeline viewer flow."""
 
 
@@ -30,28 +29,33 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     token = access_control.ACLToken(username="test", reason="fixture")
 
     fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=token)
-    cert = self.ClientCertFromPrivateKey(
-        config_lib.CONFIG["Client.private_key"])
+    cert = self.ClientCertFromPrivateKey(config_lib.CONFIG[
+        "Client.private_key"])
     client_cert = rdf_crypto.RDFX509Cert(cert.as_pem())
     fd.Set(fd.Schema.CERT(client_cert))
     fd.Close()
 
-    with test_lib.VFSOverrider(
-        rdf_paths.PathSpec.PathType.OS, test_lib.ClientVFSHandlerFixture):
+    with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
+                               test_lib.ClientVFSHandlerFixture):
       client_mock = action_mocks.ActionMock("ListDirectory")
       output_path = "analysis/Timeline/MAC"
 
       for _ in test_lib.TestFlowHelper(
-          "RecursiveListDirectory", client_mock, client_id=client_id,
-          pathspec=rdf_paths.PathSpec(
-              path="/", pathtype=rdf_paths.PathSpec.PathType.OS),
+          "RecursiveListDirectory",
+          client_mock,
+          client_id=client_id,
+          pathspec=rdf_paths.PathSpec(path="/",
+                                      pathtype=rdf_paths.PathSpec.PathType.OS),
           token=token):
         pass
 
       # Now make a timeline
-      for _ in test_lib.TestFlowHelper(
-          timelines.MACTimes.__name__, client_mock, client_id=client_id,
-          token=token, path="/", output=output_path):
+      for _ in test_lib.TestFlowHelper(timelines.MACTimes.__name__,
+                                       client_mock,
+                                       client_id=client_id,
+                                       token=token,
+                                       path="/",
+                                       output=output_path):
         pass
 
   def setUp(self):
@@ -69,8 +73,8 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001",
-                        self.GetText, "css=span[type=subject]")
+    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
+                        "css=span[type=subject]")
 
     # Choose client 1
     self.Click("css=td:contains('0001')")
@@ -100,8 +104,8 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     # does not work with chrome.
     self.Click("css=#toolbar_main form[name=query_form] button[type=submit]")
 
-    self.WaitUntilContains("2011-03-07 12:50:20",
-                           self.GetText, "css=tbody tr:first")
+    self.WaitUntilContains("2011-03-07 12:50:20", self.GetText,
+                           "css=tbody tr:first")
 
     self.Click("css=tbody tr:first td")
 
@@ -116,6 +120,7 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
 def main(argv):
   # Run the full test suite
   runtests_test.SeleniumTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

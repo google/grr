@@ -52,7 +52,10 @@ def main(unused_argv):
           pass
 
   encoded_sample_data = json.dumps(
-      sample_data, indent=2, sort_keys=True, separators=(",", ": "),
+      sample_data,
+      indent=2,
+      sort_keys=True,
+      separators=(",", ": "),
       cls=http_api.JSONEncoderWithRDFPrimitivesSupport)
   print encoded_sample_data
 

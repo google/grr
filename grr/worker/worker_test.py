@@ -25,7 +25,6 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
-
 # A global collector for test results
 RESULTS = []
 
@@ -218,8 +217,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(GrrWorkerTest, self).setUp()
     WorkerStuckableTestFlow.Reset()
-    self.patch_get_notifications = mock.patch.object(
-        queue_manager, "QueueManager", ShardedQueueManager)
+    self.patch_get_notifications = mock.patch.object(queue_manager,
+                                                     "QueueManager",
+                                                     ShardedQueueManager)
     self.patch_get_notifications.start()
 
     # Clear the results global
@@ -237,21 +237,24 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     else:
       request_id, response_id = 1, 1
     with queue_manager.QueueManager(token=self.token) as flow_manager:
-      flow_manager.QueueResponse(session_id, rdf_flows.GrrMessage(
-          source=client_id,
-          session_id=session_id,
-          payload=data,
-          request_id=request_id,
-          response_id=response_id))
+      flow_manager.QueueResponse(session_id,
+                                 rdf_flows.GrrMessage(source=client_id,
+                                                      session_id=session_id,
+                                                      payload=data,
+                                                      request_id=request_id,
+                                                      response_id=response_id))
       if not well_known:
         # For normal flows we have to send a status as well.
-        flow_manager.QueueResponse(session_id, rdf_flows.GrrMessage(
-            source=client_id,
-            session_id=session_id,
-            payload=rdf_flows.GrrStatus(
-                status=rdf_flows.GrrStatus.ReturnedStatus.OK),
-            request_id=request_id, response_id=response_id + 1,
-            type=rdf_flows.GrrMessage.Type.STATUS))
+        flow_manager.QueueResponse(
+            session_id,
+            rdf_flows.GrrMessage(
+                source=client_id,
+                session_id=session_id,
+                payload=rdf_flows.GrrStatus(
+                    status=rdf_flows.GrrStatus.ReturnedStatus.OK),
+                request_id=request_id,
+                response_id=response_id + 1,
+                type=rdf_flows.GrrMessage.Type.STATUS))
 
       flow_manager.QueueNotification(session_id=session_id)
       timestamp = flow_manager.frozen_timestamp
@@ -304,23 +307,23 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(tasks_on_client_queue), 9)
 
     # Ensure that processed requests are removed from state subject
-    self.assertEqual((None, 0), data_store.DB.Resolve(
-        session_id_1.Add("state"),
-        manager.FLOW_REQUEST_TEMPLATE % 1,
-        token=self.token))
+    self.assertEqual(
+        (None, 0),
+        data_store.DB.Resolve(
+            session_id_1.Add("state"),
+            manager.FLOW_REQUEST_TEMPLATE % 1,
+            token=self.token))
 
     # This flow is still in state Incoming.
     flow_obj = aff4.FACTORY.Open(session_id_1, token=self.token)
     self.assertTrue(flow_obj.state.context.state !=
                     rdf_flows.Flow.State.TERMINATED)
-    self.assertEqual(flow_obj.state.context["current_state"],
-                     "Incoming")
+    self.assertEqual(flow_obj.state.context["current_state"], "Incoming")
     # This flow should be done.
     flow_obj = aff4.FACTORY.Open(session_id_2, token=self.token)
     self.assertTrue(flow_obj.state.context.state ==
                     rdf_flows.Flow.State.TERMINATED)
-    self.assertEqual(flow_obj.state.context["current_state"],
-                     "End")
+    self.assertEqual(flow_obj.state.context["current_state"], "End")
 
   def testNoKillNotificationsScheduledForHunts(self):
     worker_obj = worker.GRRWorker(token=self.token)
@@ -360,7 +363,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
         flow.GRRFlow.StartFlow(flow_name="WorkerStuckableTestFlow",
-                               client_id=self.client_id, token=self.token,
+                               client_id=self.client_id,
+                               token=self.token,
                                sync=False)
 
         # Process all messages
@@ -384,8 +388,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def testStuckFlowGetsTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
-    stuck_flows_timeout = rdfvalue.Duration(
-        config_lib.CONFIG["Worker.stuck_flows_timeout"])
+    stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
+        "Worker.stuck_flows_timeout"])
 
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
@@ -402,8 +406,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       # Set the time to max worker flow duration + 1 minute. The flow is
       # currently blocked because of the way semaphores are set up.
       # Worker should consider the flow to be stuck and terminate it.
-      future_time = (initial_time + rdfvalue.Duration("1m") +
-                     stuck_flows_timeout)
+      future_time = (
+          initial_time + rdfvalue.Duration("1m") + stuck_flows_timeout)
       with test_lib.FakeTime(future_time.AsSecondsFromEpoch()):
         worker_obj.RunOnce()
 
@@ -422,8 +426,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def testStuckNotificationGetsDeletedAfterTheFlowIsTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
-    stuck_flows_timeout = rdfvalue.Duration(
-        config_lib.CONFIG["Worker.stuck_flows_timeout"])
+    stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
+        "Worker.stuck_flows_timeout"])
 
     try:
       with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
@@ -440,8 +444,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       # Set the time to max worker flow duration + 1 minute. The flow is
       # currently blocked because of the way how semaphores are set up.
       # Worker should consider the flow to be stuck and terminate it.
-      future_time = (initial_time + rdfvalue.Duration("1m") +
-                     stuck_flows_timeout)
+      future_time = (
+          initial_time + rdfvalue.Duration("1m") + stuck_flows_timeout)
       with test_lib.FakeTime(future_time.AsSecondsFromEpoch()):
         worker_obj.RunOnce()
 
@@ -465,10 +469,10 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     worker_obj = worker.GRRWorker(token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
 
-    stuck_flows_timeout = rdfvalue.Duration(
-        config_lib.CONFIG["Worker.stuck_flows_timeout"])
-    lease_timeout = rdfvalue.Duration(
-        config_lib.CONFIG["Worker.flow_lease_time"])
+    stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
+        "Worker.stuck_flows_timeout"])
+    lease_timeout = rdfvalue.Duration(config_lib.CONFIG[
+        "Worker.flow_lease_time"])
 
     WorkerStuckableTestFlow.Reset(heartbeat=True)
     try:
@@ -521,8 +525,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
   def testNonStuckFlowDoesNotGetTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
     initial_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(100)
-    stuck_flows_timeout = rdfvalue.Duration(
-        config_lib.CONFIG["Worker.stuck_flows_timeout"])
+    stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
+        "Worker.stuck_flows_timeout"])
 
     with test_lib.FakeTime(initial_time.AsSecondsFromEpoch()):
       session_id = flow.GRRFlow.StartFlow(flow_name="WorkerSendingTestFlow",
@@ -535,8 +539,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       worker_obj.thread_pool.Join()
 
     flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
-    self.assertEqual(flow_obj.state.context.state,
-                     rdf_flows.Flow.State.RUNNING)
+    self.assertEqual(flow_obj.state.context.state, rdf_flows.Flow.State.RUNNING)
 
     # Set the time to max worker flow duration + 1 minute. If the 'kill'
     # notification isn't deleted we should get it now.
@@ -547,8 +550,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
     # Check that flow didn't get terminated due to a logic bug.
-    self.assertEqual(flow_obj.state.context.state,
-                     rdf_flows.Flow.State.RUNNING)
+    self.assertEqual(flow_obj.state.context.state, rdf_flows.Flow.State.RUNNING)
 
   def testProcessMessagesWellKnown(self):
     worker_obj = worker.GRRWorker(token=self.token)
@@ -556,8 +558,10 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     # Send a message to a WellKnownFlow - ClientStatsAuto.
     session_id = administrative.GetClientStatsAuto.well_known_session_id
     client_id = rdf_client.ClientURN("C.1100110011001100")
-    self.SendResponse(session_id, data=rdf_client.ClientStats(RSS_size=1234),
-                      client_id=client_id, well_known=True)
+    self.SendResponse(session_id,
+                      data=rdf_client.ClientStats(RSS_size=1234),
+                      client_id=client_id,
+                      well_known=True)
 
     # Process all messages
     worker_obj.RunOnce()
@@ -578,10 +582,12 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     # Send a message to a WellKnownFlow - ClientStatsAuto.
     client_id = rdf_client.ClientURN("C.1100110011001100")
-    self.SendResponse(rdfvalue.SessionID(queue=queues.STATS,
-                                         flow_name="Stats"),
-                      data=rdf_client.ClientStats(RSS_size=1234),
-                      client_id=client_id, well_known=True)
+    self.SendResponse(
+        rdfvalue.SessionID(queue=queues.STATS,
+                           flow_name="Stats"),
+        data=rdf_client.ClientStats(RSS_size=1234),
+        client_id=client_id,
+        well_known=True)
 
     # Process all messages
     worker_obj.RunOnce()
@@ -608,8 +614,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     notification = rdf_flows.GrrNotification(session_id=session_id)
     manager.NotifyQueue(notification)
 
-    notifications = manager.GetNotificationsByPriority(
-        queues.FLOWS).get(notification.priority, [])
+    notifications = manager.GetNotificationsByPriority(queues.FLOWS).get(
+        notification.priority, [])
 
     # Check the notification is there. With multiple worker queue shards we can
     # get other notifications such as for audit event listeners, so we need to
@@ -621,8 +627,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     worker_obj.RunOnce()
     worker_obj.thread_pool.Join()
 
-    notifications = manager.GetNotificationsByPriority(
-        queues.FLOWS).get(notification.priority, [])
+    notifications = manager.GetNotificationsByPriority(queues.FLOWS).get(
+        notification.priority, [])
     notifications = [x for x in notifications if x.session_id == session_id]
 
     # Check the notification is now gone.
@@ -630,8 +636,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
   def testWorkerDeletesNotificationsForBrokenObjects(self):
     # Test notifications for objects that don't exist.
-    session_id = rdfvalue.SessionID(queue=queues.FLOWS,
-                                    flow_name="123456")
+    session_id = rdfvalue.SessionID(queue=queues.FLOWS, flow_name="123456")
 
     self.CheckNotificationsDisappear(session_id)
 
@@ -642,7 +647,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
                                         client_id=self.client_id,
                                         token=self.token)
     # Overwrite the type of the object such that opening it will now fail.
-    data_store.DB.Set(session_id, "aff4:type", "DeprecatedClass",
+    data_store.DB.Set(session_id,
+                      "aff4:type",
+                      "DeprecatedClass",
                       token=self.token)
 
     # Starting a new flow schedules notifications for the worker already but
@@ -685,8 +692,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     delay = config_lib.CONFIG["Worker.notification_retry_interval"]
     with test_lib.FakeTime(time.time() + 10 + delay):
-      requeued_notifications = manager.GetNotifications(
-          queues.FLOWS)
+      requeued_notifications = manager.GetNotifications(queues.FLOWS)
       # Check that there is a new notification.
       notifications = [n for n in notifications if n.session_id == session_id]
       self.assertEqual(len(requeued_notifications), 1)
@@ -726,27 +732,29 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     flow_manager = queue_manager.QueueManager(token=self.token)
     flow_manager.FreezeTimestamp()
 
-    flow_manager.QueueResponse(session_id, rdf_flows.GrrMessage(
-        source=self.client_id,
-        session_id=session_id,
-        payload=rdf_protodict.DataBlob(string="Response 2"),
-        request_id=request_id,
-        response_id=response_id))
+    flow_manager.QueueResponse(
+        session_id,
+        rdf_flows.GrrMessage(
+            source=self.client_id,
+            session_id=session_id,
+            payload=rdf_protodict.DataBlob(string="Response 2"),
+            request_id=request_id,
+            response_id=response_id))
 
     status = rdf_flows.GrrMessage(
         source=self.client_id,
         session_id=session_id,
         payload=rdf_flows.GrrStatus(
             status=rdf_flows.GrrStatus.ReturnedStatus.OK),
-        request_id=request_id, response_id=response_id + 1,
+        request_id=request_id,
+        response_id=response_id + 1,
         type=rdf_flows.GrrMessage.Type.STATUS)
 
     # Now we write half the status information.
     subject = session_id.Add("state")
     queue = flow_manager.to_write.setdefault(subject, {})
-    queue.setdefault(
-        flow_manager.FLOW_STATUS_TEMPLATE % request_id,
-        []).append((status.SerializeToString(), None))
+    queue.setdefault(flow_manager.FLOW_STATUS_TEMPLATE % request_id,
+                     []).append((status.SerializeToString(), None))
 
     flow_manager.Flush()
 
@@ -759,11 +767,13 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         flow_manager.QueueNotification(session_id=arg_session_id)
         flow_manager.Flush()
 
-      self.DeleteNotification.old_target(
-          self, arg_session_id, start=start, end=end)
+      self.DeleteNotification.old_target(self,
+                                         arg_session_id,
+                                         start=start,
+                                         end=end)
 
-    with utils.Stubber(
-        queue_manager.QueueManager, "DeleteNotification", WriteNotification):
+    with utils.Stubber(queue_manager.QueueManager, "DeleteNotification",
+                       WriteNotification):
       # This should process request 1 but not touch request 2.
       worker_obj.RunOnce()
       worker_obj.thread_pool.Join()
@@ -773,8 +783,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.assertNotEqual(flow_obj.state.context.state,
                         rdf_flows.Flow.State.ERROR)
 
-    request_data = data_store.DB.ResolvePrefix(session_id.Add("state"),
-                                               "flow:", token=self.token)
+    request_data = data_store.DB.ResolvePrefix(
+        session_id.Add("state"),
+        "flow:", token=self.token)
     subjects = [r[0] for r in request_data]
 
     # Make sure the status field and the original request are still there.
@@ -816,14 +827,16 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     request_id = 1
     with queue_manager.QueueManager(token=self.token) as manager:
       request_urn = session_id.Add("state")
-      res = data_store.DB.ResolvePrefix(
-          request_urn, "flow:status:00000001", token=self.token)
+      res = data_store.DB.ResolvePrefix(request_urn,
+                                        "flow:status:00000001",
+                                        token=self.token)
       self.assertTrue(res)
       self.assertEqual(res[0][2], frozen_timestamp)
 
       response_urn = manager.GetFlowResponseSubject(session_id, request_id)
-      res = data_store.DB.ResolvePrefix(
-          response_urn, "flow:response:00000001:", token=self.token)
+      res = data_store.DB.ResolvePrefix(response_urn,
+                                        "flow:response:00000001:",
+                                        token=self.token)
       self.assertTrue(res)
 
       for (_, _, timestamp) in res:
@@ -852,16 +865,17 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
             response_id=1,
             session_id=session_id,
             payload=rdf_protodict.DataBlob(string="test%s" % i))
-        for i in range(1, 11)]
+        for i in range(1, 11)
+    ]
     status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
     statuses = [
-        rdf_flows.GrrMessage(
-            request_id=i,
-            response_id=2,
-            session_id=session_id,
-            payload=status,
-            type=rdf_flows.GrrMessage.Type.STATUS)
-        for i in range(1, 11)]
+        rdf_flows.GrrMessage(request_id=i,
+                             response_id=2,
+                             session_id=session_id,
+                             payload=status,
+                             type=rdf_flows.GrrMessage.Type.STATUS)
+        for i in range(1, 11)
+    ]
 
     frontend_server.ReceiveMessages(self.client_id, messages + statuses)
 
@@ -881,6 +895,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
 def main(_):
   test_lib.main()
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

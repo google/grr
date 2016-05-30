@@ -28,8 +28,8 @@ def GetAuditLogFiles(offset, now, token):
   """
   # Go back offset seconds, and another rollover period to make sure we get
   # all the events
-  oldest_time = now - offset - rdfvalue.Duration(
-      config_lib.CONFIG["Logging.aff4_audit_log_rollover"])
+  oldest_time = now - offset - rdfvalue.Duration(config_lib.CONFIG[
+      "Logging.aff4_audit_log_rollover"])
   parentdir = aff4.FACTORY.Open("aff4:/audit/logs", token=token)
   logs = list(parentdir.ListChildren(age=(oldest_time.AsMicroSecondsFromEpoch(),
                                           now.AsMicroSecondsFromEpoch())))
@@ -37,7 +37,8 @@ def GetAuditLogFiles(offset, now, token):
     raise ValueError("Couldn't find any logs in aff4:/audit/logs "
                      "between %s and %s" % (oldest_time, now))
 
-  return aff4.FACTORY.MultiOpen(logs, aff4_type="RDFValueCollection",
+  return aff4.FACTORY.MultiOpen(logs,
+                                aff4_type="RDFValueCollection",
                                 token=token)
 
 
@@ -103,7 +104,8 @@ class StackChart(statistics.Report):
   def Layout(self, request, response):
     response = super(StackChart, self).Layout(request, response)
     if self.data:
-      response = self.CallJavascript(response, "StackChart.Layout",
+      response = self.CallJavascript(response,
+                                     "StackChart.Layout",
                                      specs=self.data)
     return response
 
@@ -183,15 +185,16 @@ class SystemFlows(statistics.Report, renderers.TableRenderer):
           counts[event.flow_name][event.user] += 1
 
       for flow, countdict in sorted(counts.iteritems(),
-                                    key=lambda x: x[1]["total"],
-                                    reverse=True):
+                                    key=lambda x: x[1]["total"], reverse=True):
         total_count = countdict["total"]
         countdict.pop("total")
         topusercounts = sorted(countdict.iteritems(),
-                               key=operator.itemgetter(1), reverse=True)[0:3]
-        topusers = ", ".join("%s (%s)" % (user, count) for user, count in
-                             topusercounts)
-        self.AddRow({"Flow Name": flow, "Run Count": total_count,
+                               key=operator.itemgetter(1),
+                               reverse=True)[0:3]
+        topusers = ", ".join("%s (%s)" % (user, count)
+                             for user, count in topusercounts)
+        self.AddRow({"Flow Name": flow,
+                     "Run Count": total_count,
                      "Most Run By": topusers})
     except IOError:
       pass
@@ -270,8 +273,12 @@ class AuditTable(statistics.Report, renderers.TableRenderer):
 </div>
 """) + renderers.TableRenderer.layout_template
   time_offset = rdfvalue.Duration("7d")
-  column_map = {"Timestamp": "timestamp", "Action": "action", "User": "user",
-                "Client": "client", "Flow Name": "flow_name", "URN": "urn",
+  column_map = {"Timestamp": "timestamp",
+                "Action": "action",
+                "User": "user",
+                "Client": "client",
+                "Flow Name": "flow_name",
+                "URN": "urn",
                 "Description": "description"}
 
   # To be set by subclass
@@ -304,8 +311,11 @@ class ClientApprovals(AuditTable):
   """Last week's client approvals."""
   category = "/Server/Approvals/Clients/  7 days"
   title = "Client approval requests and grants for the last 7 days"
-  column_map = {"Timestamp": "timestamp", "Approval Type": "action", "User":
-                "user", "Client": "client", "Reason": "description"}
+  column_map = {"Timestamp": "timestamp",
+                "Approval Type": "action",
+                "User": "user",
+                "Client": "client",
+                "Reason": "description"}
   TYPES = [lib_flow.AuditEvent.Action.CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
            lib_flow.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
            lib_flow.AuditEvent.Action.CLIENT_APPROVAL_REQUEST]
@@ -322,8 +332,11 @@ class HuntApprovals(AuditTable):
   """Last week's hunt approvals."""
   category = "/Server/Approvals/Hunts/  7 days"
   title = "Hunt approval requests and grants for the last 7 days"
-  column_map = {"Timestamp": "timestamp", "Approval Type": "action", "User":
-                "user", "URN": "urn", "Reason": "description"}
+  column_map = {"Timestamp": "timestamp",
+                "Approval Type": "action",
+                "User": "user",
+                "URN": "urn",
+                "Reason": "description"}
   TYPES = [lib_flow.AuditEvent.Action.HUNT_APPROVAL_GRANT,
            lib_flow.AuditEvent.Action.HUNT_APPROVAL_REQUEST]
 
@@ -354,8 +367,11 @@ class HuntActions(AuditTable):
   """Last week's hunt actions."""
   category = "/Server/Hunts/  7 days"
   title = "Hunt management actions for the last 7 days"
-  column_map = {"Timestamp": "timestamp", "Action": "action",
-                "User": "user", "Flow Name": "flow_name", "URN": "urn",
+  column_map = {"Timestamp": "timestamp",
+                "Action": "action",
+                "User": "user",
+                "Flow Name": "flow_name",
+                "URN": "urn",
                 "Description": "description"}
 
   TYPES = [lib_flow.AuditEvent.Action.HUNT_CREATED,

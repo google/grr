@@ -42,11 +42,13 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     self.legacy_manager.CheckCronJobAccess(token.RealUID(), cron_job_urn)
 
   def CheckIfCanStartClientFlow(self, flow_name, token=None):
-    self.legacy_manager.CheckIfCanStartFlow(token.RealUID(), flow_name,
+    self.legacy_manager.CheckIfCanStartFlow(token.RealUID(),
+                                            flow_name,
                                             with_client_id=True)
 
   def CheckIfCanStartGlobalFlow(self, flow_name, token=None):
-    self.legacy_manager.CheckIfCanStartFlow(token.RealUID(), flow_name,
+    self.legacy_manager.CheckIfCanStartFlow(token.RealUID(),
+                                            flow_name,
                                             with_client_id=False)
 
   def __init__(self, legacy_manager=None, delegate=None):
@@ -216,8 +218,9 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
   def CreateFlow(self, args, token=None):
     self.CheckClientAccess(args.client_id, token=token)
-    self.CheckIfCanStartClientFlow(
-        args.flow.name or args.flow.runner_args.flow_name, token=token)
+    self.CheckIfCanStartClientFlow(args.flow.name or
+                                   args.flow.runner_args.flow_name,
+                                   token=token)
 
     return self.delegate.CreateFlow(args, token=token)
 
@@ -265,8 +268,9 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
   # ====================
   #
   def CreateGlobalFlow(self, args, token=None):
-    self.CheckIfCanStartGlobalFlow(
-        args.flow.name or args.flow.runner_args.flow_name, token=token)
+    self.CheckIfCanStartGlobalFlow(args.flow.name or
+                                   args.flow.runner_args.flow_name,
+                                   token=token)
 
     return self.delegate.CreateGlobalFlow(args, token=token)
 
@@ -429,20 +433,17 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
   def GetPendingUserNotificationsCount(self, args, token=None):
     # Everybody can get their own pending notifications count.
 
-    return self.delegate.GetPendingUserNotificationsCount(
-        args, token=token)
+    return self.delegate.GetPendingUserNotificationsCount(args, token=token)
 
   def GetPendingUserNotifications(self, args, token=None):
     # Everybody can get their own pending notifications count.
 
-    return self.delegate.GetPendingUserNotifications(
-        args, token=token)
+    return self.delegate.GetPendingUserNotifications(args, token=token)
 
   def DeletePendingUserNotification(self, args, token=None):
     # Everybody can get their own pending notifications count.
 
-    return self.delegate.DeletePendingUserNotification(
-        args, token=token)
+    return self.delegate.DeletePendingUserNotification(args, token=token)
 
   def GetAndResetUserNotifications(self, args, token=None):
     # Everybody can get their own user notifications.

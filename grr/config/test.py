@@ -3,9 +3,9 @@
 from grr.lib import config_lib
 
 # Default for running in the current directory
-config_lib.DEFINE_constant_string(
-    "Test.srcdir", "%(grr|module_path)/../",
-    "The directory containing the source code.")
+config_lib.DEFINE_constant_string("Test.srcdir",
+                                  "%(grr|module_path)/../",
+                                  "The directory containing the source code.")
 
 config_lib.DEFINE_constant_string(
     "Test.data_dir",
@@ -17,14 +17,14 @@ config_lib.DEFINE_constant_string(
     default="%(Test.data_dir)/localtest.yaml",
     help="The path to a test config with local customizations.")
 
-config_lib.DEFINE_string("Test.tmpdir", "/tmp/",
+config_lib.DEFINE_string("Test.tmpdir",
+                         "/tmp/",
                          help="Somewhere to write temporary files.")
 
 config_lib.DEFINE_string("Test.data_store", "FakeDataStore",
                          "The data store to run the tests against.")
 
-config_lib.DEFINE_integer("Test.remote_pdb_port", 2525,
-                          "Remote debugger port.")
+config_lib.DEFINE_integer("Test.remote_pdb_port", 2525, "Remote debugger port.")
 
 config_lib.DEFINE_list("Test.end_to_end_client_ids", [],
                        "List of client ids to perform regular end_to_end tests"

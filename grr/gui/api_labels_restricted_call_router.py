@@ -21,9 +21,13 @@ from grr.lib.aff4_objects import user_managers
 class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
   """Router that restricts access only to clients with certain labels."""
 
-  def __init__(self, labels_whitelist=None, labels_owners_whitelist=None,
-               allow_flows=False, allow_vfs_access=False,
-               legacy_manager=None, delegate=None):
+  def __init__(self,
+               labels_whitelist=None,
+               labels_owners_whitelist=None,
+               allow_flows=False,
+               allow_vfs_access=False,
+               legacy_manager=None,
+               delegate=None):
     super(ApiLabelsRestrictedCallRouter, self).__init__()
 
     self.labels_whitelist = set(labels_whitelist or [])
@@ -44,7 +48,8 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
 
   def CheckClientLabels(self, client_id, token=None):
     has_label = False
-    with aff4.FACTORY.Open(client_id, aff4_type=aff4_grr.VFSGRRClient.__name__,
+    with aff4.FACTORY.Open(client_id,
+                           aff4_type=aff4_grr.VFSGRRClient.__name__,
                            token=token) as fd:
       for label in fd.GetLabels():
         if (label.name in self.labels_whitelist and
@@ -68,7 +73,8 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
           "User is not allowed to work with flows.")
 
   def CheckIfCanStartClientFlow(self, flow_name, token=None):
-    self.legacy_manager.CheckIfCanStartFlow(token.RealUID(), flow_name,
+    self.legacy_manager.CheckIfCanStartFlow(token.RealUID(),
+                                            flow_name,
                                             with_client_id=True)
 
   def CheckClientApproval(self, client_id, token=None):
@@ -170,8 +176,9 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
   def CreateFlow(self, args, token=None):
     self.CheckFlowsAllowed()
     self.CheckClientApproval(args.client_id, token=token)
-    self.CheckIfCanStartClientFlow(
-        args.flow.name or args.flow.runner_args.flow_name, token=token)
+    self.CheckIfCanStartClientFlow(args.flow.name or
+                                   args.flow.runner_args.flow_name,
+                                   token=token)
 
     return self.delegate.CreateFlow(args, token=token)
 
@@ -247,20 +254,17 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
   def GetPendingUserNotificationsCount(self, args, token=None):
     # Everybody can get their own pending notifications count.
 
-    return self.delegate.GetPendingUserNotificationsCount(
-        args, token=token)
+    return self.delegate.GetPendingUserNotificationsCount(args, token=token)
 
   def GetPendingUserNotifications(self, args, token=None):
     # Everybody can get their own pending notifications.
 
-    return self.delegate.GetPendingUserNotifications(
-        args, token=token)
+    return self.delegate.GetPendingUserNotifications(args, token=token)
 
   def DeletePendingUserNotification(self, args, token=None):
     # Everybody can delete their own pending notifications.
 
-    return self.delegate.DeletePendingUserNotification(
-        args, token=token)
+    return self.delegate.DeletePendingUserNotification(args, token=token)
 
   def GetAndResetUserNotifications(self, args, token=None):
     # Everybody can get and reset their own user notifications.
@@ -271,8 +275,7 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
     # Everybody can get their own user object.
 
     interface_traits = api_user.ApiGrrUserInterfaceTraits(
-        search_clients_action_enabled=True
-    )
+        search_clients_action_enabled=True)
     return api_user.ApiGetGrrUserHandler(interface_traits=interface_traits)
 
   def UpdateGrrUser(self, args, token=None):

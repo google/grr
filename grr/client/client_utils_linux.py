@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Linux specific utils."""
 
 
@@ -26,6 +25,7 @@ from grr.lib.rdfvalues import paths as rdf_paths
 # TODO(user): Find a reliable way to do this for Linux.
 def LinFindProxies():
   return []
+
 
 MOUNTPOINT_CACHE = [0, None]
 

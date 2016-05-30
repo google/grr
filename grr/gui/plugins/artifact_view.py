@@ -36,8 +36,8 @@ class ArtifactListRenderer(forms.MultiSelectListRenderer):
           </div>""")
 
   layout_template = (
-      """<div class="form-group">"""
-      + forms.TypeDescriptorFormRenderer.default_description_view + """
+      """<div class="form-group">""" +
+      forms.TypeDescriptorFormRenderer.default_description_view + """
   <div id='{{unique|escape}}_artifact_renderer' class="controls">
   <div>
     <table class='artifact_table'>
@@ -56,8 +56,7 @@ class ArtifactListRenderer(forms.MultiSelectListRenderer):
             multiple />
         <td class="artifact_table">
           <select id='{{this.prefix|escape}}' class='artifact_list' multiple/>
-        <td class="artifact_table">"""
-      + artifact_template + """
+        <td class="artifact_table">""" + artifact_template + """
       </tr>
       <tr>
         <td>
@@ -105,8 +104,11 @@ class ArtifactListRenderer(forms.MultiSelectListRenderer):
     response = renderers.TypeDescriptorFormRenderer.Layout(self, request,
                                                            response)
     return self.CallJavascript(
-        response, "ArtifactListRenderer.Layout", prefix=self.prefix,
-        artifacts=artifact_dict, labels=self.labels,
+        response,
+        "ArtifactListRenderer.Layout",
+        prefix=self.prefix,
+        artifacts=artifact_dict,
+        labels=self.labels,
         supported_os=artifact_registry.Artifact.SUPPORTED_OS_LIST)
 
 
@@ -115,17 +117,17 @@ class ArtifactRDFValueRenderer(semantic.RDFValueRenderer):
 
   classname = "Artifact"
 
-  layout_template = renderers.Template(
-      """
-<div id={{unique|escape}}_artifact_description>"""
-      + ArtifactListRenderer.artifact_template + """
+  layout_template = renderers.Template("""
+<div id={{unique|escape}}_artifact_description>""" + ArtifactListRenderer.
+                                       artifact_template + """
 </div>
 """)
 
   def Layout(self, request, response):
     self.artifact_str = self.proxy.ToPrettyJson()
     response = super(ArtifactRDFValueRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "ArtifactRDFValueRenderer.Layout",
+    return self.CallJavascript(response,
+                               "ArtifactRDFValueRenderer.Layout",
                                artifact_str=self.artifact_str)
 
 

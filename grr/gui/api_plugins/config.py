@@ -12,7 +12,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-
 CATEGORY = "Settings"
 
 # TODO(user): sensitivity of config options and sections should

@@ -34,7 +34,6 @@ from grr.lib import utils
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 
-
 # pylint: disable=g-bad-name
 
 
@@ -49,7 +48,10 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   active_counter_lock = threading.Lock()
   active_counter = 0
 
-  def Send(self, data, status=200, ctype="application/octet-stream",
+  def Send(self,
+           data,
+           status=200,
+           ctype="application/octet-stream",
            last_modified=0):
 
     self.wfile.write(("HTTP/1.0 %s\r\n"
@@ -58,9 +60,8 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
                       "Content-Length: %d\r\n"
                       "Last-Modified: %s\r\n"
                       "\r\n"
-                      "%s") %
-                     (self.statustext[status], ctype, len(data),
-                      self.date_time_string(last_modified), data))
+                      "%s") % (self.statustext[status], ctype, len(data),
+                               self.date_time_string(last_modified), data))
 
   def do_GET(self):
     """Serve the server pem with GET requests."""
@@ -133,7 +134,8 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     with GRRHTTPServerHandler.active_counter_lock:
       GRRHTTPServerHandler.active_counter += 1
-      stats.STATS.SetGaugeValue("frontend_active_count", self.active_counter,
+      stats.STATS.SetGaugeValue("frontend_active_count",
+                                self.active_counter,
                                 fields=["http"])
 
     try:
@@ -163,9 +165,8 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           request_comms, responses_comms)
 
       logging.info("HTTP request from %s (%s), %d bytes - %d messages received,"
-                   " %d messages sent.",
-                   source, utils.SmartStr(source_ip), length, nr_messages,
-                   responses_comms.num_messages)
+                   " %d messages sent.", source, utils.SmartStr(source_ip),
+                   length, nr_messages, responses_comms.num_messages)
 
       self.Send(responses_comms.SerializeToString())
 
@@ -185,7 +186,8 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     finally:
       with GRRHTTPServerHandler.active_counter_lock:
         GRRHTTPServerHandler.active_counter -= 1
-        stats.STATS.SetGaugeValue("frontend_active_count", self.active_counter,
+        stats.STATS.SetGaugeValue("frontend_active_count",
+                                  self.active_counter,
                                   fields=["http"])
 
 
@@ -232,10 +234,10 @@ def CreateServer(frontend=None):
 
   for port in range(config_lib.CONFIG["Frontend.bind_port"], max_port + 1):
 
-    server_address = (config_lib.CONFIG["Frontend.bind_address"],
-                      port)
+    server_address = (config_lib.CONFIG["Frontend.bind_address"], port)
     try:
-      httpd = GRRHTTPServer(server_address, GRRHTTPServerHandler,
+      httpd = GRRHTTPServer(server_address,
+                            GRRHTTPServerHandler,
                             frontend=frontend)
       break
     except socket.error as e:
@@ -270,6 +272,7 @@ def main(unused_argv):
     httpd.serve_forever()
   except KeyboardInterrupt:
     print "Caught keyboard interrupt, stopping"
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

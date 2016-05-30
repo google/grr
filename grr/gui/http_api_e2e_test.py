@@ -10,7 +10,6 @@ import json
 import portpicker
 import requests
 
-
 import logging
 
 from grr.gui import runtests
@@ -55,8 +54,9 @@ class ApiClientTest(test_lib.GRRBaseTest):
   def testSearchClientsWith2Clients(self):
     client_urns = sorted(self.SetupClients(2))
 
-    clients = sorted(self.api.SearchClients(query="."),
-                     key=lambda c: c.client_id)
+    clients = sorted(
+        self.api.SearchClients(query="."),
+        key=lambda c: c.client_id)
     self.assertEqual(len(clients), 2)
 
     for i in range(2):
@@ -101,9 +101,8 @@ class ApiClientTest(test_lib.GRRBaseTest):
     self.assertEqual(len(list(children)), 0)
 
     client_ref = self.api.Client(client_id=client_urn.Basename())
-    result_flow = client_ref.CreateFlow(
-        name=processes.ListProcesses.__name__,
-        args=args.AsPrimitiveProto())
+    result_flow = client_ref.CreateFlow(name=processes.ListProcesses.__name__,
+                                        args=args.AsPrimitiveProto())
 
     children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
     self.assertEqual(len(list(children)), 1)
@@ -154,15 +153,12 @@ class CSRFProtectionTest(test_lib.GRRBaseTest):
     self.assertEquals(response.status_code, 405)
 
   def testHEADRequestNotEnabledForDeleteUrls(self):
-    response = requests.head(
-        self.base_url + "/api/users/me/notifications/pending/0")
+    response = requests.head(self.base_url +
+                             "/api/users/me/notifications/pending/0")
     self.assertEquals(response.status_code, 405)
 
   def testPOSTRequestWithoutCSRFTokenFails(self):
-    data = {
-        "client_ids": ["C.0000000000000000"],
-        "labels": ["foo", "bar"]
-        }
+    data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
 
     response = requests.post(self.base_url + "/api/clients/labels/add",
                              data=json.dumps(data))
@@ -175,16 +171,12 @@ class CSRFProtectionTest(test_lib.GRRBaseTest):
     index_response = requests.get(self.base_url)
     csrf_token = index_response.cookies.get("csrftoken")
 
-    data = {
-        "client_ids": ["C.0000000000000000"],
-        "labels": ["foo", "bar"]
-        }
-    cookies = {
-        "csrftoken": csrf_token
-        }
+    data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
+    cookies = {"csrftoken": csrf_token}
 
     response = requests.post(self.base_url + "/api/clients/labels/add",
-                             data=json.dumps(data), cookies=cookies)
+                             data=json.dumps(data),
+                             cookies=cookies)
 
     self.assertEquals(response.status_code, 403)
     self.assertTrue("CSRF" in response.text)
@@ -197,23 +189,19 @@ class CSRFProtectionTest(test_lib.GRRBaseTest):
     headers = {
         "x-csrftoken": csrf_token,
         "x-requested-with": "XMLHttpRequest"
-        }
-    data = {
-        "client_ids": ["C.0000000000000000"],
-        "labels": ["foo", "bar"]
-        }
-    cookies = {
-        "csrftoken": csrf_token
-        }
+    }
+    data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
+    cookies = {"csrftoken": csrf_token}
 
     response = requests.post(self.base_url + "/api/clients/labels/add",
-                             headers=headers, data=json.dumps(data),
+                             headers=headers,
+                             data=json.dumps(data),
                              cookies=cookies)
     self.assertEquals(response.status_code, 200)
 
   def testDELETERequestWithoutCSRFTokenFails(self):
-    response = requests.delete(
-        self.base_url + "/api/users/me/notifications/pending/0")
+    response = requests.delete(self.base_url +
+                               "/api/users/me/notifications/pending/0")
 
     self.assertEquals(response.status_code, 403)
     self.assertTrue("CSRF" in response.text)
@@ -223,9 +211,7 @@ class CSRFProtectionTest(test_lib.GRRBaseTest):
     index_response = requests.get(self.base_url)
     csrf_token = index_response.cookies.get("csrftoken")
 
-    cookies = {
-        "csrftoken": csrf_token
-        }
+    cookies = {"csrftoken": csrf_token}
 
     response = requests.delete(
         self.base_url + "/api/users/me/notifications/pending/0",
@@ -242,14 +228,13 @@ class CSRFProtectionTest(test_lib.GRRBaseTest):
     headers = {
         "x-csrftoken": csrf_token,
         "x-requested-with": "XMLHttpRequest"
-        }
-    cookies = {
-        "csrftoken": csrf_token
-        }
+    }
+    cookies = {"csrftoken": csrf_token}
 
     response = requests.delete(
         self.base_url + "/api/users/me/notifications/pending/0",
-        headers=headers, cookies=cookies)
+        headers=headers,
+        cookies=cookies)
 
     self.assertEquals(response.status_code, 200)
 

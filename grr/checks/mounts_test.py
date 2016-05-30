@@ -48,8 +48,7 @@ class LinuxMountsTests(checks_test_lib.HostCheckTest):
 
     sym = "Found: Non-system mountpoints allow devices"
     # Mount options have variable ordering, so do a substring match.
-    found = ["/media: /dev/sda2 mounted",
-             "/tmp/media: /dev/sda3 mounted"]
+    found = ["/media: /dev/sda2 mounted", "/tmp/media: /dev/sda3 mounted"]
     self.assertCheckDetectedAnom(check_id, results, sym, found)
 
   def testNoUserSUIDAllowed(self):
@@ -75,4 +74,3 @@ def main(argv):
 
 if __name__ == "__main__":
   flags.StartMain(main)
-

@@ -24,9 +24,13 @@ class MemoryVFS(vfs.VFSHandler):
   supported_pathtype = rdf_paths.PathSpec.PathType.MEMORY
   auto_register = True
 
-  def __init__(self, base_fd, pathspec=None, progress_callback=None,
+  def __init__(self,
+               base_fd,
+               pathspec=None,
+               progress_callback=None,
                full_pathspec=None):
-    super(MemoryVFS, self).__init__(None, progress_callback=progress_callback,
+    super(MemoryVFS, self).__init__(None,
+                                    progress_callback=progress_callback,
                                     full_pathspec=full_pathspec)
     if base_fd is not None:
       raise IOError("Memory handler can not be stacked on another handler.")
@@ -41,7 +45,11 @@ class MemoryVFS(vfs.VFSHandler):
     self.size = self.address_space.end()
 
   @classmethod
-  def Open(cls, fd, component, pathspec=None, full_pathspec=None,
+  def Open(cls,
+           fd,
+           component,
+           pathspec=None,
+           full_pathspec=None,
            progress_callback=None):
     if fd is None:
       return cls(base_fd=None, full_pathspec=full_pathspec)
@@ -51,8 +59,7 @@ class MemoryVFS(vfs.VFSHandler):
     return False
 
   def Stat(self):
-    result = rdf_client.StatEntry(st_size=self.size,
-                                  pathspec=self.pathspec)
+    result = rdf_client.StatEntry(st_size=self.size, pathspec=self.pathspec)
     return result
 
   def GetMemoryInformation(self):

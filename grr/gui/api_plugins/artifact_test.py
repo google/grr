@@ -58,15 +58,14 @@ class ApiListArtifactsHandlerTest(test_lib.FlowTestsBaseclass):
     self.assertTrue(fake_artifact.artifact.supported_os)
 
 
-class ArtifactHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest):
+class ArtifactHandlerRegressionTest(api_test_lib.ApiCallHandlerRegressionTest):
 
   handler = "ApiArtifactHandler"
 
   def Run(self):
     artifact_registry.REGISTRY.ClearSources()
-    test_artifacts_file = os.path.join(
-        config_lib.CONFIG["Test.data_dir"], "artifacts", "test_artifact.json")
+    test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                                       "artifacts", "test_artifact.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
     self.Check("GET", "/api/artifacts")
@@ -80,8 +79,8 @@ class ApiDeleteArtifactsHandlerTest(test_lib.GRRBaseTest):
 
   def UploadTestArtifacts(self):
     artifact_registry.REGISTRY.ClearRegistry()
-    test_artifacts_file = os.path.join(
-        config_lib.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json")
+    test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                                       "artifacts", "test_artifacts.json")
     with open(test_artifacts_file) as fd:
       artifact.UploadArtifactYamlFile(fd.read(), token=self.token)
 
@@ -111,8 +110,9 @@ class ApiDeleteArtifactsHandlerTest(test_lib.GRRBaseTest):
     e = self.assertRaises(ValueError)
     with e:
       self.handler.Handle(args, token=self.token)
-    self.assertEqual(str(e.exception),
-                     "Artifact(s) to delete (NonExistentArtifact) not found.")
+    self.assertEqual(
+        str(e.exception),
+        "Artifact(s) to delete (NonExistentArtifact) not found.")
 
 
 def main(argv):

@@ -43,8 +43,8 @@ class APIAuthorization(object):
     for item in self.router_params.items:
       if item.invalid:
         raise InvalidAPIAuthorization(
-            "Invalid value in router %s configuration: %s" % (
-                self.router, item.key))
+            "Invalid value in router %s configuration: %s" % (self.router,
+                                                              item.key))
 
       result[item.key] = item.value
 
@@ -87,8 +87,8 @@ class APIAuthorizationManager(object):
     self.routers = []
     self.auth_manager = auth_manager.AuthorizationManager()
 
-    self.default_router = self._CreateRouter(
-        config_lib.CONFIG["API.DefaultRouter"])
+    self.default_router = self._CreateRouter(config_lib.CONFIG[
+        "API.DefaultRouter"])
 
     if config_lib.CONFIG["API.RouterACLConfigFile"]:
       logging.info("Using API router ACL config file: %s",
@@ -128,7 +128,6 @@ class APIAuthorizationManager(object):
     logging.debug("No router ACL rule match for user %s. Using default "
                   "router %s", username, self.default_router.__class__.__name__)
     return self.default_router
-
 
 # Set in APIACLInit
 API_AUTH_MGR = None

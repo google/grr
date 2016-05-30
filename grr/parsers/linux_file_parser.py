@@ -89,16 +89,20 @@ class PasswdParser(parsers.FileParser):
   def ParseLine(cls, index, line):
     fields = "username,password,uid,gid,fullname,homedir,shell".split(",")
     try:
-      if not line: return
+      if not line:
+        return
       dat = dict(zip(fields, line.split(":")))
-      user = rdf_client.User(username=dat["username"], uid=int(dat["uid"]),
-                             homedir=dat["homedir"], shell=dat["shell"],
-                             gid=int(dat["gid"]), full_name=dat["fullname"])
+      user = rdf_client.User(username=dat["username"],
+                             uid=int(dat["uid"]),
+                             homedir=dat["homedir"],
+                             shell=dat["shell"],
+                             gid=int(dat["gid"]),
+                             full_name=dat["fullname"])
       return user
 
     except (IndexError, KeyError):
-      raise parsers.ParseError(
-          "Invalid passwd file at line %d. %s" % ((index + 1), line))
+      raise parsers.ParseError("Invalid passwd file at line %d. %s" %
+                               ((index + 1), line))
 
   def Parse(self, stat, file_object, knowledge_base):
     """Parse the passwd file."""
@@ -229,8 +233,7 @@ class NetgroupParser(parsers.FileParser):
                                           symptom="Invalid username: %s" % user)
               else:
                 users.add(user)
-                yield rdf_client.User(
-                    username=utils.SmartUnicode(user))
+                yield rdf_client.User(username=utils.SmartUnicode(user))
           except ValueError:
             raise parsers.ParseError("Invalid netgroup file at line %d: %s" %
                                      (index + 1, line))
@@ -267,8 +270,8 @@ class NetgroupBufferParser(parsers.GrepParser):
 
   def Parse(self, filefinderresult, knowledge_base):
     _ = knowledge_base
-    return NetgroupParser.ParseLines(
-        [x.data.strip() for x in filefinderresult.matches])
+    return NetgroupParser.ParseLines([x.data.strip()
+                                      for x in filefinderresult.matches])
 
 
 class LinuxBaseShadowParser(parsers.FileParser):
@@ -371,7 +374,8 @@ class LinuxBaseShadowParser(parsers.FileParser):
           v.pw_entry.store = "UNKNOWN"
 
   def _Anomaly(self, msg, found):
-    return rdf_anomaly.Anomaly(type="PARSER_ANOMALY", symptom=msg,
+    return rdf_anomaly.Anomaly(type="PARSER_ANOMALY",
+                               symptom=msg,
                                finding=found)
 
   @staticmethod
@@ -562,8 +566,7 @@ class LinuxSystemPasswdParser(LinuxBaseShadowParser):
     fields = ("uname", "passwd", "uid", "gid", "fullname", "homedir", "shell")
     if line:
       rslt = dict(zip(fields, line.split(":")))
-      user = self.entry.setdefault(rslt["uname"],
-                                   rdf_client.User())
+      user = self.entry.setdefault(rslt["uname"], rdf_client.User())
       user.username = rslt["uname"]
       user.pw_entry.store = self.GetPwStore(rslt["passwd"])
       if user.pw_entry.store == self.base_store:
@@ -847,4 +850,5 @@ class PathParser(parsers.FileParser):
       paths = self._ParseShVariables(lines)
     for path_name, path_vals in paths.iteritems():
       yield rdf_protodict.AttributedDict(config=stat.pathspec.path,
-                                         name=path_name, vals=path_vals)
+                                         name=path_name,
+                                         vals=path_vals)

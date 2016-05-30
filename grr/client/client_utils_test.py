@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Test client utility functions."""
 
 
@@ -65,13 +64,12 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
         ("/etc/passwd", "/dev/mapper/root", "/etc/passwd",
          rdf_paths.PathSpec.PathType.OS),
         ("/usr/local/bin/ls", "/dev/mapper/usr", "/bin/ls",
-         rdf_paths.PathSpec.PathType.OS),
-        ("/proc/net/sys", "none", "/net/sys",
-         rdf_paths.PathSpec.PathType.UNSET),
+         rdf_paths.PathSpec.PathType.OS), ("/proc/net/sys", "none", "/net/sys",
+                                           rdf_paths.PathSpec.PathType.UNSET),
         ("/home/user/test.txt", "server.nfs:/vol/home", "/test.txt",
-         rdf_paths.PathSpec.PathType.UNSET)]:
-      raw_pathspec, path = client_utils_linux.LinGetRawDevice(
-          filename)
+         rdf_paths.PathSpec.PathType.UNSET)
+    ]:
+      raw_pathspec, path = client_utils_linux.LinGetRawDevice(filename)
 
       self.assertEqual(expected_device, raw_pathspec.path)
       self.assertEqual(device_type, raw_pathspec.pathtype)
@@ -135,8 +133,7 @@ server.nfs:/vol/home /home/user nfs rw,nosuid,relatime 0 0
     """Test if unknown commands are filtered correctly."""
 
     # ls is not allowed
-    (stdout, stderr, status, _) = client_utils_common.Execute("ls",
-                                                              ["."])
+    (stdout, stderr, status, _) = client_utils_common.Execute("ls", ["."])
     self.assertEqual(status, -1)
     self.assertEqual(stdout, "")
     self.assertEqual(stderr, "Execution disallowed by whitelist.")
@@ -241,6 +238,7 @@ class OSXVersionTests(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

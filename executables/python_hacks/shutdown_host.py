@@ -20,9 +20,9 @@ if 'reason' in py_args:
 for version in tested_versions:
   if os_version.find(version) != -1:
     stdout, stderr, exit_status, time_taken = client_utils_common.Execute(
-        cmd, args, time_limit=-1, bypass_whitelist=True)
+        cmd, args, time_limit=-1,
+        bypass_whitelist=True)
     magic_return_str = '%s, %s, %s, %s' % (stdout.encode('base64'),
-                                           stderr.encode('base64'),
-                                           exit_status,
+                                           stderr.encode('base64'), exit_status,
                                            time_taken)
     break

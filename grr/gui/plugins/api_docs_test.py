@@ -16,9 +16,8 @@ class TestAPIDocs(test_lib.GRRSeleniumTest):
     self.Open("/#main=ApiDocumentation")
 
     # Check that header is shown.
-    self.WaitUntil(
-        self.IsTextPresent,
-        "GET /api/stats/store/<component>/metrics/<metric_name>")
+    self.WaitUntil(self.IsTextPresent,
+                   "GET /api/stats/store/<component>/metrics/<metric_name>")
 
     # Check that parameters are shown along with possible Enum values.
     self.WaitUntil(self.IsTextPresent, "Parameters")
@@ -34,16 +33,16 @@ class TestAPIDocs(test_lib.GRRSeleniumTest):
 
     # Check that examples are shown.
     self.WaitUntil(self.IsTextPresent, "Examples")
-    self.WaitUntil(
-        self.IsTextPresent,
-        "/api/stats/store/WORKER/metrics/sample_counter?"
-        "start=42000000&end=3600000000")
+    self.WaitUntil(self.IsTextPresent,
+                   "/api/stats/store/WORKER/metrics/sample_counter?"
+                   "start=42000000&end=3600000000")
     self.WaitUntil(self.IsTextPresent, 'metric_name": "sample_counter"')
 
 
 def main(argv):
   # Run the full test suite
   runtests_test.SeleniumTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

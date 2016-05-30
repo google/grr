@@ -85,7 +85,11 @@ class RouterMethodMetadata(object):
 
   BINARY_STREAM_RESULT_TYPE = "BinaryStream"
 
-  def __init__(self, name, args_type=None, result_type=None, category=None,
+  def __init__(self,
+               name,
+               args_type=None,
+               result_type=None,
+               category=None,
                http_methods=None):
     self.name = name
     self.args_type = args_type
@@ -259,16 +263,14 @@ class ApiCallRouter(object):
   @Category("Vfs")
   @ArgsType(api_vfs.ApiGetVfsTimelineArgs)
   @ResultType(api_vfs.ApiGetVfsTimelineResult)
-  @Http("GET",
-        "/api/clients/<client_id>/vfs-timeline/<path:file_path>")
+  @Http("GET", "/api/clients/<client_id>/vfs-timeline/<path:file_path>")
   def GetVfsTimeline(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Vfs")
   @ArgsType(api_vfs.ApiGetVfsTimelineAsCsvArgs)
   @ResultBinaryStream()
-  @Http("GET",
-        "/api/clients/<client_id>/vfs-timeline-csv/<path:file_path>")
+  @Http("GET", "/api/clients/<client_id>/vfs-timeline-csv/<path:file_path>")
   def GetVfsTimelineAsCsv(self, args, token=None):
     raise NotImplementedError()
 
@@ -508,6 +510,7 @@ class ApiCallRouter(object):
   @ArgsType(api_hunt.ApiGetClientCompletionStatsArgs)
   @ResultType(api_hunt.ApiGetClientCompletionStatsResult)
   @Http("GET", "/api/hunts/<hunt_id>/client-completion-stats")
+
   # TODO(user): maybe rename to GetHuntClientCompletionStats.
   def GetClientCompletionStats(self, args, token=None):
     raise NotImplementedError()

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-
 """A script to prepare the source tree for building."""
 
 # This script must have no special requirements because it wont be able to
@@ -57,9 +56,11 @@ def MakeProto():
            # Standard include paths.
            # We just bring google/proto/descriptor.proto with us to make it
            # easier to install.
-           "--proto_path=.", "--proto_path=grr", "--proto_path=grr/proto",
-           os.path.relpath(proto, cwd)
-          ], cwd=cwd)
+           "--proto_path=.",
+           "--proto_path=grr",
+           "--proto_path=grr/proto",
+           os.path.relpath(proto, cwd)],
+          cwd=cwd)
 
 
 if __name__ == "__main__":

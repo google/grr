@@ -56,7 +56,8 @@ def InstallerNotifyServer():
   client.client_worker.SendReply(
       session_id=rdf_flows.FlowSessionID(flow_name="InstallationFailed"),
       message_type=rdf_flows.GrrMessage.Type.STATUS,
-      request_id=0, response_id=0,
+      request_id=0,
+      response_id=0,
       rdf_value=rdf_flows.GrrStatus(
           status=rdf_flows.GrrStatus.ReturnedStatus.GENERIC_ERROR,
           error_message="Installation failed.",
@@ -78,8 +79,8 @@ def RunInstaller():
 
   # Always log to the installer logfile at debug level. This way if our
   # installer fails we can send detailed diagnostics.
-  handler = logging.FileHandler(
-      config_lib.CONFIG["Installer.logfile"], mode="wb")
+  handler = logging.FileHandler(config_lib.CONFIG["Installer.logfile"],
+                                mode="wb")
 
   handler.setLevel(logging.DEBUG)
 
@@ -94,8 +95,7 @@ def RunInstaller():
   # location.
   config_lib.CONFIG.Initialize(filename=flags.FLAGS.config, reset=True)
   config_lib.CONFIG.AddContext(
-      "Installer Context",
-      "Context applied when we run the client installer.")
+      "Installer Context", "Context applied when we run the client installer.")
 
   logging.warn("Starting installation procedure for GRR client.")
   try:

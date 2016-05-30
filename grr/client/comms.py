@@ -88,7 +88,6 @@ import traceback
 import urllib2
 
 
-
 from M2Crypto import BIO
 from M2Crypto import EVP
 from M2Crypto import RSA
@@ -194,7 +193,10 @@ class HTTPManager(object):
 
     return base + url
 
-  def OpenServerEndpoint(self, path, verify_cb=lambda x: True, data=None,
+  def OpenServerEndpoint(self,
+                         path,
+                         verify_cb=lambda x: True,
+                         data=None,
                          request_opts=None):
     """Search through all the base URLs to connect to one that works."""
     tries = 0
@@ -204,9 +206,11 @@ class HTTPManager(object):
       base_url_index = self.last_base_url_index % len(self.base_urls)
       active_base_url = self.base_urls[base_url_index]
 
-      result = self.OpenURL(self._ConcatenateURL(active_base_url, path),
-                            data=data, verify_cb=verify_cb,
-                            request_opts=request_opts)
+      result = self.OpenURL(
+          self._ConcatenateURL(active_base_url, path),
+          data=data,
+          verify_cb=verify_cb,
+          request_opts=request_opts)
 
       if not result.Success():
         tries += 1
@@ -225,7 +229,10 @@ class HTTPManager(object):
 
     return last_error
 
-  def OpenURL(self, url, verify_cb=lambda x: True, data=None,
+  def OpenURL(self,
+              url,
+              verify_cb=lambda x: True,
+              data=None,
               request_opts=None):
     """Get the requested URL.
 
@@ -269,12 +276,18 @@ class HTTPManager(object):
         duration, handle = self._RetryRequest(request)
         data = handle.read()
 
-        result = HTTPObject(url=url, data=data, proxy=proxy, code=200,
+        result = HTTPObject(url=url,
+                            data=data,
+                            proxy=proxy,
+                            code=200,
                             duration=duration)
 
         if not verify_cb(result):
-          raise urllib2.HTTPError(url=url, code=500, msg="Data not verified.",
-                                  hdrs=[], fp=handle)
+          raise urllib2.HTTPError(url=url,
+                                  code=500,
+                                  msg="Data not verified.",
+                                  hdrs=[],
+                                  fp=handle)
 
         # The last connection worked.
         self.consecutive_connection_errors = 0
@@ -322,8 +335,9 @@ class HTTPManager(object):
     while True:
       try:
         now = time.time()
-        result = urllib2.urlopen(request, timeout=config_lib.CONFIG[
-            "Client.http_timeout"])
+        result = urllib2.urlopen(request,
+                                 timeout=config_lib.CONFIG[
+                                     "Client.http_timeout"])
 
         return time.time() - now, result
 
@@ -404,9 +418,8 @@ class Timer(object):
         self.heart_beat_cb()
 
     # Back off slowly at first and fast if no answer.
-    self.sleep_time = min(
-        self.poll_max,
-        max(self.poll_min, self.sleep_time) * self.poll_slew)
+    self.sleep_time = min(self.poll_max,
+                          max(self.poll_min, self.sleep_time) * self.poll_slew)
 
 
 class CommsInit(registry.InitHook):
@@ -561,9 +574,18 @@ class GRRClientWorker(object):
 
     return queue
 
-  def SendReply(self, rdf_value=None, request_id=None, response_id=None,
-                priority=None, session_id="W:0", message_type=None, name=None,
-                require_fastpoll=None, ttl=None, blocking=True, task_id=None):
+  def SendReply(self,
+                rdf_value=None,
+                request_id=None,
+                response_id=None,
+                priority=None,
+                session_id="W:0",
+                message_type=None,
+                name=None,
+                require_fastpoll=None,
+                ttl=None,
+                blocking=True,
+                task_id=None):
     """Send the protobuf to the server.
 
     Args:
@@ -587,11 +609,15 @@ class GRRClientWorker(object):
     if not isinstance(rdf_value, rdfvalue.RDFValue):
       raise RuntimeError("Sending objects other than RDFValues not supported.")
 
-    message = rdf_flows.GrrMessage(
-        session_id=session_id, task_id=task_id, name=name,
-        response_id=response_id, request_id=request_id,
-        priority=priority, require_fastpoll=require_fastpoll,
-        ttl=ttl, type=message_type)
+    message = rdf_flows.GrrMessage(session_id=session_id,
+                                   task_id=task_id,
+                                   name=name,
+                                   response_id=response_id,
+                                   request_id=request_id,
+                                   priority=priority,
+                                   require_fastpoll=require_fastpoll,
+                                   ttl=ttl,
+                                   type=message_type)
 
     if rdf_value:
       message.payload = rdf_value
@@ -630,7 +656,8 @@ class GRRClientWorker(object):
       raise actions.NetworkBytesExceededError(
           "Action exceeded network send limit.")
 
-  def QueueResponse(self, message,
+  def QueueResponse(self,
+                    message,
                     priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
                     blocking=True):
     """Push the Serialized Message on the output queue."""
@@ -749,8 +776,8 @@ class GRRClientWorker(object):
       stats.STATS.SetGaugeValue("grr_client_last_stats_sent_time",
                                 self.last_stats_sent_time.AsSecondsFromEpoch())
 
-    time_since_last_check = (rdfvalue.RDFDatetime().Now() -
-                             self.last_stats_sent_time)
+    time_since_last_check = (
+        rdfvalue.RDFDatetime().Now() - self.last_stats_sent_time)
 
     # No matter what, we don't want to send stats more often than
     # once per STATS_MIN_SEND_INTERVAL.
@@ -764,8 +791,8 @@ class GRRClientWorker(object):
 
       logging.info("Sending back client statistics to the server.")
 
-      action_cls = actions.ActionPlugin.classes.get(
-          "GetClientStatsAuto", actions.ActionPlugin)
+      action_cls = actions.ActionPlugin.classes.get("GetClientStatsAuto",
+                                                    actions.ActionPlugin)
       action = action_cls(grr_worker=self)
       action.Run(rdf_client.GetClientStatsRequest(
           start_time=self.last_stats_sent_time))
@@ -811,8 +838,11 @@ class SizeQueue(object):
     self.maxsize = maxsize
     self.nanny = nanny
 
-  def Put(self, item, priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
-          block=True, timeout=1000):
+  def Put(self,
+          item,
+          priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
+          block=True,
+          timeout=1000):
     """Put an item on the queue, blocking if it is too full.
 
     This is a slightly modified Queue.put method which blocks when the queue
@@ -896,7 +926,8 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     # This queue should never hit its maximum since the server will throttle
     # messages before this.
     self._in_queue = utils.HeartbeatQueue(
-        callback=self.nanny_controller.Heartbeat, maxsize=1024)
+        callback=self.nanny_controller.Heartbeat,
+        maxsize=1024)
 
     # The size of the output queue controls the worker thread. Once this queue
     # is too large, the worker thread will block until the queue is drained.
@@ -950,7 +981,8 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
 
     return queue
 
-  def QueueResponse(self, message,
+  def QueueResponse(self,
+                    message,
                     priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY,
                     blocking=True):
     """Push the Serialized Message on the output queue."""
@@ -1001,8 +1033,8 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     self.nanny_controller.CleanTransactionLog()
 
     # Inform the server that we started.
-    action_cls = actions.ActionPlugin.classes.get(
-        "SendStartupInfo", actions.ActionPlugin)
+    action_cls = actions.ActionPlugin.classes.get("SendStartupInfo",
+                                                  actions.ActionPlugin)
     action = action_cls(grr_worker=self)
     action.Run(None, ttl=1)
 
@@ -1136,14 +1168,14 @@ class GRRHTTPClient(object):
       if "BEGIN CERTIFICATE" in server_pem:
         # Now we know that this proxy is working. We still have to verify the
         # certificate. This will raise if the server cert is invalid.
-        self.communicator.LoadServerCertificate(
-            server_certificate=server_pem, ca_certificate=self.ca_cert)
+        self.communicator.LoadServerCertificate(server_certificate=server_pem,
+                                                ca_certificate=self.ca_cert)
 
         logging.info("Server PEM re-keyed.")
         return True
     except Exception as e:  # pylint: disable=broad-except
-      logging.info("Unable to verify server certificate at %s: %s",
-                   server_url, e)
+      logging.info("Unable to verify server certificate at %s: %s", server_url,
+                   e)
 
       return False
 
@@ -1187,7 +1219,8 @@ class GRRHTTPClient(object):
     response = self.http_manager.OpenServerEndpoint(
         path="control?api=%s" % config_lib.CONFIG["Network.api"],
         verify_cb=self.VerifyServerControlResponse,
-        data=data, request_opts={"Content-Type": "binary/octet-stream"})
+        data=data,
+        request_opts={"Content-Type": "binary/octet-stream"})
 
     if response.code == 406:
       self.InitiateEnrolment()
@@ -1253,8 +1286,7 @@ class GRRHTTPClient(object):
       # cause ascii conversion errors.
       logging.info("%s: Could not connect to server at %s, status %s",
                    self.communicator.common_name,
-                   self.http_manager.active_base_url,
-                   response.code)
+                   self.http_manager.active_base_url, response.code)
 
       # Force the server pem to be reparsed on the next connection.
       self.server_certificate = None
@@ -1301,10 +1333,9 @@ class GRRHTTPClient(object):
 
     cn = self.communicator.common_name
     logging.info("%s: Sending %s(%s), Received %s messages in %s sec. "
-                 "Sleeping for %s",
-                 cn, len(message_list), len(payload_data),
-                 len(response.messages),
-                 response.duration, self.timer.sleep_time)
+                 "Sleeping for %s", cn, len(message_list), len(payload_data),
+                 len(response.messages), response.duration,
+                 self.timer.sleep_time)
 
     return response
 
@@ -1363,7 +1394,8 @@ class GRRHTTPClient(object):
               rdf_protodict.DataBlob(),
               session_id=rdfvalue.FlowSessionID(flow_name="Foreman"),
               priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
-              require_fastpoll=False, blocking=False)
+              require_fastpoll=False,
+              blocking=False)
           self.last_foreman_check = now
         except Queue.Full:
           pass
@@ -1415,8 +1447,8 @@ class GRRHTTPClient(object):
       self.client_worker.SendReply(
           rdf_crypto.Certificate(type=rdf_crypto.Certificate.Type.CSR,
                                  pem=self.communicator.GetCSR()),
-          session_id=rdfvalue.SessionID(
-              queue=queues.ENROLLMENT, flow_name="Enrol"))
+          session_id=rdfvalue.SessionID(queue=queues.ENROLLMENT,
+                                        flow_name="Enrol"))
 
 
 class ClientCommunicator(communicator.Communicator):
@@ -1463,8 +1495,8 @@ class ClientCommunicator(communicator.Communicator):
 
     # We either have an invalid key or no key. We just generate a new one.
     # 65537 is the standard value for e
-    rsa = RSA.gen_key(config_lib.CONFIG["Client.rsa_key_length"],
-                      65537, lambda: None)
+    rsa = RSA.gen_key(config_lib.CONFIG["Client.rsa_key_length"], 65537,
+                      lambda: None)
 
     self._ParseRSAKey(rsa)
     logging.info("Client pending enrolment %s", self.common_name)
@@ -1500,8 +1532,7 @@ class ClientCommunicator(communicator.Communicator):
     config_lib.CONFIG.Set("Client.private_key", self.private_key)
     config_lib.CONFIG.Write()
 
-  def LoadServerCertificate(self, server_certificate=None,
-                            ca_certificate=None):
+  def LoadServerCertificate(self, server_certificate=None, ca_certificate=None):
     """Loads and verifies the server certificate."""
     try:
       server_cert = X509.load_cert_string(str(server_certificate))
@@ -1535,11 +1566,11 @@ class ClientCommunicator(communicator.Communicator):
 
     # We need to store the serialised version of the public key due
     # to M2Crypto memory referencing bugs
-    self.pub_key_cache.Put(
-        self.server_name, self.pub_key_cache.PubKeyFromCert(server_cert))
+    self.pub_key_cache.Put(self.server_name,
+                           self.pub_key_cache.PubKeyFromCert(server_cert))
 
   def EncodeMessages(self, message_list, result, **kwargs):
     # Force the right API to be used
     kwargs["api_version"] = config_lib.CONFIG["Network.api"]
-    return super(ClientCommunicator, self).EncodeMessages(
-        message_list, result, **kwargs)
+    return super(ClientCommunicator, self).EncodeMessages(message_list, result,
+                                                          **kwargs)

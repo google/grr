@@ -34,8 +34,8 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     """Test to see if we can get data from yum repolist output."""
     parser = linux_cmd_parser.YumRepolistCmdParser()
     content = open(os.path.join(self.base_path, "repolist.out")).read()
-    repolist = list(parser.Parse(
-        "/usr/bin/yum", ["repolist", "-v", "-q"], content, "", 0, 5, None))
+    repolist = list(parser.Parse("/usr/bin/yum", ["repolist", "-v", "-q"],
+                                 content, "", 0, 5, None))
     self.assertTrue(isinstance(repolist[0], rdf_client.PackageRepository))
 
     self.assertEqual(repolist[0].id, "rhel")
@@ -64,8 +64,8 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     """
     stderr = "error: rpmdbNextIterator: skipping h#"
     out = list(parser.Parse("/bin/rpm", ["-qa"], content, stderr, 0, 5, None))
-    software = {o.name: o.version for o in out
-                if isinstance(o, rdf_client.SoftwarePackage)}
+    software = {o.name: o.version
+                for o in out if isinstance(o, rdf_client.SoftwarePackage)}
     anomaly = [o for o in out if isinstance(o, rdf_anomaly.Anomaly)]
     self.assertEqual(7, len(software))
     self.assertEqual(1, len(anomaly))
@@ -104,8 +104,8 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     """Test to see if we can get data from dmidecode output."""
     parser = linux_cmd_parser.DmidecodeCmdParser()
     content = open(os.path.join(self.base_path, "dmidecode.out")).read()
-    hardware = parser.Parse(
-        "/usr/sbin/dmidecode", ["-q"], content, "", 0, 5, None)
+    hardware = parser.Parse("/usr/sbin/dmidecode", ["-q"], content, "", 0, 5,
+                            None)
     self.assertTrue(isinstance(hardware, rdf_client.HardwareInfo))
 
     self.assertEqual(hardware.serial_number, "2UA25107BB")
@@ -172,9 +172,8 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
 
   def testPsCmdParserValidation(self):
     """Test the PsCmdParser pass Validation() method."""
-    test_artifacts_file = os.path.join(
-        config_lib.CONFIG["Test.data_dir"],
-        "artifacts", "test_artifacts.json")
+    test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                                       "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
     parser = linux_cmd_parser.PsCmdParser
@@ -239,6 +238,7 @@ supported_os: [Linux]
 
 def main(args):
   test_lib.main(args)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -89,7 +89,8 @@ class FingerprintFile(standard.ReadBuffer):
 
           signed_data = result.GetItem("SignedData", [])
           for data in signed_data:
-            response.hash.signed_data.Append(
-                revision=data[0], cert_type=data[1], certificate=data[2])
+            response.hash.signed_data.Append(revision=data[0],
+                                             cert_type=data[1],
+                                             certificate=data[2])
 
       self.SendReply(response)

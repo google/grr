@@ -13,19 +13,16 @@ config_lib.DEFINE_integer("AdminUI.port_max", None,
 
 # Override this if you want to access admin ui extenally. Make sure it is
 # secured (i.e. AdminUI.webauth_manager is not NullWebAuthManager)!
-config_lib.DEFINE_string("AdminUI.bind", "127.0.0.1",
-                         "interface to bind to.")
+config_lib.DEFINE_string("AdminUI.bind", "127.0.0.1", "interface to bind to.")
 
-config_lib.DEFINE_string("AdminUI.document_root",
-                         "%(grr/gui/static|resource)",
+config_lib.DEFINE_string("AdminUI.document_root", "%(grr/gui/static|resource)",
                          "The main path to the static HTML pages.")
 
 config_lib.DEFINE_string("AdminUI.local_document_root",
                          "%(grr/gui/local/static|resource)",
                          "The main path to the localized static HTML pages.")
 
-config_lib.DEFINE_string("AdminUI.help_root",
-                         "%(docs|resource)",
+config_lib.DEFINE_string("AdminUI.help_root", "%(docs|resource)",
                          "The main path to the locally cached documentation.")
 
 config_lib.DEFINE_string(
@@ -63,13 +60,11 @@ config_lib.DEFINE_bool("AdminUI.use_precompiled_js", False,
                        "If True - use Closure-compiled JS bundle. This flag "
                        "is experimental and is not properly supported yet.")
 
-config_lib.DEFINE_string("AdminUI.export_command",
-                         "/usr/bin/grr_export",
+config_lib.DEFINE_string("AdminUI.export_command", "/usr/bin/grr_export",
                          "Command to show in the fileview for downloading the "
                          "files from the command line.")
 
-config_lib.DEFINE_string("AdminUI.page_title",
-                         "GRR Admin Console",
+config_lib.DEFINE_string("AdminUI.page_title", "GRR Admin Console",
                          "Page title of the Admin UI.")
 
 config_lib.DEFINE_string("AdminUI.heading", "",
@@ -79,16 +74,14 @@ config_lib.DEFINE_string("AdminUI.report_url",
                          "https://github.com/google/grr/issues",
                          "URL of the 'Report a problem' link.")
 
-config_lib.DEFINE_string("AdminUI.help_url",
-                         "/help/index.html",
+config_lib.DEFINE_string("AdminUI.help_url", "/help/index.html",
                          "URL of the 'Help' link.")
 
 config_lib.DEFINE_string("AdminUI.github_docs_location",
                          "https://github.com/google/grr-doc/blob/master",
                          "Base path for GitHub-hosted GRR documentation. ")
 
-config_lib.DEFINE_string("AdminUI.new_hunt_wizard.default_output_plugin",
-                         None,
+config_lib.DEFINE_string("AdminUI.new_hunt_wizard.default_output_plugin", None,
                          "Output plugin that will be added by default in the "
                          "'New Hunt' wizard output plugins selection page.")
 

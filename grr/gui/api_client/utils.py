@@ -57,8 +57,8 @@ def TypeUrlToMessage(type_url):
   """Returns a message instance corresponding to a given type URL."""
 
   if not type_url.startswith(TYPE_URL_PREFIX):
-    raise ValueError("Type URL has to start with a prefix %s: %s" % (
-        TYPE_URL_PREFIX, type_url))
+    raise ValueError("Type URL has to start with a prefix %s: %s" %
+                     (TYPE_URL_PREFIX, type_url))
 
   full_name = type_url[len(TYPE_URL_PREFIX):]
   return symbol_database.Default().GetSymbol(full_name)()

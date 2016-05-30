@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Unit test for the linux file parser."""
 
 import operator
@@ -30,9 +29,14 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
                   "/sys/bus/pci/devices/0000:00:01.0/class": "0x060400\n",
                   "/sys/bus/pci/devices/0000:00:01.0/device": "0x0e02\n",
                   "/sys/bus/pci/devices/0000:00:01.0/config": "0200"}
-    device_1 = rdf_client.PCIDevice(domain=0, bus=0, device=1, function=0,
-                                    class_id="0x060400", vendor="0x0e00",
-                                    vendor_device_id="0x0e02", config="0200")
+    device_1 = rdf_client.PCIDevice(domain=0,
+                                    bus=0,
+                                    device=1,
+                                    function=0,
+                                    class_id="0x060400",
+                                    vendor="0x0e00",
+                                    vendor_device_id="0x0e02",
+                                    config="0200")
     parsed_results = self._ParsePCIDeviceTestData(test_data1)
     self._MatchPCIDeviceResultToExpected(parsed_results, [device_1])
 
@@ -42,8 +46,12 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
                   "/sys/bus/pci/devices/0000:00:00.0/class": "0x060000\n",
                   "/sys/bus/pci/devices/0000:00:00.0/device": "0x0e00\n",
                   "/sys/bus/pci/devices/0000:00:00.0/config": bytes2}
-    device_2 = rdf_client.PCIDevice(domain=0, bus=0, device=0, function=0,
-                                    class_id="0x060000", vendor="0x8086",
+    device_2 = rdf_client.PCIDevice(domain=0,
+                                    bus=0,
+                                    device=0,
+                                    function=0,
+                                    class_id="0x060000",
+                                    vendor="0x8086",
                                     vendor_device_id="0x0e00",
                                     config=b"\xea\xe8\xe7\xbcz\x84\x91")
     parsed_results = self._ParsePCIDeviceTestData(test_data2)
@@ -52,8 +60,12 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
     # Test for when there's missing data.
     test_data3 = {"/sys/bus/pci/devices/0000:00:03.0/vendor": "0x0e00\n",
                   "/sys/bus/pci/devices/0000:00:03.0/config": "0030"}
-    device_3 = rdf_client.PCIDevice(domain=0, bus=0, device=3, function=0,
-                                    vendor="0x0e00", config="0030")
+    device_3 = rdf_client.PCIDevice(domain=0,
+                                    bus=0,
+                                    device=3,
+                                    function=0,
+                                    vendor="0x0e00",
+                                    config="0030")
     parsed_results = self._ParsePCIDeviceTestData(test_data3)
     self._MatchPCIDeviceResultToExpected(parsed_results, [device_3])
 
@@ -65,9 +77,14 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
                   "/sys/bus/pci/devices/crazyrandomfile/test1": "test1",
                   "/sys/bus/pci/devices/::./test2": "test2",
                   "/sys/bus/pci/devices/00:5.0/test3": "test3"}
-    device_4 = rdf_client.PCIDevice(domain=0, bus=0, device=5, function=0,
-                                    class_id="0x060400", vendor="0x0e00",
-                                    vendor_device_id="0x0e02", config="0200")
+    device_4 = rdf_client.PCIDevice(domain=0,
+                                    bus=0,
+                                    device=5,
+                                    function=0,
+                                    class_id="0x060400",
+                                    vendor="0x0e00",
+                                    vendor_device_id="0x0e02",
+                                    config="0200")
     parsed_results = self._ParsePCIDeviceTestData(test_data4)
     self._MatchPCIDeviceResultToExpected(parsed_results, [device_4])
 
@@ -137,8 +154,8 @@ user1:x:1000:1000:User1 Name,,,:/home/user1:/bin/bash
 user2:x:1001:1001:User2 Name,,,:/home/user
 """
     parser = linux_file_parser.PasswdParser()
-    self.assertRaises(parsers.ParseError,
-                      list, parser.Parse(None, StringIO.StringIO(dat), None))
+    self.assertRaises(parsers.ParseError, list,
+                      parser.Parse(None, StringIO.StringIO(dat), None))
 
   def testPasswdBufferParser(self):
     """Ensure we can extract users from a passwd file."""
@@ -171,7 +188,8 @@ super_group3 (-,user5,) (-,user6,) group1 group2
     dat_fd = StringIO.StringIO(dat)
 
     with test_lib.ConfigOverrider({
-        "Artifacts.netgroup_user_blacklist": ["user2", "user3"]}):
+        "Artifacts.netgroup_user_blacklist": ["user2", "user3"]
+    }):
       out = list(parser.Parse(None, dat_fd, None))
       users = []
       for result in out:
@@ -186,10 +204,10 @@ super_group3 (-,user5,) (-,user6,) group1 group2
       dat_fd.seek(0)
 
     with test_lib.ConfigOverrider({
-        "Artifacts.netgroup_filter_regexes": [r"^super_group3$"]}):
+        "Artifacts.netgroup_filter_regexes": [r"^super_group3$"]
+    }):
       out = list(parser.Parse(None, dat_fd, None))
-      self.assertItemsEqual([x.username for x in out],
-                            [u"user5", u"user6"])
+      self.assertItemsEqual([x.username for x in out], [u"user5", u"user6"])
 
   def testNetgroupBufferParser(self):
     """Ensure we can extract users from a netgroup file."""
@@ -201,7 +219,8 @@ super_group3 (-,user5,) (-,user6,) group1 group2
 
     ff_result = file_finder.FileFinderResult(matches=[buf1, buf2])
     with test_lib.ConfigOverrider({
-        "Artifacts.netgroup_user_blacklist": ["user2", "user3"]}):
+        "Artifacts.netgroup_user_blacklist": ["user2", "user3"]
+    }):
       out = list(parser.Parse(ff_result, None))
       self.assertItemsEqual([x.username for x in out],
                             [u"user1", u"user5", u"user6"])
@@ -214,8 +233,8 @@ group2 user4 (-user2,)
 super_group (-,,user5,) (-user6,) group1 group2
 super_group2 (-,user7,) super_group
 """
-    self.assertRaises(parsers.ParseError,
-                      list, parser.Parse(None, StringIO.StringIO(dat), None))
+    self.assertRaises(parsers.ParseError, list,
+                      parser.Parse(None, StringIO.StringIO(dat), None))
 
   def testWtmpParser(self):
     """Test parsing of wtmp file."""
@@ -225,10 +244,10 @@ super_group2 (-,user7,) super_group
       out = list(parser.Parse(None, wtmp_fd, None))
 
     self.assertEqual(len(out), 3)
-    self.assertItemsEqual(["%s:%d" % (x.username, x.last_logon) for x in out],
-                          ["user1:1296552099000000",
-                           "user2:1296552102000000",
-                           "user3:1296569997000000"])
+    self.assertItemsEqual(
+        ["%s:%d" % (x.username, x.last_logon) for x in out],
+        ["user1:1296552099000000", "user2:1296552102000000",
+         "user3:1296569997000000"])
 
 
 class LinuxShadowParserTest(test_lib.GRRBaseTest):
@@ -299,8 +318,8 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
               "bad1:x:0:1001:Bad 1:/home/bad1:/bin/bash",
               "bad2:x:1002:0:Bad 2:/home/bad2:/bin/bash"]
     shadow = ["root:{UNSET}:16000:0:99999:7:::",
-              "ok:{SHA512}:16000:0:99999:7:::",
-              "bad1::16333:0:99999:7:::", "bad2:{DES}:16333:0:99999:7:::"]
+              "ok:{SHA512}:16000:0:99999:7:::", "bad1::16333:0:99999:7:::",
+              "bad2:{DES}:16333:0:99999:7:::"]
     group = ["root:x:0:root", "miss:x:1000:miss", "bad1:x:1001:bad1",
              "bad2:x:1002:bad2"]
     gshadow = ["root:::root", "miss:::miss", "bad1:::bad1", "bad2:::bad2"]
@@ -334,8 +353,12 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
       self.assertEqual(expect.type, result.type)
 
   def GetExpectedUser(self, algo, user_store, group_store):
-    user = rdf_client.User(username="user", full_name="User", uid="1001",
-                           gid="1001", homedir="/home/user", shell="/bin/bash")
+    user = rdf_client.User(username="user",
+                           full_name="User",
+                           uid="1001",
+                           gid="1001",
+                           homedir="/home/user",
+                           shell="/bin/bash")
     user.pw_entry = rdf_client.PwEntry(store=user_store, hash_type=algo)
     user.gids = [1001]
     grp = rdf_client.Group(gid=1001, members=["user"], name="user")
@@ -423,13 +446,14 @@ class LinuxDotFileParserTest(test_lib.GRRBaseTest):
       setenv PERL5LIB :shouldntbeignored
     """)
     parser = linux_file_parser.PathParser()
-    bashrc_stat = rdf_client.StatEntry(
-        pathspec=rdf_paths.PathSpec(path="/home/user1/.bashrc", pathtype="OS"))
-    cshrc_stat = rdf_client.StatEntry(
-        pathspec=rdf_paths.PathSpec(path="/home/user1/.cshrc", pathtype="OS"))
-    bashrc = {r.name: r.vals for r in parser.Parse(bashrc_stat, bashrc_data,
-                                                   None)}
-    cshrc = {r.name: r.vals for r in parser.Parse(cshrc_stat, cshrc_data, None)}
+    bashrc_stat = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+        path="/home/user1/.bashrc", pathtype="OS"))
+    cshrc_stat = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+        path="/home/user1/.cshrc", pathtype="OS"))
+    bashrc = {r.name: r.vals
+              for r in parser.Parse(bashrc_stat, bashrc_data, None)}
+    cshrc = {r.name: r.vals
+             for r in parser.Parse(cshrc_stat, cshrc_data, None)}
     expected = {"PATH": [".", "${HOME}/bin", "$PATH"],
                 "PYTHONPATH": [".", "${HOME}/bin", "$PATH", "/path1", "/path2"],
                 "LD_LIBRARY_PATH": ["foo", "bar", "$LD_LIBRARY_PATH"],
@@ -446,6 +470,7 @@ class LinuxDotFileParserTest(test_lib.GRRBaseTest):
 
 def main(args):
   test_lib.main(args)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

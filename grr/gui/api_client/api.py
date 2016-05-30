@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Main file of GRR API client library."""
 
-
 from grr.gui.api_client import client
 from grr.gui.api_client import context
 from grr.gui.api_client.connectors import http_connector
@@ -26,7 +25,8 @@ class GrrApi(object):
 def InitHttp(api_endpoint=None, page_size=None, auth=None):
   """Inits an GRR API object with a HTTP connector."""
 
-  connector = http_connector.HttpConnector(
-      api_endpoint=api_endpoint, page_size=page_size, auth=auth)
+  connector = http_connector.HttpConnector(api_endpoint=api_endpoint,
+                                           page_size=page_size,
+                                           auth=auth)
 
   return GrrApi(connector=connector)

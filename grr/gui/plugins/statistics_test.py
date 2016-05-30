@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Test the statistics viewer."""
 
 
@@ -21,14 +20,14 @@ class TestStats(test_lib.GRRSeleniumTest):
     """Populates data into the stats object."""
     token = access_control.ACLToken(username="test", reason="fixture")
 
-    with aff4.FACTORY.Create(
-        "aff4:/stats/ClientFleetStats/All", "ClientFleetStats",
-        token=token) as fd:
+    with aff4.FACTORY.Create("aff4:/stats/ClientFleetStats/All",
+                             "ClientFleetStats",
+                             token=token) as fd:
       now = 1321057655
 
       for i in range(10, 15):
-        histogram = fd.Schema.OS_HISTOGRAM(
-            age=int((now + i * 60 * 60 * 24) * 1e6))
+        histogram = fd.Schema.OS_HISTOGRAM(age=int(
+            (now + i * 60 * 60 * 24) * 1e6))
 
         for number in [1, 7, 14, 30]:
           graph = rdf_stats.Graph(title="%s day actives" % number)
@@ -61,21 +60,22 @@ class TestStats(test_lib.GRRSeleniumTest):
                    "css=#_Clients-All-OS_20Breakdown-_207_20Day_20Active")
     self.Click("css=li[path='/Clients/All/OS Breakdown/ 7 Day Active'] a")
 
-    self.WaitUntilEqual(u"No data Available",
-                        self.GetText, "css=#main_rightPane h3")
+    self.WaitUntilEqual(u"No data Available", self.GetText,
+                        "css=#main_rightPane h3")
 
     with self.ACLChecksDisabled():
       self.PopulateData()
 
     self.Click("css=li[path='/Clients/All/OS Breakdown/ 7 Day Active'] a")
 
-    self.WaitUntilEqual(u"Operating system break down.",
-                        self.GetText, "css=#main_rightPane h3")
+    self.WaitUntilEqual(u"Operating system break down.", self.GetText,
+                        "css=#main_rightPane h3")
 
 
 def main(argv):
   # Run the full test suite
   runtests_test.SeleniumTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

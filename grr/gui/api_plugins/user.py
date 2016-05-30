@@ -26,7 +26,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-
 CATEGORY = "User"
 
 
@@ -68,8 +67,8 @@ def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
 
   email_cc = approval_obj.Get(approval_obj.Schema.EMAIL_CC)
   email_cc_addresses = sorted(s.strip() for s in email_cc.split(","))
-  api_approval.email_cc_addresses = (set(email_cc_addresses) -
-                                     set(api_approval.notified_users))
+  api_approval.email_cc_addresses = (
+      set(email_cc_addresses) - set(api_approval.notified_users))
 
   api_approval.approvers = sorted(approval_obj.GetNonExpiredApprovers())
   return api_approval
@@ -99,8 +98,7 @@ class ApiUserHuntApproval(rdf_structs.RDFProtoStruct):
           approval_obj.Get(approval_obj.Schema.SUBJECT),
           aff4_type=implementation.GRRHunt.__name__,
           token=approval_obj.token)
-    self.subject = api_hunt.ApiHunt().InitFromAff4Object(
-        approval_subject_obj)
+    self.subject = api_hunt.ApiHunt().InitFromAff4Object(approval_subject_obj)
 
     return _InitApiApprovalFromAff4Object(self, approval_obj)
 
@@ -152,8 +150,10 @@ class ApiCreateUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(args.client_id.Basename()).Add(
         token.username).Add(utils.EncodeReasonString(args.approval.reason))
     approval_obj = aff4.FACTORY.Open(
-        approval_urn, aff4_type=aff4_security.ClientApproval.__name__,
-        age=aff4.ALL_TIMES, token=token)
+        approval_urn,
+        aff4_type=aff4_security.ClientApproval.__name__,
+        age=aff4.ALL_TIMES,
+        token=token)
 
     return ApiUserClientApproval().InitFromAff4Object(approval_obj)
 
@@ -178,8 +178,10 @@ class ApiGetUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(args.client_id.Basename()).Add(
         token.username).Add(utils.EncodeReasonString(args.reason))
     approval_obj = aff4.FACTORY.Open(
-        approval_urn, aff4_type=aff4_security.ClientApproval.__name__,
-        age=aff4.ALL_TIMES, token=token)
+        approval_urn,
+        aff4_type=aff4_security.ClientApproval.__name__,
+        age=aff4.ALL_TIMES,
+        token=token)
     return ApiUserClientApproval().InitFromAff4Object(approval_obj)
 
 
@@ -188,7 +190,11 @@ class ApiListUserApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
 
   category = CATEGORY
 
-  def _GetApprovals(self, approval_type, offset, count, filter_func=None,
+  def _GetApprovals(self,
+                    approval_type,
+                    offset,
+                    count,
+                    filter_func=None,
                     token=None):
     """Gets all approvals for a given user and approval type.
 
@@ -218,8 +224,11 @@ class ApiListUserApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
 
     approvals_urns.sort(key=lambda x: x.age, reverse=True)
     approvals = list(aff4.FACTORY.MultiOpen(
-        approvals_urns, mode="r", aff4_type=aff4_security.Approval.__name__,
-        age=aff4.ALL_TIMES, token=token))
+        approvals_urns,
+        mode="r",
+        aff4_type=aff4_security.Approval.__name__,
+        age=aff4.ALL_TIMES,
+        token=token))
     approvals_by_urn = {}
     for approval in approvals:
       approvals_by_urn[approval.symlink_urn or approval.urn] = approval
@@ -243,8 +252,7 @@ class ApiListUserApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
 
     subjects_urns = [a.Get(a.Schema.SUBJECT) for a in approvals]
     subjects_by_urn = {}
-    for subject in aff4.FACTORY.MultiOpen(subjects_urns, mode="r",
-                                          token=token):
+    for subject in aff4.FACTORY.MultiOpen(subjects_urns, mode="r", token=token):
       subjects_by_urn[subject.urn] = subject
 
     return sorted_approvals, subjects_by_urn
@@ -308,6 +316,7 @@ class ApiListUserClientApprovalsHandler(ApiListUserApprovalsHandlerBase):
       filters.append(functools.partial(self._CheckState, args.state))
 
     if filters:
+
       def Filter(approval):
         for f in filters:
           if not f(approval):
@@ -322,12 +331,13 @@ class ApiListUserClientApprovalsHandler(ApiListUserApprovalsHandlerBase):
   def Handle(self, args, token=None):
     filter_func = self._BuildFilter(args)
 
-    approvals, subjects_by_urn = self._GetApprovals(
-        "client", args.offset, args.count, filter_func=filter_func,
-        token=token)
-    return ApiListUserClientApprovalsResult(
-        items=self._HandleApprovals(approvals, subjects_by_urn,
-                                    self._ApprovalToApiApproval))
+    approvals, subjects_by_urn = self._GetApprovals("client",
+                                                    args.offset,
+                                                    args.count,
+                                                    filter_func=filter_func,
+                                                    token=token)
+    return ApiListUserClientApprovalsResult(items=self._HandleApprovals(
+        approvals, subjects_by_urn, self._ApprovalToApiApproval))
 
 
 class ApiListUserHuntApprovalsArgs(rdf_structs.RDFProtoStruct):
@@ -349,11 +359,12 @@ class ApiListUserHuntApprovalsHandler(ApiListUserApprovalsHandlerBase):
         approval_obj, approval_subject_obj=subject)
 
   def Handle(self, args, token=None):
-    approvals, subjects_by_urn = self._GetApprovals(
-        "hunt", args.offset, args.count, token=token)
-    return ApiListUserHuntApprovalsResult(
-        items=self._HandleApprovals(approvals, subjects_by_urn,
-                                    self._ApprovalToApiApproval))
+    approvals, subjects_by_urn = self._GetApprovals("hunt",
+                                                    args.offset,
+                                                    args.count,
+                                                    token=token)
+    return ApiListUserHuntApprovalsResult(items=self._HandleApprovals(
+        approvals, subjects_by_urn, self._ApprovalToApiApproval))
 
 
 class ApiListUserCronApprovalsArgs(rdf_structs.RDFProtoStruct):
@@ -375,11 +386,12 @@ class ApiListUserCronApprovalsHandler(ApiListUserApprovalsHandlerBase):
         approval_obj, approval_subject_obj=subject)
 
   def Handle(self, args, token=None):
-    approvals, subjects_by_urn = self._GetApprovals(
-        "cron", args.offset, args.count, token=token)
-    return ApiListUserCronApprovalsResult(
-        items=self._HandleApprovals(approvals, subjects_by_urn,
-                                    self._ApprovalToApiApproval))
+    approvals, subjects_by_urn = self._GetApprovals("cron",
+                                                    args.offset,
+                                                    args.count,
+                                                    token=token)
+    return ApiListUserCronApprovalsResult(items=self._HandleApprovals(
+        approvals, subjects_by_urn, self._ApprovalToApiApproval))
 
 
 class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
@@ -401,7 +413,8 @@ class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
     try:
       user_record = aff4.FACTORY.Open(
-          aff4.ROOT_URN.Add("users").Add(token.username), "GRRUser",
+          aff4.ROOT_URN.Add("users").Add(token.username),
+          "GRRUser",
           token=token)
 
       result.settings = user_record.Get(user_record.Schema.GUI_SETTINGS)
@@ -427,7 +440,8 @@ class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type=aff4_users.GRRUser.__name__, mode="w",
+        aff4_type=aff4_users.GRRUser.__name__,
+        mode="w",
         token=token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS(args.settings))
 
@@ -447,8 +461,10 @@ class ApiGetPendingUserNotificationsCountHandler(
     """Fetches the pending notification count."""
 
     user_record = aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(token.username), aff4_type="GRRUser",
-        mode="r", token=token)
+        aff4.ROOT_URN.Add("users").Add(token.username),
+        aff4_type="GRRUser",
+        mode="r",
+        token=token)
 
     notifications = user_record.Get(user_record.Schema.PENDING_NOTIFICATIONS)
 
@@ -475,14 +491,15 @@ class ApiGetPendingUserNotificationsHandler(
     """Fetches the pending notifications."""
 
     user_record = aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(token.username), aff4_type="GRRUser",
-        mode="r", token=token)
+        aff4.ROOT_URN.Add("users").Add(token.username),
+        aff4_type="GRRUser",
+        mode="r",
+        token=token)
 
     notifications = user_record.Get(user_record.Schema.PENDING_NOTIFICATIONS)
 
     result = [ApiNotification().InitFromNotification(n, is_pending=True)
-              for n in notifications
-              if n.timestamp > args.timestamp]
+              for n in notifications if n.timestamp > args.timestamp]
 
     return ApiGetPendingUserNotificationsResult(items=result)
 
@@ -501,8 +518,10 @@ class ApiDeletePendingUserNotificationHandler(
   def Handle(self, args, token=None):
     """Deletes the notification from the pending notifications."""
     with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(token.username), aff4_type="GRRUser",
-        mode="rw", token=token) as user_record:
+        aff4.ROOT_URN.Add("users").Add(token.username),
+        aff4_type="GRRUser",
+        mode="rw",
+        token=token) as user_record:
       user_record.DeletePendingNotification(args.timestamp)
 
 
@@ -573,7 +592,8 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
       elif len(components) == 3 and components[1] == "flows":
         reference.type = reference_type_enum.FLOW
         reference.flow = ApiNotificationFlowReference(
-            flow_urn=notification.subject, client_id=components[0])
+            flow_urn=notification.subject,
+            client_id=components[0])
       else:
         reference.type = reference_type_enum.VFS
         reference.vfs = ApiNotificationVfsReference(
@@ -667,8 +687,10 @@ class ApiGetAndResetUserNotificationsHandler(
     """Fetches the user notifications."""
 
     user_record = aff4.FACTORY.Open(
-        aff4.ROOT_URN.Add("users").Add(token.username), aff4_type="GRRUser",
-        mode="rw", token=token)
+        aff4.ROOT_URN.Add("users").Add(token.username),
+        aff4_type="GRRUser",
+        mode="rw",
+        token=token)
 
     result = []
 
@@ -678,7 +700,8 @@ class ApiGetAndResetUserNotificationsHandler(
     # Hack for sorting. Requires retrieval of all notifications.
     notifications = list(user_record.ShowNotifications(reset=True))
     notifications = sorted(notifications,
-                           key=lambda x: x.timestamp, reverse=True)
+                           key=lambda x: x.timestamp,
+                           reverse=True)
 
     total_count = len(notifications)
 
@@ -693,11 +716,12 @@ class ApiGetAndResetUserNotificationsHandler(
     end = args.offset + args.count
     for notification in notifications[start:end]:
       item = ApiNotification().InitFromNotification(
-          notification, is_pending=(notification in pending_notifications))
+          notification,
+          is_pending=(notification in pending_notifications))
       result.append(item)
 
-    return ApiGetAndResetUserNotificationsResult(
-        items=result, total_count=total_count)
+    return ApiGetAndResetUserNotificationsResult(items=result,
+                                                 total_count=total_count)
 
 
 class ApiGetPendingGlobalNotificationsResult(rdf_structs.RDFProtoStruct):
@@ -715,8 +739,10 @@ class ApiGetPendingGlobalNotificationsHandler(
     """Fetches the list of pending global notifications."""
 
     user_record = aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(token.username), aff4_type="GRRUser",
-        mode="r", token=token)
+        aff4.ROOT_URN.Add("users").Add(token.username),
+        aff4_type="GRRUser",
+        mode="r",
+        token=token)
 
     notifications = user_record.GetPendingGlobalNotifications()
 
@@ -738,8 +764,10 @@ class ApiDeletePendingGlobalNotificationHandler(
     """Marks the given global notification as seen."""
 
     with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users").Add(token.username), aff4_type="GRRUser",
-        mode="rw", token=token) as user_record:
+        aff4.ROOT_URN.Add("users").Add(token.username),
+        aff4_type="GRRUser",
+        mode="rw",
+        token=token) as user_record:
 
       notifications = user_record.GetPendingGlobalNotifications()
       for notif in notifications:

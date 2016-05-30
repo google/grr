@@ -122,15 +122,15 @@ print "Done."
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
 
     # Should raise since the code has been modified.
-    self.assertRaises(rdfvalue.DecodeError,
-                      self.RunAction, "ExecutePython", request)
+    self.assertRaises(rdfvalue.DecodeError, self.RunAction, "ExecutePython",
+                      request)
 
     # Lets also adjust the hash.
     signed_blob.digest = hashlib.sha256(signed_blob.data).digest()
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
 
-    self.assertRaises(rdfvalue.DecodeError,
-                      self.RunAction, "ExecutePython", request)
+    self.assertRaises(rdfvalue.DecodeError, self.RunAction, "ExecutePython",
+                      request)
 
     # Make sure the code never ran.
     self.assertEqual(utils.TEST_VAL, "original")
@@ -142,8 +142,7 @@ print "Done."
     signed_blob.Sign(python_code, self.signing_key)
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
 
-    self.assertRaises(ValueError,
-                      self.RunAction, "ExecutePython", request)
+    self.assertRaises(ValueError, self.RunAction, "ExecutePython", request)
 
   def testExecuteBinary(self):
     """Test the basic ExecuteBinaryCommand action."""
@@ -180,8 +179,8 @@ print "Done."
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, signing_key)
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
-    self.assertRaises(rdfvalue.DecodeError, self.RunAction,
-                      "ExecutePython", request)
+    self.assertRaises(rdfvalue.DecodeError, self.RunAction, "ExecutePython",
+                      request)
 
   def testArgs(self):
     """Test passing arguments."""
@@ -192,8 +191,7 @@ utils.TEST_VAL = py_args[43]
 """
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
-    pdict = rdf_protodict.Dict({"test": "dict_arg",
-                                43: "dict_arg2"})
+    pdict = rdf_protodict.Dict({"test": "dict_arg", 43: "dict_arg2"})
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob,
                                               py_args=pdict)
     result = self.RunAction("ExecutePython", request)[0]
@@ -208,8 +206,8 @@ class TestCopyPathToFile(test_lib.EmptyActionTest):
     super(TestCopyPathToFile, self).setUp()
     self.path_in = os.path.join(self.base_path, "morenumbers.txt")
     self.hash_in = hashlib.sha1(open(self.path_in).read()).hexdigest()
-    self.pathspec = rdf_paths.PathSpec(
-        path=self.path_in, pathtype=rdf_paths.PathSpec.PathType.OS)
+    self.pathspec = rdf_paths.PathSpec(path=self.path_in,
+                                       pathtype=rdf_paths.PathSpec.PathType.OS)
 
   def testCopyPathToFile(self):
     request = rdf_client.CopyPathToFileRequest(offset=0,
@@ -256,8 +254,9 @@ class TestCopyPathToFile(test_lib.EmptyActionTest):
                                                dest_dir=self.temp_dir,
                                                gzip_output=True)
     result = self.RunAction("CopyPathToFile", request)[0]
-    self.assertEqual(hashlib.sha1(
-        gzip.open(result.dest_path.path).read()).hexdigest(), self.hash_in)
+    self.assertEqual(
+        hashlib.sha1(gzip.open(result.dest_path.path).read()).hexdigest(),
+        self.hash_in)
 
   def testCopyPathToFileLifetimeLimit(self):
     request = rdf_client.CopyPathToFileRequest(offset=0,
@@ -297,8 +296,8 @@ class TestNetworkByteLimits(test_lib.EmptyActionTest):
     self.assertTrue("Network limit exceeded" in str(client_alert))
 
     status = responses[1].payload
-    self.assertTrue("Action exceeded network send limit"
-                    in str(status.backtrace))
+    self.assertTrue("Action exceeded network send limit" in str(
+        status.backtrace))
     self.assertEqual(status.status,
                      rdf_flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED)
 
@@ -321,6 +320,7 @@ class TestNetworkByteLimits(test_lib.EmptyActionTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

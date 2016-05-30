@@ -16,7 +16,6 @@ from grr.gui import http_api
 from grr.lib import test_lib
 from grr.lib import utils
 
-
 DOCUMENT_ROOT = os.path.join(os.path.dirname(gui.__file__), "static")
 
 
@@ -79,9 +78,7 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
                                environ={"SERVER_NAME": "foo.bar",
                                         "SERVER_PORT": 1234},
                                user="test")
-    request.META = {
-        "CONTENT_TYPE": "application/json"
-    }
+    request.META = {"CONTENT_TYPE": "application/json"}
 
     if method == "GET":
       request.GET = dict(urlparse.parse_qsl(parsed_url.query))
@@ -117,7 +114,8 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
           url = url.replace(substr, repl)
 
     parsed_content = json.loads(content)
-    check_result = dict(method=method, url=url,
+    check_result = dict(method=method,
+                        url=url,
                         test_class=self.__class__.__name__,
                         response=parsed_content)
 
@@ -153,9 +151,13 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
     # Make sure that this test has generated some checks.
     self.assertTrue(self.checks)
 
-    checks_str = json.dumps(self.checks, indent=2, sort_keys=True,
+    checks_str = json.dumps(self.checks,
+                            indent=2,
+                            sort_keys=True,
                             separators=(",", ": "))
-    prev_checks_str = json.dumps(relevant_checks, indent=2, sort_keys=True,
+    prev_checks_str = json.dumps(relevant_checks,
+                                 indent=2,
+                                 sort_keys=True,
                                  separators=(",", ": "))
 
     self.assertMultiLineEqual(prev_checks_str, checks_str)

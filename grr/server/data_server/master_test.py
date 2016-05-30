@@ -21,6 +21,7 @@ from grr.server.data_server import data_server
 from grr.server.data_server import errors
 from grr.server.data_server import master
 from grr.server.data_server import utils
+
 # pylint: enable=g-import-not-at-top
 
 
@@ -52,6 +53,7 @@ class MockResponse(object):
 
 
 def GetMockHTTPConnectionPoolClass(responses_class_value):
+
   class MockHTTPConnectionPool(object):
 
     responses = responses_class_value
@@ -96,7 +98,8 @@ class MasterTest(test_lib.GRRBaseTest):
       server_list.append("http://%s:%i" % (self.host, port))
 
     self.server_list_overrider = test_lib.ConfigOverrider({
-        "Dataserver.server_list": server_list})
+        "Dataserver.server_list": server_list
+    })
     self.server_list_overrider.Start()
 
   def tearDown(self):
@@ -105,9 +108,8 @@ class MasterTest(test_lib.GRRBaseTest):
 
   def testInvalidMaster(self):
     """Attempt to create an invalid master."""
-    self.assertRaises(
-        master.DataMasterError, master.DataMaster,
-        7001, self.mock_service)
+    self.assertRaises(master.DataMasterError, master.DataMaster, 7001,
+                      self.mock_service)
 
   def testRegister(self):
     """Create master and register other servers."""
@@ -156,9 +158,7 @@ class MasterTest(test_lib.GRRBaseTest):
 
         pool_class = GetMockHTTPConnectionPoolClass(response_mocks)
 
-        with libutils.Stubber(connectionpool,
-                              "HTTPConnectionPool",
-                              pool_class):
+        with libutils.Stubber(connectionpool, "HTTPConnectionPool", pool_class):
           m = data_server.StandardDataServer(port,
                                              data_server.DataServerHandler)
           m.handler_cls.NONCE_STORE = auth.NonceStore()
@@ -172,8 +172,8 @@ class MasterTest(test_lib.GRRBaseTest):
           self.assertTrue(pool_class.requests[1]["body"])
 
           # Ensure that the register body is a valid rdfvalue.
-          rdf_data_server.DataStoreRegistrationRequest(
-              pool_class.requests[1]["body"])
+          rdf_data_server.DataStoreRegistrationRequest(pool_class.requests[1][
+              "body"])
 
           # Ensure the requests are POST requests.
           self.assertEqual(pool_class.requests[0]["method"], "POST")
@@ -221,22 +221,23 @@ class MasterTest(test_lib.GRRBaseTest):
 
     # Check that mapping to a server works.
     self.assertEqual(utils._FindServerInMapping(mapping, 0x0), 0)
-    self.assertEqual(utils._FindServerInMapping(mapping,
-                                                constants.MAX_RANGE / 4), 1)
-    self.assertEqual(utils._FindServerInMapping(mapping,
-                                                constants.MAX_RANGE / 4 + 1), 1)
-    self.assertEqual(utils._FindServerInMapping(mapping,
-                                                constants.MAX_RANGE / 2), 2)
+    self.assertEqual(
+        utils._FindServerInMapping(mapping, constants.MAX_RANGE / 4), 1)
+    self.assertEqual(
+        utils._FindServerInMapping(mapping, constants.MAX_RANGE / 4 + 1), 1)
+    self.assertEqual(
+        utils._FindServerInMapping(mapping, constants.MAX_RANGE / 2), 2)
     half_fifth = constants.MAX_RANGE / 2 + constants.MAX_RANGE / 5
     self.assertEqual(utils._FindServerInMapping(mapping, half_fifth), 2)
-    self.assertEqual(utils._FindServerInMapping(mapping,
-                                                constants.MAX_RANGE / 4 * 3), 3)
-    self.assertEqual(utils._FindServerInMapping(mapping,
-                                                constants.MAX_RANGE), 3)
+    self.assertEqual(
+        utils._FindServerInMapping(mapping, constants.MAX_RANGE / 4 * 3), 3)
+    self.assertEqual(
+        utils._FindServerInMapping(mapping, constants.MAX_RANGE), 3)
 
 
 def main(args):
   test_lib.main(args)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

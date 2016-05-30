@@ -13,7 +13,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-
 CATEGORY = "Other"
 
 
@@ -29,8 +28,10 @@ class ApiListStatsStoreMetricsMetadataHandler(
   args_type = ApiListStatsStoreMetricsMetadataArgs
 
   def Render(self, args, token=None):
-    stats_store = aff4.FACTORY.Create(None, aff4_type="StatsStore",
-                                      mode="w", token=token)
+    stats_store = aff4.FACTORY.Create(None,
+                                      aff4_type="StatsStore",
+                                      mode="w",
+                                      token=token)
 
     process_ids = [pid for pid in stats_store.ListUsedProcessIds()
                    if pid.startswith(args.component.name.lower())]
@@ -54,7 +55,9 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
   def Render(self, args, token):
     stats_store = aff4.FACTORY.Create(
         stats_store_lib.StatsStore.DATA_STORE_ROOT,
-        aff4_type="StatsStore", mode="rw", token=token)
+        aff4_type="StatsStore",
+        mode="rw",
+        token=token)
 
     process_ids = stats_store.ListUsedProcessIds()
     filtered_ids = [pid for pid in process_ids
@@ -79,11 +82,10 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
     if end_time <= start_time:
       raise ValueError("End time can't be less than start time.")
 
-    result = dict(
-        start=base_start_time.AsMicroSecondsFromEpoch(),
-        end=end_time.AsMicroSecondsFromEpoch(),
-        metric_name=args.metric_name,
-        timeseries=[])
+    result = dict(start=base_start_time.AsMicroSecondsFromEpoch(),
+                  end=end_time.AsMicroSecondsFromEpoch(),
+                  metric_name=args.metric_name,
+                  timeseries=[])
 
     data = stats_store.MultiReadStats(
         process_ids=filtered_ids,

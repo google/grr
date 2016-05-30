@@ -45,8 +45,9 @@ class WindowsPersistenceMechanismsParser(parsers.ArtifactFilesParser):
                                        download_pathtype, knowledge_base)
       # TODO(user): handle empty image_path driver default
 
-    if isinstance(persistence, rdf_client.StatEntry) and persistence.HasField(
-        "registry_type"):
+    if isinstance(
+        persistence,
+        rdf_client.StatEntry) and persistence.HasField("registry_type"):
       pathspecs = self._GetFilePaths(persistence.registry_data.string,
                                      download_pathtype, knowledge_base)
       source_urn = persistence.aff4path

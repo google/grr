@@ -48,9 +48,9 @@ class URLLibInstrumentor(object):
     # We only care about how urllib2 will try to connect - the proxy and the
     # URL.
     self.actions.append([
-        self.time,
-        self._extract_url(request),
-        self._extract_proxy(self.current_opener)])
+        self.time, self._extract_url(request), self._extract_proxy(
+            self.current_opener)
+    ])
     if self.responses:
       result = self.responses.pop(0)
     else:
@@ -73,8 +73,7 @@ class URLLibInstrumentor(object):
     self.actions = []
     return utils.MultiStubber(
         (urllib2, "install_opener", self.install_opener),
-        (urllib2, "urlopen", self.urlopen),
-        (time, "sleep", self.sleep))
+        (urllib2, "urlopen", self.urlopen), (time, "sleep", self.sleep))
 
 
 class URLFilter(URLLibInstrumentor):
@@ -142,6 +141,7 @@ class HTTPManagerTest(test_lib.GRRBaseTest):
 
     Captive portals do not cause an exception but return bad data.
     """
+
     def verify_cb(http_object):
       return http_object.data == "Good"
 
@@ -231,6 +231,7 @@ class HTTPManagerTest(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

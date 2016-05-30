@@ -17,26 +17,34 @@ class FileExportPlugin(plugin.ExportPlugin):
 
   def ConfigureArgParser(self, parser):
     """Configures args parser for FileExportPlugin."""
-    parser.add_argument("--path", required=True,
+    parser.add_argument("--path",
+                        required=True,
                         help="Path to the AFF4 object to download. "
                         "Can be either a file or a directory.")
 
-    parser.add_argument("--output", required=True,
+    parser.add_argument("--output",
+                        required=True,
                         help="Directory downloaded files will be written to.")
 
-    parser.add_argument("--depth", type=int, default=5,
+    parser.add_argument("--depth",
+                        type=int,
+                        default=5,
                         help="Depth of recursion when path is a directory.")
 
-    parser.add_argument("--overwrite", default=False,
+    parser.add_argument("--overwrite",
+                        default=False,
                         help="If true, overwrite files if they exist.")
 
-    parser.add_argument("--threads", type=int, default=8,
+    parser.add_argument("--threads",
+                        type=int,
+                        default=8,
                         help="Maximum number of threads to use.")
 
   def Run(self, args):
     """Downloads files/directories with the given path."""
     try:
-      directory = aff4.FACTORY.Open(args.path, "AFF4Volume",
+      directory = aff4.FACTORY.Open(args.path,
+                                    "AFF4Volume",
                                     token=data_store.default_token)
     except aff4.InstantiationError:
       directory = None
@@ -50,11 +58,13 @@ class FileExportPlugin(plugin.ExportPlugin):
         raise RuntimeError("Specified path %s doesn't exist!" % directory.urn)
 
     if directory:
-      export_utils.RecursiveDownload(directory, args.output,
+      export_utils.RecursiveDownload(directory,
+                                     args.output,
                                      overwrite=args.overwrite,
                                      max_depth=args.depth,
                                      max_threads=args.threads)
     else:
-      export_utils.CopyAFF4ToLocal(args.path, args.output,
+      export_utils.CopyAFF4ToLocal(args.path,
+                                   args.output,
                                    overwrite=args.overwrite,
                                    token=data_store.default_token)

@@ -45,6 +45,7 @@ class Error(Exception):
 class UserError(Error):
   pass
 
+
 parser = flags.PARSER
 parser.description = ("Set configuration parameters for the GRR Server."
                       "\nThis script has numerous subcommands to perform "
@@ -53,16 +54,18 @@ parser.description = ("Set configuration parameters for the GRR Server."
 
 # Generic arguments.
 
-parser.add_argument(
-    "--share_dir", default="/usr/share/grr",
-    help="Path to the directory containing grr data.")
+parser.add_argument("--share_dir",
+                    default="/usr/share/grr",
+                    help="Path to the directory containing grr data.")
 
-subparsers = parser.add_subparsers(
-    title="subcommands", dest="subparser_name", description="valid subcommands")
+subparsers = parser.add_subparsers(title="subcommands",
+                                   dest="subparser_name",
+                                   description="valid subcommands")
 
 # Subparsers.
 parser_generate_keys = subparsers.add_parser(
-    "generate_keys", help="Generate crypto keys in the configuration.")
+    "generate_keys",
+    help="Generate crypto keys in the configuration.")
 
 parser_repack_clients = subparsers.add_parser(
     "repack_clients",
@@ -72,53 +75,61 @@ parser_initialize = subparsers.add_parser(
     "initialize",
     help="Run all the required steps to setup a new GRR install.")
 
-parser_set_var = subparsers.add_parser(
-    "set_var", help="Set a config variable.")
+parser_set_var = subparsers.add_parser("set_var", help="Set a config variable.")
 
 # Update an existing user.
-parser_update_user = subparsers.add_parser(
-    "update_user", help="Update user settings.")
+parser_update_user = subparsers.add_parser("update_user",
+                                           help="Update user settings.")
 
 parser_update_user.add_argument("username", help="Username to update.")
 
 parser_update_user.add_argument(
-    "--password", default=False, action="store_true",
+    "--password",
+    default=False,
+    action="store_true",
     help="Reset the password for this user (will prompt for password).")
 
 parser_update_user.add_argument(
-    "--add_labels", default=[], action="append",
+    "--add_labels",
+    default=[],
+    action="append",
     help="Add labels to the user object. These are used to control access.")
 
 parser_update_user.add_argument(
-    "--delete_labels", default=[], action="append",
-    help="Delete labels from the user object. These are used to control access."
-)
+    "--delete_labels",
+    default=[],
+    action="append",
+    help="Delete labels from the user object. These are used to control "
+    "access.")
 
-parser_add_user = subparsers.add_parser(
-    "add_user", help="Add a new user.")
+parser_add_user = subparsers.add_parser("add_user", help="Add a new user.")
 
 parser_add_user.add_argument("username", help="Username to create.")
 parser_add_user.add_argument("--password", default=None, help="Set password.")
 
 parser_add_user.add_argument(
-    "--labels", default=[], action="append",
+    "--labels",
+    default=[],
+    action="append",
     help="Create user with labels. These are used to control access.")
 
-parser_add_user.add_argument(
-    "--noadmin", default=False, action="store_true",
-    help="Don't create the user as an administrator.")
+parser_add_user.add_argument("--noadmin",
+                             default=False,
+                             action="store_true",
+                             help="Don't create the user as an administrator.")
 
-parser_initialize.add_argument(
-    "--external_hostname", default=None,
-    help="External hostname to use.")
+parser_initialize.add_argument("--external_hostname",
+                               default=None,
+                               help="External hostname to use.")
 
-parser_initialize.add_argument(
-    "--admin_password", default=None,
-    help="Admin password for web interface.")
+parser_initialize.add_argument("--admin_password",
+                               default=None,
+                               help="Admin password for web interface.")
 
-parser_initialize.add_argument(
-    "--noprompt", default=False, action="store_true",
-    help="Set to avoid prompting during initialize.")
+parser_initialize.add_argument("--noprompt",
+                               default=False,
+                               action="store_true",
+                               help="Set to avoid prompting during initialize.")
 
 parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
@@ -127,18 +138,19 @@ parser_set_var.add_argument("val", help="Value to set.")
 def AddUser(username, password=None, labels=None, token=None):
   """Implementation of the add_user command."""
   try:
-    if aff4.FACTORY.Open("aff4:/users/%s" % username, "GRRUser",
-                         token=token):
+    if aff4.FACTORY.Open("aff4:/users/%s" % username, "GRRUser", token=token):
       raise UserError("Cannot add user %s: User already exists." % username)
   except aff4.InstantiationError:
     pass
 
   fd = aff4.FACTORY.Create("aff4:/users/%s" % username,
-                           "GRRUser", mode="rw", token=token)
+                           "GRRUser",
+                           mode="rw",
+                           token=token)
   # Note this accepts blank passwords as valid.
   if password is None:
-    password = getpass.getpass(
-        prompt="Please enter password for user '%s': " % username)
+    password = getpass.getpass(prompt="Please enter password for user '%s': " %
+                               username)
   fd.SetPassword(password)
 
   if labels:
@@ -149,12 +161,17 @@ def AddUser(username, password=None, labels=None, token=None):
   print "Added user %s." % username
 
 
-def UpdateUser(username, password, add_labels=None, delete_labels=None,
+def UpdateUser(username,
+               password,
+               add_labels=None,
+               delete_labels=None,
                token=None):
   """Implementation of the update_user command."""
   try:
     fd = aff4.FACTORY.Open("aff4:/users/%s" % username,
-                           "GRRUser", mode="rw", token=token)
+                           "GRRUser",
+                           mode="rw",
+                           token=token)
   except aff4.InstantiationError:
     raise UserError("User %s does not exist." % username)
 
@@ -211,8 +228,8 @@ def UpdateUser(username, password, add_labels=None, delete_labels=None,
   ShowUser(username, token=token)
 
 # Delete an existing user.
-parser_update_user = subparsers.add_parser(
-    "delete_user", help="Delete an user account.")
+parser_update_user = subparsers.add_parser("delete_user",
+                                           help="Delete an user account.")
 
 parser_update_user.add_argument("username", help="Username to update.")
 
@@ -232,7 +249,9 @@ parser_show_user = subparsers.add_parser(
     "show_user", help="Display user settings or list all users.")
 
 parser_show_user.add_argument(
-    "username", default=None, nargs="?",
+    "username",
+    default=None,
+    nargs="?",
     help="Username to display. If not specified, list all users.")
 
 
@@ -250,69 +269,82 @@ def ShowUser(username, token=None):
     else:
       print "User %s not found" % username
 
-
 # Generate Keys Arguments
-parser_generate_keys.add_argument(
-    "--overwrite", default=False, action="store_true",
-    help="Required to overwrite existing keys.")
+parser_generate_keys.add_argument("--overwrite",
+                                  default=False,
+                                  action="store_true",
+                                  help="Required to overwrite existing keys.")
 
 # Repack arguments.
 parser_repack_clients.add_argument(
-    "--upload", default=True, action="store_false",
+    "--upload",
+    default=True,
+    action="store_false",
     help="Upload the client binaries to the datastore.")
-
 
 # Parent parser used in other upload based parsers.
 parser_upload_args = argparse.ArgumentParser(add_help=False)
 parser_upload_signed_args = argparse.ArgumentParser(add_help=False)
 
 # Upload arguments.
-parser_upload_args.add_argument(
-    "--file", help="The file to upload", required=True)
+parser_upload_args.add_argument("--file",
+                                help="The file to upload",
+                                required=True)
 
 parser_upload_args.add_argument(
-    "--dest_path", required=False, default=None,
+    "--dest_path",
+    required=False,
+    default=None,
     help="The destination path to upload the file to, specified in aff4: form,"
     "e.g. aff4:/config/test.raw")
 
-parser_upload_args.add_argument(
-    "--overwrite", default=False, action="store_true",
-    help="Required to overwrite existing files.")
+parser_upload_args.add_argument("--overwrite",
+                                default=False,
+                                action="store_true",
+                                help="Required to overwrite existing files.")
 
 parser_upload_signed_args.add_argument(
-    "--platform", required=True, choices=maintenance_utils.SUPPORTED_PLATFORMS,
+    "--platform",
+    required=True,
+    choices=maintenance_utils.SUPPORTED_PLATFORMS,
     default="windows",
     help="The platform the file will be used on. This determines which signing"
     " keys to use, and the path on the server the file will be uploaded to.")
 
 parser_upload_signed_args.add_argument(
-    "--arch", required=True, choices=maintenance_utils.SUPPORTED_ARCHITECTURES,
+    "--arch",
+    required=True,
+    choices=maintenance_utils.SUPPORTED_ARCHITECTURES,
     default="amd64",
     help="The architecture the file will be used on. This determines "
     " the path on the server the file will be uploaded to.")
 
 # Upload parsers.
 parser_upload_raw = subparsers.add_parser(
-    "upload_raw", parents=[parser_upload_args],
+    "upload_raw",
+    parents=[parser_upload_args],
     help="Upload a raw file to an aff4 path.")
 
 parser_upload_artifact = subparsers.add_parser(
-    "upload_artifact", parents=[parser_upload_args],
+    "upload_artifact",
+    parents=[parser_upload_args],
     help="Upload a raw json artifact file.")
 
-
 parser_upload_python = subparsers.add_parser(
-    "upload_python", parents=[parser_upload_args, parser_upload_signed_args],
+    "upload_python",
+    parents=[parser_upload_args, parser_upload_signed_args],
     help="Sign and upload a 'python hack' which can be used to execute code on "
     "a client.")
 
 parser_upload_exe = subparsers.add_parser(
-    "upload_exe", parents=[parser_upload_args, parser_upload_signed_args],
+    "upload_exe",
+    parents=[parser_upload_args, parser_upload_signed_args],
     help="Sign and upload an executable which can be used to execute code on "
     "a client.")
 
 parser_sign_component = subparsers.add_parser(
-    "sign_component", parents=[],
+    "sign_component",
+    parents=[],
     help="Authenticode Sign the component.")
 
 parser_sign_component.add_argument(
@@ -324,27 +356,34 @@ parser_sign_component.add_argument(
     help="Path to write the signed component file.")
 
 parser_upload_component = subparsers.add_parser(
-    "upload_component", parents=[],
+    "upload_component",
+    parents=[],
     help="Sign and upload a client component.")
 
 parser_upload_component.add_argument(
-    "component_filename", help="Path to the compiled component to upload.")
+    "component_filename",
+    help="Path to the compiled component to upload.")
 
 parser_upload_component.add_argument(
-    "--overwrite", default=False, action="store_true",
+    "--overwrite",
+    default=False,
+    action="store_true",
     help="Allow overwriting of the component path.")
 
 parser_upload_components = subparsers.add_parser(
-    "upload_components", parents=[],
+    "upload_components",
+    parents=[],
     help="Sign and upload all client components.")
 
 parser_upload_components.add_argument(
-    "--overwrite", default=False, action="store_true",
+    "--overwrite",
+    default=False,
+    action="store_true",
     help="Allow overwriting of the component path.")
 
-
 subparsers.add_parser(
-    "download_missing_rekall_profiles", parents=[],
+    "download_missing_rekall_profiles",
+    parents=[],
     help="Downloads all Rekall profiles from the repository that are not "
     "currently present in the database.")
 
@@ -352,8 +391,7 @@ subparsers.add_parser(
 def ImportConfig(filename, config):
   """Reads an old config file and imports keys and user accounts."""
   sections_to_import = ["PrivateKeys"]
-  entries_to_import = ["Client.executable_signing_public_key",
-                       "CA.certificate",
+  entries_to_import = ["Client.executable_signing_public_key", "CA.certificate",
                        "Frontend.certificate"]
   options_imported = 0
   old_config = config_lib.CONFIG.MakeNewConfig()
@@ -390,8 +428,8 @@ def GenerateKeys(config):
   """Generate the keys we need for a GRR server."""
   if not hasattr(key_utils, "MakeCACert"):
     parser.error("Generate keys can only run with open source key_utils.")
-  if (config.Get("PrivateKeys.server_key", default=None) and
-      not flags.FLAGS.overwrite):
+  if (config.Get("PrivateKeys.server_key",
+                 default=None) and not flags.FLAGS.overwrite):
     raise RuntimeError("Config %s already has keys, use --overwrite to "
                        "override." % config.parser)
 
@@ -409,8 +447,9 @@ def GenerateKeys(config):
   config.Set("PrivateKeys.ca_key", ca_pk.as_pem(cipher))
 
   print "Generating Server keys"
-  server_cert, server_key = key_utils.MakeCASignedCert(
-      "grr", ca_pk, bits=length)
+  server_cert, server_key = key_utils.MakeCASignedCert("grr",
+                                                       ca_pk,
+                                                       bits=length)
   config.Set("Frontend.certificate", server_cert.as_pem())
   config.Set("PrivateKeys.server_key", server_key.as_pem(cipher))
 
@@ -510,8 +549,7 @@ to create the necessary database and tables using the credentials provided.
                                config_lib.CONFIG.Get("Mysql.host"))
     config.Set("Mysql.host", mysql_host)
 
-    mysql_port = RetryQuestion("MySQL Port (0 for local socket)",
-                               "^[0-9]+$",
+    mysql_port = RetryQuestion("MySQL Port (0 for local socket)", "^[0-9]+$",
                                config_lib.CONFIG.Get("Mysql.port"))
     config.Set("Mysql.port", mysql_port)
 
@@ -599,14 +637,14 @@ server and the admin user interface.\n"""
   existing_frontend_urn = config_lib.CONFIG.Get("Client.server_urls")
   if not existing_frontend_urn:
     # Port from older deprecated setting Client.control_urls.
-    existing_control_urns = config_lib.CONFIG.Get(
-        "Client.control_urls", default=None)
+    existing_control_urns = config_lib.CONFIG.Get("Client.control_urls",
+                                                  default=None)
     if existing_control_urns is not None:
       existing_frontend_urn = []
       for existing_control_urn in existing_control_urns:
         if not existing_control_urn.endswith("control"):
-          raise RuntimeError(
-              "Invalid existing control URL: %s" % existing_control_urn)
+          raise RuntimeError("Invalid existing control URL: %s" %
+                             existing_control_urn)
 
         existing_frontend_urn.append(existing_control_urn.rsplit("/", 1)[0])
 
@@ -648,8 +686,8 @@ server and the admin user interface.\n"""
 
   config.Set("Server.initialized", True)
   config.Write()
-  print ("Configuration parameters set. You can edit these in %s" %
-         config_lib.CONFIG.Get("Config.writeback"))
+  print("Configuration parameters set. You can edit these in %s" %
+        config_lib.CONFIG.Get("Config.writeback"))
 
 
 def AddUsers(token=None):
@@ -658,12 +696,16 @@ def AddUsers(token=None):
 
   print "\nStep 3: Adding Admin User"
   try:
-    AddUser("admin", labels=["admin"], token=token,
+    AddUser("admin",
+            labels=["admin"],
+            token=token,
             password=flags.FLAGS.admin_password)
   except UserError:
     if flags.FLAGS.noprompt:
-      UpdateUser("admin", password=flags.FLAGS.admin_password,
-                 add_labels=["admin"], token=token)
+      UpdateUser("admin",
+                 password=flags.FLAGS.admin_password,
+                 add_labels=["admin"],
+                 token=token)
     else:
       if ((raw_input("User 'admin' already exists, do you want to "
                      "reset the password? [yN]: ").upper() or "N") == "Y"):
@@ -674,9 +716,8 @@ def InstallTemplatePackage():
   virtualenv_bin = os.path.dirname(sys.executable)
   pip = "%s/pip" % virtualenv_bin
   # Install the GRR server component to satisfy the dependency below.
-  major_minor_version = ".".join(
-      pkg_resources.get_distribution(
-          "grr-response-core").version.split(".")[0:2])
+  major_minor_version = ".".join(pkg_resources.get_distribution(
+      "grr-response-core").version.split(".")[0:2])
   # Note that this version spec requires a recent version of pip
   subprocess.check_call(
       [sys.executable, pip, "install", "--upgrade", "-f",
@@ -686,16 +727,18 @@ def InstallTemplatePackage():
 
 def ManageBinaries(config=None, token=None):
   """Repack templates into installers."""
-  print ("\nStep 4: Installing template package and repackaging clients with"
-         " new configuration.")
+  print("\nStep 4: Installing template package and repackaging clients with"
+        " new configuration.")
 
-  if flags.FLAGS.noprompt or ((raw_input(
-      "Download and upgrade client templates? You can skip this if "
-      "templates are already installed. [Yn]: ").upper() or "Y") == "Y"):
+  if flags.FLAGS.noprompt or (
+      (raw_input("Download and upgrade client templates? You can skip this if "
+                 "templates are already installed. [Yn]: ").upper() or "Y") ==
+      "Y"):
     InstallTemplatePackage()
 
   # Build debug binaries, then build release binaries.
-  maintenance_utils.RepackAllBinaries(upload=True, debug_build=True,
+  maintenance_utils.RepackAllBinaries(upload=True,
+                                      debug_build=True,
                                       token=token)
   maintenance_utils.RepackAllBinaries(upload=True, token=token)
 
@@ -729,8 +772,8 @@ def Initialize(config=None, token=None):
   print "\nStep 1: Key Generation"
   if config.Get("PrivateKeys.server_key", default=None):
     if options_imported > 0:
-      print ("Since you have imported keys from another installation in the "
-             "last step,\nyou probably do not want to generate new keys now.")
+      print("Since you have imported keys from another installation in the "
+            "last step,\nyou probably do not want to generate new keys now.")
     if (raw_input("You already have keys in your config, do you want to"
                   " overwrite them? [yN]: ").upper() or "N") == "Y":
       flags.FLAGS.overwrite = True
@@ -773,15 +816,16 @@ def InitializeNoPrompt(config=None, token=None):
   GenerateKeys(config)
   config_dict["Datastore.implementation"] = "SqliteDataStore"
   hostname = flags.FLAGS.external_hostname
-  config_dict["Client.server_urls"] = ["http://%s:%s/" % (
-      hostname, config.Get("Frontend.bind_port"))]
+  config_dict["Client.server_urls"] = ["http://%s:%s/" %
+                                       (hostname,
+                                        config.Get("Frontend.bind_port"))]
 
-  config_dict["AdminUI.url"] = "http://%s:%s" % (
-      hostname, config.Get("AdminUI.port"))
+  config_dict["AdminUI.url"] = "http://%s:%s" % (hostname,
+                                                 config.Get("AdminUI.port"))
   config_dict["Logging.domain"] = hostname
   config_dict["Monitoring.alert_email"] = "grr-monitoring@%s" % hostname
-  config_dict["Monitoring.emergency_access_email"] = (
-      "grr-emergency@%s" % hostname)
+  config_dict["Monitoring.emergency_access_email"] = ("grr-emergency@%s" %
+                                                      hostname)
 
   print "Setting configuration as:\n\n%s" % config_dict
   for key, value in config_dict.iteritems():
@@ -789,8 +833,8 @@ def InitializeNoPrompt(config=None, token=None):
   config.Set("Server.initialized", True)
   config.Write()
 
-  print ("Configuration parameters set. You can edit these in %s" %
-         config_lib.CONFIG.Get("Config.writeback"))
+  print("Configuration parameters set. You can edit these in %s" %
+        config_lib.CONFIG.Get("Config.writeback"))
   AddUsers(token=token)
   ManageBinaries(config, token=token)
 
@@ -842,8 +886,7 @@ def main(unused_argv):
     config_lib.CONFIG.Write()
 
   elif flags.FLAGS.subparser_name == "repack_clients":
-    maintenance_utils.RepackAllBinaries(upload=flags.FLAGS.upload,
-                                        token=token)
+    maintenance_utils.RepackAllBinaries(upload=flags.FLAGS.upload, token=token)
     maintenance_utils.RepackAllBinaries(upload=flags.FLAGS.upload,
                                         debug_build=True,
                                         token=token)
@@ -853,8 +896,11 @@ def main(unused_argv):
 
   elif flags.FLAGS.subparser_name == "update_user":
     try:
-      UpdateUser(flags.FLAGS.username, flags.FLAGS.password,
-                 flags.FLAGS.add_labels, flags.FLAGS.delete_labels, token=token)
+      UpdateUser(flags.FLAGS.username,
+                 flags.FLAGS.password,
+                 flags.FLAGS.add_labels,
+                 flags.FLAGS.delete_labels,
+                 token=token)
     except UserError as e:
       print e
 
@@ -880,26 +926,26 @@ def main(unused_argv):
     if not aff4_path:
       python_hack_root_urn = config_lib.CONFIG.Get("Config.python_hack_root")
       aff4_path = python_hack_root_urn.Add(os.path.basename(flags.FLAGS.file))
-    context = ["Platform:%s" % flags.FLAGS.platform.title(),
-               "Client Context"]
-    maintenance_utils.UploadSignedConfigBlob(content, aff4_path=aff4_path,
+    context = ["Platform:%s" % flags.FLAGS.platform.title(), "Client Context"]
+    maintenance_utils.UploadSignedConfigBlob(content,
+                                             aff4_path=aff4_path,
                                              client_context=context,
                                              token=token)
 
   elif flags.FLAGS.subparser_name == "upload_exe":
     content = open(flags.FLAGS.file).read(1024 * 1024 * 30)
-    context = ["Platform:%s" % flags.FLAGS.platform.title(),
-               "Client Context"]
+    context = ["Platform:%s" % flags.FLAGS.platform.title(), "Client Context"]
 
     if flags.FLAGS.dest_path:
       dest_path = rdfvalue.RDFURN(flags.FLAGS.dest_path)
     else:
       dest_path = config_lib.CONFIG.Get(
-          "Executables.aff4_path", context=context).Add(
-              os.path.basename(flags.FLAGS.file))
+          "Executables.aff4_path",
+          context=context).Add(os.path.basename(flags.FLAGS.file))
 
     # Now upload to the destination.
-    maintenance_utils.UploadSignedConfigBlob(content, aff4_path=dest_path,
+    maintenance_utils.UploadSignedConfigBlob(content,
+                                             aff4_path=dest_path,
                                              client_context=context,
                                              token=token)
 
@@ -915,13 +961,13 @@ def main(unused_argv):
                                     token=token)
 
   elif flags.FLAGS.subparser_name == "upload_components":
-    maintenance_utils.SignAllComponents(
-        overwrite=flags.FLAGS.overwrite, token=token)
+    maintenance_utils.SignAllComponents(overwrite=flags.FLAGS.overwrite,
+                                        token=token)
 
   elif flags.FLAGS.subparser_name == "set_var":
     config = config_lib.CONFIG
     print "Setting %s to %s" % (flags.FLAGS.var, flags.FLAGS.val)
-    if flags.FLAGS.val.startswith("["):   # Allow setting of basic lists.
+    if flags.FLAGS.val.startswith("["):  # Allow setting of basic lists.
       flags.FLAGS.val = flags.FLAGS.val[1:-1].split(",")
     config.Set(flags.FLAGS.var, flags.FLAGS.val)
     config.Write()
@@ -937,7 +983,9 @@ def main(unused_argv):
     base_urn = aff4.ROOT_URN.Add("artifact_store")
     try:
       artifact.UploadArtifactYamlFile(
-          open(flags.FLAGS.file).read(1000000), base_urn=base_urn, token=None,
+          open(flags.FLAGS.file).read(1000000),
+          base_urn=base_urn,
+          token=None,
           overwrite=flags.FLAGS.overwrite)
     except artifact_registry.ArtifactDefinitionError as e:
       print "Error %s. You may need to set --overwrite." % e
@@ -946,6 +994,7 @@ def main(unused_argv):
     print "Downloading missing Rekall profiles."
     s = rekall_profile_server.GRRRekallProfileServer()
     s.GetMissingProfiles()
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -18,8 +18,8 @@ class TestArtifactManagementRender(test_lib.GRRSeleniumTest):
   def setUp(self):
     super(TestArtifactManagementRender, self).setUp()
 
-    self.json_file = os.path.realpath(os.path.join(
-        config_lib.CONFIG["Test.data_dir"], "artifacts", "test_artifact.json"))
+    self.json_file = os.path.realpath(os.path.join(config_lib.CONFIG[
+        "Test.data_dir"], "artifacts", "test_artifact.json"))
 
   def testArtifactUpload(self):
     self.Open("/#main=ArtifactManagerView")
@@ -35,8 +35,7 @@ class TestArtifactManagementRender(test_lib.GRRSeleniumTest):
     element.send_keys(self.json_file)
 
     self.Click("css=grr-upload-artifact-dialog button[name=Proceed]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Artifact was successfully uploaded.")
+    self.WaitUntil(self.IsTextPresent, "Artifact was successfully uploaded.")
     self.Click("css=grr-upload-artifact-dialog button[name=Close]")
 
     # Check that the list is refreshed.
@@ -62,8 +61,7 @@ class TestArtifactManagementRender(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-delete-artifacts-dialog:contains('TestDrivers')")
     self.Click("css=grr-delete-artifacts-dialog button[name=Proceed]")
-    self.WaitUntil(self.IsTextPresent,
-                   "Artifacts were deleted successfully.")
+    self.WaitUntil(self.IsTextPresent, "Artifacts were deleted successfully.")
     self.Click("css=grr-delete-artifacts-dialog button[name=Close]")
 
     # Check that artifact is indeed deleted.
@@ -75,6 +73,7 @@ class TestArtifactManagementRender(test_lib.GRRSeleniumTest):
 def main(argv):
   # Run the full test suite
   runtests_test.SeleniumTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -21,6 +21,7 @@ from grr.lib import test_lib
 from grr.lib.flows.general import memory
 from grr.lib.flows.general import registry
 from grr.lib.flows.general import transfer
+
 # pylint: enable=unused-import
 
 
@@ -41,7 +42,8 @@ class RekallTestSuite(test_lib.EmptyActionTest):
 
   def CreateClient(self):
     client = aff4.FACTORY.Create(self.client_id,
-                                 "VFSGRRClient", token=self.token)
+                                 "VFSGRRClient",
+                                 token=self.token)
     client.Set(client.Schema.ARCH("AMD64"))
     client.Set(client.Schema.OS_RELEASE("7"))
     client.Set(client.Schema.SYSTEM("Windows"))
@@ -56,21 +58,22 @@ class RekallTestSuite(test_lib.EmptyActionTest):
     # For this test we force the client to write the profile cache in the temp
     # directory. This forces the profiles to always be downloaded from the
     # server (since each test run gets a new temp directory).
-    with test_lib.ConfigOverrider({"Client.rekall_profile_cache_path":
-                                   self.temp_dir}):
+    with test_lib.ConfigOverrider(
+        {"Client.rekall_profile_cache_path": self.temp_dir}):
       image_path = os.path.join(self.base_path, "win7_trial_64bit.raw")
       request.device.path = image_path
 
       self.CreateClient()
 
       # Allow the real RekallAction to run against the image.
-      for _ in test_lib.TestFlowHelper(
-          "AnalyzeClientMemory",
-          action_mocks.MemoryClientMock(
-              "RekallAction", "WriteRekallProfile", "DeleteGRRTempFiles"
-          ),
-          token=self.token, client_id=self.client_id,
-          request=request, output="analysis/memory"):
+      for _ in test_lib.TestFlowHelper("AnalyzeClientMemory",
+                                       action_mocks.MemoryClientMock(
+                                           "RekallAction", "WriteRekallProfile",
+                                           "DeleteGRRTempFiles"),
+                                       token=self.token,
+                                       client_id=self.client_id,
+                                       request=request,
+                                       output="analysis/memory"):
         pass
 
       # Check that the profiles are also cached locally.
@@ -98,6 +101,7 @@ def RequireTestImage(f):
       return testinstance.skipTest("No win7_trial_64bit.raw memory image,"
                                    "skipping test. Download it here: "
                                    "goo.gl/19AJGl and put it in test_data.")
+
   return Decorator
 
 
@@ -111,16 +115,16 @@ class RekallTests(RekallTestSuite):
     request.plugins = [
         # Only use these methods for listing processes.
         rdf_rekall_types.PluginRequest(
-            plugin="pslist", args=dict(
-                method=["PsActiveProcessHead", "CSRSS"]
-            )),
+            plugin="pslist",
+            args=dict(method=["PsActiveProcessHead", "CSRSS"])),
         rdf_rekall_types.PluginRequest(plugin="modules")
-        ]
+    ]
     self.LaunchRekallPlugin(request)
 
     # Get the result collection - it should be a RekallResponseCollection.
-    fd = aff4.FACTORY.Open(self.client_id.Add("analysis/memory"),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.client_id.Add("analysis/memory"),
+        token=self.token)
 
     # Ensure that the client_id is set on each message. This helps us demux
     # messages from different clients, when analyzing the collection from a
@@ -141,8 +145,9 @@ class RekallTests(RekallTestSuite):
     request = rdf_rekall_types.RekallRequest()
     request.plugins = [
         # Run procdump to create one file.
-        rdf_rekall_types.PluginRequest(
-            plugin="procdump", args=dict(pid=2860))]
+        rdf_rekall_types.PluginRequest(plugin="procdump",
+                                       args=dict(pid=2860))
+    ]
 
     with test_lib.Instrument(transfer.MultiGetFile,
                              "StoreStat") as storestat_instrument:
@@ -155,18 +160,17 @@ class RekallTests(RekallTestSuite):
     request = rdf_rekall_types.RekallRequest()
     request.plugins = [
         # Only use these methods for listing processes.
-        rdf_rekall_types.PluginRequest(
-            plugin="pslist", args=dict(
-                pid=[4, 2860],
-                method="PsActiveProcessHead"
-            )),
+        rdf_rekall_types.PluginRequest(plugin="pslist",
+                                       args=dict(pid=[4, 2860],
+                                                 method="PsActiveProcessHead")),
     ]
 
     self.LaunchRekallPlugin(request)
 
     # Get the result collection - it should be a RekallResponseCollection.
-    fd = aff4.FACTORY.Open(self.client_id.Add("analysis/memory"),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.client_id.Add("analysis/memory"),
+        token=self.token)
 
     json_blobs = [x.json_messages for x in fd]
     json_blobs = "".join(json_blobs)
@@ -180,18 +184,17 @@ class RekallTests(RekallTestSuite):
     request = rdf_rekall_types.RekallRequest()
     request.plugins = [
         # Only use these methods for listing processes.
-        rdf_rekall_types.PluginRequest(
-            plugin="dlllist", args=dict(
-                proc_regex="dumpit",
-                method="PsActiveProcessHead"
-            )),
+        rdf_rekall_types.PluginRequest(plugin="dlllist",
+                                       args=dict(proc_regex="dumpit",
+                                                 method="PsActiveProcessHead")),
     ]
 
     self.LaunchRekallPlugin(request)
 
     # Get the result collection - it should be a RekallResponseCollection.
-    fd = aff4.FACTORY.Open(self.client_id.Add("analysis/memory"),
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.client_id.Add("analysis/memory"),
+        token=self.token)
 
     json_blobs = [x.json_messages for x in fd]
     json_blobs = "".join(json_blobs)
@@ -225,7 +228,8 @@ class RekallTests(RekallTestSuite):
         "thrdscan", "threads", "timers", "tokens", "unloaded_modules",
         "userassist", "userhandles", "users", "vad", "vaddump", "vadinfo",
         "vadtree", "vadwalk", "version_modules", "version_scan", "vmscan",
-        "vtop", "windows_stations"]
+        "vtop", "windows_stations"
+    ]
 
     output_urn = self.client_id.Add("analysis/memory")
     failed_plugins = []
@@ -236,9 +240,7 @@ class RekallTests(RekallTestSuite):
         aff4.FACTORY.Delete(output_urn, token=self.token)
 
         request = rdf_rekall_types.RekallRequest()
-        request.plugins = [
-            rdf_rekall_types.PluginRequest(plugin=plugin)
-        ]
+        request.plugins = [rdf_rekall_types.PluginRequest(plugin=plugin)]
 
         self.LaunchRekallPlugin(request)
 
@@ -255,6 +257,7 @@ class RekallTests(RekallTestSuite):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

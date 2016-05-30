@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Copyright 2011 Google Inc. All Rights Reserved.
-
 """Tests for grr.parsers.chrome_history."""
 
 
@@ -93,6 +92,7 @@ class ChromeHistoryTest(test_lib.GRRBaseTest):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

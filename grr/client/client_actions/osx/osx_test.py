@@ -2,7 +2,6 @@
 # -*- mode: python; encoding: utf-8 -*-
 
 # Copyright 2011 Google Inc. All Rights Reserved.
-
 """OSX tests."""
 
 
@@ -53,8 +52,7 @@ class OSXFilesystemTests(OSXClientTests):
     """Ensure we can enumerate file systems successfully."""
     path = os.path.join(self.base_path, "osx_fsdata")
     results = self.osx.client_utils_osx.ParseFileSystemsStruct(
-        self.osx.client_utils_osx.StatFS64Struct, 7,
-        open(path).read())
+        self.osx.client_utils_osx.StatFS64Struct, 7, open(path).read())
     self.assertEqual(len(results), 7)
     self.assertEqual(results[0].f_fstypename, "hfs")
     self.assertEqual(results[0].f_mntonname, "/")
@@ -84,15 +82,11 @@ class OSXEnumerateRunningServicesTest(OSXClientTests):
   def ValidResponseProtoSingle(self, proto):
     td = testdata.JOB[0]
     self.assertEqual(proto.label, td["Label"])
-    self.assertEqual(proto.lastexitstatus,
-                     td["LastExitStatus"].value)
-    self.assertEqual(proto.sessiontype,
-                     td["LimitLoadToSessionType"])
-    self.assertEqual(len(proto.machservice),
-                     len(td["MachServices"]))
+    self.assertEqual(proto.lastexitstatus, td["LastExitStatus"].value)
+    self.assertEqual(proto.sessiontype, td["LimitLoadToSessionType"])
+    self.assertEqual(len(proto.machservice), len(td["MachServices"]))
     self.assertEqual(proto.ondemand, td["OnDemand"].value)
-    self.assertEqual(len(proto.args),
-                     len(td["ProgramArguments"]))
+    self.assertEqual(len(proto.args), len(td["ProgramArguments"]))
     self.assertEqual(proto.timeout, td["TimeOut"].value)
     return True
 
@@ -136,6 +130,7 @@ class OSXEnumerateRunningServicesTest(OSXClientTests):
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

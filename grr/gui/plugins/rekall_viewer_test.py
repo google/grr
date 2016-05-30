@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Test the Rekall collection viewer interface."""
 
 from grr.client.components.rekall_support import grr_rekall_test
@@ -23,10 +22,10 @@ class TestRekallViewer(test_lib.GRRSeleniumTest,
     request.plugins = [
         # Only use these methods for listing processes.
         rdf_rekall_types.PluginRequest(
-            plugin="pslist", args=dict(
-                method=["PsActiveProcessHead", "CSRSS"]
-            )),
-        rdf_rekall_types.PluginRequest(plugin="modules")]
+            plugin="pslist",
+            args=dict(method=["PsActiveProcessHead", "CSRSS"])),
+        rdf_rekall_types.PluginRequest(plugin="modules")
+    ]
 
     self.LaunchRekallPlugin(request)
 
@@ -36,8 +35,8 @@ class TestRekallViewer(test_lib.GRRSeleniumTest,
     self.Type("client_query", "Host-0")
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.1000000000000000",
-                        self.GetText, "css=span[type=subject]")
+    self.WaitUntilEqual(u"C.1000000000000000", self.GetText,
+                        "css=span[type=subject]")
     # Choose client 1
     self.Click("css=td:contains('1000')")
 
@@ -63,6 +62,7 @@ class TestRekallViewer(test_lib.GRRSeleniumTest,
 def main(argv):
   # Run the full test suite
   runtests_test.SeleniumTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

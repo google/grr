@@ -14,8 +14,10 @@ class TestNetstat(base.AutomatedTest):
   flow = "Netstat"
 
   def CheckFlow(self):
-    netstat = aff4.FACTORY.Open(self.client_id.Add(self.test_output_path),
-                                mode="r", token=self.token)
+    netstat = aff4.FACTORY.Open(
+        self.client_id.Add(self.test_output_path),
+        mode="r",
+        token=self.token)
     self.assertIsInstance(netstat, aff4.Network)
     connections = netstat.Get(netstat.Schema.CONNECTIONS)
     self.assertGreater(len(connections), 5)

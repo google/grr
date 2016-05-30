@@ -74,8 +74,8 @@ class OSXLaunchdPlistParser(parsers.FileParser):
                          "EnableGlobbing", "EnableTransactions", "OnDemand",
                          "RunAtLoad", "RootDirectory", "WorkingDirectory",
                          "Umask", "TimeOut", "ExitTimeOut", "ThrottleInterval",
-                         "InitGroups", "StartOnMount", "StartInterval",
-                         "Debug", "WaitForDebugger", "Nice", "ProcessType",
+                         "InitGroups", "StartOnMount", "StartInterval", "Debug",
+                         "WaitForDebugger", "Nice", "ProcessType",
                          "AbandonProcessGroup", "LowPriorityIO",
                          "LaunchOnlyOnce"]
 
@@ -112,8 +112,8 @@ class OSXLaunchdPlistParser(parsers.FileParser):
         kwargs[key] = True
 
     if plist.get("inetdCompatability") is not None:
-      kwargs["inetdCompatabilityWait"] = plist.get(
-          "inetdCompatability").get("Wait")
+      kwargs["inetdCompatabilityWait"] = plist.get("inetdCompatability").get(
+          "Wait")
 
     keepalive = plist.get("KeepAlive")
     if isinstance(keepalive, bool) or keepalive is None:
@@ -127,26 +127,23 @@ class OSXLaunchdPlistParser(parsers.FileParser):
       if pathstates is not None:
         keepalivedict["PathState"] = []
         for pathstate in pathstates:
-          keepalivedict["PathState"].append(
-              rdf_plist.PlistBoolDictEntry(name=pathstate,
-                                           value=pathstates[pathstate]))
+          keepalivedict["PathState"].append(rdf_plist.PlistBoolDictEntry(
+              name=pathstate, value=pathstates[pathstate]))
 
       otherjobs = keepalive.get("OtherJobEnabled")
       if otherjobs is not None:
         keepalivedict["OtherJobEnabled"] = []
         for otherjob in otherjobs:
-          keepalivedict["OtherJobEnabled"].append(
-              rdf_plist.PlistBoolDictEntry(name=otherjob,
-                                           value=otherjobs[otherjob]))
+          keepalivedict["OtherJobEnabled"].append(rdf_plist.PlistBoolDictEntry(
+              name=otherjob, value=otherjobs[otherjob]))
       kwargs["KeepAliveDict"] = rdf_plist.LaunchdKeepAlive(**keepalivedict)
 
     envvars = plist.get("EnvironmentVariables")
     if envvars is not None:
       kwargs["EnvironmentVariables"] = []
       for envvar in envvars:
-        kwargs["EnvironmentVariables"].append(
-            rdf_plist.PlistStringDictEntry(name=envvar,
-                                           value=envvars[envvar]))
+        kwargs["EnvironmentVariables"].append(rdf_plist.PlistStringDictEntry(
+            name=envvar, value=envvars[envvar]))
 
     startcalendarinterval = plist.get("StartCalendarInterval")
     if startcalendarinterval is not None:
@@ -157,7 +154,8 @@ class OSXLaunchdPlistParser(parsers.FileParser):
                 Hour=startcalendarinterval.get("Hour"),
                 Day=startcalendarinterval.get("Day"),
                 Weekday=startcalendarinterval.get("Weekday"),
-                Month=startcalendarinterval.get("Month"))]
+                Month=startcalendarinterval.get("Month"))
+        ]
       else:
         kwargs["StartCalendarInterval"] = []
         for entry in startcalendarinterval:

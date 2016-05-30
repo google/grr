@@ -26,8 +26,8 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
   def setUp(self):
     super(TestArtifactRender, self).setUp()
     artifact_registry.REGISTRY.ClearRegistry()
-    test_artifacts_file = os.path.join(
-        config_lib.CONFIG["Test.data_dir"], "artifacts", "test_artifacts.json")
+    test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                                       "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
   def tearDown(self):
@@ -43,8 +43,8 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001",
-                        self.GetText, "css=span[type=subject]")
+    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
+                        "css=span[type=subject]")
     # Choose client 1
     self.Click("css=td:contains('0001')")
 
@@ -74,8 +74,7 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
     self.Click("css=grr-artifacts-list-form tr:contains('TestCmdArtifact')")
     self.Click("css=grr-artifacts-list-form button:contains('Add')")
     # Selected artifacts should be highlighted in bold.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-artifacts-list-form "
+    self.WaitUntil(self.IsElementPresent, "css=grr-artifacts-list-form "
                    "strong:contains('TestCmdArtifact')")
 
     # Check the artifact description loaded.
@@ -86,6 +85,7 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
 def main(argv):
   # Run the full test suite
   runtests_test.SeleniumTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

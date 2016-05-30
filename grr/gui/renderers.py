@@ -21,7 +21,6 @@ from grr.lib import registry
 from grr.lib import utils
 from grr.lib.aff4_objects import user_managers
 
-
 # Global counter for ids
 COUNTER = 1
 
@@ -57,14 +56,13 @@ def StringifyJSON(item):
 
     return result
 
-  elif type(item) in (int, long, float):  # pylint: disable=unidiomatic-typecheck
+  # pyformat: disable
+  elif type(item) in (int, long, float, bool):  # pylint: disable=unidiomatic-typecheck
     return item
+  # pyformat: enable
 
   elif item is None:
     return None
-
-  elif type(item) is bool:  # pylint: disable=unidiomatic-typecheck
-    return item
 
   else:
     return utils.SmartUnicode(item)
@@ -140,13 +138,14 @@ class Renderer(object):
   # maximum, but will be used as a guide).
   max_execution_time = 60
 
-  context_help_url = ""   # Class variable to store context sensitive help.
+  context_help_url = ""  # Class variable to store context sensitive help.
 
   js_call_template = Template("""
 <script>
   grr.ExecuteRenderer("{{method|escapejs}}", {{js_state_json|safe}});
 </script>
-""", allow_script=True)
+""",
+                              allow_script=True)
 
   help_template = Template("""
 {% if this.context_help_url %}
@@ -183,9 +182,9 @@ class Renderer(object):
       Response object.
     """
     js_state = self.state.copy()
-    js_state.update(dict(
-        unique=self.unique,
-        id=self.id, renderer=self.__class__.__name__))
+    js_state.update(dict(unique=self.unique,
+                         id=self.id,
+                         renderer=self.__class__.__name__))
 
     # Since JSON can only represent strings, we must force inputs to a string
     # here.
@@ -195,8 +194,10 @@ class Renderer(object):
       method = "%s.%s" % (self.__class__.__name__, method)
 
     js_state_json = JsonDumpForScriptContext(js_state)
-    self.RenderFromTemplate(self.js_call_template, response,
-                            method=method, js_state_json=js_state_json)
+    self.RenderFromTemplate(self.js_call_template,
+                            response,
+                            method=method,
+                            js_state_json=js_state_json)
     return response
 
   def RenderAjax(self, request, response):
@@ -281,7 +282,6 @@ class Renderer(object):
     return "static/javascript/%s.js" % (
         self.classes[self.renderer].__module__.split(".")[-1])
 
-
 # This will register all classes into this modules's namespace regardless of
 # where they are defined. This allows us to decouple the place of definition of
 # a class (which might be in a plugin) from its use which will reference this
@@ -298,9 +298,9 @@ class UserLabelCheckMixin(object):
   @classmethod
   def CheckAccess(cls, request):
     """If the user is not in the AUTHORIZED_LABELS, reject this renderer."""
-    user_managers.CheckUserForLabels(
-        request.token.username, cls.AUTHORIZED_LABELS,
-        token=request.token)
+    user_managers.CheckUserForLabels(request.token.username,
+                                     cls.AUTHORIZED_LABELS,
+                                     token=request.token)
 
 
 class ErrorHandler(Renderer):
@@ -356,13 +356,18 @@ class TemplateRenderer(Renderer):
 
     canary_mode = getattr(request, "canary_mode", False)
 
-    return self.RenderFromTemplate(apply_template, response,
-                                   this=self, id=self.id, unique=self.unique,
+    return self.RenderFromTemplate(apply_template,
+                                   response,
+                                   this=self,
+                                   id=self.id,
+                                   unique=self.unique,
                                    renderer=self.__class__.__name__,
                                    canary_mode=canary_mode)
 
   def RenderAjax(self, request, response):
-    return TemplateRenderer.Layout(self, request, response,
+    return TemplateRenderer.Layout(self,
+                                   request,
+                                   response,
                                    apply_template=self.ajax_template)
 
   def RawHTML(self, request=None, method=None, **kwargs):
@@ -391,9 +396,11 @@ class AngularDirectiveRendererBase(TemplateRenderer):
 
     self.directive_args = self.directive_args or {}
 
-    response = super(AngularDirectiveRendererBase, self).Layout(
-        request, response, **kwargs)
-    return self.CallJavascript(response, "AngularDirectiveRenderer.Layout",
+    response = super(AngularDirectiveRendererBase, self).Layout(request,
+                                                                response,
+                                                                **kwargs)
+    return self.CallJavascript(response,
+                               "AngularDirectiveRenderer.Layout",
                                directive=self.directive,
                                directive_args=self.directive_args)
 
@@ -428,7 +435,11 @@ class TableColumn(object):
 
   width = None
 
-  def __init__(self, name, header=None, renderer=None, sortable=False,
+  def __init__(self,
+               name,
+               header=None,
+               renderer=None,
+               sortable=False,
                width=None):
     """Constructor.
 
@@ -670,7 +681,8 @@ class TableRenderer(TemplateRenderer):
     self.table_contents = delegate_renderer.RenderAjax(request, tmp).content
 
     response = super(TableRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "TableRenderer.Layout",
+    return self.CallJavascript(response,
+                               "TableRenderer.Layout",
                                renderer=self.__class__.__name__,
                                table_state=self.state,
                                message=self.message)
@@ -701,8 +713,8 @@ class TableRenderer(TemplateRenderer):
 
     # The limit_row is merely a suggestion for the BuildTable method, but if
     # the BuildTable method wants to render more we can render more here.
-    self.additional_rows = self.BuildTable(start_row,
-                                           limit_row + start_row, request)
+    self.additional_rows = self.BuildTable(start_row, limit_row + start_row,
+                                           request)
 
     end_row = min(start_row + limit_row, self.size)
 
@@ -732,7 +744,8 @@ class TableRenderer(TemplateRenderer):
 
     response = super(TableRenderer, self).Layout(
         request, response, apply_template=self.ajax_template)
-    return self.CallJavascript(response, "TableRenderer.RenderAjax",
+    return self.CallJavascript(response,
+                               "TableRenderer.RenderAjax",
                                message=self.message)
 
   def Download(self, request, _):
@@ -767,15 +780,14 @@ class TableRenderer(TemplateRenderer):
           yield fd.getvalue()
           fd.truncate(size=0)
 
-        writer.writerow(
-            [RemoveTags(c.RenderRow(i, request)) for c in self.columns])
+        writer.writerow([RemoveTags(c.RenderRow(i, request)) for c in
+                         self.columns])
 
       # The last chunk
       yield fd.getvalue()
 
-    response = http.StreamingHttpResponse(
-        streaming_content=Generator(),
-        content_type="binary/x-csv")
+    response = http.StreamingHttpResponse(streaming_content=Generator(),
+                                          content_type="binary/x-csv")
 
     # This must be a string.
     response["Content-Disposition"] = ("attachment; filename=table.csv")
@@ -791,11 +803,12 @@ class TreeRenderer(TemplateRenderer):
   layout_template = Template("""
 <div id="{{unique|escape}}"></div>""")
 
-  hidden_branches = []     # Branches to hide in the tree.
+  hidden_branches = []  # Branches to hide in the tree.
 
   def Layout(self, request, response):
     response = super(TreeRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "TreeRenderer.Layout",
+    return self.CallJavascript(response,
+                               "TreeRenderer.Layout",
                                renderer=self.__class__.__name__,
                                publish_select_queue=self.publish_select_queue,
                                tree_state=self.state)
@@ -906,7 +919,8 @@ class TabLayout(TemplateRenderer):
                     for i in range(len(self.names))]
 
     response = super(TabLayout, self).Layout(request, response, apply_template)
-    return self.CallJavascript(response, "TabLayout.Layout",
+    return self.CallJavascript(response,
+                               "TabLayout.Layout",
                                disabled=self.disabled,
                                tab_layout_state=self.state,
                                tab_hash=self.tab_hash,
@@ -964,8 +978,8 @@ class Splitter(TemplateRenderer):
     self.id = request.REQ.get("id", hash(self))
 
     # Pre-render the top and bottom layout contents to avoid extra round trips.
-    self.left_pane = self.classes[self.left_renderer](
-        id="%s_leftPane" % self.id).RawHTML(request)
+    self.left_pane = self.classes[self.left_renderer](id="%s_leftPane" %
+                                                      self.id).RawHTML(request)
 
     self.top_right_pane = self.classes[self.top_right_renderer](
         id="%s_rightTopPane" % self.id).RawHTML(request)
@@ -974,7 +988,8 @@ class Splitter(TemplateRenderer):
         id="%s_rightBottomPane" % self.id).RawHTML(request)
 
     response = super(Splitter, self).Layout(request, response)
-    return self.CallJavascript(response, "Splitter.Layout",
+    return self.CallJavascript(response,
+                               "Splitter.Layout",
                                min_left_pane_width=self.min_left_pane_width,
                                max_left_pane_width=self.max_left_pane_width)
 
@@ -1044,7 +1059,8 @@ class Splitter2WayVertical(TemplateRenderer):
         state=self.state.copy()).RawHTML(request)
 
     response = super(Splitter2WayVertical, self).Layout(request, response)
-    return self.CallJavascript(response, "Splitter2WayVertical.Layout",
+    return self.CallJavascript(response,
+                               "Splitter2WayVertical.Layout",
                                min_left_pane_width=self.min_left_pane_width,
                                max_left_pane_width=self.max_left_pane_width)
 
@@ -1068,16 +1084,16 @@ def DeriveIDFromPath(path):
   invalid_chars = re.compile("[^a-zA-Z0-9]")
 
   components = path.split("/")
-  return "_" + "-".join(
-      [invalid_chars.sub(lambda x: "_%02X" % ord(x.group(0)), x)
-       for x in components if x])
+  return "_" + "-".join([invalid_chars.sub(lambda x: "_%02X" % ord(x.group(0)),
+                                           x) for x in components if x])
 
 
 class ErrorRenderer(TemplateRenderer):
   """Render Exceptions."""
 
   def Layout(self, request, response):
-    response = self.CallJavascript(response, "ErrorRenderer.Layout",
+    response = self.CallJavascript(response,
+                                   "ErrorRenderer.Layout",
                                    value=request.REQ.get("value", ""))
 
 
@@ -1149,14 +1165,14 @@ class ConfirmationDialogRenderer(TemplateRenderer):
 
   @property
   def rendered_content(self):
-    return self.FormatFromTemplate(self.content_template,
-                                   unique=self.unique)
+    return self.FormatFromTemplate(self.content_template, unique=self.unique)
 
   def Layout(self, request, response):
     super(ConfirmationDialogRenderer, self).Layout(request, response)
-    return self.CallJavascript(response, "ConfirmationDialogRenderer.Layout",
-                               check_access_subject=utils.SmartStr(
-                                   self.check_access_subject or ""))
+    return self.CallJavascript(
+        response,
+        "ConfirmationDialogRenderer.Layout",
+        check_access_subject=utils.SmartStr(self.check_access_subject or ""))
 
 
 class ImageDownloadRenderer(TemplateRenderer):
@@ -1191,8 +1207,8 @@ def JsonResponse(dump_object, xssi_protection=True):
   if xssi_protection:
     result = ")]}\n" + result
 
-  response = http.HttpResponse(
-      result, content_type="application/json; charset=utf-8")
+  response = http.HttpResponse(result,
+                               content_type="application/json; charset=utf-8")
 
   response["Content-Disposition"] = "attachment; filename=response.json"
   response["X-Content-Type-Options"] = "nosniff"

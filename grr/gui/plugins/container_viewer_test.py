@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Test the collection viewer interface."""
 
 
@@ -16,9 +15,10 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
 
   def CreateCollectionFixture(self):
     with aff4.FACTORY.Create("aff4:/C.0000000000000001/analysis/FindFlowTest",
-                             "AFF4Collection", token=self.token) as out_fd:
-      out_fd.CreateView(
-          ["stat.st_mtime", "type", "stat.st_size", "size", "Age"])
+                             "AFF4Collection",
+                             token=self.token) as out_fd:
+      out_fd.CreateView(["stat.st_mtime", "type", "stat.st_size", "size", "Age"
+                        ])
 
       for urn in [
           "aff4:/C.0000000000000001/fs/os/c/bin C.0000000000000001/rbash",
@@ -43,8 +43,8 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001",
-                        self.GetText, "css=span[type=subject]")
+    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
+                        "css=span[type=subject]")
 
     # Choose client 1
     self.Click("css=td:contains('0001')")
@@ -76,8 +76,7 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
                     self.IsElementPresent,
                     "css=#_C_2E0000000000000001-fs-os i.jstree-icon")
     self.ClickUntil("css=#_C_2E0000000000000001-fs-os i.jstree-icon",
-                    self.IsElementPresent,
-                    "link=c")
+                    self.IsElementPresent, "link=c")
 
     # Navigate to the bin C.0000000000000001 directory
     self.Click("link=c")
@@ -115,8 +114,7 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
                         "css=.containerFileTable tbody > tr:nth(0) td:nth(4)")
 
     # We should have exactly 1 file
-    self.assertEqual(
-        1, self.GetCssCount("css=.containerFileTable tbody > tr"))
+    self.assertEqual(1, self.GetCssCount("css=.containerFileTable tbody > tr"))
 
 
 def main(argv):

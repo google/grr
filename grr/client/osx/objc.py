@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # Copyright 2012 Google Inc. All Rights Reserved.
-
 """Interface to Objective C libraries on OS X."""
 
 
@@ -90,67 +89,39 @@ class Foundation(object):
 
   def __init__(self):
     self.cftable = [
-        ('CFArrayGetCount',
-         [ctypes.c_void_p],
-         ctypes.c_int32),
-        ('CFArrayGetValueAtIndex',
-         [ctypes.c_void_p, ctypes.c_int32],
+        ('CFArrayGetCount', [ctypes.c_void_p], ctypes.c_int32),
+        ('CFArrayGetValueAtIndex', [ctypes.c_void_p, ctypes.c_int32],
          ctypes.c_void_p),
-        ('CFDictionaryGetCount',
-         [ctypes.c_void_p],
-         ctypes.c_long),
-        ('CFDictionaryGetCountOfKey',
-         [ctypes.c_void_p, ctypes.c_void_p],
+        ('CFDictionaryGetCount', [ctypes.c_void_p], ctypes.c_long),
+        ('CFDictionaryGetCountOfKey', [ctypes.c_void_p, ctypes.c_void_p],
          ctypes.c_int32),
-        ('CFDictionaryGetValue',
-         [ctypes.c_void_p, ctypes.c_void_p],
+        ('CFDictionaryGetValue', [ctypes.c_void_p, ctypes.c_void_p],
          ctypes.c_void_p),
         ('CFDictionaryGetKeysAndValues',
-         [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p],
-         None),
-        ('CFNumberCreate',
-         [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p],
+         [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p], None),
+        ('CFNumberCreate', [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p],
          ctypes.c_void_p),
-        ('CFNumberGetValue',
-         [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p],
+        ('CFNumberGetValue', [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p],
          ctypes.c_int32),
-        ('CFNumberGetTypeID',
-         [],
-         ctypes.c_ulong),
+        ('CFNumberGetTypeID', [], ctypes.c_ulong),
         ('CFStringCreateWithCString',
-         [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int32],
-         ctypes.c_void_p),
+         [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int32], ctypes.c_void_p),
         ('CFStringGetCString',
          [ctypes.c_void_p, ctypes.c_char_p, ctypes.c_int32, ctypes.c_int32],
          ctypes.c_int32),
-        ('CFStringGetLength',
-         [ctypes.c_void_p],
-         ctypes.c_int32),
-        ('CFStringGetTypeID',
-         [],
-         ctypes.c_ulong),
-        ('CFBooleanGetValue',
-         [ctypes.c_void_p],
-         ctypes.c_byte),
-        ('CFBooleanGetTypeID',
-         [],
-         ctypes.c_ulong),
-        ('CFRelease',
-         [ctypes.c_void_p],
-         None),
-        ('CFRetain',
-         [ctypes.c_void_p],
-         ctypes.c_void_p),
-        ('CFGetTypeID',
-         [ctypes.c_void_p],
-         ctypes.c_ulong),
+        ('CFStringGetLength', [ctypes.c_void_p], ctypes.c_int32),
+        ('CFStringGetTypeID', [], ctypes.c_ulong),
+        ('CFBooleanGetValue', [ctypes.c_void_p], ctypes.c_byte),
+        ('CFBooleanGetTypeID', [], ctypes.c_ulong),
+        ('CFRelease', [ctypes.c_void_p], None),
+        ('CFRetain', [ctypes.c_void_p], ctypes.c_void_p),
+        ('CFGetTypeID', [ctypes.c_void_p], ctypes.c_ulong),
         ('CFURLCreateWithFileSystemPath',
          [ctypes.c_void_p, ctypes.c_void_p, ctypes.c_void_p, ctypes.c_int],
          ctypes.c_long),
-        ('CFURLCopyFileSystemPath',
-         [ctypes.c_void_p, ctypes.c_void_p],
+        ('CFURLCopyFileSystemPath', [ctypes.c_void_p, ctypes.c_void_p],
          ctypes.c_void_p)
-    ]
+    ]  # pyformat: disable
 
     self.LoadLibrary('Foundation', self.cftable)
 
@@ -164,8 +135,8 @@ class Foundation(object):
     if not isinstance(num, (int, long)):
       raise TypeError('CFNumber can only be created from int or long')
     c_num = ctypes.c_int64(num)
-    cf_number = self.dll.CFNumberCreate(
-        CF_DEFAULT_ALLOCATOR, INT64, ctypes.byref(c_num))
+    cf_number = self.dll.CFNumberCreate(CF_DEFAULT_ALLOCATOR, INT64,
+                                        ctypes.byref(c_num))
     return cf_number
 
   def CFNumToInt32(self, num):
@@ -186,8 +157,7 @@ class Foundation(object):
 
   def PyStringToCFString(self, pystring):
     return self.dll.CFStringCreateWithCString(CF_DEFAULT_ALLOCATOR,
-                                              pystring.encode('utf8'),
-                                              UTF8)
+                                              pystring.encode('utf8'), UTF8)
 
   def WrapCFTypeInPython(self, obj):
     """Package a CoreFoundation object in a Python wrapper.
@@ -223,11 +193,8 @@ class SystemConfiguration(Foundation):
 
   def __init__(self):
     super(SystemConfiguration, self).__init__()
-    self.cftable.append(
-        ('SCDynamicStoreCopyProxies',
-         [ctypes.c_void_p],
-         ctypes.c_void_p)
-    )
+    self.cftable.append(('SCDynamicStoreCopyProxies', [ctypes.c_void_p],
+                         ctypes.c_void_p))
 
     self.dll = SetCTypesForLibrary('SystemConfiguration', self.cftable)
 
@@ -243,10 +210,7 @@ class ServiceManagement(Foundation):
     super(ServiceManagement, self).__init__()
     self.cftable.append(
         # Only available 10.6 and later
-        ('SMCopyAllJobDictionaries',
-         [ctypes.c_void_p],
-         ctypes.c_void_p),
-    )
+        ('SMCopyAllJobDictionaries', [ctypes.c_void_p], ctypes.c_void_p),)
 
     self.dll = SetCTypesForLibrary('ServiceManagement', self.cftable)
 
@@ -260,10 +224,8 @@ class ServiceManagement(Foundation):
     Returns:
       A marshalled python list of dicts containing the job dictionaries.
     """
-    cfstring_launchd = ctypes.c_void_p.in_dll(
-        self.dll, domain)
-    return CFArray(
-        self.dll.SMCopyAllJobDictionaries(cfstring_launchd))
+    cfstring_launchd = ctypes.c_void_p.in_dll(self.dll, domain)
+    return CFArray(self.dll.SMCopyAllJobDictionaries(cfstring_launchd))
 
 
 class CFType(Foundation):
@@ -293,8 +255,7 @@ class CFBoolean(CFType):
     if isinstance(obj, (ctypes.c_void_p, int)):
       ptr = obj
     else:
-      raise TypeError(
-          'CFBoolean initializer must be objc Boolean')
+      raise TypeError('CFBoolean initializer must be objc Boolean')
     super(CFBoolean, self).__init__(ptr)
 
   @property
@@ -382,8 +343,8 @@ class CFArray(CFType):
     if not isinstance(index, int):
       raise TypeError('index must be an integer')
     if (index < 0) or (index >= len(self)):
-      raise IndexError(
-          'index must be between {0} and {1}'.format(0, len(self) - 1))
+      raise IndexError('index must be between {0} and {1}'.format(0, len(self) -
+                                                                  1))
     obj = self.dll.CFArrayGetValueAtIndex(self.ref, index)
     return self.WrapCFTypeInPython(obj)
 
@@ -417,8 +378,7 @@ class CFDictionary(CFType):
     else:
       raise TypeError(
           'CFDictionary wrapper only supports string, int and objc values')
-    obj = ctypes.c_void_p(
-        self.dll.CFDictionaryGetValue(self, cftype_key))
+    obj = ctypes.c_void_p(self.dll.CFDictionaryGetValue(self, cftype_key))
 
     # Detect null pointers and avoid crashing WrapCFTypeInPython
     if not obj:
@@ -479,12 +439,10 @@ class KextManager(Foundation):
     super(KextManager, self).__init__()
     self.kext_functions = [
         # Only available 10.6 and later
-        ('KextManagerLoadKextWithURL',
-         [ctypes.c_void_p, ctypes.c_void_p],
+        ('KextManagerLoadKextWithURL', [ctypes.c_void_p, ctypes.c_void_p],
          ctypes.c_void_p),
         # Only available 10.7 and later
-        ('KextManagerUnloadKextWithIdentifier',
-         [ctypes.c_void_p],
+        ('KextManagerUnloadKextWithIdentifier', [ctypes.c_void_p],
          ctypes.c_void_p)
     ]
     self.iokit = self.SafeLoadKextManager(self.kext_functions)
@@ -498,13 +456,13 @@ class KextManager(Foundation):
       if 'KextManagerUnloadKextWithIdentifier' in str(ae):
         # Try without this symbol, as it is not available on 10.6
         logging.debug('Using legacy kextunload')
-        dll = self.SafeLoadKextManager(
-            FilterFnTable(fn_table, 'KextManagerUnloadKextWithIdentifier'))
+        dll = self.SafeLoadKextManager(FilterFnTable(
+            fn_table, 'KextManagerUnloadKextWithIdentifier'))
         dll.KextManagerUnloadKextWithIdentifier = self.LegacyKextunload
       elif 'KextManagerLoadKextWithURL' in str(ae):
         logging.debug('Using legacy kextload')
-        dll = self.SafeLoadKextManager(
-            FilterFnTable(fn_table, 'KextManagerLoadKextWithURL'))
+        dll = self.SafeLoadKextManager(FilterFnTable(
+            fn_table, 'KextManagerLoadKextWithURL'))
         dll.KextManagerLoadKextWithURL = self.LegacyKextload
       else:
         raise OSError('Can\'t resolve KextManager symbols:{0}'.format(str(ae)))
@@ -532,7 +490,7 @@ class KextManager(Foundation):
     try:
       subprocess.check_call(['/sbin/kextunload', '-b', bundle_identifier])
     except subprocess.CalledProcessError as cpe:
-      logging.debug(
-          'failed to unload {0}:{1}'.format(bundle_identifier, str(cpe)))
+      logging.debug('failed to unload {0}:{1}'.format(bundle_identifier, str(
+          cpe)))
       error_code = -1
     return error_code

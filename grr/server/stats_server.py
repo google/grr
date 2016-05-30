@@ -52,7 +52,8 @@ class StatsServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           all_fields = stats.STATS.GetAllMetricFields(name)
           for f in all_fields:
             value[f] = self._JSONMetricValue(
-                metric_info, stats.STATS.GetMetricValue(name, fields=f))
+                metric_info,
+                stats.STATS.GetMetricValue(name, fields=f))
         else:
           value = self._JSONMetricValue(metric_info,
                                         stats.STATS.GetMetricValue(name))
@@ -83,8 +84,7 @@ class StatsServer(object):
     for port in range(self.port, max_port + 1):
       # Make a simple reference implementation WSGI server
       try:
-        server = BaseHTTPServer.HTTPServer(("", port),
-                                           StatsServerHandler)
+        server = BaseHTTPServer.HTTPServer(("", port), StatsServerHandler)
         break
       except socket.error as e:
         if e.errno == socket.errno.EADDRINUSE and port < max_port:

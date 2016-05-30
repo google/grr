@@ -25,7 +25,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-
 CATEGORY = "Flows"
 
 
@@ -143,7 +142,9 @@ class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
-    flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow", mode="r",
+    flow_obj = aff4.FACTORY.Open(flow_urn,
+                                 aff4_type="GRRFlow",
+                                 mode="r",
                                  token=token)
 
     return ApiFlow().InitFromAff4Object(flow_obj)
@@ -192,8 +193,7 @@ class ApiGetFlowStatusHandler(api_call_handler_base.ApiCallHandler):
     # the target client.
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
     try:
-      flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow",
-                                   token=token)
+      flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow", token=token)
     except aff4.InstantiationError:
       raise ValueError("No flow object at %s" % flow_urn)
 
@@ -214,7 +214,7 @@ class ApiGetFlowStatusHandler(api_call_handler_base.ApiCallHandler):
         "output_urn": flow_state.context.output_urn,
         "session_id": flow_state.context.session_id,
         "state": flow_state.context.state,
-        }
+    }
 
     result = {}
     for dest_key, src in rdf_result_map.iteritems():
@@ -249,20 +249,24 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
-    flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow", mode="r",
+    flow_obj = aff4.FACTORY.Open(flow_urn,
+                                 aff4_type="GRRFlow",
+                                 mode="r",
                                  token=token)
 
     output_urn = flow_obj.GetRunner().output_urn
     # TODO(user): RDFValueCollection is a deprecated type.
-    output_collection = aff4.FACTORY.Create(
-        output_urn, aff4_type="RDFValueCollection", mode="r", token=token)
+    output_collection = aff4.FACTORY.Create(output_urn,
+                                            aff4_type="RDFValueCollection",
+                                            mode="r",
+                                            token=token)
 
-    items = api_call_handler_utils.FilterAff4Collection(
-        output_collection, args.offset, args.count, args.filter)
-    wrapped_items = [ApiFlowResult().InitFromRdfValue(item)
-                     for item in items]
-    return ApiListFlowResultsResult(
-        items=wrapped_items, total_count=len(output_collection))
+    items = api_call_handler_utils.FilterAff4Collection(output_collection,
+                                                        args.offset, args.count,
+                                                        args.filter)
+    wrapped_items = [ApiFlowResult().InitFromRdfValue(item) for item in items]
+    return ApiListFlowResultsResult(items=wrapped_items,
+                                    total_count=len(output_collection))
 
 
 class ApiListFlowLogsArgs(rdf_structs.RDFProtoStruct):
@@ -281,17 +285,19 @@ class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFlowLogsResult
 
   def Handle(self, args, token=None):
-    logs_collection_urn = args.client_id.Add(
-        "flows").Add(args.flow_id.Basename()).Add("Logs")
-    logs_collection = aff4.FACTORY.Create(
-        logs_collection_urn, aff4_type="FlowLogCollection",
-        mode="r", token=token)
+    logs_collection_urn = args.client_id.Add("flows").Add(args.flow_id.Basename(
+    )).Add("Logs")
+    logs_collection = aff4.FACTORY.Create(logs_collection_urn,
+                                          aff4_type="FlowLogCollection",
+                                          mode="r",
+                                          token=token)
 
-    result = api_call_handler_utils.FilterAff4Collection(
-        logs_collection, args.offset, args.count, args.filter)
+    result = api_call_handler_utils.FilterAff4Collection(logs_collection,
+                                                         args.offset,
+                                                         args.count,
+                                                         args.filter)
 
-    return ApiListFlowLogsResult(
-        items=result, total_count=len(logs_collection))
+    return ApiListFlowLogsResult(items=result, total_count=len(logs_collection))
 
 
 class ApiGetFlowResultsExportCommandArgs(rdf_structs.RDFProtoStruct):
@@ -312,16 +318,17 @@ class ApiGetFlowResultsExportCommandHandler(
 
   def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
-    flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow", mode="r",
+    flow_obj = aff4.FACTORY.Open(flow_urn,
+                                 aff4_type="GRRFlow",
+                                 mode="r",
                                  token=token)
     output_urn = flow_obj.GetRunner().output_urn
 
     export_command_str = " ".join([
-        config_lib.CONFIG["AdminUI.export_command"],
-        "--username", utils.ShellQuote(token.username),
-        "collection_files",
-        "--path", utils.ShellQuote(output_urn),
-        "--output", "."])
+        config_lib.CONFIG["AdminUI.export_command"], "--username",
+        utils.ShellQuote(token.username), "collection_files", "--path",
+        utils.ShellQuote(output_urn), "--output", "."
+    ])
 
     return ApiGetFlowResultsExportCommandResult(command=export_command_str)
 
@@ -336,36 +343,35 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiGetFlowFilesArchiveArgs
 
   def _WrapContentGenerator(self, generator, collection, args, token=None):
-    user = aff4.FACTORY.Create(aff4.ROOT_URN.Add("users").Add(token.username),
-                               aff4_type=aff4_users.GRRUser.__name__,
-                               mode="rw", token=token)
+    user = aff4.FACTORY.Create(
+        aff4.ROOT_URN.Add("users").Add(token.username),
+        aff4_type=aff4_users.GRRUser.__name__,
+        mode="rw",
+        token=token)
     try:
       for item in generator.Generate(collection, token=token):
         yield item
 
       user.Notify("ArchiveGenerationFinished", None,
                   "Downloaded archive of flow %s from client %s (archived %d "
-                  "out of %d items, archive size is %d)" % (
-                      args.flow_id.Basename(),
-                      args.client_id.Basename(),
-                      generator.archived_files,
-                      generator.total_files,
-                      generator.output_size),
-                  self.__class__.__name__)
+                  "out of %d items, archive size is %d)" %
+                  (args.flow_id.Basename(), args.client_id.Basename(),
+                   generator.archived_files, generator.total_files,
+                   generator.output_size), self.__class__.__name__)
     except Exception as e:
       user.Notify("Error", None,
-                  "Archive generation failed for flow %s on client %s: %s" % (
-                      args.flow_id.Basename(),
-                      args.client_id.Basename(),
-                      utils.SmartStr(e)),
-                  self.__class__.__name__)
+                  "Archive generation failed for flow %s on client %s: %s" %
+                  (args.flow_id.Basename(), args.client_id.Basename(),
+                   utils.SmartStr(e)), self.__class__.__name__)
       raise
     finally:
       user.Close()
 
   def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
-    flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow", mode="r",
+    flow_obj = aff4.FACTORY.Open(flow_urn,
+                                 aff4_type="GRRFlow",
+                                 mode="r",
                                  token=token)
 
     flow_api_object = ApiFlow().InitFromAff4Object(flow_obj)
@@ -378,8 +384,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
     collection_urn = flow_obj.GetRunner().output_urn
     target_file_prefix = "%s_flow_%s_%s" % (
-        args.client_id.Basename(),
-        flow_obj.state.context.args.flow_name,
+        args.client_id.Basename(), flow_obj.state.context.args.flow_name,
         flow_urn.Basename().replace(":", "_"))
 
     collection = aff4.FACTORY.Open(collection_urn, token=token)
@@ -394,10 +399,13 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       raise ValueError("Unknown archive format: %s" % args.archive_format)
 
     generator = api_call_handler_utils.CollectionArchiveGenerator(
-        prefix=target_file_prefix, description=description,
+        prefix=target_file_prefix,
+        description=description,
         archive_format=archive_format)
-    content_generator = self._WrapContentGenerator(generator, collection,
-                                                   args, token=token)
+    content_generator = self._WrapContentGenerator(generator,
+                                                   collection,
+                                                   args,
+                                                   token=token)
     return api_call_handler_base.ApiBinaryStream(
         target_file_prefix + file_extension,
         content_generator=content_generator)
@@ -421,7 +429,9 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
-    flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow", mode="r",
+    flow_obj = aff4.FACTORY.Open(flow_urn,
+                                 aff4_type="GRRFlow",
+                                 mode="r",
                                  token=token)
 
     output_plugins_states = flow_obj.GetRunner().context.output_plugins_states
@@ -440,7 +450,8 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
       # the HTTP API.
       api_plugin = api_output_plugin.ApiOutputPlugin(
           id=plugin_descriptor.plugin_name + "_%d" % type_index,
-          plugin_descriptor=plugin_descriptor, state=plugin_state)
+          plugin_descriptor=plugin_descriptor,
+          state=plugin_state)
       result.append(api_plugin)
 
     return ApiListFlowOutputPluginsResult(items=result)
@@ -460,7 +471,9 @@ class ApiListFlowOutputPluginLogsHandlerBase(
       raise ValueError("attribute_name can't be None")
 
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
-    flow_obj = aff4.FACTORY.Open(flow_urn, aff4_type="GRRFlow", mode="r",
+    flow_obj = aff4.FACTORY.Open(flow_urn,
+                                 aff4_type="GRRFlow",
+                                 mode="r",
                                  token=token)
 
     output_plugins_states = flow_obj.GetRunner().context.output_plugins_states
@@ -481,8 +494,8 @@ class ApiListFlowOutputPluginLogsHandlerBase(
         break
 
     if not found_state:
-      raise RuntimeError("Flow %s doesn't have output plugin %s" % (
-          flow_urn, args.plugin_id))
+      raise RuntimeError("Flow %s doesn't have output plugin %s" %
+                         (flow_urn, args.plugin_id))
 
     stop = None
     if args.count:
@@ -559,23 +572,27 @@ class ApiListClientFlowsHandler(api_call_handler_base.ApiCallHandler):
     else:
       stop = args.offset + args.count
 
-    root_children_urns = aff4.FACTORY.Open(
-        client_root_urn, token=token).ListChildren()
+    root_children_urns = aff4.FACTORY.Open(client_root_urn,
+                                           token=token).ListChildren()
     root_children_urns = sorted(root_children_urns,
-                                key=lambda x: x.age, reverse=True)
+                                key=lambda x: x.age,
+                                reverse=True)
     root_children_urns = root_children_urns[args.offset:stop]
 
-    root_children = aff4.FACTORY.MultiOpen(
-        root_children_urns, aff4_type=flow.GRRFlow.__name__,
-        token=token)
-    root_children = sorted(root_children, key=self._GetCreationTime,
+    root_children = aff4.FACTORY.MultiOpen(root_children_urns,
+                                           aff4_type=flow.GRRFlow.__name__,
+                                           token=token)
+    root_children = sorted(root_children,
+                           key=self._GetCreationTime,
                            reverse=True)
 
     nested_children_urns = dict(aff4.FACTORY.RecursiveMultiListChildren(
-        [fd.urn for fd in root_children], token=token))
+        [fd.urn for fd in root_children],
+        token=token))
     nested_children = aff4.FACTORY.MultiOpen(
         set(itertools.chain(*nested_children_urns.values())),
-        aff4_type=flow.GRRFlow.__name__, token=token)
+        aff4_type=flow.GRRFlow.__name__,
+        token=token)
     nested_children_map = dict((x.urn, x) for x in nested_children)
 
     def BuildList(fds):
@@ -612,8 +629,7 @@ class ApiStartGetFileOperationArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiStartGetFileOperationArgs
 
 
-class ApiStartGetFileOperationHandler(
-    api_call_handler_base.ApiCallHandler):
+class ApiStartGetFileOperationHandler(api_call_handler_base.ApiCallHandler):
   """Downloads files from specified machine without requiring approval."""
 
   category = CATEGORY
@@ -629,9 +645,10 @@ class ApiStartGetFileOperationHandler(
 
   def GetClientTarget(self, args, token=None):
     # Find the right client to target using a hostname search.
-    index = aff4.FACTORY.Create(
-        client_index.MAIN_INDEX,
-        aff4_type="ClientIndex", mode="rw", token=token)
+    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                                aff4_type="ClientIndex",
+                                mode="rw",
+                                token=token)
 
     client_list = index.LookupClients([args.hostname])
     if not client_list:
@@ -658,29 +675,31 @@ class ApiStartGetFileOperationHandler(
 
     # Check our flow throttling limits, will raise if there are problems.
     throttler = throttle.FlowThrottler()
-    throttler.EnforceLimits(client_urn, token.username,
-                            "FileFinder", file_finder_args,
+    throttler.EnforceLimits(client_urn,
+                            token.username,
+                            "FileFinder",
+                            file_finder_args,
                             token=token)
 
     # Limit the whole flow to 200MB so if a glob matches lots of small files we
     # still don't have too much impact.
     runner_args = flow_runner.FlowRunnerArgs(client_id=client_urn,
                                              flow_name="FileFinder",
-                                             network_bytes_limit=200*1000*1000)
+                                             network_bytes_limit=200 * 1000 *
+                                             1000)
 
     flow_id = flow.GRRFlow.StartFlow(runner_args=runner_args,
                                      token=token,
                                      args=file_finder_args)
 
     # Provide a url where the caller can check on the flow status.
-    status_url = urlparse.urljoin(
-        config_lib.CONFIG["AdminUI.url"],
-        "/api/flows/%s/%s/status" % (client_urn.Basename(), flow_id.Basename()))
-    return dict(
-        flow_id=api_value_renderers.RenderValue(flow_id),
-        flow_args=api_value_renderers.RenderValue(file_finder_args),
-        runner_args=api_value_renderers.RenderValue(runner_args),
-        status_url=status_url)
+    status_url = urlparse.urljoin(config_lib.CONFIG["AdminUI.url"],
+                                  "/api/flows/%s/%s/status" %
+                                  (client_urn.Basename(), flow_id.Basename()))
+    return dict(flow_id=api_value_renderers.RenderValue(flow_id),
+                flow_args=api_value_renderers.RenderValue(file_finder_args),
+                runner_args=api_value_renderers.RenderValue(runner_args),
+                status_url=status_url)
 
 
 class ApiCreateFlowArgs(rdf_structs.RDFProtoStruct):
@@ -727,11 +746,13 @@ class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
     # If we can read the flow, we're allowed to terminate it.
-    data_store.DB.security_manager.CheckDataStoreAccess(
-        token.RealUID(), [flow_urn], "r")
+    data_store.DB.security_manager.CheckDataStoreAccess(token.RealUID(),
+                                                        [flow_urn], "r")
 
-    flow.GRRFlow.TerminateFlow(flow_urn, reason="Cancelled in GUI",
-                               token=token, force=True)
+    flow.GRRFlow.TerminateFlow(flow_urn,
+                               reason="Cancelled in GUI",
+                               token=token,
+                               force=True)
 
 
 class ApiListFlowDescriptorsArgs(rdf_structs.RDFProtoStruct):
@@ -774,16 +795,18 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
       # Only show flows that the user is allowed to start.
       can_be_started_on_client = False
       try:
-        data_store.DB.security_manager.CheckIfCanStartFlow(
-            token, name, with_client_id=True)
+        data_store.DB.security_manager.CheckIfCanStartFlow(token,
+                                                           name,
+                                                           with_client_id=True)
         can_be_started_on_client = True
       except access_control.UnauthorizedAccess:
         pass
 
       can_be_started_globally = False
       try:
-        data_store.DB.security_manager.CheckIfCanStartFlow(
-            token, name, with_client_id=False)
+        data_store.DB.security_manager.CheckIfCanStartFlow(token,
+                                                           name,
+                                                           with_client_id=False)
         can_be_started_globally = True
       except access_control.UnauthorizedAccess:
         pass

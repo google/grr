@@ -13,26 +13,19 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-
 """Acceleration module for semantic protobuf parsing."""
 
 from distutils.core import Extension
 from distutils.core import setup
 
-SOURCES = [
-    "accelerated.c"
-    ]
+SOURCES = ["accelerated.c"]
 
-setup(
-    name="grr",
-    version="0.1",
-    long_description="Semantic protobufs are smart protocol buffers.",
-    license="Apache 2.0",
-    author="Michael Cohen",
-    ext_modules=[
-        Extension(
-            "_semantic",
-            SOURCES,
-            )
-    ],
-)
+setup(name="grr",
+      version="0.1",
+      long_description="Semantic protobufs are smart protocol buffers.",
+      license="Apache 2.0",
+      author="Michael Cohen",
+      ext_modules=[
+          Extension("_semantic",
+                    SOURCES,)
+      ],)

@@ -35,7 +35,8 @@ class NetworkLimitTestFlow(flow.GRRFlow):
     if not responses.success:
       raise flow.FlowError(responses.status)
     self.state.Register("dest_path", responses.First().dest_path)
-    self.CallFlow("MultiGetFile", pathspecs=[self.state.dest_path],
+    self.CallFlow("MultiGetFile",
+                  pathspecs=[self.state.dest_path],
                   next_state="Done")
 
   @flow.StateHandler()
@@ -70,8 +71,8 @@ class TestCPULimit(base.AutomatedTest):
   def CheckFlow(self):
     # Reopen the object to check the state.  We use OpenWithLock to avoid
     # reading old state.
-    with aff4.FACTORY.OpenWithLock(
-        self.session_id, token=self.token) as flow_obj:
+    with aff4.FACTORY.OpenWithLock(self.session_id,
+                                   token=self.token) as flow_obj:
       backtrace = flow_obj.state.context.get("backtrace", "")
 
     if backtrace:
@@ -98,11 +99,12 @@ class TestNetworkFlowLimit(base.AutomatedTest):
   def CheckFlow(self):
     # Reopen the object to check the state.  We use OpenWithLock to avoid
     # reading old state.
-    with aff4.FACTORY.OpenWithLock(
-        self.session_id, token=self.token) as flow_obj:
+    with aff4.FACTORY.OpenWithLock(self.session_id,
+                                   token=self.token) as flow_obj:
       # Make sure we transferred approximately the right amount of data.
       self.assertAlmostEqual(flow_obj.state.context.network_bytes_sent,
-                             500 * 1024, delta=30000)
+                             500 * 1024,
+                             delta=30000)
       backtrace = flow_obj.state.context.get("backtrace", "")
       self.assertIsNotNone(backtrace)
       self.assertTrue("Network bytes limit exceeded." in backtrace)
@@ -116,8 +118,8 @@ class TestMultiGetFileNetworkLimitExceeded(base.AutomatedTest):
   def CheckFlow(self):
     # Reopen the object to check the state.  We use OpenWithLock to avoid
     # reading old state.
-    with aff4.FACTORY.OpenWithLock(
-        self.session_id, token=self.token) as flow_obj:
+    with aff4.FACTORY.OpenWithLock(self.session_id,
+                                   token=self.token) as flow_obj:
       backtrace = flow_obj.state.context.get("backtrace", "")
       self.assertTrue("Network bytes limit exceeded." in backtrace)
 

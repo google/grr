@@ -97,7 +97,7 @@ class Manager(object):
       port = serv.port
       start = serv.interval.start
       end = serv.interval.end
-      perc = float(end - start) / float(2 ** 64)
+      perc = float(end - start) / float(2**64)
       perc *= 100
       print "Server %d %s:%d %d%% [%s, %s[" % (i, addr, port, perc,
                                                str(start).zfill(20),
@@ -165,7 +165,9 @@ class Manager(object):
     headers = {"Content-Length": len(body)}
     res = None
     try:
-      res = pool.urlopen("POST", "/rebalance/phase1", headers=headers,
+      res = pool.urlopen("POST",
+                         "/rebalance/phase1",
+                         headers=headers,
                          body=body)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to talk with master..."
@@ -186,7 +188,9 @@ class Manager(object):
     body = rebalance.SerializeToString()
     headers = {"Content-Length": len(body)}
     try:
-      res = pool.urlopen("POST", "/rebalance/phase2", headers=headers,
+      res = pool.urlopen("POST",
+                         "/rebalance/phase2",
+                         headers=headers,
                          body=body)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to contact server for re-sharding."
@@ -198,11 +202,13 @@ class Manager(object):
       return
 
     try:
-      res = pool.urlopen("POST", "/rebalance/commit", headers=headers,
+      res = pool.urlopen("POST",
+                         "/rebalance/commit",
+                         headers=headers,
                          body=body)
     except urllib3.exceptions.MaxRetryError:
-      print ("Could not commit the re-sharding transaction with id "
-             "%s") % rebalance.id
+      print("Could not commit the re-sharding transaction with id "
+            "%s") % rebalance.id
       print "Make sure the data servers are up and then run:"
       print "'recover %s' in order to re-run transaction" % rebalance.id
       return
@@ -232,7 +238,9 @@ class Manager(object):
     try:
       body = transid
       headers = {"Content-Length": len(body)}
-      res = pool.urlopen("POST", "/rebalance/recover", headers=headers,
+      res = pool.urlopen("POST",
+                         "/rebalance/recover",
+                         headers=headers,
                          body=body)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to contact master..."
@@ -254,7 +262,9 @@ class Manager(object):
     headers = {"Content-Length": len(body)}
 
     try:
-      res = pool.urlopen("POST", "/rebalance/commit", headers=headers,
+      res = pool.urlopen("POST",
+                         "/rebalance/commit",
+                         headers=headers,
                          body=body)
     except urllib3.exceptions.MaxRetryError:
       print "Could not commit re-sharding transaction with id %s" % rebalance.id
@@ -292,7 +302,9 @@ class Manager(object):
     body = self._PackNewServer(addr, port)
     headers = {"Content-Length": len(body)}
     try:
-      res = pool.urlopen("POST", "/servers/add/check", headers=headers,
+      res = pool.urlopen("POST",
+                         "/servers/add/check",
+                         headers=headers,
                          body=body)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to contact master..."
@@ -320,8 +332,7 @@ class Manager(object):
       return
 
     try:
-      res = pool.urlopen("POST", "/servers/add", headers=headers,
-                         body=body)
+      res = pool.urlopen("POST", "/servers/add", headers=headers, body=body)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to contact master..."
       return
@@ -332,8 +343,8 @@ class Manager(object):
       return
 
     if res.status == constants.RESPONSE_INCOMPLETE_SYNC:
-      print ("The master server has set up the new server, but the other "
-             "servers may not know about it.")
+      print("The master server has set up the new server, but the other "
+            "servers may not know about it.")
       print "Please run 'sync' to fix the problem."
       print "Afterwards, you have to rebalance server data with the following:"
       self._CompleteAddServerHelp(addr, port)
@@ -352,8 +363,8 @@ class Manager(object):
     self.mapping = rdf_data_server.DataServerMapping(res.data)
 
   def _CompleteAddServerHelp(self, addr, port):
-    print ("\t1. Add '//%s:%d' to Dataserver.server_list in your configuration "
-           "file.") % (addr, port)
+    print("\t1. Add '//%s:%d' to Dataserver.server_list in your configuration "
+          "file.") % (addr, port)
     print "\t2. Start the new server at %s:%d" % (addr, port)
     print "\t3. Run 'rebalance'"
 
@@ -364,7 +375,9 @@ class Manager(object):
       pool = connectionpool.HTTPConnectionPool(self.addr, port=self.port)
       body = ""
       headers = {"Content-Length": len(body)}
-      res = pool.urlopen("POST", "/servers/sync-all", headers=headers,
+      res = pool.urlopen("POST",
+                         "/servers/sync-all",
+                         headers=headers,
                          body=body)
 
       if res.status == constants.RESPONSE_INCOMPLETE_SYNC:
@@ -438,7 +451,9 @@ class Manager(object):
     body = self._PackNewServer(addr, port)
     headers = {"Content-Length": len(body)}
     try:
-      res = pool.urlopen("POST", "/servers/rem/check", headers=headers,
+      res = pool.urlopen("POST",
+                         "/servers/rem/check",
+                         headers=headers,
                          body=body)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to contact master..."
@@ -470,8 +485,7 @@ class Manager(object):
       return
 
     try:
-      res = pool.urlopen("POST", "/servers/rem", headers=headers,
-                         body=body)
+      res = pool.urlopen("POST", "/servers/rem", headers=headers, body=body)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to contact master..."
       return
@@ -494,8 +508,8 @@ class Manager(object):
         return
       else:
         # If we cannot sync in the second attempt, we give up.
-        print ("The master server has removed the new server, but the other "
-               "servers may not know about it.")
+        print("The master server has removed the new server, but the other "
+              "servers may not know about it.")
 
         print "Please run 'sync' to fix the problem, followed by:"
         self._CompleteRemServerHelp(addr, port)
@@ -523,8 +537,8 @@ class Manager(object):
     print "rebalance\t\t\tRebalance server load."
     print "recover <transaction id>\tComplete a pending transaction."
     print "addserver <address> <port>\tAdd new server to the group."
-    print ("dropserver <address> <port>\tMove all the data from the server "
-           "to others.")
+    print("dropserver <address> <port>\tMove all the data from the server "
+          "to others.")
     print "remserver <address> <port>\tRemove server from server group."
     print "sync\t\t\t\tSync server information between data servers."
 
@@ -610,6 +624,7 @@ def main(unused_argv):
     manager.Run()
   except (EOFError, KeyboardInterrupt):
     print
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

@@ -62,13 +62,14 @@ class ClientCrashCollectionRenderer(renderers.TableRenderer):
   def __init__(self, **kwargs):
     super(ClientCrashCollectionRenderer, self).__init__(**kwargs)
     self.AddColumn(semantic.RDFValueColumn("Client Id", width="10%"))
-    self.AddColumn(semantic.RDFValueColumn(
-        "Crash Details", width="90%", renderer=ClientCrashDetailsRenderer))
+    self.AddColumn(semantic.RDFValueColumn("Crash Details",
+                                           width="90%",
+                                           renderer=ClientCrashDetailsRenderer))
 
   def BuildTable(self, start_row, end_row, request):
     """Builds table of ClientCrash'es."""
-    crashes_urn = str(self.state.get("crashes_urn") or
-                      request.REQ.get("crashes_urn"))
+    crashes_urn = str(self.state.get("crashes_urn") or request.REQ.get(
+        "crashes_urn"))
 
     try:
       collection = aff4.FACTORY.Open(crashes_urn,
@@ -88,8 +89,8 @@ class ClientCrashCollectionRenderer(renderers.TableRenderer):
       self.AddCell(row_index, "Crash Details", value)
 
   def Layout(self, request, response):
-    self.state["crashes_urn"] = str(self.crashes_urn or
-                                    request.REQ.get("crashes_urn"))
+    self.state["crashes_urn"] = str(self.crashes_urn or request.REQ.get(
+        "crashes_urn"))
     super(ClientCrashCollectionRenderer, self).Layout(request, response)
 
 

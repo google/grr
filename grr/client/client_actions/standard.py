@@ -32,7 +32,6 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
-
 # We do not send larger buffers than this:
 MAX_BUFFER_SIZE = 640 * 1024
 
@@ -61,8 +60,10 @@ class ReadBuffer(actions.ActionPlugin):
       return
 
     # Now return the data to the server
-    self.SendReply(offset=offset, data=data,
-                   length=len(data), pathspec=fd.pathspec)
+    self.SendReply(offset=offset,
+                   data=data,
+                   length=len(data),
+                   pathspec=fd.pathspec)
 
 
 HASH_CACHE = utils.FastStore(100)
@@ -79,7 +80,9 @@ class TransferBuffer(actions.ActionPlugin):
     if args.length > MAX_BUFFER_SIZE:
       raise RuntimeError("Can not read buffers this large.")
 
-    data = vfs.ReadVFS(args.pathspec, args.offset, args.length,
+    data = vfs.ReadVFS(args.pathspec,
+                       args.offset,
+                       args.length,
                        progress_callback=self.Progress)
     result = rdf_protodict.DataBlob(
         data=zlib.compress(data),
@@ -98,8 +101,7 @@ class TransferBuffer(actions.ActionPlugin):
 
     # Now report the hash of this blob to our flow as well as the offset and
     # length.
-    self.SendReply(offset=args.offset, length=len(data),
-                   data=digest)
+    self.SendReply(offset=args.offset, length=len(data), data=digest)
 
 
 class HashBuffer(actions.ActionPlugin):
@@ -119,8 +121,7 @@ class HashBuffer(actions.ActionPlugin):
 
     # Now report the hash of this blob to our flow as well as the offset and
     # length.
-    self.SendReply(offset=args.offset, length=len(data),
-                   data=digest)
+    self.SendReply(offset=args.offset, length=len(data), data=digest)
 
 
 class HashFile(actions.ActionPlugin):
@@ -158,8 +159,8 @@ class HashFile(actions.ActionPlugin):
       response = rdf_client.FingerprintResponse(
           pathspec=file_obj.pathspec,
           bytes_read=bytes_read,
-          hash=rdf_crypto.Hash(
-              **dict((k, v.digest()) for k, v in hashers.iteritems())))
+          hash=rdf_crypto.Hash(**dict((k, v.digest())
+                                      for k, v in hashers.iteritems())))
 
       self.SendReply(response)
 
@@ -207,12 +208,14 @@ class CopyPathToFile(actions.ActionPlugin):
     src_fd.Seek(args.offset)
     offset = src_fd.Tell()
 
-    length = args.length or (1024 ** 4)  # 1 TB
+    length = args.length or (1024**4)  # 1 TB
 
     suffix = ".gz" if args.gzip_output else ""
 
     dest_fd, dest_pathspec = tempfiles.CreateGRRTempFileVFS(
-        directory=args.dest_dir, lifetime=args.lifetime, suffix=suffix)
+        directory=args.dest_dir,
+        lifetime=args.lifetime,
+        suffix=suffix)
 
     dest_file = dest_fd.name
     with dest_fd:
@@ -226,8 +229,11 @@ class CopyPathToFile(actions.ActionPlugin):
       else:
         written = self._Copy(src_fd, dest_fd, length)
 
-    self.SendReply(offset=offset, length=written, src_path=args.src_path,
-                   dest_dir=args.dest_dir, dest_path=dest_pathspec,
+    self.SendReply(offset=offset,
+                   length=written,
+                   src_path=args.src_path,
+                   dest_dir=args.dest_dir,
+                   dest_path=dest_pathspec,
                    gzip_output=args.gzip_output)
 
 
@@ -336,13 +342,12 @@ class ExecuteCommand(actions.ActionPlugin):
     stdout = stdout[:10 * 1024 * 1024]
     stderr = stderr[:10 * 1024 * 1024]
 
-    result = rdf_client.ExecuteResponse(
-        request=command,
-        stdout=stdout,
-        stderr=stderr,
-        exit_status=status,
-        # We have to return microseconds.
-        time_used=int(1e6 * time_used))
+    result = rdf_client.ExecuteResponse(request=command,
+                                        stdout=stdout,
+                                        stderr=stderr,
+                                        exit_status=status,
+                                        # We have to return microseconds.
+                                        time_used=int(1e6 * time_used))
     self.SendReply(result)
 
 
@@ -380,8 +385,8 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
     else:
       mode = "r+b"
 
-    temp_file = tempfiles.CreateGRRTempFile(
-        filename=request.write_path, mode=mode)
+    temp_file = tempfiles.CreateGRRTempFile(filename=request.write_path,
+                                            mode=mode)
     with temp_file:
       path = temp_file.name
       temp_file.seek(0, 2)
@@ -415,7 +420,9 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
       self.CleanUp(path)
 
   def ProcessFile(self, path, args):
-    res = client_utils_common.Execute(path, args.args, args.time_limit,
+    res = client_utils_common.Execute(path,
+                                      args.args,
+                                      args.time_limit,
                                       bypass_whitelist=True)
     (stdout, stderr, status, time_used) = res
 
@@ -423,12 +430,11 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
     stdout = stdout[:10 * 1024 * 1024]
     stderr = stderr[:10 * 1024 * 1024]
 
-    result = rdf_client.ExecuteBinaryResponse(
-        stdout=stdout,
-        stderr=stderr,
-        exit_status=status,
-        # We have to return microseconds.
-        time_used=int(1e6 * time_used))
+    result = rdf_client.ExecuteBinaryResponse(stdout=stdout,
+                                              stderr=stderr,
+                                              exit_status=status,
+                                              # We have to return microseconds.
+                                              time_used=int(1e6 * time_used))
 
     self.SendReply(result)
 
@@ -471,7 +477,7 @@ class ExecutePython(actions.ActionPlugin):
 
     stdout = StringIO.StringIO()
     with utils.Stubber(sys, "stdout", StdOutHook(stdout)):
-      exec(args.python_code.data, context)  # pylint: disable=exec-used
+      exec (args.python_code.data, context)  # pylint: disable=exec-used
 
     stdout_output = stdout.getvalue()
     magic_str_output = context.get("magic_return_str")
@@ -483,9 +489,8 @@ class ExecutePython(actions.ActionPlugin):
 
     time_used = time.time() - time_start
     # We have to return microseconds.
-    result = rdf_client.ExecutePythonResponse(
-        time_used=int(1e6 * time_used),
-        return_val=utils.SmartStr(output))
+    result = rdf_client.ExecutePythonResponse(time_used=int(1e6 * time_used),
+                                              return_val=utils.SmartStr(output))
     self.SendReply(result)
 
 
@@ -573,8 +578,7 @@ class ListProcesses(actions.ActionPlugin):
         pass
 
       try:
-        (response.user_cpu_time,
-         response.system_cpu_time) = proc.cpu_times()
+        (response.user_cpu_time, response.system_cpu_time) = proc.cpu_times()
         # This is very time consuming so we do not collect cpu_percent here.
         # response.cpu_percent = proc.get_cpu_percent()
       except (psutil.NoSuchProcess, psutil.AccessDenied):
@@ -698,8 +702,9 @@ class StatFS(actions.ActionPlugin):
     for path in args.path_list:
 
       try:
-        fd = vfs.VFSOpen(rdf_paths.PathSpec(path=path, pathtype=args.pathtype),
-                         progress_callback=self.Progress)
+        fd = vfs.VFSOpen(
+            rdf_paths.PathSpec(path=path, pathtype=args.pathtype),
+            progress_callback=self.Progress)
         st = fd.StatFS()
         mount_point = fd.GetMountPoint()
       except (IOError, OSError) as e:

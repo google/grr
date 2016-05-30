@@ -19,15 +19,15 @@ from grr.lib import worker
 
 def main(unused_argv):
   """Main."""
-  config_lib.CONFIG.AddContext(
-      "Worker Context",
-      "Context applied when running a worker.")
+  config_lib.CONFIG.AddContext("Worker Context",
+                               "Context applied when running a worker.")
 
   # Initialise flows
   startup.Init()
   token = access_control.ACLToken(username="GRRWorker")
   worker_obj = worker.GRRWorker(token=token)
   worker_obj.Run()
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

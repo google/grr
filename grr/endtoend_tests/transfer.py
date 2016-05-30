@@ -54,7 +54,8 @@ class MultiGetFileTestFlow(flow.GRRFlow):
       raise flow.FlowError(responses.status)
 
     for response in responses:
-      self.CallFlow("FingerprintFile", next_state="MultiGetFile",
+      self.CallFlow("FingerprintFile",
+                    next_state="MultiGetFile",
                     pathspec=response.dest_path,
                     request_data={"pathspec": response.dest_path})
 
@@ -63,7 +64,9 @@ class MultiGetFileTestFlow(flow.GRRFlow):
     if not responses.success:
       raise flow.FlowError(responses.status)
     for response in responses:
-      fd = aff4.FACTORY.Open(response.file_urn, "VFSFile", mode="r",
+      fd = aff4.FACTORY.Open(response.file_urn,
+                             "VFSFile",
+                             mode="r",
                              token=self.token)
       binary_hash = fd.Get(fd.Schema.HASH)
       hash_digest = str(binary_hash.sha256)
@@ -77,8 +80,10 @@ class MultiGetFileTestFlow(flow.GRRFlow):
     if not responses.success:
       raise flow.FlowError(responses.status)
     for response in responses:
-      fd = aff4.FACTORY.Open(response.aff4path, "VFSBlobImage",
-                             mode="r", token=self.token)
+      fd = aff4.FACTORY.Open(response.aff4path,
+                             "VFSBlobImage",
+                             mode="r",
+                             token=self.token)
       server_hash = hashlib.sha256(fd.Read(response.st_size)).hexdigest()
       client_hash = self.state.client_hashes[response.aff4path]
 
@@ -98,17 +103,17 @@ class TestMultiGetFile(base.AutomatedTest):
     # Reopen the object to update the state. Ignore the cache to avoid a race
     # where the flow has just been terminated but we get the cached object back
     # from the factory and it looks like it's still running.
-    flow_obj = aff4.FACTORY.Open(self.session_id, token=self.token,
+    flow_obj = aff4.FACTORY.Open(self.session_id,
+                                 token=self.token,
                                  aff4_type="MultiGetFileTestFlow",
                                  ignore_cache=True)
 
     # Check flow completed normally, checking is done inside the flow
     runner = flow_obj.GetRunner()
     self.assertFalse(runner.context.get("backtrace", ""))
-    self.assertEqual(
-        runner.GetState(), rdf_flows.Flow.State.TERMINATED,
-        "Expected TERMINATED state, got %s" % flow_obj.state.context.state)
-
+    self.assertEqual(runner.GetState(), rdf_flows.Flow.State.TERMINATED,
+                     "Expected TERMINATED state, got %s" %
+                     flow_obj.state.context.state)
 
 #########
 # Linux #
@@ -161,8 +166,7 @@ class TestMultiGetFileTSKLinux(TestGetFileTSKLinux):
 class TestGetFileOSLinux(TestGetFileTSKLinux):
   """Tests if GetFile works on Linux."""
   args = {"pathspec": rdf_paths.PathSpec(
-      path="/bin/ls",
-      pathtype=rdf_paths.PathSpec.PathType.OS)}
+      path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.OS)}
   test_output_path = "/fs/os/bin/ls"
 
 
@@ -170,8 +174,7 @@ class TestMultiGetFileOSLinux(TestGetFileOSLinux):
   """Tests if MultiGetFile works on Linux."""
   flow = "MultiGetFile"
   args = {"pathspecs": [rdf_paths.PathSpec(
-      path="/bin/ls",
-      pathtype=rdf_paths.PathSpec.PathType.OS)]}
+      path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.OS)]}
 
 
 class TestSendFile(base.LocalClientTest):
@@ -198,9 +201,9 @@ class TestSendFile(base.LocalClientTest):
       daemon = True
 
       def run(self):
-        for res in socket.getaddrinfo(
-            None, 12345, socket.AF_INET,
-            socket.SOCK_STREAM, 0, socket.AI_ADDRCONFIG):
+        for res in socket.getaddrinfo(None, 12345, socket.AF_INET,
+                                      socket.SOCK_STREAM, 0,
+                                      socket.AI_ADDRCONFIG):
           af, socktype, proto, _, sa = res
           try:
             s = socket.socket(af, socktype, proto)
@@ -218,7 +221,8 @@ class TestSendFile(base.LocalClientTest):
         conn, _ = s.accept()
         while 1:
           data = conn.recv(1024)
-          if not data: break
+          if not data:
+            break
           self.result.append(data)
         conn.close()
 
@@ -236,7 +240,6 @@ class TestSendFile(base.LocalClientTest):
       received_data = cipher.Update(received_cipher) + cipher.Final()
 
       self.assertEqual(received_data, original_data)
-
 
 ##########
 # Darwin #
@@ -256,7 +259,8 @@ class TestMultiGetFileTSKMac(TestGetFileTSKLinux):
     # that we can get at least one result.
     pathspecs = []
     tsk_dirs = aff4.FACTORY.Open(
-        self.client_id.Add("fs/tsk/dev"), token=self.token).OpenChildren()
+        self.client_id.Add("fs/tsk/dev"),
+        token=self.token).OpenChildren()
 
     for d in tsk_dirs:
       pathspec = d.Get(d.Schema.PATHSPEC)
@@ -286,9 +290,7 @@ class TestMultiGetFileOSMac(TestGetFileOSMac):
   """Tests if MultiGetFile works on Mac."""
   flow = "MultiGetFile"
   args = {"pathspecs": [rdf_paths.PathSpec(
-      path="/bin/ls",
-      pathtype=rdf_paths.PathSpec.PathType.OS)]}
-
+      path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.OS)]}
 
 ###########
 # Windows #
@@ -329,8 +331,7 @@ class TestGetFileTSKWindows(TestGetFileOSWindows):
     found = False
     for volume in volumes:
       file_urn = volume.urn.Add("Windows/regedit.exe")
-      fd = aff4.FACTORY.Open(file_urn, mode="r",
-                             token=self.token)
+      fd = aff4.FACTORY.Open(file_urn, mode="r", token=self.token)
       try:
         data = fd.Read(10)
         if data[:2] == "MZ":

@@ -15,9 +15,11 @@ class GrrApiShellArgParser(argparse.ArgumentParser):
   def __init__(self):
     super(GrrApiShellArgParser, self).__init__()
 
-    self.add_argument("api_endpoint", type=str,
+    self.add_argument("api_endpoint",
+                      type=str,
                       help="API endpoint specified as host[:port]")
-    self.add_argument("--page_size", type=int,
+    self.add_argument("--page_size",
+                      type=int,
                       help="Page size used when paging through collections "
                       "of items.")
 

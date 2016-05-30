@@ -20,9 +20,7 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-
 CATEGORY = "Files"
-
 
 # Files can only be accessed if their first path component is from this list.
 ROOT_FILES_WHITELIST = ["fs", "registry"]
@@ -88,8 +86,7 @@ class ApiFile(rdf_structs.RDFProtoStruct):
       self.age = type_obj.age
 
     if with_details:
-      self.details = ApiAff4ObjectRepresentation().InitFromAff4Object(
-          file_obj)
+      self.details = ApiAff4ObjectRepresentation().InitFromAff4Object(file_obj)
 
     return self
 
@@ -122,8 +119,8 @@ class ApiAff4ObjectRepresentation(rdf_structs.RDFProtoStruct):
       if not hasattr(aff4_cls, "SchemaCls"):
         continue
 
-      type_repr = ApiAff4ObjectType().InitFromAff4Object(
-          aff4_obj, aff4_cls, attr_blacklist)
+      type_repr = ApiAff4ObjectType().InitFromAff4Object(aff4_obj, aff4_cls,
+                                                         attr_blacklist)
 
       if type_repr.attributes:
         self.types.append(type_repr)
@@ -234,8 +231,11 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
     else:
       age = aff4.ALL_TIMES
 
-    file_obj = aff4.FACTORY.Open(args.client_id.Add(args.file_path),
-                                 mode="r", age=age, token=token)
+    file_obj = aff4.FACTORY.Open(
+        args.client_id.Add(args.file_path),
+        mode="r",
+        age=age,
+        token=token)
 
     return ApiGetFileDetailsResult(
         file=ApiFile().InitFromAff4Object(file_obj, with_details=True))
@@ -267,8 +267,9 @@ class ApiGetFileListHandler(api_call_handler_base.ApiCallHandler):
     if path != "/":
       ValidateVfsPath(args.file_path)
 
-    directory = aff4.FACTORY.Open(args.client_id.Add(path), mode="r",
-                                  token=token).Upgrade("VFSDirectory")
+    directory = aff4.FACTORY.Open(
+        args.client_id.Add(path),
+        mode="r", token=token).Upgrade("VFSDirectory")
 
     if args.directories_only:
       children = [ch for ch in directory.OpenChildren()
@@ -284,8 +285,7 @@ class ApiGetFileListHandler(api_call_handler_base.ApiCallHandler):
     # Apply the filter.
     if args.filter:
       pattern = re.compile(args.filter, re.IGNORECASE)
-      children = [ch for ch in children
-                  if pattern.search(ch.urn.Basename())]
+      children = [ch for ch in children if pattern.search(ch.urn.Basename())]
 
     # Apply sorting.
     # TODO(user): add sort attribute.
@@ -297,8 +297,8 @@ class ApiGetFileListHandler(api_call_handler_base.ApiCallHandler):
     else:
       children = children[args.offset:]
 
-    return ApiGetFileListResult(
-        items=[ApiFile().InitFromAff4Object(c) for c in children])
+    return ApiGetFileListResult(items=[ApiFile().InitFromAff4Object(c)
+                                       for c in children])
 
 
 class ApiGetFileTextArgs(rdf_structs.RDFProtoStruct):
@@ -341,9 +341,12 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
       age = aff4.NEWEST_TIME
 
     try:
-      file_obj = aff4.FACTORY.Open(args.client_id.Add(args.file_path),
-                                   aff4_type="AFF4Stream", mode="r",
-                                   age=age, token=token)
+      file_obj = aff4.FACTORY.Open(
+          args.client_id.Add(args.file_path),
+          aff4_type="AFF4Stream",
+          mode="r",
+          age=age,
+          token=token)
 
       file_content_missing = (not file_obj.GetContentAge())
     except aff4.InstantiationError:
@@ -351,10 +354,9 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
 
     if file_content_missing:
       raise FileContentNotFoundError(
-          "File %s with timestamp %s wasn't found on client %s" % (
-              utils.SmartStr(args.file_path),
-              utils.SmartStr(args.timestamp),
-              utils.SmartStr(args.client_id)))
+          "File %s with timestamp %s wasn't found on client %s" %
+          (utils.SmartStr(args.file_path), utils.SmartStr(args.timestamp),
+           utils.SmartStr(args.client_id)))
 
     byte_content = self.Read(file_obj, args.offset, args.length)
 
@@ -365,9 +367,8 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
 
     text_content = self._Decode(encoding, byte_content)
 
-    return ApiGetFileTextResult(
-        total_size=self.GetTotalSize(file_obj),
-        content=text_content)
+    return ApiGetFileTextResult(total_size=self.GetTotalSize(file_obj),
+                                content=text_content)
 
   def _Decode(self, codec_name, data):
     """Decode data with the given codec name."""
@@ -406,9 +407,12 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
       age = aff4.NEWEST_TIME
 
     try:
-      file_obj = aff4.FACTORY.Open(args.client_id.Add(args.file_path),
-                                   aff4_type="AFF4Stream", mode="r",
-                                   age=age, token=token)
+      file_obj = aff4.FACTORY.Open(
+          args.client_id.Add(args.file_path),
+          aff4_type="AFF4Stream",
+          mode="r",
+          age=age,
+          token=token)
 
       file_content_missing = (not file_obj.GetContentAge())
     except aff4.InstantiationError:
@@ -416,10 +420,9 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
 
     if file_content_missing:
       raise FileContentNotFoundError(
-          "File %s with timestamp %s wasn't found on client %s" % (
-              utils.SmartStr(args.file_path),
-              utils.SmartStr(args.timestamp),
-              utils.SmartStr(args.client_id)))
+          "File %s with timestamp %s wasn't found on client %s" %
+          (utils.SmartStr(args.file_path), utils.SmartStr(args.timestamp),
+           utils.SmartStr(args.client_id)))
 
     total_size = self.GetTotalSize(file_obj)
     if not args.length:
@@ -431,7 +434,8 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
     generator = self._GenerateFile(file_obj, args.offset, args.length)
 
     return api_call_handler_base.ApiBinaryStream(
-        filename=file_obj.urn.Basename(), content_generator=generator,
+        filename=file_obj.urn.Basename(),
+        content_generator=generator,
         content_length=args.length)
 
 
@@ -454,13 +458,16 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
-    fd = aff4.FACTORY.Open(args.client_id.Add(args.file_path), mode="r",
-                           age=aff4.ALL_TIMES, token=token)
+    fd = aff4.FACTORY.Open(
+        args.client_id.Add(args.file_path),
+        mode="r",
+        age=aff4.ALL_TIMES,
+        token=token)
 
     type_values = list(fd.GetValuesForAttribute(fd.Schema.TYPE))
 
-    return ApiGetFileVersionTimesResult(
-        times=sorted([t.age for t in type_values], reverse=True))
+    return ApiGetFileVersionTimesResult(times=sorted(
+        [t.age for t in type_values], reverse=True))
 
 
 class ApiGetFileDownloadCommandArgs(rdf_structs.RDFProtoStruct):
@@ -485,14 +492,12 @@ class ApiGetFileDownloadCommandHandler(api_call_handler_base.ApiCallHandler):
     aff4_path = args.client_id.Add(args.file_path)
 
     export_command = u" ".join([
-        config_lib.CONFIG["AdminUI.export_command"],
-        "--username", utils.ShellQuote(token.username),
-        "file",
-        "--path", utils.ShellQuote(aff4_path),
-        "--output", "."])
+        config_lib.CONFIG["AdminUI.export_command"], "--username",
+        utils.ShellQuote(token.username), "file", "--path", utils.ShellQuote(
+            aff4_path), "--output", "."
+    ])
 
-    return ApiGetFileDownloadCommandResult(
-        command=export_command)
+    return ApiGetFileDownloadCommandResult(command=export_command)
 
 
 class ApiListKnownEncodingsResult(rdf_structs.RDFProtoStruct):
@@ -510,8 +515,7 @@ class ApiListKnownEncodingsHandler(api_call_handler_base.ApiCallHandler):
 
     encodings = sorted(ApiGetFileTextArgs.Encoding.enum_dict.keys())
 
-    return ApiListKnownEncodingsResult(
-        encodings=encodings)
+    return ApiListKnownEncodingsResult(encodings=encodings)
 
 
 class ApiCreateVfsRefreshOperationArgs(rdf_structs.RDFProtoStruct):
@@ -524,8 +528,7 @@ class ApiCreateVfsRefreshOperationResult(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiCreateVfsRefreshOperationResult
 
 
-class ApiCreateVfsRefreshOperationHandler(
-    api_call_handler_base.ApiCallHandler):
+class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
   """Creates a new refresh operation for a given VFS path.
 
   This effectively triggers a refresh of a given VFS path. Refresh status
@@ -542,19 +545,16 @@ class ApiCreateVfsRefreshOperationHandler(
     aff4_path = args.client_id.Add(args.file_path)
     fd = aff4.FACTORY.Open(aff4_path, token=token)
 
-    flow_args = filesystem.RecursiveListDirectoryArgs(
-        pathspec=fd.real_pathspec,
-        max_depth=args.max_depth)
+    flow_args = filesystem.RecursiveListDirectoryArgs(pathspec=fd.real_pathspec,
+                                                      max_depth=args.max_depth)
 
-    flow_urn = flow.GRRFlow.StartFlow(
-        client_id=args.client_id,
-        flow_name="RecursiveListDirectory",
-        args=flow_args,
-        notify_to_user=args.notify_user,
-        token=token)
+    flow_urn = flow.GRRFlow.StartFlow(client_id=args.client_id,
+                                      flow_name="RecursiveListDirectory",
+                                      args=flow_args,
+                                      notify_to_user=args.notify_user,
+                                      token=token)
 
-    return ApiCreateVfsRefreshOperationResult(
-        operation_id=str(flow_urn))
+    return ApiCreateVfsRefreshOperationResult(operation_id=str(flow_urn))
 
 
 class ApiGetVfsRefreshOperationStateArgs(rdf_structs.RDFProtoStruct):
@@ -567,8 +567,7 @@ class ApiGetVfsRefreshOperationStateResult(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiGetVfsRefreshOperationStateResult
 
 
-class GetVfsRefreshOperationStateHandler(
-    api_call_handler_base.ApiCallHandler):
+class GetVfsRefreshOperationStateHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the state of the refresh operation specified."""
 
   category = CATEGORY
@@ -582,8 +581,8 @@ class GetVfsRefreshOperationStateHandler(
                                    token=token)
       complete = not flow_obj.GetRunner().IsRunning()
     except aff4.InstantiationError:
-      raise VfsRefreshOperationNotFoundError(
-          "Operation with id %s not found" % args.operation_id)
+      raise VfsRefreshOperationNotFoundError("Operation with id %s not found" %
+                                             args.operation_id)
 
     result = ApiGetVfsRefreshOperationStateResult()
     if complete:
@@ -606,8 +605,7 @@ class ApiVfsTimelineItem(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiVfsTimelineItem
 
 
-class ApiGetVfsTimelineHandler(
-    api_call_handler_base.ApiCallHandler):
+class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the timeline for a given file path."""
 
   category = CATEGORY
@@ -638,16 +636,17 @@ class ApiGetVfsTimelineHandler(
       and an action describing the nature of the file change.
     """
     child_urns = []
-    for _, children in aff4.FACTORY.RecursiveMultiListChildren(
-        folder_urn, token=token):
+    for _, children in aff4.FACTORY.RecursiveMultiListChildren(folder_urn,
+                                                               token=token):
       child_urns.extend(children)
 
     # Get the stats attributes for all clients.
     attribute = aff4.Attribute.GetAttributeByName("stat")
 
     items = []
-    for subject, values in data_store.DB.MultiResolvePrefix(
-        child_urns, attribute.predicate, token=token):
+    for subject, values in data_store.DB.MultiResolvePrefix(child_urns,
+                                                            attribute.predicate,
+                                                            token=token):
       for _, serialized, _ in values:
         stat = rdf_client.StatEntry(serialized)
 
@@ -677,8 +676,7 @@ class ApiGetVfsTimelineAsCsvArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiGetVfsTimelineAsCsvArgs
 
 
-class ApiGetVfsTimelineAsCsvHandler(
-    api_call_handler_base.ApiCallHandler):
+class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
   """Exports the timeline for a given file path."""
 
   category = CATEGORY
@@ -694,7 +692,7 @@ class ApiGetVfsTimelineAsCsvHandler(
     writer.writerow(["Timestamp", "Datetime", "Message", "Timestamp_desc"])
 
     for start in range(0, len(items), self.CHUNK_SIZE):
-      for item in items[start:start+self.CHUNK_SIZE]:
+      for item in items[start:start + self.CHUNK_SIZE]:
         writer.writerow([item.timestamp.AsMicroSecondsFromEpoch(),
                          item.timestamp, item.file_path, item.action])
 
@@ -723,8 +721,7 @@ class ApiUpdateVfsFileContentResult(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiUpdateVfsFileContentResult
 
 
-class ApiUpdateVfsFileContentHandler(
-    api_call_handler_base.ApiCallHandler):
+class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
   """Creates a file update operation for a given VFS file.
 
   Triggers a flow to refresh a given VFS file. The refresh status
@@ -739,7 +736,9 @@ class ApiUpdateVfsFileContentHandler(
     ValidateVfsPath(args.file_path)
 
     aff4_path = args.client_id.Add(args.file_path)
-    fd = aff4.FACTORY.Open(aff4_path, aff4_type="VFSFile", mode="rw",
+    fd = aff4.FACTORY.Open(aff4_path,
+                           aff4_type="VFSFile",
+                           mode="rw",
                            token=token)
     flow_urn = fd.Update(priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
 
@@ -771,8 +770,8 @@ class ApiGetVfsFileContentUpdateStateHandler(
                                    token=token)
       complete = not flow_obj.GetRunner().IsRunning()
     except aff4.InstantiationError:
-      raise VfsFileContentUpdateNotFoundError(
-          "Operation with id %s not found" % args.operation_id)
+      raise VfsFileContentUpdateNotFoundError("Operation with id %s not found" %
+                                              args.operation_id)
 
     result = ApiGetVfsFileContentUpdateStateResult()
     if complete:

@@ -22,7 +22,6 @@ from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 
-
 DACL_PRESENT = 1
 DACL_DEFAULT = 0
 
@@ -104,8 +103,7 @@ def WinChmod(filename, acl_list, user=None):
   dacl = win32security.ACL()
   win_user, _, _ = win32security.LookupAccountName("", user)
 
-  dacl.AddAccessAllowedAce(win32security.ACL_REVISION,
-                           acl_bitmask, win_user)
+  dacl.AddAccessAllowedAce(win32security.ACL_REVISION, acl_bitmask, win_user)
 
   security_descriptor = win32security.GetFileSecurity(
       filename, win32security.DACL_SECURITY_INFORMATION)
@@ -144,11 +142,9 @@ def WinFindProxies():
       subkey = (sid + "\\Software\\Microsoft\\Windows"
                 "\\CurrentVersion\\Internet Settings")
 
-      internet_settings = _winreg.OpenKey(_winreg.HKEY_USERS,
-                                          subkey)
+      internet_settings = _winreg.OpenKey(_winreg.HKEY_USERS, subkey)
 
-      proxy_enable = _winreg.QueryValueEx(internet_settings,
-                                          "ProxyEnable")[0]
+      proxy_enable = _winreg.QueryValueEx(internet_settings, "ProxyEnable")[0]
 
       if proxy_enable:
         # Returned as Unicode but problems if not converted to ASCII
@@ -235,13 +231,12 @@ class NannyController(object):
   def _GetKey(self):
     """Returns the service key."""
     if self._service_key is None:
-      hive = getattr(_winreg,
-                     config_lib.CONFIG["Nanny.service_key_hive"])
+      hive = getattr(_winreg, config_lib.CONFIG["Nanny.service_key_hive"])
       path = config_lib.CONFIG["Nanny.service_key"]
 
       # Don't use _winreg.KEY_WOW64_64KEY since it breaks on Windows 2000
-      self._service_key = _winreg.CreateKeyEx(
-          hive, path, 0, _winreg.KEY_ALL_ACCESS)
+      self._service_key = _winreg.CreateKeyEx(hive, path, 0,
+                                              _winreg.KEY_ALL_ACCESS)
 
     return self._service_key
 
@@ -383,11 +378,10 @@ class RtlOSVersionInfoExw(ctypes.Structure):
               ("dwMinorVersion", ctypes.c_ulong),
               ("dwBuildNumber", ctypes.c_ulong),
               ("dwPlatformId", ctypes.c_ulong),
-              ("szCSDVersion", ctypes.c_wchar*128),
+              ("szCSDVersion", ctypes.c_wchar * 128),
               ("wServicePackMajor", ctypes.c_ushort),
               ("wServicePackMinor", ctypes.c_ushort),
-              ("wSuiteMask", ctypes.c_ushort),
-              ("wProductType", ctypes.c_byte),
+              ("wSuiteMask", ctypes.c_ushort), ("wProductType", ctypes.c_byte),
               ("wReserved", ctypes.c_byte)]
 
   def __init__(self, **kwargs):
@@ -410,4 +404,3 @@ def KernelVersion():
   return "%d.%d.%d" % (rtl_osversioninfoexw.dwMajorVersion,
                        rtl_osversioninfoexw.dwMinorVersion,
                        rtl_osversioninfoexw.dwBuildNumber)
-

@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """Clients-related part of GRR API client library."""
 
-
 from grr.gui.api_client import flow
 from grr.gui.api_client import utils
 from grr.proto import api_pb2
@@ -25,7 +24,8 @@ class ClientBase(object):
   def Flow(self, flow_id):
     """Return a reference to a flow with a given id on this client."""
 
-    return flow.FlowRef(client_id=self.client_id, flow_id=flow_id,
+    return flow.FlowRef(client_id=self.client_id,
+                        flow_id=flow_id,
                         context=self._context)
 
   def CreateFlow(self, name=None, args=None, runner_args=None):

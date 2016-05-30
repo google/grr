@@ -63,8 +63,10 @@ def main(_):
       raise ValueError("Need a valid cert file to enable SSL.")
 
     key_file = config_lib.CONFIG["AdminUI.ssl_key_file"]
-    server.socket = ssl.wrap_socket(server.socket, certfile=cert_file,
-                                    keyfile=key_file, server_side=True)
+    server.socket = ssl.wrap_socket(server.socket,
+                                    certfile=cert_file,
+                                    keyfile=key_file,
+                                    server_side=True)
     proto = "HTTPS"
 
     # SSL errors are swallowed by the WSGIServer so if your configuration does
@@ -77,6 +79,7 @@ def main(_):
   startup.DropPrivileges()
 
   server.serve_forever()
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

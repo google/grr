@@ -7,7 +7,6 @@ import logging
 from grr.lib import config_lib
 from grr.lib import registry
 
-
 # Keep track on how we are imported in case we need to report the error.
 IMPORT_TB = "".join(traceback.format_stack())
 

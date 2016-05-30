@@ -41,7 +41,8 @@ class CollectionFilesExportPluginTest(test_lib.GRRBaseTest):
     return path
 
   def CreateCollection(self, collection_path, paths):
-    with aff4.FACTORY.Create(collection_path, "RDFValueCollection",
+    with aff4.FACTORY.Create(collection_path,
+                             "RDFValueCollection",
                              token=self.token) as fd:
       for p in paths:
         fd.Add(rdfvalue.RDFURN(p))
@@ -60,20 +61,19 @@ class CollectionFilesExportPluginTest(test_lib.GRRBaseTest):
 
     with utils.TempDirectory() as tmpdir:
       plugin.Run(parser.parse_args(args=[
-          "--path",
-          str(collection_path),
-          "--output",
-          tmpdir]))
+          "--path", str(collection_path), "--output", tmpdir
+      ]))
 
       expected_outdir = os.path.join(tmpdir, self.out.Path()[1:])
       self.assertTrue("testfile1" in os.listdir(expected_outdir))
       self.assertTrue("some_dir" in os.listdir(expected_outdir))
-      self.assertTrue("testfile2" in os.listdir(
-          os.path.join(expected_outdir, "some_dir")))
+      self.assertTrue("testfile2" in os.listdir(os.path.join(expected_outdir,
+                                                             "some_dir")))
 
 
 def main(argv):
   test_lib.main(argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

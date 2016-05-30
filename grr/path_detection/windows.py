@@ -85,8 +85,9 @@ class EnvVarsPostProcessor(core.PostProcessor):
 
     self.vars_map = {}
     for var_name, value in vars_map.items():
-      var_regex = re.compile(re.escape("%" + var_name + "%"),
-                             flags=re.IGNORECASE)
+      var_regex = re.compile(
+          re.escape("%" + var_name + "%"),
+          flags=re.IGNORECASE)
       self.vars_map[var_name.lower()] = (var_regex, value)
 
   def Process(self, path):
@@ -101,10 +102,8 @@ class EnvVarsPostProcessor(core.PostProcessor):
       instead of just one value, then all possible replacements will be
       returned.
     """
-    path = re.sub(self.SYSTEMROOT_RE, r"%systemroot%",
-                  path, count=1)
-    path = re.sub(self.SYSTEM32_RE, r"%systemroot%\\system32",
-                  path, count=1)
+    path = re.sub(self.SYSTEMROOT_RE, r"%systemroot%", path, count=1)
+    path = re.sub(self.SYSTEM32_RE, r"%systemroot%\\system32", path, count=1)
 
     matches_iter = self.WIN_ENVIRON_REGEX.finditer(path)
     var_names = set(m.group(1).lower() for m in matches_iter)
@@ -150,10 +149,8 @@ def CreateWindowsRegistryExecutablePathsDetector(vars_map=None):
   Returns:
     A detector (core.Detector instance).
   """
-  return core.Detector(
-      extractors=[RunDllExtractor(), ExecutableExtractor()],
-      post_processors=[EnvVarsPostProcessor(vars_map or {})],
-  )
+  return core.Detector(extractors=[RunDllExtractor(), ExecutableExtractor()],
+                       post_processors=[EnvVarsPostProcessor(vars_map or {})],)
 
 
 def DetectExecutablePaths(source_values, vars_map=None):

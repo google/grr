@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
 """Tests for HTTP API."""
 
 
@@ -30,11 +29,7 @@ class SampleGetHandler(api_call_handler_base.ApiCallHandler):
   args_type = SampleGetHandlerArgs
 
   def Render(self, args, token=None):
-    return {
-        "method": "GET",
-        "path": args.path,
-        "foo": args.foo
-    }
+    return {"method": "GET", "path": args.path, "foo": args.foo}
 
 
 class SampleStreamingHandler(api_call_handler_base.ApiCallHandler):
@@ -46,7 +41,9 @@ class SampleStreamingHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, unused_args, token=None):
     return api_call_handler_base.ApiBinaryStream(
-        "test.ext", content_generator=self._Generate(), content_length=1337)
+        "test.ext",
+        content_generator=self._Generate(),
+        content_length=1337)
 
 
 class SampleDeleteHandlerArgs(rdf_structs.RDFProtoStruct):
@@ -58,10 +55,7 @@ class SampleDeleteHandler(api_call_handler_base.ApiCallHandler):
   args_type = SampleDeleteHandlerArgs
 
   def Render(self, args, token=None):
-    return {
-        "method": "DELETE",
-        "resource": args.resource_id
-    }
+    return {"method": "DELETE", "resource": args.resource_id}
 
 
 class TestHttpApiRouter(api_call_router.ApiCallRouter):
@@ -99,10 +93,7 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
     request.method = method
     request.path = path
     request.scheme = "http"
-    request.environ = {
-        "SERVER_NAME": "foo.bar",
-        "SERVER_PORT": 1234
-    }
+    request.environ = {"SERVER_NAME": "foo.bar", "SERVER_PORT": 1234}
     request.user = "test"
     if method == "GET":
       request.GET = query_parameters
@@ -142,8 +133,7 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
   def testRaisesIfNoHandlerMatchesUrl(self):
     self.assertRaises(http_api.ApiCallRouterNotFoundError,
                       self.router_matcher.MatchRouter,
-                      self._CreateRequest("GET",
-                                          "/some/missing/path"))
+                      self._CreateRequest("GET", "/some/missing/path"))
 
 
 class HttpRequestHandlerTest(test_lib.GRRBaseTest):
@@ -157,10 +147,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
     request.method = method
     request.path = path
     request.scheme = "http"
-    request.environ = {
-        "SERVER_NAME": "foo.bar",
-        "SERVER_PORT": 1234
-    }
+    request.environ = {"SERVER_NAME": "foo.bar", "SERVER_PORT": 1234}
     request.user = "test"
     if method in ["GET", "HEAD", "DELETE"]:
       request.GET = query_parameters
@@ -199,86 +186,81 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(token.reason, utils.SmartUnicode("区最 trailing space "))
 
   def testRendersGetHandlerCorrectly(self):
-    response = self._RenderResponse(
-        self._CreateRequest("GET", "/test_sample/some/path"))
+    response = self._RenderResponse(self._CreateRequest(
+        "GET", "/test_sample/some/path"))
 
     self.assertEqual(
-        json.loads(response.content),
-        {"method": "GET",
-         "path": "some/path",
-         "foo": ""})
+        json.loads(response.content), {"method": "GET",
+                                       "path": "some/path",
+                                       "foo": ""})
     self.assertEqual(response.status_code, 200)
 
   def testHeadRequestHasStubAsABodyOnSuccess(self):
-    response = self._RenderResponse(
-        self._CreateRequest("HEAD", "/test_sample/some/path"))
+    response = self._RenderResponse(self._CreateRequest(
+        "HEAD", "/test_sample/some/path"))
 
     self.assertEqual(json.loads(response.content), {"status": "OK"})
     self.assertEqual(response.status_code, 200)
 
   def testHeadResponseHasSubjectAndReasonOnUnauthorizedAccess(self):
-    response = self._RenderResponse(
-        self._CreateRequest("HEAD", "/test_sample/raising/some/path"))
+    response = self._RenderResponse(self._CreateRequest(
+        "HEAD", "/test_sample/raising/some/path"))
 
-    self.assertEqual(json.loads(response.content),
-                     {"message": "Access denied by ACL: oh no",
-                      "subject": "aff4:/foo/bar"})
+    self.assertEqual(
+        json.loads(response.content), {"message": "Access denied by ACL: oh no",
+                                       "subject": "aff4:/foo/bar"})
     self.assertEqual(response.status_code, 403)
 
   def testHeadResponsePutsDataIntoHeadersOnUnauthorizedAccess(self):
-    response = self._RenderResponse(
-        self._CreateRequest("HEAD", "/test_sample/raising/some/path"))
+    response = self._RenderResponse(self._CreateRequest(
+        "HEAD", "/test_sample/raising/some/path"))
 
     headers = dict(response.items())
     self.assertEqual(headers["X-GRR-Unauthorized-Access-Subject"],
                      "aff4:/foo/bar")
-    self.assertEqual(headers["X-GRR-Unauthorized-Access-Reason"],
-                     "oh no")
+    self.assertEqual(headers["X-GRR-Unauthorized-Access-Reason"], "oh no")
 
   def testBinaryStreamIsCorrectlyStreamedViaGetMethod(self):
-    response = self._RenderResponse(
-        self._CreateRequest("GET", "/test_sample/streaming"))
+    response = self._RenderResponse(self._CreateRequest(
+        "GET", "/test_sample/streaming"))
 
     headers = dict(response.items())
-    self.assertEqual(list(response.streaming_content),
-                     ["foo", "bar", "blah"])
+    self.assertEqual(list(response.streaming_content), ["foo", "bar", "blah"])
     self.assertEqual(headers["Content-Length"], "1337")
 
   def testBinaryStreamReturnsContentLengthViaHeadMethod(self):
-    response = self._RenderResponse(
-        self._CreateRequest("HEAD", "/test_sample/streaming"))
+    response = self._RenderResponse(self._CreateRequest(
+        "HEAD", "/test_sample/streaming"))
 
     headers = dict(response.items())
     self.assertEqual(headers["Content-Length"], "1337")
 
   def testQueryParamsArePassedIntoHandlerArgs(self):
-    response = self._RenderResponse(
-        self._CreateRequest("GET", "/test_sample/some/path",
-                            query_parameters={"foo": "bar"}))
+    response = self._RenderResponse(self._CreateRequest(
+        "GET", "/test_sample/some/path",
+        query_parameters={"foo": "bar"}))
     self.assertEqual(
-        json.loads(response.content),
-        {"method": "GET",
-         "path": "some/path",
-         "foo": "bar"})
+        json.loads(response.content), {"method": "GET",
+                                       "path": "some/path",
+                                       "foo": "bar"})
 
   def testRouteArgumentTakesPrecedenceOverQueryParams(self):
-    response = self._RenderResponse(
-        self._CreateRequest("GET", "/test_sample/some/path",
-                            query_parameters={"path": "foobar"}))
+    response = self._RenderResponse(self._CreateRequest(
+        "GET",
+        "/test_sample/some/path",
+        query_parameters={"path": "foobar"}))
     self.assertEqual(
-        json.loads(response.content),
-        {"method": "GET",
-         "path": "some/path",
-         "foo": ""})
+        json.loads(response.content), {"method": "GET",
+                                       "path": "some/path",
+                                       "foo": ""})
 
   def testRendersDeleteHandlerCorrectly(self):
-    response = self._RenderResponse(
-        self._CreateRequest("DELETE", "/test_resource/R:123456"))
+    response = self._RenderResponse(self._CreateRequest(
+        "DELETE", "/test_resource/R:123456"))
 
     self.assertEqual(
-        json.loads(response.content),
-        {"method": "DELETE",
-         "resource": "R:123456"})
+        json.loads(response.content), {"method": "DELETE",
+                                       "resource": "R:123456"})
     self.assertEqual(response.status_code, 200)
 
 

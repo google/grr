@@ -59,7 +59,8 @@ right: 0; bottom: 0; left: 0"></div> """ + table_jquery_template)
     self.state["age"] = request.REQ.get("age")
 
     response = super(HexView, self).Layout(request, response)
-    return self.CallJavascript(response, "HexView.Layout",
+    return self.CallJavascript(response,
+                               "HexView.Layout",
                                renderer=self.__class__.__name__,
                                table_width=self.table_width,
                                aff4_path=self.state["aff4_path"],
@@ -77,14 +78,17 @@ right: 0; bottom: 0; left: 0"></div> """ + table_jquery_template)
     except ValueError:
       offset = 0
 
-    data = [ord(x) for x in self.ReadBuffer(
-        request, offset, row_count * self.table_width)]
+    data = [
+        ord(x)
+        for x in self.ReadBuffer(request, offset, row_count * self.table_width)
+    ]
 
     response = dict(offset=offset, values=data)
     response["total_size"] = self.total_size
 
-    return renderers.JsonResponse(dict(
-        offset=offset, values=data, total_size=self.total_size))
+    return renderers.JsonResponse(dict(offset=offset,
+                                       values=data,
+                                       total_size=self.total_size))
 
   def ReadBuffer(self, request, offset, length):
     """Should be overriden by derived classes to satisfy read requests.
@@ -107,15 +111,15 @@ class TextView(renderers.TemplateRenderer):
   total_size = 0
   default_codec = "utf_8"
   allowed_codecs = ["base64_codec", "big5", "big5hkscs", "cp037", "cp1006",
-                    "cp1026", "cp1140", "cp1250", "cp1251", "cp1252",
-                    "cp1253", "cp1254", "cp1255", "cp1256", "cp1257",
-                    "cp1258", "cp424", "cp437", "cp500", "cp737",
-                    "cp775", "cp850", "cp852", "cp855", "cp856", "cp857",
-                    "cp860", "cp861", "cp862", "cp863", "cp864", "cp865",
-                    "cp866", "cp869", "cp874", "cp875", "cp932", "cp949",
-                    "cp950" "idna", "rot_13", "utf_16", "utf_16_be",
-                    "utf_16_le", "utf_32", "utf_32_be", "utf_32_le",
-                    "utf_7", "utf_8", "utf_8_sig", "uu_codec", "zlib_codec"]
+                    "cp1026", "cp1140", "cp1250", "cp1251", "cp1252", "cp1253",
+                    "cp1254", "cp1255", "cp1256", "cp1257", "cp1258", "cp424",
+                    "cp437", "cp500", "cp737", "cp775", "cp850", "cp852",
+                    "cp855", "cp856", "cp857", "cp860", "cp861", "cp862",
+                    "cp863", "cp864", "cp865", "cp866", "cp869", "cp874",
+                    "cp875", "cp932", "cp949", "cp950"
+                    "idna", "rot_13", "utf_16", "utf_16_be", "utf_16_le",
+                    "utf_32", "utf_32_be", "utf_32_le", "utf_7", "utf_8",
+                    "utf_8_sig", "uu_codec", "zlib_codec"]
 
   layout_template = renderers.Template("""
 <div id="{{unique|escape}}">
@@ -156,7 +160,8 @@ class TextView(renderers.TemplateRenderer):
     self.state["age"] = request.REQ.get("age")
 
     response = super(TextView, self).Layout(request, response)
-    return self.CallJavascript(response, "TextView.Layout",
+    return self.CallJavascript(response,
+                               "TextView.Layout",
                                default_codec=self.default_codec,
                                aff4_path=self.state["aff4_path"],
                                age=self.state["age"])

@@ -40,23 +40,16 @@ class TestForms(test_lib.GRRSeleniumTest):
 
     # Check that shown default values of the controls are just default
     # values of the corresponding types.
-    self.WaitUntilEqual(
-        "", self.GetValue,
-        "css=grr-new-hunt-wizard-form "
-        ".form-group:has(label:contains('String value')) input")
-    self.WaitUntilEqual(
-        "0", self.GetValue,
-        "css=grr-new-hunt-wizard-form "
-        ".form-group:has(label:contains('Int value')) input")
+    self.WaitUntilEqual("", self.GetValue, "css=grr-new-hunt-wizard-form "
+                        ".form-group:has(label:contains('String value')) input")
+    self.WaitUntilEqual("0", self.GetValue, "css=grr-new-hunt-wizard-form "
+                        ".form-group:has(label:contains('Int value')) input")
     self.WaitUntil(
-        self.IsElementPresent,
-        "css=grr-new-hunt-wizard-form "
+        self.IsElementPresent, "css=grr-new-hunt-wizard-form "
         ".form-group:has(label:contains('Bool value')) input:not(:checked)")
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=grr-new-hunt-wizard-form "
-        ".form-group:has(label:contains('Enum value')) select "
-        "option:selected(label='OPTION_1 (default)')")
+    self.WaitUntil(self.IsElementPresent, "css=grr-new-hunt-wizard-form "
+                   ".form-group:has(label:contains('Enum value')) select "
+                   "option:selected(label='OPTION_1 (default)')")
 
   def testControlsWithDefaultValuesAreCorrectlyDisplayed(self):
     # Open the "new hunt" form and select the DefaultArgsTestFlow.
@@ -71,21 +64,16 @@ class TestForms(test_lib.GRRSeleniumTest):
     # Check that shown default values of the controls are the default values
     # that we specified in the RDFValue definition.
     self.WaitUntilEqual(
-        "default string", self.GetValue,
-        "css=grr-new-hunt-wizard-form "
+        "default string", self.GetValue, "css=grr-new-hunt-wizard-form "
         ".form-group:has(label:contains('String value with default')) input")
     self.WaitUntilEqual(
-        "42", self.GetValue,
-        "css=grr-new-hunt-wizard-form "
+        "42", self.GetValue, "css=grr-new-hunt-wizard-form "
         ".form-group:has(label:contains('Int value with default')) input")
+    self.WaitUntil(self.IsElementPresent, "css=grr-new-hunt-wizard-form "
+                   ".form-group:has(label:contains('Bool value with default')) "
+                   "input:checked")
     self.WaitUntil(
-        self.IsElementPresent,
-        "css=grr-new-hunt-wizard-form "
-        ".form-group:has(label:contains('Bool value with default')) "
-        "input:checked")
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=grr-new-hunt-wizard-form "
+        self.IsElementPresent, "css=grr-new-hunt-wizard-form "
         ".form-group:has(label:contains('Enum value with default')) select "
         "option:selected(label='OPTION_2 (default)')")
 
@@ -93,6 +81,7 @@ class TestForms(test_lib.GRRSeleniumTest):
 def main(argv):
   # Run the full test suite
   runtests_test.SeleniumTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

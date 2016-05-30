@@ -58,14 +58,15 @@ class BasicWebAuthManager(BaseWebAuthManager):
 
     authorized = False
     try:
-      auth_type, authorization = request.META.get(
-          "HTTP_AUTHORIZATION", " ").split(" ", 1)
+      auth_type, authorization = request.META.get("HTTP_AUTHORIZATION",
+                                                  " ").split(" ", 1)
 
       if auth_type == "Basic":
         user, password = authorization.decode("base64").split(":", 1)
         token = access_control.ACLToken(username=user)
 
-        fd = aff4.FACTORY.Open("aff4:/users/%s" % user, aff4_type="GRRUser",
+        fd = aff4.FACTORY.Open("aff4:/users/%s" % user,
+                               aff4_type="GRRUser",
                                token=token)
         crypted_password = fd.Get(fd.Schema.PASSWORD)
         if crypted_password and crypted_password.CheckPassword(password):
@@ -105,7 +106,6 @@ class NullWebAuthManager(BaseWebAuthManager):
                                             reason="Just a test")
     return func(request, *args, **kwargs)
 
-
 # Global to store the configured web auth manager.
 WEBAUTH_MANAGER = None
 
@@ -130,8 +130,8 @@ class WebAuthInit(registry.InitHook):
     global WEBAUTH_MANAGER  # pylint: disable=global-statement
 
     # pylint: disable=g-bad-name
-    WEBAUTH_MANAGER = BaseWebAuthManager.GetPlugin(
-        config_lib.CONFIG["AdminUI.webauth_manager"])()
+    WEBAUTH_MANAGER = BaseWebAuthManager.GetPlugin(config_lib.CONFIG[
+        "AdminUI.webauth_manager"])()
 
     # pylint: enable=g-bad-name
     logging.info("Using webauth manager %s", WEBAUTH_MANAGER)

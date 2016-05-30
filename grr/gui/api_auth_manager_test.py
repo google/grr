@@ -62,7 +62,8 @@ class APIAuthorizationManagerTest(test_lib.GRRBaseTest):
     self.config_overrider = test_lib.ConfigOverrider({
         "API.RouterACLConfigFile": "dummy",
         "API.DefaultRouter": DefaultDummyAuthManagerTestApiRouter.__name__,
-        "ACL.group_access_manager_class": DummyGroupAccessManager.__name__})
+        "ACL.group_access_manager_class": DummyGroupAccessManager.__name__
+    })
     self.config_overrider.Start()
 
   def tearDown(self):
@@ -234,6 +235,7 @@ groups:
 def main(argv):
   # Run the full test suite
   test_lib.GrrTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)

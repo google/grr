@@ -16,7 +16,6 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
-
 # Difference between 1 Jan 1601 and 1 Jan 1970.
 WIN_UNIX_DIFF_MSECS = 11644473600
 
@@ -31,7 +30,6 @@ def CanonicalPathToLocalPath(path):
   path = path.replace("/", "\\")
 
   return path.strip("\\")
-
 
 # _winreg is broken on Python 2.x and doesn't support unicode registry values.
 # We provide some replacement functions here.
@@ -57,9 +55,8 @@ RegCloseKey.argtypes = [ctypes.c_void_p]
 RegEnumKeyEx = advapi32.RegEnumKeyExW  # pylint: disable=g-bad-name
 RegEnumKeyEx.restype = ctypes.c_long
 RegEnumKeyEx.argtypes = [ctypes.c_void_p, ctypes.wintypes.DWORD,
-                         ctypes.c_wchar_p, LPDWORD,
-                         LPDWORD, ctypes.c_wchar_p, LPDWORD,
-                         ctypes.POINTER(FileTime)]
+                         ctypes.c_wchar_p, LPDWORD, LPDWORD, ctypes.c_wchar_p,
+                         LPDWORD, ctypes.POINTER(FileTime)]
 
 RegEnumValue = advapi32.RegEnumValueW  # pylint: disable=g-bad-name
 RegEnumValue.restype = ctypes.c_long
@@ -75,9 +72,8 @@ RegOpenKeyEx.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_ulong,
 RegQueryInfoKey = advapi32.RegQueryInfoKeyW  # pylint: disable=g-bad-name
 RegQueryInfoKey.restype = ctypes.c_long
 RegQueryInfoKey.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD,
-                            LPDWORD, LPDWORD, LPDWORD, LPDWORD,
-                            LPDWORD, LPDWORD, LPDWORD,
-                            ctypes.POINTER(FileTime)]
+                            LPDWORD, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
+                            LPDWORD, LPDWORD, ctypes.POINTER(FileTime)]
 
 RegQueryValueEx = advapi32.RegQueryValueExW  # pylint: disable=g-bad-name
 RegQueryValueEx.restype = ctypes.c_long
@@ -119,9 +115,8 @@ def OpenKey(key, sub_key):
   """This calls the Windows OpenKeyEx function in a Unicode safe way."""
   new_key = KeyHandle()
   # Don't use KEY_WOW64_64KEY (0x100) since it breaks on Windows 2000
-  rc = RegOpenKeyEx(key.handle, sub_key, 0, KEY_READ,
-                    ctypes.cast(ctypes.byref(new_key.handle),
-                                ctypes.POINTER(ctypes.c_void_p)))
+  rc = RegOpenKeyEx(key.handle, sub_key, 0, KEY_READ, ctypes.cast(
+      ctypes.byref(new_key.handle), ctypes.POINTER(ctypes.c_void_p)))
   if rc != ERROR_SUCCESS:
     raise ctypes.WinError(2)
 
@@ -147,8 +142,8 @@ def QueryInfoKey(key):
   if rc != ERROR_SUCCESS:
     raise ctypes.WinError(2)
 
-  return (num_sub_keys.value, num_values.value,
-          ft.dwLowDateTime | (ft.dwHighDateTime << 32))
+  return (num_sub_keys.value, num_values.value, ft.dwLowDateTime
+          | (ft.dwHighDateTime << 32))
 
 
 def QueryValueEx(key, value_name):
@@ -159,8 +154,8 @@ def QueryValueEx(key, value_name):
     tmp_size = ctypes.wintypes.DWORD(size)
     buf = ctypes.create_string_buffer(size)
     rc = RegQueryValueEx(key.handle, value_name, LPDWORD(),
-                         ctypes.byref(data_type),
-                         ctypes.cast(buf, LPBYTE), ctypes.byref(tmp_size))
+                         ctypes.byref(data_type), ctypes.cast(buf, LPBYTE),
+                         ctypes.byref(tmp_size))
     if rc != ERROR_MORE_DATA:
       break
 
@@ -180,11 +175,9 @@ def EnumKey(key, index):
   """This calls the Windows RegEnumKeyEx function in a Unicode safe way."""
   buf = ctypes.create_unicode_buffer(257)
   length = ctypes.wintypes.DWORD(257)
-  rc = RegEnumKeyEx(key.handle, index,
-                    ctypes.cast(buf, ctypes.c_wchar_p),
-                    ctypes.byref(length),
-                    LPDWORD(), ctypes.c_wchar_p(), LPDWORD(),
-                    ctypes.POINTER(FileTime)())
+  rc = RegEnumKeyEx(key.handle, index, ctypes.cast(buf, ctypes.c_wchar_p),
+                    ctypes.byref(length), LPDWORD(), ctypes.c_wchar_p(),
+                    LPDWORD(), ctypes.POINTER(FileTime)())
   if rc != 0:
     raise ctypes.WinError(2)
 
@@ -196,10 +189,10 @@ def EnumValue(key, index):
   null = ctypes.POINTER(ctypes.wintypes.DWORD)()
   value_size = ctypes.wintypes.DWORD()
   data_size = ctypes.wintypes.DWORD()
-  rc = RegQueryInfoKey(key.handle, ctypes.c_wchar_p(), null, null, null,
-                       null, null, null,
-                       ctypes.byref(value_size), ctypes.byref(data_size),
-                       null, ctypes.POINTER(FileTime)())
+  rc = RegQueryInfoKey(key.handle, ctypes.c_wchar_p(), null, null, null, null,
+                       null, null, ctypes.byref(value_size),
+                       ctypes.byref(data_size), null,
+                       ctypes.POINTER(FileTime)())
   if rc != ERROR_SUCCESS:
     raise ctypes.WinError(2)
 
@@ -214,11 +207,9 @@ def EnumValue(key, index):
     tmp_value_size = ctypes.wintypes.DWORD(value_size.value)
     tmp_data_size = ctypes.wintypes.DWORD(data_size.value)
     data_type = ctypes.wintypes.DWORD()
-    rc = RegEnumValue(key.handle, index,
-                      ctypes.cast(value, ctypes.c_wchar_p),
+    rc = RegEnumValue(key.handle, index, ctypes.cast(value, ctypes.c_wchar_p),
                       ctypes.byref(tmp_value_size), null,
-                      ctypes.byref(data_type),
-                      ctypes.cast(data, LPBYTE),
+                      ctypes.byref(data_type), ctypes.cast(data, LPBYTE),
                       ctypes.byref(tmp_data_size))
 
     if rc != ERROR_MORE_DATA:
@@ -276,9 +267,13 @@ class RegistryFile(vfs.VFSHandler):
       _winreg.REG_MULTI_SZ: rdf_client.StatEntry.RegistryType.REG_MULTI_SZ,
   }
 
-  def __init__(self, base_fd, pathspec=None, progress_callback=None,
+  def __init__(self,
+               base_fd,
+               pathspec=None,
+               progress_callback=None,
                full_pathspec=None):
-    super(RegistryFile, self).__init__(base_fd, pathspec=pathspec,
+    super(RegistryFile, self).__init__(base_fd,
+                                       pathspec=pathspec,
                                        full_pathspec=full_pathspec,
                                        progress_callback=progress_callback)
 
@@ -340,8 +335,8 @@ class RegistryFile(vfs.VFSHandler):
     # since this is the exact filename casing.
     response_pathspec.path_options = rdf_paths.PathSpec.Options.CASE_LITERAL
 
-    response_pathspec.last.path = utils.JoinPath(
-        response_pathspec.last.path, name)
+    response_pathspec.last.path = utils.JoinPath(response_pathspec.last.path,
+                                                 name)
     response.pathspec = response_pathspec
 
     if self.IsDirectory():
@@ -358,7 +353,8 @@ class RegistryFile(vfs.VFSHandler):
 
   def ListNames(self):
     """List the names of all keys and values."""
-    if not self.IsDirectory(): return
+    if not self.IsDirectory():
+      return
 
     # Handle the special case where no hive is specified and just list the hives
     if self.hive is None:
@@ -395,13 +391,13 @@ class RegistryFile(vfs.VFSHandler):
 
   def ListFiles(self):
     """A generator of all keys and values."""
-    if not self.IsDirectory(): return
+    if not self.IsDirectory():
+      return
 
     if self.hive is None:
       for name in dir(_winreg):
         if name.startswith("HKEY_"):
-          response = rdf_client.StatEntry(
-              st_mode=stat.S_IFDIR)
+          response = rdf_client.StatEntry(st_mode=stat.S_IFDIR)
           response_pathspec = self.pathspec.Copy()
           response_pathspec.last.path = utils.JoinPath(
               response_pathspec.last.path, name)

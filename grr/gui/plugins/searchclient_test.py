@@ -31,16 +31,15 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
 
   @staticmethod
   def CreateSampleHunt(description, token=None):
-    return hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt", description=description, token=token)
+    return hunts.GRRHunt.StartHunt(hunt_name="GenericHunt",
+                                   description=description,
+                                   token=token)
 
   def testShowsNothingByDefault(self):
     self.Open("/")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-user-dashboard "
+    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
                    "div[name=RecentlyAccessedClients]:contains('None')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-user-dashboard "
+    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
                    "div[name=RecentlyCreatedHunts]:contains('None')")
 
   def testShowsHuntCreatedByCurrentUser(self):
@@ -48,18 +47,16 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
       self.CreateSampleHunt("foo-description", token=self.token)
 
     self.Open("/")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-user-dashboard "
+    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
                    "div[name=RecentlyCreatedHunts]:contains('foo-description')")
 
   def testDoesNotShowHuntCreatedByAnotherUser(self):
     with self.ACLChecksDisabled():
-      self.CreateSampleHunt(
-          "foo", token=access_control.ACLToken(username="another"))
+      self.CreateSampleHunt("foo",
+                            token=access_control.ACLToken(username="another"))
 
     self.Open("/")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-user-dashboard "
+    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
                    "div[name=RecentlyCreatedHunts]:contains('None')")
 
   def testClickingOnTheHuntRedirectsToThisHunt(self):
@@ -88,12 +85,10 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
 
     self.Open("/")
     for i in range(11, 20, 2):
-      self.WaitUntil(self.IsElementPresent,
-                     "css=grr-user-dashboard "
+      self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
                      "div[name=RecentlyCreatedHunts]:contains('bar-%d')" % i)
 
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=grr-user-dashboard "
+    self.WaitUntilNot(self.IsElementPresent, "css=grr-user-dashboard "
                       "div[name=RecentlyCreatedHunts]:contains('foo')")
 
   def testDoesNotShowHuntsOlderThan31Days(self):
@@ -107,12 +102,10 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
 
     with test_lib.FakeTime(now):
       self.Open("/")
-      self.WaitUntil(self.IsElementPresent,
-                     "css=grr-user-dashboard "
+      self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
                      "div[name=RecentlyCreatedHunts]:contains('foo')")
 
-      self.WaitUntilNot(self.IsElementPresent,
-                        "css=grr-user-dashboard "
+      self.WaitUntilNot(self.IsElementPresent, "css=grr-user-dashboard "
                         "div[name=RecentlyCreatedHunts]:contains('bar')")
 
   def testShowsClientWithRequestedApproval(self):
@@ -121,8 +114,7 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
       self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-user-dashboard "
+    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
                    "div[name=RecentlyAccessedClients]"
                    ":contains('%s')" % client_id.Basename())
 
@@ -139,11 +131,9 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
                                              reason="bar-reason"))
 
     self.Open("/")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-user-dashboard "
+    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
                    "div[name=RecentlyAccessedClients]:contains('foo-reason')")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-user-dashboard "
+    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
                    "div[name=RecentlyAccessedClients]:contains('bar-reason')")
 
   def testShowsMaxOf7Clients(self):
@@ -156,14 +146,12 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
 
     self.Open("/")
     for c in client_ids[3:]:
-      self.WaitUntil(self.IsElementPresent,
-                     "css=grr-user-dashboard "
+      self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
                      "div[name=RecentlyAccessedClients]"
                      ":contains('%s')" % c.Basename())
 
     for c in client_ids[:3]:
-      self.WaitUntilNot(self.IsElementPresent,
-                        "css=grr-user-dashboard "
+      self.WaitUntilNot(self.IsElementPresent, "css=grr-user-dashboard "
                         "div[name=RecentlyAccessedClients]"
                         ":contains('%s')" % c.Basename())
 
@@ -173,15 +161,13 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
       self.RequestAndGrantClientApproval(client_id)
 
     self.Open("/")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-user-dashboard "
+    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
                    "div[name=RecentlyAccessedClients] "
                    "tr:contains('%s')" % client_id.Basename())
-    self.WaitUntilNot(
-        self.IsElementPresent,
-        "css=grr-user-dashboard "
-        "div[name=RecentlyAccessedClients] "
-        "tr:contains('%s').half-transparent" % client_id.Basename())
+    self.WaitUntilNot(self.IsElementPresent, "css=grr-user-dashboard "
+                      "div[name=RecentlyAccessedClients] "
+                      "tr:contains('%s').half-transparent" %
+                      client_id.Basename())
 
   def testNonValidApprovalIsMarked(self):
     with self.ACLChecksDisabled():
@@ -194,8 +180,7 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
                              token=self.token)
 
     self.Open("/")
-    self.WaitUntil(self.IsElementPresent,
-                   "css=grr-user-dashboard "
+    self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
                    "div[name=RecentlyAccessedClients] "
                    "tr:contains('%s').half-transparent" % client_id.Basename())
 
@@ -222,8 +207,8 @@ class TestNavigatorView(SearchClientTestBase):
 
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
-      with aff4.FACTORY.Open(
-          client_id, mode="rw", token=self.token) as client_obj:
+      with aff4.FACTORY.Open(client_id, mode="rw",
+                             token=self.token) as client_obj:
         client_obj.Set(client_obj.Schema.PING(last_ping))
 
       self.RequestAndGrantClientApproval(client_id)
@@ -235,16 +220,18 @@ class TestNavigatorView(SearchClientTestBase):
     with test_lib.FakeTime(timestamp):
       client = test_lib.CrashClientMock(client_id, self.token)
       for _ in test_lib.TestFlowHelper(
-          test_lib.FlowWithOneClientRequest.__name__, client,
-          client_id=client_id, token=self.token,
+          test_lib.FlowWithOneClientRequest.__name__,
+          client,
+          client_id=client_id,
+          token=self.token,
           check_flow_errors=False):
         pass
 
   def CreateClientWithVolumes(self, available=50):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
-      with aff4.FACTORY.Open(
-          client_id, mode="rw", token=self.token) as client_obj:
+      with aff4.FACTORY.Open(client_id, mode="rw",
+                             token=self.token) as client_obj:
         volume = rdf_client.Volume(total_allocation_units=100,
                                    actual_available_allocation_units=available)
         client_obj.Set(client_obj.Schema.VOLUMES([volume]))
@@ -283,8 +270,7 @@ class TestNavigatorView(SearchClientTestBase):
     self.Type("client_query", client_id.Basename())
     self.Click("client_query_submit")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s') "
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s') "
                    "img[src$='online.png']" % client_id.Basename())
 
   def testOneDayClientStatusInClientSearch(self):
@@ -295,8 +281,7 @@ class TestNavigatorView(SearchClientTestBase):
     self.Type("client_query", client_id.Basename())
     self.Click("client_query_submit")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s') "
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s') "
                    "img[src$='online-1d.png']" % client_id.Basename())
 
   def testOfflineClientStatusInClientSearch(self):
@@ -307,8 +292,7 @@ class TestNavigatorView(SearchClientTestBase):
     self.Type("client_query", client_id.Basename())
     self.Click("client_query_submit")
 
-    self.WaitUntil(self.IsElementPresent,
-                   "css=tr:contains('%s') "
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s') "
                    "img[src$='offline.png']" % client_id.Basename())
 
   def testLatestCrashesStatusIsNotDisplayedWhenThereAreNoCrashes(self):
@@ -365,10 +349,8 @@ class TestNavigatorView(SearchClientTestBase):
     self.WaitUntil(self.IsElementPresent,
                    "css=tr:contains('%s')" % client_id.Basename())
     # But it shouldn't have the skull.
-    self.WaitUntilNot(
-        self.IsElementPresent,
-        "css=tr:contains('%s') "
-        "img[src$='skull-icon.png']" % client_id.Basename())
+    self.WaitUntilNot(self.IsElementPresent, "css=tr:contains('%s') "
+                      "img[src$='skull-icon.png']" % client_id.Basename())
 
   def testCrashIconDoesNotAppearInClientSearchIfClientCrashedLongTimeAgo(self):
     client_id = self.CreateClient()
@@ -384,10 +366,8 @@ class TestNavigatorView(SearchClientTestBase):
     self.WaitUntil(self.IsElementPresent,
                    "css=tr:contains('%s')" % client_id.Basename())
     # But it shouldn't have the skull.
-    self.WaitUntilNot(
-        self.IsElementPresent,
-        "css=tr:contains('%s') "
-        "img[src$='skull-icon.png']" % client_id.Basename())
+    self.WaitUntilNot(self.IsElementPresent, "css=tr:contains('%s') "
+                      "img[src$='skull-icon.png']" % client_id.Basename())
 
   def testCrashIconAppearsInClientSearchIfClientCrashedRecently(self):
     timestamp = rdfvalue.RDFDatetime().Now()
@@ -403,10 +383,8 @@ class TestNavigatorView(SearchClientTestBase):
     self.WaitUntil(self.IsElementPresent,
                    "css=tr:contains('%s')" % client_id.Basename())
     # And it should have the skull.
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=tr:contains('%s') "
-        "img[src$='skull-icon.png']" % client_id.Basename())
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s') "
+                   "img[src$='skull-icon.png']" % client_id.Basename())
 
   def testDiskIconDoesNotAppearInClientSearchIfDiskIsNotFull(self):
     client_id = self.CreateClientWithVolumes()
@@ -419,10 +397,8 @@ class TestNavigatorView(SearchClientTestBase):
                    "css=tr:contains('%s')" % client_id.Basename())
 
     # But it shouldn't have the disk icon.
-    self.WaitUntilNot(
-        self.IsElementPresent,
-        "css=tr:contains('%s') "
-        "img[src$='hdd-bang-icon.png']" % client_id.Basename())
+    self.WaitUntilNot(self.IsElementPresent, "css=tr:contains('%s') "
+                      "img[src$='hdd-bang-icon.png']" % client_id.Basename())
 
   def testDiskIconDoesAppearsInClientSearchIfDiskIsFull(self):
     client_id = self.CreateClientWithVolumes(available=1)
@@ -435,10 +411,8 @@ class TestNavigatorView(SearchClientTestBase):
                    "css=tr:contains('%s')" % client_id.Basename())
 
     # With the disk icon.
-    self.WaitUntil(
-        self.IsElementPresent,
-        "css=tr:contains('%s') "
-        "img[src$='hdd-bang-icon.png']" % client_id.Basename())
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('%s') "
+                   "img[src$='hdd-bang-icon.png']" % client_id.Basename())
 
   def testDiskWarningIsNotDisplayed(self):
     client_id = self.CreateClientWithVolumes()
@@ -460,14 +434,13 @@ class TestContentView(SearchClientTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
                                aff4_type="GlobalNotificationStorage",
-                               mode="rw", token=self.token) as storage:
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.ERROR,
-                header="Oh no, we're doomed!",
-                content="Houston, Houston, we have a prob...",
-                link="http://www.google.com"
-            ))
+                               mode="rw",
+                               token=self.token) as storage:
+        storage.AddNotification(aff4_users.GlobalNotification(
+            type=aff4_users.GlobalNotification.Type.ERROR,
+            header="Oh no, we're doomed!",
+            content="Houston, Houston, we have a prob...",
+            link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -476,20 +449,17 @@ class TestContentView(SearchClientTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
                                aff4_type="GlobalNotificationStorage",
-                               mode="rw", token=self.token) as storage:
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.ERROR,
-                header="Oh no, we're doomed!",
-                content="Houston, Houston, we have a prob...",
-                link="http://www.google.com"
-            ))
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.INFO,
-                header="Nothing to worry about!",
-                link="http://www.google.com"
-            ))
+                               mode="rw",
+                               token=self.token) as storage:
+        storage.AddNotification(aff4_users.GlobalNotification(
+            type=aff4_users.GlobalNotification.Type.ERROR,
+            header="Oh no, we're doomed!",
+            content="Houston, Houston, we have a prob...",
+            link="http://www.google.com"))
+        storage.AddNotification(aff4_users.GlobalNotification(
+            type=aff4_users.GlobalNotification.Type.INFO,
+            header="Nothing to worry about!",
+            link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -499,14 +469,13 @@ class TestContentView(SearchClientTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
                                aff4_type="GlobalNotificationStorage",
-                               mode="rw", token=self.token) as storage:
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.ERROR,
-                header="Oh no, we're doomed!",
-                content="Houston, Houston, we have a prob...",
-                link="http://www.google.com"
-            ))
+                               mode="rw",
+                               token=self.token) as storage:
+        storage.AddNotification(aff4_users.GlobalNotification(
+            type=aff4_users.GlobalNotification.Type.ERROR,
+            header="Oh no, we're doomed!",
+            content="Houston, Houston, we have a prob...",
+            link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -514,13 +483,12 @@ class TestContentView(SearchClientTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
                                aff4_type="GlobalNotificationStorage",
-                               mode="rw", token=self.token) as storage:
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.ERROR,
-                content="Too late to do anything!",
-                link="http://www.google.com"
-            ))
+                               mode="rw",
+                               token=self.token) as storage:
+        storage.AddNotification(aff4_users.GlobalNotification(
+            type=aff4_users.GlobalNotification.Type.ERROR,
+            content="Too late to do anything!",
+            link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Too late to do anything!")
@@ -530,14 +498,13 @@ class TestContentView(SearchClientTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
                                aff4_type="GlobalNotificationStorage",
-                               mode="rw", token=self.token) as storage:
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.ERROR,
-                header="Oh no, we're doomed!",
-                content="Houston, Houston, we have a prob...",
-                link="http://www.google.com"
-            ))
+                               mode="rw",
+                               token=self.token) as storage:
+        storage.AddNotification(aff4_users.GlobalNotification(
+            type=aff4_users.GlobalNotification.Type.ERROR,
+            header="Oh no, we're doomed!",
+            content="Houston, Houston, we have a prob...",
+            link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -553,20 +520,17 @@ class TestContentView(SearchClientTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
                                aff4_type="GlobalNotificationStorage",
-                               mode="rw", token=self.token) as storage:
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.ERROR,
-                header="Oh no, we're doomed!",
-                content="Houston, Houston, we have a prob...",
-                link="http://www.google.com"
-            ))
-        storage.AddNotification(
-            aff4_users.GlobalNotification(
-                type=aff4_users.GlobalNotification.Type.INFO,
-                header="Nothing to worry about!",
-                link="http://www.google.com"
-            ))
+                               mode="rw",
+                               token=self.token) as storage:
+        storage.AddNotification(aff4_users.GlobalNotification(
+            type=aff4_users.GlobalNotification.Type.ERROR,
+            header="Oh no, we're doomed!",
+            content="Houston, Houston, we have a prob...",
+            link="http://www.google.com"))
+        storage.AddNotification(aff4_users.GlobalNotification(
+            type=aff4_users.GlobalNotification.Type.INFO,
+            header="Nothing to worry about!",
+            link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -604,7 +568,8 @@ class TestContentView(SearchClientTestBase):
 
   def testRendererShowsCanaryContentWhenInCanaryMode(self):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create("aff4:/users/test", "GRRUser",
+      with aff4.FACTORY.Create("aff4:/users/test",
+                               "GRRUser",
                                token=self.token) as user:
         user.Set(user.Schema.GUI_SETTINGS(canary_mode=True))
 
@@ -642,41 +607,38 @@ class TestHostTable(SearchClientTestBase):
 
   def testUserLabelIsShownAsBootstrapSuccessLabel(self):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Open("C.0000000000000001", mode="rw",
+      with aff4.FACTORY.Open("C.0000000000000001",
+                             mode="rw",
                              token=self.token) as client:
         client.AddLabels("foo", owner="test")
 
     self.Open("/#main=HostTable")
 
-    self.WaitUntil(self.IsVisible,
-                   "css=tr:contains('C.0000000000000001') "
+    self.WaitUntil(self.IsVisible, "css=tr:contains('C.0000000000000001') "
                    "span.label-success:contains('foo')")
 
   def testSystemLabelIsShownAsRegularBootstrapLabel(self):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Open("C.0000000000000001", mode="rw",
+      with aff4.FACTORY.Open("C.0000000000000001",
+                             mode="rw",
                              token=self.token) as client:
         client.AddLabels("bar", owner="GRR")
 
     self.Open("/#main=HostTable")
-    self.WaitUntil(self.IsVisible,
-                   "css=tr:contains('C.0000000000000001') "
+    self.WaitUntil(self.IsVisible, "css=tr:contains('C.0000000000000001') "
                    "span.label:not(.label-success):contains('bar')")
 
   def testLabelButtonIsDisabledByDefault(self):
     self.Open("/#main=HostTable")
-    self.WaitUntil(self.IsVisible,
-                   "css=button[name=AddLabels][disabled]")
+    self.WaitUntil(self.IsVisible, "css=button[name=AddLabels][disabled]")
 
   def testLabelButtonIsEnabledWhenClientIsSelected(self):
     self.Open("/#main=HostTable")
 
-    self.WaitUntil(self.IsVisible,
-                   "css=button[name=AddLabels][disabled]")
+    self.WaitUntil(self.IsVisible, "css=button[name=AddLabels][disabled]")
     self.Click("css=input.client-checkbox["
                "client_urn='aff4:/C.0000000000000001']")
-    self.WaitUntilNot(self.IsVisible,
-                      "css=button[name=AddLabels][disabled]")
+    self.WaitUntilNot(self.IsVisible, "css=button[name=AddLabels][disabled]")
 
   def testAddClientsLabelsDialogShowsListOfSelectedClients(self):
     self.Open("/#main=HostTable")
@@ -691,14 +653,11 @@ class TestHostTable(SearchClientTestBase):
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Check that all 3 client ids are shown in the dialog.
-    self.WaitUntil(self.IsVisible,
-                   "css=*[name=AddClientsLabelsDialog]:"
+    self.WaitUntil(self.IsVisible, "css=*[name=AddClientsLabelsDialog]:"
                    "contains('C.0000000000000001')")
-    self.WaitUntil(self.IsVisible,
-                   "css=*[name=AddClientsLabelsDialog]:"
+    self.WaitUntil(self.IsVisible, "css=*[name=AddClientsLabelsDialog]:"
                    "contains('C.0000000000000003')")
-    self.WaitUntil(self.IsVisible,
-                   "css=*[name=AddClientsLabelsDialog]:"
+    self.WaitUntil(self.IsVisible, "css=*[name=AddClientsLabelsDialog]:"
                    "contains('C.0000000000000007')")
 
   def testAddClientsLabelsDialogShowsErrorWhenAddingLabelWithComma(self):
@@ -710,8 +669,7 @@ class TestHostTable(SearchClientTestBase):
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Type label name
-    self.Type("css=*[name=AddClientsLabelsDialog] input[name=labelBox]",
-              "a,b")
+    self.Type("css=*[name=AddClientsLabelsDialog] input[name=labelBox]", "a,b")
 
     # Click proceed and check that error message is displayed and that
     # dialog is not going away.
@@ -735,18 +693,15 @@ class TestHostTable(SearchClientTestBase):
     # proceed button is replaced with close button.
     self.Click("css=*[name=AddClientsLabelsDialog] button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Label was successfully added")
-    self.WaitUntilNot(self.IsVisible,
-                      "css=*[name=AddClientsLabelsDialog] "
+    self.WaitUntilNot(self.IsVisible, "css=*[name=AddClientsLabelsDialog] "
                       "button[name=Proceed]")
 
     # Click on "Close" button and check that dialog has disappeared.
     self.Click("css=*[name=AddClientsLabelsDialog] button[name=Close]")
-    self.WaitUntilNot(self.IsVisible,
-                      "css=*[name=AddClientsLabelsDialog]")
+    self.WaitUntilNot(self.IsVisible, "css=*[name=AddClientsLabelsDialog]")
 
     # Check that label has appeared in the clients list.
-    self.WaitUntil(self.IsVisible,
-                   "css=tr:contains('C.0000000000000001') "
+    self.WaitUntil(self.IsVisible, "css=tr:contains('C.0000000000000001') "
                    "span.label-success:contains('issue 42')")
 
   def testAppliedLabelBecomesSearchableImmediately(self):
@@ -767,14 +722,12 @@ class TestHostTable(SearchClientTestBase):
     # proceed button is replaced with close button.
     self.Click("css=*[name=AddClientsLabelsDialog] button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Label was successfully added")
-    self.WaitUntilNot(self.IsVisible,
-                      "css=*[name=AddClientsLabelsDialog] "
+    self.WaitUntilNot(self.IsVisible, "css=*[name=AddClientsLabelsDialog] "
                       "button[name=Proceed]")
 
     # Click on "Close" button and check that dialog has disappeared.
     self.Click("css=*[name=AddClientsLabelsDialog] button[name=Close]")
-    self.WaitUntilNot(self.IsVisible,
-                      "css=*[name=AddClientsLabelsDialog]")
+    self.WaitUntilNot(self.IsVisible, "css=*[name=AddClientsLabelsDialog]")
 
     # Search using the new label and check that the labeled clients are shown.
     self.Open("/#main=HostTable&q=label:\"issue 42\"")
@@ -810,12 +763,10 @@ class TestHostTable(SearchClientTestBase):
 
     # Click on "Cancel" button and check that dialog has disappeared.
     self.Click("css=*[name=AddClientsLabelsDialog] button[name=Cancel]")
-    self.WaitUntilNot(self.IsVisible,
-                      "css=*[name=AddClientsLabelsDialog]")
+    self.WaitUntilNot(self.IsVisible, "css=*[name=AddClientsLabelsDialog]")
 
     # Ensure that checkbox is still checked
-    self.WaitUntil(self.IsVisible,
-                   "css=input.client-checkbox["
+    self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
                    "client_urn='aff4:/C.0000000000000001']:checked")
 
   def testSelectionIsResetWhenLabelIsAppliedViaAddClientsLabelsDialog(self):
@@ -833,8 +784,7 @@ class TestHostTable(SearchClientTestBase):
     self.Click("css=*[name=AddClientsLabelsDialog] button[name=Close]")
 
     # Ensure that checkbox is not checked anymore.
-    self.WaitUntil(self.IsVisible,
-                   "css=input.client-checkbox["
+    self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
                    "client_urn='aff4:/C.0000000000000001']:not(:checked)")
 
   def testCheckAllCheckboxSelectsAllClients(self):
@@ -843,42 +793,33 @@ class TestHostTable(SearchClientTestBase):
     self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
 
     # Check that checkboxes for certain clients are unchecked.
-    self.WaitUntil(self.IsVisible,
-                   "css=input.client-checkbox["
+    self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
                    "client_urn='aff4:/C.0000000000000001']:not(:checked)")
-    self.WaitUntil(self.IsVisible,
-                   "css=input.client-checkbox["
+    self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
                    "client_urn='aff4:/C.0000000000000004']:not(:checked)")
-    self.WaitUntil(self.IsVisible,
-                   "css=input.client-checkbox["
+    self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
                    "client_urn='aff4:/C.0000000000000007']:not(:checked)")
 
     # Click on 'check all checkbox'
     self.Click("css=input.client-checkbox.select-all")
 
     # Check that checkboxes for certain clients are now checked.
-    self.WaitUntil(self.IsVisible,
-                   "css=input.client-checkbox["
+    self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
                    "client_urn='aff4:/C.0000000000000001']:checked")
-    self.WaitUntil(self.IsVisible,
-                   "css=input.client-checkbox["
+    self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
                    "client_urn='aff4:/C.0000000000000004']:checked")
-    self.WaitUntil(self.IsVisible,
-                   "css=input.client-checkbox["
+    self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
                    "client_urn='aff4:/C.0000000000000007']:checked")
 
     # Click once more on 'check all checkbox'.
     self.Click("css=input.client-checkbox.select-all")
 
     # Check that checkboxes for certain clients are now again unchecked.
-    self.WaitUntil(self.IsVisible,
-                   "css=input.client-checkbox["
+    self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
                    "client_urn='aff4:/C.0000000000000001']:not(:checked)")
-    self.WaitUntil(self.IsVisible,
-                   "css=input.client-checkbox["
+    self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
                    "client_urn='aff4:/C.0000000000000004']:not(:checked)")
-    self.WaitUntil(self.IsVisible,
-                   "css=input.client-checkbox["
+    self.WaitUntil(self.IsVisible, "css=input.client-checkbox["
                    "client_urn='aff4:/C.0000000000000007']:not(:checked)")
 
   def testClientsSelectedWithSelectAllAreShownInAddClientsLabelsDialog(self):
@@ -893,14 +834,11 @@ class TestHostTable(SearchClientTestBase):
     self.Click("css=button[name=AddLabels]:not([disabled])")
 
     # Check that client ids are shown in the dialog.
-    self.WaitUntil(self.IsVisible,
-                   "css=*[name=AddClientsLabelsDialog]:"
+    self.WaitUntil(self.IsVisible, "css=*[name=AddClientsLabelsDialog]:"
                    "contains('C.0000000000000001')")
-    self.WaitUntil(self.IsVisible,
-                   "css=*[name=AddClientsLabelsDialog]:"
+    self.WaitUntil(self.IsVisible, "css=*[name=AddClientsLabelsDialog]:"
                    "contains('C.0000000000000004')")
-    self.WaitUntil(self.IsVisible,
-                   "css=*[name=AddClientsLabelsDialog]:"
+    self.WaitUntil(self.IsVisible, "css=*[name=AddClientsLabelsDialog]:"
                    "contains('C.0000000000000007')")
 
 
@@ -919,7 +857,8 @@ class TestClientSearch(SearchClientTestBase,
     self.client_ids = self.SetupClients(5)
 
     # SetupClients adds no labels or user names.
-    with aff4.FACTORY.Open(self.client_ids[0], mode="rw",
+    with aff4.FACTORY.Open(self.client_ids[0],
+                           mode="rw",
                            token=self.token) as client_obj:
       client_obj.AddLabels("common_test_label", owner=self.token.username)
       client_obj.AddLabels("unique_test_label", owner=self.token.username)
@@ -933,21 +872,24 @@ class TestClientSearch(SearchClientTestBase,
       # Update index, since we added users and labels.
       self._UpdateClientIndex(client_obj)
 
-    with aff4.FACTORY.Open(self.client_ids[1], mode="rw",
+    with aff4.FACTORY.Open(self.client_ids[1],
+                           mode="rw",
                            token=self.token) as client_obj:
       client_obj.AddLabels("common_test_label", owner=self.token.username)
       self._UpdateClientIndex(client_obj)
 
   def _UpdateClientIndex(self, client_obj):
-    with aff4.FACTORY.Create(client_index.MAIN_INDEX, aff4_type="ClientIndex",
-                             mode="rw", token=self.token) as index:
+    with aff4.FACTORY.Create(client_index.MAIN_INDEX,
+                             aff4_type="ClientIndex",
+                             mode="rw",
+                             token=self.token) as index:
       index.AddClient(client_obj)
 
   def _WaitForSearchResults(self, target_count):
     self.WaitUntil(self.IsElementPresent, "css=grr-clients-list")
     self.WaitUntilNot(self.IsTextPresent, "Loading...")
-    self.assertEqual(
-        target_count, self.GetCssCount("css=grr-clients-list tbody > tr"))
+    self.assertEqual(target_count,
+                     self.GetCssCount("css=grr-clients-list tbody > tr"))
 
   def testEmptySearchShowsAllClients(self):
     self.Open("/")
@@ -980,13 +922,15 @@ class TestClientSearch(SearchClientTestBase,
     self._WaitForSearchResults(target_count=0)
 
     # The host keyword also searches FQDN, so we should find an item.
-    self.Type("client_query", text="host:Host-1.example.com",
+    self.Type("client_query",
+              text="host:Host-1.example.com",
               end_with_enter=True)
 
     self._WaitForSearchResults(target_count=1)
 
     # Unknown fqdns should yield an empty result.
-    self.Type("client_query", text="host:Host-99.example.com",
+    self.Type("client_query",
+              text="host:Host-99.example.com",
               end_with_enter=True)
 
     self._WaitForSearchResults(target_count=0)
@@ -995,20 +939,21 @@ class TestClientSearch(SearchClientTestBase,
     self.Open("/")
 
     # Several client have this label, so we should find them all.
-    self.Type("client_query", text="label:common_test_label",
+    self.Type("client_query",
+              text="label:common_test_label",
               end_with_enter=True)
 
     self._WaitForSearchResults(target_count=2)
 
     # Only one client has the unique label.
-    self.Type("client_query", text="label:unique_test_label",
+    self.Type("client_query",
+              text="label:unique_test_label",
               end_with_enter=True)
 
     self._WaitForSearchResults(target_count=1)
 
     # Only one client has the unique label.
-    self.Type("client_query", text="label:unused_label",
-              end_with_enter=True)
+    self.Type("client_query", text="label:unused_label", end_with_enter=True)
 
     self._WaitForSearchResults(target_count=0)
 
@@ -1016,15 +961,12 @@ class TestClientSearch(SearchClientTestBase,
     self.Open("/")
 
     # IP contains the client number, so we should find exactly one item.
-    self.Type("client_query", text="ip:192.168.0.1",
-
-              end_with_enter=True)
+    self.Type("client_query", text="ip:192.168.0.1", end_with_enter=True)
 
     self._WaitForSearchResults(target_count=1)
 
     # Unknown ips should yield an empty result.
-    self.Type("client_query", text="ip:192.168.32.0",
-              end_with_enter=True)
+    self.Type("client_query", text="ip:192.168.32.0", end_with_enter=True)
 
     self._WaitForSearchResults(target_count=0)
 
@@ -1032,28 +974,26 @@ class TestClientSearch(SearchClientTestBase,
     self.Open("/")
 
     # Mac contains the client number, so we should find exactly one item.
-    self.Type("client_query", text="aabbccddee01",
-              end_with_enter=True)
+    self.Type("client_query", text="aabbccddee01", end_with_enter=True)
 
     self._WaitForSearchResults(target_count=1)
 
     # Unknown ips should yield an empty result.
-    self.Type("client_query", text="aabbccddee99",
-              end_with_enter=True)
+    self.Type("client_query", text="aabbccddee99", end_with_enter=True)
 
     self._WaitForSearchResults(target_count=0)
 
   def testSearchWithUserKeyword(self):
     self.Open("/")
 
-    self.Type("client_query", text="user:" + self.token.username,
+    self.Type("client_query",
+              text="user:" + self.token.username,
               end_with_enter=True)
 
     self._WaitForSearchResults(target_count=1)
 
     # Unknown users should yield an empty result.
-    self.Type("client_query", text="user:I_do_not_exist",
-              end_with_enter=True)
+    self.Type("client_query", text="user:I_do_not_exist", end_with_enter=True)
 
     self._WaitForSearchResults(target_count=0)
 
@@ -1124,6 +1064,7 @@ class TestClientSearch(SearchClientTestBase,
 def main(argv):
   # Run the full test suite
   runtests_test.SeleniumTestProgram(argv=argv)
+
 
 if __name__ == "__main__":
   flags.StartMain(main)
