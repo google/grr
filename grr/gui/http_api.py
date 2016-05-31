@@ -23,9 +23,11 @@ from grr.gui import api_call_handler_base
 from grr.gui import api_call_router
 from grr.gui import api_value_renderers
 from grr.lib import access_control
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
+from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.rdfvalues import structs as rdf_structs
 
 
@@ -91,7 +93,6 @@ class RouterMatcher(object):
 
   def MatchRouter(self, request):
     """Returns a router for a given HTTP request."""
-
     router = api_auth_manager.API_AUTH_MGR.GetRouterForUser(request.user)
     routing_map = self._GetRoutingMap(router)
 
@@ -305,6 +306,15 @@ class HttpRequestHandler(object):
 
   def HandleRequest(self, request):
     """Handles given HTTP request."""
+    impersonated_username = config_lib.CONFIG["AdminUI.debug_impersonate_user"]
+    if impersonated_username:
+      logging.info("Overriding user as %s", impersonated_username)
+      request.user = config_lib.CONFIG["AdminUI.debug_impersonate_user"]
+
+    if not aff4_users.GRRUser.IsValidUsername(request.user):
+      return self._BuildResponse(403,
+                                 dict(message="Invalid username: %s" %
+                                      request.user))
 
     strip_type_info = False
     if hasattr(request, "GET") and request.GET.get("strip_type_info", ""):

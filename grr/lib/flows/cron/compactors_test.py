@@ -46,7 +46,7 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
       fd.Add(rdf_flows.GrrMessage(request_id=1))
 
     # Check that there's 1 compaction notification for our collection.
-    notifications = aff4.PackedVersionedCollection.QueryNotifications(
+    notifications = collects.PackedVersionedCollection.QueryNotifications(
         token=self.token)
     notifications = [n for n in notifications if n == "aff4:/tmp/coll"]
     self.assertEqual(len(list(notifications)), 1)
@@ -57,7 +57,7 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
       pass
 
     # Check that notification for our collection is deleted after compaction.
-    notifications = aff4.PackedVersionedCollection.QueryNotifications(
+    notifications = collects.PackedVersionedCollection.QueryNotifications(
         token=self.token)
     notifications = [n for n in notifications if n == "aff4:/tmp/coll"]
     self.assertEqual(len(list(notifications)), 0)
@@ -74,7 +74,7 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
     AddNewElementToCollection()
 
     # Check that there's 1 compaction notification for our collection.
-    notifications = aff4.PackedVersionedCollection.QueryNotifications(
+    notifications = collects.PackedVersionedCollection.QueryNotifications(
         token=self.token)
     notifications = [n for n in notifications if n == "aff4:/tmp/coll"]
     self.assertEqual(len(list(notifications)), 1)
@@ -85,7 +85,7 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
     # it was written during the compaction, and therefore there are
     # probably some uncompacted elements that should be compacted during
     # then next compaction round.
-    with utils.Stubber(aff4.PackedVersionedCollection, "Compact",
+    with utils.Stubber(collects.PackedVersionedCollection, "Compact",
                        AddNewElementToCollection):
       # Run the compactor.
       for _ in test_lib.TestFlowHelper("PackedVersionedCollectionCompactor",
@@ -93,7 +93,7 @@ class PackedVersionedCollectionCompactorTest(test_lib.FlowTestsBaseclass):
         pass
 
     # Check that notification for our collection is deleted after compaction.
-    notifications = aff4.PackedVersionedCollection.QueryNotifications(
+    notifications = collects.PackedVersionedCollection.QueryNotifications(
         token=self.token)
     notifications = [n for n in notifications if n == "aff4:/tmp/coll"]
     self.assertEqual(len(list(notifications)), 1)

@@ -572,13 +572,13 @@ class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
                                    total_count=len(errors_collection))
 
 
-class ApiGetClientCompletionStatsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetClientCompletionStatsArgs
+class ApiGetHuntClientCompletionStatsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetHuntClientCompletionStatsArgs
 
 
-class ApiGetClientCompletionStatsResult(rdf_structs.RDFProtoStruct):
+class ApiGetHuntClientCompletionStatsResult(rdf_structs.RDFProtoStruct):
   """Result for getting the client completions of a hunt."""
-  protobuf = api_pb2.ApiGetClientCompletionStatsResult
+  protobuf = api_pb2.ApiGetHuntClientCompletionStatsResult
 
   def InitFromDataPoints(self, start_stats, complete_stats):
     """Check that this approval applies to the given token.
@@ -605,12 +605,13 @@ class ApiGetClientCompletionStatsResult(rdf_structs.RDFProtoStruct):
     return result
 
 
-class ApiGetClientCompletionStatsHandler(api_call_handler_base.ApiCallHandler):
+class ApiGetHuntClientCompletionStatsHandler(
+    api_call_handler_base.ApiCallHandler):
   """Calculates hunt's client completion stats."""
 
   category = CATEGORY
-  args_type = ApiGetClientCompletionStatsArgs
-  result_type = ApiGetClientCompletionStatsResult
+  args_type = ApiGetHuntClientCompletionStatsArgs
+  result_type = ApiGetHuntClientCompletionStatsResult
 
   def Handle(self, args, token=None):
     target_size = args.size
@@ -635,7 +636,7 @@ class ApiGetClientCompletionStatsHandler(api_call_handler_base.ApiCallHandler):
       start_stats = self._Resample(start_stats, target_size)
       complete_stats = self._Resample(complete_stats, target_size)
 
-    return ApiGetClientCompletionStatsResult().InitFromDataPoints(
+    return ApiGetHuntClientCompletionStatsResult().InitFromDataPoints(
         start_stats, complete_stats)
 
   def _SampleClients(self, started_clients, completed_clients):
@@ -702,7 +703,7 @@ class ApiGetClientCompletionStatsHandler(api_call_handler_base.ApiCallHandler):
       stat_t = stats[i][0]
       stat_v = stats[i][1]
       if stat_t <= (current_t + interval):
-        # always add the last value in an interval to the result
+        # Always add the last value in an interval to the result.
         current_v = stat_v
         i += 1
       else:
@@ -892,24 +893,24 @@ class ApiGetHuntStatsHandler(api_call_handler_base.ApiCallHandler):
     return ApiGetHuntStatsResult(stats=stats)
 
 
-class ApiGetHuntClientsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetHuntClientsArgs
+class ApiListHuntClientsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntClientsArgs
 
 
-class ApiGetHuntClientsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetHuntClientsResult
+class ApiListHuntClientsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntClientsResult
 
 
 class ApiHuntClient(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiHuntClient
 
 
-class ApiGetHuntClientsHandler(api_call_handler_base.ApiCallHandler):
+class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
   """Handles requests for hunt clients."""
 
   category = CATEGORY
-  args_type = ApiGetHuntClientsArgs
-  result_type = ApiGetHuntClientsResult
+  args_type = ApiListHuntClientsArgs
+  result_type = ApiListHuntClientsResult
 
   def Handle(self, args, token=None):
     """Retrieves the clients for a hunt."""
@@ -991,7 +992,7 @@ class ApiGetHuntClientsHandler(api_call_handler_base.ApiCallHandler):
 
       result_items.append(item)
 
-    return ApiGetHuntClientsResult(items=result_items, total_count=total_count)
+    return ApiListHuntClientsResult(items=result_items, total_count=total_count)
 
 
 class ApiGetHuntContextArgs(rdf_structs.RDFProtoStruct):

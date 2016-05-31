@@ -109,3 +109,9 @@ config_lib.DEFINE_list(
     "which are still used for some GRR features (manage binaries, legacy "
     "browse virtual filesystem pane, etc). If this option is not set, then "
     "no additional checks are performed when legacy renderers are used.")
+
+config_lib.DEFINE_string(
+    "AdminUI.debug_impersonate_user", None,
+    "NOTE: for debugging purposes only! If set, every request AdminUI gets "
+    "will be attributed to the specified user. Useful for checking how AdminUI "
+    "looks like for an access-restricted user.")

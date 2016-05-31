@@ -5,6 +5,7 @@ import re
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -43,7 +44,7 @@ class TestListDirectoryOSLinuxDarwin(base.AutomatedTest):
     if type(fd) == aff4.AFF4Volume:
       self.fail(("No results were written to the data store. Maybe the GRR "
                  "client is not running with root privileges?"))
-    self.assertEqual(type(fd), aff4.VFSFile)
+    self.assertEqual(type(fd), aff4_grr.VFSFile)
 
   def tearDown(self):
     if not self.delete_urns:

@@ -20,6 +20,10 @@ goog.require('grrUi.semantic.objectLabelDirective.ObjectLabelDirective');
 goog.require('grrUi.semantic.objectLabelsListDirective.ObjectLabelsListDirective');
 goog.require('grrUi.semantic.primitiveDirective.PrimitiveDirective');
 goog.require('grrUi.semantic.pseudo.module');
+
+goog.require('grrUi.semantic.rekall.module');
+goog.require('grrUi.semantic.rekallResponseDirective.RekallResponseDirective');
+
 goog.require('grrUi.semantic.semanticProtoDirective.SemanticProtoDirective');
 goog.require('grrUi.semantic.semanticValueDirective.SemanticValueDirective');
 goog.require('grrUi.semantic.statModeDirective.StatModeDirective');
@@ -35,6 +39,7 @@ goog.require('grrUi.semantic.urnDirective.UrnDirective');
 grrUi.semantic.module = angular.module('grrUi.semantic',
                                        [grrUi.core.module.name,
                                         grrUi.semantic.pseudo.module.name,
+                                        grrUi.semantic.rekall.module.name,
                                         'ui.bootstrap']);
 
 grrUi.semantic.module.directive(
@@ -78,6 +83,11 @@ grrUi.semantic.module.directive(
 grrUi.semantic.module.directive(
     grrUi.semantic.primitiveDirective.PrimitiveDirective.directive_name,
     grrUi.semantic.primitiveDirective.PrimitiveDirective);
+
+grrUi.semantic.module.directive(
+    grrUi.semantic.rekallResponseDirective.RekallResponseDirective.directive_name,
+    grrUi.semantic.rekallResponseDirective.RekallResponseDirective);
+
 grrUi.semantic.module.directive(
     grrUi.semantic.semanticProtoDirective.SemanticProtoDirective.directive_name,
     grrUi.semantic.semanticProtoDirective.SemanticProtoDirective);
@@ -156,6 +166,9 @@ grrUi.semantic.module.run(function(grrSemanticValueDirectivesRegistryService) {
         registry.registerDirective(
             type, grrUi.semantic.primitiveDirective.PrimitiveDirective);
       }.bind(this));
+  registry.registerDirective(
+    grrUi.semantic.rekallResponseDirective.RekallResponseDirective.semantic_type,
+    grrUi.semantic.rekallResponseDirective.RekallResponseDirective);
   registry.registerDirective(
     grrUi.semantic.semanticProtoDirective.SemanticProtoDirective.semantic_type,
     grrUi.semantic.semanticProtoDirective.SemanticProtoDirective);

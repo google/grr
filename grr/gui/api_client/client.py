@@ -50,11 +50,11 @@ class ClientBase(object):
   def ListFlows(self, offset=0, count=0):
     """List flows that ran on this client."""
 
-    args = api_pb2.ApiListClientFlowsArgs(client_id=self.client_id,
-                                          offset=offset,
-                                          count=count)
+    args = api_pb2.ApiListFlowsArgs(client_id=self.client_id,
+                                    offset=offset,
+                                    count=count)
 
-    items = self._context.SendIteratorRequest("ListClientFlows", args)
+    items = self._context.SendIteratorRequest("ListFlows", args)
     return utils.MapItemsIterator(
         lambda data: flow.Flow(data=data, context=self._context),
         items)

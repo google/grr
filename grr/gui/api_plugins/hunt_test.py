@@ -593,11 +593,11 @@ class ApiListHuntCrashesHandlerRegressionTest(
                replace=replace)
 
 
-class ApiGetClientCompletionStatsHandlerRegressionTest(
+class ApiGetHuntClientCompletionStatsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiGetClientCompletionStatsHandler"
+  handler = "ApiGetHuntClientCompletionStatsHandler"
 
   def Run(self):
     client_ids = self.SetupClients(10)
@@ -847,11 +847,11 @@ class ApiGetHuntStatsHandlerRegressionTest(
                replace=replace)
 
 
-class ApiGetHuntClientsHandlerRegressionTest(
+class ApiListHuntClientsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiGetHuntClientsHandler"
+  handler = "ApiListHuntClientsHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):

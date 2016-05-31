@@ -146,14 +146,12 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     expected = [filename for filename in os.listdir(self.base_path)
                 if filename.startswith("test") or filename.startswith("syslog")]
-    self.assertTrue(
-        [x for x in expected if x.startswith("test")],
-        "Need a file starting with 'test'"
-        " in test_data for this test!")
-    self.assertTrue(
-        [x for x in expected if x.startswith("syslog")],
-        "Need a file starting with 'syslog'"
-        " in test_data for this test!")
+    self.assertTrue([x for x in expected if x.startswith("test")],
+                    "Need a file starting with 'test'"
+                    " in test_data for this test!")
+    self.assertTrue([x for x in expected if x.startswith("syslog")],
+                    "Need a file starting with 'syslog'"
+                    " in test_data for this test!")
     self.assertItemsEqual(expected, children)
 
     children = []
@@ -495,8 +493,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
       pass
 
     fd = aff4.FACTORY.Open(session_id, token=self.token)
-    self.assertTrue("KnowledgeBaseInterpolationError" in
-                    fd.state.context.backtrace)
+    self.assertIn("KnowledgeBaseInterpolationError", fd.state.context.backtrace)
     self.assertEqual("ERROR", str(fd.state.context.state))
 
   def testGlobRoundtrips(self):
@@ -750,7 +747,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     size_after = fd.Get(fd.Schema.SIZE)
 
     # The chunksize the sparse image uses.
-    chunksize = aff4.AFF4SparseImage.chunksize
+    chunksize = standard.AFF4SparseImage.chunksize
 
     # We should have rounded the 5Mib + 42 up to the nearest chunk,
     # and rounded down the + 1 on the offset.
@@ -805,7 +802,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # Bigger than the size of the file.
     fd = self.ReadTestImage(size_threshold=2**32)
     # We shouldn't be a sparse image in this case.
-    self.assertFalse(isinstance(fd, aff4.AFF4SparseImage))
+    self.assertFalse(isinstance(fd, standard.AFF4SparseImage))
     self.assertTrue(isinstance(fd, aff4.AFF4Image))
 
     self.assertNotEqual(fd.Read(10000), "")
@@ -826,8 +823,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         if isinstance(reply, rdf_client.Volume):
           results.append(reply)
 
-      self.assertItemsEqual(
-          [x.unixvolume.mount_point for x in results], ["/", "/usr"])
+      self.assertItemsEqual([x.unixvolume.mount_point for x in results],
+                            ["/", "/usr"])
       self.assertEqual(len(results), 2)
 
   def testDiskVolumeInfoWindows(self):
@@ -855,8 +852,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
         # We asked for D and we guessed systemroot (C) for "/var/tmp", but only
         # C and Z are present, so we should just get C.
-        self.assertItemsEqual(
-            [x.windowsvolume.drive_letter for x in results], ["C:"])
+        self.assertItemsEqual([x.windowsvolume.drive_letter for x in results],
+                              ["C:"])
         self.assertEqual(len(results), 1)
 
       with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
@@ -873,8 +870,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
               reply, rdf_client.Volume):
             results.append(reply)
 
-        self.assertItemsEqual(
-            [x.windowsvolume.drive_letter for x in results], ["Z:"])
+        self.assertItemsEqual([x.windowsvolume.drive_letter for x in results],
+                              ["Z:"])
         self.assertEqual(len(results), 1)
 
 

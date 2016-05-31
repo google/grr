@@ -241,21 +241,21 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
         file=ApiFile().InitFromAff4Object(file_obj, with_details=True))
 
 
-class ApiGetFileListArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetFileListArgs
+class ApiListFilesArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListFilesArgs
 
 
-class ApiGetFileListResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetFileListResult
+class ApiListFilesResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListFilesResult
 
 
-class ApiGetFileListHandler(api_call_handler_base.ApiCallHandler):
+class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the child files for a given file."""
 
   category = CATEGORY
 
-  args_type = ApiGetFileListArgs
-  result_type = ApiGetFileListResult
+  args_type = ApiListFilesArgs
+  result_type = ApiListFilesResult
 
   def Handle(self, args, token=None):
     path = args.file_path
@@ -297,8 +297,8 @@ class ApiGetFileListHandler(api_call_handler_base.ApiCallHandler):
     else:
       children = children[args.offset:]
 
-    return ApiGetFileListResult(items=[ApiFile().InitFromAff4Object(c)
-                                       for c in children])
+    return ApiListFilesResult(items=[ApiFile().InitFromAff4Object(c)
+                                     for c in children])
 
 
 class ApiGetFileTextArgs(rdf_structs.RDFProtoStruct):

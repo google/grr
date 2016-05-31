@@ -35,7 +35,7 @@ class HttpConnector(connector.Connector):
                    endpoint="GetClient"),
       routing.Rule("/api/clients/<client_id>/flows",
                    methods=["GET"],
-                   endpoint="ListClientFlows"),
+                   endpoint="ListFlows"),
       routing.Rule("/api/clients/<client_id>/flows",
                    methods=["POST"],
                    endpoint="CreateFlow"),

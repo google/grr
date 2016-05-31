@@ -19,6 +19,8 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_rekall
+from grr.lib.aff4_objects import collects
 from grr.lib.flows.general import export
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -775,8 +777,10 @@ class Toolbar(renderers.TemplateRenderer):
       previous = self.paths[-1]
       fullpath = previous[1].Add(path)
 
-      self.paths.append((path, fullpath, renderers.DeriveIDFromPath(
-          fullpath.RelativeName(client_urn)), previous[3] + 1))
+      self.paths.append(
+          (path, fullpath,
+           renderers.DeriveIDFromPath(fullpath.RelativeName(client_urn)),
+           previous[3] + 1))
 
     response = super(Toolbar, self).Layout(request, response)
     return self.CallJavascript(response,
@@ -1386,7 +1390,7 @@ class FileViewTabs(renderers.TabLayout):
         self.fd = aff4.FACTORY.Open(self.aff4_path, token=request.token)
 
       # If file is actually a collection, then show collections-related tabs.
-      if isinstance(self.fd, aff4.RDFValueCollection):
+      if isinstance(self.fd, collects.RDFValueCollection):
         self.names = self.COLLECTION_TAB_NAMES
         self.delegated_renderers = self.COLLECTION_DELEGATED_RENDERERS
 
@@ -1396,7 +1400,7 @@ class FileViewTabs(renderers.TabLayout):
                                                            token=request.token):
           self.disabled = ["CollectionExportView"]
 
-        if isinstance(self.fd, aff4.RekallResponseCollection):
+        if isinstance(self.fd, aff4_rekall.RekallResponseCollection):
           # Make a copy so this change is not permanent.
           self.delegated_renderers = self.delegated_renderers[:]
           self.delegated_renderers[1] = "RekallResponseCollectionRenderer"
@@ -1426,7 +1430,7 @@ dump client info in YAML format.</em></p>
 
   @staticmethod
   def IsCollectionExportable(collection_urn_or_obj, token=None):
-    if isinstance(collection_urn_or_obj, aff4.RDFValueCollection):
+    if isinstance(collection_urn_or_obj, collects.RDFValueCollection):
       collection = collection_urn_or_obj
     else:
       collection = aff4.FACTORY.Create(collection_urn_or_obj,

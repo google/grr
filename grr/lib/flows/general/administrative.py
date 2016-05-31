@@ -273,7 +273,7 @@ class ExecutePythonHack(flow.GRRFlow):
         python_hack_root_urn.Add(self.args.hack_name),
         token=self.token)
 
-    if not isinstance(fd, aff4.GRRSignedBlob):
+    if not isinstance(fd, collects.GRRSignedBlob):
       raise RuntimeError("Python hack %s not found." % self.args.hack_name)
 
     # TODO(user): This will break if someone wants to execute lots of Python.
@@ -321,14 +321,13 @@ class ExecuteCommand(flow.GRRFlow):
     """Confirmation."""
     if responses.success:
       response = responses.First()
-      self.Log(
-          ("Execution of %s %s (return value %d, "
-           "ran for %f seconds):"),
-          response.request.cmd,
-          " ".join(response.request.command_line),
-          response.exit_status,
-          # time_used is returned in microseconds.
-          response.time_used / 1e6)
+      self.Log(("Execution of %s %s (return value %d, "
+                "ran for %f seconds):"),
+               response.request.cmd,
+               " ".join(response.request.command_line),
+               response.exit_status,
+               # time_used is returned in microseconds.
+               response.time_used / 1e6)
       try:
         # We don't want to overflow the log so we just save 100 bytes each.
         logout = response.stdout[:100]
@@ -427,8 +426,8 @@ class OnlineNotification(flow.GRRFlow):
       client = aff4.FACTORY.Open(self.client_id, token=self.token)
       hostname = client.Get(client.Schema.HOSTNAME)
 
-      url = urllib.urlencode((("c", self.client_id), ("main", "HostInformation")
-                             ))
+      url = urllib.urlencode((("c", self.client_id),
+                              ("main", "HostInformation")))
 
       subject = "GRR Client on %s became available." % hostname
 
@@ -502,7 +501,7 @@ class UpdateClient(flow.GRRFlow):
                          "/executables/<platform>/agentupdates/<version>")
 
     aff4_blobs = aff4.FACTORY.Open(blob_path, token=self.token)
-    if not isinstance(aff4_blobs, aff4.GRRSignedBlob):
+    if not isinstance(aff4_blobs, collects.GRRSignedBlob):
       raise RuntimeError("%s is not a valid GRRSignedBlob." % blob_path)
 
     offset = 0

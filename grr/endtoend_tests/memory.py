@@ -7,6 +7,7 @@ from grr.client.components.rekall_support import rekall_types as rdf_rekall_type
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib.aff4_objects import collects
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -28,7 +29,7 @@ class TestGrepMemory(base.AutomatedTest):
     collection = aff4.FACTORY.Open(
         self.client_id.Add(self.test_output_path),
         token=self.token)
-    self.assertIsInstance(collection, aff4.RDFValueCollection)
+    self.assertIsInstance(collection, collects.RDFValueCollection)
     self.assertEqual(len(list(collection)), 1)
     reference = collection[0]
 
@@ -80,7 +81,7 @@ class AbstractTestAnalyzeClientMemory(base.ClientTestBase):
     self.response = aff4.FACTORY.Open(
         self.client_id.Add(self.test_output_path),
         token=self.token)
-    self.assertIsInstance(self.response, aff4.RDFValueCollection)
+    self.assertIsInstance(self.response, collects.RDFValueCollection)
     self.assertTrue(len(self.response) >= 1)
 
   def OpenFlow(self):
@@ -275,7 +276,7 @@ class TestSigScan(AbstractTestAnalyzeClientMemoryWindows):
     collection = aff4.FACTORY.Open(
         self.client_id.Add(self.test_output_path),
         token=self.token)
-    self.assertIsInstance(collection, aff4.RDFValueCollection)
+    self.assertIsInstance(collection, collects.RDFValueCollection)
     self.assertTrue(any(["Hit in kernel AS:" in response.json_messages
                          for response in list(collection)]))
 

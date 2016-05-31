@@ -600,646 +600,6 @@
       "url": "/api/clients/C.1000000000000000/vfs-refresh-operations"
     }
   ],
-  "ApiGetAndResetUserNotificationsHandler": [
-    {
-      "method": "POST",
-      "response": {
-        "items": [
-          {
-            "age": 0,
-            "type": "ApiNotification",
-            "value": {
-              "is_pending": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": true
-              },
-              "message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Host-0: <some other message>"
-              },
-              "reference": {
-                "age": 0,
-                "type": "ApiNotificationReference",
-                "value": {
-                  "type": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "VFS"
-                  },
-                  "vfs": {
-                    "age": 0,
-                    "type": "ApiNotificationVfsReference",
-                    "value": {
-                      "client_id": {
-                        "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
-                      },
-                      "vfs_path": {
-                        "age": 0,
-                        "type": "RDFURN",
-                        "value": "aff4:/C.1000000000000000"
-                      }
-                    }
-                  }
-                }
-              },
-              "timestamp": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 44000000
-              }
-            }
-          },
-          {
-            "age": 0,
-            "type": "ApiNotification",
-            "value": {
-              "is_pending": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": true
-              },
-              "message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Host-0: <some message>"
-              },
-              "reference": {
-                "age": 0,
-                "type": "ApiNotificationReference",
-                "value": {
-                  "discovery": {
-                    "age": 0,
-                    "type": "ApiNotificationDiscoveryReference",
-                    "value": {
-                      "client_id": {
-                        "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
-                      }
-                    }
-                  },
-                  "type": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "DISCOVERY"
-                  }
-                }
-              },
-              "timestamp": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 42000000
-              }
-            }
-          }
-        ],
-        "total_count": 2
-      },
-      "test_class": "ApiGetAndResetUserNotificationsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "is_pending": true,
-            "message": "Host-0: <some other message>",
-            "reference": {
-              "type": "VFS",
-              "vfs": {
-                "client_id": "aff4:/C.1000000000000000",
-                "vfs_path": "aff4:/C.1000000000000000"
-              }
-            },
-            "timestamp": 44000000
-          },
-          {
-            "is_pending": true,
-            "message": "Host-0: <some message>",
-            "reference": {
-              "discovery": {
-                "client_id": "aff4:/C.1000000000000000"
-              },
-              "type": "DISCOVERY"
-            },
-            "timestamp": 42000000
-          }
-        ],
-        "total_count": 2
-      },
-      "url": "/api/users/me/notifications"
-    },
-    {
-      "method": "POST",
-      "response": {
-        "items": [
-          {
-            "age": 0,
-            "type": "ApiNotification",
-            "value": {
-              "is_pending": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Host-0: <some other message>"
-              },
-              "reference": {
-                "age": 0,
-                "type": "ApiNotificationReference",
-                "value": {
-                  "type": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "VFS"
-                  },
-                  "vfs": {
-                    "age": 0,
-                    "type": "ApiNotificationVfsReference",
-                    "value": {
-                      "client_id": {
-                        "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
-                      },
-                      "vfs_path": {
-                        "age": 0,
-                        "type": "RDFURN",
-                        "value": "aff4:/C.1000000000000000"
-                      }
-                    }
-                  }
-                }
-              },
-              "timestamp": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 44000000
-              }
-            }
-          },
-          {
-            "age": 0,
-            "type": "ApiNotification",
-            "value": {
-              "is_pending": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Host-0: <some message>"
-              },
-              "reference": {
-                "age": 0,
-                "type": "ApiNotificationReference",
-                "value": {
-                  "discovery": {
-                    "age": 0,
-                    "type": "ApiNotificationDiscoveryReference",
-                    "value": {
-                      "client_id": {
-                        "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
-                      }
-                    }
-                  },
-                  "type": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "DISCOVERY"
-                  }
-                }
-              },
-              "timestamp": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 42000000
-              }
-            }
-          }
-        ],
-        "total_count": 2
-      },
-      "test_class": "ApiGetAndResetUserNotificationsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "is_pending": false,
-            "message": "Host-0: <some other message>",
-            "reference": {
-              "type": "VFS",
-              "vfs": {
-                "client_id": "aff4:/C.1000000000000000",
-                "vfs_path": "aff4:/C.1000000000000000"
-              }
-            },
-            "timestamp": 44000000
-          },
-          {
-            "is_pending": false,
-            "message": "Host-0: <some message>",
-            "reference": {
-              "discovery": {
-                "client_id": "aff4:/C.1000000000000000"
-              },
-              "type": "DISCOVERY"
-            },
-            "timestamp": 42000000
-          }
-        ],
-        "total_count": 2
-      },
-      "url": "/api/users/me/notifications?offset=1&count=1"
-    },
-    {
-      "method": "POST",
-      "response": {
-        "items": [
-          {
-            "age": 0,
-            "type": "ApiNotification",
-            "value": {
-              "is_pending": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Host-0: <some other message>"
-              },
-              "reference": {
-                "age": 0,
-                "type": "ApiNotificationReference",
-                "value": {
-                  "type": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "VFS"
-                  },
-                  "vfs": {
-                    "age": 0,
-                    "type": "ApiNotificationVfsReference",
-                    "value": {
-                      "client_id": {
-                        "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
-                      },
-                      "vfs_path": {
-                        "age": 0,
-                        "type": "RDFURN",
-                        "value": "aff4:/C.1000000000000000"
-                      }
-                    }
-                  }
-                }
-              },
-              "timestamp": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 44000000
-              }
-            }
-          },
-          {
-            "age": 0,
-            "type": "ApiNotification",
-            "value": {
-              "is_pending": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Host-0: <some message>"
-              },
-              "reference": {
-                "age": 0,
-                "type": "ApiNotificationReference",
-                "value": {
-                  "discovery": {
-                    "age": 0,
-                    "type": "ApiNotificationDiscoveryReference",
-                    "value": {
-                      "client_id": {
-                        "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
-                      }
-                    }
-                  },
-                  "type": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "DISCOVERY"
-                  }
-                }
-              },
-              "timestamp": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 42000000
-              }
-            }
-          }
-        ],
-        "total_count": 2
-      },
-      "test_class": "ApiGetAndResetUserNotificationsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "is_pending": false,
-            "message": "Host-0: <some other message>",
-            "reference": {
-              "type": "VFS",
-              "vfs": {
-                "client_id": "aff4:/C.1000000000000000",
-                "vfs_path": "aff4:/C.1000000000000000"
-              }
-            },
-            "timestamp": 44000000
-          },
-          {
-            "is_pending": false,
-            "message": "Host-0: <some message>",
-            "reference": {
-              "discovery": {
-                "client_id": "aff4:/C.1000000000000000"
-              },
-              "type": "DISCOVERY"
-            },
-            "timestamp": 42000000
-          }
-        ],
-        "total_count": 2
-      },
-      "url": "/api/users/me/notifications?filter=other"
-    }
-  ],
-  "ApiGetClientCompletionStatsHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "complete_points": [
-          {
-            "x_value": 0.0,
-            "y_value": 0
-          },
-          {
-            "x_value": 0.0002777777777777778,
-            "y_value": 1
-          },
-          {
-            "x_value": 0.0030555555555555557,
-            "y_value": 2
-          },
-          {
-            "x_value": 0.005833333333333334,
-            "y_value": 3
-          },
-          {
-            "x_value": 0.008611111111111111,
-            "y_value": 4
-          },
-          {
-            "x_value": 0.01138888888888889,
-            "y_value": 5
-          },
-          {
-            "x_value": 0.014166666666666666,
-            "y_value": 6
-          },
-          {
-            "x_value": 0.016944444444444446,
-            "y_value": 7
-          },
-          {
-            "x_value": 0.01972222222222222,
-            "y_value": 8
-          },
-          {
-            "x_value": 0.0225,
-            "y_value": 9
-          },
-          {
-            "x_value": 0.025277777777777777,
-            "y_value": 10
-          }
-        ],
-        "start_points": [
-          {
-            "x_value": 0.0,
-            "y_value": 0
-          },
-          {
-            "x_value": 0.0002777777777777778,
-            "y_value": 1
-          },
-          {
-            "x_value": 0.0030555555555555557,
-            "y_value": 2
-          },
-          {
-            "x_value": 0.005833333333333334,
-            "y_value": 3
-          },
-          {
-            "x_value": 0.008611111111111111,
-            "y_value": 4
-          },
-          {
-            "x_value": 0.01138888888888889,
-            "y_value": 5
-          },
-          {
-            "x_value": 0.014166666666666666,
-            "y_value": 6
-          },
-          {
-            "x_value": 0.016944444444444446,
-            "y_value": 7
-          },
-          {
-            "x_value": 0.01972222222222222,
-            "y_value": 8
-          },
-          {
-            "x_value": 0.0225,
-            "y_value": 9
-          },
-          {
-            "x_value": 0.025277777777777777,
-            "y_value": 10
-          }
-        ]
-      },
-      "test_class": "ApiGetClientCompletionStatsHandlerRegressionTest",
-      "url": "/api/hunts/H:123456/client-completion-stats?strip_type_info=1"
-    },
-    {
-      "method": "GET",
-      "response": {
-        "complete_points": [
-          {
-            "x_value": 0,
-            "y_value": 0
-          },
-          {
-            "x_value": 0.006319444444444444,
-            "y_value": 3
-          },
-          {
-            "x_value": 0.012638888888888889,
-            "y_value": 5
-          },
-          {
-            "x_value": 0.018958333333333334,
-            "y_value": 7
-          },
-          {
-            "x_value": 0.025277777777777777,
-            "y_value": 10
-          }
-        ],
-        "start_points": [
-          {
-            "x_value": 0,
-            "y_value": 0
-          },
-          {
-            "x_value": 0.006319444444444444,
-            "y_value": 3
-          },
-          {
-            "x_value": 0.012638888888888889,
-            "y_value": 5
-          },
-          {
-            "x_value": 0.018958333333333334,
-            "y_value": 7
-          },
-          {
-            "x_value": 0.025277777777777777,
-            "y_value": 10
-          }
-        ]
-      },
-      "test_class": "ApiGetClientCompletionStatsHandlerRegressionTest",
-      "url": "/api/hunts/H:123456/client-completion-stats?strip_type_info=1&size=4"
-    },
-    {
-      "method": "GET",
-      "response": {
-        "complete_points": [
-          {
-            "x_value": 0.0,
-            "y_value": 0
-          },
-          {
-            "x_value": 0.0002777777777777778,
-            "y_value": 1
-          },
-          {
-            "x_value": 0.0030555555555555557,
-            "y_value": 2
-          },
-          {
-            "x_value": 0.005833333333333334,
-            "y_value": 3
-          },
-          {
-            "x_value": 0.008611111111111111,
-            "y_value": 4
-          },
-          {
-            "x_value": 0.01138888888888889,
-            "y_value": 5
-          },
-          {
-            "x_value": 0.014166666666666666,
-            "y_value": 6
-          },
-          {
-            "x_value": 0.016944444444444446,
-            "y_value": 7
-          },
-          {
-            "x_value": 0.01972222222222222,
-            "y_value": 8
-          },
-          {
-            "x_value": 0.0225,
-            "y_value": 9
-          },
-          {
-            "x_value": 0.025277777777777777,
-            "y_value": 10
-          }
-        ],
-        "start_points": [
-          {
-            "x_value": 0.0,
-            "y_value": 0
-          },
-          {
-            "x_value": 0.0002777777777777778,
-            "y_value": 1
-          },
-          {
-            "x_value": 0.0030555555555555557,
-            "y_value": 2
-          },
-          {
-            "x_value": 0.005833333333333334,
-            "y_value": 3
-          },
-          {
-            "x_value": 0.008611111111111111,
-            "y_value": 4
-          },
-          {
-            "x_value": 0.01138888888888889,
-            "y_value": 5
-          },
-          {
-            "x_value": 0.014166666666666666,
-            "y_value": 6
-          },
-          {
-            "x_value": 0.016944444444444446,
-            "y_value": 7
-          },
-          {
-            "x_value": 0.01972222222222222,
-            "y_value": 8
-          },
-          {
-            "x_value": 0.0225,
-            "y_value": 9
-          },
-          {
-            "x_value": 0.025277777777777777,
-            "y_value": 10
-          }
-        ]
-      },
-      "test_class": "ApiGetClientCompletionStatsHandlerRegressionTest",
-      "url": "/api/hunts/H:123456/client-completion-stats?strip_type_info=1&size=1000"
-    }
-  ],
   "ApiGetClientHandler": [
     {
       "method": "GET",
@@ -1326,6 +686,45 @@
       "method": "GET",
       "response": {
         "sections": [
+          {
+            "age": 0,
+            "type": "ApiConfigSection",
+            "value": {
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "AdminUI"
+              },
+              "options": [
+                {
+                  "age": 0,
+                  "type": "ApiConfigOption",
+                  "value": {
+                    "is_invalid": {
+                      "age": 0,
+                      "type": "RDFBool",
+                      "value": false
+                    },
+                    "name": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "AdminUI.debug_impersonate_user"
+                    },
+                    "type": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "RDFString"
+                    },
+                    "value": {
+                      "age": 0,
+                      "type": "RDFString",
+                      "value": ""
+                    }
+                  }
+                }
+              ]
+            }
+          },
           {
             "age": 0,
             "type": "ApiConfigSection",
@@ -1481,6 +880,12 @@
       "type_stripped_response": {
         "sections": [
           {
+            "name": "AdminUI",
+            "options": [
+              ""
+            ]
+          },
+          {
             "name": "Config",
             "options": [
               {
@@ -1555,97 +960,6 @@
       },
       "test_class": "ApiGetFileDownloadCommandHandlerRegressionTest",
       "url": "/api/clients/C.1000000000000000/vfs-download-command/fs/os/etc"
-    }
-  ],
-  "ApiGetFileListHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": 42000000,
-            "type": "ApiFile",
-            "value": {
-              "is_directory": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "bash"
-              },
-              "path": {
-                "age": 0,
-                "type": "unicode",
-                "value": "fs/tsk/c/bin/bash"
-              },
-              "size": {
-                "age": 0,
-                "type": "long",
-                "value": 11
-              },
-              "type": {
-                "age": 0,
-                "type": "unicode",
-                "value": "VFSMemoryFile"
-              }
-            }
-          },
-          {
-            "age": 42000000,
-            "type": "ApiFile",
-            "value": {
-              "is_directory": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "rbash"
-              },
-              "path": {
-                "age": 0,
-                "type": "unicode",
-                "value": "fs/tsk/c/bin/rbash"
-              },
-              "size": {
-                "age": 0,
-                "type": "long",
-                "value": 11
-              },
-              "type": {
-                "age": 0,
-                "type": "unicode",
-                "value": "VFSMemoryFile"
-              }
-            }
-          }
-        ]
-      },
-      "test_class": "ApiGetFileListHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "is_directory": false,
-            "name": "bash",
-            "path": "fs/tsk/c/bin/bash",
-            "size": 11,
-            "type": "VFSMemoryFile"
-          },
-          {
-            "is_directory": false,
-            "name": "rbash",
-            "path": "fs/tsk/c/bin/rbash",
-            "size": 11,
-            "type": "VFSMemoryFile"
-          }
-        ]
-      },
-      "url": "/api/clients/C.1000000000000000/vfs-index/fs/tsk/c/bin"
     }
   ],
   "ApiGetFileTextHandler": [
@@ -1769,119 +1083,6 @@
       },
       "test_class": "ApiGetFlowResultsExportCommandHandlerRegressionTest",
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/results/export-command"
-    }
-  ],
-  "ApiGetFlowStatusHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "backtrace": null,
-        "client_resources": {
-          "age": 0,
-          "type": "ClientResources",
-          "value": {
-            "cpu_usage": {
-              "age": 0,
-              "type": "CpuSeconds",
-              "value": {}
-            }
-          }
-        },
-        "create_time": {
-          "age": 0,
-          "type": "RDFDatetime",
-          "value": 42000000
-        },
-        "creator": {
-          "age": 0,
-          "type": "unicode",
-          "value": "test"
-        },
-        "current_state": "Start",
-        "flow_runner_args": {
-          "age": 0,
-          "type": "FlowRunnerArgs",
-          "value": {
-            "client_id": {
-              "age": 0,
-              "type": "ClientURN",
-              "value": "aff4:/C.1000000000000000"
-            },
-            "flow_name": {
-              "age": 0,
-              "type": "unicode",
-              "value": "Interrogate"
-            },
-            "token": {
-              "age": 0,
-              "type": "ACLToken",
-              "value": {
-                "reason": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "Running tests"
-                },
-                "username": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "test"
-                }
-              }
-            }
-          }
-        },
-        "last_update_time": {
-          "age": 42000000,
-          "type": "RDFDatetime",
-          "value": 42000000
-        },
-        "network_bytes_sent": {
-          "age": 0,
-          "type": "long",
-          "value": 0
-        },
-        "output_urn": {
-          "age": 0,
-          "type": "RDFURN",
-          "value": "aff4:/C.1000000000000000/analysis/Interrogate/test-42"
-        },
-        "result_count": 1,
-        "session_id": {
-          "age": 0,
-          "type": "SessionID",
-          "value": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
-        },
-        "state": {
-          "age": 0,
-          "type": "EnumNamedValue",
-          "value": "RUNNING"
-        }
-      },
-      "test_class": "ApiGetFlowStatusHandlerRegressionTest",
-      "type_stripped_response": {
-        "backtrace": null,
-        "client_resources": {
-          "cpu_usage": {}
-        },
-        "create_time": 42000000,
-        "creator": "test",
-        "current_state": "Start",
-        "flow_runner_args": {
-          "client_id": "aff4:/C.1000000000000000",
-          "flow_name": "Interrogate",
-          "token": {
-            "reason": "Running tests",
-            "username": "test"
-          }
-        },
-        "last_update_time": 42000000,
-        "network_bytes_sent": 0,
-        "output_urn": "aff4:/C.1000000000000000/analysis/Interrogate/test-42",
-        "result_count": 1,
-        "session_id": "aff4:/C.1000000000000000/flows/F:ABCDEF12",
-        "state": "RUNNING"
-      },
-      "url": "/api/flows/C.1000000000000000/F:ABCDEF12/status"
     }
   ],
   "ApiGetGrrUserHandler": [
@@ -2035,503 +1236,255 @@
       "url": "/api/users/me"
     }
   ],
-  "ApiGetHuntClientsHandler": [
+  "ApiGetHuntClientCompletionStatsHandler": [
     {
       "method": "GET",
       "response": {
-        "items": [
+        "complete_points": [
           {
-            "age": 0,
-            "type": "ApiHuntClient",
-            "value": {
-              "available_client_requests_count": {
-                "age": 0,
-                "type": "long",
-                "value": 1
-              },
-              "available_responses_count": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
-              },
-              "expected_args": {
-                "age": 0,
-                "type": "unicode",
-                "value": "ListDirRequest"
-              },
-              "expected_responses": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Unknown"
-              },
-              "flow_urn": {
-                "age": 42000000,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000000/W:123456"
-              },
-              "incomplete_request_id": {
-                "age": 0,
-                "type": "unicode",
-                "value": "2"
-              },
-              "is_status_available": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "next_state": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Stat"
-              }
-            }
+            "x_value": 0.0,
+            "y_value": 0
           },
           {
-            "age": 0,
-            "type": "ApiHuntClient",
-            "value": {
-              "available_client_requests_count": {
-                "age": 0,
-                "type": "long",
-                "value": 1
-              },
-              "available_responses_count": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000001"
-              },
-              "expected_args": {
-                "age": 0,
-                "type": "unicode",
-                "value": "ListDirRequest"
-              },
-              "expected_responses": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Unknown"
-              },
-              "flow_urn": {
-                "age": 42000000,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000001/W:123456"
-              },
-              "incomplete_request_id": {
-                "age": 0,
-                "type": "unicode",
-                "value": "2"
-              },
-              "is_status_available": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "next_state": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Stat"
-              }
-            }
+            "x_value": 0.0002777777777777778,
+            "y_value": 1
           },
           {
-            "age": 0,
-            "type": "ApiHuntClient",
-            "value": {
-              "available_client_requests_count": {
-                "age": 0,
-                "type": "long",
-                "value": 1
-              },
-              "available_responses_count": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000002"
-              },
-              "expected_args": {
-                "age": 0,
-                "type": "unicode",
-                "value": "ListDirRequest"
-              },
-              "expected_responses": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Unknown"
-              },
-              "flow_urn": {
-                "age": 42000000,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000002/W:123456"
-              },
-              "incomplete_request_id": {
-                "age": 0,
-                "type": "unicode",
-                "value": "2"
-              },
-              "is_status_available": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "next_state": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Stat"
-              }
-            }
+            "x_value": 0.0030555555555555557,
+            "y_value": 2
           },
           {
-            "age": 0,
-            "type": "ApiHuntClient",
-            "value": {
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000003"
-              },
-              "flow_urn": {
-                "age": 42000000,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000003/W:123456"
-              }
-            }
+            "x_value": 0.005833333333333334,
+            "y_value": 3
           },
           {
-            "age": 0,
-            "type": "ApiHuntClient",
-            "value": {
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000004"
-              },
-              "flow_urn": {
-                "age": 42000000,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000004/W:123456"
-              }
-            }
+            "x_value": 0.008611111111111111,
+            "y_value": 4
+          },
+          {
+            "x_value": 0.01138888888888889,
+            "y_value": 5
+          },
+          {
+            "x_value": 0.014166666666666666,
+            "y_value": 6
+          },
+          {
+            "x_value": 0.016944444444444446,
+            "y_value": 7
+          },
+          {
+            "x_value": 0.01972222222222222,
+            "y_value": 8
+          },
+          {
+            "x_value": 0.0225,
+            "y_value": 9
+          },
+          {
+            "x_value": 0.025277777777777777,
+            "y_value": 10
           }
         ],
-        "total_count": 5
-      },
-      "test_class": "ApiGetHuntClientsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
+        "start_points": [
           {
-            "available_client_requests_count": 1,
-            "available_responses_count": 0,
-            "client_id": "aff4:/C.1000000000000000",
-            "expected_args": "ListDirRequest",
-            "expected_responses": "Unknown",
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
-            "incomplete_request_id": "2",
-            "is_status_available": false,
-            "next_state": "Stat"
+            "x_value": 0.0,
+            "y_value": 0
           },
           {
-            "available_client_requests_count": 1,
-            "available_responses_count": 0,
-            "client_id": "aff4:/C.1000000000000001",
-            "expected_args": "ListDirRequest",
-            "expected_responses": "Unknown",
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
-            "incomplete_request_id": "2",
-            "is_status_available": false,
-            "next_state": "Stat"
+            "x_value": 0.0002777777777777778,
+            "y_value": 1
           },
           {
-            "available_client_requests_count": 1,
-            "available_responses_count": 0,
-            "client_id": "aff4:/C.1000000000000002",
-            "expected_args": "ListDirRequest",
-            "expected_responses": "Unknown",
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
-            "incomplete_request_id": "2",
-            "is_status_available": false,
-            "next_state": "Stat"
+            "x_value": 0.0030555555555555557,
+            "y_value": 2
           },
           {
-            "client_id": "aff4:/C.1000000000000003",
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456"
+            "x_value": 0.005833333333333334,
+            "y_value": 3
           },
           {
-            "client_id": "aff4:/C.1000000000000004",
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000004/W:123456"
+            "x_value": 0.008611111111111111,
+            "y_value": 4
+          },
+          {
+            "x_value": 0.01138888888888889,
+            "y_value": 5
+          },
+          {
+            "x_value": 0.014166666666666666,
+            "y_value": 6
+          },
+          {
+            "x_value": 0.016944444444444446,
+            "y_value": 7
+          },
+          {
+            "x_value": 0.01972222222222222,
+            "y_value": 8
+          },
+          {
+            "x_value": 0.0225,
+            "y_value": 9
+          },
+          {
+            "x_value": 0.025277777777777777,
+            "y_value": 10
           }
-        ],
-        "total_count": 5
+        ]
       },
-      "url": "/api/hunts/H:123456/clients/started"
+      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest",
+      "url": "/api/hunts/H:123456/client-completion-stats?strip_type_info=1"
     },
     {
       "method": "GET",
       "response": {
-        "items": [
+        "complete_points": [
           {
-            "age": 0,
-            "type": "ApiHuntClient",
-            "value": {
-              "available_client_requests_count": {
-                "age": 0,
-                "type": "long",
-                "value": 1
-              },
-              "available_responses_count": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
-              },
-              "expected_args": {
-                "age": 0,
-                "type": "unicode",
-                "value": "ListDirRequest"
-              },
-              "expected_responses": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Unknown"
-              },
-              "flow_urn": {
-                "age": 42000000,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000000/W:123456"
-              },
-              "incomplete_request_id": {
-                "age": 0,
-                "type": "unicode",
-                "value": "2"
-              },
-              "is_status_available": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "next_state": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Stat"
-              }
-            }
+            "x_value": 0,
+            "y_value": 0
           },
           {
-            "age": 0,
-            "type": "ApiHuntClient",
-            "value": {
-              "available_client_requests_count": {
-                "age": 0,
-                "type": "long",
-                "value": 1
-              },
-              "available_responses_count": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000001"
-              },
-              "expected_args": {
-                "age": 0,
-                "type": "unicode",
-                "value": "ListDirRequest"
-              },
-              "expected_responses": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Unknown"
-              },
-              "flow_urn": {
-                "age": 42000000,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000001/W:123456"
-              },
-              "incomplete_request_id": {
-                "age": 0,
-                "type": "unicode",
-                "value": "2"
-              },
-              "is_status_available": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "next_state": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Stat"
-              }
-            }
+            "x_value": 0.006319444444444444,
+            "y_value": 3
           },
           {
-            "age": 0,
-            "type": "ApiHuntClient",
-            "value": {
-              "available_client_requests_count": {
-                "age": 0,
-                "type": "long",
-                "value": 1
-              },
-              "available_responses_count": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000002"
-              },
-              "expected_args": {
-                "age": 0,
-                "type": "unicode",
-                "value": "ListDirRequest"
-              },
-              "expected_responses": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Unknown"
-              },
-              "flow_urn": {
-                "age": 42000000,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000002/W:123456"
-              },
-              "incomplete_request_id": {
-                "age": 0,
-                "type": "unicode",
-                "value": "2"
-              },
-              "is_status_available": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "next_state": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Stat"
-              }
-            }
+            "x_value": 0.012638888888888889,
+            "y_value": 5
+          },
+          {
+            "x_value": 0.018958333333333334,
+            "y_value": 7
+          },
+          {
+            "x_value": 0.025277777777777777,
+            "y_value": 10
           }
         ],
-        "total_count": 3
-      },
-      "test_class": "ApiGetHuntClientsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
+        "start_points": [
           {
-            "available_client_requests_count": 1,
-            "available_responses_count": 0,
-            "client_id": "aff4:/C.1000000000000000",
-            "expected_args": "ListDirRequest",
-            "expected_responses": "Unknown",
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
-            "incomplete_request_id": "2",
-            "is_status_available": false,
-            "next_state": "Stat"
+            "x_value": 0,
+            "y_value": 0
           },
           {
-            "available_client_requests_count": 1,
-            "available_responses_count": 0,
-            "client_id": "aff4:/C.1000000000000001",
-            "expected_args": "ListDirRequest",
-            "expected_responses": "Unknown",
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
-            "incomplete_request_id": "2",
-            "is_status_available": false,
-            "next_state": "Stat"
+            "x_value": 0.006319444444444444,
+            "y_value": 3
           },
           {
-            "available_client_requests_count": 1,
-            "available_responses_count": 0,
-            "client_id": "aff4:/C.1000000000000002",
-            "expected_args": "ListDirRequest",
-            "expected_responses": "Unknown",
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
-            "incomplete_request_id": "2",
-            "is_status_available": false,
-            "next_state": "Stat"
+            "x_value": 0.012638888888888889,
+            "y_value": 5
+          },
+          {
+            "x_value": 0.018958333333333334,
+            "y_value": 7
+          },
+          {
+            "x_value": 0.025277777777777777,
+            "y_value": 10
           }
-        ],
-        "total_count": 3
+        ]
       },
-      "url": "/api/hunts/H:123456/clients/outstanding"
+      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest",
+      "url": "/api/hunts/H:123456/client-completion-stats?strip_type_info=1&size=4"
     },
     {
       "method": "GET",
       "response": {
-        "items": [
+        "complete_points": [
           {
-            "age": 0,
-            "type": "ApiHuntClient",
-            "value": {
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000003"
-              },
-              "flow_urn": {
-                "age": 42000000,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000003/W:123456"
-              }
-            }
+            "x_value": 0.0,
+            "y_value": 0
           },
           {
-            "age": 0,
-            "type": "ApiHuntClient",
-            "value": {
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000004"
-              },
-              "flow_urn": {
-                "age": 42000000,
-                "type": "RDFURN",
-                "value": "aff4:/hunts/H:123456/C.1000000000000004/W:123456"
-              }
-            }
-          }
-        ],
-        "total_count": 2
-      },
-      "test_class": "ApiGetHuntClientsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "client_id": "aff4:/C.1000000000000003",
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456"
+            "x_value": 0.0002777777777777778,
+            "y_value": 1
           },
           {
-            "client_id": "aff4:/C.1000000000000004",
-            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000004/W:123456"
+            "x_value": 0.0030555555555555557,
+            "y_value": 2
+          },
+          {
+            "x_value": 0.005833333333333334,
+            "y_value": 3
+          },
+          {
+            "x_value": 0.008611111111111111,
+            "y_value": 4
+          },
+          {
+            "x_value": 0.01138888888888889,
+            "y_value": 5
+          },
+          {
+            "x_value": 0.014166666666666666,
+            "y_value": 6
+          },
+          {
+            "x_value": 0.016944444444444446,
+            "y_value": 7
+          },
+          {
+            "x_value": 0.01972222222222222,
+            "y_value": 8
+          },
+          {
+            "x_value": 0.0225,
+            "y_value": 9
+          },
+          {
+            "x_value": 0.025277777777777777,
+            "y_value": 10
           }
         ],
-        "total_count": 2
+        "start_points": [
+          {
+            "x_value": 0.0,
+            "y_value": 0
+          },
+          {
+            "x_value": 0.0002777777777777778,
+            "y_value": 1
+          },
+          {
+            "x_value": 0.0030555555555555557,
+            "y_value": 2
+          },
+          {
+            "x_value": 0.005833333333333334,
+            "y_value": 3
+          },
+          {
+            "x_value": 0.008611111111111111,
+            "y_value": 4
+          },
+          {
+            "x_value": 0.01138888888888889,
+            "y_value": 5
+          },
+          {
+            "x_value": 0.014166666666666666,
+            "y_value": 6
+          },
+          {
+            "x_value": 0.016944444444444446,
+            "y_value": 7
+          },
+          {
+            "x_value": 0.01972222222222222,
+            "y_value": 8
+          },
+          {
+            "x_value": 0.0225,
+            "y_value": 9
+          },
+          {
+            "x_value": 0.025277777777777777,
+            "y_value": 10
+          }
+        ]
       },
-      "url": "/api/hunts/H:123456/clients/completed"
+      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest",
+      "url": "/api/hunts/H:123456/client-completion-stats?strip_type_info=1&size=1000"
     }
   ],
   "ApiGetHuntHandler": [
@@ -3742,103 +2695,6 @@
       "url": "/api/clients/C.1000000000000000/last-ip"
     }
   ],
-  "ApiGetPendingGlobalNotificationsHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": 0,
-            "type": "GlobalNotification",
-            "value": {
-              "duration": {
-                "age": 0,
-                "type": "Duration",
-                "value": 1209600
-              },
-              "header": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Nothing to worry about!"
-              },
-              "link": {
-                "age": 0,
-                "type": "unicode",
-                "value": "http://www.google.com"
-              },
-              "show_from": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 0
-              },
-              "type": {
-                "age": 0,
-                "type": "EnumNamedValue",
-                "value": "INFO"
-              }
-            }
-          },
-          {
-            "age": 0,
-            "type": "GlobalNotification",
-            "value": {
-              "content": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Houston, Houston, we have a prob..."
-              },
-              "duration": {
-                "age": 0,
-                "type": "Duration",
-                "value": 1209600
-              },
-              "header": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Oh no, we're doomed!"
-              },
-              "link": {
-                "age": 0,
-                "type": "unicode",
-                "value": "http://www.google.com"
-              },
-              "show_from": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 0
-              },
-              "type": {
-                "age": 0,
-                "type": "EnumNamedValue",
-                "value": "ERROR"
-              }
-            }
-          }
-        ]
-      },
-      "test_class": "ApiGetPendingGlobalNotificationsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "duration": 1209600,
-            "header": "Nothing to worry about!",
-            "link": "http://www.google.com",
-            "show_from": 0,
-            "type": "INFO"
-          },
-          {
-            "content": "Houston, Houston, we have a prob...",
-            "duration": 1209600,
-            "header": "Oh no, we're doomed!",
-            "link": "http://www.google.com",
-            "show_from": 0,
-            "type": "ERROR"
-          }
-        ]
-      },
-      "url": "/api/users/me/notifications/pending/global"
-    }
-  ],
   "ApiGetPendingUserNotificationsCountHandler": [
     {
       "method": "GET",
@@ -3847,208 +2703,6 @@
       },
       "test_class": "ApiGetPendingUserNotificationsCountHandlerRegressionTest",
       "url": "/api/users/me/notifications/pending/count"
-    }
-  ],
-  "ApiGetPendingUserNotificationsHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": 0,
-            "type": "ApiNotification",
-            "value": {
-              "is_pending": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": true
-              },
-              "message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Host-0: <some message>"
-              },
-              "reference": {
-                "age": 0,
-                "type": "ApiNotificationReference",
-                "value": {
-                  "discovery": {
-                    "age": 0,
-                    "type": "ApiNotificationDiscoveryReference",
-                    "value": {
-                      "client_id": {
-                        "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
-                      }
-                    }
-                  },
-                  "type": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "DISCOVERY"
-                  }
-                }
-              },
-              "timestamp": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 42000000
-              }
-            }
-          },
-          {
-            "age": 0,
-            "type": "ApiNotification",
-            "value": {
-              "is_pending": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": true
-              },
-              "message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Host-0: <some other message>"
-              },
-              "reference": {
-                "age": 0,
-                "type": "ApiNotificationReference",
-                "value": {
-                  "type": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "VFS"
-                  },
-                  "vfs": {
-                    "age": 0,
-                    "type": "ApiNotificationVfsReference",
-                    "value": {
-                      "client_id": {
-                        "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
-                      },
-                      "vfs_path": {
-                        "age": 0,
-                        "type": "RDFURN",
-                        "value": "aff4:/C.1000000000000000"
-                      }
-                    }
-                  }
-                }
-              },
-              "timestamp": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 44000000
-              }
-            }
-          }
-        ]
-      },
-      "test_class": "ApiGetPendingUserNotificationsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "is_pending": true,
-            "message": "Host-0: <some message>",
-            "reference": {
-              "discovery": {
-                "client_id": "aff4:/C.1000000000000000"
-              },
-              "type": "DISCOVERY"
-            },
-            "timestamp": 42000000
-          },
-          {
-            "is_pending": true,
-            "message": "Host-0: <some other message>",
-            "reference": {
-              "type": "VFS",
-              "vfs": {
-                "client_id": "aff4:/C.1000000000000000",
-                "vfs_path": "aff4:/C.1000000000000000"
-              }
-            },
-            "timestamp": 44000000
-          }
-        ]
-      },
-      "url": "/api/users/me/notifications/pending"
-    },
-    {
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": 0,
-            "type": "ApiNotification",
-            "value": {
-              "is_pending": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": true
-              },
-              "message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Host-0: <some other message>"
-              },
-              "reference": {
-                "age": 0,
-                "type": "ApiNotificationReference",
-                "value": {
-                  "type": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "VFS"
-                  },
-                  "vfs": {
-                    "age": 0,
-                    "type": "ApiNotificationVfsReference",
-                    "value": {
-                      "client_id": {
-                        "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
-                      },
-                      "vfs_path": {
-                        "age": 0,
-                        "type": "RDFURN",
-                        "value": "aff4:/C.1000000000000000"
-                      }
-                    }
-                  }
-                }
-              },
-              "timestamp": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 44000000
-              }
-            }
-          }
-        ]
-      },
-      "test_class": "ApiGetPendingUserNotificationsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "is_pending": true,
-            "message": "Host-0: <some other message>",
-            "reference": {
-              "type": "VFS",
-              "vfs": {
-                "client_id": "aff4:/C.1000000000000000",
-                "vfs_path": "aff4:/C.1000000000000000"
-              }
-            },
-            "timestamp": 44000000
-          }
-        ]
-      },
-      "url": "/api/users/me/notifications/pending?timestamp=43000000"
     }
   ],
   "ApiGetRDFValueDescriptorHandler": [
@@ -4337,6 +2991,17 @@
         "name": "ApiFlow"
       },
       "url": "/api/reflection/rdfvalue/ApiFlow"
+    }
+  ],
+  "ApiGetRobotGetFilesOperationStateHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "result_count": 1,
+        "state": "RUNNING"
+      },
+      "test_class": "ApiGetRobotGetFilesOperationStateHandlerRegressionTest",
+      "url": "/api/robot-actions/get-files/aff4:/C.1000000000000000/flows/F:ABCDEF12"
     }
   ],
   "ApiGetStatsStoreMetricHandler": [
@@ -6734,123 +5399,393 @@
       "url": "/api/clients/C.1000000000000000/vfs-timeline/fs/os/Users/Shared"
     }
   ],
-  "ApiListClientFlowsHandler": [
+  "ApiListAndResetUserNotificationsHandler": [
     {
-      "method": "GET",
+      "method": "POST",
       "response": {
         "items": [
           {
             "age": 0,
-            "type": "ApiFlow",
+            "type": "ApiNotification",
             "value": {
-              "args": {
+              "is_pending": {
                 "age": 0,
-                "type": "ListProcessesArgs",
-                "value": {}
+                "type": "RDFBool",
+                "value": true
               },
-              "creator": {
-                "age": 0,
-                "type": "unicode",
-                "value": "test"
-              },
-              "last_active_at": {
-                "age": 44000000,
-                "type": "RDFDatetime",
-                "value": 44000000
-              },
-              "name": {
+              "message": {
                 "age": 0,
                 "type": "unicode",
-                "value": "ListProcesses"
+                "value": "Host-0: <some other message>"
               },
-              "nested_flows": [],
-              "started_at": {
+              "reference": {
+                "age": 0,
+                "type": "ApiNotificationReference",
+                "value": {
+                  "type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "VFS"
+                  },
+                  "vfs": {
+                    "age": 0,
+                    "type": "ApiNotificationVfsReference",
+                    "value": {
+                      "client_id": {
+                        "age": 0,
+                        "type": "ClientURN",
+                        "value": "aff4:/C.1000000000000000"
+                      },
+                      "vfs_path": {
+                        "age": 0,
+                        "type": "RDFURN",
+                        "value": "aff4:/C.1000000000000000"
+                      }
+                    }
+                  }
+                }
+              },
+              "timestamp": {
                 "age": 0,
                 "type": "RDFDatetime",
                 "value": 44000000
-              },
-              "state": {
-                "age": 0,
-                "type": "EnumNamedValue",
-                "value": "RUNNING"
-              },
-              "urn": {
-                "age": 0,
-                "type": "SessionID",
-                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
               }
             }
           },
           {
             "age": 0,
-            "type": "ApiFlow",
+            "type": "ApiNotification",
             "value": {
-              "args": {
+              "is_pending": {
                 "age": 0,
-                "type": "InterrogateArgs",
-                "value": {}
+                "type": "RDFBool",
+                "value": true
               },
-              "creator": {
-                "age": 0,
-                "type": "unicode",
-                "value": "test"
-              },
-              "last_active_at": {
-                "age": 43000000,
-                "type": "RDFDatetime",
-                "value": 43000000
-              },
-              "name": {
+              "message": {
                 "age": 0,
                 "type": "unicode",
-                "value": "Interrogate"
+                "value": "Host-0: <some message>"
               },
-              "nested_flows": [],
-              "started_at": {
+              "reference": {
+                "age": 0,
+                "type": "ApiNotificationReference",
+                "value": {
+                  "discovery": {
+                    "age": 0,
+                    "type": "ApiNotificationDiscoveryReference",
+                    "value": {
+                      "client_id": {
+                        "age": 0,
+                        "type": "ClientURN",
+                        "value": "aff4:/C.1000000000000000"
+                      }
+                    }
+                  },
+                  "type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "DISCOVERY"
+                  }
+                }
+              },
+              "timestamp": {
                 "age": 0,
                 "type": "RDFDatetime",
-                "value": 43000000
-              },
-              "state": {
-                "age": 0,
-                "type": "EnumNamedValue",
-                "value": "RUNNING"
-              },
-              "urn": {
-                "age": 0,
-                "type": "SessionID",
-                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+                "value": 42000000
               }
             }
           }
-        ]
+        ],
+        "total_count": 2
       },
-      "test_class": "ApiListClientFlowsHandlerRegressionTest",
+      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest",
       "type_stripped_response": {
         "items": [
           {
-            "args": {},
-            "creator": "test",
-            "last_active_at": 44000000,
-            "name": "ListProcesses",
-            "nested_flows": [],
-            "started_at": 44000000,
-            "state": "RUNNING",
-            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
+            "is_pending": true,
+            "message": "Host-0: <some other message>",
+            "reference": {
+              "type": "VFS",
+              "vfs": {
+                "client_id": "aff4:/C.1000000000000000",
+                "vfs_path": "aff4:/C.1000000000000000"
+              }
+            },
+            "timestamp": 44000000
           },
           {
-            "args": {},
-            "creator": "test",
-            "last_active_at": 43000000,
-            "name": "Interrogate",
-            "nested_flows": [],
-            "started_at": 43000000,
-            "state": "RUNNING",
-            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+            "is_pending": true,
+            "message": "Host-0: <some message>",
+            "reference": {
+              "discovery": {
+                "client_id": "aff4:/C.1000000000000000"
+              },
+              "type": "DISCOVERY"
+            },
+            "timestamp": 42000000
           }
-        ]
+        ],
+        "total_count": 2
       },
-      "url": "/api/clients/C.1000000000000000/flows"
+      "url": "/api/users/me/notifications"
+    },
+    {
+      "method": "POST",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiNotification",
+            "value": {
+              "is_pending": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Host-0: <some other message>"
+              },
+              "reference": {
+                "age": 0,
+                "type": "ApiNotificationReference",
+                "value": {
+                  "type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "VFS"
+                  },
+                  "vfs": {
+                    "age": 0,
+                    "type": "ApiNotificationVfsReference",
+                    "value": {
+                      "client_id": {
+                        "age": 0,
+                        "type": "ClientURN",
+                        "value": "aff4:/C.1000000000000000"
+                      },
+                      "vfs_path": {
+                        "age": 0,
+                        "type": "RDFURN",
+                        "value": "aff4:/C.1000000000000000"
+                      }
+                    }
+                  }
+                }
+              },
+              "timestamp": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 44000000
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiNotification",
+            "value": {
+              "is_pending": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Host-0: <some message>"
+              },
+              "reference": {
+                "age": 0,
+                "type": "ApiNotificationReference",
+                "value": {
+                  "discovery": {
+                    "age": 0,
+                    "type": "ApiNotificationDiscoveryReference",
+                    "value": {
+                      "client_id": {
+                        "age": 0,
+                        "type": "ClientURN",
+                        "value": "aff4:/C.1000000000000000"
+                      }
+                    }
+                  },
+                  "type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "DISCOVERY"
+                  }
+                }
+              },
+              "timestamp": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              }
+            }
+          }
+        ],
+        "total_count": 2
+      },
+      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "is_pending": false,
+            "message": "Host-0: <some other message>",
+            "reference": {
+              "type": "VFS",
+              "vfs": {
+                "client_id": "aff4:/C.1000000000000000",
+                "vfs_path": "aff4:/C.1000000000000000"
+              }
+            },
+            "timestamp": 44000000
+          },
+          {
+            "is_pending": false,
+            "message": "Host-0: <some message>",
+            "reference": {
+              "discovery": {
+                "client_id": "aff4:/C.1000000000000000"
+              },
+              "type": "DISCOVERY"
+            },
+            "timestamp": 42000000
+          }
+        ],
+        "total_count": 2
+      },
+      "url": "/api/users/me/notifications?offset=1&count=1"
+    },
+    {
+      "method": "POST",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiNotification",
+            "value": {
+              "is_pending": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Host-0: <some other message>"
+              },
+              "reference": {
+                "age": 0,
+                "type": "ApiNotificationReference",
+                "value": {
+                  "type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "VFS"
+                  },
+                  "vfs": {
+                    "age": 0,
+                    "type": "ApiNotificationVfsReference",
+                    "value": {
+                      "client_id": {
+                        "age": 0,
+                        "type": "ClientURN",
+                        "value": "aff4:/C.1000000000000000"
+                      },
+                      "vfs_path": {
+                        "age": 0,
+                        "type": "RDFURN",
+                        "value": "aff4:/C.1000000000000000"
+                      }
+                    }
+                  }
+                }
+              },
+              "timestamp": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 44000000
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiNotification",
+            "value": {
+              "is_pending": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Host-0: <some message>"
+              },
+              "reference": {
+                "age": 0,
+                "type": "ApiNotificationReference",
+                "value": {
+                  "discovery": {
+                    "age": 0,
+                    "type": "ApiNotificationDiscoveryReference",
+                    "value": {
+                      "client_id": {
+                        "age": 0,
+                        "type": "ClientURN",
+                        "value": "aff4:/C.1000000000000000"
+                      }
+                    }
+                  },
+                  "type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "DISCOVERY"
+                  }
+                }
+              },
+              "timestamp": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              }
+            }
+          }
+        ],
+        "total_count": 2
+      },
+      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "is_pending": false,
+            "message": "Host-0: <some other message>",
+            "reference": {
+              "type": "VFS",
+              "vfs": {
+                "client_id": "aff4:/C.1000000000000000",
+                "vfs_path": "aff4:/C.1000000000000000"
+              }
+            },
+            "timestamp": 44000000
+          },
+          {
+            "is_pending": false,
+            "message": "Host-0: <some message>",
+            "reference": {
+              "discovery": {
+                "client_id": "aff4:/C.1000000000000000"
+              },
+              "type": "DISCOVERY"
+            },
+            "timestamp": 42000000
+          }
+        ],
+        "total_count": 2
+      },
+      "url": "/api/users/me/notifications?filter=other"
     }
   ],
   "ApiListClientsLabelsHandler": [
@@ -7145,6 +6080,97 @@
         "total_count": 3
       },
       "url": "/api/cron-jobs"
+    }
+  ],
+  "ApiListFilesHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 42000000,
+            "type": "ApiFile",
+            "value": {
+              "is_directory": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "bash"
+              },
+              "path": {
+                "age": 0,
+                "type": "unicode",
+                "value": "fs/tsk/c/bin/bash"
+              },
+              "size": {
+                "age": 0,
+                "type": "long",
+                "value": 11
+              },
+              "type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "VFSMemoryFile"
+              }
+            }
+          },
+          {
+            "age": 42000000,
+            "type": "ApiFile",
+            "value": {
+              "is_directory": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "rbash"
+              },
+              "path": {
+                "age": 0,
+                "type": "unicode",
+                "value": "fs/tsk/c/bin/rbash"
+              },
+              "size": {
+                "age": 0,
+                "type": "long",
+                "value": 11
+              },
+              "type": {
+                "age": 0,
+                "type": "unicode",
+                "value": "VFSMemoryFile"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListFilesHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "is_directory": false,
+            "name": "bash",
+            "path": "fs/tsk/c/bin/bash",
+            "size": 11,
+            "type": "VFSMemoryFile"
+          },
+          {
+            "is_directory": false,
+            "name": "rbash",
+            "path": "fs/tsk/c/bin/rbash",
+            "size": 11,
+            "type": "VFSMemoryFile"
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/vfs-index/fs/tsk/c/bin"
     }
   ],
   "ApiListFlowDescriptorsHandler": [
@@ -7980,6 +7006,624 @@
         "total_count": 1
       },
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/results"
+    }
+  ],
+  "ApiListFlowsHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiFlow",
+            "value": {
+              "args": {
+                "age": 0,
+                "type": "ListProcessesArgs",
+                "value": {}
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "last_active_at": {
+                "age": 44000000,
+                "type": "RDFDatetime",
+                "value": 44000000
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListProcesses"
+              },
+              "nested_flows": [],
+              "started_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 44000000
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "age": 0,
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiFlow",
+            "value": {
+              "args": {
+                "age": 0,
+                "type": "InterrogateArgs",
+                "value": {}
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "last_active_at": {
+                "age": 43000000,
+                "type": "RDFDatetime",
+                "value": 43000000
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Interrogate"
+              },
+              "nested_flows": [],
+              "started_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 43000000
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "age": 0,
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListFlowsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "args": {},
+            "creator": "test",
+            "last_active_at": 44000000,
+            "name": "ListProcesses",
+            "nested_flows": [],
+            "started_at": 44000000,
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
+          },
+          {
+            "args": {},
+            "creator": "test",
+            "last_active_at": 43000000,
+            "name": "Interrogate",
+            "nested_flows": [],
+            "started_at": 43000000,
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/flows"
+    }
+  ],
+  "ApiListHuntClientsHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiHuntClient",
+            "value": {
+              "available_client_requests_count": {
+                "age": 0,
+                "type": "long",
+                "value": 1
+              },
+              "available_responses_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "expected_args": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListDirRequest"
+              },
+              "expected_responses": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Unknown"
+              },
+              "flow_urn": {
+                "age": 42000000,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456/C.1000000000000000/W:123456"
+              },
+              "incomplete_request_id": {
+                "age": 0,
+                "type": "unicode",
+                "value": "2"
+              },
+              "is_status_available": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "next_state": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Stat"
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiHuntClient",
+            "value": {
+              "available_client_requests_count": {
+                "age": 0,
+                "type": "long",
+                "value": 1
+              },
+              "available_responses_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000001"
+              },
+              "expected_args": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListDirRequest"
+              },
+              "expected_responses": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Unknown"
+              },
+              "flow_urn": {
+                "age": 42000000,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456/C.1000000000000001/W:123456"
+              },
+              "incomplete_request_id": {
+                "age": 0,
+                "type": "unicode",
+                "value": "2"
+              },
+              "is_status_available": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "next_state": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Stat"
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiHuntClient",
+            "value": {
+              "available_client_requests_count": {
+                "age": 0,
+                "type": "long",
+                "value": 1
+              },
+              "available_responses_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000002"
+              },
+              "expected_args": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListDirRequest"
+              },
+              "expected_responses": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Unknown"
+              },
+              "flow_urn": {
+                "age": 42000000,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456/C.1000000000000002/W:123456"
+              },
+              "incomplete_request_id": {
+                "age": 0,
+                "type": "unicode",
+                "value": "2"
+              },
+              "is_status_available": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "next_state": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Stat"
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiHuntClient",
+            "value": {
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000003"
+              },
+              "flow_urn": {
+                "age": 42000000,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456/C.1000000000000003/W:123456"
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiHuntClient",
+            "value": {
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000004"
+              },
+              "flow_urn": {
+                "age": 42000000,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456/C.1000000000000004/W:123456"
+              }
+            }
+          }
+        ],
+        "total_count": 5
+      },
+      "test_class": "ApiListHuntClientsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "available_client_requests_count": 1,
+            "available_responses_count": 0,
+            "client_id": "aff4:/C.1000000000000000",
+            "expected_args": "ListDirRequest",
+            "expected_responses": "Unknown",
+            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
+            "incomplete_request_id": "2",
+            "is_status_available": false,
+            "next_state": "Stat"
+          },
+          {
+            "available_client_requests_count": 1,
+            "available_responses_count": 0,
+            "client_id": "aff4:/C.1000000000000001",
+            "expected_args": "ListDirRequest",
+            "expected_responses": "Unknown",
+            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
+            "incomplete_request_id": "2",
+            "is_status_available": false,
+            "next_state": "Stat"
+          },
+          {
+            "available_client_requests_count": 1,
+            "available_responses_count": 0,
+            "client_id": "aff4:/C.1000000000000002",
+            "expected_args": "ListDirRequest",
+            "expected_responses": "Unknown",
+            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
+            "incomplete_request_id": "2",
+            "is_status_available": false,
+            "next_state": "Stat"
+          },
+          {
+            "client_id": "aff4:/C.1000000000000003",
+            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456"
+          },
+          {
+            "client_id": "aff4:/C.1000000000000004",
+            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000004/W:123456"
+          }
+        ],
+        "total_count": 5
+      },
+      "url": "/api/hunts/H:123456/clients/started"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiHuntClient",
+            "value": {
+              "available_client_requests_count": {
+                "age": 0,
+                "type": "long",
+                "value": 1
+              },
+              "available_responses_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "expected_args": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListDirRequest"
+              },
+              "expected_responses": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Unknown"
+              },
+              "flow_urn": {
+                "age": 42000000,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456/C.1000000000000000/W:123456"
+              },
+              "incomplete_request_id": {
+                "age": 0,
+                "type": "unicode",
+                "value": "2"
+              },
+              "is_status_available": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "next_state": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Stat"
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiHuntClient",
+            "value": {
+              "available_client_requests_count": {
+                "age": 0,
+                "type": "long",
+                "value": 1
+              },
+              "available_responses_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000001"
+              },
+              "expected_args": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListDirRequest"
+              },
+              "expected_responses": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Unknown"
+              },
+              "flow_urn": {
+                "age": 42000000,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456/C.1000000000000001/W:123456"
+              },
+              "incomplete_request_id": {
+                "age": 0,
+                "type": "unicode",
+                "value": "2"
+              },
+              "is_status_available": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "next_state": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Stat"
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiHuntClient",
+            "value": {
+              "available_client_requests_count": {
+                "age": 0,
+                "type": "long",
+                "value": 1
+              },
+              "available_responses_count": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000002"
+              },
+              "expected_args": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListDirRequest"
+              },
+              "expected_responses": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Unknown"
+              },
+              "flow_urn": {
+                "age": 42000000,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456/C.1000000000000002/W:123456"
+              },
+              "incomplete_request_id": {
+                "age": 0,
+                "type": "unicode",
+                "value": "2"
+              },
+              "is_status_available": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "next_state": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Stat"
+              }
+            }
+          }
+        ],
+        "total_count": 3
+      },
+      "test_class": "ApiListHuntClientsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "available_client_requests_count": 1,
+            "available_responses_count": 0,
+            "client_id": "aff4:/C.1000000000000000",
+            "expected_args": "ListDirRequest",
+            "expected_responses": "Unknown",
+            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
+            "incomplete_request_id": "2",
+            "is_status_available": false,
+            "next_state": "Stat"
+          },
+          {
+            "available_client_requests_count": 1,
+            "available_responses_count": 0,
+            "client_id": "aff4:/C.1000000000000001",
+            "expected_args": "ListDirRequest",
+            "expected_responses": "Unknown",
+            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
+            "incomplete_request_id": "2",
+            "is_status_available": false,
+            "next_state": "Stat"
+          },
+          {
+            "available_client_requests_count": 1,
+            "available_responses_count": 0,
+            "client_id": "aff4:/C.1000000000000002",
+            "expected_args": "ListDirRequest",
+            "expected_responses": "Unknown",
+            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
+            "incomplete_request_id": "2",
+            "is_status_available": false,
+            "next_state": "Stat"
+          }
+        ],
+        "total_count": 3
+      },
+      "url": "/api/hunts/H:123456/clients/outstanding"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiHuntClient",
+            "value": {
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000003"
+              },
+              "flow_urn": {
+                "age": 42000000,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456/C.1000000000000003/W:123456"
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiHuntClient",
+            "value": {
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000004"
+              },
+              "flow_urn": {
+                "age": 42000000,
+                "type": "RDFURN",
+                "value": "aff4:/hunts/H:123456/C.1000000000000004/W:123456"
+              }
+            }
+          }
+        ],
+        "total_count": 2
+      },
+      "test_class": "ApiListHuntClientsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "client_id": "aff4:/C.1000000000000003",
+            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456"
+          },
+          {
+            "client_id": "aff4:/C.1000000000000004",
+            "flow_urn": "aff4:/hunts/H:123456/C.1000000000000004/W:123456"
+          }
+        ],
+        "total_count": 2
+      },
+      "url": "/api/hunts/H:123456/clients/completed"
     }
   ],
   "ApiListHuntCrashesHandler": [
@@ -10078,6 +9722,305 @@
       "url": "/api/reflection/file-encodings"
     }
   ],
+  "ApiListPendingGlobalNotificationsHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "GlobalNotification",
+            "value": {
+              "duration": {
+                "age": 0,
+                "type": "Duration",
+                "value": 1209600
+              },
+              "header": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Nothing to worry about!"
+              },
+              "link": {
+                "age": 0,
+                "type": "unicode",
+                "value": "http://www.google.com"
+              },
+              "show_from": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "type": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "INFO"
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "GlobalNotification",
+            "value": {
+              "content": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Houston, Houston, we have a prob..."
+              },
+              "duration": {
+                "age": 0,
+                "type": "Duration",
+                "value": 1209600
+              },
+              "header": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Oh no, we're doomed!"
+              },
+              "link": {
+                "age": 0,
+                "type": "unicode",
+                "value": "http://www.google.com"
+              },
+              "show_from": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 0
+              },
+              "type": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "ERROR"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListPendingGlobalNotificationsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "duration": 1209600,
+            "header": "Nothing to worry about!",
+            "link": "http://www.google.com",
+            "show_from": 0,
+            "type": "INFO"
+          },
+          {
+            "content": "Houston, Houston, we have a prob...",
+            "duration": 1209600,
+            "header": "Oh no, we're doomed!",
+            "link": "http://www.google.com",
+            "show_from": 0,
+            "type": "ERROR"
+          }
+        ]
+      },
+      "url": "/api/users/me/notifications/pending/global"
+    }
+  ],
+  "ApiListPendingUserNotificationsHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiNotification",
+            "value": {
+              "is_pending": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Host-0: <some message>"
+              },
+              "reference": {
+                "age": 0,
+                "type": "ApiNotificationReference",
+                "value": {
+                  "discovery": {
+                    "age": 0,
+                    "type": "ApiNotificationDiscoveryReference",
+                    "value": {
+                      "client_id": {
+                        "age": 0,
+                        "type": "ClientURN",
+                        "value": "aff4:/C.1000000000000000"
+                      }
+                    }
+                  },
+                  "type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "DISCOVERY"
+                  }
+                }
+              },
+              "timestamp": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiNotification",
+            "value": {
+              "is_pending": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Host-0: <some other message>"
+              },
+              "reference": {
+                "age": 0,
+                "type": "ApiNotificationReference",
+                "value": {
+                  "type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "VFS"
+                  },
+                  "vfs": {
+                    "age": 0,
+                    "type": "ApiNotificationVfsReference",
+                    "value": {
+                      "client_id": {
+                        "age": 0,
+                        "type": "ClientURN",
+                        "value": "aff4:/C.1000000000000000"
+                      },
+                      "vfs_path": {
+                        "age": 0,
+                        "type": "RDFURN",
+                        "value": "aff4:/C.1000000000000000"
+                      }
+                    }
+                  }
+                }
+              },
+              "timestamp": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 44000000
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "is_pending": true,
+            "message": "Host-0: <some message>",
+            "reference": {
+              "discovery": {
+                "client_id": "aff4:/C.1000000000000000"
+              },
+              "type": "DISCOVERY"
+            },
+            "timestamp": 42000000
+          },
+          {
+            "is_pending": true,
+            "message": "Host-0: <some other message>",
+            "reference": {
+              "type": "VFS",
+              "vfs": {
+                "client_id": "aff4:/C.1000000000000000",
+                "vfs_path": "aff4:/C.1000000000000000"
+              }
+            },
+            "timestamp": 44000000
+          }
+        ]
+      },
+      "url": "/api/users/me/notifications/pending"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiNotification",
+            "value": {
+              "is_pending": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Host-0: <some other message>"
+              },
+              "reference": {
+                "age": 0,
+                "type": "ApiNotificationReference",
+                "value": {
+                  "type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "VFS"
+                  },
+                  "vfs": {
+                    "age": 0,
+                    "type": "ApiNotificationVfsReference",
+                    "value": {
+                      "client_id": {
+                        "age": 0,
+                        "type": "ClientURN",
+                        "value": "aff4:/C.1000000000000000"
+                      },
+                      "vfs_path": {
+                        "age": 0,
+                        "type": "RDFURN",
+                        "value": "aff4:/C.1000000000000000"
+                      }
+                    }
+                  }
+                }
+              },
+              "timestamp": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 44000000
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "is_pending": true,
+            "message": "Host-0: <some other message>",
+            "reference": {
+              "type": "VFS",
+              "vfs": {
+                "client_id": "aff4:/C.1000000000000000",
+                "vfs_path": "aff4:/C.1000000000000000"
+              }
+            },
+            "timestamp": 44000000
+          }
+        ]
+      },
+      "url": "/api/users/me/notifications/pending?timestamp=43000000"
+    }
+  ],
   "ApiListStatsStoreMetricsMetadataHandler": [
     {
       "method": "GET",
@@ -10818,7 +10761,7 @@
       "url": "/api/clients?query=C.1000000000000000"
     }
   ],
-  "ApiStartGetFileOperationHandler": [
+  "ApiStartRobotGetFilesOperationHandler": [
     {
       "method": "POST",
       "request_payload": {
@@ -10828,143 +10771,10 @@
         ]
       },
       "response": {
-        "flow_args": {
-          "age": 0,
-          "type": "FileFinderArgs",
-          "value": {
-            "action": {
-              "age": 0,
-              "type": "FileFinderAction",
-              "value": {
-                "action_type": {
-                  "age": 0,
-                  "type": "EnumNamedValue",
-                  "value": "DOWNLOAD"
-                }
-              }
-            },
-            "conditions": [
-              {
-                "age": 0,
-                "type": "FileFinderCondition",
-                "value": {
-                  "condition_type": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "SIZE"
-                  },
-                  "size": {
-                    "age": 0,
-                    "type": "FileFinderSizeCondition",
-                    "value": {
-                      "max_file_size": {
-                        "age": 0,
-                        "type": "long",
-                        "value": 20000000
-                      }
-                    }
-                  }
-                }
-              }
-            ],
-            "paths": [
-              {
-                "age": 0,
-                "type": "GlobExpression",
-                "value": "/tmp/test"
-              }
-            ]
-          }
-        },
-        "flow_id": {
-          "age": 0,
-          "type": "SessionID",
-          "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
-        },
-        "runner_args": {
-          "age": 0,
-          "type": "FlowRunnerArgs",
-          "value": {
-            "client_id": {
-              "age": 0,
-              "type": "ClientURN",
-              "value": "aff4:/C.1000000000000000"
-            },
-            "flow_name": {
-              "age": 0,
-              "type": "unicode",
-              "value": "FileFinder"
-            },
-            "network_bytes_limit": {
-              "age": 0,
-              "type": "long",
-              "value": 200000000
-            },
-            "output_plugins": [],
-            "token": {
-              "age": 0,
-              "type": "ACLToken",
-              "value": {
-                "expiry": {
-                  "age": 0,
-                  "type": "RDFDatetime",
-                  "value": 102000000
-                },
-                "process": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "GRRAdminUI"
-                },
-                "reason": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": ""
-                },
-                "username": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "test"
-                }
-              }
-            }
-          }
-        },
-        "status_url": "http://localhost:8000/api/flows/C.1000000000000000/W:ABCDEF/status"
+        "operation_id": "aff4:/C.1000000000000000/flows/W:ABCDEF"
       },
-      "test_class": "ApiStartGetFileOperationHandlerRegressionTest",
-      "type_stripped_response": {
-        "flow_args": {
-          "action": {
-            "action_type": "DOWNLOAD"
-          },
-          "conditions": [
-            {
-              "condition_type": "SIZE",
-              "size": {
-                "max_file_size": 20000000
-              }
-            }
-          ],
-          "paths": [
-            "/tmp/test"
-          ]
-        },
-        "flow_id": "aff4:/C.1000000000000000/flows/W:ABCDEF",
-        "runner_args": {
-          "client_id": "aff4:/C.1000000000000000",
-          "flow_name": "FileFinder",
-          "network_bytes_limit": 200000000,
-          "output_plugins": [],
-          "token": {
-            "expiry": 102000000,
-            "process": "GRRAdminUI",
-            "reason": "",
-            "username": "test"
-          }
-        },
-        "status_url": "http://localhost:8000/api/flows/C.1000000000000000/W:ABCDEF/status"
-      },
-      "url": "/api/clients/C.1000000000000000/flows/remotegetfile"
+      "test_class": "ApiStartRobotGetFilesOperationHandlerRegressionTest",
+      "url": "/api/robot-actions/get-files"
     }
   ],
   "ApiUpdateVfsFileContentHandler": [

@@ -117,16 +117,15 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
   # Virtual file system methods.
   # ============================
   #
+  def ListFiles(self, args, token=None):
+    self.CheckClientAccess(args.client_id, token=token)
+
+    return self.delegate.ListFiles(args, token=token)
 
   def GetFileDetails(self, args, token=None):
     self.CheckClientAccess(args.client_id, token=token)
 
     return self.delegate.GetFileDetails(args, token=token)
-
-  def GetFileList(self, args, token=None):
-    self.CheckClientAccess(args.client_id, token=token)
-
-    return self.delegate.GetFileList(args, token=token)
 
   def GetFileText(self, args, token=None):
     self.CheckClientAccess(args.client_id, token=token)
@@ -203,13 +202,10 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
   # Clients flows methods.
   # =====================
   #
-  # Note: should be renamed to ListFlows. We should assume by default that
-  # flows are client-specific. Global flows should be explicitly called
-  # "global".
-  def ListClientFlows(self, args, token=None):
+  def ListFlows(self, args, token=None):
     self.CheckClientAccess(args.client_id, token=token)
 
-    return self.delegate.ListClientFlows(args, token=token)
+    return self.delegate.ListFlows(args, token=token)
 
   def GetFlow(self, args, token=None):
     self.CheckClientAccess(args.client_id, token=token)
@@ -345,20 +341,20 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.ListHuntCrashes(args, token=token)
 
-  def GetClientCompletionStats(self, args, token=None):
+  def GetHuntClientCompletionStats(self, args, token=None):
     # Everybody can get hunt's client completion stats.
 
-    return self.delegate.GetClientCompletionStats(args, token=token)
+    return self.delegate.GetHuntClientCompletionStats(args, token=token)
 
   def GetHuntStats(self, args, token=None):
     # Everybody can get hunt's stats.
 
     return self.delegate.GetHuntStats(args, token=token)
 
-  def GetHuntClients(self, args, token=None):
+  def ListHuntClients(self, args, token=None):
     # Everybody can get hunt's clients.
 
-    return self.delegate.GetHuntClients(args, token=token)
+    return self.delegate.ListHuntClients(args, token=token)
 
   def GetHuntContext(self, args, token=None):
     # Everybody can get hunt's context.
@@ -435,20 +431,20 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.GetPendingUserNotificationsCount(args, token=token)
 
-  def GetPendingUserNotifications(self, args, token=None):
+  def ListPendingUserNotifications(self, args, token=None):
     # Everybody can get their own pending notifications count.
 
-    return self.delegate.GetPendingUserNotifications(args, token=token)
+    return self.delegate.ListPendingUserNotifications(args, token=token)
 
   def DeletePendingUserNotification(self, args, token=None):
     # Everybody can get their own pending notifications count.
 
     return self.delegate.DeletePendingUserNotification(args, token=token)
 
-  def GetAndResetUserNotifications(self, args, token=None):
+  def ListAndResetUserNotifications(self, args, token=None):
     # Everybody can get their own user notifications.
 
-    return self.delegate.GetAndResetUserNotifications(args, token=token)
+    return self.delegate.ListAndResetUserNotifications(args, token=token)
 
   def GetGrrUser(self, args, token=None):
     # Everybody can get their own user settings.
@@ -460,10 +456,10 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.UpdateGrrUser(args, token=token)
 
-  def GetPendingGlobalNotifications(self, args, token=None):
+  def ListPendingGlobalNotifications(self, args, token=None):
     # Everybody can get their global pending notifications.
 
-    return self.delegate.GetPendingGlobalNotifications(args, token=token)
+    return self.delegate.ListPendingGlobalNotifications(args, token=token)
 
   def DeletePendingGlobalNotification(self, args, token=None):
     # Everybody can delete their global pending notifications.
@@ -533,13 +529,13 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
   # are supposed to be triggered by the scripts).
   # ====================================================================
   #
-  def StartGetFileOperation(self, args, token=None):
+  def StartRobotGetFilesOperation(self, args, token=None):
     # Robot methods are not accessible for normal users.
 
     raise access_control.UnauthorizedAccess("Robot methods can't be used "
                                             "by normal users.")
 
-  def GetFlowStatus(self, args, token=None):
+  def GetRobotGetFilesOperationState(self, args, token=None):
     # Robot methods are not accessible for normal users.
 
     raise access_control.UnauthorizedAccess("Robot methods can't be used "
@@ -553,8 +549,8 @@ class ApiCallRouterWithApprovalChecksWithRobotAccess(
   # are supposed to be triggered by the scripts).
   # ====================================================================
   #
-  def StartGetFileOperation(self, args, token=None):
-    return self.delegate.StartGetFileOperation(args, token=token)
+  def StartRobotGetFilesOperation(self, args, token=None):
+    return self.delegate.StartRobotGetFilesOperation(args, token=token)
 
-  def GetFlowStatus(self, args, token=None):
-    return self.delegate.GetFlowStatus(args, token=token)
+  def GetRobotGetFilesOperationState(self, args, token=None):
+    return self.delegate.GetRobotGetFilesOperationState(args, token=token)

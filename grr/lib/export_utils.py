@@ -171,7 +171,7 @@ def RecursiveDownload(dir_obj,
     max_threads: Use this many threads to do the downloads.
   """
   if (not isinstance(dir_obj, aff4.AFF4Volume) or
-      isinstance(dir_obj, aff4.HashImage)):
+      isinstance(dir_obj, standard.HashImage)):
     return
 
   # Reuse the same threadpool as we call recursively.

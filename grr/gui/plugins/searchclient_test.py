@@ -432,10 +432,11 @@ class TestContentView(SearchClientTestBase):
 
   def testGlobalNotificationIsShownWhenSet(self):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
-                               aff4_type="GlobalNotificationStorage",
-                               mode="rw",
-                               token=self.token) as storage:
+      with aff4.FACTORY.Create(
+          aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+          aff4_type="GlobalNotificationStorage",
+          mode="rw",
+          token=self.token) as storage:
         storage.AddNotification(aff4_users.GlobalNotification(
             type=aff4_users.GlobalNotification.Type.ERROR,
             header="Oh no, we're doomed!",
@@ -447,10 +448,11 @@ class TestContentView(SearchClientTestBase):
 
   def testNotificationsOfDifferentTypesAreShownTogether(self):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
-                               aff4_type="GlobalNotificationStorage",
-                               mode="rw",
-                               token=self.token) as storage:
+      with aff4.FACTORY.Create(
+          aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+          aff4_type="GlobalNotificationStorage",
+          mode="rw",
+          token=self.token) as storage:
         storage.AddNotification(aff4_users.GlobalNotification(
             type=aff4_users.GlobalNotification.Type.ERROR,
             header="Oh no, we're doomed!",
@@ -467,10 +469,11 @@ class TestContentView(SearchClientTestBase):
 
   def testNewNotificationReplacesPreviousNotificationOfTheSameType(self):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
-                               aff4_type="GlobalNotificationStorage",
-                               mode="rw",
-                               token=self.token) as storage:
+      with aff4.FACTORY.Create(
+          aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+          aff4_type="GlobalNotificationStorage",
+          mode="rw",
+          token=self.token) as storage:
         storage.AddNotification(aff4_users.GlobalNotification(
             type=aff4_users.GlobalNotification.Type.ERROR,
             header="Oh no, we're doomed!",
@@ -481,10 +484,11 @@ class TestContentView(SearchClientTestBase):
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
 
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
-                               aff4_type="GlobalNotificationStorage",
-                               mode="rw",
-                               token=self.token) as storage:
+      with aff4.FACTORY.Create(
+          aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+          aff4_type="GlobalNotificationStorage",
+          mode="rw",
+          token=self.token) as storage:
         storage.AddNotification(aff4_users.GlobalNotification(
             type=aff4_users.GlobalNotification.Type.ERROR,
             content="Too late to do anything!",
@@ -496,10 +500,11 @@ class TestContentView(SearchClientTestBase):
 
   def testGlobalNotificationDisappearsAfterClosing(self):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
-                               aff4_type="GlobalNotificationStorage",
-                               mode="rw",
-                               token=self.token) as storage:
+      with aff4.FACTORY.Create(
+          aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+          aff4_type="GlobalNotificationStorage",
+          mode="rw",
+          token=self.token) as storage:
         storage.AddNotification(aff4_users.GlobalNotification(
             type=aff4_users.GlobalNotification.Type.ERROR,
             header="Oh no, we're doomed!",
@@ -518,10 +523,11 @@ class TestContentView(SearchClientTestBase):
 
   def testClosingOneNotificationLeavesAnotherIntact(self):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
-                               aff4_type="GlobalNotificationStorage",
-                               mode="rw",
-                               token=self.token) as storage:
+      with aff4.FACTORY.Create(
+          aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+          aff4_type="GlobalNotificationStorage",
+          mode="rw",
+          token=self.token) as storage:
         storage.AddNotification(aff4_users.GlobalNotification(
             type=aff4_users.GlobalNotification.Type.ERROR,
             header="Oh no, we're doomed!",

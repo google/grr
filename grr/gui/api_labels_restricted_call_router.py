@@ -97,17 +97,17 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
   # Virtual file system methods.
   # ============================
   #
+  def ListFiles(self, args, token=None):
+    self.CheckVfsAccessAllowed()
+    self.CheckClientApproval(args.client_id, token=token)
+
+    return self.delegate.ListFiles(args, token=token)
+
   def GetFileDetails(self, args, token=None):
     self.CheckVfsAccessAllowed()
     self.CheckClientApproval(args.client_id, token=token)
 
     return self.delegate.GetFileDetails(args, token=token)
-
-  def GetFileList(self, args, token=None):
-    self.CheckVfsAccessAllowed()
-    self.CheckClientApproval(args.client_id, token=token)
-
-    return self.delegate.GetFileList(args, token=token)
 
   def GetFileText(self, args, token=None):
     self.CheckVfsAccessAllowed()
@@ -161,11 +161,11 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
   # Clients flows methods.
   # =====================
   #
-  def ListClientFlows(self, args, token=None):
+  def ListFlows(self, args, token=None):
     self.CheckFlowsAllowed()
     self.CheckClientApproval(args.client_id, token=token)
 
-    return self.delegate.ListClientFlows(args, token=token)
+    return self.delegate.ListFlows(args, token=token)
 
   def GetFlow(self, args, token=None):
     self.CheckFlowsAllowed()
@@ -256,20 +256,20 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
 
     return self.delegate.GetPendingUserNotificationsCount(args, token=token)
 
-  def GetPendingUserNotifications(self, args, token=None):
+  def ListPendingUserNotifications(self, args, token=None):
     # Everybody can get their own pending notifications.
 
-    return self.delegate.GetPendingUserNotifications(args, token=token)
+    return self.delegate.ListPendingUserNotifications(args, token=token)
 
   def DeletePendingUserNotification(self, args, token=None):
     # Everybody can delete their own pending notifications.
 
     return self.delegate.DeletePendingUserNotification(args, token=token)
 
-  def GetAndResetUserNotifications(self, args, token=None):
+  def ListAndResetUserNotifications(self, args, token=None):
     # Everybody can get and reset their own user notifications.
 
-    return self.delegate.GetAndResetUserNotifications(args, token=token)
+    return self.delegate.ListAndResetUserNotifications(args, token=token)
 
   def GetGrrUser(self, args, token=None):
     # Everybody can get their own user object.
@@ -283,10 +283,10 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
 
     return self.delegate.UpdateGrrUser(args, token=token)
 
-  def GetPendingGlobalNotifications(self, args, token=None):
+  def ListPendingGlobalNotifications(self, args, token=None):
     # Everybody can get their global pending notifications.
 
-    return self.delegate.GetPendingGlobalNotifications(args, token=token)
+    return self.delegate.ListPendingGlobalNotifications(args, token=token)
 
   def DeletePendingGlobalNotification(self, args, token=None):
     # Everybody can delete their global pending notifications.

@@ -58,12 +58,11 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   # Virtual file system methods.
   # ============================
   #
+  def ListFiles(self, args, token=None):
+    return api_vfs.ApiListFilesHandler()
 
   def GetFileDetails(self, args, token=None):
     return api_vfs.ApiGetFileDetailsHandler()
-
-  def GetFileList(self, args, token=None):
-    return api_vfs.ApiGetFileListHandler()
 
   def GetFileText(self, args, token=None):
     return api_vfs.ApiGetFileTextHandler()
@@ -110,11 +109,8 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   # Clients flows methods.
   # =====================
   #
-  # Note: should be renamed to ListFlows. We should assume by default that
-  # flows are client-specific. Global flows should be explicitly called
-  # "global".
-  def ListClientFlows(self, args, token=None):
-    return api_flow.ApiListClientFlowsHandler()
+  def ListFlows(self, args, token=None):
+    return api_flow.ApiListFlowsHandler()
 
   def GetFlow(self, args, token=None):
     return api_flow.ApiGetFlowHandler()
@@ -198,14 +194,14 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def ListHuntCrashes(self, args, token=None):
     return api_hunt.ApiListHuntCrashesHandler()
 
-  def GetClientCompletionStats(self, args, token=None):
-    return api_hunt.ApiGetClientCompletionStatsHandler()
+  def GetHuntClientCompletionStats(self, args, token=None):
+    return api_hunt.ApiGetHuntClientCompletionStatsHandler()
 
   def GetHuntStats(self, args, token=None):
     return api_hunt.ApiGetHuntStatsHandler()
 
-  def GetHuntClients(self, args, token=None):
-    return api_hunt.ApiGetHuntClientsHandler()
+  def ListHuntClients(self, args, token=None):
+    return api_hunt.ApiListHuntClientsHandler()
 
   def GetHuntContext(self, args, token=None):
     return api_hunt.ApiGetHuntContextHandler()
@@ -252,14 +248,14 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def GetPendingUserNotificationsCount(self, args, token=None):
     return api_user.ApiGetPendingUserNotificationsCountHandler()
 
-  def GetPendingUserNotifications(self, args, token=None):
-    return api_user.ApiGetPendingUserNotificationsHandler()
+  def ListPendingUserNotifications(self, args, token=None):
+    return api_user.ApiListPendingUserNotificationsHandler()
 
   def DeletePendingUserNotification(self, args, token=None):
     return api_user.ApiDeletePendingUserNotificationHandler()
 
-  def GetAndResetUserNotifications(self, args, token=None):
-    return api_user.ApiGetAndResetUserNotificationsHandler()
+  def ListAndResetUserNotifications(self, args, token=None):
+    return api_user.ApiListAndResetUserNotificationsHandler()
 
   def GetGrrUser(self, args, token=None):
     return api_user.ApiGetGrrUserHandler(
@@ -268,8 +264,8 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def UpdateGrrUser(self, args, token=None):
     return api_user.ApiUpdateGrrUserHandler()
 
-  def GetPendingGlobalNotifications(self, args, token=None):
-    return api_user.ApiGetPendingGlobalNotificationsHandler()
+  def ListPendingGlobalNotifications(self, args, token=None):
+    return api_user.ApiListPendingGlobalNotificationsHandler()
 
   def DeletePendingGlobalNotification(self, args, token=None):
     return api_user.ApiDeletePendingGlobalNotificationHandler()
@@ -318,11 +314,8 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   # are supposed to be triggered by the scripts).
   # ====================================================================
   #
-  def StartGetFileOperation(self, args, token=None):
-    return api_flow.ApiStartGetFileOperationHandler()
+  def StartRobotGetFilesOperation(self, args, token=None):
+    return api_flow.ApiStartRobotGetFilesOperationHandler()
 
-  # Note: the difference between GetFlow and GetFlowStatus is that
-  # GetFlowStatus shouldn't require an approval or any other form
-  # of authorization to work.
-  def GetFlowStatus(self, args, token=None):
-    return api_flow.ApiGetFlowStatusHandler()
+  def GetRobotGetFilesOperationState(self, args, token=None):
+    return api_flow.ApiGetRobotGetFilesOperationStateHandler()

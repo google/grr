@@ -144,27 +144,26 @@ class ApiGetFileDetailsHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
       self.assertTrue(set(attrs).issubset(all_attrs))
 
 
-class ApiGetFileListHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
-  """Test for ApiGetFileListHandler."""
+class ApiListFilesHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
+  """Test for ApiListFilesHandler."""
 
   def setUp(self):
-    super(ApiGetFileListHandlerTest, self).setUp()
-    self.handler = vfs_plugin.ApiGetFileListHandler()
+    super(ApiListFilesHandlerTest, self).setUp()
+    self.handler = vfs_plugin.ApiListFilesHandler()
     self.client_id = self.SetupClients(1)[0]
     self.file_path = "fs/os/etc"
 
   def testDoesNotRaiseIfFirstCompomentIsEmpty(self):
-    args = vfs_plugin.ApiGetFileListArgs(client_id=self.client_id, file_path="")
+    args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id, file_path="")
     self.handler.Handle(args, token=self.token)
 
   def testDoesNotRaiseIfPathIsRoot(self):
-    args = vfs_plugin.ApiGetFileListArgs(client_id=self.client_id,
-                                         file_path="/")
+    args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id, file_path="/")
     self.handler.Handle(args, token=self.token)
 
   def testRaisesIfFirstComponentIsNotWhitelisted(self):
-    args = vfs_plugin.ApiGetFileListArgs(client_id=self.client_id,
-                                         file_path="/analysis")
+    args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id,
+                                       file_path="/analysis")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
@@ -172,8 +171,8 @@ class ApiGetFileListHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
     # Fetch all children of a directory.
-    args = vfs_plugin.ApiGetFileListArgs(client_id=self.client_id,
-                                         file_path=self.file_path)
+    args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id,
+                                       file_path=self.file_path)
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), 4)
@@ -185,9 +184,9 @@ class ApiGetFileListHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
     # Only fetch sub-directories.
-    args = vfs_plugin.ApiGetFileListArgs(client_id=self.client_id,
-                                         file_path=self.file_path,
-                                         directories_only=True)
+    args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id,
+                                       file_path=self.file_path,
+                                       directories_only=True)
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), 1)
@@ -195,13 +194,13 @@ class ApiGetFileListHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
     self.assertIn(self.file_path, result.items[0].path)
 
 
-class ApiGetFileListHandlerRegressionTest(
+class ApiListFilesHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
 
-  handler = "ApiGetFileListHandler"
+  handler = "ApiListFilesHandler"
 
   def setUp(self):
-    super(ApiGetFileListHandlerRegressionTest, self).setUp()
+    super(ApiListFilesHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
     test_lib.ClientFixture(self.client_id, token=self.token, age=42)
 

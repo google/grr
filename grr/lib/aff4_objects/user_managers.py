@@ -713,7 +713,8 @@ class FullAccessControlManager(access_control.AccessControlManager):
       stats.STATS.IncrementCounter("approval_searches",
                                    fields=["without_reason", "data_store"])
 
-      approved_token = aff4.Approval.GetApprovalForObject(target, token=token)
+      approved_token = security.Approval.GetApprovalForObject(target,
+                                                              token=token)
       token.reason = approved_token.reason
       token.is_emergency = approved_token.is_emergency
 

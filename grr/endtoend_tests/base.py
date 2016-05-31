@@ -14,6 +14,7 @@ from grr.lib import data_store
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.console import debugging
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -150,8 +151,8 @@ class ClientTestBase(unittest.TestCase):
 
   def GetGRRBinaryName(self, run_interrogate=True):
     client = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
-    self.assertIsInstance(client, aff4.VFSGRRClient)
-    config = client.Get(aff4.VFSGRRClient.SchemaCls.GRR_CONFIGURATION)
+    self.assertIsInstance(client, aff4_grr.VFSGRRClient)
+    config = client.Get(aff4_grr.VFSGRRClient.SchemaCls.GRR_CONFIGURATION)
 
     if config is None:
       # Try running Interrogate once.

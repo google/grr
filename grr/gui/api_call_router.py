@@ -34,7 +34,8 @@ class Http(object):
       http_methods = []
       setattr(func, "__http_methods__", http_methods)
 
-    http_methods.append((self.method, self.path,))
+    http_methods.append((self.method,
+                         self.path,))
 
     return func
 
@@ -200,21 +201,21 @@ class ApiCallRouter(object):
   # ===========================
   #
   @Category("Vfs")
+  @ArgsType(api_vfs.ApiListFilesArgs)
+  @ResultType(api_vfs.ApiListFilesResult)
+  @Http("GET", "/api/clients/<client_id>/vfs-index/")
+  @Http("GET", "/api/clients/<client_id>/vfs-index/<path:file_path>")
+  def ListFiles(self, args, token=None):
+    # This method can be called with or without file_path argument and returns
+    # the root files for the given client in the latter case.
+    # To allow optional url arguments, two url patterns need to be specified.
+    raise NotImplementedError()
+
+  @Category("Vfs")
   @ArgsType(api_vfs.ApiGetFileDetailsArgs)
   @ResultType(api_vfs.ApiGetFileDetailsResult)
   @Http("GET", "/api/clients/<client_id>/vfs-details/<path:file_path>")
   def GetFileDetails(self, args, token=None):
-    raise NotImplementedError()
-
-  @Category("Vfs")
-  @ArgsType(api_vfs.ApiGetFileListArgs)
-  @ResultType(api_vfs.ApiGetFileListResult)
-  @Http("GET", "/api/clients/<client_id>/vfs-index/")
-  @Http("GET", "/api/clients/<client_id>/vfs-index/<path:file_path>")
-  def GetFileList(self, args, token=None):
-    # This method can be called with or without file_path argument and returns
-    # the root files for the given client in the latter case.
-    # To allow optional url arguments, two url patterns need to be specified.
     raise NotImplementedError()
 
   @Category("Vfs")
@@ -312,14 +313,11 @@ class ApiCallRouter(object):
   # Clients flows methods.
   # =====================
   #
-  # Note: should be renamed to ListFlows. We should assume by default that
-  # flows are client-specific. Global flows should be explicitly called
-  # "global".
   @Category("Flows")
-  @ArgsType(api_flow.ApiListClientFlowsArgs)
-  @ResultType(api_flow.ApiListClientFlowsResult)
+  @ArgsType(api_flow.ApiListFlowsArgs)
+  @ResultType(api_flow.ApiListFlowsResult)
   @Http("GET", "/api/clients/<client_id>/flows")
-  def ListClientFlows(self, args, token=None):
+  def ListFlows(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Flows")
@@ -507,12 +505,10 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("Hunts")
-  @ArgsType(api_hunt.ApiGetClientCompletionStatsArgs)
-  @ResultType(api_hunt.ApiGetClientCompletionStatsResult)
+  @ArgsType(api_hunt.ApiGetHuntClientCompletionStatsArgs)
+  @ResultType(api_hunt.ApiGetHuntClientCompletionStatsResult)
   @Http("GET", "/api/hunts/<hunt_id>/client-completion-stats")
-
-  # TODO(user): maybe rename to GetHuntClientCompletionStats.
-  def GetClientCompletionStats(self, args, token=None):
+  def GetHuntClientCompletionStats(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -523,10 +519,10 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("Hunts")
-  @ArgsType(api_hunt.ApiGetHuntClientsArgs)
-  @ResultType(api_hunt.ApiGetHuntClientsResult)
+  @ArgsType(api_hunt.ApiListHuntClientsArgs)
+  @ResultType(api_hunt.ApiListHuntClientsResult)
   @Http("GET", "/api/hunts/<hunt_id>/clients/<client_status>")
-  def GetHuntClients(self, args, token=None):
+  def ListHuntClients(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -624,10 +620,10 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("User")
-  @ArgsType(api_user.ApiGetPendingUserNotificationsArgs)
-  @ResultType(api_user.ApiGetPendingUserNotificationsResult)
+  @ArgsType(api_user.ApiListPendingUserNotificationsArgs)
+  @ResultType(api_user.ApiListPendingUserNotificationsResult)
   @Http("GET", "/api/users/me/notifications/pending")
-  def GetPendingUserNotifications(self, args, token=None):
+  def ListPendingUserNotifications(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
@@ -637,10 +633,10 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("User")
-  @ArgsType(api_user.ApiGetAndResetUserNotificationsArgs)
-  @ResultType(api_user.ApiGetAndResetUserNotificationsResult)
+  @ArgsType(api_user.ApiListAndResetUserNotificationsArgs)
+  @ResultType(api_user.ApiListAndResetUserNotificationsResult)
   @Http("POST", "/api/users/me/notifications")
-  def GetAndResetUserNotifications(self, args, token=None):
+  def ListAndResetUserNotifications(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
@@ -656,9 +652,9 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("User")
-  @ResultType(api_user.ApiGetPendingGlobalNotificationsResult)
+  @ResultType(api_user.ApiListPendingGlobalNotificationsResult)
   @Http("GET", "/api/users/me/notifications/pending/global")
-  def GetPendingGlobalNotifications(self, args, token=None):
+  def ListPendingGlobalNotifications(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
@@ -740,21 +736,17 @@ class ApiCallRouter(object):
   # ====================================================================
   #
   @Category("Flows")
-  @ArgsType(api_flow.ApiStartGetFileOperationArgs)
-  # TODO(user): an URL for this one doesn't seem entirely correct. Come up
-  # with an URL naming scheme that will separate flows with operations that
-  # can be triggered remotely without authorization.
-  @Http("POST", "/api/clients/<client_id>/flows/remotegetfile")
-  def StartGetFileOperation(self, args, token=None):
+  @ArgsType(api_flow.ApiStartRobotGetFilesOperationArgs)
+  @ResultType(api_flow.ApiStartRobotGetFilesOperationResult)
+  @Http("POST", "/api/robot-actions/get-files")
+  def StartRobotGetFilesOperation(self, args, token=None):
     raise NotImplementedError()
 
-  # Note: the difference between GetFlow and GetFlowStatus is that
-  # GetFlowStatus doesn't require an approval to work. We should make
-  # the name more informative and maybe include "robot" into it.
   @Category("Flows")
-  @ArgsType(api_flow.ApiGetFlowStatusArgs)
-  @Http("GET", "/api/flows/<client_id>/<flow_id>/status")
-  def GetFlowStatus(self, args, token=None):
+  @ArgsType(api_flow.ApiGetRobotGetFilesOperationStateArgs)
+  @ResultType(api_flow.ApiGetRobotGetFilesOperationStateResult)
+  @Http("GET", "/api/robot-actions/get-files/<path:operation_id>")
+  def GetRobotGetFilesOperationState(self, args, token=None):
     raise NotImplementedError()
 
 

@@ -4,6 +4,7 @@
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
+from grr.lib.aff4_objects import collects
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -18,7 +19,7 @@ class TestDarwinPersistenceMechanisms(base.AutomatedTest):
   def CheckFlow(self):
     output_urn = self.client_id.Add(self.test_output_path)
     collection = aff4.FACTORY.Open(output_urn, mode="r", token=self.token)
-    self.assertIsInstance(collection, aff4.RDFValueCollection)
+    self.assertIsInstance(collection, collects.RDFValueCollection)
     persistence_list = list(collection)
     # Make sure there are at least some results.
     self.assertGreater(len(persistence_list), 5)
@@ -42,7 +43,7 @@ class TestRootDiskVolumeUsage(base.AutomatedTest):
   def CheckFlow(self):
     output_urn = self.client_id.Add(self.test_output_path)
     collection = aff4.FACTORY.Open(output_urn, mode="r", token=self.token)
-    self.assertIsInstance(collection, aff4.RDFValueCollection)
+    self.assertIsInstance(collection, collects.RDFValueCollection)
     volume_list = list(collection)
     # Make sure there are at least some results.
     self.assertEqual(len(volume_list), 1)
@@ -69,7 +70,7 @@ class TestParserDependency(base.AutomatedTest):
   def CheckFlow(self):
     output_urn = self.client_id.Add(self.test_output_path)
     self.collection = aff4.FACTORY.Open(output_urn, mode="r", token=self.token)
-    self.assertIsInstance(self.collection, aff4.RDFValueCollection)
+    self.assertIsInstance(self.collection, collects.RDFValueCollection)
     volume_list = list(self.collection)
     # Make sure there are at least some results.
     self.assertTrue(volume_list)

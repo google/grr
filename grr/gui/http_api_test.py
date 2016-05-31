@@ -139,7 +139,11 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
 class HttpRequestHandlerTest(test_lib.GRRBaseTest):
   """Test for HttpRequestHandler."""
 
-  def _CreateRequest(self, method, path, query_parameters=None):
+  def _CreateRequest(self,
+                     method,
+                     path,
+                     username="test",
+                     query_parameters=None):
     if not query_parameters:
       query_parameters = {}
 
@@ -148,7 +152,7 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
     request.path = path
     request.scheme = "http"
     request.environ = {"SERVER_NAME": "foo.bar", "SERVER_PORT": 1234}
-    request.user = "test"
+    request.user = username
     if method in ["GET", "HEAD", "DELETE"]:
       request.GET = query_parameters
     request.META = {}
@@ -184,6 +188,12 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
     request.META["HTTP_X_GRR_REASON"] = urllib2.quote("区最 trailing space ")
     token = self.request_handler.BuildToken(request, 20)
     self.assertEqual(token.reason, utils.SmartUnicode("区最 trailing space "))
+
+  def testSystemUsernameIsNotAllowed(self):
+    response = self._RenderResponse(self._CreateRequest(
+        "GET", "/test_sample/some/path",
+        username="GRR"))
+    self.assertEqual(response.status_code, 403)
 
   def testRendersGetHandlerCorrectly(self):
     response = self._RenderResponse(self._CreateRequest(

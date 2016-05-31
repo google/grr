@@ -39,7 +39,7 @@ var FIRST_RENDER_LIMIT = 1024;
 
 
 JsonController.prototype.onClick = function(e) {
-  // onClick event should not be handleded by
+  // onClick event should not be handled by
   // anything other than this, otherwise the click
   // could be interpreted in the wrong way,
   // e.g. page could be redirected.

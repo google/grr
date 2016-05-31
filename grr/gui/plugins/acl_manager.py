@@ -15,6 +15,8 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 
+from grr.lib.aff4_objects import security as aff4_security
+
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -441,8 +443,8 @@ Authorization request ({{this.reason|escape}}) failed:
   def CheckObjectAccess(self, object_urn, token):
     """Check if the user has access to the specified hunt."""
     try:
-      approved_token = aff4.Approval.GetApprovalForObject(object_urn,
-                                                          token=token)
+      approved_token = aff4_security.Approval.GetApprovalForObject(object_urn,
+                                                                   token=token)
     except access_control.UnauthorizedAccess as e:
       self.error = e
       approved_token = None

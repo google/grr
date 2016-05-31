@@ -6,6 +6,7 @@
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import export_utils
+from grr.lib.aff4_objects import standard
 from grr.tools.export_plugins import plugin
 
 
@@ -49,7 +50,7 @@ class FileExportPlugin(plugin.ExportPlugin):
     except aff4.InstantiationError:
       directory = None
 
-    if directory and not isinstance(directory, aff4.VFSDirectory):
+    if directory and not isinstance(directory, standard.VFSDirectory):
       # If directory is not a VFSDirectory, check that it's in its' parent
       # children list. This way we check that the path actually exists.
       directory_parent = aff4.FACTORY.Open(directory.urn.Dirname(),

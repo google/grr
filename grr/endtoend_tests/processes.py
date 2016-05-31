@@ -4,6 +4,7 @@
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
+from grr.lib.aff4_objects import collects
 
 
 class TestProcessListing(base.AutomatedTest):
@@ -19,7 +20,7 @@ class TestProcessListing(base.AutomatedTest):
         self.client_id.Add(self.output_path),
         mode="r",
         token=self.token)
-    self.assertIsInstance(procs, aff4.RDFValueCollection)
+    self.assertIsInstance(procs, collects.RDFValueCollection)
     process_list = list(procs)
     # Make sure there are at least some results.
     self.assertGreater(len(process_list), 5)

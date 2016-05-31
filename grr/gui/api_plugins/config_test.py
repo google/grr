@@ -133,6 +133,10 @@ class ApiGetConfigHandlerRegressionTest(
                              "Sample string option.")
     config_obj.DEFINE_list("SectionBar.sample_list_option", [],
                            "Sample list option.")
+    # This has to be defined as http_api.HttpRequestHandler.HandleRequest
+    # depends on it and regression data won't get rendered without
+    # this config option defined.
+    config_obj.DEFINE_string("AdminUI.debug_impersonate_user", None, "")
 
     config = """
 SectionFoo.sample_boolean_option: True
@@ -186,6 +190,10 @@ class ApiGetConfigOptionHandlerRegressionTest(
     config_obj.DEFINE_string("SectionFoo.sample_string_option", "",
                              "Sample string option.")
     config_obj.DEFINE_string("Mysql.database_password", "", "Secret password.")
+    # This has to be defined as http_api.HttpRequestHandler.HandleRequest
+    # depends on it and regression data won't get rendered without
+    # this config option defined.
+    config_obj.DEFINE_string("AdminUI.debug_impersonate_user", None, "")
 
     config = """
 SectionBar.sample_string_option: "%(sAmPlE|lower)"

@@ -1015,9 +1015,9 @@ class GRRSeleniumTest(GRRBaseTest):
     self.acl_manager = ACLChecksEnabledContextManager()
     self.acl_manager.Start()
 
-    self.config_override = ConfigOverrider({"API.DefaultRouter":
-        api_call_router_with_approval_checks.
-        ApiCallRouterWithApprovalChecksWithRobotAccess.__name__})
+    acrwac = api_call_router_with_approval_checks
+    name = acrwac.ApiCallRouterWithApprovalChecksWithRobotAccess.__name__
+    self.config_override = ConfigOverrider({"API.DefaultRouter": name})
     self.config_override.Start()
     # Make sure ApiAuthManager is initialized with this configuration setting.
     api_auth_manager.APIACLInit.InitApiAuthManager()

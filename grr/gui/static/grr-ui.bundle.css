@@ -221,6 +221,13 @@ grr-hunt-graph {
     position: relative;
     display: block; }
 
+grr-rekall-json .proto_header,
+grr-rekall-json .proto_key,
+grr-rekall-json .proto_value {
+  word-wrap: break-word;
+  word-break: break-all;
+  min-width: 10ex; }
+
 grr-client-summary {
   padding: 5px 10px;
   display: block; }
@@ -646,8 +653,7 @@ tr.tree_hidden {
 .proto_header,
 .proto_key,
 .proto_value {
-  padding-left: 0;
-  padding-right: 2ex;
+  padding: 0;
   background: #f0f0f0;
   word-wrap: break-word; }
 

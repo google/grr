@@ -121,7 +121,7 @@ Settings were successfully updated. Reloading...
 
       return user_record.Get(user_record.Schema.GUI_SETTINGS)
     except IOError:
-      return aff4.GRRUser.SchemaCls.GUI_SETTINGS()
+      return aff4_users.GRRUser.SchemaCls.GUI_SETTINGS()
 
   def Layout(self, request, response):
     user_settings = self.GetUserSettings(request)

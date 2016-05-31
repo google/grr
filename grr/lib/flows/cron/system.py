@@ -20,7 +20,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import cronjobs
-from grr.lib.aff4_objects import stats as stats_aff4
+from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.flows.general import discovery as flows_discovery
 from grr.lib.flows.general import endtoend as flows_endtoend
 from grr.lib.hunts import standard as hunts_standard
@@ -167,7 +167,7 @@ class GRRVersionBreakDown(AbstractClientStatsCronFlow):
 
   def BeginProcessing(self):
     self.counter = _ActiveCounter(
-        aff4.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM)
+        aff4_stats.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM)
 
   def FinishProcessing(self):
     self.counter.Save(self)
@@ -177,8 +177,8 @@ class GRRVersionBreakDown(AbstractClientStatsCronFlow):
     c_info = client.Get(client.Schema.CLIENT_INFO)
 
     if c_info and ping:
-      category = " ".join([c_info.client_description or c_info.client_name, str(
-          c_info.client_version)])
+      category = " ".join([c_info.client_description or c_info.client_name,
+                           str(c_info.client_version)])
 
       for label in self.GetClientLabelsList(client):
         self.counter.Add(category, label, ping)
@@ -189,8 +189,8 @@ class OSBreakDown(AbstractClientStatsCronFlow):
 
   def BeginProcessing(self):
     self.counters = [
-        _ActiveCounter(aff4.ClientFleetStats.SchemaCls.OS_HISTOGRAM),
-        _ActiveCounter(aff4.ClientFleetStats.SchemaCls.RELEASE_HISTOGRAM),
+        _ActiveCounter(aff4_stats.ClientFleetStats.SchemaCls.OS_HISTOGRAM),
+        _ActiveCounter(aff4_stats.ClientFleetStats.SchemaCls.RELEASE_HISTOGRAM),
     ]
 
   def FinishProcessing(self):
@@ -235,7 +235,7 @@ class LastAccessStats(AbstractClientStatsCronFlow):
     # Build and store the graph now. Day actives are cumulative.
     for label in self.values.iterkeys():
       cumulative_count = 0
-      graph = stats_aff4.ClientFleetStats.SchemaCls.LAST_CONTACTED_HISTOGRAM()
+      graph = aff4_stats.ClientFleetStats.SchemaCls.LAST_CONTACTED_HISTOGRAM()
       for x, y in zip(self._bins, self.values[label]):
         cumulative_count += y
         graph.Append(x_value=x, y_value=cumulative_count)

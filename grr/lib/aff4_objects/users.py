@@ -150,7 +150,9 @@ class GRRUser(aff4.AFF4Object):
 
   SYSTEM_USERS = set(["GRRWorker", "GRRCron", "GRRSystem", "GRRFrontEnd",
                       "GRRConsole", "GRRArtifactRegistry", "GRRStatsStore",
-                      "GRREndToEndTest"])
+                      "GRREndToEndTest", "GRR"])
+
+  _SYSTEM_USERS_LOWERCASE = set(username.lower() for username in SYSTEM_USERS)
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     """Schema for GRRUser."""
@@ -182,6 +184,10 @@ class GRRUser(aff4.AFF4Object):
 
     PASSWORD = aff4.Attribute("aff4:user/password", CryptedPassword,
                               "Encrypted Password for the user")
+
+  @staticmethod
+  def IsValidUsername(username):
+    return username.lower() not in GRRUser._SYSTEM_USERS_LOWERCASE
 
   def Notify(self, message_type, subject, msg, source):
     """Send a notification to the user in the UI.

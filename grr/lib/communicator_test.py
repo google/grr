@@ -487,9 +487,9 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # Now we manually run the enroll well known flow with the enrollment
     # request. This will start a new flow for enrolling the client, sign the
     # cert and add it to the data store.
-    flow_obj = aff4.Enroler(aff4.Enroler.well_known_session_id,
-                            mode="rw",
-                            token=self.token)
+    flow_obj = ca_enroller.Enroler(ca_enroller.Enroler.well_known_session_id,
+                                   mode="rw",
+                                   token=self.token)
     flow_obj.ProcessMessage(self.messages[-1])
 
     # The next client communication should be enrolled now.
@@ -618,8 +618,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         status = self.client_communicator.RunOnce()
 
         self.assertEqual(status.code, 500)
-        self.assertTrue("HMAC verification failed" in str(
-            self.last_urlmock_error))
+        self.assertTrue(
+            "HMAC verification failed" in str(self.last_urlmock_error))
 
       # Corruption of these fields will likely result in RSA errors, since we do
       # the RSA operations before the HMAC verification (in order to recover the
@@ -777,8 +777,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
   def testClientConnectionErrors(self):
     client_obj = comms.GRRHTTPClient()
     # Make the connection unavailable and skip the retry interval.
-    with utils.MultiStubber(
-        (urllib2, "urlopen", self.RaiseError), (time, "sleep", lambda s: None)):
+    with utils.MultiStubber((urllib2, "urlopen", self.RaiseError),
+                            (time, "sleep", lambda s: None)):
 
       with test_lib.ConfigOverrider({"Client.connection_error_limit": 8}):
         # Simulate a client run. The client will retry the connection limit by

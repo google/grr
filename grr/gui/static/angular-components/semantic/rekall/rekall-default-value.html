@@ -1,0 +1,10 @@
+<table class="proto_table">
+  <tr ng-repeat="(k, v) in ::value track by $index">
+    <td class="proto_key">
+      <i>{$ ::k $}</i>
+    </td>
+    <td class="proto_value">
+      <grr-rekall-value value="::v"></grr-rekall-value>
+    </td>
+  </tr>
+</table>

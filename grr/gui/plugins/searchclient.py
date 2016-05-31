@@ -81,7 +81,7 @@ class SetGlobalNotification(flow.GRRGlobalFlow):
 
   @flow.StateHandler()
   def Start(self):
-    with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
+    with aff4.FACTORY.Create(aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
                              aff4_type="GlobalNotificationStorage",
                              mode="rw",
                              token=self.token) as storage:

@@ -21,8 +21,8 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouter):
   # are supposed to be triggered by the scripts).
   # ====================================================================
   #
-  def StartGetFileOperation(self, args, token=None):
-    return self.delegate.StartGetFileOperation(args, token=token)
+  def StartRobotGetFilesOperation(self, args, token=None):
+    return self.delegate.StartRobotGetFilesOperation(args, token=token)
 
-  def GetFlowStatus(self, args, token=None):
-    return self.delegate.GetFlowStatus(args, token=token)
+  def GetRobotGetFilesOperationState(self, args, token=None):
+    return self.delegate.GetRobotGetFilesOperationState(args, token=token)

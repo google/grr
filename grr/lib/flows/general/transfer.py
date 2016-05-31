@@ -14,6 +14,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import filestore
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -896,7 +897,7 @@ class LoadComponentMixin(object):
         "restart_if_component_loaded.py")
 
     fd = aff4.FACTORY.Open(python_hack_path, token=self.token)
-    if not isinstance(fd, aff4.GRRSignedBlob):
+    if not isinstance(fd, collects.GRRSignedBlob):
       logging.info("Python hack %s not available.", python_hack_path)
 
       self.CallStateInline(next_state="LoadComponentAfterFlushOldComponent",

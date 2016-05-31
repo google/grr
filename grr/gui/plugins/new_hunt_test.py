@@ -12,6 +12,7 @@ from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import test_lib
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.flows.general import transfer
@@ -55,14 +56,14 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     # Ensure that clients list is empty
     root = aff4.FACTORY.Open(aff4.ROOT_URN, token=token)
     for client_urn in root.ListChildren():
-      if aff4.VFSGRRClient.CLIENT_ID_RE.match(client_urn.Basename()):
+      if aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(client_urn.Basename()):
         data_store.DB.DeleteSubject(client_urn, token=token)
 
     # Add 2 distinct clients
     client_id = "C.1%015d" % 0
     fd = aff4.FACTORY.Create(
         rdf_client.ClientURN(client_id),
-        "VFSGRRClient",
+        aff4_grr.VFSGRRClient,
         token=token)
     fd.Set(fd.Schema.SYSTEM("Windows"))
     fd.Set(fd.Schema.CLOCK(2336650631137737))
@@ -71,7 +72,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     client_id = "C.1%015d" % 1
     fd = aff4.FACTORY.Create(
         rdf_client.ClientURN(client_id),
-        "VFSGRRClient",
+        aff4_grr.VFSGRRClient,
         token=token)
     fd.Set(fd.Schema.SYSTEM("Linux"))
     fd.Set(fd.Schema.CLOCK(2336650631137737))
@@ -289,8 +290,8 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     self.assertEqual(len(hunt_rules), 1)
     f = 14 * 24 * 60 * 60
-    self.assertTrue(abs(int(hunt_rules[0].expires - hunt_rules[0].created) - f)
-                    <= 1)
+    self.assertLessEqual(
+        abs(int(hunt_rules[0].expires - hunt_rules[0].created) - f), 1)
 
     r = hunt_rules[0].client_rule_set
 

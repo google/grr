@@ -274,17 +274,17 @@ class GRRFuseTest(GRRFuseTestBase):
 
   def testUpdateSparseImageChunks(self):
     """Make sure the right chunks get updated when we read a sparse file."""
-    with utils.MultiStubber(
-        (self.grr_fuse, "force_sparse_image", True),
-        (self.grr_fuse, "max_age_before_refresh",
-         datetime.timedelta(seconds=30)), (self.grr_fuse, "size_threshold", 0)):
+    with utils.MultiStubber((self.grr_fuse, "force_sparse_image", True),
+                            (self.grr_fuse, "max_age_before_refresh",
+                             datetime.timedelta(seconds=30)),
+                            (self.grr_fuse, "size_threshold", 0)):
       self._testUpdateSparseImageChunks()
 
   def _testUpdateSparseImageChunks(self):
     """Make sure the right chunks get updated when we read a sparse file."""
     filename = "bigfile.txt"
     path = os.path.join(self.temp_dir, filename)
-    chunksize = aff4.AFF4SparseImage.chunksize
+    chunksize = standard.AFF4SparseImage.chunksize
 
     # 8 chunks of data.
     contents = "bigdata!" * chunksize

@@ -212,8 +212,8 @@ class ApiListUserApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
     approvals_base_urn = aff4.ROOT_URN.Add("users").Add(token.username).Add(
         "approvals").Add(approval_type)
 
-    all_children = aff4.FACTORY.RecursiveMultiListChildren(
-        [approvals_base_urn], token=token)
+    all_children = aff4.FACTORY.RecursiveMultiListChildren([approvals_base_urn],
+                                                           token=token)
 
     approvals_urns = []
     for subject, children in all_children:
@@ -419,7 +419,7 @@ class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
       result.settings = user_record.Get(user_record.Schema.GUI_SETTINGS)
     except IOError:
-      result.settings = aff4.GRRUser.SchemaCls.GUI_SETTINGS()
+      result.settings = aff4_users.GRRUser.SchemaCls.GUI_SETTINGS()
 
     result.interface_traits = (self.interface_traits or
                                ApiGrrUserInterfaceTraits())
@@ -471,21 +471,21 @@ class ApiGetPendingUserNotificationsCountHandler(
     return ApiGetPendingUserNotificationsCountResult(count=len(notifications))
 
 
-class ApiGetPendingUserNotificationsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetPendingUserNotificationsArgs
+class ApiListPendingUserNotificationsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListPendingUserNotificationsArgs
 
 
-class ApiGetPendingUserNotificationsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetPendingUserNotificationsResult
+class ApiListPendingUserNotificationsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListPendingUserNotificationsResult
 
 
-class ApiGetPendingUserNotificationsHandler(
+class ApiListPendingUserNotificationsHandler(
     api_call_handler_base.ApiCallHandler):
   """Returns pending notifications for the current user."""
 
   category = CATEGORY
-  args_type = ApiGetPendingUserNotificationsArgs
-  result_type = ApiGetPendingUserNotificationsResult
+  args_type = ApiListPendingUserNotificationsArgs
+  result_type = ApiListPendingUserNotificationsResult
 
   def Handle(self, args, token=None):
     """Fetches the pending notifications."""
@@ -501,7 +501,7 @@ class ApiGetPendingUserNotificationsHandler(
     result = [ApiNotification().InitFromNotification(n, is_pending=True)
               for n in notifications if n.timestamp > args.timestamp]
 
-    return ApiGetPendingUserNotificationsResult(items=result)
+    return ApiListPendingUserNotificationsResult(items=result)
 
 
 class ApiDeletePendingUserNotificationArgs(rdf_structs.RDFProtoStruct):
@@ -525,12 +525,12 @@ class ApiDeletePendingUserNotificationHandler(
       user_record.DeletePendingNotification(args.timestamp)
 
 
-class ApiGetAndResetUserNotificationsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetAndResetUserNotificationsArgs
+class ApiListAndResetUserNotificationsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListAndResetUserNotificationsArgs
 
 
-class ApiGetAndResetUserNotificationsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetAndResetUserNotificationsResult
+class ApiListAndResetUserNotificationsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListAndResetUserNotificationsResult
 
 
 class ApiNotification(rdf_structs.RDFProtoStruct):
@@ -675,13 +675,13 @@ class ApiNotificationGrantAccessReference(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiNotificationGrantAccessReference
 
 
-class ApiGetAndResetUserNotificationsHandler(
+class ApiListAndResetUserNotificationsHandler(
     api_call_handler_base.ApiCallHandler):
   """Returns the number of pending notifications for the current user."""
 
   category = CATEGORY
-  args_type = ApiGetAndResetUserNotificationsArgs
-  result_type = ApiGetAndResetUserNotificationsResult
+  args_type = ApiListAndResetUserNotificationsArgs
+  result_type = ApiListAndResetUserNotificationsResult
 
   def Handle(self, args, token=None):
     """Fetches the user notifications."""
@@ -720,20 +720,20 @@ class ApiGetAndResetUserNotificationsHandler(
           is_pending=(notification in pending_notifications))
       result.append(item)
 
-    return ApiGetAndResetUserNotificationsResult(items=result,
-                                                 total_count=total_count)
+    return ApiListAndResetUserNotificationsResult(items=result,
+                                                  total_count=total_count)
 
 
-class ApiGetPendingGlobalNotificationsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetPendingGlobalNotificationsResult
+class ApiListPendingGlobalNotificationsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListPendingGlobalNotificationsResult
 
 
-class ApiGetPendingGlobalNotificationsHandler(
+class ApiListPendingGlobalNotificationsHandler(
     api_call_handler_base.ApiCallHandler):
   """Returns the pending global notifications for the current user."""
 
   category = CATEGORY
-  result_type = ApiGetPendingGlobalNotificationsResult
+  result_type = ApiListPendingGlobalNotificationsResult
 
   def Handle(self, args, token=None):
     """Fetches the list of pending global notifications."""
@@ -746,7 +746,7 @@ class ApiGetPendingGlobalNotificationsHandler(
 
     notifications = user_record.GetPendingGlobalNotifications()
 
-    return ApiGetPendingGlobalNotificationsResult(items=notifications)
+    return ApiListPendingGlobalNotificationsResult(items=notifications)
 
 
 class ApiDeletePendingGlobalNotificationArgs(rdf_structs.RDFProtoStruct):

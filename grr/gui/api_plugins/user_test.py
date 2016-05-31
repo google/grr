@@ -621,14 +621,14 @@ class ApiGetPendingUserNotificationsCountHandlerRegressionTest(
     self.Check("GET", "/api/users/me/notifications/pending/count")
 
 
-class ApiGetPendingUserNotificationsHandlerRegressionTest(
+class ApiListPendingUserNotificationsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiGetPendingUserNotificationsHandler."""
+  """Regression test for ApiListPendingUserNotificationsHandler."""
 
-  handler = "ApiGetPendingUserNotificationsHandler"
+  handler = "ApiListPendingUserNotificationsHandler"
 
   def setUp(self):
-    super(ApiGetPendingUserNotificationsHandlerRegressionTest, self).setUp()
+    super(ApiListPendingUserNotificationsHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
@@ -742,14 +742,14 @@ class ApiDeletePendingUserNotificationHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(len(shown), 0)
 
 
-class ApiGetAndResetUserNotificationsHandlerRegressionTest(
+class ApiListAndResetUserNotificationsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiGetAndResetUserNotificationsHandler."""
+  """Regression test for ApiListAndResetUserNotificationsHandler."""
 
-  handler = "ApiGetAndResetUserNotificationsHandler"
+  handler = "ApiListAndResetUserNotificationsHandler"
 
   def setUp(self):
-    super(ApiGetAndResetUserNotificationsHandlerRegressionTest, self).setUp()
+    super(ApiListAndResetUserNotificationsHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
@@ -773,11 +773,11 @@ class ApiGetAndResetUserNotificationsHandlerRegressionTest(
     self.Check("POST", "/api/users/me/notifications?filter=other")
 
 
-class ApiGetPendingGlobalNotificationsHandlerRegressionTest(
+class ApiListPendingGlobalNotificationsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiGetPendingGlobalNotificationsHandler."""
+  """Regression test for ApiListPendingGlobalNotificationsHandler."""
 
-  handler = "ApiGetPendingGlobalNotificationsHandler"
+  handler = "ApiListPendingGlobalNotificationsHandler"
 
   # Global notifications are only shown in a certain time interval. By default,
   # this is from the moment they are created until two weeks later. Create
@@ -788,10 +788,10 @@ class ApiGetPendingGlobalNotificationsHandlerRegressionTest(
   TIME_1 = NOW - rdfvalue.Duration("1h")
 
   def setUp(self):
-    super(ApiGetPendingGlobalNotificationsHandlerRegressionTest, self).setUp()
+    super(ApiListPendingGlobalNotificationsHandlerRegressionTest, self).setUp()
 
   def Run(self):
-    with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
+    with aff4.FACTORY.Create(aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
                              aff4_type="GlobalNotificationStorage",
                              mode="rw",
                              token=self.token) as storage:
@@ -829,7 +829,7 @@ class ApiDeletePendingGlobalNotificationHandlerTest(test_lib.GRRBaseTest):
     super(ApiDeletePendingGlobalNotificationHandlerTest, self).setUp()
     self.handler = user_plugin.ApiDeletePendingGlobalNotificationHandler()
 
-    with aff4.FACTORY.Create(aff4.GlobalNotificationStorage.DEFAULT_PATH,
+    with aff4.FACTORY.Create(aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
                              aff4_type="GlobalNotificationStorage",
                              mode="rw",
                              token=self.token) as storage:

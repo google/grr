@@ -11,6 +11,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow as lib_flow
 from grr.lib import rdfvalue
+from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.rdfvalues import stats as rdf_stats
 
 
@@ -75,7 +76,7 @@ class MostActiveUsers(statistics.PieChart):
       self.graph = rdf_stats.Graph(title="User activity breakdown.")
       self.data = []
       for user, count in counts.items():
-        if user not in aff4.GRRUser.SYSTEM_USERS:
+        if user not in aff4_users.GRRUser.SYSTEM_USERS:
           self.graph.Append(label=user, y_value=count)
           self.data.append(dict(label=user, data=count))
     except IOError:
@@ -135,7 +136,7 @@ class UserActivity(StackChart):
 
       self.data = []
       for user, data in self.user_activity.items():
-        if user not in aff4.GRRUser.SYSTEM_USERS:
+        if user not in aff4_users.GRRUser.SYSTEM_USERS:
           self.data.append(dict(label=user, data=data))
 
     except IOError:
@@ -167,7 +168,7 @@ class SystemFlows(statistics.Report, renderers.TableRenderer):
     self.AddColumn(semantic.RDFValueColumn("Most Run By"))
 
   def UserFilter(self, username):
-    return username in aff4.GRRUser.SYSTEM_USERS
+    return username in aff4_users.GRRUser.SYSTEM_USERS
 
   def BuildTable(self, start_row, end_row, request):
     # TODO(user): move the calculation to a cronjob and store results in
@@ -217,7 +218,7 @@ class UserFlows(SystemFlows):
                  " grouped by type.")
 
   def UserFilter(self, username):
-    return username not in aff4.GRRUser.SYSTEM_USERS
+    return username not in aff4_users.GRRUser.SYSTEM_USERS
 
 
 class UserFlows30(UserFlows):

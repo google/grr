@@ -28,6 +28,8 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 
+from grr.lib.aff4_objects import users as aff4_users
+
 from grr.lib.authorization import auth_manager
 
 LEGACY_RENDERERS_AUTH_MANAGER = None
@@ -103,9 +105,8 @@ def Homepage(request):
              "heading": config_lib.CONFIG["AdminUI.heading"],
              "report_url": config_lib.CONFIG["AdminUI.report_url"],
              "help_url": config_lib.CONFIG["AdminUI.help_url"],
-             "use_precompiled_js": config_lib.CONFIG[
-                 "AdminUI.use_precompiled_js"
-             ],
+             "use_precompiled_js":
+                 config_lib.CONFIG["AdminUI.use_precompiled_js"],
              "renderers_js": renderers_js_files,
              "timestamp": create_time}
   response = shortcuts.render_to_response(
@@ -287,7 +288,7 @@ def RenderHelp(request, path, document_root=None, content_type=None):
 
     settings = user_record.Get(user_record.Schema.GUI_SETTINGS)
   except IOError:
-    settings = aff4.GRRUser.SchemaCls.GUI_SETTINGS()
+    settings = aff4_users.GRRUser.SchemaCls.GUI_SETTINGS()
 
   if settings.docs_location == settings.DocsLocation.REMOTE:
     # Proxy remote documentation.

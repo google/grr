@@ -23,7 +23,6 @@ from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import throttle
-from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import collects as aff4_collections
 from grr.lib.flows.general import administrative
@@ -35,76 +34,6 @@ from grr.lib.hunts import standard_test
 from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
-
-
-class ApiGetFlowStatusHandlerTest(test_lib.GRRBaseTest):
-  """Test for ApiGetFlowStatusHandler."""
-
-  def setUp(self):
-    super(ApiGetFlowStatusHandlerTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
-    self.handler = flow_plugin.ApiGetFlowStatusHandler()
-
-  def testIsDisabledByDefault(self):
-    self.assertFalse(self.handler.enabled_by_default)
-
-  def testParameterValidation(self):
-    """Check bad parameters are rejected.
-
-    Make sure our input is validated because this API doesn't require
-    authorization.
-    """
-    bad_flowid = flow_plugin.ApiGetFlowStatusArgs(
-        client_id=self.client_id.Basename(),
-        flow_id="X:<script>")
-    with self.assertRaises(ValueError):
-      self.handler.Render(bad_flowid, token=self.token)
-
-    with self.assertRaises(type_info.TypeValueError):
-      flow_plugin.ApiGetFlowStatusArgs(client_id="C.123456<script>",
-                                       flow_id="X:1245678")
-
-
-class ApiGetFlowStatusHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest):
-  """Test flow status handler.
-
-  This handler is disabled by default in the ACLs so we need to do some
-  patching to get the proper output and not just "access denied".
-  """
-  handler = "ApiGetFlowStatusHandler"
-
-  def Run(self):
-    # Fix the time to avoid regressions.
-    with test_lib.FakeTime(42):
-      client_urn = self.SetupClients(1)[0]
-
-      # Delete the certificates as it's being regenerated every time the
-      # client is created.
-      with aff4.FACTORY.Open(client_urn, mode="rw",
-                             token=self.token) as client_obj:
-        client_obj.DeleteAttribute(client_obj.Schema.CERT)
-
-      flow_id = flow.GRRFlow.StartFlow(flow_name=discovery.Interrogate.__name__,
-                                       client_id=client_urn,
-                                       token=self.token)
-
-      # Put something in the output collection
-      flow_obj = aff4.FACTORY.Open(flow_id,
-                                   aff4_type=flow.GRRFlow.__name__,
-                                   token=self.token)
-      flow_state = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
-
-      with aff4.FACTORY.Create(
-          flow_state.context.output_urn,
-          aff4_type=aff4_collections.RDFValueCollection.__name__,
-          token=self.token) as collection:
-        collection.Add(rdf_client.ClientSummary())
-
-      self.Check("GET",
-                 "/api/flows/%s/%s/status" % (client_urn.Basename(),
-                                              flow_id.Basename()),
-                 replace={flow_id.Basename(): "F:ABCDEF12"})
 
 
 class ApiGetFlowHandlerRegressionTest(
@@ -134,11 +63,11 @@ class ApiGetFlowHandlerRegressionTest(
                  replace={flow_id.Basename(): "F:ABCDEF12"})
 
 
-class ApiListClientFlowsHandlerRegressionTest(
+class ApiListFlowsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Test client flows list handler."""
 
-  handler = "ApiListClientFlowsHandler"
+  handler = "ApiListFlowsHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -395,8 +324,7 @@ class ApiCreateFlowHandlerRegressionTest(
 
     with test_lib.FakeTime(42):
       self.Check("POST",
-                 "/api/clients/%s/flows" % self.client_id.Basename(),
-                 {"flow": {
+                 "/api/clients/%s/flows" % self.client_id.Basename(), {"flow": {
                      "name": processes.ListProcesses.__name__,
                      "args": {
                          "filename_regex": ".",
@@ -454,12 +382,12 @@ class ApiListFlowDescriptorsHandlerRegressionTest(
       self.Check("GET", "/api/flows/descriptors?flow_type=global")
 
 
-class ApiStartGetFileOperationHandlerRegressionTest(
+class ApiStartRobotGetFilesOperationHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
-  handler = "ApiStartGetFileOperationHandler"
+  handler = "ApiStartRobotGetFilesOperationHandler"
 
   def setUp(self):
-    super(ApiStartGetFileOperationHandlerRegressionTest, self).setUp()
+    super(ApiStartRobotGetFilesOperationHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
@@ -473,37 +401,137 @@ class ApiStartGetFileOperationHandlerRegressionTest(
 
     with test_lib.FakeTime(42):
       self.Check("POST",
-                 "/api/clients/%s/flows/remotegetfile" %
-                 self.client_id.Basename(),
+                 "/api/robot-actions/get-files",
                  {"hostname": self.client_id.Basename(),
                   "paths": ["/tmp/test"]},
                  replace=ReplaceFlowId)
 
 
-class ApiStartGetFileOperationHandlerTest(test_lib.GRRBaseTest):
-  """Test for ApiStartGetFileOperationHandler."""
+class ApiStartRobotGetFilesOperationHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiStartRobotGetFilesOperationHandler."""
 
   def setUp(self):
-    super(ApiStartGetFileOperationHandlerTest, self).setUp()
+    super(ApiStartRobotGetFilesOperationHandlerTest, self).setUp()
     self.client_ids = self.SetupClients(4)
-    self.handler = flow_plugin.ApiStartGetFileOperationHandler()
+    self.handler = flow_plugin.ApiStartRobotGetFilesOperationHandler()
 
   def testClientLookup(self):
     """When multiple clients match, check we run on the latest one."""
-    args = flow_plugin.ApiStartGetFileOperationArgs(hostname="Host",
-                                                    paths=["/test"])
-    result = self.handler.Render(args, token=self.token)
-    self.assertIn("C.1000000000000003", result["status_url"])
+    args = flow_plugin.ApiStartRobotGetFilesOperationArgs(hostname="Host",
+                                                          paths=["/test"])
+    result = self.handler.Handle(args, token=self.token)
+    # Here we exploit the fact that operation_id is effectively a flow URN.
+    self.assertIn("C.1000000000000003", result.operation_id)
 
   def testThrottle(self):
     """Calling the same flow should raise."""
-    args = flow_plugin.ApiStartGetFileOperationArgs(hostname="Host",
-                                                    paths=["/test"])
-    result = self.handler.Render(args, token=self.token)
-    self.assertIn("C.1000000000000003", result["status_url"])
+    args = flow_plugin.ApiStartRobotGetFilesOperationArgs(hostname="Host",
+                                                          paths=["/test"])
+    self.handler.Handle(args, token=self.token)
 
     with self.assertRaises(throttle.ErrorFlowDuplicate):
-      self.handler.Render(args, token=self.token)
+      self.handler.Handle(args, token=self.token)
+
+
+class ApiGetRobotGetFilesOperationStateHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiGetRobotGetFilesOperationStateHandler."""
+
+  def setUp(self):
+    super(ApiGetRobotGetFilesOperationStateHandlerTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+    self.handler = flow_plugin.ApiGetRobotGetFilesOperationStateHandler()
+
+  def testValidatesFlowId(self):
+    """Check bad flows id is rejected.
+
+    Make sure our input is validated because this API doesn't require
+    authorization.
+    """
+    bad_opid = flow_plugin.ApiGetRobotGetFilesOperationStateArgs(
+        operation_id=utils.SmartUnicode(self.client_id.Add("flows").Add(
+            "X:<script>")))
+    with self.assertRaises(ValueError):
+      self.handler.Handle(bad_opid, token=self.token)
+
+  def testValidatesClientId(self):
+    """Check bad client id is rejected.
+
+    Make sure our input is validated because this API doesn't require
+    authorization.
+    """
+    bad_opid = flow_plugin.ApiGetRobotGetFilesOperationStateArgs(
+        operation_id="aff4:/C.1234546<script>/flows/X:12345678")
+    with self.assertRaises(ValueError):
+      self.handler.Handle(bad_opid, token=self.token)
+
+  def testRaisesIfNoFlowIsFound(self):
+    bad_opid = flow_plugin.ApiGetRobotGetFilesOperationStateArgs(
+        operation_id=utils.SmartUnicode(self.client_id.Add("flows").Add(
+            "X:123456")))
+    with self.assertRaises(flow_plugin.RobotGetFilesOperationNotFoundError):
+      self.handler.Handle(bad_opid, token=self.token)
+
+  def testRaisesIfFlowIsNotFileFinder(self):
+    flow_id = flow.GRRFlow.StartFlow(flow_name=processes.ListProcesses.__name__,
+                                     client_id=self.client_id,
+                                     token=self.token)
+
+    bad_opid = flow_plugin.ApiGetRobotGetFilesOperationStateArgs(
+        operation_id=utils.SmartUnicode(flow_id))
+    with self.assertRaises(flow_plugin.RobotGetFilesOperationNotFoundError):
+      self.handler.Handle(bad_opid, token=self.token)
+
+  def testReturnsCorrectResultIfFlowIsFileFinder(self):
+    flow_id = flow.GRRFlow.StartFlow(flow_name=file_finder.FileFinder.__name__,
+                                     paths=["/*"],
+                                     client_id=self.client_id,
+                                     token=self.token)
+
+    opid = flow_plugin.ApiGetRobotGetFilesOperationStateArgs(
+        operation_id=utils.SmartUnicode(flow_id))
+    result = self.handler.Handle(opid, token=self.token)
+    self.assertEqual(result.state, "RUNNING")
+    self.assertEqual(result.result_count, 0)
+
+
+class ApiGetRobotGetFilesOperationStateHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Test flow status handler.
+
+  This handler is disabled by default in the ACLs so we need to do some
+  patching to get the proper output and not just "access denied".
+  """
+  handler = "ApiGetRobotGetFilesOperationStateHandler"
+
+  def Run(self):
+    # Fix the time to avoid regressions.
+    with test_lib.FakeTime(42):
+      self.SetupClients(1)
+
+      start_handler = flow_plugin.ApiStartRobotGetFilesOperationHandler()
+      start_args = flow_plugin.ApiStartRobotGetFilesOperationArgs(
+          hostname="Host", paths=["/test"])
+      start_result = start_handler.Handle(start_args, token=self.token)
+
+      # Exploit the fact that 'get files' operation id is effectively a flow
+      # URN.
+      flow_urn = rdfvalue.RDFURN(start_result.operation_id)
+
+      # Put something in the output collection
+      flow_obj = aff4.FACTORY.Open(flow_urn,
+                                   aff4_type=flow.GRRFlow.__name__,
+                                   token=self.token)
+      flow_state = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
+
+      with aff4.FACTORY.Create(
+          flow_state.context.output_urn,
+          aff4_type=aff4_collections.RDFValueCollection.__name__,
+          token=self.token) as collection:
+        collection.Add(rdf_client.ClientSummary())
+
+      self.Check("GET",
+                 "/api/robot-actions/get-files/%s" % start_result.operation_id,
+                 replace={flow_urn.Basename(): "F:ABCDEF12"})
 
 
 class ApiGetFlowFilesArchiveHandlerTest(test_lib.GRRBaseTest):

@@ -4,6 +4,7 @@
 
 from grr.endtoend_tests import base
 from grr.lib import aff4
+from grr.lib.aff4_objects import collects
 from grr.lib.checks import checks as rdf_checks
 
 
@@ -19,7 +20,7 @@ class TestCheckRunner(base.AutomatedTest):
   def CheckFlow(self):
     urn = self.client_id.Add(self.test_output_path)
     results = aff4.FACTORY.Open(urn, mode="r", token=self.token)
-    self.assertIsInstance(results, aff4.RDFValueCollection)
+    self.assertIsInstance(results, collects.RDFValueCollection)
     checks_run = [r.check_id for r in results
                   if isinstance(r, rdf_checks.CheckResult)]
     # Verify the expected checks were run.

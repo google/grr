@@ -85,7 +85,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     self.delegate_mock.reset_mock()
     self.legacy_manager_mock.reset_mock()
 
-  ACCESS_CHECKED_METHODS.extend(["InterrogateClient"])
+  ACCESS_CHECKED_METHODS.extend([
+      "InterrogateClient"])  # pyformat: disable
 
   def testClientMethodsAreAccessChecked(self):
     args = api_client.ApiInterrogateClientArgs(client_id=self.client_id)
@@ -95,8 +96,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
 
   ACCESS_CHECKED_METHODS.extend([
       "CreateVfsRefreshOperation",
+      "ListFiles",
       "GetFileDetails",
-      "GetFileList",
       "GetFileText",
       "GetFileBlob",
       "GetFileVersionTimes",
@@ -108,13 +109,13 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
   ])  # pyformat: disable
 
   def testVfsMethodsAreAccessChecked(self):
-    args = api_vfs.ApiGetFileDetailsArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(self.router.GetFileDetails,
+    args = api_vfs.ApiListFilesArgs(client_id=self.client_id)
+    self.CheckMethodIsAccessChecked(self.router.ListFiles,
                                     "CheckClientAccess",
                                     args=args)
 
-    args = api_vfs.ApiGetFileListArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(self.router.GetFileList,
+    args = api_vfs.ApiGetFileDetailsArgs(client_id=self.client_id)
+    self.CheckMethodIsAccessChecked(self.router.GetFileDetails,
                                     "CheckClientAccess",
                                     args=args)
 
@@ -159,7 +160,7 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
                                     args=args)
 
   ACCESS_CHECKED_METHODS.extend([
-      "ListClientFlows",
+      "ListFlows",
       "GetFlow",
       "CreateFlow",
       "CancelFlow",
@@ -173,8 +174,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
   ])  # pyformat: disable
 
   def testAllClientFlowsMethodsAreAccessChecked(self):
-    args = api_flow.ApiListClientFlowsArgs(client_id=self.client_id)
-    self.CheckMethodIsAccessChecked(self.router.ListClientFlows,
+    args = api_flow.ApiListFlowsArgs(client_id=self.client_id)
+    self.CheckMethodIsAccessChecked(self.router.ListFlows,
                                     "CheckClientAccess",
                                     args=args)
 
@@ -231,7 +232,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
                                     "CheckClientAccess",
                                     args=args)
 
-  ACCESS_CHECKED_METHODS.extend(["CreateGlobalFlow"])
+  ACCESS_CHECKED_METHODS.extend([
+      "CreateGlobalFlow"])  # pyformat: disable
 
   def testAllGlobalFlowsMethodsAreAccessChecked(self):
     args = api_flow.ApiCreateFlowArgs(
@@ -240,7 +242,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
                                     "CheckIfCanStartFlow",
                                     args=args)
 
-  ACCESS_CHECKED_METHODS.extend(["DeleteCronJob"])
+  ACCESS_CHECKED_METHODS.extend([
+      "DeleteCronJob"])  # pyformat: disable
 
   def testCronJobMethodsAreAccessChecked(self):
     args = api_cron.ApiDeleteCronJobArgs(cron_job_id="TestCronJob")
@@ -248,7 +251,9 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
                                     "CheckCronJobAccess",
                                     args=args)
 
-  ACCESS_CHECKED_METHODS.extend(["GetHuntFilesArchive", "GetHuntFile"])
+  ACCESS_CHECKED_METHODS.extend([
+      "GetHuntFilesArchive",
+      "GetHuntFile"])  # pyformat: disable
 
   def testGetHuntFilesArchiveIsAccessChecked(self):
     args = api_hunt.ApiGetHuntFilesArchiveArgs(hunt_id="H:123456")
@@ -262,14 +267,16 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
                                     "CheckHuntAccess",
                                     args=args)
 
-  ACCESS_CHECKED_METHODS.extend(["StartGetFileOperation", "GetFlowStatus"])
+  ACCESS_CHECKED_METHODS.extend([
+      "StartRobotGetFilesOperation",
+      "GetRobotGetFilesOperationState"])  # pyformat: disable
 
   def testRobotMethodsAreRejected(self):
     with self.assertRaises(access_control.UnauthorizedAccess):
-      self.router.StartGetFileOperation(None, token=self.token)
+      self.router.StartRobotGetFilesOperation(None, token=self.token)
 
     with self.assertRaises(access_control.UnauthorizedAccess):
-      self.router.GetFlowStatus(None, token=self.token)
+      self.router.GetRobotGetFilesOperationState(None, token=self.token)
 
   def testAllOtherMethodsAreNotAccessChecked(self):
     unchecked_methods = (set(self.router.__class__.GetAnnotatedMethods().keys())
@@ -291,12 +298,13 @@ class ApiCallRouterWithApprovalChecksWithRobotAccessTest(test_lib.GRRBaseTest):
         delegate=self.delegate_mock)
 
   def testRobotMethodsAreNotChecked(self):
-    self.router.StartGetFileOperation(None, token=self.token)
-    self.delegate_mock.StartGetFileOperation.assert_called_with(
+    self.router.StartRobotGetFilesOperation(None, token=self.token)
+    self.delegate_mock.StartRobotGetFilesOperation.assert_called_with(
         None, token=self.token)
 
-    self.router.GetFlowStatus(None, token=self.token)
-    self.delegate_mock.GetFlowStatus.assert_called_with(None, token=self.token)
+    self.router.GetRobotGetFilesOperationState(None, token=self.token)
+    self.delegate_mock.GetRobotGetFilesOperationState.assert_called_with(
+        None, token=self.token)
 
 
 def main(argv):

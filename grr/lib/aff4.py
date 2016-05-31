@@ -472,16 +472,14 @@ class Factory(object):
           dirname, ["index:dir/%s" % utils.SmartStr(basename)],
           token=token,
           sync=False)
-      data_store.DB.MultiSet(
-          dirname,
-          {
-              AFF4Object.SchemaCls.LAST: [
-                  rdfvalue.RDFDatetime().Now().SerializeToDataStore()
-              ],
-          },
-          token=token,
-          replace=True,
-          sync=False)
+      data_store.DB.MultiSet(dirname, {
+          AFF4Object.SchemaCls.LAST: [
+              rdfvalue.RDFDatetime().Now().SerializeToDataStore()
+          ],
+      },
+                             token=token,
+                             replace=True,
+                             sync=False)
 
     except access_control.UnauthorizedAccess:
       pass
@@ -1824,8 +1822,9 @@ class AFF4Object(object):
             pass
         else:
           # Populate the caches from the data store.
-          for urn, values in FACTORY.GetAttributes(
-              [urn], age=age, token=self.token):
+          for urn, values in FACTORY.GetAttributes([urn],
+                                                   age=age,
+                                                   token=self.token):
             for attribute_name, value, ts in values:
               self.DecodeValueFromAttribute(attribute_name, value, ts)
 
@@ -2383,14 +2382,6 @@ class AFF4Object(object):
   def GetLabelsNames(self, owner=None):
     labels = self.Get(self.Schema.LABELS, aff4_rdfvalues.AFF4ObjectLabelsList())
     return labels.GetLabelNames(owner=owner)
-
-# This will register all classes into this modules's namespace regardless of
-# where they are defined. This allows us to decouple the place of definition of
-# a class (which might be in a plugin) from its use which will reference this
-# module.
-#
-# TODO(user): Remove this.
-AFF4Object.classes = globals()
 
 
 class AttributeExpression(lexer.Expression):

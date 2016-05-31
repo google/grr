@@ -11,6 +11,7 @@ from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.flows.cron import system
 from grr.lib.flows.general import endtoend as endtoend_flows
 from grr.lib.flows.general import endtoend_test
@@ -77,7 +78,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     for _ in test_lib.TestFlowHelper("GRRVersionBreakDown", token=self.token):
       pass
 
-    histogram = aff4.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM
+    histogram = aff4_stats.ClientFleetStats.SchemaCls.GRRVERSION_HISTOGRAM
     self._CheckVersionStats("All", histogram, [0, 0, 20, 20])
     self._CheckVersionStats("Label1", histogram, [0, 0, 10, 10])
     self._CheckVersionStats("Label2", histogram, [0, 0, 10, 10])
@@ -124,7 +125,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     for _ in test_lib.TestFlowHelper("OSBreakDown", token=self.token):
       pass
 
-    histogram = aff4.ClientFleetStats.SchemaCls.OS_HISTOGRAM
+    histogram = aff4_stats.ClientFleetStats.SchemaCls.OS_HISTOGRAM
     self._CheckOSStats("All", histogram, [0, 0, {"Linux": 10,
                                                  "Windows": 10},
                                           {"Linux": 10,
@@ -241,9 +242,9 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
                                          token=self.token):
           pass
 
-      test_lib.TestHuntHelperWithMultipleMocks(
-          {}, check_flow_errors=False,
-          token=self.token)
+      test_lib.TestHuntHelperWithMultipleMocks({},
+                                               check_flow_errors=False,
+                                               token=self.token)
       hunt_ids = list(aff4.FACTORY.Open("aff4:/hunts",
                                         token=self.token).ListChildren())
       # We have only created one hunt, and we should have started with a clean
@@ -287,10 +288,12 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     # All clients succeeded
     endtoend.state.Register("client_ids_failures", set())
     endtoend.state.Register("client_ids_result_reported", set())
-    endtoend._CheckForSuccess([self._CreateResult(
-        True, "aff4:/C.6000000000000000"), self._CreateResult(
-            True, "aff4:/C.6000000000000001"), self._CreateResult(
-                True, "aff4:/C.6000000000000002")])
+    endtoend._CheckForSuccess([self._CreateResult(True,
+                                                  "aff4:/C.6000000000000000"),
+                               self._CreateResult(True,
+                                                  "aff4:/C.6000000000000001"),
+                               self._CreateResult(True,
+                                                  "aff4:/C.6000000000000002")])
 
     # All clients complete, but some failures
     endtoend.state.Register("client_ids_failures", set())

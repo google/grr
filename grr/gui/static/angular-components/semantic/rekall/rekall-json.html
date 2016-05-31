@@ -1,0 +1,19 @@
+{$ ::controller.error $}
+
+<div ng-repeat="item in controller.state" ng-switch="::item[0]">
+  <span ng-switch-when="L">
+    <grr-rekall-log value="::item[1]"></grr-rekall-log>
+  </span>
+  <span ng-switch-when="m">
+    <grr-rekall-metadata value="::item[1]"></grr-rekall-metadata>
+  </span>
+  <span ng-switch-when="t">
+    <grr-rekall-table value="::item[1]"></grr-rekall-table>
+  </span>
+  <span ng-switch-when="x">EOM</span>
+  <span ng-switch-default>{$ ::item $}</span>
+</div>
+
+<a ng-if="controller.renderIncomplete" ng-click="controller.onClick($event)">
+  Render all the data... (May take a while)
+</a>

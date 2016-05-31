@@ -629,8 +629,9 @@ class Duration(RDFInteger):
   """Duration value stored in seconds internally."""
   data_store_type = "unsigned_integer"
 
-  DIVIDERS = collections.OrderedDict((("w", 60 * 60 * 24 * 7), (
-      "d", 60 * 60 * 24), ("h", 60 * 60), ("m", 60), ("s", 1)))
+  DIVIDERS = collections.OrderedDict((
+      ("w", 60 * 60 * 24 * 7), ("d", 60 * 60 * 24), ("h", 60 * 60), ("m", 60),
+      ("s", 1)))
 
   def __init__(self, initializer=None, age=None):
     super(Duration, self).__init__(None, age)
@@ -1073,12 +1074,18 @@ class SessionID(RDFURN):
         initializer = RDFURN(base).Add("%s:%X" % (queue.Basename(), flow_name))
       else:
         initializer = RDFURN(base).Add("%s:%s" % (queue.Basename(), flow_name))
-    elif isinstance(initializer, RDFURN):
-      try:
-        self.ValidateID(initializer.Basename())
-      except ValueError as e:
-        raise InitializeError("Invalid URN for SessionID: %s, %s" %
-                              (initializer, e.message))
+    else:
+      # TODO(user): Uncomment and make all the tests pass.
+      # if isinstance(initializer, (basestring, RDFString)):
+      #   initializer = RDFURN(initializer)
+
+      if isinstance(initializer, RDFURN):
+        try:
+          self.ValidateID(initializer.Basename())
+        except ValueError as e:
+          raise InitializeError("Invalid URN for SessionID: %s, %s" %
+                                (initializer, e.message))
+
     super(SessionID, self).__init__(initializer=initializer, age=age)
 
   def Queue(self):

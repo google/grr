@@ -22,6 +22,7 @@ from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import users
 from grr.lib.hunts import implementation as hunts_implementation
 from grr.lib.rdfvalues import client as rdf_client
@@ -44,9 +45,9 @@ def SearchClients(query_str, token=None, limit=1000):
   result_set = aff4.FACTORY.MultiOpen(client_list, token=token)
   results = []
   for result in result_set:
-    results.append((result, str(result.Get(client_schema.HOSTNAME)), str(
-        result.Get(client_schema.OS_VERSION)), str(result.Get(
-            client_schema.PING))))
+    results.append((result, str(result.Get(client_schema.HOSTNAME)),
+                    str(result.Get(client_schema.OS_VERSION)),
+                    str(result.Get(client_schema.PING))))
     if len(results) >= limit:
       break
 
@@ -212,9 +213,9 @@ def ApprovalFind(object_id, token=None):
   user = getpass.getuser()
   object_id = rdfvalue.RDFURN(object_id)
   try:
-    approved_token = aff4.Approval.GetApprovalForObject(object_id,
-                                                        token=token,
-                                                        username=user)
+    approved_token = security.Approval.GetApprovalForObject(object_id,
+                                                            token=token,
+                                                            username=user)
     print "Found token %s" % str(approved_token)
     return approved_token
   except access_control.UnauthorizedAccess:

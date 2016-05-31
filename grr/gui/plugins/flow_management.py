@@ -17,6 +17,7 @@ from grr.lib import flow_runner
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import file_finder as flows_file_finder
 from grr.lib.flows.general import registry as flows_registry
 from grr.lib.rdfvalues import client as rdf_client
@@ -100,7 +101,7 @@ class FlowTree(renderers.TreeRenderer):
 
       user_preferences = user_record.Get(user_record.Schema.GUI_SETTINGS)
     except IOError:
-      user_preferences = aff4.GRRUser.SchemaCls.GUI_SETTINGS()
+      user_preferences = aff4_users.GRRUser.SchemaCls.GUI_SETTINGS()
 
     flow_behaviors_to_render = (
         self.flow_behaviors_to_render + user_preferences.mode)
@@ -199,8 +200,8 @@ Prototype: {{ this.prototype|escape }}
           func_doc = state_method.func_doc.split("\n")[0].strip()
         except AttributeError:
           func_doc = ""
-        self.states.append((state_method.func_name, func_doc, ", ".join(
-            next_states)))
+        self.states.append((state_method.func_name, func_doc,
+                            ", ".join(next_states)))
       except AttributeError:
         pass
 
