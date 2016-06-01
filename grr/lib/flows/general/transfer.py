@@ -502,7 +502,7 @@ class MultiGetFileMixin(object):
 
         # Create a file in the client name space with the same classtype and
         # populate its attributes.
-        file_tracker.CreateVFSFile(existing_blob.__class__.__name__,
+        file_tracker.CreateVFSFile(existing_blob.__class__,
                                    token=self.token,
                                    chunksize=self.CHUNK_SIZE)
 
@@ -926,7 +926,7 @@ class LoadComponentMixin(object):
 
     try:
       fd = aff4.FACTORY.Open(component_urn,
-                             aff4_type="ComponentObject",
+                             aff4_type=collects.ComponentObject,
                              mode="r",
                              token=self.token)
     except IOError as e:

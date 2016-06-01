@@ -143,7 +143,7 @@ setup_args = dict(
     url="https://github.com/google/grr",
     data_files=(find_data_files(
         "components", prefix="grr-response-templates") + find_data_files(
-            "templates", prefix="grr-response-templates")),
+            "templates", prefix="grr-response-templates") + ["version.ini"]),
     cmdclass={
         "sdist": Sdist,
     })

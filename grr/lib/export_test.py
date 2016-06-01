@@ -26,6 +26,7 @@ from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import transfer
 # pylint: enable=unused-import
+from grr.lib.hunts import results as hunts_results
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -138,12 +139,14 @@ class ExportTest(test_lib.GRRBaseTest):
     result = list(export.ConvertValues(export.ExportedMetadata(), [dummy_value
                                                                   ]))
     self.assertEqual(len(result), 2)
-    self.assertTrue((isinstance(result[0], DummyRDFValue) and isinstance(result[
-        1], DummyRDFValue2)) or (isinstance(result[0], DummyRDFValue2) and
-                                 isinstance(result[1], DummyRDFValue)))
-    self.assertTrue((result[0] == DummyRDFValue("someA") and result[1] ==
-                     DummyRDFValue2("someB")) or (result[0] == DummyRDFValue2(
-                         "someB") and result[1] == DummyRDFValue("someA")))
+    self.assertTrue((isinstance(result[0], DummyRDFValue) and
+                     isinstance(result[1], DummyRDFValue2)) or
+                    (isinstance(result[0], DummyRDFValue2) and
+                     isinstance(result[1], DummyRDFValue)))
+    self.assertTrue((result[0] == DummyRDFValue("someA") and
+                     result[1] == DummyRDFValue2("someB")) or
+                    (result[0] == DummyRDFValue2("someB") and
+                     result[1] == DummyRDFValue("someA")))
 
   def _ConvertsCollectionWithValuesWithSingleConverter(self, coll_type):
     fd = aff4.FACTORY.Create("aff4:/testcoll", coll_type, token=self.token)
@@ -171,7 +174,7 @@ class ExportTest(test_lib.GRRBaseTest):
 
   def testConvertsHuntResultCollectionWithValuesWithSingleConverter(self):
     self._ConvertsCollectionWithValuesWithSingleConverter(
-        "HuntResultCollection")
+        hunts_results.HuntResultCollection)
 
   def testConvertsRDFValueCollectionWithValuesWithSingleConverter(self):
     self._ConvertsCollectionWithValuesWithSingleConverter(
@@ -199,18 +202,17 @@ class ExportTest(test_lib.GRRBaseTest):
     results = sorted(results, key=str)
 
     self.assertEqual(len(results), 4)
-    self.assertEqual(
-        [str(v) for v in results if isinstance(v, DummyRDFValue)],
-        ["some1A", "some2A"])
-    self.assertEqual(
-        [str(v) for v in results if isinstance(v, DummyRDFValue2)],
-        ["some1B", "some2B"])
+    self.assertEqual([str(v) for v in results if isinstance(v, DummyRDFValue)],
+                     ["some1A", "some2A"])
+    self.assertEqual([str(v) for v in results if isinstance(v, DummyRDFValue2)],
+                     ["some1B", "some2B"])
 
   def testConvertsRDFValueCollectionWithValuesWithMultipleConverters(self):
     self._ConvertsCollectionWithMultipleConverters(collects.RDFValueCollection)
 
   def testConvertsHuntResultCollectionWithValuesWithMultipleConverters(self):
-    self._ConvertsCollectionWithMultipleConverters("HuntResultCollection")
+    self._ConvertsCollectionWithMultipleConverters(
+        hunts_results.HuntResultCollection)
 
   def testStatEntryToExportedFileConverterWithMissingAFF4File(self):
     stat = rdf_client.StatEntry(
@@ -841,15 +843,15 @@ class ExportTest(test_lib.GRRBaseTest):
     metadata = export.ExportedMetadata(client_urn="C.0000000000000001")
 
     converter = export.FileFinderResultConverter()
-    results = list(converter.BatchConvert(
-        [(metadata, file_finder_result), (metadata, file_finder_result2)],
-        token=self.token))
+    results = list(converter.BatchConvert([(metadata, file_finder_result), (
+        metadata, file_finder_result2)],
+                                          token=self.token))
 
     exported_files = [result for result in results
                       if isinstance(result, export.ExportedFile)]
     self.assertEqual(len(exported_files), 2)
-    self.assertItemsEqual(
-        [x.basename for x in exported_files], ["path", "path2"])
+    self.assertItemsEqual([x.basename for x in exported_files],
+                          ["path", "path2"])
 
     for export_result in exported_files:
       if export_result.basename == "path":
@@ -965,9 +967,9 @@ class ExportTest(test_lib.GRRBaseTest):
 
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(3):
-      results = list(converter.BatchConvert(
-          [(metadata1, msg1), (metadata2, msg2)],
-          token=self.token))
+      results = list(converter.BatchConvert([(metadata1, msg1), (metadata2, msg2
+                                                                )],
+                                            token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].original_timestamp,
@@ -996,15 +998,14 @@ class ExportTest(test_lib.GRRBaseTest):
 
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(3):
-      results = list(converter.BatchConvert(
-          [(metadata1, msg1), (metadata2, msg2)],
-          token=self.token))
+      results = list(converter.BatchConvert([(metadata1, msg1), (metadata2, msg2
+                                                                )],
+                                            token=self.token))
 
     self.assertEqual(len(results), 3)
     # RDFValue3 gets converted to RDFValue2 and RDFValue, RDFValue5 stays at 5.
-    self.assertItemsEqual(
-        ["DummyRDFValue2", "DummyRDFValue", "DummyRDFValue5"],
-        [x.__class__.__name__ for x in results])
+    self.assertItemsEqual(["DummyRDFValue2", "DummyRDFValue", "DummyRDFValue5"],
+                          [x.__class__.__name__ for x in results])
 
   def testDNSClientConfigurationToExportedDNSClientConfiguration(self):
     dns_servers = ["192.168.1.1", "8.8.8.8"]
@@ -1186,16 +1187,16 @@ class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):
     converted_value = self.ConvertOriginalValue(original_value)
 
     # No 'metadata' field in the original value.
-    self.assertItemsEqual(
-        [t.name for t in original_value.type_infos],
-        ["string_value", "int_value", "bool_value", "repeated_string_value",
-         "message_value", "enum_value", "another_enum_value", "urn_value",
-         "datetime_value"])
+    self.assertItemsEqual([t.name for t in original_value.type_infos],
+                          ["string_value", "int_value", "bool_value",
+                           "repeated_string_value", "message_value",
+                           "enum_value", "another_enum_value", "urn_value",
+                           "datetime_value"])
     # But there's one in the converted value.
-    self.assertItemsEqual(
-        [t.name for t in converted_value.type_infos],
-        ["metadata", "string_value", "int_value", "bool_value", "enum_value",
-         "another_enum_value", "urn_value", "datetime_value"])
+    self.assertItemsEqual([t.name for t in converted_value.type_infos],
+                          ["metadata", "string_value", "int_value",
+                           "bool_value", "enum_value", "another_enum_value",
+                           "urn_value", "datetime_value"])
 
     # Metadata value is correctly initialized from user-supplied metadata.
     self.assertEqual(converted_value.metadata.source_urn,
@@ -1206,8 +1207,8 @@ class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):
                                                                 value="value")
     converted_value = self.ConvertOriginalValue(original_value)
 
-    self.assertItemsEqual(
-        [t.name for t in converted_value.type_infos], ["metadata", "value"])
+    self.assertItemsEqual([t.name for t in converted_value.type_infos],
+                          ["metadata", "value"])
     self.assertEqual(converted_value.metadata.source_urn,
                      rdfvalue.RDFURN("aff4:/foo"))
     self.assertEqual(converted_value.value, "value")
@@ -1289,8 +1290,8 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
 
   def testSingleTableIsExported(self):
     self.renderer.start(plugin_name="sample")
-    self.renderer.table_header([("Offset", "offset", ""), ("Hex", "hex", ""), (
-        "Data", "data", "")])
+    self.renderer.table_header([("Offset", "offset", ""), ("Hex", "hex", ""),
+                                ("Data", "data", "")])
 
     self.renderer.table_row(42, "0x0", "data")
     self.renderer.flush()
@@ -1311,8 +1312,8 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
 
   def testCurrentSectionNameIsNotExportedWhenNotPresent(self):
     self.renderer.start(plugin_name="sample")
-    self.renderer.table_header([("Offset", "offset", ""), ("Hex", "hex", ""), (
-        "Data", "data", "")])
+    self.renderer.table_header([("Offset", "offset", ""), ("Hex", "hex", ""),
+                                ("Data", "data", "")])
 
     self.renderer.table_row(42, "0x0", "data")
     self.renderer.flush()
@@ -1327,8 +1328,8 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
   def testCurrentSectionNameIsExportedWhenPresent(self):
     self.renderer.start(plugin_name="sample")
     self.renderer.section(name="some section")
-    self.renderer.table_header([("Offset", "offset", ""), ("Hex", "hex", ""), (
-        "Data", "data", "")])
+    self.renderer.table_header([("Offset", "offset", ""), ("Hex", "hex", ""),
+                                ("Data", "data", "")])
 
     self.renderer.table_row(42, "0x0", "data")
     self.renderer.flush()
@@ -1342,12 +1343,12 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
 
   def testTwoTablesAreExportedUsingValuesOfTheSameClass(self):
     self.renderer.start(plugin_name="sample")
-    self.renderer.table_header([("Offset", "offset", ""), ("Hex", "hex", ""), (
-        "Data", "data", "")])
+    self.renderer.table_header([("Offset", "offset", ""), ("Hex", "hex", ""),
+                                ("Data", "data", "")])
 
     self.renderer.table_row(42, "0x0", "data")
-    self.renderer.table_header([("Offset", "offset", ""), ("Hex", "hex", ""), (
-        "Data", "data", "")])
+    self.renderer.table_header([("Offset", "offset", ""), ("Hex", "hex", ""),
+                                ("Data", "data", "")])
 
     self.renderer.table_row(43, "0x1", "otherdata")
     self.renderer.flush()
@@ -1372,14 +1373,14 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
   def testTwoTablesHaveProperSectionNamesSet(self):
     self.renderer.start(plugin_name="sample")
     self.renderer.section(name="some section")
-    self.renderer.table_header([("Offset", "offset", ""), ("Hex", "hex", ""), (
-        "Data", "data", "")])
+    self.renderer.table_header([("Offset", "offset", ""), ("Hex", "hex", ""),
+                                ("Data", "data", "")])
 
     self.renderer.table_row(42, "0x0", "data")
 
     self.renderer.section(name="some other section")
-    self.renderer.table_header([("Offset", "offset", ""), ("Hex", "hex", ""), (
-        "Data", "data", "")])
+    self.renderer.table_header([("Offset", "offset", ""), ("Hex", "hex", ""),
+                                ("Data", "data", "")])
 
     self.renderer.table_row(43, "0x1", "otherdata")
     self.renderer.flush()

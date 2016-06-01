@@ -19,9 +19,7 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rekall_profile_server
 
-# For RekallResponseCollection pylint: disable=unused-import
 from grr.lib.aff4_objects import aff4_rekall
-# pylint: enable=unused-import
 
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import transfer
@@ -146,10 +144,11 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
   def StartAnalysis(self, responses):
     # Our output collection is a RekallResultCollection.
     if self.runner.output is not None:
-      self.runner.output = aff4.FACTORY.Create(self.runner.output.urn,
-                                               "RekallResponseCollection",
-                                               mode="rw",
-                                               token=self.token)
+      self.runner.output = aff4.FACTORY.Create(
+          self.runner.output.urn,
+          aff4_rekall.RekallResponseCollection,
+          mode="rw",
+          token=self.token)
 
     self.state.Register("rekall_context_messages", {})
     self.state.Register("output_files", [])

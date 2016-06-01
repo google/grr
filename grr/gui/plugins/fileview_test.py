@@ -15,6 +15,7 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -166,8 +167,8 @@ class TestFileView(FileViewTestBase):
     self.Click("link=Downloads")
 
     # Verify that we have the latest version in the table by default.
-    self.assertTrue(DateString(TIME_2) in self.GetText(
-        "css=tr:contains(\"a.txt\")"))
+    self.assertTrue(
+        DateString(TIME_2) in self.GetText("css=tr:contains(\"a.txt\")"))
 
     # Click on the row.
     self.Click("css=tr:contains(\"a.txt\")")
@@ -677,7 +678,7 @@ class TestTimeline(FileViewTestBase):
     # this will result in three timeline items.
     with test_lib.FakeTime(TIME_0):
       with aff4.FACTORY.Create(file_path,
-                               "VFSAnalysisFile",
+                               aff4_grr.VFSAnalysisFile,
                                mode="w",
                                token=token) as fd:
         stats = rdf_client.StatEntry(
@@ -689,7 +690,7 @@ class TestTimeline(FileViewTestBase):
     # Add a version with a stat entry, but without timestamps.
     with test_lib.FakeTime(TIME_1):
       with aff4.FACTORY.Create(file_path,
-                               "VFSAnalysisFile",
+                               aff4_grr.VFSAnalysisFile,
                                mode="w",
                                token=token) as fd:
         stats = rdf_client.StatEntry(st_ino=99)

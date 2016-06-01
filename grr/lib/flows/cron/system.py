@@ -119,7 +119,7 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
     if label not in self.stats:
       self.stats[label] = aff4.FACTORY.Create(
           self.CLIENT_STATS_URN.Add(label),
-          "ClientFleetStats",
+          aff4_stats.ClientFleetStats,
           mode="w",
           token=self.token)
     return self.stats[label]
@@ -286,7 +286,6 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
         client_limit=0,
         flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="Interrogate"),
         flow_args=flows_discovery.InterrogateArgs(lightweight=False),
-        regex_rules=[],
         output_plugins=self.GetOutputPlugins(),
         token=self.token) as hunt:
 
@@ -330,7 +329,6 @@ class StatsHuntCronFlow(cronjobs.SystemCronFlow):
     with hunts.GRRHunt.StartHunt(hunt_name="StatsHunt",
                                  client_limit=0,
                                  output_plugins=self.GetOutputPlugins(),
-                                 regex_rules=[],
                                  token=self.token) as hunt:
 
       runner = hunt.GetRunner()
@@ -372,11 +370,6 @@ class PurgeClientStats(cronjobs.SystemCronFlow):
       self.HeartBeat()
 
 
-def GetSystemForemanRule(os_string):
-  return rdf_foreman.ForemanAttributeRegex(attribute_name="System",
-                                           attribute_regex=os_string)
-
-
 class EndToEndTests(cronjobs.SystemCronFlow):
   """Runs end-to-end tests on designated clients.
 
@@ -415,9 +408,15 @@ class EndToEndTests(cronjobs.SystemCronFlow):
         args=flows_endtoend.EndToEndTestFlowArgs(),
         runner_args=runner_args)
 
-    bogus_rule = rdf_foreman.ForemanAttributeRegex(
+    bogus_rule = rdf_foreman.ForemanRegexClientRule(
         attribute_name="System",
         attribute_regex="Does not match anything")
+
+    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+        rdf_foreman.ForemanClientRule(
+            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+            regex=bogus_rule)
+    ])
 
     hunt_args = hunts_standard.VariableGenericHuntArgs(flows=[flow_request])
 
@@ -425,7 +424,7 @@ class EndToEndTests(cronjobs.SystemCronFlow):
 
     with hunts.GRRHunt.StartHunt(hunt_name="VariableGenericHunt",
                                  args=hunt_args,
-                                 regex_rules=[bogus_rule],
+                                 client_rule_set=client_rule_set,
                                  client_rate=0,
                                  expiry_time="1d",
                                  token=token) as hunt:

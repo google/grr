@@ -2496,7 +2496,7 @@ class AFF4Volume(AFF4Object):
     aff4_type = result.Get(result.Schema.TYPE)
     if aff4_type:
       # Try to get the container.
-      return result.Upgrade(aff4_type)
+      return result.Upgrade(AFF4Object.classes[aff4_type])
 
     raise InstantiationError("Path %s not found" % path)
 

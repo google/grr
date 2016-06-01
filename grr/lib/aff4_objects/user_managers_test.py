@@ -448,7 +448,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
         token.username).Add(utils.EncodeReasonString(token.reason))
 
     with aff4.FACTORY.Create(approval_urn,
-                             security.HuntApproval.__name__,
+                             security.HuntApproval,
                              mode="rw",
                              token=self.token.SetUID()) as approval_request:
       approval_request.AddAttribute(approval_request.Schema.APPROVER(
@@ -913,8 +913,9 @@ class ClientApprovalByLabelTests(test_lib.GRRBaseTest):
         access_control.FullAccessControlManager())
     self.db_manager_stubber.Start()
 
-    self.approver = test_lib.ConfigOverrider({"ACL.approvers_config_file":
-        os.path.join(self.base_path, "approvers.yaml")})
+    self.approver = test_lib.ConfigOverrider(
+        {"ACL.approvers_config_file": os.path.join(self.base_path,
+                                                   "approvers.yaml")})
     self.approver.Start()
 
     # Get a fresh approval manager object and reload with test approvers.

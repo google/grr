@@ -8,8 +8,7 @@ from grr.lib import stats as stats_lib
 from grr.lib import utils
 
 from grr.lib.aff4_objects import cronjobs
-# For FilestoreStats. pylint: disable=unused-import
-from grr.lib.aff4_objects import stats as _
+from grr.lib.aff4_objects import stats as aff4_stats
 
 # pylint: enable=unused-import
 
@@ -120,7 +119,7 @@ class FilestoreStatsCronFlow(cronjobs.SystemCronFlow):
   def Start(self):
     """Retrieve all the clients for the AbstractClientStatsCollectors."""
     self.stats = aff4.FACTORY.Create(self.FILESTORE_STATS_URN,
-                                     "FilestoreStats",
+                                     aff4_stats.FilestoreStats,
                                      mode="w",
                                      token=self.token)
 

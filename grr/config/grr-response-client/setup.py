@@ -70,6 +70,7 @@ setup_args = dict(
         ]
     },
     cmdclass={"sdist": Sdist},
+    data_files=["version.ini"],
     # We need pyinstaller 3.2 for centos but it's broken on windows.
     # https://github.com/google/grr/issues/367
     install_requires=[

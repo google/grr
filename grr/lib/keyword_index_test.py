@@ -4,6 +4,7 @@
 
 from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import keyword_index
 from grr.lib import test_lib
 
 
@@ -13,7 +14,7 @@ class KeywordIndexTest(test_lib.AFF4ObjectTest):
 
   def testKeywordIndex(self):
     index = aff4.FACTORY.Create("aff4:/index1/",
-                                aff4_type="AFF4KeywordIndex",
+                                aff4_type=keyword_index.AFF4KeywordIndex,
                                 mode="rw",
                                 token=self.token)
 
@@ -44,7 +45,7 @@ class KeywordIndexTest(test_lib.AFF4ObjectTest):
 
   def testKeywordIndexTimestamps(self):
     index = aff4.FACTORY.Create("aff4:/index2/",
-                                aff4_type="AFF4KeywordIndex",
+                                aff4_type=keyword_index.AFF4KeywordIndex,
                                 mode="rw",
                                 token=self.token)
     for i in range(50):
@@ -67,7 +68,7 @@ class KeywordIndexTest(test_lib.AFF4ObjectTest):
 
   def testKeywordIndexLastSeen(self):
     index = aff4.FACTORY.Create("aff4:/index2/",
-                                aff4_type="AFF4KeywordIndex",
+                                aff4_type=keyword_index.AFF4KeywordIndex,
                                 mode="rw",
                                 token=self.token)
     for i in range(5):

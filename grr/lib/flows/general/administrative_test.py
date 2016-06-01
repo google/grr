@@ -25,6 +25,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.aff4_objects import users
 # pylint: disable=unused-import
 from grr.lib.flows.general import administrative
@@ -511,7 +512,7 @@ sys.test_code_ran_here = py_args['value']
 
     urn = self.client_id.Add("stats")
     stats_fd = aff4.FACTORY.Create(urn,
-                                   "ClientStats",
+                                   aff4_stats.ClientStats,
                                    token=self.token,
                                    mode="rw")
     sample = stats_fd.Get(stats_fd.Schema.STATS)

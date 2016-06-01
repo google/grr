@@ -16,7 +16,7 @@ class ResultTest(test_lib.AFF4ObjectTest):
     # Create two HuntResultCollections.
     collection_urn = "aff4:/testEmptyQueue/collection"
     with aff4.FACTORY.Create(collection_urn,
-                             aff4_type="HuntResultCollection",
+                             aff4_type=hunts_results.HuntResultCollection,
                              mode="w",
                              token=self.token):
       pass
@@ -30,7 +30,7 @@ class ResultTest(test_lib.AFF4ObjectTest):
   def testNotificationsContainTimestamps(self):
     collection_urn = "aff4:/testNotificationsContainTimestamps/collection"
     with aff4.FACTORY.Create(collection_urn,
-                             aff4_type="HuntResultCollection",
+                             aff4_type=hunts_results.HuntResultCollection,
                              mode="w",
                              token=self.token):
       pass
@@ -49,7 +49,7 @@ class ResultTest(test_lib.AFF4ObjectTest):
     # Read all the results, using the contained (ts, suffix) pairs.
     values_read = []
     with aff4.FACTORY.Create(collection_urn,
-                             aff4_type="HuntResultCollection",
+                             aff4_type=hunts_results.HuntResultCollection,
                              mode="r",
                              token=self.token) as collection:
       for message in collection.MultiResolve([(
@@ -60,7 +60,7 @@ class ResultTest(test_lib.AFF4ObjectTest):
   def testNotificationClaimsTimeout(self):
     collection_urn = "aff4:/testNotificationClaimsTimeout/collection"
     with aff4.FACTORY.Create(collection_urn,
-                             aff4_type="HuntResultCollection",
+                             aff4_type=hunts_results.HuntResultCollection,
                              mode="w",
                              token=self.token):
       pass
@@ -90,7 +90,7 @@ class ResultTest(test_lib.AFF4ObjectTest):
   def testDelete(self):
     collection_urn = "aff4:/testDelete/collection"
     with aff4.FACTORY.Create(collection_urn,
-                             aff4_type="HuntResultCollection",
+                             aff4_type=hunts_results.HuntResultCollection,
                              mode="w",
                              token=self.token):
       pass
@@ -121,13 +121,13 @@ class ResultTest(test_lib.AFF4ObjectTest):
     collection_urn_1 = "aff4:/testNotificationsSplitByCollection/collection_1"
     collection_urn_2 = "aff4:/testNotificationsSplitByCollection/collection_2"
     with aff4.FACTORY.Create(collection_urn_1,
-                             aff4_type="HuntResultCollection",
+                             aff4_type=hunts_results.HuntResultCollection,
                              mode="w",
                              token=self.token):
       pass
 
     with aff4.FACTORY.Create(collection_urn_2,
-                             aff4_type="HuntResultCollection",
+                             aff4_type=hunts_results.HuntResultCollection,
                              mode="w",
                              token=self.token):
       pass
@@ -160,7 +160,7 @@ class ResultTest(test_lib.AFF4ObjectTest):
 
     values_read = []
     with aff4.FACTORY.Create(collection_urn_2,
-                             aff4_type="HuntResultCollection",
+                             aff4_type=hunts_results.HuntResultCollection,
                              mode="r",
                              token=self.token) as collection_2:
       for message in collection_2.MultiResolve([(

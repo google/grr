@@ -105,8 +105,15 @@ class ApiCreateCronJobHandlerRegressionTest(
                         },
                     },
                     "hunt_runner_args": {
-                        "regex_rules": [{"attribute_name": "System",
-                                         "attribute_regex": "Windows"}],
+                        "client_rule_set": {
+                            "rules": [
+                                {
+                                    "os": {
+                                        "os_windows": True
+                                    }
+                                }
+                            ]
+                        },
                         "description": "Foobar! (cron)"
                     }
                 },

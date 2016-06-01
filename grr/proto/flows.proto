@@ -207,16 +207,6 @@ message HuntRunnerArgs {
       description: "The description of this hunt."
     }];
 
-  repeated ForemanAttributeRegex regex_rules = 3 [(sem_type) = {
-      description: "[deprecated] Regex rules that trigger this hunt. "
-      "Note that all rules must match."
-    }];
-
-  repeated ForemanAttributeInteger integer_rules = 4 [(sem_type) = {
-      description: "[deprecated] Integer rules that trigger this hunt."
-      "All rules must match."
-    }];
-
   optional ForemanClientRuleSet client_rule_set = 18 [(sem_type) = {
       description: "Rules that trigger this hunt."
     }];

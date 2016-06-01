@@ -47,7 +47,7 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
     self.assertEqual(len(plugin.GetValuesForExport(mock_args)), 1)
 
   def testGetValuesRaisesForBadType(self):
-    fd = aff4.FACTORY.Create("aff4:/bad", "AFF4Volume", token=self.token)
+    fd = aff4.FACTORY.Create("aff4:/bad", aff4.AFF4Volume, token=self.token)
     fd.Flush()
     plugin = collection_plugin.CollectionExportPlugin()
     mock_args = mock.Mock()
@@ -88,8 +88,8 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
     for msg in self.email_messages:
       self.assertEqual(msg["address"], email_address)
       self.assertEqual("GRR got a new result in aff4:/testcoll.", msg["title"])
-      self.assertTrue("GRR got a new result in aff4:/testcoll" in msg[
-          "message"])
+      self.assertTrue(
+          "GRR got a new result in aff4:/testcoll" in msg["message"])
       self.assertTrue("(Host-0)" in msg["message"])
 
 

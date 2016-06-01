@@ -138,7 +138,7 @@ class ClientTestBase(unittest.TestCase):
         # We open each urn to generate InstantiationError on failures, multiopen
         # ignores these errors.  This isn't too slow since it's almost always
         # just one path anyway.
-        aff4.FACTORY.Open(urn, aff4_type="AFF4Volume", token=self.token)
+        aff4.FACTORY.Open(urn, aff4_type=aff4.AFF4Volume, token=self.token)
     except aff4.InstantiationError:
       raise TestStateUncleanError("Path wasn't deleted: %s" %
                                   traceback.format_exc())

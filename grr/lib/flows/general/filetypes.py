@@ -4,9 +4,7 @@
 
 from grr.lib import aff4
 from grr.lib import flow
-# For AFF4PlistQuery pylint: disable=unused-import
 from grr.lib.aff4_objects import filetypes
-# pylint: enable=unused-import
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
@@ -58,7 +56,7 @@ class PlistValueFilter(flow.GRRFlow):
     """Issue a request to list the directory."""
     if self.runner.output is not None:
       self.runner.output = aff4.FACTORY.Create(self.runner.output.urn,
-                                               "AFF4PlistQuery",
+                                               filetypes.AFF4PlistQuery,
                                                mode="w",
                                                token=self.token)
 

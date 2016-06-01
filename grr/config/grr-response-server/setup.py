@@ -94,6 +94,7 @@ setup_args = dict(
         "mysqldatastore": [
             "MySQL-python==1.2.5"
         ],
-    })
+    },
+    data_files=["version.ini"])
 
 setup(**setup_args)

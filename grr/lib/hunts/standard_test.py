@@ -156,10 +156,13 @@ class StandardHuntTestMixin(object):
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt",
             pathtype=rdf_paths.PathSpec.PathType.OS)),
-        regex_rules=[
-            rdf_foreman.ForemanAttributeRegex(attribute_name="GRR client",
-                                              attribute_regex="GRR"),
-        ],
+        client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
+            rdf_foreman.ForemanClientRule(
+                rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+                regex=rdf_foreman.ForemanRegexClientRule(
+                    attribute_name="GRR client",
+                    attribute_regex="GRR"))
+        ]),
         client_rate=0,
         token=token or self.token,
         **kwargs)
@@ -234,8 +237,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.DeleteClients(10)
 
   def AssertNoCollectionCorruption(self, message, *args, **kwargs):
-    self.assertFalse("Results collection was changed outside of hunt" in
-                     message)
+    self.assertFalse(
+        "Results collection was changed outside of hunt" in message)
     self.old_logging_error(message, *args, **kwargs)
 
   def testCreatesSymlinksOnClientsForEveryStartedFlow(self):
@@ -281,10 +284,13 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
         flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="InfiniteFlow"),
-        regex_rules=[
-            rdf_foreman.ForemanAttributeRegex(attribute_name="GRR client",
-                                              attribute_regex="GRR"),
-        ],
+        client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
+            rdf_foreman.ForemanClientRule(
+                rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+                regex=rdf_foreman.ForemanRegexClientRule(
+                    attribute_name="GRR client",
+                    attribute_regex="GRR"))
+        ]),
         client_rate=0,
         token=self.token) as hunt:
       hunt.Run()
@@ -633,13 +639,13 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       self.assertEqual(len(e.exceptions_by_hunt), 1)
       self.assertTrue(hunt_urn in e.exceptions_by_hunt)
       self.assertEqual(len(e.exceptions_by_hunt[hunt_urn]), 1)
-      self.assertTrue(failing_plugin_descriptor in e.exceptions_by_hunt[
-          hunt_urn])
+      self.assertTrue(
+          failing_plugin_descriptor in e.exceptions_by_hunt[hunt_urn])
       self.assertEqual(
-          len(e.exceptions_by_hunt[hunt_urn][
-              failing_plugin_descriptor]), 1)
-      self.assertEqual(e.exceptions_by_hunt[hunt_urn][
-          failing_plugin_descriptor][0].message, "Oh no!")
+          len(e.exceptions_by_hunt[hunt_urn][failing_plugin_descriptor]), 1)
+      self.assertEqual(
+          e.exceptions_by_hunt[hunt_urn][failing_plugin_descriptor][0].message,
+          "Oh no!")
 
   @mock.patch.object(FailingDummyHuntOutputPlugin,
                      "ProcessResponses",
@@ -975,9 +981,13 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
           flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
               path="/tmp/evil.txt",
               pathtype=rdf_paths.PathSpec.PathType.OS)),
-          regex_rules=[rdf_foreman.ForemanAttributeRegex(
-              attribute_name="GRR client",
-              attribute_regex="GRR")],
+          client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
+              rdf_foreman.ForemanClientRule(
+                  rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+                  regex=rdf_foreman.ForemanRegexClientRule(
+                      attribute_name="GRR client",
+                      attribute_regex="GRR"))
+          ]),
           client_limit=5,
           client_rate=0,
           expiry_time=rdfvalue.Duration("1000s"),
@@ -1022,9 +1032,13 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
           flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
               path="/tmp/evil.txt",
               pathtype=rdf_paths.PathSpec.PathType.OS)),
-          regex_rules=[rdf_foreman.ForemanAttributeRegex(
-              attribute_name="GRR client",
-              attribute_regex="GRR")],
+          client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
+              rdf_foreman.ForemanClientRule(
+                  rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+                  regex=rdf_foreman.ForemanRegexClientRule(
+                      attribute_name="GRR client",
+                      attribute_regex="GRR"))
+          ]),
           client_limit=5,
           expiry_time=rdfvalue.Duration("1000s"),
           token=self.token) as hunt:
@@ -1073,9 +1087,13 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt",
             pathtype=rdf_paths.PathSpec.PathType.OS),),
-        regex_rules=[rdf_foreman.ForemanAttributeRegex(
-            attribute_name="GRR client",
-            attribute_regex="GRR")],
+        client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
+            rdf_foreman.ForemanClientRule(
+                rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+                regex=rdf_foreman.ForemanRegexClientRule(
+                    attribute_name="GRR client",
+                    attribute_regex="GRR"))
+        ]),
         client_limit=1,
         client_rate=0,
         token=self.token) as hunt:
@@ -1143,9 +1161,13 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt",
             pathtype=rdf_paths.PathSpec.PathType.OS,)),
-        regex_rules=[rdf_foreman.ForemanAttributeRegex(
-            attribute_name="GRR client",
-            attribute_regex="GRR")],
+        client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
+            rdf_foreman.ForemanClientRule(
+                rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+                regex=rdf_foreman.ForemanRegexClientRule(
+                    attribute_name="GRR client",
+                    attribute_regex="GRR"))
+        ]),
         output_plugins=[],
         client_rate=0,
         token=self.token) as hunt:
@@ -1169,19 +1191,19 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     usage_stats = hunt.state.context.usage_stats
     self.assertEqual(usage_stats.user_cpu_stats.num, 10)
     self.assertTrue(math.fabs(usage_stats.user_cpu_stats.mean - 5.5) < 1e-7)
-    self.assertTrue(math.fabs(usage_stats.user_cpu_stats.std - 2.8722813) <
-                    1e-7)
+    self.assertTrue(
+        math.fabs(usage_stats.user_cpu_stats.std - 2.8722813) < 1e-7)
 
     self.assertEqual(usage_stats.system_cpu_stats.num, 10)
     self.assertTrue(math.fabs(usage_stats.system_cpu_stats.mean - 11) < 1e-7)
-    self.assertTrue(math.fabs(usage_stats.system_cpu_stats.std - 5.7445626) <
-                    1e-7)
+    self.assertTrue(
+        math.fabs(usage_stats.system_cpu_stats.std - 5.7445626) < 1e-7)
 
     self.assertEqual(usage_stats.network_bytes_sent_stats.num, 10)
-    self.assertTrue(math.fabs(usage_stats.network_bytes_sent_stats.mean - 16.5)
-                    < 1e-7)
-    self.assertTrue(math.fabs(usage_stats.network_bytes_sent_stats.std -
-                              8.61684396) < 1e-7)
+    self.assertTrue(
+        math.fabs(usage_stats.network_bytes_sent_stats.mean - 16.5) < 1e-7)
+    self.assertTrue(
+        math.fabs(usage_stats.network_bytes_sent_stats.std - 8.61684396) < 1e-7)
 
     # NOTE: Not checking histograms here. RunningStatsTest tests that mean,
     # standard deviation and histograms are calculated correctly. Therefore
@@ -1191,9 +1213,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     prev = usage_stats.worst_performers[0]
     for p in usage_stats.worst_performers[1:]:
-      self.assertTrue(prev.cpu_usage.user_cpu_time +
-                      prev.cpu_usage.system_cpu_time > p.cpu_usage.user_cpu_time
-                      + p.cpu_usage.system_cpu_time)
+      self.assertTrue(
+          prev.cpu_usage.user_cpu_time + prev.cpu_usage.system_cpu_time >
+          p.cpu_usage.user_cpu_time + p.cpu_usage.system_cpu_time)
       prev = p
 
   def testHuntCollectionLogging(self):
@@ -1222,11 +1244,11 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       for log in hunt_logs:
         if log.client_id:
           self.assertTrue(log.client_id in self.client_ids)
-          self.assertTrue(log.log_message in ["First", "Second", "Third",
-                                              "Fourth", "Uno", "Dos", "Tres",
-                                              "Cuatro"])
-          self.assertTrue(log.flow_name in ["DummyLogFlow", "DummyLogFlowChild"
-                                           ])
+          self.assertTrue(
+              log.log_message in ["First", "Second", "Third", "Fourth", "Uno",
+                                  "Dos", "Tres", "Cuatro"])
+          self.assertTrue(
+              log.flow_name in ["DummyLogFlow", "DummyLogFlowChild"])
           self.assertTrue(str(hunt_urn) in str(log.urn))
         else:
           self.assertEqual(log.log_message, "Log from the hunt itself")
@@ -1249,10 +1271,13 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         hunt_name="GenericHunt",
         flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="UpdateClient"),
         flow_args=administrative.UpdateClientArgs(),
-        regex_rules=[
-            rdf_foreman.ForemanAttributeRegex(attribute_name="GRR client",
-                                              attribute_regex="GRR"),
-        ],
+        client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
+            rdf_foreman.ForemanClientRule(
+                rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+                regex=rdf_foreman.ForemanRegexClientRule(
+                    attribute_name="GRR client",
+                    attribute_regex="GRR"))
+        ]),
         client_rate=0,
         token=admin_token) as hunt:
       hunt.Run()
@@ -1279,10 +1304,13 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt",
             pathtype=rdf_paths.PathSpec.PathType.OS)),
-        regex_rules=[
-            rdf_foreman.ForemanAttributeRegex(attribute_name="GRR client",
-                                              attribute_regex="GRR"),
-        ],
+        client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
+            rdf_foreman.ForemanClientRule(
+                rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+                regex=rdf_foreman.ForemanRegexClientRule(
+                    attribute_name="GRR client",
+                    attribute_regex="GRR"))
+        ]),
         client_rate=0,
         token=token)
 

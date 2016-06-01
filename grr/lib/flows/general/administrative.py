@@ -27,6 +27,7 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import reports
+from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.hunts import implementation
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -97,7 +98,8 @@ class GetClientStatsProcessResponseMixin(object):
     """Actually processes the contents of the response."""
     urn = client_id.Add("stats")
 
-    with aff4.FACTORY.Create(urn, "ClientStats",
+    with aff4.FACTORY.Create(urn,
+                             aff4_stats.ClientStats,
                              token=self.token,
                              mode="w") as stats_fd:
       # Only keep the average of all values that fall within one minute.

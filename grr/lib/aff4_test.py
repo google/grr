@@ -77,8 +77,8 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
         set([rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN("aff4:/a/b")]))
 
   def testMultiMarkForDeletionAddsMultipleObjectsToDeletionSet(self):
-    self.pool.MultiMarkForDeletion([rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN(
-        "aff4:/b")])
+    self.pool.MultiMarkForDeletion([rdfvalue.RDFURN("aff4:/a"),
+                                    rdfvalue.RDFURN("aff4:/b")])
 
     self.assertEqual(
         self.pool.urns_for_deletion,
@@ -91,14 +91,15 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
     self._CreateObject("aff4:/c/d", aff4.AFF4MemoryStream)
     self._CreateObject("aff4:/c/e", aff4.AFF4MemoryStream)
 
-    self.pool.MultiMarkForDeletion([rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN(
-        "aff4:/c")])
+    self.pool.MultiMarkForDeletion([rdfvalue.RDFURN("aff4:/a"),
+                                    rdfvalue.RDFURN("aff4:/c")])
 
-    self.assertEqual(
-        self.pool.urns_for_deletion,
-        set([rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN("aff4:/a/b"),
-             rdfvalue.RDFURN("aff4:/c"), rdfvalue.RDFURN("aff4:/c/d"),
-             rdfvalue.RDFURN("aff4:/c/e")]))
+    self.assertEqual(self.pool.urns_for_deletion,
+                     set([rdfvalue.RDFURN("aff4:/a"),
+                          rdfvalue.RDFURN("aff4:/a/b"),
+                          rdfvalue.RDFURN("aff4:/c"),
+                          rdfvalue.RDFURN("aff4:/c/d"),
+                          rdfvalue.RDFURN("aff4:/c/e")]))
 
   def testReturnsEmptyListOfRootsWhenNoUrnsMarked(self):
     self.assertEqual(self.pool.root_urns_for_deletion, set())
@@ -184,9 +185,8 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
     self._CreateObject("aff4:/obj1", aff4.AFF4MemoryStream)
     self._CreateObject("aff4:/obj2", aff4.AFF4MemoryStream)
 
-    result = self.pool.MultiOpen(
-        ["aff4:/obj1", "aff4:/obj2"],
-        aff4_type=collects.RDFValueCollection)
+    result = self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"],
+                                 aff4_type=collects.RDFValueCollection)
     self.assertFalse(result)
 
     self._CreateObject("aff4:/obj1", aff4.AFF4Volume)
@@ -645,8 +645,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
 
     self.assertTrue(isinstance(v1, aff4_grr.VFSFile))
     self.assertTrue(isinstance(v3, aff4_grr.VFSGRRClient))
-    self.assertTrue(int(v1.Get(v1.Schema.TYPE).age) > int(v2.Get(
-        v2.Schema.TYPE).age))
+    self.assertTrue(
+        int(v1.Get(v1.Schema.TYPE).age) > int(v2.Get(v2.Schema.TYPE).age))
     self.assertEqual(v2.Get(v2.Schema.TYPE), "VFSGRRClient")
     self.assertEqual(str(v2.Get(v2.Schema.HOSTNAME)), "client2")
 
@@ -698,11 +698,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
                       "DOESNOTEXIST")
 
     # Check we get the same result from MultiOpen
-    clients = aff4.FACTORY.MultiOpen(
-        [self.client_id],
-        aff4_type=aff4_grr.VFSGRRClient,
-        mode="rw",
-        token=self.token)
+    clients = aff4.FACTORY.MultiOpen([self.client_id],
+                                     aff4_type=aff4_grr.VFSGRRClient,
+                                     mode="rw",
+                                     token=self.token)
     for client in clients:
       self.assertEqual(client.Get(client.Schema.HOSTNAME), "client1")
       self.assertRaises(aff4.BadGetAttributeError, getattr, client.Schema,
@@ -715,9 +714,9 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(client.Get(client.Schema.DOESNOTEXIST), None)
 
     # Check we get the same result from MultiOpen
-    clients = aff4.FACTORY.MultiOpen(
-        [self.client_id], mode="rw",
-        token=self.token)
+    clients = aff4.FACTORY.MultiOpen([self.client_id],
+                                     mode="rw",
+                                     token=self.token)
     for client in clients:
       self.assertEqual(client.Get(client.Schema.HOSTNAME), "client1")
       self.assertEqual(client.Get(client.Schema.DOESNOTEXIST), None)
@@ -1464,8 +1463,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
         token=self.token):
       pass
 
-    children = dict(aff4.FACTORY.MultiListChildren(
-        [client1_urn, client2_urn], token=self.token))
+    children = dict(aff4.FACTORY.MultiListChildren([client1_urn, client2_urn],
+                                                   token=self.token))
 
     self.assertListEqual(sorted(children.keys()), [client1_urn, client2_urn])
     self.assertListEqual(children[client1_urn], [client1_urn.Add("some1")])
@@ -1951,9 +1950,8 @@ class AFF4SymlinkTest(test_lib.AFF4ObjectTest):
     fd = aff4.FACTORY.Create(fd_urn2, aff4.AFF4Image, token=self.token)
     fd.Close()
 
-    for fd in aff4.FACTORY.MultiOpen(
-        [self.symlink_source_urn, fd_urn2],
-        token=self.token):
+    for fd in aff4.FACTORY.MultiOpen([self.symlink_source_urn, fd_urn2],
+                                     token=self.token):
       if fd.urn == fd_urn2:
         self.assertTrue(isinstance(fd, aff4.AFF4Image))
       elif fd.urn == fd_urn1:
@@ -1974,19 +1972,17 @@ class AFF4SymlinkTest(test_lib.AFF4ObjectTest):
     # AFF4Image object should be ignored due to aff4_type check.
     # At the same, type check shouldn't filter out the symlink,
     # but should check the symlinked object.
-    fds = list(aff4.FACTORY.MultiOpen(
-        [self.symlink_source_urn, fd_urn2],
-        aff4_type=AFF4SymlinkTestSubject,
-        token=self.token))
+    fds = list(aff4.FACTORY.MultiOpen([self.symlink_source_urn, fd_urn2],
+                                      aff4_type=AFF4SymlinkTestSubject,
+                                      token=self.token))
     self.assertEqual(len(fds), 1)
     self.assertTrue(isinstance(fds[0], AFF4SymlinkTestSubject))
 
     # AFF4Image should be returned, but symlinked AFF4SymlinkTestSubject should
     # get filtered out due to aff4_type restriction.
-    fds = list(aff4.FACTORY.MultiOpen(
-        [self.symlink_source_urn, fd_urn2],
-        aff4_type=aff4.AFF4Image,
-        token=self.token))
+    fds = list(aff4.FACTORY.MultiOpen([self.symlink_source_urn, fd_urn2],
+                                      aff4_type=aff4.AFF4Image,
+                                      token=self.token))
     self.assertEqual(len(fds), 1)
     self.assertTrue(isinstance(fds[0], aff4.AFF4Image))
 
@@ -2048,8 +2044,11 @@ class ForemanTests(test_lib.AFF4ObjectTest):
                                      description="Test rule")
 
       # Matches Windows boxes
-      rule.regex_rules.Append(attribute_name=fd.Schema.SYSTEM.name,
-                              attribute_regex="Windows")
+      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+          rdf_foreman.ForemanClientRule(
+              rule_type=rdf_foreman.ForemanClientRule.Type.OS,
+              os=rdf_foreman.ForemanOsClientRule(os_windows=True))
+      ])
 
       # Will run Test Flow
       rule.actions.Append(flow_name="Test Flow",
@@ -2128,10 +2127,15 @@ class ForemanTests(test_lib.AFF4ObjectTest):
                                      description="Test rule(old)")
 
       # Matches the old client
-      rule.integer_rules.Append(
-          attribute_name=fd.Schema.INSTALL_DATE.name,
-          operator=rdf_foreman.ForemanAttributeInteger.Operator.LESS_THAN,
-          value=int(1336480583077736 - 3600 * 1e6))
+      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+          rdf_foreman.ForemanClientRule(
+              rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
+              integer=rdf_foreman.ForemanIntegerClientRule(
+                  attribute_name=fd.Schema.INSTALL_DATE.name,
+                  operator=rdf_foreman.ForemanIntegerClientRule.Operator.
+                  LESS_THAN,
+                  value=int(1336480583077736 - 3600 * 1e6)))
+      ])
 
       old_flow = "Test flow for old clients"
       # Will run Test Flow
@@ -2148,10 +2152,15 @@ class ForemanTests(test_lib.AFF4ObjectTest):
                                      description="Test rule(new)")
 
       # Matches the newer clients
-      rule.integer_rules.Append(
-          attribute_name=fd.Schema.INSTALL_DATE.name,
-          operator=rdf_foreman.ForemanAttributeInteger.Operator.GREATER_THAN,
-          value=int(1336480583077736 - 3600 * 1e6))
+      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+          rdf_foreman.ForemanClientRule(
+              rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
+              integer=rdf_foreman.ForemanIntegerClientRule(
+                  attribute_name=fd.Schema.INSTALL_DATE.name,
+                  operator=rdf_foreman.ForemanIntegerClientRule.Operator.
+                  GREATER_THAN,
+                  value=int(1336480583077736 - 3600 * 1e6)))
+      ])
 
       new_flow = "Test flow for newer clients"
 
@@ -2167,10 +2176,14 @@ class ForemanTests(test_lib.AFF4ObjectTest):
                                      description="Test rule(eq)")
 
       # Note that this also tests the handling of nonexistent attributes.
-      rule.integer_rules.Append(
-          attribute_name=fd.Schema.LAST_BOOT_TIME.name,
-          operator=rdf_foreman.ForemanAttributeInteger.Operator.EQUAL,
-          value=1336300000000000)
+      rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+          rdf_foreman.ForemanClientRule(
+              rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
+              integer=rdf_foreman.ForemanIntegerClientRule(
+                  attribute_name=fd.Schema.LAST_BOOT_TIME.name,
+                  operator=rdf_foreman.ForemanIntegerClientRule.Operator.EQUAL,
+                  value=1336300000000000))
+      ])
 
       eq_flow = "Test flow for LAST_BOOT_TIME"
 
@@ -2232,8 +2245,13 @@ class ForemanTests(test_lib.AFF4ObjectTest):
       rule_set = foreman.Schema.RULES()
       for rule in rules:
         # Add some regex that does not match the client.
-        rule.regex_rules.Append(attribute_name=fd.Schema.SYSTEM.name,
-                                attribute_regex="XXX")
+        rule.client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+            rdf_foreman.ForemanClientRule(
+                rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+                regex=rdf_foreman.ForemanRegexClientRule(
+                    attribute_name=fd.Schema.SYSTEM.name,
+                    attribute_regex="XXX"))
+        ])
         rule_set.Append(rule)
       foreman.Set(foreman.Schema.RULES, rule_set)
       foreman.Close()

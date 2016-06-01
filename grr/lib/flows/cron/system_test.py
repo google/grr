@@ -171,7 +171,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
         urn = self.client_id.Add("stats")
 
         stats_fd = aff4.FACTORY.Create(urn,
-                                       "ClientStats",
+                                       aff4_stats.ClientStats,
                                        token=self.token,
                                        mode="rw")
         st = client_rdf.ClientStats(RSS_size=int(t))

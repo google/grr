@@ -79,13 +79,20 @@ class TestCrashView(test_lib.GRRSeleniumTest):
 
   def SetUpCrashedFlowInHunt(self):
     client_ids = [rdf_client.ClientURN("C.%016X" % i) for i in range(0, 10)]
-    client_mocks = dict([(client_id, test_lib.CrashClientMock(
-        client_id, self.token)) for client_id in client_ids])
+    client_mocks = dict([(client_id, test_lib.CrashClientMock(client_id,
+                                                              self.token))
+                         for client_id in client_ids])
+
+    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+        rdf_foreman.ForemanClientRule(
+            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+            regex=rdf_foreman.ForemanRegexClientRule(
+                attribute_name="GRR client",
+                attribute_regex="GRR"))
+    ])
 
     with hunts.GRRHunt.StartHunt(hunt_name="SampleHunt",
-                                 regex_rules=[rdf_foreman.ForemanAttributeRegex(
-                                     attribute_name="GRR client",
-                                     attribute_regex="GRR")],
+                                 client_rule_set=client_rule_set,
                                  client_rate=0,
                                  token=self.token) as hunt:
       hunt.Run()

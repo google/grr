@@ -124,14 +124,14 @@ class FlowCreationTest(BasicFlowTest):
                                         token=self.token)
 
     flow_obj = aff4.FACTORY.Open(session_id,
-                                 aff4_type="FlowOrderTest",
+                                 aff4_type=test_lib.FlowOrderTest,
                                  age=aff4.ALL_TIMES,
                                  mode="rw",
                                  token=self.token)
     flow_obj.Close()
 
     flow_obj = aff4.FACTORY.Open(session_id,
-                                 aff4_type="FlowOrderTest",
+                                 aff4_type=test_lib.FlowOrderTest,
                                  age=aff4.ALL_TIMES,
                                  token=self.token)
 
@@ -145,7 +145,7 @@ class FlowCreationTest(BasicFlowTest):
                                         token=self.token)
 
     flow_obj = aff4.FACTORY.Open(session_id,
-                                 aff4_type="FlowOrderTest",
+                                 aff4_type=test_lib.FlowOrderTest,
                                  age=aff4.ALL_TIMES,
                                  token=self.token)
 
@@ -180,7 +180,7 @@ class FlowCreationTest(BasicFlowTest):
 
     flow.GRRFlow.TerminateFlow(session_id, token=self.token)
     flow_obj = aff4.FACTORY.Open(session_id,
-                                 aff4_type="FlowOrderTest",
+                                 aff4_type=test_lib.FlowOrderTest,
                                  age=aff4.ALL_TIMES,
                                  token=self.token)
     runner = flow_obj.GetRunner()
@@ -194,7 +194,7 @@ class FlowCreationTest(BasicFlowTest):
     flow.GRRFlow.TerminateFlow(session_id, reason=reason, token=self.token)
 
     flow_obj = aff4.FACTORY.Open(session_id,
-                                 aff4_type="FlowOrderTest",
+                                 aff4_type=test_lib.FlowOrderTest,
                                  age=aff4.ALL_TIMES,
                                  token=self.token)
     runner = flow_obj.GetRunner()
@@ -218,7 +218,7 @@ class FlowCreationTest(BasicFlowTest):
     flow.GRRFlow.TerminateFlow(session_id, reason=reason, token=self.token)
 
     flow_obj = aff4.FACTORY.Open(session_id,
-                                 aff4_type="CallClientParentFlow",
+                                 aff4_type=CallClientParentFlow,
                                  token=self.token)
 
     runner = flow_obj.GetRunner()
@@ -229,7 +229,7 @@ class FlowCreationTest(BasicFlowTest):
     self.assertTrue(reason in runner.context.status)
 
     child = aff4.FACTORY.Open(children[0],
-                              aff4_type="CallClientChildFlow",
+                              aff4_type=CallClientChildFlow,
                               token=self.token)
     runner = child.GetRunner()
     self.assertEqual(runner.IsRunning(), False)
@@ -243,7 +243,7 @@ class FlowCreationTest(BasicFlowTest):
                                         flow_name="FlowOrderTest",
                                         token=self.token)
     with aff4.FACTORY.Open(session_id,
-                           aff4_type="FlowOrderTest",
+                           aff4_type=test_lib.FlowOrderTest,
                            age=aff4.ALL_TIMES,
                            mode="rw",
                            token=self.token) as flow_obj:
@@ -265,7 +265,7 @@ class FlowCreationTest(BasicFlowTest):
                                         flow_name="FlowOrderTest",
                                         token=self.token)
     with aff4.FACTORY.Open(session_id,
-                           aff4_type="FlowOrderTest",
+                           aff4_type=test_lib.FlowOrderTest,
                            age=aff4.ALL_TIMES,
                            mode="rw",
                            token=self.token) as flow_obj:

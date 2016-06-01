@@ -126,7 +126,7 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(notifications), 1)
 
     zip_fd = aff4.FACTORY.Open(notifications[0].subject,
-                               aff4_type="AFF4Stream",
+                               aff4_type=aff4.AFF4Stream,
                                token=self.token)
     zip_fd_contents = zip_fd.Read(len(zip_fd))
 
@@ -163,7 +163,7 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(notifications), 1)
 
     tar_fd = aff4.FACTORY.Open(notifications[0].subject,
-                               aff4_type="AFF4Stream",
+                               aff4_type=aff4.AFF4Stream,
                                token=self.token)
     tar_fd_contents = tar_fd.Read(len(tar_fd))
 

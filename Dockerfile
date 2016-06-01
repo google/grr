@@ -29,10 +29,15 @@ pip wheel --wheel-dir=/wheelhouse -f https://storage.googleapis.com/releases.grr
 # Copy the GRR code over.
 ADD . /usr/src/grr/
 
-# Now install the current version over the top.
+# Make sdists and pip install
+# We require sdists so that the version.ini gets copied over properly.
 RUN . /usr/share/grr-server/bin/activate && \
-pip install --find-links=/wheelhouse /usr/src/grr/ && \
-pip install --find-links=/wheelhouse /usr/src/grr/grr/config/grr-response-server
+cd /usr/src/grr/ && \
+python /usr/src/grr/setup.py sdist --dist-dir="/sdists/core" --no-make-docs --no-sync-artifacts && \
+cd /usr/src/grr/grr/config/grr-response-server/ && \
+python setup.py sdist --dist-dir="/sdists/server" && \
+pip install --find-links=/wheelhouse /sdists/core/*.tar.gz && \
+pip install --find-links=/wheelhouse /sdists/server/*.tar.gz
 
 COPY scripts/docker-entrypoint.sh /
 

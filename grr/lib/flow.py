@@ -1500,8 +1500,11 @@ class ServerPubKeyCache(communicator.PubKeyCache):
 
     except (KeyError, AttributeError):
       # Fetch the client's cert - We will be updating its clock attribute.
+      #
+      # TODO(user): remove the dependency loop and resulting use of
+      # AFF4Object.classes
       client = aff4.FACTORY.Create(common_name,
-                                   "VFSGRRClient",
+                                   aff4.AFF4Object.classes["VFSGRRClient"],
                                    mode="rw",
                                    token=self.token,
                                    ignore_cache=True)
@@ -1566,7 +1569,7 @@ class ServerCommunicator(communicator.Communicator):
           client = self.client_cache.Get(client_id)
         except KeyError:
           client = aff4.FACTORY.Create(client_id,
-                                       "VFSGRRClient",
+                                       aff4.AFF4Object.classes["VFSGRRClient"],
                                        mode="rw",
                                        token=self.token)
           self.client_cache.Put(client_id, client)

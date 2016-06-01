@@ -738,8 +738,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           artifact_name not in output_collection_map):
         # Create the new collections in the same directory but not as children,
         # so they are visible in the GUI
-        urn = "_".join((str(self.runner.output.urn), utils.SmartStr(
-            artifact_name)))
+        urn = "_".join((str(self.runner.output.urn),
+                        utils.SmartStr(artifact_name)))
         collection = aff4.FACTORY.Create(urn,
                                          collects.RDFValueCollection,
                                          mode="rw",
@@ -821,6 +821,11 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     relative_path, aff4_type, aff4_attribute, operator = rdf_type
 
     urn = self.client_id.Add(relative_path)
+    try:
+      aff4_type = aff4.AFF4Object.classes[aff4_type]
+    except KeyError:
+      raise artifact_utils.ArtifactProcessingError(
+          "Failed to find aff4 type %s." % aff4_type)
     try:
       result_object = aff4.FACTORY.Open(urn,
                                         aff4_type=aff4_type,

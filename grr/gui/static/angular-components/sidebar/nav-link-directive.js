@@ -62,7 +62,9 @@ NavLinkController.prototype.onStateOrParamsChange_ = function() {
  *
  * @export
  */
-NavLinkController.prototype.openLink = function() {
+NavLinkController.prototype.openLink = function(event) {
+  event.preventDefault();
+
   if (this.scope_['disabled']) {
     return;
   }

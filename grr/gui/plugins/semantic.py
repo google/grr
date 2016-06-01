@@ -16,6 +16,7 @@ from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -366,7 +367,7 @@ class RDFValueArrayRenderer(RDFValueRenderer):
       if len(self.proxy) > length:
         # Make a cache
         with aff4.FACTORY.Create(None,
-                                 "TempMemoryFile",
+                                 aff4_standard.TempMemoryFile,
                                  token=request.token) as self.cache:
           data = rdf_protodict.RDFValueArray()
           data.Extend(self.proxy)

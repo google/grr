@@ -15,6 +15,7 @@ from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import standard
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
@@ -163,7 +164,9 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
   @flow.StateHandler()
   def CreateArchive(self, _):
     # Create an output zip or tar file in the temp space.
-    with aff4.FACTORY.Create(None, "TempImageFile", token=self.token) as outfd:
+    with aff4.FACTORY.Create(None,
+                             standard.TempImageFile,
+                             token=self.token) as outfd:
       if self.args.format == self.args.ArchiveFormat.ZIP:
         file_extension = "zip"
       elif self.args.format == self.args.ArchiveFormat.TAR_GZ:

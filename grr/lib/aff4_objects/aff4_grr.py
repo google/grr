@@ -15,7 +15,6 @@ from grr.lib import flow
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import utils
 from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -506,55 +505,7 @@ class GRRForeman(aff4.AFF4Object):
 
   def _EvaluateRules(self, objects, rule, client_id):
     """Evaluates the rules."""
-    if (rule.integer_rules or rule.regex_rules) and rule.client_rule_set.rules:
-      raise RuntimeError("Both new and deprecated rules are set.")
-
-    if rule.integer_rules or rule.regex_rules:
-      return self._EvaluateDeprecatedRules(objects, rule, client_id)
-
     return rule.client_rule_set.Evaluate(objects, client_id)
-
-  def _EvaluateDeprecatedRules(self, objects, rule, client_id):
-    """[deprecated] Evaluates the rules."""
-    try:
-      # Do the attribute regex first.
-      for regex_rule in rule.regex_rules:
-        path = client_id.Add(regex_rule.path)
-        fd = objects[path]
-        attribute = aff4.Attribute.NAMES[regex_rule.attribute_name]
-        value = utils.SmartStr(fd.Get(attribute))
-        if not regex_rule.attribute_regex.Search(value):
-          return False
-
-      # Now the integer rules.
-      for integer_rule in rule.integer_rules:
-        path = client_id.Add(integer_rule.path)
-        fd = objects[path]
-        attribute = aff4.Attribute.NAMES[integer_rule.attribute_name]
-        try:
-          value = int(fd.Get(attribute))
-        except (ValueError, TypeError):
-          # Not an integer attribute.
-          return False
-        op = integer_rule.operator
-        if op == rdf_foreman.ForemanAttributeInteger.Operator.LESS_THAN:
-          if value >= integer_rule.value:
-            return False
-        elif op == rdf_foreman.ForemanAttributeInteger.Operator.GREATER_THAN:
-          if value <= integer_rule.value:
-            return False
-        elif op == rdf_foreman.ForemanAttributeInteger.Operator.EQUAL:
-          if value != integer_rule.value:
-            return False
-        else:
-          # Unknown operator.
-          return False
-
-      return True
-
-    except KeyError:
-      # The requested attribute was not found.
-      return False
 
   def _RunActions(self, rule, client_id):
     """Run all the actions specified in the rule.
@@ -645,13 +596,6 @@ class GRRForeman(aff4.AFF4Object):
         continue
 
       relevant_rules.append(rule)
-
-      for regex in rule.regex_rules:
-        aff4_object = client_id.Add(regex.path)
-        object_urns[str(aff4_object)] = aff4_object
-      for int_rule in rule.integer_rules:
-        aff4_object = client_id.Add(int_rule.path)
-        object_urns[str(aff4_object)] = aff4_object
 
       for path in rule.client_rule_set.GetPathsToCheck():
         aff4_object = client_id.Add(path)

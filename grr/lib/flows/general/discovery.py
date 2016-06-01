@@ -205,7 +205,8 @@ class Interrogate(flow.GRRFlow):
     if responses.success and responses:
       net_fd = aff4.FACTORY.Create(
           self.client.urn.Add("network"),
-          "Network", token=self.token)
+          network.Network,
+          token=self.token)
       interface_list = net_fd.Schema.INTERFACES()
       mac_addresses = []
       ip_addresses = []

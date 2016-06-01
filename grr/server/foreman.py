@@ -109,9 +109,9 @@ class ForemanOsClientRule(ForemanClientRuleBase):
 
     value = utils.SmartStr(fd.Get(attribute))
 
-    return ((self.os_windows and value == "Windows") or
-            (self.os_linux and value == "Linux") or
-            (self.os_darwin and value == "Darwin"))
+    return ((self.os_windows and value.startswith("Windows")) or
+            (self.os_linux and value.startswith("Linux")) or
+            (self.os_darwin and value.startswith("Darwin")))
 
   def Validate(self):
     pass
@@ -196,11 +196,11 @@ class ForemanIntegerClientRule(ForemanClientRuleBase):
       return False
 
     op = self.operator
-    if op == ForemanAttributeInteger.Operator.LESS_THAN:
+    if op == ForemanIntegerClientRule.Operator.LESS_THAN:
       return value < self.value
-    elif op == ForemanAttributeInteger.Operator.GREATER_THAN:
+    elif op == ForemanIntegerClientRule.Operator.GREATER_THAN:
       return value > self.value
-    elif op == ForemanAttributeInteger.Operator.EQUAL:
+    elif op == ForemanIntegerClientRule.Operator.EQUAL:
       return value == self.value
     else:
       # Unknown operator.
@@ -218,35 +218,12 @@ class ForemanRuleAction(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.ForemanRuleAction
 
 
-# Deprecated
-class ForemanAttributeRegex(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.ForemanAttributeRegex
-
-  def Validate(self):
-    if not self.attribute_name:
-      raise ValueError("ForemanAttributeRegex rule invalid - "
-                       "not attribute set.")
-
-    self.attribute_name.Validate()
-
-
-# Deprecated
-class ForemanAttributeInteger(ForemanAttributeRegex):
-  protobuf = jobs_pb2.ForemanAttributeInteger
-
-
 class ForemanRule(rdf_structs.RDFProtoStruct):
   """A Foreman rule RDF value."""
   protobuf = jobs_pb2.ForemanRule
 
   def Validate(self):
     self.client_rule_set.Validate()
-
-    for rule in self.regex_rules:
-      rule.Validate()
-
-    for rule in self.integer_rules:
-      rule.Validate()
 
   @property
   def hunt_id(self):

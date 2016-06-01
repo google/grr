@@ -13,6 +13,7 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
@@ -861,7 +862,7 @@ class VfsTimelineTestMixin(object):
     for i in range(0, 5):
       with test_lib.FakeTime(i):
         with aff4.FACTORY.Create(file_urn,
-                                 "VFSAnalysisFile",
+                                 aff4_grr.VFSAnalysisFile,
                                  mode="w",
                                  token=self.token) as fd:
           stats = rdf_client.StatEntry(

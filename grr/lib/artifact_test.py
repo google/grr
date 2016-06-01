@@ -23,6 +23,7 @@ from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
 # For ArtifactCollectorFlow pylint: disable=unused-import
 from grr.lib.flows.general import collectors
@@ -354,19 +355,17 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     """Check GetFiles artifacts."""
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                test_lib.FakeTestDataVFSHandler):
-      self.RunCollectorAndGetCollection(
-          ["TestFilesArtifact"],
-          client_mock=self.client_mock)
+      self.RunCollectorAndGetCollection(["TestFilesArtifact"],
+                                        client_mock=self.client_mock)
       urn = self.client_id.Add("fs/os/").Add("var/log/auth.log")
-      aff4.FACTORY.Open(urn, aff4_type="VFSBlobImage", token=self.token)
+      aff4.FACTORY.Open(urn, aff4_type=aff4_grr.VFSBlobImage, token=self.token)
 
   def testLinuxPasswdHomedirsArtifact(self):
     """Check LinuxPasswdHomedirs artifacts."""
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                test_lib.FakeTestDataVFSHandler):
-      fd = self.RunCollectorAndGetCollection(
-          ["LinuxPasswdHomedirs"],
-          client_mock=self.client_mock)
+      fd = self.RunCollectorAndGetCollection(["LinuxPasswdHomedirs"],
+                                             client_mock=self.client_mock)
 
       self.assertEqual(len(fd), 3)
       self.assertItemsEqual([x.username for x in fd], [u"exomemory", u"gevulot",
@@ -384,23 +383,20 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                test_lib.FakeTestDataVFSHandler):
       # Will raise if something goes wrong.
-      self.RunCollectorAndGetCollection(
-          ["TestFilesArtifact"],
-          client_mock=self.client_mock)
+      self.RunCollectorAndGetCollection(["TestFilesArtifact"],
+                                        client_mock=self.client_mock)
 
       # Will raise if something goes wrong.
-      self.RunCollectorAndGetCollection(
-          ["TestFilesArtifact"],
-          client_mock=self.client_mock,
-          split_output_by_artifact=True)
+      self.RunCollectorAndGetCollection(["TestFilesArtifact"],
+                                        client_mock=self.client_mock,
+                                        split_output_by_artifact=True)
 
       # Test the on_no_results_error option.
       with self.assertRaises(RuntimeError) as context:
-        self.RunCollectorAndGetCollection(
-            ["NullArtifact"],
-            client_mock=self.client_mock,
-            split_output_by_artifact=True,
-            on_no_results_error=True)
+        self.RunCollectorAndGetCollection(["NullArtifact"],
+                                          client_mock=self.client_mock,
+                                          split_output_by_artifact=True,
+                                          on_no_results_error=True)
       if "collector returned 0 responses" not in str(context.exception):
         raise RuntimeError("0 responses should have been returned")
 
@@ -415,9 +411,8 @@ class ArtifactFlowWindowsTest(ArtifactTest):
 
   def testWMIQueryArtifact(self):
     """Check we can run WMI based artifacts."""
-    self.RunCollectorAndGetCollection(
-        ["WMIInstalledSoftware"],
-        store_results_in_aff4=True)
+    self.RunCollectorAndGetCollection(["WMIInstalledSoftware"],
+                                      store_results_in_aff4=True)
     urn = self.client_id.Add("info/software")
     fd = aff4.FACTORY.Open(urn, token=self.token)
     packages = fd.Get(fd.Schema.INSTALLED_PACKAGES)
@@ -428,9 +423,8 @@ class ArtifactFlowWindowsTest(ArtifactTest):
     """Check we can run Rekall based artifacts."""
     test_lib.WriteComponent(token=self.token)
 
-    fd = self.RunCollectorAndGetCollection(
-        ["RekallPsList"], RekallMock(self.client_id,
-                                     "rekall_pslist_result.dat.gz"))
+    fd = self.RunCollectorAndGetCollection(["RekallPsList"], RekallMock(
+        self.client_id, "rekall_pslist_result.dat.gz"))
 
     self.assertEqual(len(fd), 35)
     self.assertEqual(fd[0].exe, "System")
@@ -445,9 +439,8 @@ class ArtifactFlowWindowsTest(ArtifactTest):
     with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
       fd.Set(fd.Schema.KNOWLEDGE_BASE(os="Windows", environ_systemdrive=r"c:"))
 
-    fd = self.RunCollectorAndGetCollection(
-        ["FullVADBinaryList"], RekallMock(self.client_id,
-                                          "rekall_vad_result.dat.gz"))
+    fd = self.RunCollectorAndGetCollection(["FullVADBinaryList"], RekallMock(
+        self.client_id, "rekall_vad_result.dat.gz"))
 
     self.assertEqual(len(fd), 1705)
     self.assertEqual(fd[0].path, u"c:\\Windows\\System32\\ntdll.dll")
@@ -609,9 +602,10 @@ class GrrKbWindowsTest(GrrKbTest):
       artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
       with test_lib.ConfigOverrider({
-          "Artifacts.knowledge_base":
-              ["DepsParent", "DepsDesktop", "DepsHomedir", "DepsWindir",
-               "DepsWindirRegex", "DepsControlSet", "FakeArtifact"],
+          "Artifacts.knowledge_base": ["DepsParent", "DepsDesktop",
+                                       "DepsHomedir", "DepsWindir",
+                                       "DepsWindirRegex", "DepsControlSet",
+                                       "FakeArtifact"],
           "Artifacts.knowledge_base_additions": ["DepsHomedir2"],
           "Artifacts.knowledge_base_skip": ["DepsWindir"],
           "Artifacts.knowledge_base_heavyweight": ["FakeArtifact"]
@@ -666,9 +660,8 @@ class GrrKbLinuxTest(GrrKbTest):
         self.assertEqual(kb.os_major_version, 14)
         self.assertEqual(kb.os_minor_version, 4)
         # user 1,2,3 from wtmp. yagharek from netgroup.
-        self.assertItemsEqual(
-            [x.username for x in kb.users],
-            ["user1", "user2", "user3", "yagharek"])
+        self.assertItemsEqual([x.username for x in kb.users],
+                              ["user1", "user2", "user3", "yagharek"])
         user = kb.GetUser(username="user1")
         self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
         self.assertEqual(user.homedir, "/home/user1")
@@ -696,8 +689,8 @@ class GrrKbLinuxTest(GrrKbTest):
         self.assertEqual(kb.os_major_version, 14)
         self.assertEqual(kb.os_minor_version, 4)
         # user 1,2,3 from wtmp.
-        self.assertItemsEqual(
-            [x.username for x in kb.users], ["user1", "user2", "user3"])
+        self.assertItemsEqual([x.username for x in kb.users],
+                              ["user1", "user2", "user3"])
         user = kb.GetUser(username="user1")
         self.assertEqual(user.last_logon.AsSecondsFromEpoch(), 1296552099)
         self.assertEqual(user.homedir, "/home/user1")

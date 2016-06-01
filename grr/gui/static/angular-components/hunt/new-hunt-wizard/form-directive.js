@@ -3,7 +3,6 @@
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL');
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.FormController');
 goog.provide('grrUi.hunt.newHuntWizard.formDirective.FormDirective');
-goog.provide('grrUi.hunt.newHuntWizard.formDirective.USE_OO_HUNT_RULES_URL');
 goog.require('grrUi.core.apiService.stripTypeInfo');
 
 goog.scope(function() {
@@ -13,12 +12,6 @@ grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL = '/config/' +
     'AdminUI.new_hunt_wizard.default_output_plugin';
 var DEFAULT_PLUGIN_URL =
     grrUi.hunt.newHuntWizard.formDirective.DEFAULT_PLUGIN_URL;
-
-/** @const {string} */
-grrUi.hunt.newHuntWizard.formDirective.USE_OO_HUNT_RULES_URL = '/config/' +
-    'AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules';
-var USE_OO_HUNT_RULES_URL =
-    grrUi.hunt.newHuntWizard.formDirective.USE_OO_HUNT_RULES_URL;
 
 var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
@@ -48,21 +41,7 @@ grrUi.hunt.newHuntWizard.formDirective.FormController =
   /** @private {?string} */
   this.defaultOutputPluginName;
 
-  /** @private {boolean} */
-  this.ooHuntRulesEnabled;
-
-  /** @private {boolean} */
-  this.useOoHuntRulesDirective;
-
-  this.grrApiService_.get(USE_OO_HUNT_RULES_URL).then(function(response) {
-    this.ooHuntRulesEnabled = response['data']['value']['value'];
-    if (angular.isString(this.useOoHuntRulesDirective)) {
-      throw new Error('Got a string where boolean/integer was expected.');
-    }
-    this.ooHuntRulesEnabled = Boolean(this.ooHuntRulesEnabled);
-
-    return this.grrApiService_.get(DEFAULT_PLUGIN_URL);
-  }.bind(this)).then(function(response) {
+  this.grrApiService_.get(DEFAULT_PLUGIN_URL).then(function(response) {
     if (angular.isDefined(response['data']['value'])) {
       this.defaultOutputPluginName = response['data']['value']['value'];
     }
@@ -85,7 +64,8 @@ grrUi.hunt.newHuntWizard.formDirective.FormController =
     this.scope_.$watch('genericHuntArgs',
                        this.onGenericHuntArgsChange_.bind(this));
     this.scope_.$watch('huntRunnerArgs',
-                       this.onHuntRunnerArgsChange_.bind(this));
+                       this.onHuntRunnerArgsChange_.bind(this),
+                       true);
   }.bind(this));
 };
 var FormController =
@@ -144,40 +124,9 @@ FormController.prototype.onHuntRunnerArgsChange_ = function(newValue) {
 
   var huntRunnerArgs = this.scope_['huntRunnerArgs']['value'];
 
-  if (angular.isUndefined(this.useOoHuntRulesDirective)) {
-    this.useOoHuntRulesDirective = this.ooHuntRulesEnabled;
-
-    if (angular.isDefined(huntRunnerArgs['client_rule_set'])) {
-      if (angular.isDefined(
-              huntRunnerArgs['client_rule_set']['value']['match_mode']) ||
-          angular.isDefined(
-              huntRunnerArgs['client_rule_set']['value']['rules'])) {
-        this.useOoHuntRulesDirective = true;
-      }
-    }
-
-    if (angular.isDefined(huntRunnerArgs['integer_rules']) &&
-        huntRunnerArgs['integer_rules']['length'] > 0) {
-      this.useOoHuntRulesDirective = false;
-    }
-    if (angular.isDefined(huntRunnerArgs['regex_rules']) &&
-        huntRunnerArgs['regex_rules']['length'] > 0) {
-      this.useOoHuntRulesDirective = false;
-    }
-  }
-
-  if (this.useOoHuntRulesDirective) {
-    if (angular.isUndefined(huntRunnerArgs['client_rule_set'])) {
-      huntRunnerArgs['client_rule_set'] = angular.copy(
-          this.descriptors_['ForemanClientRuleSet']['default']);
-    }
-  } else {
-    if (angular.isUndefined(huntRunnerArgs['integer_rules'])) {
-      huntRunnerArgs['integer_rules'] = [];
-    }
-    if (angular.isUndefined(huntRunnerArgs['regex_rules'])) {
-      huntRunnerArgs['regex_rules'] = [];
-    }
+  if (angular.isUndefined(huntRunnerArgs['client_rule_set'])) {
+    huntRunnerArgs['client_rule_set'] = angular.copy(
+        this.descriptors_['ForemanClientRuleSet']['default']);
   }
 };
 

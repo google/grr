@@ -343,7 +343,7 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
     try:
       file_obj = aff4.FACTORY.Open(
           args.client_id.Add(args.file_path),
-          aff4_type="AFF4Stream",
+          aff4_type=aff4.AFF4Stream,
           mode="r",
           age=age,
           token=token)
@@ -409,7 +409,7 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
     try:
       file_obj = aff4.FACTORY.Open(
           args.client_id.Add(args.file_path),
-          aff4_type="AFF4Stream",
+          aff4_type=aff4.AFF4Stream,
           mode="r",
           age=age,
           token=token)
@@ -493,8 +493,8 @@ class ApiGetFileDownloadCommandHandler(api_call_handler_base.ApiCallHandler):
 
     export_command = u" ".join([
         config_lib.CONFIG["AdminUI.export_command"], "--username",
-        utils.ShellQuote(token.username), "file", "--path", utils.ShellQuote(
-            aff4_path), "--output", "."
+        utils.ShellQuote(token.username), "file", "--path",
+        utils.ShellQuote(aff4_path), "--output", "."
     ])
 
     return ApiGetFileDownloadCommandResult(command=export_command)

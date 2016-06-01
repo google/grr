@@ -1620,48 +1620,7 @@ message ForemanRuleAction {
   optional uint64 client_limit = 5;
 };
 
-// [deprecated] The Foreman schedules flows based on these rules firing.
-message ForemanAttributeRegex {
-  // A relative path under the client which the attribute applies to
-  optional string path = 1 [default = "/"];
-
-  optional string attribute_name = 2 [(sem_type) = {
-      type: "AFF4Attribute",
-      description: "An AFF4 attribute name"
-    }];
-
-  optional string attribute_regex = 3 [(sem_type) = {
-      type: "RegularExpression",
-      description: "If these are specified we fire when the attribute's str() "
-      "representation matches the regex."
-    }];
-}
-
-// [deprecated] This rule will fire if the expression
-//              operator(attribute, value) is true.
-message ForemanAttributeInteger {
-  // A relative path under the client which the attribute applies to
-  optional string path = 1 [default = "/"];
-
-  optional string attribute_name = 2 [(sem_type) = {
-      type: "AFF4Attribute",
-      description: "An AFF4 attribute name"
-    }];
-
-  enum Operator {
-    EQUAL = 0;
-    LESS_THAN = 1;
-    GREATER_THAN = 2;
-  }
-  optional Operator operator = 3 [default = EQUAL];
-  optional uint64 value = 4;
-}
-
 message ForemanRule {
-  // [deprecated] We fire when all these rules match
-  repeated ForemanAttributeRegex regex_rules = 1;
-  repeated ForemanAttributeInteger integer_rules = 2;
-
   // We fire when all these rules match
   optional ForemanClientRuleSet client_rule_set = 7;
 

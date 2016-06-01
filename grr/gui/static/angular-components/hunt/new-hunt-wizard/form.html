@@ -20,19 +20,9 @@
   </grr-wizard-form-page>
 
   <!-- Configure rules -->
-  <grr-wizard-form-page title="Where to run?"
-      is-valid="controller.useOoHuntRulesDirective ||
-                huntRunnerArgs.value.regex_rules.length > 0 ||
-                huntRunnerArgs.value.integer_rules.length > 0">
-
-    <grr-configure-deprecated-rules-page
-        ng-if="!controller.useOoHuntRulesDirective"
-        regex-rules="huntRunnerArgs.value.regex_rules"
-        integer-rules="huntRunnerArgs.value.integer_rules">
-    </grr-configure-deprecated-rules-page>
+  <grr-wizard-form-page title="Where to run?">
 
     <grr-configure-rules-page
-        ng-if="controller.useOoHuntRulesDirective"
         client-rule-set="huntRunnerArgs.value.client_rule_set">
     </grr-configure-rules-page>
 

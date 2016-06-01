@@ -1,6 +1,7 @@
 <a class="nav-link"
+   ng-disabled="disabled"
    ng-class="{'disabled': disabled}"
-   ng-click="controller.openLink()"
+   ng-click="controller.openLink($event)"
    ng-href="{$ controller.href $}"
    grrtarget="{$ state $}">
 

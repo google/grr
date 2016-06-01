@@ -45,7 +45,7 @@ class FileExportPlugin(plugin.ExportPlugin):
     """Downloads files/directories with the given path."""
     try:
       directory = aff4.FACTORY.Open(args.path,
-                                    "AFF4Volume",
+                                    aff4.AFF4Volume,
                                     token=data_store.default_token)
     except aff4.InstantiationError:
       directory = None

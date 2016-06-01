@@ -221,10 +221,9 @@ class ApiListHuntResultsRegressionTest(
     hunt_urn = rdfvalue.RDFURN("aff4:/hunts/H:123456")
     results_urn = hunt_urn.Add("Results")
 
-    with aff4.FACTORY.Create(
-        results_urn,
-        aff4_type=hunt_results.HuntResultCollection.__name__,
-        token=self.token) as results:
+    with aff4.FACTORY.Create(results_urn,
+                             aff4_type=hunt_results.HuntResultCollection,
+                             token=self.token) as results:
 
       result = rdf_flows.GrrMessage(
           payload=rdfvalue.RDFString("blah1"),
@@ -313,9 +312,8 @@ class ApiListHuntErrorsHandlerRegressionTest(
     self.Check("GET",
                "/api/hunts/%s/errors?count=1" % hunt_obj.urn.Basename(),
                replace={hunt_obj.urn.Basename(): "H:123456"})
-    self.Check("GET",
-               ("/api/hunts/%s/errors?offset=1&count=1" %
-                hunt_obj.urn.Basename()),
+    self.Check("GET", ("/api/hunts/%s/errors?offset=1&count=1" %
+                       hunt_obj.urn.Basename()),
                replace={hunt_obj.urn.Basename(): "H:123456"})
 
 
@@ -468,7 +466,7 @@ class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,
     original_result = original_results[0]
 
     with aff4.FACTORY.Create(self.results_urn,
-                             aff4_type="HuntResultCollection",
+                             aff4_type=hunt_results.HuntResultCollection,
                              mode="rw",
                              token=self.token) as new_results:
       for i in range(self.handler.MAX_RECORDS_TO_CHECK):
@@ -563,8 +561,9 @@ class ApiListHuntCrashesHandlerRegressionTest(
 
   def Run(self):
     client_ids = self.SetupClients(1)
-    client_mocks = dict([(client_id, test_lib.CrashClientMock(
-        client_id, self.token)) for client_id in client_ids])
+    client_mocks = dict([(client_id, test_lib.CrashClientMock(client_id,
+                                                              self.token))
+                         for client_id in client_ids])
 
     with test_lib.FakeTime(42):
       with self.CreateHunt(description="the hunt") as hunt_obj:
@@ -587,9 +586,8 @@ class ApiListHuntCrashesHandlerRegressionTest(
     self.Check("GET",
                "/api/hunts/%s/crashes?count=1" % hunt_obj.urn.Basename(),
                replace=replace)
-    self.Check("GET",
-               ("/api/hunts/%s/crashes?offset=1&count=1" %
-                hunt_obj.urn.Basename()),
+    self.Check("GET", ("/api/hunts/%s/crashes?offset=1&count=1" %
+                       hunt_obj.urn.Basename()),
                replace=replace)
 
 

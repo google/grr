@@ -122,8 +122,8 @@ class CollectRunKeyBinaries(flow.GRRFlow):
       runkey = response.registry_data.string
 
       environ_vars = artifact_utils.GetWindowsEnvironmentVariablesMap(kb)
-      path_guesses = path_detection_windows.DetectExecutablePaths(
-          [runkey], environ_vars)
+      path_guesses = path_detection_windows.DetectExecutablePaths([runkey],
+                                                                  environ_vars)
 
       if not path_guesses:
         self.Log("Couldn't guess path for %s", runkey)
@@ -192,7 +192,7 @@ class GetMRU(flow.GRRFlow):
         fd = aff4.FACTORY.Create(
             rdf_client.ClientURN(self.client_id).Add("analysis/MRU/Explorer")
             .Add(extension).Add(username),
-            "MRUCollection",
+            aff4_grr.MRUCollection,
             token=self.token,
             mode="rw")
 

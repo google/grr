@@ -78,7 +78,7 @@ setup_args = dict(name="grr-response-test",
                       VERSION.get("Version", "packagedepends"),
                   ],
                   cmdclass={"sdist": Sdist},
-                  data_files=find_data_files("test_data"),
+                  data_files=(find_data_files("test_data") + ["version.ini"]),
                   entry_points={
                       "console_scripts": [
                           "grr_run_tests = grr.tools.run_tests:DistEntry",

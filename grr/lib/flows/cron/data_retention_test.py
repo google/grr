@@ -15,6 +15,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
+from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.flows.cron import data_retention
 from grr.lib.hunts import standard
 
@@ -47,8 +48,8 @@ class CleanHuntsTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(hunts_urns), 10)
 
   def testDeletesHuntsWithExpirationDateOlderThanGivenAge(self):
-    with test_lib.ConfigOverrider({"DataRetention.hunts_ttl": rdfvalue.Duration(
-        "150s")}):
+    with test_lib.ConfigOverrider(
+        {"DataRetention.hunts_ttl": rdfvalue.Duration("150s")}):
       with test_lib.FakeTime(40 + 60 * self.NUM_HUNTS):
         flow.GRRFlow.StartFlow(flow_name=data_retention.CleanHunts.__name__,
                                sync=True,
@@ -68,8 +69,8 @@ class CleanHuntsTest(test_lib.FlowTestsBaseclass):
                                 latest_timestamp - rdfvalue.Duration("150s"))
 
   def testNoTraceOfDeletedHuntIsLeftInTheDataStore(self):
-    with test_lib.ConfigOverrider({"DataRetention.hunts_ttl": rdfvalue.Duration(
-        "1s")}):
+    with test_lib.ConfigOverrider(
+        {"DataRetention.hunts_ttl": rdfvalue.Duration("1s")}):
       with test_lib.FakeTime(40 + 60 * self.NUM_HUNTS):
         flow.GRRFlow.StartFlow(flow_name=data_retention.CleanHunts.__name__,
                                sync=True,
@@ -101,8 +102,8 @@ class CleanHuntsTest(test_lib.FlowTestsBaseclass):
       with aff4.FACTORY.Open(hunt_urn, mode="rw", token=self.token) as fd:
         fd.AddLabels(exception_label_name)
 
-    with test_lib.ConfigOverrider({"DataRetention.hunts_ttl": rdfvalue.Duration(
-        "10s")}):
+    with test_lib.ConfigOverrider(
+        {"DataRetention.hunts_ttl": rdfvalue.Duration("10s")}):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_HUNTS):
         flow.GRRFlow.StartFlow(flow_name=data_retention.CleanHunts.__name__,
@@ -216,7 +217,7 @@ class CleanTempTest(test_lib.FlowTestsBaseclass):
     for i in range(self.NUM_TMP):
       with test_lib.FakeTime(40 + 60 * i):
         tmp_obj = aff4.FACTORY.Create("aff4:/tmp/%s" % i,
-                                      "TempMemoryFile",
+                                      aff4_standard.TempMemoryFile,
                                       mode="rw",
                                       token=self.token)
         self.tmp_urns.append(tmp_obj.urn)
@@ -233,8 +234,8 @@ class CleanTempTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(tmp_urns), 10)
 
   def testDeletesTempWithAgeOlderThanGivenAge(self):
-    with test_lib.ConfigOverrider({"DataRetention.tmp_ttl": rdfvalue.Duration(
-        "300s")}):
+    with test_lib.ConfigOverrider(
+        {"DataRetention.tmp_ttl": rdfvalue.Duration("300s")}):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_TMP):
         flow.GRRFlow.StartFlow(flow_name=data_retention.CleanTemp.__name__,
@@ -259,8 +260,8 @@ class CleanTempTest(test_lib.FlowTestsBaseclass):
       with aff4.FACTORY.Open(tmp_urn, mode="rw", token=self.token) as fd:
         fd.AddLabels(exception_label_name)
 
-    with test_lib.ConfigOverrider({"DataRetention.tmp_ttl": rdfvalue.Duration(
-        "10s")}):
+    with test_lib.ConfigOverrider(
+        {"DataRetention.tmp_ttl": rdfvalue.Duration("10s")}):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_TMP):
         flow.GRRFlow.StartFlow(flow_name=data_retention.CleanTemp.__name__,

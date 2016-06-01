@@ -29,6 +29,7 @@ from grr.lib.flows.general import export as flow_export
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import transfer
 from grr.lib.hunts import process_results
+from grr.lib.hunts import results as hunts_results
 from grr.lib.output_plugins import csv_plugin
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -51,15 +52,21 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     token = token or self.token
     self.client_ids = self.SetupClients(client_count)
 
+    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+        rdf_foreman.ForemanClientRule(
+            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+            regex=rdf_foreman.ForemanRegexClientRule(
+                attribute_name="GRR client",
+                attribute_regex="GRR"))
+    ])
+
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
         flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path=path or "/tmp/evil.txt",
             pathtype=rdf_paths.PathSpec.PathType.OS,)),
-        regex_rules=[rdf_foreman.ForemanAttributeRegex(
-            attribute_name="GRR client",
-            attribute_regex="GRR")],
+        client_rule_set=client_rule_set,
         output_plugins=output_plugins or [],
         client_rate=0,
         client_limit=client_limit,
@@ -86,10 +93,16 @@ class TestHuntView(test_lib.GRRSeleniumTest):
                 rdfvalue.RDFURN("aff4:/C.0000000000000001/fs/os/c/bin/bash"),
                 rdfvalue.RDFURN("aff4:/sample/3")]
 
+    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+        rdf_foreman.ForemanClientRule(
+            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+            regex=rdf_foreman.ForemanRegexClientRule(
+                attribute_name="GRR client",
+                attribute_regex="GRR"))
+    ])
+
     with hunts.GRRHunt.StartHunt(hunt_name="GenericHunt",
-                                 regex_rules=[rdf_foreman.ForemanAttributeRegex(
-                                     attribute_name="GRR client",
-                                     attribute_regex="GRR")],
+                                 client_rule_set=client_rule_set,
                                  output_plugins=[],
                                  token=self.token) as hunt:
 
@@ -97,7 +110,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       runner.Start()
 
       with aff4.FACTORY.Open(runner.context.results_collection_urn,
-                             aff4_type="HuntResultCollection",
+                             aff4_type=hunts_results.HuntResultCollection,
                              mode="w",
                              token=self.token) as collection:
 

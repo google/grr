@@ -50,11 +50,8 @@ class HuntRunnerArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.HuntRunnerArgs
 
   def Validate(self):
-    if self.HasField("regex_rules"):
-      self.regex_rules.Validate()
-
-    if self.HasField("integer_rules"):
-      self.integer_rules.Validate()
+    if self.HasField("client_rule_set"):
+      self.client_rule_set.Validate()
 
 
 class UrnCollection(sequential_collection.IndexedSequentialCollection):
@@ -327,8 +324,6 @@ class HuntRunner(flow_runner.FlowRunner):
         created=rdfvalue.RDFDatetime().Now(),
         expires=self.context.expires,
         description="Hunt %s %s" % (self.session_id, self.args.hunt_name),
-        regex_rules=self.args.regex_rules,
-        integer_rules=self.args.integer_rules,
         client_rule_set=self.args.client_rule_set)
 
     foreman_rule.actions.Append(hunt_id=self.session_id,
@@ -527,14 +522,6 @@ class HuntRunner(flow_runner.FlowRunner):
 
 class GRRHunt(flow.GRRFlow):
   """The GRR Hunt class."""
-
-  # Some common rules.
-  MATCH_WINDOWS = rdf_foreman.ForemanAttributeRegex(attribute_name="System",
-                                                    attribute_regex="Windows")
-  MATCH_LINUX = rdf_foreman.ForemanAttributeRegex(attribute_name="System",
-                                                  attribute_regex="Linux")
-  MATCH_DARWIN = rdf_foreman.ForemanAttributeRegex(attribute_name="System",
-                                                   attribute_regex="Darwin")
 
   class SchemaCls(flow.GRRFlow.SchemaCls):
     """The schema for hunts.
@@ -990,11 +977,11 @@ class GRRHunt(flow.GRRFlow):
     """
 
   def GetClientsCounts(self):
-    collections = aff4.FACTORY.MultiOpen(
-        [self.all_clients_collection_urn, self.completed_clients_collection_urn,
-         self.clients_errors_collection_urn],
-        mode="r",
-        token=self.token)
+    collections = aff4.FACTORY.MultiOpen([self.all_clients_collection_urn,
+                                          self.completed_clients_collection_urn,
+                                          self.clients_errors_collection_urn],
+                                         mode="r",
+                                         token=self.token)
     collections_dict = dict((coll.urn, coll) for coll in collections)
 
     def CollectionLen(collection_urn):

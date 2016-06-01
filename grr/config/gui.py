@@ -85,20 +85,6 @@ config_lib.DEFINE_string("AdminUI.new_hunt_wizard.default_output_plugin", None,
                          "Output plugin that will be added by default in the "
                          "'New Hunt' wizard output plugins selection page.")
 
-config_lib.DEFINE_bool("AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules",
-                       default=True,
-                       help="If True, the hunt rules configuration UI will put "
-                       "the rules into the 'client_rule_set' field of the "
-                       "'huntRunnerArgs' variable, instead of using "
-                       "'integerRules' and 'regexRules'.")
-
-config_lib.DEFINE_bool("AdminUI.new_hunt_wizard."
-                       "use_oo_hunt_rules_in_new_cron_job_wizard",
-                       default=True,
-                       help="This is the same as "
-                       "AdminUI.new_hunt_wizard.use_object_oriented_hunt_rules,"
-                       " but regarding the new cron job wizard.")
-
 # Temporary option that allows limiting access to legacy UI renderers. Useful
 # when giving access to GRR AdminUI to parties that have to use the HTTP API
 # only.

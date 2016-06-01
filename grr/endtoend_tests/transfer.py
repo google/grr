@@ -10,6 +10,7 @@ import threading
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -65,7 +66,7 @@ class MultiGetFileTestFlow(flow.GRRFlow):
       raise flow.FlowError(responses.status)
     for response in responses:
       fd = aff4.FACTORY.Open(response.file_urn,
-                             "VFSFile",
+                             aff4_grr.VFSFile,
                              mode="r",
                              token=self.token)
       binary_hash = fd.Get(fd.Schema.HASH)
@@ -81,7 +82,7 @@ class MultiGetFileTestFlow(flow.GRRFlow):
       raise flow.FlowError(responses.status)
     for response in responses:
       fd = aff4.FACTORY.Open(response.aff4path,
-                             "VFSBlobImage",
+                             aff4_grr.VFSBlobImage,
                              mode="r",
                              token=self.token)
       server_hash = hashlib.sha256(fd.Read(response.st_size)).hexdigest()

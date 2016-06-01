@@ -9,6 +9,7 @@ from grr.lib import aff4
 from grr.lib import client_fixture
 from grr.lib import config_lib
 from grr.lib import worker_mocks
+from grr.lib.aff4_objects import collects
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -146,7 +147,7 @@ class MemoryClientMock(ActionMock):
 
     # Create a fake component so we can launch the LoadComponent flow.
     fd = aff4.FACTORY.Create("aff4:/config/components/grr-rekall_0.1",
-                             "ComponentObject",
+                             collects.ComponentObject,
                              mode="w",
                              token=access_control.ACLToken(username="test",
                                                            reason="reason"))

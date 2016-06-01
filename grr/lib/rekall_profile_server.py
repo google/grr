@@ -16,6 +16,7 @@ from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import threadpool
+from grr.lib.aff4_objects import aff4_grr
 
 
 class ProfileServer(object):
@@ -46,7 +47,7 @@ class CachingProfileServer(ProfileServer):
     try:
       aff4_profile = aff4.FACTORY.Open(
           cache_urn.Add(version).Add(profile_name),
-          aff4_type="AFF4RekallProfile",
+          aff4_type=aff4_grr.AFF4RekallProfile,
           token=self.token)
       return aff4_profile.Get(aff4_profile.Schema.PROFILE)
     except IOError:
@@ -58,7 +59,7 @@ class CachingProfileServer(ProfileServer):
     cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
     aff4_profile = aff4.FACTORY.Create(
         cache_urn.Add(version).Add(profile.name),
-        "AFF4RekallProfile",
+        aff4_grr.AFF4RekallProfile,
         token=self.token)
     aff4_profile.Set(aff4_profile.Schema.PROFILE(profile))
     aff4_profile.Close()
@@ -157,8 +158,8 @@ class GRRRekallProfileServer(CachingProfileServer,
       profile_urn = metadata["urn"]
       profile_name = urn_to_profile[profile_urn]
 
-      inventory_timestamp = inventory["$INVENTORY"][
-          profile_name].get("LastModified")
+      inventory_timestamp = inventory["$INVENTORY"][profile_name].get(
+          "LastModified")
 
       # Remove profiles which are newer than upstream.
       if timestamp / 1e6 > inventory_timestamp:

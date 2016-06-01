@@ -16,6 +16,7 @@ from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import standard
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
+from grr.lib.hunts import results
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -81,7 +82,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
     """Check we can download files references in HuntResultCollection."""
     # Create a collection with URNs to some files.
     fd = aff4.FACTORY.Create("aff4:/testcoll",
-                             "HuntResultCollection",
+                             results.HuntResultCollection,
                              token=self.token)
     fd.AddAsMessage(rdfvalue.RDFURN(self.out.Add("testfile1")), self.client_id)
     fd.AddAsMessage(

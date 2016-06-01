@@ -19,6 +19,7 @@ from grr.gui.plugins import semantic
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_rekall
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -267,9 +268,10 @@ class RekallResponseCollectionRenderer(semantic.RDFValueRenderer):
     else:
       try:
         aff4_path = self.state.get("aff4_path") or request.REQ.get("aff4_path")
-        collection = aff4.FACTORY.Open(aff4_path,
-                                       aff4_type="RekallResponseCollection",
-                                       token=request.token)
+        collection = aff4.FACTORY.Open(
+            aff4_path,
+            aff4_type=aff4_rekall.RekallResponseCollection,
+            token=request.token)
       except IOError:
         return
 

@@ -10,16 +10,6 @@ from grr.gui.plugins import semantic
 from grr.lib import aff4
 
 
-class RegexRuleArray(semantic.RDFValueArrayRenderer):
-  """Nicely render all the rules."""
-  proxy_field = "regex_rules"
-
-
-class IntegerRuleArray(semantic.RDFValueArrayRenderer):
-  """Nicely render all the rules."""
-  proxy_field = "integer_rules"
-
-
 class RuleArray(semantic.RDFProtoRenderer):
   """Nicely render all the rules."""
   proxy_field = "client_rule_set"
@@ -42,9 +32,8 @@ class ReadOnlyForemanRuleTable(renderers.UserLabelCheckMixin,
     self.AddColumn(semantic.RDFValueColumn("Created"))
     self.AddColumn(semantic.RDFValueColumn("Expires"))
     self.AddColumn(semantic.RDFValueColumn("Description"))
-    self.AddColumn(semantic.RDFValueColumn("Rules",
-                                           renderer=RegexRuleArray,
-                                           width="40%"))
+    self.AddColumn(semantic.RDFValueColumn(
+        "Rules", renderer=RuleArray, width="40%"))
     self.AddColumn(semantic.RDFValueColumn("Actions", width="40%"))
 
   def RenderAjax(self, request, response):
@@ -55,7 +44,7 @@ class ReadOnlyForemanRuleTable(renderers.UserLabelCheckMixin,
       self.AddRow(Created=rule.created,
                   Expires=rule.expires,
                   Description=rule.description,
-                  Rules=rule.regex_rules,
+                  Rules=rule.client_rule_set,
                   Actions=rule.actions)
 
     # Call our baseclass to actually do the rendering

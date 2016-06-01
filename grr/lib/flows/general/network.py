@@ -4,10 +4,7 @@
 
 from grr.lib import aff4
 from grr.lib import flow
-# pylint: disable=unused-import
 from grr.lib.aff4_objects import network
-
-# pylint: enable=unused-import
 
 
 class Netstat(flow.GRRFlow):
@@ -32,7 +29,9 @@ class Netstat(flow.GRRFlow):
       flow.FlowError: On failure to get retrieve the connections.
     """
     self.state.Register("urn", self.client_id.Add("network"))
-    net_fd = aff4.FACTORY.Create(self.state.urn, "Network", token=self.token)
+    net_fd = aff4.FACTORY.Create(self.state.urn,
+                                 network.Network,
+                                 token=self.token)
     if responses.success:
       conns = net_fd.Schema.CONNECTIONS()
       for response in responses:

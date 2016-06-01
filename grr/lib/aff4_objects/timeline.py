@@ -163,7 +163,8 @@ class GRRTimeSeries(standard.VFSDirectory):
       return
     storage = aff4.FACTORY.Create(
         self.urn.Add("Storage"),
-        "AFF4Image", token=self.token)
+        aff4.AFF4Image,
+        token=self.token)
     storage.SetChunksize(1024 * 1024)
 
     if self.heap:

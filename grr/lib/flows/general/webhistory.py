@@ -11,6 +11,7 @@ from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import flow_utils
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.parsers import chrome_history
@@ -58,7 +59,7 @@ class ChromeHistory(flow.GRRFlow):
 
     if self.runner.output is not None:
       self.runner.output = aff4.FACTORY.Create(self.runner.output.urn,
-                                               "VFSAnalysisFile",
+                                               aff4_grr.VFSAnalysisFile,
                                                token=self.token)
 
     if not self.state.history_paths:
@@ -191,7 +192,7 @@ class FirefoxHistory(flow.GRRFlow):
 
     if self.runner.output is not None:
       self.runner.output = aff4.FACTORY.Create(self.runner.output.urn,
-                                               "VFSAnalysisFile",
+                                               aff4_grr.VFSAnalysisFile,
                                                token=self.token)
 
     filename = "places.sqlite"

@@ -7,7 +7,6 @@ goog.require('grrUi.core.module');
 goog.require('grrUi.cron.cronJobStatusIconDirective.CronJobStatusIconDirective');
 goog.require('grrUi.cron.cronJobsListDirective.CronJobsListDirective');
 goog.require('grrUi.cron.cronViewDirective.CronViewDirective');
-goog.require('grrUi.cron.newCronJobDeprecatedWizard.module');
 goog.require('grrUi.cron.newCronJobWizard.module');
 
 
@@ -16,9 +15,7 @@ goog.require('grrUi.cron.newCronJobWizard.module');
  */
 grrUi.cron.module = angular.module('grrUi.cron',
                                    [grrUi.core.module.name,
-                                    grrUi.cron.newCronJobWizard.module.name,
-                                    grrUi.cron.newCronJobDeprecatedWizard.
-                                        module.name]);
+                                    grrUi.cron.newCronJobWizard.module.name]);
 
 grrUi.cron.module.directive(
     grrUi.cron.cronJobsListDirective.CronJobsListDirective.directive_name,

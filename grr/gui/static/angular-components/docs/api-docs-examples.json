@@ -172,12 +172,15 @@
           },
           "hunt_runner_args": {
             "description": "Foobar! (cron)",
-            "regex_rules": [
-              {
-                "attribute_name": "System",
-                "attribute_regex": "Windows"
-              }
-            ]
+            "client_rule_set": {
+              "rules": [
+                {
+                  "os": {
+                    "os_windows": true
+                  }
+                }
+              ]
+            }
           }
         },
         "flow_name": "CreateAndRunGenericHuntFlow",
@@ -246,24 +249,31 @@
                     "type": "unicode",
                     "value": "GenericHunt"
                   },
-                  "regex_rules": [
-                    {
-                      "age": 0,
-                      "type": "ForemanAttributeRegex",
-                      "value": {
-                        "attribute_name": {
+                  "client_rule_set": {
+                    "age": 0,
+                    "type": "ForemanClientRuleSet",
+                    "value": {
+                      "rules": [
+                        {
                           "age": 0,
-                          "type": "AFF4Attribute",
-                          "value": "System"
-                        },
-                        "attribute_regex": {
-                          "age": 0,
-                          "type": "RegularExpression",
-                          "value": "Windows"
+                          "type": "ForemanClientRule",
+                          "value": {
+                            "os": {
+                              "age": 0,
+                              "type": "ForemanOsClientRule",
+                              "value": {
+                                "os_windows": {
+                                  "age": 0,
+                                  "type": "RDFBool",
+                                  "value": true
+                                }
+                              }
+                            }
+                          }
                         }
-                      }
+                      ]
                     }
-                  ]
+                  }
                 }
               }
             }
@@ -329,12 +339,15 @@
           "hunt_runner_args": {
             "description": "Foobar! (cron)",
             "hunt_name": "GenericHunt",
-            "regex_rules": [
-              {
-                "attribute_name": "System",
-                "attribute_regex": "Windows"
-              }
-            ]
+            "client_rule_set": {
+              "rules": [
+                {
+                  "os": {
+                    "os_windows": true
+                  }
+                }
+              ]
+            }
           }
         },
         "flow_name": "CreateAndRunGenericHuntFlow",
@@ -1497,7 +1510,37 @@
         "client_rule_set": {
           "age": 0,
           "type": "ForemanClientRuleSet",
-          "value": {}
+          "value": {
+            "rules": [
+              {
+                "age": 0,
+                "type": "ForemanClientRule",
+                "value": {
+                  "regex": {
+                    "age": 0,
+                    "type": "ForemanRegexClientRule",
+                    "value": {
+                      "attribute_name": {
+                        "age": 0,
+                        "type": "AFF4Attribute",
+                        "value": "GRR client"
+                      },
+                      "attribute_regex": {
+                        "age": 0,
+                        "type": "RegularExpression",
+                        "value": "GRR"
+                      }
+                    }
+                  },
+                  "rule_type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "REGEX"
+                  }
+                }
+              }
+            ]
+          }
         },
         "completed_clients_count": 0,
         "created": 42000000,
@@ -1555,7 +1598,37 @@
             "client_rule_set": {
               "age": 0,
               "type": "ForemanClientRuleSet",
-              "value": {}
+              "value": {
+                "rules": [
+                  {
+                    "age": 0,
+                    "type": "ForemanClientRule",
+                    "value": {
+                      "regex": {
+                        "age": 0,
+                        "type": "ForemanRegexClientRule",
+                        "value": {
+                          "attribute_name": {
+                            "age": 0,
+                            "type": "AFF4Attribute",
+                            "value": "GRR client"
+                          },
+                          "attribute_regex": {
+                            "age": 0,
+                            "type": "RegularExpression",
+                            "value": "GRR"
+                          }
+                        }
+                      },
+                      "rule_type": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "REGEX"
+                      }
+                    }
+                  }
+                ]
+              }
             },
             "description": {
               "age": 0,
@@ -1567,24 +1640,6 @@
               "type": "unicode",
               "value": "GenericHunt"
             },
-            "regex_rules": [
-              {
-                "age": 0,
-                "type": "ForemanAttributeRegex",
-                "value": {
-                  "attribute_name": {
-                    "age": 0,
-                    "type": "AFF4Attribute",
-                    "value": "GRR client"
-                  },
-                  "attribute_regex": {
-                    "age": 0,
-                    "type": "RegularExpression",
-                    "value": "GRR"
-                  }
-                }
-              }
-            ],
             "token": {
               "age": 0,
               "type": "ACLToken",
@@ -1616,7 +1671,17 @@
         "all_clients_count": 0,
         "client_limit": 100,
         "client_rate": 0,
-        "client_rule_set": {},
+        "client_rule_set": {
+          "rules": [
+            {
+              "regex": {
+                "attribute_name": "GRR client",
+                "attribute_regex": "GRR"
+              },
+              "rule_type": "REGEX"
+            }
+          ]
+        },
         "completed_clients_count": 0,
         "created": 42000000,
         "creator": "test",
@@ -1635,15 +1700,19 @@
         },
         "hunt_runner_args": {
           "client_rate": 0.0,
-          "client_rule_set": {},
+          "client_rule_set": {
+            "rules": [
+              {
+                "regex": {
+                  "attribute_name": "GRR client",
+                  "attribute_regex": "GRR"
+                },
+                "rule_type": "REGEX"
+              }
+            ]
+          },
           "description": "the hunt",
           "hunt_name": "GenericHunt",
-          "regex_rules": [
-            {
-              "attribute_name": "GRR client",
-              "attribute_regex": "GRR"
-            }
-          ],
           "token": {
             "reason": "Running tests",
             "username": "test"

@@ -8,9 +8,8 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import test_lib
-# pylint: disable=unused-import
+from grr.lib.aff4_objects import filetypes as aff4_filetypes
 from grr.lib.flows.general import filetypes
-# pylint: enable=unused-import
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import plist as rdf_plist
 
@@ -35,11 +34,16 @@ class TestPlistFlows(test_lib.FlowTestsBaseclass):
   def _CheckOutputAFF4Type(self, output):
     # Check the output file is created
     output_path = self.client_id.Add(output)
-    aff4.FACTORY.Open(output_path, aff4_type="AFF4PlistQuery", token=self.token)
+    aff4.FACTORY.Open(output_path,
+                      aff4_type=aff4_filetypes.AFF4PlistQuery,
+                      token=self.token)
 
   def testPlistValueFilter(self):
     output = "analysis/plistvaluefilter_test"
-    self._RunFlow("PlistValueFilter", context="", query="", output=output)
+    self._RunFlow(filetypes.PlistValueFilter.__name__,
+                  context="",
+                  query="",
+                  output=output)
     self._CheckOutputAFF4Type(output)
 
 

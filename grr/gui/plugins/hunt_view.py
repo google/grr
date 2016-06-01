@@ -21,6 +21,7 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.hunts import standard as hunts_standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -306,8 +307,8 @@ back to hunt view</a>
       row = {"Client ID": c_urn,
              "Hostname": cdict.get("hostname"),
              "Status": results[c_urn],
-             "Last Checkin":
-                 searchclient.FormatLastSeenTime(cdict.get("age") or 0)}
+             "Last Checkin": searchclient.FormatLastSeenTime(cdict.get("age") or
+                                                             0)}
 
       client_id = c_urn.Basename()
       if client_id in resource_usage:
@@ -436,12 +437,6 @@ class HuntOverviewRenderer(AbstractLogRenderer):
   <dt>Total network traffic</dt>
   <dd>{{ this.net_sum|filesizeformat }}</dd>
 
-  <dt>Regex Rules</dt>
-  <dd>{{ this.regex_rules|safe }}</dd>
-
-  <dt>Integer Rules</dt>
-  <dd>{{ this.integer_rules|safe }}</dd>
-
   <dt>Client rule set</dt>
   <dd>{{ this.client_rule_set|safe }}</dd>
 
@@ -514,18 +509,6 @@ class HuntOverviewRenderer(AbstractLogRenderer):
 
         self.args_str = renderers.DictRenderer(
             self.hunt.state, filter_keys=["context"]).RawHTML(request)
-
-        if runner.args.regex_rules:
-          self.regex_rules = foreman.RegexRuleArray(
-              runner.args.regex_rules).RawHTML(request)
-        else:
-          self.regex_rules = "None"
-
-        if runner.args.integer_rules:
-          self.integer_rules = foreman.IntegerRuleArray(
-              runner.args.integer_rules).RawHTML(request)
-        else:
-          self.integer_rules = "None"
 
         if runner.args.client_rule_set:
           self.client_rule_set = foreman.RuleArray(
@@ -618,7 +601,7 @@ class HuntClientOverviewRenderer(renderers.TemplateRenderer):
       try:
         self.client = aff4.FACTORY.Open(hunt_client,
                                         token=request.token,
-                                        aff4_type="VFSGRRClient")
+                                        aff4_type=aff4_grr.VFSGRRClient)
         self.last_checkin = rdfvalue.RDFDatetime(self.client.Get(
             self.client.Schema.PING))
 

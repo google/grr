@@ -25,6 +25,7 @@ from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import export
 
 from grr.lib.hunts import implementation
+from grr.lib.hunts import results as hunts_results
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import stats as stats_rdf
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -822,7 +823,7 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
     hunt_results_urn = rdfvalue.RDFURN("aff4:/hunts").Add(args.hunt_id.Basename(
     )).Add("Results")
     results = aff4.FACTORY.Open(hunt_results_urn,
-                                aff4_type="HuntResultCollection",
+                                aff4_type=hunts_results.HuntResultCollection,
                                 token=token)
 
     expected_aff4_path = args.client_id.Add("fs").Add(args.vfs_path.Path())
@@ -845,7 +846,7 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
 
       try:
         aff4_stream = aff4.FACTORY.Open(aff4_path,
-                                        aff4_type="AFF4Stream",
+                                        aff4_type=aff4.AFF4Stream,
                                         token=token)
         if not aff4_stream.GetContentAge():
           break

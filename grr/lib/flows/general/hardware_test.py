@@ -8,6 +8,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
+from grr.lib.aff4_objects import collects
 # pylint: disable=unused-import
 from grr.lib.flows.general import hardware
 # pylint: enable=unused-import
@@ -52,7 +53,7 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
 
     # Create a fake component so we can launch the LoadComponent flow.
     fd = aff4.FACTORY.Create("aff4:/config/components/grr-chipsec_0.1",
-                             "ComponentObject",
+                             collects.ComponentObject,
                              mode="w",
                              token=self.token)
     fd.Set(fd.Schema.COMPONENT(name="grr-chipsec", version="0.1"))

@@ -87,10 +87,16 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
   reason = "Felt like it!"
 
   def CreateSampleHunt(self, token=None):
+    client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
+        rdf_foreman.ForemanClientRule(
+            rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
+            regex=rdf_foreman.ForemanRegexClientRule(
+                attribute_name="GRR client",
+                attribute_regex="GRR"))
+    ])
+
     with hunts.GRRHunt.StartHunt(hunt_name="SampleHunt",
-                                 regex_rules=[rdf_foreman.ForemanAttributeRegex(
-                                     attribute_name="GRR client",
-                                     attribute_regex="GRR")],
+                                 client_rule_set=client_rule_set,
                                  token=token or self.token) as hunt:
 
       return hunt.session_id
