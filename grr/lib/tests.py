@@ -37,6 +37,7 @@ from grr.lib import output_plugin_test
 from grr.lib import parsers_test
 from grr.lib import queue_manager_test
 from grr.lib import rekall_profile_server_test
+from grr.lib import repacking_test
 from grr.lib import stats_test
 from grr.lib import test_lib
 from grr.lib import threadpool_test

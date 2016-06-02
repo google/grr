@@ -31,7 +31,7 @@ config_lib.DEFINE_option(type_info.RDFValueType(
 config_lib.DEFINE_string(
     name="Executables.installer",
     default=("%(Executables.aff4_path)/installers/"
-             "%(ClientBuilder.output_basename)"
+             "%(ClientRepacker.output_basename)"
              "%(ClientBuilder.output_extension)"),
     help="The location of the generated installer in the config directory.")
 
@@ -128,10 +128,10 @@ config_lib.DEFINE_string(
     default=r"""
 VSVersionInfo\(
   ffi=FixedFileInfo\(
-    filevers=\(%(Client.version_major), %(Client.version_minor),
-               %(Client.version_revision), %(Client.version_release)\),
-    prodvers=\(%(Client.version_major), %(Client.version_minor),
-               %(Client.version_revision), %(Client.version_release)\),
+    filevers=\(%(Source.version_major), %(Source.version_minor),
+               %(Source.version_revision), %(Source.version_release)\),
+    prodvers=\(%(Source.version_major), %(Source.version_minor),
+               %(Source.version_revision), %(Source.version_release)\),
     mask=0x3f,
     flags=0x0,
     OS=0x40004,
@@ -152,7 +152,7 @@ VSVersionInfo\(
     u"<---------------- Client.description ------------------->"\),
 
     StringStruct\(u'FileVersion',
-    u"<---------------- Client.version_string ------------------->"\),
+    u"<---------------- Source.version_string ------------------->"\),
 
     StringStruct\(u'ProductName',
     u"<---------------- Client.name ------------------->"\),
@@ -190,7 +190,7 @@ config_lib.DEFINE_string(
 
 config_lib.DEFINE_string(name="ClientBuilder.output_basename",
                          default=("%(Client.prefix)%(Client.name)_"
-                                  "%(Client.version_string)_%(Client.arch)"),
+                                  "%(Source.version_string)_%(Client.arch)"),
                          help="The base name of the output package.")
 
 # Windows client specific options.
@@ -224,7 +224,7 @@ config_lib.DEFINE_string(name="ClientBuilder.template_extension",
 
 config_lib.DEFINE_string(
     name="PyInstaller.template_basename",
-    default=("%(Client.name)_%(Client.version_string)_%(Client.arch)"),
+    default=("%(Client.name)_%(Source.version_string)_%(Client.arch)"),
     help="The template name of the output package.")
 
 config_lib.DEFINE_string(
@@ -234,38 +234,23 @@ config_lib.DEFINE_string(
     help="The template file name of the output package.")
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
-    name="ClientBuilder.template_path",
+    name="ClientBuilder.template_dir",
     must_exist=False,
     default=("%(grr-response-templates@grr-response-templates|resource)/"
-             "templates/%(PyInstaller.template_filename)"),
-    help="The full path to the executable template files."))
+             "templates"),
+    help="The directory holding executable template files."))
+
+config_lib.DEFINE_option(type_info.PathTypeInfo(
+    name="ClientBuilder.template_path",
+    must_exist=False,
+    default=("%(ClientBuilder.template_dir)/%(PyInstaller.template_filename)"),
+    help="The full path to the executable template files for building."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.executables_dir",
     must_exist=False,
     default="%(executables|resource)",
     help="The path to the grr executables directory."))
-
-config_lib.DEFINE_option(type_info.PathTypeInfo(
-    name="ClientBuilder.output_filename",
-    must_exist=False,
-    default=("%(ClientBuilder.output_basename)%(ClientBuilder.output_extension)"
-            ),
-    help="The filename of the generated installer file."))
-
-config_lib.DEFINE_option(type_info.PathTypeInfo(
-    name="ClientBuilder.output_path",
-    must_exist=False,
-    default=("%(ClientBuilder.executables_dir)/%(Client.platform)"
-             "/installers/%(ClientBuilder.output_filename)"),
-    help="The full path to the generated installer file."))
-
-config_lib.DEFINE_option(type_info.PathTypeInfo(
-    name="ClientBuilder.generated_config_path",
-    must_exist=False,
-    default=("%(ClientBuilder.executables_dir)/%(Client.platform)"
-             "/config/%(ClientBuilder.output_basename).yaml"),
-    help="The full path to where we write a generated config."))
 
 config_lib.DEFINE_option(type_info.PathTypeInfo(
     name="ClientBuilder.unzipsfx_stub_dir",
@@ -346,13 +331,13 @@ config_lib.DEFINE_string(
     " according to the rpm specs.")
 
 config_lib.DEFINE_string(name="ClientBuilder.debian_version",
-                         default="%(Client.version_numeric)-1",
+                         default="%(Template.version_numeric)-1",
                          help="The version of the debian package.")
 
 config_lib.DEFINE_string(
     name="ClientBuilder.debian_package_base",
     default=("%(ClientBuilder.package_name)_"
-             "%(ClientBuilder.debian_version)_%(Client.arch)"),
+             "%(ClientBuilder.debian_version)_%(Template.arch)"),
     help="The filename of the debian package without extension.")
 
 config_lib.DEFINE_string(name="ClientBuilder.package_name",
@@ -427,7 +412,7 @@ config_lib.DEFINE_string("ClientBuilder.daemon_link",
                          default=None,
                          help="ClientBuilder daemon link.")
 
-# These options will be used by client.client_build when running buildanddeploy
+# These options will be used by client.client_build when running buildandrepack
 # and can be used to customize what is built for each client label.
 config_lib.DEFINE_multichoice(
     name="ClientBuilder.target_platforms",
@@ -435,12 +420,12 @@ config_lib.DEFINE_multichoice(
     choices=["darwin_amd64_dmg", "linux_amd64_deb", "linux_i386_deb",
              "linux_amd64_rpm", "linux_i386_rpm", "windows_amd64_exe",
              "windows_i386_exe"],
-    help="Platforms that will be built by client_build buildanddeploy")
+    help="Platforms that will be built by client_build buildandrepack")
 
 config_lib.DEFINE_list(name="ClientBuilder.BuildTargets",
                        default=[],
                        help="List of context names that should be built by "
-                       "buildanddeploy")
+                       "buildandrepack")
 
 config_lib.DEFINE_string("ClientBuilder.rpm_signing_key_public_keyfile",
                          default="/etc/alternatives/grr_rpm_signing_key",
@@ -463,3 +448,59 @@ config_lib.DEFINE_string("ClientBuilder.windows_signing_cert",
 config_lib.DEFINE_string("ClientBuilder.windows_signing_application_name",
                          default="GRR",
                          help="Signing cert application name.")
+
+config_lib.DEFINE_string(name="ClientRepacker.output_basename",
+                         default=(
+                             "%(Client.prefix)%(Client.name)_"
+                             "%(Template.version_string)_%(Template.arch)"),
+                         help="The base name of the output package.")
+
+config_lib.DEFINE_option(type_info.PathTypeInfo(
+    name="ClientRepacker.output_filename",
+    must_exist=False,
+    default=(
+        "%(ClientRepacker.output_basename)%(ClientBuilder.output_extension)"),
+    help="The filename of the generated installer file."))
+
+config_lib.DEFINE_option(type_info.PathTypeInfo(
+    name="ClientRepacker.output_path",
+    must_exist=False,
+    default=("%(ClientBuilder.executables_dir)"
+             "/installers/%(ClientRepacker.output_filename)"),
+    help="The full path to the generated installer file."))
+
+# These values are determined from the template at repack time.
+config_lib.DEFINE_choice(name="Template.build_type",
+                         default="Release",
+                         choices=["Release", "Debug"],
+                         help="Type of build (Debug, Release)")
+
+config_lib.DEFINE_list(
+    name="Template.build_context",
+    default=[],
+    help="List of build contexts that should be reapplied at repack.")
+
+config_lib.DEFINE_integer("Template.version_major", None,
+                          "Major version number of client template.")
+
+config_lib.DEFINE_integer("Template.version_minor", None,
+                          "Minor version number of client template.")
+
+config_lib.DEFINE_integer("Template.version_revision", None,
+                          "Revision number of client template.")
+
+config_lib.DEFINE_integer("Template.version_release", None,
+                          "Release number of client template.")
+
+config_lib.DEFINE_string("Template.version_string",
+                         "%(version_major).%(version_minor)."
+                         "%(version_revision).%(version_release)",
+                         "Version string of the client template.")
+
+config_lib.DEFINE_integer("Template.version_numeric",
+                          "%(version_major)%(version_minor)"
+                          "%(version_revision)%(version_release)",
+                          "Version string of the template as an integer.")
+
+config_lib.DEFINE_string("Template.arch", None,
+                         "The architecture of the client template.")

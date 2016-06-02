@@ -6,6 +6,7 @@ This handles opening and parsing of config files.
 
 import collections
 import ConfigParser
+import copy
 import errno
 import importlib
 import inspect
@@ -16,7 +17,6 @@ import re
 import StringIO
 import sys
 import urlparse
-import zipfile
 
 
 import pkg_resources
@@ -702,7 +702,6 @@ class GrrConfigManager(object):
     # different aspect of the running instance.
     self.context = []
     self.raw_data = OrderedYamlDict()
-    self.validated = set()
     self.files = []
     self.writeback = None
     self.writeback_data = OrderedYamlDict()
@@ -768,6 +767,26 @@ class GrrConfigManager(object):
     result.valid_contexts = self.valid_contexts
 
     return result
+
+  def CopyConfig(self):
+    """Make a complete new copy of the current config.
+
+    This includes all options as they currently are. If you want a base config
+    with defaults use MakeNewConfig.
+
+    Returns:
+      A new config object with the same data as self.
+    """
+    newconf = self.MakeNewConfig()
+    newconf.raw_data = copy.deepcopy(self.raw_data)
+    newconf.files = copy.deepcopy(self.files)
+    newconf.writeback = copy.deepcopy(self.writeback)
+    newconf.writeback_data = copy.deepcopy(self.writeback_data)
+    newconf.global_override = copy.deepcopy(self.global_override)
+    newconf.context_descriptions = copy.deepcopy(self.context_descriptions)
+    newconf.constants = copy.deepcopy(self.constants)
+    newconf.initialized = copy.deepcopy(self.initialized)
+    return newconf
 
   def SetWriteBack(self, filename):
     """Sets the config file which will receive any modifications.
@@ -1665,61 +1684,3 @@ def ParseConfigCommandLine():
 
     CONFIG.PrintHelp()
     sys.exit(0)
-
-
-class PluginLoader(registry.InitHook):
-  """Loads additional plugins specified by the user."""
-
-  PYTHON_EXTENSIONS = [".py", ".pyo", ".pyc"]
-
-  def RunOnce(self):
-    for path in flags.FLAGS.plugins:
-      self.LoadPlugin(path)
-
-  @classmethod
-  def LoadPlugin(cls, path):
-    """Load (import) the plugin at the path."""
-    if not os.access(path, os.R_OK):
-      logging.error("Unable to find %s", path)
-      return
-
-    path = os.path.abspath(path)
-    directory, filename = os.path.split(path)
-    module_name, ext = os.path.splitext(filename)
-
-    # It's a python file.
-    if ext in cls.PYTHON_EXTENSIONS:
-      # Make sure python can find the file.
-      sys.path.insert(0, directory)
-
-      try:
-        logging.info("Loading user plugin %s", path)
-        __import__(module_name)
-      except Exception, e:  # pylint: disable=broad-except
-        logging.error("Error loading user plugin %s: %s", path, e)
-      finally:
-        sys.path.pop(0)
-
-    elif ext == ".zip":
-      zfile = zipfile.ZipFile(path)
-
-      # Make sure python can find the file.
-      sys.path.insert(0, path)
-      try:
-        logging.info("Loading user plugin archive %s", path)
-        for name in zfile.namelist():
-          # Change from filename to python package name.
-          module_name, ext = os.path.splitext(name)
-          if ext in cls.PYTHON_EXTENSIONS:
-            module_name = module_name.replace("/", ".").replace("\\", ".")
-
-            try:
-              __import__(module_name.strip("\\/"))
-            except Exception as e:  # pylint: disable=broad-except
-              logging.error("Error loading user plugin %s: %s", path, e)
-
-      finally:
-        sys.path.pop(0)
-
-    else:
-      logging.error("Plugin %s has incorrect extension.", path)

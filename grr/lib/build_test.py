@@ -1,79 +1,58 @@
 #!/usr/bin/env python
 """Tests for building and repacking clients."""
-import glob
-import os
-import shutil
-import pkg_resources
+import StringIO
+import mock
+import yaml
 
 from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import maintenance_utils
 from grr.lib import test_lib
-from grr.lib import utils
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class BuildTests(test_lib.GRRBaseTest):
-  """Tests for building and repacking functionality."""
+  """Tests for building functionality."""
 
-  def setUp(self):
-    super(BuildTests, self).setUp()
-    self.executables_dir = config_lib.Resource().Filter("executables")
+  def testWriteBuildYaml(self):
+    """Test build.yaml is output correctly."""
+    context = ["Target:LinuxDeb", "Platform:Linux", "Target:Linux",
+               "Arch:amd64"]
+    expected = {"Client.build_environment": "cp27-cp27mu-linux_x86_64",
+                "Client.build_time": "2016-05-24 20:04:25",
+                "Template.build_type": "Release",
+                "Template.build_context": ["ClientBuilder Context"] + context,
+                "Template.version_major":
+                    str(config_lib.CONFIG.Get("Source.version_major")),
+                "Template.version_minor":
+                    str(config_lib.CONFIG.Get("Source.version_minor")),
+                "Template.version_revision":
+                    str(config_lib.CONFIG.Get("Source.version_revision")),
+                "Template.version_release":
+                    str(config_lib.CONFIG.Get("Source.version_release")),
+                "Template.arch": u"amd64"}
 
-  @test_lib.RequiresPackage("grr-response-templates")
-  def testRepackAll(self):
-    """Test repacking all binaries."""
-    with utils.TempDirectory() as tmp_dir:
-      new_dir = os.path.join(tmp_dir, "grr", "executables")
-      os.makedirs(new_dir)
+    fd = StringIO.StringIO()
+    builder = build.ClientBuilder(context=context)
 
-      # Copy unzipsfx so it can be used in repacking/
-      shutil.copy(
-          os.path.join(self.executables_dir,
-                       "windows/templates/unzipsfx/unzipsfx-i386.exe"), new_dir)
-      shutil.copy(
-          os.path.join(self.executables_dir,
-                       "windows/templates/unzipsfx/unzipsfx-amd64.exe"),
-          new_dir)
+    with mock.patch.object(rdf_client.Uname, "FromCurrentSystem") as fcs:
+      fcs.return_value.signature.return_value = "cp27-cp27mu-linux_x86_64"
+      with test_lib.FakeTime(1464120265):
+        builder.WriteBuildYaml(fd)
 
-      # Since we want to be able to increase the client version in the repo
-      # without immediately making a client template release, just check we can
-      # repack whatever templates we have installed.
-      version = pkg_resources.get_distribution(
-          "grr-response-templates").version.replace("post", "")
-      major, minor, revision, release = version.split(".")
-      with test_lib.ConfigOverrider({"ClientBuilder.executables_dir": new_dir,
-                                     "ClientBuilder.unzipsfx_stub_dir": new_dir,
-                                     "Client.version_major": major,
-                                     "Client.version_minor": minor,
-                                     "Client.version_revision": revision,
-                                     "Client.version_release": release,}):
-        maintenance_utils.RepackAllBinaries()
-
-      self.assertEqual(
-          len(glob.glob(os.path.join(new_dir, "linux/installers/*.deb"))), 2)
-      self.assertEqual(
-          len(glob.glob(os.path.join(new_dir, "linux/installers/*.rpm"))), 2)
-      self.assertEqual(
-          len(glob.glob(os.path.join(new_dir, "windows/installers/*.exe"))), 2)
-      self.assertEqual(
-          len(glob.glob(os.path.join(new_dir, "darwin/installers/*.pkg"))), 1)
+    fd.seek(0)
+    self.assertEqual(dict(yaml.load(fd)), expected)
 
   def testGenClientConfig(self):
-    plugins = ["plugin1", "plugin2"]
-    with test_lib.ConfigOverrider({"Client.plugins": plugins,
-                                   "Client.build_environment": "test_env"}):
+    with test_lib.ConfigOverrider({"Client.build_environment": "test_env"}):
 
-      deployer = build.ClientDeployer()
+      deployer = build.ClientRepacker()
       data = deployer.GetClientConfig(["Client Context"], validate=True)
 
       parser = config_lib.YamlParser(data=data)
       raw_data = parser.RawData()
 
       self.assertIn("Client.deploy_time", raw_data)
-      self.assertIn("Client.plugins", raw_data)
-
-      self.assertEqual(raw_data["Client.plugins"], plugins)
 
 
 def main(argv):

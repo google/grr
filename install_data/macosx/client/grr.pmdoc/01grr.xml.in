@@ -1,7 +1,7 @@
 <pkgref spec="1.12" uuid="2853FED5-660E-47FD-8144-B5C2D54BED62">
   <config>
     <identifier>%(ClientBuilder.package_maker_organization).%(Client.name).%(ClientBuilder.output_basename).pkg</identifier>
-    <version>%(Client.version_string)</version>
+    <version>%(Source.version_string)</version>
     <description/>
     <post-install type="none"/>
     <requireAuthorization/>

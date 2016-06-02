@@ -1,6 +1,7 @@
 #!/bin/bash
 
-# Install build dependencies from source.  This script is designed to run on
+# This script installs all dependencies and is run as part of vagrant
+# provisioning. It is designed to run on
 # Ubuntu systems as old as Ubuntu Lucid (10.04.4) and CentOS 5.11.
 
 set -e
@@ -135,35 +136,6 @@ function install_python_deps() {
   # lucid packaged version of virtualenv is too old for the next part to work,
   # get a newer version
   pip2.7 install virtualenv
-
-  BUILDDIR="/home/${INSTALL_USER}/grrbuild"
-  rm -rf "${BUILDDIR}" && mkdir "${BUILDDIR}"
-
-  /usr/local/bin/virtualenv -p /usr/local/bin/python2.7 "${BUILDDIR}/PYTHON_ENV"
-  source "${BUILDDIR}/PYTHON_ENV/bin/activate"
-
-  # pip takes a copy of the whole src tree, which includes the vagrant dir, so
-  # it continues copying until it runs out of space. The workaround is to build
-  # an sdist and install that.
-  # https://github.com/google/grr/issues/373
-  cd /grr
-  python setup.py sdist --dist-dir="${BUILDDIR}/core" --no-make-docs --no-sync-artifacts
-  cd -
-  cd /grr/grr/config/grr-response-client/
-  python setup.py sdist --dist-dir="${BUILDDIR}/client"
-  cd -
-
-  cd "${BUILDDIR}"
-  pip2.7 install core/*.tar.gz
-  # We need grr-reponse-client to get the grr_client_build entrypoint and
-  # pyinstaller.
-  pip2.7 install client/*.tar.gz
-  cd -
-
-  # pyinstaller fails to include protobuf because there is no __init__.py:
-  # https://github.com/google/protobuf/issues/713
-  touch "${BUILDDIR}/PYTHON_ENV/lib/python2.7/site-packages/google/__init__.py"
-  chown -R ${INSTALL_USER} "${BUILDDIR}/PYTHON_ENV"
 }
 
 # Lucid debhelper is too old to build debs that handle both upstart, init.d,

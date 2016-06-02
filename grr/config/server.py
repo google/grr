@@ -1,9 +1,34 @@
 #!/usr/bin/env python
 """Configuration parameters for the server side subsystems."""
 
+import grr
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import crypto as rdf_crypto
+
+VERSION = grr.version()
+
+config_lib.DEFINE_integer("Source.version_major", VERSION["major"],
+                          "Major version number of client binary.")
+
+config_lib.DEFINE_integer("Source.version_minor", VERSION["minor"],
+                          "Minor version number of client binary.")
+
+config_lib.DEFINE_integer("Source.version_revision", VERSION["revision"],
+                          "Revision number of client binary.")
+
+config_lib.DEFINE_integer("Source.version_release", VERSION["release"],
+                          "Release number of client binary.")
+
+config_lib.DEFINE_string("Source.version_string",
+                         "%(version_major).%(version_minor)."
+                         "%(version_revision).%(version_release)",
+                         "Version string of the client.")
+
+config_lib.DEFINE_integer("Source.version_numeric",
+                          "%(version_major)%(version_minor)"
+                          "%(version_revision)%(version_release)",
+                          "Version string of the client as an integer.")
 
 # Note: Each thread adds about 8mb for stack space.
 config_lib.DEFINE_integer("Threadpool.size", 50,

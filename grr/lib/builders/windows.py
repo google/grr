@@ -127,7 +127,7 @@ class WindowsClientBuilder(build.ClientBuilder):
           (env_script, build_type, vs_arch),
           cwd=self.nanny_dir)
 
-      # The templates always contain the same filenames - the deploy step might
+      # The templates always contain the same filenames - the repack step might
       # rename them later.
       shutil.copy(
           os.path.join(self.nanny_dir, vs_arch, build_type, "GRRNanny.exe"),

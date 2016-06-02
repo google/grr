@@ -227,7 +227,7 @@ def GetClientInformation():
   return rdf_client.ClientInformation(
       client_name=config_lib.CONFIG["Client.name"],
       client_description=config_lib.CONFIG["Client.description"],
-      client_version=int(config_lib.CONFIG["Client.version_numeric"]),
+      client_version=int(config_lib.CONFIG["Source.version_numeric"]),
       build_time=config_lib.CONFIG["Client.build_time"],
       labels=config_lib.CONFIG.Get("Client.labels",
                                    default=None))

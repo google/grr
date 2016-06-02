@@ -22,5 +22,6 @@ addons:
     packages:
     - libssl-dev
     - python-dev
+    - prelink
 
 

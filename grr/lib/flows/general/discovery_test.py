@@ -58,7 +58,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
     info = self.fd.Get(self.fd.Schema.CLIENT_INFO)
     self.assertEqual(info.client_name, config_lib.CONFIG["Client.name"])
     self.assertEqual(info.client_version,
-                     int(config_lib.CONFIG["Client.version_numeric"]))
+                     int(config_lib.CONFIG["Source.version_numeric"]))
     self.assertEqual(info.build_time, config_lib.CONFIG["Client.build_time"])
 
   def _CheckGRRConfig(self):
@@ -95,7 +95,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
     self.assertEqual(summary.client_info.client_name,
                      config_lib.CONFIG["Client.name"])
     self.assertEqual(summary.client_info.client_version,
-                     int(config_lib.CONFIG["Client.version_numeric"]))
+                     int(config_lib.CONFIG["Source.version_numeric"]))
     self.assertEqual(summary.client_info.build_time,
                      config_lib.CONFIG["Client.build_time"])
 

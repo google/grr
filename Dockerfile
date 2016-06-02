@@ -8,6 +8,7 @@ RUN apt-get update && \
   debhelper \
   dpkg-dev \
   libssl-dev \
+  prelink \
   protobuf-compiler \
   python-dev \
   python-pip \

@@ -1,5 +1,5 @@
 Name: %(Client.name)
-Version: %(Client.version_major).%(Client.version_minor).%(Client.version_revision).%(Client.version_release)
+Version: %(Template.version_major).%(Template.version_minor).%(Template.version_revision).%(Template.version_release)
 Release: 1
 Summary: %(Client.name) Rapid Response Client
 Group: Applications/System
@@ -66,5 +66,5 @@ fi
 * %(ClientBuilder.rpm_build_time) %(ClientBuilder.maintainer)
 - Fix package upgrade %preun
 * %(ClientBuilder.rpm_build_time) %(ClientBuilder.maintainer)
-- New version, %(Client.version_major).%(Client.version_minor).%(Client.version_revision).%(Client.version_release)
+- New version, %(Template.version_major).%(Template.version_minor).%(Template.version_revision).%(Template.version_release)
 

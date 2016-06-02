@@ -26,6 +26,7 @@ RUN apt-get update && \
   libssl-dev \
   python2.7-dev \
   python-pip \
+  prelink \
   rpm \
   wget \
   zip && \

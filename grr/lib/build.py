@@ -12,6 +12,7 @@ import struct
 import subprocess
 import zipfile
 
+import yaml
 
 # pylint: disable=g-import-not-at-top
 # This is a workaround so we don't need to maintain the whole PyInstaller
@@ -33,7 +34,7 @@ from grr.lib.rdfvalues import client as rdf_client
 
 
 class BuilderBase(object):
-  """A base class for builder / deployer that provides utility functions."""
+  """A base class for builder / repacker that provides utility functions."""
 
   def __init__(self, context=None):
     self.context = context or config_lib.CONFIG.context[:]
@@ -76,6 +77,13 @@ class ClientBuilder(BuilderBase):
   implementations. Note that client builders typically run on the target
   operating system.
   """
+  REQUIRED_BUILD_YAML_KEYS = set(["Client.build_environment",
+                                  "Client.build_time", "Template.build_type",
+                                  "Template.build_context",
+                                  "Template.version_major",
+                                  "Template.version_minor",
+                                  "Template.version_revision",
+                                  "Template.version_release", "Template.arch"])
 
   def MakeBuildDirectory(self):
     """Prepares the build directory."""
@@ -122,10 +130,10 @@ class ClientBuilder(BuilderBase):
         "grr-client")
 
     # Pyinstaller doesn't handle unicode strings.
-    args = ["--distpath", str(config_lib.CONFIG.Get(
-        "PyInstaller.distpath", context=self.context)), "--workpath",
-            str(config_lib.CONFIG.Get("PyInstaller.workpath_dir",
-                                      context=self.context)),
+    args = ["--distpath", str(config_lib.CONFIG.Get("PyInstaller.distpath",
+                                                    context=self.context)),
+            "--workpath", str(config_lib.CONFIG.Get("PyInstaller.workpath_dir",
+                                                    context=self.context)),
             str(self.spec_file)]
     logging.info("Running pyinstaller: %s", args)
     PyInstallerMain.run(pyi_args=[utils.SmartStr(x) for x in args])
@@ -142,10 +150,37 @@ class ClientBuilder(BuilderBase):
       except OSError:
         pass
 
-    with open(os.path.join(self.output_dir, "build.yaml"), "w") as fd:
-      fd.write("Client.build_environment: %s\n" %
-               rdf_client.Uname.FromCurrentSystem().signature())
-      fd.write("Client.build_time: '%s'\n" % str(rdfvalue.RDFDatetime().Now()))
+      with open(os.path.join(self.output_dir, "build.yaml"), "w") as fd:
+        self.WriteBuildYaml(fd)
+
+  def WriteBuildYaml(self, fd):
+    """Write build spec to fd."""
+    output = {
+        "Client.build_environment":
+            str(rdf_client.Uname.FromCurrentSystem().signature()),
+        "Client.build_time": str(rdfvalue.RDFDatetime().Now()),
+        "Template.build_type":
+            str(config_lib.CONFIG.Get("ClientBuilder.build_type",
+                                      context=self.context)),
+        "Template.build_context": self.context,
+        "Template.version_major": str(config_lib.CONFIG.Get(
+            "Source.version_major", context=self.context)),
+        "Template.version_minor": str(config_lib.CONFIG.Get(
+            "Source.version_minor", context=self.context)),
+        "Template.version_revision":
+            str(config_lib.CONFIG.Get("Source.version_revision",
+                                      context=self.context)),
+        "Template.version_release":
+            str(config_lib.CONFIG.Get("Source.version_release",
+                                      context=self.context)),
+        "Template.arch": str(config_lib.CONFIG.Get("Client.arch",
+                                                   context=self.context))
+    }
+
+    if set(output.keys()) != self.REQUIRED_BUILD_YAML_KEYS:
+      raise RuntimeError("Bad build.yaml: expected %s, got %s" %
+                         (self.REQUIRED_BUILD_YAML_KEYS, output.keys()))
+    fd.write(yaml.dump(output))
 
   def CopyMissingModules(self):
     """Copy any additional DLLs that cant be found."""
@@ -192,7 +227,7 @@ class ClientBuilder(BuilderBase):
 ClientBuilder.classes = globals()
 
 
-class ClientDeployer(BuilderBase):
+class ClientRepacker(BuilderBase):
   """Takes the binary template and producing an installer.
 
   Note that this should be runnable on all operating systems.
@@ -204,7 +239,7 @@ class ClientDeployer(BuilderBase):
   SKIP_OPTION_LIST = ["Client.private_key"]
 
   def __init__(self, context=None, signer=None):
-    super(ClientDeployer, self).__init__(context=context)
+    super(ClientRepacker, self).__init__(context=context)
     self.signer = signer
 
   def GetClientConfig(self, context, validate=True):
@@ -241,15 +276,6 @@ class ClientDeployer(BuilderBase):
             new_config.SetRaw(descriptor.name, value)
 
       new_config.Set("Client.deploy_time", str(rdfvalue.RDFDatetime().Now()))
-
-      # Update the plugins list in the configuration file. Note that by
-      # stripping away directory information, the client will load these from
-      # its own install path.
-      plugins = []
-      for plugin in config_lib.CONFIG["Client.plugins"]:
-        plugins.append(os.path.basename(plugin))
-
-      new_config.SetRaw("Client.plugins", plugins)
       new_config.Write()
 
       if validate:
@@ -292,19 +318,16 @@ class ClientDeployer(BuilderBase):
     else:
       return errors
 
-  def MakeDeployableBinary(self, template_path, output_path=None):
+  def MakeDeployableBinary(self, template_path, output_path):
     """Use the template to create a customized installer."""
 
-  def RepackInstaller(self, payload_data, output_path=None):
-    """Takes a template and simply repacks the installer stub on it."""
 
-
-class WindowsClientDeployer(ClientDeployer):
+class WindowsClientRepacker(ClientRepacker):
   """Repackages windows installers."""
 
   def ValidateEndConfig(self, config, errors_fatal=True):
     """Windows specific config validations."""
-    errors = super(WindowsClientDeployer, self).ValidateEndConfig(
+    errors = super(WindowsClientRepacker, self).ValidateEndConfig(
         config, errors_fatal=errors_fatal)
 
     for path in config.GetRaw("Client.tempdir_roots"):
@@ -361,7 +384,7 @@ class WindowsClientDeployer(ClientDeployer):
       return self.signer.SignBuffer(inbuf)
     return inbuf
 
-  def MakeDeployableBinary(self, template_path, output_path=None):
+  def MakeDeployableBinary(self, template_path, output_path):
     """Repackage the template zip with the installer."""
     context = self.context + ["Client Context"]
 
@@ -394,7 +417,7 @@ class WindowsClientDeployer(ClientDeployer):
 
     # Interpolate resource strings.
     for parameter in ["Client.company_name", "Client.description",
-                      "Client.name", "Client.version_string",
+                      "Client.name", "Template.version_string",
                       "ClientBuilder.package_name"]:
       self.InterpolateVariableInBinary(bin_dat, parameter)
 
@@ -428,18 +451,11 @@ class WindowsClientDeployer(ClientDeployer):
       if template_file not in completed_files:
         CopyFileInZip(z_template, template_file, output_zip)
 
-    # Add any additional plugins to the deployment binary.
-    for plugin in config_lib.CONFIG.Get("Client.plugins", context=context):
-      logging.debug("Adding plugin %s to package.", plugin)
-      output_zip.writestr(
-          os.path.basename(plugin), open(plugin, "rb").read(),
-          zipfile.ZIP_STORED)
-
     output_zip.close()
 
-    return self.RepackInstaller(zip_data.getvalue(), output_path)
+    return self.MakeSelfExtractingZip(zip_data.getvalue(), output_path)
 
-  def RepackInstaller(self, payload_data, output_path=None):
+  def MakeSelfExtractingZip(self, payload_data, output_path):
     """Repack the installer into the payload.
 
     Args:
@@ -450,10 +466,6 @@ class WindowsClientDeployer(ClientDeployer):
     Returns:
       output_path: filename string of zip output file
     """
-    if output_path is None:
-      output_path = config_lib.CONFIG.Get("ClientBuilder.output_path",
-                                          context=self.context)
-
     context = self.context + ["Client Context"]
 
     src_zip = zipfile.ZipFile(cStringIO.StringIO(payload_data), mode="r")
@@ -536,15 +548,11 @@ class WindowsClientDeployer(ClientDeployer):
     return output_path
 
 
-class DarwinClientDeployer(ClientDeployer):
+class DarwinClientRepacker(ClientRepacker):
   """Repackage OSX clients."""
 
-  def MakeDeployableBinary(self, template_path, output_path=None):
+  def MakeDeployableBinary(self, template_path, output_path):
     """This will add the config to the client template."""
-    if output_path is None:
-      output_path = config_lib.CONFIG.Get("ClientBuilder.output_path",
-                                          context=self.context)
-
     context = self.context + ["Client Context"]
     utils.EnsureDirExists(os.path.dirname(output_path))
 
@@ -557,7 +565,7 @@ class DarwinClientDeployer(ClientDeployer):
     return output_path
 
 
-class LinuxClientDeployer(ClientDeployer):
+class LinuxClientRepacker(ClientRepacker):
   """Repackage Linux templates."""
 
   def GenerateDPKGFiles(self, template_path):
@@ -619,12 +627,8 @@ class LinuxClientDeployer(ClientDeployer):
     shutil.rmtree(os.path.join(template_path, "dist/debian/initd.in"))
     shutil.rmtree(os.path.join(template_path, "dist/debian/systemd.in"))
 
-  def MakeDeployableBinary(self, template_path, output_path=None):
+  def MakeDeployableBinary(self, template_path, output_path):
     """This will add the config to the client template and create a .deb."""
-    if output_path is None:
-      output_path = config_lib.CONFIG.Get("ClientBuilder.output_path",
-                                          context=self.context)
-
     buildpackage_binary = "/usr/bin/dpkg-buildpackage"
     if not os.path.exists(buildpackage_binary):
       logging.error("dpkg-buildpackage not found, unable to repack client.")
@@ -673,7 +677,7 @@ class LinuxClientDeployer(ClientDeployer):
                                              context=self.context)),
           0755)
 
-      arch = config_lib.CONFIG.Get("Client.arch", context=self.context)
+      arch = config_lib.CONFIG.Get("Template.arch", context=self.context)
 
       try:
         old_working_dir = os.getcwd()
@@ -695,7 +699,7 @@ class LinuxClientDeployer(ClientDeployer):
         filename_base = config_lib.CONFIG.Get(
             "ClientBuilder.debian_package_base",
             context=self.context)
-        output_base = config_lib.CONFIG.Get("ClientBuilder.output_basename",
+        output_base = config_lib.CONFIG.Get("ClientRepacker.output_basename",
                                             context=self.context)
         utils.EnsureDirExists(os.path.dirname(output_path))
 
@@ -718,18 +722,15 @@ class LinuxClientDeployer(ClientDeployer):
           pass
 
 
-class CentosClientDeployer(LinuxClientDeployer):
+class CentosClientRepacker(LinuxClientRepacker):
   """Repackages Linux RPM templates."""
 
   def Sign(self, rpm_filename):
     if self.signer:
       return self.signer.AddSignatureToRPM(rpm_filename)
 
-  def MakeDeployableBinary(self, template_path, output_path=None):
+  def MakeDeployableBinary(self, template_path, output_path):
     """This will add the config to the client template and create a .rpm."""
-    if output_path is None:
-      output_path = config_lib.CONFIG.Get("ClientBuilder.output_path",
-                                          context=self.context)
 
     rpmbuild_binary = "/usr/bin/rpmbuild"
     if not os.path.exists(rpmbuild_binary):
@@ -811,14 +812,16 @@ class CentosClientDeployer(LinuxClientDeployer):
       prelink = "/usr/sbin/prelink"
       if os.access(prelink, os.X_OK):
         libs = os.path.join(target_binary_dir, "lib*")
+        # This returns non-zero if there are no prelinked binaries so we can't
+        # check_call.
         subprocess.call("%s -u %s 2>/dev/null" % (prelink, libs), shell=True)
       else:
-        logging.info("Can't execute %s, skipping.", prelink)
+        raise RuntimeError("Can't execute %s, skipping." % prelink)
 
       # Set the daemon to executable.
       os.chmod(os.path.join(target_binary_dir, client_binary_name), 0755)
 
-      client_arch = config_lib.CONFIG.Get("Client.arch", context=self.context)
+      client_arch = config_lib.CONFIG.Get("Template.arch", context=self.context)
       if client_arch == "amd64":
         client_arch = "x86_64"
 
@@ -833,7 +836,7 @@ class CentosClientDeployer(LinuxClientDeployer):
         logging.error(e.output)
         raise
 
-      client_version = config_lib.CONFIG.Get("Client.version_string",
+      client_version = config_lib.CONFIG.Get("Template.version_string",
                                              context=self.context)
       rpm_filename = os.path.join(rpm_rpms_dir, client_arch, "%s-%s-1.%s.rpm" %
                                   (client_name, client_version, client_arch))

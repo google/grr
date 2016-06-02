@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 """An implementation of an OSX client builder."""
 import getpass
+import logging
 import os
 import shutil
+import StringIO
 import subprocess
+import zipfile
 
 from grr.lib import build
 from grr.lib import config_lib
@@ -27,7 +30,29 @@ class DarwinClientBuilder(build.ClientBuilder):
     self.MakeBuildDirectory()
     self.BuildWithPyInstaller()
     self.CopyMissingModules()
-    self.BuildInstallerPkg(self.template_file)
+    self.BuildInstallerPkg(output_file)
+    self.MakeZip(output_file, self.template_file)
+
+  def MakeZip(self, xar_file, output_file):
+    """Add a zip to the end of the .xar containing build.yaml.
+
+    The build.yaml is already inside the .xar file, but we can't easily open
+    this on linux. To make repacking easier we add a zip to the end of the .xar
+    and add in the build.yaml. The repack step will then look at the build.yaml
+    and insert the config.yaml. We end up storing the build.yaml twice but it is
+    tiny, so this doesn't matter.
+
+    Args:
+      xar_file: the name of the xar file.
+      output_file: the name of the output ZIP archive.
+    """
+    logging.info("Generating zip template file at %s", output_file)
+    with zipfile.ZipFile(output_file, mode="a") as zf:
+      # Get the build yaml
+      build_yaml = StringIO.StringIO()
+      self.WriteBuildYaml(build_yaml)
+      build_yaml.seek(0)
+      zf.writestr("build.yaml", build_yaml.read())
 
   def MakeBuildDirectory(self):
     super(DarwinClientBuilder, self).MakeBuildDirectory()
@@ -97,8 +122,8 @@ class DarwinClientBuilder(build.ClientBuilder):
                      config_lib.CONFIG.Get("Client.binary_name",
                                            context=self.context)))
 
-    deployer = build.ClientDeployer(context=self.context)
-    deployer.context = self.context
+    repacker = build.ClientRepacker(context=self.context)
+    repacker.context = self.context
 
     # Generate a config file.
     with open(
@@ -106,9 +131,8 @@ class DarwinClientBuilder(build.ClientBuilder):
                      config_lib.CONFIG.Get("ClientBuilder.config_filename",
                                            context=self.context)),
         "wb") as fd:
-      fd.write(deployer.GetClientConfig(
-          ["Client Context"] + self.context,
-          validate=False))
+      fd.write(repacker.GetClientConfig(["Client Context"] + self.context,
+                                        validate=False))
 
     print "Fixing file ownership and permissions"
 
@@ -125,7 +149,7 @@ class DarwinClientBuilder(build.ClientBuilder):
     print "Building a package with PackageMaker"
     pkg = "%s-%s.pkg" % (
         config_lib.CONFIG.Get("Client.name", context=self.context),
-        config_lib.CONFIG.Get("Client.version_string",
+        config_lib.CONFIG.Get("Source.version_string",
                               context=self.context))
 
     output_pkg_path = os.path.join(self.pkg_dir, pkg)

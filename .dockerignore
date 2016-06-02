@@ -3,6 +3,7 @@
 *.dsc
 *.egg-info
 *.pyc
+*_pb2.*
 .git
 .gitignore
 ACKNOWLEDGEMENTS

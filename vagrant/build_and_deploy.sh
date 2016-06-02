@@ -3,7 +3,7 @@
 set -e
 
 function usage() {
-  echo "Usage: ./build_and_deploy.sh [vagrant box name]"
+  echo "Usage: ./build_and_repack.sh [vagrant box name]"
   exit
 }
 
@@ -30,7 +30,7 @@ if [ "$1" == "windows_7_64" ]; then
   # grr/executables/windows/templates
   cd ../../
   # Repack templates into executables and sign
-  PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml --platform windows --sign buildanddeploy --templatedir grr/executables/windows/templates
+  PYTHONPATH=. python grr/client/client_build.py --config=grr/config/grr-server.yaml --platform windows --sign buildandrepack --templatedir grr/executables/windows/templates
   cd -
 
 elif [ "$1" == "centos_5.11_64" ] || [ "$1" == "centos_5.11_32" ]; then
@@ -43,8 +43,8 @@ elif [ "$1" == "centos_5.11_64" ] || [ "$1" == "centos_5.11_32" ]; then
   fi
 
   vagrant up "$1"
-  vagrant ssh -c "source ~/PYTHON_ENV/bin/activate && grr_client_build build  --output /grr/grr/executables/" "$1"
-  vagrant ssh -c "source ~/PYTHON_ENV/bin/activate && grr_client_build build_components  --output /grr/grr/executables/components" "$1"
+  vagrant ssh -c "bash /grr/vagrant/install_grr.sh && source ~/grrbuild/PYTHON_ENV/bin/activate && grr_client_build build  --output /grr/grr/executables/" "$1"
+  vagrant ssh -c "source ~/grrbuild/PYTHON_ENV/bin/activate && grr_client_build build_components  --output /grr/grr/executables/components" "$1"
   if [ $? -eq 0 ]; then
     vagrant halt "$1"
   fi
@@ -56,12 +56,12 @@ elif [ "$1" == "centos_5.11_64" ] || [ "$1" == "centos_5.11_32" ]; then
     ARCH=i386
   fi;
 
-  grr_client_build --platform linux --arch $ARCH --package_format rpm --sign buildanddeploy --templatedir grr/executables/linux/templates
+  grr_client_build --platform linux --arch $ARCH --package_format rpm --sign buildandrepack --templatedir grr/executables/linux/templates
   cd -
 
 else
   vagrant up "$1"
-  vagrant ssh -c "source ~/PYTHON_ENV/bin/activate && grr_client_build buildanddeploy" "$1"
+  vagrant ssh -c "bash /grr/vagrant/install_grr.sh && source ~/PYTHON_ENV/bin/activate && grr_client_build buildandrepack" "$1"
   if [ $? -eq 0 ]; then
     vagrant halt "$1"
   fi

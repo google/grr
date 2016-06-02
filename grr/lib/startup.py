@@ -7,7 +7,6 @@ Contains the startup routines and Init functions for initializing GRR.
 import logging
 import os
 import platform
-import sys
 
 from grr.lib import config_lib
 from grr.lib import flags
@@ -38,19 +37,6 @@ def ConfigInit():
   config_lib.ParseConfigCommandLine()
 
 
-def ClientPluginInit():
-  """If we are running as a Client, initialize any client plugins.
-
-  This provides the ability to customize the pre-built client. Simply add python
-  files to the binary client template zip file, and specify these in the
-  configuration file as the Client.plugins parameter. The client will import
-  these files (and register any plugins at run time).
-  """
-  for plugin in config_lib.CONFIG["Client.plugins"]:
-    config_lib.PluginLoader.LoadPlugin(os.path.join(
-        os.path.dirname(sys.executable), plugin))
-
-
 def ClientLoggingStartupInit():
   """Initialize client logging."""
   log.LogInit()
@@ -71,7 +57,6 @@ def ClientInit():
   ConfigInit()
 
   ClientLoggingStartupInit()
-  ClientPluginInit()
   registry.Init()
 
 # Make sure we do not reinitialize multiple times.

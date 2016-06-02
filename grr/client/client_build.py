@@ -16,10 +16,10 @@ import time
 from grr.client import client_plugins
 # pylint: enable=unused-import
 
-from grr.lib import build
 from grr.lib import builders
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import repacking
 from grr.lib import startup
 from grr.lib.builders import signing
 
@@ -90,82 +90,31 @@ parser_build.add_argument("--output",
                           help="The path to write the output template.")
 
 parser_repack = subparsers.add_parser(
-    "repack",
-    help="Repack a zip file into an installer (Only useful when "
-    "signing).")
+    "repack", help="Build a deployable self installer from a package.")
 
 parser_repack.add_argument("--template",
                            default=None,
+                           required=True,
                            help="The template zip file to repack.")
-
-parser_repack.add_argument("--output",
-                           default=None,
-                           help="The path to write the output installer.")
 
 parser_repack.add_argument("--outputdir",
                            default="",
+                           required=True,
                            help="The directory to which we should write the "
                            "output installer. Installers will be named "
                            "automatically from config options. Incompatible"
                            " with --output")
 
-parser_repack.add_argument("--debug_build",
-                           action="store_true",
-                           default=False,
-                           help="Create a debug client.")
+parser_buildandrepack = subparsers.add_parser(
+    "buildandrepack",
+    help="Build and repack clients for multiple labels and architectures.")
 
-parser_repack.add_argument("-p",
-                           "--plugins",
-                           default=[],
-                           nargs="+",
-                           help="Additional python files that will be loaded "
-                           "as custom plugins.")
-
-parser_deploy = subparsers.add_parser(
-    "deploy", help="Build a deployable self installer from a package.")
-
-parser_deploy.add_argument("--template",
-                           default=None,
-                           help="The template zip file to deploy.")
-
-parser_deploy.add_argument("--templatedir",
-                           default="",
-                           help="Directory containing template zip files to "
-                           "repack. Incompatible with --template")
-
-parser_deploy.add_argument("--output",
-                           default=None,
-                           help="The path to write the output installer.")
-
-parser_deploy.add_argument("--outputdir",
-                           default="",
-                           help="The directory to which we should write the "
-                           "output installer. Installers will be named "
-                           "automatically from config options. Incompatible"
-                           " with --output")
-
-parser_deploy.add_argument("-p",
-                           "--plugins",
-                           default=[],
-                           nargs="+",
-                           help="Additional python files that will be loaded "
-                           "as custom plugins.")
-
-parser_deploy.add_argument("--debug_build",
-                           action="store_true",
-                           default=False,
-                           help="Create a debug client.")
-
-parser_buildanddeploy = subparsers.add_parser(
-    "buildanddeploy",
-    help="Build and deploy clients for multiple labels and architectures.")
-
-parser_buildanddeploy.add_argument("--templatedir",
+parser_buildandrepack.add_argument("--templatedir",
                                    default="",
                                    help="Directory"
                                    "containing template zip files to repack.")
 
-parser_buildanddeploy.add_argument("--debug_build",
+parser_buildandrepack.add_argument("--debug_build",
                                    action="store_true",
                                    default=False,
                                    help="Create a debug client.")
@@ -214,26 +163,8 @@ def GetBuilder(context):
   return builder_class(context=context)
 
 
-def GetDeployer(context, signer=None):
-  """Get the appropriate client deployer based on the selected flags."""
-  # TODO(user): The builder-deployer separation probably can be consolidated
-  # into something simpler under the vagrant build system.
-  if "Target:Darwin" in context:
-    deployer_class = build.DarwinClientDeployer
-  elif "Target:Windows" in context:
-    deployer_class = build.WindowsClientDeployer
-  elif "Target:LinuxDeb" in context:
-    deployer_class = build.LinuxClientDeployer
-  elif "Target:LinuxRpm" in context:
-    deployer_class = build.CentosClientDeployer
-  else:
-    parser.error("Bad build context: %s" % context)
-
-  return deployer_class(context=context, signer=signer)
-
-
 def GetSigner(context):
-  if args.subparser_name in ["deploy", "repack", "buildanddeploy"]:
+  if args.subparser_name in ["repack", "buildandrepack"]:
     if args.platform == "windows":
       print "Enter passphrase for code signing cert:"
       passwd = getpass.getpass()
@@ -257,7 +188,7 @@ def GetSigner(context):
       return signing.RPMCodeSigner(passwd, pub_keyfile, gpg_name)
     else:
       parser.error("Signing only supported on windows and linux rpms for "
-                   "deploy, repack, buildanddeploy")
+                   "repack, buildandrepack")
 
 
 def TemplateInputFilename(context):
@@ -269,8 +200,8 @@ def TemplateInputFilename(context):
   return None
 
 
-def BuildAndDeployWindows(signer=None):
-  """Run buildanddeploy for 32/64 dbg/prod."""
+def BuildAndRepackWindows(signer=None):
+  """Run buildandrepack for 32/64 dbg/prod."""
   build_combos = [
       {"arch": "amd64",
        "debug_build": True}, {"arch": "amd64",
@@ -287,7 +218,7 @@ def BuildAndDeployWindows(signer=None):
 
   context_orig = SetOSContextFromArgs([])
   # Take a copy of the context list so we can reset back to clean state for each
-  # buildanddeploy run
+  # buildandrepack run
   context = list(context_orig)
   for argset in build_combos:
     for key, value in argset.items():
@@ -295,17 +226,14 @@ def BuildAndDeployWindows(signer=None):
     context = SetArchContextFromArgs(context)
     context = SetDebugContextFromArgs(context)
     print "Building for: %s" % context
-    BuildAndDeploy(context, timestamp=timestamp, signer=signer)
+    BuildAndRepack(context, timestamp=timestamp, signer=signer)
     context = list(context_orig)
 
 
-def BuildAndDeploy(context, signer=None, timestamp=None):
-  """Run build and deploy to create installers."""
+def BuildAndRepack(context, signer=None, timestamp=None):
+  """Run build and repack to create installers."""
   # ISO 8601 date
   timestamp = timestamp or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-
-  if args.plugins:
-    config_lib.CONFIG.Set("Client.plugins", args.plugins)
 
   # Output directory like: 2015-02-13T21:48:47-0800/linux_amd64_deb/
   spec = "_".join((args.platform, args.arch, args.package_format))
@@ -331,101 +259,59 @@ def BuildAndDeploy(context, signer=None, timestamp=None):
   context_list = config_lib.CONFIG.Get("ClientBuilder.BuildTargets")
 
   logging.info("Building installers for: %s", context_list)
-  deployed_list = []
-  for deploycontext in context_list:
+  repacked_list = []
+  for repackcontext in context_list:
 
     # Add the settings for this context
-    for newcontext in deploycontext.split(","):
+    for newcontext in repackcontext.split(","):
       context.append(newcontext)
 
     try:
-      deployer = GetDeployer(context, signer=signer)
-
       # If the ClientBuilder.target_platforms doesn't match our environment,
       # skip.
       if not config_lib.CONFIG.MatchBuildContext(args.platform,
                                                  args.arch,
                                                  args.package_format,
-                                                 context=deployer.context):
+                                                 context=context):
         continue
 
       # Make a nicer filename out of the context string.
-      context_filename = deploycontext.replace(
+      context_filename = repackcontext.replace(
           "AllPlatforms Context,", "").replace(",", "_").replace(" ", "_")
-      deployed_list.append(context_filename)
-
-      output_filename = os.path.join(output_dir,
-                                     context_filename,
-                                     config_lib.CONFIG.Get(
-                                         "ClientBuilder.output_filename",
-                                         context=deployer.context))
-
-      logging.info("Deploying %s as %s with labels: %s",
-                   deploycontext,
+      logging.info("Repacking %s as %s with labels: %s",
+                   repackcontext,
                    config_lib.CONFIG.Get("Client.name",
-                                         context=deployer.context),
+                                         context=context),
                    config_lib.CONFIG.Get("Client.labels",
-                                         context=deployer.context))
+                                         context=context))
 
-      deployer.MakeDeployableBinary(template_path, output_filename)
+      repacking.TemplateRepacker().RepackTemplate(
+          template_path,
+          os.path.join(output_dir, context_filename),
+          signer=signer,
+          context=context)
+
+      repacked_list.append(context_filename)
     finally:
-      # Remove the custom settings for the next deploy
-      for newcontext in deploycontext.split(","):
+      # Remove the custom settings for the next repack
+      for newcontext in repackcontext.split(","):
         context.remove(newcontext)
 
-  logging.info("Complete, installers for %s are in %s", deployed_list,
+  logging.info("Complete, installers for %s are in %s", repacked_list,
                output_dir)
 
 
-def Deploy(context, signer=None):
+def Repack(context, signer=None):
   """Reconfigure a client template to match config.
 
   Args:
     context: config_lib context
     signer: lib.builders.signing.CodeSigner object
   """
-  if args.plugins:
-    config_lib.CONFIG.Set("Client.plugins", args.plugins)
-
-  deployer = GetDeployer(context, signer=signer)
-  template_path = (args.template or TemplateInputFilename(deployer.context) or
-                   config_lib.CONFIG.Get("ClientBuilder.template_path",
-                                         context=deployer.context))
-
-  # If neither output filename or output directory is specified,
-  # use the default location from the config file.
-  output = None
-  if args.output:
-    output = args.output
-  elif args.outputdir:
-    # If output filename isn't specified, write to args.outputdir with a
-    # .deployed extension so we can distinguish it from repacked binaries.
-    filename = ".".join((config_lib.CONFIG.Get("ClientBuilder.output_filename",
-                                               context=deployer.context),
-                         "deployed"))
-    output = os.path.join(args.outputdir, filename)
-
-  deployer.MakeDeployableBinary(template_path, output)
-
-
-def Repack(context, signer=None):
-  """Turn a template into an installer.
-
-  Args:
-    context: config_lib context
-    signer: lib.builders.signing.CodeSigner object
-  """
-  if args.plugins:
-    config_lib.CONFIG.Set("Client.plugins", args.plugins)
-
-  deployer = GetDeployer(context, signer=signer)
-  output_filename = os.path.join(args.outputdir,
-                                 config_lib.CONFIG.Get(
-                                     "ClientBuilder.output_filename",
-                                     context=deployer.context))
-
-  deployer.RepackInstaller(
-      open(args.template, "rb").read(), args.output or output_filename)
+  repacking.TemplateRepacker().RepackTemplate(args.template,
+                                              args.outputdir,
+                                              context=context,
+                                              signer=signer)
 
 
 def SetOSContextFromArgs(context):
@@ -508,20 +394,18 @@ def main(_):
     builder_obj = GetBuilder(context)
     builder_obj.MakeExecutableTemplate(output_file=template_path)
   elif args.subparser_name == "repack":
+    # Don't set any context from this machine, it's all in the template.
+    context = flags.FLAGS.context
     Repack(context, signer=signer)
-  elif args.subparser_name == "deploy":
-    Deploy(context, signer=signer)
-  elif args.subparser_name == "buildanddeploy":
+  elif args.subparser_name == "buildandrepack":
     if args.platform == "windows":
       # Handle windows differently because we do 32, 64, and debug builds all at
       # once.
-      BuildAndDeployWindows(signer=signer)
+      BuildAndRepackWindows(signer=signer)
     else:
-      BuildAndDeploy(context, signer=signer)
-
+      BuildAndRepack(context, signer=signer)
   elif args.subparser_name == "build_components":
     component.BuildComponents(output_dir=flags.FLAGS.output)
-
   elif args.subparser_name == "build_component":
     component.BuildComponent(flags.FLAGS.setup_file,
                              output_dir=flags.FLAGS.output)

@@ -32,6 +32,7 @@ from grr.lib import key_utils
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import rekall_profile_server
+from grr.lib import repacking
 from grr.lib import startup
 from grr.lib import utils
 from grr.lib.aff4_objects import users
@@ -730,18 +731,13 @@ def ManageBinaries(config=None, token=None):
   print("\nStep 4: Installing template package and repackaging clients with"
         " new configuration.")
 
-  if flags.FLAGS.noprompt or (
-      (raw_input("Download and upgrade client templates? You can skip this if "
-                 "templates are already installed. [Yn]: ").upper() or "Y") ==
-      "Y"):
+  if flags.FLAGS.noprompt or ((raw_input(
+      "Download and upgrade client templates? You can skip this if "
+      "templates are already installed. [Yn]: ").upper() or "Y") == "Y"):
     InstallTemplatePackage()
 
   # Build debug binaries, then build release binaries.
-  maintenance_utils.RepackAllBinaries(upload=True,
-                                      debug_build=True,
-                                      token=token)
-  maintenance_utils.RepackAllBinaries(upload=True, token=token)
-
+  repacking.TemplateRepacker().RepackAllTemplates(upload=True, token=token)
   print "\nStep 5: Signing and uploading client components."
 
   maintenance_utils.SignAllComponents(token=token)
@@ -886,10 +882,8 @@ def main(unused_argv):
     config_lib.CONFIG.Write()
 
   elif flags.FLAGS.subparser_name == "repack_clients":
-    maintenance_utils.RepackAllBinaries(upload=flags.FLAGS.upload, token=token)
-    maintenance_utils.RepackAllBinaries(upload=flags.FLAGS.upload,
-                                        debug_build=True,
-                                        token=token)
+    repacking.TemplateRepacker().RepackAllTemplates(upload=flags.FLAGS.upload,
+                                                    token=token)
 
   elif flags.FLAGS.subparser_name == "show_user":
     ShowUser(flags.FLAGS.username, token=token)

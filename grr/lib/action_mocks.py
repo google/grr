@@ -205,7 +205,7 @@ class InterrogatedClient(ActionMock):
     self.response_count += 1
     return [rdf_client.ClientInformation(
         client_name=config_lib.CONFIG["Client.name"],
-        client_version=int(config_lib.CONFIG["Client.version_numeric"]),
+        client_version=int(config_lib.CONFIG["Source.version_numeric"]),
         build_time=config_lib.CONFIG["Client.build_time"],
         labels=["GRRLabel1", "Label2"],)]
 

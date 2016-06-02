@@ -287,8 +287,20 @@ test = val2"""
 
     # This should raise since the config file is incorrect.
     errors = conf.Validate("Section1")
-    self.assertTrue("Invalid value val2 for Integer" in str(errors[
-        "Section1.test"]))
+    self.assertTrue(
+        "Invalid value val2 for Integer" in str(errors["Section1.test"]))
+
+  def testCopyConfig(self):
+    """Check we can copy a config and use it without affecting the old one."""
+    conf = config_lib.CONFIG.CopyConfig()
+    conf.initialized = False
+    conf.DEFINE_string("NewSection1.new_option1", "Default Value", "Help")
+    conf.Set("NewSection1.new_option1", "New Value1")
+    conf.initialized = True
+    conf.Write()
+    self.assertEqual(conf.Get("NewSection1.new_option1"), "New Value1")
+    self.assertEqual(
+        config_lib.CONFIG.Get("NewSection1.new_option1", None), None)
 
   def testEmptyClientPrivateKey(self):
     """Check an empty client private_key passes."""
@@ -555,8 +567,8 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     conf.DEFINE_float("Section1.float", 0, "A float")
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.float: abc")
     errors = conf.Validate("Section1")
-    self.assertTrue("Invalid value abc for Float" in str(errors[
-        "Section1.float"]))
+    self.assertTrue(
+        "Invalid value abc for Float" in str(errors["Section1.float"]))
 
     self.assertRaises(config_lib.ConfigFormatError, conf.Get, "Section1.float")
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.float: 2")
@@ -575,8 +587,8 @@ literal = %{aff4:/C\.(?P<path>.\{1,16\}?)($|/.*)}
     errors = conf.Validate("Section1")
 
     # Floats can not be coerced to an int because that will lose data.
-    self.assertTrue("Invalid value 2.0 for Integer" in str(errors[
-        "Section1.int"]))
+    self.assertTrue(
+        "Invalid value 2.0 for Integer" in str(errors["Section1.int"]))
 
     # A string can be coerced to an int if it makes sense:
     conf.Initialize(parser=config_lib.YamlParser, data="Section1.int: '2'")
@@ -722,10 +734,9 @@ Test3 Context:
     orig_context = copy.deepcopy(conf.context)
     config_orig = conf.ExportState()
     conf.AddContext("Test1 Context")
-    result_map = [(("linux", "amd64", "deb"), True),
-                  (("linux", "i386", "deb"), True),
-                  (("windows", "amd64", "exe"), True),
-                  (("windows", "i386", "exe"), False)]
+    result_map = [(("linux", "amd64", "deb"), True), (
+        ("linux", "i386", "deb"), True), (("windows", "amd64", "exe"), True), (
+            ("windows", "i386", "exe"), False)]
     for result in result_map:
       self.assertEqual(conf.MatchBuildContext(*result[0]), result[1])
 
@@ -733,9 +744,8 @@ Test3 Context:
     self.assertItemsEqual(conf.context, orig_context)
     self.assertFalse("Test1 Context" in conf.context)
     conf.AddContext("Test3 Context")
-    result_map = [(("linux", "amd64", "deb"), True),
-                  (("linux", "i386", "deb"), False),
-                  (("windows", "amd64", "exe"), False),
+    result_map = [(("linux", "amd64", "deb"), True), (
+        ("linux", "i386", "deb"), False), (("windows", "amd64", "exe"), False),
                   (("windows", "i386", "exe"), True)]
     for result in result_map:
       self.assertEqual(conf.MatchBuildContext(*result[0]), result[1])

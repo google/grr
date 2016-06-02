@@ -77,7 +77,7 @@ ClientBuilder Context:
 
     # Needed for package maker. Do not touch.
     ClientBuilder.mangled_output_basename: |
-        %(Client.name)_%(Client.version_major).%(Client.version_minor).%(Client.version_revision)
+        %(Client.name)_%(Source.version_major).%(Source.version_minor).%(Source.version_revision)
 
     ClientBuilder.output_extension: .pkg
 
@@ -88,7 +88,7 @@ ClientBuilder Context:
     ClientBuilder.package_maker_path: |
         /Applications/PackageMaker.app/Contents/MacOS/PackageMaker
 
-    ClientBuilder.template_extension: .pkg.xar
+    ClientBuilder.template_extension: .xar.zip
 
     PyInstaller.path: |
         /Users/%(USER|env)/mac-build/pyinstaller/pyinstaller.py
@@ -126,7 +126,7 @@ ClientBuilder Context:
 
     Logging.engines: stderr
 
-    ClientBuilder.build_root_dir: /home/%(USER|env)/grr-build
+    ClientBuilder.build_root_dir: /tmp/grr-build
 
     PyInstaller.distpath: |
       %(PyInstaller.dpkg_root)/debian/
@@ -254,7 +254,7 @@ Platform:Windows:
   Client.config_key: Software\\%(Client.name)
 
   Client.install_path: |
-    %(SystemRoot|env)\\System32\\%(Client.name)\\%(Client.version_string)
+    %(SystemRoot|env)\\System32\\%(Client.name)\\%(Source.version_string)
 
   Client.platform: windows
 

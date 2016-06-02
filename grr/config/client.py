@@ -1,12 +1,9 @@
 #!/usr/bin/env python
 """Configuration parameters for the client."""
 
-import grr
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import crypto
-
-VERSION = grr.version()
 
 # General Client options.
 config_lib.DEFINE_string("Client.name", "GRR",
@@ -48,7 +45,7 @@ config_lib.DEFINE_integer("Client.rsa_key_length", 2048,
 
 config_lib.DEFINE_string(
     name="Client.install_path",
-    default=r"%(SystemRoot|env)\\System32\\%(name)\\%(version_string)",
+    default=r"%(SystemRoot|env)\\System32\\%(name)\\%(Source.version_string)",
     help="Where the client binaries are installed.")
 
 config_lib.DEFINE_string(
@@ -162,31 +159,6 @@ config_lib.DEFINE_list(
     help=("If this is set for a VFS type, client VFS operations will always be"
           " relative to the given root. Format is os:/mount/disk."),
     default=[])
-
-config_lib.DEFINE_integer("Client.version_major", VERSION["major"],
-                          "Major version number of client binary.")
-
-config_lib.DEFINE_integer("Client.version_minor", VERSION["minor"],
-                          "Minor version number of client binary.")
-
-config_lib.DEFINE_integer("Client.version_revision", VERSION["revision"],
-                          "Revision number of client binary.")
-
-config_lib.DEFINE_integer("Client.version_release", VERSION["release"],
-                          "Release number of client binary.")
-
-config_lib.DEFINE_string("Client.version_string",
-                         "%(version_major).%(version_minor)."
-                         "%(version_revision).%(version_release)",
-                         "Version string of the client.")
-
-config_lib.DEFINE_integer("Client.version_numeric",
-                          "%(version_major)%(version_minor)"
-                          "%(version_revision)%(version_release)",
-                          "Version string of the client as an integer.")
-
-config_lib.DEFINE_list("Client.plugins", [],
-                       help="Additional Plugin paths loaded by the client.")
 
 # Windows client specific options.
 config_lib.DEFINE_string("Client.config_hive",

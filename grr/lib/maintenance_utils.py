@@ -15,7 +15,6 @@ import logging
 
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import build
 from grr.lib import config_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import collects
@@ -118,117 +117,6 @@ def CreateBinaryConfigPaths(token=None):
   except access_control.UnauthorizedAccess:
     logging.info("User is not admin, cannot check configuration tree.")
     return
-
-
-def _RepackBinary(context, builder_cls):
-  # Check for the presence of the template.
-  template_path = config_lib.CONFIG.Get("ClientBuilder.template_path",
-                                        context=context)
-
-  if os.path.exists(template_path):
-    builder_obj = builder_cls(context=context)
-    try:
-      return builder_obj.MakeDeployableBinary(template_path)
-    except Exception as e:  # pylint: disable=broad-except
-      print "Repacking template %s failed: %s" % (template_path, e)
-  else:
-    print "Template %s missing - will not repack." % template_path
-
-
-def RepackAllBinaries(upload=False, debug_build=False, token=None):
-  """Repack binaries based on the configuration.
-
-  NOTE: The configuration file specifies the location of the binaries
-  templates. These usually depend on the client version which is also specified
-  in the configuration file. This simple function simply runs through all the
-  supported architectures looking for available templates for the configured
-  client version, architecture and operating system.
-
-  We do not repack all the binaries that are found in the template directories,
-  only the ones that are valid for the current configuration. It is not an error
-  to have a template missing, we simply ignore it and move on.
-
-  Args:
-    upload: If specified we also upload the repacked binary into the datastore.
-    debug_build: Repack as a debug build.
-    token: Token to use when uploading
-
-  Returns:
-    A list of output installers generated.
-  """
-  built = []
-
-  base_context = ["ClientBuilder Context"]
-  clients_to_repack = [
-      (["Target:Windows", "Platform:Windows", "Arch:amd64"],
-       build.WindowsClientDeployer),
-      (["Target:Windows", "Platform:Windows", "Arch:i386"],
-       build.WindowsClientDeployer),
-      (["Target:Linux", "Platform:Linux", "Arch:amd64"],
-       build.LinuxClientDeployer),
-      (["Target:Linux", "Platform:Linux", "Arch:i386"],
-       build.LinuxClientDeployer),
-      (["Target:Linux", "Target:LinuxRpm", "Platform:Linux", "Arch:amd64"],
-       build.CentosClientDeployer),
-      (["Target:Linux", "Target:LinuxRpm", "Platform:Linux", "Arch:i386"],
-       build.CentosClientDeployer),
-      (["Target:Darwin", "Platform:Darwin", "Arch:amd64"],
-       build.DarwinClientDeployer)
-  ]
-
-  if debug_build:
-    base_context += ["DebugClientBuild Context"]
-    # Debug builds only make sense for windows.
-    clients_to_repack = [
-        (["Target:Windows", "Platform:Windows", "Arch:amd64"],
-         build.WindowsClientDeployer),
-        (["Target:Windows", "Platform:Windows", "Arch:i386"],
-         build.WindowsClientDeployer)
-    ]
-
-  msg = "Will repack the following clients "
-  if debug_build:
-    msg += "(debug build)"
-  print msg + ":"
-  print
-
-  for context, deployer in clients_to_repack:
-    context = base_context + context
-
-    template_path = config_lib.CONFIG.Get("ClientBuilder.template_path",
-                                          context=context)
-    output_path = config_lib.CONFIG.Get("ClientBuilder.output_path",
-                                        context=context)
-    readable = (os.path.isfile(template_path) and
-                os.access(template_path, os.R_OK))
-
-    if not readable:
-      readable_str = " (NOT READABLE)"
-    else:
-      readable_str = ""
-    print "Repacking : " + template_path + readable_str
-    print "To :        " + output_path
-    print
-
-  for context, deployer in clients_to_repack:
-    context = base_context + context
-    template_path = config_lib.CONFIG.Get("ClientBuilder.template_path",
-                                          context=context)
-    output_path = _RepackBinary(context, deployer)
-    if output_path:
-      print "%s repacked ok." % template_path
-      built.append(output_path)
-      if upload:
-        dest = config_lib.CONFIG.Get("Executables.installer", context=context)
-        UploadSignedConfigBlob(
-            open(output_path).read(100 * 1024 * 1024),
-            dest,
-            client_context=context,
-            token=token)
-    else:
-      print "Failed to repack %s." % template_path
-
-  return built
 
 
 def _SignWindowsComponent(component, output_filename):

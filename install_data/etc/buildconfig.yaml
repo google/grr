@@ -1,5 +1,5 @@
 # Use this file to specify what clients should be built with what labels using
-# python grr/client/client_build.py buildanddeploy
+# python grr/client/client_build.py buildandrepack
 
 # Build all these contexts. If multiple contexts are listed separated by ','
 # they will be applied sequentially for that build run.
@@ -18,7 +18,7 @@ AllPlatforms Context:
     - windows_amd64_exe
     - windows_i386_exe
 
-# For example this tells buildanddeploy that it needs to build deb and rpm
+# For example this tells buildandrepack that it needs to build deb and rpm
 # installers for 64-bit linux with the "somelabel" baked in.
 #SomeLabel Context:
 #  Client.labels: [somelabel]
