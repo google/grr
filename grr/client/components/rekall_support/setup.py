@@ -5,7 +5,7 @@ __author__ = "Michael Cohen <scudette@gmail.com>"
 from setuptools import setup
 
 setup_args = dict(name="grr-rekall",
-                  version="0.3",
+                  version="0.4",
                   description="Rekall GRR Integration module.",
                   license="GPL",
                   url="https://www.rekall-forensic.com/",
@@ -24,7 +24,7 @@ setup_args = dict(name="grr-rekall",
                       "rekall_pb2",
                   ],
                   install_requires=[
-                      "rekall-core == 1.5.1",
+                      "rekall-core == 1.5.2rc1",
                   ],
                   zip_safe=False,)
 

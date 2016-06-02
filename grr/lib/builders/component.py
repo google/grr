@@ -8,7 +8,9 @@ grr/client/components/README.txt.
 
 
 import imp
+import logging
 import os
+import shutil
 import StringIO
 import subprocess
 import zipfile
@@ -163,30 +165,40 @@ def BuildComponent(setup_path, output_dir=None):
                           env=GetCleanEnvironment())
 
     subprocess.check_call([GetVirtualEnvBinary(tmp_dirname, "pip"), "install",
-                           "--upgrade", "setuptools"])
+                           "--upgrade", "setuptools", "wheel"])
 
-    interpreter = GetVirtualEnvBinary(tmp_dirname, "python")
+    # Pip installs data files dependencies in the root of the virtualenv. We
+    # need to find them and move them into the component.
+    root_dirs = set(os.listdir(tmp_dirname))
     subprocess.check_call(
-        [interpreter, "setup.py", "sdist", "install"],
+        [GetVirtualEnvBinary(tmp_dirname, "pip"), "install", "."],
         cwd=os.path.dirname(module.__file__),
         env=GetCleanEnvironment())
+
+    component_path = os.path.join(tmp_dirname, "lib/python2.7/site-packages")
+    if not os.access(component_path, os.R_OK):
+      component_path = os.path.join(tmp_dirname, "lib/site-packages")
+
+    for directory in os.listdir(tmp_dirname):
+      if directory not in root_dirs:
+        logging.debug("Copying new directories %s", directory)
+        shutil.copytree(
+            os.path.join(tmp_dirname, directory),
+            os.path.join(component_path, directory))
 
     out_fd = StringIO.StringIO()
     component_archive = zipfile.ZipFile(out_fd,
                                         "w",
                                         compression=zipfile.ZIP_DEFLATED)
 
-    path = os.path.join(tmp_dirname, "lib/python2.7/site-packages")
-    if not os.access(path, os.R_OK):
-      path = os.path.join(tmp_dirname, "lib/site-packages")
-
     # Warn about incompatible modules.
+    interpreter = GetVirtualEnvBinary(tmp_dirname, "python")
     CheckUselessComponentModules(interpreter)
 
     # These modules are assumed to already exist in the client and therefore do
     # not need to be re-packaged in the component.
     skipped_modules = SKIPPED_MODULES
-    for root, dirs, files in os.walk(path):
+    for root, dirs, files in os.walk(component_path):
       for file_name in files:
         filename = os.path.join(root, file_name)
         # Unzip egg files to keep it simple.
@@ -197,7 +209,7 @@ def BuildComponent(setup_path, output_dir=None):
           dirs.append(filename)
           continue
 
-        archive_filename = os.path.relpath(filename, path)
+        archive_filename = os.path.relpath(filename, component_path)
         if archive_filename.endswith(".pyc"):
           continue
 

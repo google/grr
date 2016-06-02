@@ -9,9 +9,15 @@ recursive-exclude dist *
 recursive-exclude vagrant *
 recursive-exclude travis *
 recursive-exclude grr/config/grr-response-* *
+recursive-exclude client/minicomm *
 recursive-exclude executables *.zip
 recursive-exclude executables/windows/installers *.exe
 recursive-exclude executables *.bin
+recursive-exclude executables/components *
+recursive-exclude executables/linux *
+recursive-exclude executables/darwin *
+recursive-exclude grr/var *
+recursive-exclude grr-response-* *
 
 recursive-exclude client/minicomm *
 recursive-exclude * *.pyc

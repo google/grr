@@ -127,7 +127,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     self.state.Register("component_version", None)
     # Load all the components we will be needing on the client.
     self.LoadComponentOnClient(name="grr-rekall",
-                               version="0.3",
+                               version=self.args.component_version,
                                next_state="StartAnalysis")
 
   @flow.StateHandler()

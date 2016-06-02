@@ -805,12 +805,23 @@ goog.loadedModules_ = {};
 goog.DEPENDENCIES_ENABLED = !COMPILED && goog.ENABLE_DEBUG_LOADER;
 
 
-/** @define {boolean} Whether to always transpile every file. */
-goog.define('goog.ALWAYS_TRANSPILE', false);
+/**
+ * @define {string} How to decide whether to transpile.  Valid values
+ * are 'always', 'never', and 'detect'.  The default ('detect') is to
+ * use feature detection to determine which language levels need
+ * transpilation.
+ */
+// NOTE(user): we could expand this to accept a language level to bypass
+// detection: e.g. goog.TRANSPILE == 'es5' would transpile ES6 files but
+// would leave ES3 and ES5 files alone.
+goog.define('goog.TRANSPILE', 'detect');
 
 
-/** @define {boolean} Never transpile if this is set. */
-goog.define('goog.NEVER_TRANSPILE', false);
+/**
+ * @define {string} Path to the transpiler.  Executing the script at this
+ * path (relative to base.js) should define a function $jscomp.transpile.
+ */
+goog.define('goog.TRANSPILER', 'transpile.js');
 
 
 if (goog.DEPENDENCIES_ENABLED) {
@@ -1262,9 +1273,9 @@ if (goog.DEPENDENCIES_ENABLED) {
    * @private
    */
   goog.needsTranspile_ = function(lang) {
-    if (goog.ALWAYS_TRANSPILE) {
+    if (goog.TRANSPILE == 'always') {
       return true;
-    } else if (goog.NEVER_TRANSPILE) {
+    } else if (goog.TRANSPILE == 'never') {
       return false;
     } else if (!goog.transpiledLanguages_) {
       goog.transpiledLanguages_ = {'es5': true, 'es6': true, 'es6-impl': true};
@@ -1554,7 +1565,7 @@ goog.transpile_ = function(code, path) {
   }
   var transpile = jscomp.transpile;
   if (!transpile) {
-    var transpilerPath = goog.basePath + 'transpile.js';
+    var transpilerPath = goog.basePath + goog.TRANSPILER;
     var transpilerCode = goog.loadFileSync_(transpilerPath);
     if (transpilerCode) {
       // This must be executed synchronously, since by the time we know we

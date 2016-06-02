@@ -114,7 +114,7 @@ message RekallProfile {
 }
 
 // The Rekall AnalyzeClientMemory flow.
-// Next field ID: 6
+// Next field ID: 7
 message AnalyzeClientMemoryArgs {
   optional RekallRequest request = 2 [(sem_type) = {
       description: "A request for the client's Rekall subsystem.",
@@ -129,4 +129,9 @@ message AnalyzeClientMemoryArgs {
       description: "Obtain at most max_file_size_download bytes of each file "
       "outputted by Rekall."
     }, default=35433480192];  // 33 Gb
+
+  optional string component_version = 6 [(sem_type) = {
+      description: "The version of component to use.",
+      label: ADVANCED,
+    }, default="0.4"];
 }

@@ -1347,8 +1347,8 @@ class GRRSeleniumTest(GRRBaseTest):
 
     # Clean artifacts sources.
     artifact_registry.REGISTRY.ClearSources()
-    artifact_registry.REGISTRY.AddDatastoreSources([aff4.ROOT_URN.Add(
-        "artifact_store")])
+    artifact_registry.REGISTRY.AddDatastoreSources(
+        [aff4.ROOT_URN.Add("artifact_store")])
 
     self.InstallACLChecks()
 
@@ -2572,7 +2572,7 @@ class OSSpecificClientTests(EmptyActionTest):
 
 
 def WriteComponent(name="grr-rekall",
-                   version="0.3",
+                   version="0.4",
                    modules=None,
                    token=None,
                    raw_data=""):
