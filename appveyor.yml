@@ -1,0 +1,20 @@
+branches:
+  only:
+    - master
+
+platform:
+  - x64
+
+clone_folder: C:\grr_src
+
+install:
+  - cmd: C:\grr_src\vagrant\windows\install_for_build.bat
+
+build_script:
+  - cmd: C:\grr_deps\Python27\python.exe C:\grr_src\vagrant\windows\build_windows_templates.py --grr_src=C:\grr_src --output_dir=C:\grr_src\output
+
+artifacts:
+  - path: output
+    name: templates
+    type: zip
+
