@@ -317,7 +317,7 @@ class GRRWorker(object):
       if flow_name in self.well_known_flows:
         # Well known flows are not necessarily present in the data store so
         # we need to create them instead of opening.
-        expected_flow = self.well_known_flows[flow_name].__class__.__name__
+        expected_flow = self.well_known_flows[flow_name].__class__
         flow_obj = aff4.FACTORY.CreateWithLock(
             session_id,
             expected_flow,

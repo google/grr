@@ -283,10 +283,10 @@ def _ValidateAFF4Type(aff4_type):
 
   # Check that we have the right type.
   if not isinstance(aff4_type, type):
-    raise InstantiationError("aff4_type=%s must be a type" % aff4_type)
+    raise TypeError("aff4_type=%s must be a type" % aff4_type)
   if not issubclass(aff4_type, AFF4Object):
-    raise InstantiationError("aff4_type=%s must be a subclass of AFF4Object." %
-                             aff4_type)
+    raise TypeError("aff4_type=%s must be a subclass of AFF4Object." %
+                    aff4_type)
   return aff4_type
 
 

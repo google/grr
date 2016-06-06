@@ -519,14 +519,13 @@ class ApiGetRobotGetFilesOperationStateHandlerRegressionTest(
 
       # Put something in the output collection
       flow_obj = aff4.FACTORY.Open(flow_urn,
-                                   aff4_type=flow.GRRFlow.__name__,
+                                   aff4_type=flow.GRRFlow,
                                    token=self.token)
       flow_state = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
 
-      with aff4.FACTORY.Create(
-          flow_state.context.output_urn,
-          aff4_type=aff4_collections.RDFValueCollection.__name__,
-          token=self.token) as collection:
+      with aff4.FACTORY.Create(flow_state.context.output_urn,
+                               aff4_type=aff4_collections.RDFValueCollection,
+                               token=self.token) as collection:
         collection.Add(rdf_client.ClientSummary())
 
       self.Check("GET",

@@ -13,7 +13,10 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.flows.general import filesystem
+from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -269,7 +272,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
 
     directory = aff4.FACTORY.Open(
         args.client_id.Add(path),
-        mode="r", token=token).Upgrade("VFSDirectory")
+        mode="r", token=token).Upgrade(aff4_standard.VFSDirectory)
 
     if args.directories_only:
       children = [ch for ch in directory.OpenChildren()
@@ -577,7 +580,7 @@ class GetVfsRefreshOperationStateHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     try:
       flow_obj = aff4.FACTORY.Open(args.operation_id,
-                                   aff4_type="RecursiveListDirectory",
+                                   aff4_type=filesystem.RecursiveListDirectory,
                                    token=token)
       complete = not flow_obj.GetRunner().IsRunning()
     except aff4.InstantiationError:
@@ -737,7 +740,7 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
 
     aff4_path = args.client_id.Add(args.file_path)
     fd = aff4.FACTORY.Open(aff4_path,
-                           aff4_type="VFSFile",
+                           aff4_type=aff4_grr.VFSFile,
                            mode="rw",
                            token=token)
     flow_urn = fd.Update(priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
@@ -766,7 +769,7 @@ class ApiGetVfsFileContentUpdateStateHandler(
   def Handle(self, args, token=None):
     try:
       flow_obj = aff4.FACTORY.Open(args.operation_id,
-                                   aff4_type="MultiGetFile",
+                                   aff4_type=transfer.MultiGetFile,
                                    token=token)
       complete = not flow_obj.GetRunner().IsRunning()
     except aff4.InstantiationError:

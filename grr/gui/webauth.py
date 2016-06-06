@@ -11,6 +11,8 @@ from grr.lib import config_lib
 from grr.lib import log
 from grr.lib import registry
 
+from grr.lib.aff4_objects import users as aff4_users
+
 
 class BaseWebAuthManager(object):
   """A class managing web authentication.
@@ -66,7 +68,7 @@ class BasicWebAuthManager(BaseWebAuthManager):
         token = access_control.ACLToken(username=user)
 
         fd = aff4.FACTORY.Open("aff4:/users/%s" % user,
-                               aff4_type="GRRUser",
+                               aff4_type=aff4_users.GRRUser,
                                token=token)
         crypted_password = fd.Get(fd.Schema.PASSWORD)
         if crypted_password and crypted_password.CheckPassword(password):

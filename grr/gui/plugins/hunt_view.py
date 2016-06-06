@@ -22,6 +22,7 @@ from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.hunts import implementation
 from grr.lib.hunts import standard as hunts_standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -114,7 +115,7 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
     """Layout handler."""
     hunt_urn = rdfvalue.RDFURN(request.REQ.get("hunt_id"))
     with aff4.FACTORY.Open(hunt_urn,
-                           aff4_type="GRRHunt",
+                           aff4_type=implementation.GRRHunt,
                            token=request.token) as hunt:
 
       runner = hunt.GetRunner()
@@ -276,7 +277,7 @@ back to hunt view</a>
     try:
       self.hunt = aff4.FACTORY.Open(hunt_id,
                                     token=request.token,
-                                    aff4_type="GRRHunt")
+                                    aff4_type=implementation.GRRHunt)
     except IOError:
       logging.error("Invalid hunt %s", hunt_id)
       return
@@ -480,7 +481,7 @@ class HuntOverviewRenderer(AbstractLogRenderer):
     if self.hunt_id:
       try:
         self.hunt = aff4.FACTORY.Open(self.hunt_id,
-                                      aff4_type="GRRHunt",
+                                      aff4_type=implementation.GRRHunt,
                                       token=request.token)
 
         if self.hunt.state.Empty():
@@ -534,7 +535,7 @@ class HuntContextView(renderers.TemplateRenderer):
     if not hasattr(self, "hunt_id"):
       self.hunt_id = request.REQ.get("hunt_id")
     self.hunt = aff4.FACTORY.Open(self.hunt_id,
-                                  aff4_type="GRRHunt",
+                                  aff4_type=implementation.GRRHunt,
                                   token=request.token)
     if self.hunt.state.Empty():
       raise IOError("No valid state could be found.")
@@ -745,7 +746,7 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
     if hunt_id:
       try:
         hunt = aff4.FACTORY.Open(hunt_id,
-                                 aff4_type="GRRHunt",
+                                 aff4_type=implementation.GRRHunt,
                                  token=request.token)
         if hunt.state.Empty():
           raise IOError("No valid state could be found.")
@@ -856,7 +857,7 @@ class HuntOutstandingRenderer(renderers.TableRenderer):
 
     hunt_id = rdfvalue.RDFURN(hunt_id)
     hunt = aff4.FACTORY.Open(hunt_id,
-                             aff4_type="GRRHunt",
+                             aff4_type=implementation.GRRHunt,
                              age=aff4.ALL_TIMES,
                              token=token)
 

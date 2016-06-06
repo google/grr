@@ -39,7 +39,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
   def FindForemanRules(hunt, token):
     fman = aff4.FACTORY.Open("aff4:/foreman",
                              mode="r",
-                             aff4_type="GRRForeman",
+                             aff4_type=aff4_grr.GRRForeman,
                              token=token)
     hunt_rules = []
     rules = fman.Get(fman.Schema.RULES, [])
@@ -84,7 +84,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     with self.ACLChecksDisabled():
       # Create a Foreman with an empty rule set.
       with aff4.FACTORY.Create("aff4:/foreman",
-                               "GRRForeman",
+                               aff4_grr.GRRForeman,
                                mode="rw",
                                token=self.token) as self.foreman:
         self.foreman.Set(self.foreman.Schema.RULES())

@@ -123,7 +123,7 @@ class TestFileView(FileViewTestBase):
     """Add a new version for a file."""
     with test_lib.FakeTime(timestamp):
       with aff4.FACTORY.Create(path,
-                               aff4_type="VFSFile",
+                               aff4_type=aff4_grr.VFSFile,
                                mode="w",
                                token=token) as fd:
         fd.Write(content)
@@ -299,7 +299,7 @@ class TestFileView(FileViewTestBase):
       with test_lib.FakeTime(time_in_future):
         with aff4.FACTORY.Open(
             "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
-            aff4_type="VFSFile",
+            aff4_type=aff4_grr.VFSFile,
             mode="rw",
             token=self.token) as fd:
           fd.Write("The newest version!")

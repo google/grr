@@ -11,6 +11,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow as lib_flow
 from grr.lib import rdfvalue
+from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.rdfvalues import stats as rdf_stats
 
@@ -39,7 +40,7 @@ def GetAuditLogFiles(offset, now, token):
                      "between %s and %s" % (oldest_time, now))
 
   return aff4.FACTORY.MultiOpen(logs,
-                                aff4_type="RDFValueCollection",
+                                aff4_type=collects.RDFValueCollection,
                                 token=token)
 
 

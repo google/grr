@@ -148,7 +148,7 @@ class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
     flow_obj = aff4.FACTORY.Open(flow_urn,
-                                 aff4_type="GRRFlow",
+                                 aff4_type=flow.GRRFlow,
                                  mode="r",
                                  token=token)
 
@@ -173,16 +173,17 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
     flow_obj = aff4.FACTORY.Open(flow_urn,
-                                 aff4_type="GRRFlow",
+                                 aff4_type=flow.GRRFlow,
                                  mode="r",
                                  token=token)
 
     output_urn = flow_obj.GetRunner().output_urn
     # TODO(user): RDFValueCollection is a deprecated type.
-    output_collection = aff4.FACTORY.Create(output_urn,
-                                            aff4_type="RDFValueCollection",
-                                            mode="r",
-                                            token=token)
+    output_collection = aff4.FACTORY.Create(
+        output_urn,
+        aff4_type=aff4_collects.RDFValueCollection,
+        mode="r",
+        token=token)
 
     items = api_call_handler_utils.FilterAff4Collection(output_collection,
                                                         args.offset, args.count,
@@ -210,10 +211,11 @@ class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     logs_collection_urn = args.client_id.Add("flows").Add(args.flow_id.Basename(
     )).Add("Logs")
-    logs_collection = aff4.FACTORY.Create(logs_collection_urn,
-                                          aff4_type="FlowLogCollection",
-                                          mode="r",
-                                          token=token)
+    logs_collection = aff4.FACTORY.Create(
+        logs_collection_urn,
+        aff4_type=flow_runner.FlowLogCollection,
+        mode="r",
+        token=token)
 
     result = api_call_handler_utils.FilterAff4Collection(logs_collection,
                                                          args.offset,
@@ -242,7 +244,7 @@ class ApiGetFlowResultsExportCommandHandler(
   def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
     flow_obj = aff4.FACTORY.Open(flow_urn,
-                                 aff4_type="GRRFlow",
+                                 aff4_type=flow.GRRFlow,
                                  mode="r",
                                  token=token)
     output_urn = flow_obj.GetRunner().output_urn
@@ -268,7 +270,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   def _WrapContentGenerator(self, generator, collection, args, token=None):
     user = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type=aff4_users.GRRUser.__name__,
+        aff4_type=aff4_users.GRRUser,
         mode="rw",
         token=token)
     try:
@@ -293,7 +295,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
     flow_obj = aff4.FACTORY.Open(flow_urn,
-                                 aff4_type="GRRFlow",
+                                 aff4_type=flow.GRRFlow,
                                  mode="r",
                                  token=token)
 
@@ -353,7 +355,7 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
     flow_obj = aff4.FACTORY.Open(flow_urn,
-                                 aff4_type="GRRFlow",
+                                 aff4_type=flow.GRRFlow,
                                  mode="r",
                                  token=token)
 
@@ -395,7 +397,7 @@ class ApiListFlowOutputPluginLogsHandlerBase(
 
     flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
     flow_obj = aff4.FACTORY.Open(flow_urn,
-                                 aff4_type="GRRFlow",
+                                 aff4_type=flow.GRRFlow,
                                  mode="r",
                                  token=token)
 
@@ -503,7 +505,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
     root_children_urns = root_children_urns[args.offset:stop]
 
     root_children = aff4.FACTORY.MultiOpen(root_children_urns,
-                                           aff4_type=flow.GRRFlow.__name__,
+                                           aff4_type=flow.GRRFlow,
                                            token=token)
     root_children = sorted(root_children,
                            key=self._GetCreationTime,
@@ -514,7 +516,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         token=token))
     nested_children = aff4.FACTORY.MultiOpen(
         set(itertools.chain(*nested_children_urns.values())),
-        aff4_type=flow.GRRFlow.__name__,
+        aff4_type=flow.GRRFlow,
         token=token)
     nested_children_map = dict((x.urn, x) for x in nested_children)
 
@@ -567,7 +569,7 @@ class ApiStartRobotGetFilesOperationHandler(
   def GetClientTarget(self, args, token=None):
     # Find the right client to target using a hostname search.
     index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                aff4_type="ClientIndex",
+                                aff4_type=client_index.ClientIndex,
                                 mode="rw",
                                 token=token)
 
@@ -675,7 +677,7 @@ class ApiGetRobotGetFilesOperationStateHandler(
     flow_urn = client_id.Add("flows").Add(flow_id.Basename())
     try:
       flow_obj = aff4.FACTORY.Open(flow_urn,
-                                   aff4_type=file_finder.FileFinder.__name__,
+                                   aff4_type=file_finder.FileFinder,
                                    token=token)
     except aff4.InstantiationError:
       raise RobotGetFilesOperationNotFoundError()
@@ -684,7 +686,7 @@ class ApiGetRobotGetFilesOperationStateHandler(
     try:
       result_collection = aff4.FACTORY.Open(
           flow_state.context.output_urn,
-          aff4_type=aff4_collects.RDFValueCollection.__name__,
+          aff4_type=aff4_collects.RDFValueCollection,
           token=token)
       result_count = len(result_collection)
     except aff4.InstantiationError:
@@ -721,7 +723,7 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
                                      args=args.flow.args,
                                      runner_args=args.flow.runner_args)
 
-    fd = aff4.FACTORY.Open(flow_id, aff4_type="GRRFlow", token=token)
+    fd = aff4.FACTORY.Open(flow_id, aff4_type=flow.GRRFlow, token=token)
     return ApiFlow().InitFromAff4Object(fd)
 
 

@@ -15,6 +15,8 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import collects
+from grr.lib.hunts import results
 from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -35,7 +37,7 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
 
   def testGetValuesForExportHuntResultCollection(self):
     with aff4.FACTORY.Create("aff4:/huntcoll",
-                             "HuntResultCollection",
+                             results.HuntResultCollection,
                              token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(payload=rdf_client.StatEntry(
           aff4path=self.out.Add("testfile")),
@@ -58,7 +60,7 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
   def testExportCollectionWithEmailPlugin(self):
     # Create a collection with URNs to some files.
     fd = aff4.FACTORY.Create("aff4:/testcoll",
-                             "RDFValueCollection",
+                             collects.RDFValueCollection,
                              token=self.token)
     fd.Add(rdf_flows.GrrMessage(payload=rdf_client.StatEntry(
         aff4path=self.out.Add("testfile")),

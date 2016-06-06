@@ -11,13 +11,18 @@ from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
 
+from grr.lib.aff4_objects import stats_store
+
 
 class TestServerLoadView(test_lib.GRRSeleniumTest):
   """Tests for ServerLoadView."""
 
   @staticmethod
   def SetupSampleMetrics(token=None):
-    store = aff4.FACTORY.Create(None, "StatsStore", mode="w", token=token)
+    store = aff4.FACTORY.Create(None,
+                                stats_store.StatsStore,
+                                mode="w",
+                                token=token)
 
     stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_num")
     stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_throttled_num")

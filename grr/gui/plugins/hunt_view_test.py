@@ -655,7 +655,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       results = aff4.FACTORY.Open(hunt.urn.Add("Results"), token=self.token)
       aff4_path = flow_export.CollectionItemToAff4Path(results[0])
       with aff4.FACTORY.Create(aff4_path,
-                               aff4_type=aff4.AFF4Volume.__name__,
+                               aff4_type=aff4.AFF4Volume,
                                token=self.token) as _:
         pass
 

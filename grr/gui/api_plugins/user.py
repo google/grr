@@ -81,7 +81,7 @@ class ApiUserClientApproval(rdf_structs.RDFProtoStruct):
     if not approval_subject_obj:
       approval_subject_obj = aff4.FACTORY.Open(
           approval_obj.Get(approval_obj.Schema.SUBJECT),
-          aff4_type=aff4_grr.VFSGRRClient.__name__,
+          aff4_type=aff4_grr.VFSGRRClient,
           token=approval_obj.token)
     self.subject = api_client.ApiClient().InitFromAff4Object(
         approval_subject_obj)
@@ -96,7 +96,7 @@ class ApiUserHuntApproval(rdf_structs.RDFProtoStruct):
     if not approval_subject_obj:
       approval_subject_obj = aff4.FACTORY.Open(
           approval_obj.Get(approval_obj.Schema.SUBJECT),
-          aff4_type=implementation.GRRHunt.__name__,
+          aff4_type=implementation.GRRHunt,
           token=approval_obj.token)
     self.subject = api_hunt.ApiHunt().InitFromAff4Object(approval_subject_obj)
 
@@ -110,7 +110,7 @@ class ApiUserCronApproval(rdf_structs.RDFProtoStruct):
     if not approval_subject_obj:
       approval_subject_obj = aff4.FACTORY.Open(
           approval_obj.Get(approval_obj.Schema.SUBJECT),
-          aff4_type=aff4_cronjobs.CronJob.__name__,
+          aff4_type=aff4_cronjobs.CronJob,
           token=approval_obj.token)
     self.subject = api_cron.ApiCronJob().InitFromAff4Object(
         approval_subject_obj)
@@ -149,11 +149,10 @@ class ApiCreateUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
 
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(args.client_id.Basename()).Add(
         token.username).Add(utils.EncodeReasonString(args.approval.reason))
-    approval_obj = aff4.FACTORY.Open(
-        approval_urn,
-        aff4_type=aff4_security.ClientApproval.__name__,
-        age=aff4.ALL_TIMES,
-        token=token)
+    approval_obj = aff4.FACTORY.Open(approval_urn,
+                                     aff4_type=aff4_security.ClientApproval,
+                                     age=aff4.ALL_TIMES,
+                                     token=token)
 
     return ApiUserClientApproval().InitFromAff4Object(approval_obj)
 
@@ -177,11 +176,10 @@ class ApiGetUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(args.client_id.Basename()).Add(
         token.username).Add(utils.EncodeReasonString(args.reason))
-    approval_obj = aff4.FACTORY.Open(
-        approval_urn,
-        aff4_type=aff4_security.ClientApproval.__name__,
-        age=aff4.ALL_TIMES,
-        token=token)
+    approval_obj = aff4.FACTORY.Open(approval_urn,
+                                     aff4_type=aff4_security.ClientApproval,
+                                     age=aff4.ALL_TIMES,
+                                     token=token)
     return ApiUserClientApproval().InitFromAff4Object(approval_obj)
 
 
@@ -223,12 +221,11 @@ class ApiListUserApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
       approvals_urns.append(subject)
 
     approvals_urns.sort(key=lambda x: x.age, reverse=True)
-    approvals = list(aff4.FACTORY.MultiOpen(
-        approvals_urns,
-        mode="r",
-        aff4_type=aff4_security.Approval.__name__,
-        age=aff4.ALL_TIMES,
-        token=token))
+    approvals = list(aff4.FACTORY.MultiOpen(approvals_urns,
+                                            mode="r",
+                                            aff4_type=aff4_security.Approval,
+                                            age=aff4.ALL_TIMES,
+                                            token=token))
     approvals_by_urn = {}
     for approval in approvals:
       approvals_by_urn[approval.symlink_urn or approval.urn] = approval
@@ -414,7 +411,7 @@ class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
     try:
       user_record = aff4.FACTORY.Open(
           aff4.ROOT_URN.Add("users").Add(token.username),
-          "GRRUser",
+          aff4_users.GRRUser,
           token=token)
 
       result.settings = user_record.Get(user_record.Schema.GUI_SETTINGS)
@@ -440,7 +437,7 @@ class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
 
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type=aff4_users.GRRUser.__name__,
+        aff4_type=aff4_users.GRRUser,
         mode="w",
         token=token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS(args.settings))
@@ -462,7 +459,7 @@ class ApiGetPendingUserNotificationsCountHandler(
 
     user_record = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type="GRRUser",
+        aff4_type=aff4_users.GRRUser,
         mode="r",
         token=token)
 
@@ -492,7 +489,7 @@ class ApiListPendingUserNotificationsHandler(
 
     user_record = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type="GRRUser",
+        aff4_type=aff4_users.GRRUser,
         mode="r",
         token=token)
 
@@ -519,7 +516,7 @@ class ApiDeletePendingUserNotificationHandler(
     """Deletes the notification from the pending notifications."""
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type="GRRUser",
+        aff4_type=aff4_users.GRRUser,
         mode="rw",
         token=token) as user_record:
       user_record.DeletePendingNotification(args.timestamp)
@@ -688,7 +685,7 @@ class ApiListAndResetUserNotificationsHandler(
 
     user_record = aff4.FACTORY.Open(
         aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type="GRRUser",
+        aff4_type=aff4_users.GRRUser,
         mode="rw",
         token=token)
 
@@ -740,7 +737,7 @@ class ApiListPendingGlobalNotificationsHandler(
 
     user_record = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type="GRRUser",
+        aff4_type=aff4_users.GRRUser,
         mode="r",
         token=token)
 
@@ -765,7 +762,7 @@ class ApiDeletePendingGlobalNotificationHandler(
 
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(token.username),
-        aff4_type="GRRUser",
+        aff4_type=aff4_users.GRRUser,
         mode="rw",
         token=token) as user_record:
 

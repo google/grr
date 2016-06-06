@@ -7,6 +7,7 @@ import urllib
 from grr.gui import renderers
 from grr.gui.plugins import semantic
 from grr.lib import aff4
+from grr.lib.aff4_objects import collects
 
 
 class ClientCrashDetailsRenderer(semantic.RDFValueRenderer):
@@ -68,13 +69,14 @@ class ClientCrashCollectionRenderer(renderers.TableRenderer):
 
   def BuildTable(self, start_row, end_row, request):
     """Builds table of ClientCrash'es."""
-    crashes_urn = str(self.state.get("crashes_urn") or request.REQ.get(
-        "crashes_urn"))
+    crashes_urn = str(self.state.get("crashes_urn") or
+                      request.REQ.get("crashes_urn"))
 
     try:
-      collection = aff4.FACTORY.Open(crashes_urn,
-                                     aff4_type="PackedVersionedCollection",
-                                     token=request.token)
+      collection = aff4.FACTORY.Open(
+          crashes_urn,
+          aff4_type=collects.PackedVersionedCollection,
+          token=request.token)
     except IOError:
       return
 
@@ -89,8 +91,8 @@ class ClientCrashCollectionRenderer(renderers.TableRenderer):
       self.AddCell(row_index, "Crash Details", value)
 
   def Layout(self, request, response):
-    self.state["crashes_urn"] = str(self.crashes_urn or request.REQ.get(
-        "crashes_urn"))
+    self.state["crashes_urn"] = str(self.crashes_urn or
+                                    request.REQ.get("crashes_urn"))
     super(ClientCrashCollectionRenderer, self).Layout(request, response)
 
 

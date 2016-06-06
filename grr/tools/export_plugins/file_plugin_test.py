@@ -11,6 +11,8 @@ from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import standard as aff4_standard
 from grr.tools.export_plugins import file_plugin
 
 
@@ -30,12 +32,12 @@ class FileExportPluginTest(test_lib.GRRBaseTest):
 
   def CreateDir(self, dirpath):
     path = self.out.Add(dirpath)
-    fd = aff4.FACTORY.Create(path, "VFSDirectory", token=self.token)
+    fd = aff4.FACTORY.Create(path, aff4_standard.VFSDirectory, token=self.token)
     fd.Close()
 
   def CreateFile(self, filepath):
     path = self.out.Add(filepath)
-    fd = aff4.FACTORY.Create(path, "VFSMemoryFile", token=self.token)
+    fd = aff4.FACTORY.Create(path, aff4_grr.VFSMemoryFile, token=self.token)
     fd.Write("some data")
     fd.Close()
 

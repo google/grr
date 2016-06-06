@@ -434,7 +434,7 @@ class TestContentView(SearchClientTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(
           aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-          aff4_type="GlobalNotificationStorage",
+          aff4_type=aff4_users.GlobalNotificationStorage,
           mode="rw",
           token=self.token) as storage:
         storage.AddNotification(aff4_users.GlobalNotification(
@@ -450,7 +450,7 @@ class TestContentView(SearchClientTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(
           aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-          aff4_type="GlobalNotificationStorage",
+          aff4_type=aff4_users.GlobalNotificationStorage,
           mode="rw",
           token=self.token) as storage:
         storage.AddNotification(aff4_users.GlobalNotification(
@@ -471,7 +471,7 @@ class TestContentView(SearchClientTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(
           aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-          aff4_type="GlobalNotificationStorage",
+          aff4_type=aff4_users.GlobalNotificationStorage,
           mode="rw",
           token=self.token) as storage:
         storage.AddNotification(aff4_users.GlobalNotification(
@@ -486,7 +486,7 @@ class TestContentView(SearchClientTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(
           aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-          aff4_type="GlobalNotificationStorage",
+          aff4_type=aff4_users.GlobalNotificationStorage,
           mode="rw",
           token=self.token) as storage:
         storage.AddNotification(aff4_users.GlobalNotification(
@@ -502,7 +502,7 @@ class TestContentView(SearchClientTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(
           aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-          aff4_type="GlobalNotificationStorage",
+          aff4_type=aff4_users.GlobalNotificationStorage,
           mode="rw",
           token=self.token) as storage:
         storage.AddNotification(aff4_users.GlobalNotification(
@@ -525,7 +525,7 @@ class TestContentView(SearchClientTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(
           aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-          aff4_type="GlobalNotificationStorage",
+          aff4_type=aff4_users.GlobalNotificationStorage,
           mode="rw",
           token=self.token) as storage:
         storage.AddNotification(aff4_users.GlobalNotification(
@@ -575,7 +575,7 @@ class TestContentView(SearchClientTestBase):
   def testRendererShowsCanaryContentWhenInCanaryMode(self):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create("aff4:/users/test",
-                               "GRRUser",
+                               aff4_users.GRRUser,
                                token=self.token) as user:
         user.Set(user.Schema.GUI_SETTINGS(canary_mode=True))
 
@@ -886,7 +886,7 @@ class TestClientSearch(SearchClientTestBase,
 
   def _UpdateClientIndex(self, client_obj):
     with aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                             aff4_type="ClientIndex",
+                             aff4_type=client_index.ClientIndex,
                              mode="rw",
                              token=self.token) as index:
       index.AddClient(client_obj)

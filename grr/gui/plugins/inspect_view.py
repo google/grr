@@ -17,6 +17,7 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
+from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 
@@ -131,7 +132,7 @@ No actions currently in progress.
     stats_urn = self.client_id.Add("stats")
     stats_obj = aff4.FACTORY.Create(
         stats_urn,
-        "ClientStats",
+        aff4_stats.ClientStats,
         mode="r",
         age=(hour_before_now.AsMicroSecondsFromEpoch(),
              now.AsMicroSecondsFromEpoch()),

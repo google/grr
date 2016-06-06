@@ -11,6 +11,8 @@ from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
 
+from grr.lib.aff4_objects import stats_store as aff4_stats_store
+
 # TODO(user): Implement unit tests in addition to regression tests.
 
 
@@ -34,7 +36,7 @@ class ApiListStatsStoreMetricsMetadataHandlerRegressionTest(
 
     with utils.Stubber(stats, "STATS", stats_collector):
       with aff4.FACTORY.Create(None,
-                               "StatsStore",
+                               aff4_stats_store.StatsStore,
                                mode="w",
                                token=self.token) as stats_store:
         stats_store.WriteStats(process_id="worker_1", sync=True)
@@ -68,7 +70,7 @@ class ApiGetStatsStoreMetricHandlerRegressionTest(
           stats_collector.RecordEvent("sample_event", 0.42 + 0.5 * i)
 
           with aff4.FACTORY.Create(None,
-                                   "StatsStore",
+                                   aff4_stats_store.StatsStore,
                                    mode="w",
                                    token=self.token) as stats_store:
             stats_store.WriteStats(process_id="worker_1", sync=True)

@@ -44,7 +44,7 @@ class ContentView(renderers.Splitter2WayVertical):
 
     user_record = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(request.user),
-        aff4_type="GRRUser",
+        aff4_type=aff4_users.GRRUser,
         mode="r",
         token=request.token)
     canary_mode = user_record.Get(user_record.Schema.GUI_SETTINGS).canary_mode
@@ -82,7 +82,7 @@ class SetGlobalNotification(flow.GRRGlobalFlow):
   @flow.StateHandler()
   def Start(self):
     with aff4.FACTORY.Create(aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-                             aff4_type="GlobalNotificationStorage",
+                             aff4_type=aff4_users.GlobalNotificationStorage,
                              mode="rw",
                              token=self.token) as storage:
       storage.AddNotification(self.args)
@@ -100,7 +100,7 @@ class MarkGlobalNotificationAsShown(flow.GRRFlow):
   def Start(self):
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(self.token.username),
-        "GRRUser",
+        aff4_users.GRRUser,
         token=self.token,
         mode="rw") as user_record:
       user_record.MarkGlobalNotificationAsShown(self.args)
@@ -129,7 +129,7 @@ class GlobalNotificationBar(renderers.TemplateRenderer):
     try:
       user_record = aff4.FACTORY.Open(
           aff4.ROOT_URN.Add("users").Add(request.user),
-          "GRRUser",
+          aff4_users.GRRUser,
           token=request.token)
 
       self.notifications = user_record.GetPendingGlobalNotifications()
@@ -146,7 +146,7 @@ class GlobalNotificationBar(renderers.TemplateRenderer):
 
       user_record = aff4.FACTORY.Create(
           aff4.ROOT_URN.Add("users").Add(request.user),
-          "GRRUser",
+          aff4_users.GRRUser,
           mode="r",
           token=request.token)
 

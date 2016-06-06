@@ -19,6 +19,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
+from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.cron import system as cron_system
 from grr.lib.rdfvalues import client as rdf_client
 from grr.server import foreman as rdf_foreman
@@ -107,7 +108,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     for _ in xrange(iterations):
       try:
         fd = aff4.FACTORY.Open(user,
-                               "GRRUser",
+                               aff4_users.GRRUser,
                                mode="r",
                                ignore_cache=True,
                                token=self.token)

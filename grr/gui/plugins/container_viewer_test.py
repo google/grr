@@ -9,16 +9,18 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import test_lib
 
+from grr.lib.aff4_objects import collects
+
 
 class TestContainerViewer(test_lib.GRRSeleniumTest):
   """Test the collection viewer interface."""
 
   def CreateCollectionFixture(self):
     with aff4.FACTORY.Create("aff4:/C.0000000000000001/analysis/FindFlowTest",
-                             "AFF4Collection",
+                             collects.AFF4Collection,
                              token=self.token) as out_fd:
-      out_fd.CreateView(["stat.st_mtime", "type", "stat.st_size", "size", "Age"
-                        ])
+      out_fd.CreateView(["stat.st_mtime", "type", "stat.st_size", "size",
+                         "Age"])
 
       for urn in [
           "aff4:/C.0000000000000001/fs/os/c/bin C.0000000000000001/rbash",

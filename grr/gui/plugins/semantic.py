@@ -16,6 +16,7 @@ from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -500,7 +501,7 @@ class RDFValueCollectionRenderer(renderers.TableRenderer):
     try:
       aff4_path = self.state.get("aff4_path") or request.REQ.get("aff4_path")
       collection = aff4.FACTORY.Open(aff4_path,
-                                     aff4_type="RDFValueCollection",
+                                     aff4_type=collects.RDFValueCollection,
                                      token=request.token)
     except IOError:
       return
@@ -520,7 +521,7 @@ class RDFValueCollectionRenderer(renderers.TableRenderer):
       self.state["aff4_path"] = str(aff4_path)
       collection = aff4.FACTORY.Create(aff4_path,
                                        mode="r",
-                                       aff4_type="RDFValueCollection",
+                                       aff4_type=collects.RDFValueCollection,
                                        token=request.token)
 
       try:

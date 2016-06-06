@@ -47,7 +47,9 @@ class TestNotifications(test_lib.GRRSeleniumTest):
 
       # Generate temp file and notification
       file_urn = "aff4:/tmp/foo/bar"
-      with aff4.FACTORY.Create(file_urn, "AFF4MemoryStream", token=token) as fd:
+      with aff4.FACTORY.Create(file_urn,
+                               aff4.AFF4MemoryStream,
+                               token=token) as fd:
         fd.Write("hello")
 
       flow_obj.Notify("DownloadFile", file_urn, "Fake file download message.")
@@ -146,7 +148,7 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     file_urn = "aff4:/tmp/foo/bar"
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Create(file_urn,
-                               "AFF4MemoryStream",
+                               aff4.AFF4MemoryStream,
                                token=self.token) as fd:
         fd.Write("hello")
 

@@ -119,7 +119,7 @@ def Homepage(request):
   request.token = BuildToken(request, 60)
   user_record = aff4.FACTORY.Create(
       aff4.ROOT_URN.Add("users").Add(request.user),
-      aff4_type="GRRUser",
+      aff4_type=aff4_users.GRRUser,
       mode="r",
       token=request.token)
   canary_mode = user_record.Get(user_record.Schema.GUI_SETTINGS).canary_mode
@@ -283,7 +283,7 @@ def RenderHelp(request, path, document_root=None, content_type=None):
   try:
     user_record = aff4.FACTORY.Open(
         aff4.ROOT_URN.Add("users").Add(request.user),
-        "GRRUser",
+        aff4_users.GRRUser,
         token=BuildToken(request, 60))
 
     settings = user_record.Get(user_record.Schema.GUI_SETTINGS)

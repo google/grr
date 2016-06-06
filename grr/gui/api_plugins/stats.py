@@ -29,7 +29,7 @@ class ApiListStatsStoreMetricsMetadataHandler(
 
   def Render(self, args, token=None):
     stats_store = aff4.FACTORY.Create(None,
-                                      aff4_type="StatsStore",
+                                      aff4_type=stats_store_lib.StatsStore,
                                       mode="w",
                                       token=token)
 
@@ -55,7 +55,7 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
   def Render(self, args, token):
     stats_store = aff4.FACTORY.Create(
         stats_store_lib.StatsStore.DATA_STORE_ROOT,
-        aff4_type="StatsStore",
+        aff4_type=stats_store_lib.StatsStore,
         mode="rw",
         token=token)
 

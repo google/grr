@@ -17,6 +17,7 @@ from grr.gui import api_call_handler_utils
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib.aff4_objects import collects
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -30,7 +31,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
     path1 = "aff4:/C.0000000000000000/fs/os/foo/bar/hello1.txt"
     with aff4.FACTORY.Create(path1,
-                             aff4.AFF4MemoryStream.__name__,
+                             aff4.AFF4MemoryStream,
                              token=self.token) as fd:
       fd.Write("hello1")
       fd.Set(fd.Schema.HASH,
@@ -38,7 +39,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
     path2 = u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
     with aff4.FACTORY.Create(path2,
-                             aff4.AFF4MemoryStream.__name__,
+                             aff4.AFF4MemoryStream,
                              token=self.token) as fd:
       fd.Write("hello2")
       fd.Set(fd.Schema.HASH,
@@ -194,9 +195,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
   def testCorrectlyAccountsForFailedFiles(self):
     path2 = u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
-    with aff4.FACTORY.Create(path2,
-                             aff4.AFF4Image.__name__,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(path2, aff4.AFF4Image, token=self.token) as fd:
       fd.Write("hello2")
 
     # Delete a single chunk
@@ -252,7 +251,7 @@ class FilterAff4CollectionTest(test_lib.GRRBaseTest):
     super(FilterAff4CollectionTest, self).setUp()
 
     with aff4.FACTORY.Create("aff4:/tmp/foo/bar",
-                             "RDFValueCollection",
+                             collects.RDFValueCollection,
                              token=self.token) as fd:
       for i in range(10):
         fd.Add(rdf_paths.PathSpec(path="/var/os/tmp-%d" % i, pathtype="OS"))

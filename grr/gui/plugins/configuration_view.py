@@ -17,6 +17,8 @@ from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
 
+from grr.lib.aff4_objects import standard as aff4_standard
+
 
 class ConfigManager(renderers.AngularDirectiveRenderer):
   description = "Settings"
@@ -61,7 +63,7 @@ class ConfigurationTree(renderers.TreeRenderer):
     urn = aff4_root.Add(path)
     try:
       directory = aff4.FACTORY.Create(urn,
-                                      "VFSDirectory",
+                                      aff4_standard.VFSDirectory,
                                       mode="r",
                                       token=request.token)
       children = list(directory.ListChildren(limit=100000))

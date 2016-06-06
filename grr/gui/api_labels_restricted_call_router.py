@@ -49,7 +49,7 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
   def CheckClientLabels(self, client_id, token=None):
     has_label = False
     with aff4.FACTORY.Open(client_id,
-                           aff4_type=aff4_grr.VFSGRRClient.__name__,
+                           aff4_type=aff4_grr.VFSGRRClient,
                            token=token) as fd:
       for label in fd.GetLabels():
         if (label.name in self.labels_whitelist and

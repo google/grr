@@ -7,6 +7,7 @@ from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import parsers
+from grr.lib.aff4_objects import collects
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
@@ -111,7 +112,7 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
 
     with aff4.FACTORY.Create("aff4:/artifact_store",
                              mode="r",
-                             aff4_type="RDFValueCollection",
+                             aff4_type=collects.RDFValueCollection,
                              token=token) as store:
       all_artifacts = list(store)
 
@@ -136,7 +137,7 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
 
     with aff4.FACTORY.Create("aff4:/artifact_store",
                              mode="w",
-                             aff4_type="RDFValueCollection",
+                             aff4_type=collects.RDFValueCollection,
                              token=token) as store:
       for artifact_value in filtered_artifacts:
         store.Add(artifact_value)

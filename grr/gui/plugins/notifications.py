@@ -92,7 +92,7 @@ class UpdateSettingsFlow(flow.GRRFlow):
   def Start(self):
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type="GRRUser",
+        aff4_type=aff4_users.GRRUser,
         mode="w",
         token=self.token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS(self.args))
@@ -116,7 +116,7 @@ Settings were successfully updated. Reloading...
     try:
       user_record = aff4.FACTORY.Open(
           aff4.ROOT_URN.Add("users").Add(request.user),
-          "GRRUser",
+          aff4_users.GRRUser,
           token=request.token)
 
       return user_record.Get(user_record.Schema.GUI_SETTINGS)
@@ -156,7 +156,7 @@ class ResetUserNotifications(flow.GRRFlow):
   def Start(self):
     user_fd = aff4.FACTORY.Open(
         aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type="GRRUser",
+        aff4_type=aff4_users.GRRUser,
         mode="rw",
         token=self.token)
     user_fd.ShowNotifications(reset=True)
@@ -192,7 +192,7 @@ class ViewNotifications(renderers.TableRenderer):
     try:
       user_fd = aff4.FACTORY.Open(
           aff4.ROOT_URN.Add("users").Add(request.user),
-          aff4_type="GRRUser",
+          aff4_type=aff4_users.GRRUser,
           token=request.token)
     except IOError:
       return

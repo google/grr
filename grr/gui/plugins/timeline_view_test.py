@@ -12,6 +12,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import timelines
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -28,7 +29,7 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
 
     token = access_control.ACLToken(username="test", reason="fixture")
 
-    fd = aff4.FACTORY.Create(client_id, "VFSGRRClient", token=token)
+    fd = aff4.FACTORY.Create(client_id, aff4_grr.VFSGRRClient, token=token)
     cert = self.ClientCertFromPrivateKey(config_lib.CONFIG[
         "Client.private_key"])
     client_cert = rdf_crypto.RDFX509Cert(cert.as_pem())

@@ -163,13 +163,13 @@ class ApiCreateUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
   def testCreatesAnApprovalWithGivenAttributes(self):
     with self.assertRaises(IOError):
       aff4.FACTORY.Open(self.approval_urn,
-                        aff4_type=aff4_security.ClientApproval.__name__,
+                        aff4_type=aff4_security.ClientApproval,
                         token=self.token)
 
     self.handler.Handle(self.args, token=self.token)
 
     fd = aff4.FACTORY.Open(self.approval_urn,
-                           aff4_type=aff4_security.ClientApproval.__name__,
+                           aff4_type=aff4_security.ClientApproval,
                            age=aff4.ALL_TIMES,
                            token=self.token)
     self.assertEqual(fd.Get(fd.Schema.SUBJECT), self.client_id)
@@ -186,7 +186,7 @@ class ApiCreateUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
     self.handler.Handle(self.args, token=self.token)
 
     fd = aff4.FACTORY.Open(self.approval_urn,
-                           aff4_type=aff4_security.ClientApproval.__name__,
+                           aff4_type=aff4_security.ClientApproval,
                            age=aff4.ALL_TIMES,
                            token=self.token)
     self.assertEqual(fd.GetNonExpiredApprovers(), [self.token.username])
@@ -201,7 +201,7 @@ class ApiCreateUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
     self.handler.Handle(self.args, token=self.token)
 
     fd = aff4.FACTORY.Open("aff4:/users/approver",
-                           aff4_type=aff4_users.GRRUser.__name__,
+                           aff4_type=aff4_users.GRRUser,
                            token=self.token)
     notifications = fd.ShowNotifications(reset=False)
 
@@ -517,7 +517,7 @@ class ApiGetGrrUserHandlerTest(test_lib.GRRBaseTest):
   def testRendersSettingsForUserCorrespondingToToken(self):
     with aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add("foo"),
-        aff4_type=aff4_users.GRRUser.__name__,
+        aff4_type=aff4_users.GRRUser,
         mode="w",
         token=self.token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS,
@@ -553,7 +553,7 @@ class ApiGetGrrUserHandlerRegresstionTest(
     with test_lib.FakeTime(42):
       with aff4.FACTORY.Create(
           aff4.ROOT_URN.Add("users").Add(self.token.username),
-          aff4_type=aff4_users.GRRUser.__name__,
+          aff4_type=aff4_users.GRRUser,
           mode="w",
           token=self.token) as user_fd:
         user_fd.Set(user_fd.Schema.GUI_SETTINGS,
@@ -681,7 +681,7 @@ class ApiDeletePendingUserNotificationHandlerTest(test_lib.GRRBaseTest):
   def _GetNotifications(self):
     user_record = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type="GRRUser",
+        aff4_type=aff4_users.GRRUser,
         mode="r",
         token=self.token)
 
@@ -792,7 +792,7 @@ class ApiListPendingGlobalNotificationsHandlerRegressionTest(
 
   def Run(self):
     with aff4.FACTORY.Create(aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-                             aff4_type="GlobalNotificationStorage",
+                             aff4_type=aff4_users.GlobalNotificationStorage,
                              mode="rw",
                              token=self.token) as storage:
       storage.AddNotification(aff4_users.GlobalNotification(
@@ -830,7 +830,7 @@ class ApiDeletePendingGlobalNotificationHandlerTest(test_lib.GRRBaseTest):
     self.handler = user_plugin.ApiDeletePendingGlobalNotificationHandler()
 
     with aff4.FACTORY.Create(aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-                             aff4_type="GlobalNotificationStorage",
+                             aff4_type=aff4_users.GlobalNotificationStorage,
                              mode="rw",
                              token=self.token) as storage:
       storage.AddNotification(aff4_users.GlobalNotification(
@@ -846,7 +846,7 @@ class ApiDeletePendingGlobalNotificationHandlerTest(test_lib.GRRBaseTest):
   def _GetGlobalNotifications(self):
     user_record = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type="GRRUser",
+        aff4_type=aff4_users.GRRUser,
         mode="r",
         token=self.token)
 

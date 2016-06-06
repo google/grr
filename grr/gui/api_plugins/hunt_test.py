@@ -508,7 +508,7 @@ class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,
     original_result = original_results[0]
 
     with aff4.FACTORY.Create(original_result.payload.stat_entry.aff4path,
-                             aff4_type=aff4.AFF4Volume.__name__,
+                             aff4_type=aff4.AFF4Volume,
                              token=self.token) as _:
       pass
 
@@ -527,7 +527,7 @@ class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,
     aff4.FACTORY.Delete(original_result.payload.stat_entry.aff4path,
                         token=self.token)
     with aff4.FACTORY.Create(original_result.payload.stat_entry.aff4path,
-                             aff4_type=aff4_grr.VFSFile.__name__,
+                             aff4_type=aff4_grr.VFSFile,
                              token=self.token) as _:
       pass
 

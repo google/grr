@@ -96,7 +96,7 @@ class FlowTree(renderers.TreeRenderer):
     try:
       user_record = aff4.FACTORY.Open(
           aff4.ROOT_URN.Add("users").Add(self.user),
-          "GRRUser",
+          aff4_users.GRRUser,
           token=request.token)
 
       user_preferences = user_record.Get(user_record.Schema.GUI_SETTINGS)

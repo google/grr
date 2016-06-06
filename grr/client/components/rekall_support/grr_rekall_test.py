@@ -17,6 +17,8 @@ from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import test_lib
 
+from grr.lib.aff4_objects import aff4_grr
+
 # This test runs flows from these modules. pylint: disable=unused-import
 from grr.lib.flows.general import memory
 from grr.lib.flows.general import registry
@@ -42,7 +44,7 @@ class RekallTestSuite(test_lib.EmptyActionTest):
 
   def CreateClient(self):
     client = aff4.FACTORY.Create(self.client_id,
-                                 "VFSGRRClient",
+                                 aff4_grr.VFSGRRClient,
                                  token=self.token)
     client.Set(client.Schema.ARCH("AMD64"))
     client.Set(client.Schema.OS_RELEASE("7"))

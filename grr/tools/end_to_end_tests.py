@@ -15,6 +15,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import startup
+from grr.lib.aff4_objects import users as aff4_users
 
 flags.DEFINE_bool("local_client", True,
                   "The target client(s) are running locally.")
@@ -47,7 +48,7 @@ def RunEndToEndTests():
 
   # We need this for the launchbinary test
   with aff4.FACTORY.Create("aff4:/users/GRREndToEndTest",
-                           "GRRUser",
+                           aff4_users.GRRUser,
                            mode="rw",
                            token=token) as test_user:
     test_user.AddLabels("admin")

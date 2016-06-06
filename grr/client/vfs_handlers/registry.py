@@ -248,6 +248,7 @@ class RegistryFile(vfs.VFSHandler):
   value = None
   value_type = _winreg.REG_NONE
   hive = None
+  hive_name = None
   last_modified = 0
   is_directory = True
   fd = None
@@ -288,10 +289,10 @@ class RegistryFile(vfs.VFSHandler):
     path_components = filter(None, self.pathspec.last.path.split("/"))
     try:
       # The first component MUST be a hive
-      self.hive = getattr(_winreg, path_components[0])
-      self.hive = KeyHandle(self.hive)
+      self.hive_name = path_components[0]
+      self.hive = KeyHandle(getattr(_winreg, self.hive_name))
     except AttributeError:
-      raise IOError("Unknown hive name %s" % path_components[0])
+      raise IOError("Unknown hive name %s" % self.hive_name)
     except IndexError:
       # A hive is not specified, we just list all the hives.
       return
@@ -351,6 +352,65 @@ class RegistryFile(vfs.VFSHandler):
       response.registry_data = rdf_protodict.DataBlob().SetValue(value)
     return response
 
+  def _Walk(self, depth=0, hive=None, hive_name=None, top=""):
+    if depth < 0:
+      return
+
+    if hive is None:
+      hives = sorted([(name, KeyHandle(getattr(_winreg, name)))
+                      for name in dir(_winreg) if name.startswith("HKEY_")])
+
+      yield "", [name for name, _ in hives], []
+
+      for new_hive_name, new_hive in hives:
+        for tup in self._Walk(depth - 1, new_hive, new_hive_name):
+          yield tup
+    else:
+      keys, value_names = [], []
+
+      try:
+        with OpenKey(hive, top[1:]) as key:
+          (number_of_keys, number_of_values,
+           unused_last_modified) = QueryInfoKey(key)
+
+          # First keys
+          for i in xrange(number_of_keys):
+            try:
+              keys.append(EnumKey(key, i))
+            except exceptions.WindowsError:
+              pass
+
+          keys.sort()
+
+          # Now Values
+          for i in xrange(number_of_values):
+            try:
+              name, unused_value, unused_value_type = EnumValue(key, i)
+              value_names.append(name)
+            except exceptions.WindowsError:
+              pass
+
+          value_names.sort()
+
+      except exceptions.WindowsError:
+        pass
+
+      yield "%s%s" % (hive_name, top), keys, value_names
+
+      for key in keys:
+        for tup in self._Walk(depth - 1, hive, hive_name,
+                              r"%s\%s" % (top, key)):
+          yield tup
+
+  def RecursiveListNames(self, depth=0):
+    if not self.IsDirectory():
+      return iter(())
+
+    if self.hive is None:
+      return self._Walk(depth)
+
+    return self._Walk(depth, self.hive, self.hive_name, self.local_path)
+
   def ListNames(self):
     """List the names of all keys and values."""
     if not self.IsDirectory():
@@ -371,14 +431,14 @@ class RegistryFile(vfs.VFSHandler):
 
         self.last_modified = self.last_modified / 10000000 - WIN_UNIX_DIFF_MSECS
         # First keys
-        for i in range(self.number_of_keys):
+        for i in xrange(self.number_of_keys):
           try:
             yield EnumKey(key, i)
           except exceptions.WindowsError:
             pass
 
         # Now Values
-        for i in range(self.number_of_values):
+        for i in xrange(self.number_of_values):
           try:
             name, unused_value, unused_value_type = EnumValue(key, i)
 
@@ -413,7 +473,7 @@ class RegistryFile(vfs.VFSHandler):
 
         self.last_modified = self.last_modified / 10000000 - WIN_UNIX_DIFF_MSECS
         # First keys - These will look like directories.
-        for i in range(self.number_of_keys):
+        for i in xrange(self.number_of_keys):
           try:
             name = EnumKey(key, i)
             key_name = utils.JoinPath(self.local_path, name)
@@ -434,7 +494,7 @@ class RegistryFile(vfs.VFSHandler):
             pass
 
         # Now Values - These will look like files.
-        for i in range(self.number_of_values):
+        for i in xrange(self.number_of_values):
           try:
             name, value, value_type = EnumValue(key, i)
             response = self._Stat(name, value, value_type)

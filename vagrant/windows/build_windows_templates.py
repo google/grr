@@ -28,16 +28,26 @@ parser.add_argument("--cloud_storage_output_bucket",
                     help="If defined, build products will be copied to this "
                     "cloud storage bucket.")
 
+parser.add_argument(
+    "--gsutil",
+    default=(r"C:\Program Files (x86)\Google\Cloud "
+             r"SDK\google-cloud-sdk\bin\gsutil.cmd"),
+    help="gsutil binary. The default is the SDK install location since that's "
+    "likely the one the user has authorized their creds for")
+
 args = parser.parse_args()
 
 
 class WindowsTemplateBuilder(object):
   """Build windows templates and components."""
 
-  PROTOC = r"C:\grr_deps\protoc\protoc.exe"
-  PYTHON64 = r"C:\grr_deps\Python27\python.exe"
-  VIRTUALENV_BIN64 = r"C:\grr_deps\Python27\Scripts\virtualenv.exe"
-  VIRTUALENV_BIN32 = r"C:\grr_deps\Python27_32\Scripts\virtualenv.exe"
+  # Python paths chosen to match appveyor:
+  # http://www.appveyor.com/docs/installed-software#python
+  PYTHON_DIR_64 = r"C:\Python27-x64"
+  PYTHON_DIR_32 = r"C:\Python27"
+  PYTHON_BIN64 = os.path.join(PYTHON_DIR_64, "python.exe")
+  VIRTUALENV_BIN64 = os.path.join(PYTHON_DIR_64, r"Scripts\virtualenv.exe")
+  VIRTUALENV_BIN32 = os.path.join(PYTHON_DIR_32, r"Scripts\virtualenv.exe")
   BUILDDIR = r"C:\grrbuild"
   VIRTUALENV64 = os.path.join(BUILDDIR, r"PYTHON_64")
   VIRTUALENV32 = os.path.join(BUILDDIR, r"PYTHON_32")
@@ -50,6 +60,7 @@ class WindowsTemplateBuilder(object):
   PIP64 = os.path.join(VIRTUALENV64, r"Scripts\pip.exe")
   PIP32 = os.path.join(VIRTUALENV32, r"Scripts\pip.exe")
 
+  PROTOC = r"C:\grr_deps\protoc\protoc.exe"
   GIT = r"C:\Program Files\Git\bin\git.exe"
 
   def Clean(self):
@@ -77,7 +88,7 @@ class WindowsTemplateBuilder(object):
 
   def MakeCoreSdist(self):
     os.chdir(args.grr_src)
-    subprocess.check_call([self.PYTHON64, "setup.py", "sdist",
+    subprocess.check_call([self.PYTHON_BIN64, "setup.py", "sdist",
                            "--dist-dir=%s" % self.BUILDDIR, "--no-make-docs",
                            "--no-sync-artifacts"])
     return glob.glob(os.path.join(self.BUILDDIR,
@@ -85,20 +96,20 @@ class WindowsTemplateBuilder(object):
 
   def MakeClientSdist(self):
     os.chdir(os.path.join(args.grr_src, "grr/config/grr-response-client/"))
-    subprocess.check_call([self.PYTHON64, "setup.py", "sdist",
+    subprocess.check_call([self.PYTHON_BIN64, "setup.py", "sdist",
                            "--dist-dir=%s" % self.BUILDDIR])
     return glob.glob(os.path.join(self.BUILDDIR,
                                   "grr-response-client-*.zip")).pop()
 
   def CopySdistsFromCloudStorage(self):
     """Use gsutil to copy sdists from cloud storage."""
-    subprocess.check_call(["gsutil", "cp",
+    subprocess.check_call([args.gsutil, "cp",
                            "gs://%s/grr-response-core-*.tar.gz" %
                            args.cloud_storage_sdist_bucket, self.BUILDDIR])
     core = glob.glob(os.path.join(self.BUILDDIR,
                                   "grr-response-core-*.zip")).pop()
 
-    subprocess.check_call(["gsutil", "cp",
+    subprocess.check_call([args.gsutil, "cp",
                            "gs://%s/grr-response-client-*.tar.gz" %
                            args.cloud_storage_sdist_bucket, self.BUILDDIR])
     client = glob.glob(os.path.join(self.BUILDDIR,
@@ -129,9 +140,10 @@ class WindowsTemplateBuilder(object):
                            args.output_dir])
 
   def CopyResultsToCloudStorage(self):
-    subprocess.check_call(["gsutil", "-m", "cp", os.path.join(args.output_dir,
-                                                              r"\*"),
-                           "gs://%s/" % args.cloud_storage_output_bucket])
+    paths = glob.glob("%s\\*" % args.output_dir)
+    subprocess.check_call([args.gsutil, "-m", "cp"] + paths + [
+        "gs://%s/" % args.cloud_storage_output_bucket
+    ])
 
   def Build(self):
     """Build templates and components."""

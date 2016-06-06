@@ -135,6 +135,7 @@ class NannyThread(threading.Thread):
     self.running = True
     self.daemon = True
     self.proc = psutil.Process()
+    self.memory_quota = config_lib.CONFIG["Client.rss_max_hard"] * 1024 * 1024
 
   def run(self):
     self.WriteNannyStatus("Nanny running.")
@@ -176,7 +177,7 @@ class NannyThread(threading.Thread):
     for _ in xrange(int(seconds)):
       time.sleep(1)
       # Check that we do not exceeded our memory allowance.
-      if self.GetMemoryUsage() > config_lib.CONFIG["Client.rss_max_hard"]:
+      if self.GetMemoryUsage() > self.memory_quota:
         raise MemoryError("Exceeded memory allowance.")
 
   def Stop(self):

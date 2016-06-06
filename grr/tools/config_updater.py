@@ -139,13 +139,15 @@ parser_set_var.add_argument("val", help="Value to set.")
 def AddUser(username, password=None, labels=None, token=None):
   """Implementation of the add_user command."""
   try:
-    if aff4.FACTORY.Open("aff4:/users/%s" % username, "GRRUser", token=token):
+    if aff4.FACTORY.Open("aff4:/users/%s" % username,
+                         users.GRRUser,
+                         token=token):
       raise UserError("Cannot add user %s: User already exists." % username)
   except aff4.InstantiationError:
     pass
 
   fd = aff4.FACTORY.Create("aff4:/users/%s" % username,
-                           "GRRUser",
+                           users.GRRUser,
                            mode="rw",
                            token=token)
   # Note this accepts blank passwords as valid.
@@ -170,7 +172,7 @@ def UpdateUser(username,
   """Implementation of the update_user command."""
   try:
     fd = aff4.FACTORY.Open("aff4:/users/%s" % username,
-                           "GRRUser",
+                           users.GRRUser,
                            mode="rw",
                            token=token)
   except aff4.InstantiationError:
@@ -237,7 +239,7 @@ parser_update_user.add_argument("username", help="Username to update.")
 
 def DeleteUser(username, token=None):
   try:
-    aff4.FACTORY.Open("aff4:/users/%s" % username, "GRRUser", token=token)
+    aff4.FACTORY.Open("aff4:/users/%s" % username, users.GRRUser, token=token)
   except aff4.InstantiationError:
     print "User %s not found." % username
     return

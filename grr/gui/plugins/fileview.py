@@ -19,8 +19,11 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import aff4_rekall
 from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import standard as aff4_standard
+from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import export
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -518,7 +521,7 @@ class AbstractFileTable(renderers.TableRenderer):
 
       # Open the directory as a directory.
       directory_node = aff4.FACTORY.Open(
-          urn, token=request.token).Upgrade("VFSDirectory")
+          urn, token=request.token).Upgrade(aff4_standard.VFSDirectory)
       if not directory_node:
         raise IOError()
 
@@ -666,8 +669,8 @@ class FileSystemTree(renderers.TreeRenderer):
     urn = aff4_root.Add(path)
     try:
       # Open the client
-      directory = aff4.FACTORY.Open(urn,
-                                    token=request.token).Upgrade("VFSDirectory")
+      directory = aff4.FACTORY.Open(
+          urn, token=request.token).Upgrade(aff4_standard.VFSDirectory)
 
       children = [ch for ch in directory.OpenChildren(limit=100000)
                   if "Container" in ch.behaviours]
@@ -913,7 +916,7 @@ class VirtualFileSystemView(renderers.Renderer):
   def Layout(self, request, response):
     user_record = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(request.user),
-        aff4_type="GRRUser",
+        aff4_type=aff4_users.GRRUser,
         mode="r",
         token=request.token)
 
@@ -1136,7 +1139,7 @@ Success: File uploaded to {{this.dest_path|escape}}.
   def GetFilePath(self, unused_request):
     """Get the path to write the file to and aff4 type as a tuple."""
     path = rdfvalue.RDFURN(self.storage_path).Add(self.uploaded_file.name)
-    return path, "VFSFile"
+    return path, aff4_grr.VFSFile
 
   def ValidateFile(self):
     """Check if a file matches what we expected to be uploaded.
@@ -1434,7 +1437,7 @@ dump client info in YAML format.</em></p>
       collection = collection_urn_or_obj
     else:
       collection = aff4.FACTORY.Create(collection_urn_or_obj,
-                                       "RDFValueCollection",
+                                       collects.RDFValueCollection,
                                        mode="r",
                                        token=token)
 

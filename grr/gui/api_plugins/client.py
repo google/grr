@@ -97,7 +97,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
     keywords = shlex.split(args.query)
 
     index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                aff4_type="ClientIndex",
+                                aff4_type=client_index.ClientIndex,
                                 mode="rw",
                                 token=token)
     result_urns = sorted(
@@ -143,7 +143,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
     keywords = shlex.split(args.query)
 
     index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                aff4_type="ClientIndex",
+                                aff4_type=client_index.ClientIndex,
                                 mode="rw",
                                 token=token)
     all_urns = set()
@@ -153,7 +153,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
 
     all_objs = aff4.FACTORY.MultiOpen(
         sorted(all_urns, key=str),
-        aff4_type=aff4_grr.VFSGRRClient.__name__,
+        aff4_type=aff4_grr.VFSGRRClient,
         token=token)
 
     api_clients = []
@@ -193,7 +193,7 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
       age = rdfvalue.RDFDatetime(args.timestamp)
 
     client = aff4.FACTORY.Open(args.client_id,
-                               aff4_type=aff4_grr.VFSGRRClient.__name__,
+                               aff4_type=aff4_grr.VFSGRRClient,
                                age=age,
                                token=token)
 
@@ -305,7 +305,7 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     client = aff4.FACTORY.Open(args.client_id,
-                               aff4_type=aff4_grr.VFSGRRClient.__name__,
+                               aff4_type=aff4_grr.VFSGRRClient,
                                token=token)
 
     ip = client.Get(client.Schema.CLIENT_IP)
@@ -326,20 +326,20 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   privileged = True
 
   def Handle(self, args, token=None):
-    audit_description = ",".join([token.username + u"." + utils.SmartUnicode(
-        name) for name in args.labels])
+    audit_description = ",".join(
+        [token.username + u"." + utils.SmartUnicode(name)
+         for name in args.labels])
     audit_events = []
 
     try:
       index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                  aff4_type="ClientIndex",
+                                  aff4_type=client_index.ClientIndex,
                                   mode="rw",
                                   token=token)
-      client_objs = aff4.FACTORY.MultiOpen(
-          args.client_ids,
-          aff4_type=aff4_grr.VFSGRRClient.__name__,
-          mode="rw",
-          token=token)
+      client_objs = aff4.FACTORY.MultiOpen(args.client_ids,
+                                           aff4_type=aff4_grr.VFSGRRClient,
+                                           mode="rw",
+                                           token=token)
       for client_obj in client_objs:
         client_obj.AddLabels(*args.labels)
         index.AddClient(client_obj)
@@ -352,9 +352,8 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
             client=client_obj.urn,
             description=audit_description))
     finally:
-      flow.Events.PublishMultipleEvents(
-          {audit.AUDIT_EVENT: audit_events},
-          token=token)
+      flow.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
+                                        token=token)
 
 
 class ApiRemoveClientsLabelsArgs(rdf_structs.RDFProtoStruct):
@@ -380,20 +379,20 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
       client.RemoveLabels(*labels_names, owner=owner)
 
   def Handle(self, args, token=None):
-    audit_description = ",".join([token.username + u"." + utils.SmartUnicode(
-        name) for name in args.labels])
+    audit_description = ",".join(
+        [token.username + u"." + utils.SmartUnicode(name)
+         for name in args.labels])
     audit_events = []
 
     try:
       index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                  aff4_type="ClientIndex",
+                                  aff4_type=client_index.ClientIndex,
                                   mode="rw",
                                   token=token)
-      client_objs = aff4.FACTORY.MultiOpen(
-          args.client_ids,
-          aff4_type=aff4_grr.VFSGRRClient.__name__,
-          mode="rw",
-          token=token)
+      client_objs = aff4.FACTORY.MultiOpen(args.client_ids,
+                                           aff4_type=aff4_grr.VFSGRRClient,
+                                           mode="rw",
+                                           token=token)
       for client_obj in client_objs:
         index.RemoveClientLabels(client_obj)
         self.RemoveClientLabels(client_obj, args.labels)
@@ -407,9 +406,8 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
             client=client_obj.urn,
             description=audit_description))
     finally:
-      flow.Events.PublishMultipleEvents(
-          {audit.AUDIT_EVENT: audit_events},
-          token=token)
+      flow.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
+                                        token=token)
 
 
 class ApiListClientsLabelsResult(rdf_structs.RDFProtoStruct):
@@ -424,7 +422,7 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     labels_index = aff4.FACTORY.Create(standard.LabelSet.CLIENT_LABELS_URN,
-                                       "LabelSet",
+                                       standard.LabelSet,
                                        mode="r",
                                        token=token)
     label_objects = []

@@ -241,8 +241,8 @@ evolves over time.
         days = sample.x_value / 1000000 / 24 / 60 / 60
         if days in self.active_days_display:
           label = "%s day active" % days
-          self.categories.setdefault(
-              label, []).append((graph_series.age / 1000, sample.y_value))
+          self.categories.setdefault(label, []).append(
+              (graph_series.age / 1000, sample.y_value))
 
   def Layout(self, request, response):
     """Show how the last active breakdown evolves over time."""
@@ -284,9 +284,8 @@ on the GRR version.
       # Find the correct graph and merge the OS categories together
       if "%s day" % self.active_day in graph.title:
         for sample in graph:
-          self.categories.setdefault(
-              sample.label,
-              []).append((graph_series.age / 1000, sample.y_value))
+          self.categories.setdefault(sample.label, []).append(
+              (graph_series.age / 1000, sample.y_value))
         break
 
 
@@ -346,7 +345,7 @@ class AFF4ClientStats(Report):
   """A renderer for client stats graphs."""
 
   # This renderer will render ClientStats AFF4 objects.
-  aff4_type = "ClientStats"
+  aff4_type = aff4_stats.ClientStats
 
   layout_template = renderers.Template("""
 <div class="padded">
@@ -459,8 +458,8 @@ class AFF4ClientStats(Report):
                       click_text="Network bytes sent until %date: %value")
     series = dict()
     for stat_entry in stats:
-      series[
-          int(stat_entry.age / 1e3)] = int(stat_entry.bytes_sent / 1024 / 1024)
+      series[int(stat_entry.age / 1e3)] = int(stat_entry.bytes_sent / 1024 /
+                                              1024)
     graph.AddSeries(series, "Network Bytes Sent in MB", max_samples)
     self.graphs.append(graph)
 
@@ -502,8 +501,8 @@ class CustomXAxisChart(Report):
       if self.graph:
         for point in self.graph.data:
           self.data.append([[point.x_value, point.y_value]])
-          self.xaxis_ticks.append([point.x_value, self.FormatLabel(
-              point.x_value)])
+          self.xaxis_ticks.append([point.x_value,
+                                   self.FormatLabel(point.x_value)])
 
     except (IOError, TypeError):
       pass

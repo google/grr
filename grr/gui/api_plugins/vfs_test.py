@@ -14,6 +14,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
@@ -35,7 +36,7 @@ class VfsTestMixin(object):
       token = access_control.ACLToken(username="test")
       fd = aff4.FACTORY.Create(
           client_id.Add(file_path),
-          "AFF4MemoryStream",
+          aff4.AFF4MemoryStream,
           mode="w",
           token=token)
       fd.Write("Hello World")
@@ -44,7 +45,7 @@ class VfsTestMixin(object):
     with test_lib.FakeTime(self.time_2):
       fd = aff4.FACTORY.Create(
           client_id.Add(file_path),
-          "AFF4MemoryStream",
+          aff4.AFF4MemoryStream,
           mode="w",
           token=token)
       fd.Write("Goodbye World")
@@ -353,7 +354,7 @@ class ApiGetFileBlobHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
     # Create a file that requires several chunks to load.
     with aff4.FACTORY.Create(
         self.client_id.Add(huge_file_path),
-        "AFF4MemoryStream",
+        aff4.AFF4MemoryStream,
         mode="w",
         token=self.token) as fd:
       for char in chars:
@@ -521,7 +522,7 @@ class ApiCreateVfsRefreshOperationHandlerTest(test_lib.GRRBaseTest):
     # Get pending notifications and check the newest one.
     user_record = aff4.FACTORY.Open(
         aff4.ROOT_URN.Add("users").Add(self.token.username),
-        aff4_type="GRRUser",
+        aff4_type=aff4_users.GRRUser,
         mode="r",
         token=self.token)
 
@@ -585,7 +586,7 @@ class GetVfsRefreshOperationStateHandlerTest(test_lib.GRRBaseTest,
 
     # Terminate flow.
     with aff4.FACTORY.Open(self.flow_urn,
-                           aff4_type="GRRFlow",
+                           aff4_type=flow.GRRFlow,
                            mode="rw",
                            token=self.token) as flow_obj:
       flow_obj.GetRunner().Error("Fake error")
@@ -636,7 +637,7 @@ class GetVfsRefreshOperationStateHandlerRegressionTest(
     self.finished_flow_urn = self.CreateRecursiveListFlow(self.client_id,
                                                           self.token)
     with aff4.FACTORY.Open(self.finished_flow_urn,
-                           aff4_type="GRRFlow",
+                           aff4_type=flow.GRRFlow,
                            mode="rw",
                            token=self.token) as flow_obj:
       flow_obj.GetRunner().Error("Fake error")
@@ -759,7 +760,7 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(test_lib.GRRBaseTest,
 
     # Terminate flow.
     with aff4.FACTORY.Open(self.flow_urn,
-                           aff4_type="GRRFlow",
+                           aff4_type=flow.GRRFlow,
                            mode="rw",
                            token=self.token) as flow_obj:
       flow_obj.GetRunner().Error("Fake error")
@@ -814,7 +815,7 @@ class GetVfsFileContentUpdateStateHandlerRegressionTest(
         file_path="fs/os/c/bin/bash",
         token=self.token)
     with aff4.FACTORY.Open(self.finished_flow_urn,
-                           aff4_type="GRRFlow",
+                           aff4_type=flow.GRRFlow,
                            mode="rw",
                            token=self.token) as flow_obj:
       flow_obj.GetRunner().Error("Fake error")

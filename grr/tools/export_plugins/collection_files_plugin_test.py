@@ -12,6 +12,10 @@ from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import standard as aff4_standard
+
 from grr.tools.export_plugins import collection_files_plugin
 
 
@@ -29,12 +33,12 @@ class CollectionFilesExportPluginTest(test_lib.GRRBaseTest):
 
   def CreateDir(self, dirpath):
     path = self.out.Add(dirpath)
-    fd = aff4.FACTORY.Create(path, "VFSDirectory", token=self.token)
+    fd = aff4.FACTORY.Create(path, aff4_standard.VFSDirectory, token=self.token)
     fd.Close()
 
   def CreateFile(self, filepath):
     path = self.out.Add(filepath)
-    fd = aff4.FACTORY.Create(path, "VFSMemoryFile", token=self.token)
+    fd = aff4.FACTORY.Create(path, aff4_grr.VFSMemoryFile, token=self.token)
     fd.Write("some data")
     fd.Close()
 
@@ -42,7 +46,7 @@ class CollectionFilesExportPluginTest(test_lib.GRRBaseTest):
 
   def CreateCollection(self, collection_path, paths):
     with aff4.FACTORY.Create(collection_path,
-                             "RDFValueCollection",
+                             collects.RDFValueCollection,
                              token=self.token) as fd:
       for p in paths:
         fd.Add(rdfvalue.RDFURN(p))
@@ -67,8 +71,8 @@ class CollectionFilesExportPluginTest(test_lib.GRRBaseTest):
       expected_outdir = os.path.join(tmpdir, self.out.Path()[1:])
       self.assertTrue("testfile1" in os.listdir(expected_outdir))
       self.assertTrue("some_dir" in os.listdir(expected_outdir))
-      self.assertTrue("testfile2" in os.listdir(os.path.join(expected_outdir,
-                                                             "some_dir")))
+      self.assertTrue(
+          "testfile2" in os.listdir(os.path.join(expected_outdir, "some_dir")))
 
 
 def main(argv):

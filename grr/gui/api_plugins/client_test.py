@@ -181,7 +181,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTest(test_lib.GRRBaseTest):
     self.client_ids = self.SetupClients(4)
 
     index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                aff4_type="ClientIndex",
+                                aff4_type=client_index.ClientIndex,
                                 mode="rw",
                                 token=self.token)
 
