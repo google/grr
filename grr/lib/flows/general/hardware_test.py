@@ -52,11 +52,12 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
     # Create a fake component so we can launch the LoadComponent flow.
-    fd = aff4.FACTORY.Create("aff4:/config/components/grr-chipsec_0.1",
-                             collects.ComponentObject,
-                             mode="w",
-                             token=self.token)
-    fd.Set(fd.Schema.COMPONENT(name="grr-chipsec", version="0.1"))
+    fd = aff4.FACTORY.Create(
+        "aff4:/config/components/grr-chipsec-component_1.2.2",
+        collects.ComponentObject,
+        mode="w",
+        token=self.token)
+    fd.Set(fd.Schema.COMPONENT(name="grr-chipsec-component", version="1.2.2"))
     fd.Close()
 
   def tearDown(self):

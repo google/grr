@@ -27,8 +27,8 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
   @flow.StateHandler(next_state="ComponentLoaded")
   def Start(self):
     """Load grr_chipsec component on the client."""
-    self.LoadComponentOnClient(name="grr-chipsec",
-                               version="0.1",
+    self.LoadComponentOnClient(name="grr-chipsec-component",
+                               version="1.2.2",
                                next_state="CollectDebugInfo")
 
   @flow.StateHandler(next_state=["DumpImage"])

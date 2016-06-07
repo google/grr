@@ -72,5 +72,6 @@ case $EUID in
     install_python
     install_python_deps
     xcrun_hack
+    echo Install completed sucessfully.
     ;;
 esac

@@ -6,35 +6,28 @@ import platform
 
 from setuptools import setup
 
-setup_args = dict(
-    name="grr-chipsec",
-    version="0.1",
-    description="Chipsec GRR Integration module.",
-    license="GPL",
-    url="https://github.com/chipsec/chipsec/",
-    author="Thiebaud Weksteen",
-    author_email="tweksteen@gmail.com",
-    classifiers=[
-        "Development Status :: 4 - Beta",
-        "Environment :: Console",
-        "Operating System :: OS Independent",
-        "Programming Language :: Python",
-    ],
-    py_modules=[
-        "grr_chipsec", "chipsec_types", "chipsec_pb2"
-    ],
-    install_requires=[
-        "chipsec"
-    ],
-    dependency_links=[
-        # Chipsec tarball
-        # branch userland_linux_with_cleanup
-        # comment out is_frozen in get_main_dir
-        # then: python setup.py sdist
-        ("http://www.googledrive.com/host/"
-         "0B1syiKu7qItDYU13X25qQ2U4LU0/chipsec-1.2.2.tar.gz"),
-    ],
-    zip_safe=False)
+# Note this component was renamed from grr-chipsec so as not to conflict with
+# the grr-chipsec module published on pypi.
+setup_args = dict(name="grr-chipsec-component",
+                  version="1.2.2",
+                  description="Chipsec GRR Integration module.",
+                  license="GPL",
+                  url="https://github.com/chipsec/chipsec/",
+                  author="Thiebaud Weksteen",
+                  author_email="tweksteen@gmail.com",
+                  classifiers=[
+                      "Development Status :: 4 - Beta",
+                      "Environment :: Console",
+                      "Operating System :: OS Independent",
+                      "Programming Language :: Python",
+                  ],
+                  py_modules=[
+                      "grr_chipsec", "chipsec_types", "chipsec_pb2"
+                  ],
+                  install_requires=[
+                      "grr-chipsec == 1.2.2",
+                  ],
+                  zip_safe=False)
 
 # Currently this is only enabled in Linux.
 if platform.system() != "Linux":

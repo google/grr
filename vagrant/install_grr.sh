@@ -16,10 +16,16 @@ function install() {
   # it continues copying until it runs out of space. The workaround is to build
   # an sdist and install that.
   # https://github.com/google/grr/issues/373
-  cd /grr
+
+  # The sdist builds the release tree in the src directory and there is no
+  # option to customize this. When multiple VMs try to do this with the vagrant
+  # shared folder they conflict. Copy it local before building sdist.
+  mkdir -p "${BUILDDIR}/grr_tmp"
+  cp -a /grr "${BUILDDIR}/grr_tmp"
+  cd "${BUILDDIR}/grr_tmp/grr"
   python setup.py sdist --dist-dir="${BUILDDIR}/core" --no-make-docs --no-sync-artifacts
   cd -
-  cd /grr/grr/config/grr-response-client/
+  cd "${BUILDDIR}/grr_tmp/grr/grr/config/grr-response-client/"
   python setup.py sdist --dist-dir="${BUILDDIR}/client"
   cd -
 

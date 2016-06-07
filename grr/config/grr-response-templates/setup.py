@@ -36,10 +36,10 @@ class Sdist(sdist):
   """Make a sdist release."""
 
   REQUIRED_COMPONENTS = [
-      r"grr-chipsec_.+_Linux_CentOS.+i386.bin",
-      r"grr-chipsec_.+_Linux_CentOS.+amd64.bin",
-      r"grr-chipsec_.+_Linux_debian.+i386.bin",
-      r"grr-chipsec_.+_Linux_debian.+amd64.bin",
+      r"grr-chipsec-component_.+_Linux_CentOS.+i386.bin",
+      r"grr-chipsec-component_.+_Linux_CentOS.+amd64.bin",
+      r"grr-chipsec-component_.+_Linux_debian.+i386.bin",
+      r"grr-chipsec-component_.+_Linux_debian.+amd64.bin",
       r"grr-rekall_.+_Darwin_OSX.+amd64.bin",
       r"grr-rekall_.+_Linux_CentOS.+i386.bin",
       r"grr-rekall_.+_Linux_CentOS.+amd64.bin",
