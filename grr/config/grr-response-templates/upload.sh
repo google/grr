@@ -31,4 +31,4 @@ gsutil cp index.html "gs://${BUCKET}/"
 gsutil acl ch -u AllUsers:R "gs://${BUCKET}/index.html"
 
 echo "Test install with:"
-echo "pip install --allow-external grr-response-templates -f https://storage.googleapis.com/${BUCKET}/index.html grr-response-templates==${VERSION}"
+echo "pip install --no-cache-dir -f https://storage.googleapis.com/${BUCKET}/index.html grr-response-templates==${VERSION}"

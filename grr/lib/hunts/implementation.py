@@ -803,7 +803,7 @@ class GRRHunt(flow.GRRFlow):
             for msg in msgs:
               collection.Add(msg)
         except IOError:
-          aff4.ResultsOutputCollection.AddToCollection(
+          aff4_collections.ResultsOutputCollection.AddToCollection(
               self.state.context.results_collection_urn,
               msgs,
               sync=True,

@@ -90,6 +90,8 @@ ClientBuilder Context:
 
     ClientBuilder.template_extension: .xar.zip
 
+    Logging.path: /var/log
+
     PyInstaller.path: |
         /Users/%(USER|env)/mac-build/pyinstaller/pyinstaller.py
 
@@ -125,6 +127,8 @@ ClientBuilder Context:
     ClientBuilder.template_extension: .deb.zip
 
     Logging.engines: stderr
+
+    Logging.path: /var/log
 
     ClientBuilder.build_root_dir: /tmp/grr-build
 

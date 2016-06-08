@@ -136,3 +136,13 @@ class TemplateRepacker(object):
                        "installers"),
           upload=upload,
           token=token)
+      # If it's windows also repack a debug version.
+      if template.endswith(".exe.zip"):
+        print "Repacking as debug installer: %s." % template
+        self.RepackTemplate(
+            template,
+            os.path.join(config_lib.CONFIG["ClientBuilder.executables_dir"],
+                         "installers"),
+            upload=upload,
+            token=token,
+            context=["DebugClientBuild Context"])

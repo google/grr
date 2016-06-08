@@ -409,8 +409,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     # Run the hunt.
     self.RunHunt(failrate=-1)
 
-    # Although we call ProcessHuntResultsCronFlow multiple times, it should
-    # only call actual plugin once.
+    # Although we call ProcessHuntResultCollectionsCronFlow multiple times, it
+    # should only call actual plugin once.
     for _ in range(5):
       self.ProcessHuntOutputPlugins()
 
@@ -423,8 +423,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     # Run the hunt.
     self.RunHunt(failrate=-1)
 
-    # Although we call ProcessHuntResultsCronFlow multiple times, it should
-    # only call actual plugin once.
+    # Although we call ProcessHuntResultCollectionsCronFlow multiple times, it
+    # should only call actual plugin once.
     for _ in range(5):
       self.ProcessHuntOutputPlugins()
 
@@ -601,7 +601,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.RunHunt(failrate=-1)
 
     # We shouldn't get any more calls after the first call to
-    # ProcessHuntResultsCronFlow.
+    # ProcessHuntResultCollectionsCronFlow.
     self.assertRaises(process_results.ResultsProcessingError,
                       self.ProcessHuntOutputPlugins)
     for _ in range(5):
@@ -629,7 +629,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.RunHunt(failrate=-1)
 
     # We shouldn't get any more calls after the first call to
-    # ProcessHuntResultsCronFlow.
+    # ProcessHuntResultCollectionsCronFlow.
     try:
       self.ProcessHuntOutputPlugins()
 
@@ -761,7 +761,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.assertEqual(DummyHuntOutputPlugin.num_calls, 1)
     self.assertListEqual(StatefulDummyHuntOutputPlugin.data, [0])
 
-  def testProcessHuntResultsCronFlowAbortsIfRunningTooLong(self):
+  def testProcessHuntResultCollectionsCronFlowAbortsIfRunningTooLong(self):
     self.assertEqual(LongRunningDummyHuntOutputPlugin.num_calls, 0)
 
     test = [0]
@@ -787,7 +787,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       # call.
       self.assertEqual(LongRunningDummyHuntOutputPlugin.num_calls, 1)
 
-  def testProcessHuntResultsCronFlowDoesNotAbortsIfRunningInTime(self):
+  def testProcessHuntResultCollectionsCronFlowDoesNotAbortsIfRunningInTime(
+      self):
     self.assertEqual(LongRunningDummyHuntOutputPlugin.num_calls, 0)
 
     test = [0]

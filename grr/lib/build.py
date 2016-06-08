@@ -150,8 +150,14 @@ class ClientBuilder(BuilderBase):
       except OSError:
         pass
 
-      with open(os.path.join(self.output_dir, "build.yaml"), "w") as fd:
-        self.WriteBuildYaml(fd)
+    version_ini = config_lib.Resource().Filter("version.ini")
+    if not os.path.exists(version_ini):
+      raise RuntimeError("Couldn't find version_ini in virtual env root: %s" %
+                         version_ini)
+    shutil.copy(version_ini, os.path.join(self.output_dir, "version.ini"))
+
+    with open(os.path.join(self.output_dir, "build.yaml"), "w") as fd:
+      self.WriteBuildYaml(fd)
 
   def WriteBuildYaml(self, fd):
     """Write build spec to fd."""

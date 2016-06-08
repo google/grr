@@ -20,7 +20,6 @@ from grr.lib import utils
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.hunts import implementation
-from grr.lib.hunts import process_results
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -308,242 +307,6 @@ class SampleHunt(implementation.GRRHunt):
     self.MarkClientDone(client_id)
 
 
-class ProcessHuntResultsCronFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.ProcessHuntResultsCronFlowArgs
-
-
-class ProcessHuntResultsCronFlow(cronjobs.SystemCronFlow):
-  """Periodic cron flow that processes hunts results with output plugins."""
-  frequency = rdfvalue.Duration("5m")
-  lifetime = rdfvalue.Duration("40m")
-
-  args_type = ProcessHuntResultsCronFlowArgs
-
-  DEFAULT_BATCH_SIZE = 1000
-  MAX_REVERSED_RESULTS = 500000
-
-  def CheckIfRunningTooLong(self):
-    if self.state.args.max_running_time:
-      elapsed = (rdfvalue.RDFDatetime().Now().AsSecondsFromEpoch() -
-                 self.start_time.AsSecondsFromEpoch())
-      if elapsed > self.state.args.max_running_time:
-        return True
-
-    return False
-
-  def StatusCollectionUrn(self, hunt_urn):
-    return hunt_urn.Add("OutputPluginsStatus")
-
-  def ErrorsCollectionUrn(self, hunt_urn):
-    return hunt_urn.Add("OutputPluginsErrors")
-
-  def ApplyPluginsToBatch(self, hunt_urn, plugins, batch, batch_index):
-    exceptions_by_plugin = {}
-    for plugin_def, plugin in plugins:
-      logging.debug("Processing hunt %s with %s, batch %d", hunt_urn,
-                    plugin_def.plugin_name, batch_index)
-
-      try:
-        plugin.ProcessResponses(batch)
-
-        stats.STATS.IncrementCounter("hunt_results_ran_through_plugin",
-                                     delta=len(batch),
-                                     fields=[plugin_def.plugin_name])
-
-        plugin_status = output_plugin.OutputPluginBatchProcessingStatus(
-            plugin_descriptor=plugin_def,
-            status="SUCCESS",
-            batch_index=batch_index,
-            batch_size=len(batch))
-      except Exception as e:  # pylint: disable=broad-except
-        stats.STATS.IncrementCounter("hunt_output_plugin_errors",
-                                     fields=[plugin_def.plugin_name])
-
-        plugin_status = output_plugin.OutputPluginBatchProcessingStatus(
-            plugin_descriptor=plugin_def,
-            status="ERROR",
-            summary=utils.SmartStr(e),
-            batch_index=batch_index,
-            batch_size=len(batch))
-
-        logging.exception("Error processing hunt results: hunt %s, "
-                          "plugin %s, batch %d", hunt_urn,
-                          plugin_def.plugin_name, batch_index)
-        self.Log("Error processing hunt results (hunt %s, "
-                 "plugin %s, batch %d): %s" %
-                 (hunt_urn, plugin_def.plugin_name, batch_index, e))
-        exceptions_by_plugin[plugin_def] = e
-
-      # TODO(user): Change to use StaticAdd once all active hunts are
-      # migrated.
-      try:
-        aff4.FACTORY.Open(
-            self.StatusCollectionUrn(hunt_urn),
-            implementation.PluginStatusCollection,
-            mode="w",
-            token=self.token).Add(plugin_status)
-      except IOError:
-        collects.PackedVersionedCollection.AddToCollection(
-            self.StatusCollectionUrn(hunt_urn), [plugin_status],
-            sync=False,
-            token=self.token)
-
-      if plugin_status.status == plugin_status.Status.ERROR:
-        try:
-          aff4.FACTORY.Open(
-              self.ErrorsCollectionUrn(hunt_urn),
-              implementation.PluginStatusCollection,
-              mode="w",
-              token=self.token).Add(plugin_status)
-        except IOError:
-          collects.PackedVersionedCollection.AddToCollection(
-              self.ErrorsCollectionUrn(hunt_urn), [plugin_status],
-              sync=False,
-              token=self.token)
-
-    return exceptions_by_plugin
-
-  def FlushPlugins(self, hunt_urn, plugins):
-    flush_exceptions = {}
-    for plugin_def, plugin in plugins:
-      try:
-        plugin.Flush()
-      except Exception as e:  # pylint: disable=broad-except
-        logging.exception("Error flushing hunt results: hunt %s, "
-                          "plugin %s", hunt_urn, str(plugin))
-        self.Log("Error processing hunt results (hunt %s, "
-                 "plugin %s): %s" % (hunt_urn, str(plugin), e))
-        flush_exceptions[plugin_def] = e
-
-    return flush_exceptions
-
-  def ProcessHuntResults(self, results, freeze_timestamp):
-    plugins_exceptions = {}
-
-    hunt_urn = results.Get(results.Schema.RESULTS_SOURCE)
-    metadata_urn = hunt_urn.Add("ResultsMetadata")
-
-    batch_size = self.state.args.batch_size or self.DEFAULT_BATCH_SIZE
-    batches = utils.Grouper(
-        results.GenerateUncompactedItems(
-            max_reversed_results=self.MAX_REVERSED_RESULTS,
-            timestamp=freeze_timestamp),
-        batch_size)
-
-    with aff4.FACTORY.Open(metadata_urn,
-                           mode="rw", token=self.token) as metadata_obj:
-
-      output_plugins = metadata_obj.Get(metadata_obj.Schema.OUTPUT_PLUGINS)
-      num_processed = int(metadata_obj.Get(
-          metadata_obj.Schema.NUM_PROCESSED_RESULTS))
-
-      used_plugins = []
-      for batch_index, batch in enumerate(batches):
-        batch = list(batch)
-        num_processed += len(batch)
-
-        if not used_plugins:
-          for _, (plugin_def, state) in output_plugins.data.iteritems():
-            # TODO(user): Remove as soon as migration to new-style
-            # output plugins is completed.
-            if not hasattr(plugin_def, "GetPluginForState"):
-              logging.error("Invalid plugin_def: %s", plugin_def)
-              continue
-
-            used_plugins.append((plugin_def, plugin_def.GetPluginForState(state)
-                                ))
-
-        batch_exceptions = self.ApplyPluginsToBatch(hunt_urn, used_plugins,
-                                                    batch, batch_index)
-        if batch_exceptions:
-          for key, value in batch_exceptions.items():
-            plugins_exceptions.setdefault(key, []).append(value)
-
-        self.HeartBeat()
-
-        # If this flow is working for more than max_running_time - stop
-        # processing.
-        if self.CheckIfRunningTooLong():
-          self.Log("Running for too long, skipping rest of batches for %s",
-                   hunt_urn)
-          break
-
-      if not used_plugins:
-        logging.debug("Got notification, but no results were processed for %s.",
-                      hunt_urn)
-
-      flush_exceptions = self.FlushPlugins(hunt_urn, used_plugins)
-      plugins_exceptions.update(flush_exceptions)
-
-      metadata_obj.Set(metadata_obj.Schema.OUTPUT_PLUGINS(output_plugins))
-      metadata_obj.Set(metadata_obj.Schema.NUM_PROCESSED_RESULTS(num_processed))
-
-      return plugins_exceptions
-
-  @flow.StateHandler()
-  def Start(self):
-    """Start state of the flow."""
-    # If max_running_time is not specified, set it to 60% of this job's
-    # lifetime.
-    if not self.state.args.max_running_time:
-      self.state.args.max_running_time = rdfvalue.Duration(
-          "%ds" % int(ProcessHuntResultsCronFlow.lifetime.seconds * 0.6))
-
-    self.start_time = rdfvalue.RDFDatetime().Now()
-
-    exceptions_by_hunt = {}
-    freeze_timestamp = rdfvalue.RDFDatetime().Now()
-    for results_urn in aff4.ResultsOutputCollection.QueryNotifications(
-        timestamp=freeze_timestamp, token=self.token):
-
-      aff4.ResultsOutputCollection.DeleteNotifications(
-          [results_urn], end=results_urn.age,
-          token=self.token)
-
-      # Feed the results to output plugins
-      try:
-        results = aff4.FACTORY.Open(results_urn,
-                                    aff4_type="ResultsOutputCollection",
-                                    token=self.token)
-      except aff4.InstantiationError:  # Collection does not exist.
-        continue
-
-      exceptions_by_plugin = self.ProcessHuntResults(results, freeze_timestamp)
-      if exceptions_by_plugin:
-        hunt_urn = results.Get(results.Schema.RESULTS_SOURCE)
-        exceptions_by_hunt[hunt_urn] = exceptions_by_plugin
-
-      lease_time = config_lib.CONFIG["Worker.compaction_lease_time"]
-      try:
-        with aff4.FACTORY.OpenWithLock(results_urn,
-                                       blocking=False,
-                                       aff4_type="ResultsOutputCollection",
-                                       lease_time=lease_time,
-                                       token=self.token) as results:
-          num_compacted = results.Compact(callback=self.HeartBeat,
-                                          timestamp=freeze_timestamp)
-          stats.STATS.IncrementCounter("hunt_results_compacted",
-                                       delta=num_compacted)
-          logging.debug("Compacted %d results in %s.", num_compacted,
-                        results_urn)
-      except aff4.LockError:
-        logging.error("Trying to compact a collection that's already "
-                      "locked: %s", results_urn)
-        stats.STATS.IncrementCounter("hunt_results_compaction_locking_errors")
-
-      if self.CheckIfRunningTooLong():
-        self.Log("Running for too long, skipping rest of hunts.")
-        break
-
-    if exceptions_by_hunt:
-      e = process_results.ResultsProcessingError()
-      for hunt_urn, exceptions_by_plugin in exceptions_by_hunt.items():
-        for plugin_name, exceptions in exceptions_by_plugin.items():
-          for exception in exceptions:
-            e.RegisterSubException(hunt_urn, plugin_name, exception)
-      raise e
-
-
 class HuntVerificationError(Error):
   """Used when something goes wrong during the verification."""
 
@@ -617,14 +380,12 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
         plugin_verifiers_classes = plugin_descriptor.GetPluginVerifiersClasses()
 
         if not plugin_verifiers_classes:
-          results.setdefault(
-              self.NON_VERIFIABLE,
-              []).append((plugin_id, plugin_descriptor, plugin_obj, hunt))
+          results.setdefault(self.NON_VERIFIABLE, []).append(
+              (plugin_id, plugin_descriptor, plugin_obj, hunt))
         else:
           for cls in plugin_verifiers_classes:
-            results.setdefault(
-                cls,
-                []).append((plugin_id, plugin_descriptor, plugin_obj, hunt))
+            results.setdefault(cls, []).append(
+                (plugin_id, plugin_descriptor, plugin_obj, hunt))
 
     return results
 

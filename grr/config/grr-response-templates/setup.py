@@ -36,24 +36,23 @@ class Sdist(sdist):
   """Make a sdist release."""
 
   REQUIRED_COMPONENTS = [
-      r"grr-chipsec-component_.+_Linux_CentOS.+i386.bin",
-      r"grr-chipsec-component_.+_Linux_CentOS.+amd64.bin",
-      r"grr-chipsec-component_.+_Linux_debian.+i386.bin",
-      r"grr-chipsec-component_.+_Linux_debian.+amd64.bin",
-      r"grr-rekall_.+_Darwin_OSX.+amd64.bin",
-      r"grr-rekall_.+_Linux_CentOS.+i386.bin",
-      r"grr-rekall_.+_Linux_CentOS.+amd64.bin",
-      r"grr-rekall_.+_Linux_debian.+i386.bin",
-      r"grr-rekall_.+_Linux_debian.+amd64.bin",
-      r"grr-rekall_.+_Windows_7.+amd64.bin",
-      r"grr-rekall_.+_Windows_7.+i386.bin",
+      r"grr-chipsec-component_.+linux_i686.bin",
+      r"grr-chipsec-component_.+linux_x86_64.bin",
+      r"grr-chipsec-component_.+macosx_.+_x86_64.bin",
+      r"grr-chipsec-component_.+win32.bin",
+      r"grr-chipsec-component_.+win_amd64.bin",
+      r"grr-rekall_.+linux_i686.bin",
+      r"grr-rekall_.+linux_x86_64.bin",
+      r"grr-rekall_.+macosx_.+_x86_64.bin",
+      r"grr-rekall_.+win32.bin",
+      r"grr-rekall_.+win_amd64.bin",
   ]
 
   REQUIRED_TEMPLATES = [
       "GRR_maj.minor_amd64.exe.zip",
       "GRR_maj.minor_i386.exe.zip",
       "grr_maj.minor_amd64.deb.zip",
-      "grr_maj.minor_amd64.pkg.xar",
+      "grr_maj.minor_amd64.xar.zip",
       "grr_maj.minor_amd64.rpm.zip",
       "grr_maj.minor_i386.deb.zip",
       "grr_maj.minor_i386.rpm.zip",
@@ -64,9 +63,6 @@ class Sdist(sdist):
     major_minor = ".".join(version.split(".")[0:2])
     templates = glob.glob(os.path.join(base_dir, "templates/*%s*.zip" %
                                        major_minor))
-    templates.extend(glob.glob(os.path.join(base_dir, "templates/*%s*.xar" %
-                                            major_minor)))
-
     required_templates = set([x.replace("maj.minor", major_minor)
                               for x in self.REQUIRED_TEMPLATES])
 

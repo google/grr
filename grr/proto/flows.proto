@@ -1216,7 +1216,7 @@ message MultiGetFileArgs {
 }
 
 // Next field ID: 6
-message ProcessHuntResultsCronFlowArgs {
+message ProcessHuntResultCollectionsCronFlowArgs {
   optional uint64 batch_size = 1 [(sem_type) = {
       description: "Results will be processed by output plugins in batches "
       "of this size.",

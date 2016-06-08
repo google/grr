@@ -19,7 +19,7 @@ from grr.proto import flows_pb2
 
 
 class ProcessHuntResultCollectionsCronFlowArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.ProcessHuntResultsCronFlowArgs
+  protobuf = flows_pb2.ProcessHuntResultCollectionsCronFlowArgs
 
 
 class ResultsProcessingError(Exception):
