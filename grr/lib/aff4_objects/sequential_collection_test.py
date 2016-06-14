@@ -4,6 +4,7 @@
 import threading
 
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
@@ -64,8 +65,8 @@ class SequentialCollectionTest(test_lib.AFF4ObjectTest):
       for i in range(100):
         timestamps.append(collection.Add(rdfvalue.RDFInteger(i)))
 
-      even_results = sorted([r for r in collection.MultiResolve(timestamps[::2])
-                            ])
+      even_results = sorted([r
+                             for r in collection.MultiResolve(timestamps[::2])])
       self.assertEqual(len(even_results), 50)
       self.assertEqual(even_results[0], 0)
       self.assertEqual(even_results[49], 98)
@@ -217,10 +218,10 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
     # indexing should instantaneously.
     isq = sequential_collection.IndexedSequentialCollection
     biu = sequential_collection.BACKGROUND_INDEX_UPDATER
-    with utils.MultiStubber(
-        (biu, "INDEX_DELAY", 0),
-        (isq, "INDEX_WRITE_DELAY", rdfvalue.Duration("0s")),
-        (isq, "INDEX_SPACING", 8), (isq, "UpdateIndex", UpdateIndex)):
+    with utils.MultiStubber((biu, "INDEX_DELAY", 0),
+                            (isq, "INDEX_WRITE_DELAY", rdfvalue.Duration("0s")),
+                            (isq, "INDEX_SPACING", 8),
+                            (isq, "UpdateIndex", UpdateIndex)):
       with aff4.FACTORY.Create("aff4:/sequential_collection/testAutoIndexing",
                                TestIndexedSequentialCollection,
                                token=self.token) as collection:
@@ -251,3 +252,12 @@ class GeneralIndexedCollectionTest(test_lib.AFF4ObjectTest):
       self.assertEqual(collection[0], 42)
       self.assertEqual(collection[1].__class__, rdfvalue.RDFString)
       self.assertEqual(collection[1], "the meaning of life")
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

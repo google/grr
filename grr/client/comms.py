@@ -81,6 +81,7 @@ import os
 import pdb
 import posixpath
 import Queue
+import socket
 import sys
 import threading
 import time
@@ -167,7 +168,7 @@ class HTTPManager(object):
     # Check the URLs for trailing /. This traps configuration errors.
     for url in result:
       if not url.endswith("/"):
-        raise RuntimeError("Base URLs must end with /")
+        raise RuntimeError("Bad URL: %s URLs must end with /" % url)
 
     return result
 
@@ -335,13 +336,12 @@ class HTTPManager(object):
     while True:
       try:
         now = time.time()
-        result = urllib2.urlopen(request,
-                                 timeout=config_lib.CONFIG[
-                                     "Client.http_timeout"])
+        result = urllib2.urlopen(
+            request, timeout=config_lib.CONFIG["Client.http_timeout"])
 
         return time.time() - now, result
 
-      except (urllib2.HTTPError, urllib2.URLError) as e:
+      except (urllib2.HTTPError, urllib2.URLError, socket.timeout) as e:
         self.consecutive_connection_errors += 1
 
         # Request failed. If we connected successfully before we attempt a few

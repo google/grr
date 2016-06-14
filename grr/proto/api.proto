@@ -805,6 +805,7 @@ message ApiListStatsStoreMetricsMetadataArgs {
   enum Component {
     WORKER = 0;
     FRONTEND = 1;
+    ADMIN_UI = 2;
   }
   optional Component component = 1;
 }
@@ -838,6 +839,7 @@ message ApiGetStatsStoreMetricArgs {
   enum Component {
     WORKER = 0;
     FRONTEND = 1;
+    ADMIN_UI = 2;
   }
   optional Component component = 1;
   optional string metric_name = 2;
@@ -1534,6 +1536,7 @@ message ApiOutputPlugin {
     }];
 }
 
+// Next id: 12
 message ApiFile {
   optional string name = 1 [(sem_type) = {
       description: "File name."
@@ -1544,12 +1547,12 @@ message ApiFile {
   optional string type = 3 [(sem_type) = {
       description: "File type."
     }];
-  optional int64 size = 4 [(sem_type) = {
-      description: "File size."
+  optional StatEntry stat = 11 [(sem_type) = {
+      description: "File creation time."
     }];
   optional uint64 age = 5 [(sem_type) = {
       type: "RDFDatetime",
-      description: "File age."
+      description: "File age (when file object was updated in GRR)."
     }];
   optional bool is_directory = 6 [(sem_type) = {
       description: "True if the file is a directory."
@@ -1560,6 +1563,9 @@ message ApiFile {
   optional uint64 last_downloaded = 8 [(sem_type) = {
       type: "RDFDatetime",
       description: "Time of last download."
+    }];
+  optional uint64 last_downloaded_size = 10 [(sem_type) = {
+      description: "Size of the file last time it was downloaded."
     }];
   // Details of an ApiFile.
   optional ApiAff4ObjectRepresentation details = 9 [(sem_type) = {

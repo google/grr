@@ -2,6 +2,7 @@
 """Reporting tests."""
 
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.aff4_objects import network as aff4_network
 from grr.lib.aff4_objects import reports
@@ -53,3 +54,12 @@ class ReportsTest(test_lib.AFF4ObjectTest):
     self.assertEqual(report.results[-1]["Interfaces"], "1.1.1.1")
 
     self.assertEqual(len(report.broken_clients), 1)
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

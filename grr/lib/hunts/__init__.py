@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2010 Google Inc. All Rights Reserved.
 """Hunts and hunt implementations."""
 
 
@@ -8,6 +7,7 @@
 from grr.lib import aff4
 from grr.lib.hunts import implementation
 from grr.lib.hunts import output_plugins
+from grr.lib.hunts import process_results
 from grr.lib.hunts import results
 from grr.lib.hunts import standard
 

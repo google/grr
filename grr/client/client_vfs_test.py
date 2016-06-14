@@ -561,6 +561,74 @@ class VFSTest(test_lib.GRRBaseTest):
         ("%s/b/d" % path, [], ["hellod.txt"])
     ])
 
+  def testTskRecursiveListNames(self):
+    path = os.path.join(self.base_path, u"test_img.dd")
+    ps2 = rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.TSK)
+    ps = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
+    ps.Append(ps2)
+    directory = vfs.VFSOpen(ps)
+
+    walk_tups_0 = list(directory.RecursiveListNames())
+    walk_tups_1 = list(directory.RecursiveListNames(depth=1))
+    walk_tups_inf = list(directory.RecursiveListNames(depth=float("inf")))
+
+    self.assertEqual(walk_tups_0, [
+        (u"/", [u"Test Directory", u"glob_test", u"home", u"lost+found",
+                u"איןד ןד ש אקדא", u"入乡随俗 海外春节别样过法"], []),
+    ])
+
+    self.assertEqual(walk_tups_1, [
+        (u"/", [u"Test Directory", u"glob_test", u"home", u"lost+found",
+                u"איןד ןד ש אקדא", u"入乡随俗 海外春节别样过法"], []),
+        (u"/Test Directory", [], [u"numbers.txt"]), (u"/glob_test", [u"a"], []),
+        (u"/home", [u"test"], [u"image2.img"]), (u"/lost+found", [], []),
+        (u"/איןד ןד ש אקדא", [], [u"איןד.txt"]),
+        (u"/入乡随俗 海外春节别样过法", [], [u"入乡随俗.txt"])
+    ])
+
+    self.assertEqual(walk_tups_inf, [
+        (u"/", [u"Test Directory", u"glob_test", u"home", u"lost+found",
+                u"איןד ןד ש אקדא", u"入乡随俗 海外春节别样过法"], []),
+        (u"/Test Directory", [], [u"numbers.txt"]), (u"/glob_test", [u"a"], []),
+        (u"/glob_test/a", [u"b"], []), (u"/glob_test/a/b", [], [u"foo"]),
+        (u"/home", [u"test"], [u"image2.img"]),
+        (u"/home/test", [u".config", u".mozilla"], []),
+        (u"/home/test/.config", [u"google-chrome"], []),
+        (u"/home/test/.config/google-chrome", [u"Default"], []),
+        (u"/home/test/.config/google-chrome/Default", [u"Cache", u"Extensions"],
+         [u"History"]),
+        (u"/home/test/.config/google-chrome/Default/Cache", [],
+         [u"data_0", u"data_0", u"data_1", u"data_1", u"data_2", u"data_3",
+          u"f_000001", u"f_000001", u"f_000002", u"f_000002", u"f_000003",
+          u"f_000003", u"f_000004", u"f_000004", u"f_000005", u"f_000006",
+          u"f_000007", u"f_000008", u"f_000009", u"f_00000a", u"f_00000b",
+          u"f_00000c", u"f_00000e", u"f_00000f", u"f_000011", u"f_000012",
+          u"f_000013", u"f_000014", u"f_000015", u"f_000016", u"f_000017",
+          u"f_000018", u"f_00001a", u"f_00001c", u"f_00001d", u"f_00001e",
+          u"f_00001f", u"f_000020", u"f_000021", u"f_000023", u"f_000024",
+          u"f_000025", u"f_000026", u"f_000027", u"f_000028", u"f_000029",
+          u"f_00002c", u"f_00002d", u"f_00002e", u"f_00002f", u"f_000030",
+          u"f_000031", u"f_000032", u"f_000034", u"f_000035", u"f_000037",
+          u"f_000038", u"f_000039", u"f_00003a", u"f_00003c", u"f_00003d",
+          u"index"]), (u"/home/test/.config/google-chrome/Default/Extensions",
+                       [u"nlbjncdgjeocebhnmkbbbdekmmmcbfjd"], []),
+        (u"/home/test/.config/google-chrome/Default/Extensions/"
+         u"nlbjncdgjeocebhnmkbbbdekmmmcbfjd", [u"2.1.3_0"], []),
+        (u"/home/test/.config/google-chrome/Default/Extensions/"
+         u"nlbjncdgjeocebhnmkbbbdekmmmcbfjd/2.1.3_0", [u"_locales"],
+         [u".#testfile.txt", u"manifest.json", u"testfile.txt"]),
+        (u"/home/test/.config/google-chrome/Default/Extensions/"
+         u"nlbjncdgjeocebhnmkbbbdekmmmcbfjd/2.1.3_0/_locales", [u"en"], []),
+        (u"/home/test/.config/google-chrome/Default/Extensions/"
+         u"nlbjncdgjeocebhnmkbbbdekmmmcbfjd/2.1.3_0/_locales/en", [],
+         [u"messages.json"]), (u"/home/test/.mozilla", [u"firefox"], []),
+        (u"/home/test/.mozilla/firefox", [u"adts404t.default"], []),
+        (u"/home/test/.mozilla/firefox/adts404t.default", [],
+         [u"places.sqlite"]), (u"/lost+found", [], []),
+        (u"/איןד ןד ש אקדא", [], [u"איןד.txt"]),
+        (u"/入乡随俗 海外春节别样过法", [], [u"入乡随俗.txt"])
+    ])
+
 
 def main(argv):
   vfs.VFSInit()

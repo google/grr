@@ -224,9 +224,13 @@ class Resource(ConfigFilter):
     if "@" in filename_spec:
       filename, package = filename_spec.split("@", 1)
 
-    target = self._GetPkgResources(filename, package)
-    if target and os.access(target, os.R_OK):
-      return target
+    # If we are running a pyinstaller-built binary we rely on the sys.prefix
+    # code below and avoid running this which will generate confusing error
+    # messages.
+    if not getattr(sys, "frozen", None):
+      target = self._GetPkgResources(filename, package)
+      if target and os.access(target, os.R_OK):
+        return target
 
     # Installing from wheel places data_files relative to sys.prefix and not
     # site-packages. If we can not find in site-packages, check sys.prefix

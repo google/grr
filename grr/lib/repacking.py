@@ -81,9 +81,9 @@ class TemplateRepacker(object):
     """
     orig_config = config_lib.CONFIG
     repack_config = RepackConfig()
-    print "Repacking template: %s" % template
     template_path = os.path.join(
         config_lib.CONFIG["ClientBuilder.template_dir"], template)
+    print "Repacking template: %s" % template_path
     config_lib.CONFIG = repack_config.GetConfigFromTemplate(template_path)
 
     result_path = None
@@ -104,7 +104,7 @@ class TemplateRepacker(object):
         print "Repacking template %s failed: %s" % (template_path, e)
 
       if result_path:
-        print "%s repacked ok." % template_path
+        print "Repacked into %s" % result_path
         if upload:
           # We delay import here so we don't have to import the entire server
           # codebase and do full server init if we're just building and

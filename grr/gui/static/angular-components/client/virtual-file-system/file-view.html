@@ -1,5 +1,4 @@
 <grr-file-context client-id="controller.clientId"
-                  selected-folder-path="controller.selectedFolderPath"
                   selected-file-path="controller.selectedFilePath"
                   selected-file-version="controller.fileVersion">
 
@@ -12,11 +11,11 @@
       <div grr-splitter orientation="horizontal" class="rightSplitterContainer">
 
         <div grr-splitter-pane id="content_rightPane" class="rightTopPane">
-          <grr-file-table />
+          <grr-file-table view-mode="controller.viewMode" />
         </div>
 
         <div grr-splitter-pane id="main_bottomPane" class="rightBottomPane">
-          <grr-file-details />
+          <grr-file-details current-tab="controller.tab" />
         </div>
 
       </div>

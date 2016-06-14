@@ -928,13 +928,17 @@ class PackedVersionedCollection(RDFValueCollection):
     return self.IsAttributeSet(self.Schema.DATA)
 
 
+# TODO(user): remove when we don't care about hunts with results
+# in packed (and not sequential) collections.
 class ResultsOutputCollection(PackedVersionedCollection):
   """Collection for hunt results storage.
 
   This collection is essentially a PackedVersionedCollection with a
   separate notification queue. Therefore, all new results are written
-  as versioned attributes. ProcessHuntResultsCronFlow reads notifications,
-  processes new results, and then writes them to the main collection stream.
+  as versioned attributes.
+
+  This class is kept for backwards compatibility only and will be
+  removed soon.
   """
 
   notification_queue = "aff4:/_notifications/results_output"

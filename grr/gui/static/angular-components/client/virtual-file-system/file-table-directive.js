@@ -2,8 +2,13 @@
 
 goog.provide('grrUi.client.virtualFileSystem.fileTableDirective.FileTableController');
 goog.provide('grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective');
+
 goog.require('grrUi.client.virtualFileSystem.events');
+goog.require('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
+goog.require('grrUi.client.virtualFileSystem.utils.getFolderFromPath');
+
 goog.require('grrUi.core.serverErrorButtonDirective.ServerErrorButtonDirective');
+
 
 goog.scope(function() {
 
@@ -43,9 +48,6 @@ grrUi.client.virtualFileSystem.fileTableDirective.FileTableController = function
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
-  /** @type {boolean} */
-  this.showFileList = true;
-
   /** @type {string} */
   this.fileListUrl;
 
@@ -56,7 +58,7 @@ grrUi.client.virtualFileSystem.fileTableDirective.FileTableController = function
   this.refreshOperationInterval_;
 
   /** @private {string} */
-  this.lastSelectedFolderPath_;
+  this.selectedFilePath_;
 
   /**
    * Used for UI binding with a filter edit field.
@@ -81,49 +83,46 @@ grrUi.client.virtualFileSystem.fileTableDirective.FileTableController = function
    */
   this.triggerUpdate;
 
-  this.scope_.$on(REFRESH_FOLDER_EVENT,
-      this.refreshFolder_.bind(this));
-  this.scope_.$on(REFRESH_FILE_EVENT,
-      this.refreshFolder_.bind(this));
+  this.scope_.$on(REFRESH_FOLDER_EVENT, this.refreshFileList_.bind(this));
+  this.scope_.$on(REFRESH_FILE_EVENT, this.refreshFileList_.bind(this));
 
-  this.scope_.$watchGroup(['controller.fileContext.clientId',
-                           'controller.fileContext.selectedFolderPath'],
-      this.onContextChange_.bind(this));
+  this.scope_.$watch('controller.fileContext.clientId', this.refreshFileList_.bind(this));
+  this.scope_.$watch('controller.fileContext.selectedFilePath', this.onFilePathChange_.bind(this));
 };
 
 var FileTableController =
     grrUi.client.virtualFileSystem.fileTableDirective.FileTableController;
 
 
+FileTableController.prototype.setViewMode = function(mode) {
+  this.scope_['viewMode'] = mode;
+};
+
+
+FileTableController.prototype.onFilePathChange_ = function(newValue, oldValue) {
+  var newFolder = grrUi.client.virtualFileSystem.utils.getFolderFromPath(newValue);
+  var oldFolder = grrUi.client.virtualFileSystem.utils.getFolderFromPath(oldValue);
+
+  if (newFolder !== oldFolder) {
+    this.refreshFileList_();
+  }
+};
+
 /**
  * Is triggered whenever the client id or the selected folder path changes.
  *
  * @private
  */
-FileTableController.prototype.onContextChange_ = function() {
+FileTableController.prototype.refreshFileList_ = function() {
   var clientId = this.fileContext['clientId'];
-  var selectedFolderPath = this.fileContext['selectedFolderPath'] || '';
+  var selectedFilePath = this.fileContext['selectedFilePath'] || '';
+  var selectedFolderPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath(
+      selectedFilePath);
 
   this.filter = '';
   this.fileListUrl = 'clients/' + clientId + '/vfs-index/' + selectedFolderPath;
 
-  if (!this.showFileList && this.lastSelectedFolderPath_ !== selectedFolderPath) {
-    this.showFileList = true;
-  }
-  this.lastSelectedFolderPath_ = selectedFolderPath;
-
   // Required to trigger an update even if the selectedFolderPath changes to the same value.
-  if (this.triggerUpdate) {
-    this.triggerUpdate();
-  }
-};
-
-/**
- * Is triggered whenever the selected folder needs refreshing.
- *
- * @private
- */
-FileTableController.prototype.refreshFolder_ = function() {
   if (this.triggerUpdate) {
     this.triggerUpdate();
   }
@@ -136,7 +135,8 @@ FileTableController.prototype.refreshFolder_ = function() {
  * @export
  */
 FileTableController.prototype.selectFile = function(file) {
-  this.fileContext.selectFile(file['value']['path']['value']);
+  // Always reset the version when the file is selected.
+  this.fileContext.selectFile(file['value']['path']['value'], 0);
 };
 
 /**
@@ -146,9 +146,13 @@ FileTableController.prototype.selectFile = function(file) {
  * @export
  */
 FileTableController.prototype.selectFolder = function(file) {
-  if (file && file['value']['is_directory']['value']) {
-    this.fileContext.selectFolder(file['value']['path']['value']);
-  }
+  var clientId = this.fileContext['clientId'];
+  var filePath = file['value']['path']['value'];
+  filePath = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder(filePath);
+
+  // Always reset the version if the file is selected.
+  this.fileContext.selectFile(filePath, 0);
+  this.fileListUrl = 'clients/' + clientId + '/vfs-index/' + filePath;
 };
 
 /**
@@ -156,9 +160,11 @@ FileTableController.prototype.selectFolder = function(file) {
  *
  * @export
  */
-FileTableController.prototype.refreshDirectory = function() {
+FileTableController.prototype.startVfsRefreshOperation = function() {
   var clientId = this.fileContext['clientId'];
-  var selectedFolderPath = this.fileContext['selectedFolderPath'];
+  var selectedFilePath = this.fileContext['selectedFilePath'];
+  var selectedFolderPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath(
+      selectedFilePath);
   var url = 'clients/' + clientId + '/vfs-refresh-operations';
 
   var refreshOperation = {
@@ -197,7 +203,6 @@ FileTableController.prototype.monitorRefreshOperation_ = function() {
  */
 FileTableController.prototype.pollRefreshOperationState_ = function() {
   var clientId = this.fileContext['clientId'];
-  var selectedFolderPath = this.fileContext['selectedFolderPath'];
   var url = 'clients/' + clientId + '/vfs-refresh-operations/' + this.refreshOperationId;
 
   this.grrApiService_.get(url).then(
@@ -207,7 +212,7 @@ FileTableController.prototype.pollRefreshOperationState_ = function() {
         this.interval_.cancel(this.refreshOperationInterval_);
 
         // Force directives to refresh the current folder.
-        this.rootScope_.$broadcast(REFRESH_FOLDER_EVENT, selectedFolderPath);
+        this.rootScope_.$broadcast(REFRESH_FOLDER_EVENT);
       }
     }.bind(this),
     function failure(response) {
@@ -256,7 +261,9 @@ FileTableController.prototype.downloadTimeline = function() {
 grrUi.client.virtualFileSystem.fileTableDirective.FileTableDirective = function() {
   return {
     restrict: 'E',
-    scope: {},
+    scope: {
+      viewMode: '='
+    },
     require: '^grrFileContext',
     templateUrl: '/static/angular-components/client/virtual-file-system/file-table.html',
     controller: FileTableController,

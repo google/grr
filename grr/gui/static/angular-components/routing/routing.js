@@ -1,4 +1,5 @@
 goog.provide('grrUi.routing.module');
+goog.require('grrUi.core.apiService.encodeUrlPath');
 goog.require('grrUi.routing.rewriteUrl');
 goog.require('grrUi.routing.routingService.RoutingService');
 
@@ -12,7 +13,25 @@ grrUi.routing.module.service(
     grrUi.routing.routingService.RoutingService.service_name,
     grrUi.routing.routingService.RoutingService);
 
-grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider) {
+grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMatcherFactoryProvider) {
+
+  $urlMatcherFactoryProvider.type('pathWithUnescapedSlashes', {
+    encode: function(item) {
+      if (!item) {
+        return '';
+      } else {
+        return grrUi.core.apiService.encodeUrlPath(item);
+      }
+    },
+    decode: function(item) {
+      if (!item) {
+        return '';
+      } else {
+        return decodeURIComponent(item);
+      }
+    },
+    pattern: /.*/
+  });
 
   // Prevent $urlRouter from automatically intercepting URL changes;
   // this allows you to configure custom behavior in between
@@ -139,7 +158,7 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider) {
       template: '<grr-start-flow-view />'
     })
     .state('client.vfs', {
-      url: '/vfs?folder',
+      url: '/vfs/{path:pathWithUnescapedSlashes}?version&mode&tab',
       template: '<grr-file-legacy-view />'
     })
     .state('client.vfsContainer', {

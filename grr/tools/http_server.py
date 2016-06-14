@@ -10,6 +10,7 @@ import pdb
 import socket
 import SocketServer
 import threading
+import time
 
 
 import ipaddr
@@ -161,12 +162,14 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           raw_headers=utils.SmartStr(self.headers),
           source_ip=utils.SmartStr(source_ip))
 
+      request_start_time = time.ctime()
       source, nr_messages = self.server.frontend.HandleMessageBundles(
           request_comms, responses_comms)
 
-      logging.info("HTTP request from %s (%s), %d bytes - %d messages received,"
-                   " %d messages sent.", source, utils.SmartStr(source_ip),
-                   length, nr_messages, responses_comms.num_messages)
+      logging.info(
+          "HTTP request from %s (%s) @ %s, %d bytes - %d messages received,"
+          " %d messages sent.", source, utils.SmartStr(source_ip),
+          request_start_time, length, nr_messages, responses_comms.num_messages)
 
       self.Send(responses_comms.SerializeToString())
 

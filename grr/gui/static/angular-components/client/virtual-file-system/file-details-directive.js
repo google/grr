@@ -8,11 +8,12 @@ goog.require('grrUi.core.versionDropdownDirective.VersionDropdownDirective');
 
 goog.scope(function() {
 
+
 var REFRESH_FILE_EVENT =
     grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT;
 
 var REFRESH_VERSIONS_EVENT =
-    grrUi.core.versionDropdownDirective.VersionDropdownDirective.refresh_versions_event;
+    grrUi.core.versionDropdownDirective.VersionDropdownDirective.REFRESH_VERSIONS_EVENT;
 
 /**
  * Controller for FileDetailsDirective.
@@ -31,7 +32,7 @@ grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsController = func
   this.grrApiService_ = grrApiService;
 
   /** @type {string} */
-  this.selectedFileName;
+  this.shownFileName;
 
   /** @type {string} */
   this.fileVersionUrl;
@@ -45,6 +46,9 @@ grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsController = func
   /** @type {Object} */
   this.downloadQueryParams;
 
+  /** @type {Object} */
+  this.tabsStates;
+
   this.scope_.$on(REFRESH_FILE_EVENT,
       this.refreshFile_.bind(this));
 
@@ -52,11 +56,24 @@ grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsController = func
                            'controller.fileContext.selectedFilePath',
                            'controller.fileContext.selectedFileVersion'],
       this.onContextChange_.bind(this));
+
+  this.scope_.$watch('currentTab', function(newValue) {
+    this.tabsStates = {};
+    this.tabsStates[newValue] = true;
+  }.bind(this));
 };
 
 var FileDetailsController =
     grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsController;
 
+
+FileDetailsController.prototype.selectTab = function(tab) {
+  if (this.fileIsDirectory && tab != 'stats') {
+    return;
+  }
+
+  this.scope_['currentTab'] = tab;
+};
 
 /**
  * Is triggered whenever the file context changes.
@@ -104,23 +121,19 @@ FileDetailsController.prototype.onFileDetailsFetched_ = function(response) {
   var fileVersion = this.fileContext['selectedFileVersion'];
   var fileDetails = response.data['file'];
 
-  // If the scope changes very often, we send several vfs-details requests. They will
-  // be resolved in various order, so we should ignore all of them except the ones
-  // relevant for the latest selection.
-  if (this.targetsCurrentSelection_(fileDetails)) {
-    this.fileVersionUrl = 'clients/' + clientId + '/vfs-version-times/' + selectedFilePath;
-    this.fileIsDirectory = fileDetails['value']['is_directory']['value'];
-    this.fileContext['selectedFileVersion'] = fileVersion || fileDetails['age'];
+  this.fileVersionUrl = 'clients/' + clientId + '/vfs-version-times/' + selectedFilePath;
+  this.fileIsDirectory = fileDetails['value']['is_directory']['value'];
 
-    this.downloadQueryParams = {
-      clientId: clientId,
-      aff4_path: 'aff4:/' + clientId + '/' + selectedFilePath,
-      age: this.fileContext['selectedFileVersion']
-    };
-
-    var components = selectedFilePath.split('/');
-    this.selectedFileName = components[components.length - 1];
+  this.downloadQueryParams = {
+    clientId: clientId,
+    aff4_path: 'aff4:/' + clientId + '/' + selectedFilePath,
+  };
+  if (fileVersion) {
+    this.downloadQueryParams['age'] = fileVersion;
   }
+
+  var components = fileDetails['value']['path']['value'].split('/');
+  this.selectedFileName = components[components.length - 1];
 };
 
 /**
@@ -129,7 +142,7 @@ FileDetailsController.prototype.onFileDetailsFetched_ = function(response) {
  * @private
  */
 FileDetailsController.prototype.refreshFile_ = function() {
-  this.fileContext['selectedFileVersion'] = null;
+  this.fileContext['selectedFileVersion'] = undefined;
   this.scope_.$broadcast(REFRESH_VERSIONS_EVENT, {});
   this.fetchFileDetails_();
 };
@@ -154,7 +167,9 @@ FileDetailsController.prototype.targetsCurrentSelection_ = function(fileDetails)
 grrUi.client.virtualFileSystem.fileDetailsDirective.FileDetailsDirective = function() {
   return {
     restrict: 'E',
-    scope: {},
+    scope: {
+      currentTab: '='
+    },
     require: '^grrFileContext',
     templateUrl: '/static/angular-components/client/virtual-file-system/file-details.html',
     controller: FileDetailsController,

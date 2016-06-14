@@ -2,6 +2,17 @@
 
 goog.provide('grrUi.routing.rewriteUrl');
 
+goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId');
+goog.require('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
+goog.require('grrUi.core.apiService.encodeUrlPath');
+
+
+goog.scope(function() {
+
+var getFilePathFromId = grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId;
+var ensurePathIsFolder = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder;
+var encodeUrlPath = grrUi.core.apiService.encodeUrlPath;
+
 /**
  * Rewrites legacy URLs to URLs compatible with the new URL scheme.
  *
@@ -96,7 +107,8 @@ grrUi.routing.rewriteUrl = function(url) {
 
     case 'VirtualFileSystemView':
       var t = hashState['t'] || '';
-      return '/clients/' + clientId + '/vfs?folder=' + t;
+      return '/clients/' + clientId + '/vfs/' +
+          encodeUrlPath(ensurePathIsFolder(getFilePathFromId(t)));
 
     case 'ContainerViewer':
       var path = hashState['container'] || '';
@@ -162,3 +174,5 @@ grrUi.routing.parseHash_ = function(hash) {
 
   return result;
 };
+
+});  // goog.scope

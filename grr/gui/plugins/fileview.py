@@ -700,7 +700,16 @@ class RecursiveListButtonRenderer(renderers.AngularSpanDirectiveRenderer):
     if "aff4_path" in request.REQ:
       aff4_path = rdfvalue.RDFURN(request.REQ.get("aff4_path"))
       client_id = rdf_client.ClientURN(aff4_path.Split()[0])
-      vfs_path = aff4_path.RelativeName(client_id)
+      # grr-recursive-list-button expects a path to a currently
+      # selected file and will update the directory containing the selected
+      # file.
+      # At the same time legacy code passes a path to a folder to be updated
+      # in the aff4_path parameter. So if it passes foo/bar, then foo will be
+      # updated, not foo/bar. To work around this we add additional slash
+      # to an aff4_path: if foo/bar/ is passed to grr-recursive-list-button,
+      # then foo/bar will be updated (vfs-related Angular code generally
+      # treats everything with a trailing slash as a folder path).
+      vfs_path = aff4_path.RelativeName(client_id) + "/"
 
       self.directive_args["client-id"] = client_id
       self.directive_args["file-path"] = vfs_path
@@ -921,7 +930,6 @@ class VirtualFileSystemView(renderers.Renderer):
         token=request.token)
 
     canary_mode = user_record.Get(user_record.Schema.GUI_SETTINGS).canary_mode
-
     if canary_mode:
       return VirtualFileSystemMigratedView().Layout(request, response)
     else:

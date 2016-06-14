@@ -57,7 +57,6 @@ ClientBuilder Context:
     - "%(Config.directory)/buildconfig.yaml"
 
   Target:Darwin:
-
     # The build system generates a build.yaml file with information about the
     # build. It is placed right next to this file.
     Config.includes:

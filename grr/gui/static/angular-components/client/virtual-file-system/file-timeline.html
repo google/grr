@@ -31,7 +31,7 @@
         grr-memory-items-provider
         items="controller.timelineItems"
         ng-class="{'row-selected': item === controller.selectedItem}"
-        ng-click="controller.selectFile(item); controller.selectedItem = item;">
+        ng-click="controller.selectFile(item)">
       <td><grr-semantic-value value="::item.value.timestamp" /></td>
       <td><grr-semantic-value value="::item.value.file_path" /></td>
       <td>

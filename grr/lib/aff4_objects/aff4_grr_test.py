@@ -6,6 +6,7 @@ import time
 
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -66,10 +67,9 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
     urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec,
                                                      "C.1234567812345678")
-    self.assertEqual(
-        urn,
-        rdfvalue.RDFURN(r"aff4:/C.1234567812345678/fs/tsk/\\.\Volume{1234}\/"
-                        "Test Directory/notes.txt:ads"))
+    self.assertEqual(urn, rdfvalue.RDFURN(
+        r"aff4:/C.1234567812345678/fs/tsk/\\.\Volume{1234}\/"
+        "Test Directory/notes.txt:ads"))
 
   def testClientSubfieldGet(self):
     """Test we can get subfields of the client."""
@@ -264,3 +264,12 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
         self.assertFalse(summary.client_info)
 
         self.assertEqual(summary.timestamp.AsSecondsFromEpoch(), 101)
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

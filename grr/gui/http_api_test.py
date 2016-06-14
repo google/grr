@@ -81,6 +81,22 @@ class TestHttpApiRouter(api_call_router.ApiCallRouter):
   def SampleDelete(self, args, token=None):
     return SampleDeleteHandler()
 
+  @api_call_router.Http("GET", "/failure/not-found")
+  def FailureNotFound(self, args, token=None):
+    raise api_call_handler_base.ResourceNotFoundError()
+
+  @api_call_router.Http("GET", "/failure/server-error")
+  def FailureServerError(self, args, token=None):
+    raise RuntimeError("Some error")
+
+  @api_call_router.Http("GET", "/failure/not-implemented")
+  def FailureNotImplemented(self, args, token=None):
+    raise NotImplementedError()
+
+  @api_call_router.Http("GET", "/failure/unauthorized")
+  def FailureUnauthorized(self, args, token=None):
+    raise access_control.UnauthorizedAccess("oh no")
+
 
 class RouterMatcherTest(test_lib.GRRBaseTest):
   """Test for RouterMatcher."""
@@ -272,6 +288,77 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
         json.loads(response.content), {"method": "DELETE",
                                        "resource": "R:123456"})
     self.assertEqual(response.status_code, 200)
+
+  def testStatsAreCorrectlyUpdatedOnHeadRequests(self):
+    with self.assertStatsCounterDelta(
+        1, "api_access_probe_latency",
+        fields=["SampleGet", "http", "SUCCESS"]), \
+    self.assertStatsCounterDelta(
+        0, "api_access_probe_latency",
+        fields=["SampleGet", "http", "FORBIDDEN"]), \
+    self.assertStatsCounterDelta(
+        0, "api_access_probe_latency",
+        fields=["SampleGet", "http", "NOT_FOUND"]), \
+    self.assertStatsCounterDelta(
+        0, "api_access_probe_latency",
+        fields=["SampleGet", "http", "NOT_IMPLEMENTED"]), \
+    self.assertStatsCounterDelta(
+        0, "api_access_probe_latency",
+        fields=["SampleGet", "http", "SERVER_ERROR"]):
+
+      self._RenderResponse(self._CreateRequest("HEAD",
+                                               "/test_sample/some/path"))
+
+  def testStatsAreCorrectlyUpdatedOnGetRequests(self):
+    with self.assertStatsCounterDelta(
+        1, "api_method_latency",
+        fields=["SampleGet", "http", "SUCCESS"]), \
+    self.assertStatsCounterDelta(
+        0, "api_method_latency",
+        fields=["SampleGet", "http", "FORBIDDEN"]), \
+    self.assertStatsCounterDelta(
+        0, "api_method_latency",
+        fields=["SampleGet", "http", "NOT_FOUND"]), \
+    self.assertStatsCounterDelta(
+        0, "api_method_latency",
+        fields=["SampleGet", "http", "NOT_IMPLEMENTED"]), \
+    self.assertStatsCounterDelta(
+        0, "api_method_latency",
+        fields=["SampleGet", "http", "SERVER_ERROR"]):
+
+      self._RenderResponse(self._CreateRequest("GET", "/test_sample/some/path"))
+
+  def testStatsAreCorrectlyUpdatedOnVariousStatusCodes(self):
+
+    def CheckMethod(url, method_name, status):
+      with self.assertStatsCounterDelta(
+          status == "SUCCESS" and 1 or 0,
+          "api_method_latency",
+          fields=[method_name, "http", "SUCCESS"]), \
+      self.assertStatsCounterDelta(
+          status == "FORBIDDEN" and 1 or 0,
+          "api_method_latency",
+          fields=[method_name, "http", "FORBIDDEN"]), \
+      self.assertStatsCounterDelta(
+          status == "NOT_FOUND" and 1 or 0,
+          "api_method_latency",
+          fields=[method_name, "http", "NOT_FOUND"]), \
+      self.assertStatsCounterDelta(
+          status == "NOT_IMPLEMENTED" and 1 or 0,
+          "api_method_latency",
+          fields=[method_name, "http", "NOT_IMPLEMENTED"]), \
+      self.assertStatsCounterDelta(
+          status == "SERVER_ERROR" and 1 or 0,
+          "api_method_latency",
+          fields=[method_name, "http", "SERVER_ERROR"]):
+
+        self._RenderResponse(self._CreateRequest("GET", url))
+
+    CheckMethod("/failure/not-found", "FailureNotFound", "NOT_FOUND")
+    CheckMethod("/failure/server-error", "FailureServerError", "SERVER_ERROR")
+    CheckMethod("/failure/not-implemented", "FailureNotImplemented",
+                "NOT_IMPLEMENTED")
+    CheckMethod("/failure/unauthorized", "FailureUnauthorized", "FORBIDDEN")
 
 
 def main(argv):

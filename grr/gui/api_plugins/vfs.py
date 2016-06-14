@@ -75,13 +75,17 @@ class ApiFile(rdf_structs.RDFProtoStruct):
     """
     self.name = file_obj.urn.Basename()
     self.path = "/".join(file_obj.urn.Path().split("/")[2:])
-    self.size = file_obj.Get(file_obj.Schema.SIZE)
     self.is_directory = "Container" in file_obj.behaviours
     self.hash = file_obj.Get(file_obj.Schema.HASH, None)
+
+    stat = file_obj.Get(file_obj.Schema.STAT)
+    if stat:
+      self.stat = stat
 
     content_last = file_obj.Get(file_obj.Schema.CONTENT_LAST)
     if content_last:
       self.last_downloaded = content_last
+      self.last_downloaded_size = file_obj.Get(file_obj.Schema.SIZE)
 
     type_obj = file_obj.Get(file_obj.Schema.TYPE)
     if type_obj is not None:

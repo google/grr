@@ -4,6 +4,7 @@
 
 
 import json
+import time
 import traceback
 import urllib2
 
@@ -26,6 +27,7 @@ from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import stats
 from grr.lib import utils
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -222,13 +224,19 @@ class HttpRequestHandler(object):
   def __init__(self, router_matcher=None):
     self._router_matcher = router_matcher or RouterMatcher()
 
-  def _BuildResponse(self, status, rendered_data, headers=None):
+  def _BuildResponse(self,
+                     status,
+                     rendered_data,
+                     method_name=None,
+                     headers=None):
     """Builds HTTPResponse object from rendered data and HTTP status."""
 
     response = http.HttpResponse(status=status,
                                  content_type="application/json; charset=utf-8")
     response["Content-Disposition"] = "attachment; filename=response.json"
     response["X-Content-Type-Options"] = "nosniff"
+    if method_name:
+      response["X-API-Method"] = method_name
 
     for key, value in (headers or {}).items():
       response[key] = value
@@ -246,7 +254,7 @@ class HttpRequestHandler(object):
 
     return response
 
-  def _BuildStreamingResponse(self, binary_stream):
+  def _BuildStreamingResponse(self, binary_stream, method_name=None):
     """Builds HTTPResponse object for streaming."""
 
     response = http.StreamingHttpResponse(
@@ -254,6 +262,8 @@ class HttpRequestHandler(object):
         content_type="binary/octet-stream")
     response["Content-Disposition"] = ("attachment; filename=%s" %
                                        binary_stream.filename)
+    if method_name:
+      response["X-API-Method"] = method_name
 
     if binary_stream.content_length:
       response["Content-Length"] = binary_stream.content_length
@@ -343,6 +353,8 @@ class HttpRequestHandler(object):
     except werkzeug_exceptions.MethodNotAllowed as e:
       return self._BuildResponse(405, dict(message=e.message))
     except Error as e:
+      logging.exception("Can't match URL to router/method: %s", e)
+
       return self._BuildResponse(500,
                                  dict(message=str(e),
                                       traceBack=traceback.format_exc()))
@@ -385,21 +397,27 @@ class HttpRequestHandler(object):
           headers = None
           if binary_stream.content_length:
             headers = {"Content-Length": binary_stream.content_length}
-          return self._BuildResponse(200, {"status": "OK"}, headers)
+          return self._BuildResponse(200, {"status": "OK"},
+                                     method_name=method_metadata.name,
+                                     headers=headers)
         else:
-          return self._BuildResponse(200, {"status": "OK"})
+          return self._BuildResponse(200, {"status": "OK"},
+                                     method_name=method_metadata.name)
 
       if (method_metadata.result_type ==
           method_metadata.BINARY_STREAM_RESULT_TYPE):
         binary_stream = handler.Handle(args, token=token)
-        return self._BuildStreamingResponse(binary_stream)
+        return self._BuildStreamingResponse(binary_stream,
+                                            method_name=method_metadata.name)
       else:
         rendered_data = self.CallApiHandler(handler, args, token=token)
 
         if strip_type_info:
           rendered_data = self.StripTypeInfo(rendered_data)
 
-        return self._BuildResponse(200, rendered_data)
+        return self._BuildResponse(200,
+                                   rendered_data,
+                                   method_name=method_metadata.name)
     except access_control.UnauthorizedAccess as e:
       logging.exception("Access denied to %s (%s) with %s: %s", request.path,
                         request.method, method_metadata.name, e)
@@ -412,11 +430,16 @@ class HttpRequestHandler(object):
                                  dict(message="Access denied by ACL: %s" %
                                       e.message,
                                       subject=utils.SmartStr(e.subject)),
-                                 headers=additional_headers)
+                                 headers=additional_headers,
+                                 method_name=method_metadata.name)
     except api_call_handler_base.ResourceNotFoundError as e:
-      return self._BuildResponse(404, dict(message=e.message))
+      return self._BuildResponse(404,
+                                 dict(message=e.message),
+                                 method_name=method_metadata.name)
     except NotImplementedError as e:
-      return self._BuildResponse(501, dict(message=e.message))
+      return self._BuildResponse(501,
+                                 dict(message=e.message),
+                                 method_name=method_metadata.name)
     except Exception as e:  # pylint: disable=broad-except
       logging.exception("Error while processing %s (%s) with %s: %s",
                         request.path, request.method,
@@ -424,11 +447,39 @@ class HttpRequestHandler(object):
 
       return self._BuildResponse(500,
                                  dict(message=str(e),
-                                      traceBack=traceback.format_exc()))
+                                      traceBack=traceback.format_exc()),
+                                 method_name=method_metadata.name)
 
 
 def RenderHttpResponse(request):
-  return HTTP_REQUEST_HANDLER.HandleRequest(request)
+  """Renders HTTP response to a given HTTP request."""
+
+  start_time = time.time()
+  response = HTTP_REQUEST_HANDLER.HandleRequest(request)
+  total_time = time.time() - start_time
+
+  method_name = response.get("X-API-Method", "unknown")
+  if response.status_code == 200:
+    status = "SUCCESS"
+  elif response.status_code == 403:
+    status = "FORBIDDEN"
+  elif response.status_code == 404:
+    status = "NOT_FOUND"
+  elif response.status_code == 501:
+    status = "NOT_IMPLEMENTED"
+  else:
+    status = "SERVER_ERROR"
+
+  if request.method == "HEAD":
+    metric_name = "api_access_probe_latency"
+  else:
+    metric_name = "api_method_latency"
+
+  stats.STATS.RecordEvent(metric_name,
+                          total_time,
+                          fields=(method_name, "http", status))
+
+  return response
 
 
 HTTP_REQUEST_HANDLER = None
@@ -440,3 +491,11 @@ class HttpApiInitHook(registry.InitHook):
   def RunOnce(self):
     global HTTP_REQUEST_HANDLER
     HTTP_REQUEST_HANDLER = HttpRequestHandler()
+
+    stats.STATS.RegisterEventMetric(
+        "api_method_latency",
+        fields=[("method_name", str), ("protocol", str), ("status", str)])
+
+    stats.STATS.RegisterEventMetric(
+        "api_access_probe_latency",
+        fields=[("method_name", str), ("protocol", str), ("status", str)])

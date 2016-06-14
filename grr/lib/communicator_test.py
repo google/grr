@@ -139,14 +139,26 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.MakeClientAFF4Record()
 
     # First send some messages to the server
-    decoded_messages = self.ClientServerCommunicate()
+    decoded_messages = self.ClientServerCommunicate(timestamp=1000000)
+
+    encrypted_messages = self.cipher_text
 
     self.assertEqual(decoded_messages[0].auth_state,
                      rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
 
-    # Now replay the last message to the server
+    # Immediate replay is accepted by the server since some proxies do this.
     (decoded_messages, _,
-     _) = self.server_communicator.DecryptMessage(self.cipher_text)
+     _) = self.server_communicator.DecryptMessage(encrypted_messages)
+
+    self.assertEqual(decoded_messages[0].auth_state,
+                     rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
+
+    # Move the client time more than 1h forward.
+    self.ClientServerCommunicate(timestamp=1000000 + 3700 * 1000000)
+
+    # And replay the old messages again.
+    (decoded_messages, _,
+     _) = self.server_communicator.DecryptMessage(encrypted_messages)
 
     # Messages should now be tagged as desynced
     self.assertEqual(decoded_messages[0].auth_state,

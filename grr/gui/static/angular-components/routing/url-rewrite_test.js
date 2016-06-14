@@ -23,9 +23,8 @@ describe('rewriteUrl()', function() {
   // Virtual File System.
   mapping['main=VirtualFileSystemView&c=C.dc1a70ddaaba407a&tag=AFF4Stats' +
       '&t=_fs-tsk-_5C_5C_3F_5CVolume_7B649ac6fa_2D9ab4_' +
-      '2D11e5_2Db332_2D806e6f6e6963_7D'] = '/clients/C.dc1a70ddaaba407a/vfs' +
-      '?folder=_fs-tsk-_5C_5C_3F_5CVolume_7B649ac6fa_2D9ab4_' +
-      '2D11e5_2Db332_2D806e6f6e6963_7D';
+      '2D11e5_2Db332_2D806e6f6e6963_7D'] = '/clients/C.dc1a70ddaaba407a/vfs/fs/tsk/' +
+          '%5C%5C%3F%5CVolume%7B649ac6fa-9ab4-11e5-b332-806e6f6e6963%7D/';
 
   // Statistics.
   mapping['main=ShowStatistics'] = '/stats?selection=';

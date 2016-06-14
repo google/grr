@@ -8,7 +8,7 @@ describe('version dropdown directive', function () {
   var $compile, $rootScope, $scope, $q, grrApiService;
 
   var REFRESH_VERSIONS_EVENT =
-      grrUi.core.versionDropdownDirective.VersionDropdownDirective.refresh_versions_event;
+      grrUi.core.versionDropdownDirective.VersionDropdownDirective.REFRESH_VERSIONS_EVENT;
 
   beforeEach(module('/static/angular-components/core/version-dropdown.html'));
   beforeEach(module(grrUi.core.module.name));
@@ -42,25 +42,47 @@ describe('version dropdown directive', function () {
     });
   };
 
+  it('shows HEAD as the first element in the versions list', function() {
+    mockApiService({
+      'some/url': [{value: 10}]
+    });
+
+    var element = render('some/url');
+    expect(element.find('option').length).toBe(2);
+    expect(element.find('option:nth(0)').val()).toBe('HEAD');
+  });
+
+  it('selects HEAD if not version specified', function() {
+    mockApiService({
+      'some/url': [{value: 10}]
+    });
+
+    var element = render('some/url');
+    expect(element.find('option[selected]').val()).toBe('HEAD');
+  });
+
   it('should show all versions from server and select the passed one', function () {
     mockApiService({
       'some/url': [{value: 10}, {value: 42}, {value: 50}]
     });
 
     var element = render('some/url', 42);
-    expect(element.find('option').length).toBe(3);
+    expect(element.find('option').length).toBe(4);  // 3 versions + HEAD
     expect(element.find('option[selected]').val()).toBe('42');
     expect($scope.version.data).toBe(42);
   });
 
-  it('should keep the selection if it is not in the version list', function () {
+  it('should show add current version to the server versions list', function () {
     mockApiService({
-      'some/url': [{value: 10}]
+      'some/url': [{value: 10}, {value: 41}, {value: 50}]
     });
 
     var element = render('some/url', 42);
-    expect(element.find('option').length).toBe(2); // Option for 10 and empty option for the selection.
-    expect(element.find('option[selected]').val()).toBeUndefined();
+
+    // 3 versions from server + selected version + HEAD
+    expect(element.find('option').length).toBe(5);
+
+    expect(element.find('option[selected]').val()).toBe('42');
     expect($scope.version.data).toBe(42);
   });
 
@@ -71,8 +93,14 @@ describe('version dropdown directive', function () {
 
     var element = render('some/url', 42);
     expect(element.find('.newer-version-hint').length).toBe(1);
+  });
 
-    var element = render('some/url', 10);
+  it('does not show a hint when a newest version  is shown', function () {
+    mockApiService({
+      'some/url': [{value: 10}, {value: 42}, {value: 50}]
+    });
+
+    var element = render('some/url', 50);
     expect(element.find('.newer-version-hint').length).toBe(0);
   });
 
@@ -82,19 +110,21 @@ describe('version dropdown directive', function () {
     });
 
     var element = render('some/url', 42);
-    expect(element.find('option').length).toBe(3);
+    expect(element.find('option').length).toBe(4);
     expect(element.find('option[selected]').val()).toBe('42');
     expect($scope.version.data).toBe(42);
 
     $scope.version.data = 50;
     $scope.$apply();
-    expect(element.find('option').length).toBe(3);
+    expect(element.find('option').length).toBe(4);
     expect(element.find('option[selected]').val()).toBe('50');
 
     $scope.version.data = 99;
     $scope.$apply();
-    expect(element.find('option').length).toBe(4);
-    expect(element.find('option[selected]').val()).toBeUndefined();
+    // This version is not in the server-provided list, so the list should be
+    // extended.
+    expect(element.find('option').length).toBe(5);
+    expect(element.find('option[selected]').val()).toBe('99');
   });
 
   it('should be disabled when no options are available', function () {
@@ -114,7 +144,7 @@ describe('version dropdown directive', function () {
       'some/url': items
     });
 
-    var element = render('some/url', 42);
+    var element = render('some/url');
     expect(element.find('select[disabled]').length).toBe(1);
     expect(element.find('option[selected]').text().trim()).toBe('No versions available.');
 
@@ -125,9 +155,9 @@ describe('version dropdown directive', function () {
     $rootScope.$apply();
 
     expect(element.find('select[disabled]').length).toBe(0);
-    expect(element.find('option').length).toBe(2);
-    expect(element.find('option[selected]').val()).toBe('42');
-    expect($scope.version.data).toBe(42); // It does not change the model.
+    expect(element.find('option').length).toBe(3);
+    expect(element.find('option[selected]').val()).toBe('HEAD');
+    expect($scope.version.data).toBeUndefined(); // It does not change the model.
   });
 
 });

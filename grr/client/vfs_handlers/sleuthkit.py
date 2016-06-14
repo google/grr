@@ -178,6 +178,54 @@ class TSKFile(vfs.VFSHandler):
 
     return None
 
+  def _Walk(self, depth, top_path, top_tsk_dir):
+    if depth < 0:
+      return
+
+    dirs, files = [], []
+    tsk_dir_map = {}
+
+    for f in top_tsk_dir:
+      name = f.info.name.name
+      if name in [".", ".."] or name in self.BLACKLIST_FILES:
+        continue
+
+      name = utils.SmartUnicode(name)
+
+      try:
+        inode = f.info.meta.addr
+        fd = self.fs.open_meta(inode)
+        tsk_dir = fd.as_directory()
+
+      except (IOError, AttributeError):  # Not a directory
+        files.append(name)
+
+      else:  # Is a directory
+        dirs.append(name)
+        tsk_dir_map[name] = tsk_dir
+
+    dirs.sort()
+    files.sort()
+
+    yield top_path, dirs, files
+
+    for d in dirs:
+      path = "%s/%s" % (top_path if top_path != "/" else "", d)
+      tsk_dir = tsk_dir_map[d]
+
+      for item in self._Walk(depth - 1, path, tsk_dir):
+        yield item
+
+  def RecursiveListNames(self, depth=0):
+    path = self.pathspec.last.path
+
+    try:
+      tsk_dir = self.fd.as_directory()
+    except IOError:  # Not a directory
+      return
+
+    return self._Walk(depth, path, tsk_dir)
+
   def ListNames(self):
     directory_handle = self.fd.as_directory()
     for f in directory_handle:

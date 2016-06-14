@@ -637,27 +637,31 @@ the standard configuration this will be used to host both the client facing
 server and the admin user interface.\n"""
 
   existing_ui_urn = config_lib.CONFIG.Get("AdminUI.url", default=None)
-  existing_frontend_urn = config_lib.CONFIG.Get("Client.server_urls")
-  if not existing_frontend_urn:
+  existing_frontend_urns = config_lib.CONFIG.Get("Client.server_urls")
+  if not existing_frontend_urns:
     # Port from older deprecated setting Client.control_urls.
     existing_control_urns = config_lib.CONFIG.Get("Client.control_urls",
                                                   default=None)
     if existing_control_urns is not None:
-      existing_frontend_urn = []
+      existing_frontend_urns = []
       for existing_control_urn in existing_control_urns:
         if not existing_control_urn.endswith("control"):
           raise RuntimeError("Invalid existing control URL: %s" %
                              existing_control_urn)
 
-        existing_frontend_urn.append(existing_control_urn.rsplit("/", 1)[0])
+        existing_frontend_urns.append(existing_control_urn.rsplit("/", 1)[0] +
+                                      "/")
 
-  if not existing_frontend_urn or not existing_ui_urn:
+      config.Set("Client.server_urls", existing_frontend_urns)
+      config.Set("Client.control_urls", ["deprecated use Client.server_urls"])
+
+  if not existing_frontend_urns or not existing_ui_urn:
     ConfigureHostnames(config)
   else:
     print """Found existing settings:
   AdminUI URL: %s
   Frontend URL(s): %s
-""" % (existing_ui_urn, existing_frontend_urn)
+""" % (existing_ui_urn, existing_frontend_urns)
 
     if raw_input("Do you want to keep this configuration?"
                  " [Yn]: ").upper() == "N":

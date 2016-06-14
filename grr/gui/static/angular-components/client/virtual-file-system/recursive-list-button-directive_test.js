@@ -25,7 +25,7 @@ describe('"recursive list directory" button', function() {
 
   var renderTestTemplate = function(clientId, filePath) {
     $rootScope.clientId = clientId || 'C.0000111122223333';
-    $rootScope.filePath = filePath || 'fs/os/c';
+    $rootScope.filePath = filePath || 'fs/os/c/';
 
     var template = '<grr-recursive-list-button ' +
         'client-id="clientId" file-path="filePath" />';

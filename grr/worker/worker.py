@@ -24,7 +24,7 @@ def main(unused_argv):
 
   # Initialise flows
   startup.Init()
-  token = access_control.ACLToken(username="GRRWorker")
+  token = access_control.ACLToken(username="GRRWorker").SetUID()
   worker_obj = worker.GRRWorker(token=token)
   worker_obj.Run()
 

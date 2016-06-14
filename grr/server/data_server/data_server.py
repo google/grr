@@ -845,6 +845,9 @@ def main(unused_argv):
   """Main."""
   # Change the startup sequence in order to set the database path, if needed.
   startup.AddConfigContext()
+  config_lib.CONFIG.AddContext("DataServer Context",
+                               "Context applied when running a data server.")
+
   startup.ConfigInit()
 
   if flags.FLAGS.path:

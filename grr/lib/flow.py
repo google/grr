@@ -1582,22 +1582,32 @@ class ServerCommunicator(communicator.Communicator):
         # The very first packet we see from the client we do not have its clock
         remote_time = client.Get(client.Schema.CLOCK) or 0
         client_time = signed_message_list.timestamp or 0
-        if client_time > long(remote_time):
-          stats.STATS.IncrementCounter("grr_authenticated_messages")
 
-          # Update the client and server timestamps.
-          client.Set(client.Schema.CLOCK, rdfvalue.RDFDatetime(client_time))
-          client.Set(client.Schema.PING, rdfvalue.RDFDatetime().Now())
+        # This used to be a strict check here so absolutely no out of
+        # order messages would be accepted ever. Turns out that some
+        # proxies can send your request with some delay even if the
+        # client has already timed out (and sent another request in
+        # the meantime, making the first one out of order). In that
+        # case we would just kill the whole flow as a
+        # precaution. Given the behavior of those proxies, this seems
+        # now excessive and we have changed the replay protection to
+        # only trigger on messages that are more than one hour old.
 
-        else:
-          logging.debug("Message desynchronized for %s: %s >= %s", client_id,
-                        long(remote_time), int(client_time))
+        if client_time < long(remote_time - rdfvalue.Duration("1h")):
+          logging.warning("Message desynchronized for %s: %s >= %s", client_id,
+                          long(remote_time), int(client_time))
           # This is likely an old message
           return rdf_flows.GrrMessage.AuthorizationState.DESYNCHRONIZED
 
-        # If we are prepared to live with a slight risk of replay we can
-        # remove this.
-        client.Flush()
+        stats.STATS.IncrementCounter("grr_authenticated_messages")
+
+        # Update the client and server timestamps only if the client
+        # time moves forward.
+        if client_time > long(remote_time):
+          client.Set(client.Schema.CLOCK, rdfvalue.RDFDatetime(client_time))
+        else:
+          logging.warning("Out of order message for %s: %s >= %s", client_id,
+                          long(remote_time), int(client_time))
 
     except communicator.UnknownClientCert:
       pass

@@ -11,8 +11,9 @@ import time
 import mock
 
 # pylint: disable=unused-import,g-bad-import-order
-# Import this so the aff4 tests will be run.
-from grr.lib.aff4_objects import tests
+# Import this so that filters classes are initialized (used in Query tests).
+# TODO(user): deprecate Query support.
+from grr.lib.aff4_objects import filters
 # pylint: enable=unused-import,g-bad-import-order
 
 from grr.lib import aff4
@@ -2269,13 +2270,9 @@ class ForemanTests(test_lib.AFF4ObjectTest):
         self.assertEqual(len(rules), num_rules)
 
 
-class AFF4TestLoader(test_lib.GRRTestLoader):
-  base_class = test_lib.AFF4ObjectTest
-
-
 def main(argv):
   # Run the full test suite
-  test_lib.GrrTestProgram(argv=argv, testLoader=AFF4TestLoader())
+  test_lib.GrrTestProgram(argv=argv)
 
 
 if __name__ == "__main__":

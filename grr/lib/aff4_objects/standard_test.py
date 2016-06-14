@@ -8,6 +8,7 @@ import mock
 
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import standard as aff4_standard
@@ -407,3 +408,12 @@ class VFSDirectoryTest(test_lib.AFF4ObjectTest):
         mode="rw",
         token=self.token)
     self.assertEqual(d.real_pathspec.CollapsePath(), "a/b/c")
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

@@ -239,6 +239,8 @@ PrivateKeys.executable_signing_private_key: |
   p9t+NDqxYEMnQ1UVt47cF9jyAWcKnnyyAH1ClPowxA==
   -----END RSA PRIVATE KEY-----
 
+Client.server_urls: ["http://localhost:8080/"]
+
 Test Context:
   AdminUI.webauth_manager: NullWebAuthManager
 
@@ -250,7 +252,6 @@ Test Context:
 
   # Increase the client memory limit to 4GB.
   Client.rss_max: 4000
-  Client.server_urls: ["http://localhost:8080/"]
   Client.foreman_check_frequency: 5
   Client.poll_max: 5
   Frontend.bind_address: 127.0.0.1

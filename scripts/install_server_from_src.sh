@@ -61,9 +61,12 @@ header "Install Configuration Files"
 mkdir -p "$INSTALL_PREFIX/etc/grr"
 
 # When installed globally the config files are copied to the global
-# configuration directory.
+# configuration directory, except grr-server.yaml, which is effectively part of
+# the code.
 for f in "$SRC_DIR/install_data/etc/*.yaml"; do
-  $INSTALL_CMD $f  "$INSTALL_PREFIX/etc/grr/"
+  if [[ $f != "$SRC_DIR/install_data/etc/grr-server.yaml" ]]; then
+    $INSTALL_CMD "$f" "$INSTALL_PREFIX/etc/grr/"
+  fi
 done
 
 # Install all the script entry points in /usr/bin/.

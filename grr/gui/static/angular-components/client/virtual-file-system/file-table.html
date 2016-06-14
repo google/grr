@@ -1,19 +1,25 @@
-<div grr-force-refresh refresh-trigger="controller.fileListUrl">
+<div>
 
   <div class="navbar navbar-default">
 
     <div class="navbar-inner">
       <div class="navbar-form pull-left">
 
+        <!-- TODO(user): disabling the button if refresh operation is
+             in progress is problematic, as users may want to refresh a
+             number of folders without waiting for each one of them to
+             finish before they refresh the next one.
+             Button should show the state of the operation state and the
+             state should be per-folder.
+             add->ng-disabled="controller.refreshOperationId" -->
         <button id="refresh-dir" class="btn btn-default"
                 title="Refresh this directory listing."
-                ng-disabled="controller.refreshOperationId"
-                ng-click="controller.refreshDirectory()">
+                ng-click="controller.startVfsRefreshOperation()">
           <img src="/static/images/stock_refresh.png" class="toolbar_icon" />
         </button>
 
         <grr-recursive-list-button client-id="controller.fileContext.clientId"
-                                   file-path="controller.fileContext.selectedFolderPath"
+                                   file-path="controller.fileContext.selectedFilePath"
                                    class="space-right">
         </grr-recursive-list-button>
 
@@ -41,13 +47,15 @@
         <grr-r-we-owned-button class="space-right"></grr-r-we-owned-button>
 
         <div class="btn-group" data-toggle="buttons">
-          <label class="btn btn-default active"
-                 ng-click="controller.showFileList = true">
+          <label class="btn btn-default"
+                 ng-class="{'active': viewMode == 'list'}"
+                 ng-click="controller.setViewMode('list')">
             <input type="radio" name="show-client-details" checked>
             <i class="fa fa-list"></i> File list
           </label>
           <label class="btn btn-default"
-                 ng-click="controller.showFileList = false">
+                 ng-class="{'active': viewMode == 'timeline'}"
+                 ng-click="controller.setViewMode('timeline')">
             <input type="radio" name="show-client-details">
             <i class="fa fa-history"></i> Timeline
           </label>
@@ -58,47 +66,61 @@
 
   </div>
 
-  <grr-breadcrumbs path="controller.fileContext.selectedFolderPath"></grr-breadcrumbs>
+  <grr-breadcrumbs path="controller.fileContext.selectedFilePath"></grr-breadcrumbs>
 
-  <table class="table table-striped table-condensed table-hover table-bordered full-width file-list"
-         ng-if="controller.showFileList">
+  <div grr-force-refresh refresh-trigger="controller.fileListUrl"
+       ng-if="viewMode == 'list'">
+    <table class="table table-striped table-condensed table-hover table-bordered full-width file-list">
 
-    <thead>
-      <tr>
-        <th>Icon</th>
-        <th>Name</th>
-        <th>Type</th>
-        <th>Size</th>
-        <th>Age</th>
-      </tr>
-    </thead>
+      <thead>
+        <tr>
+          <th>Icon</th>
+          <th>Name</th>
+          <th>st_size</th>
+          <th>st_mtime</th>
+          <th>st_ctime</th>
+          <th>GRR Snapshot</th>
+        </tr>
+      </thead>
 
-    <!-- We need this ng-if to make sure fileListUrl is stable when ApiItemsProvider is called. -->
-    <tbody ng-if="controller.fileListUrl">
-      <tr grr-infinite-table
-          filter-value="controller.filterValue"
-          trigger-update="controller.triggerUpdate"
-          grr-api-items-provider
-          url="controller.fileListUrl"
-          ng-click="controller.selectFile(item)"
-          ng-dblclick="controller.selectFolder(item)"
-          ng-class="{'row-selected': item.value.path.value === controller.fileContext.selectedFilePath}">
-        <td>
-          <img class="grr-icon directory" src="/static/images/directory.png"
-               alt="Directory" title="Directory" ng-if="item.value.is_directory.value">
-          <img class="grr-icon file" src="/static/images/file.png"
-               alt="File Like Object" title="File Like Object" ng-if="!item.value.is_directory.value">
-        </td>
-        <td><grr-semantic-value value="::item.value.name" /></td>
-        <td><grr-semantic-value value="::item.value.type" /></td>
-        <td><grr-semantic-value value="::item.value.size" /></td>
-        <td><grr-timestamp value="::item.age" /></td>
-      </tr>
-    </tbody>
+      <!-- We need this ng-if to make sure fileListUrl is stable when ApiItemsProvider is called. -->
+      <tbody ng-if="controller.fileListUrl">
+        <tr grr-infinite-table
+            filter-value="controller.filterValue"
+            trigger-update="controller.triggerUpdate"
+            grr-api-items-provider
+            url="controller.fileListUrl"
+            ng-click="controller.selectFile(item)"
+            ng-dblclick="controller.selectFolder(item)"
+            ng-class="{'row-selected': item.value.path.value === controller.fileContext.selectedFilePath}">
+          <td>
+            <img class="grr-icon directory" src="/static/images/directory.png"
+                 alt="Directory" title="Directory" ng-if="item.value.is_directory.value">
+            <img class="grr-icon file" src="/static/images/file.png"
+                 alt="File Like Object" title="File Like Object" ng-if="!item.value.is_directory.value">
+          </td>
+          <td><grr-semantic-value value="::item.value.name" /></td>
+          <td>
+            <grr-semantic-value class="pull-left"
+                                value="::item.value.stat.value.st_size"></grr-semantic-value>
+            <span ng-if="::item.value.last_downloaded_size !== undefined" class="pull-right">
+              <i class="fa fa-download"
+                 title="Downloaded ({$ ::item.value.last_downloaded_size.value $} bytes)"
+                 aria-hidden="true">
+              </i>
+            </span>
+            <div class="clearfix"></div>
+          </td>
+          <td><grr-semantic-value value="::item.value.stat.value.st_mtime" /></td>
+          <td><grr-semantic-value value="::item.value.stat.value.st_ctime" /></td>
+          <td><grr-timestamp value="::item.age" /></td>
+        </tr>
+      </tbody>
 
-  </table>
+    </table>
+  </div>
 
-  <grr-file-timeline ng-if="!controller.showFileList"
+  <grr-file-timeline ng-if="viewMode == 'timeline'"
                      filter-value="controller.filterValue">
   </grr-file-timeline>
 

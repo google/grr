@@ -10,6 +10,7 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import flags
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -334,8 +335,8 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
         hash_type="sha1",
         hash_value="e1f7e62b3909263f3a2518bbae6a9ee36d5b502b")
 
-    hits = dict(filestore.HashFileStore.GetClientsForHashes(
-        [hash1, hash2], token=self.token))
+    hits = dict(filestore.HashFileStore.GetClientsForHashes([hash1, hash2],
+                                                            token=self.token))
     self.assertEqual(len(hits), 2)
     self.assertListEqual(hits[hash1], [self.client_id.Add("fs/tsk").Add(
         self.base_path).Add("winexec_img.dd/Ext2IFS_1_10b.exe")])
@@ -364,8 +365,8 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
         [hash1, hash2], age=43e6, token=self.token))
     self.assertEqual(len(hits), 2)
 
-    hits = dict(filestore.HashFileStore.GetClientsForHashes(
-        [hash1, hash2], token=self.token))
+    hits = dict(filestore.HashFileStore.GetClientsForHashes([hash1, hash2],
+                                                            token=self.token))
     self.assertEqual(len(hits), 2)
 
   def testEmptyFileHasNoBackreferences(self):
@@ -407,3 +408,12 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
         res.append(target)
 
     return res
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

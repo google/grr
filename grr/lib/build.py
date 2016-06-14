@@ -292,7 +292,11 @@ class ClientRepacker(BuilderBase):
   def ValidateEndConfig(self, config, errors_fatal=True):
     """Given a generated client config, attempt to check for common errors."""
     errors = []
+
     location = config.Get("Client.server_urls", context=self.context)
+    if not location:
+      errors.append("Empty Client.server_urls")
+
     for url in location:
       if not url.startswith("http"):
         errors.append("Bad Client.server_urls specified %s" % url)

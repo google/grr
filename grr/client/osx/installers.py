@@ -23,9 +23,18 @@ class OSXInstaller(installer.Installer):
 
     zf = zipfile.ZipFile(pkg_path, mode="r")
     fd = zf.open("config.yaml")
+    install_dir = os.path.dirname(config_lib.CONFIG.parser.filename)
+
+    # We write this config to disk so that Intialize can find the build.yaml
+    # referenced inside the config as a relative path. This config isn't used
+    # after install time.
+    installer_config = os.path.join(install_dir, "installer_config.yaml")
+    with open(installer_config, "wb") as f:
+      f.write(fd.read())
 
     packaged_config = config_lib.CONFIG.MakeNewConfig()
-    packaged_config.Initialize(fd=fd, parser=config_lib.YamlParser)
+    packaged_config.Initialize(filename=installer_config,
+                               parser=config_lib.YamlParser)
 
     new_config = config_lib.CONFIG.MakeNewConfig()
     new_config.SetWriteBack(config_lib.CONFIG["Config.writeback"])
@@ -51,7 +60,6 @@ class OSXInstaller(installer.Installer):
 
     logging.info("Extracting additional files.")
 
-    install_dir = os.path.dirname(config_lib.CONFIG.parser.filename)
     for zinfo in zf.filelist:
       basename = os.path.basename(zinfo.filename)
       if basename != "config.yaml":

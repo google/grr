@@ -71,10 +71,27 @@ RoutingService.prototype.go = function(targetState, opt_params) {
  * @param {!angular.Scope} scope The scope on which to register the watcher.
  * @param {string|Array<string>} paramNames The name of the parameter.
  * @param {function(?, Object=)} callback The callback.
+ * @param {boolean=} opt_stateAgnostic If this is true, the callback will be
+ *     called on every URL parameters change. If opt_stateAgnostic is false,
+ *     the callback will only be called if the current state is equal or
+ *     is inherited from the state that was current when the callback was
+ *     installed.
+ *     By default this is false, as in most cases we don't want the callback
+ *     to be called when we're transitioning to a new state, but the
+ *     directive corresponding to the old state is still active. Example:
+ *     we're in "Browse Virtual File System" and clicking on
+ *     "Manage Launched Flows" navigator link. After the click the routing
+ *     state is changed immediately and we don't want VFS directives (
+ *     which are still active) to receive any callbacks, as they're going
+ *     to be destroyed really soon.
+ *
  * @return {function()} A de-registration function for this listener.
  * @export
  */
-RoutingService.prototype.uiOnParamsChanged = function(scope, paramNames, callback) {
+RoutingService.prototype.uiOnParamsChanged = function(
+    scope, paramNames, callback, opt_stateAgnostic) {
+  var currentStateName = this.state_.current.name;
+
   if (!angular.isArray(paramNames)) {
     // We were passed a string rather than an array. Wrap the single string in
     // an array and proceed as normal.
@@ -87,6 +104,13 @@ RoutingService.prototype.uiOnParamsChanged = function(scope, paramNames, callbac
       return this.state_.params[paramName];
     }.bind(this));
   }.bind(this), function(newValues, oldValues) {
+    if (!opt_stateAgnostic && !this.state_.includes(currentStateName)) {
+      // If opt_stateAgnostic == false, only send the callbacks if current
+      // state is equal or is a child of the state that was active when the
+      // callbacks were installed.
+      return;
+    }
+
     if (newValues.length === 1) {
       callback(newValues[0], this.state_.params);
     } else {

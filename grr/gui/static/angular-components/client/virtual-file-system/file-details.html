@@ -6,7 +6,8 @@
 
   <div ng-if="controller.fileContext.selectedFilePath" class="padded">
 
-    <grr-breadcrumbs path="controller.fileContext.selectedFolderPath">
+    <grr-breadcrumbs path="controller.fileContext.selectedFilePath"
+                     strip-ending-slash="true">
     </grr-breadcrumbs>
 
     <grr-version-dropdown url="controller.fileVersionUrl"
@@ -15,35 +16,45 @@
 
     <h1>{$ controller.selectedFileName $}</h1>
 
-    <tabset>
+    <tabset active="controller.currentTab">
 
       <tab heading="Stats"
-           select="statsTabShown = true"
-           deselect="statsTabShown = false">
-        <grr-file-stats-view ng-if="statsTabShown"></grr-file-stats-view>
-      </tab>
-
-      <tab heading="Download"
-           select="downloadTabShown = true; controller.showDefaultTab = false"
-           deselect="downloadTabShown = false"
-           ng-if="!controller.fileIsDirectory">
-        <div grr-force-refresh refresh-trigger="controller.downloadQueryParams.age">
-          <grr-file-download-view ng-if="downloadTabShown"></grr-file-download-view>
+           ng-click="controller.selectTab('stats')"
+           active="controller.tabsStates['stats']"
+           index="stats">
+        <div ng-if="currentTab == 'stats'">
+          <grr-file-stats-view></grr-file-stats-view>
         </div>
       </tab>
 
+      <tab heading="Download"
+           ng-click="controller.selectTab('download')"
+           active="controller.tabsStates['download']"
+           disabled="controller.fileIsDirectory">
+        <div ng-if="currentTab == 'download'">
+          <div grr-force-refresh refresh-trigger="controller.downloadQueryParams.age">
+            <grr-file-download-view></grr-file-download-view>
+          </div>
+        </div>
+
+      </tab>
+
       <tab heading="TextView"
-           select="textTabShown = true; controller.showDefaultTab = false"
-           deselect="textTabShown = false"
-           ng-if="!controller.fileIsDirectory">
-        <grr-file-text-view ng-if="textTabShown"></grr-file-text-view>
+           ng-click="controller.selectTab('textview')"
+           active="controller.tabsStates['textview']"
+           disabled="controller.fileIsDirectory">
+        <div ng-if="currentTab == 'textview'">
+          <grr-file-text-view></grr-file-text-view>
+        </div>
       </tab>
 
       <tab heading="HexView"
-           select="hexTabShown = true; controller.showDefaultTab = false"
-           deselect="hexTabShown = false"
-           ng-if="!controller.fileIsDirectory">
-        <grr-file-hex-view ng-if="hexTabShown"></grr-file-hex-view>
+           ng-click="controller.selectTab('hexview')"
+           active="controller.tabsStates['hexview']"
+           disabled="controller.fileIsDirectory">
+        <div ng-if="currentTab == 'hexview'">
+          <grr-file-hex-view></grr-file-hex-view>
+        </div>
       </tab>
 
     </tabset>

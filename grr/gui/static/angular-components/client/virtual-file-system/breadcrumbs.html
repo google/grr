@@ -4,7 +4,7 @@
     <a ng-click="controller.selectPath(item.path)">{$ item.name $}</a>
   </li>
 
-  <li class="active">
+  <li ng-if="controller.activeItem" class="active">
       {$ controller.activeItem $}
   </li>
 

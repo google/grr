@@ -171,7 +171,6 @@
             }
           },
           "hunt_runner_args": {
-            "description": "Foobar! (cron)",
             "client_rule_set": {
               "rules": [
                 {
@@ -180,7 +179,8 @@
                   }
                 }
               ]
-            }
+            },
+            "description": "Foobar! (cron)"
           }
         },
         "flow_name": "CreateAndRunGenericHuntFlow",
@@ -239,16 +239,6 @@
                 "age": 0,
                 "type": "HuntRunnerArgs",
                 "value": {
-                  "description": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Foobar! (cron)"
-                  },
-                  "hunt_name": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "GenericHunt"
-                  },
                   "client_rule_set": {
                     "age": 0,
                     "type": "ForemanClientRuleSet",
@@ -273,6 +263,16 @@
                         }
                       ]
                     }
+                  },
+                  "description": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Foobar! (cron)"
+                  },
+                  "hunt_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GenericHunt"
                   }
                 }
               }
@@ -337,8 +337,6 @@
             }
           },
           "hunt_runner_args": {
-            "description": "Foobar! (cron)",
-            "hunt_name": "GenericHunt",
             "client_rule_set": {
               "rules": [
                 {
@@ -347,7 +345,9 @@
                   }
                 }
               ]
-            }
+            },
+            "description": "Foobar! (cron)",
+            "hunt_name": "GenericHunt"
           }
         },
         "flow_name": "CreateAndRunGenericHuntFlow",
@@ -6175,11 +6175,6 @@
                 "type": "unicode",
                 "value": "fs/tsk/c/bin/bash"
               },
-              "size": {
-                "age": 0,
-                "type": "long",
-                "value": 11
-              },
               "type": {
                 "age": 0,
                 "type": "unicode",
@@ -6206,11 +6201,6 @@
                 "type": "unicode",
                 "value": "fs/tsk/c/bin/rbash"
               },
-              "size": {
-                "age": 0,
-                "type": "long",
-                "value": 11
-              },
               "type": {
                 "age": 0,
                 "type": "unicode",
@@ -6227,14 +6217,12 @@
             "is_directory": false,
             "name": "bash",
             "path": "fs/tsk/c/bin/bash",
-            "size": 11,
             "type": "VFSMemoryFile"
           },
           {
             "is_directory": false,
             "name": "rbash",
             "path": "fs/tsk/c/bin/rbash",
-            "size": 11,
             "type": "VFSMemoryFile"
           }
         ]

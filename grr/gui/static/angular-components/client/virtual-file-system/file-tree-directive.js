@@ -4,14 +4,17 @@ goog.provide('grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeControlle
 goog.provide('grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeDirective');
 goog.require('grrUi.client.virtualFileSystem.events');
 goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
+goog.require('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
+goog.require('grrUi.client.virtualFileSystem.utils.getFolderFromPath');
 
 goog.scope(function() {
 
 var REFRESH_FOLDER_EVENT =
     grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT;
 
-/** @type {function(string): string} */
+var ensurePathIsFolder = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder;
 var getFileId = grrUi.client.virtualFileSystem.fileViewDirective.getFileId;
+var getFolderFromPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath;
 
 
 /**
@@ -48,19 +51,13 @@ grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeController = function(
   /** @type {!grrUi.client.virtualFileSystem.fileContextDirective.FileContextController} */
   this.fileContext;
 
-  /** @private {string} */
-  this.initialFolderId_;
-
   this.scope_.$on(REFRESH_FOLDER_EVENT,
-      this.onSelectedFolderPathChange_.bind(this));
-
-  this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'folder',
-      this.onSelectedFolderIdChange_.bind(this));
+      this.onSelectedFilePathChange_.bind(this));
 
   this.scope_.$watch('controller.fileContext.clientId',
       this.onClientIdChange_.bind(this));
-  this.scope_.$watch('controller.fileContext.selectedFolderPath',
-      this.onSelectedFolderPathChange_.bind(this));
+  this.scope_.$watch('controller.fileContext.selectedFilePath',
+      this.onSelectedFilePathChange_.bind(this));
 };
 
 var FileTreeController =
@@ -98,14 +95,20 @@ FileTreeController.prototype.initTree_ = function() {
   });
 
   this.treeElement_.on("changed.jstree", function (e, data) {
+    // We're only interested in actual "select" events (not "ready" event,
+    // which is sent when the node is loaded).
+    if (data['action'] !== 'select_node') {
+      return;
+    }
     var selectionId = data.selected[0];
     var node = this.treeElement_.jstree('get_node', selectionId);
-    var folderPath = node.data.path;
+    var folderPath =  node.data.path;
 
-    if (this.fileContext['selectedFolderPath'] == folderPath) {
-      this.rootScope_.$broadcast(REFRESH_FOLDER_EVENT, folderPath);
+    if (getFolderFromPath(this.fileContext['selectedFilePath']) === folderPath) {
+      this.rootScope_.$broadcast(REFRESH_FOLDER_EVENT,
+                                 ensurePathIsFolder(folderPath));
     } else {
-      this.fileContext.selectFolder(folderPath);
+      this.fileContext.selectFile(ensurePathIsFolder(folderPath));
     }
 
     // This is needed so that when user clicks on an already opened node,
@@ -115,13 +118,10 @@ FileTreeController.prototype.initTree_ = function() {
   }.bind(this));
 
   this.treeElement_.on("loaded.jstree", function () {
-    var selectedFolderPath = this.fileContext['selectedFolderPath'];
-    if (selectedFolderPath) {
-      this.expandToFolder_(getFileId(selectedFolderPath));
-    } else {
-      if (this.initialFolderId_) {
-        this.expandToFolder_(this.initialFolderId_);
-      }
+    var selectedFilePath = this.fileContext['selectedFilePath'];
+    if (selectedFilePath) {
+      this.expandToFilePath_(getFileId(getFolderFromPath(selectedFilePath)),
+                             true);
     }
   }.bind(this));
 
@@ -174,43 +174,34 @@ FileTreeController.prototype.parseFileResponse_ = function(response) {
 };
 
 /**
- * Is triggered whenever the selected folder id state param changes. This should
- * only impact the current display during initalization of the tree. All later
- * changes are propagated via the fileContext.
- *
- * @param {string} folderId The id of the selected folder.
- * @private
- */
-FileTreeController.prototype.onSelectedFolderIdChange_ = function(folderId) {
-  if (folderId && !this.fileContext.selectedFolderPath) {
-    this.initialFolderId_ = folderId;
-    this.expandToFolder_(folderId);
-  }
-};
-
-/**
  * Is triggered whenever the selected folder path changes
  * @private
  */
-FileTreeController.prototype.onSelectedFolderPathChange_ = function() {
-  var selectedFolderPath = this.fileContext['selectedFolderPath'];
-  if (selectedFolderPath) {
-    this.expandToFolder_(getFileId(selectedFolderPath));
+FileTreeController.prototype.onSelectedFilePathChange_ = function() {
+  var selectedFilePath = this.fileContext['selectedFilePath'];
+
+  if (selectedFilePath) {
+    var selectedFolderPath = getFolderFromPath(selectedFilePath);
+    this.expandToFilePath_(getFileId(selectedFolderPath), true);
   }
 };
 
 /**
- * Selects a folder defined by the given path. If the path is not available, it selects the
- * closest parent folder.
- * @param {string} folderId The id of the folder to select.
+ * Selects a folder defined by the given path. If the path is not available, it
+ * selects the closest parent folder.
+ *
+ * @param {string} filePathId The id of the folder to select.
+ * @param {boolean=} opt_suppressEvent If true, no 'jstree.changed' event will
+ *     be sent when the node is selected.
  * @private
  */
-FileTreeController.prototype.expandToFolder_ = function(folderId) {
-  if (!folderId) {
+FileTreeController.prototype.expandToFilePath_ = function(
+    filePathId, opt_suppressEvent) {
+  if (!filePathId) {
     return;
   }
   var element = this.treeElement_;
-  var parts = folderId.split('-');
+  var parts = filePathId.split('-');
 
   var cb = function(i, prev_node) {
     var id_to_open = parts.slice(0, i + 1).join('-');
@@ -223,13 +214,15 @@ FileTreeController.prototype.expandToFolder_ = function(folderId) {
             'no_hash');
       } else {
         // Target node: select it.
-        element.jstree('select_node', node, 'no_hash');
+        element.jstree(true)['deselect_all'](true);
+        element.jstree(true)['select_node'](node, opt_suppressEvent);
       }
     } else if (prev_node) {
       // Node can't be found, finish by selecting last available parent.
-      element.jstree('select_node', prev_node, 'no_hash');
+      element.jstree(true)['deselect_all'](true);
+      element.jstree(true)['select_node'](prev_node, opt_suppressEvent);
     }
-  };
+  }.bind(this);
 
   cb(0, null);
 };

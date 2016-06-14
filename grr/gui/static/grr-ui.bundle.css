@@ -162,6 +162,10 @@ grr-file-text-view .no-content {
   font-size: 2.0em;
   color: #e0e0e0; }
 
+grr-file-table .fa-download {
+  color: #696969;
+  opacity: .9; }
+
 grr-file-timeline tr.timeline-refresh-indicator td {
   text-align: center;
   padding: 50px;

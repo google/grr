@@ -3,11 +3,17 @@
 goog.provide('grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineController');
 goog.provide('grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineDirective');
 goog.require('grrUi.client.virtualFileSystem.events');
+goog.require('grrUi.client.virtualFileSystem.utils.getFolderFromPath');
 
 goog.scope(function() {
 
+
+var getFolderFromPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath;
+
+
 var REFRESH_FOLDER_EVENT =
     grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT;
+
 var REFRESH_FILE_EVENT =
     grrUi.client.virtualFileSystem.events.REFRESH_FILE_EVENT;
 
@@ -34,8 +40,14 @@ grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineController = fu
   /** @type {Array} */
   this.timelineItems;
 
+  /** @type {Object} */
+  this.selectedItem;
+
   /** @type {boolean} */
   this.inProgress;
+
+  /** @type {string} */
+  this.currentFolder;
 
   /**
    * This variable is set to a function by the infinite-table-directive
@@ -45,19 +57,41 @@ grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineController = fu
    */
   this.triggerUpdate;
 
-  this.scope_.$on(REFRESH_FOLDER_EVENT,
-      this.refreshTimeline_.bind(this));
-  this.scope_.$on(REFRESH_FILE_EVENT,
-      this.refreshTimeline_.bind(this));
+  this.scope_.$on(REFRESH_FOLDER_EVENT, this.refreshTimeline_.bind(this));
+  this.scope_.$on(REFRESH_FILE_EVENT, this.refreshTimeline_.bind(this));
 
-  this.scope_.$watchGroup(['controller.fileContext.clientId',
-                           'controller.fileContext.selectedFolderPath'],
-      this.refreshTimeline_.bind(this));
+  this.scope_.$watch('controller.fileContext.clientId', this.refreshTimeline_.bind(this));
+  this.scope_.$watch('controller.fileContext.selectedFilePath', this.onFilePathChange_.bind(this));
 };
 
 var FileTimelineController =
     grrUi.client.virtualFileSystem.fileTimelineDirective.FileTimelineController;
 
+
+FileTimelineController.prototype.onFilePathChange_ = function(newFilePath) {
+  if (angular.isUndefined(newFilePath)) {
+    return;
+  }
+
+  var newFolder = getFolderFromPath(newFilePath);
+
+  // If a folder is selected (marked by the ending slash), we should always
+  // refresh.
+  if (newFilePath.endsWith('/') || angular.isUndefined(this.currentFolder)) {
+    this.currentFolder = newFolder;
+    this.refreshTimeline_();
+    return;
+  }
+
+  var newFolderComponents = newFolder.split('/');
+  var currentFolderComponents = this.currentFolder.split('/');
+  for (var i = 0; i < currentFolderComponents.length; ++i) {
+    if (newFolderComponents[i] != currentFolderComponents[i]) {
+      this.refreshTimeline_();
+      this.currentFolder = newFolder;
+    }
+  }
+};
 
 /**
  * Refreshes the current timeline view.
@@ -66,22 +100,55 @@ var FileTimelineController =
  */
 FileTimelineController.prototype.refreshTimeline_ = function() {
   var clientId = this.fileContext['clientId'];
-  var selectedFolderPath = this.fileContext['selectedFolderPath'];
+  var selectedFolderPath = getFolderFromPath(
+      this.fileContext['selectedFilePath']);
+
+  if (angular.isUndefined(this.currentFolder)) {
+    this.currentFolder = selectedFolderPath;
+  }
 
   this.inProgress = true;
 
   var url = 'clients/' + clientId + '/vfs-timeline/' + selectedFolderPath;
-  this.grrApiService_.get(url).then(function success(response) {
-    this.timelineItems = response.data['items'];
+  this.grrApiService_.get(url).then(this.onTimelineFetched_.bind(this))
+      .finally(function() {
+        this.inProgress = false;
+      }.bind(this));
+};
 
-    if (this.triggerUpdate) {
-      this.triggerUpdate();
+/**
+ * Processes timeline data received from the server.
+ *
+ * @param {Object} response Server response.
+ * @private
+ */
+FileTimelineController.prototype.onTimelineFetched_ = function(response) {
+  var selectedFilePath = this.fileContext['selectedFilePath'];
+  var selectedFileVersion = this.fileContext['selectedFileVersion'];
+
+  this.timelineItems = response.data['items'];
+
+  // Make sure that the currently selected file (identified by
+  // fileContext.selectedFilePath and fileContext.selectedFileVersion) is
+  // selected after the list is updated.
+  this.selectedItem = this.timelineItems.find(function(item) {
+    var v = item['value'];
+    if (v['file_path']['value'] === selectedFilePath) {
+      return !selectedFileVersion ||
+          v['timestamp']['value'] === selectedFileVersion;
     }
+  }.bind(this)) || null;
 
-    this.inProgress = false;
-  }.bind(this), function failed() {
-    this.inProgress = false;
-  }.bind(this));
+  if (this.selectedItem && !selectedFileVersion) {
+    // If the version wasn't set explicitly on the context, set it, so that the
+    // URL gets updated.
+    this.fileContext['selectedFileVersion'] =
+        this.selectedItem['value']['timestamp']['value'];
+  }
+
+  if (this.triggerUpdate) {
+    this.triggerUpdate();
+  }
 };
 
 /**
@@ -91,6 +158,8 @@ FileTimelineController.prototype.refreshTimeline_ = function() {
  * @export
  */
 FileTimelineController.prototype.selectFile = function(timelineItem) {
+  this.selectedItem = timelineItem;
+
   var clientId = this.fileContext['clientId'];
   var selectedFilePath = timelineItem['value']['file_path']['value'];
   var timestamp = timelineItem['value']['timestamp']['value'];

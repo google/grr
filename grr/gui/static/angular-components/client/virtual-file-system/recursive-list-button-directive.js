@@ -3,6 +3,14 @@
 goog.provide('grrUi.client.virtualFileSystem.recursiveListButtonDirective.RecursiveListButtonController');
 goog.provide('grrUi.client.virtualFileSystem.recursiveListButtonDirective.RecursiveListButtonDirective');
 
+goog.require('grrUi.client.virtualFileSystem.utils.getFolderFromPath');
+
+
+goog.scope(function() {
+
+
+var getFolderFromPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath;
+
 
 /**
  * Controller for RecursiveListButtonDirective.
@@ -60,7 +68,7 @@ RecursiveListButtonController.MAX_DEPTH = 5;
 RecursiveListButtonController.prototype.onClick = function() {
   this.requestSent = false;
   this.done = false;
-  this.error = undefined;
+  this.error = null;
 
   this.grrReflectionService_.getRDFValueDescriptor(
       'ApiCreateVfsRefreshOperationArgs', true).then(function(descriptors) {
@@ -68,7 +76,7 @@ RecursiveListButtonController.prototype.onClick = function() {
         descriptors['ApiCreateVfsRefreshOperationArgs']['default']);
 
     var filePath = angular.copy(descriptors['RDFString']['default']);
-    filePath['value'] = this.scope_['filePath'];
+    filePath['value'] = getFolderFromPath(this.scope_['filePath']);
     this.refreshOperation['value']['file_path'] = filePath;
 
     var maxDepth = angular.copy(descriptors['RDFInteger']['default']);
@@ -145,3 +153,5 @@ grrUi.client.virtualFileSystem.recursiveListButtonDirective
  */
 grrUi.client.virtualFileSystem.recursiveListButtonDirective.RecursiveListButtonDirective
     .directive_name = 'grrRecursiveListButton';
+
+});  // goog.scope

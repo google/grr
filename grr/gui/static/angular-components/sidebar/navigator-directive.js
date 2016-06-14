@@ -50,7 +50,7 @@ grrUi.sidebar.navigatorDirective.NavigatorController = function(
 
   // Subscribe to legacy grr events to be notified on client change.
   this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'clientId',
-      this.onClientSelectionChange_.bind(this));
+      this.onClientSelectionChange_.bind(this), true);
 };
 
 var NavigatorController =

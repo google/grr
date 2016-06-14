@@ -172,7 +172,11 @@ class LoadComponent(actions.ActionPlugin):
 
     url = "%s/%s" % (summary.url, build_environment)
     logging.info("Fetching component from %s", url)
-    crypted_data = self.grr_worker.http_manager.OpenServerEndpoint(url).data
+    http_result = self.grr_worker.http_manager.OpenServerEndpoint(url)
+    if http_result.code != 200:
+      raise RuntimeError("Error %d while downloading component %s." %
+                         (http_result.code, url))
+    crypted_data = http_result.data
 
     # Decrypt and check signature. The cipher is created when the component is
     # uploaded and contains the key to decrypt it.

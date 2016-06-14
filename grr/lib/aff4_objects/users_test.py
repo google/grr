@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from grr.lib import aff4
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import users
@@ -62,3 +63,12 @@ class UsersTest(test_lib.AFF4ObjectTest):
     describe_str = self.user.Describe()
     self.assertTrue("test1" in describe_str)
     self.assertTrue("test2" in describe_str)
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

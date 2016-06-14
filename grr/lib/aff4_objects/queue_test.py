@@ -3,6 +3,7 @@
 
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import flags
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import queue as aff4_queue
@@ -167,3 +168,12 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
     self.assertEqual(50, len(results))
     self.assertEqual(50, results[0][1])
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)
