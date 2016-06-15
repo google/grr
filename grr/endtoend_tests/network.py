@@ -5,6 +5,7 @@
 import logging
 from grr.endtoend_tests import base
 from grr.lib import aff4
+from grr.lib.aff4_objects import network
 
 
 class TestNetstat(base.AutomatedTest):
@@ -18,7 +19,7 @@ class TestNetstat(base.AutomatedTest):
         self.client_id.Add(self.test_output_path),
         mode="r",
         token=self.token)
-    self.assertIsInstance(netstat, aff4.Network)
+    self.assertIsInstance(netstat, network.Network)
     connections = netstat.Get(netstat.Schema.CONNECTIONS)
     self.assertGreater(len(connections), 5)
     # There should be at least two local IPs.

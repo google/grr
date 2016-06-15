@@ -273,7 +273,7 @@ def ShowUser(username, token=None):
       print "User %s not found" % username
 
 # Generate Keys Arguments
-parser_generate_keys.add_argument("--overwrite",
+parser_generate_keys.add_argument("--overwrite_keys",
                                   default=False,
                                   action="store_true",
                                   help="Required to overwrite existing keys.")
@@ -301,11 +301,6 @@ parser_upload_args.add_argument(
     help="The destination path to upload the file to, specified in aff4: form,"
     "e.g. aff4:/config/test.raw")
 
-parser_upload_args.add_argument("--overwrite",
-                                default=False,
-                                action="store_true",
-                                help="Required to overwrite existing files.")
-
 parser_upload_signed_args.add_argument(
     "--platform",
     required=True,
@@ -332,6 +327,11 @@ parser_upload_artifact = subparsers.add_parser(
     "upload_artifact",
     parents=[parser_upload_args],
     help="Upload a raw json artifact file.")
+
+parser_upload_artifact.add_argument("--overwrite_artifact",
+                                    default=False,
+                                    action="store_true",
+                                    help="Overwrite existing artifact.")
 
 parser_upload_python = subparsers.add_parser(
     "upload_python",
@@ -368,7 +368,7 @@ parser_upload_component.add_argument(
     help="Path to the compiled component to upload.")
 
 parser_upload_component.add_argument(
-    "--overwrite",
+    "--overwrite_component",
     default=False,
     action="store_true",
     help="Allow overwriting of the component path.")
@@ -377,12 +377,6 @@ parser_upload_components = subparsers.add_parser(
     "upload_components",
     parents=[],
     help="Sign and upload all client components.")
-
-parser_upload_components.add_argument(
-    "--overwrite",
-    default=False,
-    action="store_true",
-    help="Allow overwriting of the component path.")
 
 subparsers.add_parser(
     "download_missing_rekall_profiles",
@@ -427,13 +421,14 @@ def GenerateDjangoKey(config):
     print "Not updating django_secret_key as it is already set."
 
 
-def GenerateKeys(config):
+def GenerateKeys(config, overwrite_keys=False):
   """Generate the keys we need for a GRR server."""
   if not hasattr(key_utils, "MakeCACert"):
     parser.error("Generate keys can only run with open source key_utils.")
   if (config.Get("PrivateKeys.server_key",
-                 default=None) and not flags.FLAGS.overwrite):
-    raise RuntimeError("Config %s already has keys, use --overwrite to "
+                 default=None) and not overwrite_keys):
+    print config.Get("PrivateKeys.server_key")
+    raise RuntimeError("Config %s already has keys, use --overwrite_keys to "
                        "override." % config.parser)
 
   length = config_lib.CONFIG["Server.rsa_key_length"]
@@ -778,8 +773,7 @@ def Initialize(config=None, token=None):
             "last step,\nyou probably do not want to generate new keys now.")
     if (raw_input("You already have keys in your config, do you want to"
                   " overwrite them? [yN]: ").upper() or "N") == "Y":
-      flags.FLAGS.overwrite = True
-      GenerateKeys(config)
+      GenerateKeys(config, overwrite_keys=True)
   else:
     GenerateKeys(config)
 
@@ -880,9 +874,9 @@ def main(unused_argv):
 
   if flags.FLAGS.subparser_name == "generate_keys":
     try:
-      GenerateKeys(config_lib.CONFIG)
+      GenerateKeys(config_lib.CONFIG, overwrite_keys=flags.FLAGS.overwrite_keys)
     except RuntimeError, e:
-      # GenerateKeys will raise if keys exist and --overwrite is not set.
+      # GenerateKeys will raise if keys exist and overwrite_keys is not set.
       print "ERROR: %s" % e
       sys.exit(1)
     config_lib.CONFIG.Write()
@@ -957,12 +951,13 @@ def main(unused_argv):
 
   elif flags.FLAGS.subparser_name == "upload_component":
     maintenance_utils.SignComponent(flags.FLAGS.component_filename,
-                                    overwrite=flags.FLAGS.overwrite,
+                                    overwrite=flags.FLAGS.overwrite_component,
                                     token=token)
 
   elif flags.FLAGS.subparser_name == "upload_components":
-    maintenance_utils.SignAllComponents(overwrite=flags.FLAGS.overwrite,
-                                        token=token)
+    maintenance_utils.SignAllComponents(
+        overwrite=flags.FLAGS.overwrite_component,
+        token=token)
 
   elif flags.FLAGS.subparser_name == "set_var":
     config = config_lib.CONFIG
@@ -986,9 +981,9 @@ def main(unused_argv):
           open(flags.FLAGS.file).read(1000000),
           base_urn=base_urn,
           token=None,
-          overwrite=flags.FLAGS.overwrite)
+          overwrite=flags.FLAGS.overwrite_artifact)
     except artifact_registry.ArtifactDefinitionError as e:
-      print "Error %s. You may need to set --overwrite." % e
+      print "Error %s. You may need to set --overwrite_artifact." % e
 
   elif flags.FLAGS.subparser_name == "download_missing_rekall_profiles":
     print "Downloading missing Rekall profiles."

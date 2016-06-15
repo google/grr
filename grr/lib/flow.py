@@ -1605,9 +1605,12 @@ class ServerCommunicator(communicator.Communicator):
         # time moves forward.
         if client_time > long(remote_time):
           client.Set(client.Schema.CLOCK, rdfvalue.RDFDatetime(client_time))
+          client.Set(client.Schema.PING, rdfvalue.RDFDatetime().Now())
         else:
           logging.warning("Out of order message for %s: %s >= %s", client_id,
                           long(remote_time), int(client_time))
+
+        client.Flush(sync=False)
 
     except communicator.UnknownClientCert:
       pass

@@ -122,6 +122,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
                                      token=self.token)
     new_client.Set(new_client.Schema.CERT, client_cert)
     new_client.Close()
+    return new_client
 
   def testKnownClient(self):
     """Test that messages from known clients are authenticated."""
@@ -133,6 +134,39 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     for i in range(len(decoded_messages)):
       self.assertEqual(decoded_messages[i].auth_state,
                        rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED)
+
+  def testClientPingAndClockIsUpdated(self):
+    """Check PING and CLOCK are updated, simulate bad client clock."""
+    new_client = self.MakeClientAFF4Record()
+    now = rdfvalue.RDFDatetime().Now()
+    client_now = now - 20
+    with test_lib.FakeTime(now):
+      self.ClientServerCommunicate(timestamp=client_now)
+
+      client_obj = aff4.FACTORY.Open(new_client.urn,
+                                     ignore_cache=True,
+                                     token=self.token)
+      self.assertEqual(
+          now.AsSecondsFromEpoch(),
+          client_obj.Get(client_obj.Schema.PING).AsSecondsFromEpoch())
+      self.assertEqual(
+          client_now.AsSecondsFromEpoch(),
+          client_obj.Get(client_obj.Schema.CLOCK).AsSecondsFromEpoch())
+
+    now += 60
+    client_now += 40
+    with test_lib.FakeTime(now):
+      self.ClientServerCommunicate(timestamp=client_now)
+
+      client_obj = aff4.FACTORY.Open(new_client.urn,
+                                     ignore_cache=True,
+                                     token=self.token)
+      self.assertEqual(
+          now.AsSecondsFromEpoch(),
+          client_obj.Get(client_obj.Schema.PING).AsSecondsFromEpoch())
+      self.assertEqual(
+          client_now.AsSecondsFromEpoch(),
+          client_obj.Get(client_obj.Schema.CLOCK).AsSecondsFromEpoch())
 
   def testServerReplayAttack(self):
     """Test that replaying encrypted messages to the server invalidates them."""

@@ -95,6 +95,8 @@ class TestClientInterrogateEndToEnd(base.AutomatedTest):
         # whether they are local/domain etc.  We expect to find at least one
         # user with all of these fields filled out.
         complete_user = self._IsCompleteWindowsUser(user)
+        if complete_user:
+          return
       else:
         complete_user = user.Get("uid") is not None
 

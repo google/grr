@@ -11,6 +11,7 @@ from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -147,7 +148,7 @@ class TestGetFileTSKLinux(base.AutomatedTest):
     else:
       urn = self.client_id.Add(self.test_output_path)
       fd = aff4.FACTORY.Open(urn, token=self.token)
-      if isinstance(fd, aff4.BlobImage):
+      if isinstance(fd, standard.BlobImage):
         return self.CheckFile(fd)
       self.fail("Output file %s not found." % urn)
 

@@ -9,6 +9,7 @@ from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import maintenance_utils
+from grr.lib.aff4_objects import stats
 
 
 class TestGetClientStats(base.AutomatedTest):
@@ -22,11 +23,11 @@ class TestGetClientStats(base.AutomatedTest):
     client_stats = aff4.FACTORY.Open(
         self.client_id.Add(self.test_output_path),
         token=self.token)
-    self.assertIsInstance(client_stats, aff4.ClientStats)
+    self.assertIsInstance(client_stats, stats.ClientStats)
 
-    stats = list(client_stats.Get(client_stats.Schema.STATS))
-    self.assertGreater(len(stats), 0)
-    entry = stats[0]
+    stats_list = list(client_stats.Get(client_stats.Schema.STATS))
+    self.assertGreater(len(stats_list), 0)
+    entry = stats_list[0]
     self.assertGreater(entry.RSS_size, 0)
     self.assertGreater(entry.VMS_size, 0)
     self.assertGreater(entry.boot_time, 0)

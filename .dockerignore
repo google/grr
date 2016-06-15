@@ -1,9 +1,19 @@
+# Unfortunately the ** syntax isn't supported before docker 1.10
+# https://github.com/docker/docker/issues/13113
+# and installing a newer version is difficult.
 *.changes
 *.deb
 *.dsc
 *.egg-info
+*/*/server.local.yaml
 *.pyc
+*/*.pyc
+*/*/*.pyc
+*/*/*/*.pyc
+*/*/*/*/*.pyc
 *_pb2.*
+*/*_pb2.*
+*/*/*_pb2.*
 .git
 .gitignore
 ACKNOWLEDGEMENTS
@@ -12,7 +22,8 @@ build
 dist
 executables
 !executables/windows/templates/unzipsfx/*.exe
-grr-response-templates
+grr/config/grr-response-templates
+grr/var
 grr-server*.tar.gz
 LICENSE
 README
