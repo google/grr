@@ -165,7 +165,7 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
     self._CreateObject("aff4:/obj1", aff4.AFF4MemoryStream)
     self._CreateObject("aff4:/obj2", aff4.AFF4MemoryStream)
 
-    result = self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"])
+    result = list(self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"]))
     self.assertEqual(result[0].Get(result[0].Schema.TYPE), "AFF4MemoryStream")
     self.assertEqual(result[1].Get(result[1].Schema.TYPE), "AFF4MemoryStream")
 
@@ -173,12 +173,12 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
     self._CreateObject("aff4:/obj2", aff4.AFF4Volume)
 
     # Check that this result is still cached.
-    result = self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"])
+    result = list(self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"]))
     self.assertEqual(result[0].Get(result[0].Schema.TYPE), "AFF4MemoryStream")
     self.assertEqual(result[1].Get(result[1].Schema.TYPE), "AFF4MemoryStream")
 
     # Check that request with different mode is not cached.
-    result = self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"], mode="rw")
+    result = list(self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"], mode="rw"))
     self.assertEqual(result[0].Get(result[0].Schema.TYPE), "AFF4Volume")
     self.assertEqual(result[1].Get(result[1].Schema.TYPE), "AFF4Volume")
 
@@ -186,8 +186,8 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
     self._CreateObject("aff4:/obj1", aff4.AFF4MemoryStream)
     self._CreateObject("aff4:/obj2", aff4.AFF4MemoryStream)
 
-    result = self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"],
-                                 aff4_type=collects.RDFValueCollection)
+    result = list(self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"],
+                                      aff4_type=collects.RDFValueCollection))
     self.assertFalse(result)
 
     self._CreateObject("aff4:/obj1", aff4.AFF4Volume)
@@ -195,7 +195,8 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
 
     # Check that original objects got cached despite the fact that they didn't
     # match the aff4_type in the original pool request.
-    result = self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"])
+    result = list(self.pool.MultiOpen(["aff4:/obj1", "aff4:/obj2"]))
+
     self.assertEqual(result[0].Get(result[0].Schema.TYPE), "AFF4MemoryStream")
     self.assertEqual(result[1].Get(result[1].Schema.TYPE), "AFF4MemoryStream")
 
@@ -203,7 +204,7 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
     self._CreateObject("aff4:/obj1", aff4.AFF4MemoryStream)
     self._CreateObject("aff4:/obj2", aff4.AFF4MemoryStream)
 
-    result = self.pool.MultiOpen(["aff4:/obj1"])
+    result = list(self.pool.MultiOpen(["aff4:/obj1"]))
     self.assertEqual(len(result), 1)
     self.assertEqual(result[0].Get(result[0].Schema.TYPE), "AFF4MemoryStream")
 
@@ -220,11 +221,11 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
                      "AFF4Volume")
 
   def testMultiOpenDoesNotCacheNegativeResults(self):
-    result = self.pool.MultiOpen([""])
+    result = list(self.pool.MultiOpen([""]))
     self.assertFalse(result)
 
     self._CreateObject("aff4:/obj1", aff4.AFF4MemoryStream)
-    result = self.pool.MultiOpen(["aff4:/obj1"])
+    result = list(self.pool.MultiOpen(["aff4:/obj1"]))
     self.assertEqual(result[0].Get(result[0].Schema.TYPE), "AFF4MemoryStream")
 
   def testListChildrenResultsAreCached(self):
@@ -1892,6 +1893,18 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     flow_obj = aff4.FACTORY.Open(flow_id, token=self.token)
     self.assertEqual(flow_obj.args.pathspec.pathtype, pathspec.pathtype)
     self.assertEqual(flow_obj.args.pathspec.CollapsePath(), additional_path)
+
+  def testAFF4Initialization(self):
+    blacklist = set([aff4.AFF4Stream, aff4_grr.VFSGRRClient])
+    factory = aff4.FACTORY
+
+    for cls in aff4.AFF4Object.classes.values():
+      if cls not in blacklist:
+        with utils.Stubber(aff4, "FACTORY", None):
+          try:
+            factory.Create("aff4:/test_object", cls, token=self.token)
+          except AttributeError as e:
+            self.fail("Class %s used aff4.FACTORY during init: %s" % (cls, e))
 
 
 class AFF4SymlinkTestSubject(aff4.AFF4Volume):

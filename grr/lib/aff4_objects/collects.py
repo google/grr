@@ -49,10 +49,10 @@ class RDFValueCollection(aff4.AFF4Object):
   _rdf_type = None
 
   _behaviours = set()
-  size = 0
+  _size = 0
 
   # The file object for the underlying AFF4Image stream.
-  fd = None
+  _fd = None
 
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     SIZE = aff4.AFF4Stream.SchemaCls.SIZE
@@ -67,46 +67,51 @@ class RDFValueCollection(aff4.AFF4Object):
                           default="")
 
   def Initialize(self):
-    """Initialize the internal storage stream."""
     self.stream_dirty = False
 
-    try:
-      self.fd = aff4.FACTORY.Open(
-          self.urn.Add("UnversionedStream"),
-          aff4_type=aff4.AFF4UnversionedImage,
-          mode=self.mode,
-          token=self.token)
-      self.size = int(self.Get(self.Schema.SIZE))
-      return
-    except IOError:
-      pass
+  @property
+  def fd(self):
+    if self._fd is None:
+      self._CreateStream()
+    return self._fd
 
-    # We still have many collections which were created with a versioned stream,
-    # which wastes space. Check if this is such a collection and revert to the
-    # old behavior if necessary.
-    try:
-      self.fd = aff4.FACTORY.Open(
-          self.urn.Add("Stream"),
-          aff4_type=aff4.AFF4Image,
-          mode=self.mode,
-          token=self.token)
-      self.size = int(self.Get(self.Schema.SIZE))
-      return
-    except IOError:
-      pass
+  @property
+  def size(self):
+    if self._fd is None:
+      self._CreateStream()
+    return self._size
 
-    # If we get here, the stream does not already exist - we create a new
-    # stream.
-    self.fd = aff4.FACTORY.Create(
+  @size.setter
+  def size(self, value):
+    self._size = value
+
+  def _CreateStream(self):
+    """Lazily initializes the internal storage stream."""
+
+    if "r" in self.mode:
+      # We still have many collections which were created with a
+      # versioned stream, which wastes space. Check if this is such a
+      # collection and revert to the old behavior if necessary.
+      urns = [self.urn.Add("UnversionedStream"), self.urn.Add("Stream")]
+
+      for stream in aff4.FACTORY.MultiOpen(urns,
+                                           mode=self.mode,
+                                           token=self.token):
+        if isinstance(stream, (aff4.AFF4UnversionedImage, aff4.AFF4Image)):
+          self._fd = stream
+          self._size = int(self.Get(self.Schema.SIZE))
+          return
+
+    # If we get here, we have to create a new stream.
+    self._fd = aff4.FACTORY.Create(
         self.urn.Add("UnversionedStream"),
         aff4.AFF4UnversionedImage,
         mode=self.mode,
         token=self.token)
-    self.fd.seek(0, 2)
-    self.size = 0
+    self._fd.seek(0, 2)
+    self._size = 0
 
   def SetChunksize(self, chunk_size):
-
     if self.fd.size != 0:
       raise ValueError("Cannot set chunk size on an existing collection.")
     self.fd.SetChunksize(chunk_size)
@@ -947,11 +952,15 @@ class ResultsOutputCollection(PackedVersionedCollection):
     RESULTS_SOURCE = aff4.Attribute("aff4:results_source", rdfvalue.RDFURN,
                                     "URN of a hunt where results came from.")
 
-  def Initialize(self):
-    super(ResultsOutputCollection, self).Initialize()
-    if "w" in self.mode and self.fd.size == 0:
-      # We want bigger chunks as we usually expect large number of results.
-      self.fd.SetChunksize(1024 * 1024)
+  @property
+  def fd(self):
+    if self._fd is None:
+      self._CreateStream()
+      if "w" in self.mode and self._fd.size == 0:
+        # We want bigger chunks as we usually expect large number of results.
+        self._fd.SetChunksize(1024 * 1024)
+
+    return self._fd
 
 
 class CollectionsInitHook(registry.InitHook):

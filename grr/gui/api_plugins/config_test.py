@@ -80,9 +80,9 @@ class ApiGetConfigHandlerTest(test_lib.GRRBaseTest):
   def _ConfigStub(self, sections=None):
     mock = GetConfigMockClass(sections)
     config = config_lib.CONFIG
-    return utils.MultiStubber(
-        (config, "GetRaw", mock["GetRaw"]), (config, "Get", mock["Get"]),
-        (config, "type_infos", mock["type_infos"]))
+    return utils.MultiStubber((config, "GetRaw", mock["GetRaw"]),
+                              (config, "Get", mock["Get"]),
+                              (config, "type_infos", mock["type_infos"]))
 
   def _HandleConfig(self, sections):
     with self._ConfigStub(sections):
@@ -144,7 +144,7 @@ SectionBar.sample_string_option: "%(sAmPlE|lower)"
 """
 
     config_lib.LoadConfig(config_obj,
-                          StringIO.StringIO(config),
+                          config_fd=StringIO.StringIO(config),
                           parser=config_lib.YamlParser)
 
     with utils.Stubber(config_lib, "CONFIG", config_obj):
@@ -161,9 +161,9 @@ class ApiGetConfigOptionHandlerTest(test_lib.GRRBaseTest):
   def _ConfigStub(self, sections=None):
     mock = GetConfigMockClass(sections)
     config = config_lib.CONFIG
-    return utils.MultiStubber(
-        (config, "GetRaw", mock["GetRaw"]), (config, "Get", mock["Get"]),
-        (config, "type_infos", mock["type_infos"]))
+    return utils.MultiStubber((config, "GetRaw", mock["GetRaw"]),
+                              (config, "Get", mock["Get"]),
+                              (config, "type_infos", mock["type_infos"]))
 
   def _HandleConfigOption(self, stub_sections, name):
     with self._ConfigStub(stub_sections):
@@ -201,7 +201,7 @@ Mysql.database_password: "THIS IS SECRET AND SHOULD NOT BE SEEN"
 """
 
     config_lib.LoadConfig(config_obj,
-                          StringIO.StringIO(config),
+                          config_fd=StringIO.StringIO(config),
                           parser=config_lib.YamlParser)
 
     with utils.Stubber(config_lib, "CONFIG", config_obj):

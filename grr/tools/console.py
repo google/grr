@@ -86,6 +86,10 @@ def Lister(arg):
     print x
 
 
+def GetChildrenList(urn, token=None):
+  return list(aff4.FACTORY.Open(urn, token=token).ListChildren())
+
+
 def main(unused_argv):
   """Main."""
   banner = ("\nWelcome to the GRR console\n")
@@ -103,6 +107,7 @@ def main(unused_argv):
   locals_vars = {
       "__name__": "GRR Console",
       "l": Lister,
+      "lc": GetChildrenList,
       "o": aff4.FACTORY.Open,
 
       # Bring some symbols from other modules into the console's

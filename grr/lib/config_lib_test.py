@@ -1,9 +1,12 @@
 #!/usr/bin/env python
 """Tests for config_lib classes."""
 
+import __builtin__
 import copy
+import ntpath
 import os
 import StringIO
+
 
 from grr.lib import config_lib
 from grr.lib import flags
@@ -270,7 +273,7 @@ Platform:Windows:
     new_conf = config_lib.GrrConfigManager()
     new_conf.DEFINE_string("NewSection1.new_option1", "Default Value", "Help")
 
-    new_conf.Initialize(config_file)
+    new_conf.Initialize(filename=config_file)
 
     self.assertEqual(new_conf["NewSection1.new_option1"], "New Value1")
 
@@ -668,6 +671,84 @@ Section1.int: 3
                         conf.Initialize,
                         parser=config_lib.YamlParser,
                         data=one)
+
+  def testConfigFileIncludeAbsolutePaths(self):
+    one = r"""
+Section1.int: 1
+"""
+    with utils.TempDirectory() as temp_dir:
+      configone = os.path.join(temp_dir, "1.yaml")
+      with open(configone, "wb") as fd:
+        fd.write(one)
+
+      absolute_include = r"""
+Config.includes:
+  - %s
+
+Section1.int: 2
+""" % configone
+
+      conf = self._GetNewConf()
+      conf.Initialize(parser=config_lib.YamlParser, data=absolute_include)
+      self.assertEqual(conf["Section1.int"], 1)
+
+      relative_include = r"""
+Config.includes:
+  - 1.yaml
+
+Section1.int: 2
+"""
+      conf = self._GetNewConf()
+      # Can not include a relative path from config without a filename.
+      self.assertRaises(config_lib.ConfigFileNotFound,
+                        conf.Initialize,
+                        parser=config_lib.YamlParser,
+                        data=relative_include)
+
+      # If we write it to a file it should work though.
+      configtwo = os.path.join(temp_dir, "2.yaml")
+      with open(configtwo, "wb") as fd:
+        fd.write(relative_include)
+
+      conf.Initialize(parser=config_lib.YamlParser, filename=configtwo)
+      self.assertEqual(conf["Section1.int"], 1)
+
+  def testConfigFileInclusionWindowsPaths(self):
+    one = r"""
+Config.includes:
+  - 2.yaml
+
+Section1.int: 1
+"""
+    two = r"""
+Section1.int: 2
+SecondaryFileIncluded: true
+"""
+    config_path = "C:\\Windows\\System32\\GRR"
+
+    def MockedWindowsOpen(filename, _=None):
+      basename = ntpath.basename(filename)
+      dirname = ntpath.dirname(filename)
+
+      # Make sure we only try to open files from this directory.
+      if dirname != config_path:
+        raise IOError("Tried to open wrong file %s" % filename)
+
+      if basename == "1.yaml":
+        return StringIO.StringIO(one)
+
+      if basename == "2.yaml":
+        return StringIO.StringIO(two)
+
+      raise IOError("File not found %s" % filename)
+
+    # We need to also use the nt path manipulation modules.
+    with utils.MultiStubber((__builtin__, "open", MockedWindowsOpen),
+                            (os, "path", ntpath)):
+      conf = self._GetNewConf()
+      conf.Initialize(filename=ntpath.join(config_path, "1.yaml"))
+      self.assertEqual(conf["Section1.int"], 2)
+      self.assertEqual(conf["SecondaryFileIncluded"], True)
 
   def testConfigFileInclusionWithContext(self):
     one = r"""

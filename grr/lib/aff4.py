@@ -133,38 +133,32 @@ class DeletionPool(object):
 
   def MultiOpen(self, urns, aff4_type=None, mode="r"):
     """Opens many urns efficiently, returning cached objects when possible."""
-    result = []
     not_opened_urns = []
+    aff4_type = _ValidateAFF4Type(aff4_type)
 
     for urn in urns:
       key = self._ObjectKey(urn, mode)
       try:
-        result.append(self._objects_cache[key])
+        result = self._objects_cache[key]
+        if aff4_type is not None and not isinstance(result, aff4_type):
+          continue
+        yield result
+
       except KeyError:
         not_opened_urns.append(urn)
 
     if not_opened_urns:
-      objs = FACTORY.MultiOpen(not_opened_urns,
-                               follow_symlinks=False,
-                               mode=mode,
-                               token=self._token)
-      for obj in objs:
-        result.append(obj)
-
+      for obj in FACTORY.MultiOpen(not_opened_urns,
+                                   follow_symlinks=False,
+                                   mode=mode,
+                                   token=self._token):
         key = self._ObjectKey(obj.urn, mode)
         self._objects_cache[key] = obj
 
-    aff4_type = _ValidateAFF4Type(aff4_type)
-    if aff4_type is not None:
+        if aff4_type is not None and not isinstance(obj, aff4_type):
+          continue
 
-      type_checked_result = []
-      for obj in result:
-        if isinstance(obj, aff4_type):
-          type_checked_result.append(obj)
-
-      return type_checked_result
-    else:
-      return result
+        yield obj
 
   def ListChildren(self, urn):
     """Lists children of a given urn. Resulting list is cached."""
@@ -234,11 +228,9 @@ class DeletionPool(object):
     all_children_urns = self.RecursiveMultiListChildren(urns)
 
     urns += list(itertools.chain.from_iterable(all_children_urns.values()))
-    for urn in urns:
-      self._urns_for_deletion.add(urn)
+    self._urns_for_deletion.update(urns)
 
-    objs = self.MultiOpen(urns)
-    for obj in objs:
+    for obj in self.MultiOpen(urns):
       obj.OnDelete(deletion_pool=self)
 
   @property
@@ -248,10 +240,10 @@ class DeletionPool(object):
     for urn in self._urns_for_deletion:
       new_root = True
 
+      str_urn = utils.SmartUnicode(urn)
       fake_roots = []
       for root in roots:
         str_root = utils.SmartUnicode(root)
-        str_urn = utils.SmartUnicode(urn)
 
         if str_urn.startswith(str_root):
           new_root = False
@@ -458,7 +450,12 @@ class Factory(object):
     except access_control.UnauthorizedAccess:
       pass
 
-  def _DeleteChildFromIndex(self, urn, token):
+  def _DeleteChildFromIndex(self, urn, token, mutation_pool=None):
+    if mutation_pool:
+      pool = mutation_pool
+    else:
+      pool = data_store.DB.GetMutationPool(token=token)
+
     try:
       basename = urn.Basename()
       dirname = rdfvalue.RDFURN(urn.Dirname())
@@ -468,18 +465,14 @@ class Factory(object):
       except KeyError:
         pass
 
-      data_store.DB.DeleteAttributes(
-          dirname, ["index:dir/%s" % utils.SmartStr(basename)],
-          token=token,
-          sync=False)
-      data_store.DB.MultiSet(dirname, {
-          AFF4Object.SchemaCls.LAST: [
-              rdfvalue.RDFDatetime().Now().SerializeToDataStore()
-          ],
-      },
-                             token=token,
-                             replace=True,
-                             sync=False)
+      pool.DeleteAttributes(dirname,
+                            ["index:dir/%s" % utils.SmartStr(basename)])
+      to_set = {AFF4Object.SchemaCls.LAST: [
+          rdfvalue.RDFDatetime().Now().SerializeToDataStore()
+      ]}
+      pool.MultiSet(dirname, to_set, replace=True)
+      if mutation_pool is None:
+        pool.Flush()
 
     except access_control.UnauthorizedAccess:
       pass
@@ -1096,8 +1089,7 @@ class Factory(object):
         raise RuntimeError("Can't delete root URN. Please enter a valid URN")
 
     deletion_pool = DeletionPool(token=token)
-    for urn in urns:
-      deletion_pool.MarkForDeletion(urn)
+    deletion_pool.MultiMarkForDeletion(urns)
 
     marked_root_urns = deletion_pool.root_urns_for_deletion
     marked_urns = deletion_pool.urns_for_deletion
@@ -1109,11 +1101,12 @@ class Factory(object):
                   len(marked_root_urns), utils.SmartUnicode(urns),
                   utils.SmartUnicode(marked_root_urns))
 
+    pool = data_store.DB.GetMutationPool(token=token)
     for root in marked_root_urns:
       # Only the index of the parent object should be updated. Everything
       # below the target object (along with indexes) is going to be
       # deleted.
-      self._DeleteChildFromIndex(root, token)
+      self._DeleteChildFromIndex(root, token, mutation_pool=pool)
 
     for urn_to_delete in marked_urns:
       try:
@@ -1121,8 +1114,8 @@ class Factory(object):
       except KeyError:
         pass
 
-      data_store.DB.DeleteSubject(urn_to_delete, token=token, sync=False)
-      logging.debug(u"%s deleted from data store", urn_to_delete)
+    pool.DeleteSubjects(marked_urns)
+    pool.Flush()
 
     # Ensure this is removed from the cache as well.
     self.Flush()

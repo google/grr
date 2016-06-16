@@ -36,7 +36,7 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
       conf_obj = config_file
     else:
       conf_obj = config_lib.CONFIG.MakeNewConfig()
-      conf_obj.Initialize(config_file, reset=True)
+      conf_obj.Initialize(filename=config_file, reset=True)
 
     with utils.Stubber(config_lib, "CONFIG", conf_obj):
       all_sections = conf_obj.GetSections()

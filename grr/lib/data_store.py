@@ -94,6 +94,9 @@ class MutationPool(object):
     self.set_requests = []
     self.delete_attributes_requests = []
 
+  def DeleteSubjects(self, subjects):
+    self.delete_subject_requests.extend(subjects)
+
   def DeleteSubject(self, subject):
     self.delete_subject_requests.append(subject)
 
@@ -526,12 +529,11 @@ class DataStore(object):
     Raises:
       AccessError: if anything goes wrong.
     """
-    for _, values in self.MultiResolvePrefix(
-        [subject],
-        attribute_prefix,
-        timestamp=timestamp,
-        token=token,
-        limit=limit):
+    for _, values in self.MultiResolvePrefix([subject],
+                                             attribute_prefix,
+                                             timestamp=timestamp,
+                                             token=token,
+                                             limit=limit):
       values.sort(key=lambda a: a[0])
       return values
 

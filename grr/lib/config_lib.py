@@ -16,7 +16,6 @@ import platform
 import re
 import StringIO
 import sys
-import urlparse
 
 
 import pkg_resources
@@ -287,7 +286,8 @@ class GRRConfigParser(object):
   __metaclass__ = registry.MetaclassRegistry
 
   # Configuration parsers are named. This name is used to select the correct
-  # parser from the --config parameter which is interpreted as a url.
+  # parser from the --config parameter which is interpreted as a filename,
+  # except for files of the form reg://XXXX where XXXX is the key name.
   name = None
 
   # Set to True by the parsers if the file exists.
@@ -800,9 +800,9 @@ class GrrConfigManager(object):
     receive any updates and will override the options for this file.
 
     Args:
-      filename: A url, or filename which will receive updates. The
-        file is parsed first and merged into the raw data from this
-        object.
+      filename: A filename which will receive updates. The file is parsed first
+        and merged into the raw data from this object.
+
     """
     self.writeback = self.LoadSecondaryConfig(filename)
     self.MergeData(self.writeback.RawData(), self.writeback_data)
@@ -1053,21 +1053,20 @@ class GrrConfigManager(object):
         raw_data[k] = v
 
   def GetParserFromFilename(self, path):
-    """Returns the appropriate parser class from the filename url."""
+    """Returns the appropriate parser class from the filename."""
     # Find the configuration parser.
-    url = urlparse.urlparse(path, scheme="file")
-    for parser_cls in GRRConfigParser.classes.values():
-      if parser_cls.name == url.scheme:
-        return parser_cls
+    handler_cls = GRRConfigParser.classes.get(path.split("://")[0])
+    if handler_cls:
+      return handler_cls
 
-    # If url is a filename:
+    # Handle the filename.
     extension = os.path.splitext(path)[1]
     if extension in [".yaml", ".yml"]:
       return YamlParser
 
     return ConfigFileParser
 
-  def LoadSecondaryConfig(self, url=None, parser=None):
+  def LoadSecondaryConfig(self, filename=None, parser=None):
     """Loads an additional configuration file.
 
     The configuration system has the concept of a single Primary configuration
@@ -1079,9 +1078,8 @@ class GrrConfigManager(object):
     This method adds an additional configuration file.
 
     Args:
-      url: The url of the configuration file that will be loaded. For
-           example file:///etc/grr.conf
-           or reg://HKEY_LOCAL_MACHINE/Software/GRR.
+      filename: The configuration file that will be loaded. For example
+           file:///etc/grr.conf or reg://HKEY_LOCAL_MACHINE/Software/GRR.
 
       parser: An optional parser can be given. In this case, the parser's data
            will be loaded directly.
@@ -1093,33 +1091,36 @@ class GrrConfigManager(object):
       ConfigFileNotFound: If a specified included file was not found.
 
     """
-    if url:
+    if filename:
       # Maintain a stack of config file locations in loaded order.
-      self.files.append(url)
+      self.files.append(filename)
 
-      parsed_url = urlparse.urlparse(url, scheme="file")
-
-      parser_cls = self.GetParserFromFilename(url)
-      parser = parser_cls(filename=url)
-      logging.info("Loading configuration from %s", url)
+      parser_cls = self.GetParserFromFilename(filename)
+      parser = parser_cls(filename=filename)
+      logging.info("Loading configuration from %s", filename)
 
     clone = self.MakeNewConfig()
     clone.MergeData(parser.RawData())
     clone.initialized = True
 
-    for url_to_load in clone["Config.includes"]:
-      # If we are loading a file url and the url to load is a file url it might
-      # be specified relative to this config file.
-      parsed_url_to_load = urlparse.urlparse(url_to_load, scheme="file")
-      if (url and parsed_url.scheme == "file" and
-          parsed_url_to_load.scheme == "file"):
-        url_to_load = os.path.join(
-            os.path.dirname(parsed_url.path), parsed_url_to_load.path)
+    for file_to_load in clone["Config.includes"]:
+      # We can not include a relative file from a config which does not have
+      # path.
+      if not os.path.isabs(file_to_load):
+        if not filename:
+          raise ConfigFileNotFound(
+              "While loading %s: Unable to include a relative path (%s) "
+              "from a config without a filename" % (filename, file_to_load))
 
-      clone_parser = clone.LoadSecondaryConfig(url_to_load)
+        # If the included path is relative, we take it as relative to the
+        # current path of the config.
+        file_to_load = os.path.join(os.path.dirname(filename), file_to_load)
+
+      clone_parser = clone.LoadSecondaryConfig(file_to_load)
       # If an include file is specified but it was not found, raise an error.
       if not clone_parser.parsed:
-        raise ConfigFileNotFound("Unable to load include file %s" % url_to_load)
+        raise ConfigFileNotFound("Unable to load include file %s" %
+                                 file_to_load)
 
     self.MergeData(clone.raw_data)
     self.files.extend(clone.files)
@@ -1151,7 +1152,7 @@ class GrrConfigManager(object):
         configuration file, or we raise an exception.
 
       parser: The parser class to use (i.e. the format of the file). If not
-        specified guess from the filename url.
+        specified guess from the filename.
 
     Raises:
       RuntimeError: No configuration was passed in any of the parameters.
@@ -1610,7 +1611,8 @@ def DEFINE_constant_string(name, default, help):
 
 
 def LoadConfig(config_obj,
-               config_file,
+               config_file=None,
+               config_fd=None,
                secondary_configs=None,
                contexts=None,
                reset=False,
@@ -1620,7 +1622,8 @@ def LoadConfig(config_obj,
   Args:
     config_obj: The ConfigManager object to use and update. If None, one will
         be created.
-    config_file: Filename, url or file like object to read the config from.
+    config_file: Filename to read the config from.
+    config_fd: A file-like object to read config data from.
     secondary_configs: A list of secondary config URLs to load.
     contexts: Add these contexts to the config object.
     reset: Completely wipe previous config before doing the load.
@@ -1634,15 +1637,15 @@ def LoadConfig(config_obj,
     config_obj = CONFIG.MakeNewConfig()
 
   # Initialize the config with a filename or file like object.
-  if isinstance(config_file, basestring):
+  if config_file is not None:
     config_obj.Initialize(filename=config_file, must_exist=True, parser=parser)
-  elif hasattr(config_file, "read"):
-    config_obj.Initialize(fd=config_file, parser=parser)
+  elif config_fd is not None:
+    config_obj.Initialize(fd=config_fd, parser=parser)
 
   # Load all secondary files.
   if secondary_configs:
-    for config_url in secondary_configs:
-      config_obj.LoadSecondaryConfig(config_url)
+    for config_file in secondary_configs:
+      config_obj.LoadSecondaryConfig(config_file)
 
   if contexts:
     for context in contexts:
@@ -1661,8 +1664,8 @@ def ParseConfigCommandLine():
 
   # Allow secondary configuration files to be specified.
   if flags.FLAGS.secondary_configs:
-    for config_url in flags.FLAGS.secondary_configs:
-      CONFIG.LoadSecondaryConfig(config_url)
+    for config_file in flags.FLAGS.secondary_configs:
+      CONFIG.LoadSecondaryConfig(config_file)
 
   # Allow individual options to be specified as global overrides.
   for statement in flags.FLAGS.parameter:
