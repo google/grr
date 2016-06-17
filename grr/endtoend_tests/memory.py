@@ -8,33 +8,6 @@ from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib.aff4_objects import collects
-from grr.lib.rdfvalues import client as rdf_client
-
-
-class TestGrepMemory(base.AutomatedTest):
-  """Test ScanMemory."""
-  platforms = ["Windows"]
-  flow = "ScanMemory"
-  test_output_path = "analysis/grep/testing"
-  args = {"also_download": False,
-          "grep": rdf_client.BareGrepSpec(
-              literal="grr",
-              length=4 * 1024 * 1024 * 1024,
-              mode=rdf_client.GrepSpec.Mode.FIRST_HIT,
-              bytes_before=10,
-              bytes_after=10),
-          "output": test_output_path}
-
-  def CheckFlow(self):
-    collection = aff4.FACTORY.Open(
-        self.client_id.Add(self.test_output_path),
-        token=self.token)
-    self.assertIsInstance(collection, collects.RDFValueCollection)
-    self.assertEqual(len(list(collection)), 1)
-    reference = collection[0]
-
-    self.assertEqual(reference.length, 23)
-    self.assertEqual(reference.data[10:10 + 3], "grr")
 
 
 class AbstractTestAnalyzeClientMemory(base.ClientTestBase):

@@ -4,6 +4,7 @@
 # It is called by install_data/debian/dpkg_server/rules when building the deb
 # package.
 
+set -x
 set -e
 
 INSTALL_PREFIX="";
@@ -63,8 +64,8 @@ mkdir -p "$INSTALL_PREFIX/etc/grr"
 # When installed globally the config files are copied to the global
 # configuration directory, except grr-server.yaml, which is effectively part of
 # the code.
-for f in "$SRC_DIR/install_data/etc/*.yaml"; do
-  if [[ $f != "$SRC_DIR/install_data/etc/grr-server.yaml" ]]; then
+for f in $SRC_DIR/install_data/etc/*.yaml; do
+  if [ "$f" != "$SRC_DIR/install_data/etc/grr-server.yaml" ]; then
     $INSTALL_CMD "$f" "$INSTALL_PREFIX/etc/grr/"
   fi
 done

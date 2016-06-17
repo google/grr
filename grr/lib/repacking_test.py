@@ -19,12 +19,8 @@ from grr.lib import utils
 class RepackingTests(test_lib.GRRBaseTest):
   """Tests for maintenance utils functionality."""
 
-  # TODO(user): temporarily disable this test until we have released new
-  # templates that can actually be repacked. Re-enabling is on the release
-  # checklist:
-  # https://github.com/google/grr/issues/366
   @test_lib.RequiresPackage("grr-response-templates")
-  def disabled_testRepackAll(self):
+  def testRepackAll(self):
     """Test repacking all binaries."""
     self.executables_dir = config_lib.Resource().Filter("executables")
     with utils.TempDirectory() as tmp_dir:
