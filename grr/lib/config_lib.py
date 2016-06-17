@@ -1055,9 +1055,10 @@ class GrrConfigManager(object):
   def GetParserFromFilename(self, path):
     """Returns the appropriate parser class from the filename."""
     # Find the configuration parser.
-    handler_cls = GRRConfigParser.classes.get(path.split("://")[0])
-    if handler_cls:
-      return handler_cls
+    handler_name = path.split("://")[0]
+    for parser_cls in GRRConfigParser.classes.values():
+      if parser_cls.name == handler_name:
+        return parser_cls
 
     # Handle the filename.
     extension = os.path.splitext(path)[1]

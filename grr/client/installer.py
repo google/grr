@@ -15,6 +15,7 @@ import sys
 from grr.client import comms
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.rdfvalues import flows as rdf_flows
 
@@ -54,7 +55,7 @@ def InstallerNotifyServer():
       private_key=config_lib.CONFIG.Get("Client.private_key"))
 
   client.client_worker.SendReply(
-      session_id=rdf_flows.FlowSessionID(flow_name="InstallationFailed"),
+      session_id=rdfvalue.FlowSessionID(flow_name="InstallationFailed"),
       message_type=rdf_flows.GrrMessage.Type.STATUS,
       request_id=0,
       response_id=0,
