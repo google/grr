@@ -20,6 +20,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.aff4_objects import multi_type_collection
 # For GetClientStats. pylint: disable=unused-import
 from grr.lib.flows.general import administrative
 # pylint: enable=unused-import
@@ -96,6 +97,23 @@ class CallClientParentFlow(NoRequestParentFlow):
 
 class BasicFlowTest(test_lib.FlowTestsBaseclass):
   pass
+
+
+class FlowWithMultipleResultTypes(flow.GRRFlow):
+  """This flow will be called by our parent."""
+
+  @flow.StateHandler(next_state="End")
+  def Start(self):
+    self.CallState(next_state="End")
+
+  @flow.StateHandler()
+  def End(self, responses):
+    self.SendReply(rdfvalue.RDFInteger(42))
+    self.SendReply(rdfvalue.RDFString("foo bar"))
+    self.SendReply(rdfvalue.RDFString("foo1 bar1"))
+    self.SendReply(rdfvalue.RDFURN("aff4:/foo/bar"))
+    self.SendReply(rdfvalue.RDFURN("aff4:/foo1/bar1"))
+    self.SendReply(rdfvalue.RDFURN("aff4:/foo2/bar2"))
 
 
 class FlowCreationTest(BasicFlowTest):
@@ -210,7 +228,8 @@ class FlowCreationTest(BasicFlowTest):
     # The child URN should be contained within the parent session_id URN.
     flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
 
-    children = list(flow_obj.ListChildren())
+    children = list(obj for obj in flow_obj.OpenChildren()
+                    if isinstance(obj, flow.GRRFlow))
     self.assertEqual(len(children), 1)
 
     reason = "just so"
@@ -228,7 +247,7 @@ class FlowCreationTest(BasicFlowTest):
     self.assertTrue("user test" in runner.context.status)
     self.assertTrue(reason in runner.context.status)
 
-    child = aff4.FACTORY.Open(children[0],
+    child = aff4.FACTORY.Open(children[0].urn,
                               aff4_type=CallClientChildFlow,
                               token=self.token)
     runner = child.GetRunner()
@@ -360,6 +379,38 @@ class FlowCreationTest(BasicFlowTest):
         self.assertTrue(str(flow_urn) in str(log.urn))
         count += 1
       self.assertEqual(count, 8)
+
+  def testFlowStoresResultsPerType(self):
+    flow_urn = None
+    for session_id in test_lib.TestFlowHelper(
+        FlowWithMultipleResultTypes.__name__,
+        action_mocks.ActionMock(),
+        token=self.token,
+        client_id=self.client_id):
+      flow_urn = session_id
+
+    flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
+    c = aff4.FACTORY.Open(flow_obj.GetRunner().multi_type_output_urn,
+                          aff4_type=multi_type_collection.MultiTypeCollection,
+                          token=self.token)
+    self.assertEqual(
+        set(c.ListStoredTypes()), set([rdfvalue.RDFInteger.__name__,
+                                       rdfvalue.RDFString.__name__,
+                                       rdfvalue.RDFURN.__name__]))
+    self.assertEqual(c.LengthByType(rdfvalue.RDFInteger.__name__), 1)
+    self.assertEqual(c.LengthByType(rdfvalue.RDFString.__name__), 2)
+    self.assertEqual(c.LengthByType(rdfvalue.RDFURN.__name__), 3)
+
+    self.assertListEqual(
+        [v.payload for _, v in c.ScanByType(rdfvalue.RDFInteger.__name__)],
+        [rdfvalue.RDFInteger(42)])
+    self.assertListEqual(
+        [v.payload for _, v in c.ScanByType(rdfvalue.RDFString.__name__)],
+        [rdfvalue.RDFString("foo bar"), rdfvalue.RDFString("foo1 bar1")])
+    self.assertListEqual(
+        [v.payload for _, v in c.ScanByType(rdfvalue.RDFURN.__name__)],
+        [rdfvalue.RDFURN("foo/bar"), rdfvalue.RDFURN("foo1/bar1"),
+         rdfvalue.RDFURN("foo2/bar2")])
 
 
 class FlowTest(BasicFlowTest):
@@ -857,11 +908,12 @@ class GeneralFlowsTest(BasicFlowTest):
       pass
 
     self.assertEqual(ParentFlow.success, True)
-    subflows = list(aff4.FACTORY.Open(session_id,
-                                      token=self.token).ListChildren())
+    subflows = list(obj
+                    for obj in aff4.FACTORY.Open(
+                        session_id, token=self.token).OpenChildren()
+                    if isinstance(obj, flow.GRRFlow))
     self.assertEqual(len(subflows), 1)
-    child_flow = aff4.FACTORY.Open(subflows[0], token=self.token)
-    self.assertEqual(child_flow.GetRunner().context.creator, "original_user")
+    self.assertEqual(subflows[0].GetRunner().context.creator, "original_user")
 
   def testBrokenChainedFlow(self):
     """Test that exceptions are properly handled in chain flows."""

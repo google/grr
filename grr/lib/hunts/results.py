@@ -8,7 +8,6 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.aff4_objects import queue as aff4_queue
 from grr.lib.aff4_objects import sequential_collection
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
@@ -88,9 +87,8 @@ class HuntResultQueue(aff4_queue.Queue):
       queue.DeleteRecords(record_ids)
 
 
-class HuntResultCollection(sequential_collection.IndexedSequentialCollection):
+class HuntResultCollection(sequential_collection.GrrMessageCollection):
   """Sequential HuntResultCollection."""
-  RDF_TYPE = rdf_flows.GrrMessage
 
   @classmethod
   def StaticAdd(cls,
@@ -113,10 +111,6 @@ class HuntResultCollection(sequential_collection.IndexedSequentialCollection):
                                   timestamp=ts[0],
                                   suffix=ts[1]))
     return ts
-
-  def AddAsMessage(self, rdfvalue_in, source):
-    """Helper method to add rdfvalues as GrrMessages for testing."""
-    self.Add(rdf_flows.GrrMessage(payload=rdfvalue_in, source=source))
 
 
 class ResultQueueInitHook(registry.InitHook):

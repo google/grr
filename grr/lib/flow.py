@@ -64,11 +64,16 @@ from grr.lib import stats
 from grr.lib import threadpool
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.aff4_objects import sequential_collection
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
+
+
+class FlowResultCollection(sequential_collection.GrrMessageCollection):
+  """Sequential FlowResultCollection."""
 
 
 class AuditEvent(rdf_structs.RDFProtoStruct):

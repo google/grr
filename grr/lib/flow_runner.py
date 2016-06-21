@@ -73,6 +73,7 @@ from grr.lib import stats
 from grr.lib import utils
 
 from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import multi_type_collection
 from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import users as aff4_users
 
@@ -98,6 +99,9 @@ class FlowRunnerArgs(rdf_structs.RDFProtoStruct):
 
 class FlowLogCollection(sequential_collection.IndexedSequentialCollection):
   RDF_TYPE = rdf_flows.FlowLog
+
+
+RESULTS_PER_TYPE_SUFFIX = "ResultsPerType"
 
 
 class FlowRunner(object):
@@ -172,6 +176,29 @@ class FlowRunner(object):
     # when the flow is saved.
     self.sent_replies = []
 
+    # If we're running a child flow and send_replies=True, but
+    # write_intermediate_results=False, we don't want to create an output
+    # collection object. We also only want to create it if runner_args are
+    # passed as a parameter, so that the new context is initialized.
+    #
+    # We can't create the collection as part of InitializeContext, as flow's
+    # urn is not known when InitializeContext runs.
+    #
+    # TODO(user): this gets ugly, as HuntRunner inherits the constructor,
+    # but doesn't inherit the InitializeContext, therefore initializing
+    # the collection in the constructor is dangerous, as "args" may be
+    # HuntRunnerArgs and not FlowRunnerArgs. HuntRunner and FlowRunner
+    # should share the functionality in some other way, not through
+    # inheritance.
+    if runner_args is not None and not (
+        parent_runner and getattr(self.args, "send_replies", None) and
+        not getattr(self.args, "write_intermediate_results", None)):
+      with aff4.FACTORY.Create(
+          self.multi_type_output_urn,
+          aff4_type=multi_type_collection.MultiTypeCollection,
+          token=self.token) as _:
+        pass
+
   @property
   def output(self):
     return self.context.output
@@ -193,6 +220,10 @@ class FlowRunner(object):
     self.context.output = value
     if self.context.output is not None:
       self.context.output_urn = self.context.output.urn
+
+  @property
+  def multi_type_output_urn(self):
+    return self.flow_obj.urn.Add(RESULTS_PER_TYPE_SUFFIX)
 
   def _CreateOutputCollection(self, args):
     # Can only really have an output collection if we are using a client.
@@ -877,8 +908,9 @@ class FlowRunner(object):
     # If the urn is passed explicitly (e.g. from the hunt runner) use that,
     # otherwise use the urn from the flow_runner args. If both are None, create
     # a new collection and give the urn to the flow object.
-    logs_urn = self._GetLogsCollectionURN(kwargs.pop(
-        "logs_collection_urn", None) or self.args.logs_collection_urn)
+    logs_urn = self._GetLogsCollectionURN(kwargs.pop("logs_collection_urn",
+                                                     None) or
+                                          self.args.logs_collection_urn)
 
     # If we were called with write_intermediate_results, propagate down to
     # child flows.  This allows write_intermediate_results to be set to True
@@ -949,10 +981,14 @@ class FlowRunner(object):
 
       if self.args.write_intermediate_results:
         self.context.output.Add(response)
+        multi_type_collection.MultiTypeCollection.StaticAdd(
+            self.multi_type_output_urn, self.token, response)
     else:
       # Only write the reply to the collection if we are the parent flow.  This
       # avoids creating a collection for every intermediate flow result.
       self.context.output.Add(response)
+      multi_type_collection.MultiTypeCollection.StaticAdd(
+          self.multi_type_output_urn, self.token, response)
 
     if self.args.client_id:
       # While wrapping the response in GrrMessage is not strictly necessary for

@@ -826,8 +826,16 @@ class RDFValueCollectionConverter(ExportConverter):
         yield v
 
 
+class GrrMessageCollectionConverter(RDFValueCollectionConverter):
+  input_rdf_type = "GrrMessageCollection"
+
+
 class HuntResultCollectionConverter(RDFValueCollectionConverter):
   input_rdf_type = "HuntResultCollection"
+
+
+class FlowResultCollectionConverter(RDFValueCollectionConverter):
+  input_rdf_type = "FlowResultCollection"
 
 
 class VFSFileToExportedFileConverter(ExportConverter):
@@ -1003,8 +1011,8 @@ class FileStoreHashConverter(ExportConverter):
     """Convert batch of FileStoreHashs."""
 
     urns = [urn for metadata, urn in metadata_value_pairs]
-    urns_dict = dict([(urn, metadata) for metadata, urn in metadata_value_pairs
-                     ])
+    urns_dict = dict([(urn, metadata)
+                      for metadata, urn in metadata_value_pairs])
 
     results = []
     for hash_urn, client_files in filestore.HashFileStore.GetClientsForHashes(

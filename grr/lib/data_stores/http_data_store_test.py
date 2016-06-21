@@ -161,32 +161,6 @@ class HTTPDataStoreMixin(object):
       except (OSError, IOError):
         pass
 
-  old_security_managers = None
-
-  def _InstallACLChecks(self, forbidden_access):
-    if self.old_security_managers:
-      raise RuntimeError("Seems like _InstallACLChecks was called twice in one "
-                         "test")
-
-    # HTTP_DB doesn't get recreated every time this test runs. So make sure
-    # that we can restore previous security manager later.
-    self.old_security_managers = [HTTP_DB[0].security_manager,
-                                  HTTP_DB[1].security_manager]
-
-    # We have to install tuned MockSecurityManager not on data_store.DB, which
-    # is a HttpDataStore, but on HTTP_DB which is an SqliteDataStore that
-    # eventuall gets queries from HttpDataStore.
-    HTTP_DB[0].security_manager = test_lib.MockSecurityManager(
-        forbidden_datastore_access=forbidden_access)
-    HTTP_DB[1].security_manager = test_lib.MockSecurityManager(
-        forbidden_datastore_access=forbidden_access)
-
-  def DestroyDatastore(self):
-    if self.old_security_managers:
-      HTTP_DB[0].security_manager = self.old_security_managers[0]
-      HTTP_DB[1].security_manager = self.old_security_managers[1]
-      self.old_security_managers = None
-
 
 class HTTPDataStoreTest(HTTPDataStoreMixin, data_store_test._DataStoreTest):
   """Test the remote data store."""

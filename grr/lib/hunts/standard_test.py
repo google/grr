@@ -350,6 +350,17 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       self.assertEqual(i, 4)
 
+      per_type_collection = aff4.FACTORY.Open(hunt_obj.multi_type_output_urn,
+                                              mode="r",
+                                              token=self.token)
+
+      for i, x in enumerate(per_type_collection):
+        self.assertEqual(x.payload.__class__, rdf_client.StatEntry)
+        self.assertEqual(x.payload.aff4path.Split(2)[-1], "fs/os/tmp/evil.txt")
+
+      self.assertListEqual(per_type_collection.ListStoredTypes(),
+                           [rdf_client.StatEntry.__name__])
+
   def testHuntWithoutForemanRules(self):
     """Check no foreman rules are created if we pass add_foreman_rules=False."""
     hunt_urn = self.StartHunt(add_foreman_rules=False)

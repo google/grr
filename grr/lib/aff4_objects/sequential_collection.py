@@ -14,6 +14,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
 
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 
 
@@ -304,8 +305,8 @@ class IndexedSequentialCollection(SequentialCollection):
     if i > self._max_indexed and i % self.INDEX_SPACING == 0:
       # We only write the index if the timestamp is more than 5 minutes in the
       # past: hacky defense against a late write changing the count.
-      if ts[0] < (rdfvalue.RDFDatetime().Now() -
-                  self.INDEX_WRITE_DELAY).AsMicroSecondsFromEpoch():
+      if ts[0] < (rdfvalue.RDFDatetime().Now() - self.INDEX_WRITE_DELAY
+                 ).AsMicroSecondsFromEpoch():
         # We may be used in contexts were we don't have write access, so simply
         # give up in that case. TODO(user): Remove this when the ACL
         # system allows.
@@ -331,9 +332,8 @@ class IndexedSequentialCollection(SequentialCollection):
     # The timestamp that we will start reading from.
     start_ts = 0
     if i >= self._max_indexed:
-      start_ts = max(
-          (0, 0), (self._index[self._max_indexed][0],
-                   self._index[self._max_indexed][1] - 1))
+      start_ts = max((0, 0), (self._index[self._max_indexed][0],
+                              self._index[self._max_indexed][1] - 1))
       idx = self._max_indexed
     else:
       try:
@@ -418,3 +418,12 @@ class GeneralIndexedCollection(IndexedSequentialCollection):
     for (timestamp, rdf_value) in super(GeneralIndexedCollection, self).Scan(
         **kwargs):
       yield (timestamp, rdf_value.payload)
+
+
+class GrrMessageCollection(IndexedSequentialCollection):
+  """Sequential HuntResultCollection."""
+  RDF_TYPE = rdf_flows.GrrMessage
+
+  def AddAsMessage(self, rdfvalue_in, source):
+    """Helper method to add rdfvalues as GrrMessages for testing."""
+    self.Add(rdf_flows.GrrMessage(payload=rdfvalue_in, source=source))

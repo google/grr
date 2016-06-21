@@ -34,6 +34,7 @@ from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects as aff4_collections
+from grr.lib.aff4_objects import multi_type_collection
 from grr.lib.aff4_objects import sequential_collection
 from grr.lib.hunts import results as hunts_results
 from grr.lib.rdfvalues import client as rdf_client
@@ -592,6 +593,10 @@ class GRRHunt(flow.GRRFlow):
     return self.urn.Add("OutputPluginsErrors")
 
   @property
+  def multi_type_output_urn(self):
+    return self.urn.Add("ResultsPerType")
+
+  @property
   def creator(self):
     return self.state.context.creator
 
@@ -809,6 +814,10 @@ class GRRHunt(flow.GRRFlow):
               sync=True,
               token=self.token)
 
+        for msg in msgs:
+          multi_type_collection.MultiTypeCollection.StaticAdd(
+              self.multi_type_output_urn, self.token, msg)
+
         if responses:
           self.RegisterClientWithResults(client_id)
 
@@ -909,6 +918,13 @@ class GRRHunt(flow.GRRFlow):
     # Create the collection for results.
     with aff4.FACTORY.Create(self.state.context.results_collection_urn,
                              hunts_results.HuntResultCollection,
+                             mode="w",
+                             token=self.token):
+      pass
+
+    # Create the collection for per-type results.
+    with aff4.FACTORY.Create(self.multi_type_output_urn,
+                             multi_type_collection.MultiTypeCollection,
                              mode="w",
                              token=self.token):
       pass
@@ -1058,7 +1074,8 @@ class GRRHunt(flow.GRRFlow):
       next_flows = []
       for _, children in aff4.FACTORY.MultiListChildren(act_flows, token=token):
         for flow_urn in children:
-          next_flows.append(flow_urn)
+          if flow_urn.Basename() != flow_runner.RESULTS_PER_TYPE_SUFFIX:
+            next_flows.append(flow_urn)
       all_flows.extend(next_flows)
       act_flows = next_flows
 

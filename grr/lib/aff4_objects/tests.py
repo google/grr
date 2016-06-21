@@ -9,6 +9,7 @@ from grr.lib.aff4_objects import benchmark_test
 from grr.lib.aff4_objects import collects_test
 from grr.lib.aff4_objects import cronjobs_test
 from grr.lib.aff4_objects import filestore_test
+from grr.lib.aff4_objects import multi_type_collection_test
 from grr.lib.aff4_objects import queue_test
 from grr.lib.aff4_objects import reports_test
 from grr.lib.aff4_objects import security_test
