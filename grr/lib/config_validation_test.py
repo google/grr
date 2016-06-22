@@ -15,11 +15,12 @@ from grr.lib import utils
 class BuildConfigTestsBase(test_lib.GRRBaseTest):
   """Base for config functionality tests."""
 
-  # Server configuration files do not normally have valid client keys.
   exceptions = [
+      # Server configuration files do not normally have valid client keys.
       "Client.private_key",
+      # Those keys are maybe passphrase protected so we need to skip.
       "PrivateKeys.ca_key",
-      "PrivateKeys.driver_signing_private_key"
+      "PrivateKeys.driver_signing_private_key",
       "PrivateKeys.executable_signing_private_key",
       "PrivateKeys.server_key",
   ]

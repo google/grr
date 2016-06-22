@@ -19,7 +19,7 @@ function system_update() {
     yum install -y epel-release
 
     yum -y update
-    yum install -y make automake gcc gcc-c++ kernel-devel libtool swig glibc-devel git perl
+    yum install -y make automake gcc gcc-c++ kernel-devel libtool swig glibc-devel git perl libffi-devel
     echo /usr/local/lib > /etc/ld.so.conf.d/libc.conf
     echo 'PATH=$PATH:/usr/local/bin:/sbin; export PATH' > /etc/profile.d/localbin.sh
     source /etc/profile.d/localbin.sh
@@ -49,8 +49,8 @@ function install_openssl() {
   fi
   tar zxf openssl-${SSL_VERSION}.tar.gz
   cd openssl-${SSL_VERSION}
-  # We want m2crypto to dynamically link openssl, so we need to build the shared
-  # library. Pyinstaller will ship the lib for us. If we statically link,
+  # We want cryptography to dynamically link openssl, so we need to build the
+  # shared library. Pyinstaller will ship the lib for us. If we statically link,
   # selinux policy on centos will break installation.
   ./config shared -fPIC
   # openssl doesn't play nice with jobserver so no -j4

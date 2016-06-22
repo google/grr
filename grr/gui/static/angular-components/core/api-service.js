@@ -129,10 +129,6 @@ ApiService.service_name = 'grrApiService';
 ApiService.prototype.sendRequest_ = function(method, apiPath, opt_params,
                                              opt_requestSettings) {
   var requestParams = angular.extend({}, opt_params);
-  if (grr.state.reason) {
-    requestParams.reason = grr.state.reason;
-  }
-
   var requestSettings = angular.extend({}, opt_requestSettings);
 
   var loadingKey = this.grrLoadingIndicatorService_.startLoading();
@@ -248,7 +244,7 @@ ApiService.prototype.downloadFile = function(apiPath, opt_params) {
   }.bind(this), function failure(response) {
     if (response.status == 403) {
       var headers = response.headers();
-      // HEAD resposne is not expected to have any body. Therefore using
+      // HEAD response is not expected to have any body. Therefore using
       // headers to get failure subject and reason information.
       // TODO(user): Refactor handling of 403 errors in the Angular
       // way.
@@ -314,10 +310,6 @@ ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
         'Content-Type': undefined
       }
     };
-  }
-
-  if (grr.state.reason) {
-    request.headers['X-GRR-REASON'] = encodeURIComponent(grr.state.reason);
   }
 
   var loadingKey = this.grrLoadingIndicatorService_.startLoading();

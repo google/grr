@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
-# Copyright 2011 Google Inc. All Rights Reserved.
 """Test the fileview interface."""
 
 

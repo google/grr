@@ -36,6 +36,7 @@ from grr.lib import repacking
 from grr.lib import startup
 from grr.lib import utils
 from grr.lib.aff4_objects import users
+from grr.lib.rdfvalues import crypto as rdf_crypto
 
 
 class Error(Exception):
@@ -434,22 +435,23 @@ def GenerateKeys(config, overwrite_keys=False):
   length = config_lib.CONFIG["Server.rsa_key_length"]
   print "All keys will have a bit length of %d." % length
   print "Generating executable signing key"
-  priv_key, pub_key = key_utils.GenerateRSAKey(key_length=length)
-  config.Set("PrivateKeys.executable_signing_private_key", priv_key)
-  config.Set("Client.executable_signing_public_key", pub_key)
+  executable_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=length)
+  config.Set("PrivateKeys.executable_signing_private_key",
+             executable_key.AsPEM())
+  config.Set("Client.executable_signing_public_key",
+             executable_key.GetPublicKey().AsPEM())
 
   print "Generating CA keys"
-  ca_cert, ca_pk, _ = key_utils.MakeCACert(bits=length)
-  cipher = None
-  config.Set("CA.certificate", ca_cert.as_pem())
-  config.Set("PrivateKeys.ca_key", ca_pk.as_pem(cipher))
+  ca_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=length)
+  ca_cert = key_utils.MakeCACert(ca_key)
+  config.Set("CA.certificate", ca_cert.AsPEM())
+  config.Set("PrivateKeys.ca_key", ca_key.AsPEM())
 
   print "Generating Server keys"
-  server_cert, server_key = key_utils.MakeCASignedCert("grr",
-                                                       ca_pk,
-                                                       bits=length)
-  config.Set("Frontend.certificate", server_cert.as_pem())
-  config.Set("PrivateKeys.server_key", server_key.as_pem(cipher))
+  server_key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=length)
+  server_cert = key_utils.MakeCASignedCert(u"grr", server_key, ca_cert, ca_key)
+  config.Set("Frontend.certificate", server_cert.AsPEM())
+  config.Set("PrivateKeys.server_key", server_key.AsPEM())
 
   print "Generating Django Secret key (used for xsrf protection etc)"
   GenerateDjangoKey(config)

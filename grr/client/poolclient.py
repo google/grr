@@ -85,7 +85,7 @@ def CreateClientPool(n):
   while len(clients) < n:
     # Generate a new RSA key pair for each client.
     bits = config_lib.CONFIG["Client.rsa_key_length"]
-    key = rdf_crypto.PEMPrivateKey.GenKey(bits=bits)
+    key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=bits)
     clients.append(PoolGRRClient(private_key=key,
                                  ca_cert=config_lib.CONFIG["CA.certificate"]))
 

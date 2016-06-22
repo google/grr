@@ -26,6 +26,16 @@ class TestCrashView(test_lib.GRRSeleniumTest):
                                      check_flow_errors=False):
       pass
 
+  def testOpeningCrashesOfUnapprovedClientRedirectsToHostInfoPage(self):
+    self.Open("/#/clients/C.0000000000000002/crashes")
+
+    # As we don't have an approval for C.0000000000000002, we should be
+    # redirected to the host info page.
+    self.WaitUntilEqual("/#/clients/C.0000000000000002/host-info",
+                        self.GetCurrentUrlPath)
+    self.WaitUntil(self.IsTextPresent,
+                   "You do not have an approval for this client.")
+
   def testClientCrashedFlow(self):
     with self.ACLChecksDisabled():
       self.SetUpCrashedFlow()

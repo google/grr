@@ -103,11 +103,11 @@ config_lib.DEFINE_string("Worker.smtp_password", None,
 
 # Server Cryptographic settings.
 config_lib.DEFINE_semantic(
-    rdf_crypto.PEMPrivateKey,
+    rdf_crypto.RSAPrivateKey,
     "PrivateKeys.ca_key",
     description="CA private key. Used to sign for client enrollment.",)
 
-config_lib.DEFINE_semantic(rdf_crypto.PEMPrivateKey,
+config_lib.DEFINE_semantic(rdf_crypto.RSAPrivateKey,
                            "PrivateKeys.server_key",
                            description="Private key for the front end server.")
 

@@ -37,23 +37,18 @@ class DataServerEncryptedCreds(rdf_structs.RDFProtoStruct):
 
   protobuf = data_server_pb2.DataServerEncryptedCreds
 
+  # TODO(user): Use a proper key derivation function instead of this.
   def _MakeEncryptKey(self, username, password):
-    data = hashlib.md5(username + password).hexdigest()
-    return crypto.AES128Key(data)
-
-  def _MakeInitVector(self):
-    init_vector = crypto.AES128Key()
-    init_vector.Generate()
-    return init_vector
+    digest = hashlib.md5(username + password).hexdigest()
+    return crypto.AES128Key.FromHex(digest)
 
   def SetPayload(self, payload, username, password):
     key = self._MakeEncryptKey(username, password)
-    hasher = hashlib.sha256(payload)
-    self.sha256 = hasher.digest()
+    self.sha256 = hashlib.sha256(payload).digest()
 
-    self.init_vector = self._MakeInitVector()
-    encryptor = crypto.AES128CBCCipher(key, self.init_vector,
-                                       crypto.Cipher.OP_ENCRYPT)
+    self.init_vector = crypto.AES128Key.GenerateRandomIV()
+
+    encryptor = crypto.AES128CBCCipher(key, self.init_vector)
 
     self.ciphertext = encryptor.Encrypt(payload)
 
@@ -61,12 +56,10 @@ class DataServerEncryptedCreds(rdf_structs.RDFProtoStruct):
     # Use the same key used in SetPayload()
     key = self._MakeEncryptKey(username, password)
 
-    decryptor = crypto.AES128CBCCipher(key, self.init_vector,
-                                       crypto.Cipher.OP_DECRYPT)
+    decryptor = crypto.AES128CBCCipher(key, self.init_vector)
 
     # Decrypt credentials information and set the required fields.
-    plain = decryptor.Update(self.ciphertext)
-    plain += decryptor.Final()
+    plain = decryptor.Decrypt(self.ciphertext)
 
     hasher = hashlib.sha256(plain)
     if hasher.digest() != self.sha256:

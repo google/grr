@@ -187,8 +187,8 @@ class TestSendFile(base.LocalClientTest):
   """
   platforms = ["Linux"]
   flow = "SendFile"
-  key = rdf_crypto.AES128Key("1a5eafcc77d428863d4c2441ea26e5a5")
-  iv = rdf_crypto.AES128Key("2241b14c64874b1898dad4de7173d8c0")
+  key = rdf_crypto.AES128Key.FromHex("1a5eafcc77d428863d4c2441ea26e5a5")
+  iv = rdf_crypto.AES128Key.FromHex("2241b14c64874b1898dad4de7173d8c0")
 
   args = dict(host="127.0.0.1",
               port=12345,

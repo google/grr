@@ -13,6 +13,7 @@ from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.rdfvalues import crypto as rdf_crypto
 
 
 class YamlConfigTest(test_lib.GRRBaseTest):
@@ -305,14 +306,22 @@ test = val2"""
     self.assertEqual(
         config_lib.CONFIG.Get("NewSection1.new_option1", None), None)
 
-  def testEmptyClientPrivateKey(self):
-    """Check an empty client private_key passes."""
+  def testKeyConfigOptions(self):
+    """Check that keys get read correctly from the config."""
     # Clone a test config object from the global config so it knows about Client
     # options.
     conf = config_lib.CONFIG.MakeNewConfig()
     conf.Initialize(data="""
 [Client]
-private_key =
+private_key = -----BEGIN RSA PRIVATE KEY-----
+    MIIBOwIBAAJBAJTrcBYtenHgT23ZVwYTiMPF+XQi+b9f7idy2eD+ELAUOoBK9A+n
+    W+WSavIg3cje+yDqd1VjvSo+LGKC+OQkKcsCAwEAAQJALGVsSxBP2rc2ttb+nK8i
+    LMtOrRLoReeBhn00+2CC9Rr+Ui8GJxvmgJ16+DObU9xIPPG73bqDdsOOrmTV8Jo4
+    8QIhAMQC2siJr+uuKpGODCM1ItJfG2Uaa9eplYj1pBVuztVPAiEAwn8Lluk7ULX6
+    SkLzKnsbahInoni6t7SBd/o6hjNsvMUCIQCcUpZ/9udZdAa5HOtrLNZ/pqAniuHV
+    FoeOujFJcpz8GwIgSRVYE4LcSP24aQMzQDk2GetsfT6EWtc29xBNwXO9XkkCIQCl
+    7o5SVqKx1wHOj8gV3/8WHJ61MvAQCAX4o/M8cGkTQQ==
+    -----END RSA PRIVATE KEY-----
 driver_signing_public_key = -----BEGIN PUBLIC KEY-----
     MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCOD
     QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
@@ -324,23 +333,11 @@ executable_signing_public_key = -----BEGIN PUBLIC KEY-----
 """)
     errors = conf.Validate(["Client"])
     self.assertItemsEqual(errors.keys(), [])
-
-  def testEmptyClientKeys(self):
-    """Check that empty other keys fail."""
-    conf = config_lib.CONFIG.MakeNewConfig()
-    conf.Initialize(data="""
-[Client]
-private_key =
-driver_signing_public_key =
-executable_signing_public_key =
-
-[CA]
-certificate =
-""")
-    errors = conf.Validate(["Client"])
-    self.assertItemsEqual(errors.keys(),
-                          ["Client.driver_signing_public_key",
-                           "Client.executable_signing_public_key"])
+    self.assertIsInstance(conf["Client.driver_signing_public_key"],
+                          rdf_crypto.RSAPublicKey)
+    self.assertIsInstance(conf["Client.driver_signing_public_key"],
+                          rdf_crypto.RSAPublicKey)
+    self.assertIsInstance(conf["Client.private_key"], rdf_crypto.RSAPrivateKey)
 
   def testGet(self):
     conf = config_lib.GrrConfigManager()

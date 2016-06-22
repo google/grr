@@ -47,10 +47,7 @@ grrUi.client.hostInfoDirective.HostInfoController = function(
   this.client;
 
   /** @type {boolean} */
-  this.clientAccessCheckInProgress = true;
-
-  /** @type {boolean} */
-  this.hasClientAccess = false;
+  this.hasClientAccess;
 
   /** @type {?string} */
   this.interrogateOperationId;
@@ -81,7 +78,6 @@ HostInfoController.prototype.onClientIdChange_ = function(clientId) {
     this.clientId = clientId;
     this.clientVersionUrl = '/clients/' + clientId + '/version-times';
     this.fetchClientDetails_();
-    this.checkClientAccess_();
   }
 };
 
@@ -118,25 +114,6 @@ HostInfoController.prototype.fetchClientDetails_ = function() {
     this.client = response.data['client'];
     this.clientVersion = response.data['client']['age'];
   }.bind(this));
-};
-
-/**
- * Checks if user has a permission to access the client.
- *
- * @private
- */
-HostInfoController.prototype.checkClientAccess_ = function() {
-  this.clientAccessCheckInProgress = true;
-
-  this.grrApiService_.head('clients/' + this.clientId + '/flows').then(
-      function resolve() {
-        this.hasClientAccess = true;
-      }.bind(this),
-      function reject() {
-        this.hasClientAccess = false;
-      }.bind(this)).finally(function() {
-        this.clientAccessCheckInProgress = false;
-      }.bind(this));
 };
 
 /**

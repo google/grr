@@ -91,7 +91,7 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       self.Send("", status=404)
 
   def ServerPem(self):
-    self.Send(self.server.server_cert)
+    self.Send(self.server.server_cert.AsPEM())
 
   RECV_BLOCK_SIZE = 8192
 

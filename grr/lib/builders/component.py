@@ -21,6 +21,7 @@ import pip
 from grr.lib import config_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import crypto as rdf_crypto
 
 
 def _PathStartsWithSkippedModules(path, modules):
@@ -228,7 +229,7 @@ def BuildComponent(setup_path, output_dir=None):
         build_system=rdf_client.Uname.FromCurrentSystem(),)
 
     # Components will be encrypted using AES128CBC
-    result.summary.cipher.SetAlgorithm("AES128CBC")
+    result.summary.cipher = rdf_crypto.SymmetricCipher.Generate("AES128CBC")
 
     # Clear these non important fields about the build box.
     result.build_system.fqdn = None

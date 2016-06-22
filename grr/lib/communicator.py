@@ -2,18 +2,10 @@
 """Abstracts encryption and authentication."""
 
 
-import hashlib
-import os
 import struct
 import time
 import zlib
 
-
-from M2Crypto import BIO
-from M2Crypto import EVP
-from M2Crypto import m2
-from M2Crypto import RSA
-from M2Crypto import X509
 
 from grr.lib import config_lib
 from grr.lib import rdfvalue
@@ -22,11 +14,8 @@ from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
 
+from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
-
-# Constants.
-ENCRYPT = 1
-DECRYPT = 0
 
 
 class CommunicatorInit(registry.InitHook):
@@ -62,66 +51,11 @@ class UnknownClientCert(DecodingError):
   counter = "grr_client_unknown"
 
 
-class PubKeyCache(object):
-  """A cache of public keys for different destinations."""
-
-  def __init__(self):
-    self.pub_key_cache = utils.FastStore(max_size=50000)
-
-  @staticmethod
-  def GetCNFromCert(cert):
-    subject = cert.get_subject()
-    try:
-      cn_id = subject.nid["CN"]
-      cn = subject.get_entries_by_nid(cn_id)[0]
-    except IndexError:
-      raise IOError("Cert has no CN")
-
-    return rdfvalue.RDFURN(cn.get_data().as_text())
-
-  @staticmethod
-  def PubKeyFromCert(cert):
-    pub_key = cert.get_pubkey().get_rsa()
-    bio = BIO.MemoryBuffer()
-    pub_key.save_pub_key_bio(bio)
-
-    return bio.read_all()
-
-  def Flush(self):
-    """Flushes the cert cache."""
-    self.pub_key_cache.Flush()
-
-  def Put(self, destination, pub_key):
-    self.pub_key_cache.Put(destination, pub_key)
-
-  def GetRSAPublicKey(self, common_name="Server"):
-    """Retrieve the relevant public key for that common name.
-
-    This maintains a cache of public keys or loads them from external
-    sources if available.
-
-    Args:
-      common_name: The common_name of the key we need.
-
-    Returns:
-      A valid public key.
-    """
-    try:
-      pub_key = self.pub_key_cache.Get(common_name)
-      bio = BIO.MemoryBuffer(pub_key)
-      return RSA.load_pub_key_bio(bio)
-    except (KeyError, X509.X509Error):
-      raise KeyError("No certificate found")
-
-
 class Cipher(object):
   """Holds keying information."""
-  hash_function = hashlib.sha256
-  hash_function_name = "sha256"
   cipher_name = "aes_128_cbc"
   key_size = 128
   iv_size = 128
-  e_padding = RSA.pkcs1_oaep_padding
 
   # These fields get filled in by the constructor
   private_key = None
@@ -130,7 +64,7 @@ class Cipher(object):
   encrypted_cipher = None
   encrypted_cipher_metadata = None
 
-  def __init__(self, source, destination, private_key, pub_key_cache):
+  def __init__(self, source, private_key, remote_public_key):
     self.private_key = private_key
 
     # The CipherProperties() protocol buffer specifying the session keys, that
@@ -138,128 +72,94 @@ class Cipher(object):
     # key.
     self.cipher = rdf_flows.CipherProperties(
         name=self.cipher_name,
-        key=os.urandom(self.key_size / 8),
-        metadata_iv=os.urandom(self.iv_size / 8),
-        hmac_key=os.urandom(self.key_size / 8),
+        key=rdf_crypto.EncryptionKey.GenerateKey(length=self.key_size),
+        metadata_iv=rdf_crypto.EncryptionKey.GenerateKey(length=self.key_size),
+        hmac_key=rdf_crypto.EncryptionKey.GenerateKey(length=self.key_size),
         hmac_type="FULL_HMAC")
 
-    self.pub_key_cache = pub_key_cache
     serialized_cipher = self.cipher.SerializeToString()
 
     self.cipher_metadata = rdf_flows.CipherMetadata(source=source)
 
     # Sign this cipher.
-    digest = self.hash_function(serialized_cipher).digest()
+    self.cipher_metadata.signature = self.private_key.Sign(serialized_cipher)
 
-    # We never want to have a password dialog
-    private_key = self.private_key.GetPrivateKey()
-
-    self.cipher_metadata.signature = private_key.sign(digest,
-                                                      self.hash_function_name)
-
-    # Now encrypt the cipher with our key
-    rsa_key = pub_key_cache.GetRSAPublicKey(destination)
-
+    # Now encrypt the cipher.
     stats.STATS.IncrementCounter("grr_rsa_operations")
-    # M2Crypto verifies the key on each public_encrypt call which is horribly
-    # slow therefore we just call the swig wrapped method directly.
-    self.encrypted_cipher = m2.rsa_public_encrypt(rsa_key.rsa,
-                                                  serialized_cipher,
-                                                  self.e_padding)
+    self.encrypted_cipher = remote_public_key.Encrypt(serialized_cipher)
 
     # Encrypt the metadata block symmetrically.
     _, self.encrypted_cipher_metadata = self.Encrypt(
         self.cipher_metadata.SerializeToString(), self.cipher.metadata_iv)
 
-    self.signature_verified = True
-
   def Encrypt(self, data, iv=None):
     """Symmetrically encrypt the data using the optional iv."""
     if iv is None:
-      iv = os.urandom(self.iv_size / 8)
-
-    evp_cipher = EVP.Cipher(alg=self.cipher_name,
-                            key=self.cipher.key,
-                            iv=iv,
-                            op=ENCRYPT)
-
-    ctext = evp_cipher.update(data)
-    ctext += evp_cipher.final()
-
-    return iv, ctext
+      iv = rdf_crypto.EncryptionKey.GenerateKey(length=128)
+    cipher = rdf_crypto.AES128CBCCipher(self.cipher.key, iv)
+    return iv, cipher.Encrypt(data)
 
   def Decrypt(self, data, iv):
     """Symmetrically decrypt the data."""
-    try:
-      evp_cipher = EVP.Cipher(alg=self.cipher_name,
-                              key=self.cipher.key,
-                              iv=iv,
-                              op=DECRYPT)
-
-      text = evp_cipher.update(data)
-      text += evp_cipher.final()
-
-      return text
-    except EVP.EVPError as e:
-      raise DecryptionError(str(e))
+    key = rdf_crypto.EncryptionKey(self.cipher.key)
+    iv = rdf_crypto.EncryptionKey(iv)
+    return rdf_crypto.AES128CBCCipher(key, iv).Decrypt(data)
 
   @property
   def hmac_type(self):
     return self.cipher.hmac_type
 
   def HMAC(self, *data):
-    hmac = EVP.HMAC(self.cipher.hmac_key, algo="sha1")
-    for d in data:
-      hmac.update(d)
-
-    return hmac.final()
+    hmac = rdf_crypto.HMAC(self.cipher.hmac_key)
+    return hmac.HMAC("".join(data))
 
 
 class ReceivedCipher(Cipher):
   """A cipher which we received from our peer."""
 
-  # Indicates if the cipher contained in the response_comms is verified.
-  signature_verified = False
-
   # pylint: disable=super-init-not-called
-  def __init__(self, response_comms, private_key, pub_key_cache):
+  def __init__(self, response_comms, private_key):
     self.private_key = private_key
-    self.pub_key_cache = pub_key_cache
+    self.response_comms = response_comms
 
-    # Decrypt the message
-    private_key = self.private_key.GetPrivateKey()
+    if response_comms.api_version not in [3]:
+      raise DecryptionError("Unsupported api version: %s, expected 3." %
+                            response_comms.api_version)
+
+    if not response_comms.encrypted_cipher:
+      # The message is not encrypted. We do not allow unencrypted
+      # messages:
+      raise DecryptionError("Server response is not encrypted.")
 
     try:
       # The encrypted_cipher contains the session key, iv and hmac_key.
-      self.encrypted_cipher = response_comms.encrypted_cipher
-
-      # M2Crypto verifies the key on each private_decrypt call which is horribly
-      # slow therefore we just call the swig wrapped method directly.
-      self.serialized_cipher = m2.rsa_private_decrypt(
-          private_key.rsa, response_comms.encrypted_cipher, self.e_padding)
+      self.serialized_cipher = private_key.Decrypt(
+          response_comms.encrypted_cipher)
 
       # If we get here we have the session keys.
       self.cipher = rdf_flows.CipherProperties(self.serialized_cipher)
 
       # Check the key lengths.
       if (len(self.cipher.key) != self.key_size / 8 or
-          len(self.cipher.metadata_iv) != self.iv_size / 8):
+          len(self.cipher.metadata_iv) != self.iv_size / 8 or
+          len(self.cipher.hmac_key) != self.key_size / 8):
         raise DecryptionError("Invalid cipher.")
 
-      # Check the hmac key for sanity.
-      self.VerifyHMAC(response_comms)
+      self.VerifyHMAC()
 
       # Cipher_metadata contains information about the cipher - It is encrypted
       # using the symmetric session key. It contains the RSA signature of the
       # digest of the serialized CipherProperties(). It is stored inside the
       # encrypted payload.
-      self.cipher_metadata = rdf_flows.CipherMetadata(self.Decrypt(
-          response_comms.encrypted_cipher_metadata, self.cipher.metadata_iv))
+      serialized_metadata = self.Decrypt(
+          response_comms.encrypted_cipher_metadata, self.cipher.metadata_iv)
+      self.cipher_metadata = rdf_flows.CipherMetadata(serialized_metadata)
 
-      self.VerifyCipherSignature()
-
-    except RSA.RSAError as e:
+    except (rdf_crypto.InvalidSignature, rdf_crypto.CipherError) as e:
       raise DecryptionError(e)
+
+  def GetSource(self):
+    return self.cipher_metadata.source
 
   def IsEqual(self, a, b):
     """A Constant time comparison."""
@@ -272,50 +172,95 @@ class ReceivedCipher(Cipher):
 
     return result == 0
 
-  def VerifyHMAC(self, response_comms):
-    # Ensure that the hmac key is reasonable.
-    if len(self.cipher.hmac_key) != self.key_size / 8:
-      raise DecryptionError("Invalid cipher.")
+  def VerifyReceivedHMAC(self, comms):
+    """Verifies a received HMAC.
 
+    This method raises a DecryptionError if the received HMAC does not
+    verify. If the HMAC verifies correctly, True is returned.
+
+    Args:
+      comms: The comms RdfValue to verify.
+
+    Raises:
+      DecryptionError: The HMAC did not verify.
+
+    Returns:
+      True
+    """
+    return self._VerifyHMAC(comms)
+
+  def VerifyHMAC(self):
+    """Verifies the HMAC of self.response.comms.
+
+    This method raises a DecryptionError if the received HMAC does not
+    verify. If the HMAC verifies correctly, True is returned.
+
+    Raises:
+      DecryptionError: The HMAC did not verify.
+
+    Returns:
+      True
+
+    """
+    return self._VerifyHMAC(self.response_comms)
+
+  def _VerifyHMAC(self, comms=None):
+    """Verifies the HMAC.
+
+    This method raises a DecryptionError if the received HMAC does not
+    verify. If the HMAC verifies correctly, True is returned.
+
+    Args:
+      comms: The comms RdfValue to verify.
+
+    Raises:
+      DecryptionError: The HMAC did not verify.
+
+    Returns:
+      True
+
+    """
     # Check the encrypted message integrity using HMAC.
     if self.hmac_type == "SIMPLE_HMAC":
-      hmac = self.HMAC(response_comms.encrypted)
-      if not self.IsEqual(hmac, response_comms.hmac):
+      hmac = self.HMAC(comms.encrypted)
+      if not self.IsEqual(hmac, comms.hmac):
         raise DecryptionError("HMAC verification failed.")
 
     elif self.hmac_type == "FULL_HMAC":
-      hmac = self.HMAC(response_comms.encrypted,
-                       response_comms.encrypted_cipher,
-                       response_comms.encrypted_cipher_metadata,
-                       response_comms.packet_iv,
-                       struct.pack("<I", response_comms.api_version))
+      hmac = self.HMAC(comms.encrypted, comms.encrypted_cipher,
+                       comms.encrypted_cipher_metadata,
+                       comms.packet_iv.SerializeToString(),
+                       struct.pack("<I", comms.api_version))
 
-      if not self.IsEqual(hmac, response_comms.full_hmac):
+      if not self.IsEqual(hmac, comms.full_hmac):
         raise DecryptionError("HMAC verification failed.")
 
     else:
       raise DecryptionError("HMAC type no supported.")
 
-  def VerifyCipherSignature(self):
-    """Verify the signature on the encrypted cipher block."""
-    if self.cipher_metadata.signature:
-      digest = self.hash_function(self.serialized_cipher).digest()
-      try:
-        remote_public_key = self.pub_key_cache.GetRSAPublicKey(
-            self.cipher_metadata.source)
+    return True
 
-        stats.STATS.IncrementCounter("grr_rsa_operations")
-        if remote_public_key.verify(digest, self.cipher_metadata.signature,
-                                    self.hash_function_name) == 1:
-          self.signature_verified = True
-        else:
-          raise DecryptionError("Signature not verified by remote public key.")
+  def VerifyCipherSignature(self, remote_public_key):
+    """Verifies the signature on the encrypted cipher block.
 
-      except (X509.X509Error, RSA.RSAError) as e:
-        raise DecryptionError(e)
+    This method returns True if the signature verifies correctly with
+    the key given.
 
-      except UnknownClientCert:
-        pass
+    Args:
+      remote_public_key: The remote public key.
+    Returns:
+      None
+    Raises:
+      rdf_crypto.VerificationError: A signature and a key were both given but
+                                    verification fails.
+
+    """
+    if self.cipher_metadata.signature and remote_public_key:
+
+      stats.STATS.IncrementCounter("grr_rsa_operations")
+      remote_public_key.Verify(self.serialized_cipher,
+                               self.cipher_metadata.signature)
+      return True
 
 
 class Communicator(object):
@@ -338,18 +283,7 @@ class Communicator(object):
     self.encrypted_cipher_cache = utils.FastStore(max_size=50000)
 
     # A cache of public keys
-    self.pub_key_cache = PubKeyCache()
-    self._LoadOurCertificate()
-
-  def _LoadOurCertificate(self):
-    self.cert = X509.load_cert_string(str(self.certificate))
-
-    # Our common name
-    self.common_name = PubKeyCache.GetCNFromCert(self.cert)
-
-    # Make sure we know about our own public key
-    self.pub_key_cache.Put(self.common_name,
-                           self.pub_key_cache.PubKeyFromCert(self.cert))
+    self.pub_key_cache = utils.FastStore(max_size=50000)
 
   def EncodeMessageList(self, message_list, signed_message_list):
     """Encode the MessageList into the signed_message_list rdfvalue."""
@@ -414,8 +348,8 @@ class Communicator(object):
 
     except KeyError:
       # Make a new one
-      cipher = Cipher(self.common_name, destination, self.private_key,
-                      self.pub_key_cache)
+      remote_public_key = self._GetRemotePublicKey(destination)
+      cipher = Cipher(self.common_name, self.private_key, remote_public_key)
       self.cipher_cache.Put(destination, cipher)
 
     signed_message_list = rdf_flows.SignedMessageList(timestamp=timestamp)
@@ -440,7 +374,7 @@ class Communicator(object):
     # do not change between all packets in this session.
     result.full_hmac = cipher.HMAC(result.encrypted, result.encrypted_cipher,
                                    result.encrypted_cipher_metadata,
-                                   result.packet_iv,
+                                   result.packet_iv.SerializeToString(),
                                    struct.pack("<I", api_version))
 
     result.api_version = api_version
@@ -465,7 +399,7 @@ class Communicator(object):
       return self.DecodeMessages(response_comms)
     except (rdfvalue.DecodeError, type_info.TypeValueError, ValueError,
             AttributeError) as e:
-      raise DecodingError("Protobuf parsing error: %s" % e)
+      raise DecodingError("Error while decrypting messages: %s" % e)
 
   def DecompressMessageList(self, signed_message_list):
     """Decompress the message data from signed_message_list.
@@ -511,46 +445,50 @@ class Communicator(object):
     Raises:
        DecryptionError: If the message failed to decrypt properly.
     """
-    if response_comms.api_version not in [3]:
-      raise DecryptionError("Unsupported api version: %s, expected 3." %
-                            response_comms.api_version)
+    # Have we seen this cipher before?
+    cipher_verified = False
+    try:
+      cipher = self.encrypted_cipher_cache.Get(response_comms.encrypted_cipher)
+      # Even though we have seen this encrypted cipher already, we should still
+      # make sure that all the other fields are sane and verify the HMAC.
+      cipher.VerifyReceivedHMAC(response_comms)
+      cipher_verified = True
 
-    if response_comms.encrypted_cipher:
-      # Have we seen this cipher before?
+      # If we have the cipher in the cache, we know the source and
+      # should have a corresponding public key.
+      source = cipher.GetSource()
+      remote_public_key = self._GetRemotePublicKey(source)
+    except KeyError:
+      cipher = ReceivedCipher(response_comms, self.private_key)
+
+      source = cipher.GetSource()
       try:
-        cipher = self.encrypted_cipher_cache.Get(
-            response_comms.encrypted_cipher)
-      except KeyError:
-        cipher = ReceivedCipher(response_comms, self.private_key,
-                                self.pub_key_cache)
-
-        if cipher.signature_verified:
-          # Remember it for next time.
+        remote_public_key = self._GetRemotePublicKey(source)
+        if cipher.VerifyCipherSignature(remote_public_key):
+          # At this point we know this cipher is legit, we can cache it.
           self.encrypted_cipher_cache.Put(response_comms.encrypted_cipher,
                                           cipher)
+          cipher_verified = True
 
-      # Verify the cipher HMAC with the new response_comms. This will raise
-      # DecryptionError if the HMAC does not agree.
-      cipher.VerifyHMAC(response_comms)
+      except UnknownClientCert:
+        # We don't know who we are talking to.
+        remote_public_key = None
 
-      # Decrypt the message with the per packet IV.
-      plain = cipher.Decrypt(response_comms.encrypted, response_comms.packet_iv)
-      try:
-        signed_message_list = rdf_flows.SignedMessageList(plain)
-      except rdfvalue.DecodeError as e:
-        raise DecryptionError(str(e))
+    # Decrypt the message with the per packet IV.
+    plain = cipher.Decrypt(response_comms.encrypted, response_comms.packet_iv)
+    try:
+      signed_message_list = rdf_flows.SignedMessageList(plain)
+    except rdfvalue.DecodeError as e:
+      raise DecryptionError(str(e))
 
-      message_list = self.DecompressMessageList(signed_message_list)
-
-    else:
-      # The message is not encrypted. We do not allow unencrypted
-      # messages:
-      raise DecryptionError("Server response is not encrypted.")
+    message_list = self.DecompressMessageList(signed_message_list)
 
     # Are these messages authenticated?
     auth_state = self.VerifyMessageSignature(response_comms,
                                              signed_message_list, cipher,
-                                             response_comms.api_version)
+                                             cipher_verified,
+                                             response_comms.api_version,
+                                             remote_public_key)
 
     # Mark messages as authenticated and where they came from.
     for msg in message_list.job:
@@ -561,7 +499,8 @@ class Communicator(object):
             signed_message_list.timestamp)
 
   def VerifyMessageSignature(self, unused_response_comms, signed_message_list,
-                             cipher, api_version):
+                             cipher, cipher_verified, api_version,
+                             remote_public_key):
     """Verify the message list signature.
 
     This is the way the messages are verified in the client.
@@ -571,12 +510,13 @@ class Communicator(object):
     unauthenticated since it might have resulted from a replay attack.
 
     Args:
-       signed_message_list: The SignedMessageList rdfvalue from the server.
-       cipher: The cipher belonging to the remote end.
-       api_version: The api version we should use.
-
+      signed_message_list: The SignedMessageList rdfvalue from the server.
+      cipher: The cipher belonging to the remote end.
+      cipher_verified: If True, the cipher's signature is not verified again.
+      api_version: The api version we should use.
+      remote_public_key: The public key of the source.
     Returns:
-       a rdf_flows.GrrMessage.AuthorizationState.
+      An rdf_flows.GrrMessage.AuthorizationState.
 
     Raises:
        DecryptionError: if the message is corrupt.
@@ -585,11 +525,7 @@ class Communicator(object):
     _ = api_version
     result = rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
 
-    # Give the cipher another chance to check its signature.
-    if not cipher.signature_verified:
-      cipher.VerifyCipherSignature()
-
-    if cipher.signature_verified:
+    if cipher_verified or cipher.VerifyCipherSignature(remote_public_key):
       stats.STATS.IncrementCounter("grr_authenticated_messages")
       result = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 

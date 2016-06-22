@@ -75,7 +75,6 @@ Examples:
 """
 
 
-import hashlib
 import os
 
 import pdb
@@ -89,10 +88,6 @@ import traceback
 import urllib2
 
 
-from M2Crypto import BIO
-from M2Crypto import EVP
-from M2Crypto import RSA
-from M2Crypto import X509
 import psutil
 
 import logging
@@ -1168,8 +1163,10 @@ class GRRHTTPClient(object):
       if "BEGIN CERTIFICATE" in server_pem:
         # Now we know that this proxy is working. We still have to verify the
         # certificate. This will raise if the server cert is invalid.
-        self.communicator.LoadServerCertificate(server_certificate=server_pem,
-                                                ca_certificate=self.ca_cert)
+        server_certificate = rdf_crypto.RDFX509Cert(server_pem)
+        self.communicator.LoadServerCertificate(
+            server_certificate=server_certificate,
+            ca_certificate=self.ca_cert)
 
         logging.info("Server PEM re-keyed.")
         return True
@@ -1446,7 +1443,7 @@ class GRRHTTPClient(object):
       # Send registration request:
       self.client_worker.SendReply(
           rdf_crypto.Certificate(type=rdf_crypto.Certificate.Type.CSR,
-                                 pem=self.communicator.GetCSR()),
+                                 pem=self.communicator.GetCSRAsPem()),
           session_id=rdfvalue.SessionID(queue=queues.ENROLLMENT,
                                         flow_name="Enrol"))
 
@@ -1458,21 +1455,15 @@ class ClientCommunicator(communicator.Communicator):
     server side certificates.
   """
 
-  def _ParseRSAKey(self, rsa):
-    """Use the RSA private key to initialize our parameters.
+  def __init__(self, certificate=None, private_key=None):
+    super(ClientCommunicator, self).__init__(certificate=certificate,
+                                             private_key=private_key)
+    self.InitPrivateKey()
 
-    We set our client name as the hash of the RSA private key.
+  def InitPrivateKey(self):
+    """Makes sure this client has a private key set.
 
-    Args:
-      rsa: An RSA key pair.
-    """
-    # Our CN will be the first 64 bits of the hash of the public key.
-    public_key = rsa.pub()[1]
-    self.common_name = rdf_client.ClientURN("C.%s" % (
-        hashlib.sha256(public_key).digest()[:8].encode("hex")))
-
-  def _LoadOurCertificate(self):
-    """Loads an RSA key from the certificate.
+    It first tries to load an RSA key from the certificate.
 
     If no certificate is found, or it is invalid, we make a new random RSA key,
     and store it as our certificate.
@@ -1482,95 +1473,78 @@ class ClientCommunicator(communicator.Communicator):
     """
     if self.private_key:
       try:
-        # This is our private key - make sure it has no password set.
-        self.private_key.Validate()
-        rsa = self.private_key.GetPrivateKey()
-        self._ParseRSAKey(rsa)
+        self.common_name = rdf_client.ClientURN.FromPrivateKey(self.private_key)
 
         logging.info("Starting client %s", self.common_name)
-        return rsa
+        return self.private_key
 
       except type_info.TypeValueError:
         pass
 
     # We either have an invalid key or no key. We just generate a new one.
-    # 65537 is the standard value for e
-    rsa = RSA.gen_key(config_lib.CONFIG["Client.rsa_key_length"], 65537,
-                      lambda: None)
+    key = rdf_crypto.RSAPrivateKey.GenerateKey(
+        bits=config_lib.CONFIG["Client.rsa_key_length"])
 
-    self._ParseRSAKey(rsa)
+    self.common_name = rdf_client.ClientURN.FromPrivateKey(key)
     logging.info("Client pending enrolment %s", self.common_name)
 
-    # Make new keys
-    pk = EVP.PKey()
-    pk.assign_rsa(rsa)
-
     # Save the keys
-    self.SavePrivateKey(pk)
+    self.SavePrivateKey(key)
 
-    return rsa
+    return key
 
   def GetCSR(self):
-    """Return our CSR in pem format."""
-    csr = X509.Request()
-    pk = EVP.PKey()
-    rsa = self._LoadOurCertificate()
-    pk.assign_rsa(rsa)
-    csr.set_pubkey(pk)
-    name = csr.get_subject()
-    name.CN = str(self.common_name)
-    csr.sign(pk, "sha1")
-    return csr.as_pem()
+    """Return our CSR."""
+    return rdf_crypto.CertificateSigningRequest(common_name=self.common_name,
+                                                private_key=self.private_key)
 
-  def SavePrivateKey(self, pkey):
+  def GetCSRAsPem(self):
+    """Return our CSR in PEM format."""
+    return self.GetCSR().AsPEM()
+
+  def SavePrivateKey(self, private_key):
     """Store the new private key on disk."""
-    bio = BIO.MemoryBuffer()
-    pkey.save_key_bio(bio, cipher=None)
-
-    self.private_key = rdf_crypto.PEMPrivateKey(bio.read_all())
-
+    self.private_key = private_key
     config_lib.CONFIG.Set("Client.private_key", self.private_key)
     config_lib.CONFIG.Write()
 
   def LoadServerCertificate(self, server_certificate=None, ca_certificate=None):
     """Loads and verifies the server certificate."""
+    # Check that the server certificate verifies
     try:
-      server_cert = X509.load_cert_string(str(server_certificate))
-      ca_cert = X509.load_cert_string(str(ca_certificate))
-
-      # Check that the server certificate verifies
-      if server_cert.verify(ca_cert.get_pubkey()) != 1:
-        self.server_name = None
-        raise IOError("Server cert is invalid.")
-
-      # Make sure that the serial number is higher.
-      server_cert_serial = server_cert.get_serial_number()
-
-      if server_cert_serial < config_lib.CONFIG["Client.server_serial_number"]:
-        # We can not accept this serial number...
-        raise IOError("Server cert is too old.")
-      elif server_cert_serial > config_lib.CONFIG[
-          "Client.server_serial_number"]:
-        logging.info("Server serial number updated to %s", server_cert_serial)
-        config_lib.CONFIG.Set("Client.server_serial_number", server_cert_serial)
-
-        # Save the new data to the config file.
-        config_lib.CONFIG.Write()
-
-    except X509.X509Error:
+      server_certificate.Verify(ca_certificate.GetPublicKey())
+    except rdf_crypto.VerificationError:
+      self.server_name = None
       raise IOError("Server cert is invalid.")
 
-    self.server_name = self.pub_key_cache.GetCNFromCert(server_cert)
+    # Make sure that the serial number is higher.
+    server_cert_serial = server_certificate.GetSerialNumber()
+
+    if server_cert_serial < config_lib.CONFIG["Client.server_serial_number"]:
+      # We can not accept this serial number...
+      raise IOError("Server cert is too old.")
+    elif server_cert_serial > config_lib.CONFIG["Client.server_serial_number"]:
+      logging.info("Server serial number updated to %s", server_cert_serial)
+      config_lib.CONFIG.Set("Client.server_serial_number", server_cert_serial)
+
+      # Save the new data to the config file.
+      config_lib.CONFIG.Write()
+
+    self.server_name = server_certificate.GetCN()
     self.server_certificate = server_certificate
     self.ca_certificate = ca_certificate
-
-    # We need to store the serialised version of the public key due
-    # to M2Crypto memory referencing bugs
-    self.pub_key_cache.Put(self.server_name,
-                           self.pub_key_cache.PubKeyFromCert(server_cert))
+    self.server_public_key = server_certificate.GetPublicKey()
 
   def EncodeMessages(self, message_list, result, **kwargs):
     # Force the right API to be used
     kwargs["api_version"] = config_lib.CONFIG["Network.api"]
     return super(ClientCommunicator, self).EncodeMessages(message_list, result,
                                                           **kwargs)
+
+  def _GetRemotePublicKey(self, common_name):
+
+    if common_name == self.server_name:
+      return self.server_public_key
+
+    raise communicator.UnknownClientCert("Client wants to talk to %s, not %s",
+                                         common_name, self.server_name)

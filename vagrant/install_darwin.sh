@@ -69,6 +69,7 @@ case $EUID in
     system_update
     install_homebrew
     brew install protobuf
+    brew install libffi
     install_python
     install_python_deps
     xcrun_hack

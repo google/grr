@@ -101,8 +101,7 @@ def Homepage(request):
   ])  # pyformat: disable
 
   create_time = psutil.Process(os.getpid()).create_time()
-  context = {"page_title": config_lib.CONFIG["AdminUI.page_title"],
-             "heading": config_lib.CONFIG["AdminUI.heading"],
+  context = {"heading": config_lib.CONFIG["AdminUI.heading"],
              "report_url": config_lib.CONFIG["AdminUI.report_url"],
              "help_url": config_lib.CONFIG["AdminUI.help_url"],
              "use_precompiled_js":

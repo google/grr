@@ -12,7 +12,7 @@ run_component() {
 }
 
 initialize() {
-  if [ ! -e "/etc/grr/server.local.yaml" ]; then
+  if [ ! -e "${VIRTUALENV}/install_data/etc/server.local.yaml" ]; then
     if [ $EXTERNAL_HOSTNAME ] && [ $ADMIN_PASSWORD ]; then
       grr_config_updater initialize --noprompt --external_hostname="$EXTERNAL_HOSTNAME" --admin_password="$ADMIN_PASSWORD"
     else

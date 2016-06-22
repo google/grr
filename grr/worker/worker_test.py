@@ -307,22 +307,21 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(tasks_on_client_queue), 9)
 
     # Ensure that processed requests are removed from state subject
-    self.assertEqual(
-        (None, 0),
-        data_store.DB.Resolve(
-            session_id_1.Add("state"),
-            manager.FLOW_REQUEST_TEMPLATE % 1,
-            token=self.token))
+    self.assertEqual((None, 0),
+                     data_store.DB.Resolve(
+                         session_id_1.Add("state"),
+                         manager.FLOW_REQUEST_TEMPLATE % 1,
+                         token=self.token))
 
     # This flow is still in state Incoming.
     flow_obj = aff4.FACTORY.Open(session_id_1, token=self.token)
-    self.assertTrue(flow_obj.state.context.state !=
-                    rdf_flows.Flow.State.TERMINATED)
+    self.assertTrue(
+        flow_obj.state.context.state != rdf_flows.Flow.State.TERMINATED)
     self.assertEqual(flow_obj.state.context["current_state"], "Incoming")
     # This flow should be done.
     flow_obj = aff4.FACTORY.Open(session_id_2, token=self.token)
-    self.assertTrue(flow_obj.state.context.state ==
-                    rdf_flows.Flow.State.TERMINATED)
+    self.assertTrue(
+        flow_obj.state.context.state == rdf_flows.Flow.State.TERMINATED)
     self.assertEqual(flow_obj.state.context["current_state"], "End")
 
   def testNoKillNotificationsScheduledForHunts(self):
@@ -753,8 +752,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     # Now we write half the status information.
     subject = session_id.Add("state")
     queue = flow_manager.to_write.setdefault(subject, {})
-    queue.setdefault(flow_manager.FLOW_STATUS_TEMPLATE % request_id,
-                     []).append((status.SerializeToString(), None))
+    queue.setdefault(flow_manager.FLOW_STATUS_TEMPLATE % request_id, []).append(
+        (status.SerializeToString(), None))
 
     flow_manager.Flush()
 
@@ -845,7 +844,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       for (_, _, timestamp) in res:
         self.assertEqual(timestamp, frozen_timestamp)
 
-  def testEqualTimetampNotifications(self):
+  def testEqualTimestampNotifications(self):
     frontend_server = flow.FrontEndServer(
         certificate=config_lib.CONFIG["Frontend.certificate"],
         private_key=config_lib.CONFIG["PrivateKeys.server_key"],

@@ -139,7 +139,8 @@ class SMTPEmailAlerter(EmailAlerterBase):
           config_lib.CONFIG["Worker.smtp_password"]):
         s.login(config_lib.CONFIG["Worker.smtp_user"],
                 config_lib.CONFIG["Worker.smtp_password"])
-      s.sendmail(from_address, to_addresses, msg.as_string())
+
+      s.sendmail(from_address, to_addresses + cc_addresses, msg.as_string())
       s.quit()
     except (socket.error, smtplib.SMTPException) as e:
       raise RuntimeError("Could not connect to SMTP server to send email. "

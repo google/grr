@@ -342,8 +342,7 @@ class GRRSignedBlob(aff4.AFF4Stream):
                      chunk_size=1024,
                      token=None,
                      private_key=None,
-                     public_key=None,
-                     prompt=True):
+                     public_key=None):
     """Alternate constructor for GRRSignedBlob.
 
     Creates a GRRSignedBlob from a content string by chunking it and signing
@@ -356,9 +355,8 @@ class GRRSignedBlob(aff4.AFF4Stream):
       chunk_size: Data will be chunked into this size (each chunk is
         individually signed.
       token: The ACL Token.
-      private_key: An rdf_crypto.PEMPrivateKey() instance.
-      public_key: An rdf_crypto.PEMPublicKey() instance.
-      prompt: If True we may present a prompt to unlock the key.
+      private_key: An rdf_crypto.RSAPrivateKey() instance.
+      public_key: An rdf_crypto.RSAPublicKey() instance.
 
     Returns:
       the URN of the new object written.
@@ -367,7 +365,7 @@ class GRRSignedBlob(aff4.AFF4Stream):
       for start_of_chunk in xrange(0, len(content), chunk_size):
         chunk = content[start_of_chunk:start_of_chunk + chunk_size]
         blob_rdf = rdf_crypto.SignedBlob()
-        blob_rdf.Sign(chunk, private_key, public_key, prompt=prompt)
+        blob_rdf.Sign(chunk, private_key, public_key)
         fd.Add(blob_rdf)
 
     return urn

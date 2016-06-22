@@ -7,7 +7,7 @@ goog.require('grrUi.tests.module');
 var browserTrigger = grrUi.tests.browserTrigger;
 
 describe('urn directive', function() {
-  var $compile, $rootScope;
+  var $compile, $rootScope, grrRoutingService;
 
   beforeEach(module('/static/angular-components/semantic/urn.html'));
   beforeEach(module(grrUi.semantic.module.name));
@@ -16,6 +16,7 @@ describe('urn directive', function() {
   beforeEach(inject(function($injector) {
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
+    grrRoutingService = $injector.get('grrRoutingService');
   }));
 
   var renderTestTemplate = function(value) {
@@ -65,16 +66,23 @@ describe('urn directive', function() {
   });
 
   it('client-scoped link points to virtual filesystem browser', function() {
+    spyOn(grrRoutingService, 'href').and.returnValue('#foobar');
+
     var element = renderTestTemplate('aff4:/C.0001000200030004/foo/bar');
-    expect(element.find('a').attr('href')).toBe(
-        '#main=VirtualFileSystemView&c=C.0001000200030004&' +
-            'tag=AFF4Stats&t=_foo-bar');
+    expect(element.find('a').attr('href')).toBe('#foobar');
+    expect(grrRoutingService.href).toHaveBeenCalledWith(
+        'client.vfs',
+        {clientId: 'C.0001000200030004', path: 'foo/bar'});
   });
 
-  it('replaces alphanumeric characters with "_" and hex code', function() {
+  it('client-scoped links handle non-URL friendly characters', function() {
+    spyOn(grrRoutingService, 'href').and.returnValue('#foobar');
+
     var element = renderTestTemplate('aff4:/C.0001000200030004/_f$o/bA%');
     expect(element.find('a').attr('href')).toBe(
-        '#main=VirtualFileSystemView&c=C.0001000200030004&' +
-            'tag=AFF4Stats&t=__5Ff_24o-bA_25');
+        '#foobar');
+    expect(grrRoutingService.href).toHaveBeenCalledWith(
+        'client.vfs',
+        {clientId: 'C.0001000200030004', path: '_f$o/bA%'});
   });
 });

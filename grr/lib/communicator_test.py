@@ -9,8 +9,6 @@ import time
 import urllib2
 
 
-from M2Crypto import X509
-
 import logging
 
 from grr.client import actions
@@ -32,15 +30,6 @@ from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 
 # pylint: mode=test
-
-
-class ServerCommunicatorFake(flow.ServerCommunicator):
-  """A fake communicator to initialize the ServerCommunicator."""
-
-  # For tests we bypass loading of the server certificate.
-
-  def _LoadOurCertificate(self):
-    return communicator.Communicator._LoadOurCertificate(self)
 
 
 class ClientCommsTest(test_lib.GRRBaseTest):
@@ -66,7 +55,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
         server_certificate=self.server_certificate,
         ca_certificate=config_lib.CONFIG["CA.certificate"])
 
-    self.server_communicator = ServerCommunicatorFake(
+    self.server_communicator = flow.ServerCommunicator(
         certificate=self.server_certificate,
         private_key=self.server_private_key,
         token=self.token)
@@ -115,9 +104,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
   def MakeClientAFF4Record(self):
     """Make a client in the data store."""
-    cert = self.ClientCertFromPrivateKey(self.client_private_key)
-    client_cert = rdf_crypto.RDFX509Cert(cert.as_pem())
-    new_client = aff4.FACTORY.Create(client_cert.common_name,
+    client_cert = self.ClientCertFromPrivateKey(self.client_private_key)
+    new_client = aff4.FACTORY.Create(client_cert.GetCN(),
                                      aff4_grr.VFSGRRClient,
                                      token=self.token)
     new_client.Set(new_client.Schema.CERT, client_cert)
@@ -226,18 +214,17 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     """X509 Verify can have several failure paths."""
 
     # This is a successful verify.
-    with utils.Stubber(X509.X509, "verify", lambda self, pkey=None: 1):
+    with utils.Stubber(rdf_crypto.RDFX509Cert, "Verify",
+                       lambda self, public_key=None: True):
       self.client_communicator.LoadServerCertificate(
           self.server_certificate, config_lib.CONFIG["CA.certificate"])
 
-      # Mock the verify function to simulate certificate failures.
-      X509.X509.verify = lambda self, pkey=None: 0
-      self.assertRaises(IOError, self.client_communicator.LoadServerCertificate,
-                        self.server_certificate,
-                        config_lib.CONFIG["CA.certificate"])
+    def Verify(_, public_key=False):
+      _ = public_key
+      raise rdf_crypto.VerificationError("Testing verification failure.")
 
-      # Verification can also fail with a -1 error.
-      X509.X509.verify = lambda self, pkey=None: -1
+    # Mock the verify function to simulate certificate failures.
+    with utils.Stubber(rdf_crypto.RDFX509Cert, "Verify", Verify):
       self.assertRaises(IOError, self.client_communicator.LoadServerCertificate,
                         self.server_certificate,
                         config_lib.CONFIG["CA.certificate"])
@@ -289,18 +276,15 @@ class ClientCommsTest(test_lib.GRRBaseTest):
 
   def testEnrollingCommunicator(self):
     """Test that the ClientCommunicator generates good keys."""
-    self.client_communicator = comms.ClientCommunicator(certificate="")
+    self.client_communicator = comms.ClientCommunicator()
 
     self.client_communicator.LoadServerCertificate(
         self.server_certificate, config_lib.CONFIG["CA.certificate"])
 
-    req = X509.load_request_string(self.client_communicator.GetCSR())
-
     # Verify that the CN is of the correct form
-    public_key = req.get_pubkey().get_rsa().pub()[1]
-    cn = rdf_client.ClientURN.FromPublicKey(public_key)
-
-    self.assertEqual(cn, req.get_subject().CN)
+    csr = self.client_communicator.GetCSR()
+    cn = rdf_client.ClientURN.FromPublicKey(csr.GetPublicKey())
+    self.assertEqual(cn, csr.GetCN())
 
 
 class HTTPClientTests(test_lib.GRRBaseTest):
@@ -314,14 +298,14 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.config_stubber = test_lib.PreserveConfig()
     self.config_stubber.Start()
 
-    self.certificate = self.ClientCertFromPrivateKey(config_lib.CONFIG[
-        "Client.private_key"]).as_pem()
+    certificate = self.ClientCertFromPrivateKey(config_lib.CONFIG[
+        "Client.private_key"])
     self.server_serial_number = 0
 
     self.server_private_key = config_lib.CONFIG["PrivateKeys.server_key"]
     self.server_certificate = config_lib.CONFIG["Frontend.certificate"]
 
-    self.client_cn = rdf_crypto.RDFX509Cert(self.certificate).common_name
+    self.client_cn = certificate.GetCN()
 
     # Make a new client
     self.CreateNewClientObject()
@@ -337,7 +321,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
                                       aff4_grr.VFSGRRClient,
                                       mode="rw",
                                       token=self.token)
-    self.client.Set(self.client.Schema.CERT(self.certificate))
+    self.client.Set(self.client.Schema.CERT(certificate.AsPEM()))
     self.client.Flush()
 
     # Stop the client from actually processing anything
@@ -364,7 +348,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
                                 response_id=2)
 
   def CreateNewServerCommunicator(self):
-    self.server_communicator = ServerCommunicatorFake(
+    self.server_communicator = flow.ServerCommunicator(
         certificate=self.server_certificate,
         private_key=self.server_private_key,
         token=self.token)
@@ -397,7 +381,6 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     """A mock for url handler processing from the server's POV."""
     if "server.pem" in req.get_full_url():
       return StringIO.StringIO(config_lib.CONFIG["Frontend.certificate"])
-
     _ = kwargs
     try:
       self.client_communication = rdf_flows.ClientCommunication(req.data)
@@ -619,7 +602,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     metric_value = stats.STATS.GetMetricValue("grr_rsa_operations")
     self.assertGreater(metric_value, 0)
 
-    for _ in range(100):
+    for _ in range(10):
       self.SendToServer()
       self.client_communicator.RunOnce()
       self.CheckClientQueue()
@@ -638,15 +621,26 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       self.client_communication = rdf_flows.ClientCommunication(req.data)
 
       if self.corruptor_field and "server.pem" not in req.get_full_url():
+        orig_str_repr = self.client_communication.SerializeToString()
         field_data = getattr(self.client_communication, self.corruptor_field)
+        if hasattr(field_data, "SerializeToString"):
+          # This converts encryption keys to a string so we can corrupt them.
+          field_data = field_data.SerializeToString()
+
         modified_data = array.array("c", field_data)
         offset = len(field_data) / 2
         modified_data[offset] = chr((ord(field_data[offset]) % 250) + 1)
         setattr(self.client_communication, self.corruptor_field,
-                str(modified_data))
+                modified_data.tostring())
 
         # Make sure we actually changed the data.
         self.assertNotEqual(field_data, modified_data)
+
+        mod_str_repr = self.client_communication.SerializeToString()
+        self.assertEqual(len(orig_str_repr), len(mod_str_repr))
+        differences = [True for x, y in zip(orig_str_repr, mod_str_repr)
+                       if x != y]
+        self.assertEqual(len(differences), 1)
 
       req.data = self.client_communication.SerializeToString()
       return self.UrlMock(req)
@@ -823,9 +817,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
   def testClientConnectionErrors(self):
     client_obj = comms.GRRHTTPClient()
     # Make the connection unavailable and skip the retry interval.
-    with utils.MultiStubber((urllib2, "urlopen", self.RaiseError),
-                            (time, "sleep", lambda s: None)):
-
+    with utils.Stubber(urllib2, "urlopen", self.RaiseError):
       with test_lib.ConfigOverrider({"Client.connection_error_limit": 8}):
         # Simulate a client run. The client will retry the connection limit by
         # itself. The Run() method will quit when connection_error_limit is

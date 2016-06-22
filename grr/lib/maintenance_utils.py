@@ -233,10 +233,7 @@ def SignComponent(component_filename, overwrite=False, token=None):
 
   # Sign the component, encrypt it and store it at the static aff4 location.
   signed_component = rdf_crypto.SignedBlob()
-  signed_component.Sign(component.SerializeToString(),
-                        sig_key,
-                        ver_key,
-                        prompt=True)
+  signed_component.Sign(component.SerializeToString(), sig_key, ver_key)
 
   aff4_urn = config_lib.CONFIG.Get(
       "Client.component_aff4_stem",

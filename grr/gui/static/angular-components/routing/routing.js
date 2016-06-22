@@ -50,19 +50,25 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
 
     .state('userDashboard', {
       url: '',
-      template: '<grr-user-dashboard />'
+      template: '<grr-user-dashboard />',
+      title: 'Home',
     })
     .state('search', { // TODO(user): split into sub state for FilestoreTable.
       url: '/search?q',
-      template: '<grr-clients-list />'
+      template: '<grr-clients-list />',
+      title: function(params) {
+        return 'Search for "' + params['q'] + '"';
+      }
     })
     .state('apiDocs', {
       url: '/api-docs',
-      template: '<grr-api-docs />'
+      template: '<grr-api-docs />',
+      title: 'API Docs'
     })
     .state('grantAccess', {
       url: '/grant-access?acl',
-      template: '<grr-grant-access />'
+      template: '<grr-grant-access />',
+      title: 'Review Access Approval'
     })
     .state('canaryTest', {
       url: '/canary-test',
@@ -87,6 +93,13 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
       params: {
         cronJobId: { value: null, squash: true },
         tab: { value: null, squash: true }
+      },
+      title: function(params) {
+        if (params['cronJobId']) {
+          return ['Cron Jobs', params['cronJobId']];
+        } else {
+          return 'Cron Jobs';
+        }
       }
     })
     .state('hunts', {
@@ -95,6 +108,13 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
       params: {
         huntId: { value: null, squash: true },
         tab: { value: null, squash: true }
+      },
+      title: function(params) {
+        if (params['huntId']) {
+          return params['huntId'];
+        } else {
+          return 'Hunts';
+        }
       }
     })
     // The hunt details are rendered on the topmost level and are therefore
@@ -108,19 +128,29 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
     })
     .state('stats', {
       url: '/stats?selection',
-      template: '<grr-stats-view />'
+      template: '<grr-stats-view />',
+      title: function(params) {
+        if (params['selection']) {
+          return ['Stats', params['selection']];
+        } else {
+          return 'Stats';
+        }
+      }
     })
     .state('globalFlows', {
       url: '/global-flows',
-      template: '<grr-start-flow-view />'
+      template: '<grr-start-flow-view />',
+      title: 'Global Flows'
     })
     .state('serverLoad', {
       url: '/server-load',
-      template: '<grr-server-load />'
+      template: '<grr-server-load />',
+      title: 'Server Load'
     })
     .state('clientCrashes', {
       url: '/client-crashes',
-      template: '<grr-global-client-crashes />'
+      template: '<grr-global-client-crashes />',
+      title: 'Clients Crashes (global list)'
     })
 
     //
@@ -129,15 +159,18 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
 
     .state('manageBinaries', {
       url: '/manage-binaries',
-      template: '<grr-legacy-renderer renderer="BinaryConfigurationView" />'
+      template: '<grr-legacy-renderer renderer="BinaryConfigurationView" />',
+      title: 'Manage Binaries'
     })
     .state('config', {
       url: '/config',
-      template: '<grr-config-view />'
+      template: '<grr-config-view />',
+      title: 'Configuration'
     })
     .state('artifacts', {
       url: '/artifacts',
-      template: '<grr-artifact-manager-view />'
+      template: '<grr-artifact-manager-view />',
+      title: 'Artifacts'
     })
 
     //
@@ -147,49 +180,93 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
     .state('client', {
       url: '/clients/:clientId',
       redirectTo: 'client.hostInfo',
-      template: '<div ui-view></div>'
+      template: '<div ui-view></div>',
+      title: function(params) {
+        return params['clientId'];
+      }
     })
     .state('client.hostInfo', {
       url: '/host-info',
-      template: '<grr-host-info />'
+      template: '<grr-host-info />',
+      title: 'Host Information'
     })
     .state('client.launchFlows', {
       url: '/launch-flow',
-      template: '<grr-start-flow-view />'
+      template: '<grr-start-flow-view />',
+      title: 'Launch Flows'
     })
     .state('client.vfs', {
       url: '/vfs/{path:pathWithUnescapedSlashes}?version&mode&tab',
-      template: '<grr-file-legacy-view />'
+      template: '<grr-file-legacy-view />',
+      title: function(params) {
+        return '/' + (params['path'] || '');
+      }
     })
     .state('client.vfsContainer', {
       url: '/vfs-container?path&query',
-      template: '<grr-file-container-view />'
+      template: '<grr-file-container-view />',
     })
     .state('client.flows', {
       url: '/flows/:flowId',
       template: '<grr-client-flows-view />',
       params: {
         flowId: { value: null, squash: true }
+      },
+      title: function(params) {
+        if (params['flowId']) {
+          return params['flowId'];
+        } else {
+          return 'Flows';
+        }
       }
     })
     .state('client.crashes', {
       url: '/crashes',
-      template: '<grr-client-crashes />'
+      template: '<grr-client-crashes />',
+      title: 'Crashes'
     })
     .state('client.debugRequests', {
       url: '/debug-requests',
-      template: '<grr-debug-requests-view />'
+      template: '<grr-debug-requests-view />',
+      title: 'Debug Requests'
     })
     .state('client.load', {
       url: '/load',
-      template: '<grr-client-load-view />'
+      template: '<grr-client-load-view />',
+      title: 'Current Load'
     })
     .state('client.stats', {
       url: '/stats',
-      template: '<grr-client-stats-view />'
+      template: '<grr-client-stats-view />',
+      title: 'Performance Stats'
     });
 
-}).run(function ($rootScope, $location, $state, $urlRouter) {
+}).run(function ($rootScope, $location, $state, $urlRouter, $document) {
+
+  /**
+    * This function builds page title based on the current state.
+    */
+  var updateTitle = function() {
+    var breadcrumbs = [];
+    var curState = $state['$current'];
+    while (angular.isDefined(curState)) {
+      if (angular.isString(curState.title)) {
+        breadcrumbs.splice(0, 0, curState.title);
+      } else if (angular.isFunction(curState.title)) {
+        var newItem = curState.title($state.params);
+        if (angular.isArray(newItem)) {
+          breadcrumbs = newItem.concat(breadcrumbs);
+        } else {
+          breadcrumbs.splice(0, 0, newItem);
+        }
+      }
+
+      curState = curState.parent;
+    }
+
+    breadcrumbs.splice(0, 0, 'GRR');
+    $document[0].title = breadcrumbs.join(' | ');
+  };
 
   // This is the suggested way to implement a default child state for abstract
   // parent states atm.
@@ -205,6 +282,8 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
     }
   });
 
+  $rootScope.$on('$stateChangeSuccess', updateTitle);
+
   $rootScope.$on('$locationChangeSuccess', function(evt) {
     // Prevent $urlRouter's default handler from firing.
     evt.preventDefault();
@@ -215,7 +294,12 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
     if (rewrittenUrl) {
       $location.url(rewrittenUrl);
     }
+
     $urlRouter.sync();
+    // We need to update the title not only when the state changes
+    // (see $stateChangeSuccess), but also when individual state's
+    // parameters get updated.
+    updateTitle();
   });
 
   // Configures $urlRouter's listener *after* your custom listener

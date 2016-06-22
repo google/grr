@@ -136,7 +136,7 @@ setup_args = dict(
         "sdist": Sdist,
     },
     install_requires=[
-        "GRR-M2Crypto==0.22.6.post2",
+        "cryptography==1.3.1",
         "PyYAML==3.11",
         "binplist==0.1.4",
         "ipaddr==2.1.11",

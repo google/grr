@@ -2,6 +2,10 @@
 grr-artifacts-list-form div.input-group {
   width: 100% !important; }
 
+grr-check-client-access .access-disabled {
+  opacity: .2;
+  pointer-events: none; }
+
 grr-host-info h1 {
   font-size: 30px;
   margin: 20px; }

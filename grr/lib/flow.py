@@ -45,7 +45,6 @@ import functools
 import operator
 import time
 
-from M2Crypto import X509
 
 import logging
 
@@ -1473,62 +1472,6 @@ class Events(object):
       event_obj.ProcessMessage(msg)
 
 
-class ServerPubKeyCache(communicator.PubKeyCache):
-  """A public key cache used by servers getting the key from the AFF4 client."""
-
-  def __init__(self, client_cache, token=None):
-    self.client_cache = client_cache
-    self.token = token
-
-  def GetRSAPublicKey(self, common_name="Server"):
-    """Retrieves the public key for the common_name from data_store.
-
-    This maintains a cache of key pairs or loads them instead from
-    data_store.
-
-    Args:
-      common_name: The common_name of the key we need.
-
-    Returns:
-      A valid rsa public key.
-
-    Raises:
-       communicator.UnknownClientCert: cert not found - this will cause the
-       client to re-enroll thereby updating our certificate store.
-    """
-    # We dont want a unicode object here
-    common_name = str(common_name)
-    try:
-      client = self.client_cache.Get(common_name)
-      cert = client.Get(client.Schema.CERT)
-      return cert.GetPubKey()
-
-    except (KeyError, AttributeError):
-      # Fetch the client's cert - We will be updating its clock attribute.
-      #
-      # TODO(user): remove the dependency loop and resulting use of
-      # AFF4Object.classes
-      client = aff4.FACTORY.Create(common_name,
-                                   aff4.AFF4Object.classes["VFSGRRClient"],
-                                   mode="rw",
-                                   token=self.token,
-                                   ignore_cache=True)
-      cert = client.Get(client.Schema.CERT)
-      if not cert:
-        stats.STATS.IncrementCounter("grr_unique_clients")
-        raise communicator.UnknownClientCert("Cert not found")
-
-      if rdfvalue.RDFURN(cert.common_name) != rdfvalue.RDFURN(common_name):
-        logging.error("Stored cert mismatch for %s", common_name)
-        raise communicator.UnknownClientCert("Stored cert mismatch")
-
-      self.client_cache.Put(common_name, client)
-      stats.STATS.SetGaugeValue("grr_frontendserver_client_cache_size",
-                                len(self.client_cache))
-
-      return cert.GetPubKey()
-
-
 class ServerCommunicator(communicator.Communicator):
   """A communicator which stores certificates using AFF4."""
 
@@ -1537,17 +1480,42 @@ class ServerCommunicator(communicator.Communicator):
     self.token = token
     super(ServerCommunicator, self).__init__(certificate=certificate,
                                              private_key=private_key)
-    self.pub_key_cache = ServerPubKeyCache(self.client_cache, token=token)
+    self.pub_key_cache = utils.FastStore(max_size=50000)
+    # Our common name as an RDFURN.
+    self.common_name = rdfvalue.RDFURN(self.certificate.GetCN())
 
-  def _LoadOurCertificate(self):
-    """Loads the server certificate."""
-    self.cert = X509.load_cert_string(str(self.certificate))
+  def _GetRemotePublicKey(self, common_name):
+    try:
+      # See if we have this client already cached.
+      return self.pub_key_cache.Get(str(common_name))
+    except KeyError:
+      pass
 
-    # Our common name
-    self.common_name = self.pub_key_cache.GetCNFromCert(self.cert)
+    # Fetch the client's cert and extract the key.
+    client = aff4.FACTORY.Create(common_name,
+                                 "VFSGRRClient",
+                                 mode="rw",
+                                 token=self.token,
+                                 ignore_cache=True)
+    cert = client.Get(client.Schema.CERT)
+    if not cert:
+      stats.STATS.IncrementCounter("grr_unique_clients")
+      raise communicator.UnknownClientCert("Cert not found")
+
+    if rdfvalue.RDFURN(cert.GetCN()) != rdfvalue.RDFURN(common_name):
+      logging.error("Stored cert mismatch for %s", common_name)
+      raise communicator.UnknownClientCert("Stored cert mismatch")
+
+    self.client_cache.Put(common_name, client)
+    stats.STATS.SetGaugeValue("grr_frontendserver_client_cache_size",
+                              len(self.client_cache))
+
+    pub_key = cert.GetPublicKey()
+    self.pub_key_cache.Put(common_name, pub_key)
+    return pub_key
 
   def VerifyMessageSignature(self, response_comms, signed_message_list, cipher,
-                             api_version):
+                             cipher_verified, api_version, remote_public_key):
     """Verifies the message list signature.
 
     In the server we check that the timestamp is later than the ping timestamp
@@ -1555,75 +1523,73 @@ class ServerCommunicator(communicator.Communicator):
     replayed.
 
     Args:
-       response_comms: The raw response_comms rdfvalue.
-       signed_message_list: The SignedMessageList rdfvalue from the server.
-       cipher: The cipher object that should be used to verify the message.
-       api_version: The api version we should use.
-
+      response_comms: The raw response_comms rdfvalue.
+      signed_message_list: The SignedMessageList rdfvalue from the server.
+      cipher: The cipher object that should be used to verify the message.
+      cipher_verified: If True, the cipher's signature is not verified again.
+      api_version: The api version we should use.
+      remote_public_key: The public key of the source.
     Returns:
-       a rdf_flows.GrrMessage.AuthorizationState.
+      An rdf_flows.GrrMessage.AuthorizationState.
     """
-    result = rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
+    if (not cipher_verified and
+        not cipher.VerifyCipherSignature(remote_public_key)):
+      stats.STATS.IncrementCounter("grr_unauthenticated_messages")
+      return rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED
+
     try:
-      if cipher.signature_verified:
-        result = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
+      client_id = cipher.cipher_metadata.source
+      try:
+        client = self.client_cache.Get(client_id)
+      except KeyError:
+        client = aff4.FACTORY.Create(client_id,
+                                     aff4.AFF4Object.classes["VFSGRRClient"],
+                                     mode="rw",
+                                     token=self.token)
+        self.client_cache.Put(client_id, client)
+        stats.STATS.SetGaugeValue("grr_frontendserver_client_cache_size",
+                                  len(self.client_cache))
 
-      if result == rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED:
-        client_id = cipher.cipher_metadata.source
-        try:
-          client = self.client_cache.Get(client_id)
-        except KeyError:
-          client = aff4.FACTORY.Create(client_id,
-                                       aff4.AFF4Object.classes["VFSGRRClient"],
-                                       mode="rw",
-                                       token=self.token)
-          self.client_cache.Put(client_id, client)
-          stats.STATS.SetGaugeValue("grr_frontendserver_client_cache_size",
-                                    len(self.client_cache))
+      ip = response_comms.orig_request.source_ip
+      client.Set(client.Schema.CLIENT_IP(ip))
 
-        ip = response_comms.orig_request.source_ip
-        client.Set(client.Schema.CLIENT_IP(ip))
+      # The very first packet we see from the client we do not have its clock
+      remote_time = client.Get(client.Schema.CLOCK) or 0
+      client_time = signed_message_list.timestamp or 0
 
-        # The very first packet we see from the client we do not have its clock
-        remote_time = client.Get(client.Schema.CLOCK) or 0
-        client_time = signed_message_list.timestamp or 0
+      # This used to be a strict check here so absolutely no out of
+      # order messages would be accepted ever. Turns out that some
+      # proxies can send your request with some delay even if the
+      # client has already timed out (and sent another request in
+      # the meantime, making the first one out of order). In that
+      # case we would just kill the whole flow as a
+      # precaution. Given the behavior of those proxies, this seems
+      # now excessive and we have changed the replay protection to
+      # only trigger on messages that are more than one hour old.
 
-        # This used to be a strict check here so absolutely no out of
-        # order messages would be accepted ever. Turns out that some
-        # proxies can send your request with some delay even if the
-        # client has already timed out (and sent another request in
-        # the meantime, making the first one out of order). In that
-        # case we would just kill the whole flow as a
-        # precaution. Given the behavior of those proxies, this seems
-        # now excessive and we have changed the replay protection to
-        # only trigger on messages that are more than one hour old.
+      if client_time < long(remote_time - rdfvalue.Duration("1h")):
+        logging.warning("Message desynchronized for %s: %s >= %s", client_id,
+                        long(remote_time), int(client_time))
+        # This is likely an old message
+        return rdf_flows.GrrMessage.AuthorizationState.DESYNCHRONIZED
 
-        if client_time < long(remote_time - rdfvalue.Duration("1h")):
-          logging.warning("Message desynchronized for %s: %s >= %s", client_id,
-                          long(remote_time), int(client_time))
-          # This is likely an old message
-          return rdf_flows.GrrMessage.AuthorizationState.DESYNCHRONIZED
+      stats.STATS.IncrementCounter("grr_authenticated_messages")
 
-        stats.STATS.IncrementCounter("grr_authenticated_messages")
+      # Update the client and server timestamps only if the client
+      # time moves forward.
+      if client_time > long(remote_time):
+        client.Set(client.Schema.CLOCK, rdfvalue.RDFDatetime(client_time))
+        client.Set(client.Schema.PING, rdfvalue.RDFDatetime().Now())
+      else:
+        logging.warning("Out of order message for %s: %s >= %s", client_id,
+                        long(remote_time), int(client_time))
 
-        # Update the client and server timestamps only if the client
-        # time moves forward.
-        if client_time > long(remote_time):
-          client.Set(client.Schema.CLOCK, rdfvalue.RDFDatetime(client_time))
-          client.Set(client.Schema.PING, rdfvalue.RDFDatetime().Now())
-        else:
-          logging.warning("Out of order message for %s: %s >= %s", client_id,
-                          long(remote_time), int(client_time))
-
-        client.Flush(sync=False)
+      client.Flush(sync=False)
 
     except communicator.UnknownClientCert:
       pass
 
-    if result != rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED:
-      stats.STATS.IncrementCounter("grr_unauthenticated_messages")
-
-    return result
+    return rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
 
 
 class FrontEndServer(object):

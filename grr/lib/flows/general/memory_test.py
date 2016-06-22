@@ -92,8 +92,8 @@ class TestMemoryCollector(MemoryTest):
 
     self.output_path = "analysis/memory_scanner"
 
-    self.key = rdf_crypto.AES128Key("1a5eafcc77d428863d4c2441ea26e5a5")
-    self.iv = rdf_crypto.AES128Key("2241b14c64874b1898dad4de7173d8c0")
+    self.key = rdf_crypto.AES128Key.FromHex("1a5eafcc77d428863d4c2441ea26e5a5")
+    self.iv = rdf_crypto.AES128Key.FromHex("2241b14c64874b1898dad4de7173d8c0")
 
     self.memory_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
                                     "searching/auth.log")
@@ -167,6 +167,17 @@ class TestMemoryCollector(MemoryTest):
     # Make sure the flow didnt actually download anything.
     flow_obj = aff4.FACTORY.Open(self.flow_urn, token=self.token)
     self.assertEqual(flow_obj.state.output_urn, None)
+
+  def testM2CryptoCipherCompatibility(self):
+    m2crypto_ciphertext = open(os.path.join(self.base_path,
+                                            "m2crypto/send_file_data")).read()
+    key = rdf_crypto.EncryptionKey("x" * 16)
+    iv = rdf_crypto.EncryptionKey("y" * 16)
+
+    cipher = rdf_crypto.AES128CBCCipher(key, iv)
+    plaintext = cipher.Decrypt(m2crypto_ciphertext)
+
+    self.assertEqual(plaintext, self.memory_dump)
 
 
 class ListVADBinariesActionMock(action_mocks.MemoryClientMock):

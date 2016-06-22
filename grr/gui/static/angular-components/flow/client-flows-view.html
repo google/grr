@@ -1,10 +1,14 @@
-<div grr-splitter orientation="horizontal" class="rightSplitterContainer">
-  <div grr-splitter-pane id="content_rightPane" class="rightTopPane">
-    <grr-client-flows-list client-id="controller.clientId"
-                           selected-flow-urn="controller.selectedFlowUrn"/>
+<grr-check-client-access client-id="controller.clientId">
+
+  <div grr-splitter orientation="horizontal" class="rightSplitterContainer">
+    <div grr-splitter-pane id="content_rightPane" class="rightTopPane">
+      <grr-client-flows-list client-id="controller.clientId"
+                             selected-flow-urn="controller.selectedFlowUrn"/>
+    </div>
+
+    <div grr-splitter-pane id="main_bottomPane" class="rightBottomPane">
+      <grr-flow-inspector flow-urn="controller.selectedFlowUrn" />
+    </div>
   </div>
 
-  <div grr-splitter-pane id="main_bottomPane" class="rightBottomPane">
-    <grr-flow-inspector flow-urn="controller.selectedFlowUrn" />
-  </div>
-</div>
+</grr-check-client-access>

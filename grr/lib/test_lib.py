@@ -21,7 +21,6 @@ import unittest
 import urlparse
 
 
-from M2Crypto import X509
 import mock
 import pkg_resources
 
@@ -597,8 +596,8 @@ class GRRBaseTest(unittest.TestCase):
                                  aff4_grr.VFSGRRClient,
                                  mode="rw",
                                  token=self.token) as fd:
-          cert = rdf_crypto.RDFX509Cert(self.ClientCertFromPrivateKey(
-              config_lib.CONFIG["Client.private_key"]).as_pem())
+          cert = self.ClientCertFromPrivateKey(config_lib.CONFIG[
+              "Client.private_key"])
           fd.Set(fd.Schema.CERT, cert)
 
           info = fd.Schema.CLIENT_INFO()
@@ -634,13 +633,7 @@ class GRRBaseTest(unittest.TestCase):
   def ClientCertFromPrivateKey(self, private_key):
     communicator = comms.ClientCommunicator(private_key=private_key)
     csr = communicator.GetCSR()
-    request = X509.load_request_string(csr)
-    flow_obj = aff4.FACTORY.Create(None,
-                                   ca_enroller.CAEnroler,
-                                   token=self.token)
-    subject = request.get_subject()
-    cn = rdf_client.ClientURN(subject.as_text().split("=")[-1])
-    return flow_obj.MakeCert(cn, request)
+    return rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
 
   def _SendNotification(self,
                         notification_type,
@@ -1180,12 +1173,24 @@ class GRRSeleniumTest(GRRBaseTest):
   def WaitUntilNot(self, condition_cb, *args):
     self.WaitUntil(lambda: not condition_cb(*args))
 
+  def GetPageTitle(self):
+    return self.driver.title
+
   def IsElementPresent(self, target):
     try:
       self._FindElement(target)
       return True
     except exceptions.NoSuchElementException:
       return False
+
+  def GetCurrentUrlPath(self):
+    url = urlparse.urlparse(self.driver.current_url)
+
+    result = url.path
+    if url.fragment:
+      result += "#" + url.fragment
+
+    return result
 
   def GetElement(self, target):
     try:
@@ -2626,7 +2631,7 @@ def WriteComponent(name="grr-rekall",
   result.summary.modules = modules
   result.summary.name = name
   result.summary.version = version
-  result.summary.cipher.SetAlgorithm("AES128CBC")
+  result.summary.cipher = rdf_crypto.SymmetricCipher.Generate("AES128CBC")
 
   with utils.TempDirectory() as tmp_dir:
     with open(os.path.join(tmp_dir, "component"), "wb") as fd:

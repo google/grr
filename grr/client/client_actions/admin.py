@@ -8,7 +8,9 @@ import time
 import traceback
 
 
-import M2Crypto
+import cryptography
+from cryptography.hazmat.backends import openssl
+
 import pkg_resources
 import psutil
 import pytsk3
@@ -150,10 +152,10 @@ class GetLibraryVersions(actions.ActionPlugin):
   out_rdfvalues = [rdf_protodict.Dict]
 
   def GetSSLVersion(self):
-    return M2Crypto.m2.OPENSSL_VERSION_TEXT
+    return openssl.backend.openssl_version_text()
 
-  def GetM2CryptoVersion(self):
-    return M2Crypto.version
+  def GetCryptographyVersion(self):
+    return cryptography.__version__
 
   def GetPSUtilVersion(self):
     return ".".join(map(utils.SmartUnicode, psutil.version_info))
@@ -170,7 +172,7 @@ class GetLibraryVersions(actions.ActionPlugin):
   library_map = {
       "pytsk": GetPyTSKVersion,
       "TSK": GetTSKVersion,
-      "M2Crypto": GetM2CryptoVersion,
+      "cryptography": GetCryptographyVersion,
       "SSL": GetSSLVersion,
       "psutil": GetPSUtilVersion,
   }

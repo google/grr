@@ -96,6 +96,32 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
       self.action_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
                                                  "HashFile", "HashBuffer")
 
+  def testOpeningManageFlowsOfUnapprovedClientRedirectsToHostInfoPage(self):
+    self.Open("/#/clients/C.0000000000000002/flows/")
+
+    # As we don't have an approval for C.0000000000000002, we should be
+    # redirected to the host info page.
+    self.WaitUntilEqual("/#/clients/C.0000000000000002/host-info",
+                        self.GetCurrentUrlPath)
+    self.WaitUntil(self.IsTextPresent,
+                   "You do not have an approval for this client.")
+
+  def testPageTitleReflectsSelectedFlow(self):
+    pathspec = rdf_paths.PathSpec(
+        path=os.path.join(self.base_path, "test.plist"),
+        pathtype=rdf_paths.PathSpec.PathType.OS)
+    flow_urn = flow.GRRFlow.StartFlow(flow_name="GetFile",
+                                      client_id=self.client_id,
+                                      pathspec=pathspec,
+                                      token=self.token)
+
+    self.Open("/#/clients/C.0000000000000001/flows/")
+    self.WaitUntilEqual("GRR | C.0000000000000001 | Flows", self.GetPageTitle)
+
+    self.Click("css=td:contains('GetFile')")
+    self.WaitUntilEqual("GRR | C.0000000000000001 | " + flow_urn.Basename(),
+                        self.GetPageTitle)
+
   def testFlowManagement(self):
     """Test that scheduling flows works."""
     self.Open("/")

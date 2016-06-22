@@ -9,7 +9,6 @@ import random
 import socket
 
 from django import http
-from M2Crypto import X509
 
 from grr.gui import renderers
 from grr.gui.plugins import fileview_widgets
@@ -379,8 +378,10 @@ class CertificateRenderer(semantic.RDFValueRenderer):
 """)
 
   def Layout(self, request, response):
-    # Present the certificate as text
-    self.cert = X509.load_cert_string(str(self.proxy)).as_text()
+    # Present the certificate as text.
+    # TODO(user): cryptography does not export x509 printing currently. We
+    # show the PEM instead.
+    self.cert = str(self.proxy)
 
     response = super(CertificateRenderer, self).RenderAjax(request, response)
     return self.CallJavascript(response, "CertificateRenderer.Layout")

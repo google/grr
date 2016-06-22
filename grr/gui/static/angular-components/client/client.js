@@ -2,6 +2,7 @@
 
 goog.provide('grrUi.client.module');
 goog.require('grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective');
+goog.require('grrUi.client.checkClientAccessDirective.CheckClientAccessDirective');
 goog.require('grrUi.client.clientCrashesDirective.ClientCrashesDirective');
 goog.require('grrUi.client.clientDialogService.ClientDialogService');
 goog.require('grrUi.client.clientLoadViewDirective.ClientLoadViewDirective');
@@ -31,6 +32,9 @@ grrUi.client.module.directive(
         .directive_name,
     grrUi.client.addClientsLabelsDialogDirective
         .AddClientsLabelsDialogDirective);
+grrUi.client.module.directive(
+    grrUi.client.checkClientAccessDirective.CheckClientAccessDirective.directive_name,
+    grrUi.client.checkClientAccessDirective.CheckClientAccessDirective);
 grrUi.client.module.directive(
     grrUi.client.clientCrashesDirective.ClientCrashesDirective.directive_name,
     grrUi.client.clientCrashesDirective.ClientCrashesDirective);

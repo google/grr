@@ -7,6 +7,7 @@ RUN apt-get update && \
   apt-get install -y \
   debhelper \
   dpkg-dev \
+  libffi-dev \
   libssl-dev \
   prelink \
   protobuf-compiler \

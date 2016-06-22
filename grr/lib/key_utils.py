@@ -2,109 +2,93 @@
 """This file abstracts the loading of the private key."""
 
 
-import time
+from cryptography import x509
+from cryptography.hazmat.backends import openssl
+from cryptography.hazmat.primitives import hashes
+from cryptography.x509 import oid
 
-from M2Crypto import ASN1
-from M2Crypto import BIO
-from M2Crypto import EVP
-from M2Crypto import RSA
-from M2Crypto import X509
-
-
-def GenerateRSAKey(passphrase=None, key_length=2048):
-  """Generate an RSA key and return tuple of pem strings for (priv,pub) keys."""
-  if passphrase is not None:
-    passphrase_cb = lambda: passphrase
-  else:
-    passphrase_cb = None
-  key = RSA.gen_key(key_length, 65537)
-  priv_key = key.as_pem(passphrase_cb)
-  bio = BIO.MemoryBuffer()
-  key.save_pub_key_bio(bio)
-  pub_key = bio.read()
-  return priv_key, pub_key
+from grr.lib import rdfvalue
+from grr.lib.rdfvalues import crypto as rdf_crypto
 
 
-def MakeCSR(bits, common_name):
-  """Create an X509 request.
+def MakeCASignedCert(common_name,
+                     private_key,
+                     ca_cert,
+                     ca_private_key,
+                     serial_number=2):
+  """Make a cert and sign it with the CA's private key."""
+  public_key = private_key.GetPublicKey()
 
-  Args:
-    bits: Number of RSA key bits.
-    common_name: common name in the request
+  builder = x509.CertificateBuilder()
 
-  Returns:
-    An X509 request and the priv key.
-  """
-  pk = EVP.PKey()
-  req = X509.Request()
-  rsa = RSA.gen_key(bits, 65537, lambda: None)
-  pk.assign_rsa(rsa)
-  req.set_pubkey(pk)
-  options = req.get_subject()
-  options.C = "US"
-  options.CN = common_name
-  req.sign(pk, "sha256")
-  return req, pk
+  builder = builder.issuer_name(ca_cert.GetIssuer())
 
+  subject = x509.Name([
+      x509.NameAttribute(oid.NameOID.COMMON_NAME, common_name)
+  ])
+  builder = builder.subject_name(subject)
 
-def SetCertValidityDate(cert, days=365):
-  """Set validity on a cert to specific number of days."""
-  now_epoch = long(time.time())
-  now = ASN1.ASN1_UTCTIME()
-  now.set_time(now_epoch)
-  expire = ASN1.ASN1_UTCTIME()
-  expire.set_time(now_epoch + days * 24 * 60 * 60)
-  cert.set_not_before(now)
-  cert.set_not_after(expire)
+  valid_from = rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("1d")
+  valid_until = rdfvalue.RDFDatetime().Now() + rdfvalue.Duration("3650d")
+  builder = builder.not_valid_before(valid_from.AsDatetime())
+  builder = builder.not_valid_after(valid_until.AsDatetime())
 
+  builder = builder.serial_number(serial_number)
+  builder = builder.public_key(public_key.GetRawPublicKey())
 
-def MakeCASignedCert(common_name, ca_pkey, bits=2048):
-  """Make a cert and sign it with the CA. Return (cert, pkey)."""
-  csr_req, pk = MakeCSR(bits, common_name=common_name)
-
-  # Create our cert.
-  cert = X509.X509()
-  cert.set_serial_number(2)
-  cert.set_version(2)
-  SetCertValidityDate(cert)
-
-  cert.set_subject(csr_req.get_subject())
-  cert.set_pubkey(csr_req.get_pubkey())
-  cert.sign(ca_pkey, "sha256")
-  return cert, pk
+  builder = builder.add_extension(
+      x509.BasicConstraints(ca=False, path_length=None),
+      critical=True)
+  certificate = builder.sign(private_key=ca_private_key.GetRawPrivateKey(),
+                             algorithm=hashes.SHA256(),
+                             backend=openssl.backend)
+  return rdf_crypto.RDFX509Cert(certificate)
 
 
-def MakeCACert(common_name="grr",
-               issuer_cn="grr_test",
-               issuer_c="US",
-               bits=2048):
+def MakeCACert(private_key,
+               common_name=u"grr",
+               issuer_cn=u"grr_test",
+               issuer_c=u"US"):
   """Generate a CA certificate.
 
   Args:
+    private_key: The private key to use.
     common_name: Name for cert.
     issuer_cn: Name for issuer.
     issuer_c: Country for issuer.
-    bits: Bit length of the key used.
 
   Returns:
-    (Certificate, priv key, pub key).
+    The certificate.
   """
-  req, pk = MakeCSR(bits, common_name=common_name)
-  pkey = req.get_pubkey()
-  cert = X509.X509()
-  cert.set_serial_number(1)
-  cert.set_version(2)
-  SetCertValidityDate(cert, days=3650)
+  public_key = private_key.GetPublicKey()
 
-  issuer = X509.X509_Name()
-  issuer.C = issuer_c
-  issuer.CN = issuer_cn
-  cert.set_issuer(issuer)
+  builder = x509.CertificateBuilder()
 
-  cert.set_subject(cert.get_issuer())
-  cert.set_pubkey(pkey)
-  cert.add_ext(X509.new_extension("basicConstraints", "CA:TRUE"))
-  cert.add_ext(X509.new_extension("subjectKeyIdentifier", cert.get_fingerprint(
-  )))
-  cert.sign(pk, "sha256")
-  return cert, pk, pkey
+  issuer = x509.Name([
+      x509.NameAttribute(oid.NameOID.COMMON_NAME, issuer_cn),
+      x509.NameAttribute(oid.NameOID.COUNTRY_NAME, issuer_c)
+  ])
+  subject = x509.Name([
+      x509.NameAttribute(oid.NameOID.COMMON_NAME, common_name)
+  ])
+  builder = builder.subject_name(subject)
+  builder = builder.issuer_name(issuer)
+
+  valid_from = rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("1d")
+  valid_until = rdfvalue.RDFDatetime().Now() + rdfvalue.Duration("3650d")
+  builder = builder.not_valid_before(valid_from.AsDatetime())
+  builder = builder.not_valid_after(valid_until.AsDatetime())
+
+  builder = builder.serial_number(1)
+  builder = builder.public_key(public_key.GetRawPublicKey())
+
+  builder = builder.add_extension(
+      x509.BasicConstraints(ca=True, path_length=None),
+      critical=True)
+  builder = builder.add_extension(
+      x509.SubjectKeyIdentifier.from_public_key(public_key.GetRawPublicKey()),
+      critical=False)
+  certificate = builder.sign(private_key=private_key.GetRawPrivateKey(),
+                             algorithm=hashes.SHA256(),
+                             backend=openssl.backend)
+  return rdf_crypto.RDFX509Cert(certificate)

@@ -234,7 +234,7 @@ class Resource(ConfigFilter):
     # Installing from wheel places data_files relative to sys.prefix and not
     # site-packages. If we can not find in site-packages, check sys.prefix
     # instead.
-    # https://python-packaging-user-guide.readthedocs.io/en/latest/distributing/#data-files
+    # http://python-packaging-user-guide.readthedocs.org/en/latest/distributing/#data-files
     target = os.path.join(sys.prefix, filename)
     if target and os.access(target, os.R_OK):
       return target

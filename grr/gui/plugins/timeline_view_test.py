@@ -15,7 +15,6 @@ from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import timelines
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -30,10 +29,9 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     token = access_control.ACLToken(username="test", reason="fixture")
 
     fd = aff4.FACTORY.Create(client_id, aff4_grr.VFSGRRClient, token=token)
-    cert = self.ClientCertFromPrivateKey(config_lib.CONFIG[
+    client_cert = self.ClientCertFromPrivateKey(config_lib.CONFIG[
         "Client.private_key"])
-    client_cert = rdf_crypto.RDFX509Cert(cert.as_pem())
-    fd.Set(fd.Schema.CERT(client_cert))
+    fd.Set(fd.Schema.CERT(client_cert.AsPEM()))
     fd.Close()
 
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,

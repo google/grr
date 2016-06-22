@@ -4,7 +4,11 @@ goog.require('grrUi.core.apiService.encodeUrlPath');
 goog.require('grrUi.core.apiService.stripTypeInfo');
 goog.require('grrUi.core.module');
 
+
+// TODO(user): Used to test grr.publish calls. Remove as soon as
+// this dependency is gone.
 var grr = grr || {};
+
 
 describe('API service', function() {
   var $httpBackend, $interval, grrApiService;
@@ -15,8 +19,6 @@ describe('API service', function() {
     $httpBackend = $injector.get('$httpBackend');
     $interval = $injector.get('$interval');
     grrApiService = $injector.get('grrApiService');
-
-    grr.state = {};
   }));
 
   afterEach(function() {
@@ -165,15 +167,6 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('uses grr.state.reason in requests', function() {
-      grr.state.reason = 'some reason ';
-
-      $httpBackend.whenHEAD('/api/some/path?reason=some+reason+').
-          respond(200);
-      grrApiService.head('some/path');
-      $httpBackend.flush();
-    });
-
     it('passes user-provided headers in the request', function() {
       $httpBackend.whenHEAD('/api/some/path?key1=value1&key2=value2').
           respond(200);
@@ -181,11 +174,9 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('passes user-provided headers and reason in the request', function() {
-      grr.state.reason = 'some reason ';
-
+    it('passes user-provided headers in the request', function() {
       $httpBackend.whenHEAD('/api/some/path?' +
-          'key1=value1&key2=value2&reason=some+reason+').respond(200);
+          'key1=value1&key2=value2').respond(200);
       grrApiService.head('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
@@ -211,15 +202,6 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('uses grr.state.reason in requests', function() {
-      grr.state.reason = 'some reason ';
-
-      $httpBackend.whenGET('/api/some/path?reason=some+reason+').
-          respond(200);
-      grrApiService.get('some/path');
-      $httpBackend.flush();
-    });
-
     it('passes user-provided headers in the request', function() {
       $httpBackend.whenGET('/api/some/path?key1=value1&key2=value2').
           respond(200);
@@ -227,11 +209,9 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('passes user-provided headers and reason in the request', function() {
-      grr.state.reason = 'some reason ';
-
+    it('passes user-provided headers in the request', function() {
       $httpBackend.whenGET('/api/some/path?' +
-          'key1=value1&key2=value2&reason=some+reason+').respond(200);
+          'key1=value1&key2=value2').respond(200);
       grrApiService.get('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
@@ -257,15 +237,6 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('uses grr.state.reason in requests', function() {
-      grr.state.reason = 'some reason ';
-
-      $httpBackend.whenDELETE('/api/some/path?reason=some+reason+').
-          respond(200);
-      grrApiService.delete('some/path');
-      $httpBackend.flush();
-    });
-
     it('passes user-provided headers in the request', function() {
       $httpBackend.whenDELETE('/api/some/path?key1=value1&key2=value2').
           respond(200);
@@ -273,11 +244,9 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('passes user-provided headers and reason in the request', function() {
-      grr.state.reason = 'some reason ';
-
+    it('passes user-provided headers in the request', function() {
       $httpBackend.whenDELETE('/api/some/path?' +
-          'key1=value1&key2=value2&reason=some+reason+').respond(200);
+          'key1=value1&key2=value2').respond(200);
       grrApiService.delete('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
@@ -301,17 +270,6 @@ describe('API service', function() {
     it('adds "/api/" to a given url starting with "/"', function() {
       $httpBackend.whenPOST('/api/some/path').respond(200);
       grrApiService.post('/some/path', {});
-      $httpBackend.flush();
-    });
-
-    it('uses url-encoded grr.state.reason in requests', function() {
-      grr.state.reason = '区最 unicode reason ';
-
-      $httpBackend.expectPOST('/api/some/path', {}, function(headers) {
-        return headers[
-            'X-GRR-REASON'] == '%E5%8C%BA%E6%9C%80%20unicode%20reason%20';
-      }).respond(200);
-      grrApiService.post('some/path');
       $httpBackend.flush();
     });
 
@@ -353,15 +311,9 @@ describe('API service', function() {
       $httpBackend.flush();
     });
 
-    it('passes user-provided headers and url-encoded reason in the request',
-        function() {
-      grr.state.reason = '区最 unicode reason ';
+    it('passes user-provided headers in the request', function() {
       $httpBackend.expectPOST(
-          '/api/some/path',
-          {key1: 'value1', key2: 'value2'}, function(headers) {
-            return headers[
-                'X-GRR-REASON'] == '%E5%8C%BA%E6%9C%80%20unicode%20reason%20';
-          }).respond(200);
+          '/api/some/path', {key1: 'value1', key2: 'value2'}).respond(200);
 
       grrApiService.post('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();

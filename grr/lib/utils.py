@@ -8,6 +8,7 @@ import copy
 import cStringIO
 import errno
 import functools
+import getpass
 import os
 import pipes
 import Queue
@@ -810,6 +811,24 @@ def GeneratePassphrase(length=20):
   valid_chars = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
   valid_chars += "0123456789 ,-_&$#"
   return "".join(random.choice(valid_chars) for i in range(length))
+
+
+def PassphraseCallback(verify=False,
+                       prompt1="Enter passphrase:",
+                       prompt2="Verify passphrase:"):
+  """A utility function to read a passphrase from stdin."""
+  while 1:
+    try:
+      p1 = getpass.getpass(prompt1)
+      if verify:
+        p2 = getpass.getpass(prompt2)
+        if p1 == p2:
+          break
+      else:
+        break
+    except KeyboardInterrupt:
+      return None
+  return p1
 
 
 class PRNG(object):

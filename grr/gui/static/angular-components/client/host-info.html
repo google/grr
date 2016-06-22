@@ -5,8 +5,12 @@
     <span>{$ controller.clientId $}</span>
   </h1>
 
+  <grr-check-client-access client-id="controller.clientId" no-redirect="true"
+                           out-has-access="controller.hasClientAccess">
+  </grr-check-client-access>
+
   <div class="no-approval alert alert-danger alert-block"
-       ng-if="!controller.clientAccessCheckInProgress && !controller.hasClientAccess">
+       ng-if="controller.hasClientAccess !== undefined && !controller.hasClientAccess">
     <i class="fa fa-warning"></i> You do not have an <b>approval</b> for this client. <br/>
 
     <button name="requestApproval" class="btn btn-default"

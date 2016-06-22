@@ -897,6 +897,13 @@ class TestClientSearch(SearchClientTestBase,
     self.assertEqual(target_count,
                      self.GetCssCount("css=grr-clients-list tbody > tr"))
 
+  def testPageTitleChangesAccordingToQuery(self):
+    self.Open("/#/search?q=foo")
+    self.WaitUntilEqual("GRR | Search for \"foo\"", self.GetPageTitle)
+
+    self.Type("client_query", text="host:Host-1", end_with_enter=True)
+    self.WaitUntilEqual("GRR | Search for \"host:Host-1\"", self.GetPageTitle)
+
   def testEmptySearchShowsAllClients(self):
     self.Open("/")
     self.Click("client_query_submit")

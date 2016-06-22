@@ -639,7 +639,8 @@ class SendFile(actions.ActionPlugin):
   in_rdfvalue = rdf_client.SendFileRequest
   out_rdfvalues = [rdf_client.StatEntry]
 
-  BLOCK_SIZE = 1024 * 1024 * 10  # 10 MB
+  # 10 MB.
+  BLOCK_SIZE = 1024 * 1024 * 10
 
   def Send(self, sock, msg):
     totalsent = 0
@@ -670,17 +671,19 @@ class SendFile(actions.ActionPlugin):
     except socket.error as e:
       raise RuntimeError(str(e))
 
-    cipher = rdf_crypto.AES128CBCCipher(args.key, args.iv,
-                                        rdf_crypto.Cipher.OP_ENCRYPT)
+    cipher = rdf_crypto.AES128CBCCipher(args.key, args.iv)
+    streaming_encryptor = rdf_crypto.StreamingCBCEncryptor(cipher)
 
     while True:
       data = fd.read(self.BLOCK_SIZE)
       if not data:
         break
-      self.Send(s, cipher.Update(data))
+
+      self.Send(s, streaming_encryptor.Update(data))
       # Send heartbeats for long files.
       self.Progress()
-    self.Send(s, cipher.Final())
+
+    self.Send(s, streaming_encryptor.Finalize())
     s.close()
 
     self.SendReply(fd.Stat())

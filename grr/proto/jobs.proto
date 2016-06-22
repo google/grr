@@ -186,15 +186,21 @@ message SignedMessageList {
 message CipherProperties {
   required string name = 1;
 
-  required bytes key = 2;
+  required bytes key = 2 [(sem_type) = {
+      type: "EncryptionKey",
+    }];
 
   // This IV is used to encrypt the cipher metadata block. Note: Both the
   // CipherProperties() and the CipherMetadata() protobufs do not change for all
   // messages in this session.
-  optional bytes metadata_iv = 3;
+  optional bytes metadata_iv = 3 [(sem_type) = {
+      type: "EncryptionKey",
+    }];
 
   // The key used for the hmac.
-  optional bytes hmac_key = 5;
+  optional bytes hmac_key = 5 [(sem_type) = {
+      type: "EncryptionKey",
+    }];
 
   enum HMACType {
     // Older clients use a HMAC only on the encrypted message.
@@ -239,7 +245,9 @@ message ClientCommunication {
 
   // This iv is used to encrypt the encrypted field (No. 1). This IV changes for
   // each packet.
-  optional bytes packet_iv = 8;
+  optional bytes packet_iv = 8 [(sem_type) = {
+      type: "EncryptionKey",
+    }];;
 
   optional HttpRequest orig_request = 3;
 
@@ -1158,7 +1166,8 @@ message SignedBlob {
     SHA256 = 2;
   };
   enum SignatureType {
-    RSA_2048 = 0;
+    RSA_PKCS1v15 = 0;
+    RSA_PSS = 1;
   }
   optional bytes data = 1;   // The blob itself.
   optional bytes digest = 2;   // The hash of the blob.
@@ -1179,8 +1188,13 @@ message SymmetricCipher {
       description: "The algorithm to use."
     }];
 
-  optional bytes _key = 2;
-  optional bytes _iv = 3;
+  optional bytes _key = 2 [(sem_type) = {
+      type: "EncryptionKey",
+    }];
+
+  optional bytes _iv = 3 [(sem_type) = {
+      type: "EncryptionKey",
+    }];
 }
 
 // Message containing request to execute python in the context of the client.

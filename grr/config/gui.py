@@ -64,9 +64,6 @@ config_lib.DEFINE_string("AdminUI.export_command", "/usr/bin/grr_export",
                          "Command to show in the fileview for downloading the "
                          "files from the command line.")
 
-config_lib.DEFINE_string("AdminUI.page_title", "GRR Admin Console",
-                         "Page title of the Admin UI.")
-
 config_lib.DEFINE_string("AdminUI.heading", "",
                          "Dashboard heading displayed in the Admin UI.")
 

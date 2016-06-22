@@ -87,17 +87,13 @@ grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId =
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @ngInject
  */
 grrUi.client.virtualFileSystem.fileViewDirective.FileViewController = function(
-    $scope, grrApiService, grrRoutingService) {
+    $scope, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
-
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
 
   /** @private {!grrUi.routing.routingService.RoutingService} */
   this.grrRoutingService_ = grrRoutingService;

@@ -25,6 +25,7 @@ beforeEach(function() {
   // interfere with directive tests.
   var grrRoutingServiceMock = {
     go: function(state, params) {},
+    href: function(state, params) { return '#test/href'; },
     uiOnParamsChanged: function(scope, paramNames, callback) {},
     onStateChange: function(scope, callback) {}
   };

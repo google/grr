@@ -5,12 +5,13 @@ This module contains the RDFValue implementations used to communicate with the
 client.
 """
 
-from hashlib import sha256
 
+import hashlib
 import platform
 import re
 import socket
 import stat
+import struct
 
 from grr.lib import ipv6_utils
 from grr.lib import rdfvalue
@@ -79,9 +80,22 @@ class ClientURN(rdfvalue.RDFURN):
     return False
 
   @classmethod
+  def FromPrivateKey(cls, private_key):
+    return cls.FromPublicKey(private_key.GetPublicKey())
+
+  @classmethod
   def FromPublicKey(cls, public_key):
     """An alternate constructor which generates a new client id."""
-    return cls("C.%s" % (sha256(public_key).digest()[:8].encode("hex")))
+    # Our CN will be the first 64 bits of the hash of the public key
+    # in MPI format - the length of the key in 4 bytes + the key
+    # prefixed with a 0. This weird format is an artifact from the way
+    # M2Crypto handled this, we have to live with it for now.
+    n = public_key.GetN()
+    raw_n = ("%x" % n).decode("hex")
+
+    mpi_format = struct.pack(">i", len(raw_n) + 1) + "\x00" + raw_n
+
+    return cls("C.%s" % (hashlib.sha256(mpi_format).digest()[:8].encode("hex")))
 
   def Add(self, path, age=None):
     """Add a relative stem to the current value and return a new RDFURN.

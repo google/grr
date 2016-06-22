@@ -129,6 +129,33 @@ class TestFileView(FileViewTestBase):
         fd.Write(content)
         fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime().Now())
 
+  def testOpeningVfsOfUnapprovedClientRedirectsToHostInfoPage(self):
+    self.Open("/#/clients/C.0000000000000002/vfs/")
+
+    # As we don't have an approval for C.0000000000000002, we should be
+    # redirected to the host info page.
+    self.WaitUntilEqual("/#/clients/C.0000000000000002/host-info",
+                        self.GetCurrentUrlPath)
+    self.WaitUntil(self.IsTextPresent,
+                   "You do not have an approval for this client.")
+
+  def testPageTitleChangesAccordingToSelectedFile(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/")
+    self.WaitUntilEqual("GRR | C.0000000000000001 | /", self.GetPageTitle)
+
+    # Select a folder in the tree.
+    self.Click("css=#_fs i.jstree-icon")
+    self.Click("css=#_fs-os i.jstree-icon")
+    self.Click("css=#_fs-os-c i.jstree-icon")
+    self.Click("link=Downloads")
+    self.WaitUntilEqual("GRR | C.0000000000000001 | /fs/os/c/Downloads/",
+                        self.GetPageTitle)
+
+    # Select a file from the table.
+    self.Click("css=tr:contains(\"a.txt\")")
+    self.WaitUntilEqual("GRR | C.0000000000000001 | /fs/os/c/Downloads/a.txt",
+                        self.GetPageTitle)
+
   def testVersionDropDownChangesFileContentAndDownloads(self):
     """Test the fileview interface."""
 
@@ -891,7 +918,7 @@ class TestHostInformation(FileViewTestBase):
 
     # A click on the Interrogate button starts a flow, disables the button and
     # shows a loading icon within the button.
-    self.Click("css=button:contains('Interrogate')")
+    self.Click("css=button:contains('Interrogate'):not([disabled])")
     self.WaitUntil(self.IsElementPresent,
                    "css=button:contains('Interrogate')[disabled]")
     self.WaitUntil(self.IsElementPresent,

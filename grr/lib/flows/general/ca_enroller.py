@@ -2,17 +2,10 @@
 """A flow to enrol new clients."""
 
 
-import time
-
-
-from M2Crypto import ASN1
-from M2Crypto import EVP
-from M2Crypto import X509
 
 import logging
 from grr.lib import aff4
 from grr.lib import client_index
-from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
@@ -44,24 +37,24 @@ class CAEnroler(flow.GRRFlow):
     if self.args.csr.type != rdf_crypto.Certificate.Type.CSR:
       raise IOError("Must be called with CSR")
 
-    req = X509.load_request_string(self.args.csr.pem)
-
+    csr = rdf_crypto.CertificateSigningRequest(self.args.csr.pem)
     # Verify the CSR. This is not strictly necessary but doesn't harm either.
-    if req.verify(req.get_pubkey()) != 1:
+    try:
+      csr.Verify(csr.GetPublicKey())
+    except rdf_crypto.VerificationError:
       raise flow.FlowError("CSR for client %s did not verify: %s" %
-                           (self.client_id, req.as_pem()))
+                           (self.client_id, csr.AsPEM()))
 
     # Verify that the CN is of the correct form. The common name should refer
     # to a client URN.
-    public_key = req.get_pubkey().get_rsa().pub()[1]
-    self.cn = rdf_client.ClientURN.FromPublicKey(public_key)
-    if self.cn != rdf_client.ClientURN(req.get_subject().CN):
+    self.cn = rdf_client.ClientURN.FromPublicKey(csr.GetPublicKey())
+    if self.cn != csr.GetCN():
       raise IOError("CSR CN %s does not match public key %s." %
-                    (rdf_client.ClientURN(req.get_subject().CN), self.cn))
+                    (csr.GetCN(), self.cn))
 
     logging.info("Will sign CSR for: %s", self.cn)
 
-    cert = self.MakeCert(self.cn, req)
+    cert = rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
 
     # This check is important to ensure that the client id reported in the
     # source of the enrollment request is the same as the one in the
@@ -72,8 +65,7 @@ class CAEnroler(flow.GRRFlow):
                            self.cn, self.client_id)
 
     # Set and write the certificate to the client record.
-    certificate_attribute = rdf_crypto.RDFX509Cert(cert.as_pem())
-    client.Set(client.Schema.CERT, certificate_attribute)
+    client.Set(client.Schema.CERT, cert)
     client.Set(client.Schema.FIRST_SEEN, rdfvalue.RDFDatetime().Now())
 
     index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
@@ -85,44 +77,9 @@ class CAEnroler(flow.GRRFlow):
     client.Close(sync=True)
 
     # Publish the client enrollment message.
-    self.Publish("ClientEnrollment", certificate_attribute.common_name)
+    self.Publish("ClientEnrollment", cert)
 
     self.Log("Enrolled %s successfully", self.client_id)
-
-  def MakeCert(self, cn, req):
-    """Make new cert for the client."""
-    # code inspired by M2Crypto unit tests
-
-    cert = X509.X509()
-    # Use the client CN for a cert serial_id. This will ensure we do
-    # not have clashing cert id.
-    cert.set_serial_number(int(cn.Basename().split(".")[1], 16))
-    cert.set_version(2)
-    cert.set_subject(req.get_subject())
-    t = long(time.time()) - 10
-    now = ASN1.ASN1_UTCTIME()
-    now.set_time(t)
-    now_plus_year = ASN1.ASN1_UTCTIME()
-    now_plus_year.set_time(t + 60 * 60 * 24 * 365)
-
-    # TODO(user): Enforce certificate expiry time, and when close
-    # to expiry force client re-enrolment
-    cert.set_not_before(now)
-    cert.set_not_after(now_plus_year)
-
-    # Get the CA issuer:
-    ca_cert = config_lib.CONFIG["CA.certificate"].GetX509Cert()
-    cert.set_issuer(ca_cert.get_issuer())
-    cert.set_pubkey(req.get_pubkey())
-
-    ca_key = config_lib.CONFIG["PrivateKeys.ca_key"].GetPrivateKey()
-    key_pair = EVP.PKey(md="sha256")
-    key_pair.assign_rsa(ca_key)
-
-    # Sign the certificate
-    cert.sign(key_pair, "sha256")
-
-    return cert
 
 
 enrolment_cache = utils.FastStore(5000)

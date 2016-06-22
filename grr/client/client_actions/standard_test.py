@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
-# Copyright 2012 Google Inc. All Rights Reserved.
 """Test client standard actions."""
 import gzip
 import hashlib
@@ -13,7 +11,6 @@ from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
@@ -122,15 +119,15 @@ print "Done."
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
 
     # Should raise since the code has been modified.
-    self.assertRaises(rdfvalue.DecodeError, self.RunAction, "ExecutePython",
-                      request)
+    self.assertRaises(rdf_crypto.VerificationError, self.RunAction,
+                      "ExecutePython", request)
 
     # Lets also adjust the hash.
     signed_blob.digest = hashlib.sha256(signed_blob.data).digest()
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
 
-    self.assertRaises(rdfvalue.DecodeError, self.RunAction, "ExecutePython",
-                      request)
+    self.assertRaises(rdf_crypto.VerificationError, self.RunAction,
+                      "ExecutePython", request)
 
     # Make sure the code never ran.
     self.assertEqual(utils.TEST_VAL, "original")
@@ -175,12 +172,12 @@ print "Done."
     python_code = "print 'test'"
 
     # Generate a test valid RSA key that isn't the real one.
-    signing_key = rdf_crypto.PEMPrivateKey.GenKey(2048, 65537)
+    signing_key = rdf_crypto.RSAPrivateKey.GenerateKey(2048, 65537)
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, signing_key)
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
-    self.assertRaises(rdfvalue.DecodeError, self.RunAction, "ExecutePython",
-                      request)
+    self.assertRaises(rdf_crypto.VerificationError, self.RunAction,
+                      "ExecutePython", request)
 
   def testArgs(self):
     """Test passing arguments."""
@@ -296,8 +293,8 @@ class TestNetworkByteLimits(test_lib.EmptyActionTest):
     self.assertTrue("Network limit exceeded" in str(client_alert))
 
     status = responses[1].payload
-    self.assertTrue("Action exceeded network send limit" in str(
-        status.backtrace))
+    self.assertTrue(
+        "Action exceeded network send limit" in str(status.backtrace))
     self.assertEqual(status.status,
                      rdf_flows.GrrStatus.ReturnedStatus.NETWORK_LIMIT_EXCEEDED)
 

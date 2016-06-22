@@ -145,6 +145,16 @@ class TestHuntView(test_lib.GRRSeleniumTest):
   def CheckState(self, state):
     self.WaitUntil(self.IsElementPresent, "css=div[state=\"%s\"]" % state)
 
+  def testPageTitleReflectsSelectedHunt(self):
+    with self.ACLChecksDisabled():
+      hunt = self.CreateSampleHunt(stopped=True)
+
+    self.Open("/#/hunts")
+    self.WaitUntilEqual("GRR | Hunts", self.GetPageTitle)
+
+    self.Click("css=td:contains('GenericHunt')")
+    self.WaitUntilEqual("GRR | " + hunt.urn.Basename(), self.GetPageTitle)
+
   def testHuntView(self):
     """Test that we can see all the hunt data."""
     with self.ACLChecksDisabled():

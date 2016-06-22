@@ -20,6 +20,7 @@ script: grr_run_tests --processes=2
 addons:
   apt:
     packages:
+    - libffi-dev
     - libssl-dev
     - python-dev
     - prelink

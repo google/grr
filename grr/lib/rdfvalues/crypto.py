@@ -3,16 +3,25 @@
 
 
 import hashlib
-import struct
+import os
 
 
-from M2Crypto import BIO
-from M2Crypto import EVP
-from M2Crypto import RSA
-from M2Crypto import util
-from M2Crypto import X509
+from cryptography import exceptions
+from cryptography import x509
+from cryptography.hazmat.backends import openssl
+from cryptography.hazmat.primitives import ciphers
+from cryptography.hazmat.primitives import hashes
+from cryptography.hazmat.primitives import hmac
+from cryptography.hazmat.primitives import padding as sym_padding
+from cryptography.hazmat.primitives import serialization
+from cryptography.hazmat.primitives.asymmetric import padding
+from cryptography.hazmat.primitives.asymmetric import rsa
+from cryptography.hazmat.primitives.ciphers import algorithms
+from cryptography.hazmat.primitives.ciphers import modes
+from cryptography.x509 import oid
 
 import logging
+from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
@@ -20,8 +29,17 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import jobs_pb2
 
-DIGEST_ALGORITHM = hashlib.sha256
-DIGEST_ALGORITHM_STR = "sha256"
+
+class Error(Exception):
+  pass
+
+
+class VerificationError(Error):
+  pass
+
+
+class InvalidSignature(Error):
+  pass
 
 
 class CipherError(rdfvalue.DecodeError):
@@ -32,94 +50,388 @@ class Certificate(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.Certificate
 
 
-class RDFX509Cert(rdfvalue.RDFString):
+class RDFX509Cert(rdfvalue.RDFValue):
   """X509 certificates used to communicate with this client."""
 
-  def _GetCN(self, x509cert):
-    subject = x509cert.get_subject()
+  def __init__(self, initializer=None, age=None):
+    if isinstance(initializer, x509.Certificate):
+      self._value = initializer
+      self._age = age or rdfvalue.RDFDatetime(age=0)
+    else:
+      self._value = None
+      super(RDFX509Cert, self).__init__(initializer=initializer, age=age)
+
+  def GetRawCertificate(self):
+    return self._value
+
+  def GetCN(self):
+    subject = self._value.subject
     try:
-      cn_id = subject.nid["CN"]
-      cn = subject.get_entries_by_nid(cn_id)[0]
+      cn_attributes = subject.get_attributes_for_oid(oid.NameOID.COMMON_NAME)
+      if len(cn_attributes) > 1:
+        raise rdfvalue.DecodeError("Cert has more than 1 CN entries.")
+      cn_attribute = cn_attributes[0]
     except IndexError:
       raise rdfvalue.DecodeError("Cert has no CN")
 
-    self.common_name = rdfvalue.RDFURN(cn.get_data().as_text())
+    return cn_attribute.value
 
-  def GetX509Cert(self):
-    return X509.load_cert_string(str(self))
+  def GetPublicKey(self):
+    return RSAPublicKey(self._value.public_key())
 
-  def GetPubKey(self):
-    return self.GetX509Cert().get_pubkey().get_rsa()
+  def GetSerialNumber(self):
+    return self._value.serial
+
+  def GetIssuer(self):
+    return self._value.issuer
 
   def ParseFromString(self, string):
-    super(RDFX509Cert, self).ParseFromString(string)
     try:
-      self._GetCN(self.GetX509Cert())
-    except X509.X509Error:
-      raise rdfvalue.DecodeError("Cert invalid")
+      self._value = x509.load_pem_x509_certificate(string,
+                                                   backend=openssl.backend)
+    except (ValueError, TypeError) as e:
+      raise rdfvalue.DecodeError("Invalid certificate %s: %s" % (string, e))
+    # This can also raise if there isn't exactly one CN entry.
+    self.GetCN()
 
+  def SerializeToString(self):
+    if self._value is None:
+      return ""
+    return self._value.public_bytes(encoding=serialization.Encoding.PEM)
 
-class PEMPublicKey(rdfvalue.RDFString):
-  """A Public key encoded as a pem file."""
+  def AsPEM(self):
+    return self.SerializeToString()
 
-  def GetPublicKey(self):
-    try:
-      bio = BIO.MemoryBuffer(self._value)
-      rsa = RSA.load_pub_key_bio(bio)
-      if rsa.check_key() != 1:
-        raise CipherError("RSA.check_key() did not succeed.")
+  def __str__(self):
+    return self.SerializeToString()
 
-      return rsa
-    except RSA.RSAError as e:
-      raise type_info.TypeValueError("Public key invalid: %s" % e)
+  def Verify(self, public_key):
+    """Verifies the certificate using the given key.
 
-  def ParseFromString(self, pem_string):
-    super(PEMPublicKey, self).ParseFromString(pem_string)
-    self.GetPublicKey()
+    Args:
+      public_key: The public key to use.
 
+    Returns:
+      True: Everything went well.
 
-class PEMPrivateKey(rdfvalue.RDFString):
-  """An RSA private key encoded as a pem file."""
+    Raises:
+      VerificationError: The certificate did not verify.
+    """
+    # TODO(user): We have to do this manually for now since cryptography does
+    # not yet support cert verification. There is PR 2460:
+    # https://github.com/pyca/cryptography/pull/2460/files
+    # that will add it, once it's in we should switch to using this.
 
-  _private_key_cache = None
+    # Note that all times here are in UTC.
+    now = rdfvalue.RDFDatetime().Now().AsDatetime()
+    if now > self._value.not_valid_after:
+      raise VerificationError("Certificate expired!")
+    if now < self._value.not_valid_before:
+      raise VerificationError("Certificate not yet valid!")
 
-  def GetPrivateKey(self, callback=None):
-    if callback is None:
-      callback = lambda: ""
-
-    # Cache the decoded private key so it does not need to be unlocked all the
-    # time. Unfortunately due to M2Crypto's horrible memory management issues we
-    # can only ever hold a reference to strings so we need to PEM encode the
-    # private key with no password and cache that.
-    if self._private_key_cache:
-      return RSA.load_key_string(self._private_key_cache)
-
-    # Unlock the private key if needed.
-    private_key = RSA.load_key_string(self._value, callback=callback)
-
-    # Re-encode it as a PEM and cache that.
-    m = BIO.MemoryBuffer()
-    private_key.save_key_bio(m, cipher=None)
-    self._private_key_cache = m.getvalue()
-
-    return private_key
-
-  def GetPublicKey(self):
-    rsa = self.GetPrivateKey()
-    m = BIO.MemoryBuffer()
-    rsa.save_pub_key_bio(m)
-    return PEMPublicKey(m.read_all())
-
-  def Validate(self):
-    try:
-      rsa = self.GetPrivateKey()
-      rsa.check_key()
-    except RSA.RSAError as e:
-      raise type_info.TypeValueError("Private key invalid: %s" % e)
+    public_key.Verify(self._value.tbs_certificate_bytes,
+                      self._value.signature,
+                      hash_algorithm=self._value.signature_hash_algorithm)
+    return True
 
   @classmethod
-  def GenKey(cls, bits=2048, exponent=65537):
-    return cls(RSA.gen_key(bits, exponent).as_pem(None))
+  def ClientCertFromCSR(cls, csr):
+    """Creates a new cert for the given common name.
+
+    Args:
+      csr: A CertificateSigningRequest.
+    Returns:
+      The signed cert.
+    """
+    builder = x509.CertificateBuilder()
+    # Use the client CN for a cert serial_id. This will ensure we do
+    # not have clashing cert id.
+    common_name = csr.GetCN()
+    serial = int(common_name.split(".")[1], 16)
+    builder = builder.serial_number(serial)
+    builder = builder.subject_name(x509.Name([x509.NameAttribute(
+        oid.NameOID.COMMON_NAME, unicode(common_name))]))
+
+    now = rdfvalue.RDFDatetime().Now()
+    now_plus_year = now + rdfvalue.Duration("52w")
+    builder = builder.not_valid_after(now_plus_year.AsDatetime())
+    now_minus_ten = now - rdfvalue.Duration("10s")
+    builder = builder.not_valid_before(now_minus_ten.AsDatetime())
+    ca_cert = config_lib.CONFIG["CA.certificate"]
+    builder = builder.issuer_name(ca_cert.GetIssuer())
+    builder = builder.public_key(csr.GetPublicKey().GetRawPublicKey())
+
+    ca_key = config_lib.CONFIG["PrivateKeys.ca_key"]
+
+    return RDFX509Cert(builder.sign(private_key=ca_key.GetRawPrivateKey(),
+                                    algorithm=hashes.SHA256(),
+                                    backend=openssl.backend))
+
+
+class CertificateSigningRequest(rdfvalue.RDFValue):
+  """A CSR Rdfvalue."""
+
+  def __init__(self,
+               initializer=None,
+               common_name=None,
+               private_key=None,
+               age=None):
+    if isinstance(initializer, x509.CertificateSigningRequest):
+      self._age = age or rdfvalue.RDFDatetime(age=0)
+      self._value = initializer
+    elif common_name and private_key:
+      self._age = age or rdfvalue.RDFDatetime(age=0)
+      self._value = x509.CertificateSigningRequestBuilder().subject_name(
+          x509.Name([x509.NameAttribute(oid.NameOID.COMMON_NAME, unicode(
+              common_name))])).sign(private_key.GetRawPrivateKey(),
+                                    hashes.SHA256(),
+                                    backend=openssl.backend)
+    else:
+      self._value = None
+      super(CertificateSigningRequest, self).__init__(initializer=initializer,
+                                                      age=age)
+
+  def ParseFromString(self, csr_as_pem):
+    self._value = x509.load_pem_x509_csr(csr_as_pem, backend=openssl.backend)
+
+  def SerializeToString(self):
+    if self._value is None:
+      return ""
+    return self._value.public_bytes(serialization.Encoding.PEM)
+
+  def AsPEM(self):
+    return self.SerializeToString()
+
+  def __str__(self):
+    return self.SerializeToString()
+
+  def GetCN(self):
+    subject = self._value.subject
+    try:
+      cn_attributes = subject.get_attributes_for_oid(oid.NameOID.COMMON_NAME)
+      if len(cn_attributes) > 1:
+        raise rdfvalue.DecodeError("CSR has more than 1 CN entries.")
+      cn_attribute = cn_attributes[0]
+    except IndexError:
+      raise rdfvalue.DecodeError("CSR has no CN")
+
+    return cn_attribute.value
+
+  def GetPublicKey(self):
+    return RSAPublicKey(self._value.public_key())
+
+  def Verify(self, public_key):
+    public_key.Verify(self._value.tbs_certrequest_bytes,
+                      self._value.signature,
+                      hash_algorithm=self._value.signature_hash_algorithm)
+    return True
+
+
+class RSAPublicKey(rdfvalue.RDFValue):
+  """An RSA public key."""
+
+  def __init__(self, initializer=None, age=None):
+    if isinstance(initializer, rsa.RSAPublicKey):
+      self._value = initializer
+      self._age = age or rdfvalue.RDFDatetime(age=0)
+    else:
+      self._value = None
+      super(RSAPublicKey, self).__init__(initializer=initializer, age=age)
+
+  def GetRawPublicKey(self):
+    return self._value
+
+  def ParseFromString(self, pem_string):
+    try:
+      self._value = serialization.load_pem_public_key(pem_string,
+                                                      backend=openssl.backend)
+    except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
+      raise type_info.TypeValueError("Public key invalid: %s" % e)
+
+  def SerializeToString(self):
+    if self._value is None:
+      return ""
+    return self._value.public_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PublicFormat.SubjectPublicKeyInfo)
+
+  def GetN(self):
+    return self._value.public_numbers().n
+
+  def __str__(self):
+    return self.SerializeToString()
+
+  def AsPEM(self):
+    return self.SerializeToString()
+
+  def KeyLen(self):
+    if self._value is None:
+      return 0
+    return self._value.key_size
+
+  def Encrypt(self, message):
+    if self._value is None:
+      raise ValueError("Can't Encrypt with empty key.")
+
+    try:
+      return self._value.encrypt(message,
+                                 padding.OAEP(
+                                     mgf=padding.MGF1(algorithm=hashes.SHA1()),
+                                     algorithm=hashes.SHA1(),
+                                     label=None))
+    except ValueError as e:
+      raise CipherError(e)
+
+  def Verify(self, message, signature, hash_algorithm=None):
+    """Verifies a given message."""
+    # This method accepts both PSS and PKCS1v15 padding. PSS is preferred but
+    # old clients only support PKCS1v15.
+
+    if hash_algorithm is None:
+      hash_algorithm = hashes.SHA256()
+
+    for padding_algorithm in [
+        padding.PSS(mgf=padding.MGF1(hash_algorithm),
+                    salt_length=padding.PSS.MAX_LENGTH), padding.PKCS1v15()
+    ]:
+      try:
+        verifier = self._value.verifier(signature, padding_algorithm,
+                                        hash_algorithm)
+        verifier.update(message)
+        verifier.verify()
+        return True
+
+      except exceptions.InvalidSignature as e:
+        pass
+
+    raise VerificationError(e)
+
+
+class RSAPrivateKey(rdfvalue.RDFValue):
+  """An RSA private key."""
+
+  def __init__(self, initializer=None, age=None, allow_prompt=None):
+    self.allow_prompt = allow_prompt
+    if isinstance(initializer, rsa.RSAPrivateKey):
+      self._value = initializer
+      self._age = age or rdfvalue.RDFDatetime(age=0)
+    else:
+      self._value = None
+      super(RSAPrivateKey, self).__init__(initializer=initializer, age=age)
+
+  def GetRawPrivateKey(self):
+    return self._value
+
+  def GetPublicKey(self):
+    return RSAPublicKey(self._value.public_key())
+
+  def Sign(self, message, use_pss=False):
+    """Sign a given message."""
+    # TODO(user): This should use PSS by default at some point.
+    if not use_pss:
+      padding_algorithm = padding.PKCS1v15()
+    else:
+      padding_algorithm = padding.PSS(mgf=padding.MGF1(hashes.SHA256()),
+                                      salt_length=padding.PSS.MAX_LENGTH)
+
+    signer = self._value.signer(padding_algorithm, hashes.SHA256())
+    signer.update(message)
+    return signer.finalize()
+
+  def Decrypt(self, message):
+    if self._value is None:
+      raise ValueError("Can't Decrypt with empty key.")
+
+    try:
+      return self._value.decrypt(message,
+                                 padding.OAEP(
+                                     mgf=padding.MGF1(algorithm=hashes.SHA1()),
+                                     algorithm=hashes.SHA1(),
+                                     label=None))
+    except ValueError as e:
+      raise CipherError(e)
+
+  @classmethod
+  def GenerateKey(cls, bits=2048, exponent=65537):
+    key = rsa.generate_private_key(public_exponent=exponent,
+                                   key_size=bits,
+                                   backend=openssl.backend)
+    return cls(key)
+
+  def ParseFromString(self, pem_string):
+    try:
+      self._value = serialization.load_pem_private_key(pem_string,
+                                                       password=None,
+                                                       backend=openssl.backend)
+      return
+    except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
+
+      if "private key is encrypted" not in str(e):
+        raise type_info.TypeValueError("Private key invalid: %s" % e)
+
+      # pylint: disable=g-explicit-bool-comparison, g-equals-none
+
+      # The private key is passphrase protected, we need to see if we are
+      # allowed to ask the user.
+      #
+      # If allow_prompt is False, we are explicitly told that we are not.
+      if self.allow_prompt == False:
+        raise type_info.TypeValueError("Private key invalid: %s" % e)
+
+      # allow_prompt was not set, we use the context we are in to see if it
+      # makes sense to ask.
+      elif self.allow_prompt == None:
+        if "Commandline Context" not in config_lib.CONFIG.context:
+          raise type_info.TypeValueError("Private key invalid: %s" % e)
+
+      # pylint: enable=g-explicit-bool-comparison, g-equals-none
+
+    try:
+      # The private key is encrypted and we can ask the user for the passphrase.
+      password = utils.PassphraseCallback()
+      self._value = serialization.load_pem_private_key(pem_string,
+                                                       password=password,
+                                                       backend=openssl.backend)
+    except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
+      raise type_info.TypeValueError("Unable to load private key: %s" % e)
+
+  def SerializeToString(self):
+    if self._value is None:
+      return ""
+    return self._value.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.NoEncryption())
+
+  def __str__(self):
+    digest = hashlib.sha256(self.AsPEM()).hexdigest()
+    return "%s (%s)" % (self.__class__.__name__, digest)
+
+  def AsPEM(self):
+    return self.SerializeToString()
+
+  def AsPassphraseProtectedPEM(self, passphrase):
+    if self._value is None:
+      return ""
+    return self._value.private_bytes(
+        encoding=serialization.Encoding.PEM,
+        format=serialization.PrivateFormat.TraditionalOpenSSL,
+        encryption_algorithm=serialization.BestAvailableEncryption(passphrase))
+
+  def KeyLen(self):
+    if self._value is None:
+      return 0
+    return self._value.key_size
+
+
+# TODO(user): Get rid of those.
+# Conserve old names for backwards compatibility.
+class PEMPrivateKey(RSAPrivateKey):
+  pass
+
+
+class PEMPublicKey(RSAPublicKey):
+  pass
 
 
 class Hash(rdf_structs.RDFProtoStruct):
@@ -135,11 +447,11 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
   """
   protobuf = jobs_pb2.SignedBlob
 
-  def Verify(self, pub_key):
+  def Verify(self, public_key):
     """Verify the data in this blob.
 
     Args:
-      pub_key: The public key to use for verification.
+      public_key: The public key to use for verification.
 
     Returns:
       True when verification succeeds.
@@ -149,58 +461,37 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
     """
     if self.digest_type != self.HashType.SHA256:
       raise rdfvalue.DecodeError("Unsupported digest.")
+    if self.signature_type not in [self.SignatureType.RSA_PKCS1v15,
+                                   self.SignatureType.RSA_PSS]:
+      raise rdfvalue.DecodeError("Unsupported signature type.")
 
-    rsa = pub_key.GetPublicKey()
-    result = 0
     try:
-      result = rsa.verify(self.digest, self.signature, DIGEST_ALGORITHM_STR)
-      if result != 1:
-        raise rdfvalue.DecodeError("Could not verify blob.")
-
-    except RSA.RSAError, e:
+      public_key.Verify(self.data, self.signature)
+    except InvalidSignature as e:
       raise rdfvalue.DecodeError("Could not verify blob. Error: %s" % e)
-
-    digest = hashlib.sha256(self.data).digest()
-    if digest != self.digest:
-      raise rdfvalue.DecodeError(
-          "SignedBlob: Digest did not match actual data.")
-
-    if result != 1:
-      raise rdfvalue.DecodeError("Verification failed.")
 
     return True
 
-  def Sign(self, data, signing_key, verify_key=None, prompt=False):
+  def Sign(self, data, signing_key, verify_key=None):
     """Use the data to sign this blob.
 
     Args:
       data: String containing the blob data.
-      signing_key: A key that can be loaded to sign the data as a string.
+      signing_key: The key to sign with.
       verify_key: Key to verify with. If None we assume the signing key also
         contains the public key.
-      prompt: If True we allow a password prompt to be presented.
 
     Returns:
       self for call chaining.
-
-    Raises:
-      IOError: On bad key.
     """
-    callback = None
-    if prompt:
-      callback = util.passphrase_callback
-    else:
-      callback = lambda x: ""
 
-    digest = DIGEST_ALGORITHM(data).digest()
-    rsa = signing_key.GetPrivateKey(callback=callback)
-    if len(rsa) < 2048:
+    if signing_key.KeyLen() < 2048:
       logging.warn("signing key is too short.")
 
-    self.signature = rsa.sign(digest, DIGEST_ALGORITHM_STR)
-    self.signature_type = self.SignatureType.RSA_2048
+    self.signature = signing_key.Sign(data)
+    self.signature_type = self.SignatureType.RSA_PKCS1v15
 
-    self.digest = digest
+    self.digest = hashlib.sha256(data).digest()
     self.digest_type = self.HashType.SHA256
     self.data = data
 
@@ -216,40 +507,49 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
 
 class EncryptionKey(rdfvalue.RDFBytes):
   """Base class for encryption keys."""
-  # Size of the key in bits.
-  length = 128
 
-  def __init__(self, *args, **kwargs):
-    super(EncryptionKey, self).__init__(*args, **kwargs)
-    if not self._value:
-      self.Generate()
+  # Size of the key in bits.
+  length = 0
 
   def ParseFromString(self, string):
-    # Support both hex encoded and raw serializations.
-    if len(string) == 2 * self.length / 8:
-      self._value = string.decode("hex")
-    elif len(string) == self.length / 8:
-      self._value = string
 
-    else:
-      raise CipherError("%s must be exactly %s bits long." %
-                        (self.__class__.__name__, self.length))
+    if len(string) % 8:
+      raise CipherError("Invalid key length %d (%s)." % (len(string) * 8,
+                                                         string))
+
+    self._value = string
+    self.length = 8 * len(self._value)
+
+    if self.length < 128:
+      raise CipherError("Key too short (%d): %s" % (self.length, string))
 
   def __str__(self):
+    digest = hashlib.sha256(self.AsHexDigest()).hexdigest()
+    return "%s (%s)" % (self.__class__.__name__, digest)
+
+  def AsHexDigest(self):
     return self._value.encode("hex")
 
-  def Generate(self):
-    self._value = ""
-    while len(self._value) < self.length / 8:
-      self._value += struct.pack("=L", utils.PRNG.GetULong())
+  @classmethod
+  def FromHex(cls, hex_string):
+    return cls(hex_string.decode("hex"))
 
-    self._value = self._value[:self.length / 8]
-    return self
+  def SerializeToString(self):
+    return self._value
+
+  @classmethod
+  def GenerateKey(cls, length=128):
+    return cls(os.urandom(length / 8))
+
+  @classmethod
+  def GenerateRandomIV(cls, length=128):
+    return cls.GenerateKey(length=length)
 
   def RawBytes(self):
     return self._value
 
 
+# TODO(user): Size is now flexible, this class makes no sense anymore.
 class AES128Key(EncryptionKey):
   length = 128
 
@@ -267,68 +567,83 @@ class AutoGeneratedAES128Key(AES128Key):
                                                    **kwargs)
 
 
-class Cipher(object):
-  """A Cipher that accepts rdfvalue.EncryptionKey objects as key and iv."""
+class StreamingCBCEncryptor(object):
+  """A class to stream data to a CBCCipher object."""
 
-  OP_DECRYPT = 0
-  OP_ENCRYPT = 1
+  def __init__(self, cipher):
+    self._cipher = cipher
+    self._encryptor = cipher.GetEncryptor()
+    self._overflow_buffer = ""
+    self._block_size = len(cipher.key)
+
+  def Update(self, data):
+    data = self._overflow_buffer + data
+    overflow_count = len(data) % self._block_size
+    length_to_encrypt = len(data) - overflow_count
+    to_encrypt = data[:length_to_encrypt]
+    self._overflow_buffer = data[length_to_encrypt:]
+    return self._encryptor.update(to_encrypt)
+
+  def Finalize(self):
+    res = self._encryptor.update(self._cipher.Pad(self._overflow_buffer))
+    res += self._encryptor.finalize()
+    return res
+
+
+class AES128CBCCipher(object):
+  """A Cipher using AES128 in CBC mode and PKCS7 for padding."""
 
   algorithm = None
 
-  def __init__(self, key, iv, mode=None):
+  def __init__(self, key, iv):
+    """Init.
+
+    Args:
+      key: The key, a rdf_crypto.EncryptionKey instance.
+      iv: The iv, a rdf_crypto.EncryptionKey instance.
+    """
     self.key = key.RawBytes()
     self.iv = iv.RawBytes()
-    if mode is None:
-      mode = self.OP_DECRYPT
 
-    self.mode = mode
-    self.Reinitialize()
+  def Pad(self, data):
+    padder = sym_padding.PKCS7(128).padder()
+    return padder.update(data) + padder.finalize()
 
-  def Reinitialize(self):
-    self.cipher = EVP.Cipher(alg=self.algorithm,
-                             key=self.key,
-                             iv=self.iv,
-                             op=self.mode)
+  def UnPad(self, padded_data):
+    unpadder = sym_padding.PKCS7(128).unpadder()
+    return unpadder.update(padded_data) + unpadder.finalize()
 
-  def Update(self, data):
-    """Encrypts the data up to blocksize."""
-    try:
-      return self.cipher.update(data)
-    except EVP.EVPError as e:
-      raise CipherError(e)
-
-  def Final(self):
-    """Pad the message to blocksize and finalize it."""
-    try:
-      return self.cipher.final()
-    except EVP.EVPError as e:
-      raise CipherError(e)
+  def GetEncryptor(self):
+    return ciphers.Cipher(
+        algorithms.AES(self.key),
+        modes.CBC(self.iv),
+        backend=openssl.backend).encryptor()
 
   def Encrypt(self, data):
     """A convenience method which pads and encrypts at once."""
-    self.mode = self.OP_ENCRYPT
-    self.Reinitialize()
+    encryptor = self.GetEncryptor()
+    padded_data = self.Pad(data)
 
     try:
-      return self.Update(data) + self.Final()
-    except EVP.EVPError as e:
+      return encryptor.update(padded_data) + encryptor.finalize()
+    except ValueError as e:
       raise CipherError(e)
+
+  def GetDecryptor(self):
+    return ciphers.Cipher(
+        algorithms.AES(self.key),
+        modes.CBC(self.iv),
+        backend=openssl.backend).decryptor()
 
   def Decrypt(self, data):
-    """A convenience method which pads and encrypts at once."""
-    self.mode = self.OP_DECRYPT
-    self.Reinitialize()
+    """A convenience method which pads and decrypts at once."""
+    decryptor = self.GetDecryptor()
 
     try:
-      return self.Update(data) + self.Final()
-    except EVP.EVPError as e:
+      padded_data = decryptor.update(data) + decryptor.finalize()
+      return self.UnPad(padded_data)
+    except ValueError as e:
       raise CipherError(e)
-
-
-class AES128CBCCipher(Cipher):
-  """An aes_128_cbc cipher."""
-
-  algorithm = "aes_128_cbc"
 
 
 class SymmetricCipher(rdf_structs.RDFProtoStruct):
@@ -337,23 +652,20 @@ class SymmetricCipher(rdf_structs.RDFProtoStruct):
 
   cipher = None
 
-  def SetAlgorithm(self, algorithm):
-    self._algorithm = algorithm
-    if algorithm == self.Algorithm.AES128CBC:
-      self.key = AES128Key()
-      self._key = self.key.RawBytes()
-      self.iv = AES128Key()
-      self._iv = self.iv.RawBytes()
-      return self
-
-    else:
+  @classmethod
+  def Generate(cls, algorithm):
+    if algorithm != cls.Algorithm.AES128CBC:
       raise RuntimeError("Algorithm not supported.")
 
-  def _get_cipher(self):
-    if self._algorithm == self.Algorithm.AES128CBC:
-      return AES128CBCCipher(AES128Key(self._key), AES128Key(self._iv))
+    return cls(_algorithm=algorithm,
+               _key=EncryptionKey.GenerateKey(length=128),
+               _iv=EncryptionKey.GenerateKey(length=128))
 
-    raise CipherError("Unknown cipher type %s" % self._algorithm)
+  def _get_cipher(self):
+    if self._algorithm != self.Algorithm.AES128CBC:
+      raise CipherError("Unknown cipher type %s" % self._algorithm)
+
+    return AES128CBCCipher(self._key, self._iv)
 
   def Encrypt(self, data):
     if self._algorithm == self.Algorithm.NONE:
@@ -366,3 +678,39 @@ class SymmetricCipher(rdf_structs.RDFProtoStruct):
       raise TypeError("Empty encryption is not allowed.")
 
     return self._get_cipher().Decrypt(data)
+
+
+class HMAC(object):
+  """A wrapper for the cryptography HMAC object."""
+
+  def __init__(self, key):
+    self.key = key
+
+  def HMAC(self, message, use_sha256=False):
+    """Calculates the HMAC for a given message."""
+    if use_sha256:
+      hash_algorithm = hashes.SHA256()
+    else:
+      hash_algorithm = hashes.SHA1()
+
+    h = hmac.HMAC(self.key.RawBytes(), hash_algorithm, backend=openssl.backend)
+    h.update(message)
+    return h.finalize()
+
+  def Verify(self, message, signature):
+    """Verifies the signature for a given message."""
+    siglen = len(signature)
+    if siglen == 20:
+      hash_algorithm = hashes.SHA1()
+    elif siglen == 32:
+      hash_algorithm = hashes.SHA256()
+    else:
+      raise VerificationError("Invalid signature length %d." % siglen)
+
+    h = hmac.HMAC(self.key.RawBytes(), hash_algorithm, backend=openssl.backend)
+    h.update(message)
+    try:
+      h.verify(signature)
+      return True
+    except exceptions.InvalidSignature as e:
+      raise VerificationError(e)
