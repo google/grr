@@ -10,7 +10,7 @@ before_install: /bin/bash travis/install_protobuf.sh
 env:
   - PROTOC="${HOME}/protobuf/bin/protoc"
 install:
-  - pip install --upgrade pip wheel
+  - pip install --upgrade pip wheel setuptools
   - pip install -e .
   - pip install -e grr/config/grr-response-server/
   - pip install -e grr/config/grr-response-test/

@@ -77,7 +77,7 @@ class CAEnroler(flow.GRRFlow):
     client.Close(sync=True)
 
     # Publish the client enrollment message.
-    self.Publish("ClientEnrollment", cert)
+    self.Publish("ClientEnrollment", self.client_id)
 
     self.Log("Enrolled %s successfully", self.client_id)
 
