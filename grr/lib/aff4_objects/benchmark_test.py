@@ -5,6 +5,7 @@
 
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
@@ -106,3 +107,12 @@ class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
 
     self.TimeIt(ReadAVersionedAFF4Attribute,
                 name="Read one versioned Attributes")
+
+
+def main(argv):
+  # Run the full test suite
+  test_lib.GrrTestProgram(argv=argv)
+
+
+if __name__ == "__main__":
+  flags.StartMain(main)

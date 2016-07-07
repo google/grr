@@ -1,17 +1,18 @@
-python: 2.7
-# From https://goo.gl/XuEMpi GCP CD with travis
-env: PROTOC="${HOME}/protobuf/bin/protoc" PATH=$PATH:${HOME}/google-cloud-sdk/bin CLOUDSDK_CORE_DISABLE_PROMPTS=1
 matrix:
   include:
   - os: linux
     language: python
     python: 2.7
     sudo: false
+    # From https://goo.gl/XuEMpi GCP CD with travis
+    env: PROTOC="${HOME}/protobuf/bin/protoc" PATH=$PATH:${HOME}/google-cloud-sdk/bin CLOUDSDK_CORE_DISABLE_PROMPTS=1
   - os: osx
     # psutil fails to install on the default beta-xcode6.1
     osx_image: beta-xcode6.2
     language: generic
+    python: 2.7
     sudo: required
+    env: PROTOC="${HOME}/protobuf/bin/protoc" PATH=$PATH:${HOME}/google-cloud-sdk/bin CLOUDSDK_CORE_DISABLE_PROMPTS=1
 cache:
   directories:
   - $HOME/.cache/pip
@@ -25,8 +26,7 @@ before_install:
 install:
 - /bin/bash travis/install.sh
 script:
-  - grr_run_tests --processes=2
-  - /bin/bash travis/deploy_to_gcs.sh
+  - source ${HOME}/INSTALL/bin/activate && grr_run_tests --processes=2 && /bin/bash travis/deploy_to_gcs.sh
 addons:
   apt:
     packages:
