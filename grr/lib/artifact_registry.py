@@ -608,7 +608,7 @@ class Artifact(structs.RDFProtoStruct):
     if sources_dict:
       artifact_dict["sources"] = [ReduceDict(c) for c in sources_dict]
     # Do some clunky stuff to put the name and doc first in the YAML.
-    # Unfortunatley PYYaml makes doing this difficult in other ways.
+    # Unfortunately PYYaml makes doing this difficult in other ways.
     name = artifact_dict.pop("name")
     doc = artifact_dict.pop("doc")
     doc_str = yaml.safe_dump({"doc": doc}, allow_unicode=True, width=80)[1:-2]

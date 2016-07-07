@@ -385,6 +385,12 @@ parser_upload_components = subparsers.add_parser(
     parents=[],
     help="Sign and upload all client components.")
 
+parser_upload_components.add_argument(
+    "--overwrite_component",
+    default=False,
+    action="store_true",
+    help="Allow overwriting of the component path.")
+
 subparsers.add_parser(
     "download_missing_rekall_profiles",
     parents=[],

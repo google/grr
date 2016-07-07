@@ -309,7 +309,7 @@ class BinaryExpression(Expression):
       raise ParseError("Invalid binary operator %s" % operator)
 
     args = [x.Compile(filter_implemention) for x in self.args]
-    return getattr(filter_implemention, method)(*args)
+    return filter_implemention.GetFilter(method)(*args)
 
 
 class IdentityExpression(Expression):

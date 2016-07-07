@@ -1,22 +1,32 @@
-language: python
-sudo: false
+python: 2.7
+# From https://goo.gl/XuEMpi GCP CD with travis
+env: PROTOC="${HOME}/protobuf/bin/protoc" PATH=$PATH:${HOME}/google-cloud-sdk/bin CLOUDSDK_CORE_DISABLE_PROMPTS=1
+matrix:
+  include:
+  - os: linux
+    language: python
+    python: 2.7
+    sudo: false
+  - os: osx
+    # psutil fails to install on the default beta-xcode6.1
+    osx_image: beta-xcode6.2
+    language: generic
+    sudo: required
 cache:
   directories:
-    - $HOME/.cache/pip
-    - $HOME/protobuf
-python:
-  - "2.7"
-before_install: /bin/bash travis/install_protobuf.sh
-env:
-  - PROTOC="${HOME}/protobuf/bin/protoc"
+  - $HOME/.cache/pip
+  - $HOME/protobuf
+before_install:
+- /bin/bash travis/install_protobuf.sh
+- if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then brew update && brew install libffi && git clone https://github.com/MacPython/terryfy && source terryfy/travis_tools.sh; get_python_environment macpython 2.7.11; fi
+# We upgrade pip inside the virtualenv to avoid sudo here.
+- pip install --upgrade virtualenv
+- virtualenv ${HOME}/INSTALL
 install:
-  - pip install --upgrade pip wheel setuptools
-  - pip install -e .
-  - pip install -e grr/config/grr-response-server/
-  - pip install -e grr/config/grr-response-test/
-  - python makefile.py
-  - cd grr/artifacts && python makefile.py && cd -
-script: grr_run_tests --processes=2
+- /bin/bash travis/install.sh
+script:
+  - grr_run_tests --processes=2
+  - /bin/bash travis/deploy_to_gcs.sh
 addons:
   apt:
     packages:
@@ -24,5 +34,3 @@ addons:
     - libssl-dev
     - python-dev
     - prelink
-
-
