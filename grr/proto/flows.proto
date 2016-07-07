@@ -1709,3 +1709,18 @@ message DumpFlashImageArgs {
       "case the client crashes during the image dumping process.",
     }];
 }
+
+// Next field ID: 4
+message DumpACPITableArgs {
+  optional bool logging = 1 [(sem_type) = {
+      description: "If the logging is set to true, the client sends "
+                   "log, including Chipsec's log."
+    }];
+  repeated string table_signature_list = 2 [(sem_type) = {
+      description: "Signature of ACPI tables to be dumped."
+    }];
+  optional string component_version = 3 [(sem_type) = {
+      description: "Version of Chipsec component to be used.",
+      label: ADVANCED
+    }, default="1.2.2.2"];
+}

@@ -7,7 +7,6 @@ from grr.gui.plugins import acl_manager
 from grr.gui.plugins import artifact_view
 from grr.gui.plugins import configuration_view
 from grr.gui.plugins import container_viewer
-from grr.gui.plugins import crash_view
 from grr.gui.plugins import cron_view
 from grr.gui.plugins import docs_view
 from grr.gui.plugins import fileview

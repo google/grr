@@ -5,7 +5,6 @@ import os
 
 
 from grr.gui import renderers
-from grr.gui.plugins import crash_view
 from grr.gui.plugins import fileview
 from grr.gui.plugins import forms
 from grr.gui.plugins import semantic
@@ -14,6 +13,7 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import flow_runner
+from grr.lib import hunts
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -673,7 +673,7 @@ class ListFlowsTable(renderers.TableRenderer):
       if last:
         row["Last Active"] = last
 
-      if isinstance(flow_obj, aff4.AFF4Object.GRRFlow):
+      if isinstance(flow_obj, flow.GRRFlow):
         row_name = (flow_obj.symlink_urn or flow_obj.urn).Basename()
         try:
           if flow_obj.Get(flow_obj.Schema.CLIENT_CRASH):
@@ -687,7 +687,7 @@ class ListFlowsTable(renderers.TableRenderer):
         except AttributeError:
           row["Flow Name"] = "Failed to open flow."
 
-      elif isinstance(flow_obj, aff4.AFF4Object.GRRHunt):
+      elif isinstance(flow_obj, hunts.GRRHunt):
         row_name = flow_obj.urn.Dirname()
         row["Flow Name"] = "Hunt"
 
@@ -843,18 +843,6 @@ target_hash="{{this.BuildHash|escape}}">
   def Layout(self, request, response):
     response = super(FlowNotificationRenderer, self).Layout(request, response)
     return self.CallJavascript(response, "FlowNotificationRenderer.Layout")
-
-
-class ClientCrashesRenderer(crash_view.ClientCrashCollectionRenderer):
-  """View launched flows in a tree."""
-  description = "Crashes"
-  behaviours = frozenset(["HostAdvanced"])
-  order = 50
-
-  def Layout(self, request, response):
-    client_id = request.REQ.get("client_id")
-    self.crashes_urn = rdf_client.ClientURN(client_id).Add("crashes")
-    super(ClientCrashesRenderer, self).Layout(request, response)
 
 
 class GlobalLaunchFlows(renderers.AngularDirectiveRenderer):

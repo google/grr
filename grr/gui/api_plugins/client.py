@@ -5,6 +5,7 @@ import shlex
 import sys
 
 from grr.gui import api_call_handler_base
+from grr.gui import api_call_handler_utils
 
 from grr.lib import aff4
 from grr.lib import client_index
@@ -14,6 +15,7 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import standard
 
 from grr.lib.flows.general import audit
@@ -312,6 +314,42 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
     status, info = ip_resolver.IP_RESOLVER.RetrieveIPInfo(ip)
 
     return ApiGetLastClientIPAddressResult(ip=ip, info=info, status=status)
+
+
+class ApiListClientCrashesArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListClientCrashesArgs
+
+
+class ApiListClientCrashesResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListClientCrashesResult
+
+
+class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
+  """Returns a list of crashes for the given client."""
+
+  category = CATEGORY
+
+  args_type = ApiListClientCrashesArgs
+  result_type = ApiListClientCrashesResult
+
+  def Handle(self, args, token=None):
+    try:
+      aff4_crashes = aff4.FACTORY.Open(
+          args.client_id.Add("crashes"),
+          mode="r",
+          aff4_type=collects.PackedVersionedCollection,
+          token=token)
+
+      total_count = len(aff4_crashes)
+      result = api_call_handler_utils.FilterAff4Collection(aff4_crashes,
+                                                           args.offset,
+                                                           args.count,
+                                                           args.filter)
+    except aff4.InstantiationError:
+      total_count = 0
+      result = []
+
+    return ApiListClientCrashesResult(items=result, total_count=total_count)
 
 
 class ApiAddClientsLabelsArgs(rdf_structs.RDFProtoStruct):

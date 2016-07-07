@@ -114,6 +114,11 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.GetLastClientIPAddress(args, token=token)
 
+  def ListClientCrashes(self, args, token=None):
+    self.CheckClientAccess(args.client_id, token=token)
+
+    return self.delegate.ListClientCrashes(args, token=token)
+
   # Virtual file system methods.
   # ============================
   #
@@ -282,6 +287,11 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     # Everybody can create a cron job.
 
     return self.delegate.CreateCronJob(args, token=token)
+
+  def GetCronJob(self, args, token=None):
+    # Everybody can retrieve a cron job.
+
+    return self.delegate.GetCronJob(args, token=token)
 
   def DeleteCronJob(self, args, token=None):
     self.CheckCronJobAccess(args.cron_job_id, token=token)

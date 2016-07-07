@@ -142,7 +142,7 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
                                           mode="r",
                                           token=self.token,
                                           age=aff4.NEWEST_TIME):
-        if isinstance(child, aff4.AFF4Object.VFSGRRClient):
+        if isinstance(child, aff4_grr.VFSGRRClient):
           self.ProcessClient(child)
           processed_count += 1
 

@@ -172,8 +172,8 @@ class GetMRU(flow.GRRFlow):
   def StoreMRUs(self, responses):
     """Store the MRU data for each user in a special structure."""
     for response in responses:
-      urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(response.pathspec,
-                                                       self.client_id)
+      urn = aff4_grr.VFSGRRClient.PathspecToURN(response.pathspec,
+                                                self.client_id)
 
       if stat.S_ISDIR(response.st_mode):
         obj_type = standard.VFSDirectory

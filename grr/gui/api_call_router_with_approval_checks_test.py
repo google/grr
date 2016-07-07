@@ -86,11 +86,17 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     self.legacy_manager_mock.reset_mock()
 
   ACCESS_CHECKED_METHODS.extend([
-      "InterrogateClient"])  # pyformat: disable
+      "InterrogateClient",
+      "ListClientCrashes"])  # pyformat: disable
 
   def testClientMethodsAreAccessChecked(self):
     args = api_client.ApiInterrogateClientArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(self.router.InterrogateClient,
+                                    "CheckClientAccess",
+                                    args=args)
+
+    args = api_client.ApiListClientCrashesArgs(client_id=self.client_id)
+    self.CheckMethodIsAccessChecked(self.router.ListClientCrashes,
                                     "CheckClientAccess",
                                     args=args)
 

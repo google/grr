@@ -39,7 +39,8 @@ python /usr/src/grr/setup.py sdist --dist-dir="/sdists/core" --no-make-docs --no
 cd /usr/src/grr/grr/config/grr-response-server/ && \
 python setup.py sdist --dist-dir="/sdists/server" && \
 pip install --find-links=/wheelhouse /sdists/core/*.tar.gz && \
-pip install --find-links=/wheelhouse /sdists/server/*.tar.gz
+pip install --find-links=/wheelhouse /sdists/server/*.tar.gz && \
+pip install --find-links=/wheelhouse grr_response_templates
 
 COPY scripts/docker-entrypoint.sh /
 

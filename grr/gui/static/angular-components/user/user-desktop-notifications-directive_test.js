@@ -18,7 +18,6 @@ describe('User desktop notifications directive', function() {
     $window = {
       location: {
         replace: jasmine.createSpy(),
-        reload: jasmine.createSpy()
       },
       focus: jasmine.createSpy()
     };
@@ -137,7 +136,6 @@ describe('User desktop notifications directive', function() {
 
     expect($window.location.href).toContain(
         encodeURIComponent('aff4:/C.1000000000000000'));
-    expect($window.location.reload).toHaveBeenCalled();
   });
 
   it('fetches pending notifications and displays the last two of them as ' +

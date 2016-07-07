@@ -156,6 +156,28 @@ class ClientCommsTest(test_lib.GRRBaseTest):
           client_now.AsSecondsFromEpoch(),
           client_obj.Get(client_obj.Schema.CLOCK).AsSecondsFromEpoch())
 
+  def testClientPingStatsUpdated(self):
+    """Check client ping stats are updated."""
+    new_client = self.MakeClientAFF4Record()
+    self.assertEqual(
+        stats.STATS.GetMetricValue("client_pings_by_label",
+                                   fields=["testlabel"]),
+        0)
+
+    with aff4.FACTORY.Open(new_client.urn,
+                           mode="rw",
+                           token=self.token) as client_object:
+      client_object.AddLabels("testlabel")
+      client_object.Flush(sync=True)
+
+    now = rdfvalue.RDFDatetime().Now()
+    with test_lib.FakeTime(now):
+      self.ClientServerCommunicate(timestamp=now)
+      self.assertEqual(
+          stats.STATS.GetMetricValue("client_pings_by_label",
+                                     fields=["testlabel"]),
+          1)
+
   def testServerReplayAttack(self):
     """Test that replaying encrypted messages to the server invalidates them."""
     self.MakeClientAFF4Record()

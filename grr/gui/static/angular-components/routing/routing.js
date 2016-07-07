@@ -147,11 +147,6 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
       template: '<grr-server-load />',
       title: 'Server Load'
     })
-    .state('clientCrashes', {
-      url: '/client-crashes',
-      template: '<grr-global-client-crashes />',
-      title: 'Clients Crashes (global list)'
-    })
 
     //
     // Configuration states.

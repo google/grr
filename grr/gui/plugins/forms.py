@@ -17,6 +17,7 @@ to construct data and returns the semantic protocol buffer instance.
 
 
 from grr.gui import renderers
+from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import type_info
 from grr.lib import utils
@@ -45,7 +46,7 @@ def GetTypeDescriptorRenderer(type_descriptor):
 
       if delegate:
         # Repeated form renderers go in their own cache.
-        if utils.issubclass(renderer_cls, RepeatedFieldFormRenderer):
+        if aff4.issubclass(renderer_cls, RepeatedFieldFormRenderer):
           repeated_renderer_cache[delegate] = renderer_cls
 
         else:

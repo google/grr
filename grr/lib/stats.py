@@ -540,7 +540,7 @@ class StatsCollector(object):
 
     Args:
       varname: Metric name:
-      fields: Values for this metric's fields. For example, if metric
+      fields: List of values for this metric's fields. For example, if metric
               was registered with fields like
               [("flow_type", int), ("user_type", int)], then for that metric
               fields argument may look like: fields=[10, 12]. Should be None

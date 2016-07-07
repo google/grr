@@ -15,6 +15,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
 
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import security as aff4_security
 
 from grr.lib.rdfvalues import client as rdf_client
@@ -273,7 +274,7 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
       self.details_renderer = "CronJobApprovalDetailsRenderer"
       self.user = components[3]
       self.detail_header = "Cronjob Information"
-    elif aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(namespace):
+    elif aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(namespace):
       self.details_renderer = "ClientApprovalDetailsRenderer"
       self.user = components[2]
       self.detail_header = "Client Information"
@@ -340,7 +341,7 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
                              reason=self.reason,
                              delegate=self.user,
                              token=request.token)
-    elif aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(namespace):
+    elif aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(namespace):
       try:
         _, client_id, user, reason = approval_urn.Split()
         self.subject = client_id
@@ -491,7 +492,7 @@ Authorization request ({{this.reason|escape}}) failed:
     elif namespace == "cron":
       self.approval_renderer = "CronJobApprovalRequestRenderer"
       self.refresh_after_form_submit = False
-    elif aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(namespace):
+    elif aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(namespace):
       self.approval_renderer = "ClientApprovalRequestRenderer"
       self.show_keepalive_option = True
     else:

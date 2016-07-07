@@ -30,77 +30,6 @@ from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 
 # pylint: mode=test
-# pylint: disable=g-bad-name
-
-
-class MockWindowsProcess(object):
-  """A mock windows process."""
-
-  pid = 10
-
-  def ppid(self):
-    return 1
-
-  def name(self):
-    return "cmd"
-
-  def exe(self):
-    return "cmd.exe"
-
-  def username(self):
-    return "test"
-
-  def cmdline(self):
-    return ["c:\\Windows\\cmd.exe", "/?"]
-
-  def create_time(self):
-    return 1217061982.375000
-
-  def status(self):
-    return "running"
-
-  def cwd(self):
-    return "X:\\RECEP\xc3\x87\xc3\x95ES"
-
-  def num_threads(self):
-    return 1
-
-  def cpu_times(self):
-    return (1.0, 1.0)
-
-  def cpu_percent(self):
-    return 10.0
-
-  def memory_info(self):
-    meminfo = collections.namedtuple("Meminfo", ["rss", "vms"])
-    return meminfo(rss=100000, vms=150000)
-
-  def memory_percent(self):
-    return 10.0
-
-  def open_files(self):
-    return []
-
-  def connections(self):
-    return []
-
-  def nice(self):
-    return 10
-
-  def as_dict(self, attrs=None):
-    dic = {}
-    if attrs is None:
-      return dic
-    for name in attrs:
-      if hasattr(self, name):
-        attr = getattr(self, name)
-        if callable(attr):
-          dic[name] = attr()
-        else:
-          dic[name] = attr
-      else:
-        dic[name] = None
-    return dic
 
 
 class ProgressAction(actions.ActionPlugin):
@@ -118,8 +47,8 @@ class ProgressAction(actions.ActionPlugin):
         self.Progress()
 
 
-def process_iter():
-  return iter([MockWindowsProcess()])
+def process_iter():  # pylint: disable=g-bad-name
+  return iter([test_lib.MockWindowsProcess()])
 
 
 class ActionTest(test_lib.EmptyActionTest):
@@ -220,11 +149,11 @@ class ActionTest(test_lib.EmptyActionTest):
 
   def testSuspendableActionException(self):
 
-    class testActionWorker(actions.ClientActionWorker):
+    class TestActionWorker(actions.ClientActionWorker):
 
       def run(self):
         try:
-          return super(testActionWorker, self).run()
+          return super(TestActionWorker, self).run()
         except Exception as e:  # pylint: disable=broad-except
           logging.info("Expected exception: %s", e)
 
@@ -250,7 +179,7 @@ class ActionTest(test_lib.EmptyActionTest):
       responses = self.ExecuteAction("RaisingListDirectory",
                                      request,
                                      grr_worker=grr_worker,
-                                     action_worker_cls=testActionWorker)
+                                     action_worker_cls=TestActionWorker)
       results.extend(responses)
 
       for response in responses:
@@ -316,10 +245,7 @@ class ActionTest(test_lib.EmptyActionTest):
   def testProcessListing(self):
     """Tests if listing processes works."""
 
-    old_process_iter = psutil.process_iter
-    psutil.process_iter = process_iter
-
-    try:
+    with utils.Stubber(psutil, "process_iter", process_iter):
       results = self.RunAction("ListProcesses", None)
 
       self.assertEqual(len(results), 1)
@@ -344,9 +270,6 @@ class ActionTest(test_lib.EmptyActionTest):
       self.assertEqual(result.memory_percent, 10.0)
       self.assertEqual(result.nice, 10)
 
-    finally:
-      psutil.process_iter = old_process_iter
-
   def testCPULimit(self):
 
     received_messages = []
@@ -363,7 +286,7 @@ class ActionTest(test_lib.EmptyActionTest):
       def __init__(self, unused_pid=None):
         self.pcputimes = collections.namedtuple("pcputimes", ["user", "system"])
 
-      def cpu_times(self):
+      def cpu_times(self):  # pylint: disable=g-bad-name
         return self.pcputimes(*self.times.pop(0))
 
     results = []
@@ -374,9 +297,8 @@ class ActionTest(test_lib.EmptyActionTest):
     message = rdf_flows.GrrMessage(name="ProgressAction", cpu_limit=3600)
 
     action_cls = actions.ActionPlugin.classes[message.name]
-    with utils.MultiStubber(
-        (psutil, "Process", FakeProcess),
-        (action_cls, "SendReply", MockSendReply)):
+    with utils.MultiStubber((psutil, "Process", FakeProcess),
+                            (action_cls, "SendReply", MockSendReply)):
 
       action_cls._authentication_required = False
       action = action_cls(grr_worker=MockWorker())
@@ -425,8 +347,8 @@ class ActionTest(test_lib.EmptyActionTest):
       """Only return True for the root path."""
       return path == "/"
 
-    with utils.MultiStubber(
-        (os, "statvfs", MockStatFS), (os.path, "ismount", MockIsMount)):
+    with utils.MultiStubber((os, "statvfs", MockStatFS),
+                            (os.path, "ismount", MockIsMount)):
 
       # This test assumes "/" is the mount point for /usr/bin
       results = self.RunAction(

@@ -125,10 +125,9 @@ class _DataStoreTest(test_lib.GRRBaseTest):
   def testMultiSet(self):
     """Test the MultiSet() methods."""
     unicode_string = u"this is a uñîcödé string"
-    data_store.DB.MultiSet(self.test_row,
-                           {"aff4:size": [1],
-                            "aff4:stored": [unicode_string],
-                            "aff4:unknown_attribute": ["hello"]},
+    data_store.DB.MultiSet(self.test_row, {"aff4:size": [1],
+                                           "aff4:stored": [unicode_string],
+                                           "aff4:unknown_attribute": ["hello"]},
                            token=self.token)
 
     stored, _ = data_store.DB.Resolve(self.test_row,
@@ -190,10 +189,9 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     """Test the async MultiSet() methods."""
     unicode_string = u"this is a uñîcödé string"
 
-    data_store.DB.MultiSet(self.test_row,
-                           {"aff4:size": [3],
-                            "aff4:stored": [unicode_string],
-                            "aff4:unknown_attribute": ["hello"]},
+    data_store.DB.MultiSet(self.test_row, {"aff4:size": [3],
+                                           "aff4:stored": [unicode_string],
+                                           "aff4:unknown_attribute": ["hello"]},
                            sync=False,
                            token=self.token)
 
@@ -221,9 +219,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
   def testMultiSet2(self):
     """Test the MultiSet() methods."""
     # Specify a per element timestamp
-    data_store.DB.MultiSet(self.test_row,
-                           {"aff4:size": [(1, 100)],
-                            "aff4:stored": [("2", 200)]},
+    data_store.DB.MultiSet(self.test_row, {"aff4:size": [(1, 100)],
+                                           "aff4:stored": [("2", 200)]},
                            token=self.token)
 
     stored, ts = data_store.DB.Resolve(self.test_row,
@@ -240,9 +237,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
   def testMultiSet3(self):
     """Test the MultiSet() delete methods."""
-    data_store.DB.MultiSet(self.test_row,
-                           {"aff4:size": [1],
-                            "aff4:stored": ["2"]},
+    data_store.DB.MultiSet(self.test_row, {"aff4:size": [1],
+                                           "aff4:stored": ["2"]},
                            token=self.token)
 
     data_store.DB.MultiSet(self.test_row, {"aff4:stored": ["2"]},
@@ -262,9 +258,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
   def testMultiSet4(self):
     """Test the MultiSet() delete methods when deleting the same predicate."""
-    data_store.DB.MultiSet(self.test_row,
-                           {"aff4:size": [1],
-                            "aff4:stored": ["2"]},
+    data_store.DB.MultiSet(self.test_row, {"aff4:size": [1],
+                                           "aff4:stored": ["2"]},
                            token=self.token)
 
     data_store.DB.MultiSet(self.test_row, {"aff4:size": [4]},
@@ -512,9 +507,9 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     """tests MultiResolvePrefix."""
     rows = self._MakeTimestampedRows()
 
-    subjects = dict(data_store.DB.MultiResolvePrefix(
-        rows, ["metadata:3", "metadata:7"],
-        token=self.token))
+    subjects = dict(data_store.DB.MultiResolvePrefix(rows, ["metadata:3",
+                                                            "metadata:7"],
+                                                     token=self.token))
 
     subject_names = subjects.keys()
     subject_names.sort()
@@ -579,6 +574,28 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         timestamps.append(predicate[2])
 
     self.assertListEqual(sorted(timestamps), sorted(expected_timestamps))
+
+  def testMultiResolvePrefixType(self):
+    rows = self._MakeTimestampedRows()
+
+    for r in rows:
+      self.assertIsInstance(r, basestring)
+
+    subjects = dict(data_store.DB.MultiResolvePrefix(rows, ["metadata:3",
+                                                            "metadata:7"],
+                                                     token=self.token))
+
+    for s in subjects:
+      self.assertIsInstance(s, basestring)
+
+    rows = [rdfvalue.RDFURN(r) for r in rows]
+
+    subjects = dict(data_store.DB.MultiResolvePrefix(rows, ["metadata:3",
+                                                            "metadata:7"],
+                                                     token=self.token))
+
+    for s in subjects:
+      self.assertIsInstance(s, basestring)
 
   def testResolvePrefixResultsOrderedInDecreasingTimestampOrder1(self):
     predicate1 = "metadata:predicate1"
@@ -872,8 +889,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                       timestamp=980,
                       token=self.token)
 
-    results = list(data_store.DB.ScanAttributes("aff4:/C",
-                                                ["aff4:foo", "aff4:bar"],
+    results = list(data_store.DB.ScanAttributes("aff4:/C", ["aff4:foo",
+                                                            "aff4:bar"],
                                                 token=self.token))
     self.assertEqual(len(results), 10)
     self.assertEqual([s for s, _ in results], ["aff4:/C/" + str(i)
@@ -884,8 +901,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                                      "aff4:foo": (1000, "C foo 5 value")})
     self.assertEqual(results[9][1], {"aff4:bar": (1500, "C bar 9 value")})
 
-    results = list(data_store.DB.ScanAttributes("aff4:/C",
-                                                ["aff4:foo", "aff4:bar"],
+    results = list(data_store.DB.ScanAttributes("aff4:/C", ["aff4:foo",
+                                                            "aff4:bar"],
                                                 max_records=5,
                                                 token=self.token))
     self.assertEqual(len(results), 5)
@@ -1230,16 +1247,14 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         token=self.token))
 
     self.assertEqual(len(result), 4)
-    self.assertListEqual(
-        [r for r in result if r[0] == "metadata:predicate1"], [
-            (u"metadata:predicate1", "1.2", 2000),
-            (u"metadata:predicate1", "1.1", 1000)
-        ])
-    self.assertListEqual(
-        [r for r in result if r[0] == "metadata:predicate2"], [
-            (u"metadata:predicate2", "2.2", 2020),
-            (u"metadata:predicate2", "2.1", 1010)
-        ])
+    self.assertListEqual([r for r in result if r[0] == "metadata:predicate1"], [
+        (u"metadata:predicate1", "1.2", 2000),
+        (u"metadata:predicate1", "1.1", 1000)
+    ])
+    self.assertListEqual([r for r in result if r[0] == "metadata:predicate2"], [
+        (u"metadata:predicate2", "2.2", 2020),
+        (u"metadata:predicate2", "2.1", 1010)
+    ])
 
     result = list(data_store.DB.ResolvePrefix(
         subject,
@@ -1529,9 +1544,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
     self.assertRaises(access_control.UnauthorizedAccess,
                       data_store.DB.MultiSet,
-                      self.test_row,
-                      {"aff4:size": [(1, 100)],
-                       "aff4:stored": [("foo", 200)]},
+                      self.test_row, {"aff4:size": [(1, 100)],
+                                      "aff4:stored": [("foo", 200)]},
                       token=self.token)
 
   @DeletionTest
@@ -1864,8 +1878,8 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
       writer.writerow(["Benchmark", "Time", "DBSize", "Queries", "Subjects",
                        "Predicates", "Values"])
       for row in self.scratchpad[2:]:
-        writer.writerow([row[0], row[1], row[3], row[4], row[5], row[6], row[7]
-                        ])
+        writer.writerow([row[0], row[1], row[3], row[4], row[5], row[6],
+                         row[7]])
 
       logging.info("CSV File is in %s", fp.name)
       if remove:
@@ -2179,8 +2193,8 @@ class DataStoreCSVBenchmarks(test_lib.MicroBenchmarks):
     return subjects
 
   def _GenerateRandomString(self, chars):
-    return "".join([self.rand.choice(string.ascii_letters) for _ in xrange(
-        chars)])
+    return "".join([self.rand.choice(string.ascii_letters)
+                    for _ in xrange(chars)])
 
   def _AddBlobs(self, howmany, size):
     """Adds 'howmany' blobs with size 'size' kbs."""
@@ -2359,8 +2373,8 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
   files_per_dir = 500
 
   def _GenerateRandomString(self, chars):
-    return "".join([self.rand.choice(string.ascii_letters) for _ in xrange(
-        chars)])
+    return "".join([self.rand.choice(string.ascii_letters)
+                    for _ in xrange(chars)])
 
   # Constants to control the size of testCollections. These numbers run in a
   # reasonable amount of time for a unit test [O(20s)] on most data stores.

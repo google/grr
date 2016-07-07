@@ -264,7 +264,7 @@ class ExportTest(test_lib.GRRBaseTest):
                                      pathspec=pathspec):
       pass
 
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, client_id)
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, client_id)
     fd = aff4.FACTORY.Open(urn, token=self.token)
 
     stat = fd.Get(fd.Schema.STAT)
@@ -303,7 +303,7 @@ class ExportTest(test_lib.GRRBaseTest):
         path=os.path.join(self.base_path, "winexec_img.dd"))
     pathspec.Append(path="/Ext2IFS_1_10b.exe",
                     pathtype=rdf_paths.PathSpec.PathType.TSK)
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, client_id)
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, client_id)
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
                                           "HashBuffer")

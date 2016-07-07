@@ -629,11 +629,11 @@ class HTTPDataStore(data_store.DataStore):
                   for (pred, value, ts) in result_set.payload]
         if limit:
           if len(values) >= remaining_limit:
-            results[result_set.subject] = values[:remaining_limit]
+            results[subject] = values[:remaining_limit]
             return results.iteritems()
           remaining_limit -= len(values)
 
-        results[result_set.subject] = values
+        results[utils.SmartStr(subject)] = values
     return results.iteritems()
 
   def ScanAttributes(self,

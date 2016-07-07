@@ -3,6 +3,7 @@
 
 
 import codecs
+import collections
 import datetime
 import email
 import functools
@@ -290,13 +291,85 @@ class MockSecurityManager(user_managers.BasicAccessControlManager):
         token, subjects, requested_access=requested_access)
 
 
+# pylint: disable=g-bad-name
+class MockWindowsProcess(object):
+  """A mock windows process."""
+
+  pid = 10
+
+  def ppid(self):
+    return 1
+
+  def name(self):
+    return "cmd"
+
+  def exe(self):
+    return "cmd.exe"
+
+  def username(self):
+    return "test"
+
+  def cmdline(self):
+    return ["c:\\Windows\\cmd.exe", "/?"]
+
+  def create_time(self):
+    return 1217061982.375000
+
+  def status(self):
+    return "running"
+
+  def cwd(self):
+    return "X:\\RECEP\xc3\x87\xc3\x95ES"
+
+  def num_threads(self):
+    return 1
+
+  def cpu_times(self):
+    return (1.0, 1.0)
+
+  def cpu_percent(self):
+    return 10.0
+
+  def memory_info(self):
+    meminfo = collections.namedtuple("Meminfo", ["rss", "vms"])
+    return meminfo(rss=100000, vms=150000)
+
+  def memory_percent(self):
+    return 10.0
+
+  def open_files(self):
+    return []
+
+  def connections(self):
+    return []
+
+  def nice(self):
+    return 10
+
+  def as_dict(self, attrs=None):
+    dic = {}
+    if attrs is None:
+      return dic
+    for name in attrs:
+      if hasattr(self, name):
+        attr = getattr(self, name)
+        if callable(attr):
+          dic[name] = attr()
+        else:
+          dic[name] = attr
+      else:
+        dic[name] = None
+    return dic
+
+# pylint: enable=g-bad-name
+
+
 class GRRBaseTest(unittest.TestCase):
   """This is the base class for all GRR tests."""
 
   install_mock_acl = True
 
   __metaclass__ = registry.MetaclassRegistry
-  include_plugins_as_attributes = True
 
   # The type of this test.
   type = "normal"

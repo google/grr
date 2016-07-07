@@ -19,6 +19,18 @@
     <div class="no-link-indicator" ng-if="!notification.link">
         <i class="fa fa-chain-broken"></i> no link
     </div>
+
+    <div class="legacy-mac-times-indicator" ng-if="notification.legacyMacTimes">
+        <i class="fa fa-exclamation-triangle"></i>
+        This is a legacy MACTimes flow notification.<br/>
+        It won't work in <strong>canary</strong> mode.
+    </div>
+
+    <div class="legacy-vfs-path-indicator" ng-if="notification.legacyVfsPath">
+        <i class="fa fa-exclamation-triangle"></i>
+        This is a legacy VFS object notification. <br/>It won't work in
+        <strong>canary</strong> mode.
+    </div>
   </a>
 
   <!-- Or the notification triggers a file download -->

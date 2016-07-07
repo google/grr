@@ -126,21 +126,21 @@ class FakeKeyHandle(object):
 
 class RegistryFake(test_lib.FakeRegistryVFSHandler):
 
-  def __init__(self, **kwargs):
-    self.PopulateCache()
-    super(RegistryFake, self).__init__(**kwargs)
-
   def OpenKey(self, key, sub_key):
     res = "%s/%s" % (key.value, sub_key.replace("\\", "/"))
-    res = res.lower().rstrip("/")
-    if not res.startswith("/"):
-      res = "/" + res
-    if res in self.cache[self.prefix]:
-      return FakeKeyHandle(res)
+    res = res.rstrip("/")
+    parts = res.split("/")
+    for cache_key in [
+        utils.Join(*[p.lower() for p in parts[:-1]] + parts[-1:]), res.lower()
+    ]:
+      if not cache_key.startswith("/"):
+        cache_key = "/" + cache_key
+      if cache_key in self.cache[self.prefix]:
+        return FakeKeyHandle(cache_key)
     raise IOError()
 
   def QueryValueEx(self, key, value_name):
-    full_key = os.path.join(key.value, value_name).rstrip("/")
+    full_key = os.path.join(key.value.lower(), value_name).rstrip("/")
     try:
       stat_entry = self.cache[self.prefix][full_key][1]
       data = stat_entry.registry_data.GetValue()
@@ -152,8 +152,17 @@ class RegistryFake(test_lib.FakeRegistryVFSHandler):
     raise IOError()
 
   def QueryInfoKey(self, key):
-    modification_time = 10000000 * (11644473600 + time.time())
-    return len(self._GetKeys(key)), len(self._GetValues(key)), modification_time
+    num_keys = len(self._GetKeys(key))
+    num_vals = len(self._GetValues(key))
+    for path in self.cache[self.prefix]:
+      if path == key.value:
+        _, stat_entry = self.cache[self.prefix][path]
+        modification_time = stat_entry.st_mtime
+        if modification_time:
+          return num_keys, num_vals, modification_time
+
+    modification_time = time.time()
+    return num_keys, num_vals, modification_time
 
   def EnumKey(self, key, index):
     try:
@@ -302,6 +311,56 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
     idx = paths.index(expected_path)
     self.assertEqual(results[idx].stat_entry.registry_data.GetValue(),
                      "DefaultValue")
+
+  def testRegistryMTimes(self):
+    # Just listing all keys does not generate a full stat entry for each of
+    # the results.
+    results = self._RunRegistryFinder(
+        ["HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/*"])
+    self.assertEqual(len(results), 2)
+    for result in results:
+      st = result.stat_entry
+      self.assertIsNone(st.st_mtime)
+
+    # Explicitly calling RegistryFinder on a value does though.
+    results = self._RunRegistryFinder([
+        "HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/Value1",
+        "HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest/Value2",
+    ])
+
+    self.assertEqual(len(results), 2)
+    for result in results:
+      st = result.stat_entry
+      path = utils.SmartStr(st.aff4path)
+      if "Value1" in path:
+        self.assertEqual(st.st_mtime, 110)
+      elif "Value2" in path:
+        self.assertEqual(st.st_mtime, 120)
+      else:
+        self.fail("Unexpected value: %s" % path)
+
+    # For Listdir, the situation is the same. Listing does not yield mtimes.
+    client_id = self.SetupClients(1)[0]
+    pb = rdf_paths.PathSpec(path="/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest",
+                            pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+    output_path = client_id.Add("registry").Add(pb.first.path)
+    aff4.FACTORY.Delete(output_path, token=self.token)
+
+    client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
+
+    for _ in test_lib.TestFlowHelper("ListDirectory",
+                                     client_mock,
+                                     client_id=client_id,
+                                     pathspec=pb,
+                                     token=self.token):
+      pass
+
+    results = list(aff4.FACTORY.Open(output_path,
+                                     token=self.token).OpenChildren())
+    self.assertEqual(len(results), 2)
+    for result in results:
+      st = result.Get(result.Schema.STAT)
+      self.assertIsNone(st.st_mtime)
 
   def testRecursiveRegistryListing(self):
     """Test our ability to walk over a registry tree."""

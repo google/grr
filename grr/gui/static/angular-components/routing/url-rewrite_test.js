@@ -33,7 +33,6 @@ describe('rewriteUrl()', function() {
   // Misc.
   mapping['main=GlobalLaunchFlows'] = '/global-flows';
   mapping['main=ServerLoadView'] = '/server-load';
-  mapping['main=GlobalCrashesRenderer'] = '/client-crashes';
   mapping['main=BinaryConfigurationView'] = '/manage-binaries';
   mapping['main=ConfigManager'] = '/config';
   mapping['main=ArtifactManagerView'] = '/artifacts';

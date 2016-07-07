@@ -15,6 +15,7 @@ from grr.lib import email_alerts
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
@@ -145,7 +146,7 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
     first_component = self.args.collection_urn.Split()[0]
     if first_component == "hunts":
       pass
-    elif aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(first_component):
+    elif aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(first_component):
       data_store.DB.security_manager.CheckClientAccess(self.token.RealUID(),
                                                        first_component)
     else:

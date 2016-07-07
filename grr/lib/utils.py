@@ -2,7 +2,6 @@
 """This file contains various utility classes used by GRR."""
 
 
-import __builtin__
 import base64
 import copy
 import cStringIO
@@ -861,24 +860,6 @@ def FormatNumberAsString(num):
 
 class NotAValue(object):
   pass
-
-
-def issubclass(obj, cls):  # pylint: disable=redefined-builtin,g-bad-name
-  """A sane implementation of issubclass.
-
-  See http://bugs.python.org/issue10569
-
-  Python bare issubclass must be protected by an isinstance test first since it
-  can only work on types and raises when provided something which is not a type.
-
-  Args:
-    obj: Any object or class.
-    cls: The class to check against.
-
-  Returns:
-    True if obj is a subclass of cls and False otherwise.
-  """
-  return isinstance(obj, type) and __builtin__.issubclass(obj, cls)
 
 
 class HeartbeatQueue(Queue.Queue):

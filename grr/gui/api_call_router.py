@@ -197,6 +197,13 @@ class ApiCallRouter(object):
   def GetLastClientIPAddress(self, args, token=None):
     raise NotImplementedError()
 
+  @Category("Clients")
+  @ArgsType(api_client.ApiListClientCrashesArgs)
+  @ResultType(api_client.ApiListClientCrashesResult)
+  @Http("GET", "/api/clients/<client_id>/crashes")
+  def ListClientCrashes(self, args, token=None):
+    raise NotImplementedError()
+
   # Virtual file system methods.
   # ===========================
   #
@@ -422,6 +429,13 @@ class ApiCallRouter(object):
   @ResultType(api_cron.ApiCronJob)
   @Http("POST", "/api/cron-jobs")
   def CreateCronJob(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("Cron")
+  @ArgsType(api_cron.ApiGetCronJobArgs)
+  @ResultType(api_cron.ApiCronJob)
+  @Http("GET", "/api/cron-jobs/<cron_job_id>")
+  def GetCronJob(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Cron")

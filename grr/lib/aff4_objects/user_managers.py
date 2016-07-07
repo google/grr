@@ -536,10 +536,6 @@ class FullAccessControlManager(access_control.AccessControlManager):
     h.Allow("aff4:/cron")
     h.Allow("aff4:/cron/*")
 
-    # Namespace for crashes data.
-    h.Allow("aff4:/crashes")
-    h.Allow("aff4:/crashes/*")
-
     # Namespace for audit data.
     h.Allow("aff4:/audit")
     h.Allow("aff4:/audit/*")

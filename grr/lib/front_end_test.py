@@ -273,7 +273,8 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     # message list.
     response = rdf_flows.MessageList()
 
-    self.server.DrainTaskSchedulerQueueForClient(self.client_id, 5, response)
+    response.job = self.server.DrainTaskSchedulerQueueForClient(self.client_id,
+                                                                5)
 
     # Check that we received only as many messages as we asked for
     self.assertEqual(len(response.job), 5)
@@ -440,8 +441,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     for i in range(default_ttl):
       with test_lib.FakeTime(base_time + i * (self.message_expiry_time + 1)):
 
-        tasks = self.server.DrainTaskSchedulerQueueForClient(
-            client_id, 100000, rdf_flows.MessageList())
+        tasks = self.server.DrainTaskSchedulerQueueForClient(client_id, 100000)
         msgs_recvd.append(tasks)
 
     # Should return a client message (ttl-1) times and nothing afterwards.
@@ -468,8 +468,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
       with test_lib.FakeTime(base_time + i * (self.message_expiry_time + 1)):
 
-        tasks = self.server.DrainTaskSchedulerQueueForClient(
-            client_id, 100000, rdf_flows.MessageList())
+        tasks = self.server.DrainTaskSchedulerQueueForClient(client_id, 100000)
         msgs_recvd.append(tasks)
 
         if not tasks:

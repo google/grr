@@ -19,6 +19,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import type_info
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import filestore
 from grr.lib.flows.general import collectors as flow_collectors
 from grr.lib.rdfvalues import client as rdf_client
@@ -684,7 +685,7 @@ class BufferReferenceToExportedMatchConverter(ExportConverter):
                         offset=buffer_reference.offset,
                         length=buffer_reference.length,
                         data=buffer_reference.data,
-                        urn=aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+                        urn=aff4_grr.VFSGRRClient.PathspecToURN(
                             buffer_reference.pathspec, metadata.client_urn))
 
 

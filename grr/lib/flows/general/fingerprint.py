@@ -53,11 +53,11 @@ class FingerprintFileMixin(object):
 
     response = responses.First()
     if response.pathspec.path:
-      urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(response.pathspec,
-                                                       self.client_id)
+      urn = aff4_grr.VFSGRRClient.PathspecToURN(response.pathspec,
+                                                self.client_id)
     else:
-      urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(self.args.pathspec,
-                                                       self.client_id)
+      urn = aff4_grr.VFSGRRClient.PathspecToURN(self.args.pathspec,
+                                                self.client_id)
     self.state.Register("urn", urn)
 
     fd = aff4.FACTORY.Create(urn, aff4_grr.VFSFile, mode="w", token=self.token)

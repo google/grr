@@ -150,7 +150,7 @@ class ContainerFileTable(renderers.TableRenderer):
       children = self.content_cache.Get(key)
     except KeyError:
       children = {}
-      for c in sorted(container.Query(query_expression, limit=limit)):
+      for c in sorted(container.Query(query_expression)):
         children[utils.SmartUnicode(c.urn)] = c
 
       self.content_cache.Put(key, children)

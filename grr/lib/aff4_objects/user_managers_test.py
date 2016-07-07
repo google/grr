@@ -15,7 +15,6 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import security
 from grr.lib.aff4_objects import user_managers
 from grr.lib.aff4_objects import users
@@ -235,9 +234,6 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest):
     self.Ok("aff4:/cron", access)
     self.Ok("aff4:/cron/OSBreakDown", access)
 
-    self.Ok("aff4:/crashes", access)
-    self.Ok("aff4:/crashes/Stream", access)
-
     self.Ok("aff4:/audit", access)
     self.Ok("aff4:/audit/log", access)
     self.Ok("aff4:/audit/logs", access)
@@ -282,8 +278,6 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest):
 
     self.Ok("aff4:/cron", access)
     self.Ok("aff4:/cron/OSBreakDown", access)
-
-    self.NotOk("aff4:/crashes", access)
 
     self.NotOk("aff4:/audit", access)
     self.Ok("aff4:/audit/logs", access)
@@ -657,37 +651,6 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
 
     # Now we are allowed.
     aff4.FACTORY.Open("aff4:/foreman", token=token)
-
-  def testCrashesAccess(self):
-    # We need a supervisor to manipulate a user's ACL token:
-    super_token = access_control.ACLToken(username="test")
-    super_token.supervisor = True
-
-    path = rdfvalue.RDFURN("aff4:/crashes")
-
-    crashes = aff4.FACTORY.Create(path,
-                                  collects.RDFValueCollection,
-                                  token=self.token)
-    self.assertRaises(access_control.UnauthorizedAccess, crashes.Close)
-
-    # This shouldn't raise as we're using supervisor token.
-    crashes = aff4.FACTORY.Create(path,
-                                  collects.RDFValueCollection,
-                                  token=super_token)
-    crashes.Close()
-
-    crashes = aff4.FACTORY.Open(path,
-                                aff4_type=collects.RDFValueCollection,
-                                mode="rw",
-                                token=self.token)
-    crashes.Set(crashes.Schema.DESCRIPTION("Some description"))
-    self.assertRaises(access_control.UnauthorizedAccess, crashes.Close)
-
-    crashes = aff4.FACTORY.Open(path,
-                                aff4_type=collects.RDFValueCollection,
-                                mode="r",
-                                token=self.token)
-    crashes.Close()
 
   def testFlowAccess(self):
     """Tests access to flows."""

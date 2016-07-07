@@ -286,7 +286,7 @@ def DownloadCollection(coll_path,
 
     # Handle dumping client info, but only once per client.
     client_id = urn.Split()[0]
-    re_match = aff4.AFF4Object.VFSGRRClient.CLIENT_ID_RE.match(client_id)
+    re_match = aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(client_id)
     if dump_client_info and re_match and client_id not in completed_clients:
       args = (rdf_client.ClientURN(client_id), target_path, token, overwrite)
       thread_pool.AddTask(target=DumpClientYaml,

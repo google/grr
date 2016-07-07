@@ -5,29 +5,20 @@ __author__ = "tweksteen@gmail.com (Thiebaud Weksteen)"
 
 import logging
 from logging import handlers
+import StringIO
+
+
+# Initialize the Chipsec plugins
+from chipsec import chipset
+from chipsec.hal import acpi
+from chipsec.hal import spi
+from chipsec.logger import logger
+
+import chipsec_types
 
 from grr.client import actions
 from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
-
-# pylint: disable=g-import-not-at-top
-# When deployed as a component, import the dependency directly
-# Otherwise (unittest), load according to the grr package
-try:
-  import chipsec_types
-except ImportError:
-  from grr.client.components.chipsec_support import chipsec_types
-
-# This file is included when running the test case.
-try:
-  # Initialize the Chipsec plugins, so pylint: disable=unused-import
-  from chipsec import chipset
-  from chipsec.hal import spi
-  from chipsec.logger import logger
-  # pylint: enable=unused-import
-except ImportError:
-  pass
-# pylint: enable=g-import-not-at-top
 
 
 class DumpFlashImage(actions.ActionPlugin):
@@ -117,3 +108,74 @@ class DumpFlashImage(actions.ActionPlugin):
 
     self.SendReply(chipsec_types.DumpFlashImageResponse(path=dest_pathspec,
                                                         logs=logs))
+
+
+class DumpACPITable(actions.ActionPlugin):
+  """A client action to collect the ACPI table(s)."""
+
+  in_rdfvalue = chipsec_types.DumpACPITableRequest
+  out_rdfvalues = [chipsec_types.DumpACPITableResponse]
+
+  def LogError(self, err):
+    self.logs.append("Error dumping ACPI table.")
+    self.logs.append("%r: %s" % (err, err))
+    self.logs.extend(self.chipsec_log.getvalue().split("\n"))
+    self.SendReply(chipsec_types.DumpACPITableResponse(logs=self.logs))
+
+  def Run(self, args):
+    self.logs = []
+    self.chipsec_log = StringIO.StringIO()
+
+    if args.logging:
+      self.logs.append("Dumping %s" % args.table_signature)
+
+      logger().logfile = self.chipsec_log
+      logger().LOG_TO_FILE = True
+
+    # Wrap most of Chipsec code to gather its logs in case of failure.
+    try:
+      # Initialise Chipsec (die early if unknown chipset)
+      c = chipset.cs()
+      # Platform = None, Start Driver = False
+      c.init(None, False)
+      a = acpi.ACPI(c)
+
+      acpi_tables_raw = a.get_ACPI_table(args.table_signature)
+      acpi_tables = []
+
+      for i, table_address in enumerate(a.tableList[args.table_signature]):
+        table_header, table_content = acpi_tables_raw[i]
+        table_blob = table_header + table_content
+
+        acpi_tables.append(chipsec_types.ACPITableData(
+            table_address=table_address,
+            table_blob=table_blob))
+    except (chipset.UnknownChipsetError, OSError) as err:
+      # Expected errors that might happen on the client
+      # If the chipset is unknown or we encountered an error due to reading
+      # an area we do not have access to using /dev/mem, simply return an
+      # error message.
+      if args.logging:
+        self.LogError(err)
+      self.SendReply(chipsec_types.DumpACPITableResponse(logs=["%s" % err],))
+      return
+    except Exception as err:  # pylint: disable=broad-except
+      # In case an exception is raised, if the verbose mode
+      # is enabled, return the raw logs from Chipsec.
+      if args.logging:
+        self.LogError(err)
+      raise
+
+    if not acpi_tables:
+      self.logs.append("No ACPI table with signature %s." %
+                       args.table_signature)
+    else:
+      self.logs.append(
+          "ACPI table with signature %s has been successfully dumped." %
+          args.table_signature)
+
+    if args.logging:
+      self.logs.extend(self.chipsec_log.getvalue().split("\n"))
+
+    self.SendReply(chipsec_types.DumpACPITableResponse(acpi_tables=acpi_tables,
+                                                       logs=self.logs))

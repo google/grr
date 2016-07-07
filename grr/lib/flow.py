@@ -90,17 +90,6 @@ class AuditEvent(rdf_structs.RDFProtoStruct):
 class FlowError(Exception):
   """Raised when we can not retrieve the flow."""
 
-# Flow contexts contain pickled FlowRunnerArgs, which moved from this module to
-# flow_runner. This alias allows us to read contexts built with the old loction.
-# It should not be used for any other purpose.
-#
-# TODO(user): Remove once such flows are no longer relevant.
-#
-# No choice about the name. pylint: disable=invalid-name
-FlowRunnerArgs = flow_runner.FlowRunnerArgs
-
-# pylint: enable=invalid-name
-
 
 class Responses(object):
   """An object encapsulating all the responses to a request.
@@ -665,11 +654,12 @@ class GRRFlow(aff4.AFF4Volume):
     the flow a chance to clean up.
     """
     if self.runner.output is not None:
-      self.Notify("ViewObject", self.runner.output.urn,
-                  u"Completed with {0} results".format(len(self.runner.output)))
+      self.Notify("FlowStatus", self.urn,
+                  u"{0} completed with {1} results".format(
+                      self.__class__.__name__, len(self.runner.output)))
 
     else:
-      self.Notify("FlowStatus", self.client_id,
+      self.Notify("FlowStatus", self.urn,
                   "Flow %s completed" % self.__class__.__name__)
 
   @StateHandler()
@@ -1493,7 +1483,7 @@ class ServerCommunicator(communicator.Communicator):
 
     # Fetch the client's cert and extract the key.
     client = aff4.FACTORY.Create(common_name,
-                                 "VFSGRRClient",
+                                 aff4.AFF4Object.classes["VFSGRRClient"],
                                  mode="rw",
                                  token=self.token,
                                  ignore_cache=True)
@@ -1580,6 +1570,9 @@ class ServerCommunicator(communicator.Communicator):
       if client_time > long(remote_time):
         client.Set(client.Schema.CLOCK, rdfvalue.RDFDatetime(client_time))
         client.Set(client.Schema.PING, rdfvalue.RDFDatetime().Now())
+        for label in client.Get(client.Schema.LABELS, []):
+          stats.STATS.IncrementCounter("client_pings_by_label",
+                                       fields=[label.name])
       else:
         logging.warning("Out of order message for %s: %s >= %s", client_id,
                         long(remote_time), int(client_time))
@@ -1755,8 +1748,9 @@ class FrontEndServer(object):
       # Only give the client messages if we are able to receive them in a
       # reasonable time.
       if time.time() - now < 10:
-        tasks = self.DrainTaskSchedulerQueueForClient(source, required_count,
-                                                      message_list)
+        tasks = self.DrainTaskSchedulerQueueForClient(source, required_count)
+        message_list.job = tasks
+
     else:
       stats.STATS.IncrementCounter("grr_frontendserver_handle_throttled_num")
 
@@ -1776,8 +1770,7 @@ class FrontEndServer(object):
 
     return source, len(messages)
 
-  def DrainTaskSchedulerQueueForClient(self, client, max_count,
-                                       response_message):
+  def DrainTaskSchedulerQueueForClient(self, client, max_count):
     """Drains the client's Task Scheduler queue.
 
     1) Get all messages in the client queue.
@@ -1791,7 +1784,6 @@ class FrontEndServer(object):
        max_count: The maximum number of messages we will issue for the
                   client.
 
-       response_message: a MessageList object we fill for with GrrMessages
     Returns:
        The tasks respresenting the messages returned. If we can not send them,
        we can reschedule them for later.
@@ -1816,7 +1808,6 @@ class FrontEndServer(object):
         # This message has been leased before.
         check_before_sending.append(task)
       else:
-        response_message.job.Append(task)
         result.append(task)
 
     if check_before_sending:
@@ -1831,8 +1822,9 @@ class FrontEndServer(object):
             manager.DeQueueClientRequest(client, task.task_id)
 
     stats.STATS.IncrementCounter("grr_messages_sent", len(result))
-    logging.debug("Drained %d messages for %s in %s seconds.", len(result),
-                  client, time.time() - start_time)
+    if result:
+      logging.debug("Drained %d messages for %s in %s seconds.", len(result),
+                    client, time.time() - start_time)
 
     return result
 
@@ -1945,6 +1937,8 @@ class FlowInit(registry.InitHook):
   def RunOnce(self):
     # Frontend metrics. These metrics should be used by the code that
     # feeds requests into the frontend.
+    stats.STATS.RegisterCounterMetric("client_pings_by_label",
+                                      fields=[("label", str)])
     stats.STATS.RegisterGaugeMetric("frontend_active_count",
                                     int,
                                     fields=[("source", str)])

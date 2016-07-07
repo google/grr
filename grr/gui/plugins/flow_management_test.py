@@ -205,6 +205,39 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=.tab-content td.proto_value:contains(StatFile)")
 
+  def testNotificationPointingToFlowIsShownOnFlowCompletion(self):
+    self.Open("/")
+
+    pathspec = rdf_paths.PathSpec(
+        path=os.path.join(self.base_path, "test.plist"),
+        pathtype=rdf_paths.PathSpec.PathType.OS)
+    flow_urn = flow.GRRFlow.StartFlow(flow_name="GetFile",
+                                      client_id=self.client_id,
+                                      pathspec=pathspec,
+                                      token=self.token)
+
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(flow_urn,
+                                       self.action_mock,
+                                       client_id=self.client_id,
+                                       token=self.token):
+        pass
+
+    # Clicking on this should show the notifications table.
+    self.Click("css=button[id=notification_button]")
+    self.WaitUntil(self.IsTextPresent, "Notifications")
+
+    # Click on the "flow completed" notification.
+    self.Click("css=td:contains('GetFile completed with 1 results')")
+    self.WaitUntilNot(self.IsTextPresent, "Notifications")
+
+    # Check that clicking on a notification changes the location and shows
+    # the flow page.
+    self.WaitUntilEqual("/#/clients/%s/flows/%s" % (self.client_id.Basename(),
+                                                    flow_urn.Basename()),
+                        self.GetCurrentUrlPath)
+    self.WaitUntil(self.IsTextPresent, utils.SmartStr(flow_urn))
+
   def testLogsCanBeOpenedByClickingOnLogsTab(self):
     # RecursiveTestFlow doesn't send any results back.
     with self.ACLChecksDisabled():

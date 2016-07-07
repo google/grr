@@ -18,6 +18,7 @@ var getFileId = grrUi.client.virtualFileSystem.fileViewDirective.getFileId;
  *
  * @param {Object} notification
  * @param {!angular.$window} angularWindow
+ * @return {boolean} Returns true if the location was changed.
  *
  * @export
  */
@@ -25,7 +26,9 @@ grrUi.user.userNotificationItemDirective.openReference =
     function(notification, angularWindow) {
   if (!notification['isFileDownload'] && notification['link']) {
     angularWindow.location.href = '#' + notification['link'];
-    angularWindow.location.reload();
+    return true;
+  } else {
+    return false;
   }
 };
 var openReference = module.openReference;
@@ -46,6 +49,18 @@ grrUi.user.userNotificationItemDirective.annotateApiNotification =
         notification['value']['reference']['value']['type']['value'];
     if (notification['isFileDownload']) {
       notification['path'] = urlParams['aff4_path'];
+    }
+
+    if (notification['refType'] == 'VFS') {
+      var vfsPath =  notification['value']['reference']['value'][
+        'vfs']['value']['vfs_path']['value'];
+      if (vfsPath.indexOf('/MACTimes/') != -1) {
+        notification['legacyMacTimes'] = true;
+      } else if (vfsPath.indexOf('/fs/os/') == -1 &&
+          vfsPath.indexOf('/fs/tsk/') == -1 &&
+          vfsPath.indexOf('/registry/') == -1) {
+        notification['legacyVfsPath'] = true;
+      }
     }
   }
 };
@@ -155,7 +170,9 @@ UserNotificationItemController.prototype.onNotificationChanged_ = function(
  * @export
  */
 UserNotificationItemController.prototype.openReference = function() {
-  openReference(this.scope_['notification'], this.window_);
+  if (openReference(this.scope_['notification'], this.window_)) {
+    this.scope_['close']();
+  }
 };
 
 
@@ -169,7 +186,8 @@ UserNotificationItemController.prototype.openReference = function() {
 module.UserNotificationItemDirective = function() {
   return {
     scope: {
-      notification: '='
+      notification: '=',
+      close: '&'
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/user/user-notification-item.html',

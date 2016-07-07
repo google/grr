@@ -55,6 +55,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def GetLastClientIPAddress(self, args, token=None):
     return api_client.ApiGetLastClientIPAddressHandler()
 
+  def ListClientCrashes(self, args, token=None):
+    return api_client.ApiListClientCrashesHandler()
+
   # Virtual file system methods.
   # ============================
   #
@@ -157,6 +160,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
 
   def CreateCronJob(self, args, token=None):
     return api_cron.ApiCreateCronJobHandler()
+
+  def GetCronJob(self, args, token=None):
+    return api_cron.ApiGetCronJobHandler()
 
   def DeleteCronJob(self, args, token=None):
     return api_cron.ApiDeleteCronJobHandler()

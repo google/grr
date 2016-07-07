@@ -4062,7 +4062,7 @@ registry_data {
             """
 st_mode: 16887
 st_size: 10
-st_mtime: 0
+st_mtime: 100
 registry_type: REG_EXPAND_SZ
 pathspec {
   pathtype: REGISTRY
@@ -4078,7 +4078,7 @@ registry_data {
             """
 st_mode: 32768
 st_size: 6
-st_mtime: 0
+st_mtime: 110
 registry_type: REG_EXPAND_SZ
 pathspec {
   pathtype: REGISTRY
@@ -4094,7 +4094,7 @@ registry_data {
             """
 st_mode: 32768
 st_size: 6
-st_mtime: 0
+st_mtime: 120
 registry_type: REG_EXPAND_SZ
 pathspec {
   pathtype: REGISTRY

@@ -74,7 +74,6 @@ class ClientCrashEventListener(flow.EventListener):
     # Duplicate the crash information in a number of places so we can find it
     # easily.
     self._AppendCrashDetails(client_id.Add("crashes"), crash_details)
-    self._AppendCrashDetails(aff4.ROOT_URN.Add("crashes"), crash_details)
 
     if flow_session_id:
       aff4_flow = aff4.FACTORY.Open(flow_session_id,

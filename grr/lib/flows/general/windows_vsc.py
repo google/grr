@@ -2,6 +2,7 @@
 """Queries a Windows client for Volume Shadow Copy information."""
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -48,10 +49,10 @@ class ListVolumeShadowCopies(flow.GRRFlow):
                         pathspec=path_spec,
                         next_state="ProcessListDirectory")
 
-        self.state.raw_device = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+        self.state.raw_device = aff4_grr.VFSGRRClient.PathspecToURN(
             path_spec, self.client_id).Dirname()
 
-        self.state.shadows.append(aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+        self.state.shadows.append(aff4_grr.VFSGRRClient.PathspecToURN(
             path_spec, self.client_id))
 
   @flow.StateHandler()

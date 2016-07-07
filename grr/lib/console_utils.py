@@ -248,7 +248,7 @@ def ApprovalCreateRaw(aff4_path,
   Raises:
     RuntimeError: On bad token.
   """
-  if approval_type == "ClientApproval":
+  if approval_type in ["ClientApproval", security.ClientApproval]:
     urn = rdf_client.ClientURN(aff4_path)
   else:
     urn = rdfvalue.RDFURN(aff4_path)
@@ -261,13 +261,18 @@ def ApprovalCreateRaw(aff4_path,
     raise RuntimeError("Cannot create approval with empty reason")
   if not token.username:
     token.username = getpass.getuser()
-  approval_urn = flow.GRRFlow.RequestApprovalWithReasonFlow.ApprovalUrnBuilder(
+  approval_urn = security.RequestApprovalWithReasonFlow.ApprovalUrnBuilder(
       urn.Path(), token.username, token.reason)
   super_token = access_control.ACLToken(username="raw-approval-superuser")
   super_token.supervisor = True
 
+  if isinstance(approval_type, basestring):
+    approval_type_cls = aff4.AFF4Object.classes[approval_type]
+  else:
+    approval_type_cls = approval_type
+
   approval_request = aff4.FACTORY.Create(approval_urn,
-                                         approval_type,
+                                         approval_type_cls,
                                          mode="rw",
                                          token=super_token)
 

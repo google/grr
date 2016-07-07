@@ -14,8 +14,10 @@ from grr.lib.flows.cron import system_test
 from grr.lib.flows.general import administrative_test
 from grr.lib.flows.general import artifact_fallbacks_test
 from grr.lib.flows.general import audit_test
-# Disable due to breakage.
 from grr.lib.flows.general import checks_test
+from grr.lib.flows.general import collectors_artifact_downloader_test
+from grr.lib.flows.general import collectors_core_artifacts_test
+from grr.lib.flows.general import collectors_interactions_test
 from grr.lib.flows.general import collectors_test
 from grr.lib.flows.general import discovery_test
 from grr.lib.flows.general import endtoend_test

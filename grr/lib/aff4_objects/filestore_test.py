@@ -132,7 +132,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
     if client_id is None:
       raise ValueError("client_id can't be None")
 
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, client_id)
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, client_id)
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
                                           "HashBuffer")

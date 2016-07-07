@@ -190,8 +190,9 @@ class RDFValue(object):
     return []
 
   @staticmethod
-  def ContainsMatch(attribute, filter_implemention, regex):
-    return filter_implemention.PredicateContainsFilter(attribute, regex)
+  def ContainsMatch(attribute, filter_implementation, regex):
+    return filter_implementation.GetFilter("PredicateContainsFilter")(attribute,
+                                                                      regex)
 
   # The operators this type supports in the query language
   operators = dict(contains=(1, "ContainsMatch"))
@@ -269,8 +270,8 @@ class RDFString(RDFBytes):
   _value = u""
 
   @staticmethod
-  def Startswith(attribute, filter_implemention, string):
-    return filter_implemention.PredicateContainsFilter(
+  def Startswith(attribute, filter_implementation, string):
+    return filter_implementation.GetFilter("PredicateContainsFilter")(
         attribute, "^" + utils.EscapeRegex(string))
 
   operators = RDFValue.operators.copy()
@@ -423,18 +424,19 @@ class RDFInteger(RDFString):
     return other / self._value
 
   @staticmethod
-  def LessThan(attribute, filter_implemention, value):
-    return filter_implemention.PredicateLessThanFilter(attribute, long(value))
+  def LessThan(attribute, filter_implementation, value):
+    return filter_implementation.GetFilter("PredicateLessThanFilter")(
+        attribute, long(value))
 
   @staticmethod
-  def GreaterThan(attribute, filter_implemention, value):
-    return filter_implemention.PredicateGreaterThanFilter(attribute,
-                                                          long(value))
+  def GreaterThan(attribute, filter_implementation, value):
+    return filter_implementation.GetFilter("PredicateGreaterThanFilter")(
+        attribute, long(value))
 
   @staticmethod
-  def Equal(attribute, filter_implemention, value):
-    return filter_implemention.PredicateNumericEqualFilter(attribute,
-                                                           long(value))
+  def Equal(attribute, filter_implementation, value):
+    return filter_implementation.GetFilter("PredicateNumericEqualFilter")(
+        attribute, long(value))
 
   operators = {"<": (1, "LessThan"),
                ">": (1, "GreaterThan"),
@@ -594,24 +596,24 @@ class RDFDatetime(RDFInteger):
     return calendar.timegm(timestamp.utctimetuple()) * cls.converter
 
   @classmethod
-  def LessThanEq(cls, attribute, filter_implemention, value):
-    return filter_implemention.PredicateLesserEqualFilter(
+  def LessThanEq(cls, attribute, filter_implementation, value):
+    return filter_implementation.GetFilter("PredicateLesserEqualFilter")(
         attribute, cls._ParseFromHumanReadable(value, eoy=True))
 
   @classmethod
-  def LessThan(cls, attribute, filter_implemention, value):
+  def LessThan(cls, attribute, filter_implementation, value):
     """For dates we want to recognize a variety of values."""
-    return filter_implemention.PredicateLesserEqualFilter(
+    return filter_implementation.GetFilter("PredicateLesserEqualFilter")(
         attribute, cls._ParseFromHumanReadable(value))
 
   @classmethod
-  def GreaterThanEq(cls, attribute, filter_implemention, value):
-    return filter_implemention.PredicateGreaterEqualFilter(
+  def GreaterThanEq(cls, attribute, filter_implementation, value):
+    return filter_implementation.GetFilter("PredicateGreaterEqualFilter")(
         attribute, cls._ParseFromHumanReadable(value))
 
   @classmethod
-  def GreaterThan(cls, attribute, filter_implemention, value):
-    return filter_implemention.PredicateGreaterEqualFilter(
+  def GreaterThan(cls, attribute, filter_implementation, value):
+    return filter_implementation.GetFilter("PredicateGreaterEqualFilter")(
         attribute, cls._ParseFromHumanReadable(value, eoy=True))
 
   operators = {"<": (1, "LessThan"),
@@ -1024,17 +1026,17 @@ class Subject(RDFURN):
   """A psuedo attribute representing the subject of an AFF4 object."""
 
   @staticmethod
-  def ContainsMatch(unused_attribute, filter_implemention, regex):
-    return filter_implemention.SubjectContainsFilter(regex)
+  def ContainsMatch(unused_attribute, filter_implementation, regex):
+    return filter_implementation.GetFilter("SubjectContainsFilter")(regex)
 
   @staticmethod
-  def Startswith(unused_attribute, filter_implemention, string):
-    return filter_implemention.SubjectContainsFilter("^" + utils.EscapeRegex(
-        string))
+  def Startswith(unused_attribute, filter_implementation, string):
+    return filter_implementation.GetFilter("SubjectContainsFilter")(
+        "^" + utils.EscapeRegex(string))
 
   @staticmethod
-  def HasAttribute(unused_attribute, filter_implemention, string):
-    return filter_implemention.HasPredicateFilter(string)
+  def HasAttribute(unused_attribute, filter_implementation, string):
+    return filter_implementation.GetFilter("HasPredicateFilter")(string)
 
   operators = dict(matches=(1, "ContainsMatch"),
                    contains=(1, "ContainsMatch"),

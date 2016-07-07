@@ -284,7 +284,7 @@ class BlobImage(aff4.AFF4ImageBase):
 
   class SchemaCls(aff4.AFF4Image.SchemaCls):
     """The schema for Blob Images."""
-    STAT = aff4.AFF4Object.VFSDirectory.SchemaCls.STAT
+    STAT = VFSDirectory.SchemaCls.STAT
 
     HASHES = aff4.Attribute("aff4:hashes", HashList,
                             "List of hashes of each chunk in this file.")
@@ -380,7 +380,7 @@ class HashImage(aff4.AFF4Image):
 
   class SchemaCls(aff4.AFF4Image.SchemaCls):
     """The schema for AFF4 files in the GRR VFS."""
-    STAT = aff4.AFF4Object.VFSDirectory.SchemaCls.STAT
+    STAT = VFSDirectory.SchemaCls.STAT
 
 
 class AFF4SparseImage(aff4.AFF4ImageBase):
@@ -396,7 +396,7 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
 
     PATHSPEC = VFSDirectory.SchemaCls.PATHSPEC
 
-    STAT = aff4.AFF4Object.VFSDirectory.SchemaCls.STAT
+    STAT = VFSDirectory.SchemaCls.STAT
 
     _CHUNKSIZE = aff4.Attribute("aff4:chunksize",
                                 rdfvalue.RDFInteger,

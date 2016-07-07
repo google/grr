@@ -591,6 +591,11 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
         reference.flow = ApiNotificationFlowReference(
             flow_urn=notification.subject,
             client_id=components[0])
+      elif len(components) == 1 and rdf_client.ClientURN.Validate(components[
+          0]):
+        reference.type = reference_type_enum.DISCOVERY
+        reference.discovery = ApiNotificationDiscoveryReference(
+            client_id=components[0])
       else:
         reference.type = reference_type_enum.VFS
         reference.vfs = ApiNotificationVfsReference(

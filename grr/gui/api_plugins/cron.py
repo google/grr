@@ -16,6 +16,10 @@ from grr.proto import api_pb2
 CATEGORY = "Cron"
 
 
+class CronJobNotFoundError(api_call_handler_base.ResourceNotFoundError):
+  """Raised when a cron job could not be found."""
+
+
 class ApiCronJob(rdf_structs.RDFProtoStruct):
   """ApiCronJob is used when rendering responses.
 
@@ -115,6 +119,30 @@ class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
     items.sort(key=lambda item: item.urn)
 
     return ApiListCronJobsResult(items=items, total_count=len(all_jobs_urns))
+
+
+class ApiGetCronJobArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetCronJobArgs
+
+
+class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
+  """Retrieves a specific cron job."""
+
+  category = CATEGORY
+  args_type = ApiGetCronJobArgs
+  result_type = ApiCronJob
+
+  def Handle(self, args, token=None):
+    try:
+      cron_job = aff4.FACTORY.Open(
+          aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(args.cron_job_id),
+          aff4_type=aff4_cronjobs.CronJob,
+          token=token)
+
+      return ApiCronJob().InitFromAff4Object(cron_job)
+    except aff4.InstantiationError:
+      raise CronJobNotFoundError("Cron job with id %s could not be found" %
+                                 args.cron_job_id)
 
 
 class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):

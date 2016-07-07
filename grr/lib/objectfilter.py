@@ -93,8 +93,6 @@ import binascii
 import collections
 import re
 
-import logging
-
 from grr.lib import lexer
 from grr.lib import utils
 
@@ -138,7 +136,6 @@ class Filter(object):
                     (self.value_expander_cls))
       self.value_expander = self.value_expander_cls()
     self.args = arguments or []
-    logging.debug("Adding %s", arguments)
 
   @abc.abstractmethod
   def Matches(self, obj):
@@ -232,8 +229,6 @@ class GenericBinaryOperator(BinaryOperator):
     """Takes a list of values and if at least one matches, returns True."""
     for val in values:
       try:
-        logging.debug("Operating %s with x=%s and y=%s",
-                      self.__class__.__name__, val, self.right_operand)
         if self.Operation(val, self.right_operand):
           return True
         else:
@@ -349,7 +344,6 @@ class Regexp(GenericBinaryOperator):
 
   def __init__(self, *children, **kwargs):
     super(Regexp, self).__init__(*children, **kwargs)
-    logging.debug("Compiled: %s", self.right_operand)
     try:
       self.compiled_re = re.compile(utils.SmartUnicode(self.right_operand))
     except re.error:
@@ -703,8 +697,6 @@ class Parser(lexer.SearchParser):
 
   def InsertArg(self, string="", **_):
     """Insert an arg to the current expression."""
-    logging.debug("Storing Argument %s", string)
-
     if self.state == "LIST_ARG":
       self.list_args.append(string)
     elif self.current_expression.AddArg(string):
@@ -776,7 +768,6 @@ class Parser(lexer.SearchParser):
 
   def HexEscape(self, string, match, **_):
     """Converts a hex escaped string."""
-    logging.debug("HexEscape matched %s", string)
     hex_string = match.group(1)
     try:
       self.string += binascii.unhexlify(hex_string)

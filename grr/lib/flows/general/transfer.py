@@ -124,8 +124,8 @@ class GetFile(flow.GRRFlow):
     Note that this is pinned on the client id - i.e. the client can not change
     aff4 objects outside its tree.
     """
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(self.args.pathspec,
-                                                     self.client_id)
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(self.args.pathspec,
+                                              self.client_id)
 
     self.state.stat.aff4path = urn
 
@@ -200,8 +200,7 @@ class FileTracker(object):
     self.hash_obj = None
     self.hash_list = []
     self.pathspec = stat_entry.pathspec
-    self.urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(self.pathspec,
-                                                          client_id)
+    self.urn = aff4_grr.VFSGRRClient.PathspecToURN(self.pathspec, client_id)
     self.stat_entry.aff4path = self.urn
     self.request_data = request_data
     self.index = index
@@ -711,8 +710,7 @@ class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
 
     for pathspec in self.args.pathspecs:
 
-      vfs_urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec,
-                                                           self.client_id)
+      vfs_urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
 
       if vfs_urn not in unique_paths:
         # Only Stat/Hash each path once, input pathspecs can have dups.

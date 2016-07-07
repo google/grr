@@ -14,12 +14,6 @@ import threading
 
 import logging
 
-# This is required to monkey patch various older libraries so
-# pylint: disable=unused-import
-from grr.lib import compatibility
-
-# pylint: enable=unused-import
-
 
 class MetaclassRegistry(abc.ABCMeta):
   """Automatic Plugin Registration through metaclasses."""
@@ -57,24 +51,16 @@ class MetaclassRegistry(abc.ABCMeta):
 
         cls.classes[cls.__name__] = cls
         cls.classes_by_name[getattr(cls, "name", None)] = cls
-        cls.class_list.append(cls)
         if hasattr(cls, "_ClsHelpEpilog"):
           cls.__doc__ = "%s\n\n%s" % (getattr(cls, "__doc__", ""),
                                       cls._ClsHelpEpilog())
       except AttributeError:
         cls.classes = {cls.__name__: cls}
         cls.classes_by_name = {getattr(cls, "name", None): cls}
-        cls.class_list = [cls]
         cls.plugin_feature = cls.__name__
         # Keep a reference to the top level class
         cls.top_level_class = cls
 
-      try:
-        if cls.top_level_class.include_plugins_as_attributes:
-          setattr(cls.top_level_class, cls.__name__, cls)
-
-      except AttributeError:
-        pass
     else:
       # Abstract classes should still have all the metadata attributes
       # registered.
@@ -82,7 +68,6 @@ class MetaclassRegistry(abc.ABCMeta):
         try:
           cls.classes = base.classes
           cls.classes_by_name = base.classes_by_name
-          cls.class_list = base.class_list
           break
         except AttributeError:
           pass
@@ -92,9 +77,6 @@ class MetaclassRegistry(abc.ABCMeta):
 
       if not hasattr(cls, "classes_by_name"):
         cls.classes_by_name = {}
-
-      if not hasattr(cls, "class_list"):
-        cls.class_list = []
 
   def GetPlugin(cls, name):
     """Return the class of the implementation that carries that name.

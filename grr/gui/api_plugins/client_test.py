@@ -12,6 +12,7 @@ from grr.lib import client_index
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
+from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -343,6 +344,44 @@ class ApiListKbFieldsHandlerTest(api_test_lib.ApiCallHandlerRegressionTest):
 
   def Run(self):
     self.Check("GET", "/api/clients/kb-fields")
+
+
+class ApiListClientCrashesHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest,
+    standard_test.StandardHuntTestMixin):
+
+  handler = "ApiListClientCrashesHandler"
+
+  def Run(self):
+    client_ids = self.SetupClients(1)
+    client_id = client_ids[0]
+    client_mock = test_lib.CrashClientMock(client_id, self.token)
+
+    with test_lib.FakeTime(42):
+      with self.CreateHunt(description="the hunt") as hunt_obj:
+        hunt_obj.Run()
+
+    with test_lib.FakeTime(45):
+      self.AssignTasksToClients(client_ids)
+      test_lib.TestHuntHelperWithMultipleMocks({client_id: client_mock}, False,
+                                               self.token)
+
+    crashes = aff4.FACTORY.Open(
+        client_id.Add("crashes"),
+        mode="r", token=self.token)
+    crash = list(crashes)[0]
+    session_id = crash.session_id.Basename()
+    replace = {hunt_obj.urn.Basename(): "H:123456", session_id: "H:11223344"}
+
+    self.Check("GET",
+               "/api/clients/%s/crashes" % client_id.Basename(),
+               replace=replace)
+    self.Check("GET",
+               "/api/clients/%s/crashes?count=1" % client_id.Basename(),
+               replace=replace)
+    self.Check("GET", ("/api/clients/%s/crashes?offset=1&count=1" %
+                       client_id.Basename()),
+               replace=replace)
 
 
 def main(argv):

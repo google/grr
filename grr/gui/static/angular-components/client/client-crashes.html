@@ -1,8 +1,3 @@
 <grr-check-client-access client-id="controller.clientId">
-
-  <div ng-if="controller.clientId">
-    <grr-legacy-renderer renderer="ClientCrashesRenderer"
-                         query-params="{client_id: controller.clientId}" />
-  </div>
-
+  <grr-semantic-value value="controller.crashes"></grr-semantic-value>
 </grr-check-client-access>

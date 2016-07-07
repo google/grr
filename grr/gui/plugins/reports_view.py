@@ -26,7 +26,7 @@ class ReportNameRenderer(forms.StringTypeFormRenderer):
 """)
 
   def Layout(self, request, response):
-    self.reports = [r.__name__ for r in reports.Report.class_list
+    self.reports = [r.__name__ for r in reports.Report.classes.values()
                     if r is not reports.Report.top_level_class]
     response = super(ReportNameRenderer, self).Layout(request, response)
     return self.CallJavascript(response,

@@ -4,10 +4,11 @@
 
 
 # To load the DumpFlashImage class pylint: disable=unused-import
-from grr.client.components.chipsec_support import grr_chipsec
+from grr.client.components.chipsec_support import grr_chipsec_stub
 # pylint: enable=unused-import
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib.aff4_objects import hardware
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
@@ -102,3 +103,64 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
   def End(self):
     if hasattr(self.state, "image_path"):
       self.Log("Successfully wrote Flash image.")
+
+
+class DumpACPITableArgs(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.DumpACPITableArgs
+
+  def Validate(self):
+    if not self.table_signature_list:
+      raise ValueError("No ACPI table to dump.")
+
+
+class DumpACPITable(transfer.LoadComponentMixin, flow.GRRFlow):
+  """Flow to retrieve ACPI tables."""
+
+  category = "/Collectors/"
+  behaviours = flow.GRRFlow.behaviours + "BASIC"
+  args_type = DumpACPITableArgs
+
+  @flow.StateHandler(next_state=["StartCollection"])
+  def Start(self):
+    """Load grr-chipsec component on the client."""
+    self.LoadComponentOnClient(name="grr-chipsec-component",
+                               version=self.args.component_version,
+                               next_state="StartCollection")
+
+  @flow.StateHandler(next_state=["TableReceived"])
+  def StartCollection(self, responses):
+    """Start collecting tables with listed signature."""
+    for table_signature in self.args.table_signature_list:
+      self.CallClient("DumpACPITable",
+                      logging=self.args.logging,
+                      table_signature=table_signature,
+                      next_state="TableReceived")
+
+  @flow.StateHandler()
+  def TableReceived(self, responses):
+    """Store received ACPI tables from client in AFF4."""
+    for response in responses:
+      for log in response.logs:
+        self.Log(log)
+
+    table_signature = responses.request.request.payload.table_signature
+
+    if not responses.success:
+      self.Log("Error retrieving ACPI table with signature %s" %
+               table_signature)
+      return
+
+    response = responses.First()
+
+    if response.acpi_tables:
+      self.Log("Retrieved ACPI table(s) with signature %s" % table_signature)
+      with aff4.FACTORY.Create(
+          self.client_id.Add("devices/chipsec/acpi/tables/%s" %
+                             table_signature),
+          hardware.ACPITableDataCollection,
+          token=self.token) as fd:
+        fd.AddAll(response.acpi_tables)
+        fd.Flush()
+
+      for acpi_table_response in response.acpi_tables:
+        self.SendReply(acpi_table_response)

@@ -133,6 +133,12 @@ parser_initialize.add_argument("--noprompt",
                                action="store_true",
                                help="Set to avoid prompting during initialize.")
 
+parser_initialize.add_argument(
+    "--no_templates_download",
+    default=False,
+    action="store_true",
+    help="Set to avoid downloading the templates during initialize.")
+
 parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
 
@@ -734,9 +740,12 @@ def ManageBinaries(config=None, token=None):
   print("\nStep 4: Installing template package and repackaging clients with"
         " new configuration.")
 
-  if flags.FLAGS.noprompt or ((raw_input(
-      "Download and upgrade client templates? You can skip this if "
-      "templates are already installed. [Yn]: ").upper() or "Y") == "Y"):
+  if flags.FLAGS.noprompt:
+    if not flags.FLAGS.no_templates_download:
+      InstallTemplatePackage()
+  elif ((raw_input("Download and upgrade client templates? You can skip "
+                   "this if templates are already installed."
+                   "[Yn]: ").upper() or "Y") == "Y"):
     InstallTemplatePackage()
 
   # Build debug binaries, then build release binaries.

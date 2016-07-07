@@ -4,7 +4,10 @@
 
 
 
+import mock
+
 from grr.gui import api_call_handler_base
+from grr.gui import api_call_router_with_approval_checks
 from grr.gui import runtests_test
 from grr.gui.api_plugins import vfs as api_vfs
 
@@ -880,6 +883,21 @@ class TestTimeline(FileViewTestBase):
                         "css=grr-file-timeline tbody tr")
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-file-timeline td:contains('newly_added.txt')")
+
+  @mock.patch.object(api_call_router_with_approval_checks.
+                     ApiCallRouterWithApprovalChecksWithRobotAccess,
+                     "GetVfsTimelineAsCsv")
+  def testClickingOnDownloadTimelineButtonInitiatesDownload(self, mock_method):
+    # Open VFS view for client 1 on a specific location.
+    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView"
+              "&t=_fs-os-c-proc")
+
+    self.Click("css=button[name=downloadTimeline]:not([disabled])")
+    self.WaitUntilEqual(1, lambda: mock_method.call_count)
+    mock_method.assert_called_once_with(
+        api_vfs.ApiGetVfsTimelineAsCsvArgs(client_id="C.0000000000000001",
+                                           file_path="fs/os/c/proc"),
+        token=mock.ANY)
 
 
 class TestHostInformation(FileViewTestBase):

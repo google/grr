@@ -79,7 +79,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
     # Test the AFF4 file that was created.
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
     fd1 = aff4.FACTORY.Open(urn, token=self.token)
     fd2 = open(pathspec.path)
     fd2.seek(0, 2)
@@ -144,7 +144,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
     # Test the AFF4 file that was created - it should be empty since by default
     # we judge the file size based on its stat.st_size.
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
     fd = aff4.FACTORY.Open(urn, token=self.token)
     self.assertEqual(fd.size, len(data))
     self.assertMultiLineEqual(fd.read(len(data)), data)
@@ -195,7 +195,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
     # Test the AFF4 file that was created.
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
     fd1 = aff4.FACTORY.Open(urn, token=self.token)
     fd2 = open(pathspec.path)
     fd2.seek(0, 2)
@@ -221,7 +221,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     # Fix path for Windows testing.
     pathspec.path = pathspec.path.replace("\\", "/")
     # Test the AFF4 file that was created.
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
     fd = aff4.FACTORY.Open(urn, token=self.token)
     fd_hash = fd.Get(fd.Schema.HASH)
 
@@ -250,7 +250,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
                                      args=args):
       pass
 
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
     blobimage = aff4.FACTORY.Open(urn, token=self.token)
     # Make sure a VFSBlobImage got written.
     self.assertTrue(isinstance(blobimage, aff4_grr.VFSBlobImage))

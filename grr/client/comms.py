@@ -1505,7 +1505,8 @@ class ClientCommunicator(communicator.Communicator):
   def SavePrivateKey(self, private_key):
     """Store the new private key on disk."""
     self.private_key = private_key
-    config_lib.CONFIG.Set("Client.private_key", self.private_key)
+    config_lib.CONFIG.Set("Client.private_key",
+                          self.private_key.SerializeToString())
     config_lib.CONFIG.Write()
 
   def LoadServerCertificate(self, server_certificate=None, ca_certificate=None):

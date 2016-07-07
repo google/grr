@@ -268,11 +268,6 @@ def _ValidateAFF4Type(aff4_type):
   if aff4_type is None:
     return None
 
-  # TODO(user): remove this
-  if isinstance(aff4_type, basestring) or isinstance(aff4_type,
-                                                     rdfvalue.RDFString):
-    return AFF4Object.classes[str(aff4_type)]
-
   # Check that we have the right type.
   if not isinstance(aff4_type, type):
     raise TypeError("aff4_type=%s must be a type" % aff4_type)
@@ -382,6 +377,7 @@ class Factory(object):
                              attributes,
                              replace=False,
                              to_delete=to_delete)
+
     else:
       data_store.DB.MultiSet(urn,
                              attributes,
@@ -678,6 +674,8 @@ class Factory(object):
     if token is None:
       token = data_store.default_token
 
+    new_urn = rdfvalue.RDFURN(new_urn)
+
     values = {}
     for predicate, value, ts in data_store.DB.ResolvePrefix(
         old_urn,
@@ -693,6 +691,8 @@ class Factory(object):
                              token=token,
                              replace=False,
                              sync=sync)
+
+      self._UpdateChildIndex(new_urn, token)
 
   def Open(self,
            urn,
@@ -1595,7 +1595,6 @@ class AFF4Object(object):
 
   # We are a registered class.
   __metaclass__ = registry.MetaclassRegistry
-  include_plugins_as_attributes = True
 
   # This property is used in GUIs to define behaviours. These can take arbitrary
   # values as needed. Behaviours are read only and set in the class definition.
@@ -2981,6 +2980,7 @@ class AFF4ImageBase(AFF4Stream):
   LOOK_AHEAD = 10
 
   class SchemaCls(AFF4Stream.SchemaCls):
+    """The schema for AFF4ImageBase."""
     _CHUNKSIZE = Attribute("aff4:chunksize",
                            rdfvalue.RDFInteger,
                            "Total size of each chunk.",
@@ -3310,9 +3310,6 @@ class AFF4Filter(object):
   """A simple filtering system to be used with Query()."""
   __metaclass__ = registry.MetaclassRegistry
 
-  # Automatically register plugins as class attributes
-  include_plugins_as_attributes = True
-
   def __init__(self, *args):
     self.args = args
 
@@ -3332,6 +3329,10 @@ class AFF4Filter(object):
     for subject in subjects:
       if self.FilterOne(subject):
         yield subject
+
+  @classmethod
+  def GetFilter(cls, filter_name):
+    return cls.classes[filter_name]
 
 # A global registry of all AFF4 classes
 FACTORY = None

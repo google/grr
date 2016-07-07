@@ -170,18 +170,6 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     for a, b in zip(flow_crashes, client_crashes):
       self.assertEqual(a, b)
 
-    # Check global crash collection. Check that crash written there is
-    # equal to per-client crash.
-    global_crashes = sorted(
-        aff4.FACTORY.Open(
-            aff4.ROOT_URN.Add("crashes"),
-            aff4_type=collects.PackedVersionedCollection,
-            token=self.token),
-        key=lambda x: x.timestamp)
-    self.assertEqual(len(global_crashes), len(client_crashes))
-    for a, b in zip(global_crashes, client_crashes):
-      self.assertEqual(a, b)
-
   def testAlertEmailIsSentWhenClientKilledDuringHunt(self):
     """Test that client killed messages are handled correctly for hunts."""
     self.email_messages = []
@@ -263,15 +251,6 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
           crash.crash_type,
           "aff4:/flows/" + queues.FLOWS.Basename() + ":NannyMessage")
       self.assertEqual(crash.crash_message, nanny_message)
-
-      # Check global crash collection. Check that crash written there is
-      # equal to per-client crash.
-      global_crashes = list(aff4.FACTORY.Open(
-          aff4.ROOT_URN.Add("crashes"),
-          aff4_type=collects.PackedVersionedCollection,
-          token=self.token))
-      self.assertEqual(len(global_crashes), 1)
-      self.assertEqual(global_crashes[0], crash)
 
   def testStartupHandler(self):
     # Clean the client records.

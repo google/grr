@@ -5,9 +5,9 @@
 
 import stat
 
-from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import fingerprint
 from grr.lib.flows.general import transfer
@@ -133,8 +133,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
             path=utils.SmartUnicode(path),
             pathtype=rdf_paths.PathSpec.PathType.MEMORY)
 
-        aff4path = aff4.AFF4Object.VFSGRRClient.PathspecToURN(pathspec,
-                                                              self.client_id)
+        aff4path = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
 
         stat_entry = rdf_client.StatEntry(aff4path=aff4path, pathspec=pathspec)
         self.ApplyCondition(

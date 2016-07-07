@@ -30,3 +30,32 @@ message DumpFlashImageResponse {
     }];
 }
 
+message ACPITableData {
+  optional uint64 table_address = 1 [(sem_type) = {
+      description: "Physical address of the ACPI table."
+    }];
+  optional bytes table_blob = 2 [(sem_type) = {
+      description: "Dumped ACPI table in raw byte format as provided "
+                   "by the BIOS, including the header.",
+      type: "RDFBytes"
+    }];
+}
+
+message DumpACPITableRequest {
+  optional bool logging = 1 [(sem_type) = {
+      description: "If logging is set to True, the client sends "
+                   "log, including Chipsec's log."
+    }];
+  optional string table_signature = 2 [(sem_type) = {
+      description: "Signature of the ACPI table(s) to be dumped."
+    }];
+}
+
+message DumpACPITableResponse {
+  repeated ACPITableData acpi_tables = 1 [(sem_type) = {
+      description: "Data containing dumped ACPI tables and their physical addresses."
+    }];
+  repeated string logs = 2 [(sem_type) = {
+      description: "Extra debug information.",
+    }];
+}

@@ -219,23 +219,39 @@ class BackgroundIndexUpdater(object):
   """Updates IndexedSequentialCollection objects in the background."""
   INDEX_DELAY = 240
 
+  exit_now = False
+
   def __init__(self):
     self.to_process = collections.deque()
     self.cv = threading.Condition()
+
+  def ExitNow(self):
+    with self.cv:
+      self.exit_now = True
+      self.to_process.append(None)
+      self.cv.notify()
 
   def AddIndexToUpdate(self, index_urn):
     with self.cv:
       self.to_process.append((index_urn, time.time() + self.INDEX_DELAY))
       self.cv.notify()
 
+  def ProcessCollection(self, collection_urn, token):
+    try:
+      aff4.FACTORY.Open(collection_urn, token=token).UpdateIndex()
+    except AttributeError:
+      pass
+
   def UpdateLoop(self):
     token = access_control.ACLToken(username="Background Index Updater",
                                     reason="Updating An Index")
-    while True:
+    while not self.exit_now:
       with self.cv:
         while not self.to_process:
           self.cv.wait()
         next_update = self.to_process.popleft()
+        if next_update is None:
+          return
 
       now = time.time()
       next_urn = next_update[0]
@@ -244,7 +260,7 @@ class BackgroundIndexUpdater(object):
         time.sleep(next_time - now)
         now = time.time()
 
-      aff4.FACTORY.Open(next_urn, token=token).UpdateIndex()
+      self.ProcessCollection(next_urn, token)
 
 
 BACKGROUND_INDEX_UPDATER = BackgroundIndexUpdater()

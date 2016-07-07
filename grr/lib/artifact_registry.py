@@ -42,7 +42,7 @@ class ArtifactRegistry(object):
   """A global registry of artifacts."""
 
   _artifacts = {}
-  _sources = {"dirs": [], "files": [], "datastores": []}
+  _sources = {"dirs": set(), "files": set(), "datastores": set()}
   _dirty = False
 
   def _LoadArtifactsFromDatastore(self,
@@ -55,7 +55,7 @@ class ArtifactRegistry(object):
                                       reason="Managing Artifacts.")
     loaded_artifacts = []
 
-    for artifact_coll_urn in source_urns or []:
+    for artifact_coll_urn in source_urns or set():
       with aff4.FACTORY.Create(artifact_coll_urn,
                                aff4_type=collects.RDFValueCollection,
                                token=token,
@@ -140,23 +140,28 @@ class ArtifactRegistry(object):
       artifact_value.Validate()
 
   def ClearSources(self):
-    self._sources = {"dirs": [], "files": [], "datastores": []}
+    self._sources = {"dirs": set(), "files": set(), "datastores": set()}
     self._dirty = True
 
   def AddFileSource(self, filename):
-    self._sources["files"].append(filename)
-    self._dirty = True
+    if filename not in self._sources["files"]:
+      self._sources["files"].add(filename)
+      self._dirty = True
 
   def AddDirSource(self, dirname):
     self.AddDirSources([dirname])
 
   def AddDirSources(self, dirnames):
-    self._sources["dirs"] += dirnames
-    self._dirty = True
+    for d in dirnames:
+      if d not in self._sources["dirs"]:
+        self._sources["dirs"].add(d)
+        self._dirty = True
 
   def AddDatastoreSources(self, datastores):
-    self._sources["datastores"] += datastores
-    self._dirty = True
+    for d in datastores:
+      if d not in self._sources["datastores"]:
+        self._sources["datastores"].add(d)
+        self._dirty = True
 
   def RegisterArtifact(self,
                        artifact_rdfvalue,
@@ -187,16 +192,16 @@ class ArtifactRegistry(object):
   def _ReloadArtifacts(self):
     """Load artifacts from all sources."""
     self._artifacts = {}
-    files_to_load = []
-    for dir_path in self._sources.get("dirs", []):
+    files_to_load = set()
+    for dir_path in self._sources.get("dirs", set()):
       try:
         for file_name in os.listdir(dir_path):
           if (file_name.endswith(".json") or file_name.endswith(".yaml") and
               not file_name.startswith("test")):
-            files_to_load.append(os.path.join(dir_path, file_name))
+            files_to_load.add(os.path.join(dir_path, file_name))
       except (IOError, OSError):
         logging.warn("Artifact directory not found: %s", dir_path)
-    files_to_load += self._sources.get("files", [])
+    files_to_load |= self._sources.get("files", set())
     logging.debug("Loading artifacts from: %s", files_to_load)
     self._LoadArtifactsFromFiles(files_to_load)
 

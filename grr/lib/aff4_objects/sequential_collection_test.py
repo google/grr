@@ -102,6 +102,10 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
     # might therefore be unavailable in further tests so we just
     # create a new one for each test we run.
     biu = sequential_collection.BackgroundIndexUpdater()
+    try:
+      sequential_collection.BACKGROUND_INDEX_UPDATER.ExitNow()
+    except AttributeError:
+      pass
     sequential_collection.BACKGROUND_INDEX_UPDATER = biu
     t = threading.Thread(None, biu.UpdateLoop)
     t.daemon = True

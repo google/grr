@@ -366,7 +366,9 @@ grr-user-notification-item {
     font-family: FontAwesome;
     font-size: .75em;
     color: #888; }
-  grr-user-notification-item .no-link-indicator {
+  grr-user-notification-item .no-link-indicator,
+  grr-user-notification-item .legacy-vfs-path-indicator,
+  grr-user-notification-item .legacy-mac-times-indicator {
     position: absolute;
     right: 5px;
     top: 5px;

@@ -160,8 +160,8 @@ class TestCrashView(test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget='client.crashes']")
 
     self.WaitUntil(self.AllTextsPresent, [
-        "C.0000000000000001", "Crash Type", "aff4:/flows/", "CrashHandler",
-        "Crash Message", "Client killed during transaction"
+        "C.0000000000000001", "Crash type", "aff4:/flows/", "CrashHandler",
+        "Crash message", "Client killed during transaction"
     ])
 
   def testHuntClientCrashesTabShowsDatesInUTC(self):

@@ -9,20 +9,27 @@ goog.scope(function() {
  * Controller for ClientCrashesDirective.
  *
  * @param {!angular.Scope} $scope
+ * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @constructor
  * @ngInject
  */
 grrUi.client.clientCrashesDirective.ClientCrashesController = function(
-    $scope, grrRoutingService) {
+    $scope, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
+
+  /** @private {!grrUi.core.apiService.ApiService} */
+  this.grrApiService_ = grrApiService;
 
   /** @private {!grrUi.routing.routingService.RoutingService} */
   this.grrRoutingService_ = grrRoutingService;
 
   /** @type {string} */
-  this.cliendId;
+  this.clientId;
+
+  /** @type {Array.<Object>} */
+  this.crashes;
 
   this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'clientId',
       this.onClientIdChange_.bind(this));
@@ -39,6 +46,11 @@ var ClientCrashesController =
  */
 ClientCrashesController.prototype.onClientIdChange_ = function(clientId) {
   this.clientId = clientId;
+
+  this.grrApiService_.get('clients/' + clientId + '/crashes').then(
+      function (response) {
+    this.crashes = response['data']['items'];
+  }.bind(this));
 };
 
 /**

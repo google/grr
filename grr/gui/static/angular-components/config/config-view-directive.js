@@ -18,7 +18,7 @@ var directive = grrUi.config.configViewDirective;
  * @ngInject
  */
 directive.ConfigViewController = function($scope, $http) {
-  $http.get('/api/config').success(function(config) {
+  $http.get('/api/config').then(function(config) {
     this.items = {};
 
     angular.forEach(config['sections'], function(section) {

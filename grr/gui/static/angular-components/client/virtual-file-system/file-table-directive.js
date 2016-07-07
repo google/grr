@@ -237,7 +237,10 @@ FileTableController.prototype.updateFilter = function() {
  */
 FileTableController.prototype.downloadTimeline = function() {
   var clientId = this.fileContext['clientId'];
-  var selectedFolderPath = this.fileContext['selectedFolderPath'];
+  var selectedFilePath = this.fileContext['selectedFilePath'] || '';
+  var selectedFolderPath =
+      grrUi.client.virtualFileSystem.utils.getFolderFromPath(
+          selectedFilePath);
 
   var url = 'clients/' + clientId + '/vfs-timeline-csv/' + selectedFolderPath;
   this.grrApiService_.downloadFile(url).then(

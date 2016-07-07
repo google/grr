@@ -27,7 +27,7 @@ stat_type_mask = (stat.S_IFREG | stat.S_IFDIR | stat.S_IFLNK | stat.S_IFBLK
 def CreateAFF4Object(stat_response, client_id, token, sync=False):
   """This creates a File or a Directory from a stat response."""
 
-  stat_response.aff4path = aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+  stat_response.aff4path = aff4_grr.VFSGRRClient.PathspecToURN(
       stat_response.pathspec, client_id)
 
   if stat_response.pathspec.last.stream_name:
@@ -86,7 +86,7 @@ class ListDirectory(flow.GRRFlow):
 
       # The full path of the object is the combination of the client_id and the
       # path.
-      self.state.Register("urn", aff4.AFF4Object.VFSGRRClient.PathspecToURN(
+      self.state.Register("urn", aff4_grr.VFSGRRClient.PathspecToURN(
           self.state.directory_pathspec, self.client_id))
 
   @flow.StateHandler()
@@ -176,8 +176,8 @@ class IteratedListDirectory(ListDirectory):
 
     directory_pathspec = self.state.responses[0].pathspec.Dirname()
 
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(directory_pathspec,
-                                                     self.client_id)
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(directory_pathspec,
+                                              self.client_id)
 
     # First dir we get back is the main urn.
     if not self.state.urn:
@@ -232,8 +232,8 @@ class RecursiveListDirectory(flow.GRRFlow):
 
       directory_pathspec = response.pathspec.Dirname()
 
-      urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(directory_pathspec,
-                                                       self.client_id)
+      urn = aff4_grr.VFSGRRClient.PathspecToURN(directory_pathspec,
+                                                self.client_id)
 
       self.StoreDirectory(responses)
 
@@ -273,8 +273,8 @@ class RecursiveListDirectory(flow.GRRFlow):
   @flow.StateHandler()
   def End(self):
     status_text = "Recursive Directory Listing complete %d nodes, %d dirs"
-    urn = aff4.AFF4Object.VFSGRRClient.PathspecToURN(self.state.args.pathspec,
-                                                     self.client_id)
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(self.state.args.pathspec,
+                                              self.client_id)
     self.Notify("ViewObject", self.state.first_directory or urn,
                 status_text % (self.state.file_count, self.state.dir_count))
     self.Status(status_text, self.state.file_count, self.state.dir_count)

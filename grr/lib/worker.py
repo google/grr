@@ -357,7 +357,6 @@ class GRRWorker(object):
           self._ProcessRegularFlowMessages(flow_obj, notification)
 
       elapsed = time.time() - now
-      logging.debug("Done processing %s: %s sec", session_id, elapsed)
       stats.STATS.RecordEvent("worker_flow_processing_time",
                               elapsed,
                               fields=[flow_obj.Name()])

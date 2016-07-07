@@ -221,11 +221,11 @@ def BuildComponent(setup_path, output_dir=None):
 
     component_archive.close()
 
+    modules = setup_args.get("py_modules", []) + setup_args.get("packages", [])
     result = rdf_client.ClientComponent(
-        summary=rdf_client.ClientComponentSummary(
-            name=setup_args["name"],
-            version=setup_args["version"],
-            modules=setup_args["py_modules"],),
+        summary=rdf_client.ClientComponentSummary(name=setup_args["name"],
+                                                  version=setup_args["version"],
+                                                  modules=modules),
         build_system=rdf_client.Uname.FromCurrentSystem(),)
 
     # Components will be encrypted using AES128CBC

@@ -15,11 +15,6 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
 
-# Maintaining the reference so that DataObject can be unpickled from old
-# hunts and flows.
-# pylint: disable=invalid-name
-DataObject = utils.DataObject
-
 
 class GrrMessage(rdf_structs.RDFProtoStruct):
   """An RDFValue class to manage GRR messages."""

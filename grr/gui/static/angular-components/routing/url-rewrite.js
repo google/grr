@@ -60,9 +60,6 @@ grrUi.routing.rewriteUrl = function(url) {
     case 'ServerLoadView':
       return '/server-load';
 
-    case 'GlobalCrashesRenderer':
-      return '/client-crashes';
-
     //
     // Configuration redirects.
     //
@@ -110,6 +107,7 @@ grrUi.routing.rewriteUrl = function(url) {
       return '/clients/' + clientId + '/vfs/' +
           encodeUrlPath(ensurePathIsFolder(getFilePathFromId(t)));
 
+    case 'TimelineMain':
     case 'ContainerViewer':
       var path = hashState['container'] || '';
       var query = hashState['query'] || '';

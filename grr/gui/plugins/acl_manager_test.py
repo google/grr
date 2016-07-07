@@ -169,7 +169,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # This asks the user "test" (which is us) to approve the request.
     self.Type("css=input[id=acl_approver]", "test")
     self.Type("css=input[id=acl_reason]", self.reason)
-    self.ClickUntilNotVisible("acl_dialog_submit")
+    self.Click("acl_dialog_submit")
 
     self.WaitForNotification("aff4:/users/test")
     # User test logs in as an approver.
@@ -179,7 +179,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     self.Click("notification_button")
 
-    self.ClickUntilNotVisible("css=td:contains('grant access to GRR client')")
+    self.Click("css=td:contains('grant access to GRR client')")
 
     self.WaitUntilContains("Grant Access for GRR Use", self.GetText,
                            "css=h2:contains('Grant')")
@@ -198,11 +198,11 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     self.Click("notification_button")
 
-    self.ClickUntilNotVisible("css=td:contains('has granted you access')")
+    self.Click("css=td:contains('has granted you access')")
 
     # This is insufficient - we need 2 approvers.
-    self.WaitUntilContains("Requires 2 approvers for access.", self.GetText,
-                           "css=div#acl_form")
+    self.WaitUntil(self.IsTextPresent,
+                   "You do not have an approval for this client.")
 
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
@@ -219,7 +219,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     self.Click("notification_button")
 
-    self.ClickUntilNotVisible("css=td:contains('grant access to GRR client')")
+    self.Click("css=td:contains('grant access to GRR client')")
 
     self.WaitUntil(self.IsTextPresent,
                    "This approval has already been granted!")
@@ -229,13 +229,11 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     self.Click("notification_button")
 
-    self.ClickUntilNotVisible("css=td:contains('has granted you access')")
+    self.Click("css=td:contains('has granted you access')")
 
-    self.Click("css=span:contains('fs')")
-
-    # This is ok - it should work now
-    self.WaitUntilContains("aff4:/C.0000000000000001/fs", self.GetText,
-                           "css=h3:contains('fs')")
+    # Host information page should be displayed.
+    self.WaitUntil(self.IsTextPresent, "Last booted")
+    self.WaitUntil(self.IsTextPresent, "Interfaces")
 
     # One email for the original request and one for each approval.
     self.assertEqual(len(self.emails_sent), 3)
@@ -302,16 +300,21 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Ok now submit this.
     self.Type("css=input[id=acl_approver]", "test")
-    self.ClickUntilNotVisible("acl_dialog_submit")
+    self.Click("acl_dialog_submit")
+
+    # "Request Approval" dialog should go away.
+    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     # And make sure the approval was created...
-    fd = aff4.FACTORY.Open("aff4:/ACL/C.0000000000000001/test",
-                           token=self.token)
-    approvals = list(fd.ListChildren())
+    def GetApprovals():
+      fd = aff4.FACTORY.Open("aff4:/ACL/C.0000000000000001/test",
+                             token=self.token)
+      return list(fd.ListChildren())
 
-    self.assertEqual(len(approvals), 1)
+    self.WaitUntilEqual(1, lambda: len(GetApprovals()))
 
     # ... using the correct reason.
+    approvals = GetApprovals()
     self.assertEqual(
         utils.SmartUnicode(approvals[0].Basename().decode("base64")),
         test_reason)
@@ -353,7 +356,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntilEqual("1", self.GetText, "notification_button")
 
     self.Click("notification_button")
-    self.ClickUntilNotVisible("css=td:contains('Please grant access to hunt')")
+    self.Click("css=td:contains('Please grant access to hunt')")
 
     self.WaitUntilContains("Grant Access for GRR Use", self.GetText,
                            "css=h2:contains('Grant')")
@@ -377,7 +380,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.Click("notification_button")
     self.WaitUntil(self.GetText,
                    "css=td:contains('has granted you access to hunt')")
-    self.ClickUntilNotVisible("css=tr:contains('has granted you access') a")
+    self.Click("css=tr:contains('has granted you access') a")
 
     # Run SampleHunt (it should be selected by default).
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
@@ -407,7 +410,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # We should be notified that we have an approval
     self.WaitUntilEqual("1", self.GetText, "notification_button")
     self.Click("notification_button")
-    self.ClickUntilNotVisible("css=tr:contains('has granted you access') a")
+    self.Click("css=tr:contains('has granted you access') a")
     # Wait for modal backdrop to go away.
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
@@ -433,7 +436,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.Open("/")
     self.Click("notification_button")
 
-    self.ClickUntilNotVisible("css=td:contains('Please grant access to hunt')")
+    self.Click("css=td:contains('Please grant access to hunt')")
 
     self.WaitUntil(self.IsTextPresent,
                    "This approval has already been granted!")

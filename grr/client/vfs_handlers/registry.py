@@ -142,8 +142,10 @@ def QueryInfoKey(key):
   if rc != ERROR_SUCCESS:
     raise ctypes.WinError(2)
 
-  return (num_sub_keys.value, num_values.value, ft.dwLowDateTime
-          | (ft.dwHighDateTime << 32))
+  last_modified = ft.dwLowDateTime | (ft.dwHighDateTime << 32)
+  last_modified = last_modified / 10000000 - WIN_UNIX_DIFF_MSECS
+
+  return (num_sub_keys.value, num_values.value, last_modified)
 
 
 def QueryValueEx(key, value_name):
@@ -326,9 +328,13 @@ class RegistryFile(vfs.VFSHandler):
         raise IOError("Unable to open key %s" % self.key_name)
 
   def Stat(self):
-    return self._Stat("", self.value, self.value_type)
+    if not self.last_modified:
+      with OpenKey(self.hive, self.local_path) as key:
+        (self.number_of_keys, self.number_of_values,
+         self.last_modified) = QueryInfoKey(key)
+    return self._Stat("", self.value, self.value_type, mtime=self.last_modified)
 
-  def _Stat(self, name, value, value_type):
+  def _Stat(self, name, value, value_type, mtime=None):
     response = rdf_client.StatEntry()
     response_pathspec = self.pathspec.Copy()
 
@@ -344,8 +350,8 @@ class RegistryFile(vfs.VFSHandler):
       response.st_mode = stat.S_IFDIR
     else:
       response.st_mode = stat.S_IFREG
-
-    response.st_mtime = self.last_modified
+    if mtime:
+      response.st_mtime = mtime
     response.st_size = len(utils.SmartStr(value))
     if value_type is not None:
       response.registry_type = self.registry_map.get(value_type, 0)
@@ -429,7 +435,6 @@ class RegistryFile(vfs.VFSHandler):
         (self.number_of_keys, self.number_of_values,
          self.last_modified) = QueryInfoKey(key)
 
-        self.last_modified = self.last_modified / 10000000 - WIN_UNIX_DIFF_MSECS
         # First keys
         for i in xrange(self.number_of_keys):
           try:
@@ -471,7 +476,6 @@ class RegistryFile(vfs.VFSHandler):
         (self.number_of_keys, self.number_of_values,
          self.last_modified) = QueryInfoKey(key)
 
-        self.last_modified = self.last_modified / 10000000 - WIN_UNIX_DIFF_MSECS
         # First keys - These will look like directories.
         for i in xrange(self.number_of_keys):
           try:

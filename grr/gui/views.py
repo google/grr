@@ -78,7 +78,6 @@ def Homepage(request):
       "artifact_view.js",
       "configuration_view.js",
       "container_viewer.js",
-      "crash_view.js",
       "cron_view.js",
       "fileview.js",
       "fileview_widgets.js",

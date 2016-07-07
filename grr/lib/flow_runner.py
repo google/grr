@@ -567,9 +567,9 @@ class FlowRunner(object):
 
           stats.STATS.IncrementCounter("flow_completions",
                                        fields=[self.flow_obj.Name()])
-          logging.info("Destroying session %s(%s) for client %s",
-                       self.session_id, self.flow_obj.Name(),
-                       self.args.client_id)
+          logging.debug("Destroying session %s(%s) for client %s",
+                        self.session_id, self.flow_obj.Name(),
+                        self.args.client_id)
 
           self.Terminate()
 
@@ -795,7 +795,7 @@ class FlowRunner(object):
     handler_urns = []
 
     # This is the cache of event names to handlers.
-    event_map = self.flow_obj.EventListener.EVENT_NAME_MAP
+    event_map = self.flow_obj.classes["EventListener"].EVENT_NAME_MAP
 
     if isinstance(event_name, basestring):
       for event_cls in event_map.get(event_name, []):
@@ -1099,8 +1099,6 @@ class FlowRunner(object):
       pass
 
     if self.args.request_state.session_id:
-      logging.debug("Terminating flow %s", self.session_id)
-
       # Make a response or use the existing one.
       response = status or rdf_flows.GrrStatus()
 
@@ -1285,7 +1283,7 @@ class FlowRunner(object):
           timestamp=rdfvalue.RDFDatetime().Now())
 
       data_store.DB.Set(self.session_id,
-                        aff4.AFF4Object.GRRFlow.SchemaCls.NOTIFICATION,
+                        self.flow_obj.Schema.NOTIFICATION,
                         notification,
                         replace=False,
                         sync=False,
