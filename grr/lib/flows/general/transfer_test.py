@@ -4,6 +4,8 @@
 
 import hashlib
 import os
+import platform
+import unittest
 
 from grr.client.client_actions import standard
 from grr.lib import action_mocks
@@ -87,6 +89,8 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
     self.CompareFDs(fd1, fd2)
 
+  @unittest.skipUnless(platform.system() == "Linux",
+                       "/proc only exists on Linux")
   def testMultiGetFileOfSpecialFiles(self):
     """Test that special /proc/ files are handled correctly.
 

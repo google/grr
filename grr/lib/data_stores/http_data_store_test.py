@@ -3,10 +3,12 @@
 
 
 import os
+import platform
 import shutil
 import socket
 import tempfile
 import threading
+import unittest
 
 
 import portpicker
@@ -168,8 +170,10 @@ class HTTPDataStoreTest(HTTPDataStoreMixin, data_store_test._DataStoreTest):
   def __init__(self, *args):
     super(HTTPDataStoreTest, self).__init__(*args)
 
-  def testRDFDatetimeTimestamps(self):
-    # Disabled for now.
+  @unittest.skipUnless(platform.system() == "Linux",
+                       "We only expect the datastore to work on Linux")
+  def testDataStoreInit(self):
+    # This just makes sure the datastore can actually initialize.
     pass
 
 

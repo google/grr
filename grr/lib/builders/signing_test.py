@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """Tests for grr.lib.signing."""
 
+import platform
 import tempfile
+import unittest
 
 
 import mock
@@ -18,6 +20,8 @@ class WindowsCodeSignerTest(test_lib.GRRBaseTest):
     super(WindowsCodeSignerTest, self).setUp()
     self.winsign = signing.WindowsCodeSigner("", "", "", "")
 
+  @unittest.skipUnless(platform.system() == "Linux",
+                       "We only have pexpect for signing on Linux")
   def testSignBuffer(self):
     intemp = tempfile.NamedTemporaryFile()
 

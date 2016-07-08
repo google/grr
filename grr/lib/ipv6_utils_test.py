@@ -1,10 +1,12 @@
 #!/usr/bin/env python
 """Tests for grr.lib.ipv6_utils."""
 
+import os
 import socket
+import yaml
 
+from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import ipv6_addresses
 from grr.lib import ipv6_utils
 from grr.lib import test_lib
 
@@ -15,28 +17,30 @@ class Ipv6UtilsTest(test_lib.GRRBaseTest):
   Test addresses inspired by:
   http://download.dartware.com/thirdparty/test-ipv6-regex.pl
 
-  We test for equivalence with socket.inet_pton and socket.inet_ntop but not
-  reversibility since the addresses are output to best practice standard and the
-  input is syntactically correct but not optimised.  We also don't restore
-  dotted quad IPv4 endings.
+  We test for equivalence with linux's implementation of socket.inet_pton and
+  socket.inet_ntop but not reversibility since the addresses are output to best
+  practice standard and the input is syntactically correct but not optimised.
+  We also don't restore dotted quad IPv4 endings.
+
+  The test dataset was created as follows for each address:
+    packed = socket.inet_pton(socket.AF_INET6, address)
+    test_tuple = (packed, socket.inet_ntop(socket.AF_INET6, packed))
   """
 
-  def testInetAtoN(self):
-    for address in ipv6_addresses.IPV6_ADDRESSES:
-      self.assertEqual(
-          ipv6_utils.InetAtoN(address),
-          socket.inet_pton(socket.AF_INET6, address))
+  def testInetAtoNandNtoA(self):
+    with open(
+        os.path.join(config_lib.CONFIG["Test.data_dir"], "ipv6_addresses.yaml"),
+        "r") as test_data:
+      test_dict = yaml.safe_load(test_data)
 
-    for address in ipv6_addresses.BAD_IPV6_ADDRESSES:
-      self.assertRaises(socket.error, ipv6_utils.InetAtoN, address)
+    for address in test_dict["ipv6_test_set"]:
+      expected_packed, expected_unpacked = test_dict["ipv6_test_set"][address]
+      self.assertEqual(ipv6_utils.InetAtoN(address), expected_packed)
+      self.assertEqual(ipv6_utils.InetNtoA(expected_packed), expected_unpacked)
 
-  def testInetNtoA(self):
-    for address in ipv6_addresses.IPV6_ADDRESSES:
-      packed = socket.inet_pton(socket.AF_INET6, address)
-
-      self.assertEqual(
-          ipv6_utils.InetNtoA(packed),
-          socket.inet_ntop(socket.AF_INET6, packed))
+    for address in test_dict["bad_ipv6_addresses"]:
+      with self.assertRaises(socket.error):
+        ipv6_utils.InetAtoN(address)
 
 
 def main(argv):

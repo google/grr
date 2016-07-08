@@ -2,8 +2,10 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Test the filesystem related flows."""
 
+
 import hashlib
 import os
+import platform
 
 from grr.lib import action_mocks
 from grr.lib import aff4
@@ -245,16 +247,25 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
 
     # Get the foos using default of 3 directory levels.
     paths = [os.path.join(self.temp_dir, "1/**/foo*")]
-    results = ["1/2/3/4/fOo4", "1/2/3/4/foo4", "/1/2/3/fOo3", "/1/2/3/foo3",
-               "1/2/fOo2", "1/2/foo2", "1/2 space/foo something"]
+
+    # Handle filesystem case insensitivity
+    results = ["1/2/3/4/foo4", "/1/2/3/foo3", "1/2/foo2",
+               "1/2 space/foo something"]
+    if platform.system() == "Linux":
+      results = ["1/2/3/4/fOo4", "1/2/3/4/foo4", "/1/2/3/fOo3", "/1/2/3/foo3",
+                 "1/2/fOo2", "1/2/foo2", "1/2 space/foo something"]
     self._RunGlob(paths)
     self.assertItemsEqual(self.flow_replies, [utils.JoinPath(self.temp_dir, x)
                                               for x in results])
 
     # Get the files 2 levels down only.
     paths = [os.path.join(self.temp_dir, "1/", "**2/foo*")]
-    results = ["1/2/3/foo3", "1/2/3/fOo3", "/1/2/fOo2", "/1/2/foo2",
-               "1/2 space/foo something"]
+
+    # Handle filesystem case insensitivity
+    results = ["1/2/3/foo3", "/1/2/foo2", "1/2 space/foo something"]
+    if platform.system() == "Linux":
+      results = ["1/2/3/foo3", "1/2/3/fOo3", "/1/2/fOo2", "/1/2/foo2",
+                 "1/2 space/foo something"]
     self._RunGlob(paths)
     self.assertItemsEqual(self.flow_replies, [utils.JoinPath(self.temp_dir, x)
                                               for x in results])
@@ -269,7 +280,10 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
   def testGlobWithTwoStars(self):
     self._MakeTestDirs()
     paths = [os.path.join(self.temp_dir, "1/", "*/*/foo*")]
-    results = ["1/2/3/foo3", "1/2/3/fOo3"]
+    # Handle filesystem case insensitivity
+    results = ["1/2/3/foo3"]
+    if platform.system() == "Linux":
+      results = ["1/2/3/foo3", "1/2/3/fOo3"]
     self._RunGlob(paths)
     self.assertItemsEqual(self.flow_replies, [utils.JoinPath(self.temp_dir, x)
                                               for x in results])
@@ -280,10 +294,14 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
              os.path.join(self.temp_dir, "notthere"),
              os.path.join(self.temp_dir, "*/notthere"),
              os.path.join(self.temp_dir, "*/foo*")]
-    results = ["1/foo1", "1/fOo1", "/1/2/fOo2", "/1/2/foo2"]
+
+    # Handle filesystem case sensitivity
+    expected_results = ["1/foo1", "/1/2/foo2"]
+    if platform.system() == "Linux":
+      expected_results = ["1/foo1", "1/fOo1", "/1/2/fOo2", "/1/2/foo2"]
     self._RunGlob(paths)
     self.assertItemsEqual(self.flow_replies, [utils.JoinPath(self.temp_dir, x)
-                                              for x in results])
+                                              for x in expected_results])
 
   def testGlobWithInvalidStarStar(self):
     client_mock = action_mocks.ActionMock("Find", "StatFile")
