@@ -83,21 +83,22 @@ class DataServerConnection(object):
     ret = ""
     left = n
     while left:
-      ret += self.sock.recv(left)
+      data = self.sock.recv(left)
+      if data == "":
+        raise IOError("Expected %d bytes, got EOF after %d" % (n, len(ret)))
+      ret += data
       left = n - len(ret)
     return ret
 
   def _ReadReply(self):
     try:
       replylen_str = self._ReadExactly(sutils.SIZE_PACKER.size)
-      if not replylen_str:
-        raise HTTPDataStoreError("Could not read reply from data server.")
       replylen = sutils.SIZE_PACKER.unpack(replylen_str)[0]
       reply = self._ReadExactly(replylen)
       response = rdf_data_store.DataStoreResponse(reply)
       CheckResponseStatus(response)
       return response
-    except (socket.error, socket.timeout) as e:
+    except (socket.error, socket.timeout, IOError) as e:
       logging.warning("Cannot read reply from server %s:%d : %s",
                       self.Address(), self.Port(), e)
       return None
@@ -179,9 +180,9 @@ class DataServerConnection(object):
       logging.warning("Httplib problem when connecting to %s:%d: %s",
                       self.Address(), self.Port(), str(e))
       return False
-    except (socket.error, socket.timeout):
-      logging.warning("Socket problem when connecting to %s:%d", self.Address(),
-                      self.Port())
+    except (socket.error, socket.timeout, IOError) as e:
+      logging.warning("Socket problem when connecting to %s:%d: %s", self.Address(),
+                      self.Port(), str(e))
       return False
     return False
 
