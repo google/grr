@@ -212,9 +212,6 @@ class VFSGRRClient(standard.VFSDirectory):
 
       return flow_id
 
-  def OpenMember(self, path, mode="rw"):
-    return aff4.AFF4Volume.OpenMember(self, path, mode=mode)
-
   AFF4_PREFIXES = {rdf_paths.PathSpec.PathType.OS: "/fs/os",
                    rdf_paths.PathSpec.PathType.TSK: "/fs/tsk",
                    rdf_paths.PathSpec.PathType.REGISTRY: "/registry",

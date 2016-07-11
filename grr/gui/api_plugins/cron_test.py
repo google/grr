@@ -13,7 +13,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.flows.cron import system as cron_system
-from grr.lib.rdfvalues import grr_rdf
+from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 
 
 class CronJobsTestMixin(object):
@@ -73,7 +73,7 @@ class ApiListCronJobsHandlerRegressionTest(
           with aff4.FACTORY.OpenWithLock(cron_urn, token=self.token) as job:
             job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime().Now()))
             job.Set(job.Schema.LAST_RUN_STATUS(
-                status=grr_rdf.CronJobRunStatus.Status.ERROR))
+                status=rdf_cronjobs.CronJobRunStatus.Status.ERROR))
 
     self.Check("GET", "/api/cron-jobs")
 

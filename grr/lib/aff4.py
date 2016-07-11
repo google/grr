@@ -24,7 +24,6 @@ from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import crypto as rdf_crypto
-from grr.lib.rdfvalues import grr_rdf
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -1137,41 +1136,6 @@ class Factory(object):
     """
     self.MultiDelete([urn], token=token)
 
-  def RDFValue(self, name):
-    return rdfvalue.RDFValue.classes.get(name)
-
-  def AFF4Object(self, name):
-    return AFF4Object.classes.get(name)
-
-  def Merge(self, first, second):
-    """Merge two AFF4 objects and return a new object.
-
-    Args:
-      first: The first object (Can be None).
-      second: The second object (Can be None).
-
-    Returns:
-      A new object with the type of the latest object, but with both first and
-      second's attributes.
-    """
-    if first is None:
-      return second
-    if second is None:
-      return first
-
-    # Make first the most recent object, and second the least recent:
-    if first.Get("type").age < second.Get("type").age:
-      first, second = second, first
-
-    # Merge the attributes together.
-    for k, v in second.synced_attributes.iteritems():
-      first.synced_attributes.setdefault(k, []).extend(v)
-
-    for k, v in second.new_attributes.iteritems():
-      first.new_attributes.setdefault(k, []).extend(v)
-
-    return first
-
   def MultiListChildren(self, urns, token=None, limit=None, age=NEWEST_TIME):
     """Lists bunch of directories efficiently.
 
@@ -1647,13 +1611,6 @@ class AFF4Object(object):
 
     # Note labels should not be Set directly but should be manipulated via
     # the AddLabels method.
-    DEPRECATED_LABEL = Attribute("aff4:labels",
-                                 grr_rdf.LabelList,
-                                 "DEPRECATED: used LABELS instead.",
-                                 "DEPRECATED_Labels",
-                                 creates_new_object_version=False,
-                                 versioned=False)
-
     LABELS = Attribute("aff4:labels_list",
                        aff4_rdfvalues.AFF4ObjectLabelsList,
                        "Any object can have labels applied to it.",
@@ -1852,10 +1809,6 @@ class AFF4Object(object):
                                 self.synced_attributes)
     except KeyError:
       pass
-    # TODO(user): uncomment as soon as some messages-flood protection
-    # mechanisms are implemented in logging.debug().
-    # if not attribute_name.startswith("index:"):
-    #   logging.debug("Attribute %s not defined, skipping.", attribute_name)
     except (ValueError, rdfvalue.DecodeError):
       logging.debug("%s: %s invalid encoding. Skipping.", self.urn,
                     attribute_name)
@@ -2462,36 +2415,6 @@ class AFF4Volume(AFF4Object):
 
     return children
 
-  def OpenMember(self, path, mode="r"):
-    """Opens the member which is contained in us.
-
-    Args:
-       path: A string relative to our own URN or an absolute urn.
-       mode: Mode for object.
-
-    Returns:
-       an AFF4Object instance.
-
-    Raises:
-      InstantiationError: If we are unable to open the member (e.g. it does not
-        already exist.)
-    """
-    if isinstance(path, rdfvalue.RDFURN):
-      child_urn = path
-    else:
-      child_urn = self.urn.Add(path)
-
-    # Read the row from the table.
-    result = AFF4Object(child_urn, mode=mode, token=self.token)
-
-    # Get the correct type.
-    aff4_type = result.Get(result.Schema.TYPE)
-    if aff4_type:
-      # Try to get the container.
-      return result.Upgrade(AFF4Object.classes[aff4_type])
-
-    raise InstantiationError("Path %s not found" % path)
-
   def ListChildren(self, limit=1000000, age=NEWEST_TIME):
     """Yields RDFURNs of all the children of this object.
 
@@ -2618,14 +2541,6 @@ class AFF4Root(AFF4Volume):
 
     return result
 
-  def OpenMember(self, path, mode="r"):
-    """If we get to the root without a container, virtualize an empty one."""
-    urn = self.urn.Add(path)
-    result = AFF4Volume(urn, mode=mode, token=self.token)
-    result.Initialize()
-
-    return result
-
 
 class AFF4Symlink(AFF4Object):
   """This is a symlink to another AFF4 object.
@@ -2661,55 +2576,6 @@ class AFF4Symlink(AFF4Object):
       return result
     else:
       raise RuntimeError("Unable to open symlink.")
-
-
-class AFF4OverlayedVolume(AFF4Volume):
-  """A special kind of volume with overlayed contained objects.
-
-  This AFF4Volume can contain virtual overlays. An overlay is a path which
-  appears to be contained within our object, but is in fact the same object. For
-  example if self.urn = RDFURN('aff4:/C.123/foobar'):
-
-  Opening aff4:/C.123/foobar/overlayed/ will return a copy of aff4:/C.123/foobar
-  with the variable self.overlayed_path = "overlayed".
-
-  This is used to effectively allow a single AFF4Volume to handle overlay
-  virtual paths inside itself without resorting to storing anything in the
-  database for every one of these object. Thus we can have a WinRegistry
-  AFF4Volume that handles any paths within without having storage for each
-  registry key.
-  """
-  overlayed_path = ""
-
-  def IsPathOverlayed(self, path):  # pylint: disable=unused-argument
-    """Should this path be overlayed.
-
-    Args:
-      path: A direct_child of ours.
-
-    Returns:
-      True if the path should be overlayed.
-    """
-    return False
-
-  def OpenMember(self, path, mode="rw"):
-    if self.IsPathOverlayed(path):
-      result = self.__class__(self.urn, mode=mode, clone=self, parent=self)
-      result.overlayed_path = path
-      return result
-
-    return super(AFF4OverlayedVolume, self).OpenMember(path, mode)
-
-  def CreateMember(self, path, aff4_type, mode="w", clone=None):
-    if self.IsPathOverlayed(path):
-      result = self.__class__(self.urn, mode=mode, clone=self, parent=self)
-      result.overlayed_path = path
-      return result
-
-    return super(AFF4OverlayedVolume, self).CreateMember(path,
-                                                         aff4_type,
-                                                         mode=mode,
-                                                         clone=clone)
 
 
 class AFF4Stream(AFF4Object):

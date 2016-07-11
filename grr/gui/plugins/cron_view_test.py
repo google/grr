@@ -11,7 +11,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.flows.cron import system as cron_system
-from grr.lib.rdfvalues import grr_rdf
+from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 
 
 class TestCronView(test_lib.GRRSeleniumTest):
@@ -426,7 +426,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
     # execution
     with test_lib.FakeTime(0):
       self.AddJobStatus("aff4:/cron/OSBreakDown",
-                        grr_rdf.CronJobRunStatus.Status.OK)
+                        rdf_cronjobs.CronJobRunStatus.Status.OK)
 
     self.Open("/")
 
@@ -444,7 +444,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
   def testFailingCronJobIsHighlighted(self):
     for _ in range(4):
       self.AddJobStatus("aff4:/cron/OSBreakDown",
-                        grr_rdf.CronJobRunStatus.Status.ERROR)
+                        rdf_cronjobs.CronJobRunStatus.Status.ERROR)
 
     self.Open("/")
 

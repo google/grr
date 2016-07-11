@@ -8,6 +8,7 @@ import time
 
 import logging
 
+from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import export_utils
@@ -237,8 +238,9 @@ class ClientReportIterator(export_utils.IterateAllClients):
 
     for sub_path, attr in self.extended_report_attrs:
       try:
-        client_sub = client.OpenMember(sub_path)
         # TODO(user): Update this to use MultiOpen.
+        client_sub = aff4.FACTORY.Open(
+            client.urn.Add(sub_path), token=self.token)
       except IOError:
         # If the path is not found, just continue.
         continue

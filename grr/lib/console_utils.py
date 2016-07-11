@@ -35,7 +35,7 @@ def FormatISOTime(t):
 
 def SearchClients(query_str, token=None, limit=1000):
   """Search indexes for clients. Returns list (client, hostname, os version)."""
-  client_schema = aff4.AFF4Object.classes[aff4_grr.VFSGRRClient].SchemaCls
+  client_schema = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls
   index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
                               aff4_type=client_index.ClientIndex,
                               mode="rw",

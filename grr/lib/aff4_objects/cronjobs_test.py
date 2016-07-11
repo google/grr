@@ -12,7 +12,7 @@ from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs
-from grr.lib.rdfvalues import grr_rdf
+from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -297,8 +297,8 @@ class CronTest(test_lib.AFF4ObjectTest):
 
       random_start_time = random_time_job.Get(
           random_time_job.Schema.CRON_ARGS).start_time
-      self.assertTrue(now < random_start_time < (now +
-                                                 DummySystemCronJob.frequency))
+      self.assertTrue(now < random_start_time <
+                      (now + DummySystemCronJob.frequency))
 
   def testCronJobRunMonitorsRunningFlowState(self):
     cron_manager = cronjobs.CronManager()
@@ -691,8 +691,10 @@ class CronTest(test_lib.AFF4ObjectTest):
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(0))
     self.assertEqual(statuses[1].age,
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(60))
-    self.assertEqual(statuses[0].status, grr_rdf.CronJobRunStatus.Status.OK)
-    self.assertEqual(statuses[1].status, grr_rdf.CronJobRunStatus.Status.ERROR)
+    self.assertEqual(statuses[0].status,
+                     rdf_cronjobs.CronJobRunStatus.Status.OK)
+    self.assertEqual(statuses[1].status,
+                     rdf_cronjobs.CronJobRunStatus.Status.ERROR)
 
   def testSystemCronFlowsGetScheduledAutomatically(self):
     cronjobs.ScheduleSystemCronFlows(names=[DummySystemCronJob.__name__],

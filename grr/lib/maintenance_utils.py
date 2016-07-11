@@ -16,6 +16,7 @@ import logging
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import data_store
 from grr.lib import utils
 from grr.lib.aff4_objects import collects
 from grr.lib.builders import signing
@@ -261,3 +262,31 @@ def SignAllComponents(overwrite=False, token=None):
         SignComponent(component_filename, overwrite=overwrite, token=token)
       except Exception as e:  # pylint: disable=broad-except
         print "Could not sign component %s: %s" % (component_filename, e)
+
+
+def ListComponents(token=None):
+
+  component_root = aff4.FACTORY.Open("aff4:/config/components", token=token)
+  for component in component_root.OpenChildren():
+    if not isinstance(component, collects.ComponentObject):
+      continue
+
+    desc = component.Get(component.Schema.COMPONENT)
+    if not desc:
+      continue
+
+    print "* Component %s (version %s)" % (desc.name, desc.version)
+
+    versions = []
+    base_urn = "aff4:/web%s" % desc.url
+    for urn, _, _ in data_store.DB.ScanAttribute(base_urn,
+                                                 "aff4:type",
+                                                 token=token):
+      versions.append(urn.split("/")[-1])
+
+    if not versions:
+      print "No platform signatures available."
+    else:
+      print "Available platform signatures:"
+      for v in sorted(versions):
+        print "-", v

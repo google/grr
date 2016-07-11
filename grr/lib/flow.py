@@ -1925,10 +1925,6 @@ class FrontEndServer(object):
     return result
 
 
-def ProcessCompletedRequests(flow_obj, thread_pool, reqs):
-  flow_obj.ProcessCompletedRequests(thread_pool, reqs)
-
-
 class FlowInit(registry.InitHook):
   """Sets up flow-related stats."""
 

@@ -123,6 +123,8 @@ def SetupDataStore():
     _CloseServers()
 
 
+@unittest.skipUnless(platform.system() == "Linux",
+                     "We only expect the datastore to work on Linux")
 def setUpModule():
   SetupDataStore()
 
@@ -164,14 +166,14 @@ class HTTPDataStoreMixin(object):
         pass
 
 
+@unittest.skipUnless(platform.system() == "Linux",
+                     "We only expect the datastore to work on Linux")
 class HTTPDataStoreTest(HTTPDataStoreMixin, data_store_test._DataStoreTest):
   """Test the remote data store."""
 
   def __init__(self, *args):
     super(HTTPDataStoreTest, self).__init__(*args)
 
-  @unittest.skipUnless(platform.system() == "Linux",
-                       "We only expect the datastore to work on Linux")
   def testDataStoreInit(self):
     # This just makes sure the datastore can actually initialize.
     pass

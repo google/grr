@@ -397,6 +397,11 @@ subparsers.add_parser(
     help="Downloads all Rekall profiles from the repository that are not "
     "currently present in the database.")
 
+parser_list_components = subparsers.add_parser(
+    "list_components",
+    parents=[],
+    help="Lists all available client components.")
+
 
 def ImportConfig(filename, config):
   """Reads an old config file and imports keys and user accounts."""
@@ -975,6 +980,9 @@ def main(unused_argv):
     maintenance_utils.SignAllComponents(
         overwrite=flags.FLAGS.overwrite_component,
         token=token)
+
+  elif flags.FLAGS.subparser_name == "list_components":
+    maintenance_utils.ListComponents(token=token)
 
   elif flags.FLAGS.subparser_name == "set_var":
     config = config_lib.CONFIG

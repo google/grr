@@ -8,7 +8,7 @@ from grr.gui import api_call_handler_base
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
-from grr.lib.rdfvalues import grr_rdf
+from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
@@ -53,7 +53,7 @@ class ApiCronJob(rdf_structs.RDFProtoStruct):
 
     failures_count = 0
     for status in statuses:
-      if status.status != grr_rdf.CronJobRunStatus.Status.OK:
+      if status.status != rdf_cronjobs.CronJobRunStatus.Status.OK:
         failures_count += 1
 
     return failures_count >= 2

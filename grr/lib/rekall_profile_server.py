@@ -92,24 +92,27 @@ class RekallRepositoryProfileServer(ProfileServer):
       url = "%s/%s/%s.gz" % (config_lib.CONFIG["Rekall.profile_repository"],
                              version, profile_name)
       handle = urllib2.urlopen(url, timeout=10)
-
+      profile_data = handle.read()
+      if profile_data[:3] != "\x1F\x8B\x08":
+        raise ValueError("Downloaded file does not look like gzipped data: %s",
+                         profile_data[:100])
+      compression = "GZIP"
     except urllib2.HTTPError as e:
       if e.code == 404:
-        logging.info("Got a 404 while downloading Rekall profile %s", url)
-        return None
-      raise
+        # Try to download without the .gz
+        handle = urllib2.urlopen(url[:-3], timeout=10)
+        profile_data = handle.read()
+        compression = "NONE"
+      else:
+        raise
     except urllib2.URLError as e:
       logging.info("Got an URLError while downloading Rekall profile %s: %s",
                    url, e.reason)
       raise
 
-    profile_data = handle.read()
-    if profile_data[:3] != "\x1F\x8B\x08":
-      raise ValueError("Downloaded file does not look like gzipped data: %s",
-                       profile_data[:100])
     return rdf_rekall_types.RekallProfile(name=profile_name,
                                           version=version,
-                                          compression="GZIP",
+                                          compression=compression,
                                           data=profile_data)
 
 

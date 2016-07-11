@@ -87,6 +87,7 @@ function install_wget() {
 
 # We need a newer version of python that what lucid ships with.
 function install_python_from_source() {
+  PYTHON_VERSION=2.7.12
 
   if [ $DISTRO == "Ubuntu" ]; then
     # This is essentially "apt-get build-dep python2.6|7" but without
@@ -104,9 +105,9 @@ function install_python_from_source() {
     yum install -y zlib-devel bzip2-devel ncurses-devel sqlite-devel readline-devel tk-devel gdbm-devel db4-devel libpcap-devel xz-devel
   fi
 
-  ${WGET} https://www.python.org/ftp/python/2.7.11/Python-2.7.11.tgz
-  tar zxvf Python-2.7.11.tgz
-  cd Python-2.7.11
+  ${WGET} https://www.python.org/ftp/python/${PYTHON_VERSION}/Python-${PYTHON_VERSION}.tgz
+  tar zxvf Python-${PYTHON_VERSION}.tgz
+  cd Python-${PYTHON_VERSION}
 
   # --enabled-shared for better performance, discussed in some detail here:
   # https://code.google.com/p/modwsgi/wiki/InstallationIssues
