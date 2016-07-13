@@ -107,7 +107,7 @@ class TestMultiGetFile(base.AutomatedTest):
     # from the factory and it looks like it's still running.
     flow_obj = aff4.FACTORY.Open(self.session_id,
                                  token=self.token,
-                                 aff4_type="MultiGetFileTestFlow",
+                                 aff4_type=MultiGetFileTestFlow,
                                  ignore_cache=True)
 
     # Check flow completed normally, checking is done inside the flow

@@ -1,0 +1,30 @@
+{
+  "name": "grr-ui",
+  "version": "0.0.1",
+  "description": "",
+  "dependencies": {},
+  "devDependencies": {
+    "bower": "^1.7.9",
+    "gulp": "^3.9.1",
+    "gulp-angular-templatecache": "^2.0.0",
+    "gulp-closure-compiler": "^0.4.0",
+    "gulp-closure-deps": "^0.4.0",
+    "gulp-concat": "^2.6.0",
+    "gulp-insert": "^0.5.0",
+    "gulp-less": "^3.1.0",
+    "gulp-newer": "^1.2.0",
+    "gulp-plumber": "^1.1.0",
+    "gulp-sass": "^2.3.2",
+    "gulp-sourcemaps": "^1.6.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/google/grr.git"
+  },
+  "author": "Mikhail Bushkov",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/google/grr/issues"
+  },
+  "homepage": "https://github.com/google/grr#readme"
+}

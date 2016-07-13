@@ -1,0 +1,44 @@
+{
+  "name": "grr-ui",
+  "authors": [
+    "Mikhail Bushkov <realbushman@gmail.com>"
+  ],
+  "description": "",
+  "main": "",
+  "license": "Apache",
+  "homepage": "https://github.com/google/grr",
+  "private": true,
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "angular": "^1.5.7",
+    "angular-animate": "^1.5.7",
+    "angular-cookies": "^1.5.7",
+    "angular-resource": "^1.5.7",
+    "jquery": "^1.9.1",
+    "font-awesome": "^4.6.3",
+    "jstree": "^3.3.1",
+    "Flot": "flot#^0.8.3",
+    "jquery-migrate": "http://code.jquery.com/jquery-migrate-1.4.1.js",
+    "jquery-timeentry": "^2.0.1",
+    "moment": "^2.14.1",
+    "bootstrap": "^3.3.6",
+    "angular-bootstrap": "0.14.3",
+    "angular-ui-router": "0.2.13",
+    "jquery-ui": "^1.11.4"
+  },
+  "devDependencies": {
+    "closurelibrary": "*",
+    "closure-compiler": "http://dl.google.com/closure-compiler/compiler-latest.zip"
+  },
+  "overrides": {
+    "bootstrap": {
+      "main": ["**/*.js", "**/*.png"]
+    }
+  }
+}

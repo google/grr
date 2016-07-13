@@ -3,6 +3,7 @@
 
 
 import logging
+import os
 import socket
 import SocketServer
 import ssl
@@ -30,6 +31,14 @@ def main(_):
       "AdminUI Context",
       "Context applied when running the admin user interface GUI.")
   startup.Init()
+
+  if (not os.path.exists(os.path.join(config_lib.CONFIG[
+      "AdminUI.document_root"], "dist/grr-ui.bundle.js")) or
+      not os.path.exists(os.path.join(config_lib.CONFIG[
+          "AdminUI.document_root"], "dist/grr-ui.bundle.css"))):
+    raise RuntimeError("Can't find compiled JS/CSS bundles. "
+                       "Please reinstall the PIP package using "
+                       "\"pip install -e .\" to rebuild the bundles.")
 
   # Start up a server in another thread
   bind_address = config_lib.CONFIG["AdminUI.bind"]

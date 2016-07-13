@@ -1670,7 +1670,7 @@ class AFF4Object(object):
       attributes of that object. If they are referencing a non-existent
       attribute this is an error and we should raise, e.g.:
 
-      fd = aff4.FACTORY.Open(urn, aff4_type="something")
+      fd = aff4.FACTORY.Open(urn, aff4_type=module.SomeClass)
       fd.Get(fd.Schema.DOESNTEXIST, default_value)
 
       Args:

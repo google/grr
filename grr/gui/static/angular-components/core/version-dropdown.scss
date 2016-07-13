@@ -1,0 +1,12 @@
+grr-version-dropdown {
+  position: relative;
+
+  .newer-version-hint {
+    position: absolute;
+    text-align: center;
+    left: 0;
+    right: 0;
+    font-size: .9em;
+    background-color: $color-hint-background-color;
+  }
+}

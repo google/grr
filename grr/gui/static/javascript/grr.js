@@ -1660,8 +1660,7 @@ grr.init();
  *  existing set of GRR renderers.
  */
 var grrUiApp = angular.module('grrUi', ['ngCookies',
-                                        'grrUi.appController',
-                                        'grrUiLocal.local']);
+                                        'grrUi.appController']);
 
 grrUiApp.config(function($httpProvider, $interpolateProvider,
                          $rootScopeProvider) {

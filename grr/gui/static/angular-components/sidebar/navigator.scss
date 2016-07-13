@@ -1,0 +1,89 @@
+grr-navigator {
+
+  //
+  //
+  // Sidebar navigation
+  //
+  //
+
+  #navigator {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    margin: 0;
+    padding-top: 10px;
+    background-color: $color-sidebar-background;
+  }
+
+  //
+  //
+  // Navlist
+  //
+  //
+
+  .nav-list {
+    padding-right: 15px;
+    margin-bottom: 0;
+    list-style: none;
+    margin-left: 10px;
+
+    > li {
+      position: relative;
+    }
+
+    > li > a {
+      padding: 3px 15px;
+
+      // TODO(weghofer): Make the li disabled, not the link.
+      &.nav-link.disabled {
+        color: $color-infoline-color;
+      }
+
+      i.fa-lock {
+        position: absolute;
+        right: 10px;
+        top: 5px;
+      }
+    }
+
+    > li > a,
+    .nav-header {
+      margin-left: -15px;
+      margin-right: -15px;
+      text-shadow: 0 1px 0 $color-nav-link-default-shadow;
+    }
+
+    > .active {
+      > a,
+      > a:hover,
+      > a:focus {
+        color: $color-nav-link-hover-color;
+        text-shadow: 0 -1px 0 $color-nav-link-active-shadow;
+        background-color: $color-nav-link-active-background;
+      }
+
+      > a.nav-link.disabled {
+        color: $color-nav-link-hover-color;
+      }
+    }
+
+    // Nested nav-lists (e.g. for nav-dropdowns) need different spacing.
+    .nav-list {
+      padding-right: 0;
+    }
+  }
+
+  section h1 {
+    padding: 3px 10px;
+    margin: 0;
+    font-size: 11px;
+    font-weight: bold;
+    line-height: 17px;
+    color: $color-nav-header-color;
+    text-shadow: 0 1px 0 $color-nav-link-default-shadow;
+    text-transform: uppercase;
+  }
+
+} // grr-navigator

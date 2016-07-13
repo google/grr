@@ -19,6 +19,7 @@ from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import standard
 
 from grr.lib.flows.general import audit
+from grr.lib.flows.general import discovery
 
 from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import client as rdf_client
@@ -272,7 +273,7 @@ class ApiGetInterrogateOperationStateHandler(
   def Handle(self, args, token=None):
     try:
       flow_obj = aff4.FACTORY.Open(args.operation_id,
-                                   aff4_type="Interrogate",
+                                   aff4_type=discovery.Interrogate,
                                    token=token)
 
       complete = not flow_obj.GetRunner().IsRunning()

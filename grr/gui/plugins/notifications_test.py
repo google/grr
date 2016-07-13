@@ -87,8 +87,8 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     self.Click("css=button[id=notification_button]")
 
     # Select a ViewObject notification - should navigate to the object.
-    self.ClickUntil("css=td:contains('File fetch completed')",
-                    self.IsElementPresent, "css=li[id=_fs-os-proc-10]")
+    self.Click("css=td:contains('File fetch completed')")
+    self.WaitUntil(self.IsElementPresent, "css=li[id=_fs-os-proc-10]")
 
     self.WaitUntil(self.IsElementPresent,
                    "css=li.active a[grrtarget='client.vfs']")
@@ -113,8 +113,8 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     self.WaitUntilContains("terminated due to error", self.GetText,
                            "css=td:contains('error')")
 
-    self.ClickUntil("css=td:contains('terminated due to error')",
-                    self.IsTextPresent, "Flow Information")
+    self.Click("css=td:contains('terminated due to error')")
+    self.WaitUntil(self.IsTextPresent, "Flow Information")
 
     # The navigation bar should manage the flows
     self.WaitUntil(self.IsElementPresent,

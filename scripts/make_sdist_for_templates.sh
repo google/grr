@@ -8,7 +8,7 @@ set -e
 # Check we are in the right directory running the right setup.py
 grep "grr-response-core" setup.py
 rm -rf dist/ || true
-python setup.py sdist --no-make-docs
+python setup.py sdist --no-make-docs --no-make-ui-files
 gsutil rm "gs://${BUCKET}/grr-response-core-*.tar.gz"
 gsutil cp "dist/grr-response-core-*.tar.gz" "gs://${BUCKET}/"
 

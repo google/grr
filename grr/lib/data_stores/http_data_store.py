@@ -84,7 +84,7 @@ class DataServerConnection(object):
     left = n
     while left:
       data = self.sock.recv(left)
-      if data == "":
+      if not data:
         raise IOError("Expected %d bytes, got EOF after %d" % (n, len(ret)))
       ret += data
       left = n - len(ret)
@@ -181,8 +181,8 @@ class DataServerConnection(object):
                       self.Address(), self.Port(), str(e))
       return False
     except (socket.error, socket.timeout, IOError) as e:
-      logging.warning("Socket problem when connecting to %s:%d: %s", self.Address(),
-                      self.Port(), str(e))
+      logging.warning("Socket problem when connecting to %s:%d: %s",
+                      self.Address(), self.Port(), str(e))
       return False
     return False
 

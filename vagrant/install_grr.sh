@@ -23,7 +23,7 @@ function install() {
   mkdir -p "${BUILDDIR}/grr_tmp"
   cp -a /grr "${BUILDDIR}/grr_tmp"
   cd "${BUILDDIR}/grr_tmp/grr"
-  python setup.py sdist --dist-dir="${BUILDDIR}/core" --no-make-docs --no-sync-artifacts
+  python setup.py sdist --dist-dir="${BUILDDIR}/core" --no-make-docs --no-make-ui-files --no-sync-artifacts
   cd -
   cd "${BUILDDIR}/grr_tmp/grr/grr/config/grr-response-client/"
   python setup.py sdist --dist-dir="${BUILDDIR}/client"

@@ -647,8 +647,8 @@ class ListFlowsTable(renderers.TableRenderer):
     if not depth:
       root_children_paths = root_children_paths[start_row:end_row]
 
-    # TODO(user): should be able to specify aff4_type="GRRFlow" here.
-    # Currently this doesn't work because symlinks get filtered out.
+    # TODO(user): should be able to specify aff4_type=flow.GRRFlow
+    # here.  Currently this doesn't work because symlinks get filtered out.
     # This is an aff4.FACTORY.MultiOpen's bug.
     root_children = aff4.FACTORY.MultiOpen(root_children_paths,
                                            token=request.token)

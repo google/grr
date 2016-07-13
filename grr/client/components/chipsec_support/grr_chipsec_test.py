@@ -19,44 +19,33 @@ class MockUnknownChipsetError(RuntimeError):
 
 class MockSPI(mock.MagicMock):
 
-  def __init__(self, chipset):
-    pass
-
-  def get_SPI_region(self, region):
+  def get_SPI_region(self, unused_region):  # pylint: disable=invalid-name
     return (0, 0xffff, 0)
 
-  def read_spi(self, offset, size):
+  def read_spi(self, unused_offset, size):
     return "\xff" * size
 
 
 class FaultyChipset(mock.MagicMock):
 
-  def init(self, platform, load_driver):
+  def init(self, unused_platform, unused_load_driver):
     msg = "Unsupported Platform: VID = 0x0000, DID = 0x0000"
     raise MockUnknownChipsetError(msg)
 
 
-class TestDumpFlashImage(test_lib.EmptyActionTest):
-  """Test the client dump flash image action."""
+class GRRChipsecTest(test_lib.EmptyActionTest):
+  """Generic test class for GRR-Chipsec actions."""
 
   def setUp(self):
-    super(TestDumpFlashImage, self).setUp()
-
     # Mock the interface for Chipsec
-    chipsec_mock = mock.MagicMock()
-    chipsec_mock.chipset = mock.MagicMock()
-    chipsec_mock.chipset.UnknownChipsetError = MockUnknownChipsetError
-    chipsec_mock.hal = mock.MagicMock()
-    chipsec_mock.hal.spi = mock.MagicMock()
-    chipsec_mock.hal.spi.SPI = MockSPI
-    chipsec_mock.logger = mock.MagicMock()
-    chipsec_mock.logger.logger = mock.MagicMock()
+    self.chipsec_mock = mock.MagicMock()
+    self.chipsec_mock.chipset = mock.MagicMock()
+    self.chipsec_mock.chipset.UnknownChipsetError = MockUnknownChipsetError
+    self.chipsec_mock.hal = mock.MagicMock()
+    self.chipsec_mock.logger = mock.MagicMock()
 
-    self.mock = chipsec_mock
-
-    mock_modules = {"chipsec": self.mock,
-                    "chipsec.hal": self.mock.hal,
-                    "chipsec.logger": self.mock.logger}
+    mock_modules = {"chipsec": self.chipsec_mock,
+                    "chipsec.hal": self.chipsec_mock.hal}
 
     self.chipsec_patch = mock.patch.dict(sys.modules, mock_modules)
     self.chipsec_patch.start()
@@ -66,13 +55,23 @@ class TestDumpFlashImage(test_lib.EmptyActionTest):
     from grr.client.components.chipsec_support.actions import grr_chipsec
     # pylint: enable=g-import-not-at-top, unused-variable
 
-    grr_chipsec.logger = self.mock.logger.logger
-    grr_chipsec.spi = self.mock.hal.spi
-    grr_chipsec.chipset = self.mock.chipset
+    # Keep a reference to the module so child classes may mock its content.
+    self.grr_chipsec_module = grr_chipsec
+    self.grr_chipsec_module.chipset = self.chipsec_mock.chipset
+    self.grr_chipsec_module.logger = self.chipsec_mock.logger
 
   def tearDown(self):
     self.chipsec_patch.stop()
-    super(TestDumpFlashImage, self).tearDown()
+
+
+class TestDumpFlashImage(GRRChipsecTest):
+  """Test the client dump flash image action."""
+
+  def setUp(self):
+    super(TestDumpFlashImage, self).setUp()
+    self.chipsec_mock.hal.spi = mock.MagicMock()
+    self.chipsec_mock.hal.spi.SPI = MockSPI
+    self.grr_chipsec_module.spi = self.chipsec_mock.hal.spi
 
   def testDumpFlashImage(self):
     """Test the basic dump."""
@@ -87,11 +86,11 @@ class TestDumpFlashImage(test_lib.EmptyActionTest):
     result = self.RunAction("DumpFlashImage", args)[0]
     with vfs.VFSOpen(result.path) as image:
       self.assertEqual(image.read(0x20000), "\xff" * 0x10000)
-    self.assertNotEqual(self.mock.logger.logger.call_count, 0)
+    self.assertNotEqual(self.chipsec_mock.logger.logger.call_count, 0)
 
   def testDumpFlashImageUnknownChipset(self):
     """By default, if the chipset is unknown, no exception is raised."""
-    self.mock.chipset.cs = FaultyChipset
+    self.chipsec_mock.chipset.cs = FaultyChipset
     args = chipsec_types.DumpFlashImageRequest()
     self.RunAction("DumpFlashImage", args)
 
@@ -101,10 +100,10 @@ class TestDumpFlashImage(test_lib.EmptyActionTest):
     If the chipset is unknown but verbose enabled, no exception is raised
     and at least one response should be returned with non-empty logs.
     """
-    self.mock.chipset.cs = FaultyChipset
+    self.chipsec_mock.chipset.cs = FaultyChipset
     args = chipsec_types.DumpFlashImageRequest(log_level=1)
     self.RunAction("DumpFlashImage", args)
-    self.assertNotEquals(self.mock.logger.logger.call_count, 0)
+    self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
     self.assertGreaterEqual(len(self.results), 1)
     self.assertNotEquals(len(self.results[0].logs), 0)
     self.assertEquals(self.results[0].path.path, "")
@@ -150,42 +149,14 @@ class MockACPIReadingRestrictedArea(object):
     return []
 
 
-class TestDumpACPITable(test_lib.EmptyActionTest):
+class TestDumpACPITable(GRRChipsecTest):
 
   def setUp(self):
     super(TestDumpACPITable, self).setUp()
+    self.chipsec_mock.hal.acpi = mock.MagicMock()
+    self.chipsec_mock.hal.acpi.ACPI = MockACPI
 
-    # Mock needed Chipsec modules and classes
-    chipsec_mock = mock.MagicMock()
-    chipsec_mock.chipset = mock.MagicMock()
-    chipsec_mock.chipset.UnknownChipsetError = MockUnknownChipsetError
-    chipsec_mock.hal = mock.MagicMock()
-    chipsec_mock.hal.acpi = mock.MagicMock()
-    chipsec_mock.hal.acpi.ACPI = MockACPI
-    chipsec_mock.logger = mock.MagicMock()
-    chipsec_mock.logger.logger = mock.MagicMock()
-
-    self.mock = chipsec_mock
-
-    mock_modules = {"chipsec": self.mock,
-                    "chipsec.hal": self.mock.hal,
-                    "chipsec.logger": self.mock.logger}
-
-    self.chipsec_patch = mock.patch.dict(sys.modules, mock_modules)
-    self.chipsec_patch.start()
-
-    # pylint: disable=g-import-not-at-top, unused-variable
-    from grr.client.components.chipsec_support.actions import grr_chipsec
-    # pylint: enable=g-import-not-at-top, unused-variable
-
-    # Use mock in the client action
-    grr_chipsec.logger = self.mock.logger.logger
-    grr_chipsec.acpi = self.mock.hal.acpi
-    grr_chipsec.chipset = self.mock.chipset
-
-  def tearDown(self):
-    self.chipsec_patch.stop()
-    super(TestDumpACPITable, self).tearDown()
+    self.grr_chipsec_module.acpi = self.chipsec_mock.hal.acpi
 
   def testDumpValidSingleACPITable(self):
     """Tests basic valid ACPI table dump."""
@@ -219,7 +190,7 @@ class TestDumpACPITable(test_lib.EmptyActionTest):
     self.assertEqual(result.acpi_tables[0].table_address, 0x1122334455667788)
     self.assertEqual(result.acpi_tables[0].table_blob,
                      "\xAB" * 0xFF + "\xCD" * 0xFF)
-    self.assertNotEquals(self.mock.logger.logger.call_count, 0)
+    self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
 
   def testDumpInvalidACPITable(self):
     """Tests dumping invalid ACPI table."""
@@ -229,7 +200,7 @@ class TestDumpACPITable(test_lib.EmptyActionTest):
 
   def testDumpACPITableUnknownChipset(self):
     """By default, if the chipset is unknown, no exception is raised."""
-    self.mock.chipset.cs = FaultyChipset
+    self.chipsec_mock.chipset.cs = FaultyChipset
     args = chipsec_types.DumpACPITableRequest(table_signature="FACP")
     self.RunAction("DumpACPITable", args)
 
@@ -239,11 +210,11 @@ class TestDumpACPITable(test_lib.EmptyActionTest):
     If the chipset is unknown but verbose enabled, no exception is raised
     and at least one response should be returned with non-empty logs.
     """
-    self.mock.chipset.cs = FaultyChipset
+    self.chipsec_mock.chipset.cs = FaultyChipset
     args = chipsec_types.DumpACPITableRequest(table_signature="FACP",
                                               logging=True)
     self.RunAction("DumpACPITable", args)
-    self.assertNotEquals(self.mock.logger.logger.call_count, 0)
+    self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
     self.assertGreaterEqual(len(self.results), 1)
     self.assertNotEquals(len(self.results[0].logs), 0)
 
@@ -253,7 +224,7 @@ class TestDumpACPITable(test_lib.EmptyActionTest):
     No exception should be raised, and the log describing the error should be
     returned.
     """
-    self.mock.acpi.ACPI = MockACPIReadingRestrictedArea
+    self.chipsec_mock.acpi.ACPI = MockACPIReadingRestrictedArea
     args = chipsec_types.DumpACPITableRequest(table_signature="FACP")
     self.RunAction("DumpACPITable", args)
     self.assertGreaterEqual(len(self.results), 1)

@@ -23,6 +23,9 @@ dist
 executables
 !executables/windows/templates/unzipsfx/*.exe
 grr/config/grr-response-templates
+grr/gui/static/bower_components
+grr/gui/static/node_modules
+grr/gui/static/tmp
 grr/var
 grr-server*.tar.gz
 LICENSE

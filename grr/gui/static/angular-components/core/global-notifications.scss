@@ -1,0 +1,10 @@
+grr-global-notifications div#global-notification {
+  position: fixed;
+  left: 0;
+  right: 0;
+  z-index: 10000;
+
+  .alert {
+    margin-bottom: 0;
+  }
+}

@@ -93,27 +93,22 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
 
     self.Click("css=a:contains(\"View details\")")
 
-    self.WaitUntil(self.IsElementPresent, "container_query")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-file-container-view input.search-query")
 
-    self.Type("css=input#container_query",
-              "subject contains bash and timestamp > 2010")
+    self.Type("css=grr-file-container-view input.search-query",
+              "subject contains bash and timestamp > 2010",
+              end_with_enter=True)
 
-    # Use the hidden submit button to issue the query. Ordinarily users have to
-    # press enter here as they do not see the submit button. But pressing enter
-    # does not work with chrome.
-    self.Click("css=#toolbar_main form[name=query_form] button[type=submit]")
-
-    self.WaitUntilContains("2011-03-07 12:50:20", self.GetText,
+    self.WaitUntilContains("C.0000000000000001/fs/os/c/bin/bash", self.GetText,
                            "css=tbody tr:first")
 
     self.Click("css=tbody tr:first td")
 
-    self.WaitUntilContains("2011-03-07 12:50:20", self.GetText,
-                           "css=.tab-content h3")
-
     # Check that the embedded stat proto is properly presented
-    self.assertTrue("2011-03-07 12:50:20" in self.GetText(
-        "css=td.proto_value tr:contains('St atime') td.proto_value"))
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=tr:contains('St atime') td:contains('2011-03-07 12:50:20')")
 
 
 def main(argv):

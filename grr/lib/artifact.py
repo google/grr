@@ -610,5 +610,5 @@ class ArtifactLoader(registry.InitHook):
     for path in config_lib.CONFIG["Artifacts.artifact_dirs"]:
       artifact_registry.REGISTRY.AddDirSource(path)
 
-    artifact_registry.REGISTRY.AddDatastoreSources([aff4.ROOT_URN.Add(
-        "artifact_store")])
+    artifact_registry.REGISTRY.AddDatastoreSources(
+        [aff4.ROOT_URN.Add("artifact_store")])

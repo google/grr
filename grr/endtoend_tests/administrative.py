@@ -9,7 +9,8 @@ from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import maintenance_utils
-from grr.lib.aff4_objects import stats
+from grr.lib.aff4_objects import collects as aff4_collects
+from grr.lib.aff4_objects import stats as aff4_stats
 
 
 class TestGetClientStats(base.AutomatedTest):
@@ -23,7 +24,7 @@ class TestGetClientStats(base.AutomatedTest):
     client_stats = aff4.FACTORY.Open(
         self.client_id.Add(self.test_output_path),
         token=self.token)
-    self.assertIsInstance(client_stats, stats.ClientStats)
+    self.assertIsInstance(client_stats, aff4_stats.ClientStats)
 
     stats_list = list(client_stats.Get(client_stats.Schema.STATS))
     self.assertGreater(len(stats_list), 0)
@@ -74,7 +75,7 @@ class TestLaunchBinaries(base.ClientTestBase):
 
     try:
       aff4.FACTORY.Open(self.binary,
-                        aff4_type="GRRSignedBlob",
+                        aff4_type=aff4_collects.GRRSignedBlob,
                         token=self.token)
     except IOError:
       print "Uploading the test binary to the Executables area."

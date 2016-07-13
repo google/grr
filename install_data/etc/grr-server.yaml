@@ -8,6 +8,8 @@ AdminUI.django_debug: True
 
 AdminUI.webauth_manager: BasicWebAuthManager
 
+AdminUI.use_precompiled_js: True
+
 API.DefaultRouter: ApiCallRouterWithoutChecks
 
 Client.company_name: GRR Project

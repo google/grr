@@ -843,7 +843,7 @@ class UpdateAttribute(renderers.TemplateRenderer):
           attribute=self.attribute_to_refresh)
 
       update_flow = aff4.FACTORY.Open(update_flow_urn,
-                                      aff4_type="UpdateVFSFile",
+                                      aff4_type=aff4_grr.UpdateVFSFile,
                                       token=request.token)
       self.flow_urn = str(update_flow.state.get_file_flow_urn)
     except IOError as e:

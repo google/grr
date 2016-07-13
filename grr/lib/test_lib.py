@@ -1153,30 +1153,6 @@ class GRRSeleniumTest(GRRBaseTest):
     raise RuntimeError("condition not met, body is: %s" %
                        self.driver.find_element_by_tag_name("body").text)
 
-  def ClickUntil(self, target, condition_cb, *args):
-    for _ in xrange(int(self.duration / self.sleep_time)):
-      try:
-        res = condition_cb(*args)
-        if res:
-          return res
-
-      # The element might not exist yet and selenium could raise here. (Also
-      # Selenium raises Exception not StandardError).
-      except Exception as e:  # pylint: disable=broad-except
-        logging.warn("Selenium raised %s", utils.SmartUnicode(e))
-
-      element = self.GetElement(target)
-      if element:
-        try:
-          element.click()
-        except exceptions.WebDriverException:
-          pass
-
-      time.sleep(self.sleep_time)
-
-    raise RuntimeError("condition not met, body is: %s" %
-                       self.driver.find_element_by_tag_name("body").text)
-
   def _FindElement(self, selector):
     try:
       selector_type, effective_selector = selector.split("=", 1)
@@ -1379,10 +1355,6 @@ class GRRSeleniumTest(GRRBaseTest):
 
     element = self.WaitUntil(self.GetVisibleElement, target)
     action_chains.ActionChains(self.driver).double_click(element).perform()
-
-  def ClickUntilNotVisible(self, target):
-    self.WaitUntil(self.GetVisibleElement, target)
-    self.ClickUntil(target, lambda x: not self.IsVisible(x), target)
 
   @SeleniumAction
   def Select(self, target, label):

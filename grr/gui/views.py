@@ -28,6 +28,7 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 
+from grr.lib.aff4_objects import collects as aff4_collects
 from grr.lib.aff4_objects import users as aff4_users
 
 from grr.lib.authorization import auth_manager
@@ -145,7 +146,7 @@ def RenderBinaryDownload(request):
 
   def Generator():
     with aff4.FACTORY.Open(aff4_path,
-                           aff4_type="GRRSignedBlob",
+                           aff4_type=aff4_collects.GRRSignedBlob,
                            token=BuildToken(request, 60)) as fd:
       while True:
         data = fd.Read(1000000)
