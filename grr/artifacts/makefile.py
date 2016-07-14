@@ -9,9 +9,12 @@ import zipfile
 
 
 def main():
-  data = urllib2.urlopen(
-      "https://github.com/ForensicArtifacts/artifacts/archive/master.zip").read(
-      )
+  # We pin the artifact repo to a release to insulate us from breakage in HEAD.
+  # The future direction is to depend on code in the artifact repo to replace
+  # the artifact registry and validation inside GRR. We will then move to
+  # depending on pypi releases rather than just importing the yaml as we do now.
+  url = "https://github.com/ForensicArtifacts/artifacts/archive/20160713.zip"
+  data = urllib2.urlopen(url).read()
 
   zip_obj = zipfile.ZipFile(StringIO.StringIO(data))
   # Remove all existing yaml files.

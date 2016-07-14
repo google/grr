@@ -17,7 +17,7 @@ from grr.lib import aff4
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import flow
+from grr.lib import front_end
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import stats
@@ -55,7 +55,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
         server_certificate=self.server_certificate,
         ca_certificate=config_lib.CONFIG["CA.certificate"])
 
-    self.server_communicator = flow.ServerCommunicator(
+    self.server_communicator = front_end.ServerCommunicator(
         certificate=self.server_certificate,
         private_key=self.server_private_key,
         token=self.token)
@@ -370,7 +370,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
                                 response_id=2)
 
   def CreateNewServerCommunicator(self):
-    self.server_communicator = flow.ServerCommunicator(
+    self.server_communicator = front_end.ServerCommunicator(
         certificate=self.server_certificate,
         private_key=self.server_private_key,
         token=self.token)

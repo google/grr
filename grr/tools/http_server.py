@@ -26,6 +26,7 @@ from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import front_end
 from grr.lib import master
 from grr.lib import rdfvalue
 from grr.lib import startup
@@ -209,7 +210,7 @@ class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
     if frontend:
       self.frontend = frontend
     else:
-      self.frontend = flow.FrontEndServer(
+      self.frontend = front_end.FrontEndServer(
           certificate=config_lib.CONFIG["Frontend.certificate"],
           private_key=config_lib.CONFIG["PrivateKeys.server_key"],
           max_queue_size=config_lib.CONFIG["Frontend.max_queue_size"],

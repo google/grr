@@ -12,6 +12,7 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import front_end
 from grr.lib import hunts
 from grr.lib import queue_manager
 from grr.lib import queues
@@ -845,7 +846,7 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         self.assertEqual(timestamp, frozen_timestamp)
 
   def testEqualTimestampNotifications(self):
-    frontend_server = flow.FrontEndServer(
+    frontend_server = front_end.FrontEndServer(
         certificate=config_lib.CONFIG["Frontend.certificate"],
         private_key=config_lib.CONFIG["PrivateKeys.server_key"],
         message_expiry_time=100,
