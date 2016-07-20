@@ -15,8 +15,8 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
+from grr.lib import events
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import maintenance_utils
@@ -219,7 +219,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
       # This is normally done by the FrontEnd when a CLIENT_KILLED message is
       # received.
-      flow.Events.PublishEvent("NannyMessage", msg, token=self.token)
+      events.Events.PublishEvent("NannyMessage", msg, token=self.token)
 
       # Now emulate a worker to process the event.
       worker = test_lib.MockWorker(token=self.token)

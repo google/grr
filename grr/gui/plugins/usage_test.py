@@ -2,7 +2,7 @@
 """Test the usage reporting statistics."""
 
 
-from grr.lib import flow
+from grr.lib import events
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 
@@ -14,13 +14,13 @@ def PopulateData(token=None):
 
   def SimulateUserActivity(username, client_id, timestamp, num=10):
     for flow_name in flows[:num]:
-      event = flow.AuditEvent(user=username,
-                              action="RUN_FLOW",
-                              flow_name=flow_name,
-                              client=client_id,
-                              age=timestamp)
+      event = events.AuditEvent(user=username,
+                                action="RUN_FLOW",
+                                flow_name=flow_name,
+                                client=client_id,
+                                age=timestamp)
 
-      flow.Events.PublishEvent("Audit", event, token=token)
+      events.Events.PublishEvent("Audit", event, token=token)
 
   now = int(rdfvalue.RDFDatetime().Now())
   week_duration = 7 * 24 * 60 * 60 * 1e6

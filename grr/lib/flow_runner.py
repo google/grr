@@ -65,6 +65,7 @@ from grr.client import actions
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import events
 # Note: OutputPluginDescriptor is also needed implicitly by FlowRunnerArgs
 from grr.lib import output_plugin as output_plugin_lib
 from grr.lib import queue_manager
@@ -792,47 +793,7 @@ class FlowRunner(object):
 
   def Publish(self, event_name, msg, delay=0):
     """Sends the message to event listeners."""
-    handler_urns = []
-
-    # This is the cache of event names to handlers.
-    event_map = self.flow_obj.classes["EventListener"].EVENT_NAME_MAP
-
-    if isinstance(event_name, basestring):
-      for event_cls in event_map.get(event_name, []):
-        if event_cls.well_known_session_id is None:
-          logging.error("Well known flow %s has no session_id.",
-                        event_cls.__name__)
-        else:
-          handler_urns.append(event_cls.well_known_session_id)
-
-    else:
-      handler_urns.append(event_name)
-
-    # Allow the event name to be either a string or a URN of an event
-    # listener.
-    if not isinstance(msg, rdfvalue.RDFValue):
-      raise ValueError("Can only publish RDFValue instances.")
-
-    # Wrap the message in a GrrMessage if needed.
-    if not isinstance(msg, rdf_flows.GrrMessage):
-      msg = rdf_flows.GrrMessage(payload=msg)
-
-    # Randomize the response id or events will get overwritten.
-    msg.response_id = msg.task_id = msg.GenerateTaskID()
-    # Well known flows always listen for request id 0.
-    msg.request_id = 0
-
-    timestamp = None
-    if delay:
-      timestamp = (
-          rdfvalue.RDFDatetime().Now() + delay).AsMicroSecondsFromEpoch()
-
-    # Forward the message to the well known flow's queue.
-    for event_urn in handler_urns:
-      self.queue_manager.QueueResponse(event_urn, msg)
-      self.queue_manager.QueueNotification(session_id=event_urn,
-                                           priority=msg.priority,
-                                           timestamp=timestamp)
+    events.Events.PublishEvent(event_name, msg, delay=delay, token=self.token)
 
   def CallFlow(self,
                flow_name=None,

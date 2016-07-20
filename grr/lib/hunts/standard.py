@@ -11,6 +11,7 @@ import logging
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import events
 from grr.lib import flow
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
@@ -216,11 +217,11 @@ class ModifyHuntFlow(flow.GRRFlow):
                        (runner.args.client_limit, self.args.client_limit))
 
       description = ", ".join(changes)
-      event = flow.AuditEvent(user=self.token.username,
-                              action="HUNT_MODIFIED",
-                              urn=self.args.hunt_urn,
-                              description=description)
-      flow.Events.PublishEvent("Audit", event, token=self.token)
+      event = events.AuditEvent(user=self.token.username,
+                                action="HUNT_MODIFIED",
+                                urn=self.args.hunt_urn,
+                                description=description)
+      events.Events.PublishEvent("Audit", event, token=self.token)
 
       # Just go ahead and change the hunt now.
       runner.context.expires = self.args.expiry_time

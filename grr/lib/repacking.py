@@ -1,11 +1,14 @@
 #!/usr/bin/env python
 """Client repacking library."""
 
+import getpass
 import os
+import sys
 import zipfile
 
 from grr.lib import build
 from grr.lib import config_lib
+from grr.lib.builders import signing
 
 
 class RepackConfig(object):
@@ -54,12 +57,48 @@ class TemplateRepacker(object):
 
     return deployer_class(context=context, signer=signer)
 
+  def GetSigningPassword(self):
+    if sys.stdin.isatty():
+      print "Enter passphrase for code signing:"
+      return getpass.getpass()
+    else:
+      passwd = sys.stdin.readline().strip()
+      if not passwd:
+        raise RuntimeError("Expected signing password on stdin, got nothing.")
+      return passwd
+
+  def GetSigner(self, context):
+    if "Target:Windows" not in context and "Target:LinuxRpm" not in context:
+      raise RuntimeError(
+          "Signing only supported on windows and linux rpms. Neither target in"
+          " context: %s" % context)
+
+    passwd = self.GetSigningPassword()
+
+    if "Target:Windows" in context:
+
+      cert = config_lib.CONFIG.Get("ClientBuilder.windows_signing_cert",
+                                   context=context)
+      key = config_lib.CONFIG.Get("ClientBuilder.windows_signing_key",
+                                  context=context)
+      app_name = config_lib.CONFIG.Get(
+          "ClientBuilder.windows_signing_application_name",
+          context=context)
+      return signing.WindowsCodeSigner(cert, key, passwd, app_name)
+    elif "Target:LinuxRpm" in context:
+      pub_keyfile = config_lib.CONFIG.Get(
+          "ClientBuilder.rpm_signing_key_public_keyfile",
+          context=context)
+      gpg_name = config_lib.CONFIG.Get("ClientBuilder.rpm_gpg_name",
+                                       context=context)
+      return signing.RPMCodeSigner(passwd, pub_keyfile, gpg_name)
+
   def RepackTemplate(self,
                      template,
                      output_dir,
                      upload=False,
                      token=None,
-                     signer=None,
+                     sign=False,
                      context=None):
     """Repack binaries based on the configuration.
 
@@ -73,7 +112,7 @@ class TemplateRepacker(object):
       output_dir: Output files will be put in this directory.
       upload: If specified we also upload the repacked binary into the
       token: Token to use when uploading to the datastore.
-      signer: Signer object
+      sign: If true, we want to digitally sign the installer.
       context: Array of context strings
 
     Returns:
@@ -91,12 +130,19 @@ class TemplateRepacker(object):
       repack_context = config_lib.CONFIG["Template.build_context"]
       if context:
         repack_context.extend(context)
+
       output_path = os.path.join(output_dir,
                                  config_lib.CONFIG.Get(
                                      "ClientRepacker.output_filename",
                                      context=repack_context))
 
+      print "Using context: %s and labels: %s" % (
+          repack_context, config_lib.CONFIG.Get("Client.labels",
+                                                context=repack_context))
       try:
+        signer = None
+        if sign:
+          signer = self.GetSigner(repack_context)
         builder_obj = self.GetRepacker(context=repack_context, signer=signer)
         result_path = builder_obj.MakeDeployableBinary(template_path,
                                                        output_path)

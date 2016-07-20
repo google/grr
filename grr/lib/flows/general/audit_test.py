@@ -7,8 +7,8 @@ import os
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
+from grr.lib import events
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import test_lib
 # pylint: disable=unused-import
 from grr.lib.flows.general import audit as _
@@ -51,11 +51,11 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
       logs = list(parentdir.ListChildren())
       self.assertEqual(len(logs), 1)
       log = aff4.CurrentAuditLog()
-      events = list(aff4.FACTORY.Open(log, token=self.token))
+      stored_events = list(aff4.FACTORY.Open(log, token=self.token))
 
-      self.assertEqual(len(events), 2)
-      for event in events:
-        self.assertEqual(event.action, flow.AuditEvent.Action.RUN_FLOW)
+      self.assertEqual(len(stored_events), 2)
+      for event in stored_events:
+        self.assertEqual(event.action, events.AuditEvent.Action.RUN_FLOW)
         self.assertEqual(event.flow_name, "ListDirectory")
         self.assertEqual(event.user, self.token.username)
 
@@ -80,12 +80,12 @@ class TestAuditSystem(test_lib.FlowTestsBaseclass):
       self.assertEqual(len(logs), 2)
 
       # One with two events
-      events = list(aff4.FACTORY.Open(logs[0], token=self.token))
-      self.assertEqual(len(events), 2)
+      stored_events = list(aff4.FACTORY.Open(logs[0], token=self.token))
+      self.assertEqual(len(stored_events), 2)
 
       # The other with one
-      events = list(aff4.FACTORY.Open(logs[1], token=self.token))
-      self.assertEqual(len(events), 1)
+      stored_events = list(aff4.FACTORY.Open(logs[1], token=self.token))
+      self.assertEqual(len(stored_events), 1)
 
 
 def main(argv):

@@ -315,9 +315,9 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # ... using the correct reason.
     approvals = GetApprovals()
+    approval = aff4.FACTORY.Open(approvals[0], token=self.token)
     self.assertEqual(
-        utils.SmartUnicode(approvals[0].Basename().decode("base64")),
-        test_reason)
+        utils.SmartUnicode(approval.Get(approval.Schema.REASON)), test_reason)
 
   def testHuntACLWorkflow(self):
     with self.ACLChecksDisabled():
@@ -522,7 +522,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # This should be rejected now and a form request is made.
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
-    self.WaitUntil(self.IsTextPresent, "No approvals found")
+    self.WaitUntil(self.IsTextPresent, "No approval found")
 
     self.Click("css=#acl_dialog button[name=Close]")
     # Wait for dialog to disappear.
@@ -542,7 +542,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # This should be rejected now and a form request is made.
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
-    self.WaitUntil(self.IsTextPresent, "No approvals found")
+    self.WaitUntil(self.IsTextPresent, "No approval found")
 
     self.Click("css=#acl_dialog button[name=Close]")
     # Wait for dialog to disappear.

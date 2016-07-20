@@ -27,10 +27,10 @@ grrUi.semantic.urnDirective.UrnController = function(
   this.plainValue;
 
   /** @type {?string} */
-  this.vfsRef;
+  this.ref;
 
   /** @type {Object} */
-  this.vfsRefParams;
+  this.refParams;
 
   this.scope_.$watch('::value', this.onValueChange_.bind(this));
 };
@@ -64,12 +64,31 @@ UrnController.prototype.onValueChange_ = function(newValue) {
   // Get the components without an "aff4" one.
   var components = this.plainValue.split('/').slice(1);
   if (grrUi.semantic.urnDirective.CLIENT_ID_RE.test(components[0])) {
-    this.vfsRefParams = {
-      clientId: components[0],
-      path: components.slice(1).join('/')
+    var path = components.slice(1).join('/');
+    if (path.startsWith('fs/os/') ||
+        path.startsWith('fs/tsk/') ||
+        path.startsWith('registry/')) {
+
+      this.refParams = {
+        clientId: components[0],
+        path: path
+      };
+
+      this.ref = this.grrRoutingService_.href('client.vfs', this.refParams);
+    } else if (components[1] === 'flows' && components.length === 3) {
+      this.refParams = {
+        clientId: components[0],
+        flowId: components[2]
+      };
+
+      this.ref = this.grrRoutingService_.href('client.flows', this.refParams);
+    }
+  } else if (components[0] === 'hunts' && components.length === 2) {
+    this.refParams = {
+      huntId: components[1]
     };
 
-    this.vfsRef = this.grrRoutingService_.href('client.vfs', this.vfsRefParams);
+    this.ref = this.grrRoutingService_.href('hunts', this.refParams);
   }
 };
 
@@ -79,7 +98,7 @@ UrnController.prototype.onValueChange_ = function(newValue) {
  * @export
  */
 UrnController.prototype.onClick = function() {
-  this.grrRoutingService_.go('client.vfs', this.vfsRefParams);
+  this.grrRoutingService_.go('client.vfs', this.refParams);
 };
 
 

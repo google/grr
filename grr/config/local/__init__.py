@@ -2,4 +2,4 @@
 """This contains all local, site-specific configuration options."""
 
 # pylint: disable=unused-import
-from grr.config.local import build_contexts
+from grr.config.local import contexts

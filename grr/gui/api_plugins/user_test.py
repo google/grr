@@ -21,158 +21,35 @@ from grr.lib.aff4_objects import security as aff4_security
 from grr.lib.aff4_objects import users as aff4_users
 
 from grr.lib.hunts import standard
+from grr.lib.hunts import standard_test
 
 
-class ApiGetUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
-  """Test for ApiGetUserClientApprovalHandler."""
+class ApiCreateUserApprovalHandlerTestMixin(object):
+  """Base class for tests testing CreateUser*ApprovalHandlers."""
 
-  def setUp(self):
-    super(ApiGetUserClientApprovalHandlerTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
-    self.handler = user_plugin.ApiGetUserClientApprovalHandler()
+  APPROVAL_TYPE = None
 
-  def testRendersRequestedClientApproval(self):
-    flow.GRRFlow.StartFlow(client_id=self.client_id,
-                           flow_name="RequestClientApprovalFlow",
-                           reason="blah",
-                           subject_urn=self.client_id,
-                           approver="approver",
-                           email_cc_address="test@example.com",
-                           token=self.token)
-    args = user_plugin.ApiGetUserClientApprovalArgs(client_id=self.client_id,
-                                                    reason="blah")
-    result = self.handler.Handle(args, token=self.token)
-
-    self.assertEqual(result.subject.urn, self.client_id)
-    self.assertEqual(result.reason, "blah")
-    self.assertEqual(result.is_valid, False)
-    self.assertEqual(result.is_valid_message,
-                     "Requires 2 approvers for access.")
-
-    self.assertEqual(result.notified_users, ["approver"])
-    self.assertEqual(result.email_cc_addresses, ["test@example.com"])
-
-    # Every approval is self-approved by default.
-    self.assertEqual(result.approvers, [self.token.username])
-
-  def testIncludesApproversInResultWhenApprovalIsGranted(self):
-    flow.GRRFlow.StartFlow(client_id=self.client_id,
-                           flow_name="RequestClientApprovalFlow",
-                           reason="blah",
-                           subject_urn=self.client_id,
-                           approver="approver",
-                           token=self.token)
-
-    approver_token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(client_id=self.client_id,
-                           flow_name="GrantClientApprovalFlow",
-                           reason="blah",
-                           delegate=self.token.username,
-                           subject_urn=self.client_id,
-                           token=approver_token)
-
-    args = user_plugin.ApiGetUserClientApprovalArgs(client_id=self.client_id,
-                                                    reason="blah")
-    result = self.handler.Handle(args, token=self.token)
-
-    self.assertTrue(result.is_valid)
-    self.assertEqual(
-        sorted(result.approvers),
-        sorted([approver_token.username, self.token.username]))
-
-  def testRaisesWhenApprovalIsNotFound(self):
-    args = user_plugin.ApiGetUserClientApprovalArgs(client_id=self.client_id,
-                                                    reason="blah")
-
-    # TODO(user): throw some standard exception that can be converted to
-    # HTTP 404 status code.
-    with self.assertRaises(IOError):
-      self.handler.Handle(args, token=self.token)
-
-
-class ApiGetUserClientApprovalHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiGetUserClientApprovalHandler."""
-
-  handler = "ApiGetUserClientApprovalHandler"
-
-  def Run(self):
-    with test_lib.FakeTime(42):
-      self.CreateAdminUser("approver")
-
-      clients = self.SetupClients(2)
-      for client_id in clients:
-        # Delete the certificate as it's being regenerated every time the
-        # client is created.
-        with aff4.FACTORY.Open(client_id, mode="rw",
-                               token=self.token) as grr_client:
-          grr_client.DeleteAttribute(grr_client.Schema.CERT)
-
-    with test_lib.FakeTime(44):
-      flow.GRRFlow.StartFlow(client_id=clients[0],
-                             flow_name="RequestClientApprovalFlow",
-                             reason="foo",
-                             subject_urn=clients[0],
-                             approver="approver",
-                             token=self.token)
-
-    with test_lib.FakeTime(45):
-      flow.GRRFlow.StartFlow(client_id=clients[1],
-                             flow_name="RequestClientApprovalFlow",
-                             reason="bar",
-                             subject_urn=clients[1],
-                             approver="approver",
-                             token=self.token)
-
-    with test_lib.FakeTime(84):
-      approver_token = access_control.ACLToken(username="approver")
-      flow.GRRFlow.StartFlow(client_id=clients[1],
-                             flow_name="GrantClientApprovalFlow",
-                             reason="bar",
-                             delegate=self.token.username,
-                             subject_urn=clients[1],
-                             token=approver_token)
-
-    with test_lib.FakeTime(126):
-      self.Check("GET", "/api/users/me/approvals/client/%s/foo" %
-                 clients[0].Basename())
-      self.Check("GET", "/api/users/me/approvals/client/%s/bar" %
-                 clients[1].Basename())
-
-
-class ApiCreateUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
-  """Test for ApiCreateUserClientApprovalHandler."""
-
-  def setUp(self):
-    super(ApiCreateUserClientApprovalHandlerTest, self).setUp()
-    self.client_id = self.SetupClients(1)[0]
-    self.handler = user_plugin.ApiCreateUserClientApprovalHandler()
-
-    self.args = user_plugin.ApiCreateUserClientApprovalArgs(
-        client_id=self.client_id)
-    self.args.approval.reason = self.token.reason
-    self.args.approval.notified_users = ["approver"]
-    self.args.approval.email_cc_addresses = ["test@example.com"]
-
-    self.approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.client_id.Basename(
-    )).Add(self.token.username).Add(utils.EncodeReasonString(self.token.reason))
-
+  def SetUpUserApprovalTest(self):
     self.CreateUser("test")
     self.CreateUser("approver")
 
+    self.handler = None
+    self.args = None
+    self.subject_urn = None
+
+    if not self.APPROVAL_TYPE:
+      raise ValueError("APPROVAL_TYPE has to be set.")
+
   def testCreatesAnApprovalWithGivenAttributes(self):
-    with self.assertRaises(IOError):
-      aff4.FACTORY.Open(self.approval_urn,
-                        aff4_type=aff4_security.ClientApproval,
-                        token=self.token)
+    result = self.handler.Handle(self.args, token=self.token)
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.subject_urn.Path()).Add(
+        self.token.username).Add(result.id)
 
-    self.handler.Handle(self.args, token=self.token)
-
-    fd = aff4.FACTORY.Open(self.approval_urn,
-                           aff4_type=aff4_security.ClientApproval,
+    fd = aff4.FACTORY.Open(approval_urn,
+                           aff4_type=self.APPROVAL_TYPE,
                            age=aff4.ALL_TIMES,
                            token=self.token)
-    self.assertEqual(fd.Get(fd.Schema.SUBJECT), self.client_id)
+    self.assertEqual(fd.Get(fd.Schema.SUBJECT), self.subject_urn)
     self.assertEqual(fd.Get(fd.Schema.REASON), self.token.reason)
     self.assertEqual(fd.GetNonExpiredApprovers(), [self.token.username])
     self.assertEqual(fd.Get(fd.Schema.EMAIL_CC), "approver,test@example.com")
@@ -183,10 +60,12 @@ class ApiCreateUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
     # approved the approval.
     self.args.approval.approvers = [self.token.username, "approver"]
 
-    self.handler.Handle(self.args, token=self.token)
+    result = self.handler.Handle(self.args, token=self.token)
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.subject_urn.Path()).Add(
+        self.token.username).Add(result.id)
 
-    fd = aff4.FACTORY.Open(self.approval_urn,
-                           aff4_type=aff4_security.ClientApproval,
+    fd = aff4.FACTORY.Open(approval_urn,
+                           aff4_type=self.APPROVAL_TYPE,
                            age=aff4.ALL_TIMES,
                            token=self.token)
     self.assertEqual(fd.GetNonExpiredApprovers(), [self.token.username])
@@ -225,6 +104,171 @@ class ApiCreateUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(addresses[0], ("approver", "test", "test@example.com"))
 
 
+class ApiGetUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiGetUserClientApprovalHandler."""
+
+  def setUp(self):
+    super(ApiGetUserClientApprovalHandlerTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+    self.handler = user_plugin.ApiGetUserClientApprovalHandler()
+
+  def testRendersRequestedClientApproval(self):
+    flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
+                                      flow_name="RequestClientApprovalFlow",
+                                      reason="blah",
+                                      subject_urn=self.client_id,
+                                      approver="approver",
+                                      email_cc_address="test@example.com",
+                                      token=self.token)
+    flow_fd = aff4.FACTORY.Open(flow_urn,
+                                aff4_type=flow.GRRFlow,
+                                token=self.token)
+    approval_id = flow_fd.state.approval_id
+
+    args = user_plugin.ApiGetUserClientApprovalArgs(
+        client_id=self.client_id,
+        approval_id=approval_id,
+        username=self.token.username)
+    result = self.handler.Handle(args, token=self.token)
+
+    self.assertEqual(result.subject.urn, self.client_id)
+    self.assertEqual(result.reason, "blah")
+    self.assertEqual(result.is_valid, False)
+    self.assertEqual(result.is_valid_message,
+                     "Requires 2 approvers for access.")
+
+    self.assertEqual(result.notified_users, ["approver"])
+    self.assertEqual(result.email_cc_addresses, ["test@example.com"])
+
+    # Every approval is self-approved by default.
+    self.assertEqual(result.approvers, [self.token.username])
+
+  def testIncludesApproversInResultWhenApprovalIsGranted(self):
+    flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
+                                      flow_name="RequestClientApprovalFlow",
+                                      reason="blah",
+                                      subject_urn=self.client_id,
+                                      approver="approver",
+                                      token=self.token)
+    flow_fd = aff4.FACTORY.Open(flow_urn,
+                                aff4_type=flow.GRRFlow,
+                                token=self.token)
+    approval_id = flow_fd.state.approval_id
+
+    approver_token = access_control.ACLToken(username="approver")
+    flow.GRRFlow.StartFlow(client_id=self.client_id,
+                           flow_name="GrantClientApprovalFlow",
+                           reason="blah",
+                           delegate=self.token.username,
+                           subject_urn=self.client_id,
+                           token=approver_token)
+
+    args = user_plugin.ApiGetUserClientApprovalArgs(
+        client_id=self.client_id,
+        approval_id=approval_id,
+        username=self.token.username)
+    result = self.handler.Handle(args, token=self.token)
+
+    self.assertTrue(result.is_valid)
+    self.assertEqual(
+        sorted(result.approvers),
+        sorted([approver_token.username, self.token.username]))
+
+  def testRaisesWhenApprovalIsNotFound(self):
+    args = user_plugin.ApiGetUserClientApprovalArgs(
+        client_id=self.client_id,
+        approval_id="approval:112233",
+        username=self.token.username)
+
+    # TODO(user): throw some standard exception that can be converted to
+    # HTTP 404 status code.
+    with self.assertRaises(IOError):
+      self.handler.Handle(args, token=self.token)
+
+
+class ApiGetUserClientApprovalHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiGetUserClientApprovalHandler."""
+
+  handler = "ApiGetUserClientApprovalHandler"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      self.CreateAdminUser("approver")
+
+      clients = self.SetupClients(2)
+      for client_id in clients:
+        # Delete the certificate as it's being regenerated every time the
+        # client is created.
+        with aff4.FACTORY.Open(client_id, mode="rw",
+                               token=self.token) as grr_client:
+          grr_client.DeleteAttribute(grr_client.Schema.CERT)
+
+    with test_lib.FakeTime(44):
+      flow_urn = flow.GRRFlow.StartFlow(client_id=clients[0],
+                                        flow_name="RequestClientApprovalFlow",
+                                        reason="foo",
+                                        subject_urn=clients[0],
+                                        approver="approver",
+                                        token=self.token)
+      flow_fd = aff4.FACTORY.Open(flow_urn,
+                                  aff4_type=flow.GRRFlow,
+                                  token=self.token)
+      approval1_id = flow_fd.state.approval_id
+
+    with test_lib.FakeTime(45):
+      flow_urn = flow.GRRFlow.StartFlow(client_id=clients[1],
+                                        flow_name="RequestClientApprovalFlow",
+                                        reason="bar",
+                                        subject_urn=clients[1],
+                                        approver="approver",
+                                        token=self.token)
+      flow_fd = aff4.FACTORY.Open(flow_urn,
+                                  aff4_type=flow.GRRFlow,
+                                  token=self.token)
+      approval2_id = flow_fd.state.approval_id
+
+    with test_lib.FakeTime(84):
+      approver_token = access_control.ACLToken(username="approver")
+      flow.GRRFlow.StartFlow(client_id=clients[1],
+                             flow_name="GrantClientApprovalFlow",
+                             reason="bar",
+                             delegate=self.token.username,
+                             subject_urn=clients[1],
+                             token=approver_token)
+
+    with test_lib.FakeTime(126):
+      self.Check("GET",
+                 "/api/users/test/approvals/client/%s/%s" %
+                 (clients[0].Basename(), approval1_id),
+                 replace={approval1_id: "approval:111111"})
+      self.Check("GET",
+                 "/api/users/test/approvals/client/%s/%s" %
+                 (clients[1].Basename(), approval2_id),
+                 replace={approval2_id: "approval:222222"})
+
+
+class ApiCreateUserClientApprovalHandlerTest(
+    test_lib.GRRBaseTest, ApiCreateUserApprovalHandlerTestMixin):
+  """Test for ApiCreateUserClientApprovalHandler."""
+
+  APPROVAL_TYPE = aff4_security.ClientApproval
+
+  def setUp(self):
+    super(ApiCreateUserClientApprovalHandlerTest, self).setUp()
+
+    self.SetUpUserApprovalTest()
+
+    self.subject_urn = client_id = self.SetupClients(1)[0]
+
+    self.handler = user_plugin.ApiCreateUserClientApprovalHandler()
+
+    self.args = user_plugin.ApiCreateUserClientApprovalArgs(client_id=client_id)
+    self.args.approval.reason = self.token.reason
+    self.args.approval.notified_users = ["approver"]
+    self.args.approval.email_cc_addresses = ["test@example.com"]
+
+
 class ApiCreateUserClientApprovalHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiCreateUserClientApprovalHandler."""
@@ -243,6 +287,14 @@ class ApiCreateUserClientApprovalHandlerRegressionTest(
                              token=self.token) as grr_client:
         grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
+    def ReplaceApprovalId():
+      approvals = list(aff4.FACTORY.ListChildren(
+          aff4.ROOT_URN.Add("ACL").Add(client_id.Basename()).Add(
+              self.token.username),
+          token=self.token))
+
+      return {approvals[0].Basename(): "approval:112233"}
+
     with test_lib.FakeTime(126):
       self.Check("POST",
                  "/api/users/me/approvals/client/%s" % client_id.Basename(),
@@ -250,7 +302,8 @@ class ApiCreateUserClientApprovalHandlerRegressionTest(
                      "reason": "really important reason!",
                      "notified_users": ["approver1", "approver2"],
                      "email_cc_addresses": ["test@example.com"]
-                 }})
+                 }},
+                 replace=ReplaceApprovalId)
 
 
 class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
@@ -378,6 +431,186 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
       self.assertEqual(item.reason, "Request reason %d" % i)
 
 
+class ApiListUserClientApprovalsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiListUserClientApprovalsHandlerTest."""
+
+  handler = "ApiListUserClientApprovalsHandler"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      self.CreateAdminUser("approver")
+
+      clients = self.SetupClients(2)
+      for client_id in clients:
+        # Delete the certificate as it's being regenerated every time the
+        # client is created.
+        with aff4.FACTORY.Open(client_id, mode="rw",
+                               token=self.token) as grr_client:
+          grr_client.DeleteAttribute(grr_client.Schema.CERT)
+
+    with test_lib.FakeTime(44):
+      flow_urn = flow.GRRFlow.StartFlow(client_id=clients[0],
+                                        flow_name="RequestClientApprovalFlow",
+                                        reason=self.token.reason,
+                                        subject_urn=clients[0],
+                                        approver="approver",
+                                        token=self.token)
+      flow_fd = aff4.FACTORY.Open(flow_urn,
+                                  aff4_type=flow.GRRFlow,
+                                  token=self.token)
+      approval1_id = flow_fd.state.approval_id
+
+    with test_lib.FakeTime(45):
+      flow_urn = flow.GRRFlow.StartFlow(client_id=clients[1],
+                                        flow_name="RequestClientApprovalFlow",
+                                        reason=self.token.reason,
+                                        subject_urn=clients[1],
+                                        approver="approver",
+                                        token=self.token)
+      flow_fd = aff4.FACTORY.Open(flow_urn,
+                                  aff4_type=flow.GRRFlow,
+                                  token=self.token)
+      approval2_id = flow_fd.state.approval_id
+
+    with test_lib.FakeTime(84):
+      approver_token = access_control.ACLToken(username="approver")
+      flow.GRRFlow.StartFlow(client_id=clients[1],
+                             flow_name="GrantClientApprovalFlow",
+                             reason=self.token.reason,
+                             delegate=self.token.username,
+                             subject_urn=clients[1],
+                             token=approver_token)
+
+    with test_lib.FakeTime(126):
+      self.Check("GET",
+                 "/api/users/me/approvals/client",
+                 replace={approval1_id: "approval:111111",
+                          approval2_id: "approval:222222"})
+      self.Check("GET",
+                 "/api/users/me/approvals/client/%s" % (clients[0].Basename()),
+                 replace={approval1_id: "approval:111111",
+                          approval2_id: "approval:222222"})
+
+
+class ApiGetUserHuntApprovalHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest,
+    standard_test.StandardHuntTestMixin):
+  """Regression test for ApiGetUserHuntApprovalHandler."""
+
+  handler = "ApiGetUserHuntApprovalHandler"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      self.CreateAdminUser("approver")
+
+      with self.CreateHunt(description="hunt1") as hunt_obj:
+        hunt1_urn = hunt_obj.urn
+        hunt1_id = hunt1_urn.Basename()
+
+      with self.CreateHunt(description="hunt2") as hunt_obj:
+        hunt2_urn = hunt_obj.urn
+        hunt2_id = hunt2_urn.Basename()
+
+    with test_lib.FakeTime(44):
+      flow_urn = flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
+                                        reason="foo",
+                                        subject_urn=hunt1_urn,
+                                        approver="approver",
+                                        token=self.token)
+      flow_fd = aff4.FACTORY.Open(flow_urn,
+                                  aff4_type=flow.GRRFlow,
+                                  token=self.token)
+      approval1_id = flow_fd.state.approval_id
+
+    with test_lib.FakeTime(45):
+      flow_urn = flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
+                                        reason="bar",
+                                        subject_urn=hunt2_urn,
+                                        approver="approver",
+                                        token=self.token)
+      flow_fd = aff4.FACTORY.Open(flow_urn,
+                                  aff4_type=flow.GRRFlow,
+                                  token=self.token)
+      approval2_id = flow_fd.state.approval_id
+
+    with test_lib.FakeTime(84):
+      approver_token = access_control.ACLToken(username="approver")
+      flow.GRRFlow.StartFlow(flow_name="GrantHuntApprovalFlow",
+                             reason="bar",
+                             delegate=self.token.username,
+                             subject_urn=hunt2_urn,
+                             token=approver_token)
+
+    with test_lib.FakeTime(126):
+      self.Check("GET",
+                 "/api/users/test/approvals/hunt/%s/%s" %
+                 (hunt1_id, approval1_id),
+                 replace={hunt1_id: "H:123456",
+                          approval1_id: "approval:111111"})
+      self.Check("GET",
+                 "/api/users/test/approvals/hunt/%s/%s" %
+                 (hunt2_id, approval2_id),
+                 replace={hunt2_id: "H:567890",
+                          approval2_id: "approval:222222"})
+
+
+class ApiCreateUserHuntApprovalHandlerTest(
+    test_lib.GRRBaseTest, ApiCreateUserApprovalHandlerTestMixin,
+    standard_test.StandardHuntTestMixin):
+  """Test for ApiCreateUserHuntApprovalHandler."""
+
+  APPROVAL_TYPE = aff4_security.HuntApproval
+
+  def setUp(self):
+    super(ApiCreateUserHuntApprovalHandlerTest, self).setUp()
+
+    self.SetUpUserApprovalTest()
+
+    with self.CreateHunt(description="foo") as hunt_obj:
+      self.subject_urn = hunt_urn = hunt_obj.urn
+      hunt_id = hunt_urn.Basename()
+
+    self.handler = user_plugin.ApiCreateUserHuntApprovalHandler()
+
+    self.args = user_plugin.ApiCreateUserHuntApprovalArgs(hunt_id=hunt_id)
+    self.args.approval.reason = self.token.reason
+    self.args.approval.notified_users = ["approver"]
+    self.args.approval.email_cc_addresses = ["test@example.com"]
+
+
+class ApiCreateUserHuntApprovalHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest,
+    standard_test.StandardHuntTestMixin):
+  """Regression test for ApiCreateUserHuntApprovalHandler."""
+
+  handler = "ApiCreateUserHuntApprovalHandler"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      self.CreateUser("approver")
+
+      with self.CreateHunt(description="foo") as hunt_obj:
+        hunt_id = hunt_obj.urn.Basename()
+
+    def ReplaceHuntAndApprovalIds():
+      approvals = list(aff4.FACTORY.ListChildren(
+          aff4.ROOT_URN.Add("ACL").Add("hunts").Add(hunt_id).Add(
+              self.token.username),
+          token=self.token))
+
+      return {approvals[0].Basename(): "approval:112233", hunt_id: "H:123456"}
+
+    with test_lib.FakeTime(126):
+      self.Check("POST",
+                 "/api/users/me/approvals/hunt/%s" % hunt_id, {"approval": {
+                     "reason": "really important reason!",
+                     "notified_users": ["approver1", "approver2"],
+                     "email_cc_addresses": ["test@example.com"]
+                 }},
+                 replace=ReplaceHuntAndApprovalIds)
+
+
 class ApiListUserHuntApprovalsHandlerTest(test_lib.GRRBaseTest):
   """Test for ApiListUserHuntApprovalsHandler."""
 
@@ -400,6 +633,158 @@ class ApiListUserHuntApprovalsHandlerTest(test_lib.GRRBaseTest):
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), 1)
+
+
+class ApiListUserHuntApprovalsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiListUserClientApprovalsHandlerTest."""
+
+  handler = "ApiListUserHuntApprovalsHandler"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      self.CreateAdminUser("approver")
+
+      hunt = hunts.GRRHunt.StartHunt(hunt_name="GenericHunt", token=self.token)
+
+    with test_lib.FakeTime(43):
+      flow_urn = flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
+                                        reason=self.token.reason,
+                                        subject_urn=hunt.urn,
+                                        approver="approver",
+                                        token=self.token)
+      flow_fd = aff4.FACTORY.Open(flow_urn,
+                                  aff4_type=flow.GRRFlow,
+                                  token=self.token)
+      approval_id = flow_fd.state.approval_id
+
+    with test_lib.FakeTime(126):
+      self.Check("GET",
+                 "/api/users/me/approvals/hunt",
+                 replace={hunt.urn.Basename(): "H:123456",
+                          approval_id: "approval:112233"})
+
+
+class ApiGetUserCronApprovalHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiGetUserCronApprovalHandler."""
+
+  handler = "ApiGetUserCronApprovalHandler"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      self.CreateAdminUser("approver")
+
+      cron_manager = aff4_cronjobs.CronManager()
+      cron_args = aff4_cronjobs.CreateCronJobFlowArgs(periodicity="1d",
+                                                      allow_overruns=False)
+      cron1_urn = cron_manager.ScheduleFlow(cron_args=cron_args,
+                                            token=self.token)
+      cron2_urn = cron_manager.ScheduleFlow(cron_args=cron_args,
+                                            token=self.token)
+
+    with test_lib.FakeTime(44):
+      flow_urn = flow.GRRFlow.StartFlow(flow_name="RequestCronJobApprovalFlow",
+                                        reason="foo",
+                                        subject_urn=cron1_urn,
+                                        approver="approver",
+                                        token=self.token)
+      flow_fd = aff4.FACTORY.Open(flow_urn,
+                                  aff4_type=flow.GRRFlow,
+                                  token=self.token)
+      approval1_id = flow_fd.state.approval_id
+
+    with test_lib.FakeTime(45):
+      flow_urn = flow.GRRFlow.StartFlow(flow_name="RequestCronJobApprovalFlow",
+                                        reason="bar",
+                                        subject_urn=cron2_urn,
+                                        approver="approver",
+                                        token=self.token)
+      flow_fd = aff4.FACTORY.Open(flow_urn,
+                                  aff4_type=flow.GRRFlow,
+                                  token=self.token)
+      approval2_id = flow_fd.state.approval_id
+
+    with test_lib.FakeTime(84):
+      approver_token = access_control.ACLToken(username="approver")
+      flow.GRRFlow.StartFlow(flow_name="GrantCronJobApprovalFlow",
+                             reason="bar",
+                             delegate=self.token.username,
+                             subject_urn=cron2_urn,
+                             token=approver_token)
+
+    with test_lib.FakeTime(126):
+      self.Check("GET",
+                 "/api/users/test/approvals/cron/%s/%s" %
+                 (cron1_urn.Basename(), approval1_id),
+                 replace={cron1_urn.Basename(): "CronJob_123456",
+                          approval1_id: "approval:111111"})
+      self.Check("GET",
+                 "/api/users/test/approvals/cron/%s/%s" %
+                 (cron2_urn.Basename(), approval2_id),
+                 replace={cron2_urn.Basename(): "CronJob_567890",
+                          approval2_id: "approval:222222"})
+
+
+class ApiCreateUserCronApprovalHandlerTest(
+    test_lib.GRRBaseTest, ApiCreateUserApprovalHandlerTestMixin):
+  """Test for ApiCreateUserCronApprovalHandler."""
+
+  APPROVAL_TYPE = aff4_security.CronJobApproval
+
+  def setUp(self):
+    super(ApiCreateUserCronApprovalHandlerTest, self).setUp()
+
+    self.SetUpUserApprovalTest()
+
+    cron_manager = aff4_cronjobs.CronManager()
+    cron_args = aff4_cronjobs.CreateCronJobFlowArgs(periodicity="1d",
+                                                    allow_overruns=False)
+    self.subject_urn = cron_urn = cron_manager.ScheduleFlow(cron_args=cron_args,
+                                                            token=self.token)
+    cron_id = cron_urn.Basename()
+
+    self.handler = user_plugin.ApiCreateUserCronApprovalHandler()
+
+    self.args = user_plugin.ApiCreateUserCronApprovalArgs(cron_job_id=cron_id)
+    self.args.approval.reason = self.token.reason
+    self.args.approval.notified_users = ["approver"]
+    self.args.approval.email_cc_addresses = ["test@example.com"]
+
+
+class ApiCreateUserCronApprovalHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiCreateUserCronApprovalHandler."""
+
+  handler = "ApiCreateUserCronApprovalHandler"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      self.CreateUser("approver")
+
+    cron_manager = aff4_cronjobs.CronManager()
+    cron_args = aff4_cronjobs.CreateCronJobFlowArgs(periodicity="1d",
+                                                    allow_overruns=False)
+    cron_urn = cron_manager.ScheduleFlow(cron_args=cron_args, token=self.token)
+    cron_id = cron_urn.Basename()
+
+    def ReplaceCronAndApprovalIds():
+      approvals = list(aff4.FACTORY.ListChildren(
+          aff4.ROOT_URN.Add("ACL").Add("cron").Add(cron_id).Add(
+              self.token.username),
+          token=self.token))
+
+      return {approvals[0].Basename(): "approval:112233",
+              cron_id: "CronJob_123456"}
+
+    with test_lib.FakeTime(126):
+      self.Check("POST",
+                 "/api/users/me/approvals/cron/%s" % cron_id, {"approval": {
+                     "reason": "really important reason!",
+                     "notified_users": ["approver1", "approver2"],
+                     "email_cc_addresses": ["test@example.com"]
+                 }},
+                 replace=ReplaceCronAndApprovalIds)
 
 
 class ApiListUserCronApprovalsHandlerTest(test_lib.GRRBaseTest):
@@ -426,80 +811,6 @@ class ApiListUserCronApprovalsHandlerTest(test_lib.GRRBaseTest):
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), 1)
-
-
-class ApiListUserClientApprovalsHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiListUserClientApprovalsHandlerTest."""
-
-  handler = "ApiListUserClientApprovalsHandler"
-
-  def Run(self):
-    with test_lib.FakeTime(42):
-      self.CreateAdminUser("approver")
-
-      clients = self.SetupClients(2)
-      for client_id in clients:
-        # Delete the certificate as it's being regenerated every time the
-        # client is created.
-        with aff4.FACTORY.Open(client_id, mode="rw",
-                               token=self.token) as grr_client:
-          grr_client.DeleteAttribute(grr_client.Schema.CERT)
-
-    with test_lib.FakeTime(44):
-      flow.GRRFlow.StartFlow(client_id=clients[0],
-                             flow_name="RequestClientApprovalFlow",
-                             reason=self.token.reason,
-                             subject_urn=clients[0],
-                             approver="approver",
-                             token=self.token)
-
-    with test_lib.FakeTime(45):
-      flow.GRRFlow.StartFlow(client_id=clients[1],
-                             flow_name="RequestClientApprovalFlow",
-                             reason=self.token.reason,
-                             subject_urn=clients[1],
-                             approver="approver",
-                             token=self.token)
-
-    with test_lib.FakeTime(84):
-      approver_token = access_control.ACLToken(username="approver")
-      flow.GRRFlow.StartFlow(client_id=clients[1],
-                             flow_name="GrantClientApprovalFlow",
-                             reason=self.token.reason,
-                             delegate=self.token.username,
-                             subject_urn=clients[1],
-                             token=approver_token)
-
-    with test_lib.FakeTime(126):
-      self.Check("GET", "/api/users/me/approvals/client")
-      self.Check("GET",
-                 "/api/users/me/approvals/client/%s" % (clients[0].Basename()))
-
-
-class ApiListUserHuntApprovalsHandlerRegressionTest(
-    api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiListUserClientApprovalsHandlerTest."""
-
-  handler = "ApiListUserHuntApprovalsHandler"
-
-  def Run(self):
-    with test_lib.FakeTime(42):
-      self.CreateAdminUser("approver")
-
-      hunt = hunts.GRRHunt.StartHunt(hunt_name="GenericHunt", token=self.token)
-
-    with test_lib.FakeTime(43):
-      flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
-                             reason=self.token.reason,
-                             subject_urn=hunt.urn,
-                             approver="approver",
-                             token=self.token)
-
-    with test_lib.FakeTime(126):
-      self.Check("GET",
-                 "/api/users/me/approvals/hunt",
-                 replace={utils.SmartStr(hunt.urn.Basename()): "H:123456"})
 
 
 class ApiGetGrrUserHandlerTest(test_lib.GRRBaseTest):

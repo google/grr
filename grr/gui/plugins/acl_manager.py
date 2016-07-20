@@ -13,7 +13,6 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import utils
 
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import security as aff4_security
@@ -253,12 +252,6 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
                                  renderer=self.__class__.__name__,
                                  id=request.REQ.get("id", hash(self)))
 
-    # There is a bug in Firefox that strips trailing "="s from get parameters
-    # which is a problem with the base64 padding. To pass the selenium tests,
-    # we have to restore the original string.
-    while len(self.acl.split("/")[-1]) % 4 != 0:
-      self.acl += "="
-
     # TODO(user): This makes assumptions about the approval URL.
     approval_urn = rdfvalue.RDFURN(self.acl or "/")
     components = approval_urn.Split()
@@ -311,49 +304,51 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
     approval_urn = rdfvalue.RDFURN(request.REQ.get("acl", "/"))
     _, namespace, _ = approval_urn.Split(3)
 
+    approval = aff4.FACTORY.Open(approval_urn,
+                                 aff4_type=aff4_security.Approval,
+                                 token=request.token)
+    reason = approval.Get(approval.Schema.REASON)
+
     if namespace == "hunts":
       try:
-        _, _, hunt_id, user, reason = approval_urn.Split()
+        _, _, hunt_id, user, _ = approval_urn.Split()
         self.subject = rdfvalue.RDFURN(namespace).Add(hunt_id)
         self.user = user
-        self.reason = utils.DecodeReasonString(reason)
       except (ValueError, TypeError):
         raise access_control.UnauthorizedAccess(
             "Approval object is not well formed.")
 
       flow.GRRFlow.StartFlow(flow_name="GrantHuntApprovalFlow",
                              subject_urn=self.subject,
-                             reason=self.reason,
+                             reason=reason,
                              delegate=self.user,
                              token=request.token)
     elif namespace == "cron":
       try:
-        _, _, cron_job_name, user, reason = approval_urn.Split()
+        _, _, cron_job_name, user, _ = approval_urn.Split()
         self.subject = rdfvalue.RDFURN(namespace).Add(cron_job_name)
         self.user = user
-        self.reason = utils.DecodeReasonString(reason)
       except (ValueError, TypeError):
         raise access_control.UnauthorizedAccess(
             "Approval object is not well formed.")
 
       flow.GRRFlow.StartFlow(flow_name="GrantCronJobApprovalFlow",
                              subject_urn=self.subject,
-                             reason=self.reason,
+                             reason=reason,
                              delegate=self.user,
                              token=request.token)
     elif aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(namespace):
       try:
-        _, client_id, user, reason = approval_urn.Split()
+        _, client_id, user, _ = approval_urn.Split()
         self.subject = client_id
         self.user = user
-        self.reason = utils.DecodeReasonString(reason)
       except (ValueError, TypeError):
         raise access_control.UnauthorizedAccess(
             "Approval object is not well formed.")
 
       flow.GRRFlow.StartFlow(client_id=client_id,
                              flow_name="GrantClientApprovalFlow",
-                             reason=self.reason,
+                             reason=reason,
                              delegate=self.user,
                              subject_urn=rdf_client.ClientURN(self.subject),
                              token=request.token)

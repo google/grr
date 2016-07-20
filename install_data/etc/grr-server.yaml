@@ -53,11 +53,6 @@ ClientBuilder Context:
 
   Client.poll_max: 600
 
-# Include other config files like this. An example buildconfig.yaml is supplied
-# for separating out build configuration.
-  Config.includes:
-    - "%(Config.directory)/buildconfig.yaml"
-
   Target:Darwin:
     # The build system generates a build.yaml file with information about the
     # build. It is placed right next to this file.

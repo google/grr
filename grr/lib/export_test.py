@@ -11,9 +11,9 @@ from grr.client.components.rekall_support import grr_rekall
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import action_mocks
 from grr.lib import aff4
+from grr.lib import events
 from grr.lib import export
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -315,7 +315,7 @@ class ExportTest(test_lib.GRRBaseTest):
       pass
 
     auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
-    flow.Events.PublishEvent(
+    events.Events.PublishEvent(
         "FileStore.AddFileToStore",
         rdf_flows.GrrMessage(payload=urn, auth_state=auth_state),
         token=self.token)

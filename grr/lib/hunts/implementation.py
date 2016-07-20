@@ -23,6 +23,7 @@ import logging
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
+from grr.lib import events as events_lib
 from grr.lib import flow
 from grr.lib import flow_runner
 from grr.lib import output_plugin
@@ -283,12 +284,12 @@ class HuntRunner(flow_runner.FlowRunner):
     except AttributeError:
       flow_name = ""
 
-    event = flow.AuditEvent(user=self.flow_obj.token.username,
-                            action=event_action,
-                            urn=self.flow_obj.urn,
-                            flow_name=flow_name,
-                            description=self.args.description)
-    flow.Events.PublishEvent("Audit", event, token=self.flow_obj.token)
+    event = events_lib.AuditEvent(user=self.flow_obj.token.username,
+                                  action=event_action,
+                                  urn=self.flow_obj.urn,
+                                  flow_name=flow_name,
+                                  description=self.args.description)
+    events_lib.Events.PublishEvent("Audit", event, token=self.flow_obj.token)
 
   def Start(self):
     """This uploads the rules to the foreman and, thus, starts the hunt."""
@@ -730,12 +731,12 @@ class GRRHunt(flow.GRRFlow):
     except AttributeError:
       flow_name = ""
 
-    event = flow.AuditEvent(user=runner_args.token.username,
-                            action="HUNT_CREATED",
-                            urn=hunt_obj.urn,
-                            flow_name=flow_name,
-                            description=runner_args.description)
-    flow.Events.PublishEvent("Audit", event, token=runner_args.token)
+    event = events_lib.AuditEvent(user=runner_args.token.username,
+                                  action="HUNT_CREATED",
+                                  urn=hunt_obj.urn,
+                                  flow_name=flow_name,
+                                  description=runner_args.description)
+    events_lib.Events.PublishEvent("Audit", event, token=runner_args.token)
 
     return hunt_obj
 

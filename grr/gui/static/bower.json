@@ -24,7 +24,7 @@
     "font-awesome": "^4.6.3",
     "jstree": "^3.3.1",
     "Flot": "flot#^0.8.3",
-    "jquery-migrate": "http://code.jquery.com/jquery-migrate-1.4.1.js",
+    "jquery-migrate": "https://code.jquery.com/jquery-migrate-1.4.1.js",
     "jquery-timeentry": "^2.0.1",
     "moment": "^2.14.1",
     "bootstrap": "^3.3.6",
@@ -33,8 +33,7 @@
     "jquery-ui": "^1.11.4"
   },
   "devDependencies": {
-    "closurelibrary": "*",
-    "closure-compiler": "http://dl.google.com/closure-compiler/compiler-latest.zip"
+    "closure-compiler": "https://dl.google.com/closure-compiler/compiler-20160619.zip"
   },
   "overrides": {
     "bootstrap": {

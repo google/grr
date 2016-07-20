@@ -60,6 +60,7 @@ from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import email_alerts
+from grr.lib import events
 from grr.lib import flags
 from grr.lib import flow
 # pylint: disable=unused-import
@@ -575,12 +576,18 @@ class GRRBaseTest(unittest.TestCase):
 
   def RequestClientApproval(self, client_id, token=None, approver="approver"):
     """Create an approval request to be sent to approver."""
-    flow.GRRFlow.StartFlow(client_id=client_id,
-                           flow_name="RequestClientApprovalFlow",
-                           reason=token.reason,
-                           subject_urn=rdf_client.ClientURN(client_id),
-                           approver=approver,
-                           token=token)
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=client_id,
+        flow_name="RequestClientApprovalFlow",
+        reason=token.reason,
+        subject_urn=rdf_client.ClientURN(client_id),
+        approver=approver,
+        token=token)
+    with ACLChecksDisabledContextManager():
+      flow_fd = aff4.FACTORY.Open(flow_urn,
+                                  aff4_type=flow.GRRFlow,
+                                  token=self.token)
+      return flow_fd.state.approval_urn
 
   def GrantClientApproval(self,
                           client_id,
@@ -610,11 +617,14 @@ class GRRBaseTest(unittest.TestCase):
                                     token=None,
                                     approver="approver"):
     token = token or self.token
-    self.RequestClientApproval(client_id, token=token, approver=approver)
+    approval_urn = self.RequestClientApproval(client_id,
+                                              token=token,
+                                              approver=approver)
     self.GrantClientApproval(client_id,
                              token.username,
                              reason=token.reason,
                              approver=approver)
+    return approval_urn
 
   def GrantHuntApproval(self, hunt_urn, token=None):
     token = token or self.token
@@ -1963,7 +1973,7 @@ class CrashClientMock(object):
 
     # This is normally done by the FrontEnd when a CLIENT_KILLED message is
     # received.
-    flow.Events.PublishEvent("ClientCrash", msg, token=self.token)
+    events.Events.PublishEvent("ClientCrash", msg, token=self.token)
 
 
 class SampleHuntMock(object):

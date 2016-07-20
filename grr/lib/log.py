@@ -44,6 +44,15 @@ class GrrApplicationLogger(object):
 
     return "%s:%s:%s" % (event_time, socket.gethostname(), os.getpid())
 
+  def LogHttpApiCall(self, request, response):
+    """Log an api call based on the django.http request and response objects."""
+
+    log_msg = "API call [%s] by %s: %s [%d]" % (response.get("X-API-Method",
+                                                             "unknown"),
+                                                request.user, request.path,
+                                                response.status_code)
+    logging.info(log_msg)
+
 
 class PreLoggingMemoryHandler(handlers.BufferingHandler):
   """Handler used before logging subsystem is initialized."""

@@ -17,6 +17,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import email_alerts
+from grr.lib import events
 from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
@@ -781,7 +782,7 @@ class ClientStartupHandler(flow.EventListener):
 
     client.Close()
 
-    flow.Events.PublishEventInline("ClientStartup", message, token=self.token)
+    events.Events.PublishEventInline("ClientStartup", message, token=self.token)
 
 
 class IgnoreResponses(flow.WellKnownFlow):

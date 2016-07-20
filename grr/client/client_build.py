@@ -1,15 +1,13 @@
 #!/usr/bin/env python
-"""This tool builds or repacks the client binaries.
-
-This handles invocations for the build across the supported platforms including
-handling Visual Studio, pyinstaller and other packaging mechanisms.
-"""
+"""This tool builds or repacks the client binaries."""
 
 import getpass
 import logging
+import multiprocessing
 import os
 import platform
-import time
+import subprocess
+import sys
 
 
 # pylint: disable=unused-import
@@ -21,7 +19,14 @@ from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import repacking
 from grr.lib import startup
-from grr.lib.builders import signing
+
+
+class Error(Exception):
+  pass
+
+
+class ErrorDuringRepacking(Error):
+  pass
 
 try:
   # pylint: disable=g-import-not-at-top
@@ -31,57 +36,12 @@ except ImportError:
 
 parser = flags.PARSER
 
-# Guess which arch we should be building based on where we are running.
-if platform.architecture()[0] == "32bit":
-  default_arch = "i386"
-else:
-  default_arch = "amd64"
-
-default_platform = platform.system().lower()
-parser.add_argument(
-    "--platform",
-    choices=["darwin", "linux", "windows"],
-    default=default_platform,
-    help="The platform to build or repack for. This will default to "
-    "the current platform: %s." % platform.system())
-
-parser.add_argument("--arch",
-                    choices=["amd64", "i386"],
-                    default=default_arch,
-                    help="The architecture to build or repack for.")
-
-parser.add_argument("--sign",
-                    action="store_true",
-                    default=False,
-                    help="Sign executables.")
-
-# Guess which package format we should be building based on where we are
-# running.
-if default_platform == "linux":
-  distro = platform.linux_distribution()[0]
-  if distro in ["Ubuntu", "debian"]:
-    default_package = "deb"
-  elif distro in ["CentOS Linux", "CentOS", "centos", "redhat", "fedora"]:
-    default_package = "rpm"
-  else:
-    default_package = None
-elif default_platform == "darwin":
-  default_package = "dmg"
-elif default_platform == "windows":
-  default_package = "exe"
-
-parser.add_argument(
-    "--package_format",
-    choices=["deb", "rpm", "dmg"],
-    default=default_package,
-    help="The packaging format to use when building a Linux client.")
-
 # Initialize sub parsers and their arguments.
 subparsers = parser.add_subparsers(title="subcommands",
                                    dest="subparser_name",
                                    description="valid subcommands")
 
-# Build arguments.
+# build arguments.
 parser_build = subparsers.add_parser("build",
                                      help="Build a client from source.")
 
@@ -89,35 +49,57 @@ parser_build.add_argument("--output",
                           default=None,
                           help="The path to write the output template.")
 
-parser_repack = subparsers.add_parser(
-    "repack", help="Build a deployable self installer from a package.")
+# repack arguments
+parser_repack = subparsers.add_parser("repack",
+                                      help="Build installer from a template.")
+
+parser_repack.add_argument("--sign",
+                           action="store_true",
+                           default=False,
+                           help="Sign installer binaries.")
 
 parser_repack.add_argument("--template",
                            default=None,
                            required=True,
                            help="The template zip file to repack.")
 
-parser_repack.add_argument("--outputdir",
+parser_repack.add_argument("--output_dir",
                            default="",
                            required=True,
                            help="The directory to which we should write the "
                            "output installer. Installers will be named "
-                           "automatically from config options. Incompatible"
-                           " with --output")
+                           "automatically from config options.")
 
-parser_buildandrepack = subparsers.add_parser(
-    "buildandrepack",
-    help="Build and repack clients for multiple labels and architectures.")
+# repack_multiple arguments
+parser_multi = subparsers.add_parser(
+    "repack_multiple",
+    help="Repack multiple templates with multiple configs.")
 
-parser_buildandrepack.add_argument("--templatedir",
-                                   default="",
-                                   help="Directory"
-                                   "containing template zip files to repack.")
+parser_multi.add_argument("--sign",
+                          action="store_true",
+                          default=False,
+                          help="Sign installer binaries.")
 
-parser_buildandrepack.add_argument("--debug_build",
-                                   action="store_true",
-                                   default=False,
-                                   help="Create a debug client.")
+parser_multi.add_argument("--templates",
+                          default=None,
+                          required=True,
+                          nargs="+",
+                          help="The list of templates to repack. Use "
+                          "'--template /some/dir/*.zip' to repack "
+                          "all templates in a directory.")
+
+parser_multi.add_argument("--repack_configs",
+                          default=None,
+                          required=True,
+                          nargs="+",
+                          help="The list of repacking configs to apply. Use "
+                          "'--repack_configs /some/dir/*.yaml' to repack "
+                          "with all configs in a directory")
+
+parser_multi.add_argument("--output_dir",
+                          default=None,
+                          required=True,
+                          help="The directory where we output our installers.")
 
 if component:
   parser_build_component = subparsers.add_parser(
@@ -142,217 +124,165 @@ if component:
 args = parser.parse_args()
 
 
-def GetBuilder(context):
-  """Get instance of builder class based on flags."""
-  try:
-    if "Target:Darwin" in context:
-      builder_class = builders.DarwinClientBuilder
-    elif "Target:Windows" in context:
-      builder_class = builders.WindowsClientBuilder
-    elif "Target:LinuxDeb" in context:
-      builder_class = builders.LinuxClientBuilder
-    elif "Target:LinuxRpm" in context:
-      builder_class = builders.CentosClientBuilder
-    else:
-      parser.error("Bad build context: %s" % context)
+class TemplateBuilder(object):
+  """Build client templates."""
 
-  except AttributeError:
-    raise RuntimeError("Unable to build for platform %s when running "
-                       "on current platform." % args.platform)
+  def GetBuilder(self, context):
+    """Get instance of builder class based on flags."""
+    try:
+      if "Target:Darwin" in context:
+        builder_class = builders.DarwinClientBuilder
+      elif "Target:Windows" in context:
+        builder_class = builders.WindowsClientBuilder
+      elif "Target:LinuxDeb" in context:
+        builder_class = builders.LinuxClientBuilder
+      elif "Target:LinuxRpm" in context:
+        builder_class = builders.CentosClientBuilder
+      else:
+        parser.error("Bad build context: %s" % context)
 
-  return builder_class(context=context)
+    except AttributeError:
+      raise RuntimeError("Unable to build for platform %s when running "
+                         "on current platform." % self.platform)
 
+    return builder_class(context=context)
 
-def GetSigner(context):
-  if args.subparser_name in ["repack", "buildandrepack"]:
-    if args.platform == "windows":
-      print "Enter passphrase for code signing cert:"
-      passwd = getpass.getpass()
-      cert = config_lib.CONFIG.Get("ClientBuilder.windows_signing_cert",
-                                   context=context)
-      key = config_lib.CONFIG.Get("ClientBuilder.windows_signing_key",
-                                  context=context)
-      app_name = config_lib.CONFIG.Get(
-          "ClientBuilder.windows_signing_application_name",
-          context=context)
-      return signing.WindowsCodeSigner(cert, key, passwd, app_name)
-    elif args.platform == "linux" and args.package_format == "rpm":
-      pub_keyfile = config_lib.CONFIG.Get(
-          "ClientBuilder.rpm_signing_key_public_keyfile",
-          context=context)
-      gpg_name = config_lib.CONFIG.Get("ClientBuilder.rpm_gpg_name",
-                                       context=context)
+  def GetArch(self):
+    if platform.architecture()[0] == "32bit":
+      return "i386"
+    return "amd64"
 
-      print "Enter passphrase for code signing key %s:" % (gpg_name)
-      passwd = getpass.getpass()
-      return signing.RPMCodeSigner(passwd, pub_keyfile, gpg_name)
-    else:
-      parser.error("Signing only supported on windows and linux rpms for "
-                   "repack, buildandrepack")
+  def GetPackageFormat(self):
+    if platform.system() == "Linux":
+      distro = platform.linux_distribution()[0]
+      if distro in ["Ubuntu", "debian"]:
+        return "Target:LinuxDeb"
+      elif distro in ["CentOS Linux", "CentOS", "centos", "redhat", "fedora"]:
+        return "Target:LinuxRpm"
+      else:
+        raise RuntimeError("Unknown distro, can't determine package format")
 
+  def BuildTemplate(self, context=None, output=None):
+    """Find template builder and call it."""
+    context = context or []
+    context.append("Arch:%s" % self.GetArch())
+    # Platform context has common platform settings, Target has template build
+    # specific stuff.
+    self.platform = platform.system()
+    context.extend(["Platform:%s" % self.platform, "Target:%s" % self.platform])
+    if "Target:Linux" in context:
+      context.append(self.GetPackageFormat())
 
-def TemplateInputFilename(context):
-  """Build template file name from config."""
-  if args.templatedir:
-    filename = config_lib.CONFIG.Get("PyInstaller.template_filename",
-                                     context=context)
-    return os.path.join(args.templatedir, filename)
-  return None
+    template_path = None
+    if output:
+      template_path = os.path.join(output,
+                                   config_lib.CONFIG.Get(
+                                       "PyInstaller.template_filename",
+                                       context=context))
 
-
-def BuildAndRepackWindows(signer=None):
-  """Run buildandrepack for 32/64 dbg/prod."""
-  build_combos = [
-      {"arch": "amd64",
-       "debug_build": True}, {"arch": "amd64",
-                              "debug_build": False}, {"arch": "i386",
-                                                      "debug_build": True},
-      {"arch": "i386",
-       "debug_build": False}
-  ]
-  timestamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-  args.package_format = "exe"
-
-  # TODO(user): Build components here.
-  # component.BuildComponents(output_dir=output_dir)
-
-  context_orig = SetOSContextFromArgs([])
-  # Take a copy of the context list so we can reset back to clean state for each
-  # buildandrepack run
-  context = list(context_orig)
-  for argset in build_combos:
-    for key, value in argset.items():
-      setattr(args, key, value)
-    context = SetArchContextFromArgs(context)
-    context = SetDebugContextFromArgs(context)
-    print "Building for: %s" % context
-    BuildAndRepack(context, timestamp=timestamp, signer=signer)
-    context = list(context_orig)
-
-
-def BuildAndRepack(context, signer=None, timestamp=None):
-  """Run build and repack to create installers."""
-  # ISO 8601 date
-  timestamp = timestamp or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
-
-  # Output directory like: 2015-02-13T21:48:47-0800/linux_amd64_deb/
-  spec = "_".join((args.platform, args.arch, args.package_format))
-  output_dir = os.path.join(
-      config_lib.CONFIG.Get("ClientBuilder.executables_dir",
-                            context=context),
-      timestamp,
-      spec)
-
-  # If we weren't passed a template, build one
-  if args.templatedir:
-    template_path = TemplateInputFilename(context)
-  else:
-    component.BuildComponents(output_dir=output_dir)
-    template_path = os.path.join(output_dir,
-                                 config_lib.CONFIG.Get(
-                                     "PyInstaller.template_filename",
-                                     context=context))
-    builder_obj = GetBuilder(context)
+    builder_obj = self.GetBuilder(context)
     builder_obj.MakeExecutableTemplate(output_file=template_path)
 
-  # Get the list of contexts which we should be building.
-  context_list = config_lib.CONFIG.Get("ClientBuilder.BuildTargets")
 
-  logging.info("Building installers for: %s", context_list)
-  repacked_list = []
-  for repackcontext in context_list:
+def SpawnProcess(popen_args, signing=None, passwd=None):
+  if signing:
+    # We send the password via pipe to avoid creating a process with the
+    # password as an argument that will get logged on some systems.
+    p = subprocess.Popen(popen_args, stdin=subprocess.PIPE)
+    p.communicate(input=passwd)
+  else:
+    p = subprocess.Popen(popen_args)
+    p.wait()
+  if p.returncode != 0:
+    raise ErrorDuringRepacking(" ".join(popen_args))
 
-    # Add the settings for this context
-    for newcontext in repackcontext.split(","):
-      context.append(newcontext)
+
+class MultiTemplateRepacker(object):
+  """Helper class for repacking multiple templates and configs.
+
+  This class calls client_build in a separate process for each repacking job.
+  This greatly speeds up repacking lots of templates and also avoids the need to
+  manage adding and removing different build contexts for each repack.
+
+  This is only really useful if you have lots of repacking config
+  customizations, such as many differently labelled clients.
+  """
+
+  def GetOutputDir(self, base_dir, config_filename):
+    """Add the repack config filename onto the base output directory.
+
+    This allows us to repack lots of different configs to the same installer
+    name and still be able to distinguish them.
+
+    Args:
+      base_dir: output directory string
+      config_filename: the secondary config filename string
+
+    Returns:
+      String to be used as output directory for this repack.
+    """
+    return os.path.join(base_dir,
+                        os.path.basename(config_filename.replace(".yaml", "")))
+
+  def RepackTemplates(self,
+                      repack_configs,
+                      templates,
+                      output_dir,
+                      config=None,
+                      sign=False):
+    """Call repacker in a subprocess."""
+    if sign:
+      # Doing this here avoids multiple prompting when doing lots of repacking.
+      print "Enter passphrase for Windows code signing"
+      windows_passwd = getpass.getpass()
+
+      print "Enter passphrase for RPM code signing"
+      rpm_passwd = getpass.getpass()
+    pool = multiprocessing.Pool(processes=10)
+    results = []
+    for repack_config in repack_configs:
+      for template in templates:
+        repack_args = ["grr_client_build"]
+        if config:
+          repack_args.extend(["--config", config])
+
+        repack_args.extend(["--secondary_configs", repack_config, "repack",
+                            "--template", template, "--output_dir",
+                            self.GetOutputDir(output_dir, repack_config)])
+
+        # We only sign exes and rpms at the moment. The others will raise if we
+        # try to ask for signing.
+        signing = False
+        passwd = None
+        if sign:
+          if "exe" in template:
+            passwd = windows_passwd
+            signing = True
+            repack_args.append("--sign")
+          elif "rpm" in template:
+            passwd = rpm_passwd
+            signing = True
+            repack_args.append("--sign")
+
+        print "Calling %s" % " ".join(repack_args)
+        results.append(pool.apply_async(SpawnProcess, (repack_args,),
+                                        dict(signing=signing,
+                                             passwd=passwd)))
 
     try:
-      # If the ClientBuilder.target_platforms doesn't match our environment,
-      # skip.
-      if not config_lib.CONFIG.MatchBuildContext(args.platform,
-                                                 args.arch,
-                                                 args.package_format,
-                                                 context=context):
-        continue
-
-      # Make a nicer filename out of the context string.
-      context_filename = repackcontext.replace(
-          "AllPlatforms Context,", "").replace(",", "_").replace(" ", "_")
-      logging.info("Repacking %s as %s with labels: %s",
-                   repackcontext,
-                   config_lib.CONFIG.Get("Client.name",
-                                         context=context),
-                   config_lib.CONFIG.Get("Client.labels",
-                                         context=context))
-
-      repacking.TemplateRepacker().RepackTemplate(
-          template_path,
-          os.path.join(output_dir, context_filename),
-          signer=signer,
-          context=context)
-
-      repacked_list.append(context_filename)
-    finally:
-      # Remove the custom settings for the next repack
-      for newcontext in repackcontext.split(","):
-        context.remove(newcontext)
-
-  logging.info("Complete, installers for %s are in %s", repacked_list,
-               output_dir)
-
-
-def Repack(context, signer=None):
-  """Reconfigure a client template to match config.
-
-  Args:
-    context: config_lib context
-    signer: lib.builders.signing.CodeSigner object
-  """
-  repacking.TemplateRepacker().RepackTemplate(args.template,
-                                              args.outputdir,
-                                              context=context,
-                                              signer=signer)
-
-
-def SetOSContextFromArgs(context):
-  """Set OS context sections based on args."""
-  context.append("ClientBuilder Context")
-  if args.platform == "darwin":
-    context = ["Platform:Darwin", "Target:Darwin"] + context
-  elif args.platform == "windows":
-    context = ["Platform:Windows", "Target:Windows"] + context
-  elif args.platform == "linux":
-    context = ["Platform:Linux", "Target:Linux"] + context
-    if args.package_format == "deb":
-      context = ["Target:LinuxDeb"] + context
-    elif args.package_format == "rpm":
-      context = ["Target:LinuxRpm"] + context
-    else:
-      parser.error("Couldn't guess packaging format for: %s" %
-                   platform.linux_distribution()[0])
-  else:
-    parser.error("Unsupported build platform: %s" % args.platform)
-  return context
-
-
-def SetArchContextFromArgs(context):
-  if args.arch == "amd64":
-    context.append("Arch:amd64")
-  else:
-    context.append("Arch:i386")
-  return context
-
-
-def SetDebugContextFromArgs(context):
-  if args.subparser_name != "build" and getattr(args, "debug_build", None):
-    context += ["DebugClientBuild Context"]
-  return context
-
-
-def SetContextFromArgs(context):
-  context = SetArchContextFromArgs(context)
-  context = SetDebugContextFromArgs(context)
-  return SetOSContextFromArgs(context)
+      pool.close()
+      # Workaround to handle keyboard kills
+      # http://stackoverflow.com/questions/1408356/keyboard-interrupts-with-pythons-multiprocessing-pool
+      # get will raise if the child raises.
+      for result_obj in results:
+        result_obj.get(9999)
+      pool.join()
+    except KeyboardInterrupt:
+      print "parent received control-c"
+      pool.terminate()
+    except ErrorDuringRepacking:
+      pool.terminate()
+      raise
 
 
 def main(_):
@@ -369,41 +299,24 @@ def main(_):
   handler.setLevel(logging.INFO)
   logger.handlers = [handler]
 
-  context = flags.FLAGS.context
-  context = SetContextFromArgs(context)
-  signer = None
-
-  if args.sign:
-    if not args.templatedir:
-      raise RuntimeError("Signing must be performed on the host system since "
-                         "that's where the keys are. If you want signed "
-                         "binaries you need to build templates in the vagrant "
-                         "vms then pass the templatedir here to do the repack "
-                         "and sign operation on the host.")
-
-    signer = GetSigner(context)
-
   if args.subparser_name == "build":
-    template_path = None
-    if flags.FLAGS.output:
-      template_path = os.path.join(flags.FLAGS.output,
-                                   config_lib.CONFIG.Get(
-                                       "PyInstaller.template_filename",
-                                       context=context))
-
-    builder_obj = GetBuilder(context)
-    builder_obj.MakeExecutableTemplate(output_file=template_path)
+    TemplateBuilder().BuildTemplate(context=flags.FLAGS.context,
+                                    output=flags.FLAGS.output)
   elif args.subparser_name == "repack":
-    # Don't set any context from this machine, it's all in the template.
-    context = flags.FLAGS.context
-    Repack(context, signer=signer)
-  elif args.subparser_name == "buildandrepack":
-    if args.platform == "windows":
-      # Handle windows differently because we do 32, 64, and debug builds all at
-      # once.
-      BuildAndRepackWindows(signer=signer)
-    else:
-      BuildAndRepack(context, signer=signer)
+    result_path = repacking.TemplateRepacker().RepackTemplate(
+        args.template,
+        args.output_dir,
+        context=flags.FLAGS.context,
+        sign=args.sign)
+
+    if not result_path:
+      raise ErrorDuringRepacking(" ".join(sys.argv[:]))
+  elif args.subparser_name == "repack_multiple":
+    MultiTemplateRepacker().RepackTemplates(args.repack_configs,
+                                            args.templates,
+                                            args.output_dir,
+                                            config=args.config,
+                                            sign=args.sign)
   elif args.subparser_name == "build_components":
     component.BuildComponents(output_dir=flags.FLAGS.output)
   elif args.subparser_name == "build_component":

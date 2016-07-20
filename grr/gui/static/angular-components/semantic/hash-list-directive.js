@@ -77,10 +77,7 @@ grrUi.semantic.hashListDirective.HashListDirective = function() {
       value: '='
     },
     restrict: 'E',
-    template: '<span ng-repeat="item in ::controller.chunks">' +
-        '<grr-hash-digest value="item"></grr-hash-digest>' +
-        '<br ng-if="::!$last">' +
-        '</span>',
+    template: '<grr-semantic-value value="::controller.chunks" />',
     controller: HashListController,
     controllerAs: 'controller'
   };

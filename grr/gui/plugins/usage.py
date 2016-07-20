@@ -9,7 +9,7 @@ from grr.gui.plugins import semantic
 from grr.gui.plugins import statistics
 from grr.lib import aff4
 from grr.lib import config_lib
-from grr.lib import flow as lib_flow
+from grr.lib import events
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import users as aff4_users
@@ -179,7 +179,7 @@ class SystemFlows(statistics.Report, renderers.TableRenderer):
       # Store run count total and per-user
       counts = {}
       for event in GetAuditLogEntries(self.time_offset, now, request.token):
-        if (event.action == lib_flow.AuditEvent.Action.RUN_FLOW and
+        if (event.action == events.AuditEvent.Action.RUN_FLOW and
             self.UserFilter(event.user)):
           counts.setdefault(event.flow_name, {"total": 0, event.user: 0})
           counts[event.flow_name]["total"] += 1
@@ -318,9 +318,9 @@ class ClientApprovals(AuditTable):
                 "User": "user",
                 "Client": "client",
                 "Reason": "description"}
-  TYPES = [lib_flow.AuditEvent.Action.CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
-           lib_flow.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
-           lib_flow.AuditEvent.Action.CLIENT_APPROVAL_REQUEST]
+  TYPES = [events.AuditEvent.Action.CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
+           events.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
+           events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST]
 
 
 class ClientApprovals30(ClientApprovals):
@@ -339,8 +339,8 @@ class HuntApprovals(AuditTable):
                 "User": "user",
                 "URN": "urn",
                 "Reason": "description"}
-  TYPES = [lib_flow.AuditEvent.Action.HUNT_APPROVAL_GRANT,
-           lib_flow.AuditEvent.Action.HUNT_APPROVAL_REQUEST]
+  TYPES = [events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
+           events.AuditEvent.Action.HUNT_APPROVAL_REQUEST]
 
 
 class HuntApprovals30(HuntApprovals):
@@ -354,8 +354,8 @@ class CronApprovals(HuntApprovals):
   """Last week's cron approvals."""
   category = "/Server/Approvals/Crons/  7 days"
   title = "Cron approval requests and grants for the last 7 days"
-  TYPES = [lib_flow.AuditEvent.Action.CRON_APPROVAL_GRANT,
-           lib_flow.AuditEvent.Action.CRON_APPROVAL_REQUEST]
+  TYPES = [events.AuditEvent.Action.CRON_APPROVAL_GRANT,
+           events.AuditEvent.Action.CRON_APPROVAL_REQUEST]
 
 
 class CronApprovals30(CronApprovals):
@@ -376,11 +376,11 @@ class HuntActions(AuditTable):
                 "URN": "urn",
                 "Description": "description"}
 
-  TYPES = [lib_flow.AuditEvent.Action.HUNT_CREATED,
-           lib_flow.AuditEvent.Action.HUNT_MODIFIED,
-           lib_flow.AuditEvent.Action.HUNT_PAUSED,
-           lib_flow.AuditEvent.Action.HUNT_STARTED,
-           lib_flow.AuditEvent.Action.HUNT_STOPPED]
+  TYPES = [events.AuditEvent.Action.HUNT_CREATED,
+           events.AuditEvent.Action.HUNT_MODIFIED,
+           events.AuditEvent.Action.HUNT_PAUSED,
+           events.AuditEvent.Action.HUNT_STARTED,
+           events.AuditEvent.Action.HUNT_STOPPED]
 
 
 class HuntActions30(HuntActions):

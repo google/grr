@@ -53,6 +53,7 @@ gulp.task('compile-third-party-js', function() {
                    config.bowerDir + '/moment/moment.js',
 
                    'third-party/jquery.splitter.js'])
+      .pipe(gulpNewer(config.distDir + '/third-party.bundle.js'))
       .pipe(gulpConcat('third-party.bundle.js'))
       .pipe(gulp.dest(config.distDir));
 });
@@ -60,6 +61,7 @@ gulp.task('compile-third-party-js', function() {
 
 gulp.task('copy-jquery-ui-images', function() {
   return gulp.src([config.bowerDir + '/jquery-ui/themes/smoothness/images/*.png'])
+      .pipe(gulpNewer(config.distDir + '/images'))
       .pipe(gulp.dest(config.distDir + '/images'));
 });
 
@@ -80,6 +82,7 @@ gulp.task('copy-third-party-resources', ['copy-jquery-ui-images',
 
 gulp.task('compile-third-party-bootstrap-css', function() {
   return gulp.src('less/bootstrap_grr.less')
+      .pipe(gulpNewer(config.tempDir + '/grr-bootstrap.css'))
       .pipe(gulpLess({
         paths: [
           config.bowerDir + '/bootstrap/less'
@@ -103,6 +106,7 @@ gulp.task('compile-third-party-css', ['copy-third-party-resources',
                    config.tempDir + '/grr-bootstrap.css',
 
                    'third-party/splitter.css'])
+      .pipe(gulpNewer(config.distDir + '/third-party.bundle.css'))
       .pipe(gulpConcat('third-party.bundle.css'))
       .pipe(gulp.dest(config.distDir));
 });
@@ -206,6 +210,7 @@ gulp.task('compile-grr-ui-js', ['compile-grr-closure-ui-js',
 
 gulp.task('compile-grr-ui-css', function() {
   return gulp.src(['css/base.scss'])
+      .pipe(gulpNewer(config.distDir + '/grr-ui.bundle.css'))
       .pipe(gulpPlumber({
         errorHandler: function(err) {
           console.log(err);

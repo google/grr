@@ -10,7 +10,7 @@ describe('hash list directive', function() {
   beforeEach(module(grrUi.semantic.module.name));
   beforeEach(module(grrUi.tests.module.name));
 
-  grrUi.tests.stubDirective('grrHashDigest');
+  grrUi.tests.stubDirective('grrSemanticValue');
 
   beforeEach(inject(function($injector) {
     $compile = $injector.get('$compile');
@@ -36,20 +36,18 @@ describe('hash list directive', function() {
     expect(element.find('grr-hash-digest').length).toBe(0);
   });
 
-  it('delegates single item to grr-hash-digest', function() {
+  it('delegates single item to grr-semantic-value', function() {
     var base64EncodedHashList = {
       type: 'HashList',
       value: 'MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE='
     };
     var element = renderTestTemplate(base64EncodedHashList);
-    expect(element.find('grr-hash-digest').length).toBe(1);
-
-    var directive = element.find('grr-hash-digest:nth(0)');
+    var directive = element.find('grr-semantic-value');
     expect(angular.equals(directive.scope().$eval(directive.attr('value'))),
-           {
+           [{
              type: 'HashDigest',
              value: 'MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE='
-           });
+           }]);
   });
 
   it('delegates two items to grr-hash-digest', function() {
@@ -59,21 +57,18 @@ describe('hash list directive', function() {
           'yMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMg==',
     };
     var element = renderTestTemplate(base64EncodedHashList);
-    expect(element.find('grr-hash-digest').length).toBe(2);
-
-    var directive = element.find('grr-hash-digest:nth(0)');
+    var directive = element.find('grr-semantic-value');
     expect(angular.equals(directive.scope().$eval(directive.attr('value'))),
-           {
-             type: 'HashDigest',
-             value: 'MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE='
-           });
-
-    element.find('grr-hash-digest:nth(1)');
-    expect(angular.equals(directive.scope().$eval(directive.attr('value'))),
-           {
-             type: 'HashDigest',
-             value: 'MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjI='
-           });
+           [
+             {
+               type: 'HashDigest',
+               value: 'MTExMTExMTExMTExMTExMTExMTExMTExMTExMTExMTE='
+             },
+             {
+               type: 'HashDigest',
+               value: 'MjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjIyMjI='
+             }
+           ]);
   });
 
 });

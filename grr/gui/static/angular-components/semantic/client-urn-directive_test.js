@@ -7,7 +7,7 @@ goog.require('grrUi.tests.module');
 var browserTrigger = grrUi.tests.browserTrigger;
 
 describe('client urn directive', function() {
-  var $q, $compile, $rootScope, $timeout, grrApiService;
+  var $q, $compile, $rootScope, $timeout, grrApiService, grrRoutingService;
 
   beforeEach(module('/static/angular-components/semantic/client-urn.html'));
   beforeEach(module('/static/angular-components/semantic/client-urn-modal.html'));
@@ -20,6 +20,7 @@ describe('client urn directive', function() {
     $rootScope = $injector.get('$rootScope');
     $timeout = $injector.get('$timeout');
     grrApiService = $injector.get('grrApiService');
+    grrRoutingService = $injector.get('grrRoutingService');
   }));
 
   var renderTestTemplate = function(value) {
@@ -52,6 +53,38 @@ describe('client urn directive', function() {
     expect(element.text()).toContain('C.0000000000000001');
   });
 
+  it('has a proper href', function() {
+    var clientUrn = {
+      age: 0,
+      type: 'ClientURN',
+      value: 'aff4:/C.0000000000000001'
+    };
+
+    spyOn(grrRoutingService, 'href').and.returnValue('#test/href');
+
+    var element = renderTestTemplate(clientUrn);
+    expect(element.find('a').attr('href')).toBe('#test/href');
+
+    expect(grrRoutingService.href).toHaveBeenCalledWith(
+        'client.hostInfo', {clientId: 'C.0000000000000001'});
+  });
+
+  it('redirects to host info page when clicked', function() {
+    var clientUrn = {
+      age: 0,
+      type: 'ClientURN',
+      value: 'aff4:/C.0000000000000001'
+    };
+
+    spyOn(grrRoutingService, 'go');
+
+    var element = renderTestTemplate(clientUrn);
+    browserTrigger($('a', element), 'click');
+
+    expect(grrRoutingService.go).toHaveBeenCalledWith('client.hostInfo',
+        {clientId: 'C.0000000000000001'});
+  });
+
   describe('client urn summary modal dialog', function() {
 
     beforeEach(function() {
@@ -60,9 +93,7 @@ describe('client urn directive', function() {
 
         return $q(function(resolve, reject) {
           resolve({
-            data: {
-              client: 'This is a summary'
-            }
+            data: 'This is a summary'
           });
         });
       };

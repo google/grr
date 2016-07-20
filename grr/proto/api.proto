@@ -66,12 +66,6 @@ message ApiGetClientArgs {
     }];
 }
 
-message ApiGetClientResult {
-  optional ApiClient client = 1 [(sem_type) = {
-      description: "The client."
-    }];
-}
-
 message ApiGetClientVersionTimesArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
@@ -954,6 +948,27 @@ message ApiGetConfigOptionArgs {
     }];
 }
 
+message ApiCreateUserHuntApprovalArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id."
+    }];
+  optional ApiUserHuntApproval approval = 2;
+}
+
+message ApiGetUserHuntApprovalArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id."
+    }];
+  optional string approval_id = 2 [(sem_type) = {
+      description: "Hunt approvals are uniquely identified by the user who "
+      "requested them, the hunt id in question, and the approval id."
+    }];
+  optional string username = 3 [(sem_type) = {
+      description: "Username of the user, whose hunt approval is being "
+      "requested."
+    }];
+}
+
 message ApiListUserHuntApprovalsArgs {
   optional int64 offset = 1 [(sem_type) = {
       description: "Approvals starting offset."
@@ -965,6 +980,27 @@ message ApiListUserHuntApprovalsArgs {
 
 message ApiListUserHuntApprovalsResult {
   repeated ApiUserHuntApproval items = 1;
+}
+
+message ApiCreateUserCronApprovalArgs {
+  optional string cron_job_id = 1 [(sem_type) = {
+      description: "Cron id."
+    }];
+  optional ApiUserCronApproval approval = 2;
+}
+
+message ApiGetUserCronApprovalArgs {
+  optional string cron_job_id = 1 [(sem_type) = {
+      description: "Cron id."
+    }];
+  optional string approval_id = 2 [(sem_type) = {
+      description: "Cron job approvals are uniquely identified by the user who "
+      "requested them, the cron id in question, and the approval id."
+    }];
+  optional string username = 3 [(sem_type) = {
+      description: "Username of the user, whose cron approval is being "
+      "requested."
+    }];
 }
 
 message ApiListUserCronApprovalsArgs {
@@ -993,10 +1029,13 @@ message ApiGetUserClientApprovalArgs {
       type: "ClientURN",
       description: "Client id."
     }];
-  optional string reason = 2 [(sem_type) = {
-      description: "Approvals are uniquely identified by the user who "
-      "requested them, the client id in question, and the reason for "
-      "access."
+  optional string approval_id = 2 [(sem_type) = {
+      description: "Client approvals are uniquely identified by the user who "
+      "requested them, the client id in question, and the approval id."
+    }];
+  optional string username = 3 [(sem_type) = {
+      description: "Username of the user, whose client approval is being "
+      "requested."
     }];
 };
 
@@ -1214,6 +1253,11 @@ message ApiUserHuntApproval {
       "is granted."
     }];
 
+  optional string id = 8 [(sem_type) = {
+      description: "Approval id. Approval is identified by the hunt id, "
+      "requestor's username and the approval id."
+    }];
+
   optional string reason = 2 [(sem_type) = {
       description: "A reason for accessing the hunt."
     }];
@@ -1247,6 +1291,11 @@ message ApiUserCronApproval {
       "is granted."
     }];
 
+  optional string id = 8 [(sem_type) = {
+      description: "Approval id. Approval is identified by the cron job id, "
+      "requestor's username and the approval id."
+    }];
+
   optional string reason = 2 [(sem_type) = {
       description: "A reason for accessing the cron job."
     }];
@@ -1278,6 +1327,11 @@ message ApiUserClientApproval {
   optional ApiClient subject = 1 [(sem_type) = {
       description: "A client that has to be accessed after this approval "
       "is granted."
+    }];
+
+  optional string id = 8 [(sem_type) = {
+      description: "Approval id. Approval is identified by the client id, "
+      "requestor's username and the approval id."
     }];
 
   optional string reason = 2 [(sem_type) = {

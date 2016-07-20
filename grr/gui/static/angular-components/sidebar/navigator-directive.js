@@ -104,7 +104,7 @@ NavigatorController.prototype.refreshClientDetails = function() {
  * @private
  */
 NavigatorController.prototype.onClientDetailsFetched_ = function(response) {
-  this.client = response['data']['client'];
+  this.client = response['data'];
 };
 
 /**

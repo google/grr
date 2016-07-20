@@ -8,8 +8,8 @@ import os
 from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import data_store
+from grr.lib import events
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import output_plugin
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
@@ -59,7 +59,7 @@ class HashFileStoreExportPluginTest(test_lib.GRRBaseTest):
       pass
 
     auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
-    flow.Events.PublishEvent(
+    events.Events.PublishEvent(
         "FileStore.AddFileToStore",
         rdf_flows.GrrMessage(payload=urn, auth_state=auth_state),
         token=self.token)

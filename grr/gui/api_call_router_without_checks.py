@@ -242,8 +242,20 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def ListUserClientApprovals(self, args, token=None):
     return api_user.ApiListUserClientApprovalsHandler()
 
+  def CreateUserHuntApproval(self, args, token=None):
+    return api_user.ApiCreateUserHuntApprovalHandler()
+
+  def GetUserHuntApproval(self, args, token=None):
+    return api_user.ApiGetUserHuntApprovalHandler()
+
   def ListUserHuntApprovals(self, args, token=None):
     return api_user.ApiListUserHuntApprovalsHandler()
+
+  def CreateUserCronApproval(self, args, token=None):
+    return api_user.ApiCreateUserCronApprovalHandler()
+
+  def GetUserCronApproval(self, args, token=None):
+    return api_user.ApiGetUserCronApprovalHandler()
 
   def ListUserCronApprovals(self, args, token=None):
     return api_user.ApiListUserCronApprovalsHandler()

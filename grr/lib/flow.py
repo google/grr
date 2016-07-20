@@ -52,6 +52,7 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import events
 from grr.lib import flow_runner
 from grr.lib import queue_manager
 from grr.lib import queues
@@ -70,18 +71,6 @@ from grr.proto import jobs_pb2
 
 class FlowResultCollection(sequential_collection.GrrMessageCollection):
   """Sequential FlowResultCollection."""
-
-
-class AuditEvent(rdf_structs.RDFProtoStruct):
-  protobuf = jobs_pb2.AuditEvent
-
-  def __init__(self, initializer=None, age=None, **kwargs):
-
-    super(AuditEvent, self).__init__(initializer=initializer, age=age, **kwargs)
-    if not self.id:
-      self.id = utils.PRNG.GetULong()
-    if not self.timestamp:
-      self.timestamp = rdfvalue.RDFDatetime().Now()
 
 
 class FlowError(Exception):
@@ -934,13 +923,14 @@ class GRRFlow(aff4.AFF4Volume):
 
     # Publish an audit event, only for top level flows.
     if parent_flow is None:
-      Events.PublishEvent("Audit",
-                          AuditEvent(user=token.username,
+      events.Events.PublishEvent("Audit",
+                                 events.AuditEvent(
+                                     user=token.username,
                                      action="RUN_FLOW",
                                      flow_name=runner_args.flow_name,
                                      urn=flow_obj.urn,
                                      client=runner_args.client_id),
-                          token=token)
+                                 token=token)
 
     return flow_obj.urn
 
@@ -1356,107 +1346,6 @@ class EventListener(WellKnownFlow):
       message: A GrrMessage instance which was sent to the event listener.
       event: The decoded event object.
     """
-
-
-class Events(object):
-  """A class that provides event publishing methods."""
-
-  @classmethod
-  def PublishEvent(cls, event_name, msg, token=None):
-    """Publish the message into all listeners of the event.
-
-    If event_name is a string, we send the message to all event handlers which
-    contain this string in their EVENT static member. This allows the event to
-    be sent to multiple interested listeners. Alternatively, the event_name can
-    specify a single URN of an event listener to receive the message.
-
-    Args:
-      event_name: Either a URN of an event listener or an event name.
-      msg: The message to send to the event handler.
-      token: ACL token.
-
-    Raises:
-      ValueError: If the message is invalid. The message must be a Semantic
-        Value (instance of RDFValue) or a full GrrMessage.
-    """
-    cls.PublishMultipleEvents({event_name: [msg]}, token=token)
-
-  @classmethod
-  def PublishMultipleEvents(cls, events, token=None):
-    """Publish the message into all listeners of the event.
-
-    If event_name is a string, we send the message to all event handlers which
-    contain this string in their EVENT static member. This allows the event to
-    be sent to multiple interested listeners. Alternatively, the event_name can
-    specify a single URN of an event listener to receive the message.
-
-    Args:
-
-      events: A dict with keys being event names and values being lists of
-        messages.
-      token: ACL token.
-
-    Raises:
-      ValueError: If the message is invalid. The message must be a Semantic
-        Value (instance of RDFValue) or a full GrrMessage.
-    """
-    with queue_manager.WellKnownQueueManager(token=token) as manager:
-      event_name_map = registry.EventRegistry.EVENT_NAME_MAP
-      for event_name, messages in events.iteritems():
-        handler_urns = []
-        if isinstance(event_name, basestring):
-          for event_cls in event_name_map.get(event_name, []):
-            if event_cls.well_known_session_id is None:
-              logging.error("Well known flow %s has no session_id.",
-                            event_cls.__name__)
-            else:
-              handler_urns.append(event_cls.well_known_session_id)
-
-        else:
-          handler_urns.append(event_name)
-
-        for msg in messages:
-          # Allow the event name to be either a string or a URN of an event
-          # listener.
-          if not isinstance(msg, rdfvalue.RDFValue):
-            raise ValueError("Can only publish RDFValue instances.")
-
-          # Wrap the message in a GrrMessage if needed.
-          if not isinstance(msg, rdf_flows.GrrMessage):
-            msg = rdf_flows.GrrMessage(payload=msg)
-
-          # Randomize the response id or events will get overwritten.
-          msg.response_id = msg.task_id = msg.GenerateTaskID()
-          # Well known flows always listen for request id 0.
-          msg.request_id = 0
-
-          # Forward the message to the well known flow's queue.
-          for event_urn in handler_urns:
-            manager.QueueResponse(event_urn, msg)
-            manager.QueueNotification(rdf_flows.GrrNotification(
-                session_id=event_urn,
-                priority=msg.priority))
-
-  @classmethod
-  def PublishEventInline(cls, event_name, msg, token=None):
-    """Directly publish the message into all listeners of the event."""
-
-    if not isinstance(msg, rdfvalue.RDFValue):
-      raise ValueError("Can only publish RDFValue instances.")
-
-    # Wrap the message in a GrrMessage if needed.
-    if not isinstance(msg, rdf_flows.GrrMessage):
-      msg = rdf_flows.GrrMessage(payload=msg)
-
-    # Event name must be a string.
-    if not isinstance(event_name, basestring):
-      raise ValueError("Event name must be a string.")
-    event_name_map = registry.EventRegistry.EVENT_NAME_MAP
-    for event_cls in event_name_map.get(event_name, []):
-      event_obj = event_cls(event_cls.well_known_session_id,
-                            mode="rw",
-                            token=token)
-      event_obj.ProcessMessage(msg)
 
 
 class FlowInit(registry.InitHook):

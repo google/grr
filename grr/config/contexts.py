@@ -1,10 +1,6 @@
 #!/usr/bin/env python
 """This file defines valid configuration contexts."""
 
-# Also import the contexts needed for client building.
-# pylint: disable=unused-import
-from grr.config import build_contexts
-# pylint: enable=unused-import
 from grr.lib import config_lib
 
 # Different client platforms.

@@ -12,6 +12,7 @@ from grr.lib import aff4
 from grr.lib import communicator
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import events
 from grr.lib import flow
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
@@ -439,9 +440,9 @@ class FrontEndServer(object):
             stat = rdf_flows.GrrStatus(msg.payload)
             if stat.status == rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED:
               # A client crashed while performing an action, fire an event.
-              flow.Events.PublishEvent("ClientCrash",
-                                       rdf_flows.GrrMessage(msg),
-                                       token=self.token)
+              events.Events.PublishEvent("ClientCrash",
+                                         rdf_flows.GrrMessage(msg),
+                                         token=self.token)
 
     logging.debug("Received %s messages in %s sec", len(messages),
                   time.time() - now)

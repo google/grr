@@ -414,7 +414,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     return self.delegate.CreateUserClientApproval(args, token=token)
 
   def GetUserClientApproval(self, args, token=None):
-    # Everybody can get their own user client approvals.
+    # Everybody can have access to everybody's client approvals, provided
+    # they know: a client id, a username of the requester and a reason.
 
     return self.delegate.GetUserClientApproval(args, token=token)
 
@@ -423,10 +424,32 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.ListUserClientApprovals(args, token=token)
 
+  def CreateUserHuntApproval(self, args, token=None):
+    # Everybody can request a hunt approval.
+
+    return self.delegate.CreateUserHuntApproval(args, token=token)
+
+  def GetUserHuntApproval(self, args, token=None):
+    # Everybody can have access to everybody's hunts approvals, provided
+    # they know: a hunt id, a username of the requester and a reason.
+
+    return self.delegate.GetUserHuntApproval(args, token=token)
+
   def ListUserHuntApprovals(self, args, token=None):
     # Everybody can list their own user hunt approvals.
 
     return self.delegate.ListUserHuntApprovals(args, token=token)
+
+  def CreateUserCronApproval(self, args, token=None):
+    # Everybody can request a cron job approval.
+
+    return self.delegate.CreateUserCronApproval(args, token=token)
+
+  def GetUserCronApproval(self, args, token=None):
+    # Everybody can have access to everybody's crons approvals, provided
+    # they know: a cron job id, a username of the requester and a reason.
+
+    return self.delegate.GetUserCronApproval(args, token=token)
 
   def ListUserCronApprovals(self, args, token=None):
     # Everybody can list their own user cron approvals.

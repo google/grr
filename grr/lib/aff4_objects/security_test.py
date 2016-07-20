@@ -28,7 +28,7 @@ class ApprovalTest(test_lib.GRRBaseTest):
 
   def testGetApprovalForObjectRaisesIfNoApprovals(self):
     with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
-                                 "No approvals found"):
+                                 "No approval found"):
       security.Approval.GetApprovalForObject(self.client_id, token=self.token)
 
   def testGetApprovalForObjectRaisesIfSingleAvailableApprovalExpired(self):
@@ -148,20 +148,24 @@ class ClientApprovalTest(test_lib.GRRBaseTest):
                            approver="approver",
                            token=self.token)
 
+    approval_id = list(aff4.FACTORY.ListChildren(
+        "aff4:/users/test/approvals/client/C.1000000000000000",
+        token=self.token))[0].Basename()
+    self.assertTrue(approval_id.startswith("approval:"))
+
     fd = aff4.FACTORY.Open(
-        "aff4:/users/test/approvals/client/C.1000000000000000/"
-        "UnVubmluZyB0ZXN0cw==",
+        "aff4:/users/test/approvals/client/C.1000000000000000/%s" % approval_id,
         follow_symlinks=False,
         mode="r",
         token=self.token)
     self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4Symlink")
     self.assertEqual(
         fd.Get(fd.Schema.SYMLINK_TARGET),
-        "aff4:/ACL/C.1000000000000000/test/UnVubmluZyB0ZXN0cw==")
+        "aff4:/ACL/C.1000000000000000/test/%s" % approval_id)
 
 
-class HuntApprovalTest(test_lib.GRRBaseTest):
-  """Test for hunt approvals."""
+class CronJobAprrovalTest(test_lib.GRRBaseTest):
+  """Test for cron job approvals."""
 
   def testCreatingApprovalCreatesSymlink(self):
     cron_urn = rdfvalue.RDFURN("aff4:/cron/CronJobName")
@@ -172,19 +176,24 @@ class HuntApprovalTest(test_lib.GRRBaseTest):
                            approver="approver",
                            token=self.token)
 
-    fd = aff4.FACTORY.Open(
-        "aff4:/users/test/approvals/cron/CronJobName/UnVubmluZyB0ZXN0cw==",
-        follow_symlinks=False,
-        mode="r",
-        token=self.token)
+    approval_id = list(aff4.FACTORY.ListChildren(
+        "aff4:/users/test/approvals/cron/CronJobName",
+        token=self.token))[0].Basename()
+    self.assertTrue(approval_id.startswith("approval:"))
+
+    fd = aff4.FACTORY.Open("aff4:/users/test/approvals/cron/CronJobName/%s" %
+                           approval_id,
+                           follow_symlinks=False,
+                           mode="r",
+                           token=self.token)
     self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4Symlink")
     self.assertEqual(
         fd.Get(fd.Schema.SYMLINK_TARGET),
-        "aff4:/ACL/cron/CronJobName/test/UnVubmluZyB0ZXN0cw==")
+        "aff4:/ACL/cron/CronJobName/test/%s" % approval_id)
 
 
-class CronJobAprrovalTest(test_lib.GRRBaseTest):
-  """Test for cron job approvals."""
+class HuntApprovalTest(test_lib.GRRBaseTest):
+  """Test for hunt approvals."""
 
   def testCreatingApprovalCreatesSymlink(self):
     hunt_urn = rdfvalue.RDFURN("aff4:/hunts/H:ABCD1234")
@@ -195,15 +204,20 @@ class CronJobAprrovalTest(test_lib.GRRBaseTest):
                            approver="approver",
                            token=self.token)
 
-    fd = aff4.FACTORY.Open(
-        "aff4:/users/test/approvals/hunt/H:ABCD1234/UnVubmluZyB0ZXN0cw==",
-        follow_symlinks=False,
-        mode="r",
-        token=self.token)
+    approval_id = list(aff4.FACTORY.ListChildren(
+        "aff4:/users/test/approvals/hunt/H:ABCD1234",
+        token=self.token))[0].Basename()
+    self.assertTrue(approval_id.startswith("approval:"))
+
+    fd = aff4.FACTORY.Open("aff4:/users/test/approvals/hunt/H:ABCD1234/%s" %
+                           approval_id,
+                           follow_symlinks=False,
+                           mode="r",
+                           token=self.token)
     self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4Symlink")
     self.assertEqual(
         fd.Get(fd.Schema.SYMLINK_TARGET),
-        "aff4:/ACL/hunts/H:ABCD1234/test/UnVubmluZyB0ZXN0cw==")
+        "aff4:/ACL/hunts/H:ABCD1234/test/%s" % approval_id)
 
 
 def main(argv):

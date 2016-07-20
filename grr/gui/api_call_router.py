@@ -164,7 +164,7 @@ class ApiCallRouter(object):
 
   @Category("Clients")
   @ArgsType(api_client.ApiGetClientArgs)
-  @ResultType(api_client.ApiGetClientResult)
+  @ResultType(api_client.ApiClient)
   @Http("GET", "/api/clients/<client_id>")
   def GetClient(self, args, token=None):
     raise NotImplementedError()
@@ -598,7 +598,8 @@ class ApiCallRouter(object):
   @Category("User")
   @ArgsType(api_user.ApiGetUserClientApprovalArgs)
   @ResultType(api_user.ApiUserClientApproval)
-  @Http("GET", "/api/users/me/approvals/client/<client_id>/<reason>")
+  @Http("GET",
+        "/api/users/<username>/approvals/client/<client_id>/<approval_id>")
   def GetUserClientApproval(self, args, token=None):
     raise NotImplementedError()
 
@@ -611,10 +612,39 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("User")
+  @ArgsType(api_user.ApiCreateUserHuntApprovalArgs)
+  @ResultType(api_user.ApiUserHuntApproval)
+  @Http("POST", "/api/users/me/approvals/hunt/<hunt_id>")
+  def CreateUserHuntApproval(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("User")
+  @ArgsType(api_user.ApiGetUserHuntApprovalArgs)
+  @ResultType(api_user.ApiUserHuntApproval)
+  @Http("GET", "/api/users/<username>/approvals/hunt/<hunt_id>/<approval_id>")
+  def GetUserHuntApproval(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("User")
   @ArgsType(api_user.ApiListUserHuntApprovalsArgs)
   @ResultType(api_user.ApiListUserHuntApprovalsResult)
   @Http("GET", "/api/users/me/approvals/hunt")
   def ListUserHuntApprovals(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("User")
+  @ArgsType(api_user.ApiCreateUserCronApprovalArgs)
+  @ResultType(api_user.ApiUserCronApproval)
+  @Http("POST", "/api/users/me/approvals/cron/<cron_job_id>")
+  def CreateUserCronApproval(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("User")
+  @ArgsType(api_user.ApiGetUserCronApprovalArgs)
+  @ResultType(api_user.ApiUserCronApproval)
+  @Http("GET",
+        "/api/users/<username>/approvals/cron/<cron_job_id>/<approval_id>")
+  def GetUserCronApproval(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")

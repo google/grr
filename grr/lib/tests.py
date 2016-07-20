@@ -23,6 +23,7 @@ from grr.lib import config_validation_test
 from grr.lib import console_utils_test
 from grr.lib import data_store_test
 from grr.lib import email_alerts_test
+from grr.lib import events_test
 from grr.lib import export_test
 from grr.lib import export_utils_test
 from grr.lib import flow_test

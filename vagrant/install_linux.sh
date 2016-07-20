@@ -11,9 +11,14 @@ INSTALL_USER="vagrant"
 
 function system_update() {
   if [ $DISTRO == "Ubuntu" ]; then
+    # Fix for old Vagrant versions to boot precise64, see
+    # https://github.com/mitchellh/vagrant/issues/289
+    if [ "${codename}" == "precise" ]; then
+      echo "set grub-pc/install_devices /dev/sda" | debconf-communicate
+    fi
     apt-get --yes update
     apt-get --yes upgrade
-    apt-get --force-yes --yes install git-core unzip swig
+    apt-get --force-yes --yes install git-core unzip swig build-essential
   elif [ $DISTRO == "CentOS" ]; then
     # Required for git
     yum install -y epel-release
@@ -70,7 +75,7 @@ function install_openssl() {
 # lots of the downloads https://savannah.gnu.org/bugs/index.php?20421
 function install_wget() {
   WGET_VERSION=1.16
-  wget --quiet https://ftp.gnu.org/gnu/wget/wget-${WGET_VERSION}.tar.gz || ${WGET} https://ftp.gnu.org/gnu/wget/wget-${WGET_VERSION}.tar.gz
+  wget --quiet --ca-directory=/etc/ssl/certs https://ftp.gnu.org/gnu/wget/wget-${WGET_VERSION}.tar.gz || ${WGET} https://ftp.gnu.org/gnu/wget/wget-${WGET_VERSION}.tar.gz
   tar zxvf wget-${WGET_VERSION}.tar.gz
   cd wget-${WGET_VERSION}
   ./configure --with-ssl=openssl

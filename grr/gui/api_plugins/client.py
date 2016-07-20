@@ -9,6 +9,7 @@ from grr.gui import api_call_handler_utils
 
 from grr.lib import aff4
 from grr.lib import client_index
+from grr.lib import events
 from grr.lib import flow
 from grr.lib import ip_resolver
 from grr.lib import rdfvalue
@@ -177,17 +178,14 @@ class ApiGetClientArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiGetClientArgs
 
 
-class ApiGetClientResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetClientResult
-
-
 class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
   """Renders summary of a given client."""
 
   category = CATEGORY
 
   args_type = ApiGetClientArgs
-  result_type = ApiGetClientResult
+  result_type = ApiClient
+  strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
     if not args.timestamp:
@@ -200,7 +198,7 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
                                age=age,
                                token=token)
 
-    return ApiGetClientResult(client=ApiClient().InitFromAff4Object(client))
+    return ApiClient().InitFromAff4Object(client)
 
 
 class ApiGetClientVersionTimesArgs(rdf_structs.RDFProtoStruct):
@@ -384,15 +382,15 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
         index.AddClient(client_obj)
         client_obj.Close()
 
-        audit_events.append(flow.AuditEvent(
+        audit_events.append(events.AuditEvent(
             user=token.username,
             action="CLIENT_ADD_LABEL",
             flow_name="handler.ApiAddClientsLabelsHandler",
             client=client_obj.urn,
             description=audit_description))
     finally:
-      flow.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
-                                        token=token)
+      events.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
+                                          token=token)
 
 
 class ApiRemoveClientsLabelsArgs(rdf_structs.RDFProtoStruct):
@@ -438,15 +436,15 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
         index.AddClient(client_obj)
         client_obj.Close()
 
-        audit_events.append(flow.AuditEvent(
+        audit_events.append(events.AuditEvent(
             user=token.username,
             action="CLIENT_REMOVE_LABEL",
             flow_name="handler.ApiRemoveClientsLabelsHandler",
             client=client_obj.urn,
             description=audit_description))
     finally:
-      flow.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
-                                        token=token)
+      events.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
+                                          token=token)
 
 
 class ApiListClientsLabelsResult(rdf_structs.RDFProtoStruct):

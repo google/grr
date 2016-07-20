@@ -655,43 +655,6 @@ class FullAccessControlManager(access_control.AccessControlManager):
 
     return True
 
-  def _CheckApprovalsForTokenWithReason(self, token, target):
-    # Build the approval URN.
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(target.Path()).Add(
-        token.username).Add(utils.EncodeReasonString(token.reason))
-
-    try:
-      cached_token = self.acl_cache.Get(approval_urn)
-      stats.STATS.IncrementCounter("approval_searches",
-                                   fields=["with_reason", "cache"])
-      token.is_emergency = cached_token.is_emergency
-
-      return True
-    except KeyError:
-      stats.STATS.IncrementCounter("approval_searches",
-                                   fields=["with_reason", "data_store"])
-      try:
-        approval_request = aff4.FACTORY.Open(approval_urn,
-                                             aff4_type=security.Approval,
-                                             mode="r",
-                                             token=token,
-                                             age=aff4.ALL_TIMES)
-
-        if approval_request.CheckAccess(token):
-          # Cache this approval for fast path checking.
-          self.acl_cache.Put(approval_urn, token)
-          return True
-
-        raise access_control.UnauthorizedAccess("Approval %s was rejected." %
-                                                approval_urn,
-                                                subject=target)
-
-      except IOError:
-        # No Approval found, reject this request.
-        raise access_control.UnauthorizedAccess("No approval found for %s." %
-                                                target,
-                                                subject=target)
-
   def _CheckApprovalsForTokenWithoutReason(self, token, target):
     approval_root_urn = aff4.ROOT_URN.Add("ACL").Add(target.Path()).Add(
         token.username)
@@ -719,11 +682,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
       return True
 
   def _CheckApprovals(self, token, target):
-    if token.reason:
-      # If reason is not specified, try searching for a matching approval.
-      return self._CheckApprovalsForTokenWithReason(token, target)
-    else:
-      return self._CheckApprovalsForTokenWithoutReason(token, target)
+    return self._CheckApprovalsForTokenWithoutReason(token, target)
 
   @LoggedACL("client_access")
   @stats.Timed("acl_check_time", fields=["client_access"])

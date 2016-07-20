@@ -425,17 +425,15 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
   def ACLChecksDisabled(self):
     return test_lib.ACLChecksDisabledContextManager()
 
-  def RevokeClientApproval(self, client_id, token, remove_from_cache=True):
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(client_id).Add(
-        token.username).Add(utils.EncodeReasonString(token.reason))
-
+  def RevokeClientApproval(self, approval_urn, token, remove_from_cache=True):
     with aff4.FACTORY.Open(approval_urn,
                            mode="rw",
                            token=self.token.SetUID()) as approval_request:
       approval_request.DeleteAttribute(approval_request.Schema.APPROVER)
 
     if remove_from_cache:
-      data_store.DB.security_manager.acl_cache.ExpireObject(approval_urn)
+      data_store.DB.security_manager.acl_cache.ExpireObject(rdfvalue.RDFURN(
+          approval_urn.Dirname()))
 
   def CreateHuntApproval(self, hunt_urn, token, admin=False):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(hunt_urn.Path()).Add(
@@ -569,12 +567,12 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
                       "rw",
                       token=token)
 
-    self.RequestAndGrantClientApproval(client_id, token)
+    approval_urn = self.RequestAndGrantClientApproval(client_id, token)
 
     fd = aff4.FACTORY.Open(urn, None, "rw", token=token)
     fd.Close()
 
-    self.RevokeClientApproval(client_id, token)
+    self.RevokeClientApproval(approval_urn, token)
 
     self.assertRaises(access_control.UnauthorizedAccess,
                       aff4.FACTORY.Open,
@@ -664,7 +662,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
                       message_count=1,
                       token=token)
 
-    self.RequestAndGrantClientApproval(client_id, token)
+    approval_urn = self.RequestAndGrantClientApproval(client_id, token)
     sid = flow.GRRFlow.StartFlow(client_id=client_id,
                                  flow_name=test_lib.SendingFlow.__name__,
                                  message_count=1,
@@ -682,7 +680,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     # This is not allowed - Users can not write to flows.
     self.assertRaises(access_control.UnauthorizedAccess, flow_obj.Close)
 
-    self.RevokeClientApproval(client_id, token)
+    self.RevokeClientApproval(approval_urn, token)
 
     self.assertRaises(access_control.UnauthorizedAccess,
                       aff4.FACTORY.Open,
@@ -700,7 +698,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     token = access_control.ACLToken(username="test", reason="For testing")
     client_id = "C." + "b" * 16
 
-    self.RequestAndGrantClientApproval(client_id, token)
+    approval_urn = self.RequestAndGrantClientApproval(client_id, token)
 
     sid = flow.GRRFlow.StartFlow(client_id=client_id,
                                  flow_name=test_lib.SendingFlow.__name__,
@@ -715,7 +713,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
 
     # Remove the approval from the data store, but it should still exist in the
     # security manager cache.
-    self.RevokeClientApproval(client_id, token, remove_from_cache=False)
+    self.RevokeClientApproval(approval_urn, token, remove_from_cache=False)
 
     # If this doesn't raise now, all answers were cached.
     aff4.FACTORY.Open(sid, mode="r", token=token)
@@ -724,7 +722,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     aff4.FACTORY.Flush()
 
     # Remove the approval from the data store, and from the security manager.
-    self.RevokeClientApproval(client_id, token, remove_from_cache=True)
+    self.RevokeClientApproval(approval_urn, token, remove_from_cache=True)
 
     # This must raise now.
     self.assertRaises(access_control.UnauthorizedAccess,

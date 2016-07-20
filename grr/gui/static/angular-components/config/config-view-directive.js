@@ -21,7 +21,7 @@ directive.ConfigViewController = function($scope, $http) {
   $http.get('/api/config').then(function(config) {
     this.items = {};
 
-    angular.forEach(config['sections'], function(section) {
+    angular.forEach(config['data']['sections'], function(section) {
       var sectionName = section['value']['name']['value'];
       var sectionOptions = section['value']['options'];
 

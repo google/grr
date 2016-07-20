@@ -51,6 +51,7 @@ class ApiGrrUser(rdf_structs.RDFProtoStruct):
 def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
   """Initializes Api(User|Client|Cron)Approval from an AFF4 object."""
 
+  api_approval.id = approval_obj.urn.Basename()
   api_approval.reason = approval_obj.Get(approval_obj.Schema.REASON)
 
   try:
@@ -138,7 +139,7 @@ class ApiCreateUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
     if not args.approval.reason:
       raise ValueError("Approval reason can't be empty.")
 
-    flow.GRRFlow.StartFlow(
+    flow_urn = flow.GRRFlow.StartFlow(
         client_id=args.client_id,
         flow_name=aff4_security.RequestClientApprovalFlow.__name__,
         reason=args.approval.reason,
@@ -147,8 +148,9 @@ class ApiCreateUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
         subject_urn=args.client_id,
         token=token)
 
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(args.client_id.Basename()).Add(
-        token.username).Add(utils.EncodeReasonString(args.approval.reason))
+    flow_fd = aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, token=token)
+    approval_urn = flow_fd.state.approval_urn
+
     approval_obj = aff4.FACTORY.Open(approval_urn,
                                      aff4_type=aff4_security.ClientApproval,
                                      age=aff4.ALL_TIMES,
@@ -175,7 +177,7 @@ class ApiGetUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(args.client_id.Basename()).Add(
-        token.username).Add(utils.EncodeReasonString(args.reason))
+        args.username).Add(args.approval_id)
     approval_obj = aff4.FACTORY.Open(approval_urn,
                                      aff4_type=aff4_security.ClientApproval,
                                      age=aff4.ALL_TIMES,
@@ -337,6 +339,70 @@ class ApiListUserClientApprovalsHandler(ApiListUserApprovalsHandlerBase):
         approvals, subjects_by_urn, self._ApprovalToApiApproval))
 
 
+class ApiCreateUserHuntApprovalArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiCreateUserHuntApprovalArgs
+
+
+class ApiCreateUserHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
+  """Creates new user hunt approval and notifies requested approvers."""
+
+  category = CATEGORY
+
+  # We return a single object and have to preserve type information of all
+  # the fields.
+  strip_json_root_fields_types = False
+
+  args_type = ApiCreateUserHuntApprovalArgs
+  result_type = ApiUserHuntApproval
+
+  def Handle(self, args, token=None):
+    if not args.approval.reason:
+      raise ValueError("Approval reason can't be empty.")
+
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name=aff4_security.RequestHuntApprovalFlow.__name__,
+        reason=args.approval.reason,
+        approver=",".join(args.approval.notified_users),
+        email_cc_address=",".join(args.approval.email_cc_addresses),
+        subject_urn=rdfvalue.RDFURN("hunts").Add(args.hunt_id),
+        token=token)
+    flow_fd = aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, token=token)
+    approval_urn = flow_fd.state.approval_urn
+
+    approval_obj = aff4.FACTORY.Open(approval_urn,
+                                     aff4_type=aff4_security.HuntApproval,
+                                     age=aff4.ALL_TIMES,
+                                     token=token)
+
+    return ApiUserHuntApproval().InitFromAff4Object(approval_obj)
+
+
+class ApiGetUserHuntApprovalArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetUserHuntApprovalArgs
+
+
+class ApiGetUserHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
+  """Returns details about approval for a given hunt, user and approval id."""
+
+  category = CATEGORY
+
+  # We return a single object and have to preserve type information of all
+  # the fields.
+  strip_json_root_fields_types = False
+
+  args_type = ApiGetUserHuntApprovalArgs
+  result_type = ApiUserHuntApproval
+
+  def Handle(self, args, token=None):
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add("hunts").Add(args.hunt_id).Add(
+        args.username).Add(args.approval_id)
+    approval_obj = aff4.FACTORY.Open(approval_urn,
+                                     aff4_type=aff4_security.HuntApproval,
+                                     age=aff4.ALL_TIMES,
+                                     token=token)
+    return ApiUserHuntApproval().InitFromAff4Object(approval_obj)
+
+
 class ApiListUserHuntApprovalsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListUserHuntApprovalsArgs
 
@@ -362,6 +428,70 @@ class ApiListUserHuntApprovalsHandler(ApiListUserApprovalsHandlerBase):
                                                     token=token)
     return ApiListUserHuntApprovalsResult(items=self._HandleApprovals(
         approvals, subjects_by_urn, self._ApprovalToApiApproval))
+
+
+class ApiCreateUserCronApprovalArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiCreateUserCronApprovalArgs
+
+
+class ApiCreateUserCronApprovalHandler(api_call_handler_base.ApiCallHandler):
+  """Creates new user cron approval and notifies requested approvers."""
+
+  category = CATEGORY
+
+  # We return a single object and have to preserve type information of all
+  # the fields.
+  strip_json_root_fields_types = False
+
+  args_type = ApiCreateUserCronApprovalArgs
+  result_type = ApiUserCronApproval
+
+  def Handle(self, args, token=None):
+    if not args.approval.reason:
+      raise ValueError("Approval reason can't be empty.")
+
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name=aff4_security.RequestCronJobApprovalFlow.__name__,
+        reason=args.approval.reason,
+        approver=",".join(args.approval.notified_users),
+        email_cc_address=",".join(args.approval.email_cc_addresses),
+        subject_urn=rdfvalue.RDFURN("cron").Add(args.cron_job_id),
+        token=token)
+    flow_fd = aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, token=token)
+    approval_urn = flow_fd.state.approval_urn
+
+    approval_obj = aff4.FACTORY.Open(approval_urn,
+                                     aff4_type=aff4_security.CronJobApproval,
+                                     age=aff4.ALL_TIMES,
+                                     token=token)
+
+    return ApiUserCronApproval().InitFromAff4Object(approval_obj)
+
+
+class ApiGetUserCronApprovalArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetUserCronApprovalArgs
+
+
+class ApiGetUserCronApprovalHandler(api_call_handler_base.ApiCallHandler):
+  """Returns details about approval for a given cron, user and approval id."""
+
+  category = CATEGORY
+
+  # We return a single object and have to preserve type information of all
+  # the fields.
+  strip_json_root_fields_types = False
+
+  args_type = ApiGetUserCronApprovalArgs
+  result_type = ApiUserCronApproval
+
+  def Handle(self, args, token=None):
+    approval_urn = aff4.ROOT_URN.Add("ACL").Add("cron").Add(
+        args.cron_job_id).Add(args.username).Add(args.approval_id)
+    approval_obj = aff4.FACTORY.Open(approval_urn,
+                                     aff4_type=aff4_security.CronJobApproval,
+                                     age=aff4.ALL_TIMES,
+                                     token=token)
+    return ApiUserCronApproval().InitFromAff4Object(approval_obj)
 
 
 class ApiListUserCronApprovalsArgs(rdf_structs.RDFProtoStruct):

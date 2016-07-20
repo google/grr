@@ -9,8 +9,8 @@ from grr.gui.api_plugins import client as client_plugin
 
 from grr.lib import aff4
 from grr.lib import client_index
+from grr.lib import events
 from grr.lib import flags
-from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
@@ -83,7 +83,7 @@ class ApiAddClientsLabelsHandlerTest(test_lib.GRRBaseTest):
     for client_id in self.client_ids:
       found_event = None
       for event in fd:
-        if (event.action == flow.AuditEvent.Action.CLIENT_ADD_LABEL and
+        if (event.action == events.AuditEvent.Action.CLIENT_ADD_LABEL and
             event.client == rdf_client.ClientURN(client_id)):
           found_event = event
           break

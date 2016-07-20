@@ -10,6 +10,7 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
+from grr.lib import events
 from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -121,7 +122,7 @@ class Approval(aff4.AFF4Object):
     children_urns = list(aff4.FACTORY.ListChildren(approvals_root_urn,
                                                    token=token))
     if not children_urns:
-      raise access_control.UnauthorizedAccess("No approvals found for user %s" %
+      raise access_control.UnauthorizedAccess("No approval found for user %s" %
                                               utils.SmartStr(username),
                                               subject=object_urn)
 
@@ -136,7 +137,7 @@ class Approval(aff4.AFF4Object):
         test_token = access_control.ACLToken(
             username=username,
             reason=approval.Get(approval.Schema.REASON))
-        approval.CheckAccess(token)
+        approval.CheckAccess(test_token)
 
         return test_token
       except access_control.UnauthorizedAccess as e:
@@ -158,8 +159,8 @@ class Approval(aff4.AFF4Object):
 class ApprovalWithApproversAndReason(Approval):
   """Generic all-purpose base approval class.
 
-  This object normally lives within the aff4:/ACL namespace. Reason and username
-  are encoded into this object's urn. Subject's urn (i.e. urn of the object
+  This object normally lives within the aff4:/ACL namespace. Username is
+  encoded into this object's urn. Subject's urn (i.e. urn of the object
   which this approval corresponds for) can also be inferred from this approval's
   urn.
   This class provides following functionality:
@@ -294,7 +295,7 @@ class ClientApproval(ApprovalWithApproversAndReason):
   """An approval request for access to a specific client.
 
   This object normally lives within the namespace:
-  aff4:/ACL/client_id/user/<utils.EncodeReasonString(reason)>
+  aff4:/ACL/client_id/user/approval:<id>
 
   Hence the client_id and user which is granted access are inferred from this
   object's URN.
@@ -346,7 +347,7 @@ class HuntApproval(ApprovalWithApproversAndReason):
   """An approval request for running a specific hunt.
 
   This object normally lives within the namespace:
-  aff4:/ACL/hunts/hunt_id/user_id/<utils.EncodeReasonString(reason)>
+  aff4:/ACL/hunts/hunt_id/user_id/approval:<id>
 
   Hence the hunt_id and user_id are inferred from this object's URN.
 
@@ -376,7 +377,7 @@ class CronJobApproval(ApprovalWithApproversAndReason):
   """An approval request for managing a specific cron job.
 
   This object normally lives within the namespace:
-  aff4:/ACL/cron/cron_job_id/user_id/<utils.EncodeReasonString(reason)>
+  aff4:/ACL/cron/cron_job_id/user_id/approval:<id>
 
   Hence the hunt_id and user_id are inferred from this object's URN.
 
@@ -406,11 +407,11 @@ class AbstractApprovalWithReason(object):
   """Abstract class for approval requests/grants."""
   approval_type = None
 
-  def BuildApprovalUrn(self):
+  def BuildApprovalUrn(self, approval_id):
     """Builds approval object urn."""
     raise NotImplementedError()
 
-  def BuildApprovalSymlinksUrns(self):
+  def BuildApprovalSymlinksUrns(self, unused_approval_id):
     """Builds a list of symlinks to the approval object."""
     return []
 
@@ -440,16 +441,15 @@ class AbstractApprovalWithReason(object):
     return reason
 
   @staticmethod
-  def ApprovalUrnBuilder(subject, user, reason):
+  def ApprovalUrnBuilder(subject, user, approval_id):
     """Encode an approval URN."""
-    return aff4.ROOT_URN.Add("ACL").Add(subject).Add(user).Add(
-        utils.EncodeReasonString(reason))
+    return aff4.ROOT_URN.Add("ACL").Add(subject).Add(user).Add(approval_id)
 
   @staticmethod
-  def ApprovalSymlinkUrnBuilder(approval_type, unique_id, user, reason):
+  def ApprovalSymlinkUrnBuilder(approval_type, subject_id, user, approval_id):
     """Build an approval symlink URN."""
     return aff4.ROOT_URN.Add("users").Add(user).Add("approvals").Add(
-        approval_type).Add(unique_id).Add(utils.EncodeReasonString(reason))
+        approval_type).Add(subject_id).Add(approval_id)
 
 
 class RequestApprovalWithReasonFlowArgs(rdf_structs.RDFProtoStruct):
@@ -463,7 +463,11 @@ class RequestApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Create the Approval object and notify the Approval Granter."""
-    approval_urn = self.BuildApprovalUrn()
+    approval_id = "approval:%X" % utils.PRNG.GetULong()
+    self.state.Register("approval_id", approval_id)
+    approval_urn = self.BuildApprovalUrn(approval_id)
+    self.state.Register("approval_urn", approval_urn)
+
     subject_title = self.BuildSubjectTitle()
     email_msg_id = email.utils.make_msgid()
 
@@ -500,7 +504,7 @@ class RequestApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
       approval_request.AddAttribute(approval_request.Schema.APPROVER(
           self.token.username))
 
-    approval_link_urns = self.BuildApprovalSymlinksUrns()
+    approval_link_urns = self.BuildApprovalSymlinksUrns(approval_id)
     for link_urn in approval_link_urns:
       with aff4.FACTORY.Create(link_urn,
                                aff4.AFF4Symlink,
@@ -546,8 +550,8 @@ here
     # If you feel like it, add a funny cat picture here :)
     image = config_lib.CONFIG["Email.approval_signature"]
 
-    url = urllib.urlencode((("acl", utils.SmartStr(approval_urn)), (
-        "main", "GrantAccess")))
+    url = urllib.urlencode((("acl", utils.SmartStr(approval_urn)),
+                            ("main", "GrantAccess")))
 
     body = template % dict(username=self.token.username,
                            reason=reason,
@@ -578,13 +582,49 @@ class GrantApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Create the Approval object and notify the Approval Granter."""
-    approval_urn = self.BuildApprovalUrn()
+
+    if not self.args.delegate:
+      raise ValueError("Delegate can't be empty.")
+
+    if not self.args.reason:
+      raise ValueError("Reason can't be empty.")
+
+    approvals_root_urn = aff4.ROOT_URN.Add("ACL").Add(
+        self.args.subject_urn.Path()).Add(self.args.delegate)
+    children_urns = list(aff4.FACTORY.ListChildren(approvals_root_urn,
+                                                   token=self.token))
+    if not children_urns:
+      raise access_control.UnauthorizedAccess(
+          "No approval found for user %s" % utils.SmartStr(self.token.username),
+          subject=self.args.subject_urn)
+
+    approvals = aff4.FACTORY.MultiOpen(children_urns,
+                                       mode="r",
+                                       aff4_type=Approval,
+                                       token=self.token)
+    found_approval_urn = None
+    for approval in approvals:
+      approval_reason = approval.Get(approval.Schema.REASON)
+      if (utils.SmartUnicode(approval_reason) ==
+          utils.SmartUnicode(self.args.reason) and
+          (not found_approval_urn or
+           approval_reason.age > found_approval_urn.age)):
+        found_approval_urn = approval.urn
+        found_approval_urn.age = approval_reason.age
+
+    if not found_approval_urn:
+      raise access_control.UnauthorizedAccess(
+          "No approval with reason '%s' found for user %s" %
+          (utils.SmartStr(self.args.reason),
+           utils.SmartStr(self.token.username)),
+          subject=self.args.subject_urn)
+
     subject_title = self.BuildSubjectTitle()
     access_urn = self.BuildAccessUrl()
 
     # This object must already exist.
     try:
-      approval_request = aff4.FACTORY.Open(approval_urn,
+      approval_request = aff4.FACTORY.Open(found_approval_urn,
                                            mode="rw",
                                            aff4_type=self.approval_type,
                                            token=self.token)
@@ -661,7 +701,9 @@ class BreakGlassGrantApprovalWithReasonFlow(GrantApprovalWithReasonFlow):
   @flow.StateHandler()
   def Start(self):
     """Create the Approval object and notify the Approval Granter."""
-    approval_urn = self.BuildApprovalUrn()
+    approval_id = "approval:%X" % utils.PRNG.GetULong()
+
+    approval_urn = self.BuildApprovalUrn(approval_id)
     subject_title = self.BuildSubjectTitle()
 
     # Create a new Approval object.
@@ -727,22 +769,21 @@ class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):
 
   approval_type = ClientApproval
 
-  def BuildApprovalUrn(self):
+  def BuildApprovalUrn(self, approval_id):
     """Builds approval object urn."""
-    event = flow.AuditEvent(user=self.token.username,
-                            action="CLIENT_APPROVAL_REQUEST",
-                            client=self.client_id,
-                            description=self.args.reason)
-    flow.Events.PublishEvent("Audit", event, token=self.token)
+    event = events.AuditEvent(user=self.token.username,
+                              action="CLIENT_APPROVAL_REQUEST",
+                              client=self.client_id,
+                              description=self.args.reason)
+    events.Events.PublishEvent("Audit", event, token=self.token)
 
     return self.ApprovalUrnBuilder(self.client_id.Path(), self.token.username,
-                                   self.args.reason)
+                                   approval_id)
 
-  def BuildApprovalSymlinksUrns(self):
+  def BuildApprovalSymlinksUrns(self, approval_id):
     """Builds list of symlinks URNs for the approval object."""
     return [self.ApprovalSymlinkUrnBuilder("client", self.client_id.Basename(),
-                                           self.token.username,
-                                           self.args.reason)]
+                                           self.token.username, approval_id)]
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -758,22 +799,22 @@ class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
 
   approval_type = ClientApproval
 
-  def BuildApprovalUrn(self):
+  def BuildApprovalUrn(self, approval_id):
     """Builds approval object urn."""
-    flow.Events.PublishEvent("Audit",
-                             flow.AuditEvent(user=self.token.username,
-                                             action="CLIENT_APPROVAL_GRANT",
-                                             client=self.client_id,
-                                             description=self.args.reason),
-                             token=self.token)
+    events.Events.PublishEvent("Audit",
+                               events.AuditEvent(user=self.token.username,
+                                                 action="CLIENT_APPROVAL_GRANT",
+                                                 client=self.client_id,
+                                                 description=self.args.reason),
+                               token=self.token)
 
     return self.ApprovalUrnBuilder(self.client_id.Path(), self.args.delegate,
-                                   self.args.reason)
+                                   approval_id)
 
   def BuildAccessUrl(self):
     """Builds the urn to access this object."""
-    return urllib.urlencode((("c", self.client_id), ("main", "HostInformation")
-                            ))
+    return urllib.urlencode((("c", self.client_id),
+                             ("main", "HostInformation")))
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -789,16 +830,16 @@ class BreakGlassGrantClientApprovalFlow(BreakGlassGrantApprovalWithReasonFlow):
 
   approval_type = ClientApproval
 
-  def BuildApprovalUrn(self):
+  def BuildApprovalUrn(self, approval_id):
     """Builds approval object urn."""
-    event = flow.AuditEvent(user=self.token.username,
-                            action="CLIENT_APPROVAL_BREAK_GLASS_REQUEST",
-                            client=self.client_id,
-                            description=self.args.reason)
-    flow.Events.PublishEvent("Audit", event, token=self.token)
+    event = events.AuditEvent(user=self.token.username,
+                              action="CLIENT_APPROVAL_BREAK_GLASS_REQUEST",
+                              client=self.client_id,
+                              description=self.args.reason)
+    events.Events.PublishEvent("Audit", event, token=self.token)
 
     return self.ApprovalUrnBuilder(self.client_id.Path(), self.token.username,
-                                   self.args.reason)
+                                   approval_id)
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -814,25 +855,24 @@ class RequestHuntApprovalFlow(RequestApprovalWithReasonFlow):
 
   approval_type = HuntApproval
 
-  def BuildApprovalUrn(self):
+  def BuildApprovalUrn(self, approval_id):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
-    flow.Events.PublishEvent("Audit",
-                             flow.AuditEvent(user=self.token.username,
-                                             action="HUNT_APPROVAL_REQUEST",
-                                             urn=self.args.subject_urn,
-                                             description=self.args.reason),
-                             token=self.token)
+    events.Events.PublishEvent("Audit",
+                               events.AuditEvent(user=self.token.username,
+                                                 action="HUNT_APPROVAL_REQUEST",
+                                                 urn=self.args.subject_urn,
+                                                 description=self.args.reason),
+                               token=self.token)
 
     return self.ApprovalUrnBuilder(self.args.subject_urn.Path(),
-                                   self.token.username, self.args.reason)
+                                   self.token.username, approval_id)
 
-  def BuildApprovalSymlinksUrns(self):
+  def BuildApprovalSymlinksUrns(self, approval_id):
     """Builds list of symlinks URNs for the approval object."""
     return [self.ApprovalSymlinkUrnBuilder("hunt",
                                            self.args.subject_urn.Basename(),
-                                           self.token.username,
-                                           self.args.reason)]
+                                           self.token.username, approval_id)]
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -846,18 +886,18 @@ class GrantHuntApprovalFlow(GrantApprovalWithReasonFlow):
 
   approval_type = HuntApproval
 
-  def BuildApprovalUrn(self):
+  def BuildApprovalUrn(self, approval_id):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
-    flow.Events.PublishEvent("Audit",
-                             flow.AuditEvent(user=self.token.username,
-                                             action="HUNT_APPROVAL_GRANT",
-                                             urn=self.args.subject_urn,
-                                             description=self.args.reason),
-                             token=self.token)
+    events.Events.PublishEvent("Audit",
+                               events.AuditEvent(user=self.token.username,
+                                                 action="HUNT_APPROVAL_GRANT",
+                                                 urn=self.args.subject_urn,
+                                                 description=self.args.reason),
+                               token=self.token)
 
     return self.ApprovalUrnBuilder(self.args.subject_urn.Path(),
-                                   self.args.delegate, self.args.reason)
+                                   self.args.delegate, approval_id)
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -876,25 +916,24 @@ class RequestCronJobApprovalFlow(RequestApprovalWithReasonFlow):
 
   approval_type = CronJobApproval
 
-  def BuildApprovalUrn(self):
+  def BuildApprovalUrn(self, approval_id):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
-    flow.Events.PublishEvent("Audit",
-                             flow.AuditEvent(user=self.token.username,
-                                             action="CRON_APPROVAL_REQUEST",
-                                             urn=self.args.subject_urn,
-                                             description=self.args.reason),
-                             token=self.token)
+    events.Events.PublishEvent("Audit",
+                               events.AuditEvent(user=self.token.username,
+                                                 action="CRON_APPROVAL_REQUEST",
+                                                 urn=self.args.subject_urn,
+                                                 description=self.args.reason),
+                               token=self.token)
 
     return self.ApprovalUrnBuilder(self.args.subject_urn.Path(),
-                                   self.token.username, self.args.reason)
+                                   self.token.username, approval_id)
 
-  def BuildApprovalSymlinksUrns(self):
+  def BuildApprovalSymlinksUrns(self, approval_id):
     """Builds list of symlinks URNs for the approval object."""
     return [self.ApprovalSymlinkUrnBuilder("cron",
                                            self.args.subject_urn.Basename(),
-                                           self.token.username,
-                                           self.args.reason)]
+                                           self.token.username, approval_id)]
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -911,12 +950,12 @@ class GrantCronJobApprovalFlow(GrantApprovalWithReasonFlow):
   def BuildApprovalUrn(self):
     """Builds approval object URN."""
     # In this case subject_urn is hunt's URN.
-    flow.Events.PublishEvent("Audit",
-                             flow.AuditEvent(user=self.token.username,
-                                             action="CRON_APPROVAL_GRANT",
-                                             urn=self.args.subject_urn,
-                                             description=self.args.reason),
-                             token=self.token)
+    events.Events.PublishEvent("Audit",
+                               events.AuditEvent(user=self.token.username,
+                                                 action="CRON_APPROVAL_GRANT",
+                                                 urn=self.args.subject_urn,
+                                                 description=self.args.reason),
+                               token=self.token)
 
     return self.ApprovalUrnBuilder(self.args.subject_urn.Path(),
                                    self.args.delegate, self.args.reason)

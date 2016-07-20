@@ -12,11 +12,12 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope Directive's scope.
  * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
  * @param {!grrUi.core.apiService.ApiService} grrApiService GRR Aff4 service.
+ * @param {!grrUi.routing.routingService.RoutingService} grrRoutingService
  * @constructor
  * @ngInject
  */
 var ClientUrnController = function(
-    $scope, $modal, grrApiService) {
+    $scope, $modal, grrApiService, grrRoutingService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -29,8 +30,17 @@ var ClientUrnController = function(
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
+  /** @private {!grrUi.routing.routingService.RoutingService} */
+  this.grrRoutingService_ = grrRoutingService;
+
   /** @export {Object} */
   this.clientDetails;
+
+  /** @export {?string} */
+  this.ref;
+
+  /** @type {Object} */
+  this.refParams;
 
   /** @export {?string} */
   this.clientUrn;
@@ -50,6 +60,12 @@ ClientUrnController.prototype.onValueChange = function() {
   } else {
     this.clientUrn = this.scope_.value;
   }
+
+  if (angular.isString(this.clientUrn)) {
+    var clientId = this.clientUrn.replace(/^aff4:\//, '');
+    this.refParams = {clientId: clientId};
+    this.ref = this.grrRoutingService_.href('client.hostInfo', this.refParams);
+  }
 };
 
 
@@ -68,7 +84,7 @@ ClientUrnController.prototype.onInfoClick = function() {
   var clientId = this.clientUrn.split('/')[1];
   this.grrApiService_.get('clients/' + clientId).then(
       function(response) {
-        this.clientDetails = response.data.client;
+        this.clientDetails = response.data;
       }.bind(this));
 };
 
@@ -79,11 +95,7 @@ ClientUrnController.prototype.onInfoClick = function() {
  * @export
  */
 ClientUrnController.prototype.onLinkClick = function() {
-  var hash = $.param({
-    'main': 'HostInformation',
-    'c': this.clientUrn
-  });
-  grr.loadFromHash(hash);
+  this.grrRoutingService_.go('client.hostInfo', this.refParams);
 };
 
 
