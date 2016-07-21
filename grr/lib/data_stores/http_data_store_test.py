@@ -76,12 +76,13 @@ def _StartServers():
   HTTP_DB = [sqlite_data_store.SqliteDataStore(temp_dir_1),
              sqlite_data_store.SqliteDataStore(temp_dir_2)]
   STARTED_SERVER = [
-      threading.Thread(target=data_server.Start,
-                       args=(HTTP_DB[0], PORT[0], True, StoppableHTTPServer,
-                             MockRequestHandler1)),
-      threading.Thread(target=data_server.Start,
-                       args=(HTTP_DB[1], PORT[1], False, StoppableHTTPServer,
-                             MockRequestHandler2))
+      threading.Thread(
+          target=data_server.Start,
+          args=(HTTP_DB[0], PORT[0], True, StoppableHTTPServer,
+                MockRequestHandler1)), threading.Thread(
+                    target=data_server.Start,
+                    args=(HTTP_DB[1], PORT[1], False, StoppableHTTPServer,
+                          MockRequestHandler2))
   ]
   STARTED_SERVER[0].start()
   STARTED_SERVER[1].start()

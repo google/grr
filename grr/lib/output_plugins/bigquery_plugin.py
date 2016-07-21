@@ -297,9 +297,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
         # Omit the leading newline for the first entry in the file.
         self._WriteJSONValue(output_tracker.gzip_filehandle, value)
       else:
-        self._WriteJSONValue(output_tracker.gzip_filehandle,
-                             value,
-                             delimiter="\n")
+        self._WriteJSONValue(
+            output_tracker.gzip_filehandle, value, delimiter="\n")
 
     for output_tracker in self.temp_output_trackers.values():
       output_tracker.gzip_filehandle.flush()

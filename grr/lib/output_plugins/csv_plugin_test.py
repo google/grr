@@ -27,16 +27,18 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
                        plugin_args=None,
                        responses=None,
                        process_responses_separately=False):
-    plugin = csv_plugin.CSVOutputPlugin(source_urn=self.results_urn,
-                                        output_base_urn=self.base_urn,
-                                        args=plugin_args,
-                                        token=self.token)
+    plugin = csv_plugin.CSVOutputPlugin(
+        source_urn=self.results_urn,
+        output_base_urn=self.base_urn,
+        args=plugin_args,
+        token=self.token)
     plugin.Initialize()
 
     messages = []
     for response in responses:
-      messages.append(rdf_flows.GrrMessage(source=self.client_id,
-                                           payload=response))
+      messages.append(
+          rdf_flows.GrrMessage(
+              source=self.client_id, payload=response))
 
     if process_responses_separately:
       for message in messages:
@@ -66,8 +68,7 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
           st_ctime=1336129892))
 
     streams = self.ProcessResponses(
-        plugin_args=csv_plugin.CSVOutputPluginArgs(),
-        responses=responses)
+        plugin_args=csv_plugin.CSVOutputPluginArgs(), responses=responses)
     self.assertEqual(streams.keys(), ["ExportedFile.csv"])
     self.assertEqual(streams["ExportedFile.csv"].urn,
                      rdfvalue.RDFURN("aff4:/foo/bar/ExportedFile.csv"))
@@ -103,8 +104,9 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
     streams = self.ProcessResponses(
         plugin_args=csv_plugin.CSVOutputPluginArgs(),
         responses=[
-            rdf_client.StatEntry(aff4path=self.client_id.Add("/fs/os/foo/bar"),
-                                 pathspec=rdf_paths.PathSpec(path="/foo/bar")),
+            rdf_client.StatEntry(
+                aff4path=self.client_id.Add("/fs/os/foo/bar"),
+                pathspec=rdf_paths.PathSpec(path="/foo/bar")),
             rdf_client.Process(pid=42)
         ],
         process_responses_separately=True)
@@ -145,8 +147,9 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
     streams = self.ProcessResponses(
         plugin_args=csv_plugin.CSVOutputPluginArgs(),
         responses=[
-            rdf_client.StatEntry(aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
-                                 pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中"))
+            rdf_client.StatEntry(
+                aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
+                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中"))
         ],
         process_responses_separately=True)
 

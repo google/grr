@@ -4021,7 +4021,8 @@ registry_data {
 """
     })),
 
-    (r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
+    (
+     r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
      r"NT/CurrentVersion/ProfileList/S-1-5-21-702227068-2140022151-3110739409-1000/ProfileImagePath", (aff4_grr.VFSFile, {
         "aff4:stat":
             """
@@ -4039,7 +4040,8 @@ registry_data {
 """
     })),
 
-    (r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
+    (
+     r"/registry/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows "
      r"NT/CurrentVersion/ProfileList/S-1-5-21-702227000-2140022111-3110739999-1990/ProfileImagePath", (aff4_grr.VFSFile, {
         "aff4:stat":
             """

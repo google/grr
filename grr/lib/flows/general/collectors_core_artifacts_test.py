@@ -39,14 +39,15 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
   def _CheckDriveAndRoot(self):
     client_mock = action_mocks.ActionMock("StatFile", "ListDirectory")
 
-    for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow",
-                                     client_mock,
-                                     artifact_list=[
-                                         "SystemDriveEnvironmentVariable"
-                                     ],
-                                     token=self.token,
-                                     client_id=self.client_id,
-                                     output="testsystemdrive"):
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow",
+        client_mock,
+        artifact_list=[
+            "SystemDriveEnvironmentVariable"
+        ],
+        token=self.token,
+        client_id=self.client_id,
+        output="testsystemdrive"):
       pass
 
     fd = aff4.FACTORY.Open(
@@ -55,17 +56,17 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(fd), 1)
     self.assertEqual(str(fd[0]), "C:")
 
-    for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow",
-                                     client_mock,
-                                     artifact_list=["SystemRoot"],
-                                     token=self.token,
-                                     client_id=self.client_id,
-                                     output="testsystemroot"):
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow",
+        client_mock,
+        artifact_list=["SystemRoot"],
+        token=self.token,
+        client_id=self.client_id,
+        output="testsystemroot"):
       pass
 
     fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("testsystemroot"),
-        token=self.token)
+        rdfvalue.RDFURN(self.client_id).Add("testsystemroot"), token=self.token)
     self.assertEqual(len(fd), 1)
     # Filesystem gives WINDOWS, registry gives Windows
     self.assertTrue(str(fd[0]) in [r"C:\Windows", r"C:\WINDOWS"])
@@ -83,14 +84,15 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
 
     # No registry, broken filesystem, this should just raise.
     with self.assertRaises(RuntimeError):
-      for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow",
-                                       BrokenClientMock(),
-                                       artifact_list=[
-                                           "SystemDriveEnvironmentVariable"
-                                       ],
-                                       token=self.token,
-                                       client_id=self.client_id,
-                                       output="testsystemdrive"):
+      for _ in test_lib.TestFlowHelper(
+          "ArtifactCollectorFlow",
+          BrokenClientMock(),
+          artifact_list=[
+              "SystemDriveEnvironmentVariable"
+          ],
+          token=self.token,
+          client_id=self.client_id,
+          output="testsystemdrive"):
         pass
 
     # No registry, so this should use the fallback flow
@@ -122,8 +124,9 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
         store_results_in_aff4=True):
       pass
 
-    client = aff4.FACTORY.Open(self.client_id,
-                               token=self.token,)
+    client = aff4.FACTORY.Open(
+        self.client_id,
+        token=self.token,)
     hardware = client.Get(client.Schema.HARDWARE_INFO)
     self.assertTrue(isinstance(hardware, rdf_client.HardwareInfo))
     self.assertEqual(str(hardware.serial_number), "2RXYYZ1")
@@ -214,8 +217,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
           pass
 
         output = aff4.FACTORY.Open(
-            self.client_id.Add("testRetrieveDependencies"),
-            token=self.token)
+            self.client_id.Add("testRetrieveDependencies"), token=self.token)
         self.assertEqual(len(output), 1)
         self.assertEqual(output[0], r"C:\Windows")
 

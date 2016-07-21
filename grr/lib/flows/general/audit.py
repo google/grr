@@ -24,16 +24,16 @@ AUDIT_EVENT = "Audit"
 
 class AuditEventListener(flow.EventListener):
   """Receive the audit events."""
-  well_known_session_id = rdfvalue.SessionID(base="aff4:/audit",
-                                             queue=queues.FLOWS,
-                                             flow_name="listener")
+  well_known_session_id = rdfvalue.SessionID(
+      base="aff4:/audit", queue=queues.FLOWS, flow_name="listener")
   EVENTS = [AUDIT_EVENT]
 
   @flow.EventHandler(auth_required=False)
   def ProcessMessage(self, message=None, event=None):
     _ = message
-    with aff4.FACTORY.Create(aff4.CurrentAuditLog(),
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        aff4.CurrentAuditLog(),
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       fd.Add(event)

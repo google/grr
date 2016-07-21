@@ -80,8 +80,8 @@ def RunInstaller():
 
   # Always log to the installer logfile at debug level. This way if our
   # installer fails we can send detailed diagnostics.
-  handler = logging.FileHandler(config_lib.CONFIG["Installer.logfile"],
-                                mode="wb")
+  handler = logging.FileHandler(
+      config_lib.CONFIG["Installer.logfile"], mode="wb")
 
   handler.setLevel(logging.DEBUG)
 

@@ -55,8 +55,7 @@ class ApiClientTest(test_lib.GRRBaseTest):
     client_urns = sorted(self.SetupClients(2))
 
     clients = sorted(
-        self.api.SearchClients(query="."),
-        key=lambda c: c.client_id)
+        self.api.SearchClients(query="."), key=lambda c: c.client_id)
     self.assertEqual(len(clients), 2)
 
     for i in range(2):
@@ -94,38 +93,38 @@ class ApiClientTest(test_lib.GRRBaseTest):
 
   def testCreateFlowFromClientRef(self):
     client_urn = self.SetupClients(1)[0]
-    args = processes.ListProcessesArgs(filename_regex="blah",
-                                       fetch_binaries=True)
+    args = processes.ListProcessesArgs(
+        filename_regex="blah", fetch_binaries=True)
 
     children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
     self.assertEqual(len(list(children)), 0)
 
     client_ref = self.api.Client(client_id=client_urn.Basename())
-    result_flow = client_ref.CreateFlow(name=processes.ListProcesses.__name__,
-                                        args=args.AsPrimitiveProto())
+    result_flow = client_ref.CreateFlow(
+        name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto())
 
     children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
     self.assertEqual(len(list(children)), 1)
-    result_flow_obj = aff4.FACTORY.Open(result_flow.data["urn"],
-                                        token=self.token)
+    result_flow_obj = aff4.FACTORY.Open(
+        result_flow.data["urn"], token=self.token)
     self.assertEqual(result_flow_obj.state.args, args)
 
   def testCreateFlowFromClientObject(self):
     client_urn = self.SetupClients(1)[0]
-    args = processes.ListProcessesArgs(filename_regex="blah",
-                                       fetch_binaries=True)
+    args = processes.ListProcessesArgs(
+        filename_regex="blah", fetch_binaries=True)
 
     children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
     self.assertEqual(len(list(children)), 0)
 
     client = self.api.Client(client_id=client_urn.Basename()).Get()
-    result_flow = client.CreateFlow(name=processes.ListProcesses.__name__,
-                                    args=args.AsPrimitiveProto())
+    result_flow = client.CreateFlow(
+        name=processes.ListProcesses.__name__, args=args.AsPrimitiveProto())
 
     children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
     self.assertEqual(len(list(children)), 1)
-    result_flow_obj = aff4.FACTORY.Open(result_flow.data["urn"],
-                                        token=self.token)
+    result_flow_obj = aff4.FACTORY.Open(
+        result_flow.data["urn"], token=self.token)
     self.assertEqual(result_flow_obj.state.args, args)
 
 
@@ -160,8 +159,8 @@ class CSRFProtectionTest(test_lib.GRRBaseTest):
   def testPOSTRequestWithoutCSRFTokenFails(self):
     data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
 
-    response = requests.post(self.base_url + "/api/clients/labels/add",
-                             data=json.dumps(data))
+    response = requests.post(
+        self.base_url + "/api/clients/labels/add", data=json.dumps(data))
 
     self.assertEquals(response.status_code, 403)
     self.assertTrue("CSRF" in response.text)
@@ -174,9 +173,10 @@ class CSRFProtectionTest(test_lib.GRRBaseTest):
     data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
     cookies = {"csrftoken": csrf_token}
 
-    response = requests.post(self.base_url + "/api/clients/labels/add",
-                             data=json.dumps(data),
-                             cookies=cookies)
+    response = requests.post(
+        self.base_url + "/api/clients/labels/add",
+        data=json.dumps(data),
+        cookies=cookies)
 
     self.assertEquals(response.status_code, 403)
     self.assertTrue("CSRF" in response.text)
@@ -193,10 +193,11 @@ class CSRFProtectionTest(test_lib.GRRBaseTest):
     data = {"client_ids": ["C.0000000000000000"], "labels": ["foo", "bar"]}
     cookies = {"csrftoken": csrf_token}
 
-    response = requests.post(self.base_url + "/api/clients/labels/add",
-                             headers=headers,
-                             data=json.dumps(data),
-                             cookies=cookies)
+    response = requests.post(
+        self.base_url + "/api/clients/labels/add",
+        headers=headers,
+        data=json.dumps(data),
+        cookies=cookies)
     self.assertEquals(response.status_code, 200)
 
   def testDELETERequestWithoutCSRFTokenFails(self):

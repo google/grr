@@ -101,8 +101,8 @@ def main(unused_argv):
 
   # To make the console easier to use, we make a default token which will be
   # used in StartFlow operations.
-  data_store.default_token = access_control.ACLToken(username=getpass.getuser(),
-                                                     reason=flags.FLAGS.reason)
+  data_store.default_token = access_control.ACLToken(
+      username=getpass.getuser(), reason=flags.FLAGS.reason)
 
   locals_vars = {
       "__name__": "GRR Console",

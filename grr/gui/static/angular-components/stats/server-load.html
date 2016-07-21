@@ -47,8 +47,7 @@
             ({$ controller.frontendCount $} instances)
           </span>
         </p>
-
-        <h4>Frontend handled vs throttled rate</h4>
+        <h4>Frontend QPS</h4>
         <grr-server-load-graph start-time="controller.startTime"
                                end-time="controller.endTime">
           <grr-server-load-graph-serie component="frontend"
@@ -56,11 +55,6 @@
                                        rate="10m"
                                        distribution-handling="DH_COUNT"
                                        label="Requests">
-          </grr-server-load-graph-serie>
-          <grr-server-load-graph-serie component="frontend"
-                                       metric="grr_frontendserver_handle_throttled_num"
-                                       rate="10m"
-                                       label="Throttled requests">
           </grr-server-load-graph-serie>
         </grr-server-load-graph>
 
@@ -162,4 +156,3 @@
 
 
 </div>
-

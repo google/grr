@@ -8,25 +8,29 @@ import subprocess
 
 parser = argparse.ArgumentParser(description="Build windows templates.")
 
-parser.add_argument("--grr_src",
-                    default=r"C:\grrbuild\grr",
-                    help="Location of the grr src code. If it doesn't exist "
-                    " at this path we'll try to check it out from github.")
+parser.add_argument(
+    "--grr_src",
+    default=r"C:\grrbuild\grr",
+    help="Location of the grr src code. If it doesn't exist "
+    " at this path we'll try to check it out from github.")
 
-parser.add_argument("--output_dir",
-                    default=r"C:\grrbuild\output",
-                    help="Location of the grr src code. If it doesn't exist "
-                    " at this path we'll check it out from github.")
+parser.add_argument(
+    "--output_dir",
+    default=r"C:\grrbuild\output",
+    help="Location of the grr src code. If it doesn't exist "
+    " at this path we'll check it out from github.")
 
-parser.add_argument("--cloud_storage_sdist_bucket",
-                    default=None,
-                    help="If defined, copy sdists from this bucket rather than"
-                    " building them.")
+parser.add_argument(
+    "--cloud_storage_sdist_bucket",
+    default=None,
+    help="If defined, copy sdists from this bucket rather than"
+    " building them.")
 
-parser.add_argument("--cloud_storage_output_bucket",
-                    default=None,
-                    help="If defined, build products will be copied to this "
-                    "cloud storage bucket.")
+parser.add_argument(
+    "--cloud_storage_output_bucket",
+    default=None,
+    help="If defined, build products will be copied to this "
+    "cloud storage bucket.")
 
 parser.add_argument(
     "--gsutil",

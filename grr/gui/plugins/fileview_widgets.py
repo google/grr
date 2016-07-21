@@ -59,12 +59,13 @@ right: 0; bottom: 0; left: 0"></div> """ + table_jquery_template)
     self.state["age"] = request.REQ.get("age")
 
     response = super(HexView, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "HexView.Layout",
-                               renderer=self.__class__.__name__,
-                               table_width=self.table_width,
-                               aff4_path=self.state["aff4_path"],
-                               age=self.state["age"])
+    return self.CallJavascript(
+        response,
+        "HexView.Layout",
+        renderer=self.__class__.__name__,
+        table_width=self.table_width,
+        aff4_path=self.state["aff4_path"],
+        age=self.state["age"])
 
   def RenderAjax(self, request, response):
     """Return the contents of the hex viewer in JSON."""
@@ -86,9 +87,9 @@ right: 0; bottom: 0; left: 0"></div> """ + table_jquery_template)
     response = dict(offset=offset, values=data)
     response["total_size"] = self.total_size
 
-    return renderers.JsonResponse(dict(offset=offset,
-                                       values=data,
-                                       total_size=self.total_size))
+    return renderers.JsonResponse(
+        dict(
+            offset=offset, values=data, total_size=self.total_size))
 
   def ReadBuffer(self, request, offset, length):
     """Should be overriden by derived classes to satisfy read requests.
@@ -160,11 +161,12 @@ class TextView(renderers.TemplateRenderer):
     self.state["age"] = request.REQ.get("age")
 
     response = super(TextView, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "TextView.Layout",
-                               default_codec=self.default_codec,
-                               aff4_path=self.state["aff4_path"],
-                               age=self.state["age"])
+    return self.CallJavascript(
+        response,
+        "TextView.Layout",
+        default_codec=self.default_codec,
+        aff4_path=self.state["aff4_path"],
+        age=self.state["age"])
 
   def RenderAjax(self, request, response):
     """Return the contents of the text viewer."""

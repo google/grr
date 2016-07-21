@@ -109,10 +109,11 @@ class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
 
     all_jobs_urns = list(aff4_cronjobs.CRON_MANAGER.ListJobs(token=token))
     cron_jobs_urns = all_jobs_urns[args.offset:stop]
-    cron_jobs = aff4.FACTORY.MultiOpen(cron_jobs_urns,
-                                       aff4_type=aff4_cronjobs.CronJob,
-                                       token=token,
-                                       age=aff4.ALL_TIMES)
+    cron_jobs = aff4.FACTORY.MultiOpen(
+        cron_jobs_urns,
+        aff4_type=aff4_cronjobs.CronJob,
+        token=token,
+        age=aff4.ALL_TIMES)
 
     items = [ApiCronJob().InitFromAff4Object(cron_job)
              for cron_job in cron_jobs]
@@ -176,14 +177,11 @@ class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
         flow_args=args.flow_args,
         allow_overruns=args.allow_overruns,
         lifetime=args.lifetime)
-    urn = aff4_cronjobs.CRON_MANAGER.ScheduleFlow(cron_args=cron_args,
-                                                  disabled=True,
-                                                  token=token)
+    urn = aff4_cronjobs.CRON_MANAGER.ScheduleFlow(
+        cron_args=cron_args, disabled=True, token=token)
 
-    fd = aff4.FACTORY.Open(urn,
-                           aff4_type=aff4_cronjobs.CronJob,
-                           token=token,
-                           age=aff4.ALL_TIMES)
+    fd = aff4.FACTORY.Open(
+        urn, aff4_type=aff4_cronjobs.CronJob, token=token, age=aff4.ALL_TIMES)
 
     return ApiCronJob().InitFromAff4Object(fd)
 

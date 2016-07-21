@@ -64,8 +64,8 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
     client_id = response.source
     client = aff4.FACTORY.Open(client_id, token=self.token)
     hostname = client.Get(client.Schema.HOSTNAME) or "unknown hostname"
-    client_fragment_id = urllib.urlencode((("c", client_id), (
-        "main", "HostInformation")))
+    client_fragment_id = urllib.urlencode((("c", client_id),
+                                           ("main", "HostInformation")))
 
     if emails_left == 0:
       additional_message = (self.too_many_mails_msg %
@@ -87,11 +87,12 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
         hostname=cgi.escape(utils.SmartStr(hostname)),
         creator=cgi.escape(utils.SmartStr(self.token.username)))
 
-    email_alerts.EMAIL_ALERTER.SendEmail(self.state.args.email_address,
-                                         "grr-noreply",
-                                         subject,
-                                         self.template % template_args,
-                                         is_html=True)
+    email_alerts.EMAIL_ALERTER.SendEmail(
+        self.state.args.email_address,
+        "grr-noreply",
+        subject,
+        self.template % template_args,
+        is_html=True)
 
   def ProcessResponses(self, responses):
     for response in responses:

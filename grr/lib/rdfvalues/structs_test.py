@@ -24,83 +24,90 @@ class TestStruct(structs.RDFProtoStruct):
   """A test struct object."""
 
   type_description = type_info.TypeDescriptorSet(
-      type_info.ProtoString(name="foobar",
-                            field_number=1,
-                            default="string",
-                            description="A string value"),
-      type_info.ProtoUnsignedInteger(name="int",
-                                     field_number=2,
-                                     default=5,
-                                     description="An integer value"),
-      type_info.ProtoList(type_info.ProtoString(
-          name="repeated",
-          field_number=3,
-          description="A repeated string value")),
+      type_info.ProtoString(
+          name="foobar",
+          field_number=1,
+          default="string",
+          description="A string value"),
+      type_info.ProtoUnsignedInteger(
+          name="int", field_number=2, default=5,
+          description="An integer value"),
+      type_info.ProtoList(
+          type_info.ProtoString(
+              name="repeated",
+              field_number=3,
+              description="A repeated string value")),
 
       # We can serialize an arbitrary RDFValue. This will be serialized into a
       # binary string and parsed on demand.
-      type_info.ProtoRDFValue(name="urn",
-                              field_number=6,
-                              default=rdfvalue.RDFURN("www.google.com"),
-                              rdf_type="RDFURN",
-                              description="An arbitrary RDFValue field."),
+      type_info.ProtoRDFValue(
+          name="urn",
+          field_number=6,
+          default=rdfvalue.RDFURN("www.google.com"),
+          rdf_type="RDFURN",
+          description="An arbitrary RDFValue field."),
       type_info.ProtoEnum(
           name="type",
           field_number=7,
           enum_name="Type",
-          enum=dict(FIRST=1, SECOND=2, THIRD=3),
+          enum=dict(
+              FIRST=1, SECOND=2, THIRD=3),
           default=3,
           description="An enum field"),
-      type_info.ProtoFloat(name="float",
-                           field_number=8,
-                           description="A float number",
-                           default=1.1),)
+      type_info.ProtoFloat(
+          name="float",
+          field_number=8,
+          description="A float number",
+          default=1.1),)
 
 # In order to define a recursive structure we must add it manually after the
 # class definition.
-TestStruct.AddDescriptor(type_info.ProtoEmbedded(name="nested",
-                                                 field_number=4,
-                                                 nested=TestStruct),)
+TestStruct.AddDescriptor(
+    type_info.ProtoEmbedded(
+        name="nested", field_number=4, nested=TestStruct),)
 
-TestStruct.AddDescriptor(type_info.ProtoList(type_info.ProtoEmbedded(
-    name="repeat_nested",
-    field_number=5, nested=TestStruct)),)
+TestStruct.AddDescriptor(
+    type_info.ProtoList(
+        type_info.ProtoEmbedded(
+            name="repeat_nested", field_number=5, nested=TestStruct)),)
 
 
 class PartialTest1(structs.RDFProtoStruct):
   """This is a protobuf with fewer fields than TestStruct."""
   type_description = type_info.TypeDescriptorSet(
-      type_info.ProtoUnsignedInteger(name="int", field_number=2),)
+      type_info.ProtoUnsignedInteger(
+          name="int", field_number=2),)
 
 
 class DynamicTypeTest(structs.RDFProtoStruct):
   """A protobuf with dynamic types."""
 
   type_description = type_info.TypeDescriptorSet(
-      type_info.ProtoString(name="type",
-                            field_number=1,
-                            # By default return the TestStruct proto.
-                            default="TestStruct",
-                            description="A string value"),
+      type_info.ProtoString(
+          name="type",
+          field_number=1,
+          # By default return the TestStruct proto.
+          default="TestStruct",
+          description="A string value"),
       type_info.ProtoDynamicEmbedded(
           name="dynamic",
           # The callback here returns the type specified by the type member.
           dynamic_cb=lambda x: structs.RDFProtoStruct.classes.get(x.type),
           field_number=2,
           description="A dynamic value based on another field."),
-      type_info.ProtoEmbedded(name="nested",
-                              field_number=3,
-                              nested=rdf_client.User))
+      type_info.ProtoEmbedded(
+          name="nested", field_number=3, nested=rdf_client.User))
 
 
 class DynamicAnyValueTypeTest(structs.RDFProtoStruct):
   """A protobuf with dynamic types stored in AnyValue messages."""
 
   type_description = type_info.TypeDescriptorSet(
-      type_info.ProtoString(name="type",
-                            field_number=1,
-                            # By default return the TestStruct proto.
-                            description="A string value"),
+      type_info.ProtoString(
+          name="type",
+          field_number=1,
+          # By default return the TestStruct proto.
+          description="A string value"),
       type_info.ProtoDynamicAnyValueEmbedded(
           name="dynamic",
           # The callback here returns the type specified by the type member.
@@ -112,20 +119,50 @@ class DynamicAnyValueTypeTest(structs.RDFProtoStruct):
 class LateBindingTest(structs.RDFProtoStruct):
   type_description = type_info.TypeDescriptorSet(
       # A nested protobuf referring to an undefined type.
-      type_info.ProtoEmbedded(name="nested",
-                              field_number=1,
-                              nested="UndefinedYet"),
-      type_info.ProtoRDFValue(name="rdfvalue",
-                              field_number=6,
-                              rdf_type="UndefinedRDFValue",
-                              description="An undefined RDFValue field."),
+      type_info.ProtoEmbedded(
+          name="nested", field_number=1, nested="UndefinedYet"),
+      type_info.ProtoRDFValue(
+          name="rdfvalue",
+          field_number=6,
+          rdf_type="UndefinedRDFValue",
+          description="An undefined RDFValue field."),
 
       # A repeated late bound field.
-      type_info.ProtoList(type_info.ProtoRDFValue(
-          name="repeated",
-          field_number=7,
-          rdf_type="UndefinedRDFValue2",
-          description="An undefined RDFValue field.")),)
+      type_info.ProtoList(
+          type_info.ProtoRDFValue(
+              name="repeated",
+              field_number=7,
+              rdf_type="UndefinedRDFValue2",
+              description="An undefined RDFValue field.")),)
+
+
+class UnionTest(structs.RDFProtoStruct):
+  union_field = "struct_flavor"
+
+  type_description = type_info.TypeDescriptorSet(
+      type_info.ProtoEnum(
+          name="struct_flavor",
+          field_number=1,
+          enum_name="Type",
+          enum=dict(
+              FIRST=1, SECOND=2, THIRD=3),
+          default=3,
+          description="An union enum field"),
+      type_info.ProtoFloat(
+          name="first",
+          field_number=2,
+          description="A float number",
+          default=1.1),
+      type_info.ProtoString(
+          name="second",
+          field_number=3,
+          default="string",
+          description="A string value"),
+      type_info.ProtoUnsignedInteger(
+          name="third",
+          field_number=4,
+          default=5,
+          description="An integer value"),)
 
 
 class RDFStructsTest(test_base.RDFValueTestCase):
@@ -134,10 +171,11 @@ class RDFStructsTest(test_base.RDFValueTestCase):
   rdfvalue_class = TestStruct
 
   def GenerateSample(self, number=1):
-    return self.rdfvalue_class(int=number,
-                               foobar="foo%s" % number,
-                               urn="www.example.com",
-                               float=2.3 + number)
+    return self.rdfvalue_class(
+        int=number,
+        foobar="foo%s" % number,
+        urn="www.example.com",
+        float=2.3 + number)
 
   def testDynamicType(self):
     test_pb = DynamicTypeTest()
@@ -194,9 +232,9 @@ class RDFStructsTest(test_base.RDFValueTestCase):
 
     # Now let's define an RDFProtoStruct for the dynamically generated
     # proto_class.
-    new_dynamic_class = type("DynamicTypeTestReversed",
-                             (structs.RDFProtoStruct,),
-                             dict(protobuf=proto_class))
+    new_dynamic_class = type(
+        "DynamicTypeTestReversed", (structs.RDFProtoStruct,),
+        dict(protobuf=proto_class))
     new_dynamic_instance = new_dynamic_class(
         type="foo", nested=rdf_client.User(username="bar"))
     self.assertEqual(new_dynamic_instance.type, "foo")
@@ -216,9 +254,9 @@ class RDFStructsTest(test_base.RDFValueTestCase):
 
     # Now let's define an RDFProtoStruct for the dynamically generated
     # proto_class.
-    new_dynamic_class = type("DynamicAnyValueTypeTestReversed",
-                             (structs.RDFProtoStruct,),
-                             dict(protobuf=proto_class))
+    new_dynamic_class = type(
+        "DynamicAnyValueTypeTestReversed", (structs.RDFProtoStruct,),
+        dict(protobuf=proto_class))
     new_dynamic_instance = new_dynamic_class(type="foo")
     self.assertEqual(new_dynamic_instance.type, "foo")
 
@@ -238,21 +276,22 @@ class RDFStructsTest(test_base.RDFValueTestCase):
   def testStructDefinition(self):
     """Ensure that errors in struct definitions are raised."""
     # A descriptor without a field number should raise.
-    self.assertRaises(type_info.TypeValueError,
-                      type_info.ProtoEmbedded,
-                      name="name")
+    self.assertRaises(
+        type_info.TypeValueError, type_info.ProtoEmbedded, name="name")
 
     # Adding a duplicate field number should raise.
     self.assertRaises(
         type_info.TypeValueError,
         TestStruct.AddDescriptor,
-        type_info.ProtoUnsignedInteger(name="int", field_number=2))
+        type_info.ProtoUnsignedInteger(
+            name="int", field_number=2))
 
     # Adding a descriptor which is not a Proto* descriptor is not allowed for
     # Struct fields:
-    self.assertRaises(type_info.TypeValueError,
-                      TestStruct.AddDescriptor,
-                      type_info.String(name="int"))
+    self.assertRaises(
+        type_info.TypeValueError,
+        TestStruct.AddDescriptor,
+        type_info.String(name="int"))
 
   def testRepeatedMember(self):
     tested = TestStruct(int=5)
@@ -325,11 +364,8 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     tested.nested = TestStruct(foobar="nested_foo")
 
     # Not OK to use the wrong semantic type.
-    self.assertRaises(ValueError,
-                      setattr,
-                      tested,
-                      "nested",
-                      PartialTest1(int=1))
+    self.assertRaises(
+        ValueError, setattr, tested, "nested", PartialTest1(int=1))
 
     # Not OK to assign a serialized string - even if it is for the right type -
     # since there is no type checking.
@@ -442,10 +478,9 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     # Now define the class. This should resolve the late bound fields and re-add
     # them to their owner protobufs.
     class UndefinedYet(structs.RDFProtoStruct):
-      type_description = type_info.TypeDescriptorSet(type_info.ProtoString(
-          name="foobar",
-          field_number=1,
-          description="A string value"),)
+      type_description = type_info.TypeDescriptorSet(
+          type_info.ProtoString(
+              name="foobar", field_number=1, description="A string value"),)
 
     # The field is now resolved.
     self.assertFalse("UndefinedYet" in rdfvalue._LATE_BINDING_STORE)
@@ -543,6 +578,44 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     self.assertEqual(tested.nested.urn, "www.google.com")
     self.assertTrue(tested.HasField("nested"))
     self.assertFalse(tested.nested.HasField("urn"))
+
+  def testUnionCast(self):
+    """Check union structs handling."""
+    # An empty protobuf.
+    tested_non_union = TestStruct()
+
+    # Raises if union-casting is attemted on non-union proto.
+    self.assertRaises(AttributeError, tested_non_union.UnionCast)
+
+    # A proto with a semantic union_field. In this particular proto the chosen
+    # union variant is called struct_flavor, but it's arbitrary, we also use
+    # eg rule_type reffering to the chosen union variant elsewhere. This is
+    # determined by the value of union_field.
+    tested_union = UnionTest()
+
+    # Returns the default value of the default flavor if both struct_flavor and
+    # the flavored field are not set.
+    self.assertEqual(tested_union.UnionCast(), 5)
+
+    tested_union.struct_flavor = "FIRST"
+    # Returns the default value of the selected flavor if it's not been changed.
+    self.assertEqual(tested_union.UnionCast(), 1.1)
+
+    tested_union.struct_flavor = "SECOND"
+    # Same as above.
+    self.assertEqual(tested_union.UnionCast(), "string")
+
+    tested_union.struct_flavor = "THIRD"
+    # Once again.
+    self.assertEqual(tested_union.UnionCast(), 5)
+
+    tested_union.third = 1337
+    # Returns the set flavor value.
+    self.assertEqual(tested_union.UnionCast(), 1337)
+
+    tested_union.first = 1.61803399
+    # Raises if there is a flavored field set that doesn't match struct_flavor.
+    self.assertRaises(ValueError, tested_union.UnionCast)
 
 
 def main(argv):

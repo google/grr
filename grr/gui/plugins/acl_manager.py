@@ -32,10 +32,11 @@ class UnauthorizedRenderer(renderers.TemplateRenderer):
       message = str(exception)
 
     response = super(UnauthorizedRenderer, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "UnauthorizedRenderer.Layout",
-                               subject=subject,
-                               message=message)
+    return self.CallJavascript(
+        response,
+        "UnauthorizedRenderer.Layout",
+        subject=subject,
+        message=message)
 
 
 class ACLDialog(renderers.TemplateRenderer):
@@ -103,19 +104,21 @@ Client Access Request created. Please try again once an approval is granted.
     # we should really provide some feedback for the user.
     if approver and reason:
       # Request approval for this client
-      flow.GRRFlow.StartFlow(client_id=client_id,
-                             flow_name="RequestClientApprovalFlow",
-                             reason=reason,
-                             approver=approver,
-                             token=request.token,
-                             email_cc_address=_GetEmailCCAddress(request),
-                             subject_urn=rdf_client.ClientURN(client_id))
+      flow.GRRFlow.StartFlow(
+          client_id=client_id,
+          flow_name="RequestClientApprovalFlow",
+          reason=reason,
+          approver=approver,
+          token=request.token,
+          email_cc_address=_GetEmailCCAddress(request),
+          subject_urn=rdf_client.ClientURN(client_id))
 
     if keepalive:
-      flow.GRRFlow.StartFlow(client_id=client_id,
-                             flow_name="KeepAlive",
-                             duration=3600,
-                             token=request.token)
+      flow.GRRFlow.StartFlow(
+          client_id=client_id,
+          flow_name="KeepAlive",
+          duration=3600,
+          token=request.token)
 
     super(ClientApprovalRequestRenderer, self).Layout(request, response)
 
@@ -135,12 +138,13 @@ Hunt Access Request created. Please try again once an approval is granted.
 
     if approver and reason:
       # Request approval for this hunt
-      flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
-                             reason=reason,
-                             approver=approver,
-                             token=request.token,
-                             email_cc_address=_GetEmailCCAddress(request),
-                             subject_urn=rdfvalue.RDFURN(subject))
+      flow.GRRFlow.StartFlow(
+          flow_name="RequestHuntApprovalFlow",
+          reason=reason,
+          approver=approver,
+          token=request.token,
+          email_cc_address=_GetEmailCCAddress(request),
+          subject_urn=rdfvalue.RDFURN(subject))
     super(HuntApprovalRequestRenderer, self).Layout(request, response)
 
 
@@ -159,12 +163,13 @@ Cron Job Access Request created. Please try again once an approval is granted.
 
     if approver and reason:
       # Request approval for this cron job
-      flow.GRRFlow.StartFlow(flow_name="RequestCronJobApprovalFlow",
-                             reason=reason,
-                             approver=approver,
-                             token=request.token,
-                             email_cc_address=_GetEmailCCAddress(request),
-                             subject_urn=rdfvalue.RDFURN(subject))
+      flow.GRRFlow.StartFlow(
+          flow_name="RequestCronJobApprovalFlow",
+          reason=reason,
+          approver=approver,
+          token=request.token,
+          email_cc_address=_GetEmailCCAddress(request),
+          subject_urn=rdfvalue.RDFURN(subject))
     super(CronJobApprovalRequestRenderer, self).Layout(request, response)
 
 
@@ -181,8 +186,7 @@ class ClientApprovalDetailsRenderer(fileview.AFF4Stats):
     urn = rdf_client.ClientURN(client_id)
 
     return super(ClientApprovalDetailsRenderer, self).Layout(
-        request, response, client_id=client_id,
-        aff4_path=urn)
+        request, response, client_id=client_id, aff4_path=urn)
 
 
 class HuntApprovalDetailsRenderer(hunt_view.HuntOverviewRenderer):
@@ -247,10 +251,11 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
     if self.acl is None and source != "hash":
       # NOTE: we have to pass id explicitly because super().Layout() wasn't
       # called yet, and therefore self.id is None.
-      return self.CallJavascript(response,
-                                 "GrantAccess.RefreshFromHash",
-                                 renderer=self.__class__.__name__,
-                                 id=request.REQ.get("id", hash(self)))
+      return self.CallJavascript(
+          response,
+          "GrantAccess.RefreshFromHash",
+          renderer=self.__class__.__name__,
+          id=request.REQ.get("id", hash(self)))
 
     # TODO(user): This makes assumptions about the approval URL.
     approval_urn = rdfvalue.RDFURN(self.acl or "/")
@@ -275,10 +280,8 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
       raise access_control.UnauthorizedAccess(
           "Approval object is not well formed.")
 
-    approval_request = aff4.FACTORY.Open(approval_urn,
-                                         mode="r",
-                                         age=aff4.ALL_TIMES,
-                                         token=request.token)
+    approval_request = aff4.FACTORY.Open(
+        approval_urn, mode="r", age=aff4.ALL_TIMES, token=request.token)
     self.user = username
     self.reason = approval_request.Get(approval_request.Schema.REASON)
 
@@ -293,20 +296,20 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
       pass
 
     response = renderers.TemplateRenderer.Layout(self, request, response)
-    return self.CallJavascript(response,
-                               "GrantAccess.Layout",
-                               renderer=self.__class__.__name__,
-                               acl=self.acl,
-                               details_renderer=self.details_renderer)
+    return self.CallJavascript(
+        response,
+        "GrantAccess.Layout",
+        renderer=self.__class__.__name__,
+        acl=self.acl,
+        details_renderer=self.details_renderer)
 
   def RenderAjax(self, request, response):
     """Run the flow for granting access."""
     approval_urn = rdfvalue.RDFURN(request.REQ.get("acl", "/"))
     _, namespace, _ = approval_urn.Split(3)
 
-    approval = aff4.FACTORY.Open(approval_urn,
-                                 aff4_type=aff4_security.Approval,
-                                 token=request.token)
+    approval = aff4.FACTORY.Open(
+        approval_urn, aff4_type=aff4_security.Approval, token=request.token)
     reason = approval.Get(approval.Schema.REASON)
 
     if namespace == "hunts":
@@ -318,11 +321,12 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
         raise access_control.UnauthorizedAccess(
             "Approval object is not well formed.")
 
-      flow.GRRFlow.StartFlow(flow_name="GrantHuntApprovalFlow",
-                             subject_urn=self.subject,
-                             reason=reason,
-                             delegate=self.user,
-                             token=request.token)
+      flow.GRRFlow.StartFlow(
+          flow_name="GrantHuntApprovalFlow",
+          subject_urn=self.subject,
+          reason=reason,
+          delegate=self.user,
+          token=request.token)
     elif namespace == "cron":
       try:
         _, _, cron_job_name, user, _ = approval_urn.Split()
@@ -332,11 +336,12 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
         raise access_control.UnauthorizedAccess(
             "Approval object is not well formed.")
 
-      flow.GRRFlow.StartFlow(flow_name="GrantCronJobApprovalFlow",
-                             subject_urn=self.subject,
-                             reason=reason,
-                             delegate=self.user,
-                             token=request.token)
+      flow.GRRFlow.StartFlow(
+          flow_name="GrantCronJobApprovalFlow",
+          subject_urn=self.subject,
+          reason=reason,
+          delegate=self.user,
+          token=request.token)
     elif aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(namespace):
       try:
         _, client_id, user, _ = approval_urn.Split()
@@ -346,20 +351,19 @@ You have granted access for {{this.subject|escape}} to {{this.user|escape}}
         raise access_control.UnauthorizedAccess(
             "Approval object is not well formed.")
 
-      flow.GRRFlow.StartFlow(client_id=client_id,
-                             flow_name="GrantClientApprovalFlow",
-                             reason=reason,
-                             delegate=self.user,
-                             subject_urn=rdf_client.ClientURN(self.subject),
-                             token=request.token)
+      flow.GRRFlow.StartFlow(
+          client_id=client_id,
+          flow_name="GrantClientApprovalFlow",
+          reason=reason,
+          delegate=self.user,
+          subject_urn=rdf_client.ClientURN(self.subject),
+          token=request.token)
     else:
       raise access_control.UnauthorizedAccess(
           "Approval object is not well formed.")
 
-    return renderers.TemplateRenderer.Layout(self,
-                                             request,
-                                             response,
-                                             apply_template=self.ajax_template)
+    return renderers.TemplateRenderer.Layout(
+        self, request, response, apply_template=self.ajax_template)
 
 
 class CheckAccess(renderers.TemplateRenderer):
@@ -439,8 +443,8 @@ Authorization request ({{this.reason|escape}}) failed:
   def CheckObjectAccess(self, object_urn, token):
     """Check if the user has access to the specified hunt."""
     try:
-      approved_token = aff4_security.Approval.GetApprovalForObject(object_urn,
-                                                                   token=token)
+      approved_token = aff4_security.Approval.GetApprovalForObject(
+          object_urn, token=token)
     except access_control.UnauthorizedAccess as e:
       self.error = e
       approved_token = None
@@ -469,16 +473,16 @@ Authorization request ({{this.reason|escape}}) failed:
     subject_urn = rdfvalue.RDFURN(self.subject)
     namespace, _ = subject_urn.Split(2)
     if self.CheckObjectAccess(subject_urn, token):
-      return self.CallJavascript(response,
-                                 "CheckAccess.AccessOk",
-                                 reason=self.reason,
-                                 silent=self.silent)
+      return self.CallJavascript(
+          response,
+          "CheckAccess.AccessOk",
+          reason=self.reason,
+          silent=self.silent)
 
     self.cc_address = config_lib.CONFIG["Email.approval_optional_cc_address"]
 
     recent_reasons_list = api_user.ApiListUserClientApprovalsHandler().Handle(
-        api_user.ApiListUserClientApprovalsArgs(count=5),
-        token=request.token)
+        api_user.ApiListUserClientApprovalsArgs(count=5), token=request.token)
     self.recent_reasons = [x.reason for x in recent_reasons_list.items]
 
     if namespace == "hunts":

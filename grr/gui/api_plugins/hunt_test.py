@@ -47,8 +47,8 @@ class ApiListHuntsHandlerTest(test_lib.GRRBaseTest,
     for i in range(10):
       self.CreateHunt(description="hunt_%d" % i)
 
-    result = self.handler.Handle(hunt_plugin.ApiListHuntsArgs(),
-                                 token=self.token)
+    result = self.handler.Handle(
+        hunt_plugin.ApiListHuntsArgs(), token=self.token)
     descriptions = set(r.description for r in result.items)
 
     self.assertEqual(len(descriptions), 10)
@@ -60,8 +60,8 @@ class ApiListHuntsHandlerTest(test_lib.GRRBaseTest,
       with test_lib.FakeTime(i * 1000):
         self.CreateHunt(description="hunt_%d" % i)
 
-    result = self.handler.Handle(hunt_plugin.ApiListHuntsArgs(),
-                                 token=self.token)
+    result = self.handler.Handle(
+        hunt_plugin.ApiListHuntsArgs(), token=self.token)
     create_times = [r.created.AsMicroSecondsFromEpoch() for r in result.items]
 
     self.assertEqual(len(create_times), 10)
@@ -74,8 +74,8 @@ class ApiListHuntsHandlerTest(test_lib.GRRBaseTest,
         self.CreateHunt(description="hunt_%d" % i)
 
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntsArgs(offset=2, count=2),
-        token=self.token)
+        hunt_plugin.ApiListHuntsArgs(
+            offset=2, count=2), token=self.token)
     create_times = [r.created.AsMicroSecondsFromEpoch() for r in result.items]
 
     self.assertEqual(len(create_times), 2)
@@ -89,8 +89,7 @@ class ApiListHuntsHandlerTest(test_lib.GRRBaseTest,
 
     with test_lib.FakeTime(10 * 60 + 1):
       result = self.handler.Handle(
-          hunt_plugin.ApiListHuntsArgs(active_within="2m"),
-          token=self.token)
+          hunt_plugin.ApiListHuntsArgs(active_within="2m"), token=self.token)
 
     create_times = [r.created for r in result.items]
 
@@ -99,41 +98,45 @@ class ApiListHuntsHandlerTest(test_lib.GRRBaseTest,
     self.assertEqual(create_times[1], 9 * 60 * 1000000)
 
   def testRaisesIfCreatedByFilterUsedWithoutActiveWithinFilter(self):
-    self.assertRaises(ValueError,
-                      self.handler.Handle,
-                      hunt_plugin.ApiListHuntsArgs(created_by="user-bar"),
-                      token=self.token)
+    self.assertRaises(
+        ValueError,
+        self.handler.Handle,
+        hunt_plugin.ApiListHuntsArgs(created_by="user-bar"),
+        token=self.token)
 
   def testFiltersHuntsByCreator(self):
     for i in range(5):
-      self.CreateHunt(description="foo_hunt_%d" % i,
-                      token=access_control.ACLToken(username="user-foo"))
+      self.CreateHunt(
+          description="foo_hunt_%d" % i,
+          token=access_control.ACLToken(username="user-foo"))
 
     for i in range(3):
-      self.CreateHunt(description="bar_hunt_%d" % i,
-                      token=access_control.ACLToken(username="user-bar"))
+      self.CreateHunt(
+          description="bar_hunt_%d" % i,
+          token=access_control.ACLToken(username="user-bar"))
 
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntsArgs(created_by="user-foo",
-                                     active_within="1d"),
+        hunt_plugin.ApiListHuntsArgs(
+            created_by="user-foo", active_within="1d"),
         token=self.token)
     self.assertEqual(len(result.items), 5)
     for item in result.items:
       self.assertEqual(item.creator, "user-foo")
 
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntsArgs(created_by="user-bar",
-                                     active_within="1d"),
+        hunt_plugin.ApiListHuntsArgs(
+            created_by="user-bar", active_within="1d"),
         token=self.token)
     self.assertEqual(len(result.items), 3)
     for item in result.items:
       self.assertEqual(item.creator, "user-bar")
 
   def testRaisesIfDescriptionContainsFilterUsedWithoutActiveWithinFilter(self):
-    self.assertRaises(ValueError,
-                      self.handler.Handle,
-                      hunt_plugin.ApiListHuntsArgs(description_contains="foo"),
-                      token=self.token)
+    self.assertRaises(
+        ValueError,
+        self.handler.Handle,
+        hunt_plugin.ApiListHuntsArgs(description_contains="foo"),
+        token=self.token)
 
   def testFiltersHuntsByDescriptionContainsMatch(self):
     for i in range(5):
@@ -143,16 +146,16 @@ class ApiListHuntsHandlerTest(test_lib.GRRBaseTest,
       self.CreateHunt(description="bar_hunt_%d")
 
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntsArgs(description_contains="foo",
-                                     active_within="1d"),
+        hunt_plugin.ApiListHuntsArgs(
+            description_contains="foo", active_within="1d"),
         token=self.token)
     self.assertEqual(len(result.items), 5)
     for item in result.items:
       self.assertTrue("foo" in item.description)
 
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntsArgs(description_contains="bar",
-                                     active_within="1d"),
+        hunt_plugin.ApiListHuntsArgs(
+            description_contains="bar", active_within="1d"),
         token=self.token)
     self.assertEqual(len(result.items), 3)
     for item in result.items:
@@ -166,27 +169,24 @@ class ApiListHuntsHandlerTest(test_lib.GRRBaseTest,
       self.CreateHunt(description="bar_hunt_%d" % i)
 
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntsArgs(description_contains="bar",
-                                     active_within="1d",
-                                     offset=1),
+        hunt_plugin.ApiListHuntsArgs(
+            description_contains="bar", active_within="1d", offset=1),
         token=self.token)
     self.assertEqual(len(result.items), 2)
     for item in result.items:
       self.assertTrue("bar" in item.description)
 
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntsArgs(description_contains="bar",
-                                     active_within="1d",
-                                     offset=2),
+        hunt_plugin.ApiListHuntsArgs(
+            description_contains="bar", active_within="1d", offset=2),
         token=self.token)
     self.assertEqual(len(result.items), 1)
     for item in result.items:
       self.assertTrue("bar" in item.description)
 
     result = self.handler.Handle(
-        hunt_plugin.ApiListHuntsArgs(description_contains="bar",
-                                     active_within="1d",
-                                     offset=3),
+        hunt_plugin.ApiListHuntsArgs(
+            description_contains="bar", active_within="1d", offset=3),
         token=self.token)
     self.assertEqual(len(result.items), 0)
 
@@ -221,9 +221,10 @@ class ApiListHuntResultsRegressionTest(
     hunt_urn = rdfvalue.RDFURN("aff4:/hunts/H:123456")
     results_urn = hunt_urn.Add("Results")
 
-    with aff4.FACTORY.Create(results_urn,
-                             aff4_type=hunt_results.HuntResultCollection,
-                             token=self.token) as results:
+    with aff4.FACTORY.Create(
+        results_urn,
+        aff4_type=hunt_results.HuntResultCollection,
+        token=self.token) as results:
 
       result = rdf_flows.GrrMessage(
           payload=rdfvalue.RDFString("blah1"),
@@ -255,9 +256,10 @@ class ApiGetHuntHandlerRegressionTest(api_test_lib.ApiCallHandlerRegressionTest,
         hunt_stats.user_cpu_stats.sum = 5000
         hunt_stats.network_bytes_sent_stats.sum = 1000000
 
-    self.Check("GET",
-               "/api/hunts/" + hunt_urn.Basename(),
-               replace={hunt_urn.Basename(): "H:123456"})
+    self.Check(
+        "GET",
+        "/api/hunts/" + hunt_urn.Basename(),
+        replace={hunt_urn.Basename(): "H:123456"})
 
 
 class ApiListHuntLogsHandlerRegressionTest(
@@ -276,15 +278,17 @@ class ApiListHuntLogsHandlerRegressionTest(
         with test_lib.FakeTime(55):
           hunt_obj.Log("Sample message: bar.")
 
-    self.Check("GET",
-               "/api/hunts/%s/log" % hunt_obj.urn.Basename(),
-               replace={hunt_obj.urn.Basename(): "H:123456"})
-    self.Check("GET",
-               "/api/hunts/%s/log?count=1" % hunt_obj.urn.Basename(),
-               replace={hunt_obj.urn.Basename(): "H:123456"})
-    self.Check("GET",
-               ("/api/hunts/%s/log?offset=1&count=1" % hunt_obj.urn.Basename()),
-               replace={hunt_obj.urn.Basename(): "H:123456"})
+    self.Check(
+        "GET",
+        "/api/hunts/%s/log" % hunt_obj.urn.Basename(),
+        replace={hunt_obj.urn.Basename(): "H:123456"})
+    self.Check(
+        "GET",
+        "/api/hunts/%s/log?count=1" % hunt_obj.urn.Basename(),
+        replace={hunt_obj.urn.Basename(): "H:123456"})
+    self.Check(
+        "GET", ("/api/hunts/%s/log?offset=1&count=1" % hunt_obj.urn.Basename()),
+        replace={hunt_obj.urn.Basename(): "H:123456"})
 
 
 class ApiListHuntErrorsHandlerRegressionTest(
@@ -306,15 +310,18 @@ class ApiListHuntErrorsHandlerRegressionTest(
               rdf_client.ClientURN("C.1111222233334444"), "Error bar.",
               "<some backtrace>")
 
-    self.Check("GET",
-               "/api/hunts/%s/errors" % hunt_obj.urn.Basename(),
-               replace={hunt_obj.urn.Basename(): "H:123456"})
-    self.Check("GET",
-               "/api/hunts/%s/errors?count=1" % hunt_obj.urn.Basename(),
-               replace={hunt_obj.urn.Basename(): "H:123456"})
-    self.Check("GET", ("/api/hunts/%s/errors?offset=1&count=1" %
-                       hunt_obj.urn.Basename()),
-               replace={hunt_obj.urn.Basename(): "H:123456"})
+    self.Check(
+        "GET",
+        "/api/hunts/%s/errors" % hunt_obj.urn.Basename(),
+        replace={hunt_obj.urn.Basename(): "H:123456"})
+    self.Check(
+        "GET",
+        "/api/hunts/%s/errors?count=1" % hunt_obj.urn.Basename(),
+        replace={hunt_obj.urn.Basename(): "H:123456"})
+    self.Check(
+        "GET",
+        ("/api/hunts/%s/errors?offset=1&count=1" % hunt_obj.urn.Basename()),
+        replace={hunt_obj.urn.Basename(): "H:123456"})
 
 
 class ApiGetHuntFilesArchiveHandlerTest(test_lib.GRRBaseTest,
@@ -344,8 +351,8 @@ class ApiGetHuntFilesArchiveHandlerTest(test_lib.GRRBaseTest,
 
   def testGeneratesZipArchive(self):
     result = self.handler.Handle(
-        hunt_plugin.ApiGetHuntFilesArchiveArgs(hunt_id=self.hunt.urn.Basename(),
-                                               archive_format="ZIP"),
+        hunt_plugin.ApiGetHuntFilesArchiveArgs(
+            hunt_id=self.hunt.urn.Basename(), archive_format="ZIP"),
         token=self.token)
 
     out_fd = StringIO.StringIO()
@@ -365,8 +372,8 @@ class ApiGetHuntFilesArchiveHandlerTest(test_lib.GRRBaseTest,
 
   def testGeneratesTarGzArchive(self):
     result = self.handler.Handle(
-        hunt_plugin.ApiGetHuntFilesArchiveArgs(hunt_id=self.hunt.urn.Basename(),
-                                               archive_format="TAR_GZ"),
+        hunt_plugin.ApiGetHuntFilesArchiveArgs(
+            hunt_id=self.hunt.urn.Basename(), archive_format="TAR_GZ"),
         token=self.token)
 
     with utils.TempDirectory() as temp_dir:
@@ -465,10 +472,11 @@ class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,
     original_results = aff4.FACTORY.Open(self.results_urn, token=self.token)
     original_result = original_results[0]
 
-    with aff4.FACTORY.Create(self.results_urn,
-                             aff4_type=hunt_results.HuntResultCollection,
-                             mode="rw",
-                             token=self.token) as new_results:
+    with aff4.FACTORY.Create(
+        self.results_urn,
+        aff4_type=hunt_results.HuntResultCollection,
+        mode="rw",
+        token=self.token) as new_results:
       for i in range(self.handler.MAX_RECORDS_TO_CHECK):
         wrong_result = rdf_flows.GrrMessage(
             payload=rdfvalue.RDFString("foo/bar"),
@@ -507,15 +515,17 @@ class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,
     original_results = aff4.FACTORY.Open(self.results_urn, token=self.token)
     original_result = original_results[0]
 
-    with aff4.FACTORY.Create(original_result.payload.stat_entry.aff4path,
-                             aff4_type=aff4.AFF4Volume,
-                             token=self.token) as _:
+    with aff4.FACTORY.Create(
+        original_result.payload.stat_entry.aff4path,
+        aff4_type=aff4.AFF4Volume,
+        token=self.token) as _:
       pass
 
-    args = hunt_plugin.ApiGetHuntFileArgs(hunt_id=self.hunt.urn.Basename(),
-                                          client_id=self.client_id,
-                                          vfs_path=self.aff4_file_path,
-                                          timestamp=original_result.age)
+    args = hunt_plugin.ApiGetHuntFileArgs(
+        hunt_id=self.hunt.urn.Basename(),
+        client_id=self.client_id,
+        vfs_path=self.aff4_file_path,
+        timestamp=original_result.age)
 
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
       self.handler.Handle(args, token=self.token)
@@ -524,17 +534,19 @@ class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,
     original_results = aff4.FACTORY.Open(self.results_urn, token=self.token)
     original_result = original_results[0]
 
-    aff4.FACTORY.Delete(original_result.payload.stat_entry.aff4path,
-                        token=self.token)
-    with aff4.FACTORY.Create(original_result.payload.stat_entry.aff4path,
-                             aff4_type=aff4_grr.VFSFile,
-                             token=self.token) as _:
+    aff4.FACTORY.Delete(
+        original_result.payload.stat_entry.aff4path, token=self.token)
+    with aff4.FACTORY.Create(
+        original_result.payload.stat_entry.aff4path,
+        aff4_type=aff4_grr.VFSFile,
+        token=self.token) as _:
       pass
 
-    args = hunt_plugin.ApiGetHuntFileArgs(hunt_id=self.hunt.urn.Basename(),
-                                          client_id=self.client_id,
-                                          vfs_path=self.aff4_file_path,
-                                          timestamp=original_result.age)
+    args = hunt_plugin.ApiGetHuntFileArgs(
+        hunt_id=self.hunt.urn.Basename(),
+        client_id=self.client_id,
+        vfs_path=self.aff4_file_path,
+        timestamp=original_result.age)
 
     with self.assertRaises(hunt_plugin.HuntFileNotFoundError):
       self.handler.Handle(args, token=self.token)
@@ -542,10 +554,11 @@ class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,
   def testReturnsBinaryStreamIfResultFound(self):
     results = aff4.FACTORY.Open(self.results_urn, token=self.token)
 
-    args = hunt_plugin.ApiGetHuntFileArgs(hunt_id=self.hunt.urn.Basename(),
-                                          client_id=self.client_id,
-                                          vfs_path=self.aff4_file_path,
-                                          timestamp=results[0].age)
+    args = hunt_plugin.ApiGetHuntFileArgs(
+        hunt_id=self.hunt.urn.Basename(),
+        client_id=self.client_id,
+        vfs_path=self.aff4_file_path,
+        timestamp=results[0].age)
 
     result = self.handler.Handle(args, token=self.token)
     self.assertTrue(hasattr(result, "GenerateContent"))
@@ -574,21 +587,23 @@ class ApiListHuntCrashesHandlerRegressionTest(
       test_lib.TestHuntHelperWithMultipleMocks(client_mocks, False, self.token)
 
     crashes = aff4.FACTORY.Open(
-        hunt_obj.urn.Add("crashes"),
-        mode="r", token=self.token)
+        hunt_obj.urn.Add("crashes"), mode="r", token=self.token)
     crash = list(crashes)[0]
     session_id = crash.session_id.Basename()
     replace = {hunt_obj.urn.Basename(): "H:123456", session_id: "H:11223344"}
 
-    self.Check("GET",
-               "/api/hunts/%s/crashes" % hunt_obj.urn.Basename(),
-               replace=replace)
-    self.Check("GET",
-               "/api/hunts/%s/crashes?count=1" % hunt_obj.urn.Basename(),
-               replace=replace)
-    self.Check("GET", ("/api/hunts/%s/crashes?offset=1&count=1" %
-                       hunt_obj.urn.Basename()),
-               replace=replace)
+    self.Check(
+        "GET",
+        "/api/hunts/%s/crashes" % hunt_obj.urn.Basename(),
+        replace=replace)
+    self.Check(
+        "GET",
+        "/api/hunts/%s/crashes?count=1" % hunt_obj.urn.Basename(),
+        replace=replace)
+    self.Check(
+        "GET",
+        ("/api/hunts/%s/crashes?offset=1&count=1" % hunt_obj.urn.Basename()),
+        replace=replace)
 
 
 class ApiGetHuntClientCompletionStatsHandlerRegressionTest(
@@ -631,9 +646,10 @@ class ApiGetHuntResultsExportCommandHandlerRegressionTest(
       with self.CreateHunt(description="the hunt") as hunt_obj:
         pass
 
-    self.Check("GET",
-               "/api/hunts/%s/results/export-command" % hunt_obj.urn.Basename(),
-               replace={hunt_obj.urn.Basename(): "H:123456"})
+    self.Check(
+        "GET",
+        "/api/hunts/%s/results/export-command" % hunt_obj.urn.Basename(),
+        replace={hunt_obj.urn.Basename(): "H:123456"})
 
 
 class DummyHuntTestOutputPlugin(output_plugin.OutputPlugin):
@@ -661,14 +677,14 @@ class ApiListHuntOutputPluginsHandlerRegressionTest(
               output_plugin.OutputPluginDescriptor(
                   plugin_name=DummyHuntTestOutputPlugin.__name__,
                   plugin_args=DummyHuntTestOutputPlugin.args_type(
-                      filename_regex="blah!",
-                      fetch_binaries=True))
+                      filename_regex="blah!", fetch_binaries=True))
           ]) as hunt_obj:
         pass
 
-    self.Check("GET",
-               "/api/hunts/%s/output-plugins" % hunt_obj.urn.Basename(),
-               replace={hunt_obj.urn.Basename(): "H:123456"})
+    self.Check(
+        "GET",
+        "/api/hunts/%s/output-plugins" % hunt_obj.urn.Basename(),
+        replace={hunt_obj.urn.Basename(): "H:123456"})
 
 
 class ApiListHuntOutputPluginLogsHandlerTest(
@@ -691,8 +707,8 @@ class ApiListHuntOutputPluginLogsHandlerTest(
     ]
 
   def RunHuntWithOutputPlugins(self, output_plugins):
-    hunt_urn = self.StartHunt(description="the hunt",
-                              output_plugins=output_plugins)
+    hunt_urn = self.StartHunt(
+        description="the hunt", output_plugins=output_plugins)
 
     for client_id in self.client_ids:
       self.AssignTasksToClients(client_ids=[client_id])
@@ -768,8 +784,7 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
               output_plugin.OutputPluginDescriptor(
                   plugin_name=DummyHuntTestOutputPlugin.__name__,
                   plugin_args=DummyHuntTestOutputPlugin.args_type(
-                      filename_regex="blah!",
-                      fetch_binaries=True))
+                      filename_regex="blah!", fetch_binaries=True))
           ])
 
       self.client_ids = self.SetupClients(2)
@@ -779,10 +794,11 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
         with test_lib.FakeTime(100042 + index * 100):
           self.ProcessHuntOutputPlugins()
 
-    self.Check("GET",
-               "/api/hunts/%s/output-plugins/"
-               "DummyHuntTestOutputPlugin_0/logs" % hunt_urn.Basename(),
-               replace={hunt_urn.Basename(): "H:123456"})
+    self.Check(
+        "GET",
+        "/api/hunts/%s/output-plugins/"
+        "DummyHuntTestOutputPlugin_0/logs" % hunt_urn.Basename(),
+        replace={hunt_urn.Basename(): "H:123456"})
 
 
 class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
@@ -812,10 +828,11 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
             if flags.FLAGS.debug:
               pdb.post_mortem()
 
-    self.Check("GET",
-               "/api/hunts/%s/output-plugins/"
-               "FailingDummyHuntOutputPlugin_0/errors" % hunt_urn.Basename(),
-               replace={hunt_urn.Basename(): "H:123456"})
+    self.Check(
+        "GET",
+        "/api/hunts/%s/output-plugins/"
+        "FailingDummyHuntOutputPlugin_0/errors" % hunt_urn.Basename(),
+        replace={hunt_urn.Basename(): "H:123456"})
 
 
 class ApiGetHuntStatsHandlerRegressionTest(
@@ -840,9 +857,8 @@ class ApiGetHuntStatsHandlerRegressionTest(
         session_id = performance.session_id.Basename()
         replace[session_id] = "<replaced session value>"
 
-    self.Check("GET",
-               "/api/hunts/%s/stats" % hunt_urn.Basename(),
-               replace=replace)
+    self.Check(
+        "GET", "/api/hunts/%s/stats" % hunt_urn.Basename(), replace=replace)
 
 
 class ApiListHuntClientsHandlerRegressionTest(
@@ -869,15 +885,18 @@ class ApiListHuntClientsHandlerRegressionTest(
     for flow_urn in all_flows:
       replace[flow_urn.Basename()] = "W:123456"
 
-    self.Check("GET",
-               "/api/hunts/%s/clients/started" % hunt_urn.Basename(),
-               replace=replace)
-    self.Check("GET",
-               "/api/hunts/%s/clients/outstanding" % hunt_urn.Basename(),
-               replace=replace)
-    self.Check("GET",
-               "/api/hunts/%s/clients/completed" % hunt_urn.Basename(),
-               replace=replace)
+    self.Check(
+        "GET",
+        "/api/hunts/%s/clients/started" % hunt_urn.Basename(),
+        replace=replace)
+    self.Check(
+        "GET",
+        "/api/hunts/%s/clients/outstanding" % hunt_urn.Basename(),
+        replace=replace)
+    self.Check(
+        "GET",
+        "/api/hunts/%s/clients/completed" % hunt_urn.Basename(),
+        replace=replace)
 
 
 class ApiGetHuntContextHandlerTest(test_lib.GRRBaseTest,

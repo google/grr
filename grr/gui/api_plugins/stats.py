@@ -28,10 +28,8 @@ class ApiListStatsStoreMetricsMetadataHandler(
   args_type = ApiListStatsStoreMetricsMetadataArgs
 
   def Render(self, args, token=None):
-    stats_store = aff4.FACTORY.Create(None,
-                                      aff4_type=stats_store_lib.StatsStore,
-                                      mode="w",
-                                      token=token)
+    stats_store = aff4.FACTORY.Create(
+        None, aff4_type=stats_store_lib.StatsStore, mode="w", token=token)
 
     process_ids = [pid for pid in stats_store.ListUsedProcessIds()
                    if pid.startswith(args.component.name.lower())]
@@ -82,10 +80,11 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
     if end_time <= start_time:
       raise ValueError("End time can't be less than start time.")
 
-    result = dict(start=base_start_time.AsMicroSecondsFromEpoch(),
-                  end=end_time.AsMicroSecondsFromEpoch(),
-                  metric_name=args.metric_name,
-                  timeseries=[])
+    result = dict(
+        start=base_start_time.AsMicroSecondsFromEpoch(),
+        end=end_time.AsMicroSecondsFromEpoch(),
+        metric_name=args.metric_name,
+        timeseries=[])
 
     data = stats_store.MultiReadStats(
         process_ids=filtered_ids,
@@ -127,10 +126,11 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
         raise ValueError("Unexpected request.distribution_handling_mode "
                          "value: %s." % args.distribution_handling_mode)
       query.MakeIncreasing()
-      query.Normalize(sampling_duration,
-                      start_time,
-                      end_time,
-                      mode=timeseries.NORMALIZE_MODE_COUNTER)
+      query.Normalize(
+          sampling_duration,
+          start_time,
+          end_time,
+          mode=timeseries.NORMALIZE_MODE_COUNTER)
 
     elif metric_metadata.metric_type == metric_metadata.MetricType.GAUGE:
       query.TakeValue().Normalize(sampling_duration, start_time, end_time)

@@ -225,10 +225,11 @@ class RDFURNRenderer(RDFValueRenderer):
   def Layout(self, request, response):
     client, rest = self.proxy.Split(2)
     if aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(client):
-      h = dict(main="VirtualFileSystemView",
-               c=client,
-               tab="AFF4Stats",
-               t=renderers.DeriveIDFromPath(rest))
+      h = dict(
+          main="VirtualFileSystemView",
+          c=client,
+          tab="AFF4Stats",
+          t=renderers.DeriveIDFromPath(rest))
       self.href = urllib.urlencode(sorted(h.items()))
 
     super(RDFURNRenderer, self).Layout(request, response)
@@ -311,8 +312,8 @@ class RDFProtoRenderer(RDFValueRenderer):
           # If the translation fails for whatever reason, just output the string
           # value literally (after escaping)
         except KeyError:
-          value = self.FormatFromTemplate(self.translator_error_template,
-                                          value=value)
+          value = self.FormatFromTemplate(
+              self.translator_error_template, value=value)
         except Exception as e:  # pylint: disable=broad-except
           logging.warn("Failed to render {0}. Err: {1}".format(name, e))
           value = ""
@@ -367,9 +368,9 @@ class RDFValueArrayRenderer(RDFValueRenderer):
       # We need to create a cache if this is too long.
       if len(self.proxy) > length:
         # Make a cache
-        with aff4.FACTORY.Create(None,
-                                 aff4_standard.TempMemoryFile,
-                                 token=request.token) as self.cache:
+        with aff4.FACTORY.Create(
+            None, aff4_standard.TempMemoryFile,
+            token=request.token) as self.cache:
           data = rdf_protodict.RDFValueArray()
           data.Extend(self.proxy)
           self.cache.Write(data.SerializeToString())
@@ -396,11 +397,12 @@ class RDFValueArrayRenderer(RDFValueRenderer):
 
     response = super(RDFValueArrayRenderer, self).Layout(request, response)
     if self.next_start:
-      response = self.CallJavascript(response,
-                                     "RDFValueArrayRenderer.Layout",
-                                     next_start=self.next_start,
-                                     cache_urn=self.cache.urn,
-                                     array_length=self.length)
+      response = self.CallJavascript(
+          response,
+          "RDFValueArrayRenderer.Layout",
+          next_start=self.next_start,
+          cache_urn=self.cache.urn,
+          array_length=self.length)
     return response
 
 
@@ -453,8 +455,8 @@ class DictRenderer(RDFValueRenderer):
       # If the translation fails for whatever reason, just output the string
       # value literally (after escaping)
       except TypeError:
-        rendered_value = self.FormatFromTemplate(self.translator_error_template,
-                                                 value=value)
+        rendered_value = self.FormatFromTemplate(
+            self.translator_error_template, value=value)
       except Exception as e:  # pylint: disable=broad-except
         logging.warn("Failed to render {0}. Err: {1}".format(type(value), e))
 
@@ -500,9 +502,8 @@ class RDFValueCollectionRenderer(renderers.TableRenderer):
     """Builds a table of rdfvalues."""
     try:
       aff4_path = self.state.get("aff4_path") or request.REQ.get("aff4_path")
-      collection = aff4.FACTORY.Open(aff4_path,
-                                     aff4_type=collects.RDFValueCollection,
-                                     token=request.token)
+      collection = aff4.FACTORY.Open(
+          aff4_path, aff4_type=collects.RDFValueCollection, token=request.token)
     except IOError:
       return
 
@@ -519,10 +520,11 @@ class RDFValueCollectionRenderer(renderers.TableRenderer):
   def Layout(self, request, response, aff4_path=None):
     if aff4_path:
       self.state["aff4_path"] = str(aff4_path)
-      collection = aff4.FACTORY.Create(aff4_path,
-                                       mode="r",
-                                       aff4_type=collects.RDFValueCollection,
-                                       token=request.token)
+      collection = aff4.FACTORY.Create(
+          aff4_path,
+          mode="r",
+          aff4_type=collects.RDFValueCollection,
+          token=request.token)
 
       try:
         self.size = len(collection)
@@ -562,9 +564,8 @@ class AES128KeyFormRenderer(forms.StringTypeFormRenderer):
   def Layout(self, request, response):
     self.default = str(self.descriptor.type().Generate())
     response = super(AES128KeyFormRenderer, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "AES128KeyFormRenderer.Layout",
-                               prefix=self.prefix)
+    return self.CallJavascript(
+        response, "AES128KeyFormRenderer.Layout", prefix=self.prefix)
 
 
 class ClientURNRenderer(RDFValueRenderer):
@@ -608,9 +609,8 @@ class ClientURNRenderer(RDFValueRenderer):
     h = dict(main="HostInformation", c=self.proxy)
     self.hash = urllib.urlencode(sorted(h.items()))
     response = super(ClientURNRenderer, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "Layout",
-                               urn=utils.SmartStr(self.proxy))
+    return self.CallJavascript(
+        response, "Layout", urn=utils.SmartStr(self.proxy))
 
   def RenderAjax(self, request, response):
     self.urn = request.REQ.get("urn")

@@ -25,15 +25,12 @@ class CronJobsTestMixin(object):
                     description="",
                     disabled=False,
                     token=None):
-    cron_args = cronjobs.CreateCronJobFlowArgs(periodicity=periodicity,
-                                               lifetime=lifetime,
-                                               description=description)
+    cron_args = cronjobs.CreateCronJobFlowArgs(
+        periodicity=periodicity, lifetime=lifetime, description=description)
     cron_args.flow_runner_args.flow_name = flow_name
 
-    return cronjobs.CRON_MANAGER.ScheduleFlow(cron_args,
-                                              job_name=flow_name,
-                                              disabled=disabled,
-                                              token=token)
+    return cronjobs.CRON_MANAGER.ScheduleFlow(
+        cron_args, job_name=flow_name, disabled=disabled, token=token)
 
 
 class ApiListCronJobsHandlerRegressionTest(
@@ -45,20 +42,22 @@ class ApiListCronJobsHandlerRegressionTest(
   def Run(self):
     # Add one "normal" cron job...
     with test_lib.FakeTime(42):
-      self.CreateCronJob(flow_name=cron_system.GRRVersionBreakDown.__name__,
-                         periodicity="1d",
-                         lifetime="2h",
-                         description="foo",
-                         disabled=True,
-                         token=self.token)
+      self.CreateCronJob(
+          flow_name=cron_system.GRRVersionBreakDown.__name__,
+          periodicity="1d",
+          lifetime="2h",
+          description="foo",
+          disabled=True,
+          token=self.token)
 
     # ...one disabled cron job,
     with test_lib.FakeTime(84):
-      self.CreateCronJob(flow_name=cron_system.OSBreakDown.__name__,
-                         periodicity="7d",
-                         lifetime="1d",
-                         description="bar",
-                         token=self.token)
+      self.CreateCronJob(
+          flow_name=cron_system.OSBreakDown.__name__,
+          periodicity="7d",
+          lifetime="1d",
+          description="bar",
+          token=self.token)
 
     # ...and one failing cron job.
     with test_lib.FakeTime(126):
@@ -72,8 +71,9 @@ class ApiListCronJobsHandlerRegressionTest(
         with test_lib.FakeTime(200 + i * 10):
           with aff4.FACTORY.OpenWithLock(cron_urn, token=self.token) as job:
             job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime().Now()))
-            job.Set(job.Schema.LAST_RUN_STATUS(
-                status=rdf_cronjobs.CronJobRunStatus.Status.ERROR))
+            job.Set(
+                job.Schema.LAST_RUN_STATUS(
+                    status=rdf_cronjobs.CronJobRunStatus.Status.ERROR))
 
     self.Check("GET", "/api/cron-jobs")
 
@@ -90,35 +90,36 @@ class ApiCreateCronJobHandlerRegressionTest(
       jobs = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))
       return {jobs[0].Basename(): "CreateAndRunGeneicHuntFlow_1234"}
 
-    self.Check("POST",
-               "/api/cron-jobs",
-               {"flow_name": "CreateAndRunGenericHuntFlow",
-                "periodicity": 604800,
-                "lifetime": 3600,
-                "flow_args": {
-                    "hunt_args": {
-                        "flow_runner_args": {
-                            "flow_name": "FileFinder"
-                        },
-                        "flow_args": {
-                            "paths": ["c:\\windows\\system32\\notepad.*"]
-                        },
-                    },
-                    "hunt_runner_args": {
-                        "client_rule_set": {
-                            "rules": [
-                                {
-                                    "os": {
-                                        "os_windows": True
-                                    }
-                                }
-                            ]
-                        },
-                        "description": "Foobar! (cron)"
-                    }
-                },
-                "description": "Foobar!"},
-               replace=ReplaceCronJobUrn)
+    self.Check(
+        "POST",
+        "/api/cron-jobs",
+        {"flow_name": "CreateAndRunGenericHuntFlow",
+         "periodicity": 604800,
+         "lifetime": 3600,
+         "flow_args": {
+             "hunt_args": {
+                 "flow_runner_args": {
+                     "flow_name": "FileFinder"
+                 },
+                 "flow_args": {
+                     "paths": ["c:\\windows\\system32\\notepad.*"]
+                 },
+             },
+             "hunt_runner_args": {
+                 "client_rule_set": {
+                     "rules": [
+                         {
+                             "os": {
+                                 "os_windows": True
+                             }
+                         }
+                     ]
+                 },
+                 "description": "Foobar! (cron)"
+             }
+         },
+         "description": "Foobar!"},
+        replace=ReplaceCronJobUrn)
 
 
 class ApiDeleteCronJobHandlerTest(test_lib.GRRBaseTest, CronJobsTestMixin):
@@ -129,8 +130,7 @@ class ApiDeleteCronJobHandlerTest(test_lib.GRRBaseTest, CronJobsTestMixin):
     self.handler = cron_plugin.ApiDeleteCronJobHandler()
 
     self.cron_job_urn = self.CreateCronJob(
-        flow_name=cron_system.OSBreakDown.__name__,
-        token=self.token)
+        flow_name=cron_system.OSBreakDown.__name__, token=self.token)
 
   def testDeletesCronFromCollection(self):
     jobs = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))

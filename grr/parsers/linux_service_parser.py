@@ -309,10 +309,10 @@ class LinuxSysVInitParser(parsers.FileParser):
       runscript = self.runscript_re.match(os.path.basename(path))
       if runlevel and runscript:
         svc = runscript.groupdict()
-        service = services.setdefault(svc["name"],
-                                      rdf_client.LinuxServiceInformation(
-                                          name=svc["name"],
-                                          start_mode="INIT"))
+        service = services.setdefault(
+            svc["name"],
+            rdf_client.LinuxServiceInformation(
+                name=svc["name"], start_mode="INIT"))
         runlvl = GetRunlevelsNonLSB(runlevel.group(1))
         if svc["action"] == "S" and runlvl:
           service.start_on.append(runlvl.pop())

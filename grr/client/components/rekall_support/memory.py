@@ -29,9 +29,8 @@ class MemoryVFS(vfs.VFSHandler):
                pathspec=None,
                progress_callback=None,
                full_pathspec=None):
-    super(MemoryVFS, self).__init__(None,
-                                    progress_callback=progress_callback,
-                                    full_pathspec=full_pathspec)
+    super(MemoryVFS, self).__init__(
+        None, progress_callback=progress_callback, full_pathspec=full_pathspec)
     if base_fd is not None:
       raise IOError("Memory handler can not be stacked on another handler.")
 
@@ -64,8 +63,7 @@ class MemoryVFS(vfs.VFSHandler):
 
   def GetMemoryInformation(self):
     result = rdf_rekall_types.MemoryInformation(
-        cr3=self.session.GetParameter("dtb", 0),
-        device=self.pathspec)
+        cr3=self.session.GetParameter("dtb", 0), device=self.pathspec)
 
     for run in self.address_space.get_address_ranges():
       result.runs.Append(offset=run.start, length=run.length)

@@ -65,12 +65,13 @@ def UploadSignedConfigBlob(content,
   ver_key = config_lib.CONFIG.Get("Client.executable_signing_public_key",
                                   context=client_context)
 
-  urn = collects.GRRSignedBlob.NewFromContent(content,
-                                              aff4_path,
-                                              chunk_size=limit,
-                                              token=token,
-                                              private_key=sig_key,
-                                              public_key=ver_key)
+  urn = collects.GRRSignedBlob.NewFromContent(
+      content,
+      aff4_path,
+      chunk_size=limit,
+      token=token,
+      private_key=sig_key,
+      public_key=ver_key)
 
   logging.info("Uploaded to %s", urn)
 
@@ -134,9 +135,8 @@ def _SignWindowsComponent(component, output_filename):
     zip_file.extractall(temp_dir)
 
     new_data = StringIO.StringIO()
-    new_zipfile = zipfile.ZipFile(new_data,
-                                  mode="w",
-                                  compression=zipfile.ZIP_DEFLATED)
+    new_zipfile = zipfile.ZipFile(
+        new_data, mode="w", compression=zipfile.ZIP_DEFLATED)
 
     for root, _, files in os.walk(temp_dir):
       for basename in files:
@@ -209,10 +209,8 @@ def SignComponent(component_filename, overwrite=False, token=None):
       "components").Add("%s_%s" %
                         (component.summary.name, component.summary.version))
 
-  component_fd = aff4.FACTORY.Create(component_urn,
-                                     collects.ComponentObject,
-                                     mode="rw",
-                                     token=token)
+  component_fd = aff4.FACTORY.Create(
+      component_urn, collects.ComponentObject, mode="rw", token=token)
 
   component_summary = component_fd.Get(component_fd.Schema.COMPONENT)
   if overwrite or component_summary is None:
@@ -237,14 +235,13 @@ def SignComponent(component_filename, overwrite=False, token=None):
   signed_component.Sign(component.SerializeToString(), sig_key, ver_key)
 
   aff4_urn = config_lib.CONFIG.Get(
-      "Client.component_aff4_stem",
-      context=client_context).Add(component.summary.seed).Add(
-          component.build_system.signature())
+      "Client.component_aff4_stem", context=client_context).Add(
+          component.summary.seed).Add(component.build_system.signature())
 
   print "Storing signed component at %s" % aff4_urn
   with aff4.FACTORY.Create(aff4_urn, aff4.AFF4MemoryStream, token=token) as fd:
-    fd.Write(component_summary.cipher.Encrypt(
-        signed_component.SerializeToString()))
+    fd.Write(
+        component_summary.cipher.Encrypt(signed_component.SerializeToString()))
 
   return component
 
@@ -279,9 +276,8 @@ def ListComponents(token=None):
 
     versions = []
     base_urn = "aff4:/web%s" % desc.url
-    for urn, _, _ in data_store.DB.ScanAttribute(base_urn,
-                                                 "aff4:type",
-                                                 token=token):
+    for urn, _, _ in data_store.DB.ScanAttribute(
+        base_urn, "aff4:type", token=token):
       versions.append(urn.split("/")[-1])
 
     if not versions:

@@ -26,18 +26,20 @@ class YamlConfigTest(test_lib.GRRBaseTest):
     conf.DEFINE_list("Section1.test_list", ["a", "b"], "A test integer.")
     conf.DEFINE_integer("Section1.test", 0, "An integer")
     conf.DEFINE_integer("Section1.test2", 0, "An integer")
-    self.assertRaises(config_lib.MissingConfigDefinitionError,
-                      conf.Initialize,
-                      parser=config_lib.YamlParser,
-                      data="""
+    self.assertRaises(
+        config_lib.MissingConfigDefinitionError,
+        conf.Initialize,
+        parser=config_lib.YamlParser,
+        data="""
                       Section2.test: 2
                       """)
 
     conf.DEFINE_string("Section2.test", "", "A string")
     conf.DEFINE_context("Client Context")
     conf.DEFINE_context("Windows Context")
-    conf.Initialize(parser=config_lib.YamlParser,
-                    data="""
+    conf.Initialize(
+        parser=config_lib.YamlParser,
+        data="""
 
 # Configuration options can be written as long hand, dot separated parameters.
 Section1.test: 2
@@ -87,8 +89,9 @@ Windows Context:
     conf.DEFINE_context("Client Context")
     conf.DEFINE_context("Platform:Windows")
     conf.DEFINE_context("Extra Context")
-    conf.Initialize(parser=config_lib.YamlParser,
-                    data="""
+    conf.Initialize(
+        parser=config_lib.YamlParser,
+        data="""
 
 Section1.test: 2
 
@@ -131,8 +134,9 @@ Extra Context:
     conf.DEFINE_context("Client Context")
     conf.DEFINE_context("Platform:Windows")
     conf.DEFINE_context("Extra Context")
-    conf.Initialize(parser=config_lib.YamlParser,
-                    data="""
+    conf.Initialize(
+        parser=config_lib.YamlParser,
+        data="""
 
 Section1.test: 2
 
@@ -177,8 +181,9 @@ Extra Context:
     conf.DEFINE_integer("Section1.test", 0, "An integer")
     conf.DEFINE_context("Client Context")
     conf.DEFINE_context("Unused Context")
-    conf.Initialize(parser=config_lib.YamlParser,
-                    data="""
+    conf.Initialize(
+        parser=config_lib.YamlParser,
+        data="""
 Client Context:
   Section1.test: 6
 """)
@@ -198,8 +203,9 @@ Client Context:
     conf.DEFINE_string("Section1.parameter2", "", "A test.")
     conf.DEFINE_string("Section1.parameter3", "", "A test.")
 
-    conf.Initialize(parser=config_lib.YamlParser,
-                    data=r"""
+    conf.Initialize(
+        parser=config_lib.YamlParser,
+        data=r"""
 
 Section1.parameter: |
    a\\b\\c\\d
@@ -657,17 +663,19 @@ Section1.int: 3
       # the relative path.
       conf = self._GetNewConf()
       fd = StringIO.StringIO(one)
-      self.assertRaises(config_lib.ConfigFileNotFound,
-                        conf.Initialize,
-                        parser=config_lib.YamlParser,
-                        fd=fd)
+      self.assertRaises(
+          config_lib.ConfigFileNotFound,
+          conf.Initialize,
+          parser=config_lib.YamlParser,
+          fd=fd)
 
       # Using data
       conf = self._GetNewConf()
-      self.assertRaises(config_lib.ConfigFileNotFound,
-                        conf.Initialize,
-                        parser=config_lib.YamlParser,
-                        data=one)
+      self.assertRaises(
+          config_lib.ConfigFileNotFound,
+          conf.Initialize,
+          parser=config_lib.YamlParser,
+          data=one)
 
   def testConfigFileIncludeAbsolutePaths(self):
     one = r"""
@@ -697,10 +705,11 @@ Section1.int: 2
 """
       conf = self._GetNewConf()
       # Can not include a relative path from config without a filename.
-      self.assertRaises(config_lib.ConfigFileNotFound,
-                        conf.Initialize,
-                        parser=config_lib.YamlParser,
-                        data=relative_include)
+      self.assertRaises(
+          config_lib.ConfigFileNotFound,
+          conf.Initialize,
+          parser=config_lib.YamlParser,
+          data=relative_include)
 
       # If we write it to a file it should work though.
       configtwo = os.path.join(temp_dir, "2.yaml")

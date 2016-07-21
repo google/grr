@@ -34,17 +34,19 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
                        plugin_args=None,
                        responses=None,
                        process_responses_separately=False):
-    plugin = bigquery_plugin.BigQueryOutputPlugin(source_urn=self.results_urn,
-                                                  output_base_urn=self.base_urn,
-                                                  args=plugin_args,
-                                                  token=self.token)
+    plugin = bigquery_plugin.BigQueryOutputPlugin(
+        source_urn=self.results_urn,
+        output_base_urn=self.base_urn,
+        args=plugin_args,
+        token=self.token)
 
     plugin.Initialize()
 
     messages = []
     for response in responses:
-      messages.append(rdf_flows.GrrMessage(source=self.client_id,
-                                           payload=response))
+      messages.append(
+          rdf_flows.GrrMessage(
+              source=self.client_id, payload=response))
 
     with test_lib.FakeTime(1445995873):
       with mock.patch.object(bigquery, "GetBigQueryClient") as mock_bigquery:
@@ -59,18 +61,20 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     return [x[0] for x in mock_bigquery.return_value.InsertData.call_args_list]
 
   def CompareSchemaToKnownGood(self, schema):
-    expected_schema_data = json.load(open(os.path.join(config_lib.CONFIG[
-        "Test.data_dir"], "bigquery", "ExportedFile.schema")))
+    expected_schema_data = json.load(
+        open(
+            os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
+                         "ExportedFile.schema")))
 
     # It's easier to just compare the two dicts but even a change to the proto
     # description requires you to fix the json so we just compare field names
     # and types.
     schema_fields = [(x["name"], x["type"]) for x in schema]
-    schema_metadata_fields = [(x[
-        "name"], x["type"]) for x in schema[0]["fields"]]
+    schema_metadata_fields = [(x["name"], x["type"])
+                              for x in schema[0]["fields"]]
     expected_fields = [(x["name"], x["type"]) for x in expected_schema_data]
-    expected_metadata_fields = [(x[
-        "name"], x["type"]) for x in expected_schema_data[0]["fields"]]
+    expected_metadata_fields = [(x["name"], x["type"])
+                                for x in expected_schema_data[0]["fields"]]
     self.assertEqual(schema_fields, expected_fields)
     self.assertEqual(schema_metadata_fields, expected_metadata_fields)
 
@@ -108,8 +112,9 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
         stream)
 
     # Compare to our stored data.
-    expected_fd = open(os.path.join(config_lib.CONFIG[
-        "Test.data_dir"], "bigquery", "ExportedFile.json"))
+    expected_fd = open(
+        os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
+                     "ExportedFile.json"))
 
     # Bigquery expects a newline separarted list of JSON dicts, but this isn't
     # valid JSON so we can't just load the whole thing and compare.
@@ -149,8 +154,9 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     output = self.ProcessResponses(
         plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
         responses=[
-            rdf_client.StatEntry(aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
-                                 pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中")),
+            rdf_client.StatEntry(
+                aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
+                pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中")),
             rdf_client.Process(pid=42)
         ],
         process_responses_separately=True)
@@ -197,8 +203,9 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
       actual_fds.append(gzip.GzipFile(None, "r", 9, stream))
 
     # Compare to our stored data.
-    expected_fd = open(os.path.join(config_lib.CONFIG[
-        "Test.data_dir"], "bigquery", "ExportedFile.json"))
+    expected_fd = open(
+        os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
+                     "ExportedFile.json"))
 
     # Check that the same entries we expect are spread across the two files.
     counter = 0
@@ -212,23 +219,26 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
   def testBigQueryPluginFallbackToAFF4(self):
     plugin_args = bigquery_plugin.BigQueryOutputPluginArgs()
     responses = [
-        rdf_client.StatEntry(aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
-                             pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中")),
+        rdf_client.StatEntry(
+            aff4path=self.client_id.Add("/fs/os/中国新闻网新闻中"),
+            pathspec=rdf_paths.PathSpec(path="/中国新闻网新闻中")),
         rdf_client.Process(pid=42), rdf_client.Process(pid=43),
         rdf_client.SoftwarePackage(name="test.deb")
     ]
 
-    plugin = bigquery_plugin.BigQueryOutputPlugin(source_urn=self.results_urn,
-                                                  output_base_urn=self.base_urn,
-                                                  args=plugin_args,
-                                                  token=self.token)
+    plugin = bigquery_plugin.BigQueryOutputPlugin(
+        source_urn=self.results_urn,
+        output_base_urn=self.base_urn,
+        args=plugin_args,
+        token=self.token)
 
     plugin.Initialize()
 
     messages = []
     for response in responses:
-      messages.append(rdf_flows.GrrMessage(source=self.client_id,
-                                           payload=response))
+      messages.append(
+          rdf_flows.GrrMessage(
+              source=self.client_id, payload=response))
 
     with test_lib.FakeTime(1445995873):
       with mock.patch.object(bigquery, "GetBigQueryClient") as mock_bigquery:

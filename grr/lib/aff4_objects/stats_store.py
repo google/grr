@@ -159,17 +159,15 @@ class StatsStoreProcessData(aff4.AFF4Object):
     if current_metadata.AsDict() != metrics_metadata:
       store_metadata = StatsStoreMetricsMetadata(
           metrics=metrics_metadata.values())
-      self.AddAttribute(self.Schema.METRICS_METADATA,
-                        store_metadata,
-                        age=timestamp)
+      self.AddAttribute(
+          self.Schema.METRICS_METADATA, store_metadata, age=timestamp)
       self.Flush(sync=sync)
 
   def WriteStats(self, timestamp=None, sync=False):
     to_set = {}
     metrics_metadata = stats.STATS.GetAllMetricsMetadata()
-    self.WriteMetadataDescriptors(metrics_metadata,
-                                  timestamp=timestamp,
-                                  sync=sync)
+    self.WriteMetadataDescriptors(
+        metrics_metadata, timestamp=timestamp, sync=sync)
 
     for name, metadata in metrics_metadata.iteritems():
       if metadata.fields_defs:
@@ -197,12 +195,13 @@ class StatsStoreProcessData(aff4.AFF4Object):
         to_set[self.STATS_STORE_PREFIX + name] = [store_value]
 
     # Write actual data
-    data_store.DB.MultiSet(self.urn,
-                           to_set,
-                           replace=False,
-                           token=self.token,
-                           timestamp=timestamp,
-                           sync=sync)
+    data_store.DB.MultiSet(
+        self.urn,
+        to_set,
+        replace=False,
+        token=self.token,
+        timestamp=timestamp,
+        sync=sync)
 
   def DeleteStats(self, timestamp=ALL_TIMESTAMPS, sync=False):
     """Deletes all stats in the given time range."""
@@ -219,12 +218,8 @@ class StatsStoreProcessData(aff4.AFF4Object):
     if timestamp and timestamp != self.ALL_TIMESTAMPS:
       start, end = timestamp
 
-    data_store.DB.DeleteAttributes(self.urn,
-                                   predicates,
-                                   start=start,
-                                   end=end,
-                                   token=self.token,
-                                   sync=sync)
+    data_store.DB.DeleteAttributes(
+        self.urn, predicates, start=start, end=end, token=self.token, sync=sync)
 
 
 class StatsStore(aff4.AFF4Volume):
@@ -284,10 +279,8 @@ class StatsStore(aff4.AFF4Volume):
 
     subjects = [self.DATA_STORE_ROOT.Add(process_id)
                 for process_id in process_ids]
-    subjects_data = aff4.FACTORY.MultiOpen(subjects,
-                                           mode="r",
-                                           token=self.token,
-                                           aff4_type=StatsStoreProcessData)
+    subjects_data = aff4.FACTORY.MultiOpen(
+        subjects, mode="r", token=self.token, aff4_type=StatsStoreProcessData)
 
     results = {}
     for subject_data in subjects_data:
@@ -308,10 +301,11 @@ class StatsStore(aff4.AFF4Volume):
     if not process_id:
       raise ValueError("process_id can't be None")
 
-    results = self.MultiReadStats(process_ids=[process_id],
-                                  metric_name=metric_name,
-                                  timestamp=timestamp,
-                                  limit=limit)
+    results = self.MultiReadStats(
+        process_ids=[process_id],
+        metric_name=metric_name,
+        timestamp=timestamp,
+        limit=limit)
     try:
       return results[process_id]
     except KeyError:
@@ -706,8 +700,8 @@ class StatsStoreWorker(object):
     self.RunAsync().join()
 
   def RunAsync(self):
-    self.running_thread = threading.Thread(name=self.thread_name,
-                                           target=self._RunLoop)
+    self.running_thread = threading.Thread(
+        name=self.thread_name, target=self._RunLoop)
     self.running_thread.daemon = True
     self.running_thread.start()
     return self.running_thread

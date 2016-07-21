@@ -113,10 +113,11 @@ class StartHuntFlow(flow.GRRFlow):
     data_store.DB.security_manager.CheckHuntAccess(self.token.RealUID(),
                                                    self.args.hunt_urn)
 
-    with aff4.FACTORY.Open(self.args.hunt_urn,
-                           aff4_type=implementation.GRRHunt,
-                           mode="rw",
-                           token=self.token) as hunt:
+    with aff4.FACTORY.Open(
+        self.args.hunt_urn,
+        aff4_type=implementation.GRRHunt,
+        mode="rw",
+        token=self.token) as hunt:
 
       hunt.Run()
 
@@ -132,10 +133,11 @@ class DeleteHuntFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    with aff4.FACTORY.Open(self.args.hunt_urn,
-                           aff4_type=implementation.GRRHunt,
-                           mode="rw",
-                           token=self.token) as hunt:
+    with aff4.FACTORY.Open(
+        self.args.hunt_urn,
+        aff4_type=implementation.GRRHunt,
+        mode="rw",
+        token=self.token) as hunt:
       # Check for approval if the hunt was created by somebody else.
       if self.token.username != hunt.creator:
         data_store.DB.security_manager.CheckHuntAccess(self.token.RealUID(),
@@ -166,10 +168,11 @@ class StopHuntFlow(flow.GRRFlow):
     data_store.DB.security_manager.CheckHuntAccess(self.token.RealUID(),
                                                    self.args.hunt_urn)
 
-    with aff4.FACTORY.Open(self.args.hunt_urn,
-                           aff4_type=implementation.GRRHunt,
-                           mode="rw",
-                           token=self.token) as hunt:
+    with aff4.FACTORY.Open(
+        self.args.hunt_urn,
+        aff4_type=implementation.GRRHunt,
+        mode="rw",
+        token=self.token) as hunt:
 
       hunt.Stop()
 
@@ -193,10 +196,11 @@ class ModifyHuntFlow(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Find a hunt, perform a permissions check and modify it."""
-    with aff4.FACTORY.Open(self.args.hunt_urn,
-                           aff4_type=implementation.GRRHunt,
-                           mode="rw",
-                           token=self.token) as hunt:
+    with aff4.FACTORY.Open(
+        self.args.hunt_urn,
+        aff4_type=implementation.GRRHunt,
+        mode="rw",
+        token=self.token) as hunt:
 
       runner = hunt.GetRunner()
       data_store.DB.security_manager.CheckHuntAccess(self.token.RealUID(),
@@ -217,10 +221,11 @@ class ModifyHuntFlow(flow.GRRFlow):
                        (runner.args.client_limit, self.args.client_limit))
 
       description = ", ".join(changes)
-      event = events.AuditEvent(user=self.token.username,
-                                action="HUNT_MODIFIED",
-                                urn=self.args.hunt_urn,
-                                description=description)
+      event = events.AuditEvent(
+          user=self.token.username,
+          action="HUNT_MODIFIED",
+          urn=self.args.hunt_urn,
+          description=description)
       events.Events.PublishEvent("Audit", event, token=self.token)
 
       # Just go ahead and change the hunt now.
@@ -286,14 +291,15 @@ class SampleHunt(implementation.GRRHunt):
 
   @flow.StateHandler()
   def RunClient(self, responses):
-    pathspec = rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.OS,
-                                  path=self.args.filename)
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS, path=self.args.filename)
 
     for client_id in responses:
-      self.CallFlow("GetFile",
-                    pathspec=pathspec,
-                    next_state="StoreResults",
-                    client_id=client_id)
+      self.CallFlow(
+          "GetFile",
+          pathspec=pathspec,
+          next_state="StoreResults",
+          client_id=client_id)
 
   @flow.StateHandler()
   def StoreResults(self, responses):
@@ -411,8 +417,9 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
           self._FillResult(result, plugin_id, plugin_descriptor)
 
           results_by_hunt.setdefault(hunt.urn, []).append(result)
-          stats.STATS.IncrementCounter("hunt_output_plugin_verifications",
-                                       fields=[utils.SmartStr(result.status)])
+          stats.STATS.IncrementCounter(
+              "hunt_output_plugin_verifications",
+              fields=[utils.SmartStr(result.status)])
         continue
 
       verifier = verifier_cls()
@@ -427,15 +434,16 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
           self._FillResult(result, plugin_id, plugin_descriptor)
 
           results_by_hunt.setdefault(hunt.urn, []).append(result)
-          stats.STATS.IncrementCounter("hunt_output_plugin_verifications",
-                                       fields=[utils.SmartStr(result.status)])
+          stats.STATS.IncrementCounter(
+              "hunt_output_plugin_verifications",
+              fields=[utils.SmartStr(result.status)])
 
       except output_plugin.MultiVerifyHuntOutputError as e:
         logging.exception(e)
 
         errors.extend(e.errors)
-        stats.STATS.IncrementCounter("hunt_output_plugin_verification_errors",
-                                     delta=len(e.errors))
+        stats.STATS.IncrementCounter(
+            "hunt_output_plugin_verification_errors", delta=len(e.errors))
 
     for hunt_urn, results in results_by_hunt.items():
       yield hunt_urn, results
@@ -515,22 +523,24 @@ class GenericHunt(implementation.GRRHunt):
   def Start(self):
     super(GenericHunt, self).Start()
 
-    with aff4.FACTORY.Create(self.started_flows_collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token):
+    with aff4.FACTORY.Create(
+        self.started_flows_collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token):
       pass
 
-  @flow.StateHandler(next_state=["MarkDone"])
+  @flow.StateHandler()
   def RunClient(self, responses):
     started_flows = []
     # Just run the flow on this client.
     for client_id in responses:
-      flow_urn = self.CallFlow(args=self.state.args.flow_args,
-                               client_id=client_id,
-                               next_state="MarkDone",
-                               sync=False,
-                               runner_args=self.state.args.flow_runner_args)
+      flow_urn = self.CallFlow(
+          args=self.state.args.flow_args,
+          client_id=client_id,
+          next_state="MarkDone",
+          sync=False,
+          runner_args=self.state.args.flow_runner_args)
       started_flows.append(flow_urn)
 
     collects.PackedVersionedCollection.AddToCollection(
@@ -542,17 +552,17 @@ class GenericHunt(implementation.GRRHunt):
   def Stop(self):
     super(GenericHunt, self).Stop()
 
-    started_flows = aff4.FACTORY.Create(self.started_flows_collection_urn,
-                                        collects.PackedVersionedCollection,
-                                        mode="r",
-                                        token=self.token)
+    started_flows = aff4.FACTORY.Create(
+        self.started_flows_collection_urn,
+        collects.PackedVersionedCollection,
+        mode="r",
+        token=self.token)
 
     self.Log("Hunt stop. Terminating all the started flows.")
     num_terminated_flows = 0
     for started_flow in started_flows:
-      flow.GRRFlow.MarkForTermination(started_flow,
-                                      reason="Parent hunt stopped.",
-                                      token=self.token)
+      flow.GRRFlow.MarkForTermination(
+          started_flow, reason="Parent hunt stopped.", token=self.token)
       num_terminated_flows += 1
 
     self.Log("%d flows terminated.", num_terminated_flows)
@@ -633,7 +643,7 @@ class VariableGenericHunt(GenericHunt):
   def SetDescription(self, description=None):
     self.state.context.args.description = description or "Variable Generic Hunt"
 
-  @flow.StateHandler(next_state=["MarkDone"])
+  @flow.StateHandler()
   def RunClient(self, responses):
     started_flows = []
 
@@ -641,10 +651,11 @@ class VariableGenericHunt(GenericHunt):
       for flow_request in self.state.args.flows:
         for requested_client_id in flow_request.client_ids:
           if requested_client_id == client_id:
-            flow_urn = self.CallFlow(args=flow_request.args,
-                                     runner_args=flow_request.runner_args,
-                                     next_state="MarkDone",
-                                     client_id=client_id)
+            flow_urn = self.CallFlow(
+                args=flow_request.args,
+                runner_args=flow_request.runner_args,
+                next_state="MarkDone",
+                client_id=client_id)
             started_flows.append(flow_urn)
 
     collects.PackedVersionedCollection.AddToCollection(
@@ -752,16 +763,18 @@ class StatsHunt(implementation.GRRHunt):
       if client.Get(client.SchemaCls.SYSTEM) == "Windows":
         wmi_query = ("Select * from Win32_NetworkAdapterConfiguration where"
                      " IPEnabled=1")
-        self.CallClient("WmiQuery",
-                        query=wmi_query,
-                        next_state="StoreResults",
-                        client_id=client.urn,
-                        start_time=due)
+        self.CallClient(
+            "WmiQuery",
+            query=wmi_query,
+            next_state="StoreResults",
+            client_id=client.urn,
+            start_time=due)
       else:
-        self.CallClient("EnumerateInterfaces",
-                        next_state="StoreResults",
-                        client_id=client.urn,
-                        start_time=due)
+        self.CallClient(
+            "EnumerateInterfaces",
+            next_state="StoreResults",
+            client_id=client.urn,
+            start_time=due)
 
   def ProcessInterface(self, response):
     """Filter out localhost interfaces."""
@@ -778,12 +791,12 @@ class StatsHunt(implementation.GRRHunt):
 
     for response in responses:
       if isinstance(response, rdf_client.Interface):
-        processed_responses.extend(filter(None, [self.ProcessInterface(response)
-                                                ]))
+        processed_responses.extend(
+            filter(None, [self.ProcessInterface(response)]))
       elif isinstance(response, rdf_protodict.Dict):
         # This is a result from the WMIQuery call
-        processed_responses.extend(list(wmi_interface_parser.Parse(
-            None, response, None)))
+        processed_responses.extend(
+            list(wmi_interface_parser.Parse(None, response, None)))
 
     new_responses = flow.FakeResponses(processed_responses,
                                        responses.request_data)
@@ -807,12 +820,12 @@ class StandardHuntInitHook(registry.InitHook):
 
   def RunOnce(self):
     """Register standard hunt-related stats."""
-    stats.STATS.RegisterCounterMetric("hunt_output_plugin_verifications",
-                                      fields=[("status", str)])
+    stats.STATS.RegisterCounterMetric(
+        "hunt_output_plugin_verifications", fields=[("status", str)])
     stats.STATS.RegisterCounterMetric("hunt_output_plugin_verification_errors")
-    stats.STATS.RegisterCounterMetric("hunt_output_plugin_errors",
-                                      fields=[("plugin", str)])
-    stats.STATS.RegisterCounterMetric("hunt_results_ran_through_plugin",
-                                      fields=[("plugin", str)])
+    stats.STATS.RegisterCounterMetric(
+        "hunt_output_plugin_errors", fields=[("plugin", str)])
+    stats.STATS.RegisterCounterMetric(
+        "hunt_results_ran_through_plugin", fields=[("plugin", str)])
     stats.STATS.RegisterCounterMetric("hunt_results_compacted")
     stats.STATS.RegisterCounterMetric("hunt_results_compaction_locking_errors")

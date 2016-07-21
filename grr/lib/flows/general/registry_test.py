@@ -49,21 +49,23 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     if conditions is None:
       conditions = []
 
-    for _ in test_lib.TestFlowHelper("RegistryFinder",
-                                     self.client_mock,
-                                     client_id=self.client_id,
-                                     keys_paths=keys_paths,
-                                     conditions=conditions,
-                                     token=self.token,
-                                     output=self.output_path):
+    for _ in test_lib.TestFlowHelper(
+        "RegistryFinder",
+        self.client_mock,
+        client_id=self.client_id,
+        keys_paths=keys_paths,
+        conditions=conditions,
+        token=self.token,
+        output=self.output_path):
       pass
 
   def AssertNoResults(self):
-    self.assertRaises(aff4.InstantiationError,
-                      aff4.FACTORY.Open,
-                      self.client_id.Add(self.output_path),
-                      aff4_type=collects.RDFValueCollection,
-                      token=self.token)
+    self.assertRaises(
+        aff4.InstantiationError,
+        aff4.FACTORY.Open,
+        self.client_id.Add(self.output_path),
+        aff4_type=collects.RDFValueCollection,
+        token=self.token)
 
   def GetResults(self):
     fd = aff4.FACTORY.Open(
@@ -111,9 +113,8 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     user = rdf_client.User(sid="S-1-5-21-2911950750-476812067-1487428992-1001")
     kb = rdf_client.KnowledgeBase(users=[user])
 
-    with aff4.FACTORY.Open(self.client_id,
-                           mode="rw",
-                           token=self.token) as client:
+    with aff4.FACTORY.Open(
+        self.client_id, mode="rw", token=self.token) as client:
       client.Set(client.Schema.KNOWLEDGE_BASE, kb)
 
     self.RunFlow(["HKEY_USERS/%%users.sid%%/Software/Microsoft/Windows/"
@@ -133,8 +134,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsNothingIfNothingMatchesLiteralMatchCondition(self):
     value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
-        bytes_before=10, bytes_after=10,
-        literal="CanNotFindMe")
+        bytes_before=10, bytes_after=10, literal="CanNotFindMe")
 
     self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
@@ -146,9 +146,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsKeyIfItMatchesLiteralMatchCondition(self):
     value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
-        bytes_before=10,
-        bytes_after=10,
-        literal="Windows Sidebar\\Sidebar.exe")
+        bytes_before=10, bytes_after=10, literal="Windows Sidebar\\Sidebar.exe")
 
     self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
@@ -176,9 +174,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsNothingIfRegexMatchesNothing(self):
     value_regex_match = file_finder.FileFinderContentsRegexMatchCondition(
-        bytes_before=10,
-        bytes_after=10,
-        regex=".*CanNotFindMe.*")
+        bytes_before=10, bytes_after=10, regex=".*CanNotFindMe.*")
 
     self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
@@ -190,8 +186,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
   def testFindsKeyIfItMatchesRegexMatchCondition(self):
     value_regex_match = file_finder.FileFinderContentsRegexMatchCondition(
-        bytes_before=10,
-        bytes_after=10, regex="Windows.+\\.exe")
+        bytes_before=10, bytes_after=10, regex="Windows.+\\.exe")
 
     self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
@@ -261,9 +256,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
             1247546054 + 1))
 
     value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
-        bytes_before=10,
-        bytes_after=10,
-        literal="Windows Sidebar\\Sidebar.exe")
+        bytes_before=10, bytes_after=10, literal="Windows Sidebar\\Sidebar.exe")
 
     self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
@@ -307,19 +300,19 @@ class TestRegistryFlows(RegistryFlowTest):
     # Add some user accounts to this client.
     fd = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
-    kb.users.Append(rdf_client.User(username="testing",
-                                    userdomain="testing-PC",
-                                    homedir=r"C:\Users\testing",
-                                    sid="S-1-5-21-2911950750-476812067-"
-                                    "1487428992-1001"))
+    kb.users.Append(
+        rdf_client.User(
+            username="testing",
+            userdomain="testing-PC",
+            homedir=r"C:\Users\testing",
+            sid="S-1-5-21-2911950750-476812067-"
+            "1487428992-1001"))
     fd.Set(kb)
     fd.Close()
 
     # Run the flow in the emulated way.
-    for _ in test_lib.TestFlowHelper("GetMRU",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        "GetMRU", client_mock, client_id=self.client_id, token=self.token):
       pass
 
     # Check that the key was read.
@@ -352,19 +345,21 @@ class TestRegistryFlows(RegistryFlowTest):
                                             "FingerprintFile", "ListDirectory")
 
       # Get KB initialized
-      for _ in test_lib.TestFlowHelper("KnowledgeBaseInitializationFlow",
-                                       client_mock,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          "KnowledgeBaseInitializationFlow",
+          client_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
       with test_lib.Instrument(transfer.MultiGetFile,
                                "Start") as getfile_instrument:
         # Run the flow in the emulated way.
-        for _ in test_lib.TestFlowHelper("CollectRunKeyBinaries",
-                                         client_mock,
-                                         client_id=self.client_id,
-                                         token=self.token):
+        for _ in test_lib.TestFlowHelper(
+            "CollectRunKeyBinaries",
+            client_mock,
+            client_id=self.client_id,
+            token=self.token):
           pass
 
         # Check MultiGetFile got called for our runkey file

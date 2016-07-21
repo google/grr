@@ -23,27 +23,28 @@ class TestPlistFlows(test_lib.FlowTestsBaseclass):
     request.pathspec.path = os.path.join(self.base_path, "test.plist")
     request.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
 
-    for _ in test_lib.TestFlowHelper(flow,
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     request=request,
-                                     output=output):
+    for _ in test_lib.TestFlowHelper(
+        flow,
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        request=request,
+        output=output):
       pass
 
   def _CheckOutputAFF4Type(self, output):
     # Check the output file is created
     output_path = self.client_id.Add(output)
-    aff4.FACTORY.Open(output_path,
-                      aff4_type=aff4_filetypes.AFF4PlistQuery,
-                      token=self.token)
+    aff4.FACTORY.Open(
+        output_path, aff4_type=aff4_filetypes.AFF4PlistQuery, token=self.token)
 
   def testPlistValueFilter(self):
     output = "analysis/plistvaluefilter_test"
-    self._RunFlow(filetypes.PlistValueFilter.__name__,
-                  context="",
-                  query="",
-                  output=output)
+    self._RunFlow(
+        filetypes.PlistValueFilter.__name__,
+        context="",
+        query="",
+        output=output)
     self._CheckOutputAFF4Type(output)
 
 

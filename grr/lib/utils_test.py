@@ -144,8 +144,7 @@ class UtilsTest(test_lib.GRRBaseTest):
     # No trailing "L".
     self.assertEqual(utils.FormatAsHexString(int(1e19)), "0x8ac7230489e80000")
     self.assertEqual(
-        utils.FormatAsHexString(
-            int(1e19), 5), "0x8ac7230489e80000")
+        utils.FormatAsHexString(int(1e19), 5), "0x8ac7230489e80000")
 
   def testXor(self):
     test_str = "Hello World!!"
@@ -442,8 +441,8 @@ class StreamingTarWriterTest(test_lib.GRRBaseTest):
     with utils.StreamingTarWriter(outfd, mode="w:gz") as writer:
       writer.WriteFromFD(infd, "test.txt", st=st)
 
-    test_tar = tarfile.open(fileobj=StringIO.StringIO(outfd.getvalue()),
-                            mode="r")
+    test_tar = tarfile.open(
+        fileobj=StringIO.StringIO(outfd.getvalue()), mode="r")
     tinfos = list(test_tar.getmembers())
 
     self.assertEqual(len(tinfos), 1)
@@ -466,8 +465,8 @@ class StreamingTarWriterTest(test_lib.GRRBaseTest):
       writer.WriteFromFD(infd1, "test1.txt", st=st1)
       writer.WriteFromFD(infd2, "subdir/test2.txt", st=st2)
 
-    test_tar = tarfile.open(fileobj=StringIO.StringIO(outfd.getvalue()),
-                            mode="r")
+    test_tar = tarfile.open(
+        fileobj=StringIO.StringIO(outfd.getvalue()), mode="r")
     tinfos = sorted(test_tar.getmembers(), key=lambda tinfo: tinfo.name)
 
     self.assertEqual(len(tinfos), 2)
@@ -497,8 +496,8 @@ class StreamingTarWriterTest(test_lib.GRRBaseTest):
       writer.WriteSymlink("test1.txt", "test1.txt.link")
       writer.WriteSymlink("subdir/test2.txt", "test2.txt.link")
 
-    with tarfile.open(fileobj=StringIO.StringIO(outfd.getvalue()),
-                      mode="r") as test_fd:
+    with tarfile.open(
+        fileobj=StringIO.StringIO(outfd.getvalue()), mode="r") as test_fd:
       test_fd.extractall(self.temp_dir)
 
       link_path = os.path.join(self.temp_dir, "test1.txt.link")

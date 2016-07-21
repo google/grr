@@ -81,10 +81,11 @@ class SetGlobalNotification(flow.GRRGlobalFlow):
 
   @flow.StateHandler()
   def Start(self):
-    with aff4.FACTORY.Create(aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-                             aff4_type=aff4_users.GlobalNotificationStorage,
-                             mode="rw",
-                             token=self.token) as storage:
+    with aff4.FACTORY.Create(
+        aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+        aff4_type=aff4_users.GlobalNotificationStorage,
+        mode="rw",
+        token=self.token) as storage:
       storage.AddNotification(self.args)
 
 
@@ -153,9 +154,10 @@ class GlobalNotificationBar(renderers.TemplateRenderer):
       notifications = user_record.GetPendingGlobalNotifications()
       for notification in notifications:
         if notification.hash == hash_to_remove:
-          flow.GRRFlow.StartFlow(flow_name="MarkGlobalNotificationAsShown",
-                                 args=notification,
-                                 token=request.token)
+          flow.GRRFlow.StartFlow(
+              flow_name="MarkGlobalNotificationAsShown",
+              args=notification,
+              token=request.token)
           break
     else:
       return self.Layout(request, response)
@@ -409,8 +411,7 @@ class Navigator(renderers.TemplateRenderer):
       # and show the reason.
       try:
         approved_token = aff4_security.Approval.GetApprovalForObject(
-            rdf_client.ClientURN(self.client_id),
-            token=request.token)
+            rdf_client.ClientURN(self.client_id), token=request.token)
         self.reason = approved_token.reason
       except access_control.UnauthorizedAccess as e:
         pass
@@ -428,15 +429,15 @@ class Navigator(renderers.TemplateRenderer):
 
     super(Navigator, self).Layout(request, response)
     if self.unauthorized:
-      renderers.Renderer.GetPlugin("UnauthorizedRenderer")().Layout(request,
-                                                                    response,
-                                                                    exception=e)
+      renderers.Renderer.GetPlugin("UnauthorizedRenderer")().Layout(
+          request, response, exception=e)
 
-    return self.CallJavascript(response,
-                               "Navigator.Layout",
-                               renderer=self.__class__.__name__,
-                               client_id=self.client_id,
-                               poll_time=self.poll_time)
+    return self.CallJavascript(
+        response,
+        "Navigator.Layout",
+        renderer=self.__class__.__name__,
+        client_id=self.client_id,
+        poll_time=self.poll_time)
 
 
 class OnlineStateIcon(semantic.RDFValueRenderer):
@@ -505,16 +506,18 @@ class FilestoreTable(renderers.TableRenderer):
     hash_urn = rdfvalue.RDFURN("aff4:/files/hash/generic/sha256/").Add(
         query_string)
 
-    for i, (_, value, timestamp) in enumerate(data_store.DB.ResolvePrefix(
-        hash_urn, "index:", token=request.token)):
+    for i, (_, value, timestamp) in enumerate(
+        data_store.DB.ResolvePrefix(
+            hash_urn, "index:", token=request.token)):
 
       if i > end:
         break
 
-      self.AddRow(row_index=i,
-                  File=value,
-                  Client=aff4_grr.VFSGRRClient.ClientURNFromURN(value),
-                  Timestamp=rdfvalue.RDFDatetime(timestamp))
+      self.AddRow(
+          row_index=i,
+          File=value,
+          Client=aff4_grr.VFSGRRClient.ClientURNFromURN(value),
+          Timestamp=rdfvalue.RDFDatetime(timestamp))
 
     # We only display 50 entries.
     return False

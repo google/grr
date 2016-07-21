@@ -43,8 +43,8 @@ class FingerprintFile(standard.ReadBuffer):
 
   def Run(self, args):
     """Fingerprint a file."""
-    with vfs.VFSOpen(args.pathspec,
-                     progress_callback=self.Progress) as file_obj:
+    with vfs.VFSOpen(
+        args.pathspec, progress_callback=self.Progress) as file_obj:
       fingerprinter = Fingerprinter(self.Progress, file_obj)
       response = rdf_client.FingerprintResponse()
       response.pathspec = file_obj.pathspec
@@ -89,8 +89,7 @@ class FingerprintFile(standard.ReadBuffer):
 
           signed_data = result.GetItem("SignedData", [])
           for data in signed_data:
-            response.hash.signed_data.Append(revision=data[0],
-                                             cert_type=data[1],
-                                             certificate=data[2])
+            response.hash.signed_data.Append(
+                revision=data[0], cert_type=data[1], certificate=data[2])
 
       self.SendReply(response)

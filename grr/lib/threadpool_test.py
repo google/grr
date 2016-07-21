@@ -28,8 +28,7 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
 
     prefix = "pool-%s" % self._testMethodName
     self.test_pool = threadpool.ThreadPool.Factory(
-        prefix, self.NUMBER_OF_THREADS,
-        max_threads=self.MAXIMUM_THREADS)
+        prefix, self.NUMBER_OF_THREADS, max_threads=self.MAXIMUM_THREADS)
     self.test_pool.Start()
 
   def tearDown(self):
@@ -152,11 +151,12 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
       # Trying to push this task will overflow the queue, and would normally
       # cause a new thread to start. We use non blocking mode to receive the
       # exception.
-      self.assertRaises(threadpool.Full,
-                        self.test_pool.AddTask,
-                        Block, (done_event,),
-                        blocking=False,
-                        inline=False)
+      self.assertRaises(
+          threadpool.Full,
+          self.test_pool.AddTask,
+          Block, (done_event,),
+          blocking=False,
+          inline=False)
 
       # Release the blocking tasks.
       done_event.set()
@@ -198,10 +198,8 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
       # Now as we push these tasks on the queue, new threads will be created and
       # they will receive the blocking tasks from the queue.
       for i in range(self.MAXIMUM_THREADS):
-        self.test_pool.AddTask(Insert, (res, i),
-                               "Insert",
-                               blocking=True,
-                               inline=False)
+        self.test_pool.AddTask(
+            Insert, (res, i), "Insert", blocking=True, inline=False)
 
       # There should be 20 workers created and they should consume all the
       # blocking tasks.
@@ -235,11 +233,10 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
   def testThreadsReaped(self):
     """Check that threads are reaped when too old."""
     self.now = 0
-    with utils.MultiStubber(
-        (time, "time", lambda: self.now),
-        (threading, "_time", lambda: self.now),
-        (Queue, "_time", lambda: self.now),
-        (self.test_pool, "CPUUsage", lambda: 0)):
+    with utils.MultiStubber((time, "time", lambda: self.now),
+                            (threading, "_time", lambda: self.now),
+                            (Queue, "_time", lambda: self.now),
+                            (self.test_pool, "CPUUsage", lambda: 0)):
       done_event = threading.Event()
 
       res = []
@@ -330,10 +327,11 @@ class BatchConverterTest(test_lib.GRRBaseTest):
   """BatchConverter tests."""
 
   def testMultiThreadedConverter(self):
-    converter = DummyConverter(threadpool_size=10,
-                               batch_size=2,
-                               sleep_time=0.1,
-                               threadpool_prefix="multi_threaded")
+    converter = DummyConverter(
+        threadpool_size=10,
+        batch_size=2,
+        sleep_time=0.1,
+        threadpool_prefix="multi_threaded")
     test_data = [str(i) for i in range(10)]
 
     converter.Convert(test_data)
@@ -349,10 +347,11 @@ class BatchConverterTest(test_lib.GRRBaseTest):
       self.assertEqual(r, str(i) + "*")
 
   def testSingleThreadedConverter(self):
-    converter = DummyConverter(threadpool_size=0,
-                               batch_size=2,
-                               sleep_time=0,
-                               threadpool_prefix="single_threaded")
+    converter = DummyConverter(
+        threadpool_size=0,
+        batch_size=2,
+        sleep_time=0,
+        threadpool_prefix="single_threaded")
     test_data = [str(i) for i in range(10)]
 
     converter.Convert(test_data)

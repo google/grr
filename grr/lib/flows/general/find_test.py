@@ -30,9 +30,8 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
   def testInvalidFindSpec(self):
     """Test that its impossible to produce an invalid findspec."""
     # The regular expression is not valid.
-    self.assertRaises(type_info.TypeValueError,
-                      rdf_client.FindSpec,
-                      path_regex="[")
+    self.assertRaises(
+        type_info.TypeValueError, rdf_client.FindSpec, path_regex="[")
 
   def testFindFiles(self):
     """Test that the Find flow works with files."""
@@ -40,17 +39,18 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     output_path = "analysis/FindFlowTest1"
 
     # Prepare a findspec.
-    findspec = rdf_client.FindSpec(path_regex="bash",
-                                   pathspec=rdf_paths.PathSpec(
-                                       path="/",
-                                       pathtype=rdf_paths.PathSpec.PathType.OS))
+    findspec = rdf_client.FindSpec(
+        path_regex="bash",
+        pathspec=rdf_paths.PathSpec(
+            path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for _ in test_lib.TestFlowHelper("FindFiles",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     output=output_path,
-                                     findspec=findspec):
+    for _ in test_lib.TestFlowHelper(
+        "FindFiles",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        output=output_path,
+        findspec=findspec):
       pass
 
     # Check the output file is created
@@ -72,17 +72,18 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     output_path = "analysis/FindFlowTest1"
 
     # Prepare a findspec.
-    findspec = rdf_client.FindSpec(path_glob="bash*",
-                                   pathspec=rdf_paths.PathSpec(
-                                       path="/",
-                                       pathtype=rdf_paths.PathSpec.PathType.OS))
+    findspec = rdf_client.FindSpec(
+        path_glob="bash*",
+        pathspec=rdf_paths.PathSpec(
+            path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for _ in test_lib.TestFlowHelper("FindFiles",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     output=output_path,
-                                     findspec=findspec):
+    for _ in test_lib.TestFlowHelper(
+        "FindFiles",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        output=output_path,
+        findspec=findspec):
       pass
 
     # Check the output file is created
@@ -105,17 +106,18 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     output_path = "analysis/FindFlowTest2"
 
     # Prepare a findspec.
-    findspec = rdf_client.FindSpec(path_regex="bin",
-                                   pathspec=rdf_paths.PathSpec(
-                                       path="/",
-                                       pathtype=rdf_paths.PathSpec.PathType.OS))
+    findspec = rdf_client.FindSpec(
+        path_regex="bin",
+        pathspec=rdf_paths.PathSpec(
+            path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for _ in test_lib.TestFlowHelper("FindFiles",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     output=output_path,
-                                     findspec=findspec):
+    for _ in test_lib.TestFlowHelper(
+        "FindFiles",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        output=output_path,
+        findspec=findspec):
       pass
 
     # Check the output file is created
@@ -135,19 +137,20 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     output_path = "analysis/FindFlowTest4"
 
     # Prepare a findspec.
-    findspec = rdf_client.FindSpec(path_regex=".*",
-                                   pathspec=rdf_paths.PathSpec(
-                                       path="/",
-                                       pathtype=rdf_paths.PathSpec.PathType.OS))
+    findspec = rdf_client.FindSpec(
+        path_regex=".*",
+        pathspec=rdf_paths.PathSpec(
+            path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for _ in test_lib.TestFlowHelper("FindFiles",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     findspec=findspec,
-                                     iteration_count=3,
-                                     output=output_path,
-                                     max_results=7):
+    for _ in test_lib.TestFlowHelper(
+        "FindFiles",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        findspec=findspec,
+        iteration_count=3,
+        output=output_path,
+        max_results=7):
       pass
 
     # Check the output file is created
@@ -168,12 +171,13 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     findspec.pathspec.path = "/"
     findspec.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
 
-    for _ in test_lib.TestFlowHelper("FindFiles",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     findspec=findspec,
-                                     output=output_path):
+    for _ in test_lib.TestFlowHelper(
+        "FindFiles",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        findspec=findspec,
+        output=output_path):
       pass
 
     # Check the output file with the right number of results.
@@ -183,13 +187,14 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
 
     # Now find a new result, should overwrite the collection
     findspec.path_regex = "dd"
-    for _ in test_lib.TestFlowHelper("FindFiles",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     findspec=findspec,
-                                     output=output_path,
-                                     max_results=1):
+    for _ in test_lib.TestFlowHelper(
+        "FindFiles",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        findspec=findspec,
+        output=output_path,
+        max_results=1):
       pass
 
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)

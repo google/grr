@@ -156,23 +156,23 @@ class EnumerateInterfaces(actions.ActionPlugin):
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
           ip4 = "".join(map(chr, data.contents.sin_addr))
           address_type = rdf_client.NetworkAddress.Family.INET
-          address = rdf_client.NetworkAddress(address_type=address_type,
-                                              packed_bytes=ip4)
+          address = rdf_client.NetworkAddress(
+              address_type=address_type, packed_bytes=ip4)
           addresses.setdefault(ifname, []).append(address)
 
         if iffamily == 0x12:  # AF_LINK
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrdl))
           iflen = data.contents.sdl_nlen
           addlen = data.contents.sdl_alen
-          macs[ifname] = "".join(map(chr, data.contents.sdl_data[iflen:iflen +
-                                                                 addlen]))
+          macs[ifname] = "".join(
+              map(chr, data.contents.sdl_data[iflen:iflen + addlen]))
 
         if iffamily == 0x1E:  # AF_INET6
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
           ip6 = "".join(map(chr, data.contents.sin6_addr))
           address_type = rdf_client.NetworkAddress.Family.INET6
-          address = rdf_client.NetworkAddress(address_type=address_type,
-                                              packed_bytes=ip6)
+          address = rdf_client.NetworkAddress(
+              address_type=address_type, packed_bytes=ip6)
           addresses.setdefault(ifname, []).append(address)
       except ValueError:
         # Some interfaces don't have a iffamily and will raise a null pointer
@@ -216,9 +216,10 @@ class EnumerateFilesystems(actions.ActionPlugin):
   def Run(self, unused_args):
     """List all local filesystems mounted on this system."""
     for fs_struct in client_utils_osx.GetFileSystems():
-      self.SendReply(device=fs_struct.f_mntfromname,
-                     mount_point=fs_struct.f_mntonname,
-                     type=fs_struct.f_fstypename)
+      self.SendReply(
+          device=fs_struct.f_mntfromname,
+          mount_point=fs_struct.f_mntonname,
+          type=fs_struct.f_fstypename)
 
     drive_re = re.compile("r?disk[0-9].*")
     for drive in os.listdir("/dev"):
@@ -354,19 +355,18 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
     cmd_args = ["-pkg", path, "-target", "/"]
     time_limit = args.time_limit
 
-    res = client_utils_common.Execute(cmd,
-                                      cmd_args,
-                                      time_limit=time_limit,
-                                      bypass_whitelist=True)
+    res = client_utils_common.Execute(
+        cmd, cmd_args, time_limit=time_limit, bypass_whitelist=True)
     (stdout, stderr, status, time_used) = res
 
     # Limit output to 10MB so our response doesn't get too big.
     stdout = stdout[:10 * 1024 * 1024]
     stderr = stderr[:10 * 1024 * 1024]
 
-    result = rdf_client.ExecuteBinaryResponse(stdout=stdout,
-                                              stderr=stderr,
-                                              exit_status=status,
-                                              # We have to return microseconds.
-                                              time_used=int(1e6 * time_used))
+    result = rdf_client.ExecuteBinaryResponse(
+        stdout=stdout,
+        stderr=stderr,
+        exit_status=status,
+        # We have to return microseconds.
+        time_used=int(1e6 * time_used))
     self.SendReply(result)

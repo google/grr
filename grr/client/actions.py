@@ -292,9 +292,8 @@ class ActionPlugin(object):
     self.nanny_controller.SyncTransactionLog()
 
   def ChargeBytesToSession(self, length):
-    self.grr_worker.ChargeBytesToSession(self.message.session_id,
-                                         length,
-                                         limit=self.network_bytes_limit)
+    self.grr_worker.ChargeBytesToSession(
+        self.message.session_id, length, limit=self.network_bytes_limit)
 
   def DisableNanny(self):
     try:
@@ -323,8 +322,8 @@ class IteratedAction(ActionPlugin):
     request.iterator.client_state = rdf_protodict.Dict(client_state)
 
     # Return the iterator
-    self.SendReply(request.iterator,
-                   message_type=rdf_flows.GrrMessage.Type.ITERATOR)
+    self.SendReply(
+        request.iterator, message_type=rdf_flows.GrrMessage.Type.ITERATOR)
 
   def Iterate(self, request, client_state):
     """Actions should override this."""
@@ -480,8 +479,8 @@ class SuspendableAction(ActionPlugin):
                          (self.worker.exception_status))
 
     # Return the iterator
-    self.SendReply(self.request.iterator,
-                   message_type=rdf_flows.GrrMessage.Type.ITERATOR)
+    self.SendReply(
+        self.request.iterator, message_type=rdf_flows.GrrMessage.Type.ITERATOR)
 
   def Done(self):
     # Let the server know we finished.

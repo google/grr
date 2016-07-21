@@ -22,8 +22,8 @@ class ItemsIterator(object):
 
 def MapItemsIterator(function, items):
   """Maps ItemsIterator via given function."""
-  return ItemsIterator(items=itertools.imap(function, items),
-                       total_count=items.total_count)
+  return ItemsIterator(
+      items=itertools.imap(function, items), total_count=items.total_count)
 
 
 AFF4_PREFIX = "aff4:/"

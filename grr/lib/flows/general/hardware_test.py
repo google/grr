@@ -70,10 +70,11 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
                                      "HashBuffer", "LoadComponent",
                                      "TransferBuffer", "DeleteGRRTempFiles")
 
-    for _ in test_lib.TestFlowHelper("DumpFlashImage",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        "DumpFlashImage",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token):
       pass
 
     fd = aff4.FACTORY.Open(self.client_id.Add("spiflash"), token=self.token)
@@ -86,14 +87,11 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
                                          "TransferBuffer", "DeleteGRRTempFiles")
 
     # Manually start the flow in order to be able to read the logs
-    flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
-                                      flow_name="DumpFlashImage",
-                                      token=self.token)
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=self.client_id, flow_name="DumpFlashImage", token=self.token)
 
-    for _ in test_lib.TestFlowHelper(flow_urn,
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        flow_urn, client_mock, client_id=self.client_id, token=self.token):
       pass
 
     logs = aff4.FACTORY.Open(flow_urn.Add("Logs"), token=self.token)
@@ -105,11 +103,12 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
                                "HashFile", "HashBuffer", "TransferBuffer",
                                "DeleteGRRTempFiles")
 
-    for _ in test_lib.TestFlowHelper("DumpFlashImage",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     check_flow_errors=False):
+    for _ in test_lib.TestFlowHelper(
+        "DumpFlashImage",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        check_flow_errors=False):
       pass
 
 
@@ -117,18 +116,18 @@ class DumpACPITableMock(action_mocks.ActionMock):
 
   ACPI_TABLES = {
       "DSDT": [
-          chipsec_types.ACPITableData(table_address=0x1122334455667788,
-                                      table_blob="\xAA" * 0xFF)
+          chipsec_types.ACPITableData(
+              table_address=0x1122334455667788, table_blob="\xAA" * 0xFF)
       ],
       "XSDT": [
-          chipsec_types.ACPITableData(table_address=0x8877665544332211,
-                                      table_blob="\xBB" * 0xFF)
+          chipsec_types.ACPITableData(
+              table_address=0x8877665544332211, table_blob="\xBB" * 0xFF)
       ],
       "SSDT": [
-          chipsec_types.ACPITableData(table_address=0x1234567890ABCDEF,
-                                      table_blob="\xCC" * 0xFF),
-          chipsec_types.ACPITableData(table_address=0x2234567890ABCDEF,
-                                      table_blob="\xDD" * 0xFF)
+          chipsec_types.ACPITableData(
+              table_address=0x1234567890ABCDEF, table_blob="\xCC" * 0xFF),
+          chipsec_types.ACPITableData(
+              table_address=0x2234567890ABCDEF, table_blob="\xDD" * 0xFF)
       ]
   }
 
@@ -149,8 +148,8 @@ class DumpACPITableMock(action_mocks.ActionMock):
     if args.logging:
       logs.append("log")
 
-    response = chipsec_types.DumpACPITableResponse(acpi_tables=acpi_tables,
-                                                   logs=logs)
+    response = chipsec_types.DumpACPITableResponse(
+        acpi_tables=acpi_tables, logs=logs)
     return [response]
 
 
@@ -158,21 +157,23 @@ class DumpACPITableTest(test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(DumpACPITableTest, self).setUp()
-    test_lib.WriteComponent(name="grr-chipsec-component",
-                            version="1.2.2.2",
-                            modules=["grr_chipsec"],
-                            token=self.token)
+    test_lib.WriteComponent(
+        name="grr-chipsec-component",
+        version="1.2.2.2",
+        modules=["grr_chipsec"],
+        token=self.token)
 
   def testDumpValidACPITableOk(self):
     """Tests dumping ACPI table."""
     client_mock = DumpACPITableMock()
     table_signature_list = ["DSDT", "XSDT", "SSDT"]
 
-    for _ in test_lib.TestFlowHelper("DumpACPITable",
-                                     client_mock,
-                                     table_signature_list=table_signature_list,
-                                     client_id=self.client_id,
-                                     token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        "DumpACPITable",
+        client_mock,
+        table_signature_list=table_signature_list,
+        client_id=self.client_id,
+        token=self.token):
       pass
 
     fd = aff4.FACTORY.Open(

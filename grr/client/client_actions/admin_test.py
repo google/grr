@@ -154,9 +154,10 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
     stats.STATS.RegisterCounterMetric("grr_client_sent_bytes")
     stats.STATS.IncrementCounter("grr_client_sent_bytes", 2000)
 
-    results = self.RunAction("GetClientStats",
-                             grr_worker=MockClientWorker(),
-                             arg=rdf_client.GetClientStatsRequest())
+    results = self.RunAction(
+        "GetClientStats",
+        grr_worker=MockClientWorker(),
+        arg=rdf_client.GetClientStatsRequest())
 
     response = results[0]
     self.assertEqual(response.bytes_received, 1566)
@@ -217,11 +218,11 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
   def testFiltersDataPointsByStartAndEndTimes(self):
     start_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(109)
     end_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(113)
-    results = self.RunAction("GetClientStats",
-                             grr_worker=MockClientWorker(),
-                             arg=rdf_client.GetClientStatsRequest(
-                                 start_time=start_time,
-                                 end_time=end_time))
+    results = self.RunAction(
+        "GetClientStats",
+        grr_worker=MockClientWorker(),
+        arg=rdf_client.GetClientStatsRequest(
+            start_time=start_time, end_time=end_time))
 
     response = results[0]
     self.assertEqual(len(response.cpu_samples), 1)

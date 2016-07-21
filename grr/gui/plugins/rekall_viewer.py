@@ -35,8 +35,9 @@ class GRRRekallViewerObjectRenderer(grr_rekall.GRRObjectRenderer):
 
   def RawHTML(self, item, **options):
     """Returns escaped object's summary."""
-    return django_html.escape(utils.SmartStr(self._GetDelegateObjectRenderer(
-        item).Summary(item, **options)))
+    return django_html.escape(
+        utils.SmartStr(
+            self._GetDelegateObjectRenderer(item).Summary(item, **options)))
 
 
 class GRREProcessObjectRenderer(GRRRekallViewerObjectRenderer):

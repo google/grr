@@ -60,10 +60,8 @@ class ReadBuffer(actions.ActionPlugin):
       return
 
     # Now return the data to the server
-    self.SendReply(offset=offset,
-                   data=data,
-                   length=len(data),
-                   pathspec=fd.pathspec)
+    self.SendReply(
+        offset=offset, data=data, length=len(data), pathspec=fd.pathspec)
 
 
 HASH_CACHE = utils.FastStore(100)
@@ -80,10 +78,11 @@ class TransferBuffer(actions.ActionPlugin):
     if args.length > MAX_BUFFER_SIZE:
       raise RuntimeError("Can not read buffers this large.")
 
-    data = vfs.ReadVFS(args.pathspec,
-                       args.offset,
-                       args.length,
-                       progress_callback=self.Progress)
+    data = vfs.ReadVFS(
+        args.pathspec,
+        args.offset,
+        args.length,
+        progress_callback=self.Progress)
     result = rdf_protodict.DataBlob(
         data=zlib.compress(data),
         compression=rdf_protodict.DataBlob.CompressionType.ZCOMPRESSION)
@@ -141,8 +140,8 @@ class HashFile(actions.ActionPlugin):
       for hash_name in t.hashers:
         hashers[str(hash_name).lower()] = self._hash_types[str(hash_name)]()
 
-    with vfs.VFSOpen(args.pathspec,
-                     progress_callback=self.Progress) as file_obj:
+    with vfs.VFSOpen(
+        args.pathspec, progress_callback=self.Progress) as file_obj:
       # Only read as many bytes as we were told.
       bytes_read = 0
       while bytes_read < args.max_filesize:
@@ -213,9 +212,7 @@ class CopyPathToFile(actions.ActionPlugin):
     suffix = ".gz" if args.gzip_output else ""
 
     dest_fd, dest_pathspec = tempfiles.CreateGRRTempFileVFS(
-        directory=args.dest_dir,
-        lifetime=args.lifetime,
-        suffix=suffix)
+        directory=args.dest_dir, lifetime=args.lifetime, suffix=suffix)
 
     dest_file = dest_fd.name
     with dest_fd:
@@ -229,12 +226,13 @@ class CopyPathToFile(actions.ActionPlugin):
       else:
         written = self._Copy(src_fd, dest_fd, length)
 
-    self.SendReply(offset=offset,
-                   length=written,
-                   src_path=args.src_path,
-                   dest_dir=args.dest_dir,
-                   dest_path=dest_pathspec,
-                   gzip_output=args.gzip_output)
+    self.SendReply(
+        offset=offset,
+        length=written,
+        src_path=args.src_path,
+        dest_dir=args.dest_dir,
+        dest_path=dest_pathspec,
+        gzip_output=args.gzip_output)
 
 
 class ListDirectory(ReadBuffer):
@@ -342,12 +340,13 @@ class ExecuteCommand(actions.ActionPlugin):
     stdout = stdout[:10 * 1024 * 1024]
     stderr = stderr[:10 * 1024 * 1024]
 
-    result = rdf_client.ExecuteResponse(request=command,
-                                        stdout=stdout,
-                                        stderr=stderr,
-                                        exit_status=status,
-                                        # We have to return microseconds.
-                                        time_used=int(1e6 * time_used))
+    result = rdf_client.ExecuteResponse(
+        request=command,
+        stdout=stdout,
+        stderr=stderr,
+        exit_status=status,
+        # We have to return microseconds.
+        time_used=int(1e6 * time_used))
     self.SendReply(result)
 
 
@@ -385,8 +384,8 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
     else:
       mode = "r+b"
 
-    temp_file = tempfiles.CreateGRRTempFile(filename=request.write_path,
-                                            mode=mode)
+    temp_file = tempfiles.CreateGRRTempFile(
+        filename=request.write_path, mode=mode)
     with temp_file:
       path = temp_file.name
       temp_file.seek(0, 2)
@@ -420,21 +419,20 @@ class ExecuteBinaryCommand(actions.ActionPlugin):
       self.CleanUp(path)
 
   def ProcessFile(self, path, args):
-    res = client_utils_common.Execute(path,
-                                      args.args,
-                                      args.time_limit,
-                                      bypass_whitelist=True)
+    res = client_utils_common.Execute(
+        path, args.args, args.time_limit, bypass_whitelist=True)
     (stdout, stderr, status, time_used) = res
 
     # Limit output to 10MB so our response doesn't get too big.
     stdout = stdout[:10 * 1024 * 1024]
     stderr = stderr[:10 * 1024 * 1024]
 
-    result = rdf_client.ExecuteBinaryResponse(stdout=stdout,
-                                              stderr=stderr,
-                                              exit_status=status,
-                                              # We have to return microseconds.
-                                              time_used=int(1e6 * time_used))
+    result = rdf_client.ExecuteBinaryResponse(
+        stdout=stdout,
+        stderr=stderr,
+        exit_status=status,
+        # We have to return microseconds.
+        time_used=int(1e6 * time_used))
 
     self.SendReply(result)
 
@@ -489,8 +487,8 @@ class ExecutePython(actions.ActionPlugin):
 
     time_used = time.time() - time_start
     # We have to return microseconds.
-    result = rdf_client.ExecutePythonResponse(time_used=int(1e6 * time_used),
-                                              return_val=utils.SmartStr(output))
+    result = rdf_client.ExecutePythonResponse(
+        time_used=int(1e6 * time_used), return_val=utils.SmartStr(output))
     self.SendReply(result)
 
 
@@ -602,9 +600,8 @@ class ListProcesses(actions.ActionPlugin):
 
       try:
         for c in proc.connections():
-          conn = response.connections.Append(family=c.family,
-                                             type=c.type,
-                                             pid=proc.pid)
+          conn = response.connections.Append(
+              family=c.family, type=c.type, pid=proc.pid)
 
           try:
             conn.state = c.status
@@ -706,7 +703,8 @@ class StatFS(actions.ActionPlugin):
 
       try:
         fd = vfs.VFSOpen(
-            rdf_paths.PathSpec(path=path, pathtype=args.pathtype),
+            rdf_paths.PathSpec(
+                path=path, pathtype=args.pathtype),
             progress_callback=self.Progress)
         st = fd.StatFS()
         mount_point = fd.GetMountPoint()
@@ -720,11 +718,12 @@ class StatFS(actions.ActionPlugin):
       # The actual_available_allocation_units attribute is set to blocks
       # available to the unprivileged user, root may have some additional
       # reserved space.
-      result = rdf_client.Volume(bytes_per_sector=(st.f_frsize or st.f_bsize),
-                                 sectors_per_allocation_unit=1,
-                                 total_allocation_units=st.f_blocks,
-                                 actual_available_allocation_units=st.f_bavail,
-                                 unixvolume=unix)
+      result = rdf_client.Volume(
+          bytes_per_sector=(st.f_frsize or st.f_bsize),
+          sectors_per_allocation_unit=1,
+          total_allocation_units=st.f_blocks,
+          actual_available_allocation_units=st.f_bavail,
+          unixvolume=unix)
       self.SendReply(result)
 
 

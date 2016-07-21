@@ -845,8 +845,9 @@ class PRNG(object):
       try:
         return cls.random_list.pop()
       except IndexError:
-        PRNG.random_list = list(struct.unpack("=" + "L" * 1000, os.urandom(
-            struct.calcsize("=L") * 1000)))
+        PRNG.random_list = list(
+            struct.unpack("=" + "L" * 1000, os.urandom(
+                struct.calcsize("=L") * 1000)))
 
 
 def FormatNumberAsString(num):
@@ -939,10 +940,8 @@ class StreamingZipGenerator(object):
 
   def __init__(self, compression=zipfile.ZIP_STORED):
     self._stream = RollingMemoryStream()
-    self._zip_fd = zipfile.ZipFile(self._stream,
-                                   mode="w",
-                                   compression=compression,
-                                   allowZip64=True)
+    self._zip_fd = zipfile.ZipFile(
+        self._stream, mode="w", compression=compression, allowZip64=True)
     self._compression = compression
 
     self._ResetState()
@@ -1048,9 +1047,8 @@ class StreamingZipGenerator(object):
       raise ArchiveAlreadyClosedError(
           "Attempting to write to a ZIP archive that was already closed.")
 
-    self.cur_zinfo = self._GenerateZipInfo(arcname=arcname,
-                                           compress_type=compress_type,
-                                           st=st)
+    self.cur_zinfo = self._GenerateZipInfo(
+        arcname=arcname, compress_type=compress_type, st=st)
     self.cur_file_size = 0
     self.cur_compress_size = 0
 
@@ -1122,8 +1120,9 @@ class StreamingZipGenerator(object):
     # crc-32                          8 bytes (little endian)
     # compressed size                 8 bytes (little endian)
     # uncompressed size               8 bytes (little endian)
-    self._stream.write(struct.pack("<LLL", self.cur_crc, self.cur_compress_size,
-                                   self.cur_file_size))
+    self._stream.write(
+        struct.pack("<LLL", self.cur_crc, self.cur_compress_size,
+                    self.cur_file_size))
 
     # Register the file in the zip file, so that central directory gets
     # written correctly.
@@ -1153,9 +1152,8 @@ class StreamingZipGenerator(object):
     Yields:
       Chunks of binary data.
     """
-    yield self.WriteFileHeader(arcname=arcname,
-                               compress_type=compress_type,
-                               st=st)
+    yield self.WriteFileHeader(
+        arcname=arcname, compress_type=compress_type, st=st)
     while 1:
       buf = src_fd.read(1024 * 1024)
       if not buf:
@@ -1230,10 +1228,8 @@ class StreamingZipWriter(object):
     Raises:
       ArchiveAlreadyClosedError: If the zip if already closed.
     """
-    for chunk in self._generator.WriteFromFD(src_fd,
-                                             arcname=arcname,
-                                             compress_type=compress_type,
-                                             st=st):
+    for chunk in self._generator.WriteFromFD(
+        src_fd, arcname=arcname, compress_type=compress_type, st=st):
       self._fd.write(chunk)
 
 
@@ -1246,9 +1242,8 @@ class StreamingTarGenerator(object):
     super(StreamingTarGenerator, self).__init__()
 
     self._stream = RollingMemoryStream()
-    self._tar_fd = tarfile.open(mode="w:gz",
-                                fileobj=self._stream,
-                                encoding="utf-8")
+    self._tar_fd = tarfile.open(
+        mode="w:gz", fileobj=self._stream, encoding="utf-8")
 
     self._ResetState()
 
@@ -1375,9 +1370,8 @@ class StreamingTarWriter(object):
 
   def __init__(self, fd_or_path, mode="w"):
     if hasattr(fd_or_path, "write"):
-      self.tar_fd = tarfile.open(mode=mode,
-                                 fileobj=fd_or_path,
-                                 encoding="utf-8")
+      self.tar_fd = tarfile.open(
+          mode=mode, fileobj=fd_or_path, encoding="utf-8")
     else:
       self.tar_fd = tarfile.open(name=fd_or_path, mode=mode, encoding="utf-8")
 

@@ -41,13 +41,14 @@ class ViewsInit(registry.InitHook):
   def RunOnce(self):
     """Run this once on init."""
     # Renderer-aware metrics
-    stats.STATS.RegisterEventMetric("ui_renderer_latency",
-                                    fields=[("renderer", str)])
-    stats.STATS.RegisterEventMetric("ui_renderer_response_size",
-                                    fields=[("renderer", str)],
-                                    units=stats.MetricUnits.BYTES)
-    stats.STATS.RegisterCounterMetric("ui_renderer_failure",
-                                      fields=[("renderer", str)])
+    stats.STATS.RegisterEventMetric(
+        "ui_renderer_latency", fields=[("renderer", str)])
+    stats.STATS.RegisterEventMetric(
+        "ui_renderer_response_size",
+        fields=[("renderer", str)],
+        units=stats.MetricUnits.BYTES)
+    stats.STATS.RegisterCounterMetric(
+        "ui_renderer_failure", fields=[("renderer", str)])
 
     # General metrics
     stats.STATS.RegisterCounterMetric("ui_unknown_renderer")
@@ -109,9 +110,7 @@ def Homepage(request):
              "renderers_js": renderers_js_files,
              "timestamp": create_time}
   response = shortcuts.render_to_response(
-      "base.html",
-      context,
-      context_instance=template.RequestContext(request))
+      "base.html", context, context_instance=template.RequestContext(request))
 
   # Check if we need to set the canary_mode cookie.
   request.REQ = request.GET.dict()
@@ -145,9 +144,10 @@ def RenderBinaryDownload(request):
   request.REQ = request.REQUEST
 
   def Generator():
-    with aff4.FACTORY.Open(aff4_path,
-                           aff4_type=aff4_collects.GRRSignedBlob,
-                           token=BuildToken(request, 60)) as fd:
+    with aff4.FACTORY.Open(
+        aff4_path,
+        aff4_type=aff4_collects.GRRSignedBlob,
+        token=BuildToken(request, 60)) as fd:
       while True:
         data = fd.Read(1000000)
         if not data:
@@ -160,8 +160,8 @@ def RenderBinaryDownload(request):
     # Check for path traversals.
     return AccessDenied("Error: Invalid path.")
   filename = aff4_path.Basename()
-  response = http.StreamingHttpResponse(streaming_content=Generator(),
-                                        content_type="binary/octet-stream")
+  response = http.StreamingHttpResponse(
+      streaming_content=Generator(), content_type="binary/octet-stream")
   response["Content-Disposition"] = ("attachment; filename=%s" % filename)
   return response
 
@@ -222,9 +222,8 @@ def RenderGenericRenderer(request):
       result = method(request, result) or result
     finally:
       total_time = time.time() - start_time
-      stats.STATS.RecordEvent("ui_renderer_latency",
-                              total_time,
-                              fields=[renderer_name])
+      stats.STATS.RecordEvent(
+          "ui_renderer_latency", total_time, fields=[renderer_name])
 
   except access_control.UnauthorizedAccess, e:
     result = http.HttpResponse(content_type="text/html")
@@ -300,9 +299,8 @@ def RenderHelp(request, path, document_root=None, content_type=None):
         static_handler_components[0:-1]))
     static_handler = getattr(static_handler_module,
                              static_handler_components[-1])
-    return static_handler(request,
-                          path,
-                          document_root=config_lib.CONFIG["AdminUI.help_root"])
+    return static_handler(
+        request, path, document_root=config_lib.CONFIG["AdminUI.help_root"])
 
 
 def BuildToken(request, execution_time):

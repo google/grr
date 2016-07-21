@@ -126,9 +126,10 @@ class ArtifactRDFValueRenderer(semantic.RDFValueRenderer):
   def Layout(self, request, response):
     self.artifact_str = self.proxy.ToPrettyJson()
     response = super(ArtifactRDFValueRenderer, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "ArtifactRDFValueRenderer.Layout",
-                               artifact_str=self.artifact_str)
+    return self.CallJavascript(
+        response,
+        "ArtifactRDFValueRenderer.Layout",
+        artifact_str=self.artifact_str)
 
 
 class ArtifactRawRDFValueRenderer(semantic.RDFValueRenderer):

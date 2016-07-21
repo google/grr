@@ -39,8 +39,8 @@ class MultiTypeCollectionTest(test_lib.AFF4ObjectTest):
   def testExtractsTypesFromGrrMessage(self):
     self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(0)))
     self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo")))
-    self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFURN(
-        "aff4:/foo/bar")))
+    self.collection.Add(
+        rdf_flows.GrrMessage(payload=rdfvalue.RDFURN("aff4:/foo/bar")))
 
     self.assertEqual(
         set([rdfvalue.RDFInteger.__name__, rdfvalue.RDFString.__name__,
@@ -102,8 +102,8 @@ class MultiTypeCollectionTest(test_lib.AFF4ObjectTest):
   def testDeletingCollectionDeletesAllSubcollections(self):
     self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFInteger(0)))
     self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo")))
-    self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFURN(
-        "aff4:/foo/bar")))
+    self.collection.Add(
+        rdf_flows.GrrMessage(payload=rdfvalue.RDFURN("aff4:/foo/bar")))
 
     aff4.FACTORY.Delete(self.collection.urn, token=self.token)
     for urn in data_store.DB.subjects.keys():

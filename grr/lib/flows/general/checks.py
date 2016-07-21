@@ -33,7 +33,7 @@ class CheckRunner(flow.GRRFlow):
   args_type = CheckFlowArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state=["MapArtifactData"])
+  @flow.StateHandler()
   def Start(self):
     """Initialize the system check flow."""
     self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -49,7 +49,7 @@ class CheckRunner(flow.GRRFlow):
     self.state.Register("path_type", rdf_paths.PathSpec.PathType.OS)
     self.CallState(next_state="MapArtifactData")
 
-  @flow.StateHandler(next_state=["AddResponses", "RunChecks"])
+  @flow.StateHandler()
   def MapArtifactData(self, responses):
     """Get processed data, mapped to artifacts.
 
@@ -69,11 +69,12 @@ class CheckRunner(flow.GRRFlow):
         os_name=self.state.knowledge_base.os,
         restrict_checks=self.args.restrict_checks)
     for artifact_name in self.state.artifacts_wanted:
-      self.CallFlow("ArtifactCollectorFlow",
-                    artifact_list=[artifact_name],
-                    apply_parsers=False,
-                    request_data={"artifact_name": artifact_name},
-                    next_state="AddResponses")
+      self.CallFlow(
+          "ArtifactCollectorFlow",
+          artifact_list=[artifact_name],
+          apply_parsers=False,
+          request_data={"artifact_name": artifact_name},
+          next_state="AddResponses")
     self.CallState(next_state="RunChecks")
 
   def _ProcessData(self, processor, responses, artifact_name, source):
@@ -163,15 +164,16 @@ class CheckRunner(flow.GRRFlow):
     if responses:
       self._RunProcessors(artifact_name, responses)
 
-  @flow.StateHandler(next_state=["Done"])
+  @flow.StateHandler()
   def RunChecks(self, responses):
     if not responses.success:
       raise RuntimeError("Checks did not run successfully.")
     # Hand host data across to checks. Do this after all data has been collected
     # in case some checks require multiple artifacts/results.
-    for finding in checks.CheckHost(self.state.host_data,
-                                    os_name=self.state.knowledge_base.os,
-                                    restrict_checks=self.args.restrict_checks):
+    for finding in checks.CheckHost(
+        self.state.host_data,
+        os_name=self.state.knowledge_base.os,
+        restrict_checks=self.args.restrict_checks):
       self.state.checks_run.append(finding.check_id)
       if finding.anomaly:
         self.state.checks_with_findings.append(finding.check_id)

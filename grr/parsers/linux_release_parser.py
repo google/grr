@@ -183,5 +183,5 @@ class LinuxReleaseParser(parsers.FileParser):
         break
     else:
       # No successful parse.
-      yield rdf_anomaly.Anomaly(type='PARSER_ANOMALY',
-                                symptom='Unable to determine distribution.')
+      yield rdf_anomaly.Anomaly(
+          type='PARSER_ANOMALY', symptom='Unable to determine distribution.')

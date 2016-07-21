@@ -30,12 +30,11 @@ class TestCronView(test_lib.GRRSeleniumTest):
       for flow_name in [cron_system.GRRVersionBreakDown.__name__,
                         cron_system.OSBreakDown.__name__,
                         cron_system.LastAccessStats.__name__]:
-        cron_args = cronjobs.CreateCronJobFlowArgs(periodicity="7d",
-                                                   lifetime="1d")
+        cron_args = cronjobs.CreateCronJobFlowArgs(
+            periodicity="7d", lifetime="1d")
         cron_args.flow_runner_args.flow_name = flow_name
-        cronjobs.CRON_MANAGER.ScheduleFlow(cron_args,
-                                           job_name=flow_name,
-                                           token=self.token)
+        cronjobs.CRON_MANAGER.ScheduleFlow(
+            cron_args, job_name=flow_name, token=self.token)
 
       cronjobs.CRON_MANAGER.RunOnce(token=self.token)
 
@@ -87,30 +86,28 @@ class TestCronView(test_lib.GRRSeleniumTest):
     # Click on the first flow and wait for flow details panel to appear.
     self.Click("css=#main_bottomPane td:contains('OSBreakDown')")
     self.WaitUntil(self.IsTextPresent, "FLOW_STATE")
-    self.WaitUntil(self.IsTextPresent, "next_states")
     self.WaitUntil(self.IsTextPresent, "outstanding_requests")
 
     # Close the panel.
     self.Click("css=#main_bottomPane .panel button.close")
     self.WaitUntilNot(self.IsTextPresent, "FLOW_STATE")
-    self.WaitUntilNot(self.IsTextPresent, "next_states")
     self.WaitUntilNot(self.IsTextPresent, "outstanding_requests")
 
   def testToolbarStateForDisabledCronJob(self):
     with self.ACLChecksDisabled():
-      cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN(
-          "aff4:/cron/OSBreakDown"))
+      cronjobs.CRON_MANAGER.DisableJob(
+          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDown')")
 
-    self.assertTrue(self.IsElementPresent(
-        "css=button[name=EnableCronJob]:not([disabled])"))
-    self.assertTrue(self.IsElementPresent(
-        "css=button[name=DisableCronJob][disabled]"))
-    self.assertTrue(self.IsElementPresent(
-        "css=button[name=DeleteCronJob]:not([disabled])"))
+    self.assertTrue(
+        self.IsElementPresent("css=button[name=EnableCronJob]:not([disabled])"))
+    self.assertTrue(
+        self.IsElementPresent("css=button[name=DisableCronJob][disabled]"))
+    self.assertTrue(
+        self.IsElementPresent("css=button[name=DeleteCronJob]:not([disabled])"))
 
   def testToolbarStateForEnabledCronJob(self):
     with self.ACLChecksDisabled():
@@ -120,17 +117,18 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget=crons]")
     self.Click("css=td:contains('OSBreakDown')")
 
-    self.assertTrue(self.IsElementPresent(
-        "css=button[name=EnableCronJob][disabled]"))
-    self.assertTrue(self.IsElementPresent(
-        "css=button[name=DisableCronJob]:not([disabled])"))
-    self.assertTrue(self.IsElementPresent(
-        "css=button[name=DeleteCronJob]:not([disabled])"))
+    self.assertTrue(
+        self.IsElementPresent("css=button[name=EnableCronJob][disabled]"))
+    self.assertTrue(
+        self.IsElementPresent(
+            "css=button[name=DisableCronJob]:not([disabled])"))
+    self.assertTrue(
+        self.IsElementPresent("css=button[name=DeleteCronJob]:not([disabled])"))
 
   def testEnableCronJob(self):
     with self.ACLChecksDisabled():
-      cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN(
-          "aff4:/cron/OSBreakDown"))
+      cronjobs.CRON_MANAGER.DisableJob(
+          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     self.Open("/")
     self.Click("css=a[grrtarget=crons]")

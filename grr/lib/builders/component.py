@@ -110,8 +110,7 @@ def CheckUselessComponentModules(virtualenv_interpreter):
   """
   virtualenv_pip = os.path.join(os.path.dirname(virtualenv_interpreter), "pip")
   component_modules = set(subprocess.check_output(
-      [virtualenv_pip, "freeze"],
-      env=GetCleanEnvironment()).splitlines(),)
+      [virtualenv_pip, "freeze"], env=GetCleanEnvironment()).splitlines(),)
 
   client_modules = dict((x.key, x.version)
                         for x in pip.get_installed_distributions())
@@ -162,8 +161,8 @@ def BuildComponent(setup_path, output_dir=None):
     print "Building component %s, Version %s" % (setup_args["name"],
                                                  setup_args["version"])
     print "Creating Virtual Env %s" % tmp_dirname
-    subprocess.check_call(["virtualenv", tmp_dirname],
-                          env=GetCleanEnvironment())
+    subprocess.check_call(
+        ["virtualenv", tmp_dirname], env=GetCleanEnvironment())
 
     subprocess.check_call([GetVirtualEnvBinary(tmp_dirname, "pip"), "install",
                            "--upgrade", "setuptools", "wheel"])
@@ -188,9 +187,8 @@ def BuildComponent(setup_path, output_dir=None):
             os.path.join(component_path, directory))
 
     out_fd = StringIO.StringIO()
-    component_archive = zipfile.ZipFile(out_fd,
-                                        "w",
-                                        compression=zipfile.ZIP_DEFLATED)
+    component_archive = zipfile.ZipFile(
+        out_fd, "w", compression=zipfile.ZIP_DEFLATED)
 
     # Warn about incompatible modules.
     interpreter = GetVirtualEnvBinary(tmp_dirname, "python")
@@ -223,9 +221,10 @@ def BuildComponent(setup_path, output_dir=None):
 
     modules = setup_args.get("py_modules", []) + setup_args.get("packages", [])
     result = rdf_client.ClientComponent(
-        summary=rdf_client.ClientComponentSummary(name=setup_args["name"],
-                                                  version=setup_args["version"],
-                                                  modules=modules),
+        summary=rdf_client.ClientComponentSummary(
+            name=setup_args["name"],
+            version=setup_args["version"],
+            modules=modules),
         build_system=rdf_client.Uname.FromCurrentSystem(),)
 
     # Components will be encrypted using AES128CBC

@@ -41,15 +41,13 @@ def GetBigQueryClient(service_account=None,
                        "BigQuery.project_id and BigQuery.dataset_id "
                        "must be defined.")
 
-  creds = SignedJwtAssertionCredentials(service_account,
-                                        private_key,
-                                        scope=BIGQUERY_SCOPE)
+  creds = SignedJwtAssertionCredentials(
+      service_account, private_key, scope=BIGQUERY_SCOPE)
   http = httplib2.Http()
   http = creds.authorize(http)
   service = build("bigquery", "v2", http=http)
-  return BigQueryClient(project_id=project_id,
-                        bq_service=service,
-                        dataset_id=dataset_id)
+  return BigQueryClient(
+      project_id=project_id, bq_service=service, dataset_id=dataset_id)
 
 
 class BigQueryClient(object):
@@ -82,8 +80,8 @@ class BigQueryClient(object):
             "projectId": self.project_id
         }
     }
-    result = self.service.datasets().insert(projectId=self.project_id,
-                                            body=body).execute()
+    result = self.service.datasets().insert(
+        projectId=self.project_id, body=body).execute()
     self.datasets[self.dataset_id] = result
     return result
 
@@ -193,9 +191,8 @@ class BigQueryClient(object):
     # File content can be gzipped for bandwidth efficiency. The server handles
     # it correctly without any changes to the request.
     mediafile = MediaFileUpload(fd.name, mimetype="application/octet-stream")
-    job = self.service.jobs().insert(projectId=self.project_id,
-                                     body=body,
-                                     media_body=mediafile)
+    job = self.service.jobs().insert(
+        projectId=self.project_id, body=body, media_body=mediafile)
     try:
       response = job.execute()
       return response

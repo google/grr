@@ -12,25 +12,25 @@ class UsersTest(test_lib.AFF4ObjectTest):
   def setUp(self):
     super(UsersTest, self).setUp()
 
-    self.user = aff4.FACTORY.Create("aff4:/users/foo",
-                                    aff4_type=users.GRRUser,
-                                    mode="rw",
-                                    token=self.token)
+    self.user = aff4.FACTORY.Create(
+        "aff4:/users/foo", aff4_type=users.GRRUser, mode="rw", token=self.token)
     self.user.Flush()
 
   def testNoNotificationIsReturnedIfItWasNotSet(self):
     self.assertFalse(self.user.GetPendingGlobalNotifications())
 
   def testNotificationIsReturnedWhenItIsSet(self):
-    with aff4.FACTORY.Create(users.GlobalNotificationStorage.DEFAULT_PATH,
-                             aff4_type=users.GlobalNotificationStorage,
-                             mode="rw",
-                             token=self.token) as storage:
-      storage.AddNotification(users.GlobalNotification(
-          type=users.GlobalNotification.Type.ERROR,
-          header="foo",
-          content="bar",
-          link="http://www.google.com"))
+    with aff4.FACTORY.Create(
+        users.GlobalNotificationStorage.DEFAULT_PATH,
+        aff4_type=users.GlobalNotificationStorage,
+        mode="rw",
+        token=self.token) as storage:
+      storage.AddNotification(
+          users.GlobalNotification(
+              type=users.GlobalNotification.Type.ERROR,
+              header="foo",
+              content="bar",
+              link="http://www.google.com"))
 
     notifications = self.user.GetPendingGlobalNotifications()
     self.assertTrue(notifications)
@@ -40,15 +40,17 @@ class UsersTest(test_lib.AFF4ObjectTest):
 
   def testNotificationIsNotReturnedWhenItExpires(self):
     with test_lib.FakeTime(100):
-      with aff4.FACTORY.Create(users.GlobalNotificationStorage.DEFAULT_PATH,
-                               aff4_type=users.GlobalNotificationStorage,
-                               mode="rw",
-                               token=self.token) as storage:
-        storage.AddNotification(users.GlobalNotification(
-            type=users.GlobalNotification.Type.ERROR,
-            header="foo",
-            content="bar",
-            duration=rdfvalue.Duration("1h"),))
+      with aff4.FACTORY.Create(
+          users.GlobalNotificationStorage.DEFAULT_PATH,
+          aff4_type=users.GlobalNotificationStorage,
+          mode="rw",
+          token=self.token) as storage:
+        storage.AddNotification(
+            users.GlobalNotification(
+                type=users.GlobalNotification.Type.ERROR,
+                header="foo",
+                content="bar",
+                duration=rdfvalue.Duration("1h"),))
 
     with test_lib.FakeTime(101):
       notifications = self.user.GetPendingGlobalNotifications()

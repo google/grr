@@ -24,8 +24,8 @@ class ProfileServer(object):
   __metaclass__ = registry.MetaclassRegistry
 
   def __init__(self):
-    self.token = access_control.ACLToken(username="RekallProfileServer",
-                                         reason="Implied.")
+    self.token = access_control.ACLToken(
+        username="RekallProfileServer", reason="Implied.")
     self.token.supervisor = True
 
   def GetProfileByName(self,
@@ -53,8 +53,7 @@ class CachingProfileServer(ProfileServer):
     except IOError:
       pass
 
-  def _StoreProfile(self,
-                    profile,
+  def _StoreProfile(self, profile,
                     version=constants.PROFILE_REPOSITORY_VERSION):
     cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
     aff4_profile = aff4.FACTORY.Create(
@@ -110,10 +109,11 @@ class RekallRepositoryProfileServer(ProfileServer):
                    url, e.reason)
       raise
 
-    return rdf_rekall_types.RekallProfile(name=profile_name,
-                                          version=version,
-                                          compression=compression,
-                                          data=profile_data)
+    return rdf_rekall_types.RekallProfile(
+        name=profile_name,
+        version=version,
+        compression=compression,
+        data=profile_data)
 
 
 class GRRRekallProfileServer(CachingProfileServer,
@@ -123,9 +123,8 @@ class GRRRekallProfileServer(CachingProfileServer,
   def GetAllProfiles(self, version=constants.PROFILE_REPOSITORY_VERSION):
     """This function will download all profiles and cache them locally."""
 
-    inv_profile = self.GetProfileByName("inventory",
-                                        ignore_cache=True,
-                                        version=version)
+    inv_profile = self.GetProfileByName(
+        "inventory", ignore_cache=True, version=version)
     inventory_json = zlib.decompress(inv_profile.data, 16 + zlib.MAX_WBITS)
     inventory = json.loads(inventory_json)
 
@@ -138,9 +137,8 @@ class GRRRekallProfileServer(CachingProfileServer,
 
   def GetMissingProfiles(self, version=constants.PROFILE_REPOSITORY_VERSION):
     """This will download all profiles that are not already cached."""
-    inv_profile = self.GetProfileByName("inventory",
-                                        ignore_cache=True,
-                                        version=version)
+    inv_profile = self.GetProfileByName(
+        "inventory", ignore_cache=True, version=version)
     inventory_json = zlib.decompress(inv_profile.data, 16 + zlib.MAX_WBITS)
     inventory = json.loads(inventory_json)
 

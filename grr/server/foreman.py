@@ -18,8 +18,9 @@ class ForemanClientRuleSet(rdf_structs.RDFProtoStruct):
 
   def GetPathsToCheck(self):
     """Returns aff4 paths to be opened as objects passed to Evaluate."""
-    return set(itertools.chain.from_iterable(rule.GetPathsToCheck()
-                                             for rule in self.rules))
+    return set(
+        itertools.chain.from_iterable(rule.GetPathsToCheck()
+                                      for rule in self.rules))
 
   def Evaluate(self, objects, client_id):
     """Evaluates rules held in the rule set.

@@ -378,9 +378,8 @@ class StatFilter(Filter):
 
   def _Load(self, expression):
     self._Flush()
-    parser = config_file.KeyValueParser(kv_sep=":",
-                                        sep=",",
-                                        term=(r"\s+", r"\n"))
+    parser = config_file.KeyValueParser(
+        kv_sep=":", sep=",", term=(r"\s+", r"\n"))
     parsed = {}
     for entry in parser.ParseEntries(expression):
       parsed.update(entry)

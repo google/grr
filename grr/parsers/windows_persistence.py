@@ -20,15 +20,15 @@ class WindowsPersistenceMechanismsParser(parsers.ArtifactFilesParser):
     """Guess windows filenames from a commandline string."""
 
     environ_vars = artifact_utils.GetWindowsEnvironmentVariablesMap(kb)
-    path_guesses = path_detection_windows.DetectExecutablePaths(
-        [path], environ_vars)
+    path_guesses = path_detection_windows.DetectExecutablePaths([path],
+                                                                environ_vars)
 
     if not path_guesses:
       # TODO(user): yield a ParserAnomaly object
       return []
 
-    return [rdf_paths.PathSpec(path=path, pathtype=pathtype)
-            for path in path_guesses]
+    return [rdf_paths.PathSpec(
+        path=path, pathtype=pathtype) for path in path_guesses]
 
   def Parse(self, persistence, knowledge_base, download_pathtype):
     """Convert persistence collector output to downloadable rdfvalues."""
@@ -53,5 +53,5 @@ class WindowsPersistenceMechanismsParser(parsers.ArtifactFilesParser):
       source_urn = persistence.aff4path
 
     for pathspec in pathspecs:
-      yield rdf_standard.PersistenceFile(pathspec=pathspec,
-                                         source_urn=source_urn)
+      yield rdf_standard.PersistenceFile(
+          pathspec=pathspec, source_urn=source_urn)

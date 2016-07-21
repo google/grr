@@ -225,10 +225,7 @@ class HTTPManager(object):
 
     return last_error
 
-  def OpenURL(self,
-              url,
-              verify_cb=lambda x: True,
-              data=None,
+  def OpenURL(self, url, verify_cb=lambda x: True, data=None,
               request_opts=None):
     """Get the requested URL.
 
@@ -272,18 +269,12 @@ class HTTPManager(object):
         duration, handle = self._RetryRequest(request)
         data = handle.read()
 
-        result = HTTPObject(url=url,
-                            data=data,
-                            proxy=proxy,
-                            code=200,
-                            duration=duration)
+        result = HTTPObject(
+            url=url, data=data, proxy=proxy, code=200, duration=duration)
 
         if not verify_cb(result):
-          raise urllib2.HTTPError(url=url,
-                                  code=500,
-                                  msg="Data not verified.",
-                                  hdrs=[],
-                                  fp=handle)
+          raise urllib2.HTTPError(
+              url=url, code=500, msg="Data not verified.", hdrs=[], fp=handle)
 
         # The last connection worked.
         self.consecutive_connection_errors = 0
@@ -604,15 +595,16 @@ class GRRClientWorker(object):
     if not isinstance(rdf_value, rdfvalue.RDFValue):
       raise RuntimeError("Sending objects other than RDFValues not supported.")
 
-    message = rdf_flows.GrrMessage(session_id=session_id,
-                                   task_id=task_id,
-                                   name=name,
-                                   response_id=response_id,
-                                   request_id=request_id,
-                                   priority=priority,
-                                   require_fastpoll=require_fastpoll,
-                                   ttl=ttl,
-                                   type=message_type)
+    message = rdf_flows.GrrMessage(
+        session_id=session_id,
+        task_id=task_id,
+        name=name,
+        response_id=response_id,
+        request_id=request_id,
+        priority=priority,
+        require_fastpoll=require_fastpoll,
+        ttl=ttl,
+        type=message_type)
 
     if rdf_value:
       message.payload = rdf_value
@@ -789,8 +781,9 @@ class GRRClientWorker(object):
       action_cls = actions.ActionPlugin.classes.get("GetClientStatsAuto",
                                                     actions.ActionPlugin)
       action = action_cls(grr_worker=self)
-      action.Run(rdf_client.GetClientStatsRequest(
-          start_time=self.last_stats_sent_time))
+      action.Run(
+          rdf_client.GetClientStatsRequest(
+              start_time=self.last_stats_sent_time))
 
       self.last_stats_sent_time = rdfvalue.RDFDatetime().Now()
       stats.STATS.SetGaugeValue("grr_client_last_stats_sent_time",
@@ -921,8 +914,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     # This queue should never hit its maximum since the server will throttle
     # messages before this.
     self._in_queue = utils.HeartbeatQueue(
-        callback=self.nanny_controller.Heartbeat,
-        maxsize=1024)
+        callback=self.nanny_controller.Heartbeat, maxsize=1024)
 
     # The size of the output queue controls the worker thread. Once this queue
     # is too large, the worker thread will block until the queue is drained.
@@ -1019,11 +1011,12 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
       if nanny_status:
         status.nanny_status = nanny_status
 
-      self.SendReply(status,
-                     request_id=last_request.request_id,
-                     response_id=1,
-                     session_id=last_request.session_id,
-                     message_type=rdf_flows.GrrMessage.Type.STATUS)
+      self.SendReply(
+          status,
+          request_id=last_request.request_id,
+          response_id=1,
+          session_id=last_request.session_id,
+          message_type=rdf_flows.GrrMessage.Type.STATUS)
 
     self.nanny_controller.CleanTransactionLog()
 
@@ -1165,8 +1158,7 @@ class GRRHTTPClient(object):
         # certificate. This will raise if the server cert is invalid.
         server_certificate = rdf_crypto.RDFX509Cert(server_pem)
         self.communicator.LoadServerCertificate(
-            server_certificate=server_certificate,
-            ca_certificate=self.ca_cert)
+            server_certificate=server_certificate, ca_certificate=self.ca_cert)
 
         logging.info("Server PEM re-keyed.")
         return True
@@ -1442,10 +1434,11 @@ class GRRHTTPClient(object):
       self.last_enrollment_time = now
       # Send registration request:
       self.client_worker.SendReply(
-          rdf_crypto.Certificate(type=rdf_crypto.Certificate.Type.CSR,
-                                 pem=self.communicator.GetCSRAsPem()),
-          session_id=rdfvalue.SessionID(queue=queues.ENROLLMENT,
-                                        flow_name="Enrol"))
+          rdf_crypto.Certificate(
+              type=rdf_crypto.Certificate.Type.CSR,
+              pem=self.communicator.GetCSRAsPem()),
+          session_id=rdfvalue.SessionID(
+              queue=queues.ENROLLMENT, flow_name="Enrol"))
 
 
 class ClientCommunicator(communicator.Communicator):
@@ -1456,8 +1449,8 @@ class ClientCommunicator(communicator.Communicator):
   """
 
   def __init__(self, certificate=None, private_key=None):
-    super(ClientCommunicator, self).__init__(certificate=certificate,
-                                             private_key=private_key)
+    super(ClientCommunicator, self).__init__(
+        certificate=certificate, private_key=private_key)
     self.InitPrivateKey()
 
   def InitPrivateKey(self):
@@ -1495,8 +1488,8 @@ class ClientCommunicator(communicator.Communicator):
 
   def GetCSR(self):
     """Return our CSR."""
-    return rdf_crypto.CertificateSigningRequest(common_name=self.common_name,
-                                                private_key=self.private_key)
+    return rdf_crypto.CertificateSigningRequest(
+        common_name=self.common_name, private_key=self.private_key)
 
   def GetCSRAsPem(self):
     """Return our CSR in PEM format."""

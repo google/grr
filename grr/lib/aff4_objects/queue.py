@@ -190,10 +190,8 @@ class Queue(aff4.AFF4Object):
     Raises:
       LockError: If the queue is not locked.
     """
-    data_store.DB.MultiDeleteAttributes(ids,
-                                        [self.LOCK_ATTRIBUTE,
-                                         self.VALUE_ATTRIBUTE],
-                                        token=self.token)
+    data_store.DB.MultiDeleteAttributes(
+        ids, [self.LOCK_ATTRIBUTE, self.VALUE_ATTRIBUTE], token=self.token)
 
   def DeleteRecord(self, record_id):
     """Delete a single record."""
@@ -210,8 +208,8 @@ class Queue(aff4.AFF4Object):
     Raises:
       LockError: If the queue is not locked.
     """
-    data_store.DB.MultiDeleteAttributes(ids, [self.LOCK_ATTRIBUTE],
-                                        token=self.token)
+    data_store.DB.MultiDeleteAttributes(
+        ids, [self.LOCK_ATTRIBUTE], token=self.token)
 
   def ReleaseRecord(self, record_id):
     """Release a single record."""

@@ -28,14 +28,18 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
   @mock.patch.object(bigquery, "build")
   @mock.patch.object(bigquery.httplib2, "Http")
   def testInsertData(self, mock_http, mock_build, mock_creds):
-    bq_client = bigquery.GetBigQueryClient(service_account=self.SERVICE_ACCOUNT,
-                                           private_key=self.TEST_KEY,
-                                           project_id=self.PROJECT_ID)
+    bq_client = bigquery.GetBigQueryClient(
+        service_account=self.SERVICE_ACCOUNT,
+        private_key=self.TEST_KEY,
+        project_id=self.PROJECT_ID)
 
-    schema_data = json.load(open(os.path.join(config_lib.CONFIG[
-        "Test.data_dir"], "bigquery", "ExportedFile.schema")))
-    data_fd = open(os.path.join(config_lib.CONFIG[
-        "Test.data_dir"], "bigquery", "ExportedFile.json.gz"))
+    schema_data = json.load(
+        open(
+            os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
+                         "ExportedFile.schema")))
+    data_fd = open(
+        os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
+                     "ExportedFile.json.gz"))
     now = rdfvalue.RDFDatetime().Now().AsSecondsFromEpoch()
     job_id = "hunts_HFFE1D044_Results_%s" % now
     bq_client.InsertData("ExportedFile", data_fd, schema_data, job_id)
@@ -43,8 +47,8 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
     # We should have called insert once
     insert = mock_build.return_value.jobs.return_value.insert
     self.assertEqual(insert.call_count, 1)
-    self.assertEqual(job_id, insert.call_args_list[0][1][
-        "body"]["jobReference"]["jobId"])
+    self.assertEqual(
+        job_id, insert.call_args_list[0][1]["body"]["jobReference"]["jobId"])
 
   def testRetryUpload(self):
     bq_client = bigquery.BigQueryClient()
@@ -70,8 +74,8 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
     multiplier = config_lib.CONFIG["BigQuery.retry_multiplier"]
 
     self.assertEqual(job.execute.call_count, max_calls)
-    mock_sleep.assert_has_calls([mock.call(retry_interval), mock.call(
-        retry_interval * multiplier)])
+    mock_sleep.assert_has_calls([mock.call(retry_interval),
+                                 mock.call(retry_interval * multiplier)])
 
 
 def main(argv):

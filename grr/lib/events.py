@@ -171,10 +171,11 @@ class Events(object):
           # Forward the message to the well known flow's queue.
           for event_urn in handler_urns:
             manager.QueueResponse(event_urn, msg)
-            manager.QueueNotification(rdf_flows.GrrNotification(
-                session_id=event_urn,
-                priority=msg.priority,
-                timestamp=timestamp))
+            manager.QueueNotification(
+                rdf_flows.GrrNotification(
+                    session_id=event_urn,
+                    priority=msg.priority,
+                    timestamp=timestamp))
 
   @classmethod
   def PublishEventInline(cls, event_name, msg, token=None):
@@ -192,7 +193,6 @@ class Events(object):
       raise ValueError("Event name must be a string.")
     event_name_map = registry.EventRegistry.EVENT_NAME_MAP
     for event_cls in event_name_map.get(event_name, []):
-      event_obj = event_cls(event_cls.well_known_session_id,
-                            mode="rw",
-                            token=token)
+      event_obj = event_cls(
+          event_cls.well_known_session_id, mode="rw", token=token)
       event_obj.ProcessMessage(msg)

@@ -47,10 +47,11 @@ MAX_LABEL = 3
 # maps to a proto2 primitive field type. When parsing the .proto file we must
 # ensure that the semantic value is getting encoded into the correct primitive
 # field type.
-_SEMANTIC_PRIMITIVE_TO_FIELD_TYPE = dict(bytes=TYPE_BYTES,
-                                         string=TYPE_STRING,
-                                         integer=TYPE_INT64,
-                                         unsigned_integer=TYPE_UINT64,)
+_SEMANTIC_PRIMITIVE_TO_FIELD_TYPE = dict(
+    bytes=TYPE_BYTES,
+    string=TYPE_STRING,
+    integer=TYPE_INT64,
+    unsigned_integer=TYPE_UINT64,)
 
 
 def DefineFromProtobuf(cls, protobuf):
@@ -84,11 +85,12 @@ def DefineFromProtobuf(cls, protobuf):
 
     # Does this field have semantic options?
     options = field.GetOptions().Extensions[semantic_pb2.sem_type]
-    kwargs = dict(description=options.description,
-                  name=field.name,
-                  friendly_name=options.friendly_name,
-                  field_number=field.number,
-                  labels=list(options.label))
+    kwargs = dict(
+        description=options.description,
+        name=field.name,
+        friendly_name=options.friendly_name,
+        field_number=field.number,
+        labels=list(options.label))
 
     if field.has_default_value:
       kwargs["default"] = field.default_value
@@ -104,20 +106,20 @@ def DefineFromProtobuf(cls, protobuf):
             rdf_type.data_store_type]
 
         if required_field_type != field.type:
-          raise rdfvalue.InitializeError((
-              "%s: .proto file uses incorrect field to store Semantic Value "
-              "%s: Should be %s") % (cls.__name__, field.name,
-                                     rdf_type.data_store_type))
+          raise rdfvalue.InitializeError(
+              ("%s: .proto file uses incorrect field to store Semantic Value "
+               "%s: Should be %s") % (cls.__name__, field.name,
+                                      rdf_type.data_store_type))
 
       type_descriptor = type_info.ProtoRDFValue(rdf_type=options.type, **kwargs)
 
     # A semantic protobuf is already a semantic value so it is an error to
     # specify it in two places.
     elif options.type and field.type == TYPE_MESSAGE:
-      raise rdfvalue.InitializeError((
-          "%s: .proto file specified both Semantic Value type %s and "
-          "Semantic protobuf %s") % (cls.__name__, options.type,
-                                     field.message_type.name))
+      raise rdfvalue.InitializeError(
+          ("%s: .proto file specified both Semantic Value type %s and "
+           "Semantic protobuf %s") % (cls.__name__, options.type,
+                                      field.message_type.name))
 
     # Try to figure out what this field actually is from the descriptor.
     elif field.type == TYPE_DOUBLE:
@@ -168,8 +170,8 @@ def DefineFromProtobuf(cls, protobuf):
       # known at this time. It will be resolved using the late binding algorithm
       # when it is known. Therefore this can actually also refer to this current
       # protobuf (i.e. nested proto).
-      type_descriptor = type_info.ProtoEmbedded(nested=field.message_type.name,
-                                                **kwargs)
+      type_descriptor = type_info.ProtoEmbedded(
+          nested=field.message_type.name, **kwargs)
 
       # TODO(user): support late binding here.
       if type_descriptor.type:
@@ -224,11 +226,12 @@ def DefineFromProtobuf(cls, protobuf):
 
       enum_dict = dict((x.name, x.number) for x in enum_desc.values)
 
-      type_descriptor = type_info.ProtoEnum(enum_name=enum_desc.name,
-                                            enum=enum_dict,
-                                            enum_descriptions=enum_descriptions,
-                                            enum_labels=enum_labels,
-                                            **kwargs)
+      type_descriptor = type_info.ProtoEnum(
+          enum_name=enum_desc.name,
+          enum=enum_dict,
+          enum_descriptions=enum_descriptions,
+          enum_labels=enum_labels,
+          **kwargs)
 
       # Attach the enum container to the class for easy reference:
       setattr(cls, enum_desc.name, type_descriptor.enum_container)
@@ -238,8 +241,8 @@ def DefineFromProtobuf(cls, protobuf):
       # If the field is repeated, wrap it in a ProtoList.
       if field.label == LABEL_REPEATED:
         options = field.GetOptions().Extensions[semantic_pb2.sem_type]
-        type_descriptor = type_info.ProtoList(type_descriptor,
-                                              labels=list(options.label))
+        type_descriptor = type_info.ProtoList(
+            type_descriptor, labels=list(options.label))
 
       try:
         cls.AddDescriptor(type_descriptor)

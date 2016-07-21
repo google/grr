@@ -45,16 +45,19 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
 
     self.collection_urn = aff4.ROOT_URN.Add("hunts/H:ABCDEF/Results")
     self.paths = [path1, path2]
-    with aff4.FACTORY.Create(self.collection_urn,
-                             aff4_type=collects.RDFValueCollection,
-                             mode="w",
-                             token=self.token) as collection:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        aff4_type=collects.RDFValueCollection,
+        mode="w",
+        token=self.token) as collection:
 
       for path in self.paths:
-        collection.Add(rdf_client.StatEntry(
-            aff4path=path,
-            pathspec=rdf_paths.PathSpec(path="fs/os/foo/bar/" + path.split("/")[
-                -1], pathtype=rdf_paths.PathSpec.PathType.OS)))
+        collection.Add(
+            rdf_client.StatEntry(
+                aff4path=path,
+                pathspec=rdf_paths.PathSpec(
+                    path="fs/os/foo/bar/" + path.split("/")[-1],
+                    pathtype=rdf_paths.PathSpec.PathType.OS)))
 
   def _CheckEmailMessage(self, email_messages):
     self.assertEqual(len(email_messages), 1)
@@ -69,10 +72,9 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
       self.assertTrue(" of 2 files" in msg["message"])
 
   def _SendEmailMock(self, address, sender, title, message, **_):
-    self.email_messages.append(dict(address=address,
-                                    sender=sender,
-                                    title=title,
-                                    message=message))
+    self.email_messages.append(
+        dict(
+            address=address, sender=sender, title=title, message=message))
 
   def _RunFlow(self, archive_format=None):
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail",
@@ -94,8 +96,7 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
     self._RunFlow()
 
     user_fd = aff4.FACTORY.Open(
-        aff4.ROOT_URN.Add("users").Add("test"),
-        token=self.token)
+        aff4.ROOT_URN.Add("users").Add("test"), token=self.token)
     notifications = user_fd.Get(user_fd.Schema.PENDING_NOTIFICATIONS)
     self.assertEqual(len(notifications), 1)
     self.assertEqual(notifications[0].type, "DownloadFile")
@@ -110,8 +111,7 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
     self._RunFlow()
 
     user_fd = aff4.FACTORY.Open(
-        aff4.ROOT_URN.Add("users").Add("test"),
-        token=self.token)
+        aff4.ROOT_URN.Add("users").Add("test"), token=self.token)
     notifications = user_fd.Get(user_fd.Schema.PENDING_NOTIFICATIONS)
     self.assertTrue(notifications[0].message.startswith(
         "Results ready for download (archived 0 out of 2 results"))
@@ -120,14 +120,12 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
     self._RunFlow(archive_format="ZIP")
 
     user_fd = aff4.FACTORY.Open(
-        aff4.ROOT_URN.Add("users").Add("test"),
-        token=self.token)
+        aff4.ROOT_URN.Add("users").Add("test"), token=self.token)
     notifications = user_fd.Get(user_fd.Schema.PENDING_NOTIFICATIONS)
     self.assertEqual(len(notifications), 1)
 
-    zip_fd = aff4.FACTORY.Open(notifications[0].subject,
-                               aff4_type=aff4.AFF4Stream,
-                               token=self.token)
+    zip_fd = aff4.FACTORY.Open(
+        notifications[0].subject, aff4_type=aff4.AFF4Stream, token=self.token)
     zip_fd_contents = zip_fd.Read(len(zip_fd))
 
     with utils.TempDirectory() as temp_dir:
@@ -143,28 +141,26 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
                             "C.0000000000000000/fs/os/foo/bar")
 
       self.assertTrue(os.path.islink(os.path.join(prefix, "hello1.txt")))
-      self.assertTrue(os.path.islink(utils.SmartStr(os.path.join(
-          prefix, u"中国新闻网新闻中.txt"))))
+      self.assertTrue(
+          os.path.islink(utils.SmartStr(os.path.join(prefix, u"中国新闻网新闻中.txt"))))
 
       with open(os.path.join(prefix, "hello1.txt"), "r") as fd:
         self.assertEqual(fd.read(), "hello1")
 
-      with open(
-          utils.SmartStr(os.path.join(prefix, u"中国新闻网新闻中.txt")), "r") as fd:
+      with open(utils.SmartStr(os.path.join(prefix, u"中国新闻网新闻中.txt")),
+                "r") as fd:
         self.assertEqual(fd.read(), "hello2")
 
   def testCreatesTarContainingDeduplicatedCollectionFiles(self):
     self._RunFlow(archive_format="TAR_GZ")
 
     user_fd = aff4.FACTORY.Open(
-        aff4.ROOT_URN.Add("users").Add("test"),
-        token=self.token)
+        aff4.ROOT_URN.Add("users").Add("test"), token=self.token)
     notifications = user_fd.Get(user_fd.Schema.PENDING_NOTIFICATIONS)
     self.assertEqual(len(notifications), 1)
 
-    tar_fd = aff4.FACTORY.Open(notifications[0].subject,
-                               aff4_type=aff4.AFF4Stream,
-                               token=self.token)
+    tar_fd = aff4.FACTORY.Open(
+        notifications[0].subject, aff4_type=aff4.AFF4Stream, token=self.token)
     tar_fd_contents = tar_fd.Read(len(tar_fd))
 
     with utils.TempDirectory() as temp_dir:
@@ -178,14 +174,14 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
                             "C.0000000000000000/fs/os/foo/bar")
 
       self.assertTrue(os.path.islink(os.path.join(prefix, "hello1.txt")))
-      self.assertTrue(os.path.islink(utils.SmartStr(os.path.join(
-          prefix, u"中国新闻网新闻中.txt"))))
+      self.assertTrue(
+          os.path.islink(utils.SmartStr(os.path.join(prefix, u"中国新闻网新闻中.txt"))))
 
       with open(os.path.join(prefix, "hello1.txt"), "r") as fd:
         self.assertEqual(fd.read(), "hello1")
 
-      with open(
-          utils.SmartStr(os.path.join(prefix, u"中国新闻网新闻中.txt")), "r") as fd:
+      with open(utils.SmartStr(os.path.join(prefix, u"中国新闻网新闻中.txt")),
+                "r") as fd:
         self.assertEqual(fd.read(), "hello2")
 
 

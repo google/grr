@@ -68,9 +68,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     with test_lib.FakeTime(0):
       # Clean up the foreman to remove any rules.
-      with aff4.FACTORY.Open("aff4:/foreman",
-                             mode="rw",
-                             token=self.token) as foreman:
+      with aff4.FACTORY.Open(
+          "aff4:/foreman", mode="rw", token=self.token) as foreman:
         foreman.Set(foreman.Schema.RULES())
 
     DummyHunt.client_ids = []
@@ -85,20 +84,21 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client",
-                attribute_regex="HUNT")), rdf_foreman.ForemanClientRule(
-                    rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
-                    integer=rdf_foreman.ForemanIntegerClientRule(
-                        attribute_name="Clock",
-                        operator=rdf_foreman.ForemanIntegerClientRule.Operator.
-                        GREATER_THAN,
-                        value=1336650631137737))
+                attribute_name="GRR client", attribute_regex="HUNT")),
+        rdf_foreman.ForemanClientRule(
+            rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
+            integer=rdf_foreman.ForemanIntegerClientRule(
+                attribute_name="Clock",
+                operator=rdf_foreman.ForemanIntegerClientRule.Operator.
+                GREATER_THAN,
+                value=1336650631137737))
     ])
 
-    hunt = hunts.GRRHunt.StartHunt(hunt_name="SampleHunt",
-                                   client_rule_set=client_rule_set,
-                                   client_rate=0,
-                                   token=self.token)
+    hunt = hunts.GRRHunt.StartHunt(
+        hunt_name="SampleHunt",
+        client_rule_set=client_rule_set,
+        client_rate=0,
+        token=self.token)
 
     # Push the rules to the foreman.
     with hunt:
@@ -145,44 +145,41 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     now = rdfvalue.RDFDatetime().Now()
     expires = rdfvalue.Duration("1h").Expiry()
     # Add some rules.
-    rules = [rdf_foreman.ForemanRule(created=now,
-                                     expires=expires,
-                                     description="Test rule1"),
-             rdf_foreman.ForemanRule(created=now,
-                                     expires=expires,
-                                     description="Test rule2")]
+    rules = [rdf_foreman.ForemanRule(
+        created=now, expires=expires, description="Test rule1"),
+             rdf_foreman.ForemanRule(
+                 created=now, expires=expires, description="Test rule2")]
     self.AddForemanRules(rules)
 
     client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client",
-                attribute_regex="HUNT")), rdf_foreman.ForemanClientRule(
-                    rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
-                    integer=rdf_foreman.ForemanIntegerClientRule(
-                        attribute_name="Clock",
-                        operator=rdf_foreman.ForemanIntegerClientRule.Operator.
-                        GREATER_THAN,
-                        value=1336650631137737))
+                attribute_name="GRR client", attribute_regex="HUNT")),
+        rdf_foreman.ForemanClientRule(
+            rule_type=rdf_foreman.ForemanClientRule.Type.INTEGER,
+            integer=rdf_foreman.ForemanIntegerClientRule(
+                attribute_name="Clock",
+                operator=rdf_foreman.ForemanIntegerClientRule.Operator.
+                GREATER_THAN,
+                value=1336650631137737))
     ])
 
-    hunt = hunts.GRRHunt.StartHunt(hunt_name="SampleHunt",
-                                   client_rule_set=client_rule_set,
-                                   client_rate=0,
-                                   token=self.token)
+    hunt = hunts.GRRHunt.StartHunt(
+        hunt_name="SampleHunt",
+        client_rule_set=client_rule_set,
+        client_rate=0,
+        token=self.token)
 
     with hunt:
       runner = hunt.GetRunner()
       runner.Start()
 
       # Add some more rules.
-      rules = [rdf_foreman.ForemanRule(created=now,
-                                       expires=expires,
-                                       description="Test rule3"),
-               rdf_foreman.ForemanRule(created=now,
-                                       expires=expires,
-                                       description="Test rule4")]
+      rules = [rdf_foreman.ForemanRule(
+          created=now, expires=expires, description="Test rule3"),
+               rdf_foreman.ForemanRule(
+                   created=now, expires=expires, description="Test rule4")]
       self.AddForemanRules(rules)
 
       foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
@@ -211,14 +208,14 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="no such attribute",
-                attribute_regex="HUNT"))
+                attribute_name="no such attribute", attribute_regex="HUNT"))
     ])
 
-    with hunts.GRRHunt.StartHunt(hunt_name="BrokenSampleHunt",
-                                 client_rule_set=client_rule_set,
-                                 client_rate=0,
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="BrokenSampleHunt",
+        client_rule_set=client_rule_set,
+        client_rate=0,
+        token=self.token) as hunt:
 
       runner = hunt.GetRunner()
       self.assertRaises(ValueError, runner.Start)
@@ -233,15 +230,15 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client",
-                attribute_regex="GRR"))
+                attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(hunt_name="SampleHunt",
-                                 client_rule_set=client_rule_set,
-                                 client_limit=client_limit,
-                                 client_rate=0,
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="SampleHunt",
+        client_rule_set=client_rule_set,
+        client_limit=client_limit,
+        client_rate=0,
+        token=self.token) as hunt:
 
       hunt.GetRunner().Start()
 
@@ -262,15 +259,14 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       self.assertEqual(self.called[0][1], [client.urn])
 
   def testStartClients(self):
-    with hunts.GRRHunt.StartHunt(hunt_name="SampleHunt",
-                                 client_rate=0,
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="SampleHunt", client_rate=0, token=self.token) as hunt:
 
       hunt.GetRunner().Start()
 
-    flows = list(aff4.FACTORY.Open(
-        self.client_id.Add("flows"),
-        token=self.token).ListChildren())
+    flows = list(
+        aff4.FACTORY.Open(
+            self.client_id.Add("flows"), token=self.token).ListChildren())
 
     self.assertEqual(flows, [])
 
@@ -278,9 +274,9 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     test_lib.TestHuntHelper(None, [self.client_id], False, self.token)
 
-    flows = list(aff4.FACTORY.Open(
-        self.client_id.Add("flows"),
-        token=self.token).ListChildren())
+    flows = list(
+        aff4.FACTORY.Open(
+            self.client_id.Add("flows"), token=self.token).ListChildren())
 
     # One flow should have been started.
     self.assertEqual(len(flows), 1)
@@ -302,14 +298,14 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client",
-                attribute_regex="GRR"))
+                attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(hunt_name="SampleHunt",
-                                 client_rule_set=client_rule_set,
-                                 client_rate=0,
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="SampleHunt",
+        client_rule_set=client_rule_set,
+        client_rate=0,
+        token=self.token) as hunt:
 
       hunt.GetRunner().Start()
 
@@ -321,11 +317,12 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client_mock = test_lib.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
-    hunt_obj = aff4.FACTORY.Open(hunt.session_id,
-                                 mode="r",
-                                 age=aff4.ALL_TIMES,
-                                 aff4_type=hunts.SampleHunt,
-                                 token=self.token)
+    hunt_obj = aff4.FACTORY.Open(
+        hunt.session_id,
+        mode="r",
+        age=aff4.ALL_TIMES,
+        aff4_type=hunts.SampleHunt,
+        token=self.token)
 
     started, finished, _ = hunt_obj.GetClientsCounts()
     self.assertEqual(started, 10)
@@ -340,14 +337,14 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client",
-                attribute_regex="GRR"))
+                attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(hunt_name="SampleHunt",
-                                 client_rule_set=client_rule_set,
-                                 client_rate=0,
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="SampleHunt",
+        client_rule_set=client_rule_set,
+        client_rate=0,
+        token=self.token) as hunt:
 
       hunt.GetRunner().Start()
 
@@ -359,10 +356,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     # Just pass 8 clients to run, the other two went offline.
     test_lib.TestHuntHelper(client_mock, client_ids[1:9], False, self.token)
 
-    hunt_obj = aff4.FACTORY.Open(hunt.session_id,
-                                 mode="rw",
-                                 age=aff4.ALL_TIMES,
-                                 token=self.token)
+    hunt_obj = aff4.FACTORY.Open(
+        hunt.session_id, mode="rw", age=aff4.ALL_TIMES, token=self.token)
 
     started, finished, _ = hunt_obj.GetClientsCounts()
     # We started the hunt on 10 clients.
@@ -378,14 +373,14 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client",
-                attribute_regex="GRR"))
+                attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(hunt_name="SampleHunt",
-                                 client_rule_set=client_rule_set,
-                                 client_rate=0,
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="SampleHunt",
+        client_rule_set=client_rule_set,
+        client_rate=0,
+        token=self.token) as hunt:
 
       hunt.GetRunner().Start()
 
@@ -424,15 +419,15 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client",
-                attribute_regex="GRR"))
+                attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(hunt_name="SampleHunt",
-                                 client_limit=5,
-                                 client_rule_set=client_rule_set,
-                                 client_rate=0,
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="SampleHunt",
+        client_limit=5,
+        client_rule_set=client_rule_set,
+        client_rate=0,
+        token=self.token) as hunt:
       hunt.Run()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)
@@ -443,10 +438,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client_mock = test_lib.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
-    hunt_obj = aff4.FACTORY.Open(hunt.urn,
-                                 mode="rw",
-                                 age=aff4.ALL_TIMES,
-                                 token=self.token)
+    hunt_obj = aff4.FACTORY.Open(
+        hunt.urn, mode="rw", age=aff4.ALL_TIMES, token=self.token)
 
     started, finished, _ = hunt_obj.GetClientsCounts()
     # We limited here to 5 clients.
@@ -463,14 +456,14 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client",
-                attribute_regex="GRR"))
+                attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(hunt_name="BrokenSampleHunt",
-                                 client_rule_set=client_rule_set,
-                                 client_rate=0,
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="BrokenSampleHunt",
+        client_rule_set=client_rule_set,
+        client_rate=0,
+        token=self.token) as hunt:
 
       hunt.GetRunner().Start()
 
@@ -482,10 +475,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     client_mock = test_lib.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
-    hunt_obj = aff4.FACTORY.Open(hunt.session_id,
-                                 mode="rw",
-                                 age=aff4.ALL_TIMES,
-                                 token=self.token)
+    hunt_obj = aff4.FACTORY.Open(
+        hunt.session_id, mode="rw", age=aff4.ALL_TIMES, token=self.token)
 
     started, finished, errors = hunt_obj.GetClientsCounts()
     self.assertEqual(started, 10)
@@ -505,15 +496,15 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client",
-                attribute_regex="GRR"))
+                attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(hunt_name="BrokenSampleHunt",
-                                 client_rule_set=client_rule_set,
-                                 client_rate=0,
-                                 notification_event="TestHuntDone",
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="BrokenSampleHunt",
+        client_rule_set=client_rule_set,
+        client_rate=0,
+        notification_event="TestHuntDone",
+        token=self.token) as hunt:
 
       hunt.GetRunner().Start()
 
@@ -523,10 +514,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     # Run the hunt.
     client_mock = test_lib.SampleHuntMock()
-    test_lib.TestHuntHelper(client_mock,
-                            client_ids,
-                            check_flow_errors=False,
-                            token=self.token)
+    test_lib.TestHuntHelper(
+        client_mock, client_ids, check_flow_errors=False, token=self.token)
 
     self.assertEqual(len(TestHuntListener.received_events), 5)
 
@@ -535,14 +524,14 @@ class HuntTest(test_lib.FlowTestsBaseclass):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client",
-                attribute_regex="GRR"))
+                attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(hunt_name="DummyHunt",
-                                 client_rule_set=client_rule_set,
-                                 client_rate=1,
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="DummyHunt",
+        client_rule_set=client_rule_set,
+        client_rate=1,
+        token=self.token) as hunt:
       hunt.Run()
 
     # Pretend to be the foreman now and dish out hunting jobs to all the
@@ -554,9 +543,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(DummyHunt.client_ids), 0)
 
     # Run the hunt.
-    worker_mock = test_lib.MockWorker(check_flow_errors=True,
-                                      queues=queues.HUNTS,
-                                      token=self.token)
+    worker_mock = test_lib.MockWorker(
+        check_flow_errors=True, queues=queues.HUNTS, token=self.token)
 
     # One client is scheduled in the first minute.
     with test_lib.FakeTime(start_time + 2):
@@ -596,10 +584,9 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       worker_mock, hunt_urn = self._RunRateLimitedHunt(client_ids, start_time)
 
       # Now pause the hunt
-      with aff4.FACTORY.Open(hunt_urn,
-                             age=aff4.ALL_TIMES,
-                             mode="rw",
-                             token=self.token) as hunt_obj:
+      with aff4.FACTORY.Open(
+          hunt_urn, age=aff4.ALL_TIMES, mode="rw",
+          token=self.token) as hunt_obj:
         hunt_obj.Stop()
 
       # No more clients should be processed.

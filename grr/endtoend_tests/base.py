@@ -120,11 +120,12 @@ class ClientTestBase(unittest.TestCase):
       self.session_id = debugging.StartFlowAndWorker(self.client_id, self.flow,
                                                      **self.args)
     else:
-      self.session_id = flow_utils.StartFlowAndWait(self.client_id,
-                                                    flow_name=self.flow,
-                                                    timeout=self.timeout,
-                                                    token=self.token,
-                                                    **self.args)
+      self.session_id = flow_utils.StartFlowAndWait(
+          self.client_id,
+          flow_name=self.flow,
+          timeout=self.timeout,
+          token=self.token,
+          **self.args)
 
     self.CheckFlow()
 
@@ -157,9 +158,8 @@ class ClientTestBase(unittest.TestCase):
     if config is None:
       # Try running Interrogate once.
       if run_interrogate:
-        flow_utils.StartFlowAndWait(self.client_id,
-                                    flow_name="Interrogate",
-                                    token=self.token)
+        flow_utils.StartFlowAndWait(
+            self.client_id, flow_name="Interrogate", token=self.token)
         return self.GetGRRBinaryName(run_interrogate=False)
       else:
         self.fail("No valid configuration found, interrogate the client before "

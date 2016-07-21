@@ -21,14 +21,13 @@ class LinuxClientBuilder(build.ClientBuilder):
     super(LinuxClientBuilder, self).MakeExecutableTemplate(
         output_file=output_file)
     self.MakeBuildDirectory()
-    self.CleanDirectory(config_lib.CONFIG.Get("PyInstaller.dpkg_root",
-                                              context=self.context))
+    self.CleanDirectory(
+        config_lib.CONFIG.Get("PyInstaller.dpkg_root", context=self.context))
     self.BuildWithPyInstaller()
     self.CopyMissingModules()
     self.CopyFiles()
     self.MakeZip(
-        config_lib.CONFIG.Get("PyInstaller.dpkg_root",
-                              context=self.context),
+        config_lib.CONFIG.Get("PyInstaller.dpkg_root", context=self.context),
         self.template_file)
 
   def CopyFiles(self):

@@ -60,8 +60,7 @@ class HuntArgsParser(object):
         flow_cls.args_type(), prefix="args").ParseArgs(self.request)
 
     self.flow_runner_args = forms.SemanticProtoFormRenderer(
-        flow_runner.FlowRunnerArgs(),
-        prefix="runner").ParseArgs(self.request)
+        flow_runner.FlowRunnerArgs(), prefix="runner").ParseArgs(self.request)
 
     self.flow_runner_args.flow_name = flow_name
 
@@ -205,8 +204,7 @@ class OutputPluginsForm(forms.OptionFormRenderer):
     if plugin and plugin.description:
       result = output_plugin.OutputPluginDescriptor(plugin_name=option)
       result.plugin_args = forms.SemanticProtoFormRenderer(
-          plugin.args_type(), id=self.id,
-          prefix=self.prefix).ParseArgs(request)
+          plugin.args_type(), id=self.id, prefix=self.prefix).ParseArgs(request)
       result.plugin_args.Validate()
 
       return result
@@ -267,18 +265,18 @@ class ClientLabelNameFormRenderer(forms.TypeDescriptorFormRenderer):
 """
 
   def Layout(self, request, response):
-    labels_index = aff4.FACTORY.Create(standard.LabelSet.CLIENT_LABELS_URN,
-                                       "LabelSet",
-                                       mode="r",
-                                       token=request.token)
-    self.labels = sorted(list(set(
-        [label.name for label in labels_index.ListUsedLabels()])))
+    labels_index = aff4.FACTORY.Create(
+        standard.LabelSet.CLIENT_LABELS_URN,
+        "LabelSet",
+        mode="r",
+        token=request.token)
+    self.labels = sorted(
+        list(set([label.name for label in labels_index.ListUsedLabels()])))
 
     response = super(ClientLabelNameFormRenderer, self).Layout(request,
                                                                response)
-    return self.CallJavascript(response,
-                               "AFF4ObjectLabelNameFormRenderer.Layout",
-                               prefix=self.prefix)
+    return self.CallJavascript(
+        response, "AFF4ObjectLabelNameFormRenderer.Layout", prefix=self.prefix)
 
 
 class RuleOptionRenderer(forms.OptionFormRenderer):
@@ -302,19 +300,16 @@ This rule will match all <strong>{{system}}</strong> systems.
 
   def RenderOption(self, option, request, response):
     if option == "Windows":
-      return self.RenderFromTemplate(self.match_system_template,
-                                     response,
-                                     system="Windows")
+      return self.RenderFromTemplate(
+          self.match_system_template, response, system="Windows")
 
     elif option == "Linux":
-      return self.RenderFromTemplate(self.match_system_template,
-                                     response,
-                                     system="Linux")
+      return self.RenderFromTemplate(
+          self.match_system_template, response, system="Linux")
 
     elif option == "OSX":
-      return self.RenderFromTemplate(self.match_system_template,
-                                     response,
-                                     system="OSX")
+      return self.RenderFromTemplate(
+          self.match_system_template, response, system="OSX")
 
     elif option == "Label":
       return self.RenderFromTemplate(
@@ -326,18 +321,20 @@ This rule will match all <strong>{{system}}</strong> systems.
               prefix=self.prefix).RawHTML(request))
 
     elif option == "Regex":
-      return self.RenderFromTemplate(self.form_template,
-                                     response,
-                                     form=forms.SemanticProtoFormRenderer(
-                                         rdf_foreman.ForemanAttributeRegex(),
-                                         prefix=self.prefix).RawHTML(request))
+      return self.RenderFromTemplate(
+          self.form_template,
+          response,
+          form=forms.SemanticProtoFormRenderer(
+              rdf_foreman.ForemanAttributeRegex(),
+              prefix=self.prefix).RawHTML(request))
 
     elif option == "Integer":
-      return self.RenderFromTemplate(self.form_template,
-                                     response,
-                                     form=forms.SemanticProtoFormRenderer(
-                                         rdf_foreman.ForemanAttributeInteger(),
-                                         prefix=self.prefix).RawHTML(request))
+      return self.RenderFromTemplate(
+          self.form_template,
+          response,
+          form=forms.SemanticProtoFormRenderer(
+              rdf_foreman.ForemanAttributeInteger(),
+              prefix=self.prefix).RawHTML(request))
 
   def ParseOption(self, option, request):
     """Parse the form that is selected by option."""
@@ -352,14 +349,13 @@ This rule will match all <strong>{{system}}</strong> systems.
 
     elif option == "Label":
       label_name = ClientLabelNameFormRenderer(
-          descriptor=type_info.TypeInfoObject(),
-          default="",
+          descriptor=type_info.TypeInfoObject(), default="",
           prefix=self.prefix).ParseArgs(request)
       regex = aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
           label_name)
 
-      return rdf_foreman.ForemanAttributeRegex(attribute_name="Labels",
-                                               attribute_regex=regex)
+      return rdf_foreman.ForemanAttributeRegex(
+          attribute_name="Labels", attribute_regex=regex)
 
     elif option == "Regex":
       return forms.SemanticProtoFormRenderer(
@@ -414,9 +410,8 @@ class HuntInformation(renderers.TemplateRenderer):
   def Layout(self, request, response, apply_template=None):
     response = super(HuntInformation, self).Layout(
         request, response, apply_template=apply_template)
-    return self.CallJavascript(response,
-                               "HuntInformation.Layout",
-                               renderer=self.__class__.__name__)
+    return self.CallJavascript(
+        response, "HuntInformation.Layout", renderer=self.__class__.__name__)
 
   def RenderAjax(self, request, response):
     """Layout the hunt information."""
@@ -466,18 +461,18 @@ class HuntRunStatus(HuntInformation):
 
       hunt_args = parser.ParseHuntArgs()
 
-      flow.GRRFlow.StartFlow(flow_name="CreateGenericHuntFlow",
-                             hunt_runner_args=hunt_runner_args,
-                             hunt_args=hunt_args,
-                             token=request.token)
+      flow.GRRFlow.StartFlow(
+          flow_name="CreateGenericHuntFlow",
+          hunt_runner_args=hunt_runner_args,
+          hunt_args=hunt_args,
+          token=request.token)
 
     except Exception as e:  # pylint: disable=broad-except
       logging.exception("Failed to create hunt: %s", e)
       return self.RenderFromTemplate(self.failure_template, response, reason=e)
 
-    return super(HuntRunStatus, self).Layout(request,
-                                             response,
-                                             apply_template=self.ajax_template)
+    return super(HuntRunStatus, self).Layout(
+        request, response, apply_template=self.ajax_template)
 
 
 class NewHunt(wizards.WizardRenderer):

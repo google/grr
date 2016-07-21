@@ -61,10 +61,12 @@ config_lib.DEFINE_list("Artifacts.interrogate_store_in_aff4_skip", [],
                        "interrogate_store_in_aff4 list. This allows per-site "
                        "tweaks without having to redefine the whole list.")
 
-config_lib.DEFINE_list("Artifacts.netgroup_filter_regexes", [],
-                       help="Only parse groups that match one of these regexes"
-                       " from /etc/netgroup files.")
+config_lib.DEFINE_list(
+    "Artifacts.netgroup_filter_regexes", [],
+    help="Only parse groups that match one of these regexes"
+    " from /etc/netgroup files.")
 
-config_lib.DEFINE_list("Artifacts.netgroup_user_blacklist", [],
-                       help="Exclude these users when parsing /etc/netgroup "
-                       "files.")
+config_lib.DEFINE_list(
+    "Artifacts.netgroup_user_blacklist", [],
+    help="Exclude these users when parsing /etc/netgroup "
+    "files.")

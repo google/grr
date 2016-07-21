@@ -190,8 +190,7 @@ class QueueManager(object):
     statuses_found = {}
 
     for subject, result in self.data_store.MultiResolvePrefix(
-        subjects, self.FLOW_STATUS_PREFIX,
-        token=self.token):
+        subjects, self.FLOW_STATUS_PREFIX, token=self.token):
       for predicate, _, _ in result:
         request_nr = int(predicate.split(":")[-1], 16)
         statuses_found.setdefault(subject, set()).add(request_nr)
@@ -235,8 +234,9 @@ class QueueManager(object):
     if timestamp is None:
       timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now())
 
-    completed_requests = collections.deque(self.FetchCompletedRequests(
-        session_id, timestamp=timestamp))
+    completed_requests = collections.deque(
+        self.FetchCompletedRequests(
+            session_id, timestamp=timestamp))
 
     total_size = 0
     while True:
@@ -263,11 +263,12 @@ class QueueManager(object):
         if projected_total_size > limit:
           break
 
-      response_data = dict(self.data_store.MultiResolvePrefix(
-          response_subjects,
-          self.FLOW_RESPONSE_PREFIX,
-          token=self.token,
-          timestamp=timestamp))
+      response_data = dict(
+          self.data_store.MultiResolvePrefix(
+              response_subjects,
+              self.FLOW_RESPONSE_PREFIX,
+              token=self.token,
+              timestamp=timestamp))
       for response_urn, request in sorted(response_subjects.items()):
         responses = []
         for _, serialized, _ in response_data.get(response_urn, []):
@@ -316,12 +317,13 @@ class QueueManager(object):
       requests[str(subject.Add(request_id))] = serialized
 
     # And the responses for them.
-    response_data = dict(self.data_store.MultiResolvePrefix(
-        requests.keys(),
-        self.FLOW_RESPONSE_PREFIX,
-        limit=self.response_limit,
-        token=self.token,
-        timestamp=timestamp))
+    response_data = dict(
+        self.data_store.MultiResolvePrefix(
+            requests.keys(),
+            self.FLOW_RESPONSE_PREFIX,
+            limit=self.response_limit,
+            token=self.token,
+            timestamp=timestamp))
 
     for urn, request_data in sorted(requests.items()):
       request = rdf_flows.RequestState(request_data)
@@ -390,9 +392,10 @@ class QueueManager(object):
     mutation_pool = self.data_store.GetMutationPool(token=self.token)
     with mutation_pool:
       for session_id in session_ids:
-        mutation_pool.MultiSet(session_id,
-                               self.to_write.get(session_id, {}),
-                               to_delete=self.to_delete.get(session_id, []))
+        mutation_pool.MultiSet(
+            session_id,
+            self.to_write.get(session_id, {}),
+            to_delete=self.to_delete.get(session_id, []))
 
       for client_id, messages in self.client_messages_to_delete.iteritems():
         self.Delete(client_id.Queue(), messages, mutation_pool=mutation_pool)
@@ -401,15 +404,15 @@ class QueueManager(object):
         for timestamp, messages in utils.GroupBy(self.new_client_messages,
                                                  lambda x: x[1]).iteritems():
 
-          self.Schedule([x[0] for x in messages],
-                        timestamp=timestamp,
-                        mutation_pool=mutation_pool)
+          self.Schedule(
+              [x[0] for x in messages],
+              timestamp=timestamp,
+              mutation_pool=mutation_pool)
 
     if self.notifications:
       for notification, timestamp in self.notifications.itervalues():
-        self.NotifyQueue(notification,
-                         timestamp=timestamp,
-                         mutation_pool=mutation_pool)
+        self.NotifyQueue(
+            notification, timestamp=timestamp, mutation_pool=mutation_pool)
 
       mutation_pool.Flush()
 
@@ -436,8 +439,8 @@ class QueueManager(object):
     subject = self.GetFlowResponseSubject(session_id, response.request_id)
     queue = self.to_write.setdefault(subject, {})
     queue.setdefault(QueueManager.FLOW_RESPONSE_TEMPLATE %
-                     (response.request_id, response.response_id),
-                     []).append((response.SerializeToString(), timestamp))
+                     (response.request_id, response.response_id), []).append(
+                         (response.SerializeToString(), timestamp))
 
   def QueueRequest(self, session_id, request_state, timestamp=None):
     if timestamp is None:
@@ -445,8 +448,8 @@ class QueueManager(object):
 
     subject = session_id.Add("state")
     queue = self.to_write.setdefault(subject, {})
-    queue.setdefault(self.FLOW_REQUEST_TEMPLATE % request_state.id,
-                     []).append((request_state.SerializeToString(), timestamp))
+    queue.setdefault(self.FLOW_REQUEST_TEMPLATE % request_state.id, []).append(
+        (request_state.SerializeToString(), timestamp))
 
   def QueueClientMessage(self, msg, timestamp=None):
     if timestamp is None:
@@ -511,10 +514,8 @@ class QueueManager(object):
       if mutation_pool:
         mutation_pool.DeleteAttributes(queue, predicates)
       else:
-        self.data_store.DeleteAttributes(queue,
-                                         predicates,
-                                         token=self.token,
-                                         sync=False)
+        self.data_store.DeleteAttributes(
+            queue, predicates, token=self.token, sync=False)
 
   def Schedule(self, tasks, sync=False, timestamp=None, mutation_pool=None):
     """Schedule a set of Task() instances."""
@@ -524,18 +525,19 @@ class QueueManager(object):
     for queue, queued_tasks in utils.GroupBy(tasks,
                                              lambda x: x.queue).iteritems():
       if queue:
-        to_schedule = dict([(self._TaskIdToColumn(
-            task.task_id), [task.SerializeToString()]) for task in queued_tasks
-                           ])
+        to_schedule = dict([(self._TaskIdToColumn(task.task_id),
+                             [task.SerializeToString()])
+                            for task in queued_tasks])
 
         if mutation_pool:
           mutation_pool.MultiSet(queue, to_schedule, timestamp=timestamp)
         else:
-          self.data_store.MultiSet(queue,
-                                   to_schedule,
-                                   timestamp=timestamp,
-                                   sync=sync,
-                                   token=self.token)
+          self.data_store.MultiSet(
+              queue,
+              to_schedule,
+              timestamp=timestamp,
+              sync=sync,
+              token=self.token)
 
   def _SortByPriority(self, notifications, queue, output_dict=None):
     """Sort notifications by priority into output_dict."""
@@ -550,9 +552,10 @@ class QueueManager(object):
       output_dict.setdefault(priority, []).append(notification)
 
     for priority in output_dict:
-      stats.STATS.SetGaugeValue("notification_queue_count",
-                                len(output_dict[priority]),
-                                fields=[queue.Basename(), str(priority)])
+      stats.STATS.SetGaugeValue(
+          "notification_queue_count",
+          len(output_dict[priority]),
+          fields=[queue.Basename(), str(priority)])
       random.shuffle(output_dict[priority])
 
     return output_dict
@@ -577,8 +580,8 @@ class QueueManager(object):
     """
     output_dict = {}
     for queue_shard in self.GetAllNotificationShards(queue):
-      self._GetUnsortedNotifications(queue_shard,
-                                     notifications_by_session_id=output_dict)
+      self._GetUnsortedNotifications(
+          queue_shard, notifications_by_session_id=output_dict)
 
     return self._SortByPriority(output_dict.values(), queue)
 
@@ -586,8 +589,8 @@ class QueueManager(object):
     """Returns all queue notifications sorted by priority."""
     queue_shard = self.GetNotificationShard(queue)
     notifications = self._GetUnsortedNotifications(queue_shard).values()
-    notifications.sort(key=lambda notification: notification.priority,
-                       reverse=True)
+    notifications.sort(
+        key=lambda notification: notification.priority, reverse=True)
     return notifications
 
   def GetNotificationsForAllShards(self, queue):
@@ -603,12 +606,11 @@ class QueueManager(object):
     notifications_by_session_id = {}
     for queue_shard in self.GetAllNotificationShards(queue):
       notifications_by_session_id = self._GetUnsortedNotifications(
-          queue_shard,
-          notifications_by_session_id=notifications_by_session_id)
+          queue_shard, notifications_by_session_id=notifications_by_session_id)
 
     notifications = notifications_by_session_id.values()
-    notifications.sort(key=lambda notification: notification.priority,
-                       reverse=True)
+    notifications.sort(
+        key=lambda notification: notification.priority, reverse=True)
     return notifications
 
   def _GetUnsortedNotifications(self,
@@ -700,11 +702,12 @@ class QueueManager(object):
     extract_queue = lambda notification: notification.session_id.Queue()
     for queue, notifications in utils.GroupBy(notifications,
                                               extract_queue).iteritems():
-      self._MultiNotifyQueue(queue,
-                             notifications,
-                             timestamp=timestamp,
-                             sync=sync,
-                             mutation_pool=mutation_pool)
+      self._MultiNotifyQueue(
+          queue,
+          notifications,
+          timestamp=timestamp,
+          sync=sync,
+          mutation_pool=mutation_pool)
 
   def _MultiNotifyQueue(self,
                         queue,
@@ -738,8 +741,7 @@ class QueueManager(object):
 
     if mutation_pool:
       mutation_pool.MultiSet(
-          self.GetNotificationShard(queue),
-          values, replace=False)
+          self.GetNotificationShard(queue), values, replace=False)
     else:
       self.data_store.MultiSet(
           self.GetNotificationShard(queue),
@@ -772,13 +774,13 @@ class QueueManager(object):
     for queue, ids in utils.GroupBy(
         session_ids, lambda session_id: session_id.Queue()).iteritems():
       queue_shards = self.GetAllNotificationShards(queue)
-      self.data_store.MultiDeleteAttributes(queue_shards,
-                                            [self.NOTIFY_PREDICATE_TEMPLATE %
-                                             session_id for session_id in ids],
-                                            token=self.token,
-                                            start=start,
-                                            end=end,
-                                            sync=True)
+      self.data_store.MultiDeleteAttributes(
+          queue_shards, [self.NOTIFY_PREDICATE_TEMPLATE % session_id
+                         for session_id in ids],
+          token=self.token,
+          start=start,
+          end=end,
+          sync=True)
 
   def Query(self, queue, limit=1, task_id=None):
     """Retrieves tasks from a queue without leasing them.
@@ -839,12 +841,13 @@ class QueueManager(object):
       user = self.token.username
     # Do the real work in a transaction
     try:
-      res = self.data_store.RetryWrapper(queue,
-                                         self._QueryAndOwn,
-                                         lease_seconds=lease_seconds,
-                                         limit=limit,
-                                         token=self.token,
-                                         user=user)
+      res = self.data_store.RetryWrapper(
+          queue,
+          self._QueryAndOwn,
+          lease_seconds=lease_seconds,
+          limit=limit,
+          token=self.token,
+          user=user)
 
       return res
     except data_store.TransactionError:
@@ -910,11 +913,8 @@ class WellKnownQueueManager(QueueManager):
       predicates.append(QueueManager.FLOW_RESPONSE_TEMPLATE %
                         (response.request_id, response.response_id))
 
-    self.data_store.DeleteAttributes(subject,
-                                     predicates,
-                                     sync=True,
-                                     start=0,
-                                     token=self.token)
+    self.data_store.DeleteAttributes(
+        subject, predicates, sync=True, start=0, token=self.token)
 
   def FetchRequestsAndResponses(self, session_id):
     """Well known flows do not have real requests.
@@ -931,12 +931,14 @@ class WellKnownQueueManager(QueueManager):
     subject = session_id.Add("state/request:00000000")
 
     # Get some requests
-    for _, serialized, _ in sorted(self.data_store.ResolvePrefix(
-        subject,
-        self.FLOW_RESPONSE_PREFIX,
-        token=self.token,
-        limit=self.response_limit,
-        timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now()))):
+    for _, serialized, _ in sorted(
+        self.data_store.ResolvePrefix(
+            subject,
+            self.FLOW_RESPONSE_PREFIX,
+            token=self.token,
+            limit=self.response_limit,
+            timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now()
+                      ))):
 
       # The predicate format is flow:response:REQUEST_ID:RESPONSE_ID. For well
       # known flows both request_id and response_id are randomized.
@@ -952,7 +954,7 @@ class QueueManagerInit(registry.InitHook):
     # Counters used by the QueueManager.
     stats.STATS.RegisterCounterMetric("grr_task_retransmission_count")
     stats.STATS.RegisterCounterMetric("grr_task_ttl_expired_count")
-    stats.STATS.RegisterGaugeMetric("notification_queue_count",
-                                    int,
-                                    fields=[("queue_name", str),
-                                            ("priority", str)])
+    stats.STATS.RegisterGaugeMetric(
+        "notification_queue_count",
+        int,
+        fields=[("queue_name", str), ("priority", str)])

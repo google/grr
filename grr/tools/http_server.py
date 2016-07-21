@@ -122,8 +122,8 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     if not master.MASTER_WATCHER.IsMaster():
       # We shouldn't be getting requests from the client unless we
       # are the active instance.
-      stats.STATS.IncrementCounter("frontend_inactive_request_count",
-                                   fields=["http"])
+      stats.STATS.IncrementCounter(
+          "frontend_inactive_request_count", fields=["http"])
       logging.info("Request sent to inactive frontend from %s",
                    self.client_address[0])
 
@@ -136,9 +136,8 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
     with GRRHTTPServerHandler.active_counter_lock:
       GRRHTTPServerHandler.active_counter += 1
-      stats.STATS.SetGaugeValue("frontend_active_count",
-                                self.active_counter,
-                                fields=["http"])
+      stats.STATS.SetGaugeValue(
+          "frontend_active_count", self.active_counter, fields=["http"])
 
     try:
       length = int(self.headers.getheader("content-length"))
@@ -190,9 +189,8 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     finally:
       with GRRHTTPServerHandler.active_counter_lock:
         GRRHTTPServerHandler.active_counter -= 1
-        stats.STATS.SetGaugeValue("frontend_active_count",
-                                  self.active_counter,
-                                  fields=["http"])
+        stats.STATS.SetGaugeValue(
+            "frontend_active_count", self.active_counter, fields=["http"])
 
 
 class GRRHTTPServer(SocketServer.ThreadingMixIn, BaseHTTPServer.HTTPServer):
@@ -240,9 +238,8 @@ def CreateServer(frontend=None):
 
     server_address = (config_lib.CONFIG["Frontend.bind_address"], port)
     try:
-      httpd = GRRHTTPServer(server_address,
-                            GRRHTTPServerHandler,
-                            frontend=frontend)
+      httpd = GRRHTTPServer(
+          server_address, GRRHTTPServerHandler, frontend=frontend)
       break
     except socket.error as e:
       if e.errno == socket.errno.EADDRINUSE and port < max_port:

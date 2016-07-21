@@ -18,17 +18,17 @@ class TestSystemRootSystemDriveFallbackFlow(test_lib.FlowTestsBaseclass):
                                test_lib.ClientVFSHandlerFixture):
       client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
-      for _ in test_lib.TestFlowHelper("SystemRootSystemDriveFallbackFlow",
-                                       client_mock,
-                                       client_id=self.client_id,
-                                       token=self.token,
-                                       artifact_name="SystemRoot",
-                                       output="systemroot"):
+      for _ in test_lib.TestFlowHelper(
+          "SystemRootSystemDriveFallbackFlow",
+          client_mock,
+          client_id=self.client_id,
+          token=self.token,
+          artifact_name="SystemRoot",
+          output="systemroot"):
         pass
 
       output_fd = aff4.FACTORY.Open(
-          self.client_id.Add("systemroot"),
-          token=self.token)
+          self.client_id.Add("systemroot"), token=self.token)
 
       self.assertEqual(len(output_fd), 1)
       self.assertEqual(

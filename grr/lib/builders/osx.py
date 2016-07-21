@@ -75,14 +75,16 @@ class DarwinClientBuilder(build.ClientBuilder):
 
     utils.EnsureDirExists(out_build_files_dir)
     utils.EnsureDirExists(out_pmdoc_dir)
-    utils.EnsureDirExists(config_lib.CONFIG.Get("ClientBuilder.package_dir",
-                                                context=self.context))
+    utils.EnsureDirExists(
+        config_lib.CONFIG.Get("ClientBuilder.package_dir",
+                              context=self.context))
 
     self.GenerateFile(
         input_filename=os.path.join(build_files_dir, "grr.plist.in"),
         output_filename=os.path.join(self.build_dir, plist_name))
-    self.GenerateFile(input_filename=os.path.join(pmdoc_dir, "index.xml.in"),
-                      output_filename=os.path.join(out_pmdoc_dir, "index.xml"))
+    self.GenerateFile(
+        input_filename=os.path.join(pmdoc_dir, "index.xml.in"),
+        output_filename=os.path.join(out_pmdoc_dir, "index.xml"))
     self.GenerateFile(
         input_filename=os.path.join(pmdoc_dir, "01grr.xml.in"),
         output_filename=os.path.join(out_pmdoc_dir, "01%s.xml" % client_name))
@@ -90,8 +92,9 @@ class DarwinClientBuilder(build.ClientBuilder):
         input_filename=os.path.join(pmdoc_dir, "01grr-contents.xml"),
         output_filename=os.path.join(out_pmdoc_dir,
                                      "01%s-contents.xml" % client_name))
-    self.GenerateFile(input_filename=os.path.join(pmdoc_dir, "02com.xml.in"),
-                      output_filename=os.path.join(out_pmdoc_dir, "02com.xml"))
+    self.GenerateFile(
+        input_filename=os.path.join(pmdoc_dir, "02com.xml.in"),
+        output_filename=os.path.join(out_pmdoc_dir, "02com.xml"))
     self.GenerateFile(
         input_filename=os.path.join(pmdoc_dir, "02com-contents.xml"),
         output_filename=os.path.join(out_pmdoc_dir, "02com-contents.xml"))
@@ -108,8 +111,7 @@ class DarwinClientBuilder(build.ClientBuilder):
 
     # Rename the generated binaries to the correct name.
     template_binary_dir = os.path.join(
-        config_lib.CONFIG.Get("PyInstaller.distpath",
-                              context=self.context),
+        config_lib.CONFIG.Get("PyInstaller.distpath", context=self.context),
         "grr-client")
     target_binary_dir = os.path.join(self.build_dir, "%s" % output_basename)
 
@@ -118,21 +120,23 @@ class DarwinClientBuilder(build.ClientBuilder):
 
     shutil.move(
         os.path.join(target_binary_dir, "grr-client"),
-        os.path.join(target_binary_dir,
-                     config_lib.CONFIG.Get("Client.binary_name",
-                                           context=self.context)))
+        os.path.join(
+            target_binary_dir,
+            config_lib.CONFIG.Get("Client.binary_name", context=self.context)))
 
     repacker = build.ClientRepacker(context=self.context)
     repacker.context = self.context
 
     # Generate a config file.
     with open(
-        os.path.join(target_binary_dir,
-                     config_lib.CONFIG.Get("ClientBuilder.config_filename",
-                                           context=self.context)),
+        os.path.join(
+            target_binary_dir,
+            config_lib.CONFIG.Get("ClientBuilder.config_filename",
+                                  context=self.context)),
         "wb") as fd:
-      fd.write(repacker.GetClientConfig(["Client Context"] + self.context,
-                                        validate=False))
+      fd.write(
+          repacker.GetClientConfig(
+              ["Client Context"] + self.context, validate=False))
 
     print "Fixing file ownership and permissions"
 
@@ -149,8 +153,7 @@ class DarwinClientBuilder(build.ClientBuilder):
     print "Building a package with PackageMaker"
     pkg = "%s-%s.pkg" % (
         config_lib.CONFIG.Get("Client.name", context=self.context),
-        config_lib.CONFIG.Get("Source.version_string",
-                              context=self.context))
+        config_lib.CONFIG.Get("Source.version_string", context=self.context))
 
     output_pkg_path = os.path.join(self.pkg_dir, pkg)
     command = [

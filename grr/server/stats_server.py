@@ -23,10 +23,11 @@ class StatsServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
   def _JSONMetricValue(self, metric_info, value):
     if metric_info.metric_type == stats.MetricType.EVENT:
-      return dict(sum=value.sum,
-                  counter=value.count,
-                  bins=value.bins.wrapped_list,
-                  bins_heights=collections.OrderedDict(value.bins_heights))
+      return dict(
+          sum=value.sum,
+          counter=value.count,
+          bins=value.bins.wrapped_list,
+          bins_heights=collections.OrderedDict(value.bins_heights))
     else:
       return value
 
@@ -52,8 +53,8 @@ class StatsServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           all_fields = stats.STATS.GetMetricFields(name)
           for f in all_fields:
             value[f] = self._JSONMetricValue(
-                metric_info,
-                stats.STATS.GetMetricValue(name, fields=f))
+                metric_info, stats.STATS.GetMetricValue(
+                    name, fields=f))
         else:
           value = self._JSONMetricValue(metric_info,
                                         stats.STATS.GetMetricValue(name))

@@ -79,10 +79,11 @@ class FileCopyWrapper(object):
 
   def __init__(self, rebalance, directory, filename, fullpath):
     filesize = os.path.getsize(fullpath)
-    filecopy = rdf_data_server.DataServerFileCopy(rebalance_id=rebalance.id,
-                                                  directory=directory,
-                                                  filename=filename,
-                                                  size=filesize)
+    filecopy = rdf_data_server.DataServerFileCopy(
+        rebalance_id=rebalance.id,
+        directory=directory,
+        filename=filename,
+        size=filesize)
     filecopy_str = filecopy.SerializeToString()
     self.header = sutils.SIZE_PACKER.pack(len(filecopy_str))
     self.header += filecopy_str

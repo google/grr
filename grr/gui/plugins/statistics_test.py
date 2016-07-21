@@ -21,9 +21,10 @@ class TestStats(test_lib.GRRSeleniumTest):
     """Populates data into the stats object."""
     token = access_control.ACLToken(username="test", reason="fixture")
 
-    with aff4.FACTORY.Create("aff4:/stats/ClientFleetStats/All",
-                             aff4_stats.ClientFleetStats,
-                             token=token) as fd:
+    with aff4.FACTORY.Create(
+        "aff4:/stats/ClientFleetStats/All",
+        aff4_stats.ClientFleetStats,
+        token=token) as fd:
       now = 1321057655
 
       for i in range(10, 15):

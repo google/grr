@@ -32,16 +32,16 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
     self.client_id = client_ids[0]
     self.out = self.client_id.Add("fs/os")
 
-    data_store.default_token = access_control.ACLToken(username="user",
-                                                       reason="reason")
+    data_store.default_token = access_control.ACLToken(
+        username="user", reason="reason")
 
   def testGetValuesForExportHuntResultCollection(self):
-    with aff4.FACTORY.Create("aff4:/huntcoll",
-                             results.HuntResultCollection,
-                             token=self.token) as fd:
-      fd.Add(rdf_flows.GrrMessage(payload=rdf_client.StatEntry(
-          aff4path=self.out.Add("testfile")),
-                                  source=self.client_id))
+    with aff4.FACTORY.Create(
+        "aff4:/huntcoll", results.HuntResultCollection, token=self.token) as fd:
+      fd.Add(
+          rdf_flows.GrrMessage(
+              payload=rdf_client.StatEntry(aff4path=self.out.Add("testfile")),
+              source=self.client_id))
 
     plugin = collection_plugin.CollectionExportPlugin()
     mock_args = mock.Mock()
@@ -59,12 +59,12 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
 
   def testExportCollectionWithEmailPlugin(self):
     # Create a collection with URNs to some files.
-    fd = aff4.FACTORY.Create("aff4:/testcoll",
-                             collects.RDFValueCollection,
-                             token=self.token)
-    fd.Add(rdf_flows.GrrMessage(payload=rdf_client.StatEntry(
-        aff4path=self.out.Add("testfile")),
-                                source=self.client_id))
+    fd = aff4.FACTORY.Create(
+        "aff4:/testcoll", collects.RDFValueCollection, token=self.token)
+    fd.Add(
+        rdf_flows.GrrMessage(
+            payload=rdf_client.StatEntry(aff4path=self.out.Add("testfile")),
+            source=self.client_id))
     fd.Close()
 
     plugin = collection_plugin.CollectionExportPlugin()
@@ -72,19 +72,19 @@ class CollectionExportPluginTest(test_lib.GRRBaseTest):
     plugin.ConfigureArgParser(parser)
 
     def SendEmail(address, sender, title, message, **_):
-      self.email_messages.append(dict(address=address,
-                                      sender=sender,
-                                      title=title,
-                                      message=message))
+      self.email_messages.append(
+          dict(
+              address=address, sender=sender, title=title, message=message))
 
     email_address = "notify@%s" % config_lib.CONFIG["Logging.domain"]
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
       self.email_messages = []
 
-      plugin.Run(parser.parse_args(args=[
-          "--path", "aff4:/testcoll", email_plugin.EmailOutputPlugin.name,
-          "--email_address", email_address, "--emails_limit", "100"
-      ]))
+      plugin.Run(
+          parser.parse_args(args=[
+              "--path", "aff4:/testcoll", email_plugin.EmailOutputPlugin.name,
+              "--email_address", email_address, "--emails_limit", "100"
+          ]))
 
     self.assertEqual(len(self.email_messages), 1)
     for msg in self.email_messages:

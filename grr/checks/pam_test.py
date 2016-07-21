@@ -28,18 +28,22 @@ class PamConfigTests(checks_test_lib.HostCheckTest):
     pam_bad = {"/etc/pam.d/ssh": bad_contents}
     sym = "Missing attribute: PAM ssh service must require an account."
     found = ["Expected state was not found"]
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_bad, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_bad, parser=self.parser))
     self.assertCheckDetectedAnom("PAM-SSH-PAMACCESS", results, sym, found)
     # Now the successful cases.
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_good1, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_good1, parser=self.parser))
     self.assertCheckUndetected("PAM-SSH-PAMACCESS", results)
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_good2, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_good2, parser=self.parser))
     self.assertCheckUndetected("PAM-SSH-PAMACCESS", results)
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_good3, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_good3, parser=self.parser))
     self.assertCheckUndetected("PAM-SSH-PAMACCESS", results)
 
   def testPamSshUnconditionalPermit(self):
@@ -51,13 +55,15 @@ class PamConfigTests(checks_test_lib.HostCheckTest):
     # Check the detection case.
     sym = "Found: PAM ssh service has unconditional authentication."
     found = ["In service 'ssh': auth done pam_permit.so"]
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_bad, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_bad, parser=self.parser))
     self.assertCheckDetectedAnom("PAM-SSH-UNCONDITIONAL-PERMIT", results, sym,
                                  found)
     # Now the pass case.
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_good, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_good, parser=self.parser))
     self.assertCheckUndetected("PAM-SSH-UNCONDITIONAL-PERMIT", results)
 
   def testPamSshDefaultDeniesAuth(self):
@@ -72,16 +78,19 @@ class PamConfigTests(checks_test_lib.HostCheckTest):
     # Check the detection case.
     sym = "Missing attribute: PAM ssh service must default to denying auth."
     found = ["Expected state was not found"]
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_bad, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_bad, parser=self.parser))
     self.assertCheckDetectedAnom("PAM-SSH-DEFAULT-DENIES-AUTH", results, sym,
                                  found)
     # Now the pass cases.
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_good1, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_good1, parser=self.parser))
     self.assertCheckUndetected("PAM-SSH-DEFAULT-DENIES-AUTH", results)
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_good2, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_good2, parser=self.parser))
     self.assertCheckUndetected("PAM-SSH-DEFAULT-DENIES-AUTH", results)
 
   def testPamSshNoNullPasswords(self):
@@ -94,13 +103,15 @@ class PamConfigTests(checks_test_lib.HostCheckTest):
     sym = "Found: PAM ssh service allows unix null password accounts to login."
     found = ["In service 'ssh': password requisite /lib/security/pam_unix.so "
              "nullok"]
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_bad, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_bad, parser=self.parser))
     self.assertCheckDetectedAnom("PAM-SSH-NO-NULL-PASSWORDS", results, sym,
                                  found)
     # Now the pass case.
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_good, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_good, parser=self.parser))
     self.assertCheckUndetected("PAM-SSH-NO-NULL-PASSWORDS", results)
 
   def testPamSecureDefaults(self):
@@ -121,12 +132,14 @@ class PamConfigTests(checks_test_lib.HostCheckTest):
            "used for denying/logging access.")
     found = ["In service 'other': auth required pam_permit.so",
              "In service 'other': password done pam_foobar.so test args"]
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_bad, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_bad, parser=self.parser))
     self.assertCheckDetectedAnom("PAM-SECURE-DEFAULTS", results, sym, found)
     # Now the pass cases.
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_good, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_good, parser=self.parser))
     self.assertCheckUndetected("PAM-SECURE-DEFAULTS", results)
 
   def testPamExternalConfigs(self):
@@ -139,12 +152,14 @@ class PamConfigTests(checks_test_lib.HostCheckTest):
     sym = "Found: PAM configuration refers to files outside of /etc/pam.d."
     found = ["/etc/pam.d/ssh -> /etc/pam.d/non-existant",
              "/etc/pam.d/other -> /tmp/non-existant"]
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_bad, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_bad, parser=self.parser))
     self.assertCheckDetectedAnom("PAM-EXTERNAL-CONFIG", results, sym, found)
     # Now the pass cases.
-    results = self.RunChecks(self.GenFileData(
-        "PamConfig", pam_good, parser=self.parser))
+    results = self.RunChecks(
+        self.GenFileData(
+            "PamConfig", pam_good, parser=self.parser))
     self.assertCheckUndetected("PAM-SECURE-DEFAULTS", results)
 
   def testPamConfigPermissions(self):

@@ -16,8 +16,8 @@ class WindowsPersistenceMechanismsParserTest(test_lib.FlowTestsBaseclass):
     parser = windows_persistence.WindowsPersistenceMechanismsParser()
     path = (r"HKEY_LOCAL_MACHINE\Software\Microsoft\Windows\CurrentVersion"
             r"\Run\test")
-    pathspec = rdf_paths.PathSpec(path=path,
-                                  pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+    pathspec = rdf_paths.PathSpec(
+        path=path, pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
     reg_data = "C:\\blah\\some.exe /v"
     reg_type = rdf_client.StatEntry.RegistryType.REG_SZ
     stat = rdf_client.StatEntry(
@@ -50,8 +50,8 @@ class WindowsPersistenceMechanismsParserTest(test_lib.FlowTestsBaseclass):
                 "C:\\Windows\\system32\\drivers\\acpipmi.sys"]
 
     for index, item in enumerate(persistence):
-      results = list(parser.Parse(item, knowledge_base,
-                                  rdf_paths.PathSpec.PathType.OS))
+      results = list(
+          parser.Parse(item, knowledge_base, rdf_paths.PathSpec.PathType.OS))
       self.assertEqual(results[0].pathspec.path, expected[index])
       self.assertEqual(len(results), 1)
 

@@ -19,13 +19,10 @@ class TestServerLoadView(test_lib.GRRSeleniumTest):
 
   @staticmethod
   def SetupSampleMetrics(token=None):
-    store = aff4.FACTORY.Create(None,
-                                stats_store.StatsStore,
-                                mode="w",
-                                token=token)
+    store = aff4.FACTORY.Create(
+        None, stats_store.StatsStore, mode="w", token=token)
 
     stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_num")
-    stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_throttled_num")
 
     now = rdfvalue.RDFDatetime().Now()
     handle_data = [(3, now - rdfvalue.Duration("50m")),
@@ -47,31 +44,9 @@ class TestServerLoadView(test_lib.GRRSeleniumTest):
         stats.STATS.IncrementCounter("grr_frontendserver_handle_num", value)
         store.WriteStats(process_id="frontend")
 
-    throttle_data = [(0, now - rdfvalue.Duration("50m")),
-                     (0, now - rdfvalue.Duration("45m")),
-                     (0, now - rdfvalue.Duration("40m")),
-                     (0, now - rdfvalue.Duration("35m")),
-                     (0, now - rdfvalue.Duration("30m")),
-                     (0, now - rdfvalue.Duration("25m")),
-                     (0, now - rdfvalue.Duration("20m")),
-                     (0, now - rdfvalue.Duration("15m")),
-                     (0, now - rdfvalue.Duration("10m")),
-                     (0, now - rdfvalue.Duration("5m")),
-                     (0, now)]  # pyformat: disable
-
-    throttle_data = [(value, timestamp.AsMicroSecondsFromEpoch())
-                     for value, timestamp in throttle_data]
-
-    for value, timestamp in throttle_data:
-      with test_lib.FakeTime(timestamp / 1e6):
-        stats.STATS.IncrementCounter("grr_frontendserver_handle_throttled_num",
-                                     value)
-        store.WriteStats(process_id="frontend")
-
   def testServerLoadPageContainsIndicatorsAndGraphs(self):
     self.Open("/#main=ServerLoadView")
     self.WaitUntil(self.IsTextPresent, "Frontends load")
-    self.WaitUntil(self.IsTextPresent, "Frontend handled vs throttled rate")
 
     self.Click("css=li[heading=Worker]")
     self.WaitUntil(self.IsTextPresent, "Worker successful vs failed flows rate")

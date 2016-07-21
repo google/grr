@@ -116,7 +116,6 @@ class TestFileFinderOSHomedir(TestFileFinderOSLinux):
 
   def CheckFlow(self):
     results = aff4.FACTORY.Open(
-        self.client_id.Add(self.test_output_path),
-        token=self.token)
+        self.client_id.Add(self.test_output_path), token=self.token)
     self.assertEqual(type(results), collects.RDFValueCollection)
     self.assertTrue(len(results) > 1)

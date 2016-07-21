@@ -128,11 +128,12 @@ class Manager(object):
       interval.end = end
       old_server = servers[i]
       newstart = end
-      new_mapping.servers.Append(index=old_server.index,
-                                 address=old_server.address,
-                                 port=old_server.port,
-                                 state=old_server.state,
-                                 interval=interval)
+      new_mapping.servers.Append(
+          index=old_server.index,
+          address=old_server.address,
+          port=old_server.port,
+          state=old_server.state,
+          interval=interval)
     return new_mapping
 
   def _Rebalance(self):
@@ -165,10 +166,8 @@ class Manager(object):
     headers = {"Content-Length": len(body)}
     res = None
     try:
-      res = pool.urlopen("POST",
-                         "/rebalance/phase1",
-                         headers=headers,
-                         body=body)
+      res = pool.urlopen(
+          "POST", "/rebalance/phase1", headers=headers, body=body)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to talk with master..."
       pool.close()
@@ -188,10 +187,8 @@ class Manager(object):
     body = rebalance.SerializeToString()
     headers = {"Content-Length": len(body)}
     try:
-      res = pool.urlopen("POST",
-                         "/rebalance/phase2",
-                         headers=headers,
-                         body=body)
+      res = pool.urlopen(
+          "POST", "/rebalance/phase2", headers=headers, body=body)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to contact server for re-sharding."
       print "Make sure the data servers are up and try again."
@@ -202,10 +199,8 @@ class Manager(object):
       return
 
     try:
-      res = pool.urlopen("POST",
-                         "/rebalance/commit",
-                         headers=headers,
-                         body=body)
+      res = pool.urlopen(
+          "POST", "/rebalance/commit", headers=headers, body=body)
     except urllib3.exceptions.MaxRetryError:
       print("Could not commit the re-sharding transaction with id "
             "%s") % rebalance.id
@@ -238,10 +233,8 @@ class Manager(object):
     try:
       body = transid
       headers = {"Content-Length": len(body)}
-      res = pool.urlopen("POST",
-                         "/rebalance/recover",
-                         headers=headers,
-                         body=body)
+      res = pool.urlopen(
+          "POST", "/rebalance/recover", headers=headers, body=body)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to contact master..."
       return
@@ -262,10 +255,8 @@ class Manager(object):
     headers = {"Content-Length": len(body)}
 
     try:
-      res = pool.urlopen("POST",
-                         "/rebalance/commit",
-                         headers=headers,
-                         body=body)
+      res = pool.urlopen(
+          "POST", "/rebalance/commit", headers=headers, body=body)
     except urllib3.exceptions.MaxRetryError:
       print "Could not commit re-sharding transaction with id %s" % rebalance.id
       print "Make sure the data servers are up and then run:"
@@ -302,10 +293,8 @@ class Manager(object):
     body = self._PackNewServer(addr, port)
     headers = {"Content-Length": len(body)}
     try:
-      res = pool.urlopen("POST",
-                         "/servers/add/check",
-                         headers=headers,
-                         body=body)
+      res = pool.urlopen(
+          "POST", "/servers/add/check", headers=headers, body=body)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to contact master..."
       return
@@ -375,10 +364,8 @@ class Manager(object):
       pool = connectionpool.HTTPConnectionPool(self.addr, port=self.port)
       body = ""
       headers = {"Content-Length": len(body)}
-      res = pool.urlopen("POST",
-                         "/servers/sync-all",
-                         headers=headers,
-                         body=body)
+      res = pool.urlopen(
+          "POST", "/servers/sync-all", headers=headers, body=body)
 
       if res.status == constants.RESPONSE_INCOMPLETE_SYNC:
         print "Master has tried to contact all the data servers, but failed."
@@ -451,10 +438,8 @@ class Manager(object):
     body = self._PackNewServer(addr, port)
     headers = {"Content-Length": len(body)}
     try:
-      res = pool.urlopen("POST",
-                         "/servers/rem/check",
-                         headers=headers,
-                         body=body)
+      res = pool.urlopen(
+          "POST", "/servers/rem/check", headers=headers, body=body)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to contact master..."
       return

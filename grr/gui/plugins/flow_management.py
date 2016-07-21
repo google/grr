@@ -68,9 +68,8 @@ class FlowTree(renderers.TreeRenderer):
 
       # Skip the flow if the user is not allowed to start it.
       try:
-        data_store.DB.security_manager.CheckIfCanStartFlow(request.token,
-                                                           name,
-                                                           with_client_id=True)
+        data_store.DB.security_manager.CheckIfCanStartFlow(
+            request.token, name, with_client_id=True)
       except access_control.UnauthorizedAccess:
         continue
 
@@ -130,8 +129,9 @@ class FlowManagementTabs(renderers.TabLayout):
   tab_hash = "ft"
 
   def Layout(self, request, response):
-    self.state = dict(flow_path=request.REQ.get("flow_path"),
-                      client_id=request.REQ.get("client_id"))
+    self.state = dict(
+        flow_path=request.REQ.get("flow_path"),
+        client_id=request.REQ.get("client_id"))
 
     response = super(FlowManagementTabs, self).Layout(request, response)
     return self.CallJavascript(response, "FlowManagementTabs.Layout")
@@ -165,10 +165,9 @@ Prototype: {{ this.prototype|escape }}
 <th class="ui-state-default">Next States</th></tr>
 </thead>
 <tbody>
-{% for state, doc, next in this.states %}
+{% for state, doc in this.states %}
    <tr><td class='state'>{{ state|escape }}</td>
    <td class='description'>{{ doc|escape }}</td>
-   <td class='text'>{{ next|escape }}</td></tr>
 {% endfor %}
 </tbody>
 </table>
@@ -193,15 +192,12 @@ Prototype: {{ this.prototype|escape }}
     # Fill in information about each state
     for state_method in flow_class.__dict__.values():
       try:
-        next_states = state_method.next_states
-
         # Only show the first line of the doc string.
         try:
           func_doc = state_method.func_doc.split("\n")[0].strip()
         except AttributeError:
           func_doc = ""
-        self.states.append((state_method.func_name, func_doc,
-                            ", ".join(next_states)))
+        self.states.append((state_method.func_name, func_doc))
       except AttributeError:
         pass
 
@@ -279,9 +275,10 @@ Launched Flow {{this.flow_name}} with the following args:<br>
           prefix="runner").RawHTML(request)
 
     response = super(SemanticProtoFlowForm, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "SemanticProtoFlowForm.Layout",
-                               renderer=self.__class__.__name__)
+    return self.CallJavascript(
+        response,
+        "SemanticProtoFlowForm.Layout",
+        renderer=self.__class__.__name__)
 
   def RenderAjax(self, request, response):
     """Parse the flow args from the form and launch the flow."""
@@ -298,32 +295,31 @@ Launched Flow {{this.flow_name}} with the following args:<br>
       try:
         self.args.Validate()
       except ValueError as e:
-        return self.CallJavascript(response,
-                                   "SemanticProtoFlowForm.RenderAjaxError",
-                                   error=str(e))
+        return self.CallJavascript(
+            response, "SemanticProtoFlowForm.RenderAjaxError", error=str(e))
 
       self.runner_args = forms.SemanticProtoFormRenderer(
-          flow_runner.FlowRunnerArgs(),
-          prefix="runner_").ParseArgs(request)
+          flow_runner.FlowRunnerArgs(), prefix="runner_").ParseArgs(request)
 
       self.runner_args.Validate()
 
-      self.flow_id = flow.GRRFlow.StartFlow(client_id=self.client_id,
-                                            flow_name=self.flow_name,
-                                            token=request.token,
-                                            args=self.args,
-                                            runner_args=self.runner_args)
+      self.flow_id = flow.GRRFlow.StartFlow(
+          client_id=self.client_id,
+          flow_name=self.flow_name,
+          token=request.token,
+          args=self.args,
+          runner_args=self.runner_args)
 
     self.args_html = semantic.FindRendererForObject(self.args).RawHTML(request)
     self.runner_args_html = semantic.FindRendererForObject(
         self.runner_args).RawHTML(request)
     response = renderers.TemplateRenderer.Layout(
-        self, request,
-        response, apply_template=self.ajax_template)
-    return self.CallJavascript(response,
-                               "SemanticProtoFlowForm.RenderAjax",
-                               renderer=self.__class__.__name__,
-                               dom_node=self.dom_node)
+        self, request, response, apply_template=self.ajax_template)
+    return self.CallJavascript(
+        response,
+        "SemanticProtoFlowForm.RenderAjax",
+        renderer=self.__class__.__name__,
+        dom_node=self.dom_node)
 
 
 class FlowFormCancelAction(renderers.TemplateRenderer):
@@ -338,10 +334,11 @@ class FlowFormCancelAction(renderers.TemplateRenderer):
     # We can't terminate flow directly through flow.GRRFlow.TerminateFlow as
     # it requires writing to the datastore. We're not allowed to do it from
     # the GUI. Therefore we use dedicated TerminateFlow flow.
-    flow.GRRFlow.StartFlow(flow_name="TerminateFlow",
-                           flow_urn=rdfvalue.RDFURN(request.REQ.get("flow_id")),
-                           reason="Cancelled in GUI",
-                           token=request.token)
+    flow.GRRFlow.StartFlow(
+        flow_name="TerminateFlow",
+        flow_urn=rdfvalue.RDFURN(request.REQ.get("flow_id")),
+        reason="Cancelled in GUI",
+        token=request.token)
 
     return super(FlowFormCancelAction, self).Layout(request, response)
 
@@ -443,9 +440,8 @@ class FlowTabView(renderers.TabLayout):
       self.disabled = ["FlowResultsExportView"]
 
     response = super(FlowTabView, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "FlowTabView.Layout",
-                               renderer=self.__class__.__name__)
+    return self.CallJavascript(
+        response, "FlowTabView.Layout", renderer=self.__class__.__name__)
 
 
 class FlowRequestView(renderers.TableRenderer):
@@ -471,8 +467,8 @@ class FlowRequestView(renderers.TableRenderer):
       return
 
     manager = queue_manager.QueueManager(token=request.token)
-    for i, (request, responses) in enumerate(manager.FetchRequestsAndResponses(
-        rdfvalue.RDFURN(session_id))):
+    for i, (request, responses) in enumerate(
+        manager.FetchRequestsAndResponses(rdfvalue.RDFURN(session_id))):
       if request.id == 0:
         continue
 
@@ -552,10 +548,8 @@ class TreeColumn(semantic.RDFValueColumn, renderers.TemplateRenderer):
     else:
       result = utils.SmartStr(self.value)
 
-    return self.FormatFromTemplate(self.template,
-                                   value=result,
-                                   index=index,
-                                   this=self)
+    return self.FormatFromTemplate(
+        self.template, value=result, index=index, this=self)
 
 
 class FlowColumn(TreeColumn):
@@ -615,12 +609,12 @@ class ListFlowsTable(renderers.TableRenderer):
 
   def __init__(self, **kwargs):
     super(ListFlowsTable, self).__init__(**kwargs)
-    self.AddColumn(semantic.RDFValueColumn("State",
-                                           renderer=FlowStateIcon,
-                                           width="40px"))
-    self.AddColumn(FlowColumn("Path",
-                              renderer=semantic.SubjectRenderer,
-                              width="20%"))
+    self.AddColumn(
+        semantic.RDFValueColumn(
+            "State", renderer=FlowStateIcon, width="40px"))
+    self.AddColumn(
+        FlowColumn(
+            "Path", renderer=semantic.SubjectRenderer, width="20%"))
     self.AddColumn(semantic.RDFValueColumn("Flow Name", width="20%"))
     self.AddColumn(semantic.RDFValueColumn("Creation Time", width="20%"))
     self.AddColumn(semantic.RDFValueColumn("Last Active", width="20%"))
@@ -639,9 +633,8 @@ class ListFlowsTable(renderers.TableRenderer):
       flow_urn = rdf_client.ClientURN(client_id).Add("flows")
 
     flow_root = aff4.FACTORY.Open(flow_urn, mode="r", token=request.token)
-    root_children_paths = sorted(flow_root.ListChildren(),
-                                 key=lambda x: x.age,
-                                 reverse=True)
+    root_children_paths = sorted(
+        flow_root.ListChildren(), key=lambda x: x.age, reverse=True)
     additional_rows = (depth == 0 and len(root_children_paths) > end_row)
 
     if not depth:
@@ -650,14 +643,13 @@ class ListFlowsTable(renderers.TableRenderer):
     # TODO(user): should be able to specify aff4_type=flow.GRRFlow
     # here.  Currently this doesn't work because symlinks get filtered out.
     # This is an aff4.FACTORY.MultiOpen's bug.
-    root_children = aff4.FACTORY.MultiOpen(root_children_paths,
-                                           token=request.token)
-    root_children = sorted(root_children,
-                           key=self._GetCreationTime,
-                           reverse=True)
-    level2_children = dict(aff4.FACTORY.MultiListChildren(
-        [f.urn for f in root_children],
-        token=request.token))
+    root_children = aff4.FACTORY.MultiOpen(
+        root_children_paths, token=request.token)
+    root_children = sorted(
+        root_children, key=self._GetCreationTime, reverse=True)
+    level2_children = dict(
+        aff4.FACTORY.MultiListChildren(
+            [f.urn for f in root_children], token=request.token))
 
     self.size = len(root_children)
 
@@ -747,9 +739,8 @@ Please select a flow to manage from the above table.
     """Introspect the Schema for flow objects."""
     try:
       self.state["flow"] = session_id = request.REQ["flow"]
-      self.fd = aff4.FACTORY.Open(session_id,
-                                  token=request.token,
-                                  age=aff4.ALL_TIMES)
+      self.fd = aff4.FACTORY.Open(
+          session_id, token=request.token, age=aff4.ALL_TIMES)
       self.classes = self.RenderAFF4Attributes(self.fd, request)
       self.path = self.fd.urn
     except (KeyError, IOError):
@@ -757,18 +748,19 @@ Please select a flow to manage from the above table.
 
     # Skip our parent's Layout method and install parent's javascript code.
     response = super(fileview.AFF4Stats, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "AFF4Stats.Layout",
-                               historical_renderer=self.historical_renderer,
-                               historical_renderer_state=self.state)
+    return self.CallJavascript(
+        response,
+        "AFF4Stats.Layout",
+        historical_renderer=self.historical_renderer,
+        historical_renderer_state=self.state)
 
 
 class HistoricalFlowView(fileview.HistoricalView):
   """View historical attributes for the flow."""
 
   def Layout(self, request, response):
-    self.state = dict(flow=request.REQ.get("flow"),
-                      attribute=request.REQ.get("attribute"))
+    self.state = dict(
+        flow=request.REQ.get("flow"), attribute=request.REQ.get("attribute"))
 
     self.AddColumn(semantic.RDFValueColumn(self.state["attribute"]))
 
@@ -805,13 +797,13 @@ class FlowPBRenderer(semantic.RDFProtoRenderer):
 
   def RenderBacktrace(self, descriptor, value):
     error_msg = value.rstrip().split("\n")[-1]
-    response = self.FormatFromTemplate(self.backtrace_template,
-                                       value=value,
-                                       name=descriptor.name,
-                                       error_msg=error_msg)
-    return self.CallJavascript(response,
-                               "FlowPBRenderer.RenderBacktrace",
-                               name=descriptor.name)
+    response = self.FormatFromTemplate(
+        self.backtrace_template,
+        value=value,
+        name=descriptor.name,
+        error_msg=error_msg)
+    return self.CallJavascript(
+        response, "FlowPBRenderer.RenderBacktrace", name=descriptor.name)
 
   # Pretty print these special fields.
   translator = dict(
@@ -886,10 +878,11 @@ class GlobExpressionFormRenderer(forms.ProtoRDFValueFormRenderer):
     self.completions = rdf_client.KnowledgeBase().GetKbFieldNames()
 
     response = super(GlobExpressionFormRenderer, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "GlobExpressionFormRenderer.Layout",
-                               prefix=self.prefix,
-                               completions=self.completions)
+    return self.CallJavascript(
+        response,
+        "GlobExpressionFormRenderer.Layout",
+        prefix=self.prefix,
+        completions=self.completions)
 
 
 class FileFinderConditionFormRenderer(forms.UnionMultiFormRenderer):

@@ -35,11 +35,12 @@ class YumListCmdParser(parsers.CommandParser):
       name, arch = name_arch.split(".")
 
       status = rdf_client.SoftwarePackage.InstallState.INSTALLED
-      yield rdf_client.SoftwarePackage(name=name,
-                                       publisher=source,
-                                       version=version,
-                                       architecture=arch,
-                                       install_state=status)
+      yield rdf_client.SoftwarePackage(
+          name=name,
+          publisher=source,
+          version=version,
+          architecture=arch,
+          install_state=status)
 
 
 class YumRepolistCmdParser(parsers.CommandParser):
@@ -104,13 +105,12 @@ class RpmCmdParser(parsers.CommandParser):
       if pkg_match:
         name, version = pkg_match.groups()
         status = rdf_client.SoftwarePackage.InstallState.INSTALLED
-        yield rdf_client.SoftwarePackage(name=name,
-                                         version=version,
-                                         install_state=status)
+        yield rdf_client.SoftwarePackage(
+            name=name, version=version, install_state=status)
     for line in stderr.splitlines():
       if "error: rpmdbNextIterator: skipping h#" in line:
-        yield rdf_anomaly.Anomaly(type="PARSER_ANOMALY",
-                                  symptom="Broken rpm database.")
+        yield rdf_anomaly.Anomaly(
+            type="PARSER_ANOMALY", symptom="Broken rpm database.")
         break
 
 
@@ -160,11 +160,12 @@ class DpkgCmdParser(parsers.CommandParser):
           status = rdf_client.SoftwarePackage.InstallState.INSTALLED
         else:
           status = rdf_client.SoftwarePackage.InstallState.UNKNOWN
-        yield rdf_client.SoftwarePackage(name=name,
-                                         description=desc,
-                                         version=version,
-                                         architecture=arch,
-                                         install_state=status)
+        yield rdf_client.SoftwarePackage(
+            name=name,
+            description=desc,
+            version=version,
+            architecture=arch,
+            install_state=status)
 
 
 class DmidecodeCmdParser(parsers.CommandParser):

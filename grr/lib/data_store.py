@@ -109,37 +109,37 @@ class MutationPool(object):
     self.set_requests.append((subject, values, timestamp, replace, to_delete))
 
   def Set(self, subject, attribute, value, timestamp=None, replace=True):
-    self.MultiSet(subject, {attribute: [value]},
-                  timestamp=timestamp,
-                  replace=replace)
+    self.MultiSet(
+        subject, {attribute: [value]}, timestamp=timestamp, replace=replace)
 
   def DeleteAttributes(self, subject, attributes, start=None, end=None):
     self.delete_attributes_requests.append((subject, attributes, start, end))
 
   def Flush(self):
     """Flushing actually applies all the operations in the pool."""
-    DB.DeleteSubjects(self.delete_subject_requests,
-                      token=self.token,
-                      sync=False)
+    DB.DeleteSubjects(
+        self.delete_subject_requests, token=self.token, sync=False)
 
     for req in self.delete_attributes_requests:
       subject, attributes, start, end = req
-      DB.DeleteAttributes(subject,
-                          attributes,
-                          start=start,
-                          end=end,
-                          token=self.token,
-                          sync=False)
+      DB.DeleteAttributes(
+          subject,
+          attributes,
+          start=start,
+          end=end,
+          token=self.token,
+          sync=False)
 
     for req in self.set_requests:
       subject, values, timestamp, replace, to_delete = req
-      DB.MultiSet(subject,
-                  values,
-                  timestamp=timestamp,
-                  replace=replace,
-                  to_delete=to_delete,
-                  token=self.token,
-                  sync=False)
+      DB.MultiSet(
+          subject,
+          values,
+          timestamp=timestamp,
+          replace=replace,
+          to_delete=to_delete,
+          token=self.token,
+          sync=False)
 
     if (self.delete_subject_requests or self.delete_attributes_requests or
         self.set_requests):
@@ -181,8 +181,8 @@ class DataStore(object):
     self.security_manager = security_manager
     logging.info("Using security manager %s", security_manager)
     # Start the flusher thread.
-    self.flusher_thread = utils.InterruptableThread(target=self.Flush,
-                                                    sleep_time=0.5)
+    self.flusher_thread = utils.InterruptableThread(
+        target=self.Flush, sleep_time=0.5)
     self.flusher_thread.start()
     self.monitor_thread = None
 
@@ -236,8 +236,8 @@ class DataStore(object):
     """Start the thread that registers the size of the DataStore."""
     if self.monitor_thread:
       return
-    self.monitor_thread = utils.InterruptableThread(target=self._RegisterSize,
-                                                    sleep_time=60)
+    self.monitor_thread = utils.InterruptableThread(
+        target=self._RegisterSize, sleep_time=60)
     self.monitor_thread.start()
 
   def _RegisterSize(self):
@@ -278,11 +278,12 @@ class DataStore(object):
       sync: If true we ensure the new values are committed before returning.
     """
     # TODO(user): don't allow subject = None
-    self.MultiSet(subject, {attribute: [value]},
-                  timestamp=timestamp,
-                  token=token,
-                  replace=replace,
-                  sync=sync)
+    self.MultiSet(
+        subject, {attribute: [value]},
+        timestamp=timestamp,
+        token=token,
+        replace=replace,
+        sync=sync)
 
   def RetryWrapper(self,
                    subject,
@@ -409,12 +410,8 @@ class DataStore(object):
       token: An ACL token.
     """
     for subject in subjects:
-      self.DeleteAttributes(subject,
-                            attributes,
-                            start=start,
-                            end=end,
-                            sync=sync,
-                            token=token)
+      self.DeleteAttributes(
+          subject, attributes, start=start, end=end, sync=sync, token=token)
 
   @abc.abstractmethod
   def DeleteAttributes(self,
@@ -455,9 +452,7 @@ class DataStore(object):
       AccessError: if anything goes wrong.
     """
     for _, value, timestamp in self.ResolveMulti(
-        subject, [attribute],
-        token=token,
-        timestamp=self.NEWEST_TIMESTAMP):
+        subject, [attribute], token=token, timestamp=self.NEWEST_TIMESTAMP):
 
       # Just return the first one.
       return value, timestamp
@@ -529,11 +524,12 @@ class DataStore(object):
     Raises:
       AccessError: if anything goes wrong.
     """
-    for _, values in self.MultiResolvePrefix([subject],
-                                             attribute_prefix,
-                                             timestamp=timestamp,
-                                             token=token,
-                                             limit=limit):
+    for _, values in self.MultiResolvePrefix(
+        [subject],
+        attribute_prefix,
+        timestamp=timestamp,
+        token=token,
+        limit=limit):
       values.sort(key=lambda a: a[0])
       return values
 
@@ -611,11 +607,12 @@ class DataStore(object):
                     max_records=None,
                     token=None,
                     relaxed_order=False):
-    for s, r in self.ScanAttributes(subject_prefix, [attribute],
-                                    after_urn=after_urn,
-                                    max_records=max_records,
-                                    token=token,
-                                    relaxed_order=relaxed_order):
+    for s, r in self.ScanAttributes(
+        subject_prefix, [attribute],
+        after_urn=after_urn,
+        max_records=max_records,
+        token=token,
+        relaxed_order=relaxed_order):
       ts, v = r[attribute]
       yield (s, ts, v)
 
@@ -755,10 +752,8 @@ class CommonTransaction(Transaction):
   """A common transaction that saves set/delete data before commiting."""
 
   def __init__(self, table, subject, lease_time=None, token=None):
-    super(CommonTransaction, self).__init__(table,
-                                            subject,
-                                            lease_time=lease_time,
-                                            token=token)
+    super(CommonTransaction, self).__init__(
+        table, subject, lease_time=lease_time, token=token)
     self.to_set = {}
     self.to_delete = set()
     self.subject = subject
@@ -803,10 +798,8 @@ class CommonTransaction(Transaction):
                           if start <= ts <= end])
 
     # And also the results from the database.
-    ds_results = self.store.ResolvePrefix(self.subject,
-                                          prefix,
-                                          timestamp=timestamp,
-                                          token=self.token)
+    ds_results = self.store.ResolvePrefix(
+        self.subject, prefix, timestamp=timestamp, token=self.token)
 
     # Must filter 'to_delete' from 'ds_results'.
     if self.to_delete:
@@ -854,10 +847,8 @@ class CommonTransaction(Transaction):
     if not self.CheckLease():
       raise TransactionError("Lease is no longer valid.")
 
-    self.store.DeleteAttributes(self.subject,
-                                self.to_delete,
-                                sync=True,
-                                token=self.token)
+    self.store.DeleteAttributes(
+        self.subject, self.to_delete, sync=True, token=self.token)
 
     self.store.MultiSet(self.subject, self.to_set, token=self.token)
     self.to_set = {}
@@ -928,10 +919,11 @@ class DataStoreInit(registry.InitHook):
     atexit.register(DB.Flush)
     monitor_port = config_lib.CONFIG["Monitoring.http_port"]
     if monitor_port != 0:
-      stats.STATS.RegisterGaugeMetric("datastore_size",
-                                      int,
-                                      docstring="Size of data store in bytes",
-                                      units="BYTES")
+      stats.STATS.RegisterGaugeMetric(
+          "datastore_size",
+          int,
+          docstring="Size of data store in bytes",
+          units="BYTES")
       DB.InitializeMonitorThread()
 
   def RunOnce(self):

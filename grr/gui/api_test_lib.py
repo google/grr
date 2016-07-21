@@ -72,12 +72,13 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
                   "GET" and "POST" are supported.
     """
     parsed_url = urlparse.urlparse(url)
-    request = utils.DataObject(method=method,
-                               scheme="http",
-                               path=parsed_url.path,
-                               environ={"SERVER_NAME": "foo.bar",
-                                        "SERVER_PORT": 1234},
-                               user="test")
+    request = utils.DataObject(
+        method=method,
+        scheme="http",
+        path=parsed_url.path,
+        environ={"SERVER_NAME": "foo.bar",
+                 "SERVER_PORT": 1234},
+        user="test")
     request.META = {"CONTENT_TYPE": "application/json"}
 
     if method == "GET":
@@ -114,10 +115,11 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
           url = url.replace(substr, repl)
 
     parsed_content = json.loads(content)
-    check_result = dict(method=method,
-                        url=url,
-                        test_class=self.__class__.__name__,
-                        response=parsed_content)
+    check_result = dict(
+        method=method,
+        url=url,
+        test_class=self.__class__.__name__,
+        response=parsed_content)
 
     if payload:
       check_result["request_payload"] = payload
@@ -137,8 +139,9 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
     """Checks whether there's a regression."""
     self.maxDiff = 65536  # pylint: disable=invalid-name
 
-    with open(os.path.join(
-        DOCUMENT_ROOT, "angular-components/docs/api-docs-examples.json")) as fd:
+    with open(
+        os.path.join(DOCUMENT_ROOT,
+                     "angular-components/docs/api-docs-examples.json")) as fd:
       prev_data = json.load(fd)
 
     checks = prev_data[self.handler]
@@ -151,13 +154,9 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
     # Make sure that this test has generated some checks.
     self.assertTrue(self.checks)
 
-    checks_str = json.dumps(self.checks,
-                            indent=2,
-                            sort_keys=True,
-                            separators=(",", ": "))
-    prev_checks_str = json.dumps(relevant_checks,
-                                 indent=2,
-                                 sort_keys=True,
-                                 separators=(",", ": "))
+    checks_str = json.dumps(
+        self.checks, indent=2, sort_keys=True, separators=(",", ": "))
+    prev_checks_str = json.dumps(
+        relevant_checks, indent=2, sort_keys=True, separators=(",", ": "))
 
     self.assertMultiLineEqual(prev_checks_str, checks_str)

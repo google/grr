@@ -24,9 +24,8 @@ class ClientBase(object):
   def Flow(self, flow_id):
     """Return a reference to a flow with a given id on this client."""
 
-    return flow.FlowRef(client_id=self.client_id,
-                        flow_id=flow_id,
-                        context=self._context)
+    return flow.FlowRef(
+        client_id=self.client_id, flow_id=flow_id, context=self._context)
 
   def CreateFlow(self, name=None, args=None, runner_args=None):
     """Create new flow on this client."""
@@ -50,9 +49,8 @@ class ClientBase(object):
   def ListFlows(self, offset=0, count=0):
     """List flows that ran on this client."""
 
-    args = api_pb2.ApiListFlowsArgs(client_id=self.client_id,
-                                    offset=offset,
-                                    count=count)
+    args = api_pb2.ApiListFlowsArgs(
+        client_id=self.client_id, offset=offset, count=count)
 
     items = self._context.SendIteratorRequest("ListFlows", args)
     return utils.MapItemsIterator(

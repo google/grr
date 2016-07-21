@@ -71,10 +71,11 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
   def _CheckClientKwIndex(self, keywords, expected_count):
     # Tests that the client index has expected_count results when
     # searched for keywords.
-    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                aff4_type=client_index.ClientIndex,
-                                mode="rw",
-                                token=self.token)
+    index = aff4.FACTORY.Create(
+        client_index.MAIN_INDEX,
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        token=self.token)
     self.assertEqual(len(index.LookupClients(keywords)), expected_count)
 
   def _CheckNotificationsCreated(self):
@@ -135,29 +136,27 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
   def _CheckVFS(self):
     # Check that virtual directories exist for the mount points
     fd = aff4.FACTORY.Open(
-        self.client_id.Add("fs/os/mnt/data"),
-        token=self.token)
+        self.client_id.Add("fs/os/mnt/data"), token=self.token)
     # But no directory listing exists yet - we will need to fetch a new one
     self.assertEqual(len(list(fd.OpenChildren())), 0)
 
     fd = aff4.FACTORY.Open(
-        self.client_id.Add("fs/tsk/dev/sda"),
-        token=self.token)
+        self.client_id.Add("fs/tsk/dev/sda"), token=self.token)
     # But no directory listing exists yet - we will need to fetch a new one
     self.assertEqual(len(list(fd.OpenChildren())), 0)
 
     fd = aff4.FACTORY.Open(
-        self.client_id.Add("devices/dev/sda"),
-        token=self.token)
+        self.client_id.Add("devices/dev/sda"), token=self.token)
     # But no directory listing exists yet - we will need to fetch a new one
     self.assertEqual(len(list(fd.OpenChildren())), 0)
 
   def _CheckLabelIndex(self):
     """Check that label indexes are updated."""
-    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                aff4_type=client_index.ClientIndex,
-                                mode="rw",
-                                token=self.token)
+    index = aff4.FACTORY.Create(
+        client_index.MAIN_INDEX,
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        token=self.token)
 
     self.assertEqual(
         list(index.LookupClients(["label:Label2"])), [self.client_id])
@@ -228,10 +227,11 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
             "HashFile")
         client_mock.InitializeClient()
 
-        for _ in test_lib.TestFlowHelper("Interrogate",
-                                         client_mock,
-                                         token=self.token,
-                                         client_id=self.client_id):
+        for _ in test_lib.TestFlowHelper(
+            "Interrogate",
+            client_mock,
+            token=self.token,
+            client_id=self.client_id):
           pass
 
         self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -239,10 +239,8 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
         self._CheckClientInfo()
         self._CheckGRRConfig()
         self._CheckNotificationsCreated()
-        self._CheckClientSummary("Linux",
-                                 "14.4",
-                                 release="Ubuntu",
-                                 kernel="3.13.0-39-generic")
+        self._CheckClientSummary(
+            "Linux", "14.4", release="Ubuntu", kernel="3.13.0-39-generic")
         self._CheckRelease("Ubuntu", "14.4")
 
         # users 1,2,3 from wtmp
@@ -270,15 +268,15 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
             "TransferBuffer", "StatFile", "Find", "HashBuffer", "ListDirectory",
             "FingerprintFile", "GetLibraryVersions", "GetMemorySize")
 
-        client_mock.InitializeClient(system="Windows",
-                                     version="6.1.7600",
-                                     kernel="6.1.7601")
+        client_mock.InitializeClient(
+            system="Windows", version="6.1.7600", kernel="6.1.7601")
 
         # Run the flow in the simulated way
-        for _ in test_lib.TestFlowHelper("Interrogate",
-                                         client_mock,
-                                         token=self.token,
-                                         client_id=self.client_id):
+        for _ in test_lib.TestFlowHelper(
+            "Interrogate",
+            client_mock,
+            token=self.token,
+            client_id=self.client_id):
           pass
 
         self.fd = aff4.FACTORY.Open(self.client_id, token=self.token)

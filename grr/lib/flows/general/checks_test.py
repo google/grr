@@ -67,10 +67,11 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
   def RunFlow(self):
     session_id = None
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
-      for session_id in test_lib.TestFlowHelper("CheckRunner",
-                                                client_mock=self.client_mock,
-                                                client_id=self.client_id,
-                                                token=self.token):
+      for session_id in test_lib.TestFlowHelper(
+          "CheckRunner",
+          client_mock=self.client_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
     session = aff4.FACTORY.Open(session_id, token=self.token)
     results = {r.check_id: r

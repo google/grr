@@ -85,8 +85,8 @@ class Find(actions.IteratedAction):
     try:
 
       data = ""
-      with vfs.VFSOpen(file_stat.pathspec,
-                       progress_callback=self.Progress) as fd:
+      with vfs.VFSOpen(
+          file_stat.pathspec, progress_callback=self.Progress) as fd:
         # Only read this much data from the file.
         while fd.Tell() < self.request.max_data:
           data_read = fd.read(1024000)
@@ -186,8 +186,8 @@ class Find(actions.IteratedAction):
     limit = request.iterator.number
 
     # TODO(user): What is a reasonable measure of work here?
-    for count, f in enumerate(self.ListDirectory(request.pathspec,
-                                                 client_state)):
+    for count, f in enumerate(
+        self.ListDirectory(request.pathspec, client_state)):
       self.Progress()
 
       # Ignore this file if any of the checks fail.
@@ -349,10 +349,11 @@ class Grep(actions.ActionPlugin):
           out_data += chr(ord(data[i]) ^ self.xor_out_key)
 
         hits += 1
-        self.SendReply(offset=base_offset + start - preamble_size,
-                       data=out_data,
-                       length=len(out_data),
-                       pathspec=fd.pathspec)
+        self.SendReply(
+            offset=base_offset + start - preamble_size,
+            data=out_data,
+            length=len(out_data),
+            pathspec=fd.pathspec)
 
         if args.mode == rdf_client.GrepSpec.Mode.FIRST_HIT:
           return

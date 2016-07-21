@@ -29,8 +29,8 @@ class PathSpecTest(test_base.RDFProtoTestCase):
 
   def testPop(self):
     """Test we can pop arbitrary elements from the pathspec."""
-    sample = rdf_paths.PathSpec(path="/",
-                                pathtype=rdf_paths.PathSpec.PathType.OS)
+    sample = rdf_paths.PathSpec(
+        path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
 
     for i in range(5):
       sample.Append(path=str(i), pathtype=rdf_paths.PathSpec.PathType.OS)
@@ -121,8 +121,8 @@ class PathSpecTest(test_base.RDFProtoTestCase):
     unicode(sample)
 
   def testCopy(self):
-    sample = rdf_paths.PathSpec(path="/",
-                                pathtype=rdf_paths.PathSpec.PathType.OS)
+    sample = rdf_paths.PathSpec(
+        path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
     sample.Append(path="foo", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     # Make a copy of the original and change it.
@@ -136,13 +136,14 @@ class PathSpecTest(test_base.RDFProtoTestCase):
 class GlobExpressionTest(test_base.RDFValueTestCase):
   rdfvalue_class = rdf_paths.GlobExpression
 
-  USER_ACCOUNT = dict(username=u"user",
-                      full_name=u"John Smith",
-                      comment=u"This is a user",
-                      last_logon=10000,
-                      domain=u"Some domain name",
-                      homedir=u"/home/user",
-                      sid=u"some sid")
+  USER_ACCOUNT = dict(
+      username=u"user",
+      full_name=u"John Smith",
+      comment=u"This is a user",
+      last_logon=10000,
+      domain=u"Some domain name",
+      homedir=u"/home/user",
+      sid=u"some sid")
 
   def GenerateSample(self, number=0):
     return self.rdfvalue_class("/home/%%User.username%%/*" + str(number))

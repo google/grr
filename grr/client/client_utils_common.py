@@ -74,10 +74,8 @@ def Execute(cmd,
       _Execute(cmd, args, time_limit, use_client_context=use_client_context)
       os._exit(0)  # pylint: disable=protected-access
   else:
-    return _Execute(cmd,
-                    args,
-                    time_limit,
-                    use_client_context=use_client_context)
+    return _Execute(
+        cmd, args, time_limit, use_client_context=use_client_context)
 
 
 def _Execute(cmd, args, time_limit=-1, use_client_context=False):
@@ -92,11 +90,12 @@ def _Execute(cmd, args, time_limit=-1, use_client_context=False):
   else:
     context = "system"
   logging.info("Executing %s in %s context.", " ".join(run), context)
-  p = subprocess.Popen(run,
-                       stdin=subprocess.PIPE,
-                       stdout=subprocess.PIPE,
-                       stderr=subprocess.PIPE,
-                       env=env)
+  p = subprocess.Popen(
+      run,
+      stdin=subprocess.PIPE,
+      stdout=subprocess.PIPE,
+      stderr=subprocess.PIPE,
+      env=env)
 
   alarm = None
   if time_limit > 0:

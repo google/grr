@@ -43,10 +43,7 @@ class DataServer(object):
     offline = rdf_data_server.DataServerState.Status.OFFLINE
     state = rdf_data_server.DataServerState(size=0, load=0, status=offline)
     self.server_info = rdf_data_server.DataServerInformation(
-        index=index,
-        address=loc.hostname,
-        port=loc.port,
-        state=state)
+        index=index, address=loc.hostname, port=loc.port, state=state)
     self.registered = False
     self.removed = False
     logging.info("Configured DataServer on %s:%d", self.Address(), self.Port())
@@ -143,9 +140,7 @@ class DataMaster(object):
         server.SetInitialInterval(len(self.servers))
       servers_info = [server.server_info for server in self.servers]
       self.mapping = rdf_data_server.DataServerMapping(
-          version=0,
-          num_servers=len(self.servers),
-          servers=servers_info)
+          version=0, num_servers=len(self.servers), servers=servers_info)
       self.service.SaveServerMapping(self.mapping, create_pathing=True)
     else:
       # Check mapping and configuration matching.
@@ -170,8 +165,7 @@ class DataMaster(object):
     # Start database measuring thread.
     sleep = config_lib.CONFIG["Dataserver.stats_frequency"]
     self.periodic_thread = utils.InterruptableThread(
-        target=self._PeriodicThread,
-        sleep_time=sleep)
+        target=self._PeriodicThread, sleep_time=sleep)
     self.periodic_thread.start()
     # Holds current rebalance operation.
     self.rebalance = None
@@ -184,11 +178,12 @@ class DataMaster(object):
     """Periodically update our state and store the mappings."""
     ok = rdf_data_server.DataServerState.Status.AVAILABLE
     num_components, avg_component = self.service.GetComponentInformation()
-    state = rdf_data_server.DataServerState(size=self.service.Size(),
-                                            load=0,
-                                            status=ok,
-                                            num_components=num_components,
-                                            avg_component=avg_component)
+    state = rdf_data_server.DataServerState(
+        size=self.service.Size(),
+        load=0,
+        status=ok,
+        num_components=num_components,
+        avg_component=avg_component)
     self.myself.UpdateState(state)
     self.service.SaveServerMapping(self.mapping)
 
@@ -251,8 +246,8 @@ class DataMaster(object):
     self.rebalance_pool = []
     try:
       for serv in self.servers:
-        pool = connectionpool.HTTPConnectionPool(serv.Address(),
-                                                 port=serv.Port())
+        pool = connectionpool.HTTPConnectionPool(
+            serv.Address(), port=serv.Port())
         self.rebalance_pool.append(pool)
     except urllib3.exceptions.MaxRetryError:
       self.CancelRebalancing()
@@ -309,8 +304,8 @@ class DataMaster(object):
       for serv in self.servers[1:]:
         if skip and serv in skip:
           continue
-        pool = connectionpool.HTTPConnectionPool(serv.Address(),
-                                                 port=serv.Port())
+        pool = connectionpool.HTTPConnectionPool(
+            serv.Address(), port=serv.Port())
         pools.append((serv, pool))
       body = self.mapping.SerializeToString()
       headers = {"Content-Length": len(body)}
@@ -337,10 +332,8 @@ class DataMaster(object):
     headers = {"Content-Length": size}
     for pool in self.rebalance_pool:
       try:
-        res = pool.urlopen("POST",
-                           "/rebalance/statistics",
-                           headers=headers,
-                           body=body)
+        res = pool.urlopen(
+            "POST", "/rebalance/statistics", headers=headers, body=body)
         if res.status != constants.RESPONSE_OK:
           self.CancelRebalancing()
           return False
@@ -365,10 +358,8 @@ class DataMaster(object):
     headers = {"Content-Length": size}
     for pool in self.rebalance_pool:
       try:
-        res = pool.urlopen("POST",
-                           "/rebalance/copy",
-                           headers=headers,
-                           body=body)
+        res = pool.urlopen(
+            "POST", "/rebalance/copy", headers=headers, body=body)
         if res.status != constants.RESPONSE_OK:
           self.CancelRebalancing()
           return False
@@ -386,10 +377,8 @@ class DataMaster(object):
     headers = {"Content-Length": size}
     for i, pool in enumerate(self.rebalance_pool):
       try:
-        res = pool.urlopen("POST",
-                           "/rebalance/perform",
-                           headers=headers,
-                           body=body)
+        res = pool.urlopen(
+            "POST", "/rebalance/perform", headers=headers, body=body)
         if res.status != constants.RESPONSE_OK:
           logging.error("Server %d failed to perform transaction %s", i,
                         self.rebalance.id)

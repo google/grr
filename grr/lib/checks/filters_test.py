@@ -113,9 +113,8 @@ class ForEachTests(test_lib.GRRBaseTest):
 
     hit1 = rdf_protodict.AttributedDict(k1="v1", k2="v2", k3="v3")
     hit2 = rdf_protodict.AttributedDict(k1="v4", k2="v5", k3="v6")
-    meta = rdf_protodict.AttributedDict(foo=["foo", "bar"],
-                                        target=[hit1, hit2],
-                                        null=[])
+    meta = rdf_protodict.AttributedDict(
+        foo=["foo", "bar"], target=[hit1, hit2], null=[])
     objs = [meta]
 
     results = filt.Parse(objs, "target")
@@ -212,19 +211,20 @@ class StatFilterTests(test_lib.GRRBaseTest):
                st_mtime=1336129892,
                st_ctime=1336129892):
     """Generate a StatEntry RDF value."""
-    pathspec = rdf_paths.PathSpec(path=path,
-                                  pathtype=rdf_paths.PathSpec.PathType.OS)
-    return rdf_client.StatEntry(pathspec=pathspec,
-                                st_mode=st_mode,
-                                st_ino=st_ino,
-                                st_dev=st_dev,
-                                st_nlink=st_nlink,
-                                st_uid=st_uid,
-                                st_gid=st_gid,
-                                st_size=st_size,
-                                st_atime=st_atime,
-                                st_mtime=st_mtime,
-                                st_ctime=st_ctime)
+    pathspec = rdf_paths.PathSpec(
+        path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
+    return rdf_client.StatEntry(
+        pathspec=pathspec,
+        st_mode=st_mode,
+        st_ino=st_ino,
+        st_dev=st_dev,
+        st_nlink=st_nlink,
+        st_uid=st_uid,
+        st_gid=st_gid,
+        st_size=st_size,
+        st_atime=st_atime,
+        st_mtime=st_mtime,
+        st_ctime=st_ctime)
 
   def testValidate(self):
     filt = filters.StatFilter()
@@ -340,18 +340,12 @@ class StatFilterTests(test_lib.GRRBaseTest):
     """Multiple file types are parsed successfully."""
     filt = filters.StatFilter()
     ok = self._GenStat(path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0100640)
-    link = self._GenStat(path="/etc/shadow",
-                         st_uid=0,
-                         st_gid=0,
-                         st_mode=0120640)
-    user = self._GenStat(path="/etc/shadow",
-                         st_uid=1000,
-                         st_gid=1000,
-                         st_mode=0100640)
-    writable = self._GenStat(path="/etc/shadow",
-                             st_uid=0,
-                             st_gid=0,
-                             st_mode=0100666)
+    link = self._GenStat(
+        path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0120640)
+    user = self._GenStat(
+        path="/etc/shadow", st_uid=1000, st_gid=1000, st_mode=0100640)
+    writable = self._GenStat(
+        path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0100666)
     cfg = {"path": "/etc/shadow",
            "st_uid": 0,
            "st_gid": 0,
@@ -364,8 +358,8 @@ class StatFilterTests(test_lib.GRRBaseTest):
     self.assertItemsEqual([ok, link, writable], results)
     results = filt.Parse(objs, "uid:=0 mode:0440 mask:0444")
     self.assertItemsEqual([ok, link], results)
-    results = list(filt.Parse(objs,
-                              "uid:=0 mode:0440 mask:0444 file_type:regular"))
+    results = list(
+        filt.Parse(objs, "uid:=0 mode:0440 mask:0444 file_type:regular"))
     self.assertItemsEqual([ok], results)
 
 

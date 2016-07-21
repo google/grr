@@ -128,8 +128,8 @@ class EnumerateInterfaces(actions.ActionPlugin):
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin))
           ip4 = "".join(map(chr, data.contents.sin_addr))
           address_type = rdf_client.NetworkAddress.Family.INET
-          address = rdf_client.NetworkAddress(address_type=address_type,
-                                              packed_bytes=ip4)
+          address = rdf_client.NetworkAddress(
+              address_type=address_type, packed_bytes=ip4)
           addresses.setdefault(ifname, []).append(address)
 
         if iffamily == 0x11:  # AF_PACKET
@@ -141,8 +141,8 @@ class EnumerateInterfaces(actions.ActionPlugin):
           data = ctypes.cast(m.contents.ifa_addr, ctypes.POINTER(Sockaddrin6))
           ip6 = "".join(map(chr, data.contents.sin6_addr))
           address_type = rdf_client.NetworkAddress.Family.INET6
-          address = rdf_client.NetworkAddress(address_type=address_type,
-                                              packed_bytes=ip6)
+          address = rdf_client.NetworkAddress(
+              address_type=address_type, packed_bytes=ip6)
           addresses.setdefault(ifname, []).append(address)
       except ValueError:
         # Some interfaces don't have a iffamily and will raise a null pointer
@@ -254,10 +254,11 @@ class EnumerateUsers(actions.ActionPlugin):
         if last_login < 0:
           last_login = 0
 
-        self.SendReply(username=utils.SmartUnicode(username),
-                       homedir=utils.SmartUnicode(homedir),
-                       full_name=utils.SmartUnicode(full_name),
-                       last_logon=last_login * 1000000)
+        self.SendReply(
+            username=utils.SmartUnicode(username),
+            homedir=utils.SmartUnicode(homedir),
+            full_name=utils.SmartUnicode(full_name),
+            last_logon=last_login * 1000000)
 
 
 class EnumerateFilesystems(actions.ActionPlugin):
@@ -339,11 +340,12 @@ class UpdateAgent(standard.ExecuteBinaryCommand):
     cmd_args = ["-i", path]
     time_limit = args.time_limit
 
-    client_utils_common.Execute(cmd,
-                                cmd_args,
-                                time_limit=time_limit,
-                                bypass_whitelist=True,
-                                daemon=True)
+    client_utils_common.Execute(
+        cmd,
+        cmd_args,
+        time_limit=time_limit,
+        bypass_whitelist=True,
+        daemon=True)
 
     # The installer will run in the background and kill the main process
     # so we just wait. If something goes wrong, the nanny will restart the

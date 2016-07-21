@@ -30,17 +30,15 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     super(CollectionArchiveGeneratorTest, self).setUp()
 
     path1 = "aff4:/C.0000000000000000/fs/os/foo/bar/hello1.txt"
-    with aff4.FACTORY.Create(path1,
-                             aff4.AFF4MemoryStream,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        path1, aff4.AFF4MemoryStream, token=self.token) as fd:
       fd.Write("hello1")
       fd.Set(fd.Schema.HASH,
              rdf_crypto.Hash(sha256=hashlib.sha256("hello1").digest()))
 
     path2 = u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
-    with aff4.FACTORY.Create(path2,
-                             aff4.AFF4MemoryStream,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        path2, aff4.AFF4MemoryStream, token=self.token) as fd:
       fd.Write("hello2")
       fd.Set(fd.Schema.HASH,
              rdf_crypto.Hash(sha256=hashlib.sha256("hello2").digest()))
@@ -48,10 +46,12 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     self.stat_entries = []
     self.paths = [path1, path2]
     for path in self.paths:
-      self.stat_entries.append(rdf_client.StatEntry(
-          aff4path=path,
-          pathspec=rdf_paths.PathSpec(path="fs/os/foo/bar/" + path.split("/")[
-              -1], pathtype=rdf_paths.PathSpec.PathType.OS)))
+      self.stat_entries.append(
+          rdf_client.StatEntry(
+              aff4path=path,
+              pathspec=rdf_paths.PathSpec(
+                  path="fs/os/foo/bar/" + path.split("/")[-1],
+                  pathtype=rdf_paths.PathSpec.PathType.OS)))
 
     self.fd = None
 
@@ -199,9 +199,10 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
       fd.Write("hello2")
 
     # Delete a single chunk
-    aff4.FACTORY.Delete("aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
-                        "/0000000000",
-                        token=self.token)
+    aff4.FACTORY.Delete(
+        "aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
+        "/0000000000",
+        token=self.token)
 
     _, fd_path = self._GenerateArchive(
         self.stat_entries,
@@ -250,9 +251,9 @@ class FilterAff4CollectionTest(test_lib.GRRBaseTest):
   def setUp(self):
     super(FilterAff4CollectionTest, self).setUp()
 
-    with aff4.FACTORY.Create("aff4:/tmp/foo/bar",
-                             collects.RDFValueCollection,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        "aff4:/tmp/foo/bar", collects.RDFValueCollection,
+        token=self.token) as fd:
       for i in range(10):
         fd.Add(rdf_paths.PathSpec(path="/var/os/tmp-%d" % i, pathtype="OS"))
 

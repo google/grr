@@ -26,8 +26,8 @@ class FilehashTest(test_lib.EmptyActionTest):
     """Can we hash a file?"""
     path = os.path.join(self.base_path, "numbers.txt")
     p = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
-    result = self.RunAction("FingerprintFile",
-                            rdf_client.FingerprintRequest(pathspec=p))
+    result = self.RunAction(
+        "FingerprintFile", rdf_client.FingerprintRequest(pathspec=p))
     types = result[0].matching_types
     fingers = {}
     for f in result[0].results:
@@ -50,10 +50,11 @@ class FilehashTest(test_lib.EmptyActionTest):
     """Fail on missing file?"""
     path = os.path.join(self.base_path, "this file does not exist")
     p = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
-    self.assertRaises(IOError,
-                      self.RunAction,
-                      "FingerprintFile",
-                      rdf_client.FingerprintRequest(pathspec=p))
+    self.assertRaises(
+        IOError,
+        self.RunAction,
+        "FingerprintFile",
+        rdf_client.FingerprintRequest(pathspec=p))
 
 
 def main(argv):

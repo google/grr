@@ -53,25 +53,28 @@ class SearchFileContent(flow.GRRFlow):
     _ = token
     return cls.args_type(paths=[r"%%Users.homedir%%/.bash_history"])
 
-  @flow.StateHandler(next_state=["Grep"])
+  @flow.StateHandler()
   def Start(self):
     """Run the glob first."""
     if self.runner.output is not None:
-      self.runner.output = aff4.FACTORY.Create(self.runner.output.urn,
-                                               collects.GrepResultsCollection,
-                                               mode="rw",
-                                               token=self.token)
+      self.runner.output = aff4.FACTORY.Create(
+          self.runner.output.urn,
+          collects.GrepResultsCollection,
+          mode="rw",
+          token=self.token)
 
-      self.runner.output.Set(self.runner.output.Schema.DESCRIPTION(
-          "SearchFiles {0}".format(self.__class__.__name__)))
+      self.runner.output.Set(
+          self.runner.output.Schema.DESCRIPTION("SearchFiles {0}".format(
+              self.__class__.__name__)))
 
-    self.CallFlow("Glob",
-                  next_state="Grep",
-                  root_path=self.args.root_path,
-                  paths=self.args.paths,
-                  pathtype=self.args.pathtype)
+    self.CallFlow(
+        "Glob",
+        next_state="Grep",
+        root_path=self.args.root_path,
+        paths=self.args.paths,
+        pathtype=self.args.pathtype)
 
-  @flow.StateHandler(next_state=["WriteHits"])
+  @flow.StateHandler()
   def Grep(self, responses):
     if responses.success:
       # Grep not specified - just list all hits.
@@ -86,14 +89,15 @@ class SearchFileContent(flow.GRRFlow):
           if not stat.S_ISDIR(response.st_mode):
 
             # Cast the BareGrepSpec to a GrepSpec type.
-            request = rdf_client.GrepSpec(target=response.pathspec,
-                                          **self.args.grep.AsDict())
-            self.CallClient("Grep",
-                            request=request,
-                            next_state="WriteHits",
-                            request_data=dict(pathspec=response.pathspec))
+            request = rdf_client.GrepSpec(
+                target=response.pathspec, **self.args.grep.AsDict())
+            self.CallClient(
+                "Grep",
+                request=request,
+                next_state="WriteHits",
+                request_data=dict(pathspec=response.pathspec))
 
-  @flow.StateHandler(next_state="End")
+  @flow.StateHandler()
   def WriteHits(self, responses):
     """Sends replies about the hits."""
     hits = list(responses)
@@ -105,6 +109,7 @@ class SearchFileContent(flow.GRRFlow):
       self.SendReply(hit)
 
     if self.args.also_download:
-      self.CallFlow("MultiGetFile",
-                    pathspecs=[x.pathspec for x in hits],
-                    next_state="End")
+      self.CallFlow(
+          "MultiGetFile",
+          pathspecs=[x.pathspec for x in hits],
+          next_state="End")

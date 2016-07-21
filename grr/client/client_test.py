@@ -23,8 +23,9 @@ class MockAction(actions.ActionPlugin):
   out_rdfvalues = [rdf_client.LogMessage]
 
   def Run(self, message):
-    self.SendReply(rdf_client.EchoRequest(data="Received Message: %s. Data %s" %
-                                          (message.data, "x" * 100)))
+    self.SendReply(
+        rdf_client.EchoRequest(data="Received Message: %s. Data %s" % (
+            message.data, "x" * 100)))
 
 
 class RaiseAction(actions.ActionPlugin):

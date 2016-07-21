@@ -38,30 +38,32 @@ class HashFileStoreExportPluginTest(test_lib.GRRBaseTest):
     client_ids = self.SetupClients(1)
     self.client_id = client_ids[0]
 
-    data_store.default_token = access_control.ACLToken(username="user",
-                                                       reason="reason")
+    data_store.default_token = access_control.ACLToken(
+        username="user", reason="reason")
 
   def testExportWithDummyPlugin(self):
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "winexec_img.dd"))
-    pathspec.Append(path="/Ext2IFS_1_10b.exe",
-                    pathtype=rdf_paths.PathSpec.PathType.TSK)
+    pathspec.Append(
+        path="/Ext2IFS_1_10b.exe", pathtype=rdf_paths.PathSpec.PathType.TSK)
     urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
                                           "HashBuffer")
-    for _ in test_lib.TestFlowHelper("GetFile",
-                                     client_mock,
-                                     token=self.token,
-                                     client_id=self.client_id,
-                                     pathspec=pathspec):
+    for _ in test_lib.TestFlowHelper(
+        "GetFile",
+        client_mock,
+        token=self.token,
+        client_id=self.client_id,
+        pathspec=pathspec):
       pass
 
     auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
     events.Events.PublishEvent(
         "FileStore.AddFileToStore",
-        rdf_flows.GrrMessage(payload=urn, auth_state=auth_state),
+        rdf_flows.GrrMessage(
+            payload=urn, auth_state=auth_state),
         token=self.token)
     worker = test_lib.MockWorker(token=self.token)
     worker.Simulate()
@@ -78,27 +80,32 @@ class HashFileStoreExportPluginTest(test_lib.GRRBaseTest):
     for response in responses:
       self.assertTrue(isinstance(response, aff4_filestore.FileStoreHash))
 
-    self.assertTrue(aff4_filestore.FileStoreHash(
-        fingerprint_type="pecoff",
-        hash_type="md5",
-        hash_value="a3a3259f7b145a21c7b512d876a5da06") in responses)
-    self.assertTrue(aff4_filestore.FileStoreHash(
-        fingerprint_type="pecoff",
-        hash_type="sha1",
-        hash_value="019bddad9cac09f37f3941a7f285c79d3c7e7801") in responses)
-    self.assertTrue(aff4_filestore.FileStoreHash(
-        fingerprint_type="generic",
-        hash_type="md5",
-        hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a") in responses)
-    self.assertTrue(aff4_filestore.FileStoreHash(
-        fingerprint_type="generic",
-        hash_type="sha1",
-        hash_value="7dd6bee591dfcb6d75eb705405302c3eab65e21a") in responses)
-    self.assertTrue(aff4_filestore.FileStoreHash(
-        fingerprint_type="generic",
-        hash_type="sha256",
-        hash_value="0e8dc93e150021bb4752029ebbff51394aa36f06"
-        "9cf19901578e4f06017acdb5") in responses)
+    self.assertTrue(
+        aff4_filestore.FileStoreHash(
+            fingerprint_type="pecoff",
+            hash_type="md5",
+            hash_value="a3a3259f7b145a21c7b512d876a5da06") in responses)
+    self.assertTrue(
+        aff4_filestore.FileStoreHash(
+            fingerprint_type="pecoff",
+            hash_type="sha1",
+            hash_value="019bddad9cac09f37f3941a7f285c79d3c7e7801") in responses)
+    self.assertTrue(
+        aff4_filestore.FileStoreHash(
+            fingerprint_type="generic",
+            hash_type="md5",
+            hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a") in responses)
+    self.assertTrue(
+        aff4_filestore.FileStoreHash(
+            fingerprint_type="generic",
+            hash_type="sha1",
+            hash_value="7dd6bee591dfcb6d75eb705405302c3eab65e21a") in responses)
+    self.assertTrue(
+        aff4_filestore.FileStoreHash(
+            fingerprint_type="generic",
+            hash_type="sha256",
+            hash_value="0e8dc93e150021bb4752029ebbff51394aa36f06"
+            "9cf19901578e4f06017acdb5") in responses)
 
 
 def main(argv):

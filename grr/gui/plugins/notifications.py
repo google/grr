@@ -24,8 +24,7 @@ class NotificationCount(renderers.TemplateRenderer):
 
     try:
       user_fd = aff4.FACTORY.Open(
-          aff4.ROOT_URN.Add("users").Add(request.user),
-          token=request.token)
+          aff4.ROOT_URN.Add("users").Add(request.user), token=request.token)
       notifications = user_fd.Get(user_fd.Schema.PENDING_NOTIFICATIONS)
       if notifications:
         number = len(notifications)
@@ -136,13 +135,11 @@ Settings were successfully updated. Reloading...
         proto_obj=aff4_users.GUISettings(),
         prefix="settings").ParseArgs(request)
 
-    flow.GRRFlow.StartFlow(flow_name="UpdateSettingsFlow",
-                           args=settings,
-                           token=request.token)
+    flow.GRRFlow.StartFlow(
+        flow_name="UpdateSettingsFlow", args=settings, token=request.token)
 
-    response = self.RenderFromTemplate(self.ajax_template,
-                                       response,
-                                       unique=self.unique)
+    response = self.RenderFromTemplate(
+        self.ajax_template, response, unique=self.unique)
     return self.CallJavascript(response, "RenderAjax")
 
 
@@ -199,9 +196,8 @@ class ViewNotifications(renderers.TableRenderer):
 
     # Hack for sorting. Requires retrieval of all notifications.
     notifications = list(user_fd.ShowNotifications(reset=False))
-    for notification in sorted(notifications,
-                               key=lambda x: x.timestamp,
-                               reverse=True):
+    for notification in sorted(
+        notifications, key=lambda x: x.timestamp, reverse=True):
       if row_index < start_row:
         continue
       if row_index > end_row:
@@ -221,8 +217,8 @@ class ViewNotifications(renderers.TableRenderer):
       self.AddRow(row, row_index)
       row_index += 1
 
-    flow.GRRFlow.StartFlow(flow_name="ResetUserNotifications",
-                           token=request.token)
+    flow.GRRFlow.StartFlow(
+        flow_name="ResetUserNotifications", token=request.token)
 
   @staticmethod
   def BuildHashFromNotification(notification):
@@ -277,5 +273,5 @@ class ViewNotifications(renderers.TableRenderer):
       h["main"] = "GrantAccess"
       h["acl"] = notification.subject
 
-    return urllib.urlencode(dict([(x, utils.SmartStr(y)) for x, y in h.items()
-                                 ]))
+    return urllib.urlencode(
+        dict([(x, utils.SmartStr(y)) for x, y in h.items()]))

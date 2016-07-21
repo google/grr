@@ -97,8 +97,9 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiDeleteArtifactsArgs
 
   def Handle(self, args, token=None):
-    artifacts = sorted(artifact_registry.REGISTRY.GetArtifacts(
-        reload_datastore_artifacts=True))
+    artifacts = sorted(
+        artifact_registry.REGISTRY.GetArtifacts(
+            reload_datastore_artifacts=True))
 
     deps = set()
     to_delete = set(args.names)
@@ -110,10 +111,11 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
           "Artifact(s) %s depend(s) on one of the artifacts to delete." %
           (",".join(list(deps))))
 
-    with aff4.FACTORY.Create("aff4:/artifact_store",
-                             mode="r",
-                             aff4_type=collects.RDFValueCollection,
-                             token=token) as store:
+    with aff4.FACTORY.Create(
+        "aff4:/artifact_store",
+        mode="r",
+        aff4_type=collects.RDFValueCollection,
+        token=token) as store:
       all_artifacts = list(store)
 
     filtered_artifacts, found_artifacts = [], []
@@ -135,10 +137,11 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
     # in the same folder.
     aff4.FACTORY.Delete("aff4:/artifact_store", token=token)
 
-    with aff4.FACTORY.Create("aff4:/artifact_store",
-                             mode="w",
-                             aff4_type=collects.RDFValueCollection,
-                             token=token) as store:
+    with aff4.FACTORY.Create(
+        "aff4:/artifact_store",
+        mode="w",
+        aff4_type=collects.RDFValueCollection,
+        token=token) as store:
       for artifact_value in filtered_artifacts:
         store.Add(artifact_value)
 

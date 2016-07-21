@@ -128,7 +128,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "ADVANCED"
   args_type = CollectArtifactDependenciesArgs
 
-  @flow.StateHandler(next_state=["ProcessBase"])
+  @flow.StateHandler()
   def Start(self):
     """For each artifact, create subflows for each collector."""
     self.state.Register("knowledge_base", None)
@@ -148,12 +148,13 @@ class CollectArtifactDependencies(flow.GRRFlow):
     # generated them.
     for artifact_name in first_flows:
       self.state.in_flight_artifacts.append(artifact_name)
-      self.CallFlow("ArtifactCollectorFlow",
-                    artifact_list=[artifact_name],
-                    knowledge_base=self.state.knowledge_base,
-                    store_results_in_aff4=False,
-                    next_state="ProcessBase",
-                    request_data={"artifact_name": artifact_name})
+      self.CallFlow(
+          "ArtifactCollectorFlow",
+          artifact_list=[artifact_name],
+          knowledge_base=self.state.knowledge_base,
+          store_results_in_aff4=False,
+          next_state="ProcessBase",
+          request_data={"artifact_name": artifact_name})
 
   def GetFirstFlowsForCollection(self):
     """Initialize dependencies and calculate first round of flows.
@@ -209,12 +210,13 @@ class CollectArtifactDependencies(flow.GRRFlow):
       if set(deps).issubset(self.state.fulfilled_deps):
         self.state.in_flight_artifacts.append(artifact_name)
         self.state.awaiting_deps_artifacts.remove(artifact_name)
-        self.CallFlow("ArtifactCollectorFlow",
-                      artifact_list=[artifact_name],
-                      store_results_in_aff4=False,
-                      next_state="ProcessBase",
-                      request_data={"artifact_name": artifact_name},
-                      knowledge_base=self.state.knowledge_base)
+        self.CallFlow(
+            "ArtifactCollectorFlow",
+            artifact_list=[artifact_name],
+            store_results_in_aff4=False,
+            next_state="ProcessBase",
+            request_data={"artifact_name": artifact_name},
+            knowledge_base=self.state.knowledge_base)
 
     # If we're not done but not collecting anything, start accepting the partial
     # dependencies as full, and see if we can complete.
@@ -226,7 +228,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
         self.state.fulfilled_deps.append(partial)
         self._ScheduleCollection()
 
-  @flow.StateHandler(next_state="ProcessBase")
+  @flow.StateHandler()
   def ProcessBase(self, responses):
     """Process any retrieved artifacts."""
     artifact_name = responses.request_data["artifact_name"]
@@ -243,8 +245,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
         # artifacts that provide the dependency before marking it as fulfilled.
         for dep in deps:
           required_artifacts = (artifact_registry.REGISTRY.GetArtifactNames(
-              os_name=self.state.knowledge_base.os,
-              provides=[dep]))
+              os_name=self.state.knowledge_base.os, provides=[dep]))
           if required_artifacts.issubset(self.state.completed_artifacts):
             self.state.fulfilled_deps.append(dep)
           else:
@@ -261,8 +262,8 @@ class CollectArtifactDependencies(flow.GRRFlow):
       # an error.
       if (self.state.awaiting_deps_artifacts and
           not self.state.in_flight_artifacts):
-        missing_deps = list(self.state.all_deps.difference(
-            self.state.fulfilled_deps))
+        missing_deps = list(
+            self.state.all_deps.difference(self.state.fulfilled_deps))
 
         if self.args.require_complete:
           raise flow.FlowError("KnowledgeBase initialization failed as the "
@@ -477,13 +478,14 @@ def ApplyParserToResponses(processor_obj, responses, source, state, token):
     if isinstance(processor_obj, parsers.CommandParser):
       # Command processor only supports one response at a time.
       response = responses
-      result_iterator = parse_method(cmd=response.request.cmd,
-                                     args=response.request.args,
-                                     stdout=response.stdout,
-                                     stderr=response.stderr,
-                                     return_val=response.exit_status,
-                                     time_taken=response.time_used,
-                                     knowledge_base=state.knowledge_base)
+      result_iterator = parse_method(
+          cmd=response.request.cmd,
+          args=response.request.args,
+          stdout=response.stdout,
+          stderr=response.stderr,
+          return_val=response.exit_status,
+          time_taken=response.time_used,
+          knowledge_base=state.knowledge_base)
 
     elif isinstance(processor_obj, parsers.WMIQueryParser):
       query = source["attributes"]["query"]
@@ -491,8 +493,8 @@ def ApplyParserToResponses(processor_obj, responses, source, state, token):
 
     elif isinstance(processor_obj, parsers.FileParser):
       if processor_obj.process_together:
-        file_objects = [aff4.FACTORY.Open(r.aff4path, token=token)
-                        for r in responses]
+        file_objects = [aff4.FACTORY.Open(
+            r.aff4path, token=token) for r in responses]
         result_iterator = parse_method(responses, file_objects,
                                        state.knowledge_base)
       else:
@@ -531,15 +533,15 @@ def UploadArtifactYamlFile(file_content,
     artifact_value.ValidateSyntax()
 
   # Iterate through each artifact adding it to the collection.
-  with aff4.FACTORY.Create(base_urn,
-                           aff4_type=collects.RDFValueCollection,
-                           token=token,
-                           mode="rw") as artifact_coll:
+  with aff4.FACTORY.Create(
+      base_urn, aff4_type=collects.RDFValueCollection, token=token,
+      mode="rw") as artifact_coll:
     for artifact_value in new_artifacts:
       artifact_coll.Add(artifact_value)
-      registry_obj.RegisterArtifact(artifact_value,
-                                    source="datastore:%s" % base_urn,
-                                    overwrite_if_exists=overwrite)
+      registry_obj.RegisterArtifact(
+          artifact_value,
+          source="datastore:%s" % base_urn,
+          overwrite_if_exists=overwrite)
       loaded_artifacts.append(artifact_value)
       logging.info("Uploaded artifact %s to %s", artifact_value.name, base_urn)
 

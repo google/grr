@@ -74,8 +74,8 @@ class RunTestsInit(registry.InitHook):
     # Install the mock security manager so we can trap errors in interactive
     # mode.
     data_store.DB.security_manager = test_lib.MockSecurityManager()
-    self.token = access_control.ACLToken(username="Test",
-                                         reason="Make fixtures.")
+    self.token = access_control.ACLToken(
+        username="Test", reason="Make fixtures.")
     self.token = self.token.SetUID()
 
     if data_store.DB.__class__.__name__ == "FakeDataStore":

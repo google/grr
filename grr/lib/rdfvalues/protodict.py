@@ -84,8 +84,7 @@ class DataBlob(rdf_structs.RDFProtoStruct):
     if self.HasField("rdf_value"):
       try:
         return rdfvalue.RDFValue.classes[self.rdf_value.name](
-            initializer=self.rdf_value.data,
-            age=self.rdf_value.age)
+            initializer=self.rdf_value.data, age=self.rdf_value.age)
       except (ValueError, KeyError) as e:
         if ignore_error:
           return e
@@ -143,8 +142,10 @@ class Dict(rdf_structs.RDFProtoStruct):
     self.dat = None
     for key, value in dictionary.iteritems():
       self.dat.Append(
-          k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
-          v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
+          k=DataBlob().SetValue(
+              key, raise_on_error=raise_on_error),
+          v=DataBlob().SetValue(
+              value, raise_on_error=raise_on_error))
     return self
 
   def __getitem__(self, key):
@@ -206,8 +207,10 @@ class Dict(rdf_structs.RDFProtoStruct):
     """
     del self[key]
     self.dat.Append(
-        k=DataBlob().SetValue(key, raise_on_error=raise_on_error),
-        v=DataBlob().SetValue(value, raise_on_error=raise_on_error))
+        k=DataBlob().SetValue(
+            key, raise_on_error=raise_on_error),
+        v=DataBlob().SetValue(
+            value, raise_on_error=raise_on_error))
 
   def __setitem__(self, key, value):
     del self[key]
@@ -336,9 +339,8 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
       payload = initializer
       initializer = None
 
-    super(EmbeddedRDFValue, self).__init__(initializer=initializer,
-                                           *args,
-                                           **kwargs)
+    super(EmbeddedRDFValue, self).__init__(
+        initializer=initializer, *args, **kwargs)
     if payload is not None:
       self.payload = payload
 

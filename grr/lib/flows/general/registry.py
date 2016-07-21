@@ -44,21 +44,24 @@ class RegistryFinder(flow.GRRFlow):
     result = []
     for c in conditions:
       if c.condition_type == RegistryFinderCondition.Type.MODIFICATION_TIME:
-        result.append(file_finder.FileFinderCondition(
-            condition_type=ff_condition_type_cls.MODIFICATION_TIME,
-            modification_time=c.modification_time))
+        result.append(
+            file_finder.FileFinderCondition(
+                condition_type=ff_condition_type_cls.MODIFICATION_TIME,
+                modification_time=c.modification_time))
       elif c.condition_type == RegistryFinderCondition.Type.VALUE_LITERAL_MATCH:
-        result.append(file_finder.FileFinderCondition(
-            condition_type=ff_condition_type_cls.CONTENTS_LITERAL_MATCH,
-            contents_literal_match=c.value_literal_match))
+        result.append(
+            file_finder.FileFinderCondition(
+                condition_type=ff_condition_type_cls.CONTENTS_LITERAL_MATCH,
+                contents_literal_match=c.value_literal_match))
       elif c.condition_type == RegistryFinderCondition.Type.VALUE_REGEX_MATCH:
-        result.append(file_finder.FileFinderCondition(
-            condition_type=ff_condition_type_cls.CONTENTS_REGEX_MATCH,
-            contents_regex_match=c.value_regex_match))
+        result.append(
+            file_finder.FileFinderCondition(
+                condition_type=ff_condition_type_cls.CONTENTS_REGEX_MATCH,
+                contents_regex_match=c.value_regex_match))
       elif c.condition_type == RegistryFinderCondition.Type.SIZE:
-        result.append(file_finder.FileFinderCondition(
-            condition_type=ff_condition_type_cls.SIZE,
-            size=c.size))
+        result.append(
+            file_finder.FileFinderCondition(
+                condition_type=ff_condition_type_cls.SIZE, size=c.size))
       else:
         raise ValueError("Unknown condition type: %s", c.condition_type)
 
@@ -70,7 +73,7 @@ class RegistryFinder(flow.GRRFlow):
     return cls.args_type(keys_paths=["HKEY_USERS/%%users.sid%%/Software/"
                                      "Microsoft/Windows/CurrentVersion/Run/*"])
 
-  @flow.StateHandler(next_state="Done")
+  @flow.StateHandler()
   def Start(self):
     self.CallFlow(
         "FileFinder",
@@ -102,16 +105,17 @@ class CollectRunKeyBinaries(flow.GRRFlow):
   category = "/Registry/"
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state="ParseRunKeys")
+  @flow.StateHandler()
   def Start(self):
     """Get runkeys via the ArtifactCollectorFlow."""
-    self.CallFlow("ArtifactCollectorFlow",
-                  artifact_list=["WindowsRunKeys"],
-                  use_tsk=True,
-                  store_results_in_aff4=False,
-                  next_state="ParseRunKeys")
+    self.CallFlow(
+        "ArtifactCollectorFlow",
+        artifact_list=["WindowsRunKeys"],
+        use_tsk=True,
+        store_results_in_aff4=False,
+        next_state="ParseRunKeys")
 
-  @flow.StateHandler(next_state="Done")
+  @flow.StateHandler()
   def ParseRunKeys(self, responses):
     """Get filenames from the RunKeys and download the files."""
     filenames = []
@@ -129,8 +133,9 @@ class CollectRunKeyBinaries(flow.GRRFlow):
         self.Log("Couldn't guess path for %s", runkey)
 
       for path in path_guesses:
-        filenames.append(rdf_paths.PathSpec(
-            path=path, pathtype=rdf_paths.PathSpec.PathType.TSK))
+        filenames.append(
+            rdf_paths.PathSpec(
+                path=path, pathtype=rdf_paths.PathSpec.PathType.TSK))
 
     if filenames:
       self.CallFlow("MultiGetFile", pathspecs=filenames, next_state="Done")
@@ -147,7 +152,7 @@ class GetMRU(flow.GRRFlow):
   category = "/Registry/"
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state="StoreMRUs")
+  @flow.StateHandler()
   def Start(self):
     """Call the find flow to get the MRU data for each user."""
     fd = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
@@ -162,11 +167,12 @@ class GetMRU(flow.GRRFlow):
       findspec.pathspec.path = mru_path
       findspec.pathspec.pathtype = rdf_paths.PathSpec.PathType.REGISTRY
 
-      self.CallFlow("FindFiles",
-                    findspec=findspec,
-                    output=None,
-                    next_state="StoreMRUs",
-                    request_data=dict(username=user.username))
+      self.CallFlow(
+          "FindFiles",
+          findspec=findspec,
+          output=None,
+          next_state="StoreMRUs",
+          request_data=dict(username=user.username))
 
   @flow.StateHandler()
   def StoreMRUs(self, responses):

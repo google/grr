@@ -30,11 +30,12 @@ class GenericRDFProtoTest(RDFValueBaseTest):
                       rdfvalue.RDFString("hello"))
 
     # Should raise - incompatible RDFProto type.
-    self.assertRaises(type_info.TypeValueError,
-                      setattr,
-                      container,
-                      "device",
-                      rdf_client.StatEntry(st_size=5))
+    self.assertRaises(
+        type_info.TypeValueError,
+        setattr,
+        container,
+        "device",
+        rdf_client.StatEntry(st_size=5))
 
     # Assign directly.
     container.device = pathspec
@@ -49,10 +50,12 @@ class GenericRDFProtoTest(RDFValueBaseTest):
 
   def testSimpleTypeAssignment(self):
     sample = rdf_client.StatEntry()
-    sample.AddDescriptor(type_info.ProtoRDFValue(name="test",
-                                                 field_number=45,
-                                                 default=rdfvalue.RDFInteger(0),
-                                                 rdf_type=rdfvalue.RDFInteger))
+    sample.AddDescriptor(
+        type_info.ProtoRDFValue(
+            name="test",
+            field_number=45,
+            default=rdfvalue.RDFInteger(0),
+            rdf_type=rdfvalue.RDFInteger))
 
     # Ensure there is an rdf_map so we know that st_size is an RDFInteger:
     self.assertIsInstance(sample.test, rdfvalue.RDFInteger)
@@ -88,8 +91,8 @@ class GenericRDFProtoTest(RDFValueBaseTest):
 
   def testComplexConstruction(self):
     """Test that we can construct RDFProtos with nested fields."""
-    pathspec = rdf_paths.PathSpec(path="/foobar",
-                                  pathtype=rdf_paths.PathSpec.PathType.TSK)
+    pathspec = rdf_paths.PathSpec(
+        path="/foobar", pathtype=rdf_paths.PathSpec.PathType.TSK)
     sample = rdf_client.StatEntry(pathspec=pathspec, st_size=5)
 
     self.assertEqual(sample.pathspec.path, "/foobar")
@@ -98,8 +101,8 @@ class GenericRDFProtoTest(RDFValueBaseTest):
     self.assertRaises(AttributeError, rdf_client.StatEntry, foobar=1)
 
   def testUnicodeSupport(self):
-    pathspec = rdf_paths.PathSpec(path="/foobar",
-                                  pathtype=rdf_paths.PathSpec.PathType.TSK)
+    pathspec = rdf_paths.PathSpec(
+        path="/foobar", pathtype=rdf_paths.PathSpec.PathType.TSK)
     pathspec.path = u"Grüezi"
 
     self.assertEqual(pathspec.path, u"Grüezi")

@@ -37,9 +37,8 @@ class CleanHunts(cronjobs.SystemCronFlow):
 
     deadline = rdfvalue.RDFDatetime().Now() - hunts_ttl
 
-    hunts = aff4.FACTORY.MultiOpen(hunts_urns,
-                                   aff4_type=implementation.GRRHunt,
-                                   token=self.token)
+    hunts = aff4.FACTORY.MultiOpen(
+        hunts_urns, aff4_type=implementation.GRRHunt, token=self.token)
     for hunt in hunts:
       if exception_label in hunt.GetLabelsNames():
         continue
@@ -64,10 +63,8 @@ class CleanCronJobs(cronjobs.SystemCronFlow):
       return
 
     jobs = cronjobs.CRON_MANAGER.ListJobs(token=self.token)
-    jobs_objs = aff4.FACTORY.MultiOpen(jobs,
-                                       aff4_type=cronjobs.CronJob,
-                                       mode="r",
-                                       token=self.token)
+    jobs_objs = aff4.FACTORY.MultiOpen(
+        jobs, aff4_type=cronjobs.CronJob, mode="r", token=self.token)
 
     for obj in jobs_objs:
       age = rdfvalue.RDFDatetime().Now() - cron_jobs_ttl
@@ -97,9 +94,8 @@ class CleanTemp(cronjobs.SystemCronFlow):
 
     for tmp_group in utils.Grouper(tmp_urns, 10000):
       expired_tmp_urns = []
-      for tmp_obj in aff4.FACTORY.MultiOpen(tmp_group,
-                                            mode="r",
-                                            token=self.token):
+      for tmp_obj in aff4.FACTORY.MultiOpen(
+          tmp_group, mode="r", token=self.token):
         if exception_label in tmp_obj.GetLabelsNames():
           continue
 
@@ -126,10 +122,11 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
     exception_label = config_lib.CONFIG[
         "DataRetention.inactive_client_ttl_exception_label"]
 
-    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                aff4_type=client_index.ClientIndex,
-                                mode="rw",
-                                token=self.token)
+    index = aff4.FACTORY.Create(
+        client_index.MAIN_INDEX,
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        token=self.token)
 
     client_urns = index.LookupClients(["."])
 
@@ -137,10 +134,11 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
 
     for client_group in utils.Grouper(client_urns, 1000):
       inactive_client_urns = []
-      for client in aff4.FACTORY.MultiOpen(client_group,
-                                           mode="r",
-                                           aff4_type=aff4_grr.VFSGRRClient,
-                                           token=self.token):
+      for client in aff4.FACTORY.MultiOpen(
+          client_group,
+          mode="r",
+          aff4_type=aff4_grr.VFSGRRClient,
+          token=self.token):
         if exception_label in client.GetLabelsNames():
           continue
 

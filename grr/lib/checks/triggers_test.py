@@ -6,9 +6,8 @@ from grr.lib import test_lib
 from grr.lib.checks import triggers
 
 target_1 = triggers.Target({})
-target_2 = triggers.Target(os=["TermOS"],
-                           cpe=["cpe:/o:cyberdyne:termos"],
-                           label=["t800", "t1000"])
+target_2 = triggers.Target(
+    os=["TermOS"], cpe=["cpe:/o:cyberdyne:termos"], label=["t800", "t1000"])
 bad_ai = ("BadAI", None, None, None)
 good_ai = ("GoodAI", None, None, None)
 termos = ("BadAI", "TermOS", "cpe:/o:cyberdyne:termos")
@@ -69,14 +68,13 @@ class TriggersTest(test_lib.GRRBaseTest):
     t.Add("GoodAI", target_1)
     t.Add("BadAI", target_2)
     # Searches return no results if query data doesn't match.
-    self.assertEqual([],
-                     t.Search(artifact="GoodAI",
-                              os_name="TermOS",
-                              label="t1000"))
+    self.assertEqual(
+        [], t.Search(
+            artifact="GoodAI", os_name="TermOS", label="t1000"))
     # Searches return results if query data matches.
     self.assertEqual([good_ai], [c.attr for c in t.Search(artifact="GoodAI")])
-    self.assertItemsEqual([t800, t1000],
-                          [c.attr for c in t.Search(artifact="BadAI")])
+    self.assertItemsEqual(
+        [t800, t1000], [c.attr for c in t.Search(artifact="BadAI")])
 
   def testTriggerRegistry(self):
     t = triggers.Triggers()

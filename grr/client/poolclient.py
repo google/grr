@@ -71,8 +71,10 @@ def CreateClientPool(n):
     fd.close()
 
     for certificate in certificates:
-      clients.append(PoolGRRClient(private_key=certificate,
-                                   ca_cert=config_lib.CONFIG["CA.certificate"]))
+      clients.append(
+          PoolGRRClient(
+              private_key=certificate,
+              ca_cert=config_lib.CONFIG["CA.certificate"]))
 
     clients_loaded = True
   except (IOError, EOFError):
@@ -86,8 +88,9 @@ def CreateClientPool(n):
     # Generate a new RSA key pair for each client.
     bits = config_lib.CONFIG["Client.rsa_key_length"]
     key = rdf_crypto.RSAPrivateKey.GenerateKey(bits=bits)
-    clients.append(PoolGRRClient(private_key=key,
-                                 ca_cert=config_lib.CONFIG["CA.certificate"]))
+    clients.append(
+        PoolGRRClient(
+            private_key=key, ca_cert=config_lib.CONFIG["CA.certificate"]))
 
   # Start all the clients now.
   for c in clients:

@@ -14,11 +14,12 @@ def PopulateData(token=None):
 
   def SimulateUserActivity(username, client_id, timestamp, num=10):
     for flow_name in flows[:num]:
-      event = events.AuditEvent(user=username,
-                                action="RUN_FLOW",
-                                flow_name=flow_name,
-                                client=client_id,
-                                age=timestamp)
+      event = events.AuditEvent(
+          user=username,
+          action="RUN_FLOW",
+          flow_name=flow_name,
+          client=client_id,
+          age=timestamp)
 
       events.Events.PublishEvent("Audit", event, token=token)
 

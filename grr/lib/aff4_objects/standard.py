@@ -53,12 +53,13 @@ class VFSDirectory(aff4.AFF4Volume):
 
     if attribute == "CONTAINS":
       # Get the pathspec for this object
-      flow_id = flow.GRRFlow.StartFlow(client_id=client_id,
-                                       flow_name="ListDirectory",
-                                       pathspec=self.real_pathspec,
-                                       priority=priority,
-                                       notify_to_user=False,
-                                       token=self.token)
+      flow_id = flow.GRRFlow.StartFlow(
+          client_id=client_id,
+          flow_name="ListDirectory",
+          pathspec=self.real_pathspec,
+          priority=priority,
+          notify_to_user=False,
+          token=self.token)
 
       return flow_id
 
@@ -136,8 +137,7 @@ class BlobImage(aff4.AFF4ImageBase):
     for chunk_fd_pairs in utils.Grouper(
         cls._GenerateChunkIds(fds), cls.MULTI_STREAM_CHUNKS_READ_AHEAD):
       results_map = data_store.DB.ReadBlobs(
-          dict(chunk_fd_pairs).keys(),
-          token=fds[0].token)
+          dict(chunk_fd_pairs).keys(), token=fds[0].token)
 
       for chunk_id, fd in chunk_fd_pairs:
         if chunk_id not in results_map or results_map[chunk_id] is None:
@@ -156,9 +156,9 @@ class BlobImage(aff4.AFF4ImageBase):
         missing_blobs_by_fd.setdefault(fd, []).append(chunk_id)
 
       for fd, missing_blobs in missing_blobs_by_fd.iteritems():
-        e = MissingBlobsError("%d missing blobs (multi-stream)" %
-                              len(missing_blobs),
-                              missing_chunks=missing_blobs)
+        e = MissingBlobsError(
+            "%d missing blobs (multi-stream)" % len(missing_blobs),
+            missing_chunks=missing_blobs)
         yield fd, None, e
 
   def Initialize(self):
@@ -323,10 +323,8 @@ class HashImage(aff4.AFF4Image):
   def _OpenIndex(self):
     if self.index is None:
       index_urn = self.urn.Add("index")
-      self.index = aff4.FACTORY.Create(index_urn,
-                                       aff4.AFF4Image,
-                                       mode=self.mode,
-                                       token=self.token)
+      self.index = aff4.FACTORY.Create(
+          index_urn, aff4.AFF4Image, mode=self.mode, token=self.token)
 
   def _GetChunkForWriting(self, chunk):
     """Chunks must be added using the AddBlob() method."""
@@ -398,15 +396,17 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
 
     STAT = VFSDirectory.SchemaCls.STAT
 
-    _CHUNKSIZE = aff4.Attribute("aff4:chunksize",
-                                rdfvalue.RDFInteger,
-                                "Total size of each chunk.",
-                                default=512 * 1024)
+    _CHUNKSIZE = aff4.Attribute(
+        "aff4:chunksize",
+        rdfvalue.RDFInteger,
+        "Total size of each chunk.",
+        default=512 * 1024)
 
-    LAST_CHUNK = aff4.Attribute("aff4:lastchunk",
-                                rdfvalue.RDFInteger,
-                                "The highest numbered chunk in this object.",
-                                default=-1)
+    LAST_CHUNK = aff4.Attribute(
+        "aff4:lastchunk",
+        rdfvalue.RDFInteger,
+        "The highest numbered chunk in this object.",
+        default=-1)
 
   def _ReadChunks(self, chunks):
     chunk_hashes = self._ChunkNrsToHashes(chunks)
@@ -573,9 +573,8 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
         self._dirty = True
 
     index_urn = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number)
-    with aff4.FACTORY.Create(index_urn,
-                             aff4.AFF4MemoryStream,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        index_urn, aff4.AFF4MemoryStream, token=self.token) as fd:
       fd.write(blob_hash)
     if chunk_number in self.chunk_cache:
       self.chunk_cache.Pop(chunk_number)
@@ -649,13 +648,14 @@ class LabelSet(aff4.AFF4Object):
     to_set = dict(zip(self.to_set, self.PLACEHOLDER_VALUE * len(self.to_set)))
 
     if to_set or self.to_delete:
-      data_store.DB.MultiSet(self.urn,
-                             to_set,
-                             to_delete=list(self.to_delete),
-                             timestamp=0,
-                             token=self.token,
-                             replace=True,
-                             sync=sync)
+      data_store.DB.MultiSet(
+          self.urn,
+          to_set,
+          to_delete=list(self.to_delete),
+          timestamp=0,
+          token=self.token,
+          replace=True,
+          sync=sync)
     self.to_set = set()
     self.to_delete = set()
 
@@ -674,9 +674,8 @@ class LabelSet(aff4.AFF4Object):
     if self.to_set or self.to_delete:
       self.Flush(sync=True)
     result = []
-    for attribute, _, _ in data_store.DB.ResolvePrefix(self.urn,
-                                                       self.ATTRIBUTE_PREFIX,
-                                                       token=self.token):
+    for attribute, _, _ in data_store.DB.ResolvePrefix(
+        self.urn, self.ATTRIBUTE_PREFIX, token=self.token):
       result.append(attribute[len(self.ATTRIBUTE_PREFIX):])
     return sorted(result)
 

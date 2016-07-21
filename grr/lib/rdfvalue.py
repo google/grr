@@ -155,9 +155,10 @@ class RDFValue(object):
   def __getstate__(self):
     """Support the pickle protocol."""
     # __pickled_rdfvalue is used to mark RDFValues pickled via the new way.
-    return dict(__pickled_rdfvalue=True,
-                age=int(self.age),
-                data=self.SerializeToString())
+    return dict(
+        __pickled_rdfvalue=True,
+        age=int(self.age),
+        data=self.SerializeToString())
 
   def __setstate__(self, data):
     """Support the pickle protocol."""
@@ -169,9 +170,10 @@ class RDFValue(object):
 
   def AsProto(self):
     """Serialize into an RDFValue protobuf."""
-    return jobs_pb2.EmbeddedRDFValue(age=int(self.age),
-                                     name=self.__class__.__name__,
-                                     data=self.SerializeToString())
+    return jobs_pb2.EmbeddedRDFValue(
+        age=int(self.age),
+        name=self.__class__.__name__,
+        data=self.SerializeToString())
 
   def __iter__(self):
     """This allows every RDFValue to be iterated over."""
@@ -577,19 +579,11 @@ class RDFDatetime(RDFInteger):
     """
     # By default assume the time is given in UTC.
     if eoy:
-      default = datetime.datetime(time.gmtime().tm_year,
-                                  12,
-                                  31,
-                                  23,
-                                  59,
-                                  tzinfo=dateutil.tz.tzutc())
+      default = datetime.datetime(
+          time.gmtime().tm_year, 12, 31, 23, 59, tzinfo=dateutil.tz.tzutc())
     else:
-      default = datetime.datetime(time.gmtime().tm_year,
-                                  1,
-                                  1,
-                                  0,
-                                  0,
-                                  tzinfo=dateutil.tz.tzutc())
+      default = datetime.datetime(
+          time.gmtime().tm_year, 1, 1, 0, 0, tzinfo=dateutil.tz.tzutc())
 
     timestamp = parser.parse(string, default=default)
 
@@ -598,7 +592,8 @@ class RDFDatetime(RDFInteger):
   @classmethod
   def LessThanEq(cls, attribute, filter_implementation, value):
     return filter_implementation.GetFilter("PredicateLesserEqualFilter")(
-        attribute, cls._ParseFromHumanReadable(value, eoy=True))
+        attribute, cls._ParseFromHumanReadable(
+            value, eoy=True))
 
   @classmethod
   def LessThan(cls, attribute, filter_implementation, value):
@@ -614,7 +609,8 @@ class RDFDatetime(RDFInteger):
   @classmethod
   def GreaterThan(cls, attribute, filter_implementation, value):
     return filter_implementation.GetFilter("PredicateGreaterEqualFilter")(
-        attribute, cls._ParseFromHumanReadable(value, eoy=True))
+        attribute, cls._ParseFromHumanReadable(
+            value, eoy=True))
 
   operators = {"<": (1, "LessThan"),
                ">": (1, "GreaterThan"),
@@ -1038,10 +1034,11 @@ class Subject(RDFURN):
   def HasAttribute(unused_attribute, filter_implementation, string):
     return filter_implementation.GetFilter("HasPredicateFilter")(string)
 
-  operators = dict(matches=(1, "ContainsMatch"),
-                   contains=(1, "ContainsMatch"),
-                   startswith=(1, "Startswith"),
-                   has=(1, "HasAttribute"))
+  operators = dict(
+      matches=(1, "ContainsMatch"),
+      contains=(1, "ContainsMatch"),
+      startswith=(1, "Startswith"),
+      has=(1, "HasAttribute"))
 
 
 DEFAULT_FLOW_QUEUE = RDFURN("F")

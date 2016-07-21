@@ -75,8 +75,9 @@ class TestClient(object):
     for i in range(10):
       mock_pathspec = pathspec.Copy()
       mock_pathspec.last.path = "/file %s" % i
-      result.append(rdf_client.StatEntry(pathspec=mock_pathspec,
-                                         st_mode=stat.S_IFDIR))
+      result.append(
+          rdf_client.StatEntry(
+              pathspec=mock_pathspec, st_mode=stat.S_IFDIR))
 
     return result
 
@@ -89,10 +90,8 @@ class TestListVolumeShadowCopies(test_lib.FlowTestsBaseclass):
     flow_name = "ListVolumeShadowCopies"
 
     # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper(flow_name,
-                                     TestClient(),
-                                     token=self.token,
-                                     client_id=self.client_id):
+    for _ in test_lib.TestFlowHelper(
+        flow_name, TestClient(), token=self.token, client_id=self.client_id):
       pass
 
     fd = aff4.FACTORY.Open(

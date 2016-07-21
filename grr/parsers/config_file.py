@@ -221,13 +221,14 @@ class KeyValueParser(FieldParser):
       verbose: Enable verbose mode for the lexer. Useful for debugging.
     """
     self.kv_sep = AsIter(kv_sep)
-    super(KeyValueParser, self).__init__(comments=comments,
-                                         cont=cont,
-                                         ml_quote=ml_quote,
-                                         quot=quot,
-                                         sep=sep,
-                                         term=term,
-                                         verbose=verbose)
+    super(KeyValueParser, self).__init__(
+        comments=comments,
+        cont=cont,
+        ml_quote=ml_quote,
+        quot=quot,
+        sep=sep,
+        term=term,
+        verbose=verbose)
     self.key_field = ""
 
   def _GenStates(self):
@@ -776,10 +777,11 @@ class CronAtAllowDenyParser(parsers.FileParser):
     yield rdf_protodict.AttributedDict(**cfg)
 
     if bad_lines:
-      yield rdf_anomaly.Anomaly(type="PARSER_ANOMALY",
-                                symptom="Dodgy entries in %s." % (filename),
-                                reference_pathspec=stat.pathspec,
-                                finding=bad_lines)
+      yield rdf_anomaly.Anomaly(
+          type="PARSER_ANOMALY",
+          symptom="Dodgy entries in %s." % (filename),
+          reference_pathspec=stat.pathspec,
+          finding=bad_lines)
 
 
 class NtpdParser(parsers.FileParser, FieldParser):
@@ -980,8 +982,7 @@ class SudoersParser(parsers.FileParser, FieldParser):
     if key in SudoersParser.ALIAS_TYPES.keys():
       # Alias.
       alias_entry = rdf_config_file.SudoersAlias(
-          type=SudoersParser.ALIAS_TYPES.get(key),
-          name=entry[1])
+          type=SudoersParser.ALIAS_TYPES.get(key), name=entry[1])
 
       # Members of this alias, comma-separated.
       members, _ = self._ExtractList(entry[2:], ignores=(",", "="))
@@ -1026,9 +1027,8 @@ class SudoersParser(parsers.FileParser, FieldParser):
         entry = entry[1:]
 
       # Command specification.
-      sudoers_entry = rdf_config_file.SudoersEntry(users=users,
-                                                   hosts=hosts,
-                                                   cmdspec=entry)
+      sudoers_entry = rdf_config_file.SudoersEntry(
+          users=users, hosts=hosts, cmdspec=entry)
 
       sudoers_config.entries.append(sudoers_entry)
 

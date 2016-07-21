@@ -79,8 +79,8 @@ class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetConfigResult
 
   def _ListParametersInSection(self, section):
-    for descriptor in sorted(config_lib.CONFIG.type_infos,
-                             key=lambda x: x.name):
+    for descriptor in sorted(
+        config_lib.CONFIG.type_infos, key=lambda x: x.name):
       if descriptor.section == section:
         yield descriptor.name
 

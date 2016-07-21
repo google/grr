@@ -19,8 +19,8 @@ from grr.lib.data_stores import sqlite_data_store
 class SqliteTestMixin(object):
 
   def InitDatastore(self):
-    self.token = access_control.ACLToken(username="test",
-                                         reason="Running tests")
+    self.token = access_control.ACLToken(
+        username="test", reason="Running tests")
     self.root_path = utils.SmartStr("%s/sqlite_test/" % self.temp_dir)
 
     with test_lib.ConfigOverrider({"Datastore.location": self.root_path}):
@@ -32,8 +32,8 @@ class SqliteTestMixin(object):
       data_store.DB.security_manager = test_lib.MockSecurityManager()
 
   def testCorrectDataStore(self):
-    self.assertTrue(isinstance(data_store.DB,
-                               sqlite_data_store.SqliteDataStore))
+    self.assertTrue(
+        isinstance(data_store.DB, sqlite_data_store.SqliteDataStore))
 
   def DestroyDatastore(self):
     try:

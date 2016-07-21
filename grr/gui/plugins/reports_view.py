@@ -29,6 +29,5 @@ class ReportNameRenderer(forms.StringTypeFormRenderer):
     self.reports = [r.__name__ for r in reports.Report.classes.values()
                     if r is not reports.Report.top_level_class]
     response = super(ReportNameRenderer, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "ReportNameRenderer.Layout",
-                               prefix=self.prefix)
+    return self.CallJavascript(
+        response, "ReportNameRenderer.Layout", prefix=self.prefix)

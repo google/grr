@@ -43,9 +43,8 @@ class RekallTestSuite(test_lib.EmptyActionTest):
     test_lib.WriteComponent(token=self.token)
 
   def CreateClient(self):
-    client = aff4.FACTORY.Create(self.client_id,
-                                 aff4_grr.VFSGRRClient,
-                                 token=self.token)
+    client = aff4.FACTORY.Create(
+        self.client_id, aff4_grr.VFSGRRClient, token=self.token)
     client.Set(client.Schema.ARCH("AMD64"))
     client.Set(client.Schema.OS_RELEASE("7"))
     client.Set(client.Schema.SYSTEM("Windows"))
@@ -68,14 +67,14 @@ class RekallTestSuite(test_lib.EmptyActionTest):
       self.CreateClient()
 
       # Allow the real RekallAction to run against the image.
-      for _ in test_lib.TestFlowHelper("AnalyzeClientMemory",
-                                       action_mocks.MemoryClientMock(
-                                           "RekallAction", "WriteRekallProfile",
-                                           "DeleteGRRTempFiles"),
-                                       token=self.token,
-                                       client_id=self.client_id,
-                                       request=request,
-                                       output="analysis/memory"):
+      for _ in test_lib.TestFlowHelper(
+          "AnalyzeClientMemory",
+          action_mocks.MemoryClientMock("RekallAction", "WriteRekallProfile",
+                                        "DeleteGRRTempFiles"),
+          token=self.token,
+          client_id=self.client_id,
+          request=request,
+          output="analysis/memory"):
         pass
 
       # Check that the profiles are also cached locally.
@@ -125,8 +124,7 @@ class RekallTests(RekallTestSuite):
 
     # Get the result collection - it should be a RekallResponseCollection.
     fd = aff4.FACTORY.Open(
-        self.client_id.Add("analysis/memory"),
-        token=self.token)
+        self.client_id.Add("analysis/memory"), token=self.token)
 
     # Ensure that the client_id is set on each message. This helps us demux
     # messages from different clients, when analyzing the collection from a
@@ -147,8 +145,8 @@ class RekallTests(RekallTestSuite):
     request = rdf_rekall_types.RekallRequest()
     request.plugins = [
         # Run procdump to create one file.
-        rdf_rekall_types.PluginRequest(plugin="procdump",
-                                       args=dict(pid=2860))
+        rdf_rekall_types.PluginRequest(
+            plugin="procdump", args=dict(pid=2860))
     ]
 
     with test_lib.Instrument(transfer.MultiGetFile,
@@ -162,17 +160,17 @@ class RekallTests(RekallTestSuite):
     request = rdf_rekall_types.RekallRequest()
     request.plugins = [
         # Only use these methods for listing processes.
-        rdf_rekall_types.PluginRequest(plugin="pslist",
-                                       args=dict(pid=[4, 2860],
-                                                 method="PsActiveProcessHead")),
+        rdf_rekall_types.PluginRequest(
+            plugin="pslist",
+            args=dict(
+                pid=[4, 2860], method="PsActiveProcessHead")),
     ]
 
     self.LaunchRekallPlugin(request)
 
     # Get the result collection - it should be a RekallResponseCollection.
     fd = aff4.FACTORY.Open(
-        self.client_id.Add("analysis/memory"),
-        token=self.token)
+        self.client_id.Add("analysis/memory"), token=self.token)
 
     json_blobs = [x.json_messages for x in fd]
     json_blobs = "".join(json_blobs)
@@ -186,17 +184,17 @@ class RekallTests(RekallTestSuite):
     request = rdf_rekall_types.RekallRequest()
     request.plugins = [
         # Only use these methods for listing processes.
-        rdf_rekall_types.PluginRequest(plugin="dlllist",
-                                       args=dict(proc_regex="dumpit",
-                                                 method="PsActiveProcessHead")),
+        rdf_rekall_types.PluginRequest(
+            plugin="dlllist",
+            args=dict(
+                proc_regex="dumpit", method="PsActiveProcessHead")),
     ]
 
     self.LaunchRekallPlugin(request)
 
     # Get the result collection - it should be a RekallResponseCollection.
     fd = aff4.FACTORY.Open(
-        self.client_id.Add("analysis/memory"),
-        token=self.token)
+        self.client_id.Add("analysis/memory"), token=self.token)
 
     json_blobs = [x.json_messages for x in fd]
     json_blobs = "".join(json_blobs)

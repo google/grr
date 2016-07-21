@@ -48,36 +48,38 @@ class StatsTests(test_lib.GRRBaseTest):
     stats.STATS.RegisterCounterMetric("test_counter", [("dimension", str)])
 
     # Test that default values for any fields values are 0."
-    self.assertEqual(0,
-                     stats.STATS.GetMetricValue("test_counter",
-                                                fields=["a"]))
-    self.assertEqual(0,
-                     stats.STATS.GetMetricValue("test_counter",
-                                                fields=["b"]))
+    self.assertEqual(
+        0, stats.STATS.GetMetricValue(
+            "test_counter", fields=["a"]))
+    self.assertEqual(
+        0, stats.STATS.GetMetricValue(
+            "test_counter", fields=["b"]))
 
     for _ in range(5):
       stats.STATS.IncrementCounter("test_counter", fields=["dimension_value_1"])
-    self.assertEqual(5,
-                     stats.STATS.GetMetricValue("test_counter",
-                                                fields=["dimension_value_1"]))
+    self.assertEqual(
+        5,
+        stats.STATS.GetMetricValue(
+            "test_counter", fields=["dimension_value_1"]))
 
-    stats.STATS.IncrementCounter("test_counter",
-                                 2,
-                                 fields=["dimension_value_1"])
-    self.assertEqual(7,
-                     stats.STATS.GetMetricValue("test_counter",
-                                                fields=["dimension_value_1"]))
+    stats.STATS.IncrementCounter(
+        "test_counter", 2, fields=["dimension_value_1"])
+    self.assertEqual(
+        7,
+        stats.STATS.GetMetricValue(
+            "test_counter", fields=["dimension_value_1"]))
 
-    stats.STATS.IncrementCounter("test_counter",
-                                 2,
-                                 fields=["dimension_value_2"])
-    self.assertEqual(2,
-                     stats.STATS.GetMetricValue("test_counter",
-                                                fields=["dimension_value_2"]))
+    stats.STATS.IncrementCounter(
+        "test_counter", 2, fields=["dimension_value_2"])
+    self.assertEqual(
+        2,
+        stats.STATS.GetMetricValue(
+            "test_counter", fields=["dimension_value_2"]))
     # Check that previously set values with other fields are not affected.
-    self.assertEqual(7,
-                     stats.STATS.GetMetricValue("test_counter",
-                                                fields=["dimension_value_1"]))
+    self.assertEqual(
+        7,
+        stats.STATS.GetMetricValue(
+            "test_counter", fields=["dimension_value_1"]))
 
   def testSimpleGauge(self):
     stats.STATS.RegisterGaugeMetric("test_int_gauge", int)
@@ -100,26 +102,29 @@ class StatsTests(test_lib.GRRBaseTest):
     stats.STATS.SetGaugeValue("test_string_gauge", 42)
 
   def testGaugeWithFields(self):
-    stats.STATS.RegisterGaugeMetric("test_int_gauge",
-                                    int,
-                                    fields=[("dimension", str)])
+    stats.STATS.RegisterGaugeMetric(
+        "test_int_gauge", int, fields=[("dimension", str)])
 
-    self.assertEqual(0,
-                     stats.STATS.GetMetricValue("test_int_gauge",
-                                                fields=["dimension_value_1"]))
-    self.assertEqual(0,
-                     stats.STATS.GetMetricValue("test_int_gauge",
-                                                fields=["dimesnioN_value_2"]))
+    self.assertEqual(
+        0,
+        stats.STATS.GetMetricValue(
+            "test_int_gauge", fields=["dimension_value_1"]))
+    self.assertEqual(
+        0,
+        stats.STATS.GetMetricValue(
+            "test_int_gauge", fields=["dimesnioN_value_2"]))
 
     stats.STATS.SetGaugeValue("test_int_gauge", 1, fields=["dimension_value_1"])
     stats.STATS.SetGaugeValue("test_int_gauge", 2, fields=["dimension_value_2"])
 
-    self.assertEqual(1,
-                     stats.STATS.GetMetricValue("test_int_gauge",
-                                                fields=["dimension_value_1"]))
-    self.assertEqual(2,
-                     stats.STATS.GetMetricValue("test_int_gauge",
-                                                fields=["dimension_value_2"]))
+    self.assertEqual(
+        1,
+        stats.STATS.GetMetricValue(
+            "test_int_gauge", fields=["dimension_value_1"]))
+    self.assertEqual(
+        2,
+        stats.STATS.GetMetricValue(
+            "test_int_gauge", fields=["dimension_value_2"]))
 
   def testGaugeWithCallback(self):
     stats.STATS.RegisterGaugeMetric("test_int_gauge", int)
@@ -169,33 +174,30 @@ class StatsTests(test_lib.GRRBaseTest):
   def testEventMetricWithFields(self):
     inf = float("inf")
 
-    stats.STATS.RegisterEventMetric("test_event_metric",
-                                    bins=[0.0, 0.1, 0.2],
-                                    fields=[("dimension", str)])
+    stats.STATS.RegisterEventMetric(
+        "test_event_metric", bins=[0.0, 0.1, 0.2], fields=[("dimension", str)])
 
-    data = stats.STATS.GetMetricValue("test_event_metric",
-                                      fields=["dimension_value_1"])
+    data = stats.STATS.GetMetricValue(
+        "test_event_metric", fields=["dimension_value_1"])
     self.assertAlmostEqual(0, data.sum)
     self.assertEqual(0, data.count)
     self.assertEqual([-inf, 0.0, 0.1, 0.2], data.bins)
     self.assertEqual({-inf: 0, 0.0: 0, 0.1: 0, 0.2: 0}, data.bins_heights)
 
-    stats.STATS.RecordEvent("test_event_metric",
-                            0.15,
-                            fields=["dimension_value_1"])
-    stats.STATS.RecordEvent("test_event_metric",
-                            0.25,
-                            fields=["dimension_value_2"])
+    stats.STATS.RecordEvent(
+        "test_event_metric", 0.15, fields=["dimension_value_1"])
+    stats.STATS.RecordEvent(
+        "test_event_metric", 0.25, fields=["dimension_value_2"])
 
-    data = stats.STATS.GetMetricValue("test_event_metric",
-                                      fields=["dimension_value_1"])
+    data = stats.STATS.GetMetricValue(
+        "test_event_metric", fields=["dimension_value_1"])
     self.assertAlmostEqual(0.15, data.sum)
     self.assertEqual(1, data.count)
     self.assertEqual([-inf, 0.0, 0.1, 0.2], data.bins)
     self.assertEqual({-inf: 0, 0.0: 0, 0.1: 1, 0.2: 0}, data.bins_heights)
 
-    data = stats.STATS.GetMetricValue("test_event_metric",
-                                      fields=["dimension_value_2"])
+    data = stats.STATS.GetMetricValue(
+        "test_event_metric", fields=["dimension_value_2"])
     self.assertAlmostEqual(0.25, data.sum)
     self.assertEqual(1, data.count)
     self.assertEqual([-inf, 0.0, 0.1, 0.2], data.bins)
@@ -204,60 +206,58 @@ class StatsTests(test_lib.GRRBaseTest):
   def testRaisesOnImproperFieldsUsage1(self):
     # Check for counters
     stats.STATS.RegisterCounterMetric("test_counter")
-    self.assertRaises(ValueError,
-                      stats.STATS.GetMetricValue,
-                      "test_counter",
-                      fields=["a"])
+    self.assertRaises(
+        ValueError, stats.STATS.GetMetricValue, "test_counter", fields=["a"])
 
     # Check for gauges
     stats.STATS.RegisterGaugeMetric("test_int_gauge", int)
-    self.assertRaises(ValueError,
-                      stats.STATS.GetMetricValue,
-                      "test_int_gauge",
-                      fields=["a"])
+    self.assertRaises(
+        ValueError, stats.STATS.GetMetricValue, "test_int_gauge", fields=["a"])
 
     # Check for event metrics
     stats.STATS.RegisterEventMetric("test_event_metric")
-    self.assertRaises(ValueError,
-                      stats.STATS.GetMetricValue,
-                      "test_event_metric",
-                      fields=["a", "b"])
+    self.assertRaises(
+        ValueError,
+        stats.STATS.GetMetricValue,
+        "test_event_metric",
+        fields=["a", "b"])
 
   def testRaisesOnImproperFieldsUsage2(self):
     # Check for counters
-    stats.STATS.RegisterCounterMetric("test_counter",
-                                      fields=[("dimension", str)])
+    stats.STATS.RegisterCounterMetric(
+        "test_counter", fields=[("dimension", str)])
     self.assertRaises(ValueError, stats.STATS.GetMetricValue, "test_counter")
-    self.assertRaises(ValueError,
-                      stats.STATS.GetMetricValue,
-                      "test_counter",
-                      fields=["a", "b"])
+    self.assertRaises(
+        ValueError,
+        stats.STATS.GetMetricValue,
+        "test_counter",
+        fields=["a", "b"])
 
     # Check for gauges
-    stats.STATS.RegisterGaugeMetric("test_int_gauge",
-                                    int,
-                                    fields=[("dimension", str)])
+    stats.STATS.RegisterGaugeMetric(
+        "test_int_gauge", int, fields=[("dimension", str)])
     self.assertRaises(ValueError, stats.STATS.GetMetricValue, "test_int_gauge")
-    self.assertRaises(ValueError,
-                      stats.STATS.GetMetricValue,
-                      "test_int_gauge",
-                      fields=["a", "b"])
+    self.assertRaises(
+        ValueError,
+        stats.STATS.GetMetricValue,
+        "test_int_gauge",
+        fields=["a", "b"])
 
     # Check for event metrics
-    stats.STATS.RegisterEventMetric("test_event_metric",
-                                    fields=[("dimension", str)])
+    stats.STATS.RegisterEventMetric(
+        "test_event_metric", fields=[("dimension", str)])
     self.assertRaises(ValueError, stats.STATS.GetMetricValue,
                       "test_event_metric")
-    self.assertRaises(ValueError,
-                      stats.STATS.GetMetricValue,
-                      "test_event_metric",
-                      fields=["a", "b"])
+    self.assertRaises(
+        ValueError,
+        stats.STATS.GetMetricValue,
+        "test_event_metric",
+        fields=["a", "b"])
 
   def testGetAllMetricsMetadataWorksCorrectlyOnSimpleMetrics(self):
     stats.STATS.RegisterCounterMetric("test_counter")
-    stats.STATS.RegisterGaugeMetric("test_int_gauge",
-                                    int,
-                                    fields=[("dimension", str)])
+    stats.STATS.RegisterGaugeMetric(
+        "test_int_gauge", int, fields=[("dimension", str)])
     stats.STATS.RegisterEventMetric("test_event_metric")
 
     metrics = stats.STATS.GetAllMetricsMetadata()
@@ -267,24 +267,22 @@ class StatsTests(test_lib.GRRBaseTest):
 
     self.assertEqual(metrics["test_int_gauge"].metric_type,
                      stats.MetricType.GAUGE)
-    self.assertEqual(metrics["test_int_gauge"].fields_defs,
-                     [stats.MetricFieldDefinition(
-                         field_name="dimension",
-                         field_type=stats.MetricFieldDefinition.FieldType.STR)])
+    self.assertEqual(
+        metrics["test_int_gauge"].fields_defs, [stats.MetricFieldDefinition(
+            field_name="dimension",
+            field_type=stats.MetricFieldDefinition.FieldType.STR)])
 
     self.assertEqual(metrics["test_event_metric"].metric_type,
                      stats.MetricType.EVENT)
     self.assertFalse(metrics["test_event_metric"].fields_defs)
 
   def testGetMetricFieldsWorksCorrectly(self):
-    stats.STATS.RegisterCounterMetric("test_counter",
-                                      fields=[("dimension1", str),
-                                              ("dimension2", str)])
-    stats.STATS.RegisterGaugeMetric("test_int_gauge",
-                                    int,
-                                    fields=[("dimension", str)])
-    stats.STATS.RegisterEventMetric("test_event_metric",
-                                    fields=[("dimension", str)])
+    stats.STATS.RegisterCounterMetric(
+        "test_counter", fields=[("dimension1", str), ("dimension2", str)])
+    stats.STATS.RegisterGaugeMetric(
+        "test_int_gauge", int, fields=[("dimension", str)])
+    stats.STATS.RegisterEventMetric(
+        "test_event_metric", fields=[("dimension", str)])
 
     stats.STATS.IncrementCounter("test_counter", fields=["b", "b"])
     stats.STATS.IncrementCounter("test_counter", fields=["a", "c"])
@@ -296,18 +294,15 @@ class StatsTests(test_lib.GRRBaseTest):
     stats.STATS.RecordEvent("test_event_metric", 0.1, fields=["b"])
 
     fields = sorted(
-        stats.STATS.GetMetricFields("test_counter"),
-        key=lambda t: t[0])
+        stats.STATS.GetMetricFields("test_counter"), key=lambda t: t[0])
     self.assertEqual([("a", "c"), ("b", "b")], fields)
 
     fields = sorted(
-        stats.STATS.GetMetricFields("test_int_gauge"),
-        key=lambda t: t[0])
+        stats.STATS.GetMetricFields("test_int_gauge"), key=lambda t: t[0])
     self.assertEqual([("a",), ("b",)], fields)
 
     fields = sorted(
-        stats.STATS.GetMetricFields("test_event_metric"),
-        key=lambda t: t[0])
+        stats.STATS.GetMetricFields("test_event_metric"), key=lambda t: t[0])
     self.assertEqual([("a",), ("b",)], fields)
 
   @stats.Counted("test_counter")

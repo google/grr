@@ -44,8 +44,7 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
 
   def _GetPlugin(self, hunt):
     results_metadata = aff4.FACTORY.Open(
-        hunt.urn.Add("ResultsMetadata"),
-        token=self.token)
+        hunt.urn.Add("ResultsMetadata"), token=self.token)
     descriptor, state = results_metadata.Get(
         results_metadata.Schema.OUTPUT_PLUGINS).values()[0]
     return descriptor.GetPluginForState(state)
@@ -64,8 +63,9 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
     hunt3 = self._CreateHunt("desc3")
     plugin3 = self._GetPlugin(hunt3)
 
-    results = list(self.verifier.MultiVerifyHuntOutput([(plugin1, hunt1), (
-        plugin2, hunt2), (plugin3, hunt3)]))
+    results = list(
+        self.verifier.MultiVerifyHuntOutput([(plugin1, hunt1), (plugin2, hunt2),
+                                             (plugin3, hunt3)]))
 
     self.assertEqual(len(results), 3)
 

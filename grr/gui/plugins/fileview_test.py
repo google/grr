@@ -113,22 +113,22 @@ class TestFileView(FileViewTestBase):
     """Add new versions for a file."""
     # This file already exists in the fixture at TIME_0, we write a later
     # version.
-    self._CreateFileVersion("aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
-                            "Hello World",
-                            timestamp=TIME_1,
-                            token=self.token)
-    self._CreateFileVersion("aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
-                            "Goodbye World",
-                            timestamp=TIME_2,
-                            token=self.token)
+    self._CreateFileVersion(
+        "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
+        "Hello World",
+        timestamp=TIME_1,
+        token=self.token)
+    self._CreateFileVersion(
+        "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt",
+        "Goodbye World",
+        timestamp=TIME_2,
+        token=self.token)
 
   def _CreateFileVersion(self, path, content, timestamp, token=None):
     """Add a new version for a file."""
     with test_lib.FakeTime(timestamp):
-      with aff4.FACTORY.Create(path,
-                               aff4_type=aff4_grr.VFSFile,
-                               mode="w",
-                               token=token) as fd:
+      with aff4.FACTORY.Create(
+          path, aff4_type=aff4_grr.VFSFile, mode="w", token=token) as fd:
         fd.Write(content)
         fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime().Now())
 
@@ -168,9 +168,8 @@ class TestFileView(FileViewTestBase):
                                   (TIME_1, "HostnameV2"),
                                   (TIME_2, "HostnameV3")]:
         with test_lib.FakeTime(fake_time):
-          client = aff4.FACTORY.Open(u"C.0000000000000001",
-                                     mode="rw",
-                                     token=self.token)
+          client = aff4.FACTORY.Open(
+              u"C.0000000000000001", mode="rw", token=self.token)
           client.Set(client.Schema.HOSTNAME(hostname))
           client.Close()
 
@@ -223,8 +222,7 @@ class TestFileView(FileViewTestBase):
       downloaded_files.append((aff4_path, age))
 
       return api_call_handler_base.ApiBinaryStream(
-          filename=aff4_path.Basename(),
-          content_generator=xrange(42))
+          filename=aff4_path.Basename(), content_generator=xrange(42))
 
     with utils.Stubber(api_vfs.ApiGetFileBlobHandler, "Handle",
                        FakeDownloadHandle):
@@ -259,8 +257,8 @@ class TestFileView(FileViewTestBase):
     # to the nearest second. Also, the HEAD version of the file is downloaded
     # with age=NEWEST_TIME.
     self.assertEqual(downloaded_files[0][1], aff4.NEWEST_TIME)
-    self.assertAlmostEqual(downloaded_files[2][1], TIME_1,
-                           delta=rdfvalue.Duration("1s"))
+    self.assertAlmostEqual(
+        downloaded_files[2][1], TIME_1, delta=rdfvalue.Duration("1s"))
 
     self.Click("css=li[heading=TextView]")
 
@@ -316,11 +314,12 @@ class TestFileView(FileViewTestBase):
       client_mock = action_mocks.ActionMock("StatFile", "HashFile",
                                             "FingerprintFile")
       for flow_urn in flows:
-        for _ in test_lib.TestFlowHelper(flow_urn,
-                                         client_mock,
-                                         client_id=client_id,
-                                         check_flow_errors=False,
-                                         token=self.token):
+        for _ in test_lib.TestFlowHelper(
+            flow_urn,
+            client_mock,
+            client_id=client_id,
+            check_flow_errors=False,
+            token=self.token):
           pass
 
       time_in_future = rdfvalue.RDFDatetime().Now() + rdfvalue.Duration("1h")
@@ -579,11 +578,12 @@ class TestFileView(FileViewTestBase):
 
       client_mock = action_mocks.ActionMock()
       for flow_urn in flows:
-        for _ in test_lib.TestFlowHelper(flow_urn,
-                                         client_mock,
-                                         client_id=client_id,
-                                         token=self.token,
-                                         check_flow_errors=False):
+        for _ in test_lib.TestFlowHelper(
+            flow_urn,
+            client_mock,
+            client_id=client_id,
+            token=self.token,
+            check_flow_errors=False):
           pass
 
     # Ensure that refresh button is enabled again.
@@ -609,8 +609,8 @@ class TestFileView(FileViewTestBase):
     self.WaitUntil(self.IsElementPresent, "link=bin")
 
     with self.ACLChecksDisabled():
-      aff4.FACTORY.Delete("aff4:/C.0000000000000001/fs/os/c/bin",
-                          token=self.token)
+      aff4.FACTORY.Delete(
+          "aff4:/C.0000000000000001/fs/os/c/bin", token=self.token)
 
     self.Click("link=c")
     self.WaitUntil(self.IsElementPresent, "link=Downloads")
@@ -718,10 +718,8 @@ class TestTimeline(FileViewTestBase):
     # Add a version of the file at TIME_0. Since we write all MAC times,
     # this will result in three timeline items.
     with test_lib.FakeTime(TIME_0):
-      with aff4.FACTORY.Create(file_path,
-                               aff4_grr.VFSAnalysisFile,
-                               mode="w",
-                               token=token) as fd:
+      with aff4.FACTORY.Create(
+          file_path, aff4_grr.VFSAnalysisFile, mode="w", token=token) as fd:
         stats = rdf_client.StatEntry(
             st_atime=TIME_0.AsSecondsFromEpoch() + 1000,
             st_mtime=TIME_0.AsSecondsFromEpoch(),
@@ -730,10 +728,8 @@ class TestTimeline(FileViewTestBase):
 
     # Add a version with a stat entry, but without timestamps.
     with test_lib.FakeTime(TIME_1):
-      with aff4.FACTORY.Create(file_path,
-                               aff4_grr.VFSAnalysisFile,
-                               mode="w",
-                               token=token) as fd:
+      with aff4.FACTORY.Create(
+          file_path, aff4_grr.VFSAnalysisFile, mode="w", token=token) as fd:
         stats = rdf_client.StatEntry(st_ino=99)
         fd.Set(fd.Schema.STAT, stats)
 
@@ -895,8 +891,8 @@ class TestTimeline(FileViewTestBase):
     self.Click("css=button[name=downloadTimeline]:not([disabled])")
     self.WaitUntilEqual(1, lambda: mock_method.call_count)
     mock_method.assert_called_once_with(
-        api_vfs.ApiGetVfsTimelineAsCsvArgs(client_id="C.0000000000000001",
-                                           file_path="fs/os/c/proc"),
+        api_vfs.ApiGetVfsTimelineAsCsvArgs(
+            client_id="C.0000000000000001", file_path="fs/os/c/proc"),
         token=mock.ANY)
 
 
@@ -911,23 +907,20 @@ class TestHostInformation(FileViewTestBase):
       self.RequestAndGrantClientApproval(self.client_id)
 
       with test_lib.FakeTime(TIME_0):
-        with aff4.FACTORY.Open(self.client_id,
-                               mode="rw",
-                               token=self.token) as fd:
+        with aff4.FACTORY.Open(
+            self.client_id, mode="rw", token=self.token) as fd:
           fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.7000"))
           fd.Set(fd.Schema.HOSTNAME("Hostname T0"))
 
       with test_lib.FakeTime(TIME_1):
-        with aff4.FACTORY.Open(self.client_id,
-                               mode="rw",
-                               token=self.token) as fd:
+        with aff4.FACTORY.Open(
+            self.client_id, mode="rw", token=self.token) as fd:
           fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.8000"))
           fd.Set(fd.Schema.HOSTNAME("Hostname T1"))
 
       with test_lib.FakeTime(TIME_2):
-        with aff4.FACTORY.Open(self.client_id,
-                               mode="rw",
-                               token=self.token) as fd:
+        with aff4.FACTORY.Open(
+            self.client_id, mode="rw", token=self.token) as fd:
           fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("7.0.0000"))
           fd.Set(fd.Schema.HOSTNAME("Hostname T2"))
 
@@ -951,11 +944,12 @@ class TestHostInformation(FileViewTestBase):
 
       client_mock = action_mocks.ActionMock()
       for flow_urn in flows:
-        for _ in test_lib.TestFlowHelper(flow_urn,
-                                         client_mock,
-                                         client_id=client_id,
-                                         token=self.token,
-                                         check_flow_errors=False):
+        for _ in test_lib.TestFlowHelper(
+            flow_urn,
+            client_mock,
+            client_id=client_id,
+            token=self.token,
+            check_flow_errors=False):
           pass
 
     self.WaitUntilNot(self.IsElementPresent,

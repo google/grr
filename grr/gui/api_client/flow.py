@@ -34,8 +34,8 @@ class FlowRef(FlowBase):
   def Get(self):
     """Fetch flow's data and return proper Flow object."""
 
-    args = api_pb2.ApiGetFlowArgs(client_id=self.client_id,
-                                  flow_id=self.flow_id)
+    args = api_pb2.ApiGetFlowArgs(
+        client_id=self.client_id, flow_id=self.flow_id)
     data = self._context.SendRequest("GetFlow", args)
     return Flow(data=data, context=self._context)
 
@@ -51,8 +51,7 @@ class Flow(FlowBase):
     client_id = utils.UrnToClientId(urn)
     flow_id = utils.UrnToFlowId(urn)
 
-    super(Flow, self).__init__(client_id=client_id,
-                               flow_id=flow_id,
-                               context=context)
+    super(Flow, self).__init__(
+        client_id=client_id, flow_id=flow_id, context=context)
 
     self.data = data

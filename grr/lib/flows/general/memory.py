@@ -45,7 +45,7 @@ class MemoryCollector(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
   args_type = MemoryCollectorArgs
 
-  @flow.StateHandler(next_state=["CheckAnalyzeClientMemory"])
+  @flow.StateHandler()
   def Start(self):
     self.state.Register("output_urn", None)
 
@@ -62,7 +62,7 @@ class MemoryCollector(flow.GRRFlow):
     else:
       self.RunRekallPlugin()
 
-  @flow.StateHandler(next_state=["CheckAnalyzeClientMemory"])
+  @flow.StateHandler()
   def CheckFreeSpace(self, responses):
     if responses.success and responses.First():
       disk_usage = responses.First()
@@ -82,10 +82,11 @@ class MemoryCollector(flow.GRRFlow):
     request = rekall_types.RekallRequest(plugins=[plugin])
 
     # Note that this will actually also retrieve the memory image.
-    self.CallFlow("AnalyzeClientMemory",
-                  request=request,
-                  max_file_size_download=self.args.max_file_size,
-                  next_state="CheckAnalyzeClientMemory")
+    self.CallFlow(
+        "AnalyzeClientMemory",
+        request=request,
+        max_file_size_download=self.args.max_file_size,
+        next_state="CheckAnalyzeClientMemory")
 
   @flow.StateHandler()
   def CheckAnalyzeClientMemory(self, responses):
@@ -122,13 +123,14 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
   args_type = AnalyzeClientMemoryArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state="ComponentLoaded")
+  @flow.StateHandler()
   def Start(self):
     self.state.Register("component_version", None)
     # Load all the components we will be needing on the client.
-    self.LoadComponentOnClient(name="grr-rekall",
-                               version=self.args.component_version,
-                               next_state="StartAnalysis")
+    self.LoadComponentOnClient(
+        name="grr-rekall",
+        version=self.args.component_version,
+        next_state="StartAnalysis")
 
   @flow.StateHandler()
   def ComponentLoaded(self, responses):
@@ -140,7 +142,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     self.state.component_version = responses.First().summary.version
     self.CallStateInline(next_state=responses.request_data["next_state"])
 
-  @flow.StateHandler(next_state=["StoreResults"])
+  @flow.StateHandler()
   def StartAnalysis(self, responses):
     # Our output collection is a RekallResultCollection.
     if self.runner.output is not None:
@@ -159,8 +161,9 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     # We always push the inventory to the request. This saves a round trip
     # because the client always needs it (so it can figure out if its cache is
     # still valid).
-    self.state.rekall_request.profiles.append(self.GetProfileByName(
-        "inventory", constants.PROFILE_REPOSITORY_VERSION))
+    self.state.rekall_request.profiles.append(
+        self.GetProfileByName("inventory",
+                              constants.PROFILE_REPOSITORY_VERSION))
 
     if self.args.debug_logging:
       self.state.rekall_request.session[u"logging_level"] = u"DEBUG"
@@ -170,9 +173,8 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
 
     # The client will use rekall in live mode.
     self.state.rekall_request.session["live"] = True
-    self.CallClient("RekallAction",
-                    self.state.rekall_request,
-                    next_state="StoreResults")
+    self.CallClient(
+        "RekallAction", self.state.rekall_request, next_state="StoreResults")
 
   @flow.StateHandler()
   def UpdateProfile(self, responses):
@@ -180,8 +182,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     if not responses.success:
       self.Log(responses.status)
 
-  @flow.StateHandler(
-      next_state=["StoreResults", "UpdateProfile", "DeleteFiles"])
+  @flow.StateHandler()
   def StoreResults(self, responses):
     """Stores the results."""
     if not responses.success:
@@ -194,9 +195,8 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
         profile = self.GetProfileByName(response.missing_profile,
                                         response.repository_version)
         if profile:
-          self.CallClient("WriteRekallProfile",
-                          profile,
-                          next_state="UpdateProfile")
+          self.CallClient(
+              "WriteRekallProfile", profile, next_state="UpdateProfile")
         else:
           self.Log("Needed profile %s not found! See "
                    "https://github.com/google/grr-doc/blob/master/"
@@ -207,8 +207,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
         response.client_urn = self.client_id
         if self.state.rekall_context_messages:
           response.json_context_messages = json.dumps(
-              self.state.rekall_context_messages.items(),
-              separators=(",", ":"))
+              self.state.rekall_context_messages.items(), separators=(",", ":"))
 
         json_data = json.loads(response.json_messages)
         for message in json_data:
@@ -231,31 +230,31 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     if (responses.iterator and  # This will be None if an error occurred.
         responses.iterator.state != rdf_client.Iterator.State.FINISHED):
       self.state.rekall_request.iterator = responses.iterator
-      self.CallClient("RekallAction",
-                      self.state.rekall_request,
-                      next_state="StoreResults")
+      self.CallClient(
+          "RekallAction", self.state.rekall_request, next_state="StoreResults")
     else:
       if self.state.output_files:
         self.Log("Getting %i files.", len(self.state.output_files))
-        self.CallFlow("MultiGetFile",
-                      pathspecs=self.state.output_files,
-                      file_size=self.args.max_file_size_download,
-                      next_state="DeleteFiles")
+        self.CallFlow(
+            "MultiGetFile",
+            pathspecs=self.state.output_files,
+            file_size=self.args.max_file_size_download,
+            next_state="DeleteFiles")
 
-  @flow.StateHandler(next_state="LogDeleteFiles")
+  @flow.StateHandler()
   def DeleteFiles(self, responses):
     # Check that the MultiGetFile flow worked.
     if not responses.success:
       raise flow.FlowError("Could not get files: %s" % responses.status)
 
     for output_file in self.state.output_files:
-      self.CallClient("DeleteGRRTempFiles",
-                      output_file,
-                      next_state="LogDeleteFiles")
+      self.CallClient(
+          "DeleteGRRTempFiles", output_file, next_state="LogDeleteFiles")
 
     # Let calling flows know where files ended up in AFF4 space.
-    self.SendReply(rekall_types.RekallResponse(
-        downloaded_files=[x.aff4path for x in responses]))
+    self.SendReply(
+        rekall_types.RekallResponse(downloaded_files=[x.aff4path
+                                                      for x in responses]))
 
   @flow.StateHandler()
   def LogDeleteFiles(self, responses):
@@ -327,20 +326,22 @@ class ListVADBinaries(flow.GRRFlow):
   category = "/Memory/"
   args_type = ListVADBinariesArgs
 
-  @flow.StateHandler(next_state="FetchBinaries")
+  @flow.StateHandler()
   def Start(self):
     """Request VAD data."""
     if self.runner.output is not None:
-      self.runner.output.Set(self.runner.output.Schema.DESCRIPTION(
-          "GetProcessesBinariesRekall binaries (regex: %s) " %
-          self.args.filename_regex or "None"))
+      self.runner.output.Set(
+          self.runner.output.Schema.DESCRIPTION(
+              "GetProcessesBinariesRekall binaries (regex: %s) " %
+              self.args.filename_regex or "None"))
 
-    self.CallFlow("ArtifactCollectorFlow",
-                  artifact_list=["FullVADBinaryList"],
-                  store_results_in_aff4=False,
-                  next_state="FetchBinaries")
+    self.CallFlow(
+        "ArtifactCollectorFlow",
+        artifact_list=["FullVADBinaryList"],
+        store_results_in_aff4=False,
+        next_state="FetchBinaries")
 
-  @flow.StateHandler(next_state="HandleDownloadedFiles")
+  @flow.StateHandler()
   def FetchBinaries(self, responses):
     """Parses the Rekall response and initiates FileFinder flows."""
     if not responses.success:

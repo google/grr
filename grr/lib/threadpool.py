@@ -393,10 +393,9 @@ class ThreadPool(object):
           # We should block and try again soon.
           elif blocking:
             try:
-              self._queue.put(
-                  (target, args, name, time.time()),
-                  block=True,
-                  timeout=1)
+              self._queue.put((target, args, name, time.time()),
+                              block=True,
+                              timeout=1)
               return
             except Queue.Full:
               continue
@@ -515,15 +514,16 @@ class BatchConverter(object):
 
     pool.Start()
     try:
-      for batch_index, batch in enumerate(utils.Grouper(val_iterator,
-                                                        self.batch_size)):
+      for batch_index, batch in enumerate(
+          utils.Grouper(val_iterator, self.batch_size)):
         logging.debug("Processing batch %d out of %d", batch_index,
                       total_batch_count)
 
-        pool.AddTask(target=self.ConvertBatch,
-                     args=(batch,),
-                     name="batch_%d" % batch_index,
-                     inline=False)
+        pool.AddTask(
+            target=self.ConvertBatch,
+            args=(batch,),
+            name="batch_%d" % batch_index,
+            inline=False)
 
     finally:
       pool.Stop()

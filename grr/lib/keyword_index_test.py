@@ -13,10 +13,11 @@ class KeywordIndexTest(test_lib.AFF4ObjectTest):
   sync = True
 
   def testKeywordIndex(self):
-    index = aff4.FACTORY.Create("aff4:/index1/",
-                                aff4_type=keyword_index.AFF4KeywordIndex,
-                                mode="rw",
-                                token=self.token)
+    index = aff4.FACTORY.Create(
+        "aff4:/index1/",
+        aff4_type=keyword_index.AFF4KeywordIndex,
+        mode="rw",
+        token=self.token)
 
     # "popular_keyword1" is relevant for 50 subjects.
     for i in range(50):
@@ -44,14 +45,15 @@ class KeywordIndexTest(test_lib.AFF4ObjectTest):
     self.assertEqual(len(results), 0)
 
   def testKeywordIndexTimestamps(self):
-    index = aff4.FACTORY.Create("aff4:/index2/",
-                                aff4_type=keyword_index.AFF4KeywordIndex,
-                                mode="rw",
-                                token=self.token)
+    index = aff4.FACTORY.Create(
+        "aff4:/index2/",
+        aff4_type=keyword_index.AFF4KeywordIndex,
+        mode="rw",
+        token=self.token)
     for i in range(50):
       with test_lib.FakeTime(1000 + i):
-        index.AddKeywordsForName("C.%X" % i, ["popular_keyword1"],
-                                 sync=self.sync)
+        index.AddKeywordsForName(
+            "C.%X" % i, ["popular_keyword1"], sync=self.sync)
     results = index.Lookup(["popular_keyword1"])
     self.assertEqual(len(results), 50)
 
@@ -61,25 +63,27 @@ class KeywordIndexTest(test_lib.AFF4ObjectTest):
     results = index.Lookup(["popular_keyword1"], end_time=1024 * 1000000)
     self.assertEqual(len(results), 25)
 
-    results = index.Lookup(["popular_keyword1"],
-                           start_time=1025 * 1000000,
-                           end_time=1025 * 1000000)
+    results = index.Lookup(
+        ["popular_keyword1"],
+        start_time=1025 * 1000000,
+        end_time=1025 * 1000000)
     self.assertEqual(len(results), 1)
 
   def testKeywordIndexLastSeen(self):
-    index = aff4.FACTORY.Create("aff4:/index2/",
-                                aff4_type=keyword_index.AFF4KeywordIndex,
-                                mode="rw",
-                                token=self.token)
+    index = aff4.FACTORY.Create(
+        "aff4:/index2/",
+        aff4_type=keyword_index.AFF4KeywordIndex,
+        mode="rw",
+        token=self.token)
     for i in range(5):
       with test_lib.FakeTime(2000 + i):
-        index.AddKeywordsForName("C.000000", ["popular_keyword1"],
-                                 sync=self.sync)
+        index.AddKeywordsForName(
+            "C.000000", ["popular_keyword1"], sync=self.sync)
 
     for i in range(10):
       with test_lib.FakeTime(1000 + i):
-        index.AddKeywordsForName("C.000000", ["popular_keyword2"],
-                                 sync=self.sync)
+        index.AddKeywordsForName(
+            "C.000000", ["popular_keyword2"], sync=self.sync)
 
     ls_map = {}
     index.Lookup(["popular_keyword1", "popular_keyword2"], last_seen_map=ls_map)

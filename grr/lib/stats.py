@@ -335,8 +335,9 @@ class StatsCollector(object):
       else:
         raise ValueError("Unknown field type: %s" % field_type)
 
-      result.append(MetricFieldDefinition(field_name=field_name,
-                                          field_type=field_type))
+      result.append(
+          MetricFieldDefinition(
+              field_name=field_name, field_type=field_type))
     return result
 
   @utils.Synchronized

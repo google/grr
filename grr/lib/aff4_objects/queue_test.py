@@ -23,9 +23,8 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
       data_store.DB.Flush()
 
-    with aff4.FACTORY.OpenWithLock(queue_urn,
-                                   lease_time=200,
-                                   token=self.token) as queue:
+    with aff4.FACTORY.OpenWithLock(
+        queue_urn, lease_time=200, token=self.token) as queue:
       results = queue.ClaimRecords()
 
     self.assertEqual(100, len(results))
@@ -40,16 +39,14 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
       data_store.DB.Flush()
 
-    with aff4.FACTORY.OpenWithLock(queue_urn,
-                                   lease_time=200,
-                                   token=self.token) as queue:
+    with aff4.FACTORY.OpenWithLock(
+        queue_urn, lease_time=200, token=self.token) as queue:
       results = queue.ClaimRecords()
 
     self.assertEqual(100, len(results))
 
-    with aff4.FACTORY.OpenWithLock(queue_urn,
-                                   lease_time=200,
-                                   token=self.token) as queue:
+    with aff4.FACTORY.OpenWithLock(
+        queue_urn, lease_time=200, token=self.token) as queue:
       no_results = queue.ClaimRecords()
     self.assertEqual(0, len(no_results))
 
@@ -62,18 +59,16 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
       data_store.DB.Flush()
 
-    with aff4.FACTORY.OpenWithLock(queue_urn,
-                                   lease_time=200,
-                                   token=self.token) as queue:
+    with aff4.FACTORY.OpenWithLock(
+        queue_urn, lease_time=200, token=self.token) as queue:
       results_1 = queue.ClaimRecords()
 
     self.assertEqual(100, len(results_1))
 
     with test_lib.FakeTime(rdfvalue.RDFDatetime().Now() + rdfvalue.Duration(
         "45m")):
-      with aff4.FACTORY.OpenWithLock(queue_urn,
-                                     lease_time=200,
-                                     token=self.token) as queue:
+      with aff4.FACTORY.OpenWithLock(
+          queue_urn, lease_time=200, token=self.token) as queue:
         results_2 = queue.ClaimRecords()
         self.assertEqual(100, len(results_2))
 
@@ -85,14 +80,12 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
       data_store.DB.Flush()
 
-    with aff4.FACTORY.OpenWithLock(queue_urn,
-                                   lease_time=200,
-                                   token=self.token) as queue:
+    with aff4.FACTORY.OpenWithLock(
+        queue_urn, lease_time=200, token=self.token) as queue:
       results = queue.ClaimRecords()
 
-    with aff4.FACTORY.OpenWithLock(queue_urn,
-                                   lease_time=200,
-                                   token=self.token) as queue:
+    with aff4.FACTORY.OpenWithLock(
+        queue_urn, lease_time=200, token=self.token) as queue:
       queue.DeleteRecord(results[0][0])
       queue.DeleteRecords([record_id for (record_id, _) in results][1:])
 
@@ -100,9 +93,8 @@ class QueueTest(test_lib.AFF4ObjectTest):
     # something.
     with test_lib.FakeTime(rdfvalue.RDFDatetime().Now() + rdfvalue.Duration(
         "45m")):
-      with aff4.FACTORY.OpenWithLock(queue_urn,
-                                     lease_time=200,
-                                     token=self.token) as queue:
+      with aff4.FACTORY.OpenWithLock(
+          queue_urn, lease_time=200, token=self.token) as queue:
         results = queue.ClaimRecords()
         self.assertEqual(0, len(results))
 
@@ -114,18 +106,16 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
       data_store.DB.Flush()
 
-    with aff4.FACTORY.OpenWithLock(queue_urn,
-                                   lease_time=200,
-                                   token=self.token) as queue:
+    with aff4.FACTORY.OpenWithLock(
+        queue_urn, lease_time=200, token=self.token) as queue:
       results = queue.ClaimRecords()
       odd_ids = [record_id for (record_id, value) in results
                  if int(value) % 2 == 1]
       queue.ReleaseRecord(odd_ids[0])
       queue.ReleaseRecords(odd_ids[1:])
 
-    with aff4.FACTORY.OpenWithLock(queue_urn,
-                                   lease_time=200,
-                                   token=self.token) as queue:
+    with aff4.FACTORY.OpenWithLock(
+        queue_urn, lease_time=200, token=self.token) as queue:
       odd_results = queue.ClaimRecords()
 
     self.assertEqual(50, len(odd_results))
@@ -142,9 +132,8 @@ class QueueTest(test_lib.AFF4ObjectTest):
     def EvenFilter(i):
       return int(i) % 2 == 0
 
-    with aff4.FACTORY.OpenWithLock(queue_urn,
-                                   lease_time=200,
-                                   token=self.token) as queue:
+    with aff4.FACTORY.OpenWithLock(
+        queue_urn, lease_time=200, token=self.token) as queue:
       results = queue.ClaimRecords(record_filter=EvenFilter)
 
     # Should have all the odd records.
@@ -161,9 +150,8 @@ class QueueTest(test_lib.AFF4ObjectTest):
           middle = rdfvalue.RDFDatetime().Now()
         queue.Add(rdfvalue.RDFInteger(i))
 
-    with aff4.FACTORY.OpenWithLock(queue_urn,
-                                   lease_time=200,
-                                   token=self.token) as queue:
+    with aff4.FACTORY.OpenWithLock(
+        queue_urn, lease_time=200, token=self.token) as queue:
       results = queue.ClaimRecords(start_time=middle)
 
     self.assertEqual(50, len(results))

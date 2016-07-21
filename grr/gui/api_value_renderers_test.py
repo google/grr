@@ -84,9 +84,10 @@ class ApiGrrMessageRendererTest(test_lib.GRRBaseTest):
   """Test for ApiGrrMessageRenderer."""
 
   def testRendersGrrMessagePayloadAsStructuredData(self):
-    sample = rdf_flows.GrrMessage(task_id=42,
-                                  payload=ApiRDFProtoStructRendererSample(
-                                      index=43, values=["foo", "bar"]))
+    sample = rdf_flows.GrrMessage(
+        task_id=42,
+        payload=ApiRDFProtoStructRendererSample(
+            index=43, values=["foo", "bar"]))
 
     renderer = api_value_renderers.ApiGrrMessageRenderer()
     data = renderer.RenderValue(sample)

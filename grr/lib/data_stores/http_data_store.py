@@ -511,8 +511,7 @@ class HTTPDataStore(data_store.DataStore):
           type=rdf_data_store.TimestampSpec.Type.RANGED_TIME)
 
     return rdf_data_store.TimestampSpec(
-        start=timestamp,
-        type=rdf_data_store.TimestampSpec.Type.SPECIFIC_TIME)
+        start=timestamp, type=rdf_data_store.TimestampSpec.Type.SPECIFIC_TIME)
 
   def _MakeSyncRequest(self, request, typ):
     return self._MakeRequestSyncOrAsync(request, typ, True)
@@ -616,11 +615,12 @@ class HTTPDataStore(data_store.DataStore):
     results = {}
     remaining_limit = limit
     for subject in subjects:
-      request = self._MakeRequest([subject],
-                                  attribute_prefix,
-                                  timestamp=timestamp,
-                                  token=token,
-                                  limit=remaining_limit)
+      request = self._MakeRequest(
+          [subject],
+          attribute_prefix,
+          timestamp=timestamp,
+          token=token,
+          limit=remaining_limit)
 
       response = self._MakeSyncRequest(request, typ)
 
@@ -656,10 +656,8 @@ class HTTPDataStore(data_store.DataStore):
     subjects = [subject_prefix]
     if after_urn:
       subjects.append(after_urn)
-    request = self._MakeRequest(subjects,
-                                attributes,
-                                token=token,
-                                limit=max_records)
+    request = self._MakeRequest(
+        subjects, attributes, token=token, limit=max_records)
     if relaxed_order:
       for response in self._MakeRequestsForPrefix(subject_prefix, typ, request):
         for result in response.results:
@@ -719,8 +717,8 @@ class HTTPDataStore(data_store.DataStore):
         if replace or k in to_delete:
           option = rdf_data_store.DataStoreValue.Option.REPLACE
 
-        new_value = request.values.Append(attribute=utils.SmartUnicode(k),
-                                          option=option)
+        new_value = request.values.Append(
+            attribute=utils.SmartUnicode(k), option=option)
 
         if element_timestamp is None:
           element_timestamp = now
@@ -743,11 +741,8 @@ class HTTPDataStore(data_store.DataStore):
     self.security_manager.CheckDataStoreAccess(
         token, [subject], self.GetRequiredResolveAccess(attributes))
 
-    request = self._MakeRequest([subject],
-                                attributes,
-                                timestamp=timestamp,
-                                limit=limit,
-                                token=token)
+    request = self._MakeRequest(
+        [subject], attributes, timestamp=timestamp, limit=limit, token=token)
 
     typ = rdf_data_server.DataStoreCommand.Command.RESOLVE_MULTI
     response = self._MakeSyncRequest(request, typ)
@@ -782,8 +777,8 @@ class HTTPDataStore(data_store.DataStore):
 
     request = rdf_data_store.DataStoreRequest(subject=[subject])
     specific = rdf_data_store.TimestampSpec.Type.SPECIFIC_TIME
-    request.timestamp = rdf_data_store.TimestampSpec(start=lease_time,
-                                                     type=specific)
+    request.timestamp = rdf_data_store.TimestampSpec(
+        start=lease_time, type=specific)
 
     if token:
       request.token = token
@@ -804,8 +799,8 @@ class HTTPDataStore(data_store.DataStore):
 
     request = rdf_data_store.DataStoreRequest(subject=[subject])
     specific = rdf_data_store.TimestampSpec.Type.SPECIFIC_TIME
-    request.timestamp = rdf_data_store.TimestampSpec(start=lease_time,
-                                                     type=specific)
+    request.timestamp = rdf_data_store.TimestampSpec(
+        start=lease_time, type=specific)
     if token:
       request.token = token
     blob = rdf_protodict.DataBlob(string=transid)
@@ -885,10 +880,8 @@ class HTTPTransaction(data_store.CommonTransaction):
 
   def __init__(self, store, subject, lease_time=None, token=None):
     """Ensure we can take a lock on this subject."""
-    super(HTTPTransaction, self).__init__(store,
-                                          utils.SmartUnicode(subject),
-                                          lease_time=lease_time,
-                                          token=token)
+    super(HTTPTransaction, self).__init__(
+        store, utils.SmartUnicode(subject), lease_time=lease_time, token=token)
 
     if lease_time is None:
       lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]

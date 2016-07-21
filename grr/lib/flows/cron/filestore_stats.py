@@ -118,21 +118,21 @@ class FilestoreStatsCronFlow(cronjobs.SystemCronFlow):
   @flow.StateHandler()
   def Start(self):
     """Retrieve all the clients for the AbstractClientStatsCollectors."""
-    self.stats = aff4.FACTORY.Create(self.FILESTORE_STATS_URN,
-                                     aff4_stats.FilestoreStats,
-                                     mode="w",
-                                     token=self.token)
+    self.stats = aff4.FACTORY.Create(
+        self.FILESTORE_STATS_URN,
+        aff4_stats.FilestoreStats,
+        mode="w",
+        token=self.token)
 
     self._CreateConsumers()
-    hashes = list(aff4.FACTORY.Open(self.HASH_PATH,
-                                    token=self.token).ListChildren())
+    hashes = list(
+        aff4.FACTORY.Open(
+            self.HASH_PATH, token=self.token).ListChildren())
 
     try:
       for urns in utils.Grouper(hashes, self.OPEN_FILES_LIMIT):
-        for fd in aff4.FACTORY.MultiOpen(urns,
-                                         mode="r",
-                                         token=self.token,
-                                         age=aff4.NEWEST_TIME):
+        for fd in aff4.FACTORY.MultiOpen(
+            urns, mode="r", token=self.token, age=aff4.NEWEST_TIME):
 
           for consumer in self.consumers:
             consumer.ProcessFile(fd)

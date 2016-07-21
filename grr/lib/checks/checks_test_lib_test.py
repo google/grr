@@ -28,15 +28,14 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     # we are looking for.
     other_anomaly = {
         "SW-CHECK": checks.CheckResult(check_id="SW-CHECK"),
-        "OTHER": checks.CheckResult(check_id="OTHER",
-                                    anomaly=rdf_anomaly.Anomaly(**anomaly))
+        "OTHER": checks.CheckResult(
+            check_id="OTHER", anomaly=rdf_anomaly.Anomaly(**anomaly))
     }
     self.assertCheckUndetected("SW-CHECK", other_anomaly)
 
     # Check the simple failure case works.
     has_anomaly = {"SW-CHECK": checks.CheckResult(
-        check_id="SW-CHECK",
-        anomaly=rdf_anomaly.Anomaly(**anomaly))}
+        check_id="SW-CHECK", anomaly=rdf_anomaly.Anomaly(**anomaly))}
     self.assertRaises(AssertionError, self.assertCheckUndetected, "SW-CHECK",
                       has_anomaly)
 
@@ -71,74 +70,70 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
 
     # Check we fail when our checkid isn't in the results.
     no_checks = {}
-    self.assertRaises(AssertionError,
-                      self.assertCheckDetectedAnom,
-                      "UNICORN",
-                      no_checks,
-                      sym=None,
-                      findings=None)
+    self.assertRaises(
+        AssertionError,
+        self.assertCheckDetectedAnom,
+        "UNICORN",
+        no_checks,
+        sym=None,
+        findings=None)
 
     # Check we fail when our checkid is in the results but hasn't
     # produced an anomaly.
     passing_checks = {"EXISTS": checks.CheckResult(check_id="EXISTS")}
-    self.assertRaises(AssertionError,
-                      self.assertCheckDetectedAnom,
-                      "EXISTS",
-                      passing_checks,
-                      sym=None,
-                      findings=None)
+    self.assertRaises(
+        AssertionError,
+        self.assertCheckDetectedAnom,
+        "EXISTS",
+        passing_checks,
+        sym=None,
+        findings=None)
 
     # On to a 'successful' cases.
     anomaly = {"finding": ["Finding"],
                "symptom": "Found: An issue.",
                "type": "ANALYSIS_ANOMALY"}
     failing_checks = {"EXISTS": checks.CheckResult(
-        check_id="EXISTS",
-        anomaly=rdf_anomaly.Anomaly(**anomaly))}
+        check_id="EXISTS", anomaly=rdf_anomaly.Anomaly(**anomaly))}
 
     # Check we pass when our check produces an anomaly and we don't care
     # about the details.
-    self.assertCheckDetectedAnom("EXISTS",
-                                 failing_checks,
-                                 sym=None,
-                                 findings=None)
+    self.assertCheckDetectedAnom(
+        "EXISTS", failing_checks, sym=None, findings=None)
     # When we do care only about the 'symptom'.
-    self.assertCheckDetectedAnom("EXISTS",
-                                 failing_checks,
-                                 sym="Found: An issue.",
-                                 findings=None)
+    self.assertCheckDetectedAnom(
+        "EXISTS", failing_checks, sym="Found: An issue.", findings=None)
     # And when we also care about the findings.
-    self.assertCheckDetectedAnom("EXISTS",
-                                 failing_checks,
-                                 sym="Found: An issue.",
-                                 findings=["Finding"])
+    self.assertCheckDetectedAnom(
+        "EXISTS", failing_checks, sym="Found: An issue.", findings=["Finding"])
     # And check we match substrings of a 'finding'.
-    self.assertCheckDetectedAnom("EXISTS",
-                                 failing_checks,
-                                 sym="Found: An issue.",
-                                 findings=["Fin"])
+    self.assertCheckDetectedAnom(
+        "EXISTS", failing_checks, sym="Found: An issue.", findings=["Fin"])
     # Check we complain when the symptom doesn't match.
-    self.assertRaises(AssertionError,
-                      self.assertCheckDetectedAnom,
-                      "EXISTS",
-                      failing_checks,
-                      sym="wrong symptom",
-                      findings=None)
+    self.assertRaises(
+        AssertionError,
+        self.assertCheckDetectedAnom,
+        "EXISTS",
+        failing_checks,
+        sym="wrong symptom",
+        findings=None)
     # Check we complain when the symptom matches but the findings don't.
-    self.assertRaises(AssertionError,
-                      self.assertCheckDetectedAnom,
-                      "EXISTS",
-                      failing_checks,
-                      sym="Found: An issue.",
-                      findings=["Not found"])
+    self.assertRaises(
+        AssertionError,
+        self.assertCheckDetectedAnom,
+        "EXISTS",
+        failing_checks,
+        sym="Found: An issue.",
+        findings=["Not found"])
     # Lastly, if there is a finding in the anomaly we didn't expect, we consider
     # that a problem.
-    self.assertRaises(AssertionError,
-                      self.assertCheckDetectedAnom,
-                      "EXISTS",
-                      failing_checks,
-                      sym="Found: An issue.",
-                      findings=[])
+    self.assertRaises(
+        AssertionError,
+        self.assertCheckDetectedAnom,
+        "EXISTS",
+        failing_checks,
+        sym="Found: An issue.",
+        findings=[])
 
   def testGenProcessData(self):
     """Test for the GenProcessData() method."""

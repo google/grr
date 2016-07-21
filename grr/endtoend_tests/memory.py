@@ -38,22 +38,19 @@ class AbstractTestAnalyzeClientMemory(base.ClientTestBase):
 
     # RDFValueCollections need to be deleted recursively.
     aff4.FACTORY.Delete(
-        self.client_id.Add(self.test_output_path),
-        token=self.token)
+        self.client_id.Add(self.test_output_path), token=self.token)
     super(AbstractTestAnalyzeClientMemory, self).setUp()
 
   def tearDown(self):
     # RDFValueCollections need to be deleted recursively.
     aff4.FACTORY.Delete(
-        self.client_id.Add(self.test_output_path),
-        token=self.token)
+        self.client_id.Add(self.test_output_path), token=self.token)
     config_lib.CONFIG.Set("Rekall.profile_server", self.old_config)
     super(AbstractTestAnalyzeClientMemory, self).tearDown()
 
   def CheckFlow(self):
     self.response = aff4.FACTORY.Open(
-        self.client_id.Add(self.test_output_path),
-        token=self.token)
+        self.client_id.Add(self.test_output_path), token=self.token)
     self.assertIsInstance(self.response, collects.RDFValueCollection)
     self.assertTrue(len(self.response) >= 1)
 
@@ -93,9 +90,10 @@ class TestAnalyzeClientMemoryWindowsDLLList(
     self.binaryname = "svchost.exe"
 
     self.args["request"].plugins = [
-        rdf_rekall_types.PluginRequest(plugin="dlllist",
-                                       args=dict(proc_regex=self.binaryname,
-                                                 method="PsActiveProcessHead"))
+        rdf_rekall_types.PluginRequest(
+            plugin="dlllist",
+            args=dict(
+                proc_regex=self.binaryname, method="PsActiveProcessHead"))
     ]
 
   def CheckFlow(self):
@@ -118,16 +116,15 @@ class TestAnalyzeClientMemoryMac(AbstractTestAnalyzeClientMemory,
 
   def CheckFlow(self):
     response = aff4.FACTORY.Open(
-        self.client_id.Add(self.test_output_path),
-        token=self.token)
+        self.client_id.Add(self.test_output_path), token=self.token)
     binary_name = config_lib.CONFIG.Get(
-        "Client.binary_name",
-        context=["Client Context", "Platform:Darwin"])
+        "Client.binary_name", context=["Client Context", "Platform:Darwin"])
 
     responses = list(response)
     self.assertTrue(len(responses))
-    self.assertTrue(any([binary_name in response.json_messages
-                         for response in list(response)]))
+    self.assertTrue(
+        any([binary_name in response.json_messages for response in list(
+            response)]))
 
 
 class TestAnalyzeClientMemoryLinux(AbstractTestAnalyzeClientMemory):
@@ -141,8 +138,7 @@ class TestAnalyzeClientMemoryLinux(AbstractTestAnalyzeClientMemory):
 
   def CheckForInit(self):
     responses = aff4.FACTORY.Open(
-        self.client_id.Add(self.test_output_path),
-        token=self.token)
+        self.client_id.Add(self.test_output_path), token=self.token)
     self.assertTrue(any(["\"init\"" in r.json_messages for r in responses]))
 
   def CheckFlow(self):
@@ -161,8 +157,7 @@ class TestAnalyzeClientMemoryLoggingWorks(AbstractTestAnalyzeClientMemory):
 
   def CheckFlow(self):
     response = aff4.FACTORY.Open(
-        self.client_id.Add(self.test_output_path),
-        token=self.token)
+        self.client_id.Add(self.test_output_path), token=self.token)
     self.assertIn("\"level\":\"DEBUG\"", response[0].json_messages)
 
 
@@ -194,8 +189,8 @@ class TestAnalyzeClientMemoryPluginBadParamsFails(
 
   def setUpRequest(self):
     self.args["request"].plugins = [
-        rdf_rekall_types.PluginRequest(plugin="pslist",
-                                       args=dict(abcdefg=12345))
+        rdf_rekall_types.PluginRequest(
+            plugin="pslist", args=dict(abcdefg=12345))
     ]
 
   def CheckForInvalidArgs(self, flow_state):
@@ -241,17 +236,17 @@ class TestSigScan(AbstractTestAnalyzeClientMemoryWindows):
     signature = open(sig_path, "rb").read().strip()
     args = {"scan_kernel": True, "signature": [signature]}
     self.args["request"].plugins = [
-        rdf_rekall_types.PluginRequest(plugin="sigscan",
-                                       args=args)
+        rdf_rekall_types.PluginRequest(
+            plugin="sigscan", args=args)
     ]
 
   def CheckFlow(self):
     collection = aff4.FACTORY.Open(
-        self.client_id.Add(self.test_output_path),
-        token=self.token)
+        self.client_id.Add(self.test_output_path), token=self.token)
     self.assertIsInstance(collection, collects.RDFValueCollection)
-    self.assertTrue(any(["Hit in kernel AS:" in response.json_messages
-                         for response in list(collection)]))
+    self.assertTrue(
+        any(["Hit in kernel AS:" in response.json_messages
+             for response in list(collection)]))
 
 
 class TestYarascanExists(AbstractTestAnalyzeClientMemory):

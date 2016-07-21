@@ -16,11 +16,12 @@ class NetworkLimitTestFlow(flow.GRRFlow):
   /dev/urandom.
   """
 
-  @flow.StateHandler(next_state="MultiGetFile")
+  @flow.StateHandler()
   def Start(self):
-    urandom = rdf_paths.PathSpec(path="/dev/urandom",
-                                 file_size_override=2 * 1024 * 1024,
-                                 pathtype=rdf_paths.PathSpec.PathType.OS)
+    urandom = rdf_paths.PathSpec(
+        path="/dev/urandom",
+        file_size_override=2 * 1024 * 1024,
+        pathtype=rdf_paths.PathSpec.PathType.OS)
     self.CallClient("CopyPathToFile",
                     offset=0,
                     length=2 * 1024 * 1024,  # 4 default sized blobs
@@ -30,14 +31,13 @@ class NetworkLimitTestFlow(flow.GRRFlow):
                     lifetime=600,
                     next_state="MultiGetFile")
 
-  @flow.StateHandler(next_state="Done")
+  @flow.StateHandler()
   def MultiGetFile(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
     self.state.Register("dest_path", responses.First().dest_path)
-    self.CallFlow("MultiGetFile",
-                  pathspecs=[self.state.dest_path],
-                  next_state="Done")
+    self.CallFlow(
+        "MultiGetFile", pathspecs=[self.state.dest_path], next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -48,11 +48,11 @@ class NetworkLimitTestFlow(flow.GRRFlow):
 class CPULimitTestFlow(flow.GRRFlow):
   """This flow is used to test the cpu limit."""
 
-  @flow.StateHandler(next_state="State1")
+  @flow.StateHandler()
   def Start(self):
     self.CallClient("BusyHang", integer=5, next_state="State1")
 
-  @flow.StateHandler(next_state="Done")
+  @flow.StateHandler()
   def State1(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
@@ -71,8 +71,8 @@ class TestCPULimit(base.AutomatedTest):
   def CheckFlow(self):
     # Reopen the object to check the state.  We use OpenWithLock to avoid
     # reading old state.
-    with aff4.FACTORY.OpenWithLock(self.session_id,
-                                   token=self.token) as flow_obj:
+    with aff4.FACTORY.OpenWithLock(
+        self.session_id, token=self.token) as flow_obj:
       backtrace = flow_obj.state.context.get("backtrace", "")
 
     if backtrace:
@@ -89,8 +89,8 @@ class TestNetworkFlowLimit(base.AutomatedTest):
   platforms = ["Linux", "Darwin"]
   flow = "GetFile"
   args = {
-      "pathspec": rdf_paths.PathSpec(path="/bin/bash",
-                                     pathtype=rdf_paths.PathSpec.PathType.OS),
+      "pathspec": rdf_paths.PathSpec(
+          path="/bin/bash", pathtype=rdf_paths.PathSpec.PathType.OS),
       "network_bytes_limit": 500 * 1024
   }
 
@@ -99,12 +99,11 @@ class TestNetworkFlowLimit(base.AutomatedTest):
   def CheckFlow(self):
     # Reopen the object to check the state.  We use OpenWithLock to avoid
     # reading old state.
-    with aff4.FACTORY.OpenWithLock(self.session_id,
-                                   token=self.token) as flow_obj:
+    with aff4.FACTORY.OpenWithLock(
+        self.session_id, token=self.token) as flow_obj:
       # Make sure we transferred approximately the right amount of data.
-      self.assertAlmostEqual(flow_obj.state.context.network_bytes_sent,
-                             500 * 1024,
-                             delta=30000)
+      self.assertAlmostEqual(
+          flow_obj.state.context.network_bytes_sent, 500 * 1024, delta=30000)
       backtrace = flow_obj.state.context.get("backtrace", "")
       self.assertIsNotNone(backtrace)
       self.assertTrue("Network bytes limit exceeded." in backtrace)
@@ -118,8 +117,8 @@ class TestMultiGetFileNetworkLimitExceeded(base.AutomatedTest):
   def CheckFlow(self):
     # Reopen the object to check the state.  We use OpenWithLock to avoid
     # reading old state.
-    with aff4.FACTORY.OpenWithLock(self.session_id,
-                                   token=self.token) as flow_obj:
+    with aff4.FACTORY.OpenWithLock(
+        self.session_id, token=self.token) as flow_obj:
       backtrace = flow_obj.state.context.get("backtrace", "")
       self.assertTrue("Network bytes limit exceeded." in backtrace)
 

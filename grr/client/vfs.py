@@ -109,8 +109,8 @@ class VFSHandler(object):
     else:  # For now just guess TSK.
       return VFS_HANDLERS[rdf_paths.PathSpec.PathType.TSK](
           self,
-          rdf_paths.PathSpec(path="/",
-                             pathtype=rdf_paths.PathSpec.PathType.TSK),
+          rdf_paths.PathSpec(
+              path="/", pathtype=rdf_paths.PathSpec.PathType.TSK),
           progress_callback=self.progress_callback)
 
   def MatchBestComponentName(self, component):
@@ -140,8 +140,8 @@ class VFSHandler(object):
           break
 
     if fd.supported_pathtype != self.pathspec.pathtype:
-      new_pathspec = rdf_paths.PathSpec(path=component,
-                                        pathtype=fd.supported_pathtype)
+      new_pathspec = rdf_paths.PathSpec(
+          path=component, pathtype=fd.supported_pathtype)
     else:
       new_pathspec = self.pathspec.last.Copy()
       new_pathspec.path = component
@@ -224,19 +224,21 @@ class VFSHandler(object):
         except KeyError:
           raise IOError("VFS handler %d not supported." % new_pathspec.pathtype)
 
-        fd = handler(base_fd=fd,
-                     pathspec=new_pathspec,
-                     full_pathspec=full_pathspec,
-                     progress_callback=progress_callback)
+        fd = handler(
+            base_fd=fd,
+            pathspec=new_pathspec,
+            full_pathspec=full_pathspec,
+            progress_callback=progress_callback)
       except IOError:
         # Can not open the first component, we must raise here.
         if i <= 1:
           raise IOError("File not found")
 
         # Insert the remaining path at the front of the pathspec.
-        pathspec.Insert(0,
-                        path=utils.JoinPath(*path_components[i:]),
-                        pathtype=rdf_paths.PathSpec.PathType.TSK)
+        pathspec.Insert(
+            0,
+            path=utils.JoinPath(*path_components[i:]),
+            pathtype=rdf_paths.PathSpec.PathType.TSK)
         break
 
     return fd
@@ -281,9 +283,8 @@ class VFSInit(registry.InitHook):
           rdf_paths.PathSpec.PathType.TSK: rdf_paths.PathSpec.PathType.OS
       }
       base_type = base_types.get(handler, handler)
-      VFS_VIRTUALROOTS[handler] = rdf_paths.PathSpec(path=root,
-                                                     pathtype=base_type,
-                                                     is_virtualroot=True)
+      VFS_VIRTUALROOTS[handler] = rdf_paths.PathSpec(
+          path=root, pathtype=base_type, is_virtualroot=True)
 
 
 def VFSOpen(pathspec, progress_callback=None):
@@ -398,11 +399,12 @@ def VFSOpen(pathspec, progress_callback=None):
 
     try:
       # Open the component.
-      fd = handler.Open(fd,
-                        component,
-                        pathspec=working_pathspec,
-                        full_pathspec=pathspec,
-                        progress_callback=progress_callback)
+      fd = handler.Open(
+          fd,
+          component,
+          pathspec=working_pathspec,
+          full_pathspec=pathspec,
+          progress_callback=progress_callback)
     except IOError as e:
       raise IOError("%s: %s" % (e, pathspec))
 

@@ -22,8 +22,9 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     """Ensure we can extract packages from yum output."""
     parser = linux_cmd_parser.YumListCmdParser()
     content = open(os.path.join(self.base_path, "yum.out")).read()
-    out = list(parser.Parse("/usr/bin/yum", ["list installed -q"], content, "",
-                            0, 5, None))
+    out = list(
+        parser.Parse("/usr/bin/yum", ["list installed -q"], content, "", 0, 5,
+                     None))
     self.assertEqual(len(out), 2)
     self.assertTrue(isinstance(out[0], rdf_client.SoftwarePackage))
     self.assertEqual(out[0].name, "ConsoleKit")
@@ -34,8 +35,9 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     """Test to see if we can get data from yum repolist output."""
     parser = linux_cmd_parser.YumRepolistCmdParser()
     content = open(os.path.join(self.base_path, "repolist.out")).read()
-    repolist = list(parser.Parse("/usr/bin/yum", ["repolist", "-v", "-q"],
-                                 content, "", 0, 5, None))
+    repolist = list(
+        parser.Parse("/usr/bin/yum", ["repolist", "-v", "-q"], content, "", 0,
+                     5, None))
     self.assertTrue(isinstance(repolist[0], rdf_client.PackageRepository))
 
     self.assertEqual(repolist[0].id, "rhel")
@@ -83,8 +85,8 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     """Ensure we can extract packages from dpkg output."""
     parser = linux_cmd_parser.DpkgCmdParser()
     content = open(os.path.join(self.base_path, "checks/data/dpkg.out")).read()
-    out = list(parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5,
-                            None))
+    out = list(
+        parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5, None))
     self.assertEqual(len(out), 181)
     self.assertTrue(isinstance(out[1], rdf_client.SoftwarePackage))
     self.assertTrue(out[0].name, "acpi-support-base")
@@ -94,8 +96,8 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     parser = linux_cmd_parser.DpkgCmdParser()
     content = open(os.path.join(self.base_path,
                                 "checks/data/dpkg.precise.out")).read()
-    out = list(parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5,
-                            None))
+    out = list(
+        parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5, None))
     self.assertEqual(len(out), 30)
     self.assertTrue(isinstance(out[1], rdf_client.SoftwarePackage))
     self.assertTrue(out[0].name, "adduser")

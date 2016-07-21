@@ -51,18 +51,18 @@ class PlistValueFilter(flow.GRRFlow):
   category = "/FileTypes/"
   args_type = PlistValueFilterArgs
 
-  @flow.StateHandler(next_state=["Receive"])
+  @flow.StateHandler()
   def Start(self, unused_response):
     """Issue a request to list the directory."""
     if self.runner.output is not None:
-      self.runner.output = aff4.FACTORY.Create(self.runner.output.urn,
-                                               filetypes.AFF4PlistQuery,
-                                               mode="w",
-                                               token=self.token)
+      self.runner.output = aff4.FACTORY.Create(
+          self.runner.output.urn,
+          filetypes.AFF4PlistQuery,
+          mode="w",
+          token=self.token)
 
-    self.CallClient("PlistQuery",
-                    request=self.args.request,
-                    next_state="Receive")
+    self.CallClient(
+        "PlistQuery", request=self.args.request, next_state="Receive")
 
   @flow.StateHandler()
   def Receive(self, responses):

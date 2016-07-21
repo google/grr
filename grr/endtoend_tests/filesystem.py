@@ -39,8 +39,7 @@ class TestListDirectoryOSLinuxDarwin(base.AutomatedTest):
       urn = self.client_id.Add(self.output_path)
 
     fd = aff4.FACTORY.Open(
-        urn.Add(self.file_to_find),
-        mode="r", token=self.token)
+        urn.Add(self.file_to_find), mode="r", token=self.token)
     if type(fd) == aff4.AFF4Volume:
       self.fail(("No results were written to the data store. Maybe the GRR "
                  "client is not running with root privileges?"))
@@ -48,8 +47,8 @@ class TestListDirectoryOSLinuxDarwin(base.AutomatedTest):
 
   def tearDown(self):
     if not self.delete_urns:
-      self.delete_urns.add(self.client_id.Add(self.output_path).Add(
-          self.file_to_find))
+      self.delete_urns.add(
+          self.client_id.Add(self.output_path).Add(self.file_to_find))
     super(TestListDirectoryOSLinuxDarwin, self).tearDown()
 
 
@@ -82,8 +81,8 @@ class TestFindTSKLinux(TestListDirectoryTSKLinux):
 
   args = {"findspec": rdf_client.FindSpec(
       path_regex=".",
-      pathspec=rdf_paths.PathSpec(path="/usr/bin/",
-                                  pathtype=rdf_paths.PathSpec.PathType.TSK))}
+      pathspec=rdf_paths.PathSpec(
+          path="/usr/bin/", pathtype=rdf_paths.PathSpec.PathType.TSK))}
 
 
 class TestFindOSLinuxDarwin(TestListDirectoryOSLinuxDarwin):
@@ -92,8 +91,8 @@ class TestFindOSLinuxDarwin(TestListDirectoryOSLinuxDarwin):
 
   args = {"findspec": rdf_client.FindSpec(
       path_regex=".",
-      pathspec=rdf_paths.PathSpec(path="/bin/",
-                                  pathtype=rdf_paths.PathSpec.PathType.OS))}
+      pathspec=rdf_paths.PathSpec(
+          path="/bin/", pathtype=rdf_paths.PathSpec.PathType.OS))}
 
 ###########
 # Windows #
@@ -104,8 +103,7 @@ class TestListDirectoryOSWindows(TestListDirectoryOSLinuxDarwin):
   """Tests if ListDirectory works on Windows."""
   platforms = ["Windows"]
   args = {"pathspec": rdf_paths.PathSpec(
-      path="C:\\Windows",
-      pathtype=rdf_paths.PathSpec.PathType.OS)}
+      path="C:\\Windows", pathtype=rdf_paths.PathSpec.PathType.OS)}
   file_to_find = "regedit.exe"
   output_path = "/fs/os/C:/Windows"
 
@@ -114,8 +112,7 @@ class TestListDirectoryTSKWindows(TestListDirectoryTSKLinux):
   """Tests if ListDirectory works on Windows using Sleuthkit."""
   platforms = ["Windows"]
   args = {"pathspec": rdf_paths.PathSpec(
-      path="C:\\Windows",
-      pathtype=rdf_paths.PathSpec.PathType.TSK)}
+      path="C:\\Windows", pathtype=rdf_paths.PathSpec.PathType.TSK)}
   file_to_find = "regedit.exe"
 
   def CheckFlow(self):
@@ -127,8 +124,7 @@ class TestListDirectoryTSKWindows(TestListDirectoryTSKLinux):
       volumes = list(fd.OpenChildren())
       for volume in volumes:
         fd = aff4.FACTORY.Open(
-            volume.urn.Add(windir),
-            mode="r", token=self.token)
+            volume.urn.Add(windir), mode="r", token=self.token)
         children = list(fd.OpenChildren())
         for child in children:
           if self.file_to_find == child.urn.Basename():

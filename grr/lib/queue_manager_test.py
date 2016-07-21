@@ -40,10 +40,11 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     """Tests that queueing and fetching of requests and responses work."""
     session_id = rdfvalue.SessionID(flow_name="test")
 
-    request = rdf_flows.RequestState(id=1,
-                                     client_id=self.client_id,
-                                     next_state="TestState",
-                                     session_id=session_id)
+    request = rdf_flows.RequestState(
+        id=1,
+        client_id=self.client_id,
+        next_state="TestState",
+        session_id=session_id)
 
     with queue_manager.QueueManager(token=self.token) as manager:
       manager.QueueRequest(session_id, request)
@@ -60,26 +61,29 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     with queue_manager.QueueManager(token=self.token) as manager:
       # Start with request 2 - leave request 1 un-responded to.
       for request_id in range(2, 5):
-        request = rdf_flows.RequestState(id=request_id,
-                                         client_id=self.client_id,
-                                         next_state="TestState",
-                                         session_id=session_id)
+        request = rdf_flows.RequestState(
+            id=request_id,
+            client_id=self.client_id,
+            next_state="TestState",
+            session_id=session_id)
 
         manager.QueueRequest(session_id, request)
 
         response_id = None
         for response_id in range(1, 10):
           # Normal message.
-          manager.QueueResponse(session_id,
-                                rdf_flows.GrrMessage(request_id=request_id,
-                                                     response_id=response_id))
+          manager.QueueResponse(
+              session_id,
+              rdf_flows.GrrMessage(
+                  request_id=request_id, response_id=response_id))
 
         # And a status message.
-        manager.QueueResponse(session_id,
-                              rdf_flows.GrrMessage(
-                                  request_id=request_id,
-                                  response_id=response_id + 1,
-                                  type=rdf_flows.GrrMessage.Type.STATUS))
+        manager.QueueResponse(
+            session_id,
+            rdf_flows.GrrMessage(
+                request_id=request_id,
+                response_id=response_id + 1,
+                type=rdf_flows.GrrMessage.Type.STATUS))
 
     completed_requests = list(manager.FetchCompletedRequests(session_id))
     self.assertEqual(len(completed_requests), 3)
@@ -127,26 +131,29 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     with queue_manager.QueueManager(token=self.token) as manager:
       # Start with request 1 - leave request 1 un-responded to.
       for request_id in range(5):
-        request = rdf_flows.RequestState(id=request_id,
-                                         client_id=self.client_id,
-                                         next_state="TestState",
-                                         session_id=session_id)
+        request = rdf_flows.RequestState(
+            id=request_id,
+            client_id=self.client_id,
+            next_state="TestState",
+            session_id=session_id)
 
         manager.QueueRequest(session_id, request)
 
         # Don't queue any actual responses, just a status message with a
         # fake response_id.
-        manager.QueueResponse(session_id,
-                              rdf_flows.GrrMessage(
-                                  request_id=request_id,
-                                  response_id=1000,
-                                  type=rdf_flows.GrrMessage.Type.STATUS))
+        manager.QueueResponse(
+            session_id,
+            rdf_flows.GrrMessage(
+                request_id=request_id,
+                response_id=1000,
+                type=rdf_flows.GrrMessage.Type.STATUS))
 
     # Check that even though status message for every request indicates 1000
     # responses, only the actual response count is used to apply the limit
     # when FetchCompletedResponses is called.
-    completed_response = list(manager.FetchCompletedResponses(session_id,
-                                                              limit=5))
+    completed_response = list(
+        manager.FetchCompletedResponses(
+            session_id, limit=5))
     self.assertEqual(len(completed_response), 5)
     for i, (request, responses) in enumerate(completed_response):
       self.assertEqual(request.id, i)
@@ -157,16 +164,17 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     """Check that we can efficiently destroy a single flow request."""
     session_id = rdfvalue.SessionID(flow_name="test3")
 
-    request = rdf_flows.RequestState(id=1,
-                                     client_id=self.client_id,
-                                     next_state="TestState",
-                                     session_id=session_id)
+    request = rdf_flows.RequestState(
+        id=1,
+        client_id=self.client_id,
+        next_state="TestState",
+        session_id=session_id)
 
     with queue_manager.QueueManager(token=self.token) as manager:
       manager.QueueRequest(session_id, request)
-      manager.QueueResponse(session_id,
-                            rdf_flows.GrrMessage(request_id=1,
-                                                 response_id=1))
+      manager.QueueResponse(
+          session_id, rdf_flows.GrrMessage(
+              request_id=1, response_id=1))
 
     # Check the request and responses are there.
     all_requests = list(manager.FetchRequestsAndResponses(session_id))
@@ -183,16 +191,17 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     """Check that we can efficiently destroy the flow's request queues."""
     session_id = rdfvalue.SessionID(flow_name="test2")
 
-    request = rdf_flows.RequestState(id=1,
-                                     client_id=self.client_id,
-                                     next_state="TestState",
-                                     session_id=session_id)
+    request = rdf_flows.RequestState(
+        id=1,
+        client_id=self.client_id,
+        next_state="TestState",
+        session_id=session_id)
 
     with queue_manager.QueueManager(token=self.token) as manager:
       manager.QueueRequest(session_id, request)
-      manager.QueueResponse(session_id,
-                            rdf_flows.GrrMessage(request_id=1,
-                                                 response_id=1))
+      manager.QueueResponse(
+          session_id, rdf_flows.GrrMessage(
+              request_id=1, response_id=1))
 
     # Check the request and responses are there.
     all_requests = list(manager.FetchRequestsAndResponses(session_id))
@@ -207,8 +216,8 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
     self.assertEqual(
         data_store.DB.ResolveRow(
-            session_id.Add("state/request:00000001"),
-            token=self.token)[0][0], "flow:response:00000001:00000001")
+            session_id.Add("state/request:00000001"), token=self.token)[0][0],
+        "flow:response:00000001:00000001")
 
     with queue_manager.QueueManager(token=self.token) as manager:
       manager.DestroyFlowStates(session_id)
@@ -219,8 +228,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     # Ensure the rows are gone from the data store.
     self.assertEqual(
         data_store.DB.ResolveRow(
-            session_id.Add("state/request:00000001"),
-            token=self.token), [])
+            session_id.Add("state/request:00000001"), token=self.token), [])
 
     self.assertEqual(
         data_store.DB.ResolveRow(
@@ -229,22 +237,20 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
   def testSchedule(self):
     """Test the ability to schedule a task."""
     test_queue = rdfvalue.RDFURN("fooSchedule")
-    task = rdf_flows.GrrMessage(queue=test_queue,
-                                task_ttl=5,
-                                session_id="aff4:/Test")
+    task = rdf_flows.GrrMessage(
+        queue=test_queue, task_ttl=5, session_id="aff4:/Test")
     manager = queue_manager.QueueManager(token=self.token)
     manager.Schedule([task])
 
     self.assertGreater(task.task_id, 0)
     self.assertGreater(task.task_id & 0xffffffff, 0)
-    self.assertEqual(
-        (long(self._current_mock_time * 1000) & 0xffffffff) << 32, task.task_id
-        & 0x1fffffff00000000)
+    self.assertEqual((long(self._current_mock_time * 1000) & 0xffffffff) << 32,
+                     task.task_id
+                     & 0x1fffffff00000000)
     self.assertEqual(task.task_ttl, 5)
 
-    value, ts = data_store.DB.Resolve(test_queue,
-                                      manager._TaskIdToColumn(task.task_id),
-                                      token=self.token)
+    value, ts = data_store.DB.Resolve(
+        test_queue, manager._TaskIdToColumn(task.task_id), token=self.token)
 
     decoded = rdf_flows.GrrMessage(value)
     self.assertRDFValuesEqual(decoded, task)
@@ -286,9 +292,8 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
   def testTaskRetransmissionsAreCorrectlyAccounted(self):
     test_queue = rdfvalue.RDFURN("fooSchedule")
-    task = rdf_flows.GrrMessage(queue=test_queue,
-                                task_ttl=5,
-                                session_id="aff4:/Test")
+    task = rdf_flows.GrrMessage(
+        queue=test_queue, task_ttl=5, session_id="aff4:/Test")
 
     manager = queue_manager.QueueManager(token=self.token)
     manager.Schedule([task])
@@ -334,9 +339,8 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     manager.Delete(test_queue, tasks)
 
     # Should not exist in the table
-    value, ts = data_store.DB.Resolve(test_queue,
-                                      "task:%08d" % task.task_id,
-                                      token=self.token)
+    value, ts = data_store.DB.Resolve(
+        test_queue, "task:%08d" % task.task_id, token=self.token)
 
     self.assertEqual(value, None)
     self.assertEqual(ts, 0)
@@ -351,9 +355,8 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
   def testReSchedule(self):
     """Test the ability to re-schedule a task."""
     test_queue = rdfvalue.RDFURN("fooReschedule")
-    task = rdf_flows.GrrMessage(queue=test_queue,
-                                task_ttl=5,
-                                session_id="aff4:/Test")
+    task = rdf_flows.GrrMessage(
+        queue=test_queue, task_ttl=5, session_id="aff4:/Test")
 
     manager = queue_manager.QueueManager(token=self.token)
     manager.Schedule([task])
@@ -390,9 +393,8 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
     tasks = []
     for i in range(10):
-      msg = rdf_flows.GrrMessage(session_id="Test%d" % i,
-                                 priority=i % 3,
-                                 queue=test_queue)
+      msg = rdf_flows.GrrMessage(
+          session_id="Test%d" % i, priority=i % 3, queue=test_queue)
 
       tasks.append(msg)
 
@@ -432,17 +434,13 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     # "see" both.
     with queue_manager.QueueManager(token=self.token) as manager1:
       manager1.QueueNotification(session_id=rdfvalue.SessionID(
-          base="aff4:/hunts",
-          queue=queues.HUNTS,
-          flow_name="123456"))
+          base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"))
       manager1.Flush()
 
       self._current_mock_time += 10
       with queue_manager.QueueManager(token=self.token) as manager2:
         manager2.QueueNotification(session_id=rdfvalue.SessionID(
-            base="aff4:/hunts",
-            queue=queues.HUNTS,
-            flow_name="123456"))
+            base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"))
         manager2.Flush()
 
         self.assertEqual(
@@ -450,9 +448,9 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
         self.assertEqual(
             len(manager2.GetNotificationsForAllShards(queues.HUNTS)), 1)
 
-        manager1.DeleteNotification(rdfvalue.SessionID(base="aff4:/hunts",
-                                                       queue=queues.HUNTS,
-                                                       flow_name="123456"))
+        manager1.DeleteNotification(
+            rdfvalue.SessionID(
+                base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"))
 
         self.assertEqual(
             len(manager1.GetNotificationsForAllShards(queues.HUNTS)), 0)
@@ -461,39 +459,39 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
 
   def testMultipleNotificationsForTheSameSessionId(self):
     manager = queue_manager.QueueManager(token=self.token)
-    manager.QueueNotification(session_id=rdfvalue.SessionID(base="aff4:/hunts",
-                                                            queue=queues.HUNTS,
-                                                            flow_name="123456"),
-                              timestamp=(self._current_mock_time + 10) * 1e6)
-    manager.QueueNotification(session_id=rdfvalue.SessionID(base="aff4:/hunts",
-                                                            queue=queues.HUNTS,
-                                                            flow_name="123456"),
-                              timestamp=(self._current_mock_time + 20) * 1e6)
-    manager.QueueNotification(session_id=rdfvalue.SessionID(base="aff4:/hunts",
-                                                            queue=queues.HUNTS,
-                                                            flow_name="123456"),
-                              timestamp=(self._current_mock_time + 30) * 1e6)
+    manager.QueueNotification(
+        session_id=rdfvalue.SessionID(
+            base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"),
+        timestamp=(self._current_mock_time + 10) * 1e6)
+    manager.QueueNotification(
+        session_id=rdfvalue.SessionID(
+            base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"),
+        timestamp=(self._current_mock_time + 20) * 1e6)
+    manager.QueueNotification(
+        session_id=rdfvalue.SessionID(
+            base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"),
+        timestamp=(self._current_mock_time + 30) * 1e6)
     manager.Flush()
 
     self.assertEqual(len(manager.GetNotificationsForAllShards(queues.HUNTS)), 0)
 
     self._current_mock_time += 10
     self.assertEqual(len(manager.GetNotificationsForAllShards(queues.HUNTS)), 1)
-    manager.DeleteNotification(rdfvalue.SessionID(base="aff4:/hunts",
-                                                  queue=queues.HUNTS,
-                                                  flow_name="123456"))
+    manager.DeleteNotification(
+        rdfvalue.SessionID(
+            base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"))
 
     self._current_mock_time += 10
     self.assertEqual(len(manager.GetNotificationsForAllShards(queues.HUNTS)), 1)
-    manager.DeleteNotification(rdfvalue.SessionID(base="aff4:/hunts",
-                                                  queue=queues.HUNTS,
-                                                  flow_name="123456"))
+    manager.DeleteNotification(
+        rdfvalue.SessionID(
+            base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"))
 
     self._current_mock_time += 10
     self.assertEqual(len(manager.GetNotificationsForAllShards(queues.HUNTS)), 1)
-    manager.DeleteNotification(rdfvalue.SessionID(base="aff4:/hunts",
-                                                  queue=queues.HUNTS,
-                                                  flow_name="123456"))
+    manager.DeleteNotification(
+        rdfvalue.SessionID(
+            base="aff4:/hunts", queue=queues.HUNTS, flow_name="123456"))
 
     self._current_mock_time += 10
     self.assertEqual(len(manager.GetNotificationsForAllShards(queues.HUNTS)), 0)
@@ -534,13 +532,11 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
 
   def testNotificationsAreDeletedFromAllShards(self):
     manager = queue_manager.QueueManager(token=self.token)
-    manager.QueueNotification(session_id=rdfvalue.SessionID(base="aff4:/hunts",
-                                                            queue=queues.HUNTS,
-                                                            flow_name="42"))
+    manager.QueueNotification(session_id=rdfvalue.SessionID(
+        base="aff4:/hunts", queue=queues.HUNTS, flow_name="42"))
     manager.Flush()
-    manager.QueueNotification(session_id=rdfvalue.SessionID(base="aff4:/hunts",
-                                                            queue=queues.HUNTS,
-                                                            flow_name="43"))
+    manager.QueueNotification(session_id=rdfvalue.SessionID(
+        base="aff4:/hunts", queue=queues.HUNTS, flow_name="43"))
     manager.Flush()
     # There should be two notifications in two different shards.
     shards_with_data = 0
@@ -552,26 +548,24 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
     self.assertEqual(shards_with_data, 2)
 
     # This should still work, as we delete notifications from all shards.
-    manager.DeleteNotification(rdfvalue.SessionID(base="aff4:/hunts",
-                                                  queue=queues.HUNTS,
-                                                  flow_name="43"))
-    manager.DeleteNotification(rdfvalue.SessionID(base="aff4:/hunts",
-                                                  queue=queues.HUNTS,
-                                                  flow_name="42"))
+    manager.DeleteNotification(
+        rdfvalue.SessionID(
+            base="aff4:/hunts", queue=queues.HUNTS, flow_name="43"))
+    manager.DeleteNotification(
+        rdfvalue.SessionID(
+            base="aff4:/hunts", queue=queues.HUNTS, flow_name="42"))
     for _ in range(manager.num_notification_shards):
       shard_sessions = manager.GetNotifications(queues.HUNTS)
       self.assertFalse(shard_sessions)
 
   def testGetNotificationsForAllShards(self):
     manager = queue_manager.QueueManager(token=self.token)
-    manager.QueueNotification(session_id=rdfvalue.SessionID(base="aff4:/hunts",
-                                                            queue=queues.HUNTS,
-                                                            flow_name="42"))
+    manager.QueueNotification(session_id=rdfvalue.SessionID(
+        base="aff4:/hunts", queue=queues.HUNTS, flow_name="42"))
     manager.Flush()
 
-    manager.QueueNotification(session_id=rdfvalue.SessionID(base="aff4:/hunts",
-                                                            queue=queues.HUNTS,
-                                                            flow_name="43"))
+    manager.QueueNotification(session_id=rdfvalue.SessionID(
+        base="aff4:/hunts", queue=queues.HUNTS, flow_name="43"))
     manager.Flush()
 
     live_shard_count = 0
@@ -587,9 +581,8 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
 
   def testNotificationRequeueing(self):
     with test_lib.ConfigOverrider({"Worker.queue_shards": 1}):
-      session_id = rdfvalue.SessionID(base="aff4:/testflows",
-                                      queue=queues.HUNTS,
-                                      flow_name="123")
+      session_id = rdfvalue.SessionID(
+          base="aff4:/testflows", queue=queues.HUNTS, flow_name="123")
       with test_lib.FakeTime(1000):
         # Schedule a notification.
         with queue_manager.QueueManager(token=self.token) as manager:

@@ -37,89 +37,89 @@ except ImportError:
 parser = flags.PARSER
 
 # Initialize sub parsers and their arguments.
-subparsers = parser.add_subparsers(title="subcommands",
-                                   dest="subparser_name",
-                                   description="valid subcommands")
+subparsers = parser.add_subparsers(
+    title="subcommands", dest="subparser_name", description="valid subcommands")
 
 # build arguments.
-parser_build = subparsers.add_parser("build",
-                                     help="Build a client from source.")
+parser_build = subparsers.add_parser(
+    "build", help="Build a client from source.")
 
-parser_build.add_argument("--output",
-                          default=None,
-                          help="The path to write the output template.")
+parser_build.add_argument(
+    "--output", default=None, help="The path to write the output template.")
 
 # repack arguments
-parser_repack = subparsers.add_parser("repack",
-                                      help="Build installer from a template.")
+parser_repack = subparsers.add_parser(
+    "repack", help="Build installer from a template.")
 
-parser_repack.add_argument("--sign",
-                           action="store_true",
-                           default=False,
-                           help="Sign installer binaries.")
+parser_repack.add_argument(
+    "--sign",
+    action="store_true",
+    default=False,
+    help="Sign installer binaries.")
 
-parser_repack.add_argument("--template",
-                           default=None,
-                           required=True,
-                           help="The template zip file to repack.")
+parser_repack.add_argument(
+    "--template",
+    default=None,
+    required=True,
+    help="The template zip file to repack.")
 
-parser_repack.add_argument("--output_dir",
-                           default="",
-                           required=True,
-                           help="The directory to which we should write the "
-                           "output installer. Installers will be named "
-                           "automatically from config options.")
+parser_repack.add_argument(
+    "--output_dir",
+    default="",
+    required=True,
+    help="The directory to which we should write the "
+    "output installer. Installers will be named "
+    "automatically from config options.")
 
 # repack_multiple arguments
 parser_multi = subparsers.add_parser(
-    "repack_multiple",
-    help="Repack multiple templates with multiple configs.")
+    "repack_multiple", help="Repack multiple templates with multiple configs.")
 
-parser_multi.add_argument("--sign",
-                          action="store_true",
-                          default=False,
-                          help="Sign installer binaries.")
+parser_multi.add_argument(
+    "--sign",
+    action="store_true",
+    default=False,
+    help="Sign installer binaries.")
 
-parser_multi.add_argument("--templates",
-                          default=None,
-                          required=True,
-                          nargs="+",
-                          help="The list of templates to repack. Use "
-                          "'--template /some/dir/*.zip' to repack "
-                          "all templates in a directory.")
+parser_multi.add_argument(
+    "--templates",
+    default=None,
+    required=True,
+    nargs="+",
+    help="The list of templates to repack. Use "
+    "'--template /some/dir/*.zip' to repack "
+    "all templates in a directory.")
 
-parser_multi.add_argument("--repack_configs",
-                          default=None,
-                          required=True,
-                          nargs="+",
-                          help="The list of repacking configs to apply. Use "
-                          "'--repack_configs /some/dir/*.yaml' to repack "
-                          "with all configs in a directory")
+parser_multi.add_argument(
+    "--repack_configs",
+    default=None,
+    required=True,
+    nargs="+",
+    help="The list of repacking configs to apply. Use "
+    "'--repack_configs /some/dir/*.yaml' to repack "
+    "with all configs in a directory")
 
-parser_multi.add_argument("--output_dir",
-                          default=None,
-                          required=True,
-                          help="The directory where we output our installers.")
+parser_multi.add_argument(
+    "--output_dir",
+    default=None,
+    required=True,
+    help="The directory where we output our installers.")
 
 if component:
   parser_build_component = subparsers.add_parser(
       "build_component", help="Build a client component.")
 
   parser_build_component.add_argument(
-      "setup_file",
-      help="Path to the setup.py file for the component.")
+      "setup_file", help="Path to the setup.py file for the component.")
 
   parser_build_component.add_argument(
       "output", help="Path to store the compiled component.")
 
   parser_build_components = subparsers.add_parser(
-      "build_components",
-      help="Builds all client components.")
+      "build_components", help="Builds all client components.")
 
   parser_build_components.add_argument(
-      "--output",
-      default="",
-      help="Path to store the compiled component.")
+      "--output", default="", help="Path to store the compiled component.")
 
 args = parser.parse_args()
 
@@ -175,10 +175,10 @@ class TemplateBuilder(object):
 
     template_path = None
     if output:
-      template_path = os.path.join(output,
-                                   config_lib.CONFIG.Get(
-                                       "PyInstaller.template_filename",
-                                       context=context))
+      template_path = os.path.join(
+          output,
+          config_lib.CONFIG.Get("PyInstaller.template_filename",
+                                context=context))
 
     builder_obj = self.GetBuilder(context)
     builder_obj.MakeExecutableTemplate(output_file=template_path)
@@ -265,9 +265,11 @@ class MultiTemplateRepacker(object):
             repack_args.append("--sign")
 
         print "Calling %s" % " ".join(repack_args)
-        results.append(pool.apply_async(SpawnProcess, (repack_args,),
-                                        dict(signing=signing,
-                                             passwd=passwd)))
+        results.append(
+            pool.apply_async(
+                SpawnProcess, (repack_args,),
+                dict(
+                    signing=signing, passwd=passwd)))
 
     try:
       pool.close()
@@ -300,8 +302,8 @@ def main(_):
   logger.handlers = [handler]
 
   if args.subparser_name == "build":
-    TemplateBuilder().BuildTemplate(context=flags.FLAGS.context,
-                                    output=flags.FLAGS.output)
+    TemplateBuilder().BuildTemplate(
+        context=flags.FLAGS.context, output=flags.FLAGS.output)
   elif args.subparser_name == "repack":
     result_path = repacking.TemplateRepacker().RepackTemplate(
         args.template,
@@ -312,16 +314,17 @@ def main(_):
     if not result_path:
       raise ErrorDuringRepacking(" ".join(sys.argv[:]))
   elif args.subparser_name == "repack_multiple":
-    MultiTemplateRepacker().RepackTemplates(args.repack_configs,
-                                            args.templates,
-                                            args.output_dir,
-                                            config=args.config,
-                                            sign=args.sign)
+    MultiTemplateRepacker().RepackTemplates(
+        args.repack_configs,
+        args.templates,
+        args.output_dir,
+        config=args.config,
+        sign=args.sign)
   elif args.subparser_name == "build_components":
     component.BuildComponents(output_dir=flags.FLAGS.output)
   elif args.subparser_name == "build_component":
-    component.BuildComponent(flags.FLAGS.setup_file,
-                             output_dir=flags.FLAGS.output)
+    component.BuildComponent(
+        flags.FLAGS.setup_file, output_dir=flags.FLAGS.output)
 
 
 if __name__ == "__main__":

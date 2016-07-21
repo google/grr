@@ -69,9 +69,8 @@ config_lib.DEFINE_string(
     default=r"%(Client.install_path)\\rekall_profiles",
     help="Where GRR stores cached Rekall profiles needed for memory analysis")
 
-config_lib.DEFINE_list(name="Client.server_urls",
-                       default=[],
-                       help="Base URL for client control.")
+config_lib.DEFINE_list(
+    name="Client.server_urls", default=[], help="Base URL for client control.")
 
 # Deprecated. Remove when all installations switch to Client.server_urls.
 config_lib.DEFINE_list("Client.control_urls", ["http://localhost:8080/control"],
@@ -161,15 +160,17 @@ config_lib.DEFINE_list(
     default=[])
 
 # Windows client specific options.
-config_lib.DEFINE_string("Client.config_hive",
-                         r"HKEY_LOCAL_MACHINE",
-                         help="The registry hive where the client "
-                         "configuration will be stored.")
+config_lib.DEFINE_string(
+    "Client.config_hive",
+    r"HKEY_LOCAL_MACHINE",
+    help="The registry hive where the client "
+    "configuration will be stored.")
 
-config_lib.DEFINE_string("Client.config_key",
-                         r"Software\\GRR",
-                         help="The registry key where  client configuration "
-                         "will be stored.")
+config_lib.DEFINE_string(
+    "Client.config_key",
+    r"Software\\GRR",
+    help="The registry key where  client configuration "
+    "will be stored.")
 
 # Client Cryptographic options. Here we define defaults for key values.
 config_lib.DEFINE_semantic(
@@ -216,32 +217,34 @@ config_lib.DEFINE_integer(
 
 # The following configuration options are defined here but are used in
 # the windows nanny code (grr/client/nanny/windows_nanny.h).
-config_lib.DEFINE_string("Nanny.child_binary",
-                         "GRR.exe",
-                         help="The location to the client binary.")
+config_lib.DEFINE_string(
+    "Nanny.child_binary", "GRR.exe", help="The location to the client binary.")
 
-config_lib.DEFINE_string("Nanny.child_command_line",
-                         "%(Nanny.child_binary)",
-                         help="The command line to launch the client binary.")
+config_lib.DEFINE_string(
+    "Nanny.child_command_line",
+    "%(Nanny.child_binary)",
+    help="The command line to launch the client binary.")
 
 config_lib.DEFINE_string("Nanny.logfile", "%(Logging.path)/nanny.log",
                          "The file where we write the nanny transaction log.")
 
-config_lib.DEFINE_string("Nanny.service_name",
-                         "GRR Service",
-                         help="The name of the nanny.")
+config_lib.DEFINE_string(
+    "Nanny.service_name", "GRR Service", help="The name of the nanny.")
 
-config_lib.DEFINE_string("Nanny.service_description",
-                         "GRR Service",
-                         help="The description of the nanny service.")
+config_lib.DEFINE_string(
+    "Nanny.service_description",
+    "GRR Service",
+    help="The description of the nanny service.")
 
-config_lib.DEFINE_string("Nanny.service_key",
-                         r"%(Client.config_key)",
-                         help="The registry key of the nanny service.")
+config_lib.DEFINE_string(
+    "Nanny.service_key",
+    r"%(Client.config_key)",
+    help="The registry key of the nanny service.")
 
-config_lib.DEFINE_string("Nanny.service_key_hive",
-                         r"%(Client.config_hive)",
-                         help="The registry key of the nanny service.")
+config_lib.DEFINE_string(
+    "Nanny.service_key_hive",
+    r"%(Client.config_hive)",
+    help="The registry key of the nanny service.")
 
 config_lib.DEFINE_string("Nanny.statusfile", "%(Logging.path)/nanny.status",
                          "The file where we write the nanny status.")
@@ -249,13 +252,15 @@ config_lib.DEFINE_string("Nanny.statusfile", "%(Logging.path)/nanny.status",
 config_lib.DEFINE_string("Nanny.status", "",
                          "The regkey where we write the nanny status.")
 
-config_lib.DEFINE_string("Nanny.binary",
-                         r"%(Client.install_path)\\%(service_binary_name)",
-                         help="The full location to the nanny binary.")
+config_lib.DEFINE_string(
+    "Nanny.binary",
+    r"%(Client.install_path)\\%(service_binary_name)",
+    help="The full location to the nanny binary.")
 
-config_lib.DEFINE_string("Nanny.service_binary_name",
-                         "%(Client.name)service.exe",
-                         help="The executable name of the nanny binary.")
+config_lib.DEFINE_string(
+    "Nanny.service_binary_name",
+    "%(Client.name)service.exe",
+    help="The executable name of the nanny binary.")
 
 config_lib.DEFINE_integer("Nanny.unresponsive_kill_period", 60,
                           "The time in seconds after which the nanny kills us.")
@@ -264,9 +269,10 @@ config_lib.DEFINE_integer("Network.api", 3,
                           "The version of the network protocol the client "
                           "uses.")
 
-config_lib.DEFINE_string("Network.compression",
-                         default="ZCOMPRESS",
-                         help="Type of compression (ZCOMPRESS, UNCOMPRESSED)")
+config_lib.DEFINE_string(
+    "Network.compression",
+    default="ZCOMPRESS",
+    help="Type of compression (ZCOMPRESS, UNCOMPRESSED)")
 
 # Installer options.
 config_lib.DEFINE_string(

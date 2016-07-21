@@ -119,12 +119,13 @@ No actions currently in progress.
     for task in leased_tasks:
       flow_obj = flows_map.get(task.session_id, None)
       if flow_obj:
-        self.client_actions.append(dict(name=task.name,
-                                        priority=str(task.priority),
-                                        lease_time_left=str(task.eta -
-                                                            current_time),
-                                        parent_flow=dict(name=flow_obj.Name(),
-                                                         urn=flow_obj.urn)))
+        self.client_actions.append(
+            dict(
+                name=task.name,
+                priority=str(task.priority),
+                lease_time_left=str(task.eta - current_time),
+                parent_flow=dict(
+                    name=flow_obj.Name(), urn=flow_obj.urn)))
 
     now = rdfvalue.RDFDatetime().Now()
     hour_before_now = now - rdfvalue.Duration("1h")
@@ -137,8 +138,8 @@ No actions currently in progress.
         age=(hour_before_now.AsMicroSecondsFromEpoch(),
              now.AsMicroSecondsFromEpoch()),
         token=request.token)
-    client_stats_list = list(stats_obj.GetValuesForAttribute(
-        stats_obj.Schema.STATS))
+    client_stats_list = list(
+        stats_obj.GetValuesForAttribute(stats_obj.Schema.STATS))
 
     cpu_samples = []
     io_samples = []
@@ -189,14 +190,15 @@ No actions currently in progress.
                                  sample.write_count))
 
     response = super(ClientLoadView, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "ClientLoadView.Layout",
-                               user_cpu_data=user_cpu_data,
-                               system_cpu_data=system_cpu_data,
-                               read_bytes_data=read_bytes_data,
-                               write_bytes_data=write_bytes_data,
-                               read_count_data=read_count_data,
-                               write_count_data=write_count_data)
+    return self.CallJavascript(
+        response,
+        "ClientLoadView.Layout",
+        user_cpu_data=user_cpu_data,
+        system_cpu_data=system_cpu_data,
+        read_bytes_data=read_bytes_data,
+        write_bytes_data=write_bytes_data,
+        read_count_data=read_count_data,
+        write_count_data=write_count_data)
 
 
 class DebugClientRequestsView(renderers.Splitter2Way):
@@ -224,12 +226,13 @@ class RequestTable(renderers.TableRenderer):
 
   def __init__(self, **kwargs):
     super(RequestTable, self).__init__(**kwargs)
-    self.AddColumn(semantic.RDFValueColumn("Status",
-                                           renderer=semantic.IconRenderer,
-                                           width="40px"))
+    self.AddColumn(
+        semantic.RDFValueColumn(
+            "Status", renderer=semantic.IconRenderer, width="40px"))
 
-    self.AddColumn(semantic.RDFValueColumn("ID",
-                                           renderer=renderers.ValueRenderer))
+    self.AddColumn(
+        semantic.RDFValueColumn(
+            "ID", renderer=renderers.ValueRenderer))
     self.AddColumn(semantic.RDFValueColumn("Due"))
     self.AddColumn(semantic.RDFValueColumn("Flow", width="70%"))
     self.AddColumn(semantic.RDFValueColumn("Client Action", width="30%"))
@@ -247,16 +250,18 @@ class RequestTable(renderers.TableRenderer):
 
       difference = now - task.eta
       if difference > 0:
-        self.AddCell(i,
-                     "Status",
-                     dict(icon="stock_yes",
-                          description="Available for Lease"))
+        self.AddCell(
+            i,
+            "Status",
+            dict(
+                icon="stock_yes", description="Available for Lease"))
       else:
-        self.AddCell(i,
-                     "Status",
-                     dict(icon="clock",
-                          description="Leased for %s Seconds" %
-                          (difference / 1e6)))
+        self.AddCell(
+            i,
+            "Status",
+            dict(
+                icon="clock",
+                description="Leased for %s Seconds" % (difference / 1e6)))
 
       self.AddCell(i, "ID", task.task_id)
       self.AddCell(i, "Flow", task.session_id)
@@ -281,9 +286,9 @@ class ResponsesTable(renderers.TableRenderer):
   def __init__(self, **kwargs):
     super(ResponsesTable, self).__init__(**kwargs)
     self.AddColumn(semantic.RDFValueColumn("Task ID"))
-    self.AddColumn(semantic.RDFValueColumn("Response",
-                                           renderer=fileview.GrrMessageRenderer,
-                                           width="100%"))
+    self.AddColumn(
+        semantic.RDFValueColumn(
+            "Response", renderer=fileview.GrrMessageRenderer, width="100%"))
 
   def BuildTable(self, start_row, end_row, request):
     """Builds the table."""
@@ -308,11 +313,9 @@ class ResponsesTable(renderers.TableRenderer):
     predicate_pre = (
         manager.FLOW_RESPONSE_PREFIX + "%08X" % request_message.request_id)
     # Get all the responses for this request.
-    for i, (predicate, serialized_message,
-            _) in enumerate(data_store.DB.ResolvePrefix(state_queue,
-                                                        predicate_pre,
-                                                        limit=end_row,
-                                                        token=request.token)):
+    for i, (predicate, serialized_message, _) in enumerate(
+        data_store.DB.ResolvePrefix(
+            state_queue, predicate_pre, limit=end_row, token=request.token)):
 
       message = rdf_flows.GrrMessage(serialized_message)
 

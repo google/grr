@@ -51,11 +51,12 @@ os._grr_component_was_here = True
     new_zip_file.writestr("mock_mod.py", self.component_payload)
     new_zip_file.close()
 
-    self.component = test_lib.WriteComponent(name="mock_component",
-                                             version="1.0",
-                                             token=self.token,
-                                             modules=["mock_mod"],
-                                             raw_data=fp.getvalue())
+    self.component = test_lib.WriteComponent(
+        name="mock_component",
+        version="1.0",
+        token=self.token,
+        modules=["mock_mod"],
+        raw_data=fp.getvalue())
 
   def testComponentLoading(self):
     """Ensure we can load the component."""
@@ -69,9 +70,8 @@ os._grr_component_was_here = True
         "Client.build_environment": self.component.build_system.signature(),
         "Client.component_path": os.path.join(self.temp_dir, "components")
     }):
-      self.RunAction("LoadComponent",
-                     message,
-                     grr_worker=MockClientWorker(self.token))
+      self.RunAction(
+          "LoadComponent", message, grr_worker=MockClientWorker(self.token))
 
       # Make sure that the component was loaded.
       self.assertTrue(getattr(os, "_grr_component_was_here", False))

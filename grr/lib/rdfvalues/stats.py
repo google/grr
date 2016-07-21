@@ -77,8 +77,8 @@ class ClientResourcesStats(rdf_structs.RDFProtoStruct):
   NUM_WORST_PERFORMERS = 10
 
   def __init__(self, initializer=None, **kwargs):
-    super(ClientResourcesStats, self).__init__(initializer=initializer,
-                                               **kwargs)
+    super(ClientResourcesStats, self).__init__(
+        initializer=initializer, **kwargs)
 
     self.user_cpu_stats.histogram = self.CPU_STATS_BINS
     self.system_cpu_stats.histogram = self.CPU_STATS_BINS

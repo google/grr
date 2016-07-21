@@ -123,10 +123,10 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
     # Clients flows methods.
     self.CheckMethod(c.ListFlows, client_id=self.client_id)
     self.CheckMethod(c.GetFlow, client_id=self.client_id)
-    self.CheckMethod(c.CreateFlow,
-                     client_id=self.client_id,
-                     flow=api_flow.ApiFlow(
-                         name=processes.ListProcesses.__name__))
+    self.CheckMethod(
+        c.CreateFlow,
+        client_id=self.client_id,
+        flow=api_flow.ApiFlow(name=processes.ListProcesses.__name__))
     self.CheckMethod(c.CancelFlow, client_id=self.client_id)
     self.CheckMethod(c.ListFlowResults, client_id=self.client_id)
     self.CheckMethod(c.GetFlowResultsExportCommand, client_id=self.client_id)
@@ -221,8 +221,8 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
   def testReturnsCustomHandlerForSearchClients(self):
     router = api_router.ApiLabelsRestrictedCallRouter()
     handler = router.SearchClients(None, token=self.token)
-    self.assertTrue(isinstance(
-        handler, api_client.ApiLabelsRestrictedSearchClientsHandler))
+    self.assertTrue(
+        isinstance(handler, api_client.ApiLabelsRestrictedSearchClientsHandler))
 
   # Check router with vfs/flows access turned off.
   def testWithoutFlowsWithoutVfsAndUnapprovedClientWithoutLabels(self):
@@ -243,8 +243,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
 
   def testWithoutFlowsWithoutVfsAndUnapprovedClientWithWrongLabelOwner(self):
     router = api_router.ApiLabelsRestrictedCallRouter(
-        labels_whitelist=["foo"],
-        labels_owners_whitelist=["somebody"])
+        labels_whitelist=["foo"], labels_owners_whitelist=["somebody"])
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
@@ -287,8 +286,8 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithVfsAndSingleProperlyLabeledUnapprovedClient(self):
-    router = api_router.ApiLabelsRestrictedCallRouter(labels_whitelist=["foo"],
-                                                      allow_vfs_access=True)
+    router = api_router.ApiLabelsRestrictedCallRouter(
+        labels_whitelist=["foo"], allow_vfs_access=True)
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
@@ -305,8 +304,8 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
   def testWithoutFlowsWithVfsAndSingleProperlyLabeledAndApprovedClient(self):
     self.RequestAndGrantClientApproval(self.client_urn, token=self.token)
 
-    router = api_router.ApiLabelsRestrictedCallRouter(labels_whitelist=["foo"],
-                                                      allow_vfs_access=True)
+    router = api_router.ApiLabelsRestrictedCallRouter(
+        labels_whitelist=["foo"], allow_vfs_access=True)
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         # Client methods.
@@ -339,8 +338,8 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithFlowsWithoutVfsAndSingleProperlyLabeledUnapprovedClient(self):
-    router = api_router.ApiLabelsRestrictedCallRouter(labels_whitelist=["foo"],
-                                                      allow_flows=True)
+    router = api_router.ApiLabelsRestrictedCallRouter(
+        labels_whitelist=["foo"], allow_flows=True)
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
@@ -353,8 +352,8 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
   def testWithFlowsWithoutVfsAndSingleProperlyLabeledAndApprovedClient(self):
     self.RequestAndGrantClientApproval(self.client_urn, token=self.token)
 
-    router = api_router.ApiLabelsRestrictedCallRouter(labels_whitelist=["foo"],
-                                                      allow_flows=True)
+    router = api_router.ApiLabelsRestrictedCallRouter(
+        labels_whitelist=["foo"], allow_flows=True)
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         # Clients methods.

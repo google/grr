@@ -65,25 +65,25 @@ if "VIRTUAL_ENV" not in os.environ:
   print "  Expect breakage."
   print "*****************************************************"
 
-setup_args = dict(name="grr-response-test",
-                  version=VERSION.get("Version", "packageversion"),
-                  description="The GRR Rapid Response test suite.",
-                  license="Apache License, Version 2.0",
-                  url="https://github.com/google/grr",
-                  install_requires=[
-                      "mock==1.3.0",
-                      "mox==0.5.3",
-                      "selenium==2.50.1",
-                      "grr-response-server==%s" %
-                      VERSION.get("Version", "packagedepends"),
-                  ],
-                  cmdclass={"sdist": Sdist},
-                  data_files=(find_data_files("test_data") + ["version.ini"]),
-                  entry_points={
-                      "console_scripts": [
-                          "grr_run_tests = grr.tools.run_tests:DistEntry",
-                          "grr_run_tests_gui = grr.gui.runtests_test:DistEntry",
-                      ]
-                  })
+setup_args = dict(
+    name="grr-response-test",
+    version=VERSION.get("Version", "packageversion"),
+    description="The GRR Rapid Response test suite.",
+    license="Apache License, Version 2.0",
+    url="https://github.com/google/grr",
+    install_requires=[
+        "mock==1.3.0",
+        "mox==0.5.3",
+        "selenium==2.50.1",
+        "grr-response-server==%s" % VERSION.get("Version", "packagedepends"),
+    ],
+    cmdclass={"sdist": Sdist},
+    data_files=(find_data_files("test_data") + ["version.ini"]),
+    entry_points={
+        "console_scripts": [
+            "grr_run_tests = grr.tools.run_tests:DistEntry",
+            "grr_run_tests_gui = grr.gui.runtests_test:DistEntry",
+        ]
+    })
 
 setup(**setup_args)

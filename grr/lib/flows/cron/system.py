@@ -138,10 +138,8 @@ class AbstractClientStatsCronFlow(cronjobs.SystemCronFlow):
       logging.debug("Found %d children.", len(children_urns))
 
       processed_count = 0
-      for child in aff4.FACTORY.MultiOpen(children_urns,
-                                          mode="r",
-                                          token=self.token,
-                                          age=aff4.NEWEST_TIME):
+      for child in aff4.FACTORY.MultiOpen(
+          children_urns, mode="r", token=self.token, age=aff4.NEWEST_TIME):
         if isinstance(child, aff4_grr.VFSGRRClient):
           self.ProcessClient(child)
           processed_count += 1
@@ -326,10 +324,11 @@ class StatsHuntCronFlow(cronjobs.SystemCronFlow):
 
   @flow.StateHandler()
   def Start(self):
-    with hunts.GRRHunt.StartHunt(hunt_name="StatsHunt",
-                                 client_limit=0,
-                                 output_plugins=self.GetOutputPlugins(),
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="StatsHunt",
+        client_limit=0,
+        output_plugins=self.GetOutputPlugins(),
+        token=self.token) as hunt:
 
       runner = hunt.GetRunner()
       runner.args.client_rate = 0
@@ -347,7 +346,7 @@ class PurgeClientStats(cronjobs.SystemCronFlow):
   # Keep stats for one month.
   MAX_AGE = 31 * 24 * 3600
 
-  @flow.StateHandler(next_state="ProcessClients")
+  @flow.StateHandler()
   def Start(self):
     """Calls "Process" state to avoid spending too much time in Start."""
     self.CallState(next_state="ProcessClients")
@@ -383,7 +382,7 @@ class EndToEndTests(cronjobs.SystemCronFlow):
     """Returns list of OutputPluginDescriptor objects to be used in the hunt."""
     return []
 
-  @flow.StateHandler(next_state="CheckResults")
+  @flow.StateHandler()
   def Start(self):
     self.state.Register("hunt_id", None)
     self.state.Register("client_ids", set())
@@ -399,8 +398,8 @@ class EndToEndTests(cronjobs.SystemCronFlow):
 
     # SetUID is required to run a hunt on the configured end-to-end client
     # targets without an approval.
-    token = access_control.ACLToken(username="GRRWorker",
-                                    reason="Running endtoend tests.").SetUID()
+    token = access_control.ACLToken(
+        username="GRRWorker", reason="Running endtoend tests.").SetUID()
     runner_args = flow_runner.FlowRunnerArgs(flow_name="EndToEndTestFlow")
 
     flow_request = hunts_standard.FlowRequest(
@@ -409,8 +408,7 @@ class EndToEndTests(cronjobs.SystemCronFlow):
         runner_args=runner_args)
 
     bogus_rule = rdf_foreman.ForemanRegexClientRule(
-        attribute_name="System",
-        attribute_regex="Does not match anything")
+        attribute_name="System", attribute_regex="Does not match anything")
 
     client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
         rdf_foreman.ForemanClientRule(
@@ -422,12 +420,13 @@ class EndToEndTests(cronjobs.SystemCronFlow):
 
     hunt_args.output_plugins = self.GetOutputPlugins()
 
-    with hunts.GRRHunt.StartHunt(hunt_name="VariableGenericHunt",
-                                 args=hunt_args,
-                                 client_rule_set=client_rule_set,
-                                 client_rate=0,
-                                 expiry_time="1d",
-                                 token=token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="VariableGenericHunt",
+        args=hunt_args,
+        client_rule_set=client_rule_set,
+        client_rate=0,
+        expiry_time="1d",
+        token=token) as hunt:
 
       self.state.hunt_id = hunt.session_id
       hunt.SetDescription("EndToEnd tests run by cron")
@@ -438,8 +437,8 @@ class EndToEndTests(cronjobs.SystemCronFlow):
     # plenty of time for the clients to receive the hunt and run the tests, but
     # not so long that the flow lease will expire.
 
-    wait_duration = rdfvalue.Duration(config_lib.CONFIG.Get(
-        "Test.end_to_end_result_check_wait"))
+    wait_duration = rdfvalue.Duration(
+        config_lib.CONFIG.Get("Test.end_to_end_result_check_wait"))
     completed_time = rdfvalue.RDFDatetime().Now() + wait_duration
 
     self.CallState(next_state="CheckResults", start_time=completed_time)
@@ -477,7 +476,6 @@ class EndToEndTests(cronjobs.SystemCronFlow):
     any failures.
     """
     with aff4.FACTORY.Open(
-        self.state.hunt_id.Add("Results"),
-        token=self.token) as results:
+        self.state.hunt_id.Add("Results"), token=self.token) as results:
       self._CheckForSuccess(results)
       self.Log("Tests passed on all clients: %s", self.state.client_ids)

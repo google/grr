@@ -29,14 +29,15 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
                   "/sys/bus/pci/devices/0000:00:01.0/class": "0x060400\n",
                   "/sys/bus/pci/devices/0000:00:01.0/device": "0x0e02\n",
                   "/sys/bus/pci/devices/0000:00:01.0/config": "0200"}
-    device_1 = rdf_client.PCIDevice(domain=0,
-                                    bus=0,
-                                    device=1,
-                                    function=0,
-                                    class_id="0x060400",
-                                    vendor="0x0e00",
-                                    vendor_device_id="0x0e02",
-                                    config="0200")
+    device_1 = rdf_client.PCIDevice(
+        domain=0,
+        bus=0,
+        device=1,
+        function=0,
+        class_id="0x060400",
+        vendor="0x0e00",
+        vendor_device_id="0x0e02",
+        config="0200")
     parsed_results = self._ParsePCIDeviceTestData(test_data1)
     self._MatchPCIDeviceResultToExpected(parsed_results, [device_1])
 
@@ -46,26 +47,23 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
                   "/sys/bus/pci/devices/0000:00:00.0/class": "0x060000\n",
                   "/sys/bus/pci/devices/0000:00:00.0/device": "0x0e00\n",
                   "/sys/bus/pci/devices/0000:00:00.0/config": bytes2}
-    device_2 = rdf_client.PCIDevice(domain=0,
-                                    bus=0,
-                                    device=0,
-                                    function=0,
-                                    class_id="0x060000",
-                                    vendor="0x8086",
-                                    vendor_device_id="0x0e00",
-                                    config=b"\xea\xe8\xe7\xbcz\x84\x91")
+    device_2 = rdf_client.PCIDevice(
+        domain=0,
+        bus=0,
+        device=0,
+        function=0,
+        class_id="0x060000",
+        vendor="0x8086",
+        vendor_device_id="0x0e00",
+        config=b"\xea\xe8\xe7\xbcz\x84\x91")
     parsed_results = self._ParsePCIDeviceTestData(test_data2)
     self._MatchPCIDeviceResultToExpected(parsed_results, [device_2])
 
     # Test for when there's missing data.
     test_data3 = {"/sys/bus/pci/devices/0000:00:03.0/vendor": "0x0e00\n",
                   "/sys/bus/pci/devices/0000:00:03.0/config": "0030"}
-    device_3 = rdf_client.PCIDevice(domain=0,
-                                    bus=0,
-                                    device=3,
-                                    function=0,
-                                    vendor="0x0e00",
-                                    config="0030")
+    device_3 = rdf_client.PCIDevice(
+        domain=0, bus=0, device=3, function=0, vendor="0x0e00", config="0030")
     parsed_results = self._ParsePCIDeviceTestData(test_data3)
     self._MatchPCIDeviceResultToExpected(parsed_results, [device_3])
 
@@ -77,14 +75,15 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
                   "/sys/bus/pci/devices/crazyrandomfile/test1": "test1",
                   "/sys/bus/pci/devices/::./test2": "test2",
                   "/sys/bus/pci/devices/00:5.0/test3": "test3"}
-    device_4 = rdf_client.PCIDevice(domain=0,
-                                    bus=0,
-                                    device=5,
-                                    function=0,
-                                    class_id="0x060400",
-                                    vendor="0x0e00",
-                                    vendor_device_id="0x0e02",
-                                    config="0200")
+    device_4 = rdf_client.PCIDevice(
+        domain=0,
+        bus=0,
+        device=5,
+        function=0,
+        class_id="0x060400",
+        vendor="0x0e00",
+        vendor_device_id="0x0e02",
+        config="0200")
     parsed_results = self._ParsePCIDeviceTestData(test_data4)
     self._MatchPCIDeviceResultToExpected(parsed_results, [device_4])
 
@@ -244,10 +243,9 @@ super_group2 (-,user7,) super_group
       out = list(parser.Parse(None, wtmp_fd, None))
 
     self.assertEqual(len(out), 3)
-    self.assertItemsEqual(
-        ["%s:%d" % (x.username, x.last_logon) for x in out],
-        ["user1:1296552099000000", "user2:1296552102000000",
-         "user3:1296569997000000"])
+    self.assertItemsEqual(["%s:%d" % (x.username, x.last_logon) for x in out],
+                          ["user1:1296552099000000", "user2:1296552102000000",
+                           "user3:1296569997000000"])
 
 
 class LinuxShadowParserTest(test_lib.GRRBaseTest):
@@ -353,12 +351,13 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
       self.assertEqual(expect.type, result.type)
 
   def GetExpectedUser(self, algo, user_store, group_store):
-    user = rdf_client.User(username="user",
-                           full_name="User",
-                           uid="1001",
-                           gid="1001",
-                           homedir="/home/user",
-                           shell="/bin/bash")
+    user = rdf_client.User(
+        username="user",
+        full_name="User",
+        uid="1001",
+        gid="1001",
+        homedir="/home/user",
+        shell="/bin/bash")
     user.pw_entry = rdf_client.PwEntry(store=user_store, hash_type=algo)
     user.gids = [1001]
     grp = rdf_client.Group(gid=1001, members=["user"], name="user")

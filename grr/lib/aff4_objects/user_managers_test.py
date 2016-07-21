@@ -26,9 +26,8 @@ from grr.lib.rdfvalues import client as rdf_client
 class GRRUserTest(test_lib.AFF4ObjectTest):
 
   def testUserPasswords(self):
-    with aff4.FACTORY.Create("aff4:/users/test",
-                             users.GRRUser,
-                             token=self.token) as user:
+    with aff4.FACTORY.Create(
+        "aff4:/users/test", users.GRRUser, token=self.token) as user:
       user.SetPassword("hello")
 
     user = aff4.FACTORY.Open(user.urn, token=self.token)
@@ -37,9 +36,8 @@ class GRRUserTest(test_lib.AFF4ObjectTest):
     self.assertTrue(user.CheckPassword("hello"))
 
   def testLabels(self):
-    with aff4.FACTORY.Create("aff4:/users/test",
-                             users.GRRUser,
-                             token=self.token) as user:
+    with aff4.FACTORY.Create(
+        "aff4:/users/test", users.GRRUser, token=self.token) as user:
       user.SetLabels("hello", "world", owner="GRR")
 
     user = aff4.FACTORY.Open(user.urn, token=self.token)
@@ -157,28 +155,24 @@ class BasicAccessControlManagerTest(test_lib.GRRBaseTest):
 
   def testUserWithoutAuthorizedLabelsCanNotStartFlow(self):
     self.CreateUser("nonadmin")
-    nonadmin_token = access_control.ACLToken(username="noadmin",
-                                             reason="testing")
+    nonadmin_token = access_control.ACLToken(
+        username="noadmin", reason="testing")
 
     with self.assertRaises(access_control.UnauthorizedAccess):
-      self.access_manager.CheckIfCanStartFlow(nonadmin_token,
-                                              AdminOnlyFlow.__name__,
-                                              with_client_id=False)
+      self.access_manager.CheckIfCanStartFlow(
+          nonadmin_token, AdminOnlyFlow.__name__, with_client_id=False)
     with self.assertRaises(access_control.UnauthorizedAccess):
-      self.access_manager.CheckIfCanStartFlow(nonadmin_token,
-                                              AdminOnlyFlow.__name__,
-                                              with_client_id=True)
+      self.access_manager.CheckIfCanStartFlow(
+          nonadmin_token, AdminOnlyFlow.__name__, with_client_id=True)
 
   def testUserWithAuthorizedLabelsCanStartFlow(self):
     self.CreateAdminUser("admin")
     admin_token = access_control.ACLToken(username="admin", reason="testing")
 
-    self.access_manager.CheckIfCanStartFlow(admin_token,
-                                            AdminOnlyFlow.__name__,
-                                            with_client_id=False)
-    self.access_manager.CheckIfCanStartFlow(admin_token,
-                                            AdminOnlyFlow.__name__,
-                                            with_client_id=True)
+    self.access_manager.CheckIfCanStartFlow(
+        admin_token, AdminOnlyFlow.__name__, with_client_id=False)
+    self.access_manager.CheckIfCanStartFlow(
+        admin_token, AdminOnlyFlow.__name__, with_client_id=True)
 
 
 class FullAccessControlManagerTest(test_lib.GRRBaseTest):
@@ -189,8 +183,8 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest):
     self.access_manager = user_managers.FullAccessControlManager()
 
   def Ok(self, subject, access="r"):
-    self.assertTrue(self.access_manager.CheckDataStoreAccess(self.token,
-                                                             [subject], access))
+    self.assertTrue(
+        self.access_manager.CheckDataStoreAccess(self.token, [subject], access))
 
   def NotOk(self, subject, access="r"):
     self.assertRaises(access_control.UnauthorizedAccess,
@@ -291,18 +285,22 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest):
   def testSupervisorCanDoAnything(self):
     token = access_control.ACLToken(username="unknown", supervisor=True)
 
-    self.assertTrue(self.access_manager.CheckClientAccess(
-        token, "aff4:/C.0000000000000001"))
-    self.assertTrue(self.access_manager.CheckHuntAccess(token,
-                                                        "aff4:/hunts/H:12344"))
-    self.assertTrue(self.access_manager.CheckCronJobAccess(token,
-                                                           "aff4:/cron/blah"))
-    self.assertTrue(self.access_manager.CheckIfCanStartFlow(
-        token, "SomeFlow", with_client_id=True))
-    self.assertTrue(self.access_manager.CheckIfCanStartFlow(
-        token, "SomeFlow", with_client_id=False))
-    self.assertTrue(self.access_manager.CheckDataStoreAccess(
-        token, ["aff4:/foo/bar"], requested_access="w"))
+    self.assertTrue(
+        self.access_manager.CheckClientAccess(token,
+                                              "aff4:/C.0000000000000001"))
+    self.assertTrue(
+        self.access_manager.CheckHuntAccess(token, "aff4:/hunts/H:12344"))
+    self.assertTrue(
+        self.access_manager.CheckCronJobAccess(token, "aff4:/cron/blah"))
+    self.assertTrue(
+        self.access_manager.CheckIfCanStartFlow(
+            token, "SomeFlow", with_client_id=True))
+    self.assertTrue(
+        self.access_manager.CheckIfCanStartFlow(
+            token, "SomeFlow", with_client_id=False))
+    self.assertTrue(
+        self.access_manager.CheckDataStoreAccess(
+            token, ["aff4:/foo/bar"], requested_access="w"))
 
   def testEmptySubjectShouldRaise(self):
     token = access_control.ACLToken(username="unknown")
@@ -317,50 +315,43 @@ class FullAccessControlManagerTest(test_lib.GRRBaseTest):
       self.access_manager.CheckCronJobAccess(token, "")
 
     with self.assertRaises(ValueError):
-      self.access_manager.CheckDataStoreAccess(token, [""],
-                                               requested_access="r")
+      self.access_manager.CheckDataStoreAccess(
+          token, [""], requested_access="r")
 
   def testCheckIfCanStartFlowReturnsTrueForClientFlowOnClient(self):
-    self.assertTrue(self.access_manager.CheckIfCanStartFlow(
-        self.token,
-        ClientFlowWithCategory.__name__,
-        with_client_id=True))
+    self.assertTrue(
+        self.access_manager.CheckIfCanStartFlow(
+            self.token, ClientFlowWithCategory.__name__, with_client_id=True))
 
   def testCheckIfCanStartFlowRaisesForClientFlowWithoutCategoryOnClient(self):
     with self.assertRaises(access_control.UnauthorizedAccess):
       self.access_manager.CheckIfCanStartFlow(
-          self.token,
-          ClientFlowWithoutCategory.__name__,
-          with_client_id=True)
+          self.token, ClientFlowWithoutCategory.__name__, with_client_id=True)
 
   def testCheckIfCanStartFlowReturnsTrueForNotEnforcedFlowOnClient(self):
-    self.assertTrue(self.access_manager.CheckIfCanStartFlow(
-        self.token, NotEnforcedFlow.__name__,
-        with_client_id=True))
+    self.assertTrue(
+        self.access_manager.CheckIfCanStartFlow(
+            self.token, NotEnforcedFlow.__name__, with_client_id=True))
 
   def testCheckIfCanStartFlowRaisesForClientFlowAsGlobal(self):
     with self.assertRaises(access_control.UnauthorizedAccess):
-      self.access_manager.CheckIfCanStartFlow(self.token,
-                                              ClientFlowWithCategory.__name__,
-                                              with_client_id=False)
+      self.access_manager.CheckIfCanStartFlow(
+          self.token, ClientFlowWithCategory.__name__, with_client_id=False)
 
   def testCheckIfCanStartFlowRaisesForGlobalFlowWithoutCategoryAsGlobal(self):
     with self.assertRaises(access_control.UnauthorizedAccess):
       self.access_manager.CheckIfCanStartFlow(
-          self.token,
-          GlobalFlowWithoutCategory.__name__,
-          with_client_id=False)
+          self.token, GlobalFlowWithoutCategory.__name__, with_client_id=False)
 
   def testCheckIfCanStartFlowReturnsTrueForGlobalFlowWithCategoryAsGlobal(self):
-    self.assertTrue(self.access_manager.CheckIfCanStartFlow(
-        self.token,
-        GlobalFlowWithCategory.__name__,
-        with_client_id=False))
+    self.assertTrue(
+        self.access_manager.CheckIfCanStartFlow(
+            self.token, GlobalFlowWithCategory.__name__, with_client_id=False))
 
   def testNoReasonShouldSearchForApprovals(self):
     token_without_reason = access_control.ACLToken(username="unknown")
-    token_with_reason = access_control.ACLToken(username="unknown",
-                                                reason="I have one!")
+    token_with_reason = access_control.ACLToken(
+        username="unknown", reason="I have one!")
 
     client_id = "aff4:/C.0000000000000001"
     self.RequestAndGrantClientApproval(client_id, token=token_with_reason)
@@ -426,27 +417,27 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     return test_lib.ACLChecksDisabledContextManager()
 
   def RevokeClientApproval(self, approval_urn, token, remove_from_cache=True):
-    with aff4.FACTORY.Open(approval_urn,
-                           mode="rw",
-                           token=self.token.SetUID()) as approval_request:
+    with aff4.FACTORY.Open(
+        approval_urn, mode="rw", token=self.token.SetUID()) as approval_request:
       approval_request.DeleteAttribute(approval_request.Schema.APPROVER)
 
     if remove_from_cache:
-      data_store.DB.security_manager.acl_cache.ExpireObject(rdfvalue.RDFURN(
-          approval_urn.Dirname()))
+      data_store.DB.security_manager.acl_cache.ExpireObject(
+          rdfvalue.RDFURN(approval_urn.Dirname()))
 
   def CreateHuntApproval(self, hunt_urn, token, admin=False):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(hunt_urn.Path()).Add(
         token.username).Add(utils.EncodeReasonString(token.reason))
 
-    with aff4.FACTORY.Create(approval_urn,
-                             security.HuntApproval,
-                             mode="rw",
-                             token=self.token.SetUID()) as approval_request:
-      approval_request.AddAttribute(approval_request.Schema.APPROVER(
-          "Approver1"))
-      approval_request.AddAttribute(approval_request.Schema.APPROVER(
-          "Approver2"))
+    with aff4.FACTORY.Create(
+        approval_urn,
+        security.HuntApproval,
+        mode="rw",
+        token=self.token.SetUID()) as approval_request:
+      approval_request.AddAttribute(
+          approval_request.Schema.APPROVER("Approver1"))
+      approval_request.AddAttribute(
+          approval_request.Schema.APPROVER("Approver2"))
 
     if admin:
       self.CreateAdminUser("Approver1")
@@ -454,8 +445,8 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
   def CreateSampleHunt(self):
     """Creats SampleHunt, writes it to the data store and returns it's id."""
 
-    with hunts.GRRHunt.StartHunt(hunt_name="SampleHunt",
-                                 token=self.token.SetUID()) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="SampleHunt", token=self.token.SetUID()) as hunt:
       return hunt.session_id
 
   def testSimpleAccess(self):
@@ -466,10 +457,8 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     # These should raise for a lack of token
     for urn, mode in [("aff4:/ACL", "r"), ("aff4:/config/drivers", "r"),
                       ("aff4:/", "rw"), (client_urn, "r")]:
-      self.assertRaises(access_control.UnauthorizedAccess,
-                        aff4.FACTORY.Open,
-                        urn,
-                        mode=mode)
+      self.assertRaises(
+          access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn, mode=mode)
 
     # These should raise for trying to get write access.
     for urn, mode in [("aff4:/ACL", "rw"), (client_urn, "rw")]:
@@ -481,17 +470,16 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     # These should raise for access without a token:
     for urn, mode in [(client_urn.Add("flows").Add("W:1234"), "r"),
                       (client_urn.Add("/fs"), "r")]:
-      self.assertRaises(access_control.UnauthorizedAccess,
-                        aff4.FACTORY.Open,
-                        urn,
-                        mode=mode)
+      self.assertRaises(
+          access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn, mode=mode)
 
       # Even if a token is provided - it is not authorized.
-      self.assertRaises(access_control.UnauthorizedAccess,
-                        aff4.FACTORY.Open,
-                        urn,
-                        mode=mode,
-                        token=self.token)
+      self.assertRaises(
+          access_control.UnauthorizedAccess,
+          aff4.FACTORY.Open,
+          urn,
+          mode=mode,
+          token=self.token)
 
   def testSupervisorToken(self):
     """Tests that the supervisor token overrides the approvals."""
@@ -521,11 +509,12 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(200):
 
       # Should be expired now.
-      self.assertRaises(access_control.ExpiryError,
-                        aff4.FACTORY.Open,
-                        urn,
-                        token=super_token,
-                        mode="rw")
+      self.assertRaises(
+          access_control.ExpiryError,
+          aff4.FACTORY.Open,
+          urn,
+          token=super_token,
+          mode="rw")
 
   def testApprovalExpiry(self):
     """Tests that approvals expire after the correct time."""
@@ -560,12 +549,13 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     urn = rdf_client.ClientURN(client_id).Add("/fs")
     token = access_control.ACLToken(username="test", reason="For testing")
 
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      urn,
-                      None,
-                      "rw",
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        urn,
+        None,
+        "rw",
+        token=token)
 
     approval_urn = self.RequestAndGrantClientApproval(client_id, token)
 
@@ -574,23 +564,25 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
 
     self.RevokeClientApproval(approval_urn, token)
 
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      urn,
-                      None,
-                      "rw",
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        urn,
+        None,
+        "rw",
+        token=token)
 
   def testHuntApproval(self):
     """Tests that we can create an approval object to run hunts."""
     token = access_control.ACLToken(username="test", reason="For testing")
     hunt_urn = self.CreateSampleHunt()
-    self.assertRaisesRegexp(access_control.UnauthorizedAccess,
-                            "No approval found for",
-                            flow.GRRFlow.StartFlow,
-                            flow_name="StartHuntFlow",
-                            token=token,
-                            hunt_urn=hunt_urn)
+    self.assertRaisesRegexp(
+        access_control.UnauthorizedAccess,
+        "No approval found for",
+        flow.GRRFlow.StartFlow,
+        flow_name="StartHuntFlow",
+        token=token,
+        hunt_urn=hunt_urn)
 
     self.CreateHuntApproval(hunt_urn, token, admin=False)
 
@@ -603,9 +595,8 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
         hunt_urn=hunt_urn)
 
     self.CreateHuntApproval(hunt_urn, token, admin=True)
-    flow.GRRFlow.StartFlow(flow_name="StartHuntFlow",
-                           token=token,
-                           hunt_urn=hunt_urn)
+    flow.GRRFlow.StartFlow(
+        flow_name="StartHuntFlow", token=token, hunt_urn=hunt_urn)
 
   def testUserAccess(self):
     """Tests access to user objects."""
@@ -631,19 +622,19 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
   def testForemanAccess(self):
     """Test admin users can access the foreman."""
     token = access_control.ACLToken(username="test", reason="For testing")
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      "aff4:/foreman",
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        "aff4:/foreman",
+        token=token)
 
     # We need a supervisor to manipulate a user's ACL token:
     super_token = access_control.ACLToken(username="test")
     super_token.supervisor = True
 
     # Make the user an admin user now, this time with the supervisor token.
-    with aff4.FACTORY.Create("aff4:/users/test",
-                             users.GRRUser,
-                             token=super_token) as fd:
+    with aff4.FACTORY.Create(
+        "aff4:/users/test", users.GRRUser, token=super_token) as fd:
 
       fd.SetLabels("admin", owner="GRR")
 
@@ -655,18 +646,20 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     token = access_control.ACLToken(username="test", reason="For testing")
     client_id = "C." + "a" * 16
 
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      flow.GRRFlow.StartFlow,
-                      client_id=client_id,
-                      flow_name=test_lib.SendingFlow.__name__,
-                      message_count=1,
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        flow.GRRFlow.StartFlow,
+        client_id=client_id,
+        flow_name=test_lib.SendingFlow.__name__,
+        message_count=1,
+        token=token)
 
     approval_urn = self.RequestAndGrantClientApproval(client_id, token)
-    sid = flow.GRRFlow.StartFlow(client_id=client_id,
-                                 flow_name=test_lib.SendingFlow.__name__,
-                                 message_count=1,
-                                 token=token)
+    sid = flow.GRRFlow.StartFlow(
+        client_id=client_id,
+        flow_name=test_lib.SendingFlow.__name__,
+        message_count=1,
+        token=token)
 
     # Check we can open the flow object.
     flow_obj = aff4.FACTORY.Open(sid, mode="r", token=token)
@@ -682,11 +675,12 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
 
     self.RevokeClientApproval(approval_urn, token)
 
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      sid,
-                      mode="r",
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        sid,
+        mode="r",
+        token=token)
 
     self.RequestAndGrantClientApproval(client_id, token)
 
@@ -700,10 +694,11 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
 
     approval_urn = self.RequestAndGrantClientApproval(client_id, token)
 
-    sid = flow.GRRFlow.StartFlow(client_id=client_id,
-                                 flow_name=test_lib.SendingFlow.__name__,
-                                 message_count=1,
-                                 token=token)
+    sid = flow.GRRFlow.StartFlow(
+        client_id=client_id,
+        flow_name=test_lib.SendingFlow.__name__,
+        message_count=1,
+        token=token)
 
     # Fill all the caches.
     aff4.FACTORY.Open(sid, mode="r", token=token)
@@ -725,21 +720,23 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     self.RevokeClientApproval(approval_urn, token, remove_from_cache=True)
 
     # This must raise now.
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      sid,
-                      mode="r",
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        sid,
+        mode="r",
+        token=token)
 
   def testBreakGlass(self):
     """Test the breakglass mechanism."""
     client_id = rdf_client.ClientURN("C.%016X" % 0)
     urn = client_id.Add("/fs/os/c")
 
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      urn,
-                      token=self.token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        urn,
+        token=self.token)
 
     # We expect to receive an email about this
     email = {}
@@ -751,10 +748,11 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
       email["message"] = message
 
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmail):
-      flow.GRRFlow.StartFlow(client_id=client_id,
-                             flow_name="BreakGlassGrantClientApprovalFlow",
-                             token=self.token,
-                             reason=self.token.reason)
+      flow.GRRFlow.StartFlow(
+          client_id=client_id,
+          flow_name="BreakGlassGrantClientApprovalFlow",
+          token=self.token,
+          reason=self.token.reason)
 
       # Reset the emergency state of the token.
       self.token.is_emergency = False
@@ -772,75 +770,79 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     self.assertEqual(self.token.is_emergency, True)
 
   def testNonAdminsCanNotStartAdminOnlyFlow(self):
-    noadmin_token = access_control.ACLToken(username="noadmin",
-                                            reason="testing")
+    noadmin_token = access_control.ACLToken(
+        username="noadmin", reason="testing")
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
       self.CreateUser("noadmin")
       self.RequestAndGrantClientApproval(client_id, token=noadmin_token)
 
     with self.assertRaises(access_control.UnauthorizedAccess):
-      flow.GRRFlow.StartFlow(flow_name=AdminOnlyFlow.__name__,
-                             client_id=client_id,
-                             token=noadmin_token,
-                             sync=False)
+      flow.GRRFlow.StartFlow(
+          flow_name=AdminOnlyFlow.__name__,
+          client_id=client_id,
+          token=noadmin_token,
+          sync=False)
 
   def testAdminsCanStartAdminOnlyFlow(self):
-    admin_token = access_control.ACLToken(username="adminuser",
-                                          reason="testing")
+    admin_token = access_control.ACLToken(
+        username="adminuser", reason="testing")
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
       self.CreateAdminUser("adminuser")
       self.RequestAndGrantClientApproval(client_id, token=admin_token)
 
-    flow.GRRFlow.StartFlow(flow_name=AdminOnlyFlow.__name__,
-                           client_id=client_id,
-                           token=admin_token,
-                           sync=False)
+    flow.GRRFlow.StartFlow(
+        flow_name=AdminOnlyFlow.__name__,
+        client_id=client_id,
+        token=admin_token,
+        sync=False)
 
   def testNotAclEnforcedFlowCanBeStartedWithClient(self):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
 
-    flow.GRRFlow.StartFlow(flow_name=NotEnforcedFlow.__name__,
-                           client_id=client_id,
-                           token=self.token,
-                           sync=False)
+    flow.GRRFlow.StartFlow(
+        flow_name=NotEnforcedFlow.__name__,
+        client_id=client_id,
+        token=self.token,
+        sync=False)
 
   def testClientFlowWithoutCategoryCanNotBeStartedWithClient(self):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
 
     with self.assertRaises(access_control.UnauthorizedAccess):
-      flow.GRRFlow.StartFlow(flow_name=ClientFlowWithoutCategory.__name__,
-                             client_id=client_id,
-                             token=self.token)
+      flow.GRRFlow.StartFlow(
+          flow_name=ClientFlowWithoutCategory.__name__,
+          client_id=client_id,
+          token=self.token)
 
   def testClientFlowWithCategoryCanBeStartedWithClient(self):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
       self.RequestAndGrantClientApproval(client_id, self.token)
 
-    flow.GRRFlow.StartFlow(flow_name=ClientFlowWithCategory.__name__,
-                           client_id=client_id,
-                           token=self.token,
-                           sync=False)
+    flow.GRRFlow.StartFlow(
+        flow_name=ClientFlowWithCategory.__name__,
+        client_id=client_id,
+        token=self.token,
+        sync=False)
 
   def testGlobalFlowWithoutCategoryCanNotBeStartedGlobally(self):
     with self.assertRaises(access_control.UnauthorizedAccess):
-      flow.GRRFlow.StartFlow(flow_name=GlobalFlowWithoutCategory.__name__,
-                             token=self.token,
-                             sync=False)
+      flow.GRRFlow.StartFlow(
+          flow_name=GlobalFlowWithoutCategory.__name__,
+          token=self.token,
+          sync=False)
 
   def testGlobalFlowWithCategoryCanBeStartedGlobally(self):
-    flow.GRRFlow.StartFlow(flow_name=GlobalFlowWithCategory.__name__,
-                           token=self.token,
-                           sync=False)
+    flow.GRRFlow.StartFlow(
+        flow_name=GlobalFlowWithCategory.__name__, token=self.token, sync=False)
 
   def testNotEnforcedFlowCanBeStartedGlobally(self):
-    flow.GRRFlow.StartFlow(flow_name=NotEnforcedFlow.__name__,
-                           token=self.token,
-                           sync=False)
+    flow.GRRFlow.StartFlow(
+        flow_name=NotEnforcedFlow.__name__, token=self.token, sync=False)
 
 
 class ClientApprovalByLabelTests(test_lib.GRRBaseTest):
@@ -857,16 +859,18 @@ class ClientApprovalByLabelTests(test_lib.GRRBaseTest):
     self.client_nolabel = rdf_client.ClientURN(client_ids[0])
     self.client_legal = rdf_client.ClientURN(client_ids[1])
     self.client_prod = rdf_client.ClientURN(client_ids[2])
-    with aff4.FACTORY.Open(self.client_legal,
-                           aff4_type=aff4_grr.VFSGRRClient,
-                           mode="rw",
-                           token=self.token) as client_obj:
+    with aff4.FACTORY.Open(
+        self.client_legal,
+        aff4_type=aff4_grr.VFSGRRClient,
+        mode="rw",
+        token=self.token) as client_obj:
       client_obj.AddLabels("legal_approval")
 
-    with aff4.FACTORY.Open(self.client_prod,
-                           aff4_type=aff4_grr.VFSGRRClient,
-                           mode="rw",
-                           token=self.token) as client_obj:
+    with aff4.FACTORY.Open(
+        self.client_prod,
+        aff4_type=aff4_grr.VFSGRRClient,
+        mode="rw",
+        token=self.token) as client_obj:
       client_obj.AddLabels("legal_approval", "prod_admin_approval")
 
     self.db_manager_stubber = utils.Stubber(
@@ -894,12 +898,13 @@ class ClientApprovalByLabelTests(test_lib.GRRBaseTest):
     nolabel_urn = self.client_nolabel.Add("/fs")
     token = access_control.ACLToken(username="test", reason="For testing")
 
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      nolabel_urn,
-                      aff4_type=None,
-                      mode="rw",
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        nolabel_urn,
+        aff4_type=None,
+        mode="rw",
+        token=token)
 
     # approvers.yaml rules don't get checked because this client has no
     # labels. Regular approvals still required.
@@ -915,29 +920,32 @@ class ClientApprovalByLabelTests(test_lib.GRRBaseTest):
     token = access_control.ACLToken(username="test", reason="For testing")
 
     # No approvals yet, this should fail.
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      legal_urn,
-                      aff4_type=None,
-                      mode="rw",
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        legal_urn,
+        aff4_type=None,
+        mode="rw",
+        token=token)
 
     self.RequestAndGrantClientApproval(self.client_legal, token)
     # This approval isn't enough, we need one from legal, so it should still
     # fail.
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      legal_urn,
-                      aff4_type=None,
-                      mode="rw",
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        legal_urn,
+        aff4_type=None,
+        mode="rw",
+        token=token)
 
     # Grant an approval from a user in the legal_approval list in
     # approvers.yaml
-    self.GrantClientApproval(self.client_legal,
-                             token.username,
-                             reason=token.reason,
-                             approver="legal1")
+    self.GrantClientApproval(
+        self.client_legal,
+        token.username,
+        reason=token.reason,
+        approver="legal1")
 
     # Check we now have access
     with aff4.FACTORY.Open(legal_urn, aff4_type=None, mode="rw", token=token):
@@ -953,57 +961,58 @@ class ClientApprovalByLabelTests(test_lib.GRRBaseTest):
     token = access_control.ACLToken(username="prod1", reason="Some emergency")
 
     # No approvals yet, this should fail.
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      prod_urn,
-                      aff4_type=None,
-                      mode="rw",
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        prod_urn,
+        aff4_type=None,
+        mode="rw",
+        token=token)
 
     self.RequestAndGrantClientApproval(self.client_prod, token)
 
     # This approval from "approver" isn't enough.
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      prod_urn,
-                      aff4_type=None,
-                      mode="rw",
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        prod_urn,
+        aff4_type=None,
+        mode="rw",
+        token=token)
 
     # Grant an approval from a user in the legal_approval list in
     # approvers.yaml
-    self.GrantClientApproval(self.client_prod,
-                             token.username,
-                             reason=token.reason,
-                             approver="legal1")
+    self.GrantClientApproval(
+        self.client_prod,
+        token.username,
+        reason=token.reason,
+        approver="legal1")
 
     # We have "approver", "legal1": not enough.
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      prod_urn,
-                      aff4_type=None,
-                      mode="rw",
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        prod_urn,
+        aff4_type=None,
+        mode="rw",
+        token=token)
 
     # Grant an approval from a user in the prod_admin_approval list in
     # approvers.yaml
-    self.GrantClientApproval(self.client_prod,
-                             token.username,
-                             reason=token.reason,
-                             approver="prod2")
+    self.GrantClientApproval(
+        self.client_prod, token.username, reason=token.reason, approver="prod2")
 
     # We have "approver", "legal1", "prod2": not enough.
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      prod_urn,
-                      aff4_type=None,
-                      mode="rw",
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        prod_urn,
+        aff4_type=None,
+        mode="rw",
+        token=token)
 
-    self.GrantClientApproval(self.client_prod,
-                             token.username,
-                             reason=token.reason,
-                             approver="prod3")
+    self.GrantClientApproval(
+        self.client_prod, token.username, reason=token.reason, approver="prod3")
 
     # We have "approver", "legal1", "prod2", "prod3": we should have
     # access.
@@ -1016,38 +1025,37 @@ class ClientApprovalByLabelTests(test_lib.GRRBaseTest):
     token = access_control.ACLToken(username="notprod", reason="cheeky")
 
     # No approvals yet, this should fail.
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      prod_urn,
-                      aff4_type=None,
-                      mode="rw",
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        prod_urn,
+        aff4_type=None,
+        mode="rw",
+        token=token)
 
     # Grant all the necessary approvals
     self.RequestAndGrantClientApproval(self.client_prod, token)
-    self.GrantClientApproval(self.client_prod,
-                             token.username,
-                             reason=token.reason,
-                             approver="legal1")
-    self.GrantClientApproval(self.client_prod,
-                             token.username,
-                             reason=token.reason,
-                             approver="prod2")
-    self.GrantClientApproval(self.client_prod,
-                             token.username,
-                             reason=token.reason,
-                             approver="prod3")
+    self.GrantClientApproval(
+        self.client_prod,
+        token.username,
+        reason=token.reason,
+        approver="legal1")
+    self.GrantClientApproval(
+        self.client_prod, token.username, reason=token.reason, approver="prod2")
+    self.GrantClientApproval(
+        self.client_prod, token.username, reason=token.reason, approver="prod3")
 
     # We have "approver", "legal1", "prod2", "prod3" approvals but because
     # "notprod" user isn't in prod_admin_approval and
     # requester_must_be_authorized is True it should still fail. This user can
     # never get a complete approval.
-    self.assertRaises(access_control.UnauthorizedAccess,
-                      aff4.FACTORY.Open,
-                      prod_urn,
-                      aff4_type=None,
-                      mode="rw",
-                      token=token)
+    self.assertRaises(
+        access_control.UnauthorizedAccess,
+        aff4.FACTORY.Open,
+        prod_urn,
+        aff4_type=None,
+        mode="rw",
+        token=token)
 
 
 def main(argv):

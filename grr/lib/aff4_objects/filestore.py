@@ -128,10 +128,11 @@ class FileStore(aff4.AFF4Volume):
     return return_list
 
   class SchemaCls(aff4.AFF4Volume.SchemaCls):
-    ACTIVE = aff4.Attribute("aff4:filestore_active",
-                            rdfvalue.RDFBool,
-                            "If true this filestore is active.",
-                            default=True)
+    ACTIVE = aff4.Attribute(
+        "aff4:filestore_active",
+        rdfvalue.RDFBool,
+        "If true this filestore is active.",
+        default=True)
 
 
 class FileStoreImage(aff4_grr.VFSBlobImage):
@@ -155,20 +156,22 @@ class FileStoreImage(aff4_grr.VFSBlobImage):
 
   class SchemaCls(aff4_grr.VFSBlobImage.SchemaCls):
     # The file store does not need to version file content.
-    HASHES = aff4.Attribute("aff4:hashes",
-                            aff4_standard.HashList,
-                            "List of hashes of each chunk in this file.",
-                            versioned=False)
+    HASHES = aff4.Attribute(
+        "aff4:hashes",
+        aff4_standard.HashList,
+        "List of hashes of each chunk in this file.",
+        versioned=False)
 
   def AddIndex(self, target):
     """Adds an indexed reference to the target URN."""
     if "w" not in self.mode:
       raise IOError("FileStoreImage %s is not in write mode.", self.urn)
     predicate = ("index:target:%s" % target).lower()
-    data_store.DB.MultiSet(self.urn, {predicate: target},
-                           token=self.token,
-                           replace=True,
-                           sync=False)
+    data_store.DB.MultiSet(
+        self.urn, {predicate: target},
+        token=self.token,
+        replace=True,
+        sync=False)
 
   def Query(self, target_prefix="", limit=100):
     """Search the index for matches starting with target_prefix.
@@ -193,9 +196,9 @@ class FileStoreImage(aff4_grr.VFSBlobImage):
       length = limit
 
     # Get all the unique hits
-    for i, (_, hit, _) in enumerate(data_store.DB.ResolvePrefix(
-        self.urn, prefix, token=self.token,
-        limit=limit)):
+    for i, (_, hit, _) in enumerate(
+        data_store.DB.ResolvePrefix(
+            self.urn, prefix, token=self.token, limit=limit)):
 
       if i < start:
         continue
@@ -266,8 +269,8 @@ class HashFileStore(FileStore):
     for hsh in hashes:
       if hsh.HasField("sha256"):
         # The canonical name of the file is where we store the file hash.
-        hash_map[aff4.ROOT_URN.Add("files/hash/generic/sha256").Add(str(
-            hsh.sha256))] = hsh
+        hash_map[aff4.ROOT_URN.Add("files/hash/generic/sha256").Add(
+            str(hsh.sha256))] = hsh
 
     for metadata in aff4.FACTORY.Stat(list(hash_map), token=self.token):
       yield metadata["urn"], hash_map[metadata["urn"]]
@@ -314,9 +317,10 @@ class HashFileStore(FileStore):
         if hash_type == "SignedData":
           # There can be several certs in the same file.
           for signed_data in result[hash_type]:
-            hashes.signed_data.Append(revision=signed_data[0],
-                                      cert_type=signed_data[1],
-                                      certificate=signed_data[2])
+            hashes.signed_data.Append(
+                revision=signed_data[0],
+                cert_type=signed_data[1],
+                certificate=signed_data[2])
           continue
 
         # Set the hashes in the original object
@@ -393,10 +397,8 @@ class HashFileStore(FileStore):
       file_store_urn = self.PATH.Add(fingerprint_type).Add(hash_type).Add(
           hash_digest)
 
-      file_store_fd = aff4.FACTORY.Create(file_store_urn,
-                                          FileStoreImage,
-                                          mode="w",
-                                          token=self.token)
+      file_store_fd = aff4.FACTORY.Create(
+          file_store_urn, FileStoreImage, mode="w", token=self.token)
       file_store_fd.FromBlobImage(fd)
       file_store_fd.AddIndex(fd.urn)
 
@@ -451,8 +453,8 @@ class HashFileStore(FileStore):
       urns_to_check.append(file_store_urn)
 
     return [data["urn"]
-            for data in aff4.FACTORY.Stat(urns_to_check,
-                                          token=self.token)]
+            for data in aff4.FACTORY.Stat(
+                urns_to_check, token=self.token)]
 
   @staticmethod
   def ListHashes(token=None, age=aff4.NEWEST_TIME):
@@ -541,8 +543,7 @@ class HashFileStore(FileStore):
     timestamp = aff4.FACTORY.ParseAgeSpecification(age)
 
     for hash_obj, client_files in data_store.DB.MultiResolvePrefix(
-        hashes, "index:target:",
-        token=token, timestamp=timestamp):
+        hashes, "index:target:", token=token, timestamp=timestamp):
       yield (cls.FILE_HASH_TYPE(hash_obj), [file_urn
                                             for _, file_urn, _ in client_files])
 
@@ -579,20 +580,21 @@ class NSRLFile(FileStoreImage):
     ADD_CHILD_INDEX = False
 
     # Make the default SIZE argument as unversioned.
-    SIZE = aff4.Attribute("aff4:size",
-                          rdfvalue.RDFInteger,
-                          "The total size of available data for this stream.",
-                          "size",
-                          default=0,
-                          versioned=False)
-    TYPE = aff4.Attribute("aff4:type",
-                          rdfvalue.RDFString,
-                          "The name of the AFF4Object derived class.",
-                          "type",
-                          versioned=False)
-    NSRL = aff4.Attribute("aff4:nsrl",
-                          rdf_nsrl.NSRLInformation,
-                          versioned=False)
+    SIZE = aff4.Attribute(
+        "aff4:size",
+        rdfvalue.RDFInteger,
+        "The total size of available data for this stream.",
+        "size",
+        default=0,
+        versioned=False)
+    TYPE = aff4.Attribute(
+        "aff4:type",
+        rdfvalue.RDFString,
+        "The name of the AFF4Object derived class.",
+        "type",
+        versioned=False)
+    NSRL = aff4.Attribute(
+        "aff4:nsrl", rdf_nsrl.NSRLInformation, versioned=False)
 
 
 class NSRLFileStore(HashFileStore):
@@ -659,18 +661,18 @@ class NSRLFileStore(HashFileStore):
 
     special_code = self.FILE_TYPES.get(special_code, self.FILE_TYPES[""])
 
-    with aff4.FACTORY.Create(file_store_urn,
-                             "NSRLFile",
-                             mode="w",
-                             token=self.token) as fd:
-      fd.Set(fd.Schema.NSRL(sha1=sha1.decode("hex"),
-                            md5=md5.decode("hex"),
-                            crc32=crc,
-                            file_name=file_name,
-                            file_size=file_size,
-                            product_code=product_code_list,
-                            op_system_code=op_system_code_list,
-                            file_type=special_code))
+    with aff4.FACTORY.Create(
+        file_store_urn, "NSRLFile", mode="w", token=self.token) as fd:
+      fd.Set(
+          fd.Schema.NSRL(
+              sha1=sha1.decode("hex"),
+              md5=md5.decode("hex"),
+              crc32=crc,
+              file_name=file_name,
+              file_size=file_size,
+              product_code=product_code_list,
+              op_system_code=op_system_code_list,
+              file_type=special_code))
 
   def FindFile(self, fd):
     """Hash an AFF4Stream and find the RDFURN with the same hash.
@@ -719,10 +721,8 @@ class NSRLFileStore(HashFileStore):
 
     # Open file and add 'fd' to the index.
     try:
-      with aff4.FACTORY.Open(hash_urn,
-                             "NSRLFile",
-                             mode="w",
-                             token=self.token) as hash_fd:
+      with aff4.FACTORY.Open(
+          hash_urn, "NSRLFile", mode="w", token=self.token) as hash_fd:
         hash_fd.AddIndex(fd.urn)
         return hash_urn
     except aff4.InstantiationError:
@@ -738,20 +738,20 @@ class FileStoreInit(registry.InitHook):
   def Run(self):
     """Create FileStore and HashFileStore namespaces."""
     try:
-      filestore = aff4.FACTORY.Create(FileStore.PATH,
-                                      FileStore,
-                                      mode="rw",
-                                      token=aff4.FACTORY.root_token)
+      filestore = aff4.FACTORY.Create(
+          FileStore.PATH, FileStore, mode="rw", token=aff4.FACTORY.root_token)
       filestore.Close()
-      hash_filestore = aff4.FACTORY.Create(HashFileStore.PATH,
-                                           HashFileStore,
-                                           mode="rw",
-                                           token=aff4.FACTORY.root_token)
+      hash_filestore = aff4.FACTORY.Create(
+          HashFileStore.PATH,
+          HashFileStore,
+          mode="rw",
+          token=aff4.FACTORY.root_token)
       hash_filestore.Close()
-      nsrl_filestore = aff4.FACTORY.Create(NSRLFileStore.PATH,
-                                           NSRLFileStore,
-                                           mode="rw",
-                                           token=aff4.FACTORY.root_token)
+      nsrl_filestore = aff4.FACTORY.Create(
+          NSRLFileStore.PATH,
+          NSRLFileStore,
+          mode="rw",
+          token=aff4.FACTORY.root_token)
       nsrl_filestore.Close()
     except access_control.UnauthorizedAccess:
       # The aff4:/files area is ACL protected, this might not work on components

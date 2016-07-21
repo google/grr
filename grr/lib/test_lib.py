@@ -108,10 +108,11 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import tests_pb2
 
-flags.DEFINE_list("tests",
-                  None,
-                  help=("Test module to run. If not specified we run"
-                        "All modules in the test suite."))
+flags.DEFINE_list(
+    "tests",
+    None,
+    help=("Test module to run. If not specified we run"
+          "All modules in the test suite."))
 flags.DEFINE_list("labels", ["small"],
                   "A list of test labels to run. (e.g. benchmarks,small).")
 
@@ -130,7 +131,7 @@ class ClientActionRunner(flow.GRRFlow):
   args_type = ClientActionRunnerArgs
   action_args = {}
 
-  @flow.StateHandler(next_state="End")
+  @flow.StateHandler()
   def Start(self):
     self.CallClient(self.args.action, next_state="End", **self.action_args)
 
@@ -138,7 +139,7 @@ class ClientActionRunner(flow.GRRFlow):
 class FlowWithOneClientRequest(flow.GRRFlow):
   """Test flow that does one client request in Start() state."""
 
-  @flow.StateHandler(next_state="End")
+  @flow.StateHandler()
   def Start(self, unused_message=None):
     self.CallClient("Test", data="test", next_state="End")
 
@@ -150,7 +151,7 @@ class FlowOrderTest(flow.GRRFlow):
     self.messages = []
     flow.GRRFlow.__init__(self, *args, **kwargs)
 
-  @flow.StateHandler(next_state="Incoming")
+  @flow.StateHandler()
   def Start(self, unused_message=None):
     self.CallClient("Test", data="test", next_state="Incoming")
 
@@ -176,7 +177,7 @@ class SendingFlow(flow.GRRFlow):
   # externally inaccessible).
   category = "/Test/"
 
-  @flow.StateHandler(next_state="Process")
+  @flow.StateHandler()
   def Start(self, unused_response=None):
     """Just send a few messages."""
     for unused_i in range(0, self.args.message_count):
@@ -186,7 +187,7 @@ class SendingFlow(flow.GRRFlow):
 class RaiseOnStart(flow.GRRFlow):
   """A broken flow that raises in the Start method."""
 
-  @flow.StateHandler(next_state="End")
+  @flow.StateHandler()
   def Start(self, unused_message=None):
     raise Exception("Broken Start")
 
@@ -194,7 +195,7 @@ class RaiseOnStart(flow.GRRFlow):
 class BrokenFlow(flow.GRRFlow):
   """A flow which does things wrongly."""
 
-  @flow.StateHandler(next_state="Process")
+  @flow.StateHandler()
   def Start(self, unused_response=None):
     """Send a message to an incorrect state."""
     self.CallClient("ReadBuffer", next_state="WrongProcess")
@@ -203,7 +204,7 @@ class BrokenFlow(flow.GRRFlow):
 class DummyLogFlow(flow.GRRFlow):
   """Just emit logs."""
 
-  @flow.StateHandler(next_state="Done")
+  @flow.StateHandler()
   def Start(self, unused_response=None):
     """Log."""
     self.Log("First")
@@ -219,7 +220,7 @@ class DummyLogFlow(flow.GRRFlow):
 class DummyLogFlowChild(flow.GRRFlow):
   """Just emit logs."""
 
-  @flow.StateHandler(next_state="Done")
+  @flow.StateHandler()
   def Start(self, unused_response=None):
     """Log."""
     self.Log("Uno")
@@ -234,8 +235,8 @@ class DummyLogFlowChild(flow.GRRFlow):
 
 class WellKnownSessionTest(flow.WellKnownFlow):
   """Tests the well known flow implementation."""
-  well_known_session_id = rdfvalue.SessionID(queue=rdfvalue.RDFURN("test"),
-                                             flow_name="TestSessionId")
+  well_known_session_id = rdfvalue.SessionID(
+      queue=rdfvalue.RDFURN("test"), flow_name="TestSessionId")
 
   messages = []
 
@@ -249,8 +250,8 @@ class WellKnownSessionTest(flow.WellKnownFlow):
 
 class WellKnownSessionTest2(WellKnownSessionTest):
   """Another testing well known flow."""
-  well_known_session_id = rdfvalue.SessionID(queue=rdfvalue.RDFURN("test"),
-                                             flow_name="TestSessionId2")
+  well_known_session_id = rdfvalue.SessionID(
+      queue=rdfvalue.RDFURN("test"), flow_name="TestSessionId2")
 
 
 class MockSecurityManager(user_managers.BasicAccessControlManager):
@@ -387,8 +388,8 @@ class GRRBaseTest(unittest.TestCase):
     """
     super(GRRBaseTest, self).__init__(methodName=methodName or "__init__")
     self.base_path = utils.NormalizePath(config_lib.CONFIG["Test.data_dir"])
-    self.token = access_control.ACLToken(username="test",
-                                         reason="Running tests")
+    self.token = access_control.ACLToken(
+        username="test", reason="Running tests")
 
   def setUp(self):
     super(GRRBaseTest, self).setUp()
@@ -398,8 +399,8 @@ class GRRBaseTest(unittest.TestCase):
     # Make a temporary directory for test files.
     self.temp_dir = tempfile.mkdtemp(dir=tmpdir)
 
-    config_lib.CONFIG.SetWriteBack(os.path.join(self.temp_dir,
-                                                "writeback.yaml"))
+    config_lib.CONFIG.SetWriteBack(
+        os.path.join(self.temp_dir, "writeback.yaml"))
 
     if self.install_mock_acl:
       # Enforce checking that security tokens are propagated to the data store
@@ -563,9 +564,8 @@ class GRRBaseTest(unittest.TestCase):
 
   def CreateUser(self, username):
     """Creates a user."""
-    user = aff4.FACTORY.Create("aff4:/users/%s" % username,
-                               users.GRRUser,
-                               token=self.token.SetUID())
+    user = aff4.FACTORY.Create(
+        "aff4:/users/%s" % username, users.GRRUser, token=self.token.SetUID())
     user.Flush()
     return user
 
@@ -584,9 +584,8 @@ class GRRBaseTest(unittest.TestCase):
         approver=approver,
         token=token)
     with ACLChecksDisabledContextManager():
-      flow_fd = aff4.FACTORY.Open(flow_urn,
-                                  aff4_type=flow.GRRFlow,
-                                  token=self.token)
+      flow_fd = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
       return flow_fd.state.approval_urn
 
   def GrantClientApproval(self,
@@ -605,80 +604,82 @@ class GRRBaseTest(unittest.TestCase):
     self.CreateAdminUser(approver)
 
     approver_token = access_control.ACLToken(username=approver)
-    flow.GRRFlow.StartFlow(client_id=client_id,
-                           flow_name="GrantClientApprovalFlow",
-                           reason=reason,
-                           delegate=delegate,
-                           subject_urn=rdf_client.ClientURN(client_id),
-                           token=approver_token)
+    flow.GRRFlow.StartFlow(
+        client_id=client_id,
+        flow_name="GrantClientApprovalFlow",
+        reason=reason,
+        delegate=delegate,
+        subject_urn=rdf_client.ClientURN(client_id),
+        token=approver_token)
 
   def RequestAndGrantClientApproval(self,
                                     client_id,
                                     token=None,
                                     approver="approver"):
     token = token or self.token
-    approval_urn = self.RequestClientApproval(client_id,
-                                              token=token,
-                                              approver=approver)
-    self.GrantClientApproval(client_id,
-                             token.username,
-                             reason=token.reason,
-                             approver=approver)
+    approval_urn = self.RequestClientApproval(
+        client_id, token=token, approver=approver)
+    self.GrantClientApproval(
+        client_id, token.username, reason=token.reason, approver=approver)
     return approval_urn
 
   def GrantHuntApproval(self, hunt_urn, token=None):
     token = token or self.token
 
     # Create the approval and approve it.
-    flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
-                           subject_urn=rdfvalue.RDFURN(hunt_urn),
-                           reason=token.reason,
-                           approver="approver",
-                           token=token)
+    flow.GRRFlow.StartFlow(
+        flow_name="RequestHuntApprovalFlow",
+        subject_urn=rdfvalue.RDFURN(hunt_urn),
+        reason=token.reason,
+        approver="approver",
+        token=token)
 
     self.CreateAdminUser("approver")
 
     approver_token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(flow_name="GrantHuntApprovalFlow",
-                           subject_urn=rdfvalue.RDFURN(hunt_urn),
-                           reason=token.reason,
-                           delegate=token.username,
-                           token=approver_token)
+    flow.GRRFlow.StartFlow(
+        flow_name="GrantHuntApprovalFlow",
+        subject_urn=rdfvalue.RDFURN(hunt_urn),
+        reason=token.reason,
+        delegate=token.username,
+        token=approver_token)
 
   def GrantCronJobApproval(self, cron_job_urn, token=None):
     token = token or self.token
 
     # Create cron job approval and approve it.
-    flow.GRRFlow.StartFlow(flow_name="RequestCronJobApprovalFlow",
-                           subject_urn=rdfvalue.RDFURN(cron_job_urn),
-                           reason=self.token.reason,
-                           approver="approver",
-                           token=token)
+    flow.GRRFlow.StartFlow(
+        flow_name="RequestCronJobApprovalFlow",
+        subject_urn=rdfvalue.RDFURN(cron_job_urn),
+        reason=self.token.reason,
+        approver="approver",
+        token=token)
 
     self.CreateAdminUser("approver")
 
     approver_token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(flow_name="GrantCronJobApprovalFlow",
-                           subject_urn=rdfvalue.RDFURN(cron_job_urn),
-                           reason=token.reason,
-                           delegate=token.username,
-                           token=approver_token)
+    flow.GRRFlow.StartFlow(
+        flow_name="GrantCronJobApprovalFlow",
+        subject_urn=rdfvalue.RDFURN(cron_job_urn),
+        reason=token.reason,
+        delegate=token.username,
+        token=approver_token)
 
   def SetupClients(self, nr_clients, system=None, os_version=None, arch=None):
     client_ids = []
-    with aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                             aff4_type=client_index.ClientIndex,
-                             mode="rw",
-                             token=self.token) as index:
+    with aff4.FACTORY.Create(
+        client_index.MAIN_INDEX,
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        token=self.token) as index:
 
       for i in range(nr_clients):
         client_id = rdf_client.ClientURN("C.1%015d" % i)
         client_ids.append(client_id)
 
-        with aff4.FACTORY.Create(client_id,
-                                 aff4_grr.VFSGRRClient,
-                                 mode="rw",
-                                 token=self.token) as fd:
+        with aff4.FACTORY.Create(
+            client_id, aff4_grr.VFSGRRClient, mode="rw",
+            token=self.token) as fd:
           cert = self.ClientCertFromPrivateKey(config_lib.CONFIG[
               "Client.private_key"])
           fd.Set(fd.Schema.CERT, cert)
@@ -689,8 +690,8 @@ class GRRBaseTest(unittest.TestCase):
           fd.Set(fd.Schema.PING, rdfvalue.RDFDatetime().Now())
           fd.Set(fd.Schema.HOSTNAME("Host-%s" % i))
           fd.Set(fd.Schema.FQDN("Host-%s.example.com" % i))
-          fd.Set(fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" % (i, i
-                                                                          )))
+          fd.Set(
+              fd.Schema.MAC_ADDRESS("aabbccddee%02x\nbbccddeeff%02x" % (i, i)))
           fd.Set(fd.Schema.HOST_IPS("192.168.0.%d\n2001:abcd::%x" % (i, i)))
 
           if system:
@@ -747,10 +748,11 @@ class EmptyActionTest(GRRBaseTest):
       arg = rdf_flows.GrrMessage()
 
     self.results = []
-    action = self._GetActionInstance(action_name,
-                                     arg=arg,
-                                     grr_worker=grr_worker,
-                                     action_worker_cls=action_worker_cls)
+    action = self._GetActionInstance(
+        action_name,
+        arg=arg,
+        grr_worker=grr_worker,
+        action_worker_cls=action_worker_cls)
 
     action.status = rdf_flows.GrrStatus(
         status=rdf_flows.GrrStatus.ReturnedStatus.OK)
@@ -763,15 +765,15 @@ class EmptyActionTest(GRRBaseTest):
                     arg=None,
                     grr_worker=None,
                     action_worker_cls=None):
-    message = rdf_flows.GrrMessage(name=action_name,
-                                   payload=arg,
-                                   auth_state="AUTHENTICATED")
+    message = rdf_flows.GrrMessage(
+        name=action_name, payload=arg, auth_state="AUTHENTICATED")
 
     self.results = []
-    action = self._GetActionInstance(action_name,
-                                     arg=arg,
-                                     grr_worker=grr_worker,
-                                     action_worker_cls=action_worker_cls)
+    action = self._GetActionInstance(
+        action_name,
+        arg=arg,
+        grr_worker=grr_worker,
+        action_worker_cls=action_worker_cls)
 
     action.Execute(message)
 
@@ -813,8 +815,8 @@ class EmptyActionTest(GRRBaseTest):
     except (AttributeError, KeyError):
       action_cls = actions.ActionPlugin.classes[action_name]
       if issubclass(action_cls, actions.SuspendableAction):
-        action = action_cls(grr_worker=grr_worker,
-                            action_worker_cls=action_worker_cls)
+        action = action_cls(
+            grr_worker=grr_worker, action_worker_cls=action_worker_cls)
       else:
         action = action_cls(grr_worker=grr_worker)
 
@@ -834,9 +836,8 @@ class FlowTestsBaseclass(GRRBaseTest):
     self.client_id = client_ids[0]
 
   def FlowSetup(self, name):
-    session_id = flow.GRRFlow.StartFlow(client_id=self.client_id,
-                                        flow_name=name,
-                                        token=self.token)
+    session_id = flow.GRRFlow.StartFlow(
+        client_id=self.client_id, flow_name=name, token=self.token)
 
     return aff4.FACTORY.Open(session_id, mode="rw", token=self.token)
 
@@ -1074,15 +1075,15 @@ class StatsDeltaAssertionContext(object):
     self.delta = delta
 
   def __enter__(self):
-    self.prev_count = stats.STATS.GetMetricValue(self.varname,
-                                                 fields=self.fields)
+    self.prev_count = stats.STATS.GetMetricValue(
+        self.varname, fields=self.fields)
     # Handle the case when we're dealing with distributions.
     if hasattr(self.prev_count, "count"):
       self.prev_count = self.prev_count.count
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
-    new_count = stats.STATS.GetMetricValue(varname=self.varname,
-                                           fields=self.fields)
+    new_count = stats.STATS.GetMetricValue(
+        varname=self.varname, fields=self.fields)
     if hasattr(new_count, "count"):
       new_count = new_count.count
 
@@ -1282,8 +1283,8 @@ class GRRSeleniumTest(GRRBaseTest):
     return element and element.is_displayed()
 
   def FileWasDownloaded(self):
-    new_count = stats.STATS.GetMetricValue("ui_renderer_latency",
-                                           fields=["DownloadView"]).count
+    new_count = stats.STATS.GetMetricValue(
+        "ui_renderer_latency", fields=["DownloadView"]).count
 
     result = (new_count - self.prev_download_count) > 0
     self.prev_download_count = new_count
@@ -1640,9 +1641,8 @@ class MockClient(object):
   def Next(self):
     # Grab tasks for us from the server's queue.
     with queue_manager.QueueManager(token=self.token) as manager:
-      request_tasks = manager.QueryAndOwn(self.client_id.Queue(),
-                                          limit=1,
-                                          lease_seconds=10000)
+      request_tasks = manager.QueryAndOwn(
+          self.client_id.Queue(), limit=1, lease_seconds=10000)
       for message in request_tasks:
         status = None
         response_id = 1
@@ -1676,28 +1676,31 @@ class MockClient(object):
         for response in responses:
           if isinstance(response, rdf_flows.GrrStatus):
             msg_type = rdf_flows.GrrMessage.Type.STATUS
-            response = rdf_flows.GrrMessage(session_id=message.session_id,
-                                            name=message.name,
-                                            response_id=response_id,
-                                            request_id=message.request_id,
-                                            payload=response,
-                                            type=msg_type)
+            response = rdf_flows.GrrMessage(
+                session_id=message.session_id,
+                name=message.name,
+                response_id=response_id,
+                request_id=message.request_id,
+                payload=response,
+                type=msg_type)
           elif isinstance(response, rdf_client.Iterator):
             msg_type = rdf_flows.GrrMessage.Type.ITERATOR
-            response = rdf_flows.GrrMessage(session_id=message.session_id,
-                                            name=message.name,
-                                            response_id=response_id,
-                                            request_id=message.request_id,
-                                            payload=response,
-                                            type=msg_type)
+            response = rdf_flows.GrrMessage(
+                session_id=message.session_id,
+                name=message.name,
+                response_id=response_id,
+                request_id=message.request_id,
+                payload=response,
+                type=msg_type)
           elif not isinstance(response, rdf_flows.GrrMessage):
             msg_type = rdf_flows.GrrMessage.Type.MESSAGE
-            response = rdf_flows.GrrMessage(session_id=message.session_id,
-                                            name=message.name,
-                                            response_id=response_id,
-                                            request_id=message.request_id,
-                                            payload=response,
-                                            type=msg_type)
+            response = rdf_flows.GrrMessage(
+                session_id=message.session_id,
+                name=message.name,
+                response_id=response_id,
+                request_id=message.request_id,
+                payload=response,
+                type=msg_type)
 
           # Next expected response
           response_id = response.response_id + 1
@@ -1705,11 +1708,12 @@ class MockClient(object):
 
         # Status may only be None if the client reported itself as crashed.
         if status is not None:
-          self.PushToStateQueue(manager,
-                                message,
-                                response_id=response_id,
-                                payload=status,
-                                type=rdf_flows.GrrMessage.Type.STATUS)
+          self.PushToStateQueue(
+              manager,
+              message,
+              response_id=response_id,
+              payload=status,
+              type=rdf_flows.GrrMessage.Type.STATUS)
         else:
           # Status may be None only if status_message_enforced is False.
           if self.status_message_enforced:
@@ -1717,8 +1721,8 @@ class MockClient(object):
                                "status_message_enforced is False")
 
         # Additionally schedule a task for the worker
-        manager.QueueNotification(session_id=message.session_id,
-                                  priority=message.priority)
+        manager.QueueNotification(
+            session_id=message.session_id, priority=message.priority)
 
       return len(request_tasks)
 
@@ -1808,9 +1812,8 @@ class MockWorker(worker.GRRWorker):
             well_known_flow.ProcessResponses(responses, self.pool)
             continue
 
-          with aff4.FACTORY.OpenWithLock(session_id,
-                                         token=self.token,
-                                         blocking=False) as flow_obj:
+          with aff4.FACTORY.OpenWithLock(
+              session_id, token=self.token, blocking=False) as flow_obj:
 
             # Run it
             runner = flow_obj.GetRunner()
@@ -1864,10 +1867,8 @@ def CheckFlowErrors(total_flows, token=None):
   # Check that all the flows are complete.
   for session_id in total_flows:
     try:
-      flow_obj = aff4.FACTORY.Open(session_id,
-                                   aff4_type=flow.GRRFlow,
-                                   mode="r",
-                                   token=token)
+      flow_obj = aff4.FACTORY.Open(
+          session_id, aff4_type=flow.GRRFlow, mode="r", token=token)
     except IOError:
       continue
 
@@ -1915,12 +1916,13 @@ def TestFlowHelper(flow_urn_or_cls_name,
     session_id = flow_urn_or_cls_name
   else:
     # Instantiate the flow:
-    session_id = flow.GRRFlow.StartFlow(client_id=client_id,
-                                        flow_name=flow_urn_or_cls_name,
-                                        notification_event=notification_event,
-                                        sync=sync,
-                                        token=token,
-                                        **kwargs)
+    session_id = flow.GRRFlow.StartFlow(
+        client_id=client_id,
+        flow_name=flow_urn_or_cls_name,
+        notification_event=notification_event,
+        sync=sync,
+        token=token,
+        **kwargs)
 
   total_flows = set()
   total_flows.add(session_id)
@@ -1990,17 +1992,18 @@ class SampleHuntMock(object):
   def _StatFile(self, args):
     req = rdf_client.ListDirRequest(args)
 
-    response = rdf_client.StatEntry(pathspec=req.pathspec,
-                                    st_mode=33184,
-                                    st_ino=1063090,
-                                    st_dev=64512L,
-                                    st_nlink=1,
-                                    st_uid=139592,
-                                    st_gid=5000,
-                                    st_size=len(self.data),
-                                    st_atime=1336469177,
-                                    st_mtime=1336129892,
-                                    st_ctime=1336129892)
+    response = rdf_client.StatEntry(
+        pathspec=req.pathspec,
+        st_mode=33184,
+        st_ino=1063090,
+        st_dev=64512L,
+        st_nlink=1,
+        st_uid=139592,
+        st_gid=5000,
+        st_size=len(self.data),
+        st_atime=1336469177,
+        st_mtime=1336129892,
+        st_ctime=1336129892)
 
     self.responses += 1
     self.count += 1
@@ -2054,7 +2057,8 @@ def TestHuntHelperWithMultipleMocks(client_mocks,
   token = token.SetUID()
 
   client_mocks = [
-      MockClient(client_id, client_mock, token=token)
+      MockClient(
+          client_id, client_mock, token=token)
       for client_id, client_mock in client_mocks.iteritems()
   ]
   worker_mock = MockWorker(check_flow_errors=check_flow_errors, token=token)
@@ -2211,10 +2215,7 @@ class ClientFixture(object):
         path %= self.args
 
         aff4_object = aff4.FACTORY.Create(
-            self.client_id.Add(path),
-            aff4_type,
-            mode="rw",
-            token=self.token)
+            self.client_id.Add(path), aff4_type, mode="rw", token=self.token)
 
         for attribute_name, value in attributes.items():
           attribute = aff4.Attribute.PREDICATES[attribute_name]
@@ -2274,10 +2275,11 @@ class ClientFixture(object):
         # sync back its attributes, not run any finalization code.
         aff4_object.Flush()
         if aff4_type == aff4_grr.VFSGRRClient:
-          aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                              aff4_type=client_index.ClientIndex,
-                              mode="rw",
-                              token=self.token).AddClient(aff4_object)
+          aff4.FACTORY.Create(
+              client_index.MAIN_INDEX,
+              aff4_type=client_index.ClientIndex,
+              mode="rw",
+              token=self.token).AddClient(aff4_object)
 
 
 class ClientVFSHandlerFixtureBase(vfs.VFSHandler):
@@ -2295,11 +2297,12 @@ class ClientVFSHandlerFixtureBase(vfs.VFSHandler):
     # things but we give an error to the tester as it is often not what you
     # want.
     logging.warn("Fake value for %s under %s", self.path, self.prefix)
-    return rdf_client.StatEntry(pathspec=self.pathspec,
-                                st_mode=16877,
-                                st_size=12288,
-                                st_atime=1319796280,
-                                st_dev=1)
+    return rdf_client.StatEntry(
+        pathspec=self.pathspec,
+        st_mode=16877,
+        st_size=12288,
+        st_atime=1319796280,
+        st_dev=1)
 
 
 class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
@@ -2359,8 +2362,8 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
         attrs %= args  # Remove any %% and interpolate client_id.
         stat = rdf_client.StatEntry.FromTextFormat(utils.SmartStr(attrs))
 
-      stat.pathspec = rdf_paths.PathSpec(pathtype=self.supported_pathtype,
-                                         path=path)
+      stat.pathspec = rdf_paths.PathSpec(
+          pathtype=self.supported_pathtype, path=path)
 
       # TODO(user): Once we add tests around not crossing device boundaries,
       # we need to be smarter here, especially for the root entry.
@@ -2404,11 +2407,8 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
         if dirname == "/" or dirname in self.paths:
           break
 
-        self.paths[dirname] = (aff4_standard.VFSDirectory,
-                               rdf_client.StatEntry(st_mode=16877,
-                                                    st_size=1,
-                                                    st_dev=1,
-                                                    pathspec=new_pathspec))
+        self.paths[dirname] = (aff4_standard.VFSDirectory, rdf_client.StatEntry(
+            st_mode=16877, st_size=1, st_dev=1, pathspec=new_pathspec))
 
   def ListFiles(self):
     # First return exact matches
@@ -2418,8 +2418,8 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
         yield stat
 
   def Read(self, length):
-    result = self.paths.get(self._NormalizeCaseForPath(self.path,
-                                                       aff4_grr.VFSFile))
+    result = self.paths.get(
+        self._NormalizeCaseForPath(self.path, aff4_grr.VFSFile))
     if not result:
       raise IOError("File not found")
 
@@ -2443,8 +2443,8 @@ class ClientVFSHandlerFixture(ClientVFSHandlerFixtureBase):
       # Check in case it is a registry value. Unfortunately our API doesn't let
       # the user specify if they are after a value or a key, so we have to try
       # both.
-      stat_data = self.paths.get(self._NormalizeCaseForPath(self.path,
-                                                            aff4_grr.VFSFile))
+      stat_data = self.paths.get(
+          self._NormalizeCaseForPath(self.path, aff4_grr.VFSFile))
     if stat_data:
       return stat_data[1]  # Strip the vfs_type.
     else:
@@ -2596,9 +2596,8 @@ class RemotePDB(pdb.Pdb):
     if RemotePDB.handle is None:
       self.ListenForConnection()
 
-    pdb.Pdb.__init__(self,
-                     stdin=self.handle,
-                     stdout=codecs.getwriter("utf8")(self.handle))
+    pdb.Pdb.__init__(
+        self, stdin=self.handle, stdout=codecs.getwriter("utf8")(self.handle))
 
   def ListenForConnection(self):
     """Listens and accepts a single connection."""
@@ -2633,9 +2632,8 @@ class TestRekallRepositoryProfileServer(rekall_profile_server.ProfileServer):
 
       self.profiles_served += 1
 
-      return rdf_rekall_types.RekallProfile(name=profile_name,
-                                            version=version,
-                                            data=profile_data)
+      return rdf_rekall_types.RekallProfile(
+          name=profile_name, version=version, data=profile_data)
     except IOError:
       return None
 

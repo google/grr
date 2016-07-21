@@ -45,8 +45,8 @@ class ClientStatsCollector(threading.Thread):
 
     user, system = self.proc.cpu_times()
     percent = self.proc.cpu_percent()
-    self.cpu_samples.append((rdfvalue.RDFDatetime().Now(), user, system, percent
-                            ))
+    self.cpu_samples.append((rdfvalue.RDFDatetime().Now(), user, system,
+                             percent))
     # Keep stats for one hour.
     self.cpu_samples = self.cpu_samples[-3600 / self.sleep_time:]
 

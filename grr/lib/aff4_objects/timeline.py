@@ -34,9 +34,8 @@ class AFF4Event(aff4.AFF4Object):
 
   def __init__(self, event):
     # This object is virtualized from the event.
-    super(AFF4Event, self).__init__(urn=event.subject,
-                                    mode="w",
-                                    age=aff4.ALL_TIMES)
+    super(AFF4Event, self).__init__(
+        urn=event.subject, mode="w", age=aff4.ALL_TIMES)
     self.event = event
     self.Set(self.Schema.TIMESTAMP(event.timestamp))
     self.Set(self.Schema.EVENT(event))
@@ -72,10 +71,11 @@ class GRRTimeSeries(standard.VFSDirectory):
     DESCRIPTION = aff4.Attribute("aff4:description", rdfvalue.RDFString,
                                  "This collection's description", "description")
 
-    TIMELINE = aff4.Attribute("aff4:timeline/view",
-                              TimelineView,
-                              "The columns that will be shown in the timeline.",
-                              default="")
+    TIMELINE = aff4.Attribute(
+        "aff4:timeline/view",
+        TimelineView,
+        "The columns that will be shown in the timeline.",
+        default="")
 
   # Should we write new data on Close()?
   dirty = False
@@ -162,9 +162,7 @@ class GRRTimeSeries(standard.VFSDirectory):
     if not self.dirty:
       return
     storage = aff4.FACTORY.Create(
-        self.urn.Add("Storage"),
-        aff4.AFF4Image,
-        token=self.token)
+        self.urn.Add("Storage"), aff4.AFF4Image, token=self.token)
     storage.SetChunksize(1024 * 1024)
 
     if self.heap:

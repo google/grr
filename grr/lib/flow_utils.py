@@ -55,15 +55,15 @@ def UpdateVFSFileAndWait(client_id,
     timeout: How long to wait for a flow to finish, maximum.
   """
   # Wait for the UpdateVFSFile flow.
-  update_flow_urn = StartFlowAndWait(client_id,
-                                     token=token,
-                                     timeout=timeout,
-                                     flow_name="UpdateVFSFile",
-                                     vfs_file_urn=vfs_file_urn)
+  update_flow_urn = StartFlowAndWait(
+      client_id,
+      token=token,
+      timeout=timeout,
+      flow_name="UpdateVFSFile",
+      vfs_file_urn=vfs_file_urn)
 
-  update_flow_obj = aff4.FACTORY.Open(update_flow_urn,
-                                      token=token,
-                                      aff4_type=flow.GRRFlow)
+  update_flow_obj = aff4.FACTORY.Open(
+      update_flow_urn, token=token, aff4_type=flow.GRRFlow)
 
   # Get the child flow so we can wait for it too.
   sub_flow_urn = update_flow_obj.state.get_file_flow_urn
@@ -104,9 +104,8 @@ def WaitForFlow(flow_urn,
   while True:
     # Reopen the AFF4Object to check if its status has changed, and also make
     # sure it's a flow.
-    with aff4.FACTORY.Open(flow_urn,
-                           token=token,
-                           aff4_type=flow.GRRFlow) as flow_obj:
+    with aff4.FACTORY.Open(
+        flow_urn, token=token, aff4_type=flow.GRRFlow) as flow_obj:
 
       # Stop if the flow is done or has timed out.
       if time.time() - start_time > timeout:
@@ -135,10 +134,8 @@ def StartFlowAndWait(client_id,
   Returns:
     The urn of the flow that was run.
   """
-  flow_urn = flow.GRRFlow.StartFlow(client_id=client_id,
-                                    token=token,
-                                    sync=True,
-                                    **flow_args)
+  flow_urn = flow.GRRFlow.StartFlow(
+      client_id=client_id, token=token, sync=True, **flow_args)
 
   WaitForFlow(flow_urn, token=token, timeout=timeout)
 
@@ -193,9 +190,10 @@ def InterpolatePath(path, client, users=None, path_args=None, depth=0):
       logging.warn("Failed path interpolation on %s", path)
       return ""
     if "{" in path and depth < 10:
-      path = InterpolatePath(path,
-                             client=client,
-                             users=users,
-                             path_args=path_args,
-                             depth=depth + 1)
+      path = InterpolatePath(
+          path,
+          client=client,
+          users=users,
+          path_args=path_args,
+          depth=depth + 1)
     return path

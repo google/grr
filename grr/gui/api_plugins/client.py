@@ -100,10 +100,11 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
 
     keywords = shlex.split(args.query)
 
-    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                aff4_type=client_index.ClientIndex,
-                                mode="rw",
-                                token=token)
+    index = aff4.FACTORY.Create(
+        client_index.MAIN_INDEX,
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        token=token)
     result_urns = sorted(
         index.LookupClients(keywords), key=str)[args.offset:args.offset + end]
     result_set = aff4.FACTORY.MultiOpen(result_urns, token=token)
@@ -146,19 +147,19 @@ class ApiLabelsRestrictedSearchClientsHandler(
 
     keywords = shlex.split(args.query)
 
-    index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                aff4_type=client_index.ClientIndex,
-                                mode="rw",
-                                token=token)
+    index = aff4.FACTORY.Create(
+        client_index.MAIN_INDEX,
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        token=token)
     all_urns = set()
     for label in self.labels_whitelist:
       label_filter = ["label:" + label] + keywords
       all_urns.update(index.LookupClients(label_filter))
 
     all_objs = aff4.FACTORY.MultiOpen(
-        sorted(all_urns, key=str),
-        aff4_type=aff4_grr.VFSGRRClient,
-        token=token)
+        sorted(
+            all_urns, key=str), aff4_type=aff4_grr.VFSGRRClient, token=token)
 
     api_clients = []
     index = 0
@@ -193,10 +194,8 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
     else:
       age = rdfvalue.RDFDatetime(args.timestamp)
 
-    client = aff4.FACTORY.Open(args.client_id,
-                               aff4_type=aff4_grr.VFSGRRClient,
-                               age=age,
-                               token=token)
+    client = aff4.FACTORY.Open(
+        args.client_id, aff4_type=aff4_grr.VFSGRRClient, age=age, token=token)
 
     return ApiClient().InitFromAff4Object(client)
 
@@ -218,10 +217,8 @@ class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetClientVersionTimesResult
 
   def Handle(self, args, token=None):
-    fd = aff4.FACTORY.Open(args.client_id,
-                           mode="r",
-                           age=aff4.ALL_TIMES,
-                           token=token)
+    fd = aff4.FACTORY.Open(
+        args.client_id, mode="r", age=aff4.ALL_TIMES, token=token)
 
     type_values = list(fd.GetValuesForAttribute(fd.Schema.TYPE))
     times = sorted([t.age for t in type_values], reverse=True)
@@ -245,9 +242,8 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiInterrogateClientResult
 
   def Handle(self, args, token=None):
-    flow_urn = flow.GRRFlow.StartFlow(client_id=args.client_id,
-                                      flow_name="Interrogate",
-                                      token=token)
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=args.client_id, flow_name="Interrogate", token=token)
 
     return ApiInterrogateClientResult(operation_id=str(flow_urn))
 
@@ -270,9 +266,8 @@ class ApiGetInterrogateOperationStateHandler(
 
   def Handle(self, args, token=None):
     try:
-      flow_obj = aff4.FACTORY.Open(args.operation_id,
-                                   aff4_type=discovery.Interrogate,
-                                   token=token)
+      flow_obj = aff4.FACTORY.Open(
+          args.operation_id, aff4_type=discovery.Interrogate, token=token)
 
       complete = not flow_obj.GetRunner().IsRunning()
     except aff4.InstantiationError:
@@ -305,9 +300,8 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiGetLastClientIPAddressResult
 
   def Handle(self, args, token=None):
-    client = aff4.FACTORY.Open(args.client_id,
-                               aff4_type=aff4_grr.VFSGRRClient,
-                               token=token)
+    client = aff4.FACTORY.Open(
+        args.client_id, aff4_type=aff4_grr.VFSGRRClient, token=token)
 
     ip = client.Get(client.Schema.CLIENT_IP)
     status, info = ip_resolver.IP_RESOLVER.RetrieveIPInfo(ip)
@@ -369,28 +363,31 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
     audit_events = []
 
     try:
-      index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                  aff4_type=client_index.ClientIndex,
-                                  mode="rw",
-                                  token=token)
-      client_objs = aff4.FACTORY.MultiOpen(args.client_ids,
-                                           aff4_type=aff4_grr.VFSGRRClient,
-                                           mode="rw",
-                                           token=token)
+      index = aff4.FACTORY.Create(
+          client_index.MAIN_INDEX,
+          aff4_type=client_index.ClientIndex,
+          mode="rw",
+          token=token)
+      client_objs = aff4.FACTORY.MultiOpen(
+          args.client_ids,
+          aff4_type=aff4_grr.VFSGRRClient,
+          mode="rw",
+          token=token)
       for client_obj in client_objs:
         client_obj.AddLabels(*args.labels)
         index.AddClient(client_obj)
         client_obj.Close()
 
-        audit_events.append(events.AuditEvent(
-            user=token.username,
-            action="CLIENT_ADD_LABEL",
-            flow_name="handler.ApiAddClientsLabelsHandler",
-            client=client_obj.urn,
-            description=audit_description))
+        audit_events.append(
+            events.AuditEvent(
+                user=token.username,
+                action="CLIENT_ADD_LABEL",
+                flow_name="handler.ApiAddClientsLabelsHandler",
+                client=client_obj.urn,
+                description=audit_description))
     finally:
-      events.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
-                                          token=token)
+      events.Events.PublishMultipleEvents(
+          {audit.AUDIT_EVENT: audit_events}, token=token)
 
 
 class ApiRemoveClientsLabelsArgs(rdf_structs.RDFProtoStruct):
@@ -422,29 +419,32 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
     audit_events = []
 
     try:
-      index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                                  aff4_type=client_index.ClientIndex,
-                                  mode="rw",
-                                  token=token)
-      client_objs = aff4.FACTORY.MultiOpen(args.client_ids,
-                                           aff4_type=aff4_grr.VFSGRRClient,
-                                           mode="rw",
-                                           token=token)
+      index = aff4.FACTORY.Create(
+          client_index.MAIN_INDEX,
+          aff4_type=client_index.ClientIndex,
+          mode="rw",
+          token=token)
+      client_objs = aff4.FACTORY.MultiOpen(
+          args.client_ids,
+          aff4_type=aff4_grr.VFSGRRClient,
+          mode="rw",
+          token=token)
       for client_obj in client_objs:
         index.RemoveClientLabels(client_obj)
         self.RemoveClientLabels(client_obj, args.labels)
         index.AddClient(client_obj)
         client_obj.Close()
 
-        audit_events.append(events.AuditEvent(
-            user=token.username,
-            action="CLIENT_REMOVE_LABEL",
-            flow_name="handler.ApiRemoveClientsLabelsHandler",
-            client=client_obj.urn,
-            description=audit_description))
+        audit_events.append(
+            events.AuditEvent(
+                user=token.username,
+                action="CLIENT_REMOVE_LABEL",
+                flow_name="handler.ApiRemoveClientsLabelsHandler",
+                client=client_obj.urn,
+                description=audit_description))
     finally:
-      events.Events.PublishMultipleEvents({audit.AUDIT_EVENT: audit_events},
-                                          token=token)
+      events.Events.PublishMultipleEvents(
+          {audit.AUDIT_EVENT: audit_events}, token=token)
 
 
 class ApiListClientsLabelsResult(rdf_structs.RDFProtoStruct):
@@ -458,10 +458,11 @@ class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListClientsLabelsResult
 
   def Handle(self, args, token=None):
-    labels_index = aff4.FACTORY.Create(standard.LabelSet.CLIENT_LABELS_URN,
-                                       standard.LabelSet,
-                                       mode="r",
-                                       token=token)
+    labels_index = aff4.FACTORY.Create(
+        standard.LabelSet.CLIENT_LABELS_URN,
+        standard.LabelSet,
+        mode="r",
+        token=token)
     label_objects = []
     for label in labels_index.ListLabels():
       label_objects.append(aff4_rdfvalues.AFF4ObjectLabel(name=label))

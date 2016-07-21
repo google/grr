@@ -33,15 +33,15 @@ def GetAuditLogFiles(offset, now, token):
   oldest_time = now - offset - rdfvalue.Duration(config_lib.CONFIG[
       "Logging.aff4_audit_log_rollover"])
   parentdir = aff4.FACTORY.Open("aff4:/audit/logs", token=token)
-  logs = list(parentdir.ListChildren(age=(oldest_time.AsMicroSecondsFromEpoch(),
-                                          now.AsMicroSecondsFromEpoch())))
+  logs = list(
+      parentdir.ListChildren(age=(oldest_time.AsMicroSecondsFromEpoch(),
+                                  now.AsMicroSecondsFromEpoch())))
   if not logs:
     raise ValueError("Couldn't find any logs in aff4:/audit/logs "
                      "between %s and %s" % (oldest_time, now))
 
-  return aff4.FACTORY.MultiOpen(logs,
-                                aff4_type=collects.RDFValueCollection,
-                                token=token)
+  return aff4.FACTORY.MultiOpen(
+      logs, aff4_type=collects.RDFValueCollection, token=token)
 
 
 def GetAuditLogEntries(offset, now, token):
@@ -106,9 +106,8 @@ class StackChart(statistics.Report):
   def Layout(self, request, response):
     response = super(StackChart, self).Layout(request, response)
     if self.data:
-      response = self.CallJavascript(response,
-                                     "StackChart.Layout",
-                                     specs=self.data)
+      response = self.CallJavascript(
+          response, "StackChart.Layout", specs=self.data)
     return response
 
 
@@ -186,13 +185,13 @@ class SystemFlows(statistics.Report, renderers.TableRenderer):
           counts[event.flow_name].setdefault(event.user, 0)
           counts[event.flow_name][event.user] += 1
 
-      for flow, countdict in sorted(counts.iteritems(),
-                                    key=lambda x: x[1]["total"], reverse=True):
+      for flow, countdict in sorted(
+          counts.iteritems(), key=lambda x: x[1]["total"], reverse=True):
         total_count = countdict["total"]
         countdict.pop("total")
-        topusercounts = sorted(countdict.iteritems(),
-                               key=operator.itemgetter(1),
-                               reverse=True)[0:3]
+        topusercounts = sorted(
+            countdict.iteritems(), key=operator.itemgetter(1),
+            reverse=True)[0:3]
         topusers = ", ".join("%s (%s)" % (user, count)
                              for user, count in topusercounts)
         self.AddRow({"Flow Name": flow,

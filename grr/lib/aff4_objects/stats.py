@@ -13,11 +13,12 @@ class ClientStats(standard.VFSDirectory):
   """A container for all client statistics."""
 
   class SchemaCls(standard.VFSDirectory.SchemaCls):
-    STATS = aff4.Attribute("aff4:stats",
-                           rdf_client.ClientStats,
-                           "Client Stats.",
-                           "Client stats",
-                           creates_new_object_version=False)
+    STATS = aff4.Attribute(
+        "aff4:stats",
+        rdf_client.ClientStats,
+        "Client Stats.",
+        "Client stats",
+        creates_new_object_version=False)
 
 
 class ClientFleetStats(aff4.AFF4Object):

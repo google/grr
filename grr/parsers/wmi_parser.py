@@ -103,9 +103,10 @@ class WMIEventConsumerParser(parsers.WMIQueryParser):
 
       # Yield anomalies first to help with debugging
       if anomalies:
-        yield rdf_anomaly.Anomaly(type="PARSER_ANOMALY",
-                                  generated_by=self.__class__.__name__,
-                                  finding=anomalies)
+        yield rdf_anomaly.Anomaly(
+            type="PARSER_ANOMALY",
+            generated_by=self.__class__.__name__,
+            finding=anomalies)
 
       # Raise if the parser generated no output but there were fields.
       if wmi_dict and not output:
@@ -144,10 +145,11 @@ class WMIInstalledSoftwareParser(parsers.WMIQueryParser):
     """Parse the WMI packages output."""
     _ = query, knowledge_base
     status = rdf_client.SoftwarePackage.InstallState.INSTALLED
-    soft = rdf_client.SoftwarePackage(name=result["Name"],
-                                      description=result["Description"],
-                                      version=result["Version"],
-                                      install_state=status)
+    soft = rdf_client.SoftwarePackage(
+        name=result["Name"],
+        description=result["Description"],
+        version=result["Version"],
+        install_state=status)
 
     yield soft
 
@@ -166,11 +168,12 @@ class WMIHotfixesSoftwareParser(parsers.WMIQueryParser):
 
     # InstalledOn comes back in a godawful format such as '7/10/2013'.
     installed_on = time_utils.AmericanDateToEpoch(result.get("InstalledOn", ""))
-    soft = rdf_client.SoftwarePackage(name=result.get("HotFixID"),
-                                      description=result.get("Caption"),
-                                      installed_by=result.get("InstalledBy"),
-                                      install_state=status,
-                                      installed_on=installed_on)
+    soft = rdf_client.SoftwarePackage(
+        name=result.get("HotFixID"),
+        description=result.get("Caption"),
+        installed_by=result.get("InstalledBy"),
+        install_state=status,
+        installed_on=installed_on)
     yield soft
 
 
@@ -217,8 +220,8 @@ class WMILogicalDisksParser(parsers.WMIQueryParser):
     """Parse the WMI packages output."""
     _ = query, knowledge_base
     result = result.ToDict()
-    winvolume = rdf_client.WindowsVolume(drive_letter=result.get("DeviceID"),
-                                         drive_type=result.get("DriveType"))
+    winvolume = rdf_client.WindowsVolume(
+        drive_letter=result.get("DeviceID"), drive_type=result.get("DriveType"))
 
     try:
       size = int(result.get("Size"))
@@ -231,14 +234,15 @@ class WMILogicalDisksParser(parsers.WMIQueryParser):
       free_space = None
 
     # Since we don't get the sector sizes from WMI, we just set them at 1 byte
-    volume = rdf_client.Volume(windowsvolume=winvolume,
-                               name=result.get("VolumeName"),
-                               file_system_type=result.get("FileSystem"),
-                               serial_number=result.get("VolumeSerialNumber"),
-                               sectors_per_allocation_unit=1,
-                               bytes_per_sector=1,
-                               total_allocation_units=size,
-                               actual_available_allocation_units=free_space)
+    volume = rdf_client.Volume(
+        windowsvolume=winvolume,
+        name=result.get("VolumeName"),
+        file_system_type=result.get("FileSystem"),
+        serial_number=result.get("VolumeSerialNumber"),
+        sectors_per_allocation_unit=1,
+        bytes_per_sector=1,
+        total_allocation_units=size,
+        actual_available_allocation_units=free_space)
 
     yield volume
 
@@ -257,8 +261,9 @@ class WMIComputerSystemProductParser(parsers.WMIQueryParser):
     # Win32_ComputerSystemProduct.
     _ = query, knowledge_base
 
-    yield rdf_client.HardwareInfo(serial_number=result["IdentifyingNumber"],
-                                  system_manufacturer=result["Vendor"])
+    yield rdf_client.HardwareInfo(
+        serial_number=result["IdentifyingNumber"],
+        system_manufacturer=result["Vendor"])
 
 
 class WMIInterfacesParser(parsers.WMIQueryParser):
@@ -290,8 +295,8 @@ class WMIInterfacesParser(parsers.WMIQueryParser):
     seconds = timestr[12:14]
     microseconds = timestr[15:21]
 
-    unix_seconds = calendar.timegm(map(int, [year, month, day, hours, minutes,
-                                             seconds]))
+    unix_seconds = calendar.timegm(
+        map(int, [year, month, day, hours, minutes, seconds]))
     unix_seconds -= int(offset_minutes) * 60
     return rdfvalue.RDFDatetime(unix_seconds * 1e6 + int(microseconds))
 
@@ -300,11 +305,12 @@ class WMIInterfacesParser(parsers.WMIQueryParser):
       addresses = []
       if isinstance(interface[inputkey], list):
         for ip_address in interface[inputkey]:
-          addresses.append(rdf_client.NetworkAddress(
-              human_readable_address=ip_address))
+          addresses.append(
+              rdf_client.NetworkAddress(human_readable_address=ip_address))
       else:
-        addresses.append(rdf_client.NetworkAddress(
-            human_readable_address=interface[inputkey]))
+        addresses.append(
+            rdf_client.NetworkAddress(human_readable_address=interface[
+                inputkey]))
       output_dict[outputkey] = addresses
     return output_dict
 
@@ -316,9 +322,9 @@ class WMIInterfacesParser(parsers.WMIQueryParser):
     args["mac_address"] = binascii.unhexlify(result["MACAddress"].replace(":",
                                                                           ""))
 
-    self._ConvertIPs(
-        [("IPAddress", "addresses"), ("DefaultIPGateway", "ip_gateway_list"),
-         ("DHCPServer", "dhcp_server_list")], result, args)
+    self._ConvertIPs([("IPAddress", "addresses"),
+                      ("DefaultIPGateway", "ip_gateway_list"),
+                      ("DHCPServer", "dhcp_server_list")], result, args)
 
     if "DHCPLeaseExpires" in result:
       args["dhcp_lease_expires"] = self.WMITimeStrToRDFDatetime(result[

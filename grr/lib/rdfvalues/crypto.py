@@ -87,8 +87,8 @@ class RDFX509Cert(rdfvalue.RDFValue):
 
   def ParseFromString(self, string):
     try:
-      self._value = x509.load_pem_x509_certificate(string,
-                                                   backend=openssl.backend)
+      self._value = x509.load_pem_x509_certificate(
+          string, backend=openssl.backend)
     except (ValueError, TypeError) as e:
       raise rdfvalue.DecodeError("Invalid certificate %s: %s" % (string, e))
     # This can also raise if there isn't exactly one CN entry.
@@ -129,9 +129,10 @@ class RDFX509Cert(rdfvalue.RDFValue):
     if now < self._value.not_valid_before:
       raise VerificationError("Certificate not yet valid!")
 
-    public_key.Verify(self._value.tbs_certificate_bytes,
-                      self._value.signature,
-                      hash_algorithm=self._value.signature_hash_algorithm)
+    public_key.Verify(
+        self._value.tbs_certificate_bytes,
+        self._value.signature,
+        hash_algorithm=self._value.signature_hash_algorithm)
     return True
 
   @classmethod
@@ -149,8 +150,9 @@ class RDFX509Cert(rdfvalue.RDFValue):
     common_name = csr.GetCN()
     serial = int(common_name.split(".")[1], 16)
     builder = builder.serial_number(serial)
-    builder = builder.subject_name(x509.Name([x509.NameAttribute(
-        oid.NameOID.COMMON_NAME, unicode(common_name))]))
+    builder = builder.subject_name(
+        x509.Name([x509.NameAttribute(oid.NameOID.COMMON_NAME, unicode(
+            common_name))]))
 
     now = rdfvalue.RDFDatetime().Now()
     now_plus_year = now + rdfvalue.Duration("52w")
@@ -163,9 +165,11 @@ class RDFX509Cert(rdfvalue.RDFValue):
 
     ca_key = config_lib.CONFIG["PrivateKeys.ca_key"]
 
-    return RDFX509Cert(builder.sign(private_key=ca_key.GetRawPrivateKey(),
-                                    algorithm=hashes.SHA256(),
-                                    backend=openssl.backend))
+    return RDFX509Cert(
+        builder.sign(
+            private_key=ca_key.GetRawPrivateKey(),
+            algorithm=hashes.SHA256(),
+            backend=openssl.backend))
 
 
 class CertificateSigningRequest(rdfvalue.RDFValue):
@@ -183,13 +187,14 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
       self._age = age or rdfvalue.RDFDatetime(age=0)
       self._value = x509.CertificateSigningRequestBuilder().subject_name(
           x509.Name([x509.NameAttribute(oid.NameOID.COMMON_NAME, unicode(
-              common_name))])).sign(private_key.GetRawPrivateKey(),
-                                    hashes.SHA256(),
-                                    backend=openssl.backend)
+              common_name))])).sign(
+                  private_key.GetRawPrivateKey(),
+                  hashes.SHA256(),
+                  backend=openssl.backend)
     else:
       self._value = None
-      super(CertificateSigningRequest, self).__init__(initializer=initializer,
-                                                      age=age)
+      super(CertificateSigningRequest, self).__init__(
+          initializer=initializer, age=age)
 
   def ParseFromString(self, csr_as_pem):
     self._value = x509.load_pem_x509_csr(csr_as_pem, backend=openssl.backend)
@@ -221,9 +226,10 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
     return RSAPublicKey(self._value.public_key())
 
   def Verify(self, public_key):
-    public_key.Verify(self._value.tbs_certrequest_bytes,
-                      self._value.signature,
-                      hash_algorithm=self._value.signature_hash_algorithm)
+    public_key.Verify(
+        self._value.tbs_certrequest_bytes,
+        self._value.signature,
+        hash_algorithm=self._value.signature_hash_algorithm)
     return True
 
 
@@ -243,8 +249,8 @@ class RSAPublicKey(rdfvalue.RDFValue):
 
   def ParseFromString(self, pem_string):
     try:
-      self._value = serialization.load_pem_public_key(pem_string,
-                                                      backend=openssl.backend)
+      self._value = serialization.load_pem_public_key(
+          pem_string, backend=openssl.backend)
     except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
       raise type_info.TypeValueError("Public key invalid: %s" % e)
 
@@ -274,11 +280,12 @@ class RSAPublicKey(rdfvalue.RDFValue):
       raise ValueError("Can't Encrypt with empty key.")
 
     try:
-      return self._value.encrypt(message,
-                                 padding.OAEP(
-                                     mgf=padding.MGF1(algorithm=hashes.SHA1()),
-                                     algorithm=hashes.SHA1(),
-                                     label=None))
+      return self._value.encrypt(
+          message,
+          padding.OAEP(
+              mgf=padding.MGF1(algorithm=hashes.SHA1()),
+              algorithm=hashes.SHA1(),
+              label=None))
     except ValueError as e:
       raise CipherError(e)
 
@@ -343,26 +350,25 @@ class RSAPrivateKey(rdfvalue.RDFValue):
       raise ValueError("Can't Decrypt with empty key.")
 
     try:
-      return self._value.decrypt(message,
-                                 padding.OAEP(
-                                     mgf=padding.MGF1(algorithm=hashes.SHA1()),
-                                     algorithm=hashes.SHA1(),
-                                     label=None))
+      return self._value.decrypt(
+          message,
+          padding.OAEP(
+              mgf=padding.MGF1(algorithm=hashes.SHA1()),
+              algorithm=hashes.SHA1(),
+              label=None))
     except ValueError as e:
       raise CipherError(e)
 
   @classmethod
   def GenerateKey(cls, bits=2048, exponent=65537):
-    key = rsa.generate_private_key(public_exponent=exponent,
-                                   key_size=bits,
-                                   backend=openssl.backend)
+    key = rsa.generate_private_key(
+        public_exponent=exponent, key_size=bits, backend=openssl.backend)
     return cls(key)
 
   def ParseFromString(self, pem_string):
     try:
-      self._value = serialization.load_pem_private_key(pem_string,
-                                                       password=None,
-                                                       backend=openssl.backend)
+      self._value = serialization.load_pem_private_key(
+          pem_string, password=None, backend=openssl.backend)
       return
     except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
 
@@ -389,9 +395,8 @@ class RSAPrivateKey(rdfvalue.RDFValue):
     try:
       # The private key is encrypted and we can ask the user for the passphrase.
       password = utils.PassphraseCallback()
-      self._value = serialization.load_pem_private_key(pem_string,
-                                                       password=password,
-                                                       backend=openssl.backend)
+      self._value = serialization.load_pem_private_key(
+          pem_string, password=password, backend=openssl.backend)
     except (TypeError, ValueError, exceptions.UnsupportedAlgorithm) as e:
       raise type_info.TypeValueError("Unable to load private key: %s" % e)
 
@@ -560,11 +565,10 @@ class AutoGeneratedAES128Key(AES128Key):
   def __init__(self, initializer=None, **kwargs):
     if isinstance(initializer, AES128Key):
       super(AutoGeneratedAES128Key, self).__init__(
-          initializer=initializer.RawBytes(),
-          **kwargs)
+          initializer=initializer.RawBytes(), **kwargs)
     else:
-      super(AutoGeneratedAES128Key, self).__init__(initializer=initializer,
-                                                   **kwargs)
+      super(AutoGeneratedAES128Key, self).__init__(
+          initializer=initializer, **kwargs)
 
 
 class StreamingCBCEncryptor(object):
@@ -615,8 +619,7 @@ class AES128CBCCipher(object):
 
   def GetEncryptor(self):
     return ciphers.Cipher(
-        algorithms.AES(self.key),
-        modes.CBC(self.iv),
+        algorithms.AES(self.key), modes.CBC(self.iv),
         backend=openssl.backend).encryptor()
 
   def Encrypt(self, data):
@@ -631,8 +634,7 @@ class AES128CBCCipher(object):
 
   def GetDecryptor(self):
     return ciphers.Cipher(
-        algorithms.AES(self.key),
-        modes.CBC(self.iv),
+        algorithms.AES(self.key), modes.CBC(self.iv),
         backend=openssl.backend).decryptor()
 
   def Decrypt(self, data):

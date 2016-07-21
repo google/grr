@@ -70,10 +70,6 @@ config_lib.DEFINE_integer(
     "Flows who got stuck in the worker for more than this time (in seconds) "
     "are forcibly terminated")
 
-config_lib.DEFINE_integer("Frontend.throttle_average_interval", 60,
-                          "Time interval over which average request rate is "
-                          "calculated when throttling is enabled.")
-
 config_lib.DEFINE_list("Frontend.well_known_flows", ["TransferStore", "Stats"],
                        "Allow these well known flows to run directly on the "
                        "frontend. Other flows are scheduled as normal.")
@@ -107,9 +103,10 @@ config_lib.DEFINE_semantic(
     "PrivateKeys.ca_key",
     description="CA private key. Used to sign for client enrollment.",)
 
-config_lib.DEFINE_semantic(rdf_crypto.RSAPrivateKey,
-                           "PrivateKeys.server_key",
-                           description="Private key for the front end server.")
+config_lib.DEFINE_semantic(
+    rdf_crypto.RSAPrivateKey,
+    "PrivateKeys.server_key",
+    description="Private key for the front end server.")
 
 config_lib.DEFINE_integer("Server.rsa_key_length", 2048,
                           "The length of the server rsa key in bits.")
@@ -240,35 +237,40 @@ config_lib.DEFINE_integer(
     "significant amount of traffic. This should be set to 0 once you know"
     " that the server can handle it.")
 
-config_lib.DEFINE_string("StatsStore.process_id",
-                         default="",
-                         help="Id used to identify stats data of the current "
-                         "process. This should be different for different GRR "
-                         "processes. I.e. if you have 4 workers, for every "
-                         "worker the subject should be different. For example: "
-                         "worker_1, worker_2, worker_3, worker_4.")
+config_lib.DEFINE_string(
+    "StatsStore.process_id",
+    default="",
+    help="Id used to identify stats data of the current "
+    "process. This should be different for different GRR "
+    "processes. I.e. if you have 4 workers, for every "
+    "worker the subject should be different. For example: "
+    "worker_1, worker_2, worker_3, worker_4.")
 
-config_lib.DEFINE_integer("StatsStore.write_interval",
-                          default=60,
-                          help="Time in seconds between the dumps of stats "
-                          "data into the stats store.")
+config_lib.DEFINE_integer(
+    "StatsStore.write_interval",
+    default=60,
+    help="Time in seconds between the dumps of stats "
+    "data into the stats store.")
 
-config_lib.DEFINE_integer("StatsStore.ttl",
-                          default=60 * 60 * 24 * 3,
-                          help="Maximum lifetime (in seconds) of data in the "
-                          "stats store. Default is three days.")
+config_lib.DEFINE_integer(
+    "StatsStore.ttl",
+    default=60 * 60 * 24 * 3,
+    help="Maximum lifetime (in seconds) of data in the "
+    "stats store. Default is three days.")
 
-config_lib.DEFINE_bool("AdminUI.allow_hunt_results_delete",
-                       default=False,
-                       help="If True, hunts with results can be deleted "
-                       "when the delete hunt button is used. Enable with "
-                       "caution as this allows erasure of historical usage for"
-                       "accountability purposes.")
+config_lib.DEFINE_bool(
+    "AdminUI.allow_hunt_results_delete",
+    default=False,
+    help="If True, hunts with results can be deleted "
+    "when the delete hunt button is used. Enable with "
+    "caution as this allows erasure of historical usage for"
+    "accountability purposes.")
 
-config_lib.DEFINE_integer("Server.max_unbound_read_size",
-                          10000000,
-                          help="The number of bytes allowed for unbounded "
-                          "reads from a file object")
+config_lib.DEFINE_integer(
+    "Server.max_unbound_read_size",
+    10000000,
+    help="The number of bytes allowed for unbounded "
+    "reads from a file object")
 
 # Data retention policies.
 config_lib.DEFINE_semantic(
@@ -286,10 +288,11 @@ config_lib.DEFINE_semantic(
     description="Hunts TTL specified as the duration string. Examples: 90d, "
     "180d, 1y. If not set, hunts will be retained forever.")
 
-config_lib.DEFINE_string("DataRetention.hunts_ttl_exception_label",
-                         default="retain",
-                         help="Hunts marked with this label "
-                         "will be retained forever.")
+config_lib.DEFINE_string(
+    "DataRetention.hunts_ttl_exception_label",
+    default="retain",
+    help="Hunts marked with this label "
+    "will be retained forever.")
 
 config_lib.DEFINE_semantic(
     rdfvalue.Duration,
@@ -298,10 +301,11 @@ config_lib.DEFINE_semantic(
     description="Temp TTL specified as the duration string. Examples: 90d, "
     "180d, 1y. If not set, temp objects will be retained forever.")
 
-config_lib.DEFINE_string("DataRetention.tmp_ttl_exception_label",
-                         default="retain",
-                         help="Temp objects marked with this "
-                         "label will be retained forever.")
+config_lib.DEFINE_string(
+    "DataRetention.tmp_ttl_exception_label",
+    default="retain",
+    help="Temp objects marked with this "
+    "label will be retained forever.")
 
 config_lib.DEFINE_semantic(
     rdfvalue.Duration,
@@ -310,7 +314,8 @@ config_lib.DEFINE_semantic(
     description="Temp TTL specified as the duration string. Examples: 90d, "
     "180d, 1y. If not set, inactive clients will be retained forever.")
 
-config_lib.DEFINE_string("DataRetention.inactive_client_ttl_exception_label",
-                         default="retain",
-                         help="Inactive clients marked with "
-                         "this label will be retained forever.")
+config_lib.DEFINE_string(
+    "DataRetention.inactive_client_ttl_exception_label",
+    default="retain",
+    help="Inactive clients marked with "
+    "this label will be retained forever.")

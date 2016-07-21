@@ -68,10 +68,10 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
 
     collect_flow.state.Register("knowledge_base", rdf_client.KnowledgeBase())
     collect_flow.current_artifact_name = "blah"
-    collect_flow.state.knowledge_base.MergeOrAddUser(rdf_client.User(
-        username="test1"))
-    collect_flow.state.knowledge_base.MergeOrAddUser(rdf_client.User(
-        username="test2"))
+    collect_flow.state.knowledge_base.MergeOrAddUser(
+        rdf_client.User(username="test1"))
+    collect_flow.state.knowledge_base.MergeOrAddUser(
+        rdf_client.User(username="test2"))
     collect_flow.args = artifact_utils.ArtifactCollectorFlowArgs()
 
     test_rdf = rdf_client.KnowledgeBase()
@@ -134,10 +134,10 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
       collect_flow.args.ignore_interpolation_errors = False
       collect_flow.state.Register("knowledge_base", rdf_client.KnowledgeBase())
       collect_flow.current_artifact_name = "blah"
-      collect_flow.state.knowledge_base.MergeOrAddUser(rdf_client.User(
-          username="test1"))
-      collect_flow.state.knowledge_base.MergeOrAddUser(rdf_client.User(
-          username="test2"))
+      collect_flow.state.knowledge_base.MergeOrAddUser(
+          rdf_client.User(username="test1"))
+      collect_flow.state.knowledge_base.MergeOrAddUser(
+          rdf_client.User(username="test2"))
 
       collector = artifact_registry.ArtifactSource(
           type=artifact_registry.ArtifactSource.SourceType.GREP,
@@ -169,17 +169,18 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     self.fakeartifact.sources.append(coll1)
 
     artifact_list = ["FakeArtifact"]
-    for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow",
-                                     client_mock,
-                                     artifact_list=artifact_list,
-                                     use_tsk=False,
-                                     token=self.token,
-                                     client_id=self.client_id):
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow",
+        client_mock,
+        artifact_list=artifact_list,
+        use_tsk=False,
+        token=self.token,
+        client_id=self.client_id):
       pass
 
     # Test the AFF4 file that was created.
-    fd1 = aff4.FACTORY.Open("%s/fs/os/%s" % (self.client_id, file_path),
-                            token=self.token)
+    fd1 = aff4.FACTORY.Open(
+        "%s/fs/os/%s" % (self.client_id, file_path), token=self.token)
     fd2 = open(file_path)
     fd2.seek(0, 2)
 
@@ -198,12 +199,13 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
           attributes={"client_action": r"ListProcesses"})
       self.fakeartifact.sources.append(coll1)
       artifact_list = ["FakeArtifact"]
-      for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow",
-                                       client_mock,
-                                       artifact_list=artifact_list,
-                                       token=self.token,
-                                       client_id=self.client_id,
-                                       output="test_artifact"):
+      for _ in test_lib.TestFlowHelper(
+          "ArtifactCollectorFlow",
+          client_mock,
+          artifact_list=artifact_list,
+          token=self.token,
+          client_id=self.client_id,
+          output="test_artifact"):
         pass
 
       # Test the AFF4 file that was created.
@@ -227,13 +229,14 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
       self.fakeartifact.sources.append(coll1)
       self.fakeartifact2.sources.append(coll1)
       artifact_list = ["FakeArtifact", "FakeArtifact2"]
-      for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow",
-                                       client_mock,
-                                       artifact_list=artifact_list,
-                                       token=self.token,
-                                       client_id=self.client_id,
-                                       output="test_artifact",
-                                       split_output_by_artifact=True):
+      for _ in test_lib.TestFlowHelper(
+          "ArtifactCollectorFlow",
+          client_mock,
+          artifact_list=artifact_list,
+          token=self.token,
+          client_id=self.client_id,
+          output="test_artifact",
+          split_output_by_artifact=True):
         pass
 
       # Check that we got two separate collections based on artifact name
@@ -292,18 +295,18 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
             }]})
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
-        for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow",
-                                         client_mock,
-                                         artifact_list=artifact_list,
-                                         token=self.token,
-                                         client_id=self.client_id,
-                                         output="test_artifact"):
+        for _ in test_lib.TestFlowHelper(
+            "ArtifactCollectorFlow",
+            client_mock,
+            artifact_list=artifact_list,
+            token=self.token,
+            client_id=self.client_id,
+            output="test_artifact"):
           pass
 
     # Test the statentry got stored with the correct aff4path.
     fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("test_artifact"),
-        token=self.token)
+        rdfvalue.RDFURN(self.client_id).Add("test_artifact"), token=self.token)
     self.assertTrue(isinstance(list(fd)[0], rdf_client.StatEntry))
     self.assertTrue(str(fd[0].aff4path).endswith("BootExecute"))
 
@@ -322,17 +325,17 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
             }]})
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
-        for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow",
-                                         client_mock,
-                                         artifact_list=artifact_list,
-                                         token=self.token,
-                                         client_id=self.client_id,
-                                         output="test_artifact"):
+        for _ in test_lib.TestFlowHelper(
+            "ArtifactCollectorFlow",
+            client_mock,
+            artifact_list=artifact_list,
+            token=self.token,
+            client_id=self.client_id,
+            output="test_artifact"):
           pass
 
     fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("test_artifact"),
-        token=self.token)
+        rdfvalue.RDFURN(self.client_id).Add("test_artifact"), token=self.token)
     self.assertTrue(isinstance(list(fd)[0], rdf_client.StatEntry))
     self.assertEqual(fd[0].registry_data.GetValue(), "DefaultValue")
 
@@ -371,19 +374,19 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     client.Flush()
     self.output_count += 1
     output = "test_artifact_%d" % self.output_count
-    for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow",
-                                     client_mock,
-                                     artifact_list=artifact_list,
-                                     token=self.token,
-                                     client_id=self.client_id,
-                                     output=output):
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow",
+        client_mock,
+        artifact_list=artifact_list,
+        token=self.token,
+        client_id=self.client_id,
+        output=output):
       pass
 
     # Test the AFF4 file was not created, as flow should not have run due to
     # conditions.
     fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add(output),
-        token=self.token)
+        rdfvalue.RDFURN(self.client_id).Add(output), token=self.token)
     return fd
 
 

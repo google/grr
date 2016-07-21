@@ -33,8 +33,9 @@ def AddPluginsSubparsers():
   is created and then configured with ExportPlugin.ConfigurArgParser()
   call.
   """
-  classes = sorted(export_plugins.plugin.ExportPlugin.classes.itervalues(),
-                   key=lambda cls: cls.name)
+  classes = sorted(
+      export_plugins.plugin.ExportPlugin.classes.itervalues(),
+      key=lambda cls: cls.name)
 
   subparsers = flags.PARSER.add_subparsers(title="Subcommands")
   for cls in classes:

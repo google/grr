@@ -38,13 +38,13 @@ users:
 
     self.assertEqual(
         self.auth_reader.GetAuthorizationForSubject("ApiCallRobotRouter").data,
-        dict(router="ApiCallRobotRouter",
-             users=["foo", "bar"]))
+        dict(
+            router="ApiCallRobotRouter", users=["foo", "bar"]))
     self.assertEqual(
         self.auth_reader.GetAuthorizationForSubject(
             "ApiCallDisabledRouter").data,
-        dict(router="ApiCallDisabledRouter",
-             users=["blah"]))
+        dict(
+            router="ApiCallDisabledRouter", users=["blah"]))
 
   def testCreateAuthorizationsRaisesOnDuplicateKeys(self):
     yaml_data = """
@@ -95,33 +95,33 @@ class AuthorizationManagerTest(test_lib.GRRBaseTest):
 
   def testCheckPermissionsReturnsFalseIfDenyAllWasCalled(self):
     self.auth_manager.DenyAll("subject-bar")
-    self.assertFalse(self.auth_manager.CheckPermissions("user-foo",
-                                                        "subject-bar"))
+    self.assertFalse(
+        self.auth_manager.CheckPermissions("user-foo", "subject-bar"))
 
   def testCheckPermissionsReturnsTrueIfUserWasAuthorized(self):
     self.auth_manager.AuthorizeUser("user-foo", "subject-bar")
-    self.assertTrue(self.auth_manager.CheckPermissions("user-foo",
-                                                       "subject-bar"))
+    self.assertTrue(
+        self.auth_manager.CheckPermissions("user-foo", "subject-bar"))
 
   def testCheckPermissionsReturnsFalseIfUserWasNotAuthorized(self):
     self.auth_manager.AuthorizeUser("user-foo", "subject-bar")
-    self.assertFalse(self.auth_manager.CheckPermissions("user-bar",
-                                                        "subject-bar"))
+    self.assertFalse(
+        self.auth_manager.CheckPermissions("user-bar", "subject-bar"))
 
   def testCheckPermissionsReturnsTrueIfGroupWasAuthorized(self):
     self.auth_manager.DenyAll("subject-bar")
     with utils.Stubber(self.group_access_manager, "MemberOfAuthorizedGroup",
                        lambda *args: True):
-      self.assertTrue(self.auth_manager.CheckPermissions("user-bar",
-                                                         "subject-bar"))
+      self.assertTrue(
+          self.auth_manager.CheckPermissions("user-bar", "subject-bar"))
 
   def testCheckPermissionsReturnsFalseIfGroupWasNotAuthorized(self):
     self.auth_manager.DenyAll("subject-bar")
 
     with utils.Stubber(self.group_access_manager, "MemberOfAuthorizedGroup",
                        lambda *args: False):
-      self.assertFalse(self.auth_manager.CheckPermissions("user-bar",
-                                                          "subject-bar"))
+      self.assertFalse(
+          self.auth_manager.CheckPermissions("user-bar", "subject-bar"))
 
 
 def main(argv):

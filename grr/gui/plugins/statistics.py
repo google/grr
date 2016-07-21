@@ -88,9 +88,8 @@ class ReportRenderer(renderers.TemplateRenderer):
       self.delegated_renderer.Layout(request, response)
 
     response = super(ReportRenderer, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "ReportRenderer.Layout",
-                               renderer=self.__class__.__name__)
+    return self.CallJavascript(
+        response, "ReportRenderer.Layout", renderer=self.__class__.__name__)
 
 
 class StatsTree(renderers.TreeRenderer):
@@ -161,8 +160,7 @@ class OSBreakdown(PieChart):
     """Extract only the operating system type from the active histogram."""
     try:
       fd = aff4.FACTORY.Open(
-          self.data_urn.Add(request.label),
-          token=request.token)
+          self.data_urn.Add(request.label), token=request.token)
       self.data = []
       for graph in fd.Get(self.attribute):
         # Find the correct graph and merge the OS categories together
@@ -264,9 +262,8 @@ evolves over time.
       pass
 
     response = super(LastActiveReport, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "LastActiveReport.Layout",
-                               graphs=self.graphs)
+    return self.CallJavascript(
+        response, "LastActiveReport.Layout", graphs=self.graphs)
 
 
 class LastDayGRRVersionReport(LastActiveReport):
@@ -399,9 +396,10 @@ class AFF4ClientStats(Report):
     for stat_entry in stats:
       for s in stat_entry.cpu_samples:
         series[int(s.timestamp / 1e3)] = s.cpu_percent
-    graph = StatGraph(name="CPU Usage",
-                      graph_id="cpu",
-                      click_text="CPU usage on %date: %value")
+    graph = StatGraph(
+        name="CPU Usage",
+        graph_id="cpu",
+        click_text="CPU usage on %date: %value")
     graph.AddSeries(series, "CPU Usage in %", max_samples)
     self.graphs.append(graph)
 
@@ -429,9 +427,10 @@ class AFF4ClientStats(Report):
     self.graphs.append(graph)
 
     # Memory usage graph.
-    graph = StatGraph(name="Memory Usage",
-                      graph_id="memory",
-                      click_text="Memory usage on %date: %value")
+    graph = StatGraph(
+        name="Memory Usage",
+        graph_id="memory",
+        click_text="Memory usage on %date: %value")
     series = dict()
     for stat_entry in stats:
       series[int(stat_entry.age / 1e3)] = int(stat_entry.RSS_size / 1024 / 1024)
@@ -443,9 +442,10 @@ class AFF4ClientStats(Report):
     self.graphs.append(graph)
 
     # Network traffic graphs.
-    graph = StatGraph(name="Network Bytes Received",
-                      graph_id="nw_received",
-                      click_text="Network bytes received until %date: %value")
+    graph = StatGraph(
+        name="Network Bytes Received",
+        graph_id="nw_received",
+        click_text="Network bytes received until %date: %value")
     series = dict()
     for stat_entry in stats:
       series[int(stat_entry.age / 1e3)] = int(stat_entry.bytes_received / 1024 /
@@ -453,9 +453,10 @@ class AFF4ClientStats(Report):
     graph.AddSeries(series, "Network Bytes Received in MB", max_samples)
     self.graphs.append(graph)
 
-    graph = StatGraph(name="Network Bytes Sent",
-                      graph_id="nw_sent",
-                      click_text="Network bytes sent until %date: %value")
+    graph = StatGraph(
+        name="Network Bytes Sent",
+        graph_id="nw_sent",
+        click_text="Network bytes sent until %date: %value")
     series = dict()
     for stat_entry in stats:
       series[int(stat_entry.age / 1e3)] = int(stat_entry.bytes_sent / 1024 /
@@ -464,9 +465,10 @@ class AFF4ClientStats(Report):
     self.graphs.append(graph)
 
     response = super(AFF4ClientStats, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "AFF4ClientStats.Layout",
-                               graphs=[g.ToDict() for g in self.graphs])
+    return self.CallJavascript(
+        response,
+        "AFF4ClientStats.Layout",
+        graphs=[g.ToDict() for g in self.graphs])
 
 
 def GetAgeTupleFromRequest(request, default_days=90):
@@ -508,10 +510,11 @@ class CustomXAxisChart(Report):
       pass
 
     response = super(CustomXAxisChart, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "CustomXAxisChart.Layout",
-                               data=self.data,
-                               xaxis_ticks=self.xaxis_ticks)
+    return self.CallJavascript(
+        response,
+        "CustomXAxisChart.Layout",
+        data=self.data,
+        xaxis_ticks=self.xaxis_ticks)
 
 
 class LogXAxisChart(CustomXAxisChart):
@@ -542,10 +545,11 @@ class LogXAxisChart(CustomXAxisChart):
       pass
 
     response = super(CustomXAxisChart, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "CustomXAxisChart.Layout",
-                               data=self.data,
-                               xaxis_ticks=self.xaxis_ticks)
+    return self.CallJavascript(
+        response,
+        "CustomXAxisChart.Layout",
+        data=self.data,
+        xaxis_ticks=self.xaxis_ticks)
 
 
 class FileStoreFileTypes(PieChart):

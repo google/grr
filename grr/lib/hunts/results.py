@@ -64,26 +64,28 @@ class HuntResultQueue(aff4_queue.Queue):
 
     f = CollectionFilter(collection)
     results = []
-    with aff4.FACTORY.OpenWithLock(RESULT_NOTIFICATION_QUEUE,
-                                   aff4_type=HuntResultQueue,
-                                   lease_time=300,
-                                   blocking=True,
-                                   blocking_sleep_interval=15,
-                                   blocking_lock_timeout=600,
-                                   token=token) as queue:
-      for record_id, value in queue.ClaimRecords(record_filter=f.FilterRecord,
-                                                 start_time=start_time,
-                                                 timeout=lease_time,
-                                                 limit=100000):
+    with aff4.FACTORY.OpenWithLock(
+        RESULT_NOTIFICATION_QUEUE,
+        aff4_type=HuntResultQueue,
+        lease_time=300,
+        blocking=True,
+        blocking_sleep_interval=15,
+        blocking_lock_timeout=600,
+        token=token) as queue:
+      for record_id, value in queue.ClaimRecords(
+          record_filter=f.FilterRecord,
+          start_time=start_time,
+          timeout=lease_time,
+          limit=100000):
         results.append((record_id, value.timestamp, value.suffix))
     return (f.collection, results)
 
   @classmethod
   def DeleteNotifications(cls, record_ids, token=None):
     """Delete hunt notifications."""
-    with aff4.FACTORY.Open(RESULT_NOTIFICATION_QUEUE,
-                           aff4_type=HuntResultQueue,
-                           token=token) as queue:
+    with aff4.FACTORY.Open(
+        RESULT_NOTIFICATION_QUEUE, aff4_type=HuntResultQueue,
+        token=token) as queue:
       queue.DeleteRecords(record_ids)
 
 
@@ -98,18 +100,19 @@ class HuntResultCollection(sequential_collection.GrrMessageCollection):
                 timestamp=None,
                 suffix=None,
                 **kwargs):
-    ts = super(HuntResultCollection, cls).StaticAdd(collection_urn,
-                                                    token,
-                                                    rdf_value,
-                                                    timestamp=timestamp,
-                                                    suffix=suffix,
-                                                    **kwargs)
-    HuntResultQueue.StaticAdd(RESULT_NOTIFICATION_QUEUE,
-                              token,
-                              HuntResultNotification(
-                                  result_collection_urn=collection_urn,
-                                  timestamp=ts[0],
-                                  suffix=ts[1]))
+    ts = super(HuntResultCollection, cls).StaticAdd(
+        collection_urn,
+        token,
+        rdf_value,
+        timestamp=timestamp,
+        suffix=suffix,
+        **kwargs)
+    HuntResultQueue.StaticAdd(
+        RESULT_NOTIFICATION_QUEUE,
+        token,
+        HuntResultNotification(
+            result_collection_urn=collection_urn, timestamp=ts[0],
+            suffix=ts[1]))
     return ts
 
 
@@ -118,10 +121,11 @@ class ResultQueueInitHook(registry.InitHook):
 
   def Run(self):
     try:
-      with aff4.FACTORY.Create(RESULT_NOTIFICATION_QUEUE,
-                               HuntResultQueue,
-                               mode="w",
-                               token=aff4.FACTORY.root_token):
+      with aff4.FACTORY.Create(
+          RESULT_NOTIFICATION_QUEUE,
+          HuntResultQueue,
+          mode="w",
+          token=aff4.FACTORY.root_token):
         pass
     except access_control.UnauthorizedAccess:
       pass

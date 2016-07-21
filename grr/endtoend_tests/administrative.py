@@ -22,8 +22,7 @@ class TestGetClientStats(base.AutomatedTest):
   def CheckFlow(self):
     aff4.FACTORY.Flush()
     client_stats = aff4.FACTORY.Open(
-        self.client_id.Add(self.test_output_path),
-        token=self.token)
+        self.client_id.Add(self.test_output_path), token=self.token)
     self.assertIsInstance(client_stats, aff4_stats.ClientStats)
 
     stats_list = list(client_stats.Get(client_stats.Schema.STATS))
@@ -74,9 +73,8 @@ class TestLaunchBinaries(base.ClientTestBase):
     self.args = dict(binary=self.binary)
 
     try:
-      aff4.FACTORY.Open(self.binary,
-                        aff4_type=aff4_collects.GRRSignedBlob,
-                        token=self.token)
+      aff4.FACTORY.Open(
+          self.binary, aff4_type=aff4_collects.GRRSignedBlob, token=self.token)
     except IOError:
       print "Uploading the test binary to the Executables area."
       source = os.path.join(config_lib.CONFIG["Test.data_dir"],
@@ -94,9 +92,8 @@ class TestLaunchBinaries(base.ClientTestBase):
 
   def CheckFlow(self):
     # Check that the test binary returned the correct stdout:
-    fd = aff4.FACTORY.Open(self.session_id,
-                           age=aff4.ALL_TIMES,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.session_id, age=aff4.ALL_TIMES, token=self.token)
     logs = "\n".join([x.log_message for x in fd.GetLog()])
 
     self.assertTrue("Hello world" in logs)

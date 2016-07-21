@@ -44,11 +44,10 @@ class TestClientInterrogateEndToEnd(base.AutomatedTest):
 
   def setUp(self):
     super(TestClientInterrogateEndToEnd, self).setUp()
-    data_store.DB.DeleteAttributes(self.client_id,
-                                   [str(attribute)
-                                    for attribute in self.attributes],
-                                   sync=True,
-                                   token=self.token)
+    data_store.DB.DeleteAttributes(
+        self.client_id, [str(attribute) for attribute in self.attributes],
+        sync=True,
+        token=self.token)
     aff4.FACTORY.Flush()
 
     # When run on Windows this flow has 20 sub flows, so it takes some time to

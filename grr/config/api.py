@@ -9,13 +9,14 @@ config_lib.DEFINE_integer("API.DailyFlowRequestLimit", "10",
                           "per day before being blocked by throttling. Set to "
                           "0 to disable checking.")
 
-config_lib.DEFINE_semantic(rdfvalue.Duration,
-                           "API.FlowDuplicateInterval",
-                           default="1200s",
-                           description="Amount of time "
-                           "that needs to pass before the throttler will allow "
-                           "an identical flow to run on the same client. Set "
-                           "to 0s to disable checking.")
+config_lib.DEFINE_semantic(
+    rdfvalue.Duration,
+    "API.FlowDuplicateInterval",
+    default="1200s",
+    description="Amount of time "
+    "that needs to pass before the throttler will allow "
+    "an identical flow to run on the same client. Set "
+    "to 0s to disable checking.")
 
 config_lib.DEFINE_string("API.RouterACLConfigFile", "",
                          "The file containing API acls, see "

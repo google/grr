@@ -427,8 +427,8 @@ class RDFX509CertTest(CryptoTestBase):
 
   def testCertificateVerification(self):
     private_key = rdf_crypto.RSAPrivateKey.GenerateKey()
-    csr = rdf_crypto.CertificateSigningRequest(common_name="C.0000000000000000",
-                                               private_key=private_key)
+    csr = rdf_crypto.CertificateSigningRequest(
+        common_name="C.0000000000000000", private_key=private_key)
     client_cert = rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
 
     ca_signing_key = config_lib.CONFIG["PrivateKeys.ca_key"]
@@ -457,8 +457,8 @@ class RDFX509CertTest(CryptoTestBase):
 
   def testCertificateValidation(self):
     private_key = rdf_crypto.RSAPrivateKey.GenerateKey()
-    csr = rdf_crypto.CertificateSigningRequest(common_name="C.0000000000000000",
-                                               private_key=private_key)
+    csr = rdf_crypto.CertificateSigningRequest(
+        common_name="C.0000000000000000", private_key=private_key)
     client_cert = rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
 
     now = rdfvalue.RDFDatetime().Now()

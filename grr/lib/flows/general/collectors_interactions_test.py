@@ -74,18 +74,18 @@ supported_os: [ "Linux" ]
       # Add artifact to datastore but not registry
       for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(
           cmd_artifact):
-        with aff4.FACTORY.Create("aff4:/artifact_store",
-                                 aff4_type=collects.RDFValueCollection,
-                                 token=self.token,
-                                 mode="rw") as artifact_coll:
+        with aff4.FACTORY.Create(
+            "aff4:/artifact_store",
+            aff4_type=collects.RDFValueCollection,
+            token=self.token,
+            mode="rw") as artifact_coll:
           artifact_coll.Add(artifact_val)
 
       # Add artifact to registry but not datastore
       for artifact_val in artifact_registry.REGISTRY.ArtifactsFromYaml(
           no_datastore_artifact):
-        artifact_registry.REGISTRY.RegisterArtifact(artifact_val,
-                                                    source="datastore",
-                                                    overwrite_if_exists=False)
+        artifact_registry.REGISTRY.RegisterArtifact(
+            artifact_val, source="datastore", overwrite_if_exists=False)
 
       # This should succeeded because the artifacts will be reloaded from the
       # datastore.
@@ -114,22 +114,24 @@ supported_os: [ "Linux" ]
                                           "FingerprintFile", "ListDirectory")
 
     # Get KB initialized
-    for _ in test_lib.TestFlowHelper("KnowledgeBaseInitializationFlow",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        "KnowledgeBaseInitializationFlow",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token):
       pass
 
     artifact_list = ["WindowsPersistenceMechanismFiles"]
     with test_lib.Instrument(transfer.MultiGetFile,
                              "Start") as getfile_instrument:
-      for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow",
-                                       client_mock,
-                                       artifact_list=artifact_list,
-                                       token=self.token,
-                                       client_id=self.client_id,
-                                       output="analysis/{p}/{u}-{t}",
-                                       split_output_by_artifact=True):
+      for _ in test_lib.TestFlowHelper(
+          "ArtifactCollectorFlow",
+          client_mock,
+          artifact_list=artifact_list,
+          token=self.token,
+          client_id=self.client_id,
+          output="analysis/{p}/{u}-{t}",
+          split_output_by_artifact=True):
         pass
 
       # Check MultiGetFile got called for our runkey files
@@ -142,13 +144,14 @@ supported_os: [ "Linux" ]
     artifact_list = ["BadPathspecArtifact"]
     with test_lib.Instrument(transfer.MultiGetFile,
                              "Start") as getfile_instrument:
-      for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow",
-                                       client_mock,
-                                       artifact_list=artifact_list,
-                                       token=self.token,
-                                       client_id=self.client_id,
-                                       output="analysis/{p}/{u}-{t}",
-                                       split_output_by_artifact=True):
+      for _ in test_lib.TestFlowHelper(
+          "ArtifactCollectorFlow",
+          client_mock,
+          artifact_list=artifact_list,
+          token=self.token,
+          client_id=self.client_id,
+          output="analysis/{p}/{u}-{t}",
+          split_output_by_artifact=True):
         pass
 
       self.assertFalse(getfile_instrument.args)

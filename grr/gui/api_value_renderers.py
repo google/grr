@@ -69,8 +69,8 @@ class ApiValueRenderer(object):
         raise RuntimeError("No renderer found for value %s." %
                            value.__class__.__name__)
 
-      candidates = sorted(candidates,
-                          key=lambda candidate: len(candidate[1].mro()))
+      candidates = sorted(
+          candidates, key=lambda candidate: len(candidate[1].mro()))
       renderer_cls = candidates[-1][0]
       cls._renderers_cache[cache_key] = renderer_cls
 
@@ -130,10 +130,11 @@ class ApiValueRenderer(object):
     Returns:
       Dictionary with class metadata.
     """
-    result = dict(name=value_cls.__name__,
-                  mro=[klass.__name__ for klass in value_cls.__mro__],
-                  doc=value_cls.__doc__ or "",
-                  kind="primitive")
+    result = dict(
+        name=value_cls.__name__,
+        mro=[klass.__name__ for klass in value_cls.__mro__],
+        doc=value_cls.__doc__ or "",
+        kind="primitive")
 
     result["default"] = self.RenderDefaultValue(value_cls)
 
@@ -223,9 +224,9 @@ class ApiListRenderer(ApiValueRenderer):
     else:
       result = [self._PassThrough(v) for v in list(value)[:self.limit_lists]]
       if len(value) > self.limit_lists:
-        result.append(dict(age=0,
-                           type=FetchMoreLink.__name__,
-                           url="to/be/implemented"))
+        result.append(
+            dict(
+                age=0, type=FetchMoreLink.__name__, url="to/be/implemented"))
 
     return result
 
@@ -396,10 +397,12 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
           enum_value = field_desc.enum[enum_label]
           labels = [rdf_structs.SemanticDescriptor.Labels.reverse_enum[x]
                     for x in enum_value.labels or []]
-          allowed_values.append(dict(name=enum_label,
-                                     value=int(enum_value),
-                                     labels=labels,
-                                     doc=enum_value.description))
+          allowed_values.append(
+              dict(
+                  name=enum_label,
+                  value=int(enum_value),
+                  labels=labels,
+                  doc=enum_value.description))
         field["allowed_values"] = allowed_values
 
       field_default = None
@@ -424,11 +427,12 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
     for processor in self.metadata_processors:
       fields = processor(self, fields)
 
-    result = dict(name=value_cls.__name__,
-                  mro=[klass.__name__ for klass in value_cls.__mro__],
-                  doc=value_cls.__doc__ or "",
-                  fields=fields,
-                  kind="struct")
+    result = dict(
+        name=value_cls.__name__,
+        mro=[klass.__name__ for klass in value_cls.__mro__],
+        doc=value_cls.__doc__ or "",
+        fields=fields,
+        kind="struct")
 
     if getattr(value_cls, "union_field", None):
       result["union_field"] = value_cls.union_field

@@ -117,10 +117,8 @@ class DeletionPool(object):
     try:
       obj = self._objects_cache[key]
     except KeyError:
-      obj = FACTORY.Open(urn,
-                         mode=mode,
-                         follow_symlinks=False,
-                         token=self._token)
+      obj = FACTORY.Open(
+          urn, mode=mode, follow_symlinks=False, token=self._token)
       self._objects_cache[key] = obj
 
     if aff4_type is not None and not isinstance(obj, aff4_type):
@@ -147,10 +145,8 @@ class DeletionPool(object):
         not_opened_urns.append(urn)
 
     if not_opened_urns:
-      for obj in FACTORY.MultiOpen(not_opened_urns,
-                                   follow_symlinks=False,
-                                   mode=mode,
-                                   token=self._token):
+      for obj in FACTORY.MultiOpen(
+          not_opened_urns, follow_symlinks=False, mode=mode, token=self._token):
         key = self._ObjectKey(obj.urn, mode)
         self._objects_cache[key] = obj
 
@@ -179,8 +175,8 @@ class DeletionPool(object):
         not_listed_urns.append(urn)
 
     if not_listed_urns:
-      for urn, children in FACTORY.MultiListChildren(not_listed_urns,
-                                                     token=self._token):
+      for urn, children in FACTORY.MultiListChildren(
+          not_listed_urns, token=self._token):
         result[urn] = self._children_lists_cache[urn] = children
 
       for urn in not_listed_urns:
@@ -212,8 +208,8 @@ class DeletionPool(object):
       if not urns_to_check:
         break
 
-    for urn, children in FACTORY.RecursiveMultiListChildren(not_cached_urns,
-                                                            token=self._token):
+    for urn, children in FACTORY.RecursiveMultiListChildren(
+        not_cached_urns, token=self._token):
       result[urn] = self._children_lists_cache[urn] = children
 
     return result
@@ -291,8 +287,8 @@ class Factory(object):
     # Create a token for system level actions. This token is used by other
     # classes such as HashFileStore and NSRLFilestore to create entries under
     # aff4:/files, as well as to create top level paths like aff4:/foreman
-    self.root_token = access_control.ACLToken(username="GRRSystem",
-                                              reason="Maintenance").SetUID()
+    self.root_token = access_control.ACLToken(
+        username="GRRSystem", reason="Maintenance").SetUID()
 
     self.notification_rules = []
     self.notification_rules_timestamp = 0
@@ -316,10 +312,7 @@ class Factory(object):
 
     raise RuntimeError("Unknown age specification: %s" % age)
 
-  def GetAttributes(self,
-                    urns,
-                    ignore_cache=False,
-                    token=None,
+  def GetAttributes(self, urns, ignore_cache=False, token=None,
                     age=NEWEST_TIME):
     """Retrieves all the attributes for all the urns."""
     urns = set([utils.SmartUnicode(u) for u in urns])
@@ -372,18 +365,17 @@ class Factory(object):
     ]
     to_delete.add(AFF4Object.SchemaCls.LAST)
     if mutation_pool:
-      mutation_pool.MultiSet(urn,
-                             attributes,
-                             replace=False,
-                             to_delete=to_delete)
+      mutation_pool.MultiSet(
+          urn, attributes, replace=False, to_delete=to_delete)
 
     else:
-      data_store.DB.MultiSet(urn,
-                             attributes,
-                             token=token,
-                             replace=False,
-                             sync=sync,
-                             to_delete=to_delete)
+      data_store.DB.MultiSet(
+          urn,
+          attributes,
+          token=token,
+          replace=False,
+          sync=sync,
+          to_delete=to_delete)
 
     if add_child_index:
       self._UpdateChildIndex(urn, token, mutation_pool=mutation_pool)
@@ -432,11 +424,8 @@ class Factory(object):
           if mutation_pool:
             mutation_pool.MultiSet(dirname, attributes, replace=True)
           else:
-            data_store.DB.MultiSet(dirname,
-                                   attributes,
-                                   token=token,
-                                   replace=True,
-                                   sync=False)
+            data_store.DB.MultiSet(
+                dirname, attributes, token=token, replace=True, sync=False)
 
           self.intermediate_cache.Put(urn, 1)
 
@@ -557,14 +546,15 @@ class Factory(object):
 
     # Since we now own the data store subject, we can simply create the aff4
     # object in the usual way.
-    return self.Create(urn,
-                       aff4_type,
-                       mode="rw",
-                       ignore_cache=ignore_cache,
-                       token=token,
-                       age=age,
-                       force_new_version=force_new_version,
-                       transaction=transaction)
+    return self.Create(
+        urn,
+        aff4_type,
+        mode="rw",
+        ignore_cache=ignore_cache,
+        token=token,
+        age=age,
+        force_new_version=force_new_version,
+        transaction=transaction)
 
   def OpenWithLock(self,
                    urn,
@@ -618,14 +608,15 @@ class Factory(object):
 
     # Since we now own the data store subject, we can simply read the aff4
     # object in the usual way.
-    return self.Open(urn,
-                     aff4_type=aff4_type,
-                     mode="rw",
-                     ignore_cache=True,
-                     token=token,
-                     age=age,
-                     follow_symlinks=False,
-                     transaction=transaction)
+    return self.Open(
+        urn,
+        aff4_type=aff4_type,
+        mode="rw",
+        ignore_cache=True,
+        token=token,
+        age=age,
+        follow_symlinks=False,
+        transaction=transaction)
 
   def _AcquireLock(self,
                    urn,
@@ -650,9 +641,8 @@ class Factory(object):
     # keep retrying until we can get the lock.
     while True:
       try:
-        transaction = data_store.DB.Transaction(urn,
-                                                lease_time=lease_time,
-                                                token=token)
+        transaction = data_store.DB.Transaction(
+            urn, lease_time=lease_time, token=token)
         break
       except data_store.TransactionError as e:
         if not blocking or time.time() - timestamp > blocking_lock_timeout:
@@ -685,11 +675,8 @@ class Factory(object):
       values.setdefault(predicate, []).append((value, ts))
 
     if values:
-      data_store.DB.MultiSet(new_urn,
-                             values,
-                             token=token,
-                             replace=False,
-                             sync=sync)
+      data_store.DB.MultiSet(
+          new_urn, values, token=token, replace=False, sync=sync)
 
       self._UpdateChildIndex(new_urn, token)
 
@@ -753,14 +740,15 @@ class Factory(object):
     if mode == "w":
       if aff4_type is None:
         raise AttributeError("Need a type to open in write only mode.")
-      return self.Create(urn,
-                         aff4_type,
-                         mode=mode,
-                         token=token,
-                         age=age,
-                         ignore_cache=ignore_cache,
-                         force_new_version=False,
-                         transaction=transaction)
+      return self.Create(
+          urn,
+          aff4_type,
+          mode=mode,
+          token=token,
+          age=age,
+          ignore_cache=ignore_cache,
+          force_new_version=False,
+          transaction=transaction)
 
     urn = rdfvalue.RDFURN(urn)
 
@@ -774,21 +762,21 @@ class Factory(object):
       # than round tripping to the data store.
       unique_urn = set()
       self._ExpandURNComponents(urn, unique_urn)
-      local_cache = dict(self.GetAttributes(unique_urn,
-                                            age=age,
-                                            ignore_cache=ignore_cache,
-                                            token=token))
+      local_cache = dict(
+          self.GetAttributes(
+              unique_urn, age=age, ignore_cache=ignore_cache, token=token))
 
     # Read the row from the table. We know the object already exists if there is
     # some data in the local_cache already for this object.
-    result = AFF4Object(urn,
-                        mode=mode,
-                        token=token,
-                        local_cache=local_cache,
-                        age=age,
-                        follow_symlinks=follow_symlinks,
-                        object_exists=bool(local_cache.get(urn)),
-                        transaction=transaction)
+    result = AFF4Object(
+        urn,
+        mode=mode,
+        token=token,
+        local_cache=local_cache,
+        age=age,
+        follow_symlinks=follow_symlinks,
+        object_exists=bool(local_cache.get(urn)),
+        transaction=transaction)
 
     result.aff4_type = aff4_type
 
@@ -831,13 +819,14 @@ class Factory(object):
 
     for urn, values in self.GetAttributes(urns, token=token, age=age):
       try:
-        obj = self.Open(urn,
-                        mode=mode,
-                        ignore_cache=ignore_cache,
-                        token=token,
-                        local_cache={urn: values},
-                        age=age,
-                        follow_symlinks=False)
+        obj = self.Open(
+            urn,
+            mode=mode,
+            ignore_cache=ignore_cache,
+            token=token,
+            local_cache={urn: values},
+            age=age,
+            follow_symlinks=False)
         # We can't pass aff4_type to Open since it will raise on AFF4Symlinks.
         # Setting it here, if needed, so that BadGetAttributeError checking
         # works.
@@ -857,12 +846,13 @@ class Factory(object):
         pass
 
     if symlinks:
-      for obj in self.MultiOpen(symlinks,
-                                mode=mode,
-                                ignore_cache=ignore_cache,
-                                token=token,
-                                aff4_type=aff4_type,
-                                age=age):
+      for obj in self.MultiOpen(
+          symlinks,
+          mode=mode,
+          ignore_cache=ignore_cache,
+          token=token,
+          aff4_type=aff4_type,
+          age=age):
         obj.symlink_urn = symlinks[obj.urn]
         yield obj
 
@@ -909,13 +899,14 @@ class Factory(object):
       oldest_age = age[1]
     else:
       oldest_age = 0
-    aff4object = FACTORY.Open(urn,
-                              mode=mode,
-                              ignore_cache=ignore_cache,
-                              token=token,
-                              local_cache=local_cache,
-                              age=age,
-                              follow_symlinks=follow_symlinks)
+    aff4object = FACTORY.Open(
+        urn,
+        mode=mode,
+        ignore_cache=ignore_cache,
+        token=token,
+        local_cache=local_cache,
+        age=age,
+        follow_symlinks=follow_symlinks)
 
     # TYPE is always written last so we trust it to bound the version.
     # Iterate from newest to oldest.
@@ -936,14 +927,15 @@ class Factory(object):
         clone_attrs.setdefault(k, []).extend(reduced_v)
 
       obj_cls = AFF4Object.classes[version_list[i][1]]
-      new_obj = obj_cls(urn,
-                        mode=mode,
-                        parent=aff4object.parent,
-                        clone=clone_attrs,
-                        token=token,
-                        age=age_range,
-                        local_cache=local_cache,
-                        follow_symlinks=follow_symlinks)
+      new_obj = obj_cls(
+          urn,
+          mode=mode,
+          parent=aff4object.parent,
+          clone=clone_attrs,
+          token=token,
+          age=age_range,
+          local_cache=local_cache,
+          follow_symlinks=follow_symlinks)
       new_obj.Initialize()  # This is required to set local attributes.
       yield new_obj
 
@@ -968,8 +960,7 @@ class Factory(object):
     if isinstance(urns, basestring):
       raise RuntimeError("Expected an iterable, not string.")
     for subject, values in data_store.DB.MultiResolvePrefix(
-        urns, ["aff4:type", "metadata:last"],
-        token=token):
+        urns, ["aff4:type", "metadata:last"], token=token):
       res = dict(urn=rdfvalue.RDFURN(subject))
       for v in values:
         if v[0] == "aff4:type":
@@ -1029,12 +1020,13 @@ class Factory(object):
     if "r" in mode:
       # Check to see if an object already exists.
       try:
-        existing = self.Open(urn,
-                             mode=mode,
-                             token=token,
-                             age=age,
-                             ignore_cache=ignore_cache,
-                             transaction=transaction)
+        existing = self.Open(
+            urn,
+            mode=mode,
+            token=token,
+            age=age,
+            ignore_cache=ignore_cache,
+            transaction=transaction)
 
         result = existing.Upgrade(aff4_type)
 
@@ -1051,14 +1043,15 @@ class Factory(object):
       except IOError:
         pass
 
-    result = aff4_type(urn,
-                       mode=mode,
-                       token=token,
-                       age=age,
-                       aff4_type=aff4_type.__name__,
-                       object_exists=object_exists,
-                       mutation_pool=mutation_pool,
-                       transaction=transaction)
+    result = aff4_type(
+        urn,
+        mode=mode,
+        token=token,
+        age=age,
+        aff4_type=aff4_type.__name__,
+        object_exists=object_exists,
+        mutation_pool=mutation_pool,
+        transaction=transaction)
     result.Initialize()
     if force_new_version:
       result.ForceNewVersion()
@@ -1185,9 +1178,9 @@ class Factory(object):
     Returns:
       RDFURNs instances of each child.
     """
-    _, children_urns = list(self.MultiListChildren(
-        [urn], token=token, limit=limit,
-        age=age))[0]
+    _, children_urns = list(
+        self.MultiListChildren(
+            [urn], token=token, limit=limit, age=age))[0]
     return children_urns
 
   def RecursiveMultiListChildren(self,
@@ -1223,10 +1216,8 @@ class Factory(object):
     while True:
       found_children = []
 
-      for subject, values in self.MultiListChildren(urns_to_check,
-                                                    token=token,
-                                                    limit=limit,
-                                                    age=age):
+      for subject, values in self.MultiListChildren(
+          urns_to_check, token=token, limit=limit, age=age):
 
         found_children.extend(values)
         yield subject, values
@@ -1322,11 +1313,12 @@ class Attribute(object):
 
   def Copy(self):
     """Return a copy without registering in the attribute registry."""
-    return Attribute(self.predicate,
-                     self.attribute_type,
-                     self.description,
-                     self.name,
-                     _copy=True)
+    return Attribute(
+        self.predicate,
+        self.attribute_type,
+        self.description,
+        self.name,
+        _copy=True)
 
   def __call__(self, semantic_value=None, **kwargs):
     """A shortcut allowing us to instantiate a new type from an attribute."""
@@ -1530,10 +1522,7 @@ class LazyDecoder(object):
   The current implementation requires the proxied object to be immutable.
   """
 
-  def __init__(self,
-               rdfvalue_cls=None,
-               serialized=None,
-               age=None,
+  def __init__(self, rdfvalue_cls=None, serialized=None, age=None,
                decoded=None):
     self.rdfvalue_cls = rdfvalue_cls
     self.serialized = serialized
@@ -1543,8 +1532,8 @@ class LazyDecoder(object):
   def ToRDFValue(self):
     if self.decoded is None:
       try:
-        self.decoded = self.rdfvalue_cls(initializer=self.serialized,
-                                         age=self.age)
+        self.decoded = self.rdfvalue_cls(
+            initializer=self.serialized, age=self.age)
       except rdfvalue.DecodeError:
         return None
 
@@ -1604,32 +1593,36 @@ class AFF4Object(object):
     STORED = Attribute("aff4:stored", rdfvalue.RDFURN,
                        "The AFF4 container inwhich this object is stored.")
 
-    LAST = Attribute("metadata:last",
-                     rdfvalue.RDFDatetime,
-                     "The last time any attribute of this object was written.",
-                     creates_new_object_version=False)
+    LAST = Attribute(
+        "metadata:last",
+        rdfvalue.RDFDatetime,
+        "The last time any attribute of this object was written.",
+        creates_new_object_version=False)
 
     # Note labels should not be Set directly but should be manipulated via
     # the AddLabels method.
-    LABELS = Attribute("aff4:labels_list",
-                       aff4_rdfvalues.AFF4ObjectLabelsList,
-                       "Any object can have labels applied to it.",
-                       "Labels",
-                       creates_new_object_version=False,
-                       versioned=False)
+    LABELS = Attribute(
+        "aff4:labels_list",
+        aff4_rdfvalues.AFF4ObjectLabelsList,
+        "Any object can have labels applied to it.",
+        "Labels",
+        creates_new_object_version=False,
+        versioned=False)
 
-    LEASED_UNTIL = Attribute("aff4:lease",
-                             rdfvalue.RDFDatetime,
-                             "The time until which the object is leased by a "
-                             "particular caller.",
-                             versioned=False,
-                             creates_new_object_version=False)
+    LEASED_UNTIL = Attribute(
+        "aff4:lease",
+        rdfvalue.RDFDatetime,
+        "The time until which the object is leased by a "
+        "particular caller.",
+        versioned=False,
+        creates_new_object_version=False)
 
-    LAST_OWNER = Attribute("aff4:lease_owner",
-                           rdfvalue.RDFString,
-                           "The owner of the lease.",
-                           versioned=False,
-                           creates_new_object_version=False)
+    LAST_OWNER = Attribute(
+        "aff4:lease_owner",
+        rdfvalue.RDFString,
+        "The owner of the lease.",
+        versioned=False,
+        creates_new_object_version=False)
 
     def __init__(self, aff4_type=None):
       """Init.
@@ -1771,9 +1764,8 @@ class AFF4Object(object):
             pass
         else:
           # Populate the caches from the data store.
-          for urn, values in FACTORY.GetAttributes([urn],
-                                                   age=age,
-                                                   token=self.token):
+          for urn, values in FACTORY.GetAttributes(
+              [urn], age=age, token=self.token):
             for attribute_name, value, ts in values:
               self.DecodeValueFromAttribute(attribute_name, value, ts)
 
@@ -1955,13 +1947,14 @@ class AFF4Object(object):
         add_child_index = False
 
       # Write the attributes to the Factory cache.
-      FACTORY.SetAttributes(self.urn,
-                            to_set,
-                            self._to_delete,
-                            add_child_index=add_child_index,
-                            mutation_pool=self.mutation_pool,
-                            sync=sync,
-                            token=self.token)
+      FACTORY.SetAttributes(
+          self.urn,
+          to_set,
+          self._to_delete,
+          add_child_index=add_child_index,
+          mutation_pool=self.mutation_pool,
+          sync=sync,
+          token=self.token)
 
   @utils.Synchronized
   def _SyncAttributes(self):
@@ -1975,8 +1968,8 @@ class AFF4Object(object):
       if not attribute.versioned or self.age_policy == NEWEST_TIME:
         # Store the latest version if there are multiple unsynced versions.
         value = value_array[-1]
-        self.synced_attributes[attribute] = [LazyDecoder(decoded=value,
-                                                         age=value.age)]
+        self.synced_attributes[attribute] = [LazyDecoder(
+            decoded=value, age=value.age)]
 
       else:
         synced_value_array = self.synced_attributes.setdefault(attribute, [])
@@ -2225,17 +2218,18 @@ class AFF4Object(object):
     # context of the new object.
 
     # Instantiate the class
-    result = aff4_class(self.urn,
-                        mode=self.mode,
-                        clone=self,
-                        parent=self.parent,
-                        token=self.token,
-                        age=self.age_policy,
-                        object_exists=self.object_exists,
-                        follow_symlinks=self.follow_symlinks,
-                        aff4_type=self.aff4_type,
-                        mutation_pool=self.mutation_pool,
-                        transaction=self.transaction)
+    result = aff4_class(
+        self.urn,
+        mode=self.mode,
+        clone=self,
+        parent=self.parent,
+        token=self.token,
+        age=self.age_policy,
+        object_exists=self.object_exists,
+        follow_symlinks=self.follow_symlinks,
+        aff4_type=self.aff4_type,
+        mutation_pool=self.mutation_pool,
+        transaction=self.transaction)
     result.symlink_urn = self.urn
     result.Initialize()
 
@@ -2292,9 +2286,7 @@ class AFF4Object(object):
     current_labels = self.Get(self.Schema.LABELS, self.Schema.LABELS())
     for label_name in labels_names:
       label = aff4_rdfvalues.AFF4ObjectLabel(
-          name=label_name,
-          owner=owner,
-          timestamp=rdfvalue.RDFDatetime().Now())
+          name=label_name, owner=owner, timestamp=rdfvalue.RDFDatetime().Now())
       current_labels.AddLabel(label)
 
     self.Set(current_labels)
@@ -2395,16 +2387,13 @@ class AFF4Volume(AFF4Object):
       A generator over the children.
     """
     direct_child_urns = []
-    for entry in data_store.DB.ResolvePrefix(self.urn,
-                                             "index:dir/",
-                                             limit=limit,
-                                             token=self.token):
+    for entry in data_store.DB.ResolvePrefix(
+        self.urn, "index:dir/", limit=limit, token=self.token):
       _, filename = entry[0].split("/", 1)
       direct_child_urns.append(self.urn.Add(filename))
 
-    children = self.OpenChildren(children=direct_child_urns,
-                                 limit=limit,
-                                 age=age)
+    children = self.OpenChildren(
+        children=direct_child_urns, limit=limit, age=age)
 
     if filter_string:
       # Parse the query string.
@@ -2470,10 +2459,8 @@ class AFF4Volume(AFF4Object):
     while subjects:
       to_read = subjects[:chunk_limit]
       subjects = subjects[chunk_limit:]
-      for child in FACTORY.MultiOpen(to_read,
-                                     mode=mode,
-                                     token=self.token,
-                                     age=age):
+      for child in FACTORY.MultiOpen(
+          to_read, mode=mode, token=self.token, age=age):
         yield child
 
   @property
@@ -2502,8 +2489,9 @@ class AFF4Volume(AFF4Object):
       if stripped_components:
         # We stripped pieces of the URL, time to add them back.
         new_path = utils.JoinPath(*reversed(stripped_components[:-1]))
-        pathspec.Append(rdf_paths.PathSpec(path=new_path,
-                                           pathtype=pathspec.last.pathtype))
+        pathspec.Append(
+            rdf_paths.PathSpec(
+                path=new_path, pathtype=pathspec.last.pathtype))
     else:
       raise IOError("Item has no pathspec.")
 
@@ -2527,11 +2515,8 @@ class AFF4Root(AFF4Volume):
       filter_obj = ast.Compile(data_store.DB.filter)
 
     subjects = []
-    result_set = data_store.DB.Query([],
-                                     filter_obj,
-                                     subjects=subjects,
-                                     limit=limit,
-                                     token=self.token)
+    result_set = data_store.DB.Query(
+        [], filter_obj, subjects=subjects, limit=limit, token=self.token)
     for match in result_set:
       subjects.append(match["subject"][0][0])
 
@@ -2589,11 +2574,12 @@ class AFF4Stream(AFF4Object):
   class SchemaCls(AFF4Object.SchemaCls):
     # Note that a file on the remote system might have stat.st_size > 0 but if
     # we do not have any of the data available to read: size = 0.
-    SIZE = Attribute("aff4:size",
-                     rdfvalue.RDFInteger,
-                     "The total size of available data for this stream.",
-                     "size",
-                     default=0)
+    SIZE = Attribute(
+        "aff4:size",
+        rdfvalue.RDFInteger,
+        "The total size of available data for this stream.",
+        "size",
+        default=0)
 
     HASH = Attribute("aff4:hashobject", rdf_crypto.Hash,
                      "Hash object containing all known hash digests for"
@@ -2782,21 +2768,23 @@ class AFF4MemoryStream(AFF4MemoryStreamBase):
   """A versioned stream which keeps all data in memory."""
 
   class SchemaCls(AFF4MemoryStreamBase.SchemaCls):
-    CONTENT = Attribute("aff4:content",
-                        rdfvalue.RDFBytes,
-                        "Total content of this file.",
-                        default="")
+    CONTENT = Attribute(
+        "aff4:content",
+        rdfvalue.RDFBytes,
+        "Total content of this file.",
+        default="")
 
 
 class AFF4UnversionedMemoryStream(AFF4MemoryStreamBase):
   """An unversioned stream which keeps all data in memory."""
 
   class SchemaCls(AFF4MemoryStreamBase.SchemaCls):
-    CONTENT = Attribute("aff4:content",
-                        rdfvalue.RDFBytes,
-                        "Total content of this file.",
-                        default="",
-                        versioned=False)
+    CONTENT = Attribute(
+        "aff4:content",
+        rdfvalue.RDFBytes,
+        "Total content of this file.",
+        default="",
+        versioned=False)
 
 
 class ChunkCache(utils.FastStore):
@@ -2838,19 +2826,21 @@ class AFF4ImageBase(AFF4Stream):
 
   class SchemaCls(AFF4Stream.SchemaCls):
     """The schema for AFF4ImageBase."""
-    _CHUNKSIZE = Attribute("aff4:chunksize",
-                           rdfvalue.RDFInteger,
-                           "Total size of each chunk.",
-                           default=64 * 1024)
+    _CHUNKSIZE = Attribute(
+        "aff4:chunksize",
+        rdfvalue.RDFInteger,
+        "Total size of each chunk.",
+        default=64 * 1024)
 
     # Note that we can't use CONTENT.age in place of this, since some types
     # (specifically, AFF4Image) do not have a CONTENT attribute, since they're
     # stored in chunks. Rather than maximising the last updated time over all
     # chunks, we store it and update it as an attribute here.
-    CONTENT_LAST = Attribute("metadata:content_last",
-                             rdfvalue.RDFDatetime,
-                             "The last time any content was written.",
-                             creates_new_object_version=False)
+    CONTENT_LAST = Attribute(
+        "metadata:content_last",
+        rdfvalue.RDFDatetime,
+        "The last time any content was written.",
+        creates_new_object_version=False)
 
   @classmethod
   def _GenerateChunkPaths(cls, fds):
@@ -2884,9 +2874,8 @@ class AFF4ImageBase(AFF4Stream):
 
       chunks_map = dict(chunk_fd_pairs)
       contents_map = {}
-      for chunk_fd in FACTORY.MultiOpen(chunks_map,
-                                        mode="r",
-                                        token=fds[0].token):
+      for chunk_fd in FACTORY.MultiOpen(
+          chunks_map, mode="r", token=fds[0].token):
         if isinstance(chunk_fd, AFF4Stream):
           fd = chunks_map[chunk_fd.urn]
           contents_map[chunk_fd.urn] = chunk_fd.read()
@@ -2902,9 +2891,9 @@ class AFF4ImageBase(AFF4Stream):
         yield fd, contents_map[chunk_urn], None
 
     for fd, missing_chunks in missing_chunks_by_fd.iteritems():
-      e = MissingChunksError("%d missing chunks (multi-stream)." %
-                             len(missing_chunks),
-                             missing_chunks=missing_chunks)
+      e = MissingChunksError(
+          "%d missing chunks (multi-stream)." % len(missing_chunks),
+          missing_chunks=missing_chunks)
       yield fd, None, e
 
   def Initialize(self):
@@ -2964,10 +2953,8 @@ class AFF4ImageBase(AFF4Stream):
   def _ReadChunks(self, chunks):
     chunk_names = {self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk): chunk
                    for chunk in chunks}
-    for child in FACTORY.MultiOpen(chunk_names,
-                                   mode="rw",
-                                   token=self.token,
-                                   age=self.age_policy):
+    for child in FACTORY.MultiOpen(
+        chunk_names, mode="rw", token=self.token, age=self.age_policy):
       if isinstance(child, AFF4Stream):
         fd = StringIO.StringIO(child.read())
         fd.dirty = False
@@ -2977,10 +2964,8 @@ class AFF4ImageBase(AFF4Stream):
   def _WriteChunk(self, chunk):
     if chunk.dirty:
       chunk_name = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk.chunk)
-      with FACTORY.Create(chunk_name,
-                          self.STREAM_TYPE,
-                          mode="rw",
-                          token=self.token) as fd:
+      with FACTORY.Create(
+          chunk_name, self.STREAM_TYPE, mode="rw", token=self.token) as fd:
         fd.write(chunk.getvalue())
 
   def _GetChunkForWriting(self, chunk):

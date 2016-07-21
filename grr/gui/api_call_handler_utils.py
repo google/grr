@@ -108,8 +108,7 @@ class CollectionArchiveGenerator(object):
                          0))
 
     for chunk in self.archive_generator.WriteFromFD(
-        manifest_fd, os.path.join(self.prefix, "MANIFEST"),
-        st=st):
+        manifest_fd, os.path.join(self.prefix, "MANIFEST"), st=st):
       yield chunk
 
   def Generate(self, collection, token=None):

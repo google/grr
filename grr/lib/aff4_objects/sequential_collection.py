@@ -135,12 +135,13 @@ class SequentialCollection(aff4.AFF4Object):
       ValueError: rdf_value has unexpected type.
 
     """
-    return self.StaticAdd(self.urn,
-                          self.token,
-                          rdf_value,
-                          timestamp=timestamp,
-                          suffix=suffix,
-                          **kwargs)
+    return self.StaticAdd(
+        self.urn,
+        self.token,
+        rdf_value,
+        timestamp=timestamp,
+        suffix=suffix,
+        **kwargs)
 
   def Scan(self, after_timestamp=None, include_suffix=False, max_records=None):
     """Scans for stored records.
@@ -170,8 +171,9 @@ class SequentialCollection(aff4.AFF4Object):
         after_timestamp = after_timestamp[0]
       else:
         suffix = self.MAX_SUFFIX
-      after_urn = utils.SmartStr(self._MakeURN(
-          self.urn, after_timestamp, suffix=suffix))
+      after_urn = utils.SmartStr(
+          self._MakeURN(
+              self.urn, after_timestamp, suffix=suffix))
 
     for subject, timestamp, value in data_store.DB.ScanAttribute(
         self.urn.Add("Results"),
@@ -205,9 +207,7 @@ class SequentialCollection(aff4.AFF4Object):
   def OnDelete(self, deletion_pool=None):
     pool = data_store.DB.GetMutationPool(self.token)
     for subject, _, _ in data_store.DB.ScanAttribute(
-        self.urn.Add("Results"),
-        self.ATTRIBUTE,
-        token=self.token):
+        self.urn.Add("Results"), self.ATTRIBUTE, token=self.token):
       pool.DeleteSubject(subject)
       if pool.Size() > 50000:
         pool.Flush()
@@ -243,8 +243,8 @@ class BackgroundIndexUpdater(object):
       pass
 
   def UpdateLoop(self):
-    token = access_control.ACLToken(username="Background Index Updater",
-                                    reason="Updating An Index")
+    token = access_control.ACLToken(
+        username="Background Index Updater", reason="Updating An Index")
     while not self.exit_now:
       with self.cv:
         while not self.to_process:
@@ -310,8 +310,7 @@ class IndexedSequentialCollection(SequentialCollection):
     self._index = {0: (0, 0)}
     self._max_indexed = 0
     for (attr, value, ts) in data_store.DB.ResolvePrefix(
-        self.urn, self.INDEX_ATTRIBUTE_PREFIX,
-        token=self.token):
+        self.urn, self.INDEX_ATTRIBUTE_PREFIX, token=self.token):
       i = int(attr[len(self.INDEX_ATTRIBUTE_PREFIX):], 16)
       self._index[i] = (ts, int(value, 16))
       self._max_indexed = max(i, self._max_indexed)
@@ -363,9 +362,8 @@ class IndexedSequentialCollection(SequentialCollection):
     if max_records is not None:
       max_records += i - idx
 
-    for (ts, value) in self.Scan(after_timestamp=start_ts,
-                                 max_records=max_records,
-                                 include_suffix=True):
+    for (ts, value) in self.Scan(
+        after_timestamp=start_ts, max_records=max_records, include_suffix=True):
       self._MaybeWriteIndex(idx, ts)
       if idx >= i:
         yield (idx, ts, value)

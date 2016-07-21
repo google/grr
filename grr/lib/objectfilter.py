@@ -256,8 +256,9 @@ class NotEquals(GenericBinaryOperator):
   """Matches when the right operand isn't equal to the expanded value."""
 
   def Operate(self, values):
-    return not Equals(arguments=self.args,
-                      value_expander=self.value_expander_cls).Operate(values)
+    return not Equals(
+        arguments=self.args,
+        value_expander=self.value_expander_cls).Operate(values)
 
 
 class Less(GenericBinaryOperator):
@@ -304,8 +305,9 @@ class NotContains(GenericBinaryOperator):
   """Whether the right operand is not contained in the values."""
 
   def Operate(self, values):
-    return not Contains(arguments=self.args,
-                        value_expander=self.value_expander_cls).Operate(values)
+    return not Contains(
+        arguments=self.args,
+        value_expander=self.value_expander_cls).Operate(values)
 
 
 # TODO(user): Change to an N-ary Operator?
@@ -335,8 +337,9 @@ class NotInSet(GenericBinaryOperator):
   """Whether at least a value is not present in the right operand."""
 
   def Operate(self, values):
-    return not InSet(arguments=self.args,
-                     value_expander=self.value_expander_cls).Operate(values)
+    return not InSet(
+        arguments=self.args,
+        value_expander=self.value_expander_cls).Operate(values)
 
 
 class Regexp(GenericBinaryOperator):

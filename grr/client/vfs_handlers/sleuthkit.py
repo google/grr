@@ -103,10 +103,11 @@ class TSKFile(vfs.VFSHandler):
     Raises:
       IOError: If the file can not be opened.
     """
-    super(TSKFile, self).__init__(base_fd,
-                                  pathspec=pathspec,
-                                  progress_callback=progress_callback,
-                                  full_pathspec=full_pathspec)
+    super(TSKFile, self).__init__(
+        base_fd,
+        pathspec=pathspec,
+        progress_callback=progress_callback,
+        full_pathspec=full_pathspec)
     if self.base_fd is None:
       raise IOError("TSK driver must have a file base.")
 
@@ -142,8 +143,8 @@ class TSKFile(vfs.VFSHandler):
       self.filesystem = vfs.DEVICE_CACHE.Get(fd_hash)
       self.fs = self.filesystem.fs
     except KeyError:
-      self.img = MyImgInfo(fd=self.tsk_raw_device,
-                           progress_callback=progress_callback)
+      self.img = MyImgInfo(
+          fd=self.tsk_raw_device, progress_callback=progress_callback)
 
       self.fs = pytsk3.FS_Info(self.img, 0)
       self.filesystem = CachedFilesystem(self.fs, self.img)
@@ -355,9 +356,8 @@ class TSKFile(vfs.VFSHandler):
             if attribute.info.type in [pytsk3.TSK_FS_ATTR_TYPE_NTFS_DATA,
                                        pytsk3.TSK_FS_ATTR_TYPE_DEFAULT]:
               if attribute.info.name:
-                yield self.MakeStatResponse(f,
-                                            append_name=name,
-                                            tsk_attribute=attribute)
+                yield self.MakeStatResponse(
+                    f, append_name=name, tsk_attribute=attribute)
         except AttributeError:
           pass
     else:
@@ -415,15 +415,17 @@ class TSKFile(vfs.VFSHandler):
 
     # If an inode is specified, just use it directly.
     elif component.HasField("inode"):
-      return TSKFile(fd,
-                     component,
-                     progress_callback=progress_callback,
-                     full_pathspec=full_pathspec)
+      return TSKFile(
+          fd,
+          component,
+          progress_callback=progress_callback,
+          full_pathspec=full_pathspec)
 
     # Otherwise do the usual case folding.
     else:
-      return vfs.VFSHandler.Open(fd,
-                                 component,
-                                 pathspec=pathspec,
-                                 progress_callback=progress_callback,
-                                 full_pathspec=full_pathspec)
+      return vfs.VFSHandler.Open(
+          fd,
+          component,
+          pathspec=pathspec,
+          progress_callback=progress_callback,
+          full_pathspec=full_pathspec)

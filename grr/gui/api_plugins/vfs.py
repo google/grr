@@ -239,13 +239,10 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
       age = aff4.ALL_TIMES
 
     file_obj = aff4.FACTORY.Open(
-        args.client_id.Add(args.file_path),
-        mode="r",
-        age=age,
-        token=token)
+        args.client_id.Add(args.file_path), mode="r", age=age, token=token)
 
-    return ApiGetFileDetailsResult(
-        file=ApiFile().InitFromAff4Object(file_obj, with_details=True))
+    return ApiGetFileDetailsResult(file=ApiFile().InitFromAff4Object(
+        file_obj, with_details=True))
 
 
 class ApiListFilesArgs(rdf_structs.RDFProtoStruct):
@@ -275,8 +272,8 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
       ValidateVfsPath(args.file_path)
 
     directory = aff4.FACTORY.Open(
-        args.client_id.Add(path),
-        mode="r", token=token).Upgrade(aff4_standard.VFSDirectory)
+        args.client_id.Add(path), mode="r",
+        token=token).Upgrade(aff4_standard.VFSDirectory)
 
     if args.directories_only:
       children = [ch for ch in directory.OpenChildren()
@@ -374,8 +371,8 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
 
     text_content = self._Decode(encoding, byte_content)
 
-    return ApiGetFileTextResult(total_size=self.GetTotalSize(file_obj),
-                                content=text_content)
+    return ApiGetFileTextResult(
+        total_size=self.GetTotalSize(file_obj), content=text_content)
 
   def _Decode(self, codec_name, data):
     """Decode data with the given codec name."""
@@ -552,14 +549,15 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
     aff4_path = args.client_id.Add(args.file_path)
     fd = aff4.FACTORY.Open(aff4_path, token=token)
 
-    flow_args = filesystem.RecursiveListDirectoryArgs(pathspec=fd.real_pathspec,
-                                                      max_depth=args.max_depth)
+    flow_args = filesystem.RecursiveListDirectoryArgs(
+        pathspec=fd.real_pathspec, max_depth=args.max_depth)
 
-    flow_urn = flow.GRRFlow.StartFlow(client_id=args.client_id,
-                                      flow_name="RecursiveListDirectory",
-                                      args=flow_args,
-                                      notify_to_user=args.notify_user,
-                                      token=token)
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=args.client_id,
+        flow_name="RecursiveListDirectory",
+        args=flow_args,
+        notify_to_user=args.notify_user,
+        token=token)
 
     return ApiCreateVfsRefreshOperationResult(operation_id=str(flow_urn))
 
@@ -583,9 +581,10 @@ class GetVfsRefreshOperationStateHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     try:
-      flow_obj = aff4.FACTORY.Open(args.operation_id,
-                                   aff4_type=filesystem.RecursiveListDirectory,
-                                   token=token)
+      flow_obj = aff4.FACTORY.Open(
+          args.operation_id,
+          aff4_type=filesystem.RecursiveListDirectory,
+          token=token)
       complete = not flow_obj.GetRunner().IsRunning()
     except aff4.InstantiationError:
       raise VfsRefreshOperationNotFoundError("Operation with id %s not found" %
@@ -643,17 +642,16 @@ class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
       and an action describing the nature of the file change.
     """
     child_urns = []
-    for _, children in aff4.FACTORY.RecursiveMultiListChildren(folder_urn,
-                                                               token=token):
+    for _, children in aff4.FACTORY.RecursiveMultiListChildren(
+        folder_urn, token=token):
       child_urns.extend(children)
 
     # Get the stats attributes for all clients.
     attribute = aff4.Attribute.GetAttributeByName("stat")
 
     items = []
-    for subject, values in data_store.DB.MultiResolvePrefix(child_urns,
-                                                            attribute.predicate,
-                                                            token=token):
+    for subject, values in data_store.DB.MultiResolvePrefix(
+        child_urns, attribute.predicate, token=token):
       for _, serialized, _ in values:
         stat = rdf_client.StatEntry(serialized)
 
@@ -743,10 +741,8 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
     ValidateVfsPath(args.file_path)
 
     aff4_path = args.client_id.Add(args.file_path)
-    fd = aff4.FACTORY.Open(aff4_path,
-                           aff4_type=aff4_grr.VFSFile,
-                           mode="rw",
-                           token=token)
+    fd = aff4.FACTORY.Open(
+        aff4_path, aff4_type=aff4_grr.VFSFile, mode="rw", token=token)
     flow_urn = fd.Update(priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
 
     return ApiUpdateVfsFileContentResult(operation_id=str(flow_urn))
@@ -772,9 +768,8 @@ class ApiGetVfsFileContentUpdateStateHandler(
 
   def Handle(self, args, token=None):
     try:
-      flow_obj = aff4.FACTORY.Open(args.operation_id,
-                                   aff4_type=transfer.MultiGetFile,
-                                   token=token)
+      flow_obj = aff4.FACTORY.Open(
+          args.operation_id, aff4_type=transfer.MultiGetFile, token=token)
       complete = not flow_obj.GetRunner().IsRunning()
     except aff4.InstantiationError:
       raise VfsFileContentUpdateNotFoundError("Operation with id %s not found" %

@@ -29,18 +29,22 @@ class DummyDiskVolumeInfo(flow.GRRFlow):
   def Start(self):
     if "/opt" in self.args.path_list[0]:
       mnt = rdf_client.UnixVolume(mount_point="/opt")
-      self.SendReply(rdf_client.Volume(unixvolume=mnt,
-                                       bytes_per_sector=4096,
-                                       sectors_per_allocation_unit=1,
-                                       actual_available_allocation_units=10,
-                                       total_allocation_units=100))
+      self.SendReply(
+          rdf_client.Volume(
+              unixvolume=mnt,
+              bytes_per_sector=4096,
+              sectors_per_allocation_unit=1,
+              actual_available_allocation_units=10,
+              total_allocation_units=100))
     else:
       mnt = rdf_client.UnixVolume(mount_point="/var")
-      self.SendReply(rdf_client.Volume(unixvolume=mnt,
-                                       bytes_per_sector=1,
-                                       sectors_per_allocation_unit=1,
-                                       actual_available_allocation_units=784165,
-                                       total_allocation_units=78416500))
+      self.SendReply(
+          rdf_client.Volume(
+              unixvolume=mnt,
+              bytes_per_sector=1,
+              sectors_per_allocation_unit=1,
+              actual_available_allocation_units=784165,
+              total_allocation_units=78416500))
 
 
 class MemoryTest(test_lib.FlowTestsBaseclass):
@@ -77,11 +81,11 @@ class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
     self.rekall_request = request
 
     # Pretend Rekall returned the memory file.
-    return [rdf_rekall_types.RekallResponse(json_messages="""
+    return [rdf_rekall_types.RekallResponse(
+        json_messages="""
         [["file",{"path": "%s", "pathtype": "TMPFILE"}]]
         """ % self.memory_file,
-                                            plugin="aff4acquire"),
-            rdf_client.Iterator(state="FINISHED")]
+        plugin="aff4acquire"), rdf_client.Iterator(state="FINISHED")]
 
 
 class TestMemoryCollector(MemoryTest):
@@ -114,15 +118,17 @@ class TestMemoryCollector(MemoryTest):
     flow.GRRFlow.classes["DiskVolumeInfo"] = self.old_diskvolume_flow
 
   def RunWithDownload(self):
-    self.flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
-                                           flow_name="MemoryCollector",
-                                           token=self.token,
-                                           output=self.output_path)
+    self.flow_urn = flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name="MemoryCollector",
+        token=self.token,
+        output=self.output_path)
 
-    for _ in test_lib.TestFlowHelper(self.flow_urn,
-                                     self.client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        self.flow_urn,
+        self.client_mock,
+        client_id=self.client_id,
+        token=self.token):
       pass
 
     return aff4.FACTORY.Open(self.flow_urn, token=self.token)
@@ -137,9 +143,8 @@ class TestMemoryCollector(MemoryTest):
     self.assertEqual(fd.Read(1024 * 1024), self.memory_dump)
 
   def testChecksDiskSpace(self):
-    client = aff4.FACTORY.Create(self.client_id,
-                                 aff4_grr.VFSGRRClient,
-                                 token=self.token)
+    client = aff4.FACTORY.Create(
+        self.client_id, aff4_grr.VFSGRRClient, token=self.token)
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Set(client.Schema.MEMORY_SIZE(64 * 1024 * 1024 * 1024))
     client.Close()
@@ -150,10 +155,11 @@ class TestMemoryCollector(MemoryTest):
       def CheckFreeGRRTempSpace(self, _):
         """Mock out the driver loading code to pass the memory image."""
         path = tempfiles.GetDefaultGRRTempDirectory()
-        reply = rdf_client.DiskUsage(path=path,
-                                     total=10 * 1024 * 1024 * 1024,
-                                     used=5 * 1024 * 1024 * 1024,
-                                     free=5 * 1024 * 1024 * 1024)
+        reply = rdf_client.DiskUsage(
+            path=path,
+            total=10 * 1024 * 1024 * 1024,
+            used=5 * 1024 * 1024 * 1024,
+            free=5 * 1024 * 1024 * 1024)
         return [reply]
 
     self.client_mock = ClientMock()
@@ -169,8 +175,8 @@ class TestMemoryCollector(MemoryTest):
     self.assertEqual(flow_obj.state.output_urn, None)
 
   def testM2CryptoCipherCompatibility(self):
-    m2crypto_ciphertext = open(os.path.join(self.base_path,
-                                            "m2crypto/send_file_data")).read()
+    m2crypto_ciphertext = open(
+        os.path.join(self.base_path, "m2crypto/send_file_data")).read()
     key = rdf_crypto.EncryptionKey("x" * 16)
     iv = rdf_crypto.EncryptionKey("y" * 16)
 
@@ -196,8 +202,7 @@ class ListVADBinariesActionMock(action_mocks.MemoryClientMock):
     ps_list_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
                                 "rekall_vad_result.dat.gz")
     response = rdf_rekall_types.RekallResponse(
-        json_messages=gzip.open(ps_list_file, "rb").read(),
-        plugin="pslist")
+        json_messages=gzip.open(ps_list_file, "rb").read(), plugin="pslist")
 
     # If we are given process names here we need to craft a Rekall result
     # containing them. This is so they point to valid files in the fixture.
@@ -234,10 +239,12 @@ class ListVADBinariesTest(MemoryTest):
     fd = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
     kb.environ_systemdrive = "C:"
-    kb.MergeOrAddUser(rdf_client.User(username="LocalService",
-                                      userdomain="testing-PC",
-                                      homedir=r"C:\Users\localservice",
-                                      sid="S-1-5-20"))
+    kb.MergeOrAddUser(
+        rdf_client.User(
+            username="LocalService",
+            userdomain="testing-PC",
+            homedir=r"C:\Users\localservice",
+            sid="S-1-5-20"))
     fd.Set(kb)
     fd.Close()
 
@@ -250,11 +257,12 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock()
     output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper("ListVADBinaries",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     output=output_path):
+    for _ in test_lib.TestFlowHelper(
+        "ListVADBinaries",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        output=output_path):
       pass
 
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
@@ -271,12 +279,13 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
     output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper("ListVADBinaries",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     fetch_binaries=True,
-                                     output=output_path):
+    for _ in test_lib.TestFlowHelper(
+        "ListVADBinaries",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        fetch_binaries=True,
+        output=output_path):
       pass
 
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
@@ -299,12 +308,13 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process, process])
     output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper("ListVADBinaries",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     fetch_binaries=True,
-                                     token=self.token,
-                                     output=output_path):
+    for _ in test_lib.TestFlowHelper(
+        "ListVADBinaries",
+        client_mock,
+        client_id=self.client_id,
+        fetch_binaries=True,
+        token=self.token,
+        output=output_path):
       pass
 
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
@@ -322,13 +332,14 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
     output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper("ListVADBinaries",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     output=output_path,
-                                     filename_regex=".*bar\\.exe$",
-                                     fetch_binaries=True):
+    for _ in test_lib.TestFlowHelper(
+        "ListVADBinaries",
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        output=output_path,
+        filename_regex=".*bar\\.exe$",
+        fetch_binaries=True):
       pass
 
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
@@ -345,13 +356,14 @@ class ListVADBinariesTest(MemoryTest):
     client_mock = ListVADBinariesActionMock([process1_exe])
     output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper("ListVADBinaries",
-                                     client_mock,
-                                     check_flow_errors=False,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     output=output_path,
-                                     fetch_binaries=True):
+    for _ in test_lib.TestFlowHelper(
+        "ListVADBinaries",
+        client_mock,
+        check_flow_errors=False,
+        client_id=self.client_id,
+        token=self.token,
+        output=output_path,
+        fetch_binaries=True):
       pass
 
     fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)

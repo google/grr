@@ -27,11 +27,12 @@ BUFFER_SIZE = 16 * 1024 * 1024
 
 def GetAllClients(token=None):
   """Return a list of all client urns."""
-  index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                              aff4_type=client_index.ClientIndex,
-                              mode="rw",
-                              object_exists=True,
-                              token=token)
+  index = aff4.FACTORY.Create(
+      client_index.MAIN_INDEX,
+      aff4_type=client_index.ClientIndex,
+      mode="rw",
+      object_exists=True,
+      token=token)
 
   return index.LookupClients(["."])
 
@@ -75,9 +76,8 @@ class IterateAllClientUrns(object):
       if count % 2000 == 0:
         logging.debug("%d processed.", count)
       args = (input_data, self.out_queue, self.token)
-      self.thread_pool.AddTask(target=self.IterFunction,
-                               args=args,
-                               name=self.THREAD_POOL_NAME)
+      self.thread_pool.AddTask(
+          target=self.IterFunction, args=args, name=self.THREAD_POOL_NAME)
 
     while count >= 0:
       try:
@@ -118,10 +118,11 @@ class IterateAllClients(IterateAllClientUrns):
     client_list = GetAllClients(token=self.token)
     logging.debug("Got %d clients", len(client_list))
     for client_group in utils.Grouper(client_list, self.client_chunksize):
-      for fd in aff4.FACTORY.MultiOpen(client_group,
-                                       mode="r",
-                                       aff4_type=aff4_grr.VFSGRRClient,
-                                       token=self.token):
+      for fd in aff4.FACTORY.MultiOpen(
+          client_group,
+          mode="r",
+          aff4_type=aff4_grr.VFSGRRClient,
+          token=self.token):
         if isinstance(fd, aff4_grr.VFSGRRClient):
           # Skip if older than max_age
           oldest_time = (time.time() - self.max_age) * 1e6
@@ -186,9 +187,8 @@ def RecursiveDownload(dir_obj,
       if isinstance(sub_file_entry, aff4.AFF4Stream):
         args = (sub_file_entry.urn, sub_target_dir, sub_file_entry.token,
                 overwrite)
-        thread_pool.AddTask(target=CopyAFF4ToLocal,
-                            args=args,
-                            name="Downloader")
+        thread_pool.AddTask(
+            target=CopyAFF4ToLocal, args=args, name="Downloader")
       elif "Container" in sub_file_entry.behaviours:
         if depth >= max_depth:  # Don't go any deeper.
           continue
@@ -196,10 +196,11 @@ def RecursiveDownload(dir_obj,
           os.makedirs(sub_target_dir)
         except OSError:
           pass
-        RecursiveDownload(sub_file_entry,
-                          sub_target_dir,
-                          overwrite=overwrite,
-                          depth=depth + 1)
+        RecursiveDownload(
+            sub_file_entry,
+            sub_target_dir,
+            overwrite=overwrite,
+            depth=depth + 1)
     except IOError:
       logging.exception("Unable to download %s", sub_file_entry.urn)
     finally:
@@ -289,9 +290,8 @@ def DownloadCollection(coll_path,
     re_match = aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(client_id)
     if dump_client_info and re_match and client_id not in completed_clients:
       args = (rdf_client.ClientURN(client_id), target_path, token, overwrite)
-      thread_pool.AddTask(target=DumpClientYaml,
-                          args=args,
-                          name="ClientYamlDownloader")
+      thread_pool.AddTask(
+          target=DumpClientYaml, args=args, name="ClientYamlDownloader")
       completed_clients.add(client_id)
 
     # Now queue downloading the actual files.
@@ -359,9 +359,7 @@ def CopyAFF4ToLocal(aff4_urn, target_dir, token=None, overwrite=False):
     raise
 
 
-def CopyAndSymlinkAFF4ToLocal(aff4_urn,
-                              target_dir,
-                              token=None,
+def CopyAndSymlinkAFF4ToLocal(aff4_urn, target_dir, token=None,
                               overwrite=False):
   path = CopyAFF4ToLocal(aff4_urn, target_dir, token=token, overwrite=overwrite)
   if path:

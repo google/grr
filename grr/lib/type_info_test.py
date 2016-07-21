@@ -76,14 +76,14 @@ class TypeInfoTest(test_lib.GRRBaseTest):
   def testTypeDescriptorSet(self):
 
     type_infos = [
-        type_info.String(name="output",
-                         default="analysis/{p}/{u}-{t}"),
-        type_info.String(description="Profile to use.",
-                         name="profile",
-                         default=""),
-        type_info.String(description="A comma separated list of plugins.",
-                         name="plugins",
-                         default=""),
+        type_info.String(
+            name="output", default="analysis/{p}/{u}-{t}"),
+        type_info.String(
+            description="Profile to use.", name="profile", default=""),
+        type_info.String(
+            description="A comma separated list of plugins.",
+            name="plugins",
+            default=""),
     ]
 
     info = type_info.TypeDescriptorSet(type_infos[0],

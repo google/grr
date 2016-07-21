@@ -97,16 +97,17 @@ class UnixVolumeClientMock(ActionMock):
   unix_local = rdf_client.UnixVolume(mount_point="/usr")
   unix_home = rdf_client.UnixVolume(mount_point="/")
   path_results = [
-      rdf_client.Volume(unixvolume=unix_local,
-                        bytes_per_sector=4096,
-                        sectors_per_allocation_unit=1,
-                        actual_available_allocation_units=50,
-                        total_allocation_units=100),
-      rdf_client.Volume(unixvolume=unix_home,
-                        bytes_per_sector=4096,
-                        sectors_per_allocation_unit=1,
-                        actual_available_allocation_units=10,
-                        total_allocation_units=100)
+      rdf_client.Volume(
+          unixvolume=unix_local,
+          bytes_per_sector=4096,
+          sectors_per_allocation_unit=1,
+          actual_available_allocation_units=50,
+          total_allocation_units=100), rdf_client.Volume(
+              unixvolume=unix_home,
+              bytes_per_sector=4096,
+              sectors_per_allocation_unit=1,
+              actual_available_allocation_units=10,
+              total_allocation_units=100)
   ]
 
   def StatFS(self, _):
@@ -118,16 +119,17 @@ class WindowsVolumeClientMock(ActionMock):
   windows_d = rdf_client.WindowsVolume(drive_letter="D:")
   windows_c = rdf_client.WindowsVolume(drive_letter="C:")
   path_results = [
-      rdf_client.Volume(windowsvolume=windows_d,
-                        bytes_per_sector=4096,
-                        sectors_per_allocation_unit=1,
-                        actual_available_allocation_units=50,
-                        total_allocation_units=100),
-      rdf_client.Volume(windowsvolume=windows_c,
-                        bytes_per_sector=4096,
-                        sectors_per_allocation_unit=1,
-                        actual_available_allocation_units=10,
-                        total_allocation_units=100)
+      rdf_client.Volume(
+          windowsvolume=windows_d,
+          bytes_per_sector=4096,
+          sectors_per_allocation_unit=1,
+          actual_available_allocation_units=50,
+          total_allocation_units=100), rdf_client.Volume(
+              windowsvolume=windows_c,
+              bytes_per_sector=4096,
+              sectors_per_allocation_unit=1,
+              actual_available_allocation_units=10,
+              total_allocation_units=100)
   ]
 
   def WmiQuery(self, query):
@@ -146,11 +148,12 @@ class MemoryClientMock(ActionMock):
                                            "TransferBuffer", *args, **kwargs)
 
     # Create a fake component so we can launch the LoadComponent flow.
-    fd = aff4.FACTORY.Create("aff4:/config/components/grr-rekall_0.1",
-                             collects.ComponentObject,
-                             mode="w",
-                             token=access_control.ACLToken(username="test",
-                                                           reason="reason"))
+    fd = aff4.FACTORY.Create(
+        "aff4:/config/components/grr-rekall_0.1",
+        collects.ComponentObject,
+        mode="w",
+        token=access_control.ACLToken(
+            username="test", reason="reason"))
     fd.Set(fd.Schema.COMPONENT(name="grr-rekall", version="0.1"))
     fd.Close()
 
@@ -175,12 +178,13 @@ class InterrogatedClient(ActionMock):
 
   def GetPlatformInfo(self, _):
     self.response_count += 1
-    return [rdf_client.Uname(system=self.system,
-                             node="test_node",
-                             release="5",
-                             version=self.version,
-                             kernel=self.kernel,
-                             machine="i386")]
+    return [rdf_client.Uname(
+        system=self.system,
+        node="test_node",
+        release="5",
+        version=self.version,
+        kernel=self.kernel,
+        machine="i386")]
 
   def GetInstallDate(self, _):
     self.response_count += 1

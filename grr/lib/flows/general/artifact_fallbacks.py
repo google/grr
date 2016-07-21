@@ -24,16 +24,15 @@ class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
   """
   artifacts = ["SystemRoot", "SystemDriveEnvironmentVariable"]
 
-  @flow.StateHandler(next_state="ProcessFileStats")
+  @flow.StateHandler()
   def Start(self):
     self.state.Register("success", False)
     system_drive_opts = ["C:", "D:"]
     for drive in system_drive_opts:
-      pathspec = rdf_paths.PathSpec(path=drive,
-                                    pathtype=rdf_paths.PathSpec.PathType.OS)
-      self.CallClient("ListDirectory",
-                      pathspec=pathspec,
-                      next_state="ProcessFileStats")
+      pathspec = rdf_paths.PathSpec(
+          path=drive, pathtype=rdf_paths.PathSpec.PathType.OS)
+      self.CallClient(
+          "ListDirectory", pathspec=pathspec, next_state="ProcessFileStats")
 
   @flow.StateHandler()
   def ProcessFileStats(self, responses):

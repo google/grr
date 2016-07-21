@@ -148,8 +148,8 @@ def WinFindProxies():
 
       if proxy_enable:
         # Returned as Unicode but problems if not converted to ASCII
-        proxy_server = str(_winreg.QueryValueEx(internet_settings,
-                                                "ProxyServer")[0])
+        proxy_server = str(
+            _winreg.QueryValueEx(internet_settings, "ProxyServer")[0])
         if "=" in proxy_server:
           # Per-protocol settings
           for p in proxy_server.split(";"):
@@ -215,9 +215,10 @@ def WinGetRawDevice(path):
   volume = LocalPathToCanonicalPath(volume)
 
   # The pathspec for the raw volume
-  result = rdf_paths.PathSpec(path=volume,
-                              pathtype=rdf_paths.PathSpec.PathType.OS,
-                              mount_point=mount_point.rstrip("\\"))
+  result = rdf_paths.PathSpec(
+      path=volume,
+      pathtype=rdf_paths.PathSpec.PathType.OS,
+      mount_point=mount_point.rstrip("\\"))
 
   return result, corrected_path
 

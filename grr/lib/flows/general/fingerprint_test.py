@@ -21,27 +21,29 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
 
   def testFingerprintPresence(self):
     path = os.path.join(self.base_path, "winexec_img.dd")
-    pathspec = rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.OS,
-                                  path=path)
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS, path=path)
 
-    pathspec.Append(path="/winpmem-amd64.sys",
-                    pathtype=rdf_paths.PathSpec.PathType.TSK)
+    pathspec.Append(
+        path="/winpmem-amd64.sys", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     client_mock = action_mocks.ActionMock("FingerprintFile")
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
-      for _ in test_lib.TestFlowHelper("FingerprintFile",
-                                       client_mock,
-                                       token=self.token,
-                                       client_id=self.client_id,
-                                       pathspec=pathspec):
+      for _ in test_lib.TestFlowHelper(
+          "FingerprintFile",
+          client_mock,
+          token=self.token,
+          client_id=self.client_id,
+          pathspec=pathspec):
         pass
 
       self.assertEqual(len(send_reply.args), 1)
       for _, reply in send_reply.args:
-        self.assertTrue(isinstance(reply,
-                                   flows_fingerprint.FingerprintFileResult))
-        self.assertTrue(str(reply.file_urn).endswith(
-            "test_data/winexec_img.dd/winpmem-amd64.sys"))
+        self.assertTrue(
+            isinstance(reply, flows_fingerprint.FingerprintFileResult))
+        self.assertTrue(
+            str(reply.file_urn).endswith(
+                "test_data/winexec_img.dd/winpmem-amd64.sys"))
 
         self.assertEqual(
             str(reply.hash_entry.sha256),

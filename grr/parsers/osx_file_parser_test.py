@@ -20,18 +20,21 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     statentries = []
     client = "C.1000000000000000"
     for path in paths:
-      statentries.append(rdf_client.StatEntry(
-          aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(path),
-          pathspec=rdf_paths.PathSpec(path=path,
-                                      pathtype=rdf_paths.PathSpec.PathType.OS),
-          st_mode=16877))
+      statentries.append(
+          rdf_client.StatEntry(
+              aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(path),
+              pathspec=rdf_paths.PathSpec(
+                  path=path, pathtype=rdf_paths.PathSpec.PathType.OS),
+              st_mode=16877))
 
-    statentries.append(rdf_client.StatEntry(
-        aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(
-            "/Users/.localized"),
-        pathspec=rdf_paths.PathSpec(path="/Users/.localized",
-                                    pathtype=rdf_paths.PathSpec.PathType.OS),
-        st_mode=33261))
+    statentries.append(
+        rdf_client.StatEntry(
+            aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(
+                "/Users/.localized"),
+            pathspec=rdf_paths.PathSpec(
+                path="/Users/.localized",
+                pathtype=rdf_paths.PathSpec.PathType.OS),
+            st_mode=33261))
 
     parser = osx_file_parser.OSXUsersParser()
     out = list(parser.Parse(statentries, None, None))
@@ -42,9 +45,9 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
   def testOSXSPHardwareDataTypeParser(self):
     parser = osx_file_parser.OSXSPHardwareDataTypeParser()
     content = open(os.path.join(self.base_path, "system_profiler.xml")).read()
-    result = list(parser.Parse("/usr/sbin/system_profiler",
-                               ["SPHardwareDataType -xml"], content, "", 0, 5,
-                               None))
+    result = list(
+        parser.Parse("/usr/sbin/system_profiler", ["SPHardwareDataType -xml"],
+                     content, "", 0, 5, None))
     self.assertEqual(result[0].serial_number, "C02JQ0F5F6L9")
 
   def testOSXLaunchdPlistParser(self):
@@ -57,8 +60,8 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
       plist_file = open(path)
       stat = rdf_client.StatEntry(
           aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(path),
-          pathspec=rdf_paths.PathSpec(path=path,
-                                      pathtype=rdf_paths.PathSpec.PathType.OS),
+          pathspec=rdf_paths.PathSpec(
+              path=path, pathtype=rdf_paths.PathSpec.PathType.OS),
           st_mode=16877)
       results.extend(list(parser.Parse(stat, plist_file, None)))
 

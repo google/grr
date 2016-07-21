@@ -66,9 +66,10 @@ class Kill(actions.ActionPlugin):
     # Send a message back to the service to say that we are about to shutdown.
     reply = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
     # Queue up the response message, jump the queue.
-    self.SendReply(reply,
-                   message_type=rdf_flows.GrrMessage.Type.STATUS,
-                   priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY + 1)
+    self.SendReply(
+        reply,
+        message_type=rdf_flows.GrrMessage.Type.STATUS,
+        priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY + 1)
 
     # Give the http thread some time to send the reply.
     self.grr_worker.Sleep(10)
@@ -231,8 +232,7 @@ def GetClientInformation():
       client_description=config_lib.CONFIG["Client.description"],
       client_version=int(config_lib.CONFIG["Source.version_numeric"]),
       build_time=config_lib.CONFIG["Client.build_time"],
-      labels=config_lib.CONFIG.Get("Client.labels",
-                                   default=None))
+      labels=config_lib.CONFIG.Get("Client.labels", default=None))
 
 
 class GetClientInfo(actions.ActionPlugin):
@@ -267,18 +267,18 @@ class GetClientStats(actions.ActionPlugin):
     samples = self.grr_worker.stats_collector.cpu_samples
     for (timestamp, user, system, percent) in samples:
       if arg.start_time < timestamp < arg.end_time:
-        sample = rdf_client.CpuSample(timestamp=timestamp,
-                                      user_cpu_time=user,
-                                      system_cpu_time=system,
-                                      cpu_percent=percent)
+        sample = rdf_client.CpuSample(
+            timestamp=timestamp,
+            user_cpu_time=user,
+            system_cpu_time=system,
+            cpu_percent=percent)
         response.cpu_samples.Append(sample)
 
     samples = self.grr_worker.stats_collector.io_samples
     for (timestamp, read_bytes, write_bytes) in samples:
       if arg.start_time < timestamp < arg.end_time:
-        sample = rdf_client.IOSample(timestamp=timestamp,
-                                     read_bytes=read_bytes,
-                                     write_bytes=write_bytes)
+        sample = rdf_client.IOSample(
+            timestamp=timestamp, read_bytes=read_bytes, write_bytes=write_bytes)
         response.io_samples.Append(sample)
 
     self.Send(response)
@@ -295,8 +295,8 @@ class GetClientStatsAuto(GetClientStats):
       response.DownSample()
     self.grr_worker.SendReply(
         response,
-        session_id=rdfvalue.SessionID(queue=queues.STATS,
-                                      flow_name="Stats"),
+        session_id=rdfvalue.SessionID(
+            queue=queues.STATS, flow_name="Stats"),
         response_id=0,
         request_id=0,
         priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY,
@@ -315,8 +315,9 @@ class SendStartupInfo(actions.ActionPlugin):
     """Returns the startup information."""
     logging.debug("Sending startup information.")
 
-    response = rdf_client.StartupInfo(boot_time=long(psutil.boot_time() * 1e6),
-                                      client_info=GetClientInformation())
+    response = rdf_client.StartupInfo(
+        boot_time=long(psutil.boot_time() * 1e6),
+        client_info=GetClientInformation())
 
     self.grr_worker.SendReply(
         response,

@@ -47,9 +47,8 @@ class MultiRepackTest(ClientBuildTests):
   def setUp(self):
     super(MultiRepackTest, self).setUp()
     self.pool_obj = mock.MagicMock()
-    self.pool_patcher = mock.patch.object(multiprocessing,
-                                          "Pool",
-                                          return_value=self.pool_obj)
+    self.pool_patcher = mock.patch.object(
+        multiprocessing, "Pool", return_value=self.pool_obj)
     self.mock_pool = self.pool_patcher.start()
 
     config_dir = tempfile.mkdtemp()

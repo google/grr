@@ -103,8 +103,8 @@ class VerifiableDummyHuntOutputPluginVerfier(
                        plugin.__class__.__name__)
 
     VerifiableDummyHuntOutputPluginVerfier.num_calls += 1
-    return output_plugin.OutputPluginVerificationResult(status="SUCCESS",
-                                                        status_message="yo")
+    return output_plugin.OutputPluginVerificationResult(
+        status="SUCCESS", status_message="yo")
 
   def VerifyFlowOutput(self, plugin, hunt):
     pass
@@ -137,11 +137,11 @@ class DummyHuntOutputPluginWithRaisingVerifierVerifier(
 class InfiniteFlow(flow.GRRFlow):
   """Flow that never ends."""
 
-  @flow.StateHandler(next_state="NextState")
+  @flow.StateHandler()
   def Start(self):
     self.CallState(next_state="NextState")
 
-  @flow.StateHandler(next_state="Start")
+  @flow.StateHandler()
   def NextState(self):
     self.CallState(next_state="Start")
 
@@ -154,14 +154,12 @@ class StandardHuntTestMixin(object):
         hunt_name="GenericHunt",
         flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-            path="/tmp/evil.txt",
-            pathtype=rdf_paths.PathSpec.PathType.OS)),
+            path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
             rdf_foreman.ForemanClientRule(
                 rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
                 regex=rdf_foreman.ForemanRegexClientRule(
-                    attribute_name="GRR client",
-                    attribute_regex="GRR"))
+                    attribute_name="GRR client", attribute_regex="GRR"))
         ]),
         client_rate=0,
         token=token or self.token,
@@ -183,18 +181,17 @@ class StandardHuntTestMixin(object):
 
   def RunHunt(self, client_ids=None, iteration_limit=None, **mock_kwargs):
     client_mock = test_lib.SampleHuntMock(**mock_kwargs)
-    test_lib.TestHuntHelper(client_mock,
-                            client_ids or self.client_ids,
-                            check_flow_errors=False,
-                            iteration_limit=iteration_limit,
-                            token=self.token)
+    test_lib.TestHuntHelper(
+        client_mock,
+        client_ids or self.client_ids,
+        check_flow_errors=False,
+        iteration_limit=iteration_limit,
+        token=self.token)
 
   def StopHunt(self, hunt_urn):
     # Stop the hunt now.
-    with aff4.FACTORY.Open(hunt_urn,
-                           age=aff4.ALL_TIMES,
-                           mode="rw",
-                           token=self.token) as hunt_obj:
+    with aff4.FACTORY.Open(
+        hunt_urn, age=aff4.ALL_TIMES, mode="rw", token=self.token) as hunt_obj:
       hunt_obj.Stop()
 
   def ProcessHuntOutputPlugins(self, **flow_args):
@@ -222,9 +219,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     with test_lib.FakeTime(0):
       # Clean up the foreman to remove any rules.
-      with aff4.FACTORY.Open("aff4:/foreman",
-                             mode="rw",
-                             token=self.token) as foreman:
+      with aff4.FACTORY.Open(
+          "aff4:/foreman", mode="rw", token=self.token) as foreman:
         foreman.Set(foreman.Schema.RULES())
 
     self.old_logging_error = logging.error
@@ -253,9 +249,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       self.assertEqual(flows_urns[0].Basename(), hunt_urn.Basename() + ":hunt")
 
       # Check that the object is a symlink.
-      fd = aff4.FACTORY.Open(flows_urns[0],
-                             follow_symlinks=False,
-                             token=self.token)
+      fd = aff4.FACTORY.Open(
+          flows_urns[0], follow_symlinks=False, token=self.token)
       self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4Symlink")
 
       target = fd.Get(fd.Schema.SYMLINK_TARGET)
@@ -288,8 +283,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
             rdf_foreman.ForemanClientRule(
                 rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
                 regex=rdf_foreman.ForemanRegexClientRule(
-                    attribute_name="GRR client",
-                    attribute_regex="GRR"))
+                    attribute_name="GRR client", attribute_regex="GRR"))
         ]),
         client_rate=0,
         token=self.token) as hunt:
@@ -312,9 +306,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       # Only one flow (issued by the hunt) is expected.
       self.assertEqual(len(flows_list), 1)
 
-      flow_obj = aff4.FACTORY.Open(flows_list[0],
-                                   aff4_type=InfiniteFlow,
-                                   token=self.token)
+      flow_obj = aff4.FACTORY.Open(
+          flows_list[0], aff4_type=InfiniteFlow, token=self.token)
       self.assertEqual(flow_obj.state.context.state, "ERROR")
       self.assertEqual(flow_obj.state.context.backtrace, "Parent hunt stopped.")
 
@@ -326,9 +319,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.StopHunt(hunt_urn)
     self.ProcessHuntOutputPlugins()
 
-    with aff4.FACTORY.Open(hunt_urn,
-                           age=aff4.ALL_TIMES,
-                           token=self.token) as hunt_obj:
+    with aff4.FACTORY.Open(
+        hunt_urn, age=aff4.ALL_TIMES, token=self.token) as hunt_obj:
 
       started, finished, errors = hunt_obj.GetClientsCounts()
       self.assertEqual(started, 10)
@@ -350,9 +342,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       self.assertEqual(i, 4)
 
-      per_type_collection = aff4.FACTORY.Open(hunt_obj.multi_type_output_urn,
-                                              mode="r",
-                                              token=self.token)
+      per_type_collection = aff4.FACTORY.Open(
+          hunt_obj.multi_type_output_urn, mode="r", token=self.token)
 
       for i, x in enumerate(per_type_collection):
         self.assertEqual(x.payload.__class__, rdf_client.StatEntry)
@@ -364,11 +355,12 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
   def testHuntWithoutForemanRules(self):
     """Check no foreman rules are created if we pass add_foreman_rules=False."""
     hunt_urn = self.StartHunt(add_foreman_rules=False)
-    with aff4.FACTORY.Open("aff4:/foreman",
-                           mode="r",
-                           token=self.token,
-                           aff4_type=aff4_grr.GRRForeman,
-                           ignore_cache=True) as foreman:
+    with aff4.FACTORY.Open(
+        "aff4:/foreman",
+        mode="r",
+        token=self.token,
+        aff4_type=aff4_grr.GRRForeman,
+        ignore_cache=True) as foreman:
       foreman_rules = foreman.Get(foreman.Schema.RULES,
                                   default=foreman.Schema.RULES())
       self.assertFalse(foreman_rules)
@@ -377,9 +369,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.RunHunt()
     self.StopHunt(hunt_urn)
 
-    with aff4.FACTORY.Open(hunt_urn,
-                           age=aff4.ALL_TIMES,
-                           token=self.token) as hunt_obj:
+    with aff4.FACTORY.Open(
+        hunt_urn, age=aff4.ALL_TIMES, token=self.token) as hunt_obj:
 
       started, finished, errors = hunt_obj.GetClientsCounts()
       self.assertEqual(started, 0)
@@ -398,8 +389,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     hunt_urn = self.StartHunt()
     hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
     collects.ResultsOutputCollection.ScheduleNotification(
-        hunt_obj.state.context.results_collection_urn,
-        token=self.token)
+        hunt_obj.state.context.results_collection_urn, token=self.token)
     self.ProcessHuntOutputPlugins()
 
   def testOutputPluginsProcessOnlyNewResultsOnEveryRun(self):
@@ -454,11 +444,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
     status_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_status_collection_urn,
-        token=self.token)
+        hunt.output_plugins_status_collection_urn, token=self.token)
     errors_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_errors_collection_urn,
-        token=self.token)
+        hunt.output_plugins_errors_collection_urn, token=self.token)
 
     self.assertEqual(len(errors_collection), 0)
     self.assertEqual(len(status_collection), 1)
@@ -486,11 +474,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
     status_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_status_collection_urn,
-        token=self.token)
+        hunt.output_plugins_status_collection_urn, token=self.token)
     errors_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_errors_collection_urn,
-        token=self.token)
+        hunt.output_plugins_errors_collection_urn, token=self.token)
 
     self.assertEqual(len(errors_collection), 0)
     self.assertEqual(len(status_collection), 2)
@@ -525,11 +511,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
     status_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_status_collection_urn,
-        token=self.token)
+        hunt.output_plugins_status_collection_urn, token=self.token)
     errors_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_errors_collection_urn,
-        token=self.token)
+        hunt.output_plugins_errors_collection_urn, token=self.token)
 
     self.assertEqual(len(errors_collection), 1)
     self.assertEqual(len(status_collection), 2)
@@ -541,8 +525,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
                      failing_plugin_descriptor)
     self.assertEqual(errors_collection[0].summary, "Oh no!")
 
-    items = sorted(status_collection,
-                   key=lambda x: x.plugin_descriptor.plugin_name)
+    items = sorted(
+        status_collection, key=lambda x: x.plugin_descriptor.plugin_name)
     self.assertEqual(items[0].status, "SUCCESS")
     self.assertEqual(items[0].batch_index, 0)
     self.assertEqual(items[0].batch_size, 10)
@@ -569,11 +553,9 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     hunt = aff4.FACTORY.Open(hunt_urn, token=self.token)
     status_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_status_collection_urn,
-        token=self.token)
+        hunt.output_plugins_status_collection_urn, token=self.token)
     errors_collection = aff4.FACTORY.Open(
-        hunt.output_plugins_errors_collection_urn,
-        token=self.token)
+        hunt.output_plugins_errors_collection_urn, token=self.token)
 
     self.assertEqual(len(errors_collection), 1)
     self.assertEqual(len(status_collection), 1)
@@ -585,8 +567,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
                      failing_plugin_descriptor)
     self.assertEqual(errors_collection[0].summary, "Flush, oh no!")
 
-    items = sorted(status_collection,
-                   key=lambda x: x.plugin_descriptor.plugin_name)
+    items = sorted(
+        status_collection, key=lambda x: x.plugin_descriptor.plugin_name)
 
     self.assertEqual(items[0].status, "ERROR")
     self.assertEqual(items[0].batch_index, 0)
@@ -658,9 +640,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
           e.exceptions_by_hunt[hunt_urn][failing_plugin_descriptor][0].message,
           "Oh no!")
 
-  @mock.patch.object(FailingDummyHuntOutputPlugin,
-                     "ProcessResponses",
-                     side_effect=RuntimeError("Oh, no"))
+  @mock.patch.object(
+      FailingDummyHuntOutputPlugin,
+      "ProcessResponses",
+      side_effect=RuntimeError("Oh, no"))
   def testResultsAreNotProcessedAgainAfterPluginFailure(self,
                                                         process_responses_mock):
     failing_plugin_descriptor = output_plugin.OutputPluginDescriptor(
@@ -687,21 +670,18 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.StartHunt(output_plugins=[failing_plugin_descriptor])
 
     prev_success_count = stats.STATS.GetMetricValue(
-        "hunt_results_ran_through_plugin",
-        fields=["DummyHuntOutputPlugin"])
+        "hunt_results_ran_through_plugin", fields=["DummyHuntOutputPlugin"])
     prev_errors_count = stats.STATS.GetMetricValue(
-        "hunt_output_plugin_errors",
-        fields=["DummyHuntOutputPlugin"])
+        "hunt_output_plugin_errors", fields=["DummyHuntOutputPlugin"])
 
     self.AssignTasksToClients()
     self.RunHunt(failrate=-1)
     self.ProcessHuntOutputPlugins()
 
     success_count = stats.STATS.GetMetricValue(
-        "hunt_results_ran_through_plugin",
-        fields=["DummyHuntOutputPlugin"])
-    errors_count = stats.STATS.GetMetricValue("hunt_output_plugin_errors",
-                                              fields=["DummyHuntOutputPlugin"])
+        "hunt_results_ran_through_plugin", fields=["DummyHuntOutputPlugin"])
+    errors_count = stats.STATS.GetMetricValue(
+        "hunt_output_plugin_errors", fields=["DummyHuntOutputPlugin"])
 
     # 1 result for each client makes it 10 results.
     self.assertEqual(success_count - prev_success_count, 10)
@@ -717,8 +697,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         "hunt_results_ran_through_plugin",
         fields=["FailingDummyHuntOutputPlugin"])
     prev_errors_count = stats.STATS.GetMetricValue(
-        "hunt_output_plugin_errors",
-        fields=["FailingDummyHuntOutputPlugin"])
+        "hunt_output_plugin_errors", fields=["FailingDummyHuntOutputPlugin"])
 
     self.AssignTasksToClients()
     self.RunHunt(failrate=-1)
@@ -731,8 +710,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         "hunt_results_ran_through_plugin",
         fields=["FailingDummyHuntOutputPlugin"])
     errors_count = stats.STATS.GetMetricValue(
-        "hunt_output_plugin_errors",
-        fields=["FailingDummyHuntOutputPlugin"])
+        "hunt_output_plugin_errors", fields=["FailingDummyHuntOutputPlugin"])
 
     self.assertEqual(success_count - prev_success_count, 0)
     self.assertEqual(errors_count - prev_errors_count, 1)
@@ -789,8 +767,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       # LongRunningDummyHuntOutputPlugin will set the time to 100s on the first
       # run, which will effectively mean that it's running for too long.
-      self.ProcessHuntOutputPlugins(batch_size=1,
-                                    max_running_time=rdfvalue.Duration("99s"))
+      self.ProcessHuntOutputPlugins(
+          batch_size=1, max_running_time=rdfvalue.Duration("99s"))
 
       # In normal conditions, there should be 10 results generated.
       # With batch size of 1 this should result in 10 calls to output plugin.
@@ -816,8 +794,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       # LongRunningDummyHuntOutputPlugin will set the time to 100s on the first
       # run, which will effectively mean that it's running in time.
-      self.ProcessHuntOutputPlugins(batch_size=1,
-                                    max_running_time=rdfvalue.Duration("101s"))
+      self.ProcessHuntOutputPlugins(
+          batch_size=1, max_running_time=rdfvalue.Duration("101s"))
 
       # In normal conditions, there should be 10 results generated.
       self.assertEqual(LongRunningDummyHuntOutputPlugin.num_calls, 10)
@@ -856,11 +834,13 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     del self.num_processed
 
   def _AppendFlowRequest(self, flows, client_id, file_id):
-    flows.Append(client_ids=["C.1%015d" % client_id],
-                 runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
-                 args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-                     path="/tmp/evil%s.txt" % file_id,
-                     pathtype=rdf_paths.PathSpec.PathType.OS),))
+    flows.Append(
+        client_ids=["C.1%015d" % client_id],
+        runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+        args=transfer.GetFileArgs(
+            pathspec=rdf_paths.PathSpec(
+                path="/tmp/evil%s.txt" % file_id,
+                pathtype=rdf_paths.PathSpec.PathType.OS),))
 
   def RunVariableGenericHunt(self):
     args = standard.VariableGenericHuntArgs()
@@ -868,10 +848,11 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self._AppendFlowRequest(args.flows, 2, 2)
     self._AppendFlowRequest(args.flows, 2, 3)
 
-    with hunts.GRRHunt.StartHunt(hunt_name="VariableGenericHunt",
-                                 args=args,
-                                 client_rate=0,
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="VariableGenericHunt",
+        args=args,
+        client_rate=0,
+        token=self.token) as hunt:
       hunt.Run()
       hunt.ManuallyScheduleClients()
 
@@ -879,9 +860,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     client_mock = test_lib.SampleHuntMock(failrate=100)
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
-    with aff4.FACTORY.Open(hunt.session_id,
-                           mode="rw",
-                           token=self.token) as hunt:
+    with aff4.FACTORY.Open(
+        hunt.session_id, mode="rw", token=self.token) as hunt:
       hunt.Stop()
 
     return hunt
@@ -890,9 +870,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     """This tests running the hunt on some clients."""
     hunt = self.RunVariableGenericHunt()
 
-    hunt_obj = aff4.FACTORY.Open(hunt.session_id,
-                                 age=aff4.ALL_TIMES,
-                                 token=self.token)
+    hunt_obj = aff4.FACTORY.Open(
+        hunt.session_id, age=aff4.ALL_TIMES, token=self.token)
     started, finished, errors = hunt_obj.GetClientsCounts()
     self.assertEqual(started, 2)
     # Amazing as it may sound, 3 is actually a correct value as we run 2 flows
@@ -906,9 +885,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     batch_size = 3
     with test_lib.ConfigOverrider({"StatsHunt.ClientBatchSize": batch_size}):
       # Make one of the clients windows
-      with aff4.FACTORY.Open(self.client_ids[3],
-                             mode="rw",
-                             token=self.token) as win_client:
+      with aff4.FACTORY.Open(
+          self.client_ids[3], mode="rw", token=self.token) as win_client:
         win_client.Set(win_client.Schema.SYSTEM("Windows"))
 
       with test_lib.FakeTime(0, increment=1e-6):
@@ -947,8 +925,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
                          "LOW_PRIORITY")
 
         # Check fastpoll was false for all messages
-        self.assertFalse(any([x.require_fastpoll
-                              for x in client_mock.recorded_messages]))
+        self.assertFalse(
+            any([x.require_fastpoll for x in client_mock.recorded_messages]))
 
         # Pause the hunt
         with aff4.FACTORY.OpenWithLock(hunt.urn, token=self.token) as hunt:
@@ -979,10 +957,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
   def testStatsHuntFilterLocalhost(self):
     statshunt = aff4.FACTORY.Create("aff4:/temp", standard.StatsHunt)
-    self.assertTrue(statshunt.ProcessInterface(rdf_client.Interface(
-        mac_address="123")))
-    self.assertFalse(statshunt.ProcessInterface(rdf_client.Interface(
-        ifname="lo")))
+    self.assertTrue(
+        statshunt.ProcessInterface(rdf_client.Interface(mac_address="123")))
+    self.assertFalse(
+        statshunt.ProcessInterface(rdf_client.Interface(ifname="lo")))
 
   def testHuntTermination(self):
     """This tests that hunts with a client limit terminate correctly."""
@@ -991,14 +969,12 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
           hunt_name="GenericHunt",
           flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
           flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-              path="/tmp/evil.txt",
-              pathtype=rdf_paths.PathSpec.PathType.OS)),
+              path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)),
           client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
               rdf_foreman.ForemanClientRule(
                   rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
                   regex=rdf_foreman.ForemanRegexClientRule(
-                      attribute_name="GRR client",
-                      attribute_regex="GRR"))
+                      attribute_name="GRR client", attribute_regex="GRR"))
           ]),
           client_limit=5,
           client_rate=0,
@@ -1014,23 +990,22 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       # Run the hunt.
       client_mock = test_lib.SampleHuntMock()
-      test_lib.TestHuntHelper(client_mock,
-                              self.client_ids,
-                              check_flow_errors=False,
-                              token=self.token)
+      test_lib.TestHuntHelper(
+          client_mock,
+          self.client_ids,
+          check_flow_errors=False,
+          token=self.token)
 
-      hunt_obj = aff4.FACTORY.Open(hunt.session_id,
-                                   age=aff4.ALL_TIMES,
-                                   token=self.token)
+      hunt_obj = aff4.FACTORY.Open(
+          hunt.session_id, age=aff4.ALL_TIMES, token=self.token)
 
       started, finished, errors = hunt_obj.GetClientsCounts()
       self.assertEqual(started, 5)
       self.assertEqual(finished, 5)
       self.assertEqual(errors, 2)
 
-      hunt_obj = aff4.FACTORY.Open(hunt.session_id,
-                                   age=aff4.ALL_TIMES,
-                                   token=self.token)
+      hunt_obj = aff4.FACTORY.Open(
+          hunt.session_id, age=aff4.ALL_TIMES, token=self.token)
 
       # Hunts are automatically paused when they reach the client limit.
       self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "PAUSED")
@@ -1042,14 +1017,12 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
           hunt_name="GenericHunt",
           flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
           flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-              path="/tmp/evil.txt",
-              pathtype=rdf_paths.PathSpec.PathType.OS)),
+              path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)),
           client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
               rdf_foreman.ForemanClientRule(
                   rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
                   regex=rdf_foreman.ForemanRegexClientRule(
-                      attribute_name="GRR client",
-                      attribute_regex="GRR"))
+                      attribute_name="GRR client", attribute_regex="GRR"))
           ]),
           client_limit=5,
           expiry_time=rdfvalue.Duration("1000s"),
@@ -1062,9 +1035,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       for client_id in self.client_ids:
         foreman.AssignTasksToClient(client_id)
 
-      hunt_obj = aff4.FACTORY.Open(hunt.session_id,
-                                   age=aff4.ALL_TIMES,
-                                   token=self.token)
+      hunt_obj = aff4.FACTORY.Open(
+          hunt.session_id, age=aff4.ALL_TIMES, token=self.token)
 
       self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "STARTED")
 
@@ -1073,10 +1045,11 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       # Run the hunt.
       client_mock = test_lib.SampleHuntMock()
-      test_lib.TestHuntHelper(client_mock,
-                              self.client_ids,
-                              check_flow_errors=False,
-                              token=self.token)
+      test_lib.TestHuntHelper(
+          client_mock,
+          self.client_ids,
+          check_flow_errors=False,
+          token=self.token)
 
       # No client should be processed since the hunt is expired.
       started, finished, errors = hunt_obj.GetClientsCounts()
@@ -1084,9 +1057,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       self.assertEqual(finished, 0)
       self.assertEqual(errors, 0)
 
-      hunt_obj = aff4.FACTORY.Open(hunt.session_id,
-                                   age=aff4.ALL_TIMES,
-                                   token=self.token)
+      hunt_obj = aff4.FACTORY.Open(
+          hunt.session_id, age=aff4.ALL_TIMES, token=self.token)
 
       # Hunts are automatically stopped when they expire.
       self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "COMPLETED")
@@ -1096,15 +1068,15 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
         flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
-        flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-            path="/tmp/evil.txt",
-            pathtype=rdf_paths.PathSpec.PathType.OS),),
+        flow_args=transfer.GetFileArgs(
+            pathspec=rdf_paths.PathSpec(
+                path="/tmp/evil.txt",
+                pathtype=rdf_paths.PathSpec.PathType.OS),),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
             rdf_foreman.ForemanClientRule(
                 rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
                 regex=rdf_foreman.ForemanRegexClientRule(
-                    attribute_name="GRR client",
-                    attribute_regex="GRR"))
+                    attribute_name="GRR client", attribute_regex="GRR"))
         ]),
         client_limit=1,
         client_rate=0,
@@ -1117,9 +1089,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     # Pretend to be the foreman now and dish out hunting jobs to all the
     # client..
-    with aff4.FACTORY.Open("aff4:/foreman",
-                           mode="rw",
-                           token=self.token) as foreman:
+    with aff4.FACTORY.Open(
+        "aff4:/foreman", mode="rw", token=self.token) as foreman:
       for client_id in self.client_ids:
         foreman.AssignTasksToClient(client_id)
 
@@ -1128,10 +1099,11 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
     # Re-open the hunt to get fresh data.
-    hunt_obj = aff4.FACTORY.Open(hunt_session_id,
-                                 age=aff4.ALL_TIMES,
-                                 ignore_cache=True,
-                                 token=self.token)
+    hunt_obj = aff4.FACTORY.Open(
+        hunt_session_id,
+        age=aff4.ALL_TIMES,
+        ignore_cache=True,
+        token=self.token)
 
     # There should be only one client, due to the limit
     started, _, _ = hunt_obj.GetClientsCounts()
@@ -1140,26 +1112,23 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     # Check the hunt is paused.
     self.assertEqual(hunt_obj.Get(hunt_obj.Schema.STATE), "PAUSED")
 
-    with aff4.FACTORY.Open(hunt_session_id,
-                           mode="rw",
-                           token=self.token) as hunt_obj:
+    with aff4.FACTORY.Open(
+        hunt_session_id, mode="rw", token=self.token) as hunt_obj:
       runner = hunt_obj.GetRunner()
       runner.args.client_limit = 10
       runner.Start()
 
     # Pretend to be the foreman now and dish out hunting jobs to all the
     # clients.
-    with aff4.FACTORY.Open("aff4:/foreman",
-                           mode="rw",
-                           token=self.token) as foreman:
+    with aff4.FACTORY.Open(
+        "aff4:/foreman", mode="rw", token=self.token) as foreman:
       for client_id in self.client_ids:
         foreman.AssignTasksToClient(client_id)
 
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
-    hunt_obj = aff4.FACTORY.Open(hunt_session_id,
-                                 age=aff4.ALL_TIMES,
-                                 token=self.token)
+    hunt_obj = aff4.FACTORY.Open(
+        hunt_session_id, age=aff4.ALL_TIMES, token=self.token)
     # There should be only one client, due to the limit
     started, _, _ = hunt_obj.GetClientsCounts()
     self.assertEqual(started, 10)
@@ -1177,26 +1146,23 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
             rdf_foreman.ForemanClientRule(
                 rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
                 regex=rdf_foreman.ForemanRegexClientRule(
-                    attribute_name="GRR client",
-                    attribute_regex="GRR"))
+                    attribute_name="GRR client", attribute_regex="GRR"))
         ]),
         output_plugins=[],
         client_rate=0,
         token=self.token) as hunt:
       hunt.Run()
 
-    with aff4.FACTORY.Open("aff4:/foreman",
-                           mode="rw",
-                           token=self.token) as foreman:
+    with aff4.FACTORY.Open(
+        "aff4:/foreman", mode="rw", token=self.token) as foreman:
       for client_id in client_ids:
         foreman.AssignTasksToClient(client_id)
 
     client_mock = test_lib.SampleHuntMock()
     test_lib.TestHuntHelper(client_mock, client_ids, False, self.token)
 
-    hunt = aff4.FACTORY.Open(hunt.urn,
-                             aff4_type=standard.GenericHunt,
-                             token=self.token)
+    hunt = aff4.FACTORY.Open(
+        hunt.urn, aff4_type=standard.GenericHunt, token=self.token)
 
     # This is called once for each state method. Each flow above runs the
     # Start and the StoreResults methods.
@@ -1247,8 +1213,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     # Check logs were written to the hunt collection
     with aff4.FACTORY.Open(
-        hunt_urn.Add("Logs"),
-        token=self.token,
+        hunt_urn.Add("Logs"), token=self.token,
         age=aff4.ALL_TIMES) as hunt_logs:
 
       # Can't use len with PackedVersionCollection
@@ -1273,8 +1238,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
   def testCreatorPropagation(self):
     self.CreateAdminUser("adminuser")
-    admin_token = access_control.ACLToken(username="adminuser",
-                                          reason="testing")
+    admin_token = access_control.ACLToken(
+        username="adminuser", reason="testing")
     # Start a flow that requires admin privileges in the hunt. The
     # parameters are not valid so the flow will error out but it's
     # enough to check if the flow was actually run (i.e., it passed
@@ -1287,16 +1252,15 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
             rdf_foreman.ForemanClientRule(
                 rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
                 regex=rdf_foreman.ForemanRegexClientRule(
-                    attribute_name="GRR client",
-                    attribute_regex="GRR"))
+                    attribute_name="GRR client", attribute_regex="GRR"))
         ]),
         client_rate=0,
         token=admin_token) as hunt:
       hunt.Run()
 
     self.CreateUser("nonadmin")
-    nonadmin_token = access_control.ACLToken(username="nonadmin",
-                                             reason="testing")
+    nonadmin_token = access_control.ACLToken(
+        username="nonadmin", reason="testing")
     self.AssignTasksToClients()
 
     client_mock = test_lib.SampleHuntMock()
@@ -1314,23 +1278,20 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         hunt_name="GenericHunt",
         flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-            path="/tmp/evil.txt",
-            pathtype=rdf_paths.PathSpec.PathType.OS)),
+            path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
             rdf_foreman.ForemanClientRule(
                 rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
                 regex=rdf_foreman.ForemanRegexClientRule(
-                    attribute_name="GRR client",
-                    attribute_regex="GRR"))
+                    attribute_name="GRR client", attribute_regex="GRR"))
         ]),
         client_rate=0,
         token=token)
 
   def _CheckHuntIsDeleted(self, hunt_urn, token=None):
     with self.assertRaises(aff4.InstantiationError):
-      aff4.FACTORY.Open(hunt_urn,
-                        aff4_type=implementation.GRRHunt,
-                        token=token or self.token)
+      aff4.FACTORY.Open(
+          hunt_urn, aff4_type=implementation.GRRHunt, token=token or self.token)
 
   def testDeleteHuntFlow(self):
     # We'll need two users for this test.
@@ -1344,35 +1305,29 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       # Let user1 create a hunt and delete it, this should work.
       hunt = self._CreateHunt(token1.SetUID())
-      aff4.FACTORY.Open(hunt.urn,
-                        aff4_type=implementation.GRRHunt,
-                        token=token1)
+      aff4.FACTORY.Open(
+          hunt.urn, aff4_type=implementation.GRRHunt, token=token1)
 
-      flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
-                             token=token1,
-                             hunt_urn=hunt.urn)
+      flow.GRRFlow.StartFlow(
+          flow_name="DeleteHuntFlow", token=token1, hunt_urn=hunt.urn)
       self._CheckHuntIsDeleted(hunt.urn)
 
       # Let user1 create a hunt and user2 delete it, this should fail.
       hunt = self._CreateHunt(token1.SetUID())
-      aff4.FACTORY.Open(hunt.urn,
-                        aff4_type=implementation.GRRHunt,
-                        token=token1)
+      aff4.FACTORY.Open(
+          hunt.urn, aff4_type=implementation.GRRHunt, token=token1)
 
       with self.assertRaises(access_control.UnauthorizedAccess):
-        flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
-                               token=token2,
-                               hunt_urn=hunt.urn)
+        flow.GRRFlow.StartFlow(
+            flow_name="DeleteHuntFlow", token=token2, hunt_urn=hunt.urn)
       # Hunt is still there.
-      aff4.FACTORY.Open(hunt.urn,
-                        aff4_type=implementation.GRRHunt,
-                        token=token1)
+      aff4.FACTORY.Open(
+          hunt.urn, aff4_type=implementation.GRRHunt, token=token1)
 
       # If user2 gets an approval, deletion is ok though.
       self.GrantHuntApproval(hunt.urn, token=token2)
-      flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
-                             token=token2,
-                             hunt_urn=hunt.urn)
+      flow.GRRFlow.StartFlow(
+          flow_name="DeleteHuntFlow", token=token2, hunt_urn=hunt.urn)
 
       self._CheckHuntIsDeleted(hunt.urn)
 
@@ -1382,28 +1337,24 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       hunt.Run()
       hunt.Flush()
 
-      aff4.FACTORY.Open(hunt.urn,
-                        aff4_type=implementation.GRRHunt,
-                        token=token1)
+      aff4.FACTORY.Open(
+          hunt.urn, aff4_type=implementation.GRRHunt, token=token1)
 
       with self.assertRaises(RuntimeError):
-        flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
-                               token=token1,
-                               hunt_urn=hunt.urn)
+        flow.GRRFlow.StartFlow(
+            flow_name="DeleteHuntFlow", token=token1, hunt_urn=hunt.urn)
 
       # The same is true if the hunt was scheduled on at least one client.
       hunt = self._CreateHunt(token1.SetUID())
       hunt.Set(hunt.Schema.CLIENT_COUNT(1))
       hunt.Flush()
 
-      aff4.FACTORY.Open(hunt.urn,
-                        aff4_type=implementation.GRRHunt,
-                        token=token1)
+      aff4.FACTORY.Open(
+          hunt.urn, aff4_type=implementation.GRRHunt, token=token1)
 
       with self.assertRaises(RuntimeError):
-        flow.GRRFlow.StartFlow(flow_name="DeleteHuntFlow",
-                               token=token1,
-                               hunt_urn=hunt.urn)
+        flow.GRRFlow.StartFlow(
+            flow_name="DeleteHuntFlow", token=token1, hunt_urn=hunt.urn)
 
 
 class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
@@ -1421,8 +1372,7 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     result = {}
     for field_value in fields:
       result[field_value[0]] = stats.STATS.GetMetricValue(
-          "hunt_output_plugin_verifications",
-          fields=field_value)
+          "hunt_output_plugin_verifications", fields=field_value)
 
     return sum(result.values()), result
 
@@ -1430,8 +1380,8 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     hunts.GRRHunt.StartHunt(hunt_name="SampleHunt", token=self.token)
 
     prev_count, _ = self.GetVerificationsStats()
-    flow.GRRFlow.StartFlow(flow_name="VerifyHuntOutputPluginsCronFlow",
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        flow_name="VerifyHuntOutputPluginsCronFlow", token=self.token)
     count, _ = self.GetVerificationsStats()
 
     self.assertEqual(count - prev_count, 0)
@@ -1442,8 +1392,8 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.RunHunt()
 
     prev_count, _ = self.GetVerificationsStats()
-    flow.GRRFlow.StartFlow(flow_name="VerifyHuntOutputPluginsCronFlow",
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        flow_name="VerifyHuntOutputPluginsCronFlow", token=self.token)
     count, _ = self.GetVerificationsStats()
 
     self.assertEqual(count - prev_count, 0)
@@ -1455,8 +1405,8 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.RunHunt()
 
     _, prev_results = self.GetVerificationsStats()
-    flow.GRRFlow.StartFlow(flow_name="VerifyHuntOutputPluginsCronFlow",
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        flow_name="VerifyHuntOutputPluginsCronFlow", token=self.token)
     _, results = self.GetVerificationsStats()
 
     self.assertEqual(results["N_A"] - prev_results.get("N_A", 0), 1)
@@ -1468,12 +1418,11 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.AssignTasksToClients()
     self.RunHunt()
 
-    flow.GRRFlow.StartFlow(flow_name="VerifyHuntOutputPluginsCronFlow",
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        flow_name="VerifyHuntOutputPluginsCronFlow", token=self.token)
 
     results_metadata = aff4.FACTORY.Open(
-        hunt_urn.Add("ResultsMetadata"),
-        token=self.token)
+        hunt_urn.Add("ResultsMetadata"), token=self.token)
     verification_results_list = results_metadata.Get(
         results_metadata.Schema.OUTPUT_PLUGINS_VERIFICATION_RESULTS)
     self.assertEqual(len(verification_results_list.results), 1)
@@ -1486,8 +1435,8 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.RunHunt()
 
     _, prev_results = self.GetVerificationsStats()
-    flow.GRRFlow.StartFlow(flow_name="VerifyHuntOutputPluginsCronFlow",
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        flow_name="VerifyHuntOutputPluginsCronFlow", token=self.token)
     _, results = self.GetVerificationsStats()
 
     self.assertEqual(results["SUCCESS"] - prev_results.get("SUCCESS", 0), 1)
@@ -1499,10 +1448,11 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.RunHunt()
 
     prev_count, _ = self.GetVerificationsStats()
-    self.assertRaises(standard.HuntVerificationError,
-                      flow.GRRFlow.StartFlow,
-                      flow_name="VerifyHuntOutputPluginsCronFlow",
-                      token=self.token)
+    self.assertRaises(
+        standard.HuntVerificationError,
+        flow.GRRFlow.StartFlow,
+        flow_name="VerifyHuntOutputPluginsCronFlow",
+        token=self.token)
     count, _ = self.GetVerificationsStats()
     self.assertEqual(count - prev_count, 0)
 
@@ -1515,8 +1465,8 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     prev_count = stats.STATS.GetMetricValue(
         "hunt_output_plugin_verification_errors")
     try:
-      flow.GRRFlow.StartFlow(flow_name="VerifyHuntOutputPluginsCronFlow",
-                             token=self.token)
+      flow.GRRFlow.StartFlow(
+          flow_name="VerifyHuntOutputPluginsCronFlow", token=self.token)
     except standard.HuntVerificationError:
       pass
     count = stats.STATS.GetMetricValue("hunt_output_plugin_verification_errors")
@@ -1531,10 +1481,11 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.RunHunt()
 
     _, prev_results = self.GetVerificationsStats()
-    self.assertRaises(standard.HuntVerificationError,
-                      flow.GRRFlow.StartFlow,
-                      flow_name="VerifyHuntOutputPluginsCronFlow",
-                      token=self.token)
+    self.assertRaises(
+        standard.HuntVerificationError,
+        flow.GRRFlow.StartFlow,
+        flow_name="VerifyHuntOutputPluginsCronFlow",
+        token=self.token)
     _, results = self.GetVerificationsStats()
     self.assertEqual(results["SUCCESS"] - prev_results.get("SUCCESS", 0), 1)
 
@@ -1547,9 +1498,10 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
       self.RunHunt()
 
     prev_count, _ = self.GetVerificationsStats()
-    flow.GRRFlow.StartFlow(flow_name="VerifyHuntOutputPluginsCronFlow",
-                           check_range="60m",
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        flow_name="VerifyHuntOutputPluginsCronFlow",
+        check_range="60m",
+        token=self.token)
     count, _ = self.GetVerificationsStats()
     self.assertEqual(count - prev_count, 0)
 

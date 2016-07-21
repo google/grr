@@ -27,18 +27,18 @@ class HttpConnector(connector.Connector):
     TYPED_JSON = 1
 
   HANDLERS_MAP = routing.Map([
-      routing.Rule("/api/clients",
-                   methods=["GET"],
-                   endpoint="SearchClients"),
-      routing.Rule("/api/clients/<client_id>",
-                   methods=["GET"],
-                   endpoint="GetClient"),
-      routing.Rule("/api/clients/<client_id>/flows",
-                   methods=["GET"],
-                   endpoint="ListFlows"),
-      routing.Rule("/api/clients/<client_id>/flows",
-                   methods=["POST"],
-                   endpoint="CreateFlow"),
+      routing.Rule(
+          "/api/clients", methods=["GET"], endpoint="SearchClients"),
+      routing.Rule(
+          "/api/clients/<client_id>", methods=["GET"], endpoint="GetClient"),
+      routing.Rule(
+          "/api/clients/<client_id>/flows",
+          methods=["GET"],
+          endpoint="ListFlows"),
+      routing.Rule(
+          "/api/clients/<client_id>/flows",
+          methods=["POST"],
+          endpoint="CreateFlow"),
   ])
 
   JSON_PREFIX = ")]}\'\n"
@@ -138,12 +138,13 @@ class HttpConnector(connector.Connector):
 
     logger.debug("%s request: %s (query: %s, body: %s, headers %s)", method,
                  url, query_params, body, headers)
-    request = requests.Request(method,
-                               url,
-                               json=body,
-                               params=query_params,
-                               headers=headers,
-                               cookies=cookies)
+    request = requests.Request(
+        method,
+        url,
+        json=body,
+        params=query_params,
+        headers=headers,
+        cookies=cookies)
     prepped_request = request.prepare()
 
     session = requests.Session()

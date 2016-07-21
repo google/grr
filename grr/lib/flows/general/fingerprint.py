@@ -27,21 +27,24 @@ class FingerprintFileMixin(object):
     request = rdf_client.FingerprintRequest(pathspec=pathspec)
 
     # Generic hash.
-    request.AddRequest(fp_type=rdf_client.FingerprintTuple.Type.FPT_GENERIC,
-                       hashers=[rdf_client.FingerprintTuple.HashType.MD5,
-                                rdf_client.FingerprintTuple.HashType.SHA1,
-                                rdf_client.FingerprintTuple.HashType.SHA256])
+    request.AddRequest(
+        fp_type=rdf_client.FingerprintTuple.Type.FPT_GENERIC,
+        hashers=[rdf_client.FingerprintTuple.HashType.MD5,
+                 rdf_client.FingerprintTuple.HashType.SHA1,
+                 rdf_client.FingerprintTuple.HashType.SHA256])
 
     # Authenticode hash.
-    request.AddRequest(fp_type=rdf_client.FingerprintTuple.Type.FPT_PE_COFF,
-                       hashers=[rdf_client.FingerprintTuple.HashType.MD5,
-                                rdf_client.FingerprintTuple.HashType.SHA1,
-                                rdf_client.FingerprintTuple.HashType.SHA256])
+    request.AddRequest(
+        fp_type=rdf_client.FingerprintTuple.Type.FPT_PE_COFF,
+        hashers=[rdf_client.FingerprintTuple.HashType.MD5,
+                 rdf_client.FingerprintTuple.HashType.SHA1,
+                 rdf_client.FingerprintTuple.HashType.SHA256])
 
-    self.CallClient("FingerprintFile",
-                    request,
-                    next_state="ProcessFingerprint",
-                    request_data=request_data)
+    self.CallClient(
+        "FingerprintFile",
+        request,
+        next_state="ProcessFingerprint",
+        request_data=request_data)
 
   @flow.StateHandler()
   def ProcessFingerprint(self, responses):
@@ -85,16 +88,14 @@ class FingerprintFileMixin(object):
 
           signed_data = result.GetItem("SignedData", [])
           for data in signed_data:
-            hash_obj.signed_data.Append(revision=data[0],
-                                        cert_type=data[1],
-                                        certificate=data[2])
+            hash_obj.signed_data.Append(
+                revision=data[0], cert_type=data[1], certificate=data[2])
 
     fd.Set(fd.Schema.HASH, hash_obj)
     fd.Close(sync=True)
 
-    self.ReceiveFileFingerprint(urn,
-                                hash_obj,
-                                request_data=responses.request_data)
+    self.ReceiveFileFingerprint(
+        urn, hash_obj, request_data=responses.request_data)
 
   def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
     """This method will be called with the new urn and the received hash."""
@@ -107,7 +108,7 @@ class FingerprintFile(FingerprintFileMixin, flow.GRRFlow):
   args_type = FingerprintFileArgs
   behaviours = flow.GRRFlow.behaviours + "ADVANCED"
 
-  @flow.StateHandler(next_state="Done")
+  @flow.StateHandler()
   def Start(self):
     """Issue the fingerprinting request."""
     self.FingerprintFile(self.args.pathspec)

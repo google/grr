@@ -15,9 +15,10 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
 
   def _MakeRegStat(self, path, value, registry_type):
     options = rdf_paths.PathSpec.Options.CASE_LITERAL
-    pathspec = rdf_paths.PathSpec(path=path,
-                                  path_options=options,
-                                  pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+    pathspec = rdf_paths.PathSpec(
+        path=path,
+        path_options=options,
+        pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
 
     if registry_type == rdf_client.StatEntry.RegistryType.REG_MULTI_SZ:
       reg_data = rdf_protodict.DataBlob(list=rdf_protodict.BlobArray(

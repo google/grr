@@ -19,12 +19,12 @@ class ListProcesses(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
   args_type = ListProcessesArgs
 
-  @flow.StateHandler(next_state=["IterateProcesses"])
+  @flow.StateHandler()
   def Start(self):
     """Start processing."""
     self.CallClient("ListProcesses", next_state="IterateProcesses")
 
-  @flow.StateHandler(next_state="HandleDownloadedFiles")
+  @flow.StateHandler()
   def IterateProcesses(self, responses):
     """This stores the processes."""
 

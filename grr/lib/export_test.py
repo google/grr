@@ -111,8 +111,8 @@ class ExportTest(test_lib.GRRBaseTest):
 
   def testConverterIsCorrectlyFound(self):
     dummy_value = DummyRDFValue("result")
-    result = list(export.ConvertValues(export.ExportedMetadata(), [dummy_value
-                                                                  ]))
+    result = list(
+        export.ConvertValues(export.ExportedMetadata(), [dummy_value]))
     self.assertEqual(len(result), 1)
     self.assertTrue(isinstance(result[0], rdfvalue.RDFString))
     self.assertEqual(result[0], "result")
@@ -126,8 +126,8 @@ class ExportTest(test_lib.GRRBaseTest):
 
     # There's no converter defined for DataAgnosticConverterTestValue, so
     # we expect DataAgnosticExportConverter to be used.
-    converted_values = list(export.ConvertValues(export.ExportedMetadata(),
-                                                 [original_value]))
+    converted_values = list(
+        export.ConvertValues(export.ExportedMetadata(), [original_value]))
     self.assertEqual(len(converted_values), 1)
     converted_value = converted_values[0]
 
@@ -136,8 +136,8 @@ class ExportTest(test_lib.GRRBaseTest):
 
   def testConvertsSingleValueWithMultipleAssociatedConverters(self):
     dummy_value = DummyRDFValue3("some")
-    result = list(export.ConvertValues(export.ExportedMetadata(), [dummy_value
-                                                                  ]))
+    result = list(
+        export.ConvertValues(export.ExportedMetadata(), [dummy_value]))
     self.assertEqual(len(result), 2)
     self.assertTrue((isinstance(result[0], DummyRDFValue) and
                      isinstance(result[1], DummyRDFValue2)) or
@@ -160,12 +160,11 @@ class ExportTest(test_lib.GRRBaseTest):
 
     fd.Close()
 
-    fd = aff4.FACTORY.Open("aff4:/testcoll",
-                           aff4_type=coll_type,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        "aff4:/testcoll", aff4_type=coll_type, token=self.token)
 
-    results = export.ConvertValues(export.ExportedMetadata(), [fd],
-                                   token=self.token)
+    results = export.ConvertValues(
+        export.ExportedMetadata(), [fd], token=self.token)
     results = sorted(str(v) for v in results)
 
     self.assertEqual(len(results), 2)
@@ -193,12 +192,11 @@ class ExportTest(test_lib.GRRBaseTest):
 
     fd.Close()
 
-    fd = aff4.FACTORY.Open("aff4:/testcoll",
-                           aff4_type=coll_type,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        "aff4:/testcoll", aff4_type=coll_type, token=self.token)
 
-    results = export.ConvertValues(export.ExportedMetadata(), [fd],
-                                   token=self.token)
+    results = export.ConvertValues(
+        export.ExportedMetadata(), [fd], token=self.token)
     results = sorted(results, key=str)
 
     self.assertEqual(len(results), 4)
@@ -217,8 +215,8 @@ class ExportTest(test_lib.GRRBaseTest):
   def testStatEntryToExportedFileConverterWithMissingAFF4File(self):
     stat = rdf_client.StatEntry(
         aff4path=rdfvalue.RDFURN("aff4:/C.00000000000000/fs/os/some/path"),
-        pathspec=rdf_paths.PathSpec(path="/some/path",
-                                    pathtype=rdf_paths.PathSpec.PathType.OS),
+        pathspec=rdf_paths.PathSpec(
+            path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS),
         st_mode=33184,
         st_ino=1063090,
         st_atime=1336469177,
@@ -226,8 +224,9 @@ class ExportTest(test_lib.GRRBaseTest):
         st_ctime=1336129892)
 
     converter = export.StatEntryToExportedFileConverter()
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), stat, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), stat, token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].basename, "path")
@@ -252,16 +251,17 @@ class ExportTest(test_lib.GRRBaseTest):
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "winexec_img.dd"))
-    pathspec.Append(path="/Ext2IFS_1_10b.exe",
-                    pathtype=rdf_paths.PathSpec.PathType.TSK)
+    pathspec.Append(
+        path="/Ext2IFS_1_10b.exe", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
                                           "HashBuffer")
-    for _ in test_lib.TestFlowHelper("GetFile",
-                                     client_mock,
-                                     token=self.token,
-                                     client_id=client_id,
-                                     pathspec=pathspec):
+    for _ in test_lib.TestFlowHelper(
+        "GetFile",
+        client_mock,
+        token=self.token,
+        client_id=client_id,
+        pathspec=pathspec):
       pass
 
     urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, client_id)
@@ -271,8 +271,9 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertTrue(stat)
 
     converter = export.StatEntryToExportedFileConverter()
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), stat, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), stat, token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].basename, "Ext2IFS_1_10b.exe")
@@ -285,8 +286,9 @@ class ExportTest(test_lib.GRRBaseTest):
     # Convert again, now specifying export_files_contents=True in options.
     converter = export.StatEntryToExportedFileConverter(
         options=export.ExportOptions(export_files_contents=True))
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), stat, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), stat, token=self.token))
     self.assertTrue(results[0].content)
     self.assertEqual(
         results[0].content_sha256,
@@ -301,23 +303,25 @@ class ExportTest(test_lib.GRRBaseTest):
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "winexec_img.dd"))
-    pathspec.Append(path="/Ext2IFS_1_10b.exe",
-                    pathtype=rdf_paths.PathSpec.PathType.TSK)
+    pathspec.Append(
+        path="/Ext2IFS_1_10b.exe", pathtype=rdf_paths.PathSpec.PathType.TSK)
     urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, client_id)
 
     client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
                                           "HashBuffer")
-    for _ in test_lib.TestFlowHelper("GetFile",
-                                     client_mock,
-                                     token=self.token,
-                                     client_id=client_id,
-                                     pathspec=pathspec):
+    for _ in test_lib.TestFlowHelper(
+        "GetFile",
+        client_mock,
+        token=self.token,
+        client_id=client_id,
+        pathspec=pathspec):
       pass
 
     auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
     events.Events.PublishEvent(
         "FileStore.AddFileToStore",
-        rdf_flows.GrrMessage(payload=urn, auth_state=auth_state),
+        rdf_flows.GrrMessage(
+            payload=urn, auth_state=auth_state),
         token=self.token)
     worker = test_lib.MockWorker(token=self.token)
     worker.Simulate()
@@ -328,10 +332,12 @@ class ExportTest(test_lib.GRRBaseTest):
 
     converter = export.StatEntryToExportedFileConverter(
         options=export.ExportOptions(export_files_hashes=True))
-    results = list(converter.Convert(export.ExportedMetadata(),
-                                     rdf_client.StatEntry(aff4path=urn,
-                                                          pathspec=pathspec),
-                                     token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(),
+            rdf_client.StatEntry(
+                aff4path=urn, pathspec=pathspec),
+            token=self.token))
 
     self.assertEqual(results[0].hash_md5, "bb0a15eefe63fd41f8dc9dee01c5cf9a")
     self.assertEqual(results[0].hash_sha1,
@@ -354,8 +360,9 @@ class ExportTest(test_lib.GRRBaseTest):
             pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
 
     converter = export.StatEntryToExportedFileConverter()
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), stat, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), stat, token=self.token))
     self.assertFalse(results)
 
   def testStatEntryToExportedRegistryKeyConverter(self):
@@ -374,8 +381,9 @@ class ExportTest(test_lib.GRRBaseTest):
         registry_data=rdf_protodict.DataBlob(string="Sidebar.exe"))
 
     converter = export.StatEntryToExportedRegistryKeyConverter()
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), stat, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), stat, token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].urn, rdfvalue.RDFURN(
@@ -390,8 +398,8 @@ class ExportTest(test_lib.GRRBaseTest):
   def testRegistryKeyConverterIgnoresNonRegistryStatEntries(self):
     stat = rdf_client.StatEntry(
         aff4path=rdfvalue.RDFURN("aff4:/C.00000000000000/fs/os/some/path"),
-        pathspec=rdf_paths.PathSpec(path="/some/path",
-                                    pathtype=rdf_paths.PathSpec.PathType.OS),
+        pathspec=rdf_paths.PathSpec(
+            path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS),
         st_mode=33184,
         st_ino=1063090,
         st_atime=1336469177,
@@ -399,8 +407,9 @@ class ExportTest(test_lib.GRRBaseTest):
         st_ctime=1336129892)
 
     converter = export.StatEntryToExportedRegistryKeyConverter()
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), stat, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), stat, token=self.token))
 
     self.assertFalse(results)
 
@@ -419,8 +428,9 @@ class ExportTest(test_lib.GRRBaseTest):
             pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
 
     converter = export.StatEntryToExportedRegistryKeyConverter()
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), stat, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), stat, token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].urn, rdfvalue.RDFURN(
@@ -432,15 +442,17 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(results[0].type, 0)
 
   def testProcessToExportedProcessConverter(self):
-    process = rdf_client.Process(pid=2,
-                                 ppid=1,
-                                 cmdline=["cmd.exe"],
-                                 exe="c:\\windows\\cmd.exe",
-                                 ctime=long(1333718907.167083 * 1e6))
+    process = rdf_client.Process(
+        pid=2,
+        ppid=1,
+        cmdline=["cmd.exe"],
+        exe="c:\\windows\\cmd.exe",
+        ctime=long(1333718907.167083 * 1e6))
 
     converter = export.ProcessToExportedProcessConverter()
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), process, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), process, token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].pid, 2)
@@ -450,16 +462,18 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(results[0].ctime, long(1333718907.167083 * 1e6))
 
   def testProcessToExportedOpenFileConverter(self):
-    process = rdf_client.Process(pid=2,
-                                 ppid=1,
-                                 cmdline=["cmd.exe"],
-                                 exe="c:\\windows\\cmd.exe",
-                                 ctime=long(1333718907.167083 * 1e6),
-                                 open_files=["/some/a", "/some/b"])
+    process = rdf_client.Process(
+        pid=2,
+        ppid=1,
+        cmdline=["cmd.exe"],
+        exe="c:\\windows\\cmd.exe",
+        ctime=long(1333718907.167083 * 1e6),
+        open_files=["/some/a", "/some/b"])
 
     converter = export.ProcessToExportedOpenFileConverter()
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), process, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), process, token=self.token))
 
     self.assertEqual(len(results), 2)
     self.assertEqual(results[0].pid, 2)
@@ -471,32 +485,34 @@ class ExportTest(test_lib.GRRBaseTest):
     conn1 = rdf_client.NetworkConnection(
         state=rdf_client.NetworkConnection.State.LISTEN,
         type=rdf_client.NetworkConnection.Type.SOCK_STREAM,
-        local_address=rdf_client.NetworkEndpoint(ip="0.0.0.0",
-                                                 port=22),
-        remote_address=rdf_client.NetworkEndpoint(ip="0.0.0.0",
-                                                  port=0),
+        local_address=rdf_client.NetworkEndpoint(
+            ip="0.0.0.0", port=22),
+        remote_address=rdf_client.NetworkEndpoint(
+            ip="0.0.0.0", port=0),
         pid=2136,
         ctime=0)
     conn2 = rdf_client.NetworkConnection(
         state=rdf_client.NetworkConnection.State.LISTEN,
         type=rdf_client.NetworkConnection.Type.SOCK_STREAM,
-        local_address=rdf_client.NetworkEndpoint(ip="192.168.1.1",
-                                                 port=31337),
-        remote_address=rdf_client.NetworkEndpoint(ip="1.2.3.4",
-                                                  port=6667),
+        local_address=rdf_client.NetworkEndpoint(
+            ip="192.168.1.1", port=31337),
+        remote_address=rdf_client.NetworkEndpoint(
+            ip="1.2.3.4", port=6667),
         pid=1,
         ctime=0)
 
-    process = rdf_client.Process(pid=2,
-                                 ppid=1,
-                                 cmdline=["cmd.exe"],
-                                 exe="c:\\windows\\cmd.exe",
-                                 ctime=long(1333718907.167083 * 1e6),
-                                 connections=[conn1, conn2])
+    process = rdf_client.Process(
+        pid=2,
+        ppid=1,
+        cmdline=["cmd.exe"],
+        exe="c:\\windows\\cmd.exe",
+        ctime=long(1333718907.167083 * 1e6),
+        connections=[conn1, conn2])
 
     converter = export.ProcessToExportedNetworkConnectionConverter()
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), process, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), process, token=self.token))
 
     self.assertEqual(len(results), 2)
     self.assertEqual(results[0].state,
@@ -525,20 +541,23 @@ class ExportTest(test_lib.GRRBaseTest):
     urn = rdfvalue.RDFURN("aff4:/C.00000000000000/some/path")
 
     fd = aff4.FACTORY.Create(urn, aff4_grr.VFSFile, token=self.token)
-    fd.Set(fd.Schema.STAT(rdf_client.StatEntry(
-        aff4path=urn,
-        pathspec=rdf_paths.PathSpec(path="/some/path",
-                                    pathtype=rdf_paths.PathSpec.PathType.OS),
-        st_mode=33184,
-        st_ino=1063090,
-        st_atime=1336469177,
-        st_mtime=1336129892,
-        st_ctime=1336129892)))
+    fd.Set(
+        fd.Schema.STAT(
+            rdf_client.StatEntry(
+                aff4path=urn,
+                pathspec=rdf_paths.PathSpec(
+                    path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS),
+                st_mode=33184,
+                st_ino=1063090,
+                st_atime=1336469177,
+                st_mtime=1336129892,
+                st_ctime=1336129892)))
     fd.Close()
 
     converter = export.RDFURNConverter()
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), urn, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), urn, token=self.token))
 
     self.assertTrue(len(results))
 
@@ -568,9 +587,9 @@ class ExportTest(test_lib.GRRBaseTest):
         ])])
 
     converter = export.ClientSummaryToExportedNetworkInterfaceConverter()
-    results = list(converter.Convert(export.ExportedMetadata(),
-                                     client_summary,
-                                     token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), client_summary, token=self.token))
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].mac_address, "123456".encode("hex"))
     self.assertEqual(results[0].ifname, "eth0")
@@ -595,8 +614,9 @@ class ExportTest(test_lib.GRRBaseTest):
         ])
 
     converter = export.InterfaceToExportedNetworkInterfaceConverter()
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), interface, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), interface, token=self.token))
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].mac_address, "123456".encode("hex"))
     self.assertEqual(results[0].ifname, "eth0")
@@ -621,8 +641,9 @@ class ExportTest(test_lib.GRRBaseTest):
     ]
     metadata = export.ExportedMetadata()
 
-    results = list(export.ConvertValues(
-        metadata, checkresults, token=self.token))
+    results = list(
+        export.ConvertValues(
+            metadata, checkresults, token=self.token))
     self.assertEqual(len(results), 3)
     self.assertEqual(results[0].check_id, checkresults[0].check_id)
     self.assertFalse(results[0].HasField("anomaly"))
@@ -659,10 +680,8 @@ class ExportTest(test_lib.GRRBaseTest):
 
   def testGetMetadataMissingKB(self):
     client_urn = rdf_client.ClientURN("C.0000000000000000")
-    newclient = aff4.FACTORY.Create(client_urn,
-                                    aff4_grr.VFSGRRClient,
-                                    token=self.token,
-                                    mode="rw")
+    newclient = aff4.FACTORY.Create(
+        client_urn, aff4_grr.VFSGRRClient, token=self.token, mode="rw")
     self.assertFalse(newclient.Get(newclient.Schema.KNOWLEDGE_BASE))
     newclient.Flush()
 
@@ -675,8 +694,9 @@ class ExportTest(test_lib.GRRBaseTest):
     metadata = export.ExportedMetadata(hostname="ahostname")
 
     converter = export.ClientSummaryToExportedClientConverter()
-    results = list(converter.Convert(
-        metadata, client_summary, token=self.token))
+    results = list(
+        converter.Convert(
+            metadata, client_summary, token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].metadata.hostname, "ahostname")
@@ -686,13 +706,14 @@ class ExportTest(test_lib.GRRBaseTest):
         offset=42,
         length=43,
         data="somedata",
-        pathspec=rdf_paths.PathSpec(path="/some/path",
-                                    pathtype=rdf_paths.PathSpec.PathType.OS))
+        pathspec=rdf_paths.PathSpec(
+            path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS))
     metadata = export.ExportedMetadata(client_urn="C.0000000000000001")
 
     converter = export.BufferReferenceToExportedMatchConverter()
-    results = list(converter.Convert(
-        metadata, buffer_reference, token=self.token))
+    results = list(
+        converter.Convert(
+            metadata, buffer_reference, token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].offset, 42)
@@ -703,17 +724,13 @@ class ExportTest(test_lib.GRRBaseTest):
         rdfvalue.RDFURN("aff4:/C.0000000000000001/fs/os/some/path"))
 
   def testFileFinderResultExportConverter(self):
-    pathspec = rdf_paths.PathSpec(path="/some/path",
-                                  pathtype=rdf_paths.PathSpec.PathType.OS)
+    pathspec = rdf_paths.PathSpec(
+        path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS)
 
-    match1 = rdf_client.BufferReference(offset=42,
-                                        length=43,
-                                        data="somedata1",
-                                        pathspec=pathspec)
-    match2 = rdf_client.BufferReference(offset=44,
-                                        length=45,
-                                        data="somedata2",
-                                        pathspec=pathspec)
+    match1 = rdf_client.BufferReference(
+        offset=42, length=43, data="somedata1", pathspec=pathspec)
+    match2 = rdf_client.BufferReference(
+        offset=44, length=45, data="somedata2", pathspec=pathspec)
     stat_entry = rdf_client.StatEntry(
         aff4path=rdfvalue.RDFURN("aff4:/C.00000000000001/fs/os/some/path"),
         pathspec=pathspec,
@@ -723,14 +740,14 @@ class ExportTest(test_lib.GRRBaseTest):
         st_mtime=1336129892,
         st_ctime=1336129892)
 
-    file_finder_result = file_finder.FileFinderResult(stat_entry=stat_entry,
-                                                      matches=[match1, match2])
+    file_finder_result = file_finder.FileFinderResult(
+        stat_entry=stat_entry, matches=[match1, match2])
     metadata = export.ExportedMetadata(client_urn="C.0000000000000001")
 
     converter = export.FileFinderResultConverter()
-    results = list(converter.Convert(metadata,
-                                     file_finder_result,
-                                     token=self.token))
+    results = list(
+        converter.Convert(
+            metadata, file_finder_result, token=self.token))
 
     # We expect 1 ExportedFile instance in the results
     exported_files = [result for result in results
@@ -784,9 +801,9 @@ class ExportTest(test_lib.GRRBaseTest):
     file_finder_result = file_finder.FileFinderResult(stat_entry=stat_entry)
     metadata = export.ExportedMetadata(client_urn="C.0000000000000001")
     converter = export.FileFinderResultConverter()
-    results = list(converter.Convert(metadata,
-                                     file_finder_result,
-                                     token=self.token))
+    results = list(
+        converter.Convert(
+            metadata, file_finder_result, token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertIsInstance(results[0], export.ExportedRegistryKey)
@@ -798,10 +815,10 @@ class ExportTest(test_lib.GRRBaseTest):
         "aff4:/C.00000000000001/registry/HKEY_USERS/S-1-1-1-1/Software")
 
   def testFileFinderResultExportConverterConvertsHashes(self):
-    pathspec = rdf_paths.PathSpec(path="/some/path",
-                                  pathtype=rdf_paths.PathSpec.PathType.OS)
-    pathspec2 = rdf_paths.PathSpec(path="/some/path2",
-                                   pathtype=rdf_paths.PathSpec.PathType.OS)
+    pathspec = rdf_paths.PathSpec(
+        path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS)
+    pathspec2 = rdf_paths.PathSpec(
+        path="/some/path2", pathtype=rdf_paths.PathSpec.PathType.OS)
 
     stat_entry = rdf_client.StatEntry(
         aff4path=rdfvalue.RDFURN("aff4:/C.00000000000001/fs/os/some/path"),
@@ -835,17 +852,18 @@ class ExportTest(test_lib.GRRBaseTest):
         pecoff_md5="1dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
         pecoff_sha1="1dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"))
 
-    file_finder_result = file_finder.FileFinderResult(stat_entry=stat_entry,
-                                                      hash_entry=hash_entry)
-    file_finder_result2 = file_finder.FileFinderResult(stat_entry=stat_entry2,
-                                                       hash_entry=hash_entry2)
+    file_finder_result = file_finder.FileFinderResult(
+        stat_entry=stat_entry, hash_entry=hash_entry)
+    file_finder_result2 = file_finder.FileFinderResult(
+        stat_entry=stat_entry2, hash_entry=hash_entry2)
 
     metadata = export.ExportedMetadata(client_urn="C.0000000000000001")
 
     converter = export.FileFinderResultConverter()
-    results = list(converter.BatchConvert([(metadata, file_finder_result), (
-        metadata, file_finder_result2)],
-                                          token=self.token))
+    results = list(
+        converter.BatchConvert(
+            [(metadata, file_finder_result), (metadata, file_finder_result2)],
+            token=self.token))
 
     exported_files = [result for result in results
                       if isinstance(result, export.ExportedFile)]
@@ -884,20 +902,22 @@ class ExportTest(test_lib.GRRBaseTest):
     urn = rdfvalue.RDFURN("aff4:/C.00000000000000/some/collection")
 
     fd = aff4.FACTORY.Create(urn, collects.RDFValueCollection, token=self.token)
-    fd.Add(rdf_client.StatEntry(
-        aff4path=rdfvalue.RDFURN("aff4:/C.00000000000000/some/path"),
-        pathspec=rdf_paths.PathSpec(path="/some/path",
-                                    pathtype=rdf_paths.PathSpec.PathType.OS),
-        st_mode=33184,
-        st_ino=1063090,
-        st_atime=1336469177,
-        st_mtime=1336129892,
-        st_ctime=1336129892))
+    fd.Add(
+        rdf_client.StatEntry(
+            aff4path=rdfvalue.RDFURN("aff4:/C.00000000000000/some/path"),
+            pathspec=rdf_paths.PathSpec(
+                path="/some/path", pathtype=rdf_paths.PathSpec.PathType.OS),
+            st_mode=33184,
+            st_ino=1063090,
+            st_atime=1336469177,
+            st_mtime=1336129892,
+            st_ctime=1336129892))
     fd.Close()
 
     converter = export.RDFURNConverter()
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), urn, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), urn, token=self.token))
 
     self.assertTrue(len(results))
 
@@ -914,8 +934,9 @@ class ExportTest(test_lib.GRRBaseTest):
     data = rdfvalue.RDFBytes("foobar")
 
     converter = export.RDFBytesToExportedBytesConverter()
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), data, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), data, token=self.token))
 
     self.assertTrue(len(results))
 
@@ -927,8 +948,8 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(exported_bytes[0].length, 6)
 
   def testGrrMessageConverter(self):
-    payload = DummyRDFValue4("some",
-                             age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
+    payload = DummyRDFValue4(
+        "some", age=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
     msg = rdf_flows.GrrMessage(payload=payload)
     msg.source = rdf_client.ClientURN("C.0000000000000000")
     test_lib.ClientFixture(msg.source, token=self.token)
@@ -967,9 +988,9 @@ class ExportTest(test_lib.GRRBaseTest):
 
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(3):
-      results = list(converter.BatchConvert([(metadata1, msg1), (metadata2, msg2
-                                                                )],
-                                            token=self.token))
+      results = list(
+          converter.BatchConvert(
+              [(metadata1, msg1), (metadata2, msg2)], token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].original_timestamp,
@@ -998,9 +1019,9 @@ class ExportTest(test_lib.GRRBaseTest):
 
     converter = export.GrrMessageConverter()
     with test_lib.FakeTime(3):
-      results = list(converter.BatchConvert([(metadata1, msg1), (metadata2, msg2
-                                                                )],
-                                            token=self.token))
+      results = list(
+          converter.BatchConvert(
+              [(metadata1, msg1), (metadata2, msg2)], token=self.token))
 
     self.assertEqual(len(results), 3)
     # RDFValue3 gets converted to RDFValue2 and RDFValue, RDFValue5 stays at 5.
@@ -1010,12 +1031,13 @@ class ExportTest(test_lib.GRRBaseTest):
   def testDNSClientConfigurationToExportedDNSClientConfiguration(self):
     dns_servers = ["192.168.1.1", "8.8.8.8"]
     dns_suffixes = ["internal.company.com", "company.com"]
-    config = rdf_client.DNSClientConfiguration(dns_server=dns_servers,
-                                               dns_suffix=dns_suffixes)
+    config = rdf_client.DNSClientConfiguration(
+        dns_server=dns_servers, dns_suffix=dns_suffixes)
 
     converter = export.DNSClientConfigurationToExportedDNSClientConfiguration()
-    results = list(converter.Convert(export.ExportedMetadata(
-    ), config, token=self.token))
+    results = list(
+        converter.Convert(
+            export.ExportedMetadata(), config, token=self.token))
 
     self.assertEqual(len(results), 1)
     self.assertEqual(results[0].dns_servers, " ".join(dns_servers))
@@ -1037,49 +1059,50 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
         registry_data=rdf_protodict.DataBlob(string="C:\\Windows\\Sidebar.exe"))
 
     self.file_stat = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
-        path="/tmp/bar.exe",
-        pathtype=rdf_paths.PathSpec.PathType.OS))
+        path="/tmp/bar.exe", pathtype=rdf_paths.PathSpec.PathType.OS))
 
   def testExportsOriginalResultAnywayIfItIsNotStatEntry(self):
     result = collectors.ArtifactFilesDownloaderResult(
         original_result=DataAgnosticConverterTestValue())
 
     converter = export.ArtifactFilesDownloaderResultConverter()
-    converted = list(converter.Convert(export.ExportedMetadata(
-    ), result, token=self.token))
+    converted = list(
+        converter.Convert(
+            export.ExportedMetadata(), result, token=self.token))
 
     # Test that something gets exported and that this something wasn't
     # produced by ArtifactFilesDownloaderResultConverter.
     self.assertEqual(len(converted), 1)
-    self.assertFalse(isinstance(converted[0],
-                                export.ExportedArtifactFilesDownloaderResult))
+    self.assertFalse(
+        isinstance(converted[0], export.ExportedArtifactFilesDownloaderResult))
 
   def testExportsOriginalResultIfOriginalResultIsNotRegistryOrFileStatEntry(
       self):
     stat = rdf_client.StatEntry(
         aff4path=rdfvalue.RDFURN("aff4:/C.00000000000000/fs/os/some/path"),
         pathspec=rdf_paths.PathSpec(
-            path="some/path",
-            pathtype=rdf_paths.PathSpec.PathType.MEMORY))
+            path="some/path", pathtype=rdf_paths.PathSpec.PathType.MEMORY))
     result = collectors.ArtifactFilesDownloaderResult(original_result=stat)
 
     converter = export.ArtifactFilesDownloaderResultConverter()
-    converted = list(converter.Convert(export.ExportedMetadata(
-    ), result, token=self.token))
+    converted = list(
+        converter.Convert(
+            export.ExportedMetadata(), result, token=self.token))
 
     # Test that something gets exported and that this something wasn't
     # produced by ArtifactFilesDownloaderResultConverter.
     self.assertEqual(len(converted), 1)
-    self.assertFalse(isinstance(converted[0],
-                                export.ExportedArtifactFilesDownloaderResult))
+    self.assertFalse(
+        isinstance(converted[0], export.ExportedArtifactFilesDownloaderResult))
 
   def testYieldsOneResultAndOneOriginalValueForFileStatEntry(self):
     result = collectors.ArtifactFilesDownloaderResult(
         original_result=self.file_stat)
 
     converter = export.ArtifactFilesDownloaderResultConverter()
-    converted = list(converter.Convert(export.ExportedMetadata(
-    ), result, token=self.token))
+    converted = list(
+        converter.Convert(
+            export.ExportedMetadata(), result, token=self.token))
 
     default_exports = [
         v for v in converted
@@ -1100,8 +1123,9 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
         original_result=self.registry_stat)
 
     converter = export.ArtifactFilesDownloaderResultConverter()
-    converted = list(converter.Convert(export.ExportedMetadata(
-    ), result, token=self.token))
+    converted = list(
+        converter.Convert(
+            export.ExportedMetadata(), result, token=self.token))
 
     downloader_exports = [
         v for v in converted
@@ -1116,11 +1140,13 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
   def testIncludesRegistryStatEntryFoundPathspecIntoYieldedResult(self):
     result = collectors.ArtifactFilesDownloaderResult(
         original_result=self.registry_stat,
-        found_pathspec=rdf_paths.PathSpec(path="foo", pathtype="OS"))
+        found_pathspec=rdf_paths.PathSpec(
+            path="foo", pathtype="OS"))
 
     converter = export.ArtifactFilesDownloaderResultConverter()
-    converted = list(converter.Convert(export.ExportedMetadata(
-    ), result, token=self.token))
+    converted = list(
+        converter.Convert(
+            export.ExportedMetadata(), result, token=self.token))
 
     downloader_exports = [
         v for v in converted
@@ -1131,12 +1157,12 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
 
   def testIncludesFileStatEntryFoundPathspecIntoYieldedResult(self):
     result = collectors.ArtifactFilesDownloaderResult(
-        original_result=self.file_stat,
-        found_pathspec=self.file_stat.pathspec)
+        original_result=self.file_stat, found_pathspec=self.file_stat.pathspec)
 
     converter = export.ArtifactFilesDownloaderResultConverter()
-    converted = list(converter.Convert(export.ExportedMetadata(
-    ), result, token=self.token))
+    converted = list(
+        converter.Convert(
+            export.ExportedMetadata(), result, token=self.token))
 
     downloader_exports = [
         v for v in converted
@@ -1148,13 +1174,15 @@ class ArtifactFilesDownloaderResultConverterTest(test_lib.GRRBaseTest):
   def testIncludesDownloadedFileIntoResult(self):
     result = collectors.ArtifactFilesDownloaderResult(
         original_result=self.registry_stat,
-        found_pathspec=rdf_paths.PathSpec(path="foo", pathtype="OS"),
-        downloaded_file=rdf_client.StatEntry(
-            pathspec=rdf_paths.PathSpec(path="foo", pathtype="OS")))
+        found_pathspec=rdf_paths.PathSpec(
+            path="foo", pathtype="OS"),
+        downloaded_file=rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
+            path="foo", pathtype="OS")))
 
     converter = export.ArtifactFilesDownloaderResultConverter()
-    converted = list(converter.Convert(export.ExportedMetadata(
-    ), result, token=self.token))
+    converted = list(
+        converter.Convert(
+            export.ExportedMetadata(), result, token=self.token))
 
     downloader_exports = [
         v for v in converted
@@ -1203,8 +1231,8 @@ class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):
                      rdfvalue.RDFURN("aff4:/foo"))
 
   def testIgnoresPredefinedMetadataField(self):
-    original_value = DataAgnosticConverterTestValueWithMetadata(metadata=42,
-                                                                value="value")
+    original_value = DataAgnosticConverterTestValueWithMetadata(
+        metadata=42, value="value")
     converted_value = self.ConvertOriginalValue(original_value)
 
     self.assertItemsEqual([t.name for t in converted_value.type_infos],
@@ -1243,8 +1271,8 @@ class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):
     self.assertTrue(isinstance(converted_value.urn_value, rdfvalue.RDFURN))
     self.assertEqual(converted_value.urn_value, rdfvalue.RDFURN("aff4:/bar"))
 
-    self.assertTrue(isinstance(converted_value.datetime_value,
-                               rdfvalue.RDFDatetime))
+    self.assertTrue(
+        isinstance(converted_value.datetime_value, rdfvalue.RDFDatetime))
     self.assertEqual(converted_value.datetime_value,
                      rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
 
@@ -1298,10 +1326,11 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(self.messages), 1)
 
-    converted_values = list(self.converter.Convert(
-        export.ExportedMetadata(source_urn="aff4:/foo/bar"),
-        self.messages[0],
-        token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            export.ExportedMetadata(source_urn="aff4:/foo/bar"),
+            self.messages[0],
+            token=self.token))
 
     self.assertEqual(len(converted_values), 1)
     self.assertEqual(converted_values[0].__class__.__name__,
@@ -1318,10 +1347,11 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.renderer.table_row(42, "0x0", "data")
     self.renderer.flush()
 
-    converted_values = list(self.converter.Convert(
-        export.ExportedMetadata(source_urn="aff4:/foo/bar"),
-        self.messages[0],
-        token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            export.ExportedMetadata(source_urn="aff4:/foo/bar"),
+            self.messages[0],
+            token=self.token))
     self.assertEqual(len(converted_values), 1)
     self.assertFalse(converted_values[0].HasField("section_name"))
 
@@ -1334,10 +1364,11 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.renderer.table_row(42, "0x0", "data")
     self.renderer.flush()
 
-    converted_values = list(self.converter.Convert(
-        export.ExportedMetadata(source_urn="aff4:/foo/bar"),
-        self.messages[0],
-        token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            export.ExportedMetadata(source_urn="aff4:/foo/bar"),
+            self.messages[0],
+            token=self.token))
     self.assertEqual(len(converted_values), 1)
     self.assertEqual(converted_values[0].section_name, "some section")
 
@@ -1353,10 +1384,11 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.renderer.table_row(43, "0x1", "otherdata")
     self.renderer.flush()
 
-    converted_values = list(self.converter.Convert(
-        export.ExportedMetadata(source_urn="aff4:/foo/bar"),
-        self.messages[0],
-        token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            export.ExportedMetadata(source_urn="aff4:/foo/bar"),
+            self.messages[0],
+            token=self.token))
     self.assertEqual(len(converted_values), 2)
     self.assertEqual(converted_values[0].__class__.__name__,
                      "RekallExport_foo_bar_sample")
@@ -1385,10 +1417,11 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.renderer.table_row(43, "0x1", "otherdata")
     self.renderer.flush()
 
-    converted_values = list(self.converter.Convert(
-        export.ExportedMetadata(source_urn="aff4:/foo/bar"),
-        self.messages[0],
-        token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            export.ExportedMetadata(source_urn="aff4:/foo/bar"),
+            self.messages[0],
+            token=self.token))
     self.assertEqual(converted_values[0].section_name, "some section")
     self.assertEqual(converted_values[1].section_name, "some other section")
 
@@ -1434,10 +1467,11 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
         plugin="object_renderer_sample",
         json_messages=json.dumps(messages),
         json_context_messages=json.dumps([]))
-    converted_values = list(self.converter.Convert(
-        export.ExportedMetadata(source_urn="aff4:/foo/bar"),
-        rekall_response,
-        token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            export.ExportedMetadata(source_urn="aff4:/foo/bar"),
+            rekall_response,
+            token=self.token))
     self.assertEqual(len(converted_values), 1)
     self.assertEqual(converted_values[0].Address, "0x2a")
     self.assertEqual(converted_values[0].Pointer, "0x0000000000002b")
@@ -1461,10 +1495,11 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.renderer.flush()
     self.assertEqual(len(self.messages), 1)
 
-    converted_values = list(self.converter.Convert(
-        export.ExportedMetadata(source_urn="aff4:/foo/bar1"),
-        self.messages[0],
-        token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            export.ExportedMetadata(source_urn="aff4:/foo/bar1"),
+            self.messages[0],
+            token=self.token))
 
     self.assertEqual(len(converted_values), 1)
     self.assertEqual(converted_values[0].__class__.__name__,
@@ -1479,12 +1514,13 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.renderer.flush()
     self.assertEqual(len(self.messages), 1)
 
-    converted_values = list(self.converter.Convert(
-        # It's important for the source_urn to be different as we rely on
-        # different source_urns to generate different class names.
-        export.ExportedMetadata(source_urn="aff4:/foo/bar2"),
-        self.messages[0],
-        token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            # It's important for the source_urn to be different as we rely on
+            # different source_urns to generate different class names.
+            export.ExportedMetadata(source_urn="aff4:/foo/bar2"),
+            self.messages[0],
+            token=self.token))
 
     self.assertEqual(len(converted_values), 1)
     self.assertEqual(converted_values[0].__class__.__name__,
@@ -1525,8 +1561,9 @@ class RekallResponseToExportedRekallProcessConverterTest(test_lib.GRRBaseTest):
     rekall_response = rdf_rekall_types.RekallResponse(
         plugin="handles", json_messages=json.dumps(messages))
     metadata = export.ExportedMetadata()
-    converted_values = list(self.converter.Convert(
-        metadata, rekall_response, token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            metadata, rekall_response, token=self.token))
 
     self.assertEqual(len(converted_values), 1)
 
@@ -1549,9 +1586,9 @@ class RekallResponseToExportedRekallProcessConverterTest(test_lib.GRRBaseTest):
 
     rekall_response = rdf_rekall_types.RekallResponse(
         plugin="handles", json_messages=json.dumps(messages))
-    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
-                                                   rekall_response,
-                                                   token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            export.ExportedMetadata(), rekall_response, token=self.token))
 
     self.assertEqual(len(converted_values), 0)
 
@@ -1607,8 +1644,9 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverterTest(
     rekall_response = rdf_rekall_types.RekallResponse(
         plugin="handles", json_messages=json.dumps(messages))
     metadata = export.ExportedMetadata()
-    converted_values = list(self.converter.Convert(
-        metadata, rekall_response, token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            metadata, rekall_response, token=self.token))
 
     self.assertEqual(len(converted_values), 1)
 
@@ -1637,9 +1675,9 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverterTest(
 
     rekall_response = rdf_rekall_types.RekallResponse(
         plugin="handles", json_messages=json.dumps(messages))
-    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
-                                                   rekall_response,
-                                                   token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            export.ExportedMetadata(), rekall_response, token=self.token))
 
     self.assertEqual(len(converted_values), 0)
 
@@ -1681,11 +1719,11 @@ class ExportedLinuxSyscallTableEntryConverterTest(test_lib.GRRBaseTest):
     ]]
 
     rekall_response = rdf_rekall_types.RekallResponse(
-        plugin="check_syscall",
-        json_messages=json.dumps(messages))
+        plugin="check_syscall", json_messages=json.dumps(messages))
     metadata = export.ExportedMetadata()
-    converted_values = list(self.converter.Convert(
-        metadata, rekall_response, token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            metadata, rekall_response, token=self.token))
 
     self.assertEqual(len(converted_values), 1)
 
@@ -1727,11 +1765,11 @@ class ExportedLinuxSyscallTableEntryConverterTest(test_lib.GRRBaseTest):
     ]]
 
     rekall_response = rdf_rekall_types.RekallResponse(
-        plugin="check_syscall",
-        json_messages=json.dumps(messages))
+        plugin="check_syscall", json_messages=json.dumps(messages))
     metadata = export.ExportedMetadata()
-    converted_values = list(self.converter.Convert(
-        metadata, rekall_response, token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            metadata, rekall_response, token=self.token))
     self.assertEqual(len(converted_values), 2)
 
     model = export.ExportedLinuxSyscallTableEntry(
@@ -1754,11 +1792,10 @@ class ExportedLinuxSyscallTableEntryConverterTest(test_lib.GRRBaseTest):
     messages = [["r", {"baseaddress": 0}]]
 
     rekall_response = rdf_rekall_types.RekallResponse(
-        plugin="check_task_fops",
-        json_messages=json.dumps(messages))
-    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
-                                                   rekall_response,
-                                                   token=self.token))
+        plugin="check_task_fops", json_messages=json.dumps(messages))
+    converted_values = list(
+        self.converter.Convert(
+            export.ExportedMetadata(), rekall_response, token=self.token))
     self.assertEqual(len(converted_values), 0)
 
 
@@ -1791,32 +1828,32 @@ class RekallResponseToExportedRekallLinuxTaskOpConverterTest(
     ]]
 
     rekall_response = rdf_rekall_types.RekallResponse(
-        plugin="check_task_fops",
-        json_messages=json.dumps(messages))
+        plugin="check_task_fops", json_messages=json.dumps(messages))
     metadata = export.ExportedMetadata()
-    converted_values = list(self.converter.Convert(
-        metadata, rekall_response, token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            metadata, rekall_response, token=self.token))
 
     self.assertEqual(len(converted_values), 1)
 
     task = export.ExportedRekallLinuxTask(metadata=metadata, pid=1, name="init")
 
-    model = export.ExportedRekallLinuxTaskOp(metadata=metadata,
-                                             operation="write",
-                                             handler_address=281472847829584,
-                                             module="linux",
-                                             task=task)
+    model = export.ExportedRekallLinuxTaskOp(
+        metadata=metadata,
+        operation="write",
+        handler_address=281472847829584,
+        module="linux",
+        task=task)
     self.assertEqual(converted_values[0], model)
 
   def testIgnoresIncompatibleMessage(self):
     messages = [["r", {"baseaddress": 0}]]
 
     rekall_response = rdf_rekall_types.RekallResponse(
-        plugin="check_task_fops",
-        json_messages=json.dumps(messages))
-    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
-                                                   rekall_response,
-                                                   token=self.token))
+        plugin="check_task_fops", json_messages=json.dumps(messages))
+    converted_values = list(
+        self.converter.Convert(
+            export.ExportedMetadata(), rekall_response, token=self.token))
     self.assertEqual(len(converted_values), 0)
 
 
@@ -1856,30 +1893,30 @@ class RekallResponseToExportedRekallLinuxProcOpConverterTest(
     ]]
 
     rekall_response = rdf_rekall_types.RekallResponse(
-        plugin="check_proc_fops",
-        json_messages=json.dumps(messages))
+        plugin="check_proc_fops", json_messages=json.dumps(messages))
     metadata = export.ExportedMetadata()
-    converted_values = list(self.converter.Convert(
-        metadata, rekall_response, token=self.token))
+    converted_values = list(
+        self.converter.Convert(
+            metadata, rekall_response, token=self.token))
 
     self.assertEqual(len(converted_values), 1)
 
-    model = export.ExportedRekallLinuxProcOp(metadata=metadata,
-                                             operation="read",
-                                             handler_address=281472847976656,
-                                             module="linux",
-                                             fullpath="/proc/fb")
+    model = export.ExportedRekallLinuxProcOp(
+        metadata=metadata,
+        operation="read",
+        handler_address=281472847976656,
+        module="linux",
+        fullpath="/proc/fb")
     self.assertEqual(converted_values[0], model)
 
   def testIgnoresIncompatibleMessage(self):
     messages = [["r", {"baseaddress": 0}]]
 
     rekall_response = rdf_rekall_types.RekallResponse(
-        plugin="check_task_fops",
-        json_messages=json.dumps(messages))
-    converted_values = list(self.converter.Convert(export.ExportedMetadata(),
-                                                   rekall_response,
-                                                   token=self.token))
+        plugin="check_task_fops", json_messages=json.dumps(messages))
+    converted_values = list(
+        self.converter.Convert(
+            export.ExportedMetadata(), rekall_response, token=self.token))
     self.assertEqual(len(converted_values), 0)
 
 

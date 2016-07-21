@@ -67,9 +67,8 @@ class BasicWebAuthManager(BaseWebAuthManager):
         user, password = authorization.decode("base64").split(":", 1)
         token = access_control.ACLToken(username=user)
 
-        fd = aff4.FACTORY.Open("aff4:/users/%s" % user,
-                               aff4_type=aff4_users.GRRUser,
-                               token=token)
+        fd = aff4.FACTORY.Open(
+            "aff4:/users/%s" % user, aff4_type=aff4_users.GRRUser, token=token)
         crypted_password = fd.Get(fd.Schema.PASSWORD)
         if crypted_password and crypted_password.CheckPassword(password):
           authorized = True
@@ -104,8 +103,8 @@ class NullWebAuthManager(BaseWebAuthManager):
     """A decorator applied to protected web handlers."""
     request.event_id = "1"
     request.user = self.username
-    request.token = access_control.ACLToken(username="Testing",
-                                            reason="Just a test")
+    request.token = access_control.ACLToken(
+        username="Testing", reason="Just a test")
     return func(request, *args, **kwargs)
 
 # Global to store the configured web auth manager.

@@ -35,8 +35,8 @@ def GetDPKGData():
   parser = linux_cmd_parser.DpkgCmdParser()
   test_data = os.path.join(CHECKS_DIR, "data/dpkg.out")
   with open(test_data) as f:
-    DPKG_SW.extend(parser.Parse("/usr/bin/dpkg", ["-l"], f.read(), "", 0, 5,
-                                None))
+    DPKG_SW.extend(
+        parser.Parse("/usr/bin/dpkg", ["-l"], f.read(), "", 0, 5, None))
   return DPKG_SW
 
 
@@ -191,19 +191,16 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     super(CheckRegistryTests, self).setUp()
     if self.sw_chk is None:
       self.sw_chk = self._LoadCheck("sw.yaml", "SW-CHECK")
-      checks.CheckRegistry.RegisterCheck(check=self.sw_chk,
-                                         source="dpkg.out",
-                                         overwrite_if_exists=True)
+      checks.CheckRegistry.RegisterCheck(
+          check=self.sw_chk, source="dpkg.out", overwrite_if_exists=True)
     if self.sshd_chk is None:
       self.sshd_chk = self._LoadCheck("sshd.yaml", "SSHD-CHECK")
-      checks.CheckRegistry.RegisterCheck(check=self.sshd_chk,
-                                         source="sshd_config",
-                                         overwrite_if_exists=True)
+      checks.CheckRegistry.RegisterCheck(
+          check=self.sshd_chk, source="sshd_config", overwrite_if_exists=True)
     if self.sshd_perms is None:
       self.sshd_perms = self._LoadCheck("sshd.yaml", "SSHD-PERMS")
-      checks.CheckRegistry.RegisterCheck(check=self.sshd_perms,
-                                         source="sshd_config",
-                                         overwrite_if_exists=True)
+      checks.CheckRegistry.RegisterCheck(
+          check=self.sshd_perms, source="sshd_config", overwrite_if_exists=True)
     self.kb = rdf_client.KnowledgeBase()
     self.kb.hostname = "test.example.com"
     self.host_data = {"KnowledgeBase": self.kb,
@@ -220,24 +217,26 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
   def testMapChecksToTriggers(self):
     """Checks are identified and run when their prerequisites are met."""
     expect = ["SW-CHECK"]
-    result = checks.CheckRegistry.FindChecks(artifact="WMIInstalledSoftware",
-                                             os_name="Windows")
+    result = checks.CheckRegistry.FindChecks(
+        artifact="WMIInstalledSoftware", os_name="Windows")
     self.assertItemsEqual(expect, result)
-    result = checks.CheckRegistry.FindChecks(artifact="DebianPackagesStatus",
-                                             os_name="Linux")
+    result = checks.CheckRegistry.FindChecks(
+        artifact="DebianPackagesStatus", os_name="Linux")
     self.assertItemsEqual(expect, result)
-    result = checks.CheckRegistry.FindChecks(artifact="DebianPackagesStatus",
-                                             labels="foo")
+    result = checks.CheckRegistry.FindChecks(
+        artifact="DebianPackagesStatus", labels="foo")
     self.assertItemsEqual(expect, result)
 
     expect = set(["SSHD-CHECK"])
-    result = set(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
-                                                 os_name="Darwin"))
+    result = set(
+        checks.CheckRegistry.FindChecks(
+            artifact="SshdConfigFile", os_name="Darwin"))
     residual = expect - result
     self.assertFalse(residual)
 
-    result = set(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
-                                                 os_name="Linux"))
+    result = set(
+        checks.CheckRegistry.FindChecks(
+            artifact="SshdConfigFile", os_name="Linux"))
     residual = expect - result
     self.assertFalse(residual)
 
@@ -246,20 +245,24 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     result = set(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile"))
     residual = expect - result
     self.assertFalse(residual)
-    result = set(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
-                                                 os_name="Windows"))
+    result = set(
+        checks.CheckRegistry.FindChecks(
+            artifact="SshdConfigFile", os_name="Windows"))
     residual = expect - result
     self.assertFalse(residual)
 
   def testRestrictChecksFiltersCheckOptions(self):
-    result = set(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
-                                                 os_name="Linux",
-                                                 restrict_checks=["SSHD-CHECK"
-                                                                 ]))
+    result = set(
+        checks.CheckRegistry.FindChecks(
+            artifact="SshdConfigFile",
+            os_name="Linux",
+            restrict_checks=["SSHD-CHECK"]))
     self.assertItemsEqual(["SSHD-CHECK"], result)
-    result = set(checks.CheckRegistry.FindChecks(artifact="SshdConfigFile",
-                                                 os_name="Linux",
-                                                 restrict_checks=["SW_CHECK"]))
+    result = set(
+        checks.CheckRegistry.FindChecks(
+            artifact="SshdConfigFile",
+            os_name="Linux",
+            restrict_checks=["SW_CHECK"]))
     self.assertFalse(result)
 
   def testMapArtifactsToTriggers(self):
@@ -276,14 +279,16 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
     self.assertFalse(residual)
 
     expect = set(["DebianPackagesStatus"])
-    result = set(checks.CheckRegistry.SelectArtifacts(
-        os_name=None, cpe=None, labels="foo"))
+    result = set(
+        checks.CheckRegistry.SelectArtifacts(
+            os_name=None, cpe=None, labels="foo"))
     residual = expect - result
     self.assertFalse(residual)
 
     expect = set(["DebianPackagesStatus"])
-    result = set(checks.CheckRegistry.SelectArtifacts(
-        os_name="Linux", restrict_checks=["SW-CHECK"]))
+    result = set(
+        checks.CheckRegistry.SelectArtifacts(
+            os_name="Linux", restrict_checks=["SW-CHECK"]))
     self.assertItemsEqual(expect, result)
 
 
@@ -307,19 +312,21 @@ class ProcessHostDataTests(checks_test_lib.HostCheckTest):
     self.sshd = checks.CheckResult(
         check_id="SSHD-CHECK",
         anomaly=[
-            rdf_anomaly.Anomaly(finding=["Configured protocols: 2,1"],
-                                symptom="Found: Sshd allows protocol 1.",
-                                type="ANALYSIS_ANOMALY")
+            rdf_anomaly.Anomaly(
+                finding=["Configured protocols: 2,1"],
+                symptom="Found: Sshd allows protocol 1.",
+                type="ANALYSIS_ANOMALY")
         ])
     self.windows = checks.CheckResult(
         check_id="SW-CHECK",
         anomaly=[
-            rdf_anomaly.Anomaly(finding=["Java 6.0.240 is installed"],
-                                symptom="Found: Old Java installation.",
-                                type="ANALYSIS_ANOMALY"),
-            rdf_anomaly.Anomaly(finding=["Adware 2.1.1 is installed"],
-                                symptom="Found: Malicious software.",
-                                type="ANALYSIS_ANOMALY")
+            rdf_anomaly.Anomaly(
+                finding=["Java 6.0.240 is installed"],
+                symptom="Found: Old Java installation.",
+                type="ANALYSIS_ANOMALY"), rdf_anomaly.Anomaly(
+                    finding=["Adware 2.1.1 is installed"],
+                    symptom="Found: Malicious software.",
+                    type="ANALYSIS_ANOMALY")
         ])
 
     self.data = {
@@ -379,8 +386,8 @@ class FilterTests(ChecksTestBase):
     self.assertIsInstance(base_filt._filter, filters.Filter)
     obj_filt = checks.Filter(type="ObjectFilter", expression="test is 'ok'")
     self.assertIsInstance(obj_filt._filter, filters.ObjectFilter)
-    rdf_filt = checks.Filter(type="RDFFilter",
-                             expression="AttributedDict,SSHConfig")
+    rdf_filt = checks.Filter(
+        type="RDFFilter", expression="AttributedDict,SSHConfig")
     self.assertIsInstance(rdf_filt._filter, filters.RDFFilter)
 
 
@@ -525,10 +532,10 @@ class CheckResultsTest(ChecksTestBase):
                 "symptom": "Found: Old Java installation.",
                 "explanation": "Update Java.",
                 "type": "ANALYSIS_ANOMALY"}
-    result = checks.CheckResult(check_id="SW-CHECK",
-                                anomaly=rdf_anomaly.Anomaly(**anomaly1))
-    other = checks.CheckResult(check_id="SW-CHECK",
-                               anomaly=rdf_anomaly.Anomaly(**anomaly2))
+    result = checks.CheckResult(
+        check_id="SW-CHECK", anomaly=rdf_anomaly.Anomaly(**anomaly1))
+    other = checks.CheckResult(
+        check_id="SW-CHECK", anomaly=rdf_anomaly.Anomaly(**anomaly2))
     result.ExtendAnomalies(other)
     expect = {"check_id": "SW-CHECK", "anomaly": [anomaly1, anomaly2]}
     self.assertDictEqual(expect, result.ToPrimitiveDict())

@@ -19,11 +19,12 @@ class TestCrashView(test_lib.GRRSeleniumTest):
 
   def SetUpCrashedFlow(self):
     client = test_lib.CrashClientMock(self.client_id, self.token)
-    for _ in test_lib.TestFlowHelper("FlowWithOneClientRequest",
-                                     client,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     check_flow_errors=False):
+    for _ in test_lib.TestFlowHelper(
+        "FlowWithOneClientRequest",
+        client,
+        client_id=self.client_id,
+        token=self.token,
+        check_flow_errors=False):
       pass
 
   def testOpeningCrashesOfUnapprovedClientRedirectsToHostInfoPage(self):
@@ -97,14 +98,14 @@ class TestCrashView(test_lib.GRRSeleniumTest):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client",
-                attribute_regex="GRR"))
+                attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(hunt_name="SampleHunt",
-                                 client_rule_set=client_rule_set,
-                                 client_rate=0,
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="SampleHunt",
+        client_rule_set=client_rule_set,
+        client_rate=0,
+        token=self.token) as hunt:
       hunt.Run()
 
     foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)

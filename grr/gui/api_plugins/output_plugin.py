@@ -22,9 +22,10 @@ class ApiOutputPluginsListHandler(api_call_handler_base.ApiCallHandler):
     for name in sorted(output_plugin.OutputPlugin.classes.keys()):
       cls = output_plugin.OutputPlugin.classes[name]
       if cls.description:
-        result[name] = dict(name=name,
-                            description=cls.description,
-                            args_type=cls.args_type.__name__)
+        result[name] = dict(
+            name=name,
+            description=cls.description,
+            args_type=cls.args_type.__name__)
 
     return result
 

@@ -104,8 +104,8 @@ class EnvVarsPostProcessorTest(test_lib.GRRBaseTest):
     processor = windows.EnvVarsPostProcessor({"foo": ["bar", "blah"]})
     self.assertEqual(
         set(processor.Process(r"C:\WINDOWS\%foo%\%foo%\something")),
-        set([r"C:\WINDOWS\bar\bar\something", r"C:\WINDOWS\blah\blah\something"
-            ]))
+        set([r"C:\WINDOWS\bar\bar\something",
+             r"C:\WINDOWS\blah\blah\something"]))
 
   def testGeneratesProductIfTwoReplacementsHaveMultipleValues(self):
     """Test it generates a product if two replacements have multiple values."""
@@ -172,8 +172,7 @@ class WindowsRegistryExecutablePathsDetectorTest(test_lib.GRRBaseTest):
 
     for in_str, result in fixture:
       self.assertEqual(
-          list(windows.DetectExecutablePaths(
-              [in_str], mapping)), [result])
+          list(windows.DetectExecutablePaths([in_str], mapping)), [result])
 
   def testReplacesEnvironmentVariablesWithMultipleMappings(self):
     """Test it replaces environment variables with multiple mappings."""
@@ -191,8 +190,7 @@ class WindowsRegistryExecutablePathsDetectorTest(test_lib.GRRBaseTest):
 
     for in_str, result in fixture:
       self.assertEqual(
-          set(windows.DetectExecutablePaths(
-              [in_str], mapping)), set(result))
+          set(windows.DetectExecutablePaths([in_str], mapping)), set(result))
 
 
 def main(argv):

@@ -30,8 +30,8 @@ class ServerCommunicator(communicator.Communicator):
   def __init__(self, certificate, private_key, token=None):
     self.client_cache = utils.FastStore(1000)
     self.token = token
-    super(ServerCommunicator, self).__init__(certificate=certificate,
-                                             private_key=private_key)
+    super(ServerCommunicator, self).__init__(
+        certificate=certificate, private_key=private_key)
     self.pub_key_cache = utils.FastStore(max_size=50000)
     # Our common name as an RDFURN.
     self.common_name = rdfvalue.RDFURN(self.certificate.GetCN())
@@ -44,11 +44,12 @@ class ServerCommunicator(communicator.Communicator):
       pass
 
     # Fetch the client's cert and extract the key.
-    client = aff4.FACTORY.Create(common_name,
-                                 aff4.AFF4Object.classes["VFSGRRClient"],
-                                 mode="rw",
-                                 token=self.token,
-                                 ignore_cache=True)
+    client = aff4.FACTORY.Create(
+        common_name,
+        aff4.AFF4Object.classes["VFSGRRClient"],
+        mode="rw",
+        token=self.token,
+        ignore_cache=True)
     cert = client.Get(client.Schema.CERT)
     if not cert:
       stats.STATS.IncrementCounter("grr_unique_clients")
@@ -94,10 +95,11 @@ class ServerCommunicator(communicator.Communicator):
       try:
         client = self.client_cache.Get(client_id)
       except KeyError:
-        client = aff4.FACTORY.Create(client_id,
-                                     aff4.AFF4Object.classes["VFSGRRClient"],
-                                     mode="rw",
-                                     token=self.token)
+        client = aff4.FACTORY.Create(
+            client_id,
+            aff4.AFF4Object.classes["VFSGRRClient"],
+            mode="rw",
+            token=self.token)
         self.client_cache.Put(client_id, client)
         stats.STATS.SetGaugeValue("grr_frontendserver_client_cache_size",
                                   len(self.client_cache))
@@ -133,8 +135,8 @@ class ServerCommunicator(communicator.Communicator):
         client.Set(client.Schema.CLOCK, rdfvalue.RDFDatetime(client_time))
         client.Set(client.Schema.PING, rdfvalue.RDFDatetime().Now())
         for label in client.Get(client.Schema.LABELS, []):
-          stats.STATS.IncrementCounter("client_pings_by_label",
-                                       fields=[label.name])
+          stats.STATS.IncrementCounter(
+              "client_pings_by_label", fields=[label.name])
       else:
         logging.warning("Out of order message for %s: %s >= %s", client_id,
                         long(remote_time), int(client_time))
@@ -170,16 +172,13 @@ class FrontEndServer(object):
                store=None,
                threadpool_prefix="grr_threadpool"):
     # Identify ourselves as the server.
-    self.token = access_control.ACLToken(username="GRRFrontEnd",
-                                         reason="Implied.")
+    self.token = access_control.ACLToken(
+        username="GRRFrontEnd", reason="Implied.")
     self.token.supervisor = True
-    self.throttle_callback = lambda: True
-    self.SetThrottleBundlesRatio(None)
 
     # This object manages our crypto.
-    self._communicator = ServerCommunicator(certificate=certificate,
-                                            private_key=private_key,
-                                            token=self.token)
+    self._communicator = ServerCommunicator(
+        certificate=certificate, private_key=private_key, token=self.token)
 
     self.data_store = store or data_store.DB
     self.receive_thread_pool = {}
@@ -199,76 +198,6 @@ class FrontEndServer(object):
     for well_known_flow in well_known_flow_names:
       if well_known_flow not in config_lib.CONFIG["Frontend.well_known_flows"]:
         del self.well_known_flows[well_known_flow]
-
-  def SetThrottleCallBack(self, callback):
-    self.throttle_callback = callback
-
-  def SetThrottleBundlesRatio(self, throttle_bundles_ratio):
-    """Sets throttling ration.
-
-    Throttling ratio is a value between 0 and 1 which determines
-    which percentage of requests from clients will get proper responses.
-    I.e. 0.3 means that only 30% of clients will get new tasks scheduled for
-    them when HandleMessageBundles() method is called.
-
-    Args:
-      throttle_bundles_ratio: throttling ratio.
-    """
-    self.throttle_bundles_ratio = throttle_bundles_ratio
-    if throttle_bundles_ratio is None:
-      self.handled_bundles = []
-      self.last_not_throttled_bundle_time = 0
-
-    stats.STATS.SetGaugeValue("grr_frontendserver_throttle_setting",
-                              str(throttle_bundles_ratio))
-
-  def UpdateAndCheckIfShouldThrottle(self, bundle_time):
-    """Update throttling data and check if request should be throttled.
-
-    When throttling is enabled (self.throttle_bundles_ratio is not None)
-    request times are stored. In order to detect whether particular
-    request should be throttled, we do the following:
-    1. Calculate the average interval between requests over last minute.
-    2. Check that [time since last non-throttled request] is less than
-       [average interval] / [throttle ratio].
-
-    Args:
-      bundle_time: time of the request.
-
-    Returns:
-      True if the request should be throttled, False otherwise.
-    """
-    if self.throttle_bundles_ratio is None:
-      return False
-
-    self.handled_bundles.append(bundle_time)
-    oldest_limit = bundle_time - config_lib.CONFIG[
-        "Frontend.throttle_average_interval"]
-
-    try:
-      oldest_index = next(i for i, v in enumerate(self.handled_bundles)
-                          if v > oldest_limit)
-      self.handled_bundles = self.handled_bundles[oldest_index:]
-    except StopIteration:
-      self.handled_bundles = []
-
-    blen = len(self.handled_bundles)
-    if blen > 1:
-      interval = (
-          self.handled_bundles[-1] - self.handled_bundles[0]) / float(blen - 1)
-    else:
-      # TODO(user): this can occasionally return False even when
-      # throttle_bundles_ratio is 0, treat it in a generic way.
-      return self.throttle_bundles_ratio == 0
-
-    should_throttle = (
-        bundle_time - self.last_not_throttled_bundle_time < interval / max(
-            0.1e-6, float(self.throttle_bundles_ratio)))
-
-    if not should_throttle:
-      self.last_not_throttled_bundle_time = bundle_time
-
-    return should_throttle
 
   @stats.Counted("grr_frontendserver_handle_num")
   @stats.Timed("grr_frontendserver_handle_time")
@@ -303,27 +232,21 @@ class FrontEndServer(object):
     tasks = []
 
     message_list = rdf_flows.MessageList()
-    if self.UpdateAndCheckIfShouldThrottle(time.time()):
-      stats.STATS.IncrementCounter("grr_frontendserver_handle_throttled_num")
-
-    elif self.throttle_callback():
-      # Only give the client messages if we are able to receive them in a
-      # reasonable time.
-      if time.time() - now < 10:
-        tasks = self.DrainTaskSchedulerQueueForClient(source, required_count)
-        message_list.job = tasks
-
-    else:
-      stats.STATS.IncrementCounter("grr_frontendserver_handle_throttled_num")
+    # Only give the client messages if we are able to receive them in a
+    # reasonable time.
+    if time.time() - now < 10:
+      tasks = self.DrainTaskSchedulerQueueForClient(source, required_count)
+      message_list.job = tasks
 
     # Encode the message_list in the response_comms using the same API version
     # the client used.
     try:
-      self._communicator.EncodeMessages(message_list,
-                                        response_comms,
-                                        destination=str(source),
-                                        timestamp=timestamp,
-                                        api_version=request_comms.api_version)
+      self._communicator.EncodeMessages(
+          message_list,
+          response_comms,
+          destination=str(source),
+          timestamp=timestamp,
+          api_version=request_comms.api_version)
     except communicator.UnknownClientCert:
       # We can not encode messages to the client yet because we do not have the
       # client certificate - return them to the queue so we can try again later.
@@ -402,8 +325,8 @@ class FrontEndServer(object):
       messages: A list of GrrMessage RDFValues.
     """
     now = time.time()
-    with queue_manager.QueueManager(token=self.token,
-                                    store=self.data_store) as manager:
+    with queue_manager.QueueManager(
+        token=self.token, store=self.data_store) as manager:
       sessions_handled = []
       for session_id, msgs in utils.GroupBy(
           messages, operator.attrgetter("session_id")).iteritems():
@@ -424,8 +347,8 @@ class FrontEndServer(object):
           # Messages for well known flows should notify even though they don't
           # have a status.
           if msg.request_id == 0:
-            manager.QueueNotification(session_id=msg.session_id,
-                                      priority=msg.priority)
+            manager.QueueNotification(
+                session_id=msg.session_id, priority=msg.priority)
             # Those messages are all the same, one notification is enough.
             break
           elif msg.type == rdf_flows.GrrMessage.Type.STATUS:
@@ -433,16 +356,16 @@ class FrontEndServer(object):
             # has finished processing this request. We therefore can de-queue it
             # from the client queue.
             manager.DeQueueClientRequest(client_id, msg.task_id)
-            manager.QueueNotification(session_id=msg.session_id,
-                                      priority=msg.priority,
-                                      last_status=msg.request_id)
+            manager.QueueNotification(
+                session_id=msg.session_id,
+                priority=msg.priority,
+                last_status=msg.request_id)
 
             stat = rdf_flows.GrrStatus(msg.payload)
             if stat.status == rdf_flows.GrrStatus.ReturnedStatus.CLIENT_KILLED:
               # A client crashed while performing an action, fire an event.
-              events.Events.PublishEvent("ClientCrash",
-                                         rdf_flows.GrrMessage(msg),
-                                         token=self.token)
+              events.Events.PublishEvent(
+                  "ClientCrash", rdf_flows.GrrMessage(msg), token=self.token)
 
     logging.debug("Received %s messages in %s sec", len(messages),
                   time.time() - now)
@@ -467,8 +390,8 @@ class FrontEndServer(object):
         # metric.
         stats.STATS.IncrementCounter("grr_well_known_flow_requests")
 
-        stats.STATS.IncrementCounter("well_known_flow_requests",
-                                     fields=[str(msg.session_id)])
+        stats.STATS.IncrementCounter(
+            "well_known_flow_requests", fields=[str(msg.session_id)])
       else:
         # Message should be queued to be processed in the backend.
 
@@ -492,28 +415,25 @@ class FrontendInit(registry.InitHook):
   def RunOnce(self):
     # Frontend metrics. These metrics should be used by the code that
     # feeds requests into the frontend.
-    stats.STATS.RegisterCounterMetric("client_pings_by_label",
-                                      fields=[("label", str)])
-    stats.STATS.RegisterGaugeMetric("frontend_active_count",
-                                    int,
-                                    fields=[("source", str)])
+    stats.STATS.RegisterCounterMetric(
+        "client_pings_by_label", fields=[("label", str)])
+    stats.STATS.RegisterGaugeMetric(
+        "frontend_active_count", int, fields=[("source", str)])
     stats.STATS.RegisterGaugeMetric("frontend_max_active_count", int)
-    stats.STATS.RegisterCounterMetric("frontend_in_bytes",
-                                      fields=[("source", str)])
-    stats.STATS.RegisterCounterMetric("frontend_out_bytes",
-                                      fields=[("source", str)])
-    stats.STATS.RegisterCounterMetric("frontend_request_count",
-                                      fields=[("source", str)])
+    stats.STATS.RegisterCounterMetric(
+        "frontend_in_bytes", fields=[("source", str)])
+    stats.STATS.RegisterCounterMetric(
+        "frontend_out_bytes", fields=[("source", str)])
+    stats.STATS.RegisterCounterMetric(
+        "frontend_request_count", fields=[("source", str)])
     # Client requests sent to an inactive datacenter. This indicates a
     # misconfiguration.
-    stats.STATS.RegisterCounterMetric("frontend_inactive_request_count",
-                                      fields=[("source", str)])
-    stats.STATS.RegisterEventMetric("frontend_request_latency",
-                                    fields=[("source", str)])
+    stats.STATS.RegisterCounterMetric(
+        "frontend_inactive_request_count", fields=[("source", str)])
+    stats.STATS.RegisterEventMetric(
+        "frontend_request_latency", fields=[("source", str)])
 
     stats.STATS.RegisterEventMetric("grr_frontendserver_handle_time")
     stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_num")
-    stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_throttled_num")
-    stats.STATS.RegisterGaugeMetric("grr_frontendserver_throttle_setting", str)
     stats.STATS.RegisterGaugeMetric("grr_frontendserver_client_cache_size", int)
     stats.STATS.RegisterCounterMetric("grr_messages_sent")

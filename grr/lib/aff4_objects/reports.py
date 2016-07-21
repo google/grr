@@ -122,10 +122,10 @@ class ClientReport(Report):
         recipient,
         self.EMAIL_FROM,
         subject,
-        self.EMAIL_TEMPLATE %
-        dict(report_text=report_text,
-             report_name=self.REPORT_NAME,
-             signature=config_lib.CONFIG["Email.signature"]),
+        self.EMAIL_TEMPLATE % dict(
+            report_text=report_text,
+            report_name=self.REPORT_NAME,
+            signature=config_lib.CONFIG["Email.signature"]),
         is_html=True)
     logging.info("Report %s mailed to %s", self.REPORT_NAME, recipient)
 
@@ -175,9 +175,10 @@ class ClientListReport(ClientReport):
     for client in self._QueryResults(max_age):
       self.results.append(client)
     self.SortResults("GRR client")
-    logging.info("%s took %s to complete",
-                 self.REPORT_NAME,
-                 datetime.timedelta(seconds=time.time() - start_time))
+    logging.info(
+        "%s took %s to complete",
+        self.REPORT_NAME,
+        datetime.timedelta(seconds=time.time() - start_time))
 
 
 class VersionBreakdownReport(ClientReport):

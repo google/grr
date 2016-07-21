@@ -158,10 +158,8 @@ class WindowsInstaller(installer.Installer):
             config_lib.CONFIG["Nanny.service_key"], "install"]
 
     logging.debug("Calling %s", (args,))
-    output = subprocess.check_output(args,
-                                     shell=True,
-                                     stdin=subprocess.PIPE,
-                                     stderr=subprocess.PIPE)
+    output = subprocess.check_output(
+        args, shell=True, stdin=subprocess.PIPE, stderr=subprocess.PIPE)
     logging.debug("%s", output)
 
   def Run(self):

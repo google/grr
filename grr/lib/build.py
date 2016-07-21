@@ -107,8 +107,8 @@ class ClientBuilder(BuilderBase):
 
   def BuildWithPyInstaller(self):
     """Use pyinstaller to build a client package."""
-    self.CleanDirectory(config_lib.CONFIG.Get("PyInstaller.distpath",
-                                              context=self.context))
+    self.CleanDirectory(
+        config_lib.CONFIG.Get("PyInstaller.distpath", context=self.context))
 
     logging.info("Copying pyinstaller support files")
     self.spec_file = os.path.join(self.build_dir, "grr.spec")
@@ -117,23 +117,23 @@ class ClientBuilder(BuilderBase):
       fd.write(config_lib.CONFIG.Get("PyInstaller.spec", context=self.context))
 
     with open(os.path.join(self.build_dir, "version.txt"), "wb") as fd:
-      fd.write(config_lib.CONFIG.Get("PyInstaller.version",
-                                     context=self.context))
+      fd.write(
+          config_lib.CONFIG.Get("PyInstaller.version", context=self.context))
 
     with open(os.path.join(self.build_dir, "grr.ico"), "wb") as fd:
       fd.write(config_lib.CONFIG.Get("PyInstaller.icon", context=self.context))
 
     # We expect the onedir output at this location.
     self.output_dir = os.path.join(
-        config_lib.CONFIG.Get("PyInstaller.distpath",
-                              context=self.context),
+        config_lib.CONFIG.Get("PyInstaller.distpath", context=self.context),
         "grr-client")
 
     # Pyinstaller doesn't handle unicode strings.
-    args = ["--distpath", str(config_lib.CONFIG.Get("PyInstaller.distpath",
-                                                    context=self.context)),
-            "--workpath", str(config_lib.CONFIG.Get("PyInstaller.workpath_dir",
-                                                    context=self.context)),
+    args = ["--distpath", str(
+        config_lib.CONFIG.Get("PyInstaller.distpath", context=self.context)),
+            "--workpath", str(
+                config_lib.CONFIG.Get("PyInstaller.workpath_dir",
+                                      context=self.context)),
             str(self.spec_file)]
     logging.info("Running pyinstaller: %s", args)
     PyInstallerMain.run(pyi_args=[utils.SmartStr(x) for x in args])
@@ -165,22 +165,24 @@ class ClientBuilder(BuilderBase):
         "Client.build_environment":
             str(rdf_client.Uname.FromCurrentSystem().signature()),
         "Client.build_time": str(rdfvalue.RDFDatetime().Now()),
-        "Template.build_type":
-            str(config_lib.CONFIG.Get("ClientBuilder.build_type",
-                                      context=self.context)),
+        "Template.build_type": str(
+            config_lib.CONFIG.Get("ClientBuilder.build_type",
+                                  context=self.context)),
         "Template.build_context": self.context,
-        "Template.version_major": str(config_lib.CONFIG.Get(
-            "Source.version_major", context=self.context)),
-        "Template.version_minor": str(config_lib.CONFIG.Get(
-            "Source.version_minor", context=self.context)),
-        "Template.version_revision":
-            str(config_lib.CONFIG.Get("Source.version_revision",
-                                      context=self.context)),
-        "Template.version_release":
-            str(config_lib.CONFIG.Get("Source.version_release",
-                                      context=self.context)),
-        "Template.arch": str(config_lib.CONFIG.Get("Client.arch",
-                                                   context=self.context))
+        "Template.version_major": str(
+            config_lib.CONFIG.Get("Source.version_major", context=self.context)
+        ),
+        "Template.version_minor": str(
+            config_lib.CONFIG.Get("Source.version_minor", context=self.context)
+        ),
+        "Template.version_revision": str(
+            config_lib.CONFIG.Get("Source.version_revision",
+                                  context=self.context)),
+        "Template.version_release": str(
+            config_lib.CONFIG.Get("Source.version_release",
+                                  context=self.context)),
+        "Template.arch":
+            str(config_lib.CONFIG.Get("Client.arch", context=self.context))
     }
 
     if set(output.keys()) != self.REQUIRED_BUILD_YAML_KEYS:
@@ -210,8 +212,7 @@ class ClientBuilder(BuilderBase):
     directory is set up correctly here.
     """
     self.template_file = output_file or config_lib.CONFIG.Get(
-        "ClientBuilder.template_path",
-        context=self.context)
+        "ClientBuilder.template_path", context=self.context)
     utils.EnsureDirExists(os.path.dirname(self.template_file))
 
   def MakeZip(self, input_dir, output_file):
@@ -223,11 +224,8 @@ class ClientBuilder(BuilderBase):
     """
     logging.info("Generating zip template file at %s", output_file)
     basename, _ = os.path.splitext(output_file)
-    shutil.make_archive(basename,
-                        "zip",
-                        base_dir=".",
-                        root_dir=input_dir,
-                        verbose=True)
+    shutil.make_archive(
+        basename, "zip", base_dir=".", root_dir=input_dir, verbose=True)
 
 # Register builders into this module's namespace.
 ClientBuilder.classes = globals()
@@ -252,10 +250,10 @@ class ClientRepacker(BuilderBase):
     """Generates the client config file for inclusion in deployable binaries."""
     with utils.TempDirectory() as tmp_dir:
       # Make sure we write the file in yaml format.
-      filename = os.path.join(tmp_dir,
-                              config_lib.CONFIG.Get(
-                                  "ClientBuilder.config_filename",
-                                  context=context))
+      filename = os.path.join(
+          tmp_dir,
+          config_lib.CONFIG.Get("ClientBuilder.config_filename",
+                                context=context))
 
       new_config = config_lib.CONFIG.MakeNewConfig()
       new_config.Initialize(reset=True, data="")
@@ -265,15 +263,14 @@ class ClientRepacker(BuilderBase):
       # defined options and then resolve those from the config in the
       # client's context. The result is the raw option as if the
       # client read our config file.
-      for descriptor in sorted(config_lib.CONFIG.type_infos,
-                               key=lambda x: x.name):
+      for descriptor in sorted(
+          config_lib.CONFIG.type_infos, key=lambda x: x.name):
         if descriptor.name in self.SKIP_OPTION_LIST:
           continue
 
         if descriptor.section in self.CONFIG_SECTIONS:
-          value = config_lib.CONFIG.GetRaw(descriptor.name,
-                                           context=context,
-                                           default=None)
+          value = config_lib.CONFIG.GetRaw(
+              descriptor.name, context=context, default=None)
 
           if value is not None:
             logging.debug("Copying config option to client: %s",
@@ -301,18 +298,18 @@ class ClientRepacker(BuilderBase):
       if not url.startswith("http"):
         errors.append("Bad Client.server_urls specified %s" % url)
 
-    key_data = config.GetRaw("Client.executable_signing_public_key",
-                             default=None,
-                             context=self.context)
+    key_data = config.GetRaw(
+        "Client.executable_signing_public_key",
+        default=None,
+        context=self.context)
     if key_data is None:
       errors.append("Missing Client.executable_signing_public_key.")
     elif not key_data.startswith("-----BEGIN PUBLIC"):
       errors.append("Invalid Client.executable_signing_public_key: %s" %
                     key_data)
 
-    certificate = config.GetRaw("CA.certificate",
-                                default=None,
-                                context=self.context)
+    certificate = config.GetRaw(
+        "CA.certificate", default=None, context=self.context)
     if certificate is None or not certificate.startswith("-----BEGIN CERTIF"):
       errors.append("CA certificate missing from config.")
 
@@ -399,9 +396,8 @@ class WindowsClientRepacker(ClientRepacker):
     context = self.context + ["Client Context"]
 
     zip_data = cStringIO.StringIO()
-    output_zip = zipfile.ZipFile(zip_data,
-                                 mode="w",
-                                 compression=zipfile.ZIP_DEFLATED)
+    output_zip = zipfile.ZipFile(
+        zip_data, mode="w", compression=zipfile.ZIP_DEFLATED)
 
     z_template = zipfile.ZipFile(open(template_path, "rb"))
 
@@ -421,9 +417,9 @@ class WindowsClientRepacker(ClientRepacker):
     bin_dat.write(z_template.read(bin_name))
 
     # Set output to console on binary if needed.
-    SetPeSubsystem(bin_dat,
-                   console=config_lib.CONFIG.Get("ClientBuilder.console",
-                                                 context=context))
+    SetPeSubsystem(
+        bin_dat,
+        console=config_lib.CONFIG.Get("ClientBuilder.console", context=context))
 
     # Interpolate resource strings.
     for parameter in ["Client.company_name", "Client.description",
@@ -445,9 +441,9 @@ class WindowsClientRepacker(ClientRepacker):
     service_bin_dat.write(z_template.read(service_template))
 
     # Set output to console on service binary if needed.
-    SetPeSubsystem(service_bin_dat,
-                   console=config_lib.CONFIG.Get("ClientBuilder.console",
-                                                 context=context))
+    SetPeSubsystem(
+        service_bin_dat,
+        console=config_lib.CONFIG.Get("ClientBuilder.console", context=context))
 
     service_bin_name = config_lib.CONFIG.Get("Nanny.service_binary_name",
                                              context=context)
@@ -480,9 +476,8 @@ class WindowsClientRepacker(ClientRepacker):
 
     src_zip = zipfile.ZipFile(cStringIO.StringIO(payload_data), mode="r")
     zip_data = cStringIO.StringIO()
-    output_zip = zipfile.ZipFile(zip_data,
-                                 mode="w",
-                                 compression=zipfile.ZIP_DEFLATED)
+    output_zip = zipfile.ZipFile(
+        zip_data, mode="w", compression=zipfile.ZIP_DEFLATED)
 
     config_file_name = config_lib.CONFIG.Get("ClientBuilder.config_filename",
                                              context=context)
@@ -496,15 +491,15 @@ class WindowsClientRepacker(ClientRepacker):
 
     client_config_content = self.GetClientConfig(context)
 
-    output_zip.writestr(config_file_name,
-                        client_config_content,
-                        compress_type=zipfile.ZIP_STORED)
+    output_zip.writestr(
+        config_file_name,
+        client_config_content,
+        compress_type=zipfile.ZIP_STORED)
 
     # The zip file comment is used by the self extractor to run
     # the installation script
     output_zip.comment = "$AUTORUN$>%s" % config_lib.CONFIG.Get(
-        "ClientBuilder.autorun_command_line",
-        context=context)
+        "ClientBuilder.autorun_command_line", context=context)
 
     output_zip.close()
 
@@ -525,9 +520,10 @@ class WindowsClientRepacker(ClientRepacker):
 
       # If in verbose mode, modify the unzip bins PE header to run in console
       # mode for easier debugging.
-      SetPeSubsystem(stub_data,
-                     console=config_lib.CONFIG.Get("ClientBuilder.console",
-                                                   context=context))
+      SetPeSubsystem(
+          stub_data,
+          console=config_lib.CONFIG.Get("ClientBuilder.console",
+                                        context=context))
 
       # Now patch up the .rsrc section to contain the payload.
       end_of_file = zip_data.tell() + stub_data.tell()
@@ -600,9 +596,9 @@ class LinuxClientRepacker(ClientRepacker):
 
     shutil.move(
         os.path.join(target_binary_dir, "grr-client"),
-        os.path.join(target_binary_dir,
-                     config_lib.CONFIG.Get("Client.binary_name",
-                                           context=self.context)))
+        os.path.join(
+            target_binary_dir,
+            config_lib.CONFIG.Get("Client.binary_name", context=self.context)))
 
     deb_in_dir = os.path.join(template_path, "dist/debian/debian.in/")
 
@@ -611,8 +607,8 @@ class LinuxClientRepacker(ClientRepacker):
                            [("grr-client", package_name)])
 
     # Generate directories for the /usr/sbin link.
-    utils.EnsureDirExists(os.path.join(template_path, "dist/debian/%s/usr/sbin"
-                                       % package_name))
+    utils.EnsureDirExists(
+        os.path.join(template_path, "dist/debian/%s/usr/sbin" % package_name))
 
     # Generate the upstart template.
     self.GenerateFile(
@@ -666,25 +662,27 @@ class LinuxClientRepacker(ClientRepacker):
       # before it.
       target_dir = config_lib.CONFIG.Get("ClientBuilder.target_dir",
                                          context=self.context).lstrip("/")
-      agent_dir = os.path.join(template_dir,
-                               "debian",
-                               config_lib.CONFIG.Get(
-                                   "ClientBuilder.package_name",
-                                   context=self.context),
-                               target_dir)
+      agent_dir = os.path.join(
+          template_dir,
+          "debian",
+          config_lib.CONFIG.Get("ClientBuilder.package_name",
+                                context=self.context),
+          target_dir)
 
       with open(
-          os.path.join(agent_dir,
-                       config_lib.CONFIG.Get("ClientBuilder.config_filename",
-                                             context=self.context)),
+          os.path.join(
+              agent_dir,
+              config_lib.CONFIG.Get("ClientBuilder.config_filename",
+                                    context=self.context)),
           "wb") as fd:
         fd.write(client_config_content)
 
       # Set the daemon to executable.
       os.chmod(
-          os.path.join(agent_dir,
-                       config_lib.CONFIG.Get("Client.binary_name",
-                                             context=self.context)),
+          os.path.join(
+              agent_dir,
+              config_lib.CONFIG.Get("Client.binary_name",
+                                    context=self.context)),
           0755)
 
       arch = config_lib.CONFIG.Get("Template.arch", context=self.context)
@@ -707,21 +705,19 @@ class LinuxClientRepacker(ClientRepacker):
             raise
 
         filename_base = config_lib.CONFIG.Get(
-            "ClientBuilder.debian_package_base",
-            context=self.context)
+            "ClientBuilder.debian_package_base", context=self.context)
         output_base = config_lib.CONFIG.Get("ClientRepacker.output_basename",
                                             context=self.context)
         utils.EnsureDirExists(os.path.dirname(output_path))
 
         for extension in [".changes", config_lib.CONFIG.Get(
-            "ClientBuilder.output_extension",
-            context=self.context)]:
+            "ClientBuilder.output_extension", context=self.context)]:
           input_name = "%s%s" % (filename_base, extension)
           output_name = "%s%s" % (output_base, extension)
 
           shutil.move(
-              os.path.join(tmp_dir, input_name), os.path.join(
-                  os.path.dirname(output_path), output_name))
+              os.path.join(tmp_dir, input_name),
+              os.path.join(os.path.dirname(output_path), output_name))
 
         logging.info("Created package %s", output_path)
         return output_path
@@ -777,8 +773,7 @@ class CentosClientRepacker(LinuxClientRepacker):
       template_binary_dir = os.path.join(tmp_dir, "dist/rpmbuild/grr-client")
 
       target_binary_dir = "%s%s" % (rpm_build_dir, config_lib.CONFIG.Get(
-          "ClientBuilder.target_dir",
-          context=self.context))
+          "ClientBuilder.target_dir", context=self.context))
 
       utils.EnsureDirExists(os.path.dirname(target_binary_dir))
       try:
@@ -811,9 +806,10 @@ class CentosClientRepacker(LinuxClientRepacker):
       client_config_content = self.GetClientConfig(client_context)
 
       with open(
-          os.path.join(target_binary_dir,
-                       config_lib.CONFIG.Get("ClientBuilder.config_filename",
-                                             context=self.context)),
+          os.path.join(
+              target_binary_dir,
+              config_lib.CONFIG.Get("ClientBuilder.config_filename",
+                                    context=self.context)),
           "wb") as fd:
         fd.write(client_config_content)
 

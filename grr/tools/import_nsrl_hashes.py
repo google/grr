@@ -87,10 +87,11 @@ def main(unused_argv):
     print "File %s does not exist" % filename
     return
 
-  with aff4.FACTORY.Create(filestore.NSRLFileStore.PATH,
-                           "NSRLFileStore",
-                           mode="rw",
-                           token=aff4.FACTORY.root_token) as store:
+  with aff4.FACTORY.Create(
+      filestore.NSRLFileStore.PATH,
+      "NSRLFileStore",
+      mode="rw",
+      token=aff4.FACTORY.root_token) as store:
     imported = ImportFile(store, filename, flags.FLAGS.start)
     data_store.DB.Flush()
     print "Imported %d hashes" % imported

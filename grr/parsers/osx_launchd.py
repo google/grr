@@ -72,11 +72,11 @@ class DarwinPersistenceMechanismsParser(parsers.ArtifactFilesParser):
 
     if isinstance(persistence, rdf_client.OSXServiceInformation):
       if persistence.program:
-        pathspecs = rdf_paths.PathSpec(path=persistence.program,
-                                       pathtype=download_pathtype)
+        pathspecs = rdf_paths.PathSpec(
+            path=persistence.program, pathtype=download_pathtype)
       elif persistence.args:
-        pathspecs = rdf_paths.PathSpec(path=persistence.args[0],
-                                       pathtype=download_pathtype)
+        pathspecs = rdf_paths.PathSpec(
+            path=persistence.args[0], pathtype=download_pathtype)
 
     for pathspec in pathspecs:
       yield rdf_standard.PersistenceFile(pathspec=pathspec)

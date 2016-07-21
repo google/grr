@@ -70,15 +70,14 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     """Tests the end to end encrypted communicators."""
     message_list = rdf_flows.MessageList()
     for i in range(1, 11):
-      message_list.job.Append(session_id=rdfvalue.SessionID(base="aff4:/flows",
-                                                            queue=queues.FLOWS,
-                                                            flow_name=i),
-                              name="OMG it's a string")
+      message_list.job.Append(
+          session_id=rdfvalue.SessionID(
+              base="aff4:/flows", queue=queues.FLOWS, flow_name=i),
+          name="OMG it's a string")
 
     result = rdf_flows.ClientCommunication()
-    timestamp = self.client_communicator.EncodeMessages(message_list,
-                                                        result,
-                                                        timestamp=timestamp)
+    timestamp = self.client_communicator.EncodeMessages(
+        message_list, result, timestamp=timestamp)
     self.cipher_text = result.SerializeToString()
 
     (decoded_messages, source, client_timestamp) = (
@@ -88,10 +87,10 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     self.assertEqual(client_timestamp, timestamp)
     self.assertEqual(len(decoded_messages), 10)
     for i in range(1, 11):
-      self.assertEqual(decoded_messages[i - 1].session_id,
-                       rdfvalue.SessionID(base="aff4:/flows",
-                                          queue=queues.FLOWS,
-                                          flow_name=i))
+      self.assertEqual(
+          decoded_messages[i - 1].session_id,
+          rdfvalue.SessionID(
+              base="aff4:/flows", queue=queues.FLOWS, flow_name=i))
 
     return decoded_messages
 
@@ -105,9 +104,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
   def MakeClientAFF4Record(self):
     """Make a client in the data store."""
     client_cert = self.ClientCertFromPrivateKey(self.client_private_key)
-    new_client = aff4.FACTORY.Create(client_cert.GetCN(),
-                                     aff4_grr.VFSGRRClient,
-                                     token=self.token)
+    new_client = aff4.FACTORY.Create(
+        client_cert.GetCN(), aff4_grr.VFSGRRClient, token=self.token)
     new_client.Set(new_client.Schema.CERT, client_cert)
     new_client.Close()
     return new_client
@@ -131,9 +129,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(now):
       self.ClientServerCommunicate(timestamp=client_now)
 
-      client_obj = aff4.FACTORY.Open(new_client.urn,
-                                     ignore_cache=True,
-                                     token=self.token)
+      client_obj = aff4.FACTORY.Open(
+          new_client.urn, ignore_cache=True, token=self.token)
       self.assertEqual(
           now.AsSecondsFromEpoch(),
           client_obj.Get(client_obj.Schema.PING).AsSecondsFromEpoch())
@@ -146,9 +143,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(now):
       self.ClientServerCommunicate(timestamp=client_now)
 
-      client_obj = aff4.FACTORY.Open(new_client.urn,
-                                     ignore_cache=True,
-                                     token=self.token)
+      client_obj = aff4.FACTORY.Open(
+          new_client.urn, ignore_cache=True, token=self.token)
       self.assertEqual(
           now.AsSecondsFromEpoch(),
           client_obj.Get(client_obj.Schema.PING).AsSecondsFromEpoch())
@@ -160,13 +156,12 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     """Check client ping stats are updated."""
     new_client = self.MakeClientAFF4Record()
     self.assertEqual(
-        stats.STATS.GetMetricValue("client_pings_by_label",
-                                   fields=["testlabel"]),
+        stats.STATS.GetMetricValue(
+            "client_pings_by_label", fields=["testlabel"]),
         0)
 
-    with aff4.FACTORY.Open(new_client.urn,
-                           mode="rw",
-                           token=self.token) as client_object:
+    with aff4.FACTORY.Open(
+        new_client.urn, mode="rw", token=self.token) as client_object:
       client_object.AddLabels("testlabel")
       client_object.Flush(sync=True)
 
@@ -174,8 +169,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(now):
       self.ClientServerCommunicate(timestamp=now)
       self.assertEqual(
-          stats.STATS.GetMetricValue("client_pings_by_label",
-                                     fields=["testlabel"]),
+          stats.STATS.GetMetricValue(
+              "client_pings_by_label", fields=["testlabel"]),
           1)
 
   def testServerReplayAttack(self):
@@ -236,8 +231,8 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     """X509 Verify can have several failure paths."""
 
     # This is a successful verify.
-    with utils.Stubber(rdf_crypto.RDFX509Cert, "Verify",
-                       lambda self, public_key=None: True):
+    with utils.Stubber(
+        rdf_crypto.RDFX509Cert, "Verify", lambda self, public_key=None: True):
       self.client_communicator.LoadServerCertificate(
           self.server_certificate, config_lib.CONFIG["CA.certificate"])
 
@@ -339,10 +334,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     stats.StatsCollector.exit = True
 
     # Make a client mock
-    self.client = aff4.FACTORY.Create(self.client_cn,
-                                      aff4_grr.VFSGRRClient,
-                                      mode="rw",
-                                      token=self.token)
+    self.client = aff4.FACTORY.Create(
+        self.client_cn, aff4_grr.VFSGRRClient, mode="rw", token=self.token)
     self.client.Set(self.client.Schema.CERT(certificate.AsPEM()))
     self.client.Flush()
 
@@ -365,9 +358,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     ca_enroller.enrolment_cache.Flush()
 
     # Response to send back to clients.
-    self.server_response = dict(session_id="aff4:/W:session",
-                                name="Echo",
-                                response_id=2)
+    self.server_response = dict(
+        session_id="aff4:/W:session", name="Echo", response_id=2)
 
   def CreateNewServerCommunicator(self):
     self.server_communicator = front_end.ServerCommunicator(
@@ -510,10 +502,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.server_communicator.client_cache.Flush()
 
     # Assume we do not know the client yet by clearing its certificate.
-    self.client = aff4.FACTORY.Create(self.client_cn,
-                                      aff4_grr.VFSGRRClient,
-                                      mode="rw",
-                                      token=self.token)
+    self.client = aff4.FACTORY.Create(
+        self.client_cn, aff4_grr.VFSGRRClient, mode="rw", token=self.token)
     self.client.DeleteAttribute(self.client.Schema.CERT)
     self.client.Flush()
 
@@ -538,9 +528,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # Now we manually run the enroll well known flow with the enrollment
     # request. This will start a new flow for enrolling the client, sign the
     # cert and add it to the data store.
-    flow_obj = ca_enroller.Enroler(ca_enroller.Enroler.well_known_session_id,
-                                   mode="rw",
-                                   token=self.token)
+    flow_obj = ca_enroller.Enroler(
+        ca_enroller.Enroler.well_known_session_id, mode="rw", token=self.token)
     flow_obj.ProcessMessage(self.messages[-1])
 
     # The next client communication should be enrolled now.
@@ -549,10 +538,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.assertEqual(status.code, 200)
 
     # There should be a cert for the client right now.
-    self.client = aff4.FACTORY.Create(self.client_cn,
-                                      aff4_grr.VFSGRRClient,
-                                      mode="rw",
-                                      token=self.token)
+    self.client = aff4.FACTORY.Create(
+        self.client_cn, aff4_grr.VFSGRRClient, mode="rw", token=self.token)
     self.assertTrue(self.client.Get(self.client.Schema.CERT))
 
     # Now communicate with the server once again.
@@ -584,11 +571,12 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.CheckClientQueue()
 
   def _CheckFastPoll(self, require_fastpoll, expected_sleeptime):
-    self.server_response = dict(session_id="aff4:/W:session",
-                                name="Echo",
-                                response_id=2,
-                                priority="LOW_PRIORITY",
-                                require_fastpoll=require_fastpoll)
+    self.server_response = dict(
+        session_id="aff4:/W:session",
+        name="Echo",
+        response_id=2,
+        priority="LOW_PRIORITY",
+        require_fastpoll=require_fastpoll)
 
     # Make sure we don't have any output messages that might override the
     # fastpoll setting from the input messages we send
@@ -818,8 +806,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         self.client_communicator.client_worker.CheckStats()
         self.assertEqual(len(runs), 0)
 
-      self.client_communicator.client_worker.HandleMessage(rdf_flows.GrrMessage(
-          name="HashFile"))
+      self.client_communicator.client_worker.HandleMessage(
+          rdf_flows.GrrMessage(name="HashFile"))
 
       # HandleMessage was called, but one minute hasn't passed, so
       # stats should not be sent.

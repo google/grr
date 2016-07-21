@@ -114,9 +114,10 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
       return
 
     self.state.Register("files_found", 0)
-    self.state.Register("sorted_conditions",
-                        sorted(self.args.conditions,
-                               key=self._ConditionWeight))
+    self.state.Register(
+        "sorted_conditions",
+        sorted(
+            self.args.conditions, key=self._ConditionWeight))
 
     self.state.file_size = self.args.file_size
 
@@ -137,21 +138,20 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
 
         stat_entry = rdf_client.StatEntry(aff4path=aff4path, pathspec=pathspec)
         self.ApplyCondition(
-            FileFinderResult(stat_entry=stat_entry),
-            condition_index=0)
+            FileFinderResult(stat_entry=stat_entry), condition_index=0)
 
     else:
-      self.GlobForPaths(self.args.paths,
-                        pathtype=self.args.pathtype,
-                        no_file_type_check=self.args.no_file_type_check)
+      self.GlobForPaths(
+          self.args.paths,
+          pathtype=self.args.pathtype,
+          no_file_type_check=self.args.no_file_type_check)
 
   def GlobReportMatch(self, response):
     """This method is called by the glob mixin when there is a match."""
     super(FileFinder, self).GlobReportMatch(response)
 
     self.ApplyCondition(
-        FileFinderResult(stat_entry=response),
-        condition_index=0)
+        FileFinderResult(stat_entry=response), condition_index=0)
 
   def ModificationTimeCondition(self, response, condition_options,
                                 condition_index):
@@ -198,19 +198,21 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
       return
 
     options = condition_options.contents_regex_match
-    grep_spec = rdf_client.GrepSpec(target=response.stat_entry.pathspec,
-                                    regex=options.regex,
-                                    mode=options.mode,
-                                    start_offset=options.start_offset,
-                                    length=options.length,
-                                    bytes_before=options.bytes_before,
-                                    bytes_after=options.bytes_after)
+    grep_spec = rdf_client.GrepSpec(
+        target=response.stat_entry.pathspec,
+        regex=options.regex,
+        mode=options.mode,
+        start_offset=options.start_offset,
+        length=options.length,
+        bytes_before=options.bytes_before,
+        bytes_after=options.bytes_after)
 
-    self.CallClient("Grep",
-                    request=grep_spec,
-                    next_state="ProcessGrep",
-                    request_data=dict(original_result=response,
-                                      condition_index=condition_index + 1))
+    self.CallClient(
+        "Grep",
+        request=grep_spec,
+        next_state="ProcessGrep",
+        request_data=dict(
+            original_result=response, condition_index=condition_index + 1))
 
   def ContentsLiteralMatchCondition(self, response, condition_options,
                                     condition_index):
@@ -220,21 +222,23 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
       return
 
     options = condition_options.contents_literal_match
-    grep_spec = rdf_client.GrepSpec(target=response.stat_entry.pathspec,
-                                    literal=options.literal,
-                                    mode=options.mode,
-                                    start_offset=options.start_offset,
-                                    length=options.length,
-                                    bytes_before=options.bytes_before,
-                                    bytes_after=options.bytes_after,
-                                    xor_in_key=options.xor_in_key,
-                                    xor_out_key=options.xor_out_key)
+    grep_spec = rdf_client.GrepSpec(
+        target=response.stat_entry.pathspec,
+        literal=options.literal,
+        mode=options.mode,
+        start_offset=options.start_offset,
+        length=options.length,
+        bytes_before=options.bytes_before,
+        bytes_after=options.bytes_after,
+        xor_in_key=options.xor_in_key,
+        xor_out_key=options.xor_out_key)
 
-    self.CallClient("Grep",
-                    request=grep_spec,
-                    next_state="ProcessGrep",
-                    request_data=dict(original_result=response,
-                                      condition_index=condition_index + 1))
+    self.CallClient(
+        "Grep",
+        request=grep_spec,
+        next_state="ProcessGrep",
+        request_data=dict(
+            original_result=response, condition_index=condition_index + 1))
 
   @flow.StateHandler()
   def ProcessGrep(self, responses):
@@ -279,8 +283,9 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
       self.state.files_found += 1
 
       if action == FileFinderAction.Action.HASH:
-        self.FingerprintFile(response.stat_entry.pathspec,
-                             request_data=dict(original_result=response))
+        self.FingerprintFile(
+            response.stat_entry.pathspec,
+            request_data=dict(original_result=response))
 
       elif action == FileFinderAction.Action.DOWNLOAD:
         # If the binary is too large we don't download it, but take a
@@ -289,11 +294,13 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
         if file_size > self.args.action.download.max_size:
           self.Log("%s too large to fetch. Size=%d",
                    response.stat_entry.pathspec.CollapsePath(), file_size)
-          self.FingerprintFile(response.stat_entry.pathspec,
-                               request_data=dict(original_result=response))
+          self.FingerprintFile(
+              response.stat_entry.pathspec,
+              request_data=dict(original_result=response))
         else:
-          self.StartFileFetch(response.stat_entry.pathspec,
-                              request_data=dict(original_result=response))
+          self.StartFileFetch(
+              response.stat_entry.pathspec,
+              request_data=dict(original_result=response))
 
   def ReceiveFileFingerprint(self, urn, hash_obj, request_data=None):
     """Handle hash results from the FingerprintFileMixin."""

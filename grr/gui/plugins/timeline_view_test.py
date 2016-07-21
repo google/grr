@@ -43,18 +43,19 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
           "RecursiveListDirectory",
           client_mock,
           client_id=client_id,
-          pathspec=rdf_paths.PathSpec(path="/",
-                                      pathtype=rdf_paths.PathSpec.PathType.OS),
+          pathspec=rdf_paths.PathSpec(
+              path="/", pathtype=rdf_paths.PathSpec.PathType.OS),
           token=token):
         pass
 
       # Now make a timeline
-      for _ in test_lib.TestFlowHelper(timelines.MACTimes.__name__,
-                                       client_mock,
-                                       client_id=client_id,
-                                       token=token,
-                                       path="/",
-                                       output=output_path):
+      for _ in test_lib.TestFlowHelper(
+          timelines.MACTimes.__name__,
+          client_mock,
+          client_id=client_id,
+          token=token,
+          path="/",
+          output=output_path):
         pass
 
   def setUp(self):
@@ -96,9 +97,10 @@ class TestTimelineView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-file-container-view input.search-query")
 
-    self.Type("css=grr-file-container-view input.search-query",
-              "subject contains bash and timestamp > 2010",
-              end_with_enter=True)
+    self.Type(
+        "css=grr-file-container-view input.search-query",
+        "subject contains bash and timestamp > 2010",
+        end_with_enter=True)
 
     self.WaitUntilContains("C.0000000000000001/fs/os/c/bin/bash", self.GetText,
                            "css=tbody tr:first")

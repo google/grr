@@ -242,10 +242,10 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
 
   def testRegistryListing(self):
 
-    pathspec = rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
-                                  path=(
-                                      "/HKEY_USERS/S-1-5-20/Software/Microsoft"
-                                      "/Windows/CurrentVersion/Run"))
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
+        path=("/HKEY_USERS/S-1-5-20/Software/Microsoft"
+              "/Windows/CurrentVersion/Run"))
 
     expected_names = {"MctAdmin": stat.S_IFDIR, "Sidebar": stat.S_IFDIR}
     expected_data = [u"%ProgramFiles%\\Windows Sidebar\\Sidebar.exe /autoRun",
@@ -267,20 +267,22 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
 
     aff4.FACTORY.Delete(client_id.Add(output_path), token=self.token)
 
-    for _ in test_lib.TestFlowHelper("RegistryFinder",
-                                     client_mock,
-                                     client_id=client_id,
-                                     keys_paths=paths,
-                                     conditions=[],
-                                     token=self.token,
-                                     output=output_path):
+    for _ in test_lib.TestFlowHelper(
+        "RegistryFinder",
+        client_mock,
+        client_id=client_id,
+        keys_paths=paths,
+        conditions=[],
+        token=self.token,
+        output=output_path):
       pass
 
     try:
-      return list(aff4.FACTORY.Open(
-          client_id.Add(output_path),
-          aff4_type=collects.RDFValueCollection,
-          token=self.token))
+      return list(
+          aff4.FACTORY.Open(
+              client_id.Add(output_path),
+              aff4_type=collects.RDFValueCollection,
+              token=self.token))
     except aff4.InstantiationError:
       return []
 
@@ -341,22 +343,25 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
 
     # For Listdir, the situation is the same. Listing does not yield mtimes.
     client_id = self.SetupClients(1)[0]
-    pb = rdf_paths.PathSpec(path="/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest",
-                            pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+    pb = rdf_paths.PathSpec(
+        path="/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest",
+        pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
     output_path = client_id.Add("registry").Add(pb.first.path)
     aff4.FACTORY.Delete(output_path, token=self.token)
 
     client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
-    for _ in test_lib.TestFlowHelper("ListDirectory",
-                                     client_mock,
-                                     client_id=client_id,
-                                     pathspec=pb,
-                                     token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        "ListDirectory",
+        client_mock,
+        client_id=client_id,
+        pathspec=pb,
+        token=self.token):
       pass
 
-    results = list(aff4.FACTORY.Open(output_path,
-                                     token=self.token).OpenChildren())
+    results = list(
+        aff4.FACTORY.Open(
+            output_path, token=self.token).OpenChildren())
     self.assertEqual(len(results), 2)
     for result in results:
       st = result.Get(result.Schema.STAT)
@@ -380,8 +385,8 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
                         r"S-1-5-21-2911950750-476812067-1487428992-1001",
                         r"S-1-5-21-702227000-2140022111-3110739999-1990"], [])])
 
-    walk_tups_inf = list(vfs.VFSOpen(pathspec).RecursiveListNames(depth=float(
-        "inf")))
+    walk_tups_inf = list(
+        vfs.VFSOpen(pathspec).RecursiveListNames(depth=float("inf")))
     self.assertEqual(
         walk_tups_inf,
         [(r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"], []),

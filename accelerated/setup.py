@@ -20,12 +20,13 @@ from distutils.core import setup
 
 SOURCES = ["accelerated.c"]
 
-setup(name="grr",
-      version="0.1",
-      long_description="Semantic protobufs are smart protocol buffers.",
-      license="Apache 2.0",
-      author="Michael Cohen",
-      ext_modules=[
-          Extension("_semantic",
-                    SOURCES,)
-      ],)
+setup(
+    name="grr",
+    version="0.1",
+    long_description="Semantic protobufs are smart protocol buffers.",
+    license="Apache 2.0",
+    author="Michael Cohen",
+    ext_modules=[
+        Extension("_semantic",
+                  SOURCES,)
+    ],)

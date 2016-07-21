@@ -112,10 +112,10 @@ def RunTest(test_suite, stream=None):
     # GrrTestProgram then terminates the execution of the whole
     # python program using sys.exit() so this function does not
     # return.
-    test_lib.GrrTestProgram(argv=[sys.argv[0], test_suite],
-                            testLoader=GRREverythingTestLoader(
-                                labels=flags.FLAGS.labels),
-                            testRunner=unittest.TextTestRunner(stream=out_fd))
+    test_lib.GrrTestProgram(
+        argv=[sys.argv[0], test_suite],
+        testLoader=GRREverythingTestLoader(labels=flags.FLAGS.labels),
+        testRunner=unittest.TextTestRunner(stream=out_fd))
   finally:
     # Clean up before the program exits.
     if stream:
@@ -246,22 +246,23 @@ def main(argv=None):
         argv.extend(["--labels", ",".join(flags.FLAGS.labels)])
 
         # Maintain metadata about each test.
-        processes[name] = dict(pipe=subprocess.Popen(argv),
-                               start=time.time(),
-                               output_path=result_filename,
-                               test=name)
+        processes[name] = dict(
+            pipe=subprocess.Popen(argv),
+            start=time.time(),
+            output_path=result_filename,
+            test=name)
 
         max_processes = flags.FLAGS.processes
         if not max_processes:
           max_processes = max(psutil.cpu_count() - 1, 1)
-        WaitForAvailableProcesses(processes,
-                                  max_processes=max_processes,
-                                  completion_cb=ReportTestResult)
+        WaitForAvailableProcesses(
+            processes,
+            max_processes=max_processes,
+            completion_cb=ReportTestResult)
 
       # Wait for all jobs to finish.
-      WaitForAvailableProcesses(processes,
-                                max_processes=0,
-                                completion_cb=ReportTestResult)
+      WaitForAvailableProcesses(
+          processes, max_processes=0, completion_cb=ReportTestResult)
 
       passed_tests = [p for p in processes.values() if p["exit_code"] == 0]
       failed_tests = [p for p in processes.values() if p["exit_code"] != 0]

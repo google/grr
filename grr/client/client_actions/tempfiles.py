@@ -116,10 +116,8 @@ def CreateGRRTempFile(directory=None,
 
   prefix = config_lib.CONFIG.Get("Client.tempfile_prefix")
   if filename is None:
-    outfile = tempfile.NamedTemporaryFile(prefix=prefix,
-                                          suffix=suffix,
-                                          dir=directory,
-                                          delete=False)
+    outfile = tempfile.NamedTemporaryFile(
+        prefix=prefix, suffix=suffix, dir=directory, delete=False)
   else:
     if suffix:
       filename = "%s.%s" % (filename, suffix)
@@ -168,13 +166,14 @@ def CreateGRRTempFileVFS(directory=None,
     An open file handle to the new file and the corresponding pathspec.
   """
 
-  fd = CreateGRRTempFile(directory=directory,
-                         filename=filename,
-                         lifetime=lifetime,
-                         mode=mode,
-                         suffix=suffix)
-  pathspec = rdf_paths.PathSpec(path=fd.name,
-                                pathtype=rdf_paths.PathSpec.PathType.TMPFILE)
+  fd = CreateGRRTempFile(
+      directory=directory,
+      filename=filename,
+      lifetime=lifetime,
+      mode=mode,
+      suffix=suffix)
+  pathspec = rdf_paths.PathSpec(
+      path=fd.name, pathtype=rdf_paths.PathSpec.PathType.TMPFILE)
   return fd, pathspec
 
 

@@ -24,8 +24,8 @@ class TestCronTabParsing(test_lib.GRRBaseTest):
     plist_file = open(path)
     stat = rdf_client.StatEntry(
         aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(path),
-        pathspec=rdf_paths.PathSpec(path=path,
-                                    pathtype=rdf_paths.PathSpec.PathType.OS),
+        pathspec=rdf_paths.PathSpec(
+            path=path, pathtype=rdf_paths.PathSpec.PathType.OS),
         st_mode=16877)
     results.extend(list(parser.Parse(stat, plist_file, None)))
 

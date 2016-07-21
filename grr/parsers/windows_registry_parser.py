@@ -297,8 +297,8 @@ class WinServicesParser(parsers.RegistryValueParser):
 
       service_name = self._GetServiceName(stat.pathspec.path)
       reg_key = stat.aff4path.Dirname()
-      service_info = rdf_client.WindowsServiceInformation(name=service_name,
-                                                          registry_key=reg_key)
+      service_info = rdf_client.WindowsServiceInformation(
+          name=service_name, registry_key=reg_key)
       services.setdefault(service_name, service_info)
 
       key = self._GetKeyName(stat.pathspec.path)

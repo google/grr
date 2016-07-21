@@ -66,11 +66,12 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     user = "testuser"
     userobj = rdf_client.User(username=user)
     interface = rdf_client.Interface(ifname="eth0")
-    self.client = aff4.FACTORY.Create(self.client_id,
-                                      aff4_grr.VFSGRRClient,
-                                      mode="rw",
-                                      token=self.token,
-                                      age=aff4.ALL_TIMES)
+    self.client = aff4.FACTORY.Create(
+        self.client_id,
+        aff4_grr.VFSGRRClient,
+        mode="rw",
+        token=self.token,
+        age=aff4.ALL_TIMES)
     kb = self.client.Get(self.client.Schema.KNOWLEDGE_BASE)
     kb.users.Append(userobj)
     self.client.Set(self.client.Schema.HOSTNAME("hostname"))
@@ -91,11 +92,12 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
                     "TestListDirectoryOSLinuxDarwin"])
 
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
-      for _ in test_lib.TestFlowHelper("EndToEndTestFlow",
-                                       self.client_mock,
-                                       client_id=self.client_id,
-                                       token=self.token,
-                                       args=args):
+      for _ in test_lib.TestFlowHelper(
+          "EndToEndTestFlow",
+          self.client_mock,
+          client_id=self.client_id,
+          token=self.token,
+          args=args):
         pass
 
       results = []
@@ -113,19 +115,18 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
 
   def testNoApplicableTests(self):
     """Try to run linux tests on windows."""
-    self.SetupClients(1,
-                      system="Windows",
-                      os_version="6.1.7601SP1",
-                      arch="AMD64")
+    self.SetupClients(
+        1, system="Windows", os_version="6.1.7601SP1", arch="AMD64")
     install_time = rdfvalue.RDFDatetime().Now()
     user = "testuser"
     userobj = rdf_client.User(username=user)
     interface = rdf_client.Interface(ifname="eth0")
-    self.client = aff4.FACTORY.Create(self.client_id,
-                                      aff4_grr.VFSGRRClient,
-                                      mode="rw",
-                                      token=self.token,
-                                      age=aff4.ALL_TIMES)
+    self.client = aff4.FACTORY.Create(
+        self.client_id,
+        aff4_grr.VFSGRRClient,
+        mode="rw",
+        token=self.token,
+        age=aff4.ALL_TIMES)
 
     kb = self.client.Get(self.client.Schema.KNOWLEDGE_BASE)
     kb.users.Append(userobj)
@@ -143,13 +144,15 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
         test_names=["TestListDirectoryOSLinuxDarwin", "MockEndToEndTest",
                     "TestListDirectoryOSLinuxDarwin"])
 
-    self.assertRaises(flow.FlowError,
-                      list,
-                      test_lib.TestFlowHelper("EndToEndTestFlow",
-                                              self.client_mock,
-                                              client_id=self.client_id,
-                                              token=self.token,
-                                              args=args))
+    self.assertRaises(
+        flow.FlowError,
+        list,
+        test_lib.TestFlowHelper(
+            "EndToEndTestFlow",
+            self.client_mock,
+            client_id=self.client_id,
+            token=self.token,
+            args=args))
 
   def testRunSuccessAndFail(self):
     args = endtoend.EndToEndTestFlowArgs()
@@ -158,11 +161,12 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
                        {"MockEndToEndTest": MockEndToEndTest,
                         "TestFailure": TestFailure}):
       with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
-        for _ in test_lib.TestFlowHelper("EndToEndTestFlow",
-                                         self.client_mock,
-                                         client_id=self.client_id,
-                                         token=self.token,
-                                         args=args):
+        for _ in test_lib.TestFlowHelper(
+            "EndToEndTestFlow",
+            self.client_mock,
+            client_id=self.client_id,
+            token=self.token,
+            args=args):
           pass
 
         results = []
@@ -176,32 +180,35 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
               self.assertFalse(reply.success)
               self.assertTrue("This should be logged" in reply.log)
 
-        self.assertItemsEqual(
-            [x.test_class_name for x in results],
-            ["MockEndToEndTest", "TestFailure"])
+        self.assertItemsEqual([x.test_class_name for x in results],
+                              ["MockEndToEndTest", "TestFailure"])
         self.assertEqual(len(results), 2)
 
   def testRunBadSetUp(self):
     args = endtoend.EndToEndTestFlowArgs(test_names=["TestBadSetUp"])
 
-    self.assertRaises(RuntimeError,
-                      list,
-                      test_lib.TestFlowHelper("EndToEndTestFlow",
-                                              self.client_mock,
-                                              client_id=self.client_id,
-                                              token=self.token,
-                                              args=args))
+    self.assertRaises(
+        RuntimeError,
+        list,
+        test_lib.TestFlowHelper(
+            "EndToEndTestFlow",
+            self.client_mock,
+            client_id=self.client_id,
+            token=self.token,
+            args=args))
 
   def testRunBadTearDown(self):
     args = endtoend.EndToEndTestFlowArgs(test_names=["TestBadTearDown"])
 
-    self.assertRaises(RuntimeError,
-                      list,
-                      test_lib.TestFlowHelper("EndToEndTestFlow",
-                                              self.client_mock,
-                                              client_id=self.client_id,
-                                              token=self.token,
-                                              args=args))
+    self.assertRaises(
+        RuntimeError,
+        list,
+        test_lib.TestFlowHelper(
+            "EndToEndTestFlow",
+            self.client_mock,
+            client_id=self.client_id,
+            token=self.token,
+            args=args))
 
   def testRunBadFlow(self):
     """Test behaviour when test flow raises in Start.
@@ -213,24 +220,27 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     args = endtoend.EndToEndTestFlowArgs(
         test_names=["MockEndToEndTestBadFlow", "MockEndToEndTest"])
 
-    self.assertRaises(RuntimeError,
-                      list,
-                      test_lib.TestFlowHelper("EndToEndTestFlow",
-                                              self.client_mock,
-                                              client_id=self.client_id,
-                                              token=self.token,
-                                              args=args))
+    self.assertRaises(
+        RuntimeError,
+        list,
+        test_lib.TestFlowHelper(
+            "EndToEndTestFlow",
+            self.client_mock,
+            client_id=self.client_id,
+            token=self.token,
+            args=args))
 
   def testEndToEndTestFailure(self):
     args = endtoend.EndToEndTestFlowArgs(test_names=["TestFailure"])
 
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
 
-      for _ in test_lib.TestFlowHelper("EndToEndTestFlow",
-                                       self.client_mock,
-                                       client_id=self.client_id,
-                                       token=self.token,
-                                       args=args):
+      for _ in test_lib.TestFlowHelper(
+          "EndToEndTestFlow",
+          self.client_mock,
+          client_id=self.client_id,
+          token=self.token,
+          args=args):
         pass
 
       results = []

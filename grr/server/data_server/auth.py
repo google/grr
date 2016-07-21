@@ -32,8 +32,7 @@ class ClientCredentials(object):
       try:
         user, pwd, perm = user_spec.split(":", 2)
         self.client_users[user] = data_server.DataServerClientInformation(
-            username=user, password=pwd,
-            permissions=perm)
+            username=user, password=pwd, permissions=perm)
       except ValueError:
         raise errors.DataServerError(
             "User %s from Dataserver.client_credentials is not"
@@ -73,8 +72,8 @@ class ClientCredentials(object):
     """
     encrypted_creds = data_server.DataServerEncryptedCreds(string)
 
-    creds = data_server.DataServerClientCredentials(encrypted_creds.GetPayload(
-        username, password))
+    creds = data_server.DataServerClientCredentials(
+        encrypted_creds.GetPayload(username, password))
 
     # Create client credentials.
     self.client_users = {}
@@ -208,9 +207,8 @@ class NonceStore(object):
   @classmethod
   def GenerateAuthToken(cls, nonce, username, password):
     hsh = cls._GenerateAuthHash(nonce, username, password)
-    return data_server.DataStoreAuthToken(nonce=nonce,
-                                          hash=hsh,
-                                          username=username)
+    return data_server.DataStoreAuthToken(
+        nonce=nonce, hash=hsh, username=username)
 
   @classmethod
   def _GenerateAuthHash(cls, nonce, username, password):

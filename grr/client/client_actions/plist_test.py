@@ -93,35 +93,31 @@ class PlistTest(test_lib.EmptyActionTest):
     self.assertEqual(results[0][0], test_plist_dict)
 
     # SAFARI PLIST
-    results = self._RunQuery(plist="History.plist",
-                             query='title contains "oogle"',
-                             context="WebHistoryDates")
+    results = self._RunQuery(
+        plist="History.plist",
+        query='title contains "oogle"',
+        context="WebHistoryDates")
     self.assertEqual(results[0][0], safari_plist_dict["WebHistoryDates"][0])
 
     # And now SAFARI XML
-    results = self._RunQuery(plist="History.xml.plist",
-                             query='title contains "oogle"',
-                             context="WebHistoryDates")
+    results = self._RunQuery(
+        plist="History.xml.plist",
+        query='title contains "oogle"',
+        context="WebHistoryDates")
     self.assertEqual(results[0][0], safari_plist_dict["WebHistoryDates"][0])
 
   def testActionNonexistantFile(self):
-    self.assertRaises(IOError,
-                      self._RunQuery,
-                      query="",
-                      context="",
-                      plist="nonexistantfile")
+    self.assertRaises(
+        IOError, self._RunQuery, query="", context="", plist="nonexistantfile")
 
   def testActionInvalidFile(self):
-    self.assertRaises(Exception,
-                      self._RunQuery,
-                      query="",
-                      context="",
-                      plist="History")
+    self.assertRaises(
+        Exception, self._RunQuery, query="", context="", plist="History")
 
   def _RunQuery(self, plist="test.plist", query="", context=""):
     path = os.path.join(self.base_path, plist)
-    pathspec = rdf_paths.PathSpec(path=path,
-                                  pathtype=rdf_paths.PathSpec.PathType.OS)
+    pathspec = rdf_paths.PathSpec(
+        path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
     plistrequest = rdf_plist.PlistRequest()
     plistrequest.query = query
     plistrequest.context = context

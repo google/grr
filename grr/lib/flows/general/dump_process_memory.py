@@ -27,25 +27,24 @@ class DumpProcessMemory(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "ADVANCED"
   args_type = DumpProcessMemoryArgs
 
-  @flow.StateHandler(next_state=["DownloadImage"])
+  @flow.StateHandler()
   def Start(self):
     """Start processing."""
     for pid in self.args.pids:
-      self.CallClient("DumpProcessMemory",
-                      rdf_client.DumpProcessMemoryRequest(
-                          pid=pid, pause=self.args.pause),
-                      next_state="DownloadImage")
+      self.CallClient(
+          "DumpProcessMemory",
+          rdf_client.DumpProcessMemoryRequest(
+              pid=pid, pause=self.args.pause),
+          next_state="DownloadImage")
 
-  @flow.StateHandler(next_state=["DeleteFile"])
+  @flow.StateHandler()
   def DownloadImage(self, responses):
     if not responses.success:
       self.Error("Could not dump memory image: %s" % responses.status)
-    self.CallFlow("MultiGetFile",
-                  pathspecs=[responses.First()],
-                  next_state="DeleteFile")
+    self.CallFlow(
+        "MultiGetFile", pathspecs=[responses.First()], next_state="DeleteFile")
 
-  @flow.StateHandler(next_state=["End"])
+  @flow.StateHandler()
   def DeleteFile(self, responses):
-    self.CallClient("DeleteGRRTempFiles",
-                    responses.First().pathspec,
-                    next_state="End")
+    self.CallClient(
+        "DeleteGRRTempFiles", responses.First().pathspec, next_state="End")

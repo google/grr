@@ -263,11 +263,12 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     result = {}
 
     for subject in subjects:
-      values = self.ResolvePrefix(subject,
-                                  attribute_prefix,
-                                  token=token,
-                                  timestamp=timestamp,
-                                  limit=limit)
+      values = self.ResolvePrefix(
+          subject,
+          attribute_prefix,
+          token=token,
+          timestamp=timestamp,
+          limit=limit)
 
       if values:
         result[subject] = values
@@ -295,11 +296,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     results = []
 
     for prefix in attribute_prefix:
-      query, args = self._BuildQuery(subject,
-                                     prefix,
-                                     timestamp,
-                                     limit,
-                                     is_prefix=True)
+      query, args = self._BuildQuery(
+          subject, prefix, timestamp, limit, is_prefix=True)
       rows = self.ExecuteQuery(query, args)
 
       for row in rows:
@@ -815,10 +813,8 @@ class MySQLTransaction(data_store.CommonTransaction):
 
   def __init__(self, store, subject, lease_time=None, token=None):
     """Ensure we can take a lock on this subject."""
-    super(MySQLTransaction, self).__init__(store,
-                                           subject,
-                                           lease_time=lease_time,
-                                           token=token)
+    super(MySQLTransaction, self).__init__(
+        store, subject, lease_time=lease_time, token=token)
     if lease_time is None:
       lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
 

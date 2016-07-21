@@ -13,7 +13,7 @@ class Netstat(flow.GRRFlow):
   category = "/Network/"
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state=["StoreNetstat"])
+  @flow.StateHandler()
   def Start(self):
     """Start processing."""
     self.CallClient("Netstat", next_state="StoreNetstat")
@@ -29,9 +29,8 @@ class Netstat(flow.GRRFlow):
       flow.FlowError: On failure to get retrieve the connections.
     """
     self.state.Register("urn", self.client_id.Add("network"))
-    net_fd = aff4.FACTORY.Create(self.state.urn,
-                                 network.Network,
-                                 token=self.token)
+    net_fd = aff4.FACTORY.Create(
+        self.state.urn, network.Network, token=self.token)
     if responses.success:
       conns = net_fd.Schema.CONNECTIONS()
       for response in responses:

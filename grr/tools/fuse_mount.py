@@ -61,14 +61,14 @@ flags.DEFINE_bool("ignore_cache", False,
                   "Disables cache completely. Takes priority over"
                   " refresh_policy.")
 
-flags.DEFINE_enum("refresh_policy",
-                  "if_older_than_max_age",
-                  ["if_older_than_max_age", "always", "never"],
-                  "How to refresh the cache. Options are: always (on every"
-                  " client-side access), never, or, by default,"
-                  " if_older_than_max_age (if last accessed > max_age seconds"
-                  " ago).",
-                  type=str)
+flags.DEFINE_enum(
+    "refresh_policy",
+    "if_older_than_max_age", ["if_older_than_max_age", "always", "never"],
+    "How to refresh the cache. Options are: always (on every"
+    " client-side access), never, or, by default,"
+    " if_older_than_max_age (if last accessed > max_age seconds"
+    " ago).",
+    type=str)
 
 flags.DEFINE_bool("force_sparse_image", False,
                   "Whether to convert existing files bigger than the"
@@ -267,9 +267,7 @@ class GRRFuseDatastoreOnly(object):
       raise fuse.FuseOSError(errno.EISDIR)
 
     fd = aff4.FACTORY.Open(
-        self.root.Add(path),
-        token=self.token,
-        ignore_cache=True)
+        self.root.Add(path), token=self.token, ignore_cache=True)
 
     # If the object has Read() and Seek() methods, let's use them.
     if all((hasattr(fd, "Read"), hasattr(fd, "Seek"), callable(fd.Read),
@@ -405,9 +403,7 @@ class GRRFuse(GRRFuseDatastoreOnly):
                                        " be supplied as an argument.")
       else:
         fd = aff4.FACTORY.Open(
-            self.root.Add(path),
-            token=self.token,
-            ignore_cache=True)
+            self.root.Add(path), token=self.token, ignore_cache=True)
         # We really care about the last time the stat was updated, so we use
         # this instead of the LAST attribute, which is the last time anything
         # was updated about the object.
@@ -437,10 +433,11 @@ class GRRFuse(GRRFuseDatastoreOnly):
     if client_id is None:
       return
 
-    flow_utils.UpdateVFSFileAndWait(client_id,
-                                    token=self.token,
-                                    vfs_file_urn=self.root.Add(path),
-                                    timeout=self.timeout)
+    flow_utils.UpdateVFSFileAndWait(
+        client_id,
+        token=self.token,
+        vfs_file_urn=self.root.Add(path),
+        timeout=self.timeout)
 
   def Readdir(self, path, fh=None):
     """Updates the directory listing from the client.
@@ -490,17 +487,16 @@ class GRRFuse(GRRFuseDatastoreOnly):
       return
 
     client_id = rdf_client.GetClientURNFromPath(fd.urn.Path())
-    flow_utils.StartFlowAndWait(client_id,
-                                token=self.token,
-                                flow_name="UpdateSparseImageChunks",
-                                file_urn=fd.urn,
-                                chunks_to_fetch=missing_chunks)
+    flow_utils.StartFlowAndWait(
+        client_id,
+        token=self.token,
+        flow_name="UpdateSparseImageChunks",
+        file_urn=fd.urn,
+        chunks_to_fetch=missing_chunks)
 
   def Read(self, path, length=None, offset=0, fh=None):
     fd = aff4.FACTORY.Open(
-        self.root.Add(path),
-        token=self.token,
-        ignore_cache=True)
+        self.root.Add(path), token=self.token, ignore_cache=True)
     last = fd.Get(fd.Schema.CONTENT_LAST)
     client_id = rdf_client.GetClientURNFromPath(path)
 
@@ -516,23 +512,25 @@ class GRRFuse(GRRFuseDatastoreOnly):
 
         # Either makes a new AFF4SparseImage or gets the file fully,
         # depending on size.
-        flow_utils.StartFlowAndWait(client_id,
-                                    token=self.token,
-                                    flow_name="MakeNewAFF4SparseImage",
-                                    pathspec=pathspec,
-                                    size_threshold=self.size_threshold)
+        flow_utils.StartFlowAndWait(
+            client_id,
+            token=self.token,
+            flow_name="MakeNewAFF4SparseImage",
+            pathspec=pathspec,
+            size_threshold=self.size_threshold)
 
         # Reopen the fd in case it's changed to be an AFF4SparseImage
         fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token)
         # If we are now a sparse image, just download the part we requested
         # from the client.
         if isinstance(fd, standard.AFF4SparseImage):
-          flow_utils.StartFlowAndWait(client_id,
-                                      token=self.token,
-                                      flow_name="FetchBufferForSparseImage",
-                                      file_urn=self.root.Add(path),
-                                      length=length,
-                                      offset=offset)
+          flow_utils.StartFlowAndWait(
+              client_id,
+              token=self.token,
+              flow_name="FetchBufferForSparseImage",
+              file_urn=self.root.Add(path),
+              length=length,
+              offset=offset)
       else:
         # This was a file we'd seen before that wasn't a sparse image, so update
         # it the usual way.
@@ -580,8 +578,7 @@ Try:
 
   username = flags.FLAGS.username or getpass.getuser()
   data_store.default_token = access_control.ACLToken(
-      username=username,
-      reason=flags.FLAGS.reason or "fusemount")
+      username=username, reason=flags.FLAGS.reason or "fusemount")
 
   logging.info("fuse_mount.py is mounting %s at %s....", root,
                flags.FLAGS.mountpoint)
@@ -610,9 +607,10 @@ Try:
       sparse_image_threshold=flags.FLAGS.sparse_image_threshold,
       timeout=flags.FLAGS.timeout)
 
-  fuse.FUSE(fuse_operation,
-            flags.FLAGS.mountpoint,
-            foreground=not flags.FLAGS.background)
+  fuse.FUSE(
+      fuse_operation,
+      flags.FLAGS.mountpoint,
+      foreground=not flags.FLAGS.background)
 
 
 if __name__ == "__main__":

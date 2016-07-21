@@ -53,5 +53,6 @@ class ResultSet(structs.RDFProtoStruct):
     # But json.dumps(u'\udc7c') produces:
     #   '"\\udc7c"'
     # and json.loads('"\\udc7c"') raises "Unpaired low surrogate" error.
-    self.serialized_result = utils.SmartStr(json.dumps(value,
-                                                       ensure_ascii=False))
+    self.serialized_result = utils.SmartStr(
+        json.dumps(
+            value, ensure_ascii=False))

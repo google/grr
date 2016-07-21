@@ -81,9 +81,9 @@ class LinuxLSBInitParserTest(test_lib.GRRBaseTest):
     self.assertEqual("INIT", result.start_mode)
     self.assertItemsEqual([2, 3, 4, 5], result.start_on)
     self.assertItemsEqual([1], result.stop_on)
-    self.assertItemsEqual(
-        ["umountfs", "umountnfs", "sendsigs", "rsyslog", "sysklogd",
-         "syslog-ng", "dsyslog", "inetutils-syslogd"], result.start_after)
+    self.assertItemsEqual(["umountfs", "umountnfs", "sendsigs", "rsyslog",
+                           "sysklogd", "syslog-ng", "dsyslog",
+                           "inetutils-syslogd"], result.start_after)
     self.assertItemsEqual(
         ["rsyslog", "sysklogd", "syslog-ng", "dsyslog", "inetutils-syslogd"],
         result.stop_after)

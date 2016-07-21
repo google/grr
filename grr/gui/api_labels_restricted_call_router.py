@@ -48,9 +48,8 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
 
   def CheckClientLabels(self, client_id, token=None):
     has_label = False
-    with aff4.FACTORY.Open(client_id,
-                           aff4_type=aff4_grr.VFSGRRClient,
-                           token=token) as fd:
+    with aff4.FACTORY.Open(
+        client_id, aff4_type=aff4_grr.VFSGRRClient, token=token) as fd:
       for label in fd.GetLabels():
         if (label.name in self.labels_whitelist and
             label.owner in self.labels_owners_whitelist):
@@ -73,9 +72,8 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
           "User is not allowed to work with flows.")
 
   def CheckIfCanStartClientFlow(self, flow_name, token=None):
-    self.legacy_manager.CheckIfCanStartFlow(token.RealUID(),
-                                            flow_name,
-                                            with_client_id=True)
+    self.legacy_manager.CheckIfCanStartFlow(
+        token.RealUID(), flow_name, with_client_id=True)
 
   def CheckClientApproval(self, client_id, token=None):
     self.CheckClientLabels(client_id, token=token)
@@ -176,9 +174,8 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
   def CreateFlow(self, args, token=None):
     self.CheckFlowsAllowed()
     self.CheckClientApproval(args.client_id, token=token)
-    self.CheckIfCanStartClientFlow(args.flow.name or
-                                   args.flow.runner_args.flow_name,
-                                   token=token)
+    self.CheckIfCanStartClientFlow(
+        args.flow.name or args.flow.runner_args.flow_name, token=token)
 
     return self.delegate.CreateFlow(args, token=token)
 

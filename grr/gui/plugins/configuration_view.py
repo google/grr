@@ -62,10 +62,8 @@ class ConfigurationTree(renderers.TreeRenderer):
     aff4_root = rdfvalue.RDFURN(request.REQ.get("aff4_root", self.root_path))
     urn = aff4_root.Add(path)
     try:
-      directory = aff4.FACTORY.Create(urn,
-                                      aff4_standard.VFSDirectory,
-                                      mode="r",
-                                      token=request.token)
+      directory = aff4.FACTORY.Create(
+          urn, aff4_standard.VFSDirectory, mode="r", token=request.token)
       children = list(directory.ListChildren(limit=100000))
       infos = aff4.FACTORY.Stat(children, token=request.token)
       info_by_urn = {}
@@ -107,18 +105,20 @@ class ConfigFileTable(fileview.AbstractFileTable):
   def __init__(self, **kwargs):
     super(ConfigFileTable, self).__init__(**kwargs)
 
-    self.AddColumn(semantic.RDFValueColumn("Icon",
-                                           renderer=semantic.IconRenderer,
-                                           width="40px"))
-    self.AddColumn(semantic.RDFValueColumn("Name",
-                                           renderer=semantic.SubjectRenderer,
-                                           sortable=True,
-                                           width="25%"))
+    self.AddColumn(
+        semantic.RDFValueColumn(
+            "Icon", renderer=semantic.IconRenderer, width="40px"))
+    self.AddColumn(
+        semantic.RDFValueColumn(
+            "Name",
+            renderer=semantic.SubjectRenderer,
+            sortable=True,
+            width="25%"))
     self.AddColumn(semantic.AttributeColumn("type", width="25%"))
     self.AddColumn(ConfigDescriptionColumn(width="25%"))
-    self.AddColumn(semantic.RDFValueColumn("Age",
-                                           renderer=fileview.AgeSelector,
-                                           width="25%"))
+    self.AddColumn(
+        semantic.RDFValueColumn(
+            "Age", renderer=fileview.AgeSelector, width="25%"))
 
 
 class ConfigDescriptionColumn(renderers.TableColumn):
@@ -215,9 +215,7 @@ class ConfigBinaryUploadHandler(fileview.UploadHandler):
         content.write(chunk)
 
       self.dest_path = maintenance_utils.UploadSignedConfigBlob(
-          content.getvalue(),
-          aff4_path=self.dest_path,
-          token=request.token)
+          content.getvalue(), aff4_path=self.dest_path, token=request.token)
 
       return renderers.TemplateRenderer.Layout(self, request, response,
                                                self.success_template)
@@ -252,6 +250,6 @@ class ConfigurationViewInitHook(registry.InitHook):
   def Run(self):
     """Create the necessary directories."""
     # SetUID required to write into aff4:/config
-    token = access_control.ACLToken(username="GRRSystem",
-                                    reason="Init").SetUID()
+    token = access_control.ACLToken(
+        username="GRRSystem", reason="Init").SetUID()
     maintenance_utils.CreateBinaryConfigPaths(token=token)

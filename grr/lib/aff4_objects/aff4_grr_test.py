@@ -44,25 +44,26 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
   def testPathspecToURN(self):
     """Test the pathspec to URN conversion function."""
-    pathspec = rdf_paths.PathSpec(path="\\\\.\\Volume{1234}\\",
-                                  pathtype=rdf_paths.PathSpec.PathType.OS,
-                                  mount_point="/c:/").Append(
-                                      path="/windows",
-                                      pathtype=rdf_paths.PathSpec.PathType.TSK)
+    pathspec = rdf_paths.PathSpec(
+        path="\\\\.\\Volume{1234}\\",
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        mount_point="/c:/").Append(
+            path="/windows", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, "C.1234567812345678")
     self.assertEqual(urn, rdfvalue.RDFURN(
         r"aff4:/C.1234567812345678/fs/tsk/\\.\Volume{1234}\/windows"))
 
     # Test an ADS
-    pathspec = rdf_paths.PathSpec(path="\\\\.\\Volume{1234}\\",
-                                  pathtype=rdf_paths.PathSpec.PathType.OS,
-                                  mount_point="/c:/").Append(
-                                      pathtype=rdf_paths.PathSpec.PathType.TSK,
-                                      path="/Test Directory/notes.txt:ads",
-                                      inode=66,
-                                      ntfs_type=128,
-                                      ntfs_id=2)
+    pathspec = rdf_paths.PathSpec(
+        path="\\\\.\\Volume{1234}\\",
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        mount_point="/c:/").Append(
+            pathtype=rdf_paths.PathSpec.PathType.TSK,
+            path="/Test Directory/notes.txt:ads",
+            inode=66,
+            ntfs_type=128,
+            ntfs_id=2)
 
     urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, "C.1234567812345678")
     self.assertEqual(urn, rdfvalue.RDFURN(
@@ -71,10 +72,11 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
   def testClientSubfieldGet(self):
     """Test we can get subfields of the client."""
-    fd = aff4.FACTORY.Create("C.0000000000000000",
-                             aff4_grr.VFSGRRClient,
-                             token=self.token,
-                             age=aff4.ALL_TIMES)
+    fd = aff4.FACTORY.Create(
+        "C.0000000000000000",
+        aff4_grr.VFSGRRClient,
+        token=self.token,
+        age=aff4.ALL_TIMES)
 
     kb = fd.Schema.KNOWLEDGE_BASE()
     for i in range(5):
@@ -82,8 +84,8 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     fd.Set(kb)
     fd.Close()
 
-    for i, user in enumerate(fd.GetValuesForAttribute(
-        "KnowledgeBase.users").next()):
+    for i, user in enumerate(
+        fd.GetValuesForAttribute("KnowledgeBase.users").next()):
       self.assertEqual(user.username, "user%s" % i)
 
   def testVFSFileContentLastNotUpdated(self):
@@ -92,10 +94,8 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
     timestamp = 1
     with utils.Stubber(time, "time", lambda: timestamp):
-      fd = aff4.FACTORY.Create(path,
-                               aff4_grr.VFSFile,
-                               mode="w",
-                               token=self.token)
+      fd = aff4.FACTORY.Create(
+          path, aff4_grr.VFSFile, mode="w", token=self.token)
 
       timestamp += 1
       fd.SetChunksize(10)
@@ -185,10 +185,8 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
     # Finish the flow holding the lock.
     client_mock = action_mocks.ActionMock()
-    for _ in test_lib.TestFlowHelper(flows[0],
-                                     client_mock,
-                                     client_id=client_id,
-                                     token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        flows[0], client_mock, client_id=client_id, token=self.token):
       pass
 
     # The flow holding the lock has finished, so Update() should start a new
@@ -220,10 +218,11 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
 
     timestamp = 1
     with utils.Stubber(time, "time", lambda: timestamp):
-      with aff4.FACTORY.Create("C.0000000000000000",
-                               aff4_grr.VFSGRRClient,
-                               mode="rw",
-                               token=self.token) as fd:
+      with aff4.FACTORY.Create(
+          "C.0000000000000000",
+          aff4_grr.VFSGRRClient,
+          mode="rw",
+          token=self.token) as fd:
         kb = rdf_client.KnowledgeBase()
         kb.users.Append(userobj)
         empty_summary = fd.GetSummary()
@@ -245,10 +244,11 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
         fd.Set(fd.Schema.USERNAMES([user]))
         fd.Set(fd.Schema.LAST_INTERFACES([interface]))
 
-      with aff4.FACTORY.Open("C.0000000000000000",
-                             aff4_grr.VFSGRRClient,
-                             mode="rw",
-                             token=self.token) as fd:
+      with aff4.FACTORY.Open(
+          "C.0000000000000000",
+          aff4_grr.VFSGRRClient,
+          mode="rw",
+          token=self.token) as fd:
         summary = fd.GetSummary()
         self.assertEqual(summary.system_info.node, hostname)
         self.assertEqual(summary.system_info.system, system)

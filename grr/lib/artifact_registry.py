@@ -51,19 +51,21 @@ class ArtifactRegistry(object):
                                   overwrite_if_exists=True):
     """Load artifacts from the data store."""
     if token is None:
-      token = access_control.ACLToken(username="GRRArtifactRegistry",
-                                      reason="Managing Artifacts.")
+      token = access_control.ACLToken(
+          username="GRRArtifactRegistry", reason="Managing Artifacts.")
     loaded_artifacts = []
 
     for artifact_coll_urn in source_urns or set():
-      with aff4.FACTORY.Create(artifact_coll_urn,
-                               aff4_type=collects.RDFValueCollection,
-                               token=token,
-                               mode="rw") as artifact_coll:
+      with aff4.FACTORY.Create(
+          artifact_coll_urn,
+          aff4_type=collects.RDFValueCollection,
+          token=token,
+          mode="rw") as artifact_coll:
         for artifact_value in artifact_coll:
-          self.RegisterArtifact(artifact_value,
-                                source="datastore:%s" % artifact_coll_urn,
-                                overwrite_if_exists=overwrite_if_exists)
+          self.RegisterArtifact(
+              artifact_value,
+              source="datastore:%s" % artifact_coll_urn,
+              overwrite_if_exists=overwrite_if_exists)
           loaded_artifacts.append(artifact_value)
           logging.debug("Loaded artifact %s from %s", artifact_value.name,
                         artifact_coll_urn)
@@ -120,9 +122,10 @@ class ArtifactRegistry(object):
         with open(file_path, mode="rb") as fh:
           logging.debug("Loading artifacts from %s", file_path)
           for artifact_val in self.ArtifactsFromYaml(fh.read(1000000)):
-            self.RegisterArtifact(artifact_val,
-                                  source="file:%s" % file_path,
-                                  overwrite_if_exists=overwrite_if_exists)
+            self.RegisterArtifact(
+                artifact_val,
+                source="file:%s" % file_path,
+                overwrite_if_exists=overwrite_if_exists)
             loaded_artifacts.append(artifact_val)
             logging.debug("Loaded artifact %s from %s", artifact_val.name,
                           file_path)
@@ -332,8 +335,8 @@ class ArtifactRegistry(object):
     artifact_deps = existing_artifact_deps or set()
     expansion_deps = existing_expansion_deps or set()
 
-    artifact_objs = self.GetArtifacts(os_name=os_name,
-                                      name_list=artifact_name_list)
+    artifact_objs = self.GetArtifacts(
+        os_name=os_name, name_list=artifact_name_list)
     artifact_deps = artifact_deps.union([a.name for a in artifact_objs])
 
     for artifact in artifact_objs:
@@ -341,8 +344,8 @@ class ArtifactRegistry(object):
       if expansions:
         expansion_deps = expansion_deps.union(set(expansions))
         # Get the names of the artifacts that provide those expansions
-        new_artifact_names = self.GetArtifactNames(os_name=os_name,
-                                                   provides=expansions)
+        new_artifact_names = self.GetArtifactNames(
+            os_name=os_name, provides=expansions)
         missing_artifacts = new_artifact_names - artifact_deps
 
         if missing_artifacts:
@@ -426,9 +429,8 @@ class ArtifactSource(structs.RDFProtoStruct):
     if isinstance(initializer, dict):
       super(ArtifactSource, self).__init__(age=age, **initializer)
     else:
-      super(ArtifactSource, self).__init__(initializer=initializer,
-                                           age=age,
-                                           **kwarg)
+      super(ArtifactSource, self).__init__(
+          initializer=initializer, age=age, **kwarg)
 
   def Validate(self):
     """Check the source is well constructed."""
@@ -575,10 +577,8 @@ class Artifact(structs.RDFProtoStruct):
     else:
       artifact_dict = self.ToPrimitiveDict()
 
-    artifact_json = json.dumps(artifact_dict,
-                               indent=2,
-                               sort_keys=True,
-                               separators=(",", ": "))
+    artifact_json = json.dumps(
+        artifact_dict, indent=2, sort_keys=True, separators=(",", ": "))
 
     # Now tidy up the json for better display. Unfortunately json gives us very
     # little control over output format, so we manually tidy it up given that

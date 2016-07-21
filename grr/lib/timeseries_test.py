@@ -59,10 +59,8 @@ class TimeseriesTest(test_lib.GRRBaseTest):
     s = timeseries.Timeseries()
     for i in range(0, 1000):
       s.Append(i, i * 1e6)
-    s.Normalize(20 * 1e6,
-                500 * 1e6,
-                1000 * 1e6,
-                mode=timeseries.NORMALIZE_MODE_COUNTER)
+    s.Normalize(
+        20 * 1e6, 500 * 1e6, 1000 * 1e6, mode=timeseries.NORMALIZE_MODE_COUNTER)
     self.assertEqual(25, len(s.data))
     self.assertListEqual(s.data[0], [519, int(500 * 1e6)])
     s.ToDeltas()

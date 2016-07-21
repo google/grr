@@ -16,9 +16,10 @@ class TestContainerViewer(test_lib.GRRSeleniumTest):
   """Test the collection viewer interface."""
 
   def CreateCollectionFixture(self):
-    with aff4.FACTORY.Create("aff4:/C.0000000000000001/analysis/FindFlowTest",
-                             collects.AFF4Collection,
-                             token=self.token) as out_fd:
+    with aff4.FACTORY.Create(
+        "aff4:/C.0000000000000001/analysis/FindFlowTest",
+        collects.AFF4Collection,
+        token=self.token) as out_fd:
       out_fd.CreateView(["stat.st_mtime", "type", "stat.st_size", "size",
                          "Age"])
 

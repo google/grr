@@ -61,8 +61,8 @@ class Sdist(sdist):
   def CheckTemplates(self, base_dir, version):
     """Verify we have at least one template that matches maj.minor version."""
     major_minor = ".".join(version.split(".")[0:2])
-    templates = glob.glob(os.path.join(base_dir, "templates/*%s*.zip" %
-                                       major_minor))
+    templates = glob.glob(
+        os.path.join(base_dir, "templates/*%s*.zip" % major_minor))
     required_templates = set([x.replace("maj.minor", major_minor)
                               for x in self.REQUIRED_TEMPLATES])
 

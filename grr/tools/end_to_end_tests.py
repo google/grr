@@ -43,20 +43,20 @@ def RunEndToEndTests():
                                "Context applied when we run tests.")
   startup.Init()
 
-  token = access_control.ACLToken(username="GRREndToEndTest",
-                                  reason="Running end to end client tests.")
+  token = access_control.ACLToken(
+      username="GRREndToEndTest", reason="Running end to end client tests.")
 
   # We need this for the launchbinary test
-  with aff4.FACTORY.Create("aff4:/users/GRREndToEndTest",
-                           aff4_users.GRRUser,
-                           mode="rw",
-                           token=token) as test_user:
+  with aff4.FACTORY.Create(
+      "aff4:/users/GRREndToEndTest", aff4_users.GRRUser, mode="rw",
+      token=token) as test_user:
     test_user.AddLabels("admin")
 
-  client_id_set = base.GetClientTestTargets(client_ids=flags.FLAGS.client_ids,
-                                            hostnames=flags.FLAGS.hostnames,
-                                            checkin_duration_threshold="1h",
-                                            token=token)
+  client_id_set = base.GetClientTestTargets(
+      client_ids=flags.FLAGS.client_ids,
+      hostnames=flags.FLAGS.hostnames,
+      checkin_duration_threshold="1h",
+      token=token)
 
   for cls in base.ClientTestBase.classes.values():
     for p in cls.platforms:

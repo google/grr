@@ -275,10 +275,11 @@ class RegistryFile(vfs.VFSHandler):
                pathspec=None,
                progress_callback=None,
                full_pathspec=None):
-    super(RegistryFile, self).__init__(base_fd,
-                                       pathspec=pathspec,
-                                       full_pathspec=full_pathspec,
-                                       progress_callback=progress_callback)
+    super(RegistryFile, self).__init__(
+        base_fd,
+        pathspec=pathspec,
+        full_pathspec=full_pathspec,
+        progress_callback=progress_callback)
 
     if base_fd is None:
       self.pathspec.Append(pathspec)

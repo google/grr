@@ -34,10 +34,12 @@ class TestWebHistory(WebHistoryFlowTest):
     self.client.Set(self.client.Schema.SYSTEM("Linux"))
 
     kb = self.client.Get(self.client.Schema.KNOWLEDGE_BASE)
-    kb.MergeOrAddUser(rdf_client.User(username="test",
-                                      full_name="test user",
-                                      homedir="/home/test/",
-                                      last_logon=250))
+    kb.MergeOrAddUser(
+        rdf_client.User(
+            username="test",
+            full_name="test user",
+            homedir="/home/test/",
+            last_logon=250))
     self.client.Set(kb)
     self.client.Close()
 
@@ -67,22 +69,24 @@ class TestWebHistory(WebHistoryFlowTest):
   def testChromeHistoryFetch(self):
     """Test that downloading the Chrome history works."""
     # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper("ChromeHistory",
-                                     self.client_mock,
-                                     check_flow_errors=False,
-                                     client_id=self.client_id,
-                                     username="test",
-                                     token=self.token,
-                                     output="analysis/testfoo",
-                                     pathtype=rdf_paths.PathSpec.PathType.TSK):
+    for _ in test_lib.TestFlowHelper(
+        "ChromeHistory",
+        self.client_mock,
+        check_flow_errors=False,
+        client_id=self.client_id,
+        username="test",
+        token=self.token,
+        output="analysis/testfoo",
+        pathtype=rdf_paths.PathSpec.PathType.TSK):
       pass
 
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.config/google-chrome/Default/History"
 
     # Check if the History file is created.
-    output_path = self.client_id.Add("fs/tsk").Add(self.base_path.replace(
-        "\\", "/")).Add("test_img.dd").Add(fs_path.replace("\\", "/"))
+    output_path = self.client_id.Add("fs/tsk").Add(
+        self.base_path.replace("\\", "/")).Add("test_img.dd").Add(
+            fs_path.replace("\\", "/"))
 
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     self.assertTrue(fd.size > 20000)
@@ -96,14 +100,15 @@ class TestWebHistory(WebHistoryFlowTest):
   def testFirefoxHistoryFetch(self):
     """Test that downloading the Firefox history works."""
     # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper("FirefoxHistory",
-                                     self.client_mock,
-                                     check_flow_errors=False,
-                                     client_id=self.client_id,
-                                     username="test",
-                                     token=self.token,
-                                     output="analysis/ff_out",
-                                     pathtype=rdf_paths.PathSpec.PathType.TSK):
+    for _ in test_lib.TestFlowHelper(
+        "FirefoxHistory",
+        self.client_mock,
+        check_flow_errors=False,
+        client_id=self.client_id,
+        username="test",
+        token=self.token,
+        output="analysis/ff_out",
+        pathtype=rdf_paths.PathSpec.PathType.TSK):
       pass
 
     # Now check that the right files were downloaded.
@@ -127,23 +132,23 @@ class TestWebHistory(WebHistoryFlowTest):
   def testCacheGrep(self):
     """Test the Cache Grep plugin."""
     # Run the flow in the simulated way
-    for _ in test_lib.TestFlowHelper("CacheGrep",
-                                     self.client_mock,
-                                     check_flow_errors=False,
-                                     client_id=self.client_id,
-                                     grep_users=["test"],
-                                     data_regex="ENIAC",
-                                     output="analysis/cachegrep/{u}",
-                                     pathtype=rdf_paths.PathSpec.PathType.TSK,
-                                     token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        "CacheGrep",
+        self.client_mock,
+        check_flow_errors=False,
+        client_id=self.client_id,
+        grep_users=["test"],
+        data_regex="ENIAC",
+        output="analysis/cachegrep/{u}",
+        pathtype=rdf_paths.PathSpec.PathType.TSK,
+        token=self.token):
       pass
 
     # Check if the collection file was created.
     output_path = self.client_id.Add("analysis/cachegrep").Add("test")
 
-    fd = aff4.FACTORY.Open(output_path,
-                           aff4_type=collects.RDFValueCollection,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        output_path, aff4_type=collects.RDFValueCollection, token=self.token)
 
     # There should be one hit.
     self.assertEqual(len(fd), 1)
@@ -165,10 +170,12 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
     self.SetupClients(1, system="Linux", os_version="12.04")
     fd = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     self.kb = fd.Get(fd.Schema.KNOWLEDGE_BASE)
-    self.kb.users.Append(rdf_client.User(username="test",
-                                         full_name="test user",
-                                         homedir="/home/test/",
-                                         last_logon=250))
+    self.kb.users.Append(
+        rdf_client.User(
+            username="test",
+            full_name="test user",
+            homedir="/home/test/",
+            last_logon=250))
     fd.AddAttribute(fd.Schema.KNOWLEDGE_BASE, self.kb)
     fd.Flush()
 
@@ -204,24 +211,24 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
 
     output_name = "/analysis/output/%s" % int(time.time())
 
-    for _ in test_lib.TestFlowHelper("ArtifactCollectorFlow",
-                                     client_mock=client_mock,
-                                     output=output_name,
-                                     client_id=self.client_id,
-                                     artifact_list=artifact_list,
-                                     token=self.token,
-                                     **kw):
+    for _ in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow",
+        client_mock=client_mock,
+        output=output_name,
+        client_id=self.client_id,
+        artifact_list=artifact_list,
+        token=self.token,
+        **kw):
       pass
 
     output_urn = self.client_id.Add(output_name)
-    return aff4.FACTORY.Open(output_urn,
-                             aff4_type=collects.RDFValueCollection,
-                             token=self.token)
+    return aff4.FACTORY.Open(
+        output_urn, aff4_type=collects.RDFValueCollection, token=self.token)
 
   def testChrome(self):
     """Check we can run WMI based artifacts."""
-    with self.MockClientMountPointsWithImage(os.path.join(self.base_path,
-                                                          "test_img.dd")):
+    with self.MockClientMountPointsWithImage(
+        os.path.join(self.base_path, "test_img.dd")):
 
       fd = self.RunCollectorAndGetCollection(
           ["ChromeHistory"],
@@ -238,12 +245,10 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
 
   def testFirefox(self):
     """Check we can run WMI based artifacts."""
-    with self.MockClientMountPointsWithImage(os.path.join(self.base_path,
-                                                          "test_img.dd")):
+    with self.MockClientMountPointsWithImage(
+        os.path.join(self.base_path, "test_img.dd")):
       fd = self.RunCollectorAndGetCollection(
-          ["FirefoxHistory"],
-          client_mock=self.client_mock,
-          use_tsk=True)
+          ["FirefoxHistory"], client_mock=self.client_mock, use_tsk=True)
 
     self.assertEqual(len(fd), 5)
     self.assertEqual(fd[0].access_time.AsSecondsFromEpoch(), 1340623334)

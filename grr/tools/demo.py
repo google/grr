@@ -43,22 +43,19 @@ def main(argv):
   # pylint: enable=unused-import,unused-variable,g-import-not-at-top
 
   # This is the worker thread.
-  worker_thread = threading.Thread(target=worker.main,
-                                   args=[argv],
-                                   name="Worker")
+  worker_thread = threading.Thread(
+      target=worker.main, args=[argv], name="Worker")
   worker_thread.daemon = True
   worker_thread.start()
 
   # This is the http server Frontend that clients communicate with.
-  http_thread = threading.Thread(target=http_server.main,
-                                 args=[argv],
-                                 name="HTTP Server")
+  http_thread = threading.Thread(
+      target=http_server.main, args=[argv], name="HTTP Server")
   http_thread.daemon = True
   http_thread.start()
 
-  client_thread = threading.Thread(target=client.main,
-                                   args=[argv],
-                                   name="Client")
+  client_thread = threading.Thread(
+      target=client.main, args=[argv], name="Client")
   client_thread.daemon = True
   client_thread.start()
 

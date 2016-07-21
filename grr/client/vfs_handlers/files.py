@@ -109,10 +109,11 @@ class File(vfs.VFSHandler):
                pathspec=None,
                progress_callback=None,
                full_pathspec=None):
-    super(File, self).__init__(base_fd,
-                               pathspec=pathspec,
-                               full_pathspec=full_pathspec,
-                               progress_callback=progress_callback)
+    super(File, self).__init__(
+        base_fd,
+        pathspec=pathspec,
+        full_pathspec=full_pathspec,
+        progress_callback=progress_callback)
     if base_fd is None:
       self.pathspec.Append(pathspec)
 
@@ -358,8 +359,8 @@ class File(vfs.VFSHandler):
     Returns:
       path string of the mount point
     """
-    path = os.path.abspath(client_utils.CanonicalPathToLocalPath(path or
-                                                                 self.path))
+    path = os.path.abspath(
+        client_utils.CanonicalPathToLocalPath(path or self.path))
 
     while not os.path.ismount(path):
       path = os.path.dirname(path)

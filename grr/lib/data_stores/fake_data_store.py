@@ -17,10 +17,8 @@ class FakeTransaction(data_store.CommonTransaction):
 
   def __init__(self, store, subject, lease_time=None, token=None):
     subject = utils.SmartUnicode(subject)
-    super(FakeTransaction, self).__init__(store,
-                                          subject,
-                                          lease_time=lease_time,
-                                          token=token)
+    super(FakeTransaction, self).__init__(
+        store, subject, lease_time=lease_time, token=token)
     self.locked = False
     if lease_time is None:
       lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
@@ -140,8 +138,8 @@ class FakeDataStore(data_store.DataStore):
     if replace or attribute not in self.subjects[subject]:
       self.subjects[subject][attribute] = []
 
-    self.subjects[subject][attribute].append([self._Encode(value), int(
-        timestamp)])
+    self.subjects[subject][attribute].append([self._Encode(value),
+                                              int(timestamp)])
     self.subjects[subject][attribute].sort(key=lambda x: x[1])
 
   @utils.Synchronized
@@ -304,9 +302,7 @@ class FakeDataStore(data_store.DataStore):
       # This returns triples of (attribute_name, timestamp, data). We want to
       # sort by timestamp.
       for _, ts, data in sorted(
-          results.get(attribute, []),
-          key=lambda x: x[1],
-          reverse=True):
+          results.get(attribute, []), key=lambda x: x[1], reverse=True):
         if remaining_limit:
           remaining_limit -= 1
           if remaining_limit == 0:
@@ -331,11 +327,12 @@ class FakeDataStore(data_store.DataStore):
       # If any of the subjects is forbidden we fail the entire request.
       self.security_manager.CheckDataStoreAccess(token, [s], required_access)
 
-      values = self.ResolvePrefix(subject,
-                                  attribute_prefix,
-                                  token=token,
-                                  timestamp=timestamp,
-                                  limit=limit)
+      values = self.ResolvePrefix(
+          subject,
+          attribute_prefix,
+          token=token,
+          timestamp=timestamp,
+          limit=limit)
 
       if not values:
         continue

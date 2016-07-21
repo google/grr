@@ -25,31 +25,34 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
   args_type = DumpFlashImageArgs
 
-  @flow.StateHandler(next_state="ComponentLoaded")
+  @flow.StateHandler()
   def Start(self):
     """Load grr_chipsec component on the client."""
-    self.LoadComponentOnClient(name="grr-chipsec-component",
-                               version="1.2.2",
-                               next_state="CollectDebugInfo")
+    self.LoadComponentOnClient(
+        name="grr-chipsec-component",
+        version="1.2.2",
+        next_state="CollectDebugInfo")
 
-  @flow.StateHandler(next_state=["DumpImage"])
+  @flow.StateHandler()
   def CollectDebugInfo(self, responses):
     """Start by collecting general hardware information."""
-    self.CallFlow("ArtifactCollectorFlow",
-                  artifact_list=["LinuxHardwareInfo"],
-                  store_results_in_aff4=True,
-                  next_state="DumpImage")
+    self.CallFlow(
+        "ArtifactCollectorFlow",
+        artifact_list=["LinuxHardwareInfo"],
+        store_results_in_aff4=True,
+        next_state="DumpImage")
 
-  @flow.StateHandler(next_state=["CollectImage"])
+  @flow.StateHandler()
   def DumpImage(self, responses):
     """Intiate the dumping of the flash image."""
-    self.CallClient("DumpFlashImage",
-                    log_level=self.args.log_level,
-                    chunk_size=self.args.chunk_size,
-                    notify_syslog=self.args.notify_syslog,
-                    next_state="CollectImage")
+    self.CallClient(
+        "DumpFlashImage",
+        log_level=self.args.log_level,
+        chunk_size=self.args.chunk_size,
+        notify_syslog=self.args.notify_syslog,
+        next_state="CollectImage")
 
-  @flow.StateHandler(next_state=["DeleteTemporaryImage", "End"])
+  @flow.StateHandler()
   def CollectImage(self, responses):
     """Collect the image and store it into the database."""
     # If we have any log, forward them.
@@ -66,11 +69,12 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
       self.CallState(next_state="End")
     else:
       self.state.Register("image_path", responses.First().path)
-      self.CallFlow("MultiGetFile",
-                    pathspecs=[self.state.image_path,],
-                    next_state="DeleteTemporaryImage")
+      self.CallFlow(
+          "MultiGetFile",
+          pathspecs=[self.state.image_path,],
+          next_state="DeleteTemporaryImage")
 
-  @flow.StateHandler(next_state=["TemporaryImageRemoved"])
+  @flow.StateHandler()
   def DeleteTemporaryImage(self, responses):
     """Remove the temporary image from the client."""
     if not responses.success:
@@ -82,17 +86,17 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
 
     # Update the symbolic link to the new instance.
     with aff4.FACTORY.Create(
-        self.client_id.Add("spiflash"),
-        aff4.AFF4Symlink,
+        self.client_id.Add("spiflash"), aff4.AFF4Symlink,
         token=self.token) as symlink:
       symlink.Set(symlink.Schema.SYMLINK_TARGET, response.aff4path)
 
     # Clean up the temporary image from the client.
-    self.CallClient("DeleteGRRTempFiles",
-                    self.state.image_path,
-                    next_state="TemporaryImageRemoved")
+    self.CallClient(
+        "DeleteGRRTempFiles",
+        self.state.image_path,
+        next_state="TemporaryImageRemoved")
 
-  @flow.StateHandler(next_state=["End"])
+  @flow.StateHandler()
   def TemporaryImageRemoved(self, responses):
     """Verify that the temporary image has been removed successfully."""
     if not responses.success:
@@ -120,21 +124,23 @@ class DumpACPITable(transfer.LoadComponentMixin, flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
   args_type = DumpACPITableArgs
 
-  @flow.StateHandler(next_state=["StartCollection"])
+  @flow.StateHandler()
   def Start(self):
     """Load grr-chipsec component on the client."""
-    self.LoadComponentOnClient(name="grr-chipsec-component",
-                               version=self.args.component_version,
-                               next_state="StartCollection")
+    self.LoadComponentOnClient(
+        name="grr-chipsec-component",
+        version=self.args.component_version,
+        next_state="StartCollection")
 
-  @flow.StateHandler(next_state=["TableReceived"])
+  @flow.StateHandler()
   def StartCollection(self, responses):
     """Start collecting tables with listed signature."""
     for table_signature in self.args.table_signature_list:
-      self.CallClient("DumpACPITable",
-                      logging=self.args.logging,
-                      table_signature=table_signature,
-                      next_state="TableReceived")
+      self.CallClient(
+          "DumpACPITable",
+          logging=self.args.logging,
+          table_signature=table_signature,
+          next_state="TableReceived")
 
   @flow.StateHandler()
   def TableReceived(self, responses):

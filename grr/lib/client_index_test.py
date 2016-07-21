@@ -16,21 +16,25 @@ CLIENT_ID = "C.00aaeccbb45f33a3"
 class ClientIndexTest(test_lib.AFF4ObjectTest):
 
   def testAnalyzeClient(self):
-    index = aff4.FACTORY.Create("aff4:/client-index/",
-                                aff4_type=client_index.ClientIndex,
-                                mode="rw",
-                                token=self.token)
+    index = aff4.FACTORY.Create(
+        "aff4:/client-index/",
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        token=self.token)
     test_lib.ClientFixture("aff4:/" + CLIENT_ID, token=self.token)
-    client = aff4.FACTORY.Create("aff4:/" + CLIENT_ID,
-                                 aff4_type=aff4_grr.VFSGRRClient,
-                                 mode="rw",
-                                 token=self.token)
+    client = aff4.FACTORY.Create(
+        "aff4:/" + CLIENT_ID,
+        aff4_type=aff4_grr.VFSGRRClient,
+        mode="rw",
+        token=self.token)
     kb = rdf_client.KnowledgeBase()
-    kb.users.Append(rdf_client.User(
-        username="Bert",
-        full_name="Eric (Bertrand ) 'Russell' \"Logician\" Jacobson"))
-    kb.users.Append(rdf_client.User(username="Ernie",
-                                    full_name="Steve O'Bryan"))
+    kb.users.Append(
+        rdf_client.User(
+            username="Bert",
+            full_name="Eric (Bertrand ) 'Russell' \"Logician\" Jacobson"))
+    kb.users.Append(
+        rdf_client.User(
+            username="Ernie", full_name="Steve O'Bryan"))
     client.Set(client.Schema.KNOWLEDGE_BASE(kb))
     _, keywords = index.AnalyzeClient(client)
 
@@ -57,16 +61,15 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     self.assertIn("client-label-23", keywords)
 
   def testAddLookupClients(self):
-    index = aff4.FACTORY.Create("aff4:/client-index1/",
-                                aff4_type=client_index.ClientIndex,
-                                mode="rw",
-                                token=self.token)
+    index = aff4.FACTORY.Create(
+        "aff4:/client-index1/",
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        token=self.token)
     client_urns = self.SetupClients(42)
     for urn in client_urns:
-      client = aff4.FACTORY.Create(urn,
-                                   aff4_type=aff4_grr.VFSGRRClient,
-                                   mode="r",
-                                   token=self.token)
+      client = aff4.FACTORY.Create(
+          urn, aff4_type=aff4_grr.VFSGRRClient, mode="r", token=self.token)
       index.AddClient(client)
 
     # Check unique identifiers.
@@ -119,19 +122,18 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     self.assertEqual(len(index.LookupClients(["."])), 42)
 
   def testAddTimestamp(self):
-    index = aff4.FACTORY.Create("aff4:/client-index2/",
-                                aff4_type=client_index.ClientIndex,
-                                mode="rw",
-                                token=self.token)
+    index = aff4.FACTORY.Create(
+        "aff4:/client-index2/",
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        token=self.token)
 
     client_urns = self.SetupClients(5)
     # 1413807132 = Mon, 20 Oct 2014 12:12:12 GMT
     with test_lib.FakeTime(1413807132):
       for urn in client_urns:
-        client = aff4.FACTORY.Create(urn,
-                                     aff4_type=aff4_grr.VFSGRRClient,
-                                     mode="r",
-                                     token=self.token)
+        client = aff4.FACTORY.Create(
+            urn, aff4_type=aff4_grr.VFSGRRClient, mode="r", token=self.token)
         index.AddClient(client)
 
     self.assertEqual(
@@ -139,41 +141,47 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
     self.assertEqual(
         len(index.LookupClients([".", "start_date:2014-10-21"])), 0)
     self.assertEqual(
-        len(index.LookupClients([".", "start_date:2013-10-20",
+        len(
+            index.LookupClients([".", "start_date:2013-10-20",
                                  "end_date:2014-10-19"])), 0)
     self.assertEqual(
-        len(index.LookupClients([".", "start_date:2013-10-20",
+        len(
+            index.LookupClients([".", "start_date:2013-10-20",
                                  "end_date:2014-10-20"])), 5)
 
     # Ignore the keyword if the date is not readable.
     self.assertEqual(
-        len(index.LookupClients([".", "start_date:2013-10-20", "end_date:XXXX"
+        len(
+            index.LookupClients([".", "start_date:2013-10-20", "end_date:XXXX"
                                 ])), 5)
 
   def testUnversionedKeywords(self):
-    index = aff4.FACTORY.Create("aff4:/client-index3/",
-                                aff4_type=client_index.ClientIndex,
-                                mode="rw",
-                                token=self.token)
+    index = aff4.FACTORY.Create(
+        "aff4:/client-index3/",
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        token=self.token)
 
     client_urns = self.SetupClients(5)
 
     with test_lib.FakeTime(1000000):
       for i in range(5):
-        client = aff4.FACTORY.Create(client_urns[i],
-                                     aff4_type=aff4_grr.VFSGRRClient,
-                                     mode="rw",
-                                     token=self.token)
+        client = aff4.FACTORY.Create(
+            client_urns[i],
+            aff4_type=aff4_grr.VFSGRRClient,
+            mode="rw",
+            token=self.token)
         client.Set(client.Schema.HOST_IPS("10.1.0.%d" % i))
         client.Flush()
         index.AddClient(client)
 
     with test_lib.FakeTime(2000000):
       for i in range(5):
-        client = aff4.FACTORY.Create(client_urns[i],
-                                     aff4_type=aff4_grr.VFSGRRClient,
-                                     mode="rw",
-                                     token=self.token)
+        client = aff4.FACTORY.Create(
+            client_urns[i],
+            aff4_type=aff4_grr.VFSGRRClient,
+            mode="rw",
+            token=self.token)
         client.Set(client.Schema.HOST_IPS("10.1.1.%d" % i))
         client.Flush()
         index.AddClient(client)
@@ -187,17 +195,16 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
           [rdf_client.ClientURN("aff4:/C.1000000000000002")])
 
   def testRemoveLabels(self):
-    client = aff4.FACTORY.Create(CLIENT_ID,
-                                 aff4_type=aff4_grr.VFSGRRClient,
-                                 mode="rw",
-                                 token=self.token)
+    client = aff4.FACTORY.Create(
+        CLIENT_ID, aff4_type=aff4_grr.VFSGRRClient, mode="rw", token=self.token)
     client.AddLabels("testlabel_1", token=self.token)
     client.AddLabels("testlabel_2", token=self.token)
     client.Flush()
-    index = aff4.FACTORY.Create("aff4:/client-index4/",
-                                aff4_type=client_index.ClientIndex,
-                                mode="rw",
-                                token=self.token)
+    index = aff4.FACTORY.Create(
+        "aff4:/client-index4/",
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        token=self.token)
     index.AddClient(client)
 
     client_list = [rdf_client.ClientURN(CLIENT_ID)]
@@ -215,21 +222,21 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
   def _HostsHaveLabel(self, hosts, label, index):
     urns = index.LookupClients(["+label:%s" % label])
     result = [utils.SmartStr(c.Get("Host")).lower()
-              for c in aff4.FACTORY.MultiOpen(urns, token=self.token)]
+              for c in aff4.FACTORY.MultiOpen(
+                  urns, token=self.token)]
     self.assertItemsEqual(hosts, result)
 
   def testBulkLabelClients(self):
-    index = aff4.FACTORY.Create("aff4:/client-index4/",
-                                aff4_type=client_index.ClientIndex,
-                                mode="rw",
-                                token=self.token)
+    index = aff4.FACTORY.Create(
+        "aff4:/client-index4/",
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        token=self.token)
 
     client_urns = self.SetupClients(2)
     for urn in client_urns:
-      client = aff4.FACTORY.Create(urn,
-                                   aff4_type=aff4_grr.VFSGRRClient,
-                                   mode="rw",
-                                   token=self.token)
+      client = aff4.FACTORY.Create(
+          urn, aff4_type=aff4_grr.VFSGRRClient, mode="rw", token=self.token)
       client.AddLabels("test_client", token=self.token)
       client.Flush()
       index.AddClient(client)

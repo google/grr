@@ -20,9 +20,9 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
     """Ensure results for a check containing multiple symptoms match."""
     anom = []
     for sym, found in zip(sym_list, found_list):
-      anom.append(rdf_anomaly.Anomaly(symptom=sym,
-                                      finding=found,
-                                      type="ANALYSIS_ANOMALY"))
+      anom.append(
+          rdf_anomaly.Anomaly(
+              symptom=sym, finding=found, type="ANALYSIS_ANOMALY"))
     expected = checks.CheckResult(check_id=check_id, anomaly=anom)
     self.assertResultEqual(expected, results[check_id])
 
@@ -65,9 +65,8 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
                                  found_allow_deny)
 
     # Run checks with results from both artifacts
-    results = self.GenResults(
-        [artifact_crontab, artifact_allow_deny],
-        [data_crontab, data_allow_deny])
+    results = self.GenResults([artifact_crontab, artifact_allow_deny],
+                              [data_crontab, data_allow_deny])
     self._CheckMultipleSymPerCheck(check_id, results,
                                    [sym_crontab, sym_allow_deny],
                                    [found_crontab, found_allow_deny])

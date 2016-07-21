@@ -44,12 +44,12 @@ class ApprovalTest(test_lib.GRRBaseTest):
 
   def testGetApprovalForObjectRaisesIfAllAvailableApprovalsExpired(self):
     # Set up 2 approvals with different reasons.
-    token1 = access_control.ACLToken(username=self.token.username,
-                                     reason="reason1")
+    token1 = access_control.ACLToken(
+        username=self.token.username, reason="reason1")
     self.RequestAndGrantClientApproval(self.client_id, token=token1)
 
-    token2 = access_control.ACLToken(username=self.token.username,
-                                     reason="reason2")
+    token2 = access_control.ACLToken(
+        username=self.token.username, reason="reason2")
     self.RequestAndGrantClientApproval(self.client_id, token=token2)
 
     # Make sure that approvals are expired by the time we call
@@ -64,36 +64,35 @@ class ApprovalTest(test_lib.GRRBaseTest):
   def testGetApprovalForObjectReturnsSingleAvailableApproval(self):
     self.RequestAndGrantClientApproval(self.client_id, token=self.token)
 
-    approved_token = security.Approval.GetApprovalForObject(self.client_id,
-                                                            token=self.token)
+    approved_token = security.Approval.GetApprovalForObject(
+        self.client_id, token=self.token)
     self.assertEqual(approved_token.reason, self.token.reason)
 
   def testGetApprovalForObjectReturnsNonExpiredApprovalFromMany(self):
-    token1 = access_control.ACLToken(username=self.token.username,
-                                     reason="reason1")
+    token1 = access_control.ACLToken(
+        username=self.token.username, reason="reason1")
     self.RequestAndGrantClientApproval(self.client_id, token=token1)
 
     now = rdfvalue.RDFDatetime().Now()
     with test_lib.FakeTime(now + self.approval_expiration, increment=1e-6):
-      token2 = access_control.ACLToken(username=self.token.username,
-                                       reason="reason2")
+      token2 = access_control.ACLToken(
+          username=self.token.username, reason="reason2")
       self.RequestAndGrantClientApproval(self.client_id, token=token2)
 
     # Make sure only the first approval is expired by the time
     # GetApprovalForObject is called.
     with test_lib.FakeTime(now + self.approval_expiration + rdfvalue.Duration(
         "1h")):
-      approved_token = security.Approval.GetApprovalForObject(self.client_id,
-                                                              token=self.token)
+      approved_token = security.Approval.GetApprovalForObject(
+          self.client_id, token=self.token)
       self.assertEqual(approved_token.reason, token2.reason)
 
   def testGetApprovalForObjectRaisesIfApprovalsAreOfWrongType(self):
     # Create AFF4Volume object where Approval is expected to be.
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.client_id.Path()).Add(
         self.token.username).Add(utils.EncodeReasonString(self.token.reason))
-    with aff4.FACTORY.Create(approval_urn,
-                             aff4.AFF4Volume,
-                             token=self.token) as _:
+    with aff4.FACTORY.Create(
+        approval_urn, aff4.AFF4Volume, token=self.token) as _:
       pass
 
     with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
@@ -141,16 +140,18 @@ class ClientApprovalTest(test_lib.GRRBaseTest):
   def testCreatingApprovalCreatesSymlink(self):
     client_id = self.SetupClients(1)[0]
 
-    flow.GRRFlow.StartFlow(client_id=client_id,
-                           flow_name="RequestClientApprovalFlow",
-                           reason=self.token.reason,
-                           subject_urn=client_id,
-                           approver="approver",
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        client_id=client_id,
+        flow_name="RequestClientApprovalFlow",
+        reason=self.token.reason,
+        subject_urn=client_id,
+        approver="approver",
+        token=self.token)
 
-    approval_id = list(aff4.FACTORY.ListChildren(
-        "aff4:/users/test/approvals/client/C.1000000000000000",
-        token=self.token))[0].Basename()
+    approval_id = list(
+        aff4.FACTORY.ListChildren(
+            "aff4:/users/test/approvals/client/C.1000000000000000",
+            token=self.token))[0].Basename()
     self.assertTrue(approval_id.startswith("approval:"))
 
     fd = aff4.FACTORY.Open(
@@ -170,22 +171,24 @@ class CronJobAprrovalTest(test_lib.GRRBaseTest):
   def testCreatingApprovalCreatesSymlink(self):
     cron_urn = rdfvalue.RDFURN("aff4:/cron/CronJobName")
 
-    flow.GRRFlow.StartFlow(flow_name="RequestCronJobApprovalFlow",
-                           reason=self.token.reason,
-                           subject_urn=cron_urn,
-                           approver="approver",
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        flow_name="RequestCronJobApprovalFlow",
+        reason=self.token.reason,
+        subject_urn=cron_urn,
+        approver="approver",
+        token=self.token)
 
-    approval_id = list(aff4.FACTORY.ListChildren(
-        "aff4:/users/test/approvals/cron/CronJobName",
-        token=self.token))[0].Basename()
+    approval_id = list(
+        aff4.FACTORY.ListChildren(
+            "aff4:/users/test/approvals/cron/CronJobName", token=self.token))[
+                0].Basename()
     self.assertTrue(approval_id.startswith("approval:"))
 
-    fd = aff4.FACTORY.Open("aff4:/users/test/approvals/cron/CronJobName/%s" %
-                           approval_id,
-                           follow_symlinks=False,
-                           mode="r",
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        "aff4:/users/test/approvals/cron/CronJobName/%s" % approval_id,
+        follow_symlinks=False,
+        mode="r",
+        token=self.token)
     self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4Symlink")
     self.assertEqual(
         fd.Get(fd.Schema.SYMLINK_TARGET),
@@ -198,22 +201,24 @@ class HuntApprovalTest(test_lib.GRRBaseTest):
   def testCreatingApprovalCreatesSymlink(self):
     hunt_urn = rdfvalue.RDFURN("aff4:/hunts/H:ABCD1234")
 
-    flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
-                           reason=self.token.reason,
-                           subject_urn=hunt_urn,
-                           approver="approver",
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        flow_name="RequestHuntApprovalFlow",
+        reason=self.token.reason,
+        subject_urn=hunt_urn,
+        approver="approver",
+        token=self.token)
 
-    approval_id = list(aff4.FACTORY.ListChildren(
-        "aff4:/users/test/approvals/hunt/H:ABCD1234",
-        token=self.token))[0].Basename()
+    approval_id = list(
+        aff4.FACTORY.ListChildren(
+            "aff4:/users/test/approvals/hunt/H:ABCD1234", token=self.token))[
+                0].Basename()
     self.assertTrue(approval_id.startswith("approval:"))
 
-    fd = aff4.FACTORY.Open("aff4:/users/test/approvals/hunt/H:ABCD1234/%s" %
-                           approval_id,
-                           follow_symlinks=False,
-                           mode="r",
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        "aff4:/users/test/approvals/hunt/H:ABCD1234/%s" % approval_id,
+        follow_symlinks=False,
+        mode="r",
+        token=self.token)
     self.assertEqual(fd.Get(fd.Schema.TYPE), "AFF4Symlink")
     self.assertEqual(
         fd.Get(fd.Schema.SYMLINK_TARGET),

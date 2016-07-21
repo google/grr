@@ -37,24 +37,29 @@ class AFF4ObjectLabelTest(test_base.RDFValueTestCase):
     aff4_rdfvalues.AFF4ObjectLabel(name="b/label.42:1", owner="test")
 
   def testEmptyStringNameIsNotAllowed(self):
-    self.assertRaises(type_info.TypeValueError,
-                      aff4_rdfvalues.AFF4ObjectLabel,
-                      name="",
-                      owner="test")
+    self.assertRaises(
+        type_info.TypeValueError,
+        aff4_rdfvalues.AFF4ObjectLabel,
+        name="",
+        owner="test")
 
   def testNonAlphanumericsDotsColonOrForwardSlashAreNotAllowed(self):
-    self.assertRaises(type_info.TypeValueError,
-                      aff4_rdfvalues.AFF4ObjectLabel,
-                      name="label,42")
-    self.assertRaises(type_info.TypeValueError,
-                      aff4_rdfvalues.AFF4ObjectLabel,
-                      name="label[42")
-    self.assertRaises(type_info.TypeValueError,
-                      aff4_rdfvalues.AFF4ObjectLabel,
-                      name="label]42")
-    self.assertRaises(type_info.TypeValueError,
-                      aff4_rdfvalues.AFF4ObjectLabel,
-                      name="label\\42")
+    self.assertRaises(
+        type_info.TypeValueError,
+        aff4_rdfvalues.AFF4ObjectLabel,
+        name="label,42")
+    self.assertRaises(
+        type_info.TypeValueError,
+        aff4_rdfvalues.AFF4ObjectLabel,
+        name="label[42")
+    self.assertRaises(
+        type_info.TypeValueError,
+        aff4_rdfvalues.AFF4ObjectLabel,
+        name="label]42")
+    self.assertRaises(
+        type_info.TypeValueError,
+        aff4_rdfvalues.AFF4ObjectLabel,
+        name="label\\42")
 
 
 class AFF4ObjectLabelsListTest(test_base.RDFValueTestCase):
@@ -78,111 +83,139 @@ class AFF4ObjectLabelsListTest(test_base.RDFValueTestCase):
   def testAddLabelAddsLabelWithSameNameButDifferentOwner(self):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="foo",
-                                                        owner="test"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="foo", owner="test"))
     self.assertEqual(len(labels_list.labels), 1)
 
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="foo",
-                                                        owner="GRR"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="foo", owner="GRR"))
     self.assertEqual(len(labels_list.labels), 2)
 
   def testAddLabelDoesNotAddLabelWithSameNameAndOwner(self):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="foo",
-                                                        owner="test"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="foo", owner="test"))
     self.assertEqual(len(labels_list.labels), 1)
 
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="foo",
-                                                        owner="test"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="foo", owner="test"))
     self.assertEqual(len(labels_list.labels), 1)
 
   def testStringifiedValueIsLabelsNamesWithoutOwners(self):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="bar",
-                                                        owner="GRR"))
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="foo",
-                                                        owner="test"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="bar", owner="GRR"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="foo", owner="test"))
 
     self.assertEqual(utils.SmartStr(labels_list), "bar,foo")
 
   def testStringifiedRepresentationIsSorted(self):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="foo",
-                                                        owner="GRR"))
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="bar",
-                                                        owner="test"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="foo", owner="GRR"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="bar", owner="test"))
 
     self.assertEqual(utils.SmartStr(labels_list), "bar,foo")
 
   def testStringifiedValueDoesNotHaveDuplicates(self):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="foo",
-                                                        owner="GRR"))
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="bar",
-                                                        owner="GRR"))
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="foo",
-                                                        owner="test"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="foo", owner="GRR"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="bar", owner="GRR"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="foo", owner="test"))
 
     self.assertEqual(utils.SmartStr(labels_list), "bar,foo")
 
   def testRegexForStringifiedValueMatchMatchesLabelsInList(self):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="ein",
-                                                        owner="GRR"))
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="zwei",
-                                                        owner="test"))
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="drei",
-                                                        owner="GRR"))
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="vier",
-                                                        owner="test"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="ein", owner="GRR"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="zwei", owner="test"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="drei", owner="GRR"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="vier", owner="test"))
 
-    self.assertTrue(re.match(
-        aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
-            "ein"), str(labels_list)))
-    self.assertTrue(re.match(
-        aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
-            "zwei"), str(labels_list)))
-    self.assertTrue(re.match(
-        aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
-            "drei"), str(labels_list)))
-    self.assertTrue(re.match(
-        aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
-            "vier"), str(labels_list)))
+    self.assertTrue(
+        re.match(
+            aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
+                "ein"), str(labels_list)))
+    self.assertTrue(
+        re.match(
+            aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
+                "zwei"), str(labels_list)))
+    self.assertTrue(
+        re.match(
+            aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
+                "drei"), str(labels_list)))
+    self.assertTrue(
+        re.match(
+            aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
+                "vier"), str(labels_list)))
 
   def testRegexForStringifiedValueDoesNotMatchLabelsNotInList(self):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="ein",
-                                                        owner="GRR"))
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="zwei",
-                                                        owner="test"))
-    self.assertFalse(re.match(
-        aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("e"),
-        str(labels_list)))
-    self.assertFalse(re.match(
-        aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch("in"),
-        str(labels_list)))
-    self.assertFalse(re.match(
-        aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
-            "a.zwer"), str(labels_list)))
-    self.assertFalse(re.match(
-        aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
-            "ein."), str(labels_list)))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="ein", owner="GRR"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="zwei", owner="test"))
+    self.assertFalse(
+        re.match(
+            aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
+                "e"), str(labels_list)))
+    self.assertFalse(
+        re.match(
+            aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
+                "in"), str(labels_list)))
+    self.assertFalse(
+        re.match(
+            aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
+                "a.zwer"), str(labels_list)))
+    self.assertFalse(
+        re.match(
+            aff4_rdfvalues.AFF4ObjectLabelsList.RegexForStringifiedValueMatch(
+                "ein."), str(labels_list)))
 
   def testGetSortedLabelSet(self):
     labels_list = aff4_rdfvalues.AFF4ObjectLabelsList()
 
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="foo",
-                                                        owner="test"))
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="foo2",
-                                                        owner="test2"))
-    labels_list.AddLabel(aff4_rdfvalues.AFF4ObjectLabel(name="foo3",
-                                                        owner="test2"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="foo", owner="test"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="foo2", owner="test2"))
+    labels_list.AddLabel(
+        aff4_rdfvalues.AFF4ObjectLabel(
+            name="foo3", owner="test2"))
 
     self.assertItemsEqual(labels_list.GetLabelNames(), ["foo", "foo2", "foo3"])
     self.assertItemsEqual(

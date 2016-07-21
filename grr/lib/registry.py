@@ -135,9 +135,8 @@ class HookRegistry(object):
         raise RuntimeError("Pre Init Hook %s in %s could not"
                            " be found. Missing import?" % (pre_hook, hook_cls))
 
-      self._RunSingleHook(self.classes[pre_hook],
-                          executed_set,
-                          required=hook_cls.__name__)
+      self._RunSingleHook(
+          self.classes[pre_hook], executed_set, required=hook_cls.__name__)
 
     # Now run this hook.
     cls_instance = hook_cls()

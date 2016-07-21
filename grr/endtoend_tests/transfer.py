@@ -27,7 +27,7 @@ class MultiGetFileTestFlow(flow.GRRFlow):
   """This flow checks MultiGetFile correctly transfers files."""
   args_type = MultiGetFileTestFlowArgs
 
-  @flow.StateHandler(next_state=["HashFile"])
+  @flow.StateHandler()
   def Start(self):
     """Create some files to transfer.
 
@@ -37,8 +37,8 @@ class MultiGetFileTestFlow(flow.GRRFlow):
     parameter from CopyPathToFile.
     """
     self.state.Register("client_hashes", {})
-    urandom = rdf_paths.PathSpec(path="/dev/urandom",
-                                 pathtype=rdf_paths.PathSpec.PathType.OS)
+    urandom = rdf_paths.PathSpec(
+        path="/dev/urandom", pathtype=rdf_paths.PathSpec.PathType.OS)
 
     for _ in range(self.args.file_limit):
       self.CallClient("CopyPathToFile",
@@ -50,42 +50,40 @@ class MultiGetFileTestFlow(flow.GRRFlow):
                       lifetime=600,
                       next_state="HashFile")
 
-  @flow.StateHandler(next_state=["MultiGetFile"])
+  @flow.StateHandler()
   def HashFile(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
 
     for response in responses:
-      self.CallFlow("FingerprintFile",
-                    next_state="MultiGetFile",
-                    pathspec=response.dest_path,
-                    request_data={"pathspec": response.dest_path})
+      self.CallFlow(
+          "FingerprintFile",
+          next_state="MultiGetFile",
+          pathspec=response.dest_path,
+          request_data={"pathspec": response.dest_path})
 
-  @flow.StateHandler(next_state="VerifyHashes")
+  @flow.StateHandler()
   def MultiGetFile(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
     for response in responses:
-      fd = aff4.FACTORY.Open(response.file_urn,
-                             aff4_grr.VFSFile,
-                             mode="r",
-                             token=self.token)
+      fd = aff4.FACTORY.Open(
+          response.file_urn, aff4_grr.VFSFile, mode="r", token=self.token)
       binary_hash = fd.Get(fd.Schema.HASH)
       hash_digest = str(binary_hash.sha256)
       self.state.client_hashes[str(response.file_urn)] = hash_digest
-      self.CallFlow("MultiGetFile",
-                    pathspecs=[responses.request_data["pathspec"]],
-                    next_state="VerifyHashes")
+      self.CallFlow(
+          "MultiGetFile",
+          pathspecs=[responses.request_data["pathspec"]],
+          next_state="VerifyHashes")
 
   @flow.StateHandler()
   def VerifyHashes(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
     for response in responses:
-      fd = aff4.FACTORY.Open(response.aff4path,
-                             aff4_grr.VFSBlobImage,
-                             mode="r",
-                             token=self.token)
+      fd = aff4.FACTORY.Open(
+          response.aff4path, aff4_grr.VFSBlobImage, mode="r", token=self.token)
       server_hash = hashlib.sha256(fd.Read(response.st_size)).hexdigest()
       client_hash = self.state.client_hashes[response.aff4path]
 
@@ -105,10 +103,11 @@ class TestMultiGetFile(base.AutomatedTest):
     # Reopen the object to update the state. Ignore the cache to avoid a race
     # where the flow has just been terminated but we get the cached object back
     # from the factory and it looks like it's still running.
-    flow_obj = aff4.FACTORY.Open(self.session_id,
-                                 token=self.token,
-                                 aff4_type=MultiGetFileTestFlow,
-                                 ignore_cache=True)
+    flow_obj = aff4.FACTORY.Open(
+        self.session_id,
+        token=self.token,
+        aff4_type=MultiGetFileTestFlow,
+        ignore_cache=True)
 
     # Check flow completed normally, checking is done inside the flow
     runner = flow_obj.GetRunner()
@@ -127,8 +126,7 @@ class TestGetFileTSKLinux(base.AutomatedTest):
   platforms = ["Linux"]
   flow = "GetFile"
   args = {"pathspec": rdf_paths.PathSpec(
-      path="/usr/bin/diff",
-      pathtype=rdf_paths.PathSpec.PathType.TSK)}
+      path="/usr/bin/diff", pathtype=rdf_paths.PathSpec.PathType.TSK)}
 
   # Interpolate for /dev/mapper-...
   test_output_path = "/fs/tsk/.*/usr/bin/diff"
@@ -161,8 +159,7 @@ class TestMultiGetFileTSKLinux(TestGetFileTSKLinux):
   """Tests if MultiGetFile works on Linux using Sleuthkit."""
   flow = "MultiGetFile"
   args = {"pathspecs": [rdf_paths.PathSpec(
-      path="/usr/bin/diff",
-      pathtype=rdf_paths.PathSpec.PathType.TSK)]}
+      path="/usr/bin/diff", pathtype=rdf_paths.PathSpec.PathType.TSK)]}
 
 
 class TestGetFileOSLinux(TestGetFileTSKLinux):
@@ -190,11 +187,13 @@ class TestSendFile(base.LocalClientTest):
   key = rdf_crypto.AES128Key.FromHex("1a5eafcc77d428863d4c2441ea26e5a5")
   iv = rdf_crypto.AES128Key.FromHex("2241b14c64874b1898dad4de7173d8c0")
 
-  args = dict(host="127.0.0.1",
-              port=12345,
-              pathspec=rdf_paths.PathSpec(pathtype=0, path="/bin/ls"),
-              key=key,
-              iv=iv)
+  args = dict(
+      host="127.0.0.1",
+      port=12345,
+      pathspec=rdf_paths.PathSpec(
+          pathtype=0, path="/bin/ls"),
+      key=key,
+      iv=iv)
 
   def setUp(self):
 
@@ -236,9 +235,7 @@ class TestSendFile(base.LocalClientTest):
       original_data = open("/bin/ls", "rb").read()
       received_cipher = "".join(self.listener.result)
       cipher = rdf_crypto.AES128CBCCipher(
-          key=self.key,
-          iv=self.iv,
-          mode=rdf_crypto.AES128CBCCipher.OP_DECRYPT)
+          key=self.key, iv=self.iv, mode=rdf_crypto.AES128CBCCipher.OP_DECRYPT)
       received_data = cipher.Update(received_cipher) + cipher.Final()
 
       self.assertEqual(received_data, original_data)
@@ -261,15 +258,13 @@ class TestMultiGetFileTSKMac(TestGetFileTSKLinux):
     # that we can get at least one result.
     pathspecs = []
     tsk_dirs = aff4.FACTORY.Open(
-        self.client_id.Add("fs/tsk/dev"),
-        token=self.token).OpenChildren()
+        self.client_id.Add("fs/tsk/dev"), token=self.token).OpenChildren()
 
     for d in tsk_dirs:
       pathspec = d.Get(d.Schema.PATHSPEC)
       if pathspec:
         pathspec.nested_path = rdf_paths.PathSpec(
-            path="/bin/ls",
-            pathtype=rdf_paths.PathSpec.PathType.TSK)
+            path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.TSK)
         pathspecs.append(pathspec)
     if not pathspecs:
       self.fail("No suitable devices found for TSK.")
@@ -303,8 +298,7 @@ class TestGetFileOSWindows(TestGetFileOSLinux):
   """Tests if GetFile works on Windows."""
   platforms = ["Windows"]
   args = {"pathspec": rdf_paths.PathSpec(
-      path="C:\\Windows\\regedit.exe",
-      pathtype=rdf_paths.PathSpec.PathType.OS)}
+      path="C:\\Windows\\regedit.exe", pathtype=rdf_paths.PathSpec.PathType.OS)}
   test_output_path = "/fs/os/C:/Windows/regedit.exe"
 
   def CheckFile(self, fd):

@@ -92,13 +92,13 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client",
-                attribute_regex="GRR"))
+                attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(hunt_name="SampleHunt",
-                                 client_rule_set=client_rule_set,
-                                 token=token or self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="SampleHunt",
+        client_rule_set=client_rule_set,
+        token=token or self.token) as hunt:
 
       return hunt.session_id
 
@@ -107,11 +107,12 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     iterations = 50
     for _ in xrange(iterations):
       try:
-        fd = aff4.FACTORY.Open(user,
-                               aff4_users.GRRUser,
-                               mode="r",
-                               ignore_cache=True,
-                               token=self.token)
+        fd = aff4.FACTORY.Open(
+            user,
+            aff4_users.GRRUser,
+            mode="r",
+            ignore_cache=True,
+            token=self.token)
         pending_notifications = fd.Get(fd.Schema.PENDING_NOTIFICATIONS)
         if pending_notifications:
           return
@@ -307,8 +308,8 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # And make sure the approval was created...
     def GetApprovals():
-      fd = aff4.FACTORY.Open("aff4:/ACL/C.0000000000000001/test",
-                             token=self.token)
+      fd = aff4.FACTORY.Open(
+          "aff4:/ACL/C.0000000000000001/test", token=self.token)
       return list(fd.ListChildren())
 
     self.WaitUntilEqual(1, lambda: len(GetApprovals()))
@@ -398,11 +399,12 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(flow_name="GrantHuntApprovalFlow",
-                           subject_urn=hunt_id,
-                           reason=self.reason,
-                           delegate="test",
-                           token=token)
+    flow.GRRFlow.StartFlow(
+        flow_name="GrantHuntApprovalFlow",
+        subject_urn=hunt_id,
+        reason=self.reason,
+        delegate="test",
+        token=token)
 
     self.WaitForNotification("aff4:/users/test")
     self.Open("/")
@@ -471,30 +473,34 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
       self.CreateAdminUser("approver")
 
     token = access_control.ACLToken(username="otheruser")
-    flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
-                           subject_urn=hunt1_id,
-                           reason=self.reason,
-                           approver="approver",
-                           token=token)
+    flow.GRRFlow.StartFlow(
+        flow_name="RequestHuntApprovalFlow",
+        subject_urn=hunt1_id,
+        reason=self.reason,
+        approver="approver",
+        token=token)
     token = access_control.ACLToken(username="test")
-    flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
-                           subject_urn=hunt2_id,
-                           reason=self.reason,
-                           approver="approver",
-                           token=token)
+    flow.GRRFlow.StartFlow(
+        flow_name="RequestHuntApprovalFlow",
+        subject_urn=hunt2_id,
+        reason=self.reason,
+        approver="approver",
+        token=token)
 
     token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(flow_name="GrantHuntApprovalFlow",
-                           subject_urn=hunt1_id,
-                           reason=self.reason,
-                           delegate="otheruser",
-                           token=token)
+    flow.GRRFlow.StartFlow(
+        flow_name="GrantHuntApprovalFlow",
+        subject_urn=hunt1_id,
+        reason=self.reason,
+        delegate="otheruser",
+        token=token)
     token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(flow_name="GrantHuntApprovalFlow",
-                           subject_urn=hunt2_id,
-                           reason=self.reason,
-                           delegate="test",
-                           token=token)
+    flow.GRRFlow.StartFlow(
+        flow_name="GrantHuntApprovalFlow",
+        subject_urn=hunt2_id,
+        reason=self.reason,
+        delegate="test",
+        token=token)
 
   def testHuntApprovalsArePerHunt(self):
     with self.ACLChecksDisabled():
@@ -609,10 +615,10 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
   def testCronJobACLWorkflow(self):
     with self.ACLChecksDisabled():
-      cronjobs.ScheduleSystemCronFlows(names=[cron_system.OSBreakDown.__name__],
-                                       token=self.token)
-      cronjobs.CRON_MANAGER.DisableJob(rdfvalue.RDFURN(
-          "aff4:/cron/OSBreakDown"))
+      cronjobs.ScheduleSystemCronFlows(
+          names=[cron_system.OSBreakDown.__name__], token=self.token)
+      cronjobs.CRON_MANAGER.DisableJob(
+          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
 
     # Open up and click on Cron Job Viewer.
     self.Open("/")
@@ -750,14 +756,14 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Request client approval, it will trigger an email message.
     with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub):
-      flow.GRRFlow.StartFlow(client_id=client_id,
-                             flow_name="RequestClientApprovalFlow",
-                             reason="Please please let me",
-                             subject_urn=client_id,
-                             approver="test",
-                             token=access_control.ACLToken(
-                                 username="iwantapproval",
-                                 reason="test"))
+      flow.GRRFlow.StartFlow(
+          client_id=client_id,
+          flow_name="RequestClientApprovalFlow",
+          reason="Please please let me",
+          subject_urn=client_id,
+          approver="test",
+          token=access_control.ACLToken(
+              username="iwantapproval", reason="test"))
     self.assertEqual(len(messages_sent), 1)
 
     # Extract link from the message text and open it.

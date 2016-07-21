@@ -75,12 +75,12 @@ class EnumerateInterfaces(actions.ActionPlugin):
     for interface in wmi.WMI().Win32_NetworkAdapterConfiguration(IPEnabled=1):
       addresses = []
       for ip_address in interface.IPAddress:
-        addresses.append(rdf_client.NetworkAddress(
-            human_readable_address=ip_address))
+        addresses.append(
+            rdf_client.NetworkAddress(human_readable_address=ip_address))
 
       args = {"ifname": interface.Description}
-      args["mac_address"] = binascii.unhexlify(interface.MACAddress.replace(":",
-                                                                            ""))
+      args["mac_address"] = binascii.unhexlify(
+          interface.MACAddress.replace(":", ""))
       if addresses:
         args["addresses"] = addresses
 
@@ -105,10 +105,11 @@ class EnumerateFilesystems(actions.ActionPlugin):
               "\\")
 
           label, _, _, _, fs_type = win32api.GetVolumeInformation(drive)
-          self.SendReply(device=volume,
-                         mount_point="/%s:/" % drive[0],
-                         type=fs_type,
-                         label=UnicodeFromCodePage(label))
+          self.SendReply(
+              device=volume,
+              mount_point="/%s:/" % drive[0],
+              type=fs_type,
+              label=UnicodeFromCodePage(label))
         except win32api.error:
           pass
 

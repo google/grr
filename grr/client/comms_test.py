@@ -48,8 +48,8 @@ class URLLibInstrumentor(object):
     # We only care about how urllib2 will try to connect - the proxy and the
     # URL.
     self.actions.append([
-        self.time, self._extract_url(request), self._extract_proxy(
-            self.current_opener)
+        self.time, self._extract_url(request),
+        self._extract_proxy(self.current_opener)
     ])
     if self.responses:
       result = self.responses.pop(0)
@@ -71,9 +71,9 @@ class URLLibInstrumentor(object):
        A context manager that when exits restores the mocks.
     """
     self.actions = []
-    return utils.MultiStubber(
-        (urllib2, "install_opener", self.install_opener),
-        (urllib2, "urlopen", self.urlopen), (time, "sleep", self.sleep))
+    return utils.MultiStubber((urllib2, "install_opener", self.install_opener),
+                              (urllib2, "urlopen", self.urlopen),
+                              (time, "sleep", self.sleep))
 
 
 class URLFilter(URLLibInstrumentor):

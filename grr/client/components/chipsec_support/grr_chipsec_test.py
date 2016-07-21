@@ -184,8 +184,8 @@ class TestDumpACPITable(GRRChipsecTest):
 
   def testDumpValidSingleACPITableVerbose(self):
     """Tests valid ACPI table dump with verbose mode enabled."""
-    args = chipsec_types.DumpACPITableRequest(table_signature="XSDT",
-                                              logging=True)
+    args = chipsec_types.DumpACPITableRequest(
+        table_signature="XSDT", logging=True)
     result = self.RunAction("DumpACPITable", args)[0]
     self.assertEqual(result.acpi_tables[0].table_address, 0x1122334455667788)
     self.assertEqual(result.acpi_tables[0].table_blob,
@@ -211,8 +211,8 @@ class TestDumpACPITable(GRRChipsecTest):
     and at least one response should be returned with non-empty logs.
     """
     self.chipsec_mock.chipset.cs = FaultyChipset
-    args = chipsec_types.DumpACPITableRequest(table_signature="FACP",
-                                              logging=True)
+    args = chipsec_types.DumpACPITableRequest(
+        table_signature="FACP", logging=True)
     self.RunAction("DumpACPITable", args)
     self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
     self.assertGreaterEqual(len(self.results), 1)

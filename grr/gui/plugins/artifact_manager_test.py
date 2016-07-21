@@ -18,8 +18,9 @@ class TestArtifactManagementRender(test_lib.GRRSeleniumTest):
   def setUp(self):
     super(TestArtifactManagementRender, self).setUp()
 
-    self.json_file = os.path.realpath(os.path.join(config_lib.CONFIG[
-        "Test.data_dir"], "artifacts", "test_artifact.json"))
+    self.json_file = os.path.realpath(
+        os.path.join(config_lib.CONFIG["Test.data_dir"], "artifacts",
+                     "test_artifact.json"))
 
   def testArtifactUpload(self):
     self.Open("/#main=ArtifactManagerView")

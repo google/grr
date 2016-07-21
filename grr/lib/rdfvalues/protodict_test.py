@@ -89,17 +89,20 @@ class DictTest(test_base.RDFProtoTestCase):
     self.CheckTestDict(test_dict, sample.ToDict())
 
   def testNestedDicts(self):
-    test_dict = dict(key1={"A": 1}, key2=rdf_protodict.Dict({"A": 1}),)
+    test_dict = dict(
+        key1={"A": 1},
+        key2=rdf_protodict.Dict({"A": 1}),)
 
     sample = rdf_protodict.Dict(**test_dict)
     self.CheckTestDict(test_dict, sample)
     self.CheckTestDict(test_dict, sample.ToDict())
 
   def testNestedDictsMultipleTypes(self):
-    test_dict = dict(key1={"A": 1},
-                     key2=rdf_protodict.Dict({"A": 1}),
-                     key3=[1, 2, 3, [1, 2, [3]]],
-                     key4=[[], None, ["abc"]])
+    test_dict = dict(
+        key1={"A": 1},
+        key2=rdf_protodict.Dict({"A": 1}),
+        key3=[1, 2, 3, [1, 2, [3]]],
+        key4=[[], None, ["abc"]])
 
     sample = rdf_protodict.Dict(**test_dict)
     self.CheckTestDict(test_dict, sample)
@@ -110,12 +113,13 @@ class DictTest(test_base.RDFProtoTestCase):
     class UnSerializable(object):
       pass
 
-    test_dict = dict(key1={"A": 1},
-                     key2=rdf_protodict.Dict({"A": 1}),
-                     key3=[1, UnSerializable(), 3, [1, 2, [3]]],
-                     key4=[[], None, ["abc"]],
-                     key5=UnSerializable(),
-                     key6=["a", UnSerializable(), "b"])
+    test_dict = dict(
+        key1={"A": 1},
+        key2=rdf_protodict.Dict({"A": 1}),
+        key3=[1, UnSerializable(), 3, [1, 2, [3]]],
+        key4=[[], None, ["abc"]],
+        key5=UnSerializable(),
+        key6=["a", UnSerializable(), "b"])
 
     self.assertRaises(TypeError, rdf_protodict.Dict, **test_dict)
 

@@ -17,9 +17,8 @@ config_lib.DEFINE_constant_string(
     default="%(Test.data_dir)/localtest.yaml",
     help="The path to a test config with local customizations.")
 
-config_lib.DEFINE_string("Test.tmpdir",
-                         "/tmp/",
-                         help="Somewhere to write temporary files.")
+config_lib.DEFINE_string(
+    "Test.tmpdir", "/tmp/", help="Somewhere to write temporary files.")
 
 config_lib.DEFINE_string("Test.data_store", "FakeDataStore",
                          "The data store to run the tests against.")

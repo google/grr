@@ -45,10 +45,11 @@ class ApiCreateUserApprovalHandlerTestMixin(object):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.subject_urn.Path()).Add(
         self.token.username).Add(result.id)
 
-    fd = aff4.FACTORY.Open(approval_urn,
-                           aff4_type=self.APPROVAL_TYPE,
-                           age=aff4.ALL_TIMES,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        approval_urn,
+        aff4_type=self.APPROVAL_TYPE,
+        age=aff4.ALL_TIMES,
+        token=self.token)
     self.assertEqual(fd.Get(fd.Schema.SUBJECT), self.subject_urn)
     self.assertEqual(fd.Get(fd.Schema.REASON), self.token.reason)
     self.assertEqual(fd.GetNonExpiredApprovers(), [self.token.username])
@@ -64,10 +65,11 @@ class ApiCreateUserApprovalHandlerTestMixin(object):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(self.subject_urn.Path()).Add(
         self.token.username).Add(result.id)
 
-    fd = aff4.FACTORY.Open(approval_urn,
-                           aff4_type=self.APPROVAL_TYPE,
-                           age=aff4.ALL_TIMES,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        approval_urn,
+        aff4_type=self.APPROVAL_TYPE,
+        age=aff4.ALL_TIMES,
+        token=self.token)
     self.assertEqual(fd.GetNonExpiredApprovers(), [self.token.username])
 
   def testRaisesOnEmptyReason(self):
@@ -79,9 +81,8 @@ class ApiCreateUserApprovalHandlerTestMixin(object):
   def testNotifiesGrrUsers(self):
     self.handler.Handle(self.args, token=self.token)
 
-    fd = aff4.FACTORY.Open("aff4:/users/approver",
-                           aff4_type=aff4_users.GRRUser,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        "aff4:/users/approver", aff4_type=aff4_users.GRRUser, token=self.token)
     notifications = fd.ShowNotifications(reset=False)
 
     self.assertEqual(len(notifications), 1)
@@ -113,16 +114,16 @@ class ApiGetUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
     self.handler = user_plugin.ApiGetUserClientApprovalHandler()
 
   def testRendersRequestedClientApproval(self):
-    flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
-                                      flow_name="RequestClientApprovalFlow",
-                                      reason="blah",
-                                      subject_urn=self.client_id,
-                                      approver="approver",
-                                      email_cc_address="test@example.com",
-                                      token=self.token)
-    flow_fd = aff4.FACTORY.Open(flow_urn,
-                                aff4_type=flow.GRRFlow,
-                                token=self.token)
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name="RequestClientApprovalFlow",
+        reason="blah",
+        subject_urn=self.client_id,
+        approver="approver",
+        email_cc_address="test@example.com",
+        token=self.token)
+    flow_fd = aff4.FACTORY.Open(
+        flow_urn, aff4_type=flow.GRRFlow, token=self.token)
     approval_id = flow_fd.state.approval_id
 
     args = user_plugin.ApiGetUserClientApprovalArgs(
@@ -144,24 +145,25 @@ class ApiGetUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(result.approvers, [self.token.username])
 
   def testIncludesApproversInResultWhenApprovalIsGranted(self):
-    flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
-                                      flow_name="RequestClientApprovalFlow",
-                                      reason="blah",
-                                      subject_urn=self.client_id,
-                                      approver="approver",
-                                      token=self.token)
-    flow_fd = aff4.FACTORY.Open(flow_urn,
-                                aff4_type=flow.GRRFlow,
-                                token=self.token)
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name="RequestClientApprovalFlow",
+        reason="blah",
+        subject_urn=self.client_id,
+        approver="approver",
+        token=self.token)
+    flow_fd = aff4.FACTORY.Open(
+        flow_urn, aff4_type=flow.GRRFlow, token=self.token)
     approval_id = flow_fd.state.approval_id
 
     approver_token = access_control.ACLToken(username="approver")
-    flow.GRRFlow.StartFlow(client_id=self.client_id,
-                           flow_name="GrantClientApprovalFlow",
-                           reason="blah",
-                           delegate=self.token.username,
-                           subject_urn=self.client_id,
-                           token=approver_token)
+    flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name="GrantClientApprovalFlow",
+        reason="blah",
+        delegate=self.token.username,
+        subject_urn=self.client_id,
+        token=approver_token)
 
     args = user_plugin.ApiGetUserClientApprovalArgs(
         client_id=self.client_id,
@@ -200,52 +202,55 @@ class ApiGetUserClientApprovalHandlerRegressionTest(
       for client_id in clients:
         # Delete the certificate as it's being regenerated every time the
         # client is created.
-        with aff4.FACTORY.Open(client_id, mode="rw",
-                               token=self.token) as grr_client:
+        with aff4.FACTORY.Open(
+            client_id, mode="rw", token=self.token) as grr_client:
           grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(44):
-      flow_urn = flow.GRRFlow.StartFlow(client_id=clients[0],
-                                        flow_name="RequestClientApprovalFlow",
-                                        reason="foo",
-                                        subject_urn=clients[0],
-                                        approver="approver",
-                                        token=self.token)
-      flow_fd = aff4.FACTORY.Open(flow_urn,
-                                  aff4_type=flow.GRRFlow,
-                                  token=self.token)
+      flow_urn = flow.GRRFlow.StartFlow(
+          client_id=clients[0],
+          flow_name="RequestClientApprovalFlow",
+          reason="foo",
+          subject_urn=clients[0],
+          approver="approver",
+          token=self.token)
+      flow_fd = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
       approval1_id = flow_fd.state.approval_id
 
     with test_lib.FakeTime(45):
-      flow_urn = flow.GRRFlow.StartFlow(client_id=clients[1],
-                                        flow_name="RequestClientApprovalFlow",
-                                        reason="bar",
-                                        subject_urn=clients[1],
-                                        approver="approver",
-                                        token=self.token)
-      flow_fd = aff4.FACTORY.Open(flow_urn,
-                                  aff4_type=flow.GRRFlow,
-                                  token=self.token)
+      flow_urn = flow.GRRFlow.StartFlow(
+          client_id=clients[1],
+          flow_name="RequestClientApprovalFlow",
+          reason="bar",
+          subject_urn=clients[1],
+          approver="approver",
+          token=self.token)
+      flow_fd = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
       approval2_id = flow_fd.state.approval_id
 
     with test_lib.FakeTime(84):
       approver_token = access_control.ACLToken(username="approver")
-      flow.GRRFlow.StartFlow(client_id=clients[1],
-                             flow_name="GrantClientApprovalFlow",
-                             reason="bar",
-                             delegate=self.token.username,
-                             subject_urn=clients[1],
-                             token=approver_token)
+      flow.GRRFlow.StartFlow(
+          client_id=clients[1],
+          flow_name="GrantClientApprovalFlow",
+          reason="bar",
+          delegate=self.token.username,
+          subject_urn=clients[1],
+          token=approver_token)
 
     with test_lib.FakeTime(126):
-      self.Check("GET",
-                 "/api/users/test/approvals/client/%s/%s" %
-                 (clients[0].Basename(), approval1_id),
-                 replace={approval1_id: "approval:111111"})
-      self.Check("GET",
-                 "/api/users/test/approvals/client/%s/%s" %
-                 (clients[1].Basename(), approval2_id),
-                 replace={approval2_id: "approval:222222"})
+      self.Check(
+          "GET",
+          "/api/users/test/approvals/client/%s/%s" %
+          (clients[0].Basename(), approval1_id),
+          replace={approval1_id: "approval:111111"})
+      self.Check(
+          "GET",
+          "/api/users/test/approvals/client/%s/%s" %
+          (clients[1].Basename(), approval2_id),
+          replace={approval2_id: "approval:222222"})
 
 
 class ApiCreateUserClientApprovalHandlerTest(
@@ -283,27 +288,29 @@ class ApiCreateUserClientApprovalHandlerRegressionTest(
 
       # Delete the certificate as it's being regenerated every time the
       # client is created.
-      with aff4.FACTORY.Open(client_id, mode="rw",
-                             token=self.token) as grr_client:
+      with aff4.FACTORY.Open(
+          client_id, mode="rw", token=self.token) as grr_client:
         grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     def ReplaceApprovalId():
-      approvals = list(aff4.FACTORY.ListChildren(
-          aff4.ROOT_URN.Add("ACL").Add(client_id.Basename()).Add(
-              self.token.username),
-          token=self.token))
+      approvals = list(
+          aff4.FACTORY.ListChildren(
+              aff4.ROOT_URN.Add("ACL").Add(client_id.Basename()).Add(
+                  self.token.username),
+              token=self.token))
 
       return {approvals[0].Basename(): "approval:112233"}
 
     with test_lib.FakeTime(126):
-      self.Check("POST",
-                 "/api/users/me/approvals/client/%s" % client_id.Basename(),
-                 {"approval": {
-                     "reason": "really important reason!",
-                     "notified_users": ["approver1", "approver2"],
-                     "email_cc_addresses": ["test@example.com"]
-                 }},
-                 replace=ReplaceApprovalId)
+      self.Check(
+          "POST",
+          "/api/users/me/approvals/client/%s" % client_id.Basename(),
+          {"approval": {
+              "reason": "really important reason!",
+              "notified_users": ["approver1", "approver2"],
+              "email_cc_addresses": ["test@example.com"]
+          }},
+          replace=ReplaceApprovalId)
 
 
 class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
@@ -352,9 +359,8 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(len(result.items), self.CLIENT_COUNT)
 
     # Grant access to one client. Now all but one should be invalid.
-    self.GrantClientApproval(self.client_ids[0],
-                             self.token.username,
-                             reason=self.token.reason)
+    self.GrantClientApproval(
+        self.client_ids[0], self.token.username, reason=self.token.reason)
     result = self.handler.Handle(args, token=self.token)
     self.assertEqual(len(result.items), self.CLIENT_COUNT - 1)
 
@@ -370,9 +376,8 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(len(result.items), 0)
 
     # Grant access to one client. Now exactly one approval should be valid.
-    self.GrantClientApproval(self.client_ids[0],
-                             self.token.username,
-                             reason=self.token.reason)
+    self.GrantClientApproval(
+        self.client_ids[0], self.token.username, reason=self.token.reason)
     result = self.handler.Handle(args, token=self.token)
     self.assertEqual(len(result.items), 1)
     self.assertEqual(result.items[0].subject.urn, self.client_ids[0])
@@ -383,9 +388,8 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
     self._RequestClientApprovals()
 
     # Grant approval to a certain client.
-    self.GrantClientApproval(client_id,
-                             self.token.username,
-                             reason=self.token.reason)
+    self.GrantClientApproval(
+        client_id, self.token.username, reason=self.token.reason)
 
     args = user_plugin.ApiListUserClientApprovalsArgs(
         client_id=client_id,
@@ -410,9 +414,8 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
         self.token.reason = "Request reason %d" % i
         self.RequestClientApproval(client_id, token=self.token)
 
-    args = user_plugin.ApiListUserClientApprovalsArgs(client_id=client_id,
-                                                      offset=0,
-                                                      count=5)
+    args = user_plugin.ApiListUserClientApprovalsArgs(
+        client_id=client_id, offset=0, count=5)
     result = self.handler.Handle(args, token=self.token)
 
     # Approvals are returned newest to oldest, so the first five approvals
@@ -422,8 +425,8 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
       self.assertEqual(item.reason, "Request reason %d" % i)
 
     # When no count is specified, take all items from offset to the end.
-    args = user_plugin.ApiListUserClientApprovalsArgs(client_id=client_id,
-                                                      offset=7)
+    args = user_plugin.ApiListUserClientApprovalsArgs(
+        client_id=client_id, offset=7)
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), 4)
@@ -445,52 +448,55 @@ class ApiListUserClientApprovalsHandlerRegressionTest(
       for client_id in clients:
         # Delete the certificate as it's being regenerated every time the
         # client is created.
-        with aff4.FACTORY.Open(client_id, mode="rw",
-                               token=self.token) as grr_client:
+        with aff4.FACTORY.Open(
+            client_id, mode="rw", token=self.token) as grr_client:
           grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     with test_lib.FakeTime(44):
-      flow_urn = flow.GRRFlow.StartFlow(client_id=clients[0],
-                                        flow_name="RequestClientApprovalFlow",
-                                        reason=self.token.reason,
-                                        subject_urn=clients[0],
-                                        approver="approver",
-                                        token=self.token)
-      flow_fd = aff4.FACTORY.Open(flow_urn,
-                                  aff4_type=flow.GRRFlow,
-                                  token=self.token)
+      flow_urn = flow.GRRFlow.StartFlow(
+          client_id=clients[0],
+          flow_name="RequestClientApprovalFlow",
+          reason=self.token.reason,
+          subject_urn=clients[0],
+          approver="approver",
+          token=self.token)
+      flow_fd = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
       approval1_id = flow_fd.state.approval_id
 
     with test_lib.FakeTime(45):
-      flow_urn = flow.GRRFlow.StartFlow(client_id=clients[1],
-                                        flow_name="RequestClientApprovalFlow",
-                                        reason=self.token.reason,
-                                        subject_urn=clients[1],
-                                        approver="approver",
-                                        token=self.token)
-      flow_fd = aff4.FACTORY.Open(flow_urn,
-                                  aff4_type=flow.GRRFlow,
-                                  token=self.token)
+      flow_urn = flow.GRRFlow.StartFlow(
+          client_id=clients[1],
+          flow_name="RequestClientApprovalFlow",
+          reason=self.token.reason,
+          subject_urn=clients[1],
+          approver="approver",
+          token=self.token)
+      flow_fd = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
       approval2_id = flow_fd.state.approval_id
 
     with test_lib.FakeTime(84):
       approver_token = access_control.ACLToken(username="approver")
-      flow.GRRFlow.StartFlow(client_id=clients[1],
-                             flow_name="GrantClientApprovalFlow",
-                             reason=self.token.reason,
-                             delegate=self.token.username,
-                             subject_urn=clients[1],
-                             token=approver_token)
+      flow.GRRFlow.StartFlow(
+          client_id=clients[1],
+          flow_name="GrantClientApprovalFlow",
+          reason=self.token.reason,
+          delegate=self.token.username,
+          subject_urn=clients[1],
+          token=approver_token)
 
     with test_lib.FakeTime(126):
-      self.Check("GET",
-                 "/api/users/me/approvals/client",
-                 replace={approval1_id: "approval:111111",
-                          approval2_id: "approval:222222"})
-      self.Check("GET",
-                 "/api/users/me/approvals/client/%s" % (clients[0].Basename()),
-                 replace={approval1_id: "approval:111111",
-                          approval2_id: "approval:222222"})
+      self.Check(
+          "GET",
+          "/api/users/me/approvals/client",
+          replace={approval1_id: "approval:111111",
+                   approval2_id: "approval:222222"})
+      self.Check(
+          "GET",
+          "/api/users/me/approvals/client/%s" % (clients[0].Basename()),
+          replace={approval1_id: "approval:111111",
+                   approval2_id: "approval:222222"})
 
 
 class ApiGetUserHuntApprovalHandlerRegressionTest(
@@ -513,46 +519,47 @@ class ApiGetUserHuntApprovalHandlerRegressionTest(
         hunt2_id = hunt2_urn.Basename()
 
     with test_lib.FakeTime(44):
-      flow_urn = flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
-                                        reason="foo",
-                                        subject_urn=hunt1_urn,
-                                        approver="approver",
-                                        token=self.token)
-      flow_fd = aff4.FACTORY.Open(flow_urn,
-                                  aff4_type=flow.GRRFlow,
-                                  token=self.token)
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name="RequestHuntApprovalFlow",
+          reason="foo",
+          subject_urn=hunt1_urn,
+          approver="approver",
+          token=self.token)
+      flow_fd = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
       approval1_id = flow_fd.state.approval_id
 
     with test_lib.FakeTime(45):
-      flow_urn = flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
-                                        reason="bar",
-                                        subject_urn=hunt2_urn,
-                                        approver="approver",
-                                        token=self.token)
-      flow_fd = aff4.FACTORY.Open(flow_urn,
-                                  aff4_type=flow.GRRFlow,
-                                  token=self.token)
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name="RequestHuntApprovalFlow",
+          reason="bar",
+          subject_urn=hunt2_urn,
+          approver="approver",
+          token=self.token)
+      flow_fd = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
       approval2_id = flow_fd.state.approval_id
 
     with test_lib.FakeTime(84):
       approver_token = access_control.ACLToken(username="approver")
-      flow.GRRFlow.StartFlow(flow_name="GrantHuntApprovalFlow",
-                             reason="bar",
-                             delegate=self.token.username,
-                             subject_urn=hunt2_urn,
-                             token=approver_token)
+      flow.GRRFlow.StartFlow(
+          flow_name="GrantHuntApprovalFlow",
+          reason="bar",
+          delegate=self.token.username,
+          subject_urn=hunt2_urn,
+          token=approver_token)
 
     with test_lib.FakeTime(126):
-      self.Check("GET",
-                 "/api/users/test/approvals/hunt/%s/%s" %
-                 (hunt1_id, approval1_id),
-                 replace={hunt1_id: "H:123456",
-                          approval1_id: "approval:111111"})
-      self.Check("GET",
-                 "/api/users/test/approvals/hunt/%s/%s" %
-                 (hunt2_id, approval2_id),
-                 replace={hunt2_id: "H:567890",
-                          approval2_id: "approval:222222"})
+      self.Check(
+          "GET",
+          "/api/users/test/approvals/hunt/%s/%s" % (hunt1_id, approval1_id),
+          replace={hunt1_id: "H:123456",
+                   approval1_id: "approval:111111"})
+      self.Check(
+          "GET",
+          "/api/users/test/approvals/hunt/%s/%s" % (hunt2_id, approval2_id),
+          replace={hunt2_id: "H:567890",
+                   approval2_id: "approval:222222"})
 
 
 class ApiCreateUserHuntApprovalHandlerTest(
@@ -594,21 +601,23 @@ class ApiCreateUserHuntApprovalHandlerRegressionTest(
         hunt_id = hunt_obj.urn.Basename()
 
     def ReplaceHuntAndApprovalIds():
-      approvals = list(aff4.FACTORY.ListChildren(
-          aff4.ROOT_URN.Add("ACL").Add("hunts").Add(hunt_id).Add(
-              self.token.username),
-          token=self.token))
+      approvals = list(
+          aff4.FACTORY.ListChildren(
+              aff4.ROOT_URN.Add("ACL").Add("hunts").Add(hunt_id).Add(
+                  self.token.username),
+              token=self.token))
 
       return {approvals[0].Basename(): "approval:112233", hunt_id: "H:123456"}
 
     with test_lib.FakeTime(126):
-      self.Check("POST",
-                 "/api/users/me/approvals/hunt/%s" % hunt_id, {"approval": {
-                     "reason": "really important reason!",
-                     "notified_users": ["approver1", "approver2"],
-                     "email_cc_addresses": ["test@example.com"]
-                 }},
-                 replace=ReplaceHuntAndApprovalIds)
+      self.Check(
+          "POST",
+          "/api/users/me/approvals/hunt/%s" % hunt_id, {"approval": {
+              "reason": "really important reason!",
+              "notified_users": ["approver1", "approver2"],
+              "email_cc_addresses": ["test@example.com"]
+          }},
+          replace=ReplaceHuntAndApprovalIds)
 
 
 class ApiListUserHuntApprovalsHandlerTest(test_lib.GRRBaseTest):
@@ -619,15 +628,16 @@ class ApiListUserHuntApprovalsHandlerTest(test_lib.GRRBaseTest):
     self.handler = user_plugin.ApiListUserHuntApprovalsHandler()
 
   def testRendersRequestedHuntAppoval(self):
-    with hunts.GRRHunt.StartHunt(hunt_name=standard.SampleHunt.__name__,
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name=standard.SampleHunt.__name__, token=self.token) as hunt:
       pass
 
-    flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
-                           reason=self.token.reason,
-                           subject_urn=hunt.urn,
-                           approver="approver",
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        flow_name="RequestHuntApprovalFlow",
+        reason=self.token.reason,
+        subject_urn=hunt.urn,
+        approver="approver",
+        token=self.token)
 
     args = user_plugin.ApiListUserHuntApprovalsArgs()
     result = self.handler.Handle(args, token=self.token)
@@ -648,21 +658,22 @@ class ApiListUserHuntApprovalsHandlerRegressionTest(
       hunt = hunts.GRRHunt.StartHunt(hunt_name="GenericHunt", token=self.token)
 
     with test_lib.FakeTime(43):
-      flow_urn = flow.GRRFlow.StartFlow(flow_name="RequestHuntApprovalFlow",
-                                        reason=self.token.reason,
-                                        subject_urn=hunt.urn,
-                                        approver="approver",
-                                        token=self.token)
-      flow_fd = aff4.FACTORY.Open(flow_urn,
-                                  aff4_type=flow.GRRFlow,
-                                  token=self.token)
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name="RequestHuntApprovalFlow",
+          reason=self.token.reason,
+          subject_urn=hunt.urn,
+          approver="approver",
+          token=self.token)
+      flow_fd = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
       approval_id = flow_fd.state.approval_id
 
     with test_lib.FakeTime(126):
-      self.Check("GET",
-                 "/api/users/me/approvals/hunt",
-                 replace={hunt.urn.Basename(): "H:123456",
-                          approval_id: "approval:112233"})
+      self.Check(
+          "GET",
+          "/api/users/me/approvals/hunt",
+          replace={hunt.urn.Basename(): "H:123456",
+                   approval_id: "approval:112233"})
 
 
 class ApiGetUserCronApprovalHandlerRegressionTest(
@@ -676,54 +687,57 @@ class ApiGetUserCronApprovalHandlerRegressionTest(
       self.CreateAdminUser("approver")
 
       cron_manager = aff4_cronjobs.CronManager()
-      cron_args = aff4_cronjobs.CreateCronJobFlowArgs(periodicity="1d",
-                                                      allow_overruns=False)
-      cron1_urn = cron_manager.ScheduleFlow(cron_args=cron_args,
-                                            token=self.token)
-      cron2_urn = cron_manager.ScheduleFlow(cron_args=cron_args,
-                                            token=self.token)
+      cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
+          periodicity="1d", allow_overruns=False)
+      cron1_urn = cron_manager.ScheduleFlow(
+          cron_args=cron_args, token=self.token)
+      cron2_urn = cron_manager.ScheduleFlow(
+          cron_args=cron_args, token=self.token)
 
     with test_lib.FakeTime(44):
-      flow_urn = flow.GRRFlow.StartFlow(flow_name="RequestCronJobApprovalFlow",
-                                        reason="foo",
-                                        subject_urn=cron1_urn,
-                                        approver="approver",
-                                        token=self.token)
-      flow_fd = aff4.FACTORY.Open(flow_urn,
-                                  aff4_type=flow.GRRFlow,
-                                  token=self.token)
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name="RequestCronJobApprovalFlow",
+          reason="foo",
+          subject_urn=cron1_urn,
+          approver="approver",
+          token=self.token)
+      flow_fd = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
       approval1_id = flow_fd.state.approval_id
 
     with test_lib.FakeTime(45):
-      flow_urn = flow.GRRFlow.StartFlow(flow_name="RequestCronJobApprovalFlow",
-                                        reason="bar",
-                                        subject_urn=cron2_urn,
-                                        approver="approver",
-                                        token=self.token)
-      flow_fd = aff4.FACTORY.Open(flow_urn,
-                                  aff4_type=flow.GRRFlow,
-                                  token=self.token)
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name="RequestCronJobApprovalFlow",
+          reason="bar",
+          subject_urn=cron2_urn,
+          approver="approver",
+          token=self.token)
+      flow_fd = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
       approval2_id = flow_fd.state.approval_id
 
     with test_lib.FakeTime(84):
       approver_token = access_control.ACLToken(username="approver")
-      flow.GRRFlow.StartFlow(flow_name="GrantCronJobApprovalFlow",
-                             reason="bar",
-                             delegate=self.token.username,
-                             subject_urn=cron2_urn,
-                             token=approver_token)
+      flow.GRRFlow.StartFlow(
+          flow_name="GrantCronJobApprovalFlow",
+          reason="bar",
+          delegate=self.token.username,
+          subject_urn=cron2_urn,
+          token=approver_token)
 
     with test_lib.FakeTime(126):
-      self.Check("GET",
-                 "/api/users/test/approvals/cron/%s/%s" %
-                 (cron1_urn.Basename(), approval1_id),
-                 replace={cron1_urn.Basename(): "CronJob_123456",
-                          approval1_id: "approval:111111"})
-      self.Check("GET",
-                 "/api/users/test/approvals/cron/%s/%s" %
-                 (cron2_urn.Basename(), approval2_id),
-                 replace={cron2_urn.Basename(): "CronJob_567890",
-                          approval2_id: "approval:222222"})
+      self.Check(
+          "GET",
+          "/api/users/test/approvals/cron/%s/%s" %
+          (cron1_urn.Basename(), approval1_id),
+          replace={cron1_urn.Basename(): "CronJob_123456",
+                   approval1_id: "approval:111111"})
+      self.Check(
+          "GET",
+          "/api/users/test/approvals/cron/%s/%s" %
+          (cron2_urn.Basename(), approval2_id),
+          replace={cron2_urn.Basename(): "CronJob_567890",
+                   approval2_id: "approval:222222"})
 
 
 class ApiCreateUserCronApprovalHandlerTest(
@@ -738,10 +752,10 @@ class ApiCreateUserCronApprovalHandlerTest(
     self.SetUpUserApprovalTest()
 
     cron_manager = aff4_cronjobs.CronManager()
-    cron_args = aff4_cronjobs.CreateCronJobFlowArgs(periodicity="1d",
-                                                    allow_overruns=False)
-    self.subject_urn = cron_urn = cron_manager.ScheduleFlow(cron_args=cron_args,
-                                                            token=self.token)
+    cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
+        periodicity="1d", allow_overruns=False)
+    self.subject_urn = cron_urn = cron_manager.ScheduleFlow(
+        cron_args=cron_args, token=self.token)
     cron_id = cron_urn.Basename()
 
     self.handler = user_plugin.ApiCreateUserCronApprovalHandler()
@@ -763,28 +777,30 @@ class ApiCreateUserCronApprovalHandlerRegressionTest(
       self.CreateUser("approver")
 
     cron_manager = aff4_cronjobs.CronManager()
-    cron_args = aff4_cronjobs.CreateCronJobFlowArgs(periodicity="1d",
-                                                    allow_overruns=False)
+    cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
+        periodicity="1d", allow_overruns=False)
     cron_urn = cron_manager.ScheduleFlow(cron_args=cron_args, token=self.token)
     cron_id = cron_urn.Basename()
 
     def ReplaceCronAndApprovalIds():
-      approvals = list(aff4.FACTORY.ListChildren(
-          aff4.ROOT_URN.Add("ACL").Add("cron").Add(cron_id).Add(
-              self.token.username),
-          token=self.token))
+      approvals = list(
+          aff4.FACTORY.ListChildren(
+              aff4.ROOT_URN.Add("ACL").Add("cron").Add(cron_id).Add(
+                  self.token.username),
+              token=self.token))
 
       return {approvals[0].Basename(): "approval:112233",
               cron_id: "CronJob_123456"}
 
     with test_lib.FakeTime(126):
-      self.Check("POST",
-                 "/api/users/me/approvals/cron/%s" % cron_id, {"approval": {
-                     "reason": "really important reason!",
-                     "notified_users": ["approver1", "approver2"],
-                     "email_cc_addresses": ["test@example.com"]
-                 }},
-                 replace=ReplaceCronAndApprovalIds)
+      self.Check(
+          "POST",
+          "/api/users/me/approvals/cron/%s" % cron_id, {"approval": {
+              "reason": "really important reason!",
+              "notified_users": ["approver1", "approver2"],
+              "email_cc_addresses": ["test@example.com"]
+          }},
+          replace=ReplaceCronAndApprovalIds)
 
 
 class ApiListUserCronApprovalsHandlerTest(test_lib.GRRBaseTest):
@@ -796,16 +812,17 @@ class ApiListUserCronApprovalsHandlerTest(test_lib.GRRBaseTest):
 
   def testRendersRequestedCronJobApproval(self):
     cron_manager = aff4_cronjobs.CronManager()
-    cron_args = aff4_cronjobs.CreateCronJobFlowArgs(periodicity="1d",
-                                                    allow_overruns=False)
-    cron_job_urn = cron_manager.ScheduleFlow(cron_args=cron_args,
-                                             token=self.token)
+    cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
+        periodicity="1d", allow_overruns=False)
+    cron_job_urn = cron_manager.ScheduleFlow(
+        cron_args=cron_args, token=self.token)
 
-    flow.GRRFlow.StartFlow(flow_name="RequestCronJobApprovalFlow",
-                           reason=self.token.reason,
-                           subject_urn=cron_job_urn,
-                           approver="approver",
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        flow_name="RequestCronJobApprovalFlow",
+        reason=self.token.reason,
+        subject_urn=cron_job_urn,
+        approver="approver",
+        token=self.token)
 
     args = user_plugin.ApiListUserCronApprovalsArgs()
     result = self.handler.Handle(args, token=self.token)
@@ -821,8 +838,8 @@ class ApiGetGrrUserHandlerTest(test_lib.GRRBaseTest):
     self.handler = user_plugin.ApiGetGrrUserHandler()
 
   def testRendersObjectForNonExistingUser(self):
-    result = self.handler.Handle(None,
-                                 token=access_control.ACLToken(username="foo"))
+    result = self.handler.Handle(
+        None, token=access_control.ACLToken(username="foo"))
     self.assertEqual(result.username, "foo")
 
   def testRendersSettingsForUserCorrespondingToToken(self):
@@ -832,19 +849,19 @@ class ApiGetGrrUserHandlerTest(test_lib.GRRBaseTest):
         mode="w",
         token=self.token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS,
-                  aff4_users.GUISettings(mode="ADVANCED",
-                                         canary_mode=True,
-                                         docs_location="REMOTE"))
+                  aff4_users.GUISettings(
+                      mode="ADVANCED", canary_mode=True,
+                      docs_location="REMOTE"))
 
-    result = self.handler.Handle(None,
-                                 token=access_control.ACLToken(username="foo"))
+    result = self.handler.Handle(
+        None, token=access_control.ACLToken(username="foo"))
     self.assertEqual(result.settings.mode, "ADVANCED")
     self.assertEqual(result.settings.canary_mode, True)
     self.assertEqual(result.settings.docs_location, "REMOTE")
 
   def testRendersTraitsPassedInConstructor(self):
-    result = self.handler.Handle(None,
-                                 token=access_control.ACLToken(username="foo"))
+    result = self.handler.Handle(
+        None, token=access_control.ACLToken(username="foo"))
     self.assertFalse(result.interface_traits.create_hunt_action_enabled)
 
     handler = user_plugin.ApiGetGrrUserHandler(
@@ -896,9 +913,8 @@ class ApiUpdateGrrUserHandlerTest(test_lib.GRRBaseTest):
       self.handler.Handle(user, token=access_control.ACLToken(username="foo"))
 
   def testSetsSettingsForUserCorrespondingToToken(self):
-    settings = aff4_users.GUISettings(mode="ADVANCED",
-                                      canary_mode=True,
-                                      docs_location="REMOTE")
+    settings = aff4_users.GUISettings(
+        mode="ADVANCED", canary_mode=True, docs_location="REMOTE")
     user = user_plugin.ApiGrrUser(settings=settings)
 
     self.handler.Handle(user, token=access_control.ACLToken(username="foo"))
@@ -920,14 +936,16 @@ class ApiGetPendingUserNotificationsCountHandlerRegressionTest(
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
-    self._SendNotification(notification_type="Discovery",
-                           subject="<some client urn>",
-                           message="<some message>",
-                           client_id=self.client_id)
-    self._SendNotification(notification_type="ViewObject",
-                           subject=str(self.client_id),
-                           message="<some other message>",
-                           client_id=self.client_id)
+    self._SendNotification(
+        notification_type="Discovery",
+        subject="<some client urn>",
+        message="<some message>",
+        client_id=self.client_id)
+    self._SendNotification(
+        notification_type="ViewObject",
+        subject=str(self.client_id),
+        message="<some other message>",
+        client_id=self.client_id)
 
     self.Check("GET", "/api/users/me/notifications/pending/count")
 
@@ -944,16 +962,18 @@ class ApiListPendingUserNotificationsHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self._SendNotification(notification_type="Discovery",
-                             subject=str(self.client_id),
-                             message="<some message>",
-                             client_id=self.client_id)
+      self._SendNotification(
+          notification_type="Discovery",
+          subject=str(self.client_id),
+          message="<some message>",
+          client_id=self.client_id)
 
     with test_lib.FakeTime(44):
-      self._SendNotification(notification_type="ViewObject",
-                             subject=str(self.client_id),
-                             message="<some other message>",
-                             client_id=self.client_id)
+      self._SendNotification(
+          notification_type="ViewObject",
+          subject=str(self.client_id),
+          message="<some other message>",
+          client_id=self.client_id)
 
     base_url = "/api/users/me/notifications/pending"
     self.Check("GET", base_url)
@@ -973,21 +993,24 @@ class ApiDeletePendingUserNotificationHandlerTest(test_lib.GRRBaseTest):
     self.client_id = self.SetupClients(1)[0]
 
     with test_lib.FakeTime(self.TIME_0):
-      self._SendNotification(notification_type="Discovery",
-                             subject=str(self.client_id),
-                             message="<some message>",
-                             client_id=self.client_id)
+      self._SendNotification(
+          notification_type="Discovery",
+          subject=str(self.client_id),
+          message="<some message>",
+          client_id=self.client_id)
 
-      self._SendNotification(notification_type="Discovery",
-                             subject=str(self.client_id),
-                             message="<some message with identical time>",
-                             client_id=self.client_id)
+      self._SendNotification(
+          notification_type="Discovery",
+          subject=str(self.client_id),
+          message="<some message with identical time>",
+          client_id=self.client_id)
 
     with test_lib.FakeTime(self.TIME_1):
-      self._SendNotification(notification_type="ViewObject",
-                             subject=str(self.client_id),
-                             message="<some other message>",
-                             client_id=self.client_id)
+      self._SendNotification(
+          notification_type="ViewObject",
+          subject=str(self.client_id),
+          message="<some other message>",
+          client_id=self.client_id)
 
   def _GetNotifications(self):
     user_record = aff4.FACTORY.Create(
@@ -1065,16 +1088,18 @@ class ApiListAndResetUserNotificationsHandlerRegressionTest(
 
   def Run(self):
     with test_lib.FakeTime(42):
-      self._SendNotification(notification_type="Discovery",
-                             subject=str(self.client_id),
-                             message="<some message>",
-                             client_id=self.client_id)
+      self._SendNotification(
+          notification_type="Discovery",
+          subject=str(self.client_id),
+          message="<some message>",
+          client_id=self.client_id)
 
     with test_lib.FakeTime(44):
-      self._SendNotification(notification_type="ViewObject",
-                             subject=str(self.client_id),
-                             message="<some other message>",
-                             client_id=self.client_id)
+      self._SendNotification(
+          notification_type="ViewObject",
+          subject=str(self.client_id),
+          message="<some other message>",
+          client_id=self.client_id)
 
     # Notifications are pending in this request.
     self.Check("POST", "/api/users/me/notifications")
@@ -1102,35 +1127,38 @@ class ApiListPendingGlobalNotificationsHandlerRegressionTest(
     super(ApiListPendingGlobalNotificationsHandlerRegressionTest, self).setUp()
 
   def Run(self):
-    with aff4.FACTORY.Create(aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-                             aff4_type=aff4_users.GlobalNotificationStorage,
-                             mode="rw",
-                             token=self.token) as storage:
-      storage.AddNotification(aff4_users.GlobalNotification(
-          type=aff4_users.GlobalNotification.Type.ERROR,
-          header="Oh no, we're doomed!",
-          content="Houston, Houston, we have a prob...",
-          link="http://www.google.com",
-          show_from=self.TIME_0))
+    with aff4.FACTORY.Create(
+        aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+        aff4_type=aff4_users.GlobalNotificationStorage,
+        mode="rw",
+        token=self.token) as storage:
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.ERROR,
+              header="Oh no, we're doomed!",
+              content="Houston, Houston, we have a prob...",
+              link="http://www.google.com",
+              show_from=self.TIME_0))
 
-      storage.AddNotification(aff4_users.GlobalNotification(
-          type=aff4_users.GlobalNotification.Type.INFO,
-          header="Nothing to worry about!",
-          link="http://www.google.com",
-          show_from=self.TIME_1))
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.INFO,
+              header="Nothing to worry about!",
+              link="http://www.google.com",
+              show_from=self.TIME_1))
 
-      storage.AddNotification(aff4_users.GlobalNotification(
-          type=aff4_users.GlobalNotification.Type.WARNING,
-          header="Nothing to worry, we won't see this!",
-          link="http://www.google.com",
-          show_from=self.TIME_TOO_EARLY))
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.WARNING,
+              header="Nothing to worry, we won't see this!",
+              link="http://www.google.com",
+              show_from=self.TIME_TOO_EARLY))
 
     replace = {("%d" % self.TIME_0.AsMicroSecondsFromEpoch()): "0",
                ("%d" % self.TIME_1.AsMicroSecondsFromEpoch()): "0"}
 
-    self.Check("GET",
-               "/api/users/me/notifications/pending/global",
-               replace=replace)
+    self.Check(
+        "GET", "/api/users/me/notifications/pending/global", replace=replace)
 
 
 class ApiDeletePendingGlobalNotificationHandlerTest(test_lib.GRRBaseTest):
@@ -1140,19 +1168,22 @@ class ApiDeletePendingGlobalNotificationHandlerTest(test_lib.GRRBaseTest):
     super(ApiDeletePendingGlobalNotificationHandlerTest, self).setUp()
     self.handler = user_plugin.ApiDeletePendingGlobalNotificationHandler()
 
-    with aff4.FACTORY.Create(aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
-                             aff4_type=aff4_users.GlobalNotificationStorage,
-                             mode="rw",
-                             token=self.token) as storage:
-      storage.AddNotification(aff4_users.GlobalNotification(
-          type=aff4_users.GlobalNotification.Type.ERROR,
-          header="Oh no, we're doomed!",
-          content="Houston, Houston, we have a prob...",
-          link="http://www.google.com"))
-      storage.AddNotification(aff4_users.GlobalNotification(
-          type=aff4_users.GlobalNotification.Type.INFO,
-          header="Nothing to worry about!",
-          link="http://www.google.com"))
+    with aff4.FACTORY.Create(
+        aff4_users.GlobalNotificationStorage.DEFAULT_PATH,
+        aff4_type=aff4_users.GlobalNotificationStorage,
+        mode="rw",
+        token=self.token) as storage:
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.ERROR,
+              header="Oh no, we're doomed!",
+              content="Houston, Houston, we have a prob...",
+              link="http://www.google.com"))
+      storage.AddNotification(
+          aff4_users.GlobalNotification(
+              type=aff4_users.GlobalNotification.Type.INFO,
+              header="Nothing to worry about!",
+              link="http://www.google.com"))
 
   def _GetGlobalNotifications(self):
     user_record = aff4.FACTORY.Create(

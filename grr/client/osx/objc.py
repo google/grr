@@ -456,13 +456,13 @@ class KextManager(Foundation):
       if 'KextManagerUnloadKextWithIdentifier' in str(ae):
         # Try without this symbol, as it is not available on 10.6
         logging.debug('Using legacy kextunload')
-        dll = self.SafeLoadKextManager(FilterFnTable(
-            fn_table, 'KextManagerUnloadKextWithIdentifier'))
+        dll = self.SafeLoadKextManager(
+            FilterFnTable(fn_table, 'KextManagerUnloadKextWithIdentifier'))
         dll.KextManagerUnloadKextWithIdentifier = self.LegacyKextunload
       elif 'KextManagerLoadKextWithURL' in str(ae):
         logging.debug('Using legacy kextload')
-        dll = self.SafeLoadKextManager(FilterFnTable(
-            fn_table, 'KextManagerLoadKextWithURL'))
+        dll = self.SafeLoadKextManager(
+            FilterFnTable(fn_table, 'KextManagerLoadKextWithURL'))
         dll.KextManagerLoadKextWithURL = self.LegacyKextload
       else:
         raise OSError('Can\'t resolve KextManager symbols:{0}'.format(str(ae)))

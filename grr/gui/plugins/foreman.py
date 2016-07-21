@@ -32,8 +32,9 @@ class ReadOnlyForemanRuleTable(renderers.UserLabelCheckMixin,
     self.AddColumn(semantic.RDFValueColumn("Created"))
     self.AddColumn(semantic.RDFValueColumn("Expires"))
     self.AddColumn(semantic.RDFValueColumn("Description"))
-    self.AddColumn(semantic.RDFValueColumn(
-        "Rules", renderer=RuleArray, width="40%"))
+    self.AddColumn(
+        semantic.RDFValueColumn(
+            "Rules", renderer=RuleArray, width="40%"))
     self.AddColumn(semantic.RDFValueColumn("Actions", width="40%"))
 
   def RenderAjax(self, request, response):
@@ -41,11 +42,12 @@ class ReadOnlyForemanRuleTable(renderers.UserLabelCheckMixin,
     fd = aff4.FACTORY.Open("aff4:/foreman", token=request.token)
     rules = fd.Get(fd.Schema.RULES, [])
     for rule in rules:
-      self.AddRow(Created=rule.created,
-                  Expires=rule.expires,
-                  Description=rule.description,
-                  Rules=rule.client_rule_set,
-                  Actions=rule.actions)
+      self.AddRow(
+          Created=rule.created,
+          Expires=rule.expires,
+          Description=rule.description,
+          Rules=rule.client_rule_set,
+          Actions=rule.actions)
 
     # Call our baseclass to actually do the rendering
     return super(ReadOnlyForemanRuleTable, self).RenderAjax(request, response)

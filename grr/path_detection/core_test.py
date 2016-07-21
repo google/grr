@@ -104,24 +104,26 @@ class DetectorTest(test_lib.GRRBaseTest):
 
   def testAppliesPostProcessorToExtractedPaths(self):
     """Test it applies the post processor to extracted paths."""
-    detector = core.Detector(extractors=[TestExtractor(multiplier=2)],
-                             post_processors=[TestPostProcessor("_bar")])
+    detector = core.Detector(
+        extractors=[TestExtractor(multiplier=2)],
+        post_processors=[TestPostProcessor("_bar")])
     self.assertEqual(detector.Detect("a b"), set(["b_0_bar", "b_1_bar"]))
 
   def testPostProcessorMayReturnMultipleProcessedPaths(self):
     """Test the post processor may return multiple processed paths."""
-    detector = core.Detector(extractors=[TestExtractor(multiplier=2)],
-                             post_processors=[TestPostProcessor("_bar",
-                                                                count=2)])
+    detector = core.Detector(
+        extractors=[TestExtractor(multiplier=2)],
+        post_processors=[TestPostProcessor(
+            "_bar", count=2)])
     self.assertEqual(
         detector.Detect("a b"),
         set(["b_0_bar", "b_1_bar", "b_0_bar_bar", "b_1_bar_bar"]))
 
   def testAppliesMultiplePostProcessorsToExtractedPaths(self):
     """Test it applies mutliple post processors to extracted paths."""
-    detector = core.Detector(extractors=[TestExtractor(multiplier=2)],
-                             post_processors=[TestPostProcessor("_foo"),
-                                              TestPostProcessor("_bar")])
+    detector = core.Detector(
+        extractors=[TestExtractor(multiplier=2)],
+        post_processors=[TestPostProcessor("_foo"), TestPostProcessor("_bar")])
     self.assertEqual(
         detector.Detect("a b"), set(["b_0_foo_bar", "b_1_foo_bar"]))
 

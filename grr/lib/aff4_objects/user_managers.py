@@ -175,9 +175,8 @@ def CheckUserForLabels(username, authorized_labels, token=None):
   authorized_labels = set(authorized_labels)
 
   try:
-    user = aff4.FACTORY.Open("aff4:/users/%s" % username,
-                             aff4_type=aff4_users.GRRUser,
-                             token=token)
+    user = aff4.FACTORY.Open(
+        "aff4:/users/%s" % username, aff4_type=aff4_users.GRRUser, token=token)
 
     # Only return if all the authorized_labels are found in the user's
     # label list, otherwise raise UnauthorizedAccess.
@@ -250,9 +249,8 @@ def CheckFlowAuthorizedLabels(token, flow_name):
   flow_cls = flow.GRRFlow.GetPlugin(flow_name)
 
   if flow_cls.AUTHORIZED_LABELS:
-    return CheckUserForLabels(token.username,
-                              flow_cls.AUTHORIZED_LABELS,
-                              token=token)
+    return CheckUserForLabels(
+        token.username, flow_cls.AUTHORIZED_LABELS, token=token)
   else:
     return True
 
@@ -389,8 +387,7 @@ class CheckAccessHelper(object):
     logging.warn("Datastore access denied to %s (no matched rules)",
                  subject_str)
     raise access_control.UnauthorizedAccess(
-        "Access to %s rejected: (no matched rules)." % subject,
-        subject=subject)
+        "Access to %s rejected: (no matched rules)." % subject, subject=subject)
 
 
 class FullAccessControlManager(access_control.AccessControlManager):
@@ -406,8 +403,7 @@ class FullAccessControlManager(access_control.AccessControlManager):
     super(FullAccessControlManager, self).__init__()
 
     self.acl_cache = utils.AgeBasedCache(
-        max_size=10000,
-        max_age=config_lib.CONFIG["ACL.cache_age"])
+        max_size=10000, max_age=config_lib.CONFIG["ACL.cache_age"])
     self.super_token = access_control.ACLToken(username="GRRSystem").SetUID()
 
     self.helpers = {
@@ -435,9 +431,9 @@ class FullAccessControlManager(access_control.AccessControlManager):
     try:
       return h.CheckAccess(subject, token)
     except access_control.UnauthorizedAccess:
-      raise access_control.UnauthorizedAccess("User can only access his "
-                                              "home directory.",
-                                              subject=subject)
+      raise access_control.UnauthorizedAccess(
+          "User can only access his "
+          "home directory.", subject=subject)
 
   def _CreateWriteAccessHelper(self):
     """Creates a CheckAccessHelper for controlling write access."""
@@ -661,19 +657,19 @@ class FullAccessControlManager(access_control.AccessControlManager):
 
     try:
       cached_token = self.acl_cache.Get(approval_root_urn)
-      stats.STATS.IncrementCounter("approval_searches",
-                                   fields=["without_reason", "cache"])
+      stats.STATS.IncrementCounter(
+          "approval_searches", fields=["without_reason", "cache"])
 
       token.is_emergency = cached_token.is_emergency
       token.reason = cached_token.reason
 
       return True
     except KeyError:
-      stats.STATS.IncrementCounter("approval_searches",
-                                   fields=["without_reason", "data_store"])
+      stats.STATS.IncrementCounter(
+          "approval_searches", fields=["without_reason", "data_store"])
 
-      approved_token = security.Approval.GetApprovalForObject(target,
-                                                              token=token)
+      approved_token = security.Approval.GetApprovalForObject(
+          target, token=token)
       token.reason = approved_token.reason
       token.is_emergency = approved_token.is_emergency
 
@@ -751,8 +747,7 @@ class UserManagersInit(registry.InitHook):
   """
 
   def RunOnce(self):
-    stats.STATS.RegisterEventMetric("acl_check_time",
-                                    fields=[("check_type", str)])
-    stats.STATS.RegisterCounterMetric("approval_searches",
-                                      fields=[("reason_presence", str),
-                                              ("source", str)])
+    stats.STATS.RegisterEventMetric(
+        "acl_check_time", fields=[("check_type", str)])
+    stats.STATS.RegisterCounterMetric(
+        "approval_searches", fields=[("reason_presence", str), ("source", str)])

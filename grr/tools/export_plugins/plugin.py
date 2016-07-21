@@ -89,9 +89,10 @@ class OutputPluginBasedExportPlugin(ExportPlugin):
     for type_descriptor in value_class.type_infos:
       if (not type_descriptor.hidden and type_descriptor.proto_type_name in
           ["string", "bool", "uint64", "float"]):
-        kwargs = dict(help=type_descriptor.description,
-                      default=type_descriptor.default,
-                      required=type_descriptor.required)
+        kwargs = dict(
+            help=type_descriptor.description,
+            default=type_descriptor.default,
+            required=type_descriptor.required)
 
         if type_descriptor.proto_type_name == "bool":
           kwargs["action"] = "store_true"
@@ -156,9 +157,10 @@ class OutputPluginBasedExportPlugin(ExportPlugin):
     else:
       output_plugin_args = None
 
-    return output_plugin_class(source_urn=collection_urn,
-                               args=output_plugin_args,
-                               token=data_store.default_token)
+    return output_plugin_class(
+        source_urn=collection_urn,
+        args=output_plugin_args,
+        token=data_store.default_token)
 
   def _ProcessValuesWithOutputPlugin(self, values, output_plugin, args):
     """Processes given values with given output plugin."""
@@ -166,9 +168,10 @@ class OutputPluginBasedExportPlugin(ExportPlugin):
     checkpoints = utils.Grouper(values, args.checkpoint_every)
     for index, checkpoint in enumerate(checkpoints):
       logging.info("Starting checkpoint %d.", index)
-      batch_converter = OutputPluginBatchConverter(batch_size=args.batch,
-                                                   threadpool_size=args.threads,
-                                                   output_plugin=output_plugin)
+      batch_converter = OutputPluginBatchConverter(
+          batch_size=args.batch,
+          threadpool_size=args.threads,
+          output_plugin=output_plugin)
       batch_converter.Convert(checkpoint)
 
       logging.info("Checkpointing (checkpoint %d)...", index)

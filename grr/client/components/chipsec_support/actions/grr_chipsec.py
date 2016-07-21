@@ -104,8 +104,9 @@ class DumpFlashImage(actions.ActionPlugin):
       syslog.info("%s: DumpFlashImage has completed successfully",
                   config_lib.CONFIG["Client.name"])
 
-    self.SendReply(chipsec_types.DumpFlashImageResponse(path=dest_pathspec,
-                                                        logs=self.logs))
+    self.SendReply(
+        chipsec_types.DumpFlashImageResponse(
+            path=dest_pathspec, logs=self.logs))
 
 
 class DumpACPITable(actions.ActionPlugin):
@@ -145,9 +146,9 @@ class DumpACPITable(actions.ActionPlugin):
         table_header, table_content = acpi_tables_raw[i]
         table_blob = table_header + table_content
 
-        acpi_tables.append(chipsec_types.ACPITableData(
-            table_address=table_address,
-            table_blob=table_blob))
+        acpi_tables.append(
+            chipsec_types.ACPITableData(
+                table_address=table_address, table_blob=table_blob))
     except (chipset.UnknownChipsetError, OSError) as err:
       # Expected errors that might happen on the client
       # If the chipset is unknown or we encountered an error due to reading
@@ -175,5 +176,6 @@ class DumpACPITable(actions.ActionPlugin):
     if args.logging:
       self.logs.extend(self.chipsec_log.getvalue().splitlines())
 
-    self.SendReply(chipsec_types.DumpACPITableResponse(acpi_tables=acpi_tables,
-                                                       logs=self.logs))
+    self.SendReply(
+        chipsec_types.DumpACPITableResponse(
+            acpi_tables=acpi_tables, logs=self.logs))

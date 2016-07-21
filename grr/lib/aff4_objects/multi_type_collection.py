@@ -106,9 +106,10 @@ class MultiTypeCollection(aff4.AFF4Object):
         sub_collection_urn,
         aff4_type=sequential_collection.GrrMessageCollection,
         token=self.token)
-    for item in sub_collection.Scan(after_timestamp=after_timestamp,
-                                    include_suffix=include_suffix,
-                                    max_records=max_records):
+    for item in sub_collection.Scan(
+        after_timestamp=after_timestamp,
+        include_suffix=include_suffix,
+        max_records=max_records):
       yield item
 
   def LengthByType(self, type_name):
@@ -148,12 +149,13 @@ class MultiTypeCollection(aff4.AFF4Object):
       ValueError: rdf_value has unexpected type.
 
     """
-    return self.StaticAdd(self.urn,
-                          self.token,
-                          rdf_value,
-                          timestamp=timestamp,
-                          suffix=suffix,
-                          **kwargs)
+    return self.StaticAdd(
+        self.urn,
+        self.token,
+        rdf_value,
+        timestamp=timestamp,
+        suffix=suffix,
+        **kwargs)
 
   def __iter__(self):
     sub_collections_urns = aff4.FACTORY.ListChildren(self.urn, token=self.token)

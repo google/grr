@@ -34,10 +34,11 @@ class TimelineViewRenderer(semantic.RDFValueArrayRenderer):
     container = request.REQ.get("aff4_path", "")
     if container:
       self.container = rdfvalue.RDFURN(container)
-      self.hash_dict = dict(container=self.container,
-                            main="TimelineMain",
-                            c=client_id,
-                            reason=request.token.reason)
+      self.hash_dict = dict(
+          container=self.container,
+          main="TimelineMain",
+          c=client_id,
+          reason=request.token.reason)
       self.hash = urllib.urlencode(sorted(self.hash_dict.items()))
 
       return super(TimelineViewRenderer, self).Layout(request, response)
@@ -134,10 +135,11 @@ class TimelineToolbar(renderers.TemplateRenderer):
     self.token = request.token
 
     response = super(TimelineToolbar, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "TimelineToolbar.Layout",
-                               container=self.container,
-                               reason=self.token.reason)
+    return self.CallJavascript(
+        response,
+        "TimelineToolbar.Layout",
+        container=self.container,
+        reason=self.token.reason)
 
 
 class EventMessageRenderer(semantic.RDFValueRenderer):
@@ -190,9 +192,9 @@ class EventTable(renderers.TableRenderer):
     self.AddColumn(semantic.AttributeColumn("event.id"))
     self.AddColumn(semantic.AttributeColumn("timestamp"))
     self.AddColumn(semantic.AttributeColumn("subject"))
-    self.AddColumn(semantic.RDFValueColumn("Message",
-                                           renderer=EventMessageRenderer,
-                                           width="100%"))
+    self.AddColumn(
+        semantic.RDFValueColumn(
+            "Message", renderer=EventMessageRenderer, width="100%"))
 
   def Layout(self, request, response):
     """Render the content of the tab or the container tabset."""
@@ -200,10 +202,11 @@ class EventTable(renderers.TableRenderer):
     self.state["query"] = request.REQ.get("query", "")
 
     response = super(EventTable, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "EventTable.Layout",
-                               container=self.state["container"],
-                               renderer=self.__class__.__name__)
+    return self.CallJavascript(
+        response,
+        "EventTable.Layout",
+        container=self.state["container"],
+        renderer=self.__class__.__name__)
 
   def BuildTable(self, start_row, end_row, request):
     """Populate the table."""
@@ -264,11 +267,12 @@ class EventViewTabs(renderers.TabLayout):
     self.state["event"] = request.REQ.get("event")
 
     response = super(EventViewTabs, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "EventViewTabs.Layout",
-                               event_queue=self.event_queue,
-                               container=self.state["container"],
-                               renderer=self.__class__.__name__)
+    return self.CallJavascript(
+        response,
+        "EventViewTabs.Layout",
+        event_queue=self.event_queue,
+        container=self.state["container"],
+        renderer=self.__class__.__name__)
 
 
 class EventSubjectView(fileview.AFF4Stats):
@@ -296,9 +300,8 @@ class EventSubjectView(fileview.AFF4Stats):
     """Find the event and show stats about it."""
     event = self.GetEvent(request)
     if event:
-      subject = aff4.FACTORY.Open(event.subject,
-                                  token=request.token,
-                                  age=aff4.ALL_TIMES)
+      subject = aff4.FACTORY.Open(
+          event.subject, token=request.token, age=aff4.ALL_TIMES)
       self.classes = self.RenderAFF4Attributes(subject, request)
       self.path = subject.urn
 

@@ -58,8 +58,7 @@ class ProfileServerTest(test_lib.GRRBaseTest):
 
     with utils.Stubber(urllib2, "urlopen", FakeOpen):
       profile = self.server.GetProfileByName(
-          profile_name,
-          version=constants.PROFILE_REPOSITORY_VERSION)
+          profile_name, version=constants.PROFILE_REPOSITORY_VERSION)
       uncompressed = zlib.decompress(profile.data, 16 + zlib.MAX_WBITS)
       self.assertTrue("BusQueryDeviceID" in uncompressed)
 
@@ -68,8 +67,7 @@ class ProfileServerTest(test_lib.GRRBaseTest):
 
     with utils.Stubber(urllib2, "urlopen", FakeOpen):
       profile = self.server.GetProfileByName(
-          profile_name,
-          version=constants.PROFILE_REPOSITORY_VERSION)
+          profile_name, version=constants.PROFILE_REPOSITORY_VERSION)
 
     # This time it should have been cached.
     self.assertEqual(FakeHandle.read_count, 1)
@@ -94,9 +92,10 @@ class ProfileServerTest(test_lib.GRRBaseTest):
       self.assertEqual(FakeHandle.read_count, 1)
 
     cache_urn = rdfvalue.RDFURN(config_lib.CONFIG["Rekall.profile_cache_urn"])
-    cached_items = list(aff4.FACTORY.Open(
-        cache_urn.Add(constants.PROFILE_REPOSITORY_VERSION),
-        token=self.token).ListChildren())
+    cached_items = list(
+        aff4.FACTORY.Open(
+            cache_urn.Add(constants.PROFILE_REPOSITORY_VERSION),
+            token=self.token).ListChildren())
 
     # We cache the .gz only.
     self.assertEqual(len(cached_items), 1)

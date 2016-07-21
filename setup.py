@@ -44,16 +44,16 @@ def run_make_files(make_docs=False, make_ui_files=True, sync_artifacts=True):
 
   if make_ui_files:
     subprocess.check_call(["npm", "install"], cwd="grr/gui/static")
-    subprocess.check_call(["npm", "install", "-g", "bower", "gulp"],
-                          cwd="grr/gui/static")
+    subprocess.check_call(
+        ["npm", "install", "-g", "bower", "gulp"], cwd="grr/gui/static")
     subprocess.check_call(["bower", "update"], cwd="grr/gui/static")
     subprocess.check_call(["gulp", "compile"], cwd="grr/gui/static")
 
 
 def get_version():
   config = ConfigParser.SafeConfigParser()
-  config.read(os.path.join(
-      os.path.dirname(os.path.realpath(__file__)), "version.ini"))
+  config.read(
+      os.path.join(os.path.dirname(os.path.realpath(__file__)), "version.ini"))
   return config.get("Version", "packageversion")
 
 
@@ -83,9 +83,10 @@ class Sdist(sdist):
     sdist.initialize_options(self)
 
   def run(self):
-    run_make_files(make_docs=not self.no_make_docs,
-                   make_ui_files=not self.no_make_ui_files,
-                   sync_artifacts=not self.no_sync_artifacts)
+    run_make_files(
+        make_docs=not self.no_make_docs,
+        make_ui_files=not self.no_make_ui_files,
+        sync_artifacts=not self.no_sync_artifacts)
     sdist.run(self)
 
 
@@ -122,13 +123,14 @@ CONFIG_FILE = "%(CONFIG_FILE)s"
     install.run(self)
 
 
-data_files = (find_data_files("docs") + find_data_files("executables") +
-              find_data_files("install_data") + find_data_files("scripts") +
-              find_data_files("grr/artifacts") + find_data_files("grr/checks") +
-              find_data_files("grr/gui/static",
-                              ignore_dirs=IGNORE_GUI_DIRS) +
-              find_data_files("grr/gui/local/static",
-                              ignore_dirs=IGNORE_GUI_DIRS) + ["version.ini"])
+data_files = (
+    find_data_files("docs") + find_data_files("executables") +
+    find_data_files("install_data") + find_data_files("scripts") +
+    find_data_files("grr/artifacts") + find_data_files("grr/checks") +
+    find_data_files(
+        "grr/gui/static", ignore_dirs=IGNORE_GUI_DIRS) + find_data_files(
+            "grr/gui/local/static", ignore_dirs=IGNORE_GUI_DIRS) +
+    ["version.ini"])
 
 if "VIRTUAL_ENV" not in os.environ:
   print "*****************************************************"

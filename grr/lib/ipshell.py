@@ -17,9 +17,8 @@ def IPShell(argv=None, user_ns=None, banner=None):
     cfg = Config()
     cfg.InteractiveShellEmbed.autocall = 2
 
-    shell = InteractiveShellEmbed(config=cfg,
-                                  user_ns=user_ns,
-                                  banner2=unicode(banner))
+    shell = InteractiveShellEmbed(
+        config=cfg, user_ns=user_ns, banner2=unicode(banner))
     shell(local_ns=user_ns)
   except ImportError:
     from IPython import Shell

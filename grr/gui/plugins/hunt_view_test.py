@@ -56,8 +56,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client",
-                attribute_regex="GRR"))
+                attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
     with hunts.GRRHunt.StartHunt(
@@ -80,10 +79,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
         foreman.AssignTasksToClient(client_id)
 
     self.hunt_urn = hunt.urn
-    return aff4.FACTORY.Open(hunt.urn,
-                             mode="rw",
-                             token=token,
-                             age=aff4.ALL_TIMES)
+    return aff4.FACTORY.Open(
+        hunt.urn, mode="rw", token=token, age=aff4.ALL_TIMES)
 
   def CreateGenericHuntWithCollection(self, values=None):
     self.client_ids = self.SetupClients(10)
@@ -97,22 +94,23 @@ class TestHuntView(test_lib.GRRSeleniumTest):
         rdf_foreman.ForemanClientRule(
             rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
             regex=rdf_foreman.ForemanRegexClientRule(
-                attribute_name="GRR client",
-                attribute_regex="GRR"))
+                attribute_name="GRR client", attribute_regex="GRR"))
     ])
 
-    with hunts.GRRHunt.StartHunt(hunt_name="GenericHunt",
-                                 client_rule_set=client_rule_set,
-                                 output_plugins=[],
-                                 token=self.token) as hunt:
+    with hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        client_rule_set=client_rule_set,
+        output_plugins=[],
+        token=self.token) as hunt:
 
       runner = hunt.GetRunner()
       runner.Start()
 
-      with aff4.FACTORY.Open(runner.context.results_collection_urn,
-                             aff4_type=hunts_results.HuntResultCollection,
-                             mode="w",
-                             token=self.token) as collection:
+      with aff4.FACTORY.Open(
+          runner.context.results_collection_urn,
+          aff4_type=hunts_results.HuntResultCollection,
+          mode="w",
+          token=self.token) as collection:
 
         for value in values:
           collection.Add(rdf_flows.GrrMessage(payload=value))
@@ -121,8 +119,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
   def SetupTestHuntView(self, client_limit=0, client_count=10):
     # Create some clients and a hunt to view.
-    with self.CreateSampleHunt(client_limit=client_limit,
-                               client_count=client_count) as hunt:
+    with self.CreateSampleHunt(
+        client_limit=client_limit, client_count=client_count) as hunt:
       hunt.Log("TestLogLine")
 
       # Log an error just with some random traceback.
@@ -389,10 +387,10 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     with self.ACLChecksDisabled():
       # This needs to be created by a different user so we can test the
       # approval dialog.
-      hunt = self.CreateSampleHunt(stopped=True,
-                                   token=access_control.ACLToken(
-                                       username="random user",
-                                       reason="test"))
+      hunt = self.CreateSampleHunt(
+          stopped=True,
+          token=access_control.ACLToken(
+              username="random user", reason="test"))
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
@@ -620,8 +618,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
   def _CreateHuntWithDownloadedFile(self):
     with self.ACLChecksDisabled():
       hunt = self.CreateSampleHunt(
-          path=os.path.join(self.base_path, "test.plist"),
-          client_count=1)
+          path=os.path.join(self.base_path, "test.plist"), client_count=1)
 
       action_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
                                             "HashFile", "HashBuffer")
@@ -645,8 +642,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     with self.ACLChecksDisabled():
       results = aff4.FACTORY.Open(hunt.urn.Add("Results"), token=self.token)
       fd = aff4.FACTORY.Open(
-          flow_export.CollectionItemToAff4Path(results[0]),
-          token=self.token)
+          flow_export.CollectionItemToAff4Path(results[0]), token=self.token)
 
       self.GrantHuntApproval(hunt.urn)
 
@@ -664,9 +660,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     with self.ACLChecksDisabled():
       results = aff4.FACTORY.Open(hunt.urn.Add("Results"), token=self.token)
       aff4_path = flow_export.CollectionItemToAff4Path(results[0])
-      with aff4.FACTORY.Create(aff4_path,
-                               aff4_type=aff4.AFF4Volume,
-                               token=self.token) as _:
+      with aff4.FACTORY.Create(
+          aff4_path, aff4_type=aff4.AFF4Volume, token=self.token) as _:
         pass
 
       self.GrantHuntApproval(hunt.urn)

@@ -217,9 +217,8 @@ class KnowledgeBase(structs.RDFProtoStruct):
       A list of strings with the set attribute names, e.g. ["users.sid"]
     """
 
-    user = self.GetUser(sid=kb_user.sid,
-                        uid=kb_user.uid,
-                        username=kb_user.username)
+    user = self.GetUser(
+        sid=kb_user.sid, uid=kb_user.uid, username=kb_user.username)
     new_attrs = []
     merge_conflicts = []  # Record when we overwrite a value.
     if not user:
@@ -299,9 +298,8 @@ class User(structs.RDFProtoStruct):
       # allows for backwards compatibility with clients returning KBUser
       # objects.
       # TODO(user): remove once all clients are newer than 3.0.7.1.
-      super(User, self).__init__(initializer=initializer.SerializeToString(),
-                                 age=age,
-                                 **kwargs)
+      super(User, self).__init__(
+          initializer=initializer.SerializeToString(), age=age, **kwargs)
     else:
       super(User, self).__init__(initializer=initializer, age=age, **kwargs)
 
@@ -387,11 +385,11 @@ class Interface(structs.RDFProtoStruct):
         results.append(address.human_readable)
       else:
         if address.address_type == NetworkAddress.Family.INET:
-          results.append(socket.inet_ntop(socket.AF_INET, str(
-              address.packed_bytes)))
+          results.append(
+              socket.inet_ntop(socket.AF_INET, str(address.packed_bytes)))
         else:
-          results.append(socket.inet_ntop(socket.AF_INET6, str(
-              address.packed_bytes)))
+          results.append(
+              socket.inet_ntop(socket.AF_INET6, str(address.packed_bytes)))
     return results
 
 

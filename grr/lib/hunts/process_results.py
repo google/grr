@@ -87,17 +87,18 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
             plugin_descriptor=plugin_def,
             status="SUCCESS",
             batch_size=len(results))
-        stats.STATS.IncrementCounter("hunt_results_ran_through_plugin",
-                                     delta=len(results),
-                                     fields=[plugin_def.plugin_name])
+        stats.STATS.IncrementCounter(
+            "hunt_results_ran_through_plugin",
+            delta=len(results),
+            fields=[plugin_def.plugin_name])
 
       except Exception as e:  # pylint: disable=broad-except
         logging.exception("Error processing hunt results: hunt %s, "
                           "plugin %s", hunt_urn, utils.SmartStr(plugin))
         self.Log("Error processing hunt results (hunt %s, "
                  "plugin %s): %s" % (hunt_urn, utils.SmartStr(plugin), e))
-        stats.STATS.IncrementCounter("hunt_output_plugin_errors",
-                                     fields=[plugin_def.plugin_name])
+        stats.STATS.IncrementCounter(
+            "hunt_output_plugin_errors", fields=[plugin_def.plugin_name])
 
         plugin_status = output_plugin.OutputPluginBatchProcessingStatus(
             plugin_descriptor=plugin_def,
@@ -135,38 +136,38 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     metadata_urn = hunt_urn.Add("ResultsMetadata")
     exceptions_by_plugin = {}
     num_processed_for_hunt = 0
-    with aff4.FACTORY.OpenWithLock(hunt_results_urn,
-                                   aff4_type=hunts_results.HuntResultCollection,
-                                   lease_time=600,
-                                   token=self.token) as collection_obj:
-      with aff4.FACTORY.OpenWithLock(metadata_urn,
-                                     lease_time=600,
-                                     token=self.token) as metadata_obj:
+    with aff4.FACTORY.OpenWithLock(
+        hunt_results_urn,
+        aff4_type=hunts_results.HuntResultCollection,
+        lease_time=600,
+        token=self.token) as collection_obj:
+      with aff4.FACTORY.OpenWithLock(
+          metadata_urn, lease_time=600, token=self.token) as metadata_obj:
         all_plugins, used_plugins = self.LoadPlugins(metadata_obj)
-        num_processed = int(metadata_obj.Get(
-            metadata_obj.Schema.NUM_PROCESSED_RESULTS))
+        num_processed = int(
+            metadata_obj.Get(metadata_obj.Schema.NUM_PROCESSED_RESULTS))
         for batch in utils.Grouper(results, batch_size):
-          results = list(collection_obj.MultiResolve([(
-              ts, suffix) for (_, ts, suffix) in batch]))
+          results = list(
+              collection_obj.MultiResolve([(ts, suffix)
+                                           for (_, ts, suffix) in batch]))
           self.RunPlugins(hunt_urn, used_plugins, results, exceptions_by_plugin)
 
           hunts_results.HuntResultQueue.DeleteNotifications(
-              [record_id for (record_id, _, _) in batch],
-              token=self.token)
+              [record_id for (record_id, _, _) in batch], token=self.token)
           num_processed += len(batch)
           num_processed_for_hunt += len(batch)
           self.HeartBeat()
           collection_obj.UpdateLease(600)
-          metadata_obj.Set(metadata_obj.Schema.NUM_PROCESSED_RESULTS(
-              num_processed))
+          metadata_obj.Set(
+              metadata_obj.Schema.NUM_PROCESSED_RESULTS(num_processed))
           metadata_obj.UpdateLease(600)
           if self.CheckIfRunningTooLong():
             logging.warning("Run too long, stopping.")
             break
 
         metadata_obj.Set(metadata_obj.Schema.OUTPUT_PLUGINS(all_plugins))
-        metadata_obj.Set(metadata_obj.Schema.NUM_PROCESSED_RESULTS(
-            num_processed))
+        metadata_obj.Set(
+            metadata_obj.Schema.NUM_PROCESSED_RESULTS(num_processed))
 
     if exceptions_by_plugin:
       for plugin, exceptions in exceptions_by_plugin.items():

@@ -44,9 +44,8 @@ class AuthTest(test_lib.GRRBaseTest):
     self.assertEqual(None, store.GetNonce(nonce2))
 
   def testNonceStoreInvalidateOldNonces(self):
-    with utils.MultiStubber(
-        (auth.NonceStore, "NONCE_LEASE", 1),
-        (auth.NonceStore, "MAX_NONCES", 5)):
+    with utils.MultiStubber((auth.NonceStore, "NONCE_LEASE", 1),
+                            (auth.NonceStore, "MAX_NONCES", 5)):
       store = auth.NonceStore()
 
       now = 1000000

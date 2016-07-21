@@ -54,20 +54,22 @@ class VfsTestMixin(object):
   def CreateRecursiveListFlow(self, client_id, token):
     flow_args = filesystem.RecursiveListDirectoryArgs()
 
-    return flow.GRRFlow.StartFlow(client_id=client_id,
-                                  flow_name="RecursiveListDirectory",
-                                  args=flow_args,
-                                  token=token)
+    return flow.GRRFlow.StartFlow(
+        client_id=client_id,
+        flow_name="RecursiveListDirectory",
+        args=flow_args,
+        token=token)
 
   def CreateMultiGetFileFlow(self, client_id, file_path, token):
-    pathspec = rdf_paths.PathSpec(path=file_path,
-                                  pathtype=rdf_paths.PathSpec.PathType.OS)
+    pathspec = rdf_paths.PathSpec(
+        path=file_path, pathtype=rdf_paths.PathSpec.PathType.OS)
     flow_args = transfer.MultiGetFileArgs(pathspecs=[pathspec])
 
-    return flow.GRRFlow.StartFlow(client_id=client_id,
-                                  flow_name="MultiGetFile",
-                                  args=flow_args,
-                                  token=token)
+    return flow.GRRFlow.StartFlow(
+        client_id=client_id,
+        flow_name="MultiGetFile",
+        args=flow_args,
+        token=token)
 
 
 class ApiGetFileDetailsHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
@@ -81,47 +83,46 @@ class ApiGetFileDetailsHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
     self.CreateFileVersions(self.client_id, self.file_path)
 
   def testRaisesOnEmptyPath(self):
-    args = vfs_plugin.ApiGetFileDetailsArgs(client_id=self.client_id,
-                                            file_path="")
+    args = vfs_plugin.ApiGetFileDetailsArgs(
+        client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesOnRootPath(self):
-    args = vfs_plugin.ApiGetFileDetailsArgs(client_id=self.client_id,
-                                            file_path="/")
+    args = vfs_plugin.ApiGetFileDetailsArgs(
+        client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesIfFirstComponentNotInWhitelist(self):
-    args = vfs_plugin.ApiGetFileDetailsArgs(client_id=self.client_id,
-                                            file_path="/analysis")
+    args = vfs_plugin.ApiGetFileDetailsArgs(
+        client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testHandlerReturnsNewestVersionByDefault(self):
     # Get file version without specifying a timestamp.
-    args = vfs_plugin.ApiGetFileDetailsArgs(client_id=self.client_id,
-                                            file_path=self.file_path)
+    args = vfs_plugin.ApiGetFileDetailsArgs(
+        client_id=self.client_id, file_path=self.file_path)
     result = self.handler.Handle(args, token=self.token)
 
     # Should return the newest version.
     self.assertEqual(result.file.path, self.file_path)
-    self.assertAlmostEqual(result.file.age,
-                           self.time_2,
-                           delta=rdfvalue.Duration("1s"))
+    self.assertAlmostEqual(
+        result.file.age, self.time_2, delta=rdfvalue.Duration("1s"))
 
   def testHandlerReturnsClosestSpecificVersion(self):
     # Get specific version.
-    args = vfs_plugin.ApiGetFileDetailsArgs(client_id=self.client_id,
-                                            file_path=self.file_path,
-                                            timestamp=self.time_1)
+    args = vfs_plugin.ApiGetFileDetailsArgs(
+        client_id=self.client_id,
+        file_path=self.file_path,
+        timestamp=self.time_1)
     result = self.handler.Handle(args, token=self.token)
 
     # The age of the returned version might have a slight deviation.
     self.assertEqual(result.file.path, self.file_path)
-    self.assertAlmostEqual(result.file.age,
-                           self.time_1,
-                           delta=rdfvalue.Duration("1s"))
+    self.assertAlmostEqual(
+        result.file.age, self.time_1, delta=rdfvalue.Duration("1s"))
 
   def testResultIncludesDetails(self):
     """Checks if the details include certain attributes.
@@ -130,8 +131,8 @@ class ApiGetFileDetailsHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
     attributes here and make sure they are returned.
     """
 
-    args = vfs_plugin.ApiGetFileDetailsArgs(client_id=self.client_id,
-                                            file_path=self.file_path)
+    args = vfs_plugin.ApiGetFileDetailsArgs(
+        client_id=self.client_id, file_path=self.file_path)
     result = self.handler.Handle(args, token=self.token)
 
     attributes_by_type = {}
@@ -164,8 +165,8 @@ class ApiListFilesHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
     self.handler.Handle(args, token=self.token)
 
   def testRaisesIfFirstComponentIsNotWhitelisted(self):
-    args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id,
-                                       file_path="/analysis")
+    args = vfs_plugin.ApiListFilesArgs(
+        client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
@@ -173,8 +174,8 @@ class ApiListFilesHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
     # Fetch all children of a directory.
-    args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id,
-                                       file_path=self.file_path)
+    args = vfs_plugin.ApiListFilesArgs(
+        client_id=self.client_id, file_path=self.file_path)
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), 4)
@@ -186,9 +187,10 @@ class ApiListFilesHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
     # Only fetch sub-directories.
-    args = vfs_plugin.ApiListFilesArgs(client_id=self.client_id,
-                                       file_path=self.file_path,
-                                       directories_only=True)
+    args = vfs_plugin.ApiListFilesArgs(
+        client_id=self.client_id,
+        file_path=self.file_path,
+        directories_only=True)
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), 1)
@@ -227,14 +229,14 @@ class ApiGetFileTextHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesOnRootPath(self):
-    args = vfs_plugin.ApiGetFileTextArgs(client_id=self.client_id,
-                                         file_path="/")
+    args = vfs_plugin.ApiGetFileTextArgs(
+        client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesIfFirstComponentNotInWhitelist(self):
-    args = vfs_plugin.ApiGetFileTextArgs(client_id=self.client_id,
-                                         file_path="/analysis")
+    args = vfs_plugin.ApiGetFileTextArgs(
+        client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
@@ -306,39 +308,38 @@ class ApiGetFileBlobHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesOnRootPath(self):
-    args = vfs_plugin.ApiGetFileBlobArgs(client_id=self.client_id,
-                                         file_path="/")
+    args = vfs_plugin.ApiGetFileBlobArgs(
+        client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesIfFirstComponentNotInWhitelist(self):
-    args = vfs_plugin.ApiGetFileBlobArgs(client_id=self.client_id,
-                                         file_path="/analysis")
+    args = vfs_plugin.ApiGetFileBlobArgs(
+        client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testNewestFileContentIsReturnedByDefault(self):
-    args = vfs_plugin.ApiGetFileBlobArgs(client_id=self.client_id,
-                                         file_path=self.file_path)
+    args = vfs_plugin.ApiGetFileBlobArgs(
+        client_id=self.client_id, file_path=self.file_path)
     result = self.handler.Handle(args, token=self.token)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
     self.assertEqual(next(result.GenerateContent()), "Goodbye World")
 
   def testOffsetAndLengthRestrictResult(self):
-    args = vfs_plugin.ApiGetFileBlobArgs(client_id=self.client_id,
-                                         file_path=self.file_path,
-                                         offset=2,
-                                         length=3)
+    args = vfs_plugin.ApiGetFileBlobArgs(
+        client_id=self.client_id, file_path=self.file_path, offset=2, length=3)
     result = self.handler.Handle(args, token=self.token)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
     self.assertEqual(next(result.GenerateContent()), "odb")
 
   def testReturnsOlderVersionIfTimestampIsSupplied(self):
-    args = vfs_plugin.ApiGetFileBlobArgs(client_id=self.client_id,
-                                         file_path=self.file_path,
-                                         timestamp=self.time_1)
+    args = vfs_plugin.ApiGetFileBlobArgs(
+        client_id=self.client_id,
+        file_path=self.file_path,
+        timestamp=self.time_1)
     result = self.handler.Handle(args, token=self.token)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
@@ -360,8 +361,8 @@ class ApiGetFileBlobHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
       for char in chars:
         fd.Write(char * self.handler.CHUNK_SIZE)
 
-    args = vfs_plugin.ApiGetFileBlobArgs(client_id=self.client_id,
-                                         file_path=huge_file_path)
+    args = vfs_plugin.ApiGetFileBlobArgs(
+        client_id=self.client_id, file_path=huge_file_path)
     result = self.handler.Handle(args, token=self.token)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
@@ -377,20 +378,20 @@ class ApiGetFileVersionTimesHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
     self.handler = vfs_plugin.ApiGetFileVersionTimesHandler()
 
   def testRaisesOnEmptyPath(self):
-    args = vfs_plugin.ApiGetFileVersionTimesArgs(client_id=self.client_id,
-                                                 file_path="")
+    args = vfs_plugin.ApiGetFileVersionTimesArgs(
+        client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesOnRootPath(self):
-    args = vfs_plugin.ApiGetFileVersionTimesArgs(client_id=self.client_id,
-                                                 file_path="/")
+    args = vfs_plugin.ApiGetFileVersionTimesArgs(
+        client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesIfFirstComponentNotInWhitelist(self):
-    args = vfs_plugin.ApiGetFileVersionTimesArgs(client_id=self.client_id,
-                                                 file_path="/analysis")
+    args = vfs_plugin.ApiGetFileVersionTimesArgs(
+        client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
@@ -428,20 +429,20 @@ class ApiGetFileDownloadCommandHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
     self.handler = vfs_plugin.ApiGetFileDownloadCommandHandler()
 
   def testRaisesOnEmptyPath(self):
-    args = vfs_plugin.ApiGetFileDownloadCommandArgs(client_id=self.client_id,
-                                                    file_path="")
+    args = vfs_plugin.ApiGetFileDownloadCommandArgs(
+        client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesOnRootPath(self):
-    args = vfs_plugin.ApiGetFileDownloadCommandArgs(client_id=self.client_id,
-                                                    file_path="/")
+    args = vfs_plugin.ApiGetFileDownloadCommandArgs(
+        client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesIfFirstComponentNotInWhitelist(self):
-    args = vfs_plugin.ApiGetFileDownloadCommandArgs(client_id=self.client_id,
-                                                    file_path="/analysis")
+    args = vfs_plugin.ApiGetFileDownloadCommandArgs(
+        client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
@@ -470,29 +471,28 @@ class ApiCreateVfsRefreshOperationHandlerTest(test_lib.GRRBaseTest):
     self.file_path = "fs/os/Users/Shared"
 
   def testRaisesOnEmptyPath(self):
-    args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(client_id=self.client_id,
-                                                       file_path="")
+    args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
+        client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesOnRootPath(self):
-    args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(client_id=self.client_id,
-                                                       file_path="/")
+    args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
+        client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesIfFirstComponentNotInWhitelist(self):
-    args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(client_id=self.client_id,
-                                                       file_path="/analysis")
+    args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
+        client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testHandlerStartsFlow(self):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
-    args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(client_id=self.client_id,
-                                                       file_path=self.file_path,
-                                                       max_depth=0)
+    args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
+        client_id=self.client_id, file_path=self.file_path, max_depth=0)
     result = self.handler.Handle(args, token=self.token)
 
     # Check returned operation_id to references a RecursiveListDirectory flow.
@@ -503,20 +503,22 @@ class ApiCreateVfsRefreshOperationHandlerTest(test_lib.GRRBaseTest):
   def testNotificationIsSent(self):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
-    args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(client_id=self.client_id,
-                                                       file_path=self.file_path,
-                                                       max_depth=0,
-                                                       notify_user=True)
+    args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
+        client_id=self.client_id,
+        file_path=self.file_path,
+        max_depth=0,
+        notify_user=True)
     result = self.handler.Handle(args, token=self.token)
 
     # Finish flow and check if there are any new notifications.
     flow_urn = rdfvalue.RDFURN(result.operation_id)
     client_mock = action_mocks.ActionMock()
-    for _ in test_lib.TestFlowHelper(flow_urn,
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     token=self.token,
-                                     check_flow_errors=False):
+    for _ in test_lib.TestFlowHelper(
+        flow_urn,
+        client_mock,
+        client_id=self.client_id,
+        token=self.token,
+        check_flow_errors=False):
       pass
 
     # Get pending notifications and check the newest one.
@@ -551,17 +553,17 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
 
     def ReplaceFlowId():
       flows_dir_fd = aff4.FACTORY.Open(
-          self.client_id.Add("flows"),
-          token=self.token)
+          self.client_id.Add("flows"), token=self.token)
       flow_urn = list(flows_dir_fd.ListChildren())[0]
       return {flow_urn.Basename(): "W:ABCDEF"}
 
     url = "/api/clients/%s/vfs-refresh-operations" % self.client_id.Basename()
     with test_lib.FakeTime(42):
-      self.Check("POST",
-                 url, {"file_path": self.file_path,
-                       "max_depth": 1},
-                 replace=ReplaceFlowId)
+      self.Check(
+          "POST",
+          url, {"file_path": self.file_path,
+                "max_depth": 1},
+          replace=ReplaceFlowId)
 
 
 class GetVfsRefreshOperationStateHandlerTest(test_lib.GRRBaseTest,
@@ -585,10 +587,9 @@ class GetVfsRefreshOperationStateHandlerTest(test_lib.GRRBaseTest,
     self.assertEqual(result.state, "RUNNING")
 
     # Terminate flow.
-    with aff4.FACTORY.Open(self.flow_urn,
-                           aff4_type=flow.GRRFlow,
-                           mode="rw",
-                           token=self.token) as flow_obj:
+    with aff4.FACTORY.Open(
+        self.flow_urn, aff4_type=flow.GRRFlow, mode="rw",
+        token=self.token) as flow_obj:
       flow_obj.GetRunner().Error("Fake error")
 
     # Recheck status and see if it changed.
@@ -597,9 +598,8 @@ class GetVfsRefreshOperationStateHandlerTest(test_lib.GRRBaseTest,
 
   def testHandlerThrowsExceptionOnArbitraryFlowId(self):
     # Create a mock flow.
-    self.flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
-                                           flow_name="Interrogate",
-                                           token=self.token)
+    self.flow_urn = flow.GRRFlow.StartFlow(
+        client_id=self.client_id, flow_name="Interrogate", token=self.token)
 
     args = vfs_plugin.ApiGetVfsRefreshOperationStateArgs(
         operation_id=str(self.flow_urn))
@@ -636,37 +636,41 @@ class GetVfsRefreshOperationStateHandlerRegressionTest(
     # Create a mock refresh operation and complete it.
     self.finished_flow_urn = self.CreateRecursiveListFlow(self.client_id,
                                                           self.token)
-    with aff4.FACTORY.Open(self.finished_flow_urn,
-                           aff4_type=flow.GRRFlow,
-                           mode="rw",
-                           token=self.token) as flow_obj:
+    with aff4.FACTORY.Open(
+        self.finished_flow_urn,
+        aff4_type=flow.GRRFlow,
+        mode="rw",
+        token=self.token) as flow_obj:
       flow_obj.GetRunner().Error("Fake error")
 
     # Create an arbitrary flow to check on 404s.
-    self.non_refresh_flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
-                                                       flow_name="Interrogate",
-                                                       token=self.token)
+    self.non_refresh_flow_urn = flow.GRRFlow.StartFlow(
+        client_id=self.client_id, flow_name="Interrogate", token=self.token)
 
     # Unkonwn flow ids should also cause 404s.
     self.unknown_flow_id = "F:12345678"
 
     # Check both operations.
-    self.Check("GET",
-               "/api/clients/%s/vfs-refresh-operations/%s" %
-               (self.client_id.Basename(), str(self.running_flow_urn)),
-               replace={self.running_flow_urn.Basename(): "W:ABCDEF"})
-    self.Check("GET",
-               "/api/clients/%s/vfs-refresh-operations/%s" %
-               (self.client_id.Basename(), str(self.finished_flow_urn)),
-               replace={self.finished_flow_urn.Basename(): "W:ABCDEF"})
-    self.Check("GET",
-               "/api/clients/%s/vfs-refresh-operations/%s" %
-               (self.client_id.Basename(), str(self.non_refresh_flow_urn)),
-               replace={self.non_refresh_flow_urn.Basename(): "W:ABCDEF"})
-    self.Check("GET",
-               "/api/clients/%s/vfs-refresh-operations/%s" %
-               (self.client_id.Basename(), self.unknown_flow_id),
-               replace={self.unknown_flow_id: "W:ABCDEF"})
+    self.Check(
+        "GET",
+        "/api/clients/%s/vfs-refresh-operations/%s" %
+        (self.client_id.Basename(), str(self.running_flow_urn)),
+        replace={self.running_flow_urn.Basename(): "W:ABCDEF"})
+    self.Check(
+        "GET",
+        "/api/clients/%s/vfs-refresh-operations/%s" %
+        (self.client_id.Basename(), str(self.finished_flow_urn)),
+        replace={self.finished_flow_urn.Basename(): "W:ABCDEF"})
+    self.Check(
+        "GET",
+        "/api/clients/%s/vfs-refresh-operations/%s" %
+        (self.client_id.Basename(), str(self.non_refresh_flow_urn)),
+        replace={self.non_refresh_flow_urn.Basename(): "W:ABCDEF"})
+    self.Check(
+        "GET",
+        "/api/clients/%s/vfs-refresh-operations/%s" %
+        (self.client_id.Basename(), self.unknown_flow_id),
+        replace={self.unknown_flow_id: "W:ABCDEF"})
 
 
 class ApiUpdateVfsFileContentHandlerTest(test_lib.GRRBaseTest):
@@ -679,28 +683,28 @@ class ApiUpdateVfsFileContentHandlerTest(test_lib.GRRBaseTest):
     self.file_path = "fs/os/c/bin/bash"
 
   def testRaisesOnEmptyPath(self):
-    args = vfs_plugin.ApiUpdateVfsFileContentArgs(client_id=self.client_id,
-                                                  file_path="")
+    args = vfs_plugin.ApiUpdateVfsFileContentArgs(
+        client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesOnRootPath(self):
-    args = vfs_plugin.ApiUpdateVfsFileContentArgs(client_id=self.client_id,
-                                                  file_path="/")
+    args = vfs_plugin.ApiUpdateVfsFileContentArgs(
+        client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesIfFirstComponentNotInWhitelist(self):
-    args = vfs_plugin.ApiUpdateVfsFileContentArgs(client_id=self.client_id,
-                                                  file_path="/analysis")
+    args = vfs_plugin.ApiUpdateVfsFileContentArgs(
+        client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testHandlerStartsFlow(self):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
-    args = vfs_plugin.ApiUpdateVfsFileContentArgs(client_id=self.client_id,
-                                                  file_path=self.file_path)
+    args = vfs_plugin.ApiUpdateVfsFileContentArgs(
+        client_id=self.client_id, file_path=self.file_path)
     result = self.handler.Handle(args, token=self.token)
 
     # Check returned operation_id to references a MultiGetFile flow.
@@ -724,16 +728,14 @@ class ApiUpdateVfsFileContentHandlerRegressionTest(
 
     def ReplaceFlowId():
       flows_dir_fd = aff4.FACTORY.Open(
-          self.client_id.Add("flows"),
-          token=self.token)
+          self.client_id.Add("flows"), token=self.token)
       flow_urn = list(flows_dir_fd.ListChildren())[0]
       return {flow_urn.Basename(): "W:ABCDEF"}
 
     url = "/api/clients/%s/vfs-update" % self.client_id.Basename()
     with test_lib.FakeTime(42):
-      self.Check("POST",
-                 url, {"file_path": self.file_path},
-                 replace=ReplaceFlowId)
+      self.Check(
+          "POST", url, {"file_path": self.file_path}, replace=ReplaceFlowId)
 
 
 class ApiGetVfsFileContentUpdateStateHandlerTest(test_lib.GRRBaseTest,
@@ -747,9 +749,8 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(test_lib.GRRBaseTest,
 
   def testHandlerReturnsCorrectStateForFlow(self):
     # Create a mock refresh operation.
-    self.flow_urn = self.CreateMultiGetFileFlow(self.client_id,
-                                                file_path="fs/os/c/bin/bash",
-                                                token=self.token)
+    self.flow_urn = self.CreateMultiGetFileFlow(
+        self.client_id, file_path="fs/os/c/bin/bash", token=self.token)
 
     args = vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
         operation_id=str(self.flow_urn))
@@ -759,10 +760,9 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(test_lib.GRRBaseTest,
     self.assertEqual(result.state, "RUNNING")
 
     # Terminate flow.
-    with aff4.FACTORY.Open(self.flow_urn,
-                           aff4_type=flow.GRRFlow,
-                           mode="rw",
-                           token=self.token) as flow_obj:
+    with aff4.FACTORY.Open(
+        self.flow_urn, aff4_type=flow.GRRFlow, mode="rw",
+        token=self.token) as flow_obj:
       flow_obj.GetRunner().Error("Fake error")
 
     # Recheck status and see if it changed.
@@ -771,9 +771,8 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(test_lib.GRRBaseTest,
 
   def testHandlerRaisesOnArbitraryFlowId(self):
     # Create a mock flow.
-    self.flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
-                                           flow_name="Interrogate",
-                                           token=self.token)
+    self.flow_urn = flow.GRRFlow.StartFlow(
+        client_id=self.client_id, flow_name="Interrogate", token=self.token)
 
     args = vfs_plugin.ApiGetVfsFileContentUpdateStateArgs(
         operation_id=str(self.flow_urn))
@@ -805,46 +804,46 @@ class GetVfsFileContentUpdateStateHandlerRegressionTest(
   def Run(self):
     # Create a running mock refresh operation.
     self.running_flow_urn = self.CreateMultiGetFileFlow(
-        self.client_id,
-        file_path="fs/os/c/bin/bash",
-        token=self.token)
+        self.client_id, file_path="fs/os/c/bin/bash", token=self.token)
 
     # Create a mock refresh operation and complete it.
     self.finished_flow_urn = self.CreateMultiGetFileFlow(
-        self.client_id,
-        file_path="fs/os/c/bin/bash",
-        token=self.token)
-    with aff4.FACTORY.Open(self.finished_flow_urn,
-                           aff4_type=flow.GRRFlow,
-                           mode="rw",
-                           token=self.token) as flow_obj:
+        self.client_id, file_path="fs/os/c/bin/bash", token=self.token)
+    with aff4.FACTORY.Open(
+        self.finished_flow_urn,
+        aff4_type=flow.GRRFlow,
+        mode="rw",
+        token=self.token) as flow_obj:
       flow_obj.GetRunner().Error("Fake error")
 
     # Create an arbitrary flow to check on 404s.
-    self.non_update_flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
-                                                      flow_name="Interrogate",
-                                                      token=self.token)
+    self.non_update_flow_urn = flow.GRRFlow.StartFlow(
+        client_id=self.client_id, flow_name="Interrogate", token=self.token)
 
     # Unkonwn flow ids should also cause 404s.
     self.unknown_flow_id = "F:12345678"
 
     # Check both operations.
-    self.Check("GET",
-               "/api/clients/%s/vfs-update/%s" % (self.client_id.Basename(),
-                                                  str(self.running_flow_urn)),
-               replace={self.running_flow_urn.Basename(): "W:ABCDEF"})
-    self.Check("GET",
-               "/api/clients/%s/vfs-update/%s" % (self.client_id.Basename(),
-                                                  str(self.finished_flow_urn)),
-               replace={self.finished_flow_urn.Basename(): "W:ABCDEF"})
-    self.Check("GET",
-               "/api/clients/%s/vfs-update/%s" %
-               (self.client_id.Basename(), str(self.non_update_flow_urn)),
-               replace={self.non_update_flow_urn.Basename(): "W:ABCDEF"})
-    self.Check("GET",
-               "/api/clients/%s/vfs-update/%s" % (self.client_id.Basename(),
-                                                  self.unknown_flow_id),
-               replace={self.unknown_flow_id: "W:ABCDEF"})
+    self.Check(
+        "GET",
+        "/api/clients/%s/vfs-update/%s" % (self.client_id.Basename(),
+                                           str(self.running_flow_urn)),
+        replace={self.running_flow_urn.Basename(): "W:ABCDEF"})
+    self.Check(
+        "GET",
+        "/api/clients/%s/vfs-update/%s" % (self.client_id.Basename(),
+                                           str(self.finished_flow_urn)),
+        replace={self.finished_flow_urn.Basename(): "W:ABCDEF"})
+    self.Check(
+        "GET",
+        "/api/clients/%s/vfs-update/%s" %
+        (self.client_id.Basename(), str(self.non_update_flow_urn)),
+        replace={self.non_update_flow_urn.Basename(): "W:ABCDEF"})
+    self.Check(
+        "GET",
+        "/api/clients/%s/vfs-update/%s" % (self.client_id.Basename(),
+                                           self.unknown_flow_id),
+        replace={self.unknown_flow_id: "W:ABCDEF"})
 
 
 class VfsTimelineTestMixin(object):
@@ -862,10 +861,9 @@ class VfsTimelineTestMixin(object):
     file_urn = self.client_id.Add(self.file_path)
     for i in range(0, 5):
       with test_lib.FakeTime(i):
-        with aff4.FACTORY.Create(file_urn,
-                                 aff4_grr.VFSAnalysisFile,
-                                 mode="w",
-                                 token=self.token) as fd:
+        with aff4.FACTORY.Create(
+            file_urn, aff4_grr.VFSAnalysisFile, mode="w",
+            token=self.token) as fd:
           stats = rdf_client.StatEntry(
               st_mtime=rdfvalue.RDFDatetimeSeconds().Now())
           fd.Set(fd.Schema.STAT, stats)
@@ -880,20 +878,20 @@ class ApiGetVfsTimelineAsCsvHandlerTest(test_lib.GRRBaseTest,
     self.SetupTestTimeline()
 
   def testRaisesOnEmptyPath(self):
-    args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(client_id=self.client_id,
-                                                 file_path="")
+    args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
+        client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesOnRootPath(self):
-    args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(client_id=self.client_id,
-                                                 file_path="/")
+    args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
+        client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesIfFirstComponentNotInWhitelist(self):
-    args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(client_id=self.client_id,
-                                                 file_path="/analysis")
+    args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
+        client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
@@ -901,8 +899,8 @@ class ApiGetVfsTimelineAsCsvHandlerTest(test_lib.GRRBaseTest,
     # Change chunk size to see if the handler behaves correctly.
     self.handler.CHUNK_SIZE = 1
 
-    args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(client_id=self.client_id,
-                                                 file_path=self.folder_path)
+    args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
+        client_id=self.client_id, file_path=self.folder_path)
     result = self.handler.Handle(args, token=self.token)
 
     # Check rows returned correctly.
@@ -924,8 +922,7 @@ class ApiGetVfsTimelineAsCsvHandlerTest(test_lib.GRRBaseTest,
 
   def testEmptyTimelineIsReturnedOnNonexistantPath(self):
     args = vfs_plugin.ApiGetVfsTimelineAsCsvArgs(
-        client_id=self.client_id,
-        file_path="fs/non-existant/file/path")
+        client_id=self.client_id, file_path="fs/non-existant/file/path")
     result = self.handler.Handle(args, token=self.token)
 
     self.assertTrue(hasattr(result, "GenerateContent"))
@@ -941,20 +938,20 @@ class ApiGetVfsTimelineHandlerTest(test_lib.GRRBaseTest, VfsTimelineTestMixin):
     self.SetupTestTimeline()
 
   def testRaisesOnEmptyPath(self):
-    args = vfs_plugin.ApiGetVfsTimelineArgs(client_id=self.client_id,
-                                            file_path="")
+    args = vfs_plugin.ApiGetVfsTimelineArgs(
+        client_id=self.client_id, file_path="")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesOnRootPath(self):
-    args = vfs_plugin.ApiGetVfsTimelineArgs(client_id=self.client_id,
-                                            file_path="/")
+    args = vfs_plugin.ApiGetVfsTimelineArgs(
+        client_id=self.client_id, file_path="/")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
   def testRaisesIfFirstComponentNotInWhitelist(self):
-    args = vfs_plugin.ApiGetVfsTimelineArgs(client_id=self.client_id,
-                                            file_path="/analysis")
+    args = vfs_plugin.ApiGetVfsTimelineArgs(
+        client_id=self.client_id, file_path="/analysis")
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 

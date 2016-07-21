@@ -45,16 +45,20 @@ class PathsCheckTests(checks_test_lib.HostCheckTest):
                              "st_gid": 1,
                              "st_mode": 0o100664}}
     host_data = self.GenFileData("AllShellConfigs", paths, self.parser, modes)
-    host_data.update(self.GenFileData("GlobalShellConfigs",
-                                      paths,
-                                      self.parser,
-                                      modes,
-                                      include=["/etc/csh.login"]))
-    host_data.update(self.GenFileData("RootUserShellConfigs",
-                                      paths,
-                                      self.parser,
-                                      modes,
-                                      include=["/root.bashrc"]))
+    host_data.update(
+        self.GenFileData(
+            "GlobalShellConfigs",
+            paths,
+            self.parser,
+            modes,
+            include=["/etc/csh.login"]))
+    host_data.update(
+        self.GenFileData(
+            "RootUserShellConfigs",
+            paths,
+            self.parser,
+            modes,
+            include=["/root.bashrc"]))
     results = self.RunChecks(host_data)
 
     chk_id = "CIS-PATH-UNSAFE-VALUE"

@@ -46,8 +46,9 @@ class CSVOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
     header = []
     for type_info in value_class.type_infos:
       if type_info.__class__.__name__ == "ProtoEmbedded":
-        header.extend(self.GetCSVHeader(type_info.type,
-                                        prefix=type_info.name + "."))
+        header.extend(
+            self.GetCSVHeader(
+                type_info.type, prefix=type_info.name + "."))
       else:
         header.append(utils.SmartStr(prefix + type_info.name))
 

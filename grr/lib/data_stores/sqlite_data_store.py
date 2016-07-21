@@ -731,11 +731,12 @@ class SqliteDataStore(data_store.DataStore):
 
     remaining_limit = limit
     for subject in subjects:
-      values = self.ResolvePrefix(subject,
-                                  attribute_prefix,
-                                  token=token,
-                                  timestamp=timestamp,
-                                  limit=remaining_limit)
+      values = self.ResolvePrefix(
+          subject,
+          attribute_prefix,
+          token=token,
+          timestamp=timestamp,
+          limit=remaining_limit)
 
       if values:
         if limit:
@@ -843,10 +844,12 @@ class SqliteDataStore(data_store.DataStore):
       for sqlite_connection in connection_iter:
         with sqlite_connection:
           for r in self._GroupSubjects(
-              list(sqlite_connection.ScanAttributes(subject_prefix,
-                                                    attributes,
-                                                    after_urn=after_urn,
-                                                    max_records=max_records)),
+              list(
+                  sqlite_connection.ScanAttributes(
+                      subject_prefix,
+                      attributes,
+                      after_urn=after_urn,
+                      max_records=max_records)),
               max_records):
             yield r
       return
@@ -861,24 +864,27 @@ class SqliteDataStore(data_store.DataStore):
     if len(first_connections) == 1:
       with first_connections[0] as sqlite_connection:
         for r in self._GroupSubjects(
-            list(sqlite_connection.ScanAttributes(subject_prefix,
-                                                  attributes,
-                                                  after_urn=after_urn,
-                                                  max_records=max_records)),
+            list(
+                sqlite_connection.ScanAttributes(
+                    subject_prefix,
+                    attributes,
+                    after_urn=after_urn,
+                    max_records=max_records)),
             max_records):
           yield r
       return
     raw_results = []
     for sqlite_connection in itertools.chain(first_connections,
                                              connection_iter):
-      for record in sqlite_connection.ScanAttributes(subject_prefix,
-                                                     attributes,
-                                                     after_urn=after_urn,
-                                                     max_records=max_records):
+      for record in sqlite_connection.ScanAttributes(
+          subject_prefix,
+          attributes,
+          after_urn=after_urn,
+          max_records=max_records):
         raw_results.append(record)
     for r in self._GroupSubjects(
-        sorted(raw_results, key=lambda x: x[0]),
-        max_records):
+        sorted(
+            raw_results, key=lambda x: x[0]), max_records):
       yield r
 
   def ResolveMulti(self,
@@ -972,10 +978,8 @@ class SqliteTransaction(data_store.CommonTransaction):
 
   def __init__(self, store, subject, lease_time=None, token=None):
     """Ensure we can take a lock on this subject."""
-    super(SqliteTransaction, self).__init__(store,
-                                            utils.SmartUnicode(subject),
-                                            lease_time=lease_time,
-                                            token=token)
+    super(SqliteTransaction, self).__init__(
+        store, utils.SmartUnicode(subject), lease_time=lease_time, token=token)
 
     if lease_time is None:
       lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]

@@ -122,11 +122,12 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     """Build statistics object for the server."""
     ok = rdf_data_server.DataServerState.Status.AVAILABLE
     num_components, avg_component = cls.SERVICE.GetComponentInformation()
-    stat = rdf_data_server.DataServerState(size=cls.SERVICE.Size(),
-                                           load=0,
-                                           status=ok,
-                                           num_components=num_components,
-                                           avg_component=avg_component)
+    stat = rdf_data_server.DataServerState(
+        size=cls.SERVICE.Size(),
+        load=0,
+        status=ok,
+        num_components=num_components,
+        avg_component=avg_component)
     return stat
 
   protocol_version = "HTTP/1.1"
@@ -359,8 +360,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
       return
     new_mapping = rdf_data_server.DataServerMapping(self.post_data)
     rebalance_id = str(uuid.uuid4())
-    reb = rdf_data_server.DataServerRebalance(id=rebalance_id,
-                                              mapping=new_mapping)
+    reb = rdf_data_server.DataServerRebalance(
+        id=rebalance_id, mapping=new_mapping)
     if not self.MASTER.SetRebalancing(reb):
       logging.warning("Could not contact servers for rebalancing")
       self._EmptyResponse(constants.RESPONSE_DATA_SERVERS_UNREACHABLE)
@@ -628,9 +629,8 @@ class StandardDataServer(object):
     self.master_addr = loc.hostname
     self.master_port = loc.port
     self.my_port = my_port
-    self.pool = connectionpool.HTTPConnectionPool(self.master_addr,
-                                                  port=int(self.master_port),
-                                                  maxsize=1)
+    self.pool = connectionpool.HTTPConnectionPool(
+        self.master_addr, port=int(self.master_port), maxsize=1)
     self.registered = False
     self.periodic_fail = 0
 
@@ -646,14 +646,12 @@ class StandardDataServer(object):
                                      "data master.")
       nonce = res.data
       token = self.handler_cls.NONCE_STORE.GenerateServerAuthToken(nonce)
-      request = rdf_data_server.DataStoreRegistrationRequest(token=token,
-                                                             port=self.my_port)
+      request = rdf_data_server.DataStoreRegistrationRequest(
+          token=token, port=self.my_port)
       body = request.SerializeToString()
       headers = {"Content-Length": len(body)}
-      res = self.pool.urlopen("POST",
-                              "/server/register",
-                              headers=headers,
-                              body=body)
+      res = self.pool.urlopen(
+          "POST", "/server/register", headers=headers, body=body)
       if res.status == constants.RESPONSE_SERVER_NOT_AUTHORIZED:
         raise errors.DataServerError("Wrong server password.")
       if res.status == constants.RESPONSE_SERVER_NOT_ALLOWED:
@@ -707,10 +705,8 @@ class StandardDataServer(object):
       stat = self.handler_cls.GetStatistics()
       body = stat.SerializeToString()
       headers = {"Content-Length": len(body)}
-      res = self.pool.urlopen("POST",
-                              "/server/state",
-                              headers=headers,
-                              body=body)
+      res = self.pool.urlopen(
+          "POST", "/server/state", headers=headers, body=body)
       if res.status == constants.RESPONSE_SERVER_NOT_REGISTERED:
         # The connection has probably been dropped and we need to register
         # again.
@@ -742,8 +738,8 @@ class StandardDataServer(object):
     """Periodically send statistics to master server."""
     sleep = config_lib.CONFIG["Dataserver.stats_frequency"]
     self.failed = 0
-    self.stat_thread = utils.InterruptableThread(target=self._PeriodicThread,
-                                                 sleep_time=sleep)
+    self.stat_thread = utils.InterruptableThread(
+        target=self._PeriodicThread, sleep_time=sleep)
     self.stat_thread.start()
 
   def LoadMapping(self):

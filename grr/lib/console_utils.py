@@ -36,10 +36,11 @@ def FormatISOTime(t):
 def SearchClients(query_str, token=None, limit=1000):
   """Search indexes for clients. Returns list (client, hostname, os version)."""
   client_schema = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls
-  index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                              aff4_type=client_index.ClientIndex,
-                              mode="rw",
-                              token=token)
+  index = aff4.FACTORY.Create(
+      client_index.MAIN_INDEX,
+      aff4_type=client_index.ClientIndex,
+      mode="rw",
+      token=token)
 
   client_list = index.LookupClients([query_str])
   result_set = aff4.FACTORY.MultiOpen(client_list, token=token)
@@ -105,8 +106,9 @@ def ListDrivers():
   for client_context in [["Platform:Darwin", "Arch:amd64"],
                          ["Platform:Windows", "Arch:i386"],
                          ["Platform:Windows", "Arch:amd64"]]:
-    aff4_paths.update(config_lib.CONFIG.Get("MemoryDriver.aff4_paths",
-                                            context=client_context))
+    aff4_paths.update(
+        config_lib.CONFIG.Get("MemoryDriver.aff4_paths",
+                              context=client_context))
 
   for driver in aff4.FACTORY.MultiOpen(aff4_paths, mode="r", token=token):
     print driver
@@ -132,8 +134,7 @@ def OpenClient(client_id=None, token=None):
   try:
     # Try and open with the token we managed to retrieve or the default.
     client = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(client_id),
-        mode="r", token=token)
+        rdfvalue.RDFURN(client_id), mode="r", token=token)
     return client, token
   except access_control.UnauthorizedAccess:
     logging.warning("Unable to find a valid reason for client %s. You may need "
@@ -146,8 +147,7 @@ def GetNotifications(user=None, token=None):
   if not user:
     user = getpass.getuser()
   user_obj = aff4.FACTORY.Open(
-      aff4.ROOT_URN.Add("users").Add(user),
-      token=token)
+      aff4.ROOT_URN.Add("users").Add(user), token=token)
   return list(user_obj.Get(user_obj.Schema.PENDING_NOTIFICATIONS))
 
 
@@ -157,12 +157,13 @@ def ApprovalRequest(client_id,
                     reason="testing"):
   token = token or GetToken()
   approval_reason = reason or token.reason
-  flow.GRRFlow.StartFlow(client_id=client_id,
-                         flow_name="RequestClientApprovalFlow",
-                         reason=approval_reason,
-                         subject_urn=rdf_client.ClientURN(client_id),
-                         approver=approver,
-                         token=token)
+  flow.GRRFlow.StartFlow(
+      client_id=client_id,
+      flow_name="RequestClientApprovalFlow",
+      reason=approval_reason,
+      subject_urn=rdf_client.ClientURN(client_id),
+      approver=approver,
+      token=token)
 
 
 # TODO(user): refactor this approval request/grant code into a separate
@@ -173,17 +174,17 @@ def RequestAndGrantClientApproval(client_id,
                                   reason="testing"):
   token = token or GetToken()
   ApprovalRequest(client_id, token=token, approver=approver, reason=reason)
-  user = aff4.FACTORY.Create("aff4:/users/%s" % approver,
-                             users.GRRUser,
-                             token=token.SetUID())
+  user = aff4.FACTORY.Create(
+      "aff4:/users/%s" % approver, users.GRRUser, token=token.SetUID())
   user.Flush()
   approver_token = access_control.ACLToken(username=approver)
-  flow.GRRFlow.StartFlow(client_id=client_id,
-                         flow_name="GrantClientApprovalFlow",
-                         reason=reason,
-                         delegate=token.username,
-                         subject_urn=rdf_client.ClientURN(client_id),
-                         token=approver_token)
+  flow.GRRFlow.StartFlow(
+      client_id=client_id,
+      flow_name="GrantClientApprovalFlow",
+      reason=reason,
+      delegate=token.username,
+      subject_urn=rdf_client.ClientURN(client_id),
+      token=approver_token)
 
 
 def ApprovalGrant(token=None):
@@ -197,11 +198,12 @@ def ApprovalGrant(token=None):
     print request
     print "Reason: %s" % reason
     if raw_input("Do you approve this request? [y/N] ").lower() == "y":
-      flow_id = flow.GRRFlow.StartFlow(client_id=client_id,
-                                       flow_name="GrantClientApprovalFlow",
-                                       reason=reason,
-                                       delegate=user,
-                                       token=token)
+      flow_id = flow.GRRFlow.StartFlow(
+          client_id=client_id,
+          flow_name="GrantClientApprovalFlow",
+          reason=reason,
+          delegate=user,
+          token=token)
       # TODO(user): Remove the notification.
     else:
       print "skipping request"
@@ -213,9 +215,8 @@ def ApprovalFind(object_id, token=None):
   user = getpass.getuser()
   object_id = rdfvalue.RDFURN(object_id)
   try:
-    approved_token = security.Approval.GetApprovalForObject(object_id,
-                                                            token=token,
-                                                            username=user)
+    approved_token = security.Approval.GetApprovalForObject(
+        object_id, token=token, username=user)
     print "Found token %s" % str(approved_token)
     return approved_token
   except access_control.UnauthorizedAccess:
@@ -271,16 +272,14 @@ def ApprovalCreateRaw(aff4_path,
   else:
     approval_type_cls = approval_type
 
-  approval_request = aff4.FACTORY.Create(approval_urn,
-                                         approval_type_cls,
-                                         mode="rw",
-                                         token=super_token)
+  approval_request = aff4.FACTORY.Create(
+      approval_urn, approval_type_cls, mode="rw", token=super_token)
 
   # Add approvals indicating they were approved by fake "raw" mode users.
-  approval_request.AddAttribute(approval_request.Schema.APPROVER(
-      "%s1-raw" % token.username))
-  approval_request.AddAttribute(approval_request.Schema.APPROVER(
-      "%s-raw2" % token.username))
+  approval_request.AddAttribute(
+      approval_request.Schema.APPROVER("%s1-raw" % token.username))
+  approval_request.AddAttribute(
+      approval_request.Schema.APPROVER("%s-raw2" % token.username))
   approval_request.Close(sync=True)
 
 
@@ -306,15 +305,14 @@ def ApprovalRevokeRaw(aff4_path, token, remove_from_cache=False):
   super_token = access_control.ACLToken(username="raw-approval-superuser")
   super_token.supervisor = True
 
-  approval_request = aff4.FACTORY.Open(approval_urn,
-                                       mode="rw",
-                                       token=super_token)
+  approval_request = aff4.FACTORY.Open(
+      approval_urn, mode="rw", token=super_token)
   approval_request.DeleteAttribute(approval_request.Schema.APPROVER)
   approval_request.Close()
 
   if remove_from_cache:
-    data_store.DB.security_manager.acl_cache.ExpireObject(utils.SmartUnicode(
-        approval_urn))
+    data_store.DB.security_manager.acl_cache.ExpireObject(
+        utils.SmartUnicode(approval_urn))
 
 
 # TODO(user): remove as soon as migration is complete.
@@ -331,10 +329,8 @@ def MigrateObjectsLabels(root_urn, obj_type, label_suffix=None, token=None):
 
   updated_objects = 0
   ignored_objects = 0
-  for child in aff4.FACTORY.MultiOpen(children_urns,
-                                      mode="rw",
-                                      token=token,
-                                      age=aff4.NEWEST_TIME):
+  for child in aff4.FACTORY.MultiOpen(
+      children_urns, mode="rw", token=token, age=aff4.NEWEST_TIME):
 
     if isinstance(child, obj_type):
       print "Current state: %d updated, %d ignored." % (updated_objects,
@@ -375,52 +371,58 @@ def MigrateHuntFinishedAndErrors(hunt_or_urn, token=None):
     if hunt.age_policy != aff4.ALL_TIMES:
       raise RuntimeError("Hunt object should have ALL_TIMES age policy.")
   else:
-    hunt = aff4.FACTORY.Open(hunt_or_urn,
-                             aff4_type=hunts_implementation.GRRHunt,
-                             token=token,
-                             age=aff4.ALL_TIMES)
+    hunt = aff4.FACTORY.Open(
+        hunt_or_urn,
+        aff4_type=hunts_implementation.GRRHunt,
+        token=token,
+        age=aff4.ALL_TIMES)
 
   print "Migrating hunt %s." % hunt.urn
 
   print "Processing all clients list."
   aff4.FACTORY.Delete(hunt.all_clients_collection_urn, token=token)
-  with aff4.FACTORY.Create(hunt.all_clients_collection_urn,
-                           aff4_type=collects.PackedVersionedCollection,
-                           mode="w",
-                           token=token) as all_clients_collection:
+  with aff4.FACTORY.Create(
+      hunt.all_clients_collection_urn,
+      aff4_type=collects.PackedVersionedCollection,
+      mode="w",
+      token=token) as all_clients_collection:
     clients = set(hunt.GetValuesForAttribute(hunt.Schema.DEPRECATED_CLIENTS))
     for client in reversed(sorted(clients, key=lambda x: x.age)):
       all_clients_collection.Add(client)
 
   print "Processing completed clients list."
   aff4.FACTORY.Delete(hunt.completed_clients_collection_urn, token=token)
-  with aff4.FACTORY.Create(hunt.completed_clients_collection_urn,
-                           aff4_type=collects.PackedVersionedCollection,
-                           mode="w",
-                           token=token) as comp_clients_collection:
+  with aff4.FACTORY.Create(
+      hunt.completed_clients_collection_urn,
+      aff4_type=collects.PackedVersionedCollection,
+      mode="w",
+      token=token) as comp_clients_collection:
     clients = set(hunt.GetValuesForAttribute(hunt.Schema.DEPRECATED_FINISHED))
     for client in reversed(sorted(clients, key=lambda x: x.age)):
       comp_clients_collection.Add(client)
 
   print "Processing errors list."
   aff4.FACTORY.Delete(hunt.clients_errors_collection_urn, token=token)
-  with aff4.FACTORY.Create(hunt.clients_errors_collection_urn,
-                           aff4_type=collects.PackedVersionedCollection,
-                           mode="w",
-                           token=token) as errors_collection:
+  with aff4.FACTORY.Create(
+      hunt.clients_errors_collection_urn,
+      aff4_type=collects.PackedVersionedCollection,
+      mode="w",
+      token=token) as errors_collection:
     for error in hunt.GetValuesForAttribute(hunt.Schema.DEPRECATED_ERRORS):
       errors_collection.Add(error)
 
 
 def MigrateAllHuntsFinishedAndError(token=None):
   """Migrates all hunts to collection-stored clients/errors lists."""
-  hunts_list = list(aff4.FACTORY.Open("aff4:/hunts", token=token).ListChildren(
-  ))
-  all_hunts = aff4.FACTORY.MultiOpen(hunts_list,
-                                     aff4_type=hunts_implementation.GRRHunt,
-                                     mode="r",
-                                     age=aff4.ALL_TIMES,
-                                     token=token)
+  hunts_list = list(
+      aff4.FACTORY.Open(
+          "aff4:/hunts", token=token).ListChildren())
+  all_hunts = aff4.FACTORY.MultiOpen(
+      hunts_list,
+      aff4_type=hunts_implementation.GRRHunt,
+      mode="r",
+      age=aff4.ALL_TIMES,
+      token=token)
 
   index = 0
   for hunt in all_hunts:
@@ -479,11 +481,12 @@ def FindClonedClients(token=None):
     A list of clients that report alternating hardware ids.
   """
 
-  index = aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                              aff4_type=client_index.ClientIndex,
-                              mode="rw",
-                              object_exists=True,
-                              token=token)
+  index = aff4.FACTORY.Create(
+      client_index.MAIN_INDEX,
+      aff4_type=client_index.ClientIndex,
+      mode="rw",
+      object_exists=True,
+      token=token)
 
   clients = index.LookupClients(["."])
 
@@ -498,9 +501,8 @@ def FindClonedClients(token=None):
       if len(serials) > 1
   ]
 
-  client_list = aff4.FACTORY.MultiOpen(clients_with_multiple_serials,
-                                       age=aff4.ALL_TIMES,
-                                       token=token)
+  client_list = aff4.FACTORY.MultiOpen(
+      clients_with_multiple_serials, age=aff4.ALL_TIMES, token=token)
 
   cloned_clients = []
   for c in client_list:

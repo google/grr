@@ -31,9 +31,8 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
 
   @staticmethod
   def CreateSampleHunt(description, token=None):
-    return hunts.GRRHunt.StartHunt(hunt_name="GenericHunt",
-                                   description=description,
-                                   token=token)
+    return hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt", description=description, token=token)
 
   def testShowsNothingByDefault(self):
     self.Open("/")
@@ -52,8 +51,8 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
 
   def testDoesNotShowHuntCreatedByAnotherUser(self):
     with self.ACLChecksDisabled():
-      self.CreateSampleHunt("foo",
-                            token=access_control.ACLToken(username="another"))
+      self.CreateSampleHunt(
+          "foo", token=access_control.ACLToken(username="another"))
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
@@ -121,14 +120,14 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
   def testShowsClientTwiceIfTwoApprovalsWereRequested(self):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
-      self.RequestAndGrantClientApproval(client_id,
-                                         token=access_control.ACLToken(
-                                             username="test",
-                                             reason="foo-reason"))
-      self.RequestAndGrantClientApproval(client_id,
-                                         token=access_control.ACLToken(
-                                             username="test",
-                                             reason="bar-reason"))
+      self.RequestAndGrantClientApproval(
+          client_id,
+          token=access_control.ACLToken(
+              username="test", reason="foo-reason"))
+      self.RequestAndGrantClientApproval(
+          client_id,
+          token=access_control.ACLToken(
+              username="test", reason="bar-reason"))
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
@@ -172,12 +171,13 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
   def testNonValidApprovalIsMarked(self):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
-      flow.GRRFlow.StartFlow(client_id=client_id,
-                             flow_name="RequestClientApprovalFlow",
-                             reason=self.token.reason,
-                             subject_urn=client_id,
-                             approver="approver",
-                             token=self.token)
+      flow.GRRFlow.StartFlow(
+          client_id=client_id,
+          flow_name="RequestClientApprovalFlow",
+          reason=self.token.reason,
+          subject_urn=client_id,
+          approver="approver",
+          token=self.token)
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
@@ -207,8 +207,8 @@ class TestNavigatorView(SearchClientTestBase):
 
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
-      with aff4.FACTORY.Open(client_id, mode="rw",
-                             token=self.token) as client_obj:
+      with aff4.FACTORY.Open(
+          client_id, mode="rw", token=self.token) as client_obj:
         client_obj.Set(client_obj.Schema.PING(last_ping))
 
       self.RequestAndGrantClientApproval(client_id)
@@ -230,10 +230,11 @@ class TestNavigatorView(SearchClientTestBase):
   def CreateClientWithVolumes(self, available=50):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
-      with aff4.FACTORY.Open(client_id, mode="rw",
-                             token=self.token) as client_obj:
-        volume = rdf_client.Volume(total_allocation_units=100,
-                                   actual_available_allocation_units=available)
+      with aff4.FACTORY.Open(
+          client_id, mode="rw", token=self.token) as client_obj:
+        volume = rdf_client.Volume(
+            total_allocation_units=100,
+            actual_available_allocation_units=available)
         client_obj.Set(client_obj.Schema.VOLUMES([volume]))
 
       self.RequestAndGrantClientApproval(client_id)
@@ -437,11 +438,12 @@ class TestContentView(SearchClientTestBase):
           aff4_type=aff4_users.GlobalNotificationStorage,
           mode="rw",
           token=self.token) as storage:
-        storage.AddNotification(aff4_users.GlobalNotification(
-            type=aff4_users.GlobalNotification.Type.ERROR,
-            header="Oh no, we're doomed!",
-            content="Houston, Houston, we have a prob...",
-            link="http://www.google.com"))
+        storage.AddNotification(
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.ERROR,
+                header="Oh no, we're doomed!",
+                content="Houston, Houston, we have a prob...",
+                link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -453,15 +455,17 @@ class TestContentView(SearchClientTestBase):
           aff4_type=aff4_users.GlobalNotificationStorage,
           mode="rw",
           token=self.token) as storage:
-        storage.AddNotification(aff4_users.GlobalNotification(
-            type=aff4_users.GlobalNotification.Type.ERROR,
-            header="Oh no, we're doomed!",
-            content="Houston, Houston, we have a prob...",
-            link="http://www.google.com"))
-        storage.AddNotification(aff4_users.GlobalNotification(
-            type=aff4_users.GlobalNotification.Type.INFO,
-            header="Nothing to worry about!",
-            link="http://www.google.com"))
+        storage.AddNotification(
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.ERROR,
+                header="Oh no, we're doomed!",
+                content="Houston, Houston, we have a prob...",
+                link="http://www.google.com"))
+        storage.AddNotification(
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.INFO,
+                header="Nothing to worry about!",
+                link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -474,11 +478,12 @@ class TestContentView(SearchClientTestBase):
           aff4_type=aff4_users.GlobalNotificationStorage,
           mode="rw",
           token=self.token) as storage:
-        storage.AddNotification(aff4_users.GlobalNotification(
-            type=aff4_users.GlobalNotification.Type.ERROR,
-            header="Oh no, we're doomed!",
-            content="Houston, Houston, we have a prob...",
-            link="http://www.google.com"))
+        storage.AddNotification(
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.ERROR,
+                header="Oh no, we're doomed!",
+                content="Houston, Houston, we have a prob...",
+                link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -489,10 +494,11 @@ class TestContentView(SearchClientTestBase):
           aff4_type=aff4_users.GlobalNotificationStorage,
           mode="rw",
           token=self.token) as storage:
-        storage.AddNotification(aff4_users.GlobalNotification(
-            type=aff4_users.GlobalNotification.Type.ERROR,
-            content="Too late to do anything!",
-            link="http://www.google.com"))
+        storage.AddNotification(
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.ERROR,
+                content="Too late to do anything!",
+                link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Too late to do anything!")
@@ -505,11 +511,12 @@ class TestContentView(SearchClientTestBase):
           aff4_type=aff4_users.GlobalNotificationStorage,
           mode="rw",
           token=self.token) as storage:
-        storage.AddNotification(aff4_users.GlobalNotification(
-            type=aff4_users.GlobalNotification.Type.ERROR,
-            header="Oh no, we're doomed!",
-            content="Houston, Houston, we have a prob...",
-            link="http://www.google.com"))
+        storage.AddNotification(
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.ERROR,
+                header="Oh no, we're doomed!",
+                content="Houston, Houston, we have a prob...",
+                link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -528,15 +535,17 @@ class TestContentView(SearchClientTestBase):
           aff4_type=aff4_users.GlobalNotificationStorage,
           mode="rw",
           token=self.token) as storage:
-        storage.AddNotification(aff4_users.GlobalNotification(
-            type=aff4_users.GlobalNotification.Type.ERROR,
-            header="Oh no, we're doomed!",
-            content="Houston, Houston, we have a prob...",
-            link="http://www.google.com"))
-        storage.AddNotification(aff4_users.GlobalNotification(
-            type=aff4_users.GlobalNotification.Type.INFO,
-            header="Nothing to worry about!",
-            link="http://www.google.com"))
+        storage.AddNotification(
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.ERROR,
+                header="Oh no, we're doomed!",
+                content="Houston, Houston, we have a prob...",
+                link="http://www.google.com"))
+        storage.AddNotification(
+            aff4_users.GlobalNotification(
+                type=aff4_users.GlobalNotification.Type.INFO,
+                header="Nothing to worry about!",
+                link="http://www.google.com"))
 
     self.Open("/")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
@@ -574,9 +583,8 @@ class TestContentView(SearchClientTestBase):
 
   def testRendererShowsCanaryContentWhenInCanaryMode(self):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create("aff4:/users/test",
-                               aff4_users.GRRUser,
-                               token=self.token) as user:
+      with aff4.FACTORY.Create(
+          "aff4:/users/test", aff4_users.GRRUser, token=self.token) as user:
         user.Set(user.Schema.GUI_SETTINGS(canary_mode=True))
 
     self.Open("/#main=CanaryTestRenderer")
@@ -613,9 +621,8 @@ class TestHostTable(SearchClientTestBase):
 
   def testUserLabelIsShownAsBootstrapSuccessLabel(self):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Open("C.0000000000000001",
-                             mode="rw",
-                             token=self.token) as client:
+      with aff4.FACTORY.Open(
+          "C.0000000000000001", mode="rw", token=self.token) as client:
         client.AddLabels("foo", owner="test")
 
     self.Open("/#main=HostTable")
@@ -625,9 +632,8 @@ class TestHostTable(SearchClientTestBase):
 
   def testSystemLabelIsShownAsRegularBootstrapLabel(self):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Open("C.0000000000000001",
-                             mode="rw",
-                             token=self.token) as client:
+      with aff4.FACTORY.Open(
+          "C.0000000000000001", mode="rw", token=self.token) as client:
         client.AddLabels("bar", owner="GRR")
 
     self.Open("/#main=HostTable")
@@ -863,9 +869,8 @@ class TestClientSearch(SearchClientTestBase,
     self.client_ids = self.SetupClients(5)
 
     # SetupClients adds no labels or user names.
-    with aff4.FACTORY.Open(self.client_ids[0],
-                           mode="rw",
-                           token=self.token) as client_obj:
+    with aff4.FACTORY.Open(
+        self.client_ids[0], mode="rw", token=self.token) as client_obj:
       client_obj.AddLabels("common_test_label", owner=self.token.username)
       client_obj.AddLabels("unique_test_label", owner=self.token.username)
 
@@ -878,17 +883,17 @@ class TestClientSearch(SearchClientTestBase,
       # Update index, since we added users and labels.
       self._UpdateClientIndex(client_obj)
 
-    with aff4.FACTORY.Open(self.client_ids[1],
-                           mode="rw",
-                           token=self.token) as client_obj:
+    with aff4.FACTORY.Open(
+        self.client_ids[1], mode="rw", token=self.token) as client_obj:
       client_obj.AddLabels("common_test_label", owner=self.token.username)
       self._UpdateClientIndex(client_obj)
 
   def _UpdateClientIndex(self, client_obj):
-    with aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                             aff4_type=client_index.ClientIndex,
-                             mode="rw",
-                             token=self.token) as index:
+    with aff4.FACTORY.Create(
+        client_index.MAIN_INDEX,
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        token=self.token) as index:
       index.AddClient(client_obj)
 
   def _WaitForSearchResults(self, target_count):
@@ -935,16 +940,14 @@ class TestClientSearch(SearchClientTestBase,
     self._WaitForSearchResults(target_count=0)
 
     # The host keyword also searches FQDN, so we should find an item.
-    self.Type("client_query",
-              text="host:Host-1.example.com",
-              end_with_enter=True)
+    self.Type(
+        "client_query", text="host:Host-1.example.com", end_with_enter=True)
 
     self._WaitForSearchResults(target_count=1)
 
     # Unknown fqdns should yield an empty result.
-    self.Type("client_query",
-              text="host:Host-99.example.com",
-              end_with_enter=True)
+    self.Type(
+        "client_query", text="host:Host-99.example.com", end_with_enter=True)
 
     self._WaitForSearchResults(target_count=0)
 
@@ -952,16 +955,14 @@ class TestClientSearch(SearchClientTestBase,
     self.Open("/")
 
     # Several client have this label, so we should find them all.
-    self.Type("client_query",
-              text="label:common_test_label",
-              end_with_enter=True)
+    self.Type(
+        "client_query", text="label:common_test_label", end_with_enter=True)
 
     self._WaitForSearchResults(target_count=2)
 
     # Only one client has the unique label.
-    self.Type("client_query",
-              text="label:unique_test_label",
-              end_with_enter=True)
+    self.Type(
+        "client_query", text="label:unique_test_label", end_with_enter=True)
 
     self._WaitForSearchResults(target_count=1)
 
@@ -999,9 +1000,8 @@ class TestClientSearch(SearchClientTestBase,
   def testSearchWithUserKeyword(self):
     self.Open("/")
 
-    self.Type("client_query",
-              text="user:" + self.token.username,
-              end_with_enter=True)
+    self.Type(
+        "client_query", text="user:" + self.token.username, end_with_enter=True)
 
     self._WaitForSearchResults(target_count=1)
 

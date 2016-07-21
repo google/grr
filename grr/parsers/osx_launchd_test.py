@@ -40,10 +40,10 @@ class DarwinPersistenceMechanismsParserTest(test_lib.FlowTestsBaseclass):
 
   def testParse(self):
     parser = osx_launchd.DarwinPersistenceMechanismsParser()
-    serv_info = rdf_client.OSXServiceInformation(label="blah",
-                                                 args=["/blah/test", "-v"])
-    results = list(parser.Parse(serv_info, None,
-                                rdf_paths.PathSpec.PathType.OS))
+    serv_info = rdf_client.OSXServiceInformation(
+        label="blah", args=["/blah/test", "-v"])
+    results = list(
+        parser.Parse(serv_info, None, rdf_paths.PathSpec.PathType.OS))
     self.assertEqual(results[0].pathspec.path, "/blah/test")
 
 

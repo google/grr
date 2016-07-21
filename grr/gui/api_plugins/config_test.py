@@ -143,9 +143,10 @@ SectionFoo.sample_boolean_option: True
 SectionBar.sample_string_option: "%(sAmPlE|lower)"
 """
 
-    config_lib.LoadConfig(config_obj,
-                          config_fd=StringIO.StringIO(config),
-                          parser=config_lib.YamlParser)
+    config_lib.LoadConfig(
+        config_obj,
+        config_fd=StringIO.StringIO(config),
+        parser=config_lib.YamlParser)
 
     with utils.Stubber(config_lib, "CONFIG", config_obj):
       self.Check("GET", "/api/config")
@@ -167,8 +168,8 @@ class ApiGetConfigOptionHandlerTest(test_lib.GRRBaseTest):
 
   def _HandleConfigOption(self, stub_sections, name):
     with self._ConfigStub(stub_sections):
-      result = self.handler.Handle(config_plugin.ApiGetConfigOptionArgs(
-          name=name))
+      result = self.handler.Handle(
+          config_plugin.ApiGetConfigOptionArgs(name=name))
 
     return result
 
@@ -200,9 +201,10 @@ SectionBar.sample_string_option: "%(sAmPlE|lower)"
 Mysql.database_password: "THIS IS SECRET AND SHOULD NOT BE SEEN"
 """
 
-    config_lib.LoadConfig(config_obj,
-                          config_fd=StringIO.StringIO(config),
-                          parser=config_lib.YamlParser)
+    config_lib.LoadConfig(
+        config_obj,
+        config_fd=StringIO.StringIO(config),
+        parser=config_lib.YamlParser)
 
     with utils.Stubber(config_lib, "CONFIG", config_obj):
       self.Check("GET", "/api/config/SectionFoo.sample_string_option")

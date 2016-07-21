@@ -38,9 +38,9 @@ Following path got modified: %(path)s"
     urn = aff4.RDFURN(message.args)
 
     subject = "AFF4 change: %s" % utils.SmartStr(urn)
-    email_alerts.EMAIL_ALERTER.SendEmail(change_email,
-                                         "GRR server",
-                                         subject,
-                                         self.mail_template %
-                                         dict(path=utils.SmartStr(urn)),
-                                         is_html=True)
+    email_alerts.EMAIL_ALERTER.SendEmail(
+        change_email,
+        "GRR server",
+        subject,
+        self.mail_template % dict(path=utils.SmartStr(urn)),
+        is_html=True)

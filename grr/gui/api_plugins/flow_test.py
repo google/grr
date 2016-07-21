@@ -49,18 +49,20 @@ class ApiGetFlowHandlerRegressionTest(
 
       # Delete the certificates as it's being regenerated every time the
       # client is created.
-      with aff4.FACTORY.Open(client_urn, mode="rw",
-                             token=self.token) as client_obj:
+      with aff4.FACTORY.Open(
+          client_urn, mode="rw", token=self.token) as client_obj:
         client_obj.DeleteAttribute(client_obj.Schema.CERT)
 
-      flow_id = flow.GRRFlow.StartFlow(flow_name=discovery.Interrogate.__name__,
-                                       client_id=client_urn,
-                                       token=self.token)
+      flow_id = flow.GRRFlow.StartFlow(
+          flow_name=discovery.Interrogate.__name__,
+          client_id=client_urn,
+          token=self.token)
 
-      self.Check("GET",
-                 "/api/clients/%s/flows/%s" % (client_urn.Basename(),
-                                               flow_id.Basename()),
-                 replace={flow_id.Basename(): "F:ABCDEF12"})
+      self.Check(
+          "GET",
+          "/api/clients/%s/flows/%s" % (client_urn.Basename(),
+                                        flow_id.Basename()),
+          replace={flow_id.Basename(): "F:ABCDEF12"})
 
 
 class ApiListFlowsHandlerRegressionTest(
@@ -95,10 +97,11 @@ class ApiListFlowsHandlerRegressionTest(
           output="",
           token=self.token)
 
-    self.Check("GET",
-               "/api/clients/%s/flows" % client_urn.Basename(),
-               replace={flow_id_1.Basename(): "F:ABCDEF10",
-                        flow_id_2.Basename(): "F:ABCDEF11"})
+    self.Check(
+        "GET",
+        "/api/clients/%s/flows" % client_urn.Basename(),
+        replace={flow_id_1.Basename(): "F:ABCDEF10",
+                 flow_id_2.Basename(): "F:ABCDEF11"})
 
 
 class ApiListFlowResultsHandlerRegressionTest(
@@ -116,27 +119,29 @@ class ApiListFlowResultsHandlerRegressionTest(
         flow_name=transfer.GetFile.__name__)
 
     flow_args = transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-        path="/tmp/evil.txt",
-        pathtype=rdf_paths.PathSpec.PathType.OS))
+        path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS))
 
     client_mock = test_lib.SampleHuntMock()
 
     with test_lib.FakeTime(42):
-      flow_urn = flow.GRRFlow.StartFlow(client_id=self.client_id,
-                                        args=flow_args,
-                                        runner_args=runner_args,
-                                        token=self.token)
+      flow_urn = flow.GRRFlow.StartFlow(
+          client_id=self.client_id,
+          args=flow_args,
+          runner_args=runner_args,
+          token=self.token)
 
-      for _ in test_lib.TestFlowHelper(flow_urn,
-                                       client_mock=client_mock,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          flow_urn,
+          client_mock=client_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
-    self.Check("GET",
-               "/api/clients/%s/flows/%s/results" % (self.client_id.Basename(),
-                                                     flow_urn.Basename()),
-               replace={flow_urn.Basename(): "W:ABCDEF"})
+    self.Check(
+        "GET",
+        "/api/clients/%s/flows/%s/results" % (self.client_id.Basename(),
+                                              flow_urn.Basename()),
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiListFlowLogsHandlerRegressionTest(
@@ -188,10 +193,11 @@ class ApiGetFlowResultsExportCommandHandlerRegressionTest(
           client_id=self.client_id,
           token=self.token)
 
-    self.Check("GET",
-               "/api/clients/%s/flows/%s/results/export-command" %
-               (self.client_id.Basename(), flow_urn.Basename()),
-               replace={flow_urn.Basename(): "W:ABCDEF"})
+    self.Check(
+        "GET",
+        "/api/clients/%s/flows/%s/results/export-command" %
+        (self.client_id.Basename(), flow_urn.Basename()),
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiListFlowOutputPluginsHandlerRegressionTest(
@@ -208,8 +214,7 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
     email_descriptor = output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
         plugin_args=email_plugin.EmailOutputPluginArgs(
-            email_address="test@localhost",
-            emails_limit=42))
+            email_address="test@localhost", emails_limit=42))
 
     with test_lib.FakeTime(42):
       flow_urn = flow.GRRFlow.StartFlow(
@@ -218,10 +223,11 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
           output_plugins=[email_descriptor],
           token=self.token)
 
-    self.Check("GET",
-               "/api/clients/%s/flows/%s/output-plugins" %
-               (self.client_id.Basename(), flow_urn.Basename()),
-               replace={flow_urn.Basename(): "W:ABCDEF"})
+    self.Check(
+        "GET",
+        "/api/clients/%s/flows/%s/output-plugins" %
+        (self.client_id.Basename(), flow_urn.Basename()),
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class DummyFlowWithSingleReply(flow.GRRFlow):
@@ -250,8 +256,7 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
     email_descriptor = output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
         plugin_args=email_plugin.EmailOutputPluginArgs(
-            email_address="test@localhost",
-            emails_limit=42))
+            email_address="test@localhost", emails_limit=42))
 
     with test_lib.FakeTime(42):
       flow_urn = flow.GRRFlow.StartFlow(
@@ -264,11 +269,12 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
       for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
         pass
 
-    self.Check("GET",
-               "/api/clients/%s/flows/%s/output-plugins/"
-               "EmailOutputPlugin_0/logs" % (self.client_id.Basename(),
-                                             flow_urn.Basename()),
-               replace={flow_urn.Basename(): "W:ABCDEF"})
+    self.Check(
+        "GET",
+        "/api/clients/%s/flows/%s/output-plugins/"
+        "EmailOutputPlugin_0/logs" % (self.client_id.Basename(),
+                                      flow_urn.Basename()),
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
@@ -296,11 +302,12 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
       for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
         pass
 
-    self.Check("GET",
-               "/api/clients/%s/flows/%s/output-plugins/"
-               "FailingDummyHuntOutputPlugin_0/errors" %
-               (self.client_id.Basename(), flow_urn.Basename()),
-               replace={flow_urn.Basename(): "W:ABCDEF"})
+    self.Check(
+        "GET",
+        "/api/clients/%s/flows/%s/output-plugins/"
+        "FailingDummyHuntOutputPlugin_0/errors" %
+        (self.client_id.Basename(), flow_urn.Basename()),
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiCreateFlowHandlerRegressionTest(
@@ -317,26 +324,26 @@ class ApiCreateFlowHandlerRegressionTest(
 
     def ReplaceFlowId():
       flows_dir_fd = aff4.FACTORY.Open(
-          self.client_id.Add("flows"),
-          token=self.token)
+          self.client_id.Add("flows"), token=self.token)
       flow_urn = list(flows_dir_fd.ListChildren())[0]
       return {flow_urn.Basename(): "W:ABCDEF"}
 
     with test_lib.FakeTime(42):
-      self.Check("POST",
-                 "/api/clients/%s/flows" % self.client_id.Basename(), {"flow": {
-                     "name": processes.ListProcesses.__name__,
-                     "args": {
-                         "filename_regex": ".",
-                         "fetch_binaries": True
-                     },
-                     "runner_args": {
-                         "output_plugins": [],
-                         "priority": "HIGH_PRIORITY",
-                         "notify_to_user": False,
-                     },
-                 }},
-                 replace=ReplaceFlowId)
+      self.Check(
+          "POST",
+          "/api/clients/%s/flows" % self.client_id.Basename(), {"flow": {
+              "name": processes.ListProcesses.__name__,
+              "args": {
+                  "filename_regex": ".",
+                  "fetch_binaries": True
+              },
+              "runner_args": {
+                  "output_plugins": [],
+                  "priority": "HIGH_PRIORITY",
+                  "notify_to_user": False,
+              },
+          }},
+          replace=ReplaceFlowId)
 
 
 class ApiCancelFlowHandlerRegressionTest(
@@ -356,10 +363,11 @@ class ApiCancelFlowHandlerRegressionTest(
           client_id=self.client_id,
           token=self.token)
 
-    self.Check("POST",
-               "/api/clients/%s/flows/%s/actions/cancel" %
-               (self.client_id.Basename(), flow_urn.Basename()),
-               replace={flow_urn.Basename(): "W:ABCDEF"})
+    self.Check(
+        "POST",
+        "/api/clients/%s/flows/%s/actions/cancel" %
+        (self.client_id.Basename(), flow_urn.Basename()),
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiListFlowDescriptorsHandlerRegressionTest(
@@ -394,17 +402,17 @@ class ApiStartRobotGetFilesOperationHandlerRegressionTest(
 
     def ReplaceFlowId():
       flows_dir_fd = aff4.FACTORY.Open(
-          self.client_id.Add("flows"),
-          token=self.token)
+          self.client_id.Add("flows"), token=self.token)
       flow_urn = list(flows_dir_fd.ListChildren())[0]
       return {flow_urn.Basename(): "W:ABCDEF"}
 
     with test_lib.FakeTime(42):
-      self.Check("POST",
-                 "/api/robot-actions/get-files",
-                 {"hostname": self.client_id.Basename(),
-                  "paths": ["/tmp/test"]},
-                 replace=ReplaceFlowId)
+      self.Check(
+          "POST",
+          "/api/robot-actions/get-files",
+          {"hostname": self.client_id.Basename(),
+           "paths": ["/tmp/test"]},
+          replace=ReplaceFlowId)
 
 
 class ApiStartRobotGetFilesOperationHandlerTest(test_lib.GRRBaseTest):
@@ -417,16 +425,16 @@ class ApiStartRobotGetFilesOperationHandlerTest(test_lib.GRRBaseTest):
 
   def testClientLookup(self):
     """When multiple clients match, check we run on the latest one."""
-    args = flow_plugin.ApiStartRobotGetFilesOperationArgs(hostname="Host",
-                                                          paths=["/test"])
+    args = flow_plugin.ApiStartRobotGetFilesOperationArgs(
+        hostname="Host", paths=["/test"])
     result = self.handler.Handle(args, token=self.token)
     # Here we exploit the fact that operation_id is effectively a flow URN.
     self.assertIn("C.1000000000000003", result.operation_id)
 
   def testThrottle(self):
     """Calling the same flow should raise."""
-    args = flow_plugin.ApiStartRobotGetFilesOperationArgs(hostname="Host",
-                                                          paths=["/test"])
+    args = flow_plugin.ApiStartRobotGetFilesOperationArgs(
+        hostname="Host", paths=["/test"])
     self.handler.Handle(args, token=self.token)
 
     with self.assertRaises(throttle.ErrorFlowDuplicate):
@@ -448,8 +456,8 @@ class ApiGetRobotGetFilesOperationStateHandlerTest(test_lib.GRRBaseTest):
     authorization.
     """
     bad_opid = flow_plugin.ApiGetRobotGetFilesOperationStateArgs(
-        operation_id=utils.SmartUnicode(self.client_id.Add("flows").Add(
-            "X:<script>")))
+        operation_id=utils.SmartUnicode(
+            self.client_id.Add("flows").Add("X:<script>")))
     with self.assertRaises(ValueError):
       self.handler.Handle(bad_opid, token=self.token)
 
@@ -466,15 +474,16 @@ class ApiGetRobotGetFilesOperationStateHandlerTest(test_lib.GRRBaseTest):
 
   def testRaisesIfNoFlowIsFound(self):
     bad_opid = flow_plugin.ApiGetRobotGetFilesOperationStateArgs(
-        operation_id=utils.SmartUnicode(self.client_id.Add("flows").Add(
-            "X:123456")))
+        operation_id=utils.SmartUnicode(
+            self.client_id.Add("flows").Add("X:123456")))
     with self.assertRaises(flow_plugin.RobotGetFilesOperationNotFoundError):
       self.handler.Handle(bad_opid, token=self.token)
 
   def testRaisesIfFlowIsNotFileFinder(self):
-    flow_id = flow.GRRFlow.StartFlow(flow_name=processes.ListProcesses.__name__,
-                                     client_id=self.client_id,
-                                     token=self.token)
+    flow_id = flow.GRRFlow.StartFlow(
+        flow_name=processes.ListProcesses.__name__,
+        client_id=self.client_id,
+        token=self.token)
 
     bad_opid = flow_plugin.ApiGetRobotGetFilesOperationStateArgs(
         operation_id=utils.SmartUnicode(flow_id))
@@ -482,10 +491,11 @@ class ApiGetRobotGetFilesOperationStateHandlerTest(test_lib.GRRBaseTest):
       self.handler.Handle(bad_opid, token=self.token)
 
   def testReturnsCorrectResultIfFlowIsFileFinder(self):
-    flow_id = flow.GRRFlow.StartFlow(flow_name=file_finder.FileFinder.__name__,
-                                     paths=["/*"],
-                                     client_id=self.client_id,
-                                     token=self.token)
+    flow_id = flow.GRRFlow.StartFlow(
+        flow_name=file_finder.FileFinder.__name__,
+        paths=["/*"],
+        client_id=self.client_id,
+        token=self.token)
 
     opid = flow_plugin.ApiGetRobotGetFilesOperationStateArgs(
         operation_id=utils.SmartUnicode(flow_id))
@@ -518,19 +528,20 @@ class ApiGetRobotGetFilesOperationStateHandlerRegressionTest(
       flow_urn = rdfvalue.RDFURN(start_result.operation_id)
 
       # Put something in the output collection
-      flow_obj = aff4.FACTORY.Open(flow_urn,
-                                   aff4_type=flow.GRRFlow,
-                                   token=self.token)
+      flow_obj = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
       flow_state = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
 
-      with aff4.FACTORY.Create(flow_state.context.output_urn,
-                               aff4_type=aff4_collections.RDFValueCollection,
-                               token=self.token) as collection:
+      with aff4.FACTORY.Create(
+          flow_state.context.output_urn,
+          aff4_type=aff4_collections.RDFValueCollection,
+          token=self.token) as collection:
         collection.Add(rdf_client.ClientSummary())
 
-      self.Check("GET",
-                 "/api/robot-actions/get-files/%s" % start_result.operation_id,
-                 replace={flow_urn.Basename(): "F:ABCDEF12"})
+      self.Check(
+          "GET",
+          "/api/robot-actions/get-files/%s" % start_result.operation_id,
+          replace={flow_urn.Basename(): "F:ABCDEF12"})
 
 
 class ApiGetFlowFilesArchiveHandlerTest(test_lib.GRRBaseTest):
@@ -551,17 +562,16 @@ class ApiGetFlowFilesArchiveHandlerTest(test_lib.GRRBaseTest):
         token=self.token)
     action_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
                                           "HashFile", "HashBuffer")
-    for _ in test_lib.TestFlowHelper(self.flow_urn,
-                                     action_mock,
-                                     client_id=self.client_id,
-                                     token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        self.flow_urn, action_mock, client_id=self.client_id, token=self.token):
       pass
 
   def testGeneratesZipArchive(self):
     result = self.handler.Handle(
-        flow_plugin.ApiGetFlowFilesArchiveArgs(client_id=self.client_id,
-                                               flow_id=self.flow_urn.Basename(),
-                                               archive_format="ZIP"),
+        flow_plugin.ApiGetFlowFilesArchiveArgs(
+            client_id=self.client_id,
+            flow_id=self.flow_urn.Basename(),
+            archive_format="ZIP"),
         token=self.token)
 
     out_fd = StringIO.StringIO()
@@ -581,9 +591,10 @@ class ApiGetFlowFilesArchiveHandlerTest(test_lib.GRRBaseTest):
 
   def testGeneratesTarGzArchive(self):
     result = self.handler.Handle(
-        flow_plugin.ApiGetFlowFilesArchiveArgs(client_id=self.client_id,
-                                               flow_id=self.flow_urn.Basename(),
-                                               archive_format="TAR_GZ"),
+        flow_plugin.ApiGetFlowFilesArchiveArgs(
+            client_id=self.client_id,
+            flow_id=self.flow_urn.Basename(),
+            archive_format="TAR_GZ"),
         token=self.token)
 
     with utils.TempDirectory() as temp_dir:

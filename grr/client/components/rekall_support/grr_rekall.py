@@ -63,9 +63,9 @@ class GRRObjectRenderer(data_export.NativeDataExportObjectRenderer):
 
   def EncodeToJsonSafe(self, item, **options):
     object_renderer = self.ForTarget(item, "DataExportRenderer")
-    return object_renderer(renderer=self.renderer,
-                           session=self.session).EncodeToJsonSafe(item,
-                                                                  **options)
+    return object_renderer(
+        renderer=self.renderer,
+        session=self.session).EncodeToJsonSafe(item, **options)
 
   def DecodeFromJsonSafe(self, value, options):
     return self._GetDelegateObjectRenderer(value).DecodeFromJsonSafe(value,
@@ -120,8 +120,8 @@ class GRRRekallRenderer(data_export.DataExportRenderer):
 
   def start(self, plugin_name=None, kwargs=None):
     self.plugin = plugin_name
-    return super(GRRRekallRenderer, self).start(plugin_name=plugin_name,
-                                                kwargs=kwargs)
+    return super(GRRRekallRenderer, self).start(
+        plugin_name=plugin_name, kwargs=kwargs)
 
   def write_data_stream(self):
     """Prepares a RekallResponse and send to the server."""
@@ -174,8 +174,8 @@ class GrrRekallSession(session.Session):
     # Just hard code the initial repository manager. Note this can be
     # overwritten later if needed.
     self._repository_managers = [
-        (None, RekallCachingIOManager(initial_profiles=initial_profiles,
-                                      session=self))
+        (None, RekallCachingIOManager(
+            initial_profiles=initial_profiles, session=self))
     ]
 
     # Apply default configuration options to the session state, unless
@@ -231,9 +231,10 @@ class RekallIOManager(io_manager.IOManager):
     self.session.logging.info("Asking server for profile %s", name)
     UPLOADED_PROFILES.pop(name, None)
 
-    self.session.action.SendReply(rekall_types.RekallResponse(
-        missing_profile=name,
-        repository_version=constants.PROFILE_REPOSITORY_VERSION,))
+    self.session.action.SendReply(
+        rekall_types.RekallResponse(
+            missing_profile=name,
+            repository_version=constants.PROFILE_REPOSITORY_VERSION,))
 
     # Wait for the server to wake us up. When we wake up the server should
     # have sent the profile over by calling the WriteRekallProfile.
@@ -283,9 +284,8 @@ class RekallAction(actions.SuspendableAction):
     if "filename" not in session_args and self.request.device:
       session_args["filename"] = self.request.device.path
 
-    rekal_session = GrrRekallSession(action=self,
-                                     initial_profiles=self.request.profiles,
-                                     **session_args)
+    rekal_session = GrrRekallSession(
+        action=self, initial_profiles=self.request.profiles, **session_args)
 
     plugin_errors = []
 

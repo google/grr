@@ -17,15 +17,14 @@ class ClientApprovalAuthorizationTest(test_base.RDFValueTestCase):
 
   def GenerateSample(self, number=0):
     return client_approval_auth.ClientApprovalAuthorization(
-        label="label%d" % number,
-        users=["test", "test2"])
+        label="label%d" % number, users=["test", "test2"])
 
   def testApprovalValidation(self):
     # String instead of list of users
     with self.assertRaises(
         client_approval_auth.ErrorInvalidClientApprovalAuthorization):
-      client_approval_auth.ClientApprovalAuthorization(label="label",
-                                                       users="test")
+      client_approval_auth.ClientApprovalAuthorization(
+          label="label", users="test")
 
     # Missing label
     acl = client_approval_auth.ClientApprovalAuthorization(users=["test"])

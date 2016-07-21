@@ -122,15 +122,16 @@ class DataStoreService(object):
         if value.HasField("timestamp"):
           timestamp = self.FromTimestampSpec(value.timestamp)
 
-        values.setdefault(value.attribute,
-                          []).append((value.value.GetValue(), timestamp))
+        values.setdefault(value.attribute, []).append(
+            (value.value.GetValue(), timestamp))
 
-    self.db.MultiSet(request.subject[0],
-                     values,
-                     to_delete=to_delete,
-                     sync=request.sync,
-                     replace=False,
-                     token=request.token)
+    self.db.MultiSet(
+        request.subject[0],
+        values,
+        to_delete=to_delete,
+        sync=request.sync,
+        replace=False,
+        token=request.token)
 
   @RPCWrapper
   def ResolveMulti(self, request, response):
@@ -143,16 +144,17 @@ class DataStoreService(object):
     timestamp = self.FromTimestampSpec(request.timestamp)
     subject = request.subject[0]
 
-    values = self.db.ResolveMulti(subject,
-                                  attribute_prefix,
-                                  timestamp=timestamp,
-                                  limit=request.limit,
-                                  token=request.token)
+    values = self.db.ResolveMulti(
+        subject,
+        attribute_prefix,
+        timestamp=timestamp,
+        limit=request.limit,
+        token=request.token)
 
-    response.results.Append(subject=subject,
-                            payload=[(attribute, self._Encode(value), int(ts))
-                                     for (attribute, value, ts) in values
-                                     if value])
+    response.results.Append(
+        subject=subject,
+        payload=[(attribute, self._Encode(value), int(ts))
+                 for (attribute, value, ts) in values if value])
 
   @RPCWrapper
   def MultiResolvePrefix(self, request, response):
@@ -162,11 +164,12 @@ class DataStoreService(object):
     timestamp = self.FromTimestampSpec(request.timestamp)
     subjects = list(request.subject)
 
-    for subject, values in self.db.MultiResolvePrefix(subjects,
-                                                      attribute_prefix,
-                                                      timestamp=timestamp,
-                                                      token=request.token,
-                                                      limit=request.limit):
+    for subject, values in self.db.MultiResolvePrefix(
+        subjects,
+        attribute_prefix,
+        timestamp=timestamp,
+        token=request.token,
+        limit=request.limit):
       response.results.Append(
           subject=subject,
           payload=[(utils.SmartStr(attribute), self._Encode(value), int(ts))
@@ -180,12 +183,13 @@ class DataStoreService(object):
     if len(request.subject) > 1:
       after_urn = request.subject[1]
     max_records = request.limit
-    for (subject, results) in self.db.ScanAttributes(subject_prefix,
-                                                     attributes,
-                                                     after_urn=after_urn,
-                                                     max_records=max_records,
-                                                     token=request.token,
-                                                     relaxed_order=True):
+    for (subject, results) in self.db.ScanAttributes(
+        subject_prefix,
+        attributes,
+        after_urn=after_urn,
+        max_records=max_records,
+        token=request.token,
+        relaxed_order=True):
       encoded_results = []
       for attribute, (ts, value) in results.iteritems():
         encoded_results.append((attribute, (ts, self._Encode(value))))
@@ -200,12 +204,8 @@ class DataStoreService(object):
     token = request.token
     attributes = [v.attribute for v in request.values]
     start, end = timestamp  # pylint: disable=unpacking-non-sequence
-    self.db.DeleteAttributes(subject,
-                             attributes,
-                             start=start,
-                             end=end,
-                             token=token,
-                             sync=sync)
+    self.db.DeleteAttributes(
+        subject, attributes, start=start, end=end, token=token, sync=sync)
 
   @RPCWrapper
   def DeleteSubject(self, request, unused_response):
@@ -315,9 +315,8 @@ class DataStoreService(object):
     """Retrieve server mapping from database."""
     # TODO(user): this SetUID can likely be replaced with a read ACL.
     token = access_control.ACLToken(username="GRRSystem").SetUID()
-    mapping_str, _ = self.db.Resolve(MAP_SUBJECT,
-                                     MAP_VALUE_PREDICATE,
-                                     token=token)
+    mapping_str, _ = self.db.Resolve(
+        MAP_SUBJECT, MAP_VALUE_PREDICATE, token=token)
     if not mapping_str:
       return None
     mapping = rdf_data_server.DataServerMapping(mapping_str)

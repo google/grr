@@ -37,11 +37,12 @@ def MakeCASignedCert(common_name,
   builder = builder.public_key(public_key.GetRawPublicKey())
 
   builder = builder.add_extension(
-      x509.BasicConstraints(ca=False, path_length=None),
-      critical=True)
-  certificate = builder.sign(private_key=ca_private_key.GetRawPrivateKey(),
-                             algorithm=hashes.SHA256(),
-                             backend=openssl.backend)
+      x509.BasicConstraints(
+          ca=False, path_length=None), critical=True)
+  certificate = builder.sign(
+      private_key=ca_private_key.GetRawPrivateKey(),
+      algorithm=hashes.SHA256(),
+      backend=openssl.backend)
   return rdf_crypto.RDFX509Cert(certificate)
 
 
@@ -83,12 +84,13 @@ def MakeCACert(private_key,
   builder = builder.public_key(public_key.GetRawPublicKey())
 
   builder = builder.add_extension(
-      x509.BasicConstraints(ca=True, path_length=None),
-      critical=True)
+      x509.BasicConstraints(
+          ca=True, path_length=None), critical=True)
   builder = builder.add_extension(
       x509.SubjectKeyIdentifier.from_public_key(public_key.GetRawPublicKey()),
       critical=False)
-  certificate = builder.sign(private_key=private_key.GetRawPrivateKey(),
-                             algorithm=hashes.SHA256(),
-                             backend=openssl.backend)
+  certificate = builder.sign(
+      private_key=private_key.GetRawPrivateKey(),
+      algorithm=hashes.SHA256(),
+      backend=openssl.backend)
   return rdf_crypto.RDFX509Cert(certificate)

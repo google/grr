@@ -63,10 +63,11 @@ class EndToEndTestFlow(flow.GRRFlow):
     # method will kill the EndToEndTest run.  Protecting and reporting on this
     # significantly complicates this code, and a flow raising in Start is really
     # broken, so we allow this behaviour.
-    test_object.session_id = self.CallFlow(test_object.flow,
-                                           next_state="ProcessResults",
-                                           write_intermediate_results=True,
-                                           **test_object.args)
+    test_object.session_id = self.CallFlow(
+        test_object.flow,
+        next_state="ProcessResults",
+        write_intermediate_results=True,
+        **test_object.args)
 
     # Save the object so we can call CheckFlow once the flow is done
     self.state.flow_test_map[test_object.session_id] = test_object
@@ -80,7 +81,7 @@ class EndToEndTestFlow(flow.GRRFlow):
       if not cls.__name__.startswith("Abstract"):
         self.state.test_set.add(cls)
 
-  @flow.StateHandler(next_state="RunFirstTest")
+  @flow.StateHandler()
   def Start(self):
     self.state.Register("test_set", set())
     self.state.Register("flow_test_map", {})
@@ -109,11 +110,11 @@ class EndToEndTestFlow(flow.GRRFlow):
     # Get out of the start method before we run any tests
     self.CallState(next_state="RunFirstTest")
 
-  @flow.StateHandler(next_state="ProcessResults")
+  @flow.StateHandler()
   def RunFirstTest(self, unused_responses):
     self.RunTest(self.state.test_set.pop())
 
-  @flow.StateHandler(next_state=["ProcessResults", "End"])
+  @flow.StateHandler()
   def ProcessResults(self, responses):
     test_object = self.state.flow_test_map[responses.status.child_session_id]
     cls_name = test_object.__class__.__name__
@@ -122,15 +123,15 @@ class EndToEndTestFlow(flow.GRRFlow):
     try:
       test_object.CheckFlow()
       result.success = True
-      stats.STATS.IncrementCounter("endtoend_test_success",
-                                   fields=[cls_name, system])
+      stats.STATS.IncrementCounter(
+          "endtoend_test_success", fields=[cls_name, system])
     except Exception:  # pylint: disable=broad-except
       # CheckFlow verifies the test result and can raise any number of different
       # exceptions.  We want to log and move on so that we can run all tests,
       # not just die on first failure.
       self.state.fail_count += 1
-      stats.STATS.IncrementCounter("endtoend_test_failure",
-                                   fields=[cls_name, system])
+      stats.STATS.IncrementCounter(
+          "endtoend_test_failure", fields=[cls_name, system])
       backtrace = traceback.format_exc()
       self.Log(backtrace)
       result.log = backtrace
@@ -163,9 +164,7 @@ class EndToEndTestStatsInit(registry.InitHook):
   pre = ["AFF4InitHook"]
 
   def RunOnce(self):
-    stats.STATS.RegisterCounterMetric("endtoend_test_failure",
-                                      fields=[("test_name", str),
-                                              ("platform", str)])
-    stats.STATS.RegisterCounterMetric("endtoend_test_success",
-                                      fields=[("test_name", str),
-                                              ("platform", str)])
+    stats.STATS.RegisterCounterMetric(
+        "endtoend_test_failure", fields=[("test_name", str), ("platform", str)])
+    stats.STATS.RegisterCounterMetric(
+        "endtoend_test_success", fields=[("test_name", str), ("platform", str)])

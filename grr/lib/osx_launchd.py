@@ -1451,22 +1451,22 @@ JOBS = [
             FakeCFObject('/bin/sh'), FakeCFObject('-c'), FakeCFObject(
                 "if [ \"$HOME\" == \"/System\" ], then exit 0, fi, if [ -f "
                 "\"$HOME/Library/LaunchAgents/com.apple.imagent.plist\" ] , "
-                "then launchctl unload -wF "
-                "~/Library/LaunchAgents/com.apple.imagent.plist , launchctl "
-                "load -wF /System/Library/LaunchAgents/com.apple.imagent.plist"
-                " , fi , if [ -f "
+                'then launchctl unload -wF '
+                '~/Library/LaunchAgents/com.apple.imagent.plist , launchctl '
+                'load -wF /System/Library/LaunchAgents/com.apple.imagent.plist'
+                ' , fi , if [ -f '
                 "\"$HOME/Library/LaunchAgents/com.apple.apsd-ft.plist\" ] , "
                 "then launchctl unload -wF -S 'Aqua' "
-                "~/Library/LaunchAgents/com.apple.apsd-ft.plist, fi , if [ -f "
+                '~/Library/LaunchAgents/com.apple.apsd-ft.plist, fi , if [ -f '
                 "\"$HOME/Library/LaunchAgents/com.apple.marcoagent.plist\" ] ,"
-                " then launchctl unload -wF "
-                "~/Library/LaunchAgents/com.apple.marcoagent.plist , launchctl"
-                " load -wF "
-                "/System/Library/LaunchAgents/com.apple.marcoagent.plist , fi "
-                ", if [ -f "
+                ' then launchctl unload -wF '
+                '~/Library/LaunchAgents/com.apple.marcoagent.plist , launchctl'
+                ' load -wF '
+                '/System/Library/LaunchAgents/com.apple.marcoagent.plist , fi '
+                ', if [ -f '
                 "\"$HOME/Library/LaunchAgents/com.apple.FTMonitor.plist\" ] , "
-                "then launchctl unload -wF "
-                "~/Library/LaunchAgents/com.apple.FTMonitor.plist , fi ,")
+                'then launchctl unload -wF '
+                '~/Library/LaunchAgents/com.apple.FTMonitor.plist , fi ,')
         ],
         'TimeOut': FakeCFObject(30),
     }), FakeCFDict({

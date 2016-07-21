@@ -177,10 +177,8 @@ class GRRUser(aff4.AFF4Object):
         default=GlobalNotificationSet(),
         versioned=False)
 
-    GUI_SETTINGS = aff4.Attribute("aff4:gui/settings",
-                                  GUISettings,
-                                  "GUI Settings",
-                                  default="")
+    GUI_SETTINGS = aff4.Attribute(
+        "aff4:gui/settings", GUISettings, "GUI Settings", default="")
 
     PASSWORD = aff4.Attribute("aff4:user/password", CryptedPassword,
                               "Encrypted Password for the user")
@@ -209,11 +207,12 @@ class GRRUser(aff4.AFF4Object):
     if message_type not in rdf_flows.Notification.notification_types:
       raise TypeError("Invalid notification type %s" % message_type)
 
-    pending.Append(type=message_type,
-                   subject=subject,
-                   message=msg,
-                   source=source,
-                   timestamp=long(time.time() * 1e6))
+    pending.Append(
+        type=message_type,
+        subject=subject,
+        message=msg,
+        source=source,
+        timestamp=long(time.time() * 1e6))
 
     # Limit the notification to 50, expiring older notifications.
     while len(pending) > 50:
@@ -295,10 +294,11 @@ class GRRUser(aff4.AFF4Object):
     return password_obj and password_obj.CheckPassword(password)
 
   def GetPendingGlobalNotifications(self):
-    storage = aff4.FACTORY.Create(GlobalNotificationStorage.DEFAULT_PATH,
-                                  aff4_type=GlobalNotificationStorage,
-                                  mode="r",
-                                  token=self.token)
+    storage = aff4.FACTORY.Create(
+        GlobalNotificationStorage.DEFAULT_PATH,
+        aff4_type=GlobalNotificationStorage,
+        mode="r",
+        token=self.token)
     current_notifications = storage.GetNotifications()
 
     shown_notifications = self.Get(self.Schema.SHOWN_GLOBAL_NOTIFICATIONS,

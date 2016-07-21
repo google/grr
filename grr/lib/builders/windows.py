@@ -113,8 +113,7 @@ class WindowsClientBuilder(build.ClientBuilder):
                    "If you want to build it you must have VS 2012 installed.")
 
       binaries_dir = config_lib.CONFIG.Get(
-          "ClientBuilder.nanny_prebuilt_binaries",
-          context=self.context)
+          "ClientBuilder.nanny_prebuilt_binaries", context=self.context)
 
       shutil.copy(
           os.path.join(binaries_dir, "GRRNanny_%s.exe" % vs_arch),

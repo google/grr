@@ -48,7 +48,7 @@ class ChromeHistory(flow.GRRFlow):
   args_type = ChromeHistoryArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state="ParseFiles")
+  @flow.StateHandler()
   def Start(self):
     """Determine the Chrome directory."""
     self.state.Register("hist_count", 0)
@@ -58,9 +58,8 @@ class ChromeHistory(flow.GRRFlow):
       self.state.history_paths.append(self.state.args.history_path)
 
     if self.runner.output is not None:
-      self.runner.output = aff4.FACTORY.Create(self.runner.output.urn,
-                                               aff4_grr.VFSAnalysisFile,
-                                               token=self.token)
+      self.runner.output = aff4.FACTORY.Create(
+          self.runner.output.urn, aff4_grr.VFSAnalysisFile, token=self.token)
 
     if not self.state.history_paths:
       self.state.history_paths = self.GuessHistoryPaths(
@@ -130,9 +129,9 @@ class ChromeHistory(flow.GRRFlow):
     if system == "Windows":
       path = ("{app_data}\\{sw}\\User Data\\Default\\")
       for sw_path in ["Google\\Chrome", "Chromium"]:
-        paths.append(path.format(
-            app_data=user_info.special_folders.local_app_data,
-            sw=sw_path))
+        paths.append(
+            path.format(
+                app_data=user_info.special_folders.local_app_data, sw=sw_path))
     elif system == "Linux":
       path = "{homedir}/.config/{sw}/Default/"
       for sw_path in ["google-chrome", "chromium"]:
@@ -176,7 +175,7 @@ class FirefoxHistory(flow.GRRFlow):
   args_type = FirefoxHistoryArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state="ParseFiles")
+  @flow.StateHandler()
   def Start(self):
     """Determine the Firefox history directory."""
     self.state.Register("hist_count", 0)
@@ -191,9 +190,8 @@ class FirefoxHistory(flow.GRRFlow):
         raise flow.FlowError("Could not find valid History paths.")
 
     if self.runner.output is not None:
-      self.runner.output = aff4.FACTORY.Create(self.runner.output.urn,
-                                               aff4_grr.VFSAnalysisFile,
-                                               token=self.token)
+      self.runner.output = aff4.FACTORY.Create(
+          self.runner.output.urn, aff4_grr.VFSAnalysisFile, token=self.token)
 
     filename = "places.sqlite"
     for path in self.state.history_paths:
@@ -294,7 +292,7 @@ class CacheGrep(flow.GRRFlow):
   args_type = CacheGrepArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state="StartRequests")
+  @flow.StateHandler()
   def Start(self):
     """Redirect to start on the workers and not in the UI."""
 
@@ -321,13 +319,14 @@ class CacheGrep(flow.GRRFlow):
 
     self.CallState(next_state="StartRequests")
 
-  @flow.StateHandler(next_state="HandleResults")
+  @flow.StateHandler()
   def StartRequests(self):
     """Generate and send the Find requests."""
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     if self.runner.output is not None:
-      self.runner.output.Set(self.runner.output.Schema.DESCRIPTION(
-          "CacheGrep for {0}".format(self.args.data_regex)))
+      self.runner.output.Set(
+          self.runner.output.Schema.DESCRIPTION("CacheGrep for {0}".format(
+              self.args.data_regex)))
 
     usernames = [
         "%s\\%s" % (u.userdomain, u.username) for u in self.state.users

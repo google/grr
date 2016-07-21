@@ -26,21 +26,20 @@ class MemoryStreamBlobstore(blob_store.Blobstore):
 
     mutation_pool = data_store.DB.GetMutationPool(token=token)
 
-    existing = aff4.FACTORY.MultiOpen(urns,
-                                      aff4_type=aff4.AFF4MemoryStreamBase,
-                                      mode="r",
-                                      token=token)
+    existing = aff4.FACTORY.MultiOpen(
+        urns, aff4_type=aff4.AFF4MemoryStreamBase, mode="r", token=token)
 
     for blob_urn, digest in urns.iteritems():
       if blob_urn in existing:
         logging.debug("Blob %s already stored.", digest)
         continue
 
-      fd = aff4.FACTORY.Create(blob_urn,
-                               aff4.AFF4UnversionedMemoryStream,
-                               mode="w",
-                               token=token,
-                               mutation_pool=mutation_pool)
+      fd = aff4.FACTORY.Create(
+          blob_urn,
+          aff4.AFF4UnversionedMemoryStream,
+          mode="w",
+          token=token,
+          mutation_pool=mutation_pool)
       content = contents_by_digest[digest]
       fd.Write(content)
       fd.Close()
@@ -68,10 +67,8 @@ class MemoryStreamBlobstore(blob_store.Blobstore):
 
     urns = {self._BlobUrn(digest): digest for digest in digests}
 
-    existing = aff4.FACTORY.MultiOpen(urns,
-                                      aff4_type=aff4.AFF4MemoryStreamBase,
-                                      mode="r",
-                                      token=token)
+    existing = aff4.FACTORY.MultiOpen(
+        urns, aff4_type=aff4.AFF4MemoryStreamBase, mode="r", token=token)
 
     for blob in existing:
       res[urns[blob.urn]] = True

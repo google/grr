@@ -140,12 +140,13 @@ class Renderer(object):
 
   context_help_url = ""  # Class variable to store context sensitive help.
 
-  js_call_template = Template("""
+  js_call_template = Template(
+      """
 <script>
   grr.ExecuteRenderer("{{method|escapejs}}", {{js_state_json|safe}});
 </script>
 """,
-                              allow_script=True)
+      allow_script=True)
 
   help_template = Template("""
 {% if this.context_help_url %}
@@ -182,9 +183,9 @@ class Renderer(object):
       Response object.
     """
     js_state = self.state.copy()
-    js_state.update(dict(unique=self.unique,
-                         id=self.id,
-                         renderer=self.__class__.__name__))
+    js_state.update(
+        dict(
+            unique=self.unique, id=self.id, renderer=self.__class__.__name__))
 
     # Since JSON can only represent strings, we must force inputs to a string
     # here.
@@ -194,10 +195,11 @@ class Renderer(object):
       method = "%s.%s" % (self.__class__.__name__, method)
 
     js_state_json = JsonDumpForScriptContext(js_state)
-    self.RenderFromTemplate(self.js_call_template,
-                            response,
-                            method=method,
-                            js_state_json=js_state_json)
+    self.RenderFromTemplate(
+        self.js_call_template,
+        response,
+        method=method,
+        js_state_json=js_state_json)
     return response
 
   def RenderAjax(self, request, response):
@@ -298,9 +300,8 @@ class UserLabelCheckMixin(object):
   @classmethod
   def CheckAccess(cls, request):
     """If the user is not in the AUTHORIZED_LABELS, reject this renderer."""
-    user_managers.CheckUserForLabels(request.token.username,
-                                     cls.AUTHORIZED_LABELS,
-                                     token=request.token)
+    user_managers.CheckUserForLabels(
+        request.token.username, cls.AUTHORIZED_LABELS, token=request.token)
 
 
 class ErrorHandler(Renderer):
@@ -319,10 +320,11 @@ class ErrorHandler(Renderer):
       except Exception as e:  # pylint: disable=broad-except
         logging.exception(utils.SmartUnicode(e))
         response = http.HttpResponse()
-        response = self.CallJavascript(response,
-                                       "ErrorHandler.Layout",
-                                       error=utils.SmartUnicode(e),
-                                       backtrace=traceback.format_exc())
+        response = self.CallJavascript(
+            response,
+            "ErrorHandler.Layout",
+            error=utils.SmartUnicode(e),
+            backtrace=traceback.format_exc())
         response.status_code = 500
 
         return response
@@ -356,19 +358,18 @@ class TemplateRenderer(Renderer):
 
     canary_mode = getattr(request, "canary_mode", False)
 
-    return self.RenderFromTemplate(apply_template,
-                                   response,
-                                   this=self,
-                                   id=self.id,
-                                   unique=self.unique,
-                                   renderer=self.__class__.__name__,
-                                   canary_mode=canary_mode)
+    return self.RenderFromTemplate(
+        apply_template,
+        response,
+        this=self,
+        id=self.id,
+        unique=self.unique,
+        renderer=self.__class__.__name__,
+        canary_mode=canary_mode)
 
   def RenderAjax(self, request, response):
-    return TemplateRenderer.Layout(self,
-                                   request,
-                                   response,
-                                   apply_template=self.ajax_template)
+    return TemplateRenderer.Layout(
+        self, request, response, apply_template=self.ajax_template)
 
   def RawHTML(self, request=None, method=None, **kwargs):
     """This returns raw HTML, after sanitization by Layout()."""
@@ -399,10 +400,11 @@ class AngularDirectiveRendererBase(TemplateRenderer):
     response = super(AngularDirectiveRendererBase, self).Layout(request,
                                                                 response,
                                                                 **kwargs)
-    return self.CallJavascript(response,
-                               "AngularDirectiveRenderer.Layout",
-                               directive=self.directive,
-                               directive_args=self.directive_args)
+    return self.CallJavascript(
+        response,
+        "AngularDirectiveRenderer.Layout",
+        directive=self.directive,
+        directive_args=self.directive_args)
 
 
 class AngularDirectiveRenderer(AngularDirectiveRendererBase):
@@ -681,11 +683,12 @@ class TableRenderer(TemplateRenderer):
     self.table_contents = delegate_renderer.RenderAjax(request, tmp).content
 
     response = super(TableRenderer, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "TableRenderer.Layout",
-                               renderer=self.__class__.__name__,
-                               table_state=self.state,
-                               message=self.message)
+    return self.CallJavascript(
+        response,
+        "TableRenderer.Layout",
+        renderer=self.__class__.__name__,
+        table_state=self.state,
+        message=self.message)
 
   def BuildTable(self, start_row, end_row, request):
     """Populate the table between the start and end rows.
@@ -744,9 +747,8 @@ class TableRenderer(TemplateRenderer):
 
     response = super(TableRenderer, self).Layout(
         request, response, apply_template=self.ajax_template)
-    return self.CallJavascript(response,
-                               "TableRenderer.RenderAjax",
-                               message=self.message)
+    return self.CallJavascript(
+        response, "TableRenderer.RenderAjax", message=self.message)
 
   def Download(self, request, _):
     """Export the table in CSV.
@@ -780,14 +782,14 @@ class TableRenderer(TemplateRenderer):
           yield fd.getvalue()
           fd.truncate(size=0)
 
-        writer.writerow([RemoveTags(c.RenderRow(i, request)) for c in
-                         self.columns])
+        writer.writerow([RemoveTags(c.RenderRow(i, request))
+                         for c in self.columns])
 
       # The last chunk
       yield fd.getvalue()
 
-    response = http.StreamingHttpResponse(streaming_content=Generator(),
-                                          content_type="binary/x-csv")
+    response = http.StreamingHttpResponse(
+        streaming_content=Generator(), content_type="binary/x-csv")
 
     # This must be a string.
     response["Content-Disposition"] = ("attachment; filename=table.csv")
@@ -807,11 +809,12 @@ class TreeRenderer(TemplateRenderer):
 
   def Layout(self, request, response):
     response = super(TreeRenderer, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "TreeRenderer.Layout",
-                               renderer=self.__class__.__name__,
-                               publish_select_queue=self.publish_select_queue,
-                               tree_state=self.state)
+    return self.CallJavascript(
+        response,
+        "TreeRenderer.Layout",
+        renderer=self.__class__.__name__,
+        publish_select_queue=self.publish_select_queue,
+        tree_state=self.state)
 
   def RenderAjax(self, request, response):
     """Render the tree leafs for the tree path."""
@@ -830,9 +833,10 @@ class TreeRenderer(TemplateRenderer):
         fullpath = os.path.join(path, name)
         if fullpath in self.hidden_branches:
           continue
-        data = dict(text=friendly_name,
-                    li_attr=dict(id=DeriveIDFromPath(fullpath),
-                                 path=fullpath))
+        data = dict(
+            text=friendly_name,
+            li_attr=dict(
+                id=DeriveIDFromPath(fullpath), path=fullpath))
         if behaviour == "branch":
           data["children"] = True
         else:
@@ -843,9 +847,10 @@ class TreeRenderer(TemplateRenderer):
     # If this is a completely empty tree we have to return at least something
     # or the tree will load forever.
     if not result and path == "/":
-      result.append(dict(text=path,
-                         li_attr=dict(id=DeriveIDFromPath(path),
-                                      path=path)))
+      result.append(
+          dict(
+              text=path, li_attr=dict(
+                  id=DeriveIDFromPath(path), path=path)))
 
     return JsonResponse(result)
 
@@ -919,12 +924,13 @@ class TabLayout(TemplateRenderer):
                     for i in range(len(self.names))]
 
     response = super(TabLayout, self).Layout(request, response, apply_template)
-    return self.CallJavascript(response,
-                               "TabLayout.Layout",
-                               disabled=self.disabled,
-                               tab_layout_state=self.state,
-                               tab_hash=self.tab_hash,
-                               selected_tab=self.selected)
+    return self.CallJavascript(
+        response,
+        "TabLayout.Layout",
+        disabled=self.disabled,
+        tab_layout_state=self.state,
+        tab_hash=self.tab_hash,
+        selected_tab=self.selected)
 
 
 class Splitter(TemplateRenderer):
@@ -988,10 +994,11 @@ class Splitter(TemplateRenderer):
         id="%s_rightBottomPane" % self.id).RawHTML(request)
 
     response = super(Splitter, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "Splitter.Layout",
-                               min_left_pane_width=self.min_left_pane_width,
-                               max_left_pane_width=self.max_left_pane_width)
+    return self.CallJavascript(
+        response,
+        "Splitter.Layout",
+        min_left_pane_width=self.min_left_pane_width,
+        max_left_pane_width=self.max_left_pane_width)
 
 
 class Splitter2Way(TemplateRenderer):
@@ -1015,12 +1022,10 @@ class Splitter2Way(TemplateRenderer):
 
     # Pre-render the top and bottom layout contents to avoid extra round trips.
     self.top_pane = self.classes[self.top_renderer](
-        id="%s_topPane" % self.id,
-        state=self.state.copy()).RawHTML(request)
+        id="%s_topPane" % self.id, state=self.state.copy()).RawHTML(request)
 
     self.bottom_pane = self.classes[self.bottom_renderer](
-        id="%s_bottomPane" % self.id,
-        state=self.state.copy()).RawHTML(request)
+        id="%s_bottomPane" % self.id, state=self.state.copy()).RawHTML(request)
 
     response = super(Splitter2Way, self).Layout(request, response)
     return self.CallJavascript(response, "Splitter2Way.Layout")
@@ -1051,18 +1056,17 @@ class Splitter2WayVertical(TemplateRenderer):
 
     # Pre-render the top and bottom layout contents to avoid extra round trips.
     self.left_pane = self.classes[self.left_renderer](
-        id="%s_leftPane" % self.id,
-        state=self.state.copy()).RawHTML(request)
+        id="%s_leftPane" % self.id, state=self.state.copy()).RawHTML(request)
 
     self.right_pane = self.classes[self.right_renderer](
-        id="%s_rightPane" % self.id,
-        state=self.state.copy()).RawHTML(request)
+        id="%s_rightPane" % self.id, state=self.state.copy()).RawHTML(request)
 
     response = super(Splitter2WayVertical, self).Layout(request, response)
-    return self.CallJavascript(response,
-                               "Splitter2WayVertical.Layout",
-                               min_left_pane_width=self.min_left_pane_width,
-                               max_left_pane_width=self.max_left_pane_width)
+    return self.CallJavascript(
+        response,
+        "Splitter2WayVertical.Layout",
+        min_left_pane_width=self.min_left_pane_width,
+        max_left_pane_width=self.max_left_pane_width)
 
 
 def DeriveIDFromPath(path):
@@ -1092,9 +1096,8 @@ class ErrorRenderer(TemplateRenderer):
   """Render Exceptions."""
 
   def Layout(self, request, response):
-    response = self.CallJavascript(response,
-                                   "ErrorRenderer.Layout",
-                                   value=request.REQ.get("value", ""))
+    response = self.CallJavascript(
+        response, "ErrorRenderer.Layout", value=request.REQ.get("value", ""))
 
 
 class EmptyRenderer(TemplateRenderer):
@@ -1185,8 +1188,8 @@ class ImageDownloadRenderer(TemplateRenderer):
 
   def Download(self, request, response):
 
-    response = http.HttpResponse(content=self.Content(request, response),
-                                 content_type=self.content_type)
+    response = http.HttpResponse(
+        content=self.Content(request, response), content_type=self.content_type)
 
     return response
 
@@ -1207,8 +1210,8 @@ def JsonResponse(dump_object, xssi_protection=True):
   if xssi_protection:
     result = ")]}\n" + result
 
-  response = http.HttpResponse(result,
-                               content_type="application/json; charset=utf-8")
+  response = http.HttpResponse(
+      result, content_type="application/json; charset=utf-8")
 
   response["Content-Disposition"] = "attachment; filename=response.json"
   response["X-Content-Type-Options"] = "nosniff"

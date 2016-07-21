@@ -151,10 +151,11 @@ class ApiCreateUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
     flow_fd = aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, token=token)
     approval_urn = flow_fd.state.approval_urn
 
-    approval_obj = aff4.FACTORY.Open(approval_urn,
-                                     aff4_type=aff4_security.ClientApproval,
-                                     age=aff4.ALL_TIMES,
-                                     token=token)
+    approval_obj = aff4.FACTORY.Open(
+        approval_urn,
+        aff4_type=aff4_security.ClientApproval,
+        age=aff4.ALL_TIMES,
+        token=token)
 
     return ApiUserClientApproval().InitFromAff4Object(approval_obj)
 
@@ -178,10 +179,11 @@ class ApiGetUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(args.client_id.Basename()).Add(
         args.username).Add(args.approval_id)
-    approval_obj = aff4.FACTORY.Open(approval_urn,
-                                     aff4_type=aff4_security.ClientApproval,
-                                     age=aff4.ALL_TIMES,
-                                     token=token)
+    approval_obj = aff4.FACTORY.Open(
+        approval_urn,
+        aff4_type=aff4_security.ClientApproval,
+        age=aff4.ALL_TIMES,
+        token=token)
     return ApiUserClientApproval().InitFromAff4Object(approval_obj)
 
 
@@ -212,8 +214,8 @@ class ApiListUserApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
     approvals_base_urn = aff4.ROOT_URN.Add("users").Add(token.username).Add(
         "approvals").Add(approval_type)
 
-    all_children = aff4.FACTORY.RecursiveMultiListChildren([approvals_base_urn],
-                                                           token=token)
+    all_children = aff4.FACTORY.RecursiveMultiListChildren(
+        [approvals_base_urn], token=token)
 
     approvals_urns = []
     for subject, children in all_children:
@@ -223,11 +225,13 @@ class ApiListUserApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
       approvals_urns.append(subject)
 
     approvals_urns.sort(key=lambda x: x.age, reverse=True)
-    approvals = list(aff4.FACTORY.MultiOpen(approvals_urns,
-                                            mode="r",
-                                            aff4_type=aff4_security.Approval,
-                                            age=aff4.ALL_TIMES,
-                                            token=token))
+    approvals = list(
+        aff4.FACTORY.MultiOpen(
+            approvals_urns,
+            mode="r",
+            aff4_type=aff4_security.Approval,
+            age=aff4.ALL_TIMES,
+            token=token))
     approvals_by_urn = {}
     for approval in approvals:
       approvals_by_urn[approval.symlink_urn or approval.urn] = approval
@@ -330,11 +334,8 @@ class ApiListUserClientApprovalsHandler(ApiListUserApprovalsHandlerBase):
   def Handle(self, args, token=None):
     filter_func = self._BuildFilter(args)
 
-    approvals, subjects_by_urn = self._GetApprovals("client",
-                                                    args.offset,
-                                                    args.count,
-                                                    filter_func=filter_func,
-                                                    token=token)
+    approvals, subjects_by_urn = self._GetApprovals(
+        "client", args.offset, args.count, filter_func=filter_func, token=token)
     return ApiListUserClientApprovalsResult(items=self._HandleApprovals(
         approvals, subjects_by_urn, self._ApprovalToApiApproval))
 
@@ -369,10 +370,11 @@ class ApiCreateUserHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
     flow_fd = aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, token=token)
     approval_urn = flow_fd.state.approval_urn
 
-    approval_obj = aff4.FACTORY.Open(approval_urn,
-                                     aff4_type=aff4_security.HuntApproval,
-                                     age=aff4.ALL_TIMES,
-                                     token=token)
+    approval_obj = aff4.FACTORY.Open(
+        approval_urn,
+        aff4_type=aff4_security.HuntApproval,
+        age=aff4.ALL_TIMES,
+        token=token)
 
     return ApiUserHuntApproval().InitFromAff4Object(approval_obj)
 
@@ -396,10 +398,11 @@ class ApiGetUserHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add("hunts").Add(args.hunt_id).Add(
         args.username).Add(args.approval_id)
-    approval_obj = aff4.FACTORY.Open(approval_urn,
-                                     aff4_type=aff4_security.HuntApproval,
-                                     age=aff4.ALL_TIMES,
-                                     token=token)
+    approval_obj = aff4.FACTORY.Open(
+        approval_urn,
+        aff4_type=aff4_security.HuntApproval,
+        age=aff4.ALL_TIMES,
+        token=token)
     return ApiUserHuntApproval().InitFromAff4Object(approval_obj)
 
 
@@ -422,10 +425,8 @@ class ApiListUserHuntApprovalsHandler(ApiListUserApprovalsHandlerBase):
         approval_obj, approval_subject_obj=subject)
 
   def Handle(self, args, token=None):
-    approvals, subjects_by_urn = self._GetApprovals("hunt",
-                                                    args.offset,
-                                                    args.count,
-                                                    token=token)
+    approvals, subjects_by_urn = self._GetApprovals(
+        "hunt", args.offset, args.count, token=token)
     return ApiListUserHuntApprovalsResult(items=self._HandleApprovals(
         approvals, subjects_by_urn, self._ApprovalToApiApproval))
 
@@ -460,10 +461,11 @@ class ApiCreateUserCronApprovalHandler(api_call_handler_base.ApiCallHandler):
     flow_fd = aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, token=token)
     approval_urn = flow_fd.state.approval_urn
 
-    approval_obj = aff4.FACTORY.Open(approval_urn,
-                                     aff4_type=aff4_security.CronJobApproval,
-                                     age=aff4.ALL_TIMES,
-                                     token=token)
+    approval_obj = aff4.FACTORY.Open(
+        approval_urn,
+        aff4_type=aff4_security.CronJobApproval,
+        age=aff4.ALL_TIMES,
+        token=token)
 
     return ApiUserCronApproval().InitFromAff4Object(approval_obj)
 
@@ -487,10 +489,11 @@ class ApiGetUserCronApprovalHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add("cron").Add(
         args.cron_job_id).Add(args.username).Add(args.approval_id)
-    approval_obj = aff4.FACTORY.Open(approval_urn,
-                                     aff4_type=aff4_security.CronJobApproval,
-                                     age=aff4.ALL_TIMES,
-                                     token=token)
+    approval_obj = aff4.FACTORY.Open(
+        approval_urn,
+        aff4_type=aff4_security.CronJobApproval,
+        age=aff4.ALL_TIMES,
+        token=token)
     return ApiUserCronApproval().InitFromAff4Object(approval_obj)
 
 
@@ -513,10 +516,8 @@ class ApiListUserCronApprovalsHandler(ApiListUserApprovalsHandlerBase):
         approval_obj, approval_subject_obj=subject)
 
   def Handle(self, args, token=None):
-    approvals, subjects_by_urn = self._GetApprovals("cron",
-                                                    args.offset,
-                                                    args.count,
-                                                    token=token)
+    approvals, subjects_by_urn = self._GetApprovals(
+        "cron", args.offset, args.count, token=token)
     return ApiListUserCronApprovalsResult(items=self._HandleApprovals(
         approvals, subjects_by_urn, self._ApprovalToApiApproval))
 
@@ -625,8 +626,9 @@ class ApiListPendingUserNotificationsHandler(
 
     notifications = user_record.Get(user_record.Schema.PENDING_NOTIFICATIONS)
 
-    result = [ApiNotification().InitFromNotification(n, is_pending=True)
-              for n in notifications if n.timestamp > args.timestamp]
+    result = [ApiNotification().InitFromNotification(
+        n, is_pending=True) for n in notifications
+              if n.timestamp > args.timestamp]
 
     return ApiListPendingUserNotificationsResult(items=result)
 
@@ -719,8 +721,7 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
       elif len(components) == 3 and components[1] == "flows":
         reference.type = reference_type_enum.FLOW
         reference.flow = ApiNotificationFlowReference(
-            flow_urn=notification.subject,
-            client_id=components[0])
+            flow_urn=notification.subject, client_id=components[0])
       elif len(components) == 1 and rdf_client.ClientURN.Validate(components[
           0]):
         reference.type = reference_type_enum.DISCOVERY
@@ -729,8 +730,7 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
       else:
         reference.type = reference_type_enum.VFS
         reference.vfs = ApiNotificationVfsReference(
-            vfs_path=notification.subject,
-            client_id=components[0])
+            vfs_path=notification.subject, client_id=components[0])
 
     elif notification.type == "FlowStatus":
       components = self._GetUrnComponents(notification)
@@ -740,8 +740,7 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
 
       reference.type = reference_type_enum.FLOW_STATUS
       reference.flow_status = ApiNotificationFlowStatusReference(
-          flow_urn=notification.source,
-          client_id=components[0])
+          flow_urn=notification.source, client_id=components[0])
 
     elif notification.type == "GrantAccess":
       reference.type = reference_type_enum.GRANT_ACCESS
@@ -831,9 +830,8 @@ class ApiListAndResetUserNotificationsHandler(
 
     # Hack for sorting. Requires retrieval of all notifications.
     notifications = list(user_record.ShowNotifications(reset=True))
-    notifications = sorted(notifications,
-                           key=lambda x: x.timestamp,
-                           reverse=True)
+    notifications = sorted(
+        notifications, key=lambda x: x.timestamp, reverse=True)
 
     total_count = len(notifications)
 
@@ -848,12 +846,11 @@ class ApiListAndResetUserNotificationsHandler(
     end = args.offset + args.count
     for notification in notifications[start:end]:
       item = ApiNotification().InitFromNotification(
-          notification,
-          is_pending=(notification in pending_notifications))
+          notification, is_pending=(notification in pending_notifications))
       result.append(item)
 
-    return ApiListAndResetUserNotificationsResult(items=result,
-                                                  total_count=total_count)
+    return ApiListAndResetUserNotificationsResult(
+        items=result, total_count=total_count)
 
 
 class ApiListPendingGlobalNotificationsResult(rdf_structs.RDFProtoStruct):

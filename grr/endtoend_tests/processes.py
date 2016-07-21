@@ -17,9 +17,7 @@ class TestProcessListing(base.AutomatedTest):
 
   def CheckFlow(self):
     procs = aff4.FACTORY.Open(
-        self.client_id.Add(self.output_path),
-        mode="r",
-        token=self.token)
+        self.client_id.Add(self.output_path), mode="r", token=self.token)
     self.assertIsInstance(procs, collects.RDFValueCollection)
     process_list = list(procs)
     # Make sure there are at least some results.

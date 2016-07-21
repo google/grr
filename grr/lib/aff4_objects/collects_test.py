@@ -26,10 +26,8 @@ class TestCollections(test_lib.AFF4ObjectTest):
 
   def testRDFValueCollections(self):
     urn = "aff4:/test/collection"
-    fd = aff4.FACTORY.Create(urn,
-                             collects.RDFValueCollection,
-                             mode="w",
-                             token=self.token)
+    fd = aff4.FACTORY.Create(
+        urn, collects.RDFValueCollection, mode="w", token=self.token)
 
     for i in range(5):
       fd.Add(rdf_flows.GrrMessage(request_id=i))
@@ -80,20 +78,16 @@ class TestCollections(test_lib.AFF4ObjectTest):
 
   def testRDFValueCollectionsAppend(self):
     urn = "aff4:/test/collection"
-    fd = aff4.FACTORY.Create(urn,
-                             collects.RDFValueCollection,
-                             mode="w",
-                             token=self.token)
+    fd = aff4.FACTORY.Create(
+        urn, collects.RDFValueCollection, mode="w", token=self.token)
 
     for i in range(5):
       fd.Add(rdf_flows.GrrMessage(request_id=i))
 
     fd.Close()
 
-    fd = aff4.FACTORY.Open(urn,
-                           collects.RDFValueCollection,
-                           mode="rw",
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        urn, collects.RDFValueCollection, mode="rw", token=self.token)
 
     for i in range(5):
       fd.Add(rdf_flows.GrrMessage(request_id=i + 5))
@@ -112,16 +106,14 @@ class TestCollections(test_lib.AFF4ObjectTest):
 
     urn = "aff4:/test/chunktest"
 
-    fd = aff4.FACTORY.Create(urn,
-                             collects.RDFValueCollection,
-                             mode="w",
-                             token=self.token)
+    fd = aff4.FACTORY.Create(
+        urn, collects.RDFValueCollection, mode="w", token=self.token)
     fd.SetChunksize(1024 * 1024)
 
     # Estimate the size of the resulting message.
     msg = rdf_flows.GrrMessage(request_id=100)
-    msg_size = len(rdf_protodict.EmbeddedRDFValue(payload=msg)
-                   .SerializeToString())
+    msg_size = len(
+        rdf_protodict.EmbeddedRDFValue(payload=msg).SerializeToString())
     # Write ~500Kb.
     n = 500 * 1024 / msg_size
 
@@ -140,28 +132,22 @@ class TestCollections(test_lib.AFF4ObjectTest):
 
     self.assertRaises(ValueError, fd.SetChunksize, (10))
 
-    fd = aff4.FACTORY.Open(urn,
-                           collects.RDFValueCollection,
-                           mode="rw",
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        urn, collects.RDFValueCollection, mode="rw", token=self.token)
     self.assertRaises(ValueError, fd.SetChunksize, (2 * 1024 * 1024))
 
   def testAddingNoneToUntypedCollectionRaises(self):
     urn = "aff4:/test/collection"
-    fd = aff4.FACTORY.Create(urn,
-                             collects.RDFValueCollection,
-                             mode="w",
-                             token=self.token)
+    fd = aff4.FACTORY.Create(
+        urn, collects.RDFValueCollection, mode="w", token=self.token)
 
     self.assertRaises(ValueError, fd.Add, None)
     self.assertRaises(ValueError, fd.AddAll, [None])
 
   def testAddingNoneViaAddMethodToTypedCollectionWorksCorrectly(self):
     urn = "aff4:/test/collection"
-    fd = aff4.FACTORY.Create(urn,
-                             TypedRDFValueCollection,
-                             mode="w",
-                             token=self.token)
+    fd = aff4.FACTORY.Create(
+        urn, TypedRDFValueCollection, mode="w", token=self.token)
     # This works, because Add() accepts keyword arguments and builds _rdf_type
     # instance out of them. In the current case there are no keyword arguments
     # specified, so we get default value.
@@ -174,10 +160,8 @@ class TestCollections(test_lib.AFF4ObjectTest):
 
   def testAddingNoneViaAddAllMethodToTypedCollectionRaises(self):
     urn = "aff4:/test/collection"
-    fd = aff4.FACTORY.Create(urn,
-                             collects.RDFValueCollection,
-                             mode="w",
-                             token=self.token)
+    fd = aff4.FACTORY.Create(
+        urn, collects.RDFValueCollection, mode="w", token=self.token)
 
     self.assertRaises(ValueError, fd.AddAll, [None])
 
@@ -234,18 +218,20 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       pass
 
   def testAddMethodWritesToVersionedAttributeAndNotToStream(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=1))
 
     # Check that items are stored in the versions.
-    items = list(data_store.DB.ResolvePrefix(
-        fd.urn,
-        fd.Schema.DATA.predicate,
-        token=self.token,
-        timestamp=data_store.DB.ALL_TIMESTAMPS))
+    items = list(
+        data_store.DB.ResolvePrefix(
+            fd.urn,
+            fd.Schema.DATA.predicate,
+            token=self.token,
+            timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), 1)
 
     # Check that no items are stored in the stream
@@ -257,19 +243,21 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     self.assertEqual(fd.Get(fd.Schema.SIZE), 0)
 
   def testAddAllMethodWritesToVersionedAttributeAndNotToStream(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       fd.AddAll([rdf_flows.GrrMessage(request_id=1),
                  rdf_flows.GrrMessage(request_id=1)])
 
     # Check that items are stored in the versions.
-    items = list(data_store.DB.ResolvePrefix(
-        fd.urn,
-        fd.Schema.DATA.predicate,
-        token=self.token,
-        timestamp=data_store.DB.ALL_TIMESTAMPS))
+    items = list(
+        data_store.DB.ResolvePrefix(
+            fd.urn,
+            fd.Schema.DATA.predicate,
+            token=self.token,
+            timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), 2)
 
     # Check that no items are stored in the stream
@@ -281,10 +269,11 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     self.assertEqual(fd.Get(fd.Schema.SIZE), 0)
 
   def testAddToCollectionClassMethodAddsVersionedAttributes(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as _:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as _:
       pass
 
     collects.PackedVersionedCollection.AddToCollection(
@@ -293,11 +282,12 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
         token=self.token)
 
     # Check that items are stored in the versions.
-    items = list(data_store.DB.ResolvePrefix(
-        self.collection_urn,
-        collects.PackedVersionedCollection.SchemaCls.DATA.predicate,
-        token=self.token,
-        timestamp=data_store.DB.ALL_TIMESTAMPS))
+    items = list(
+        data_store.DB.ResolvePrefix(
+            self.collection_urn,
+            collects.PackedVersionedCollection.SchemaCls.DATA.predicate,
+            token=self.token,
+            timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), 2)
 
     # Check that no items are stored in the stream
@@ -309,9 +299,10 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     self.assertEqual(fd.Get(fd.Schema.SIZE), 0)
 
     # Check that collection reports correct size.
-    fd = aff4.FACTORY.Open(self.collection_urn,
-                           aff4_type=collects.PackedVersionedCollection,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.collection_urn,
+        aff4_type=collects.PackedVersionedCollection,
+        token=self.token)
     self.assertEqual(len(fd), 2)
     self.assertEqual(len(list(fd.GenerateUncompactedItems())), 2)
 
@@ -325,16 +316,16 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
         self.assertEqual(fd[index], model_data[index])
 
         self.assertListEqual(
-            list(fd.GenerateItems(offset=index)),
-            model_data[index:])
+            list(fd.GenerateItems(offset=index)), model_data[index:])
 
       self.assertFalse(list(fd.GenerateItems(offset=len(model_data))))
 
   def testUncompactedCollectionIteratesInRightOrderWhenSmall(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(5):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
@@ -345,20 +336,22 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       self.assertEqual(index, item.request_id)
 
   def testRandomAccessWorksCorrectlyForSmallUncompactedCollection(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(5):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
     self._testRandomAccessEqualsIterator()
 
   def testUncompactedCollectionIteratesInReversedOrderWhenLarge(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(fd.MAX_REVERSED_RESULTS + 1):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
@@ -372,33 +365,37 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       self.assertEqual(index, item.request_id)
 
   def testRandomAccessWorksCorrectlyForLargeUncompactedCollection(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(fd.MAX_REVERSED_RESULTS + 1):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
     self._testRandomAccessEqualsIterator(step=10)
 
   def testIteratesOverBothCompactedAndUncompcatedParts(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(5):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 5)
 
-    with aff4.FACTORY.Open(self.collection_urn,
-                           collects.PackedVersionedCollection,
-                           mode="rw",
-                           token=self.token) as fd:
+    with aff4.FACTORY.Open(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="rw",
+        token=self.token) as fd:
       for i in range(5, 10):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
@@ -409,38 +406,43 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       self.assertEqual(index, item.request_id)
 
   def testRandomAccessWorksCorrectlyForSemiCompactedCollection(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(5):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       fd.Compact()
 
     self._testRandomAccessEqualsIterator()
 
   def testIteratesInSemiReversedOrderWhenUncompcatedPartIsLarge(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(5):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 5)
 
-    with aff4.FACTORY.Open(self.collection_urn,
-                           collects.PackedVersionedCollection,
-                           mode="rw",
-                           token=self.token) as fd:
+    with aff4.FACTORY.Open(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="rw",
+        token=self.token) as fd:
       for i in range(5, fd.MAX_REVERSED_RESULTS + 6):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
@@ -459,22 +461,25 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       self.assertEqual(index, results[i].request_id)
 
   def testRandomAccessWorksCorrectlyWhenUncompactedPartIsLarge(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(5):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       fd.Compact()
 
-    with aff4.FACTORY.Open(self.collection_urn,
-                           collects.PackedVersionedCollection,
-                           mode="rw",
-                           token=self.token) as fd:
+    with aff4.FACTORY.Open(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="rw",
+        token=self.token) as fd:
       for i in range(5, fd.MAX_REVERSED_RESULTS + 6):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
@@ -486,22 +491,25 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
                          index_interval):
 
         aff4.FACTORY.Delete(self.collection_urn, token=self.token)
-        with aff4.FACTORY.Create(self.collection_urn,
-                                 collects.PackedVersionedCollection,
-                                 mode="w",
-                                 token=self.token):
+        with aff4.FACTORY.Create(
+            self.collection_urn,
+            collects.PackedVersionedCollection,
+            mode="w",
+            token=self.token):
           pass
 
         for i in range(20):
-          with aff4.FACTORY.Open(self.collection_urn,
-                                 collects.PackedVersionedCollection,
-                                 mode="w",
-                                 token=self.token) as fd:
+          with aff4.FACTORY.Open(
+              self.collection_urn,
+              collects.PackedVersionedCollection,
+              mode="w",
+              token=self.token) as fd:
             fd.Add(rdf_flows.GrrMessage(request_id=i))
 
-          with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                         collects.PackedVersionedCollection,
-                                         token=self.token) as fd:
+          with aff4.FACTORY.OpenWithLock(
+              self.collection_urn,
+              collects.PackedVersionedCollection,
+              token=self.token) as fd:
             fd.Compact()
 
         fd = aff4.FACTORY.Open(self.collection_urn, token=self.token)
@@ -514,22 +522,25 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
         (collects.PackedVersionedCollection, "COMPACTION_BATCH_SIZE", 100),
         (collects.PackedVersionedCollection, "INDEX_INTERVAL", 1)):
 
-      with aff4.FACTORY.Create(self.collection_urn,
-                               collects.PackedVersionedCollection,
-                               mode="w",
-                               token=self.token):
+      with aff4.FACTORY.Create(
+          self.collection_urn,
+          collects.PackedVersionedCollection,
+          mode="w",
+          token=self.token):
         pass
 
       for i in range(20):
-        with aff4.FACTORY.Open(self.collection_urn,
-                               collects.PackedVersionedCollection,
-                               mode="w",
-                               token=self.token) as fd:
+        with aff4.FACTORY.Open(
+            self.collection_urn,
+            collects.PackedVersionedCollection,
+            mode="w",
+            token=self.token) as fd:
           fd.Add(rdf_flows.GrrMessage(request_id=i))
 
-        with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                       collects.PackedVersionedCollection,
-                                       token=self.token) as fd:
+        with aff4.FACTORY.OpenWithLock(
+            self.collection_urn,
+            collects.PackedVersionedCollection,
+            token=self.token) as fd:
           fd.Compact()
 
       collection = aff4.FACTORY.Open(self.collection_urn, token=self.token)
@@ -551,24 +562,27 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
           self.assertListEqual([item_size * i], seek_ops)
 
   def testItemsCanBeAddedToCollectionInWriteOnlyMode(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(5):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 5)
 
     # Now add 5 more items in "write-only" mode.
-    with aff4.FACTORY.Open(self.collection_urn,
-                           collects.PackedVersionedCollection,
-                           mode="w",
-                           token=self.token) as fd:
+    with aff4.FACTORY.Open(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(5, 10):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
@@ -581,9 +595,10 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       self.assertEqual(i, results[i].request_id)
 
     # Check that compaction works on items added in write-only mode.
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 5)
 
@@ -598,68 +613,75 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
 
   def testBooleanBehavior(self):
     collection_urn = rdfvalue.RDFURN("aff4:/bool_test/packed_collection")
-    with aff4.FACTORY.Create(collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="rw",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        collection_urn,
+        collects.PackedVersionedCollection,
+        mode="rw",
+        token=self.token) as fd:
       self.assertFalse(fd)
 
       fd.AddAll([rdf_flows.GrrMessage(request_id=i) for i in range(3)])
 
       self.assertTrue(fd)
 
-    with aff4.FACTORY.OpenWithLock(collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        collection_urn, collects.PackedVersionedCollection,
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 3)
 
       self.assertTrue(fd)
 
     # Check that no items are stored in the versions.
-    items = list(data_store.DB.ResolvePrefix(
-        fd.urn,
-        fd.Schema.DATA.predicate,
-        token=self.token,
-        timestamp=data_store.DB.ALL_TIMESTAMPS))
+    items = list(
+        data_store.DB.ResolvePrefix(
+            fd.urn,
+            fd.Schema.DATA.predicate,
+            token=self.token,
+            timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), 0)
 
-    with aff4.FACTORY.Create(collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="rw",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        collection_urn,
+        collects.PackedVersionedCollection,
+        mode="rw",
+        token=self.token) as fd:
       self.assertTrue(fd)
 
   def _testCompactsCollectionSuccessfully(self, num_elements):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       elements = []
       for i in range(num_elements):
         elements.append(rdf_flows.GrrMessage(request_id=i))
       fd.AddAll(elements)
 
     # Check that items are stored in the versions.
-    items = list(data_store.DB.ResolvePrefix(
-        fd.urn,
-        fd.Schema.DATA.predicate,
-        token=self.token,
-        timestamp=data_store.DB.ALL_TIMESTAMPS))
+    items = list(
+        data_store.DB.ResolvePrefix(
+            fd.urn,
+            fd.Schema.DATA.predicate,
+            token=self.token,
+            timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), num_elements)
 
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, num_elements)
 
     # Check that no items are stored in the versions.
-    items = list(data_store.DB.ResolvePrefix(
-        fd.urn,
-        fd.Schema.DATA.predicate,
-        token=self.token,
-        timestamp=data_store.DB.ALL_TIMESTAMPS))
+    items = list(
+        data_store.DB.ResolvePrefix(
+            fd.urn,
+            fd.Schema.DATA.predicate,
+            token=self.token,
+            timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), 0)
 
     fd = aff4.FACTORY.Open(self.collection_urn, token=self.token)
@@ -674,9 +696,8 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
   def testIndexIsWritteAfterFirstCompaction(self):
     self._testCompactsCollectionSuccessfully(5)
 
-    collection = aff4.FACTORY.Open(self.collection_urn,
-                                   age=aff4.ALL_TIMES,
-                                   token=self.token)
+    collection = aff4.FACTORY.Open(
+        self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
     index = collection.GetIndex()
     self.assertEqual(len(index), 1)
     self.assertEqual(index[0], (5, collection.fd.size))
@@ -699,9 +720,8 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     self._testCompactsCollectionSuccessfully(
         collects.PackedVersionedCollection.COMPACTION_BATCH_SIZE + 1)
 
-    collection = aff4.FACTORY.Open(self.collection_urn,
-                                   age=aff4.ALL_TIMES,
-                                   token=self.token)
+    collection = aff4.FACTORY.Open(
+        self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
     index = collection.GetIndex()
     index.reverse()
 
@@ -720,9 +740,8 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     self._testCompactsCollectionSuccessfully(
         collects.PackedVersionedCollection.COMPACTION_BATCH_SIZE + 1)
 
-    collection = aff4.FACTORY.Open(self.collection_urn,
-                                   age=aff4.ALL_TIMES,
-                                   token=self.token)
+    collection = aff4.FACTORY.Open(
+        self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
     index = collection.GetIndex()
     index.reverse()
 
@@ -743,94 +762,107 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
         collects.PackedVersionedCollection.COMPACTION_BATCH_SIZE * 5 - 1)
 
   def testSecondCompactionDoesNothing(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(5):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 5)
 
     # On second attempt, nothing should get compacted.
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 0)
 
   def testSecondCompactionDoesNotUpdateIndex(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(5):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       fd.Compact()
       self.assertEqual(len(fd.GetIndex()), 1)
 
     # Second compaction did not update the index.
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       fd.Compact()
       self.assertEqual(len(fd.GetIndex()), 1)
 
   def testSecondCompactionOfLargeCollectionDoesNothing(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(fd.COMPACTION_BATCH_SIZE + 1):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, fd.COMPACTION_BATCH_SIZE + 1)
 
     # On second attempt, nothing should get compacted.
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 0)
 
   def testSecondCompactionofLargeCollectionDoesNotUpdateIndex(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(fd.COMPACTION_BATCH_SIZE + 1):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       fd.Compact()
       self.assertEqual(len(fd.GetIndex()), 2)
 
     # Second compaction did not update the index.
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       fd.Compact()
       self.assertEqual(len(fd.GetIndex()), 2)
 
   def testTimestampsArePreservedAfterCompaction(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       for i in range(5):
         with test_lib.FakeTime(i * 1000):
           fd.Add(rdf_flows.GrrMessage(request_id=i))
@@ -839,9 +871,10 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     for index, item in enumerate(fd):
       self.assertEqual(int(item.age.AsSecondsFromEpoch()), 1000 * index)
 
-    with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                   collects.PackedVersionedCollection,
-                                   token=self.token) as fd:
+    with aff4.FACTORY.OpenWithLock(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        token=self.token) as fd:
       num_compacted = fd.Compact()
       self.assertEqual(num_compacted, 5)
 
@@ -851,10 +884,11 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
 
   def testItemsAddedWhileCompactionIsInProgressAreNotDeleted(self):
     with test_lib.FakeTime(0):
-      fd = aff4.FACTORY.Create(self.collection_urn,
-                               collects.PackedVersionedCollection,
-                               mode="w",
-                               token=self.token)
+      fd = aff4.FACTORY.Create(
+          self.collection_urn,
+          collects.PackedVersionedCollection,
+          mode="w",
+          token=self.token)
     for i in range(4):
       with test_lib.FakeTime(i * 1000):
         fd.Add(rdf_flows.GrrMessage(request_id=i))
@@ -863,17 +897,19 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       fd.Close()
 
     with test_lib.FakeTime(3500):
-      fd = aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                     collects.PackedVersionedCollection,
-                                     token=self.token)
+      fd = aff4.FACTORY.OpenWithLock(
+          self.collection_urn,
+          collects.PackedVersionedCollection,
+          token=self.token)
 
     # Imitating that another element was added in parallel while compaction
     # is in progress.
     with test_lib.FakeTime(4000):
-      with aff4.FACTORY.Create(self.collection_urn,
-                               collects.PackedVersionedCollection,
-                               mode="rw",
-                               token=self.token) as write_fd:
+      with aff4.FACTORY.Create(
+          self.collection_urn,
+          collects.PackedVersionedCollection,
+          mode="rw",
+          token=self.token) as write_fd:
         write_fd.Add(rdf_flows.GrrMessage(request_id=4))
 
     with test_lib.FakeTime(3500):
@@ -885,11 +921,12 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     self.assertEqual(num_compacted, 4)
 
     # Check that one uncompacted item was left (see the comment above).
-    items = list(data_store.DB.ResolvePrefix(
-        fd.urn,
-        fd.Schema.DATA.predicate,
-        token=self.token,
-        timestamp=data_store.DB.ALL_TIMESTAMPS))
+    items = list(
+        data_store.DB.ResolvePrefix(
+            fd.urn,
+            fd.Schema.DATA.predicate,
+            token=self.token,
+            timestamp=data_store.DB.ALL_TIMESTAMPS))
     self.assertEqual(len(items), 1)
 
     # Check that collection is still properly enumerated and reports the
@@ -900,10 +937,11 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       self.assertEqual(int(item.age.AsSecondsFromEpoch()), 1000 * index)
 
   def testExtendsLeaseIfCompactionTakesTooLong(self):
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       elements = []
       for i in range(10):
         elements.append(rdf_flows.GrrMessage(request_id=i))
@@ -915,10 +953,11 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
         # Lease time here is much less than compaction_lease_time,
         # collection will have to extend the lease immediately
         # when compaction starts.
-        fd = aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                       collects.PackedVersionedCollection,
-                                       lease_time=10,
-                                       token=self.token)
+        fd = aff4.FACTORY.OpenWithLock(
+            self.collection_urn,
+            collects.PackedVersionedCollection,
+            lease_time=10,
+            token=self.token)
 
         # This is the expected lease time: time.time() + lease_time
         self.assertEqual(fd.CheckLease(), 10)
@@ -933,10 +972,11 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
         "Worker.enable_packed_versioned_collection_journaling": False
     }):
 
-      with aff4.FACTORY.Create(self.collection_urn,
-                               collects.PackedVersionedCollection,
-                               mode="w",
-                               token=self.token) as fd:
+      with aff4.FACTORY.Create(
+          self.collection_urn,
+          collects.PackedVersionedCollection,
+          mode="w",
+          token=self.token) as fd:
         fd.Add(rdf_flows.GrrMessage(request_id=42))
         fd.AddAll([rdf_flows.GrrMessage(request_id=43),
                    rdf_flows.GrrMessage(request_id=44)])
@@ -946,13 +986,12 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
                                 rdf_flows.GrrMessage(request_id=2)],
           token=self.token)
 
-      with aff4.FACTORY.OpenWithLock(self.collection_urn,
-                                     token=self.token) as fd:
+      with aff4.FACTORY.OpenWithLock(
+          self.collection_urn, token=self.token) as fd:
         fd.Compact()
 
-      fd = aff4.FACTORY.Open(self.collection_urn,
-                             age=aff4.ALL_TIMES,
-                             token=self.token)
+      fd = aff4.FACTORY.Open(
+          self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
       self.assertFalse(fd.IsAttributeSet(fd.Schema.ADDITION_JOURNAL))
       self.assertFalse(fd.IsAttributeSet(fd.Schema.COMPACTION_JOURNAL))
 
@@ -965,33 +1004,33 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
   def testJournalEntryIsAddedAfterSingeAddCall(self):
     self._EnableJournaling()
 
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=42))
 
-    fd = aff4.FACTORY.Open(self.collection_urn,
-                           age=aff4.ALL_TIMES,
-                           token=self.token)
-    addition_journal = list(fd.GetValuesForAttribute(
-        fd.Schema.ADDITION_JOURNAL))
+    fd = aff4.FACTORY.Open(
+        self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
+    addition_journal = list(
+        fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL))
     self.assertEqual(len(addition_journal), 1)
     self.assertEqual(addition_journal[0], 1)
 
   def testTwoJournalEntriesAreAddedAfterTwoConsecutiveAddCalls(self):
     self._EnableJournaling()
 
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=42))
       fd.Add(rdf_flows.GrrMessage(request_id=43))
 
-    fd = aff4.FACTORY.Open(self.collection_urn,
-                           age=aff4.ALL_TIMES,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
     addition_journal = sorted(
         fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL),
         key=lambda x: x.age)
@@ -1002,21 +1041,22 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
   def testTwoJournalEntriesAreAddedAfterAddCallsSeparatedByFlush(self):
     self._EnableJournaling()
 
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=42))
 
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       fd.Add(rdf_flows.GrrMessage(request_id=43))
 
-    fd = aff4.FACTORY.Open(self.collection_urn,
-                           age=aff4.ALL_TIMES,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
     addition_journal = sorted(
         fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL),
         key=lambda x: x.age)
@@ -1027,39 +1067,39 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
   def testJournalEntryIsAddedAfterSingleAddAllCall(self):
     self._EnableJournaling()
 
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       elements = []
       for i in range(10):
         elements.append(rdf_flows.GrrMessage(request_id=i))
       fd.AddAll(elements)
 
-    fd = aff4.FACTORY.Open(self.collection_urn,
-                           age=aff4.ALL_TIMES,
-                           token=self.token)
-    addition_journal = list(fd.GetValuesForAttribute(
-        fd.Schema.ADDITION_JOURNAL))
+    fd = aff4.FACTORY.Open(
+        self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
+    addition_journal = list(
+        fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL))
     self.assertEqual(len(addition_journal), 1)
     self.assertEqual(addition_journal[0], 10)
 
   def testTwoJournalEntriesAreAddedAfterTwoConsecutiveAddAllCall(self):
     self._EnableJournaling()
 
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       elements = []
       for i in range(10):
         elements.append(rdf_flows.GrrMessage(request_id=i))
       fd.AddAll(elements)
       fd.AddAll(elements[:5])
 
-    fd = aff4.FACTORY.Open(self.collection_urn,
-                           age=aff4.ALL_TIMES,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
     addition_journal = sorted(
         fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL),
         key=lambda x: x.age)
@@ -1074,21 +1114,22 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
     for i in range(10):
       elements.append(rdf_flows.GrrMessage(request_id=i))
 
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       fd.AddAll(elements)
 
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       fd.AddAll(elements[:5])
 
-    fd = aff4.FACTORY.Open(self.collection_urn,
-                           age=aff4.ALL_TIMES,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
     addition_journal = sorted(
         fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL),
         key=lambda x: x.age)
@@ -1099,31 +1140,32 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
   def testJournalEntryIsAddedAfterSingleAddToCollectionCall(self):
     self._EnableJournaling()
 
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as _:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as _:
       pass
 
     collects.PackedVersionedCollection.AddToCollection(
         self.collection_urn, [rdf_flows.GrrMessage(request_id=1),
                               rdf_flows.GrrMessage(request_id=2)],
         token=self.token)
-    fd = aff4.FACTORY.Open(self.collection_urn,
-                           age=aff4.ALL_TIMES,
-                           token=self.token)
-    addition_journal = list(fd.GetValuesForAttribute(
-        fd.Schema.ADDITION_JOURNAL))
+    fd = aff4.FACTORY.Open(
+        self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
+    addition_journal = list(
+        fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL))
     self.assertEqual(len(addition_journal), 1)
     self.assertEqual(addition_journal[0], 2)
 
   def testTwoJournalEntriesAreAddedAfterTwoAddToCollectionCalls(self):
     self._EnableJournaling()
 
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as _:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as _:
       pass
 
     collects.PackedVersionedCollection.AddToCollection(
@@ -1134,9 +1176,8 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
         self.collection_urn, [rdf_flows.GrrMessage(request_id=3)],
         token=self.token)
 
-    fd = aff4.FACTORY.Open(self.collection_urn,
-                           age=aff4.ALL_TIMES,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
     addition_journal = sorted(
         fd.GetValuesForAttribute(fd.Schema.ADDITION_JOURNAL),
         key=lambda x: x.age)
@@ -1147,49 +1188,50 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
   def testJournalEntryIsAddedAfterSingleCompaction(self):
     self._EnableJournaling()
 
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       fd.AddAll([rdf_flows.GrrMessage(request_id=42),
                  rdf_flows.GrrMessage(request_id=42)])
 
     with aff4.FACTORY.OpenWithLock(self.collection_urn, token=self.token) as fd:
       fd.Compact()
 
-    fd = aff4.FACTORY.Open(self.collection_urn,
-                           age=aff4.ALL_TIMES,
-                           token=self.token)
-    compaction_journal = list(fd.GetValuesForAttribute(
-        fd.Schema.COMPACTION_JOURNAL))
+    fd = aff4.FACTORY.Open(
+        self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
+    compaction_journal = list(
+        fd.GetValuesForAttribute(fd.Schema.COMPACTION_JOURNAL))
     self.assertEqual(len(compaction_journal), 1)
     self.assertEqual(compaction_journal[0], 2)
 
   def testTwoJournalEntriesAreAddedAfterTwoCompactions(self):
     self._EnableJournaling()
 
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       fd.AddAll([rdf_flows.GrrMessage(request_id=42),
                  rdf_flows.GrrMessage(request_id=42)])
 
     with aff4.FACTORY.OpenWithLock(self.collection_urn, token=self.token) as fd:
       fd.Compact()
 
-    with aff4.FACTORY.Create(self.collection_urn,
-                             collects.PackedVersionedCollection,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        self.collection_urn,
+        collects.PackedVersionedCollection,
+        mode="w",
+        token=self.token) as fd:
       fd.AddAll([rdf_flows.GrrMessage(request_id=42)])
 
     with aff4.FACTORY.OpenWithLock(self.collection_urn, token=self.token) as fd:
       fd.Compact()
 
-    fd = aff4.FACTORY.Open(self.collection_urn,
-                           age=aff4.ALL_TIMES,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
     compaction_journal = sorted(
         fd.GetValuesForAttribute(fd.Schema.COMPACTION_JOURNAL),
         key=lambda x: x.age)

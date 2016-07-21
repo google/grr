@@ -14,32 +14,35 @@ class FilestoreStatsCronFlowTest(test_lib.FlowTestsBaseclass):
     super(FilestoreStatsCronFlowTest, self).setUp()
 
     for i in range(0, 10):
-      newfd = aff4.FACTORY.Create("aff4:/files/hash/generic/sha256/fsi%s" % i,
-                                  aff4_filestore.FileStoreImage,
-                                  token=self.token)
+      newfd = aff4.FACTORY.Create(
+          "aff4:/files/hash/generic/sha256/fsi%s" % i,
+          aff4_filestore.FileStoreImage,
+          token=self.token)
       newfd.size = i * 1e6
       for j in range(0, i):
         newfd.AddIndex("aff4:/C.000000000000000%s/fs/os/blah%s" % (j, j))
       newfd.Close()
 
-    newfd = aff4.FACTORY.Create("aff4:/files/hash/generic/sha256/blobbig",
-                                aff4_filestore.FileStoreImage,
-                                token=self.token)
+    newfd = aff4.FACTORY.Create(
+        "aff4:/files/hash/generic/sha256/blobbig",
+        aff4_filestore.FileStoreImage,
+        token=self.token)
     newfd.size = 1e12
     newfd.AddIndex("aff4:/C.0000000000000001/fs/os/1")
     newfd.AddIndex("aff4:/C.0000000000000001/fs/os/2")
     newfd.Close()
 
-    newfd = aff4.FACTORY.Create("aff4:/files/hash/generic/sha256/blobtiny",
-                                aff4_filestore.FileStoreImage,
-                                token=self.token)
+    newfd = aff4.FACTORY.Create(
+        "aff4:/files/hash/generic/sha256/blobtiny",
+        aff4_filestore.FileStoreImage,
+        token=self.token)
     newfd.size = 12
     newfd.AddIndex("aff4:/C.0000000000000001/fs/os/1")
     newfd.Close()
 
   def testFileTypes(self):
-    for _ in test_lib.TestFlowHelper("FilestoreStatsCronFlow",
-                                     token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        "FilestoreStatsCronFlow", token=self.token):
       pass
 
     fd = aff4.FACTORY.Open(

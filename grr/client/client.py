@@ -49,8 +49,7 @@ def main(unused_args):
   # Instantiating the client will create a private_key so we need to use a flag.
   client = comms.GRRHTTPClient(
       ca_cert=config_lib.CONFIG["CA.certificate"],
-      private_key=config_lib.CONFIG.Get("Client.private_key",
-                                        default=None))
+      private_key=config_lib.CONFIG.Get("Client.private_key", default=None))
 
   if enrollment_necessary:
     logging.info("No private key found, starting enrollment.")

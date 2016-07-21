@@ -39,14 +39,13 @@ class ClientAction(flow.GRRFlow):
   """A Simple flow to execute any client action."""
   args_type = ClientActionArgs
 
-  @flow.StateHandler(next_state="Print")
+  @flow.StateHandler()
   def Start(self):
     if self.args.save_to:
       if not os.path.isdir(self.args.save_to):
         os.makedirs(self.args.save_to, 0700)
-    self.CallClient(self.args.action,
-                    request=self.args.action_args,
-                    next_state="Print")
+    self.CallClient(
+        self.args.action, request=self.args.action_args, next_state="Print")
 
   @flow.StateHandler()
   def Print(self, responses):
@@ -65,8 +64,8 @@ class ClientAction(flow.GRRFlow):
     if responses:
       fd = None
       try:
-        fdint, fname = tempfile.mkstemp(prefix="responses-",
-                                        dir=self.args.save_to)
+        fdint, fname = tempfile.mkstemp(
+            prefix="responses-", dir=self.args.save_to)
         fd = os.fdopen(fdint, "wb")
         pickle.dump(responses, fd)
         self.Log("Wrote %d responses to %s", len(responses), fname)
@@ -92,7 +91,7 @@ class ConsoleDebugFlow(flow.GRRFlow):
   """A Simple console flow to execute any flow and recieve back responses."""
   args_type = ConsoleDebugFlowArgs
 
-  @flow.StateHandler(next_state="Print")
+  @flow.StateHandler()
   def Start(self):
     if self.args.save_to:
       if not os.path.isdir(self.args.save_to):
@@ -119,8 +118,8 @@ class ConsoleDebugFlow(flow.GRRFlow):
     if responses:
       fd = None
       try:
-        fdint, fname = tempfile.mkstemp(prefix="responses-",
-                                        dir=self.args.save_to)
+        fdint, fname = tempfile.mkstemp(
+            prefix="responses-", dir=self.args.save_to)
         fd = os.fdopen(fdint, "wb")
         pickle.dump(responses, fd)
         self.Log("Wrote %d responses to %s", len(responses), fname)
@@ -149,11 +148,12 @@ def StartFlowAndWorker(client_id, flow_name, **kwargs):
   else:
     token = access_control.ACLToken(username="GRRConsole")
 
-  session_id = flow.GRRFlow.StartFlow(client_id=client_id,
-                                      flow_name=flow_name,
-                                      queue=queue,
-                                      token=token,
-                                      **kwargs)
+  session_id = flow.GRRFlow.StartFlow(
+      client_id=client_id,
+      flow_name=flow_name,
+      queue=queue,
+      token=token,
+      **kwargs)
   worker_thrd = worker.GRRWorker(queues=[queue], token=token, threadpool_size=1)
   while True:
     try:
@@ -184,11 +184,12 @@ def TestClientActionWithWorker(client_id,
   request = action_cls.in_rdfvalue(**kwargs)
   if print_request:
     print str(request)
-  StartFlowAndWorker(client_id,
-                     flow_name="ClientAction",
-                     action=client_action,
-                     break_pdb=break_pdb,
-                     action_args=request)
+  StartFlowAndWorker(
+      client_id,
+      flow_name="ClientAction",
+      action=client_action,
+      break_pdb=break_pdb,
+      action_args=request)
 
 
 def WakeStuckFlow(session_id):
@@ -213,8 +214,8 @@ def WakeStuckFlow(session_id):
     for request, responses in manager.FetchRequestsAndResponses(session_id):
       # We need to check if there are client requests pending.
       if not checked_pending:
-        task = manager.Query(request.client_id,
-                             task_id="task:%s" % request.request.task_id)
+        task = manager.Query(
+            request.client_id, task_id="task:%s" % request.request.task_id)
 
         if task:
           # Client has tasks pending already.

@@ -58,10 +58,10 @@ class ActionTest(test_lib.EmptyActionTest):
     """Test reading a buffer."""
     path = os.path.join(self.base_path, "morenumbers.txt")
     p = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
-    result = self.RunAction("ReadBuffer",
-                            rdf_client.BufferReference(pathspec=p,
-                                                       offset=100,
-                                                       length=10))[0]
+    result = self.RunAction(
+        "ReadBuffer",
+        rdf_client.BufferReference(
+            pathspec=p, offset=100, length=10))[0]
 
     self.assertEqual(result.offset, 100)
     self.assertEqual(result.length, 10)
@@ -70,8 +70,8 @@ class ActionTest(test_lib.EmptyActionTest):
   def testListDirectory(self):
     """Tests listing directories."""
     p = rdf_paths.PathSpec(path=self.base_path, pathtype=0)
-    results = self.RunAction("ListDirectory",
-                             rdf_client.ListDirRequest(pathspec=p))
+    results = self.RunAction(
+        "ListDirectory", rdf_client.ListDirRequest(pathspec=p))
     # Find the number.txt file
     result = None
     for result in results:
@@ -86,10 +86,10 @@ class ActionTest(test_lib.EmptyActionTest):
 
   def testIteratedListDirectory(self):
     """Tests iterated listing of directories."""
-    p = rdf_paths.PathSpec(path=self.base_path,
-                           pathtype=rdf_paths.PathSpec.PathType.OS)
-    non_iterated_results = self.RunAction("ListDirectory",
-                                          rdf_client.ListDirRequest(pathspec=p))
+    p = rdf_paths.PathSpec(
+        path=self.base_path, pathtype=rdf_paths.PathSpec.PathType.OS)
+    non_iterated_results = self.RunAction(
+        "ListDirectory", rdf_client.ListDirRequest(pathspec=p))
 
     # Make sure we get some results.
     l = len(non_iterated_results)
@@ -123,9 +123,8 @@ class ActionTest(test_lib.EmptyActionTest):
     grr_worker = worker_mocks.FakeClientWorker()
 
     while request.iterator.state != request.iterator.State.FINISHED:
-      responses = self.RunAction("SuspendableListDirectory",
-                                 request,
-                                 grr_worker=grr_worker)
+      responses = self.RunAction(
+          "SuspendableListDirectory", request, grr_worker=grr_worker)
       results.extend(responses)
       for response in responses:
         if isinstance(response, rdf_client.Iterator):
@@ -168,18 +167,19 @@ class ActionTest(test_lib.EmptyActionTest):
 
         return super(RaisingListDirectory, self).Suspend()
 
-    p = rdf_paths.PathSpec(path=self.base_path,
-                           pathtype=rdf_paths.PathSpec.PathType.OS)
+    p = rdf_paths.PathSpec(
+        path=self.base_path, pathtype=rdf_paths.PathSpec.PathType.OS)
     request = rdf_client.ListDirRequest(pathspec=p)
     request.iterator.number = 2
     results = []
 
     grr_worker = worker_mocks.FakeClientWorker()
     while request.iterator.state != request.iterator.State.FINISHED:
-      responses = self.ExecuteAction("RaisingListDirectory",
-                                     request,
-                                     grr_worker=grr_worker,
-                                     action_worker_cls=TestActionWorker)
+      responses = self.ExecuteAction(
+          "RaisingListDirectory",
+          request,
+          grr_worker=grr_worker,
+          action_worker_cls=TestActionWorker)
       results.extend(responses)
 
       for response in responses:
@@ -319,8 +319,9 @@ class ActionTest(test_lib.EmptyActionTest):
                                   rdf_client.Process]
 
     actionplugin.SendReply(data="blah")
-    self.assertTrue(isinstance(fake_worker.SendReply.call_args[0][0],
-                               rdf_client.BufferReference))
+    self.assertTrue(
+        isinstance(fake_worker.SendReply.call_args[0][0],
+                   rdf_client.BufferReference))
 
     with self.assertRaises(AttributeError):
       actionplugin.SendReply(badkeyword=10)
@@ -352,8 +353,7 @@ class ActionTest(test_lib.EmptyActionTest):
 
       # This test assumes "/" is the mount point for /usr/bin
       results = self.RunAction(
-          "StatFS",
-          rdf_client.StatFSRequest(path_list=["/usr/bin", "/"]))
+          "StatFS", rdf_client.StatFSRequest(path_list=["/usr/bin", "/"]))
       self.assertEqual(len(results), 2)
 
       # Both results should have mount_point as "/"

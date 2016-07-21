@@ -289,8 +289,8 @@ class ObjectFilterTest(unittest.TestCase):
         return self.values.append(x)
 
     # Test a common binary operator
-    tbo = TestBinaryOperator(arguments=["whatever", 0],
-                             value_expander=self.value_expander)
+    tbo = TestBinaryOperator(
+        arguments=["whatever", 0], value_expander=self.value_expander)
     self.assertEqual(tbo.right_operand, 0)
     self.assertEqual(tbo.args[0], "whatever")
     tbo.Matches(DummyObject("whatever", "id"))
@@ -300,18 +300,19 @@ class ObjectFilterTest(unittest.TestCase):
     self.assertListEqual(tbo.values, ["id", "id2", "bg", "bg2"])
 
   def testContext(self):
-    self.assertRaises(objectfilter.InvalidNumberOfOperands,
-                      objectfilter.Context,
-                      arguments=["context"],
-                      value_expander=self.value_expander)
     self.assertRaises(
         objectfilter.InvalidNumberOfOperands,
         objectfilter.Context,
-        arguments=["context",
-                   objectfilter.Equals(arguments=["path", "value"],
-                                       value_expander=self.value_expander),
-                   objectfilter.Equals(arguments=["another_path", "value"],
-                                       value_expander=self.value_expander)],
+        arguments=["context"],
+        value_expander=self.value_expander)
+    self.assertRaises(
+        objectfilter.InvalidNumberOfOperands,
+        objectfilter.Context,
+        arguments=["context", objectfilter.Equals(
+            arguments=["path", "value"], value_expander=self.value_expander),
+                   objectfilter.Equals(
+                       arguments=["another_path", "value"],
+                       value_expander=self.value_expander)],
         value_expander=self.value_expander)
     # "One imported_dll imports 2 functions AND one imported_dll imports
     # function RegQueryValueEx"
@@ -328,31 +329,31 @@ class ObjectFilterTest(unittest.TestCase):
 
     arguments = [
         objectfilter.Equals(
-            ["num_imported_functions", 2],
-            value_expander=self.value_expander), objectfilter.Contains(
-                ["imported_functions", "RegQueryValueEx"],
-                value_expander=self.value_expander)
+            ["num_imported_functions", 2], value_expander=self.value_expander),
+        objectfilter.Contains(
+            ["imported_functions", "RegQueryValueEx"],
+            value_expander=self.value_expander)
     ]
     condition = objectfilter.AndFilter(arguments=arguments)
     # "The same DLL imports 2 functions AND one of these is RegQueryValueEx"
-    context = objectfilter.Context(arguments=["imported_dlls", condition],
-                                   value_expander=self.value_expander)
+    context = objectfilter.Context(
+        arguments=["imported_dlls", condition],
+        value_expander=self.value_expander)
     # With context, it doesn't match because both don't match in the same dll
     self.assertEqual(False, context.Matches(self.file))
 
     # "One imported_dll imports only 1 function AND one imported_dll imports
     # function RegQueryValueEx"
     condition = objectfilter.AndFilter(arguments=[
-        objectfilter.Equals(arguments=["num_imported_functions", 1],
-                            value_expander=self.value_expander),
-        objectfilter.Contains(
-            ["imported_functions", "RegQueryValueEx"],
-            value_expander=self.value_expander)
+        objectfilter.Equals(
+            arguments=["num_imported_functions", 1],
+            value_expander=self.value_expander), objectfilter.Contains(
+                ["imported_functions", "RegQueryValueEx"],
+                value_expander=self.value_expander)
     ])
     # "The same DLL imports 1 function AND it"s RegQueryValueEx"
     context = objectfilter.Context(
-        ["imported_dlls", condition],
-        value_expander=self.value_expander)
+        ["imported_dlls", condition], value_expander=self.value_expander)
     self.assertEqual(True, context.Matches(self.file))
 
     # Now test the context with a straight query
@@ -368,10 +369,11 @@ class ObjectFilterTest(unittest.TestCase):
     self.assertEqual(True, filter_.Matches(self.file))
 
   def testRegexpRaises(self):
-    self.assertRaises(ValueError,
-                      objectfilter.Regexp,
-                      arguments=["name", "I [dont compile"],
-                      value_expander=self.value_expander)
+    self.assertRaises(
+        ValueError,
+        objectfilter.Regexp,
+        arguments=["name", "I [dont compile"],
+        value_expander=self.value_expander)
 
   def testEscaping(self):
     parser = objectfilter.Parser(r"a is '\n'").Parse()

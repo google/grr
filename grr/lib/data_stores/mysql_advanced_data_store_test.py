@@ -21,8 +21,8 @@ class MysqlAdvancedTestMixin(object):
     if self.disabled:
       raise unittest.SkipTest("Skipping since Mysql db is not reachable.")
 
-    self.token = access_control.ACLToken(username="test",
-                                         reason="Running tests")
+    self.token = access_control.ACLToken(
+        username="test", reason="Running tests")
     # Use separate tables for benchmarks / tests so they can be run in parallel.
     with test_lib.ConfigOverrider({
         "Mysql.database_name": "grr_test_%s" % self.__class__.__name__,
@@ -43,8 +43,9 @@ class MysqlAdvancedTestMixin(object):
     data_store.DB.DropTables()
 
   def testCorrectDataStore(self):
-    self.assertTrue(isinstance(
-        data_store.DB, mysql_advanced_data_store.MySQLAdvancedDataStore))
+    self.assertTrue(
+        isinstance(data_store.DB,
+                   mysql_advanced_data_store.MySQLAdvancedDataStore))
 
 
 class MysqlAdvancedDataStoreTest(MysqlAdvancedTestMixin,

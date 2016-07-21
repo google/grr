@@ -37,20 +37,21 @@ class RecursiveTestFlow(flow.GRRFlow):
   # non-supervisor user when FullAccessControlManager is used.
   category = "/Test/"
 
-  @flow.StateHandler(next_state="End")
+  @flow.StateHandler()
   def Start(self):
     if self.args.depth < 2:
       for i in range(2):
         self.Log("Subflow call %d", i)
-        self.CallFlow(RecursiveTestFlow.__name__,
-                      depth=self.args.depth + 1,
-                      next_state="End")
+        self.CallFlow(
+            RecursiveTestFlow.__name__,
+            depth=self.args.depth + 1,
+            next_state="End")
 
 
 class FlowWithOneLogStatement(flow.GRRFlow):
   """Flow that logs a single statement."""
 
-  @flow.StateHandler(next_state="End")
+  @flow.StateHandler()
   def Start(self):
     self.Log("I do log.")
 
@@ -110,10 +111,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.GRRFlow.StartFlow(flow_name="GetFile",
-                                      client_id=self.client_id,
-                                      pathspec=pathspec,
-                                      token=self.token)
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name="GetFile",
+        client_id=self.client_id,
+        pathspec=pathspec,
+        token=self.token)
 
     self.Open("/#/clients/C.0000000000000001/flows/")
     self.WaitUntilEqual("GRR | C.0000000000000001 | Flows", self.GetPageTitle)
@@ -172,9 +174,10 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
     # Test that recursive tests are shown in a tree table.
     with self.ACLChecksDisabled():
-      flow.GRRFlow.StartFlow(client_id="aff4:/C.0000000000000001",
-                             flow_name=RecursiveTestFlow.__name__,
-                             token=self.token)
+      flow.GRRFlow.StartFlow(
+          client_id="aff4:/C.0000000000000001",
+          flow_name=RecursiveTestFlow.__name__,
+          token=self.token)
 
     self.Click("css=a[grrtarget='client.flows']")
 
@@ -211,16 +214,18 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.GRRFlow.StartFlow(flow_name="GetFile",
-                                      client_id=self.client_id,
-                                      pathspec=pathspec,
-                                      token=self.token)
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name="GetFile",
+        client_id=self.client_id,
+        pathspec=pathspec,
+        token=self.token)
 
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(flow_urn,
-                                       self.action_mock,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          flow_urn,
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
     # Clicking on this should show the notifications table.
@@ -241,10 +246,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
   def testLogsCanBeOpenedByClickingOnLogsTab(self):
     # RecursiveTestFlow doesn't send any results back.
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper("FlowWithOneLogStatement",
-                                       self.action_mock,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          "FlowWithOneLogStatement",
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
     self.Open("/#c=C.0000000000000001")
@@ -257,10 +263,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
   def testLogTimestampsArePresentedInUTC(self):
     with self.ACLChecksDisabled():
       with test_lib.FakeTime(42):
-        for _ in test_lib.TestFlowHelper("FlowWithOneLogStatement",
-                                         self.action_mock,
-                                         client_id=self.client_id,
-                                         token=self.token):
+        for _ in test_lib.TestFlowHelper(
+            "FlowWithOneLogStatement",
+            self.action_mock,
+            client_id=self.client_id,
+            token=self.token):
           pass
 
     self.Open("/#c=C.0000000000000001")
@@ -272,10 +279,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
   def testResultsAreDisplayedInResultsTab(self):
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper("FlowWithOneStatEntryResult",
-                                       self.action_mock,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          "FlowWithOneStatEntryResult",
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
     self.Open("/#c=C.0000000000000001")
@@ -287,10 +295,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
   def testEmptyTableIsDisplayedInResultsWhenNoResults(self):
     with self.ACLChecksDisabled():
-      flow.GRRFlow.StartFlow(flow_name="FlowWithOneStatEntryResult",
-                             client_id=self.client_id,
-                             sync=False,
-                             token=self.token)
+      flow.GRRFlow.StartFlow(
+          flow_name="FlowWithOneStatEntryResult",
+          client_id=self.client_id,
+          sync=False,
+          token=self.token)
 
     self.Open("/#c=" + self.client_id.Basename())
     self.Click("css=a[grrtarget='client.flows']")
@@ -302,10 +311,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
   def testExportTabIsEnabledForStatEntryResults(self):
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper("FlowWithOneStatEntryResult",
-                                       self.action_mock,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          "FlowWithOneStatEntryResult",
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
     self.Open("/#c=C.0000000000000001")
@@ -320,10 +330,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
   def testHashesAreDisplayedCorrectly(self):
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper("FlowWithOneHashEntryResult",
-                                       self.action_mock,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          "FlowWithOneHashEntryResult",
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
     self.Open("/#c=C.0000000000000001")
@@ -341,10 +352,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
   def testExportCommandIsNotDisabledWhenNoResults(self):
     # RecursiveTestFlow doesn't send any results back.
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(RecursiveTestFlow.__name__,
-                                       self.action_mock,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          RecursiveTestFlow.__name__,
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
     self.Open("/#c=C.0000000000000001")
@@ -357,10 +369,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
   def testExportCommandIsNotShownForNonFileResults(self):
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper("FlowWithOneNetworkConnectionResult",
-                                       self.action_mock,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          "FlowWithOneNetworkConnectionResult",
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
     self.Open("/#c=C.0000000000000001")
@@ -373,9 +386,10 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
   def testCancelFlowWorksCorrectly(self):
     """Tests that cancelling flows works."""
-    flow.GRRFlow.StartFlow(client_id=self.client_id,
-                           flow_name=RecursiveTestFlow.__name__,
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name=RecursiveTestFlow.__name__,
+        token=self.token)
 
     # Open client and find the flow
     self.Open("/")
@@ -410,10 +424,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
   def testDoesNotShowGenerateArchiveButtonForNonExportableRDFValues(self):
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper("FlowWithOneNetworkConnectionResult",
-                                       self.action_mock,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          "FlowWithOneNetworkConnectionResult",
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
     self.Open("/#c=C.0000000000000001")
@@ -427,10 +442,11 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
   def testDoesNotShowGenerateArchiveButtonWhenResultsCollectionIsEmpty(self):
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(RecursiveTestFlow.__name__,
-                                       self.action_mock,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          RecursiveTestFlow.__name__,
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
     self.Open("/#c=C.0000000000000001")
@@ -447,11 +463,12 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper("GetFile",
-                                       self.action_mock,
-                                       client_id=self.client_id,
-                                       pathspec=pathspec,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          "GetFile",
+          self.action_mock,
+          client_id=self.client_id,
+          pathspec=pathspec,
+          token=self.token):
         pass
 
     self.Open("/#c=C.0000000000000001")
@@ -467,11 +484,12 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper("GetFile",
-                                       self.action_mock,
-                                       client_id=self.client_id,
-                                       pathspec=pathspec,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          "GetFile",
+          self.action_mock,
+          client_id=self.client_id,
+          pathspec=pathspec,
+          token=self.token):
         pass
 
     self.Open("/#c=C.0000000000000001")
@@ -487,16 +505,18 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.GRRFlow.StartFlow(flow_name="GetFile",
-                                      client_id=self.client_id,
-                                      pathspec=pathspec,
-                                      token=self.token)
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name="GetFile",
+        client_id=self.client_id,
+        pathspec=pathspec,
+        token=self.token)
 
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(flow_urn,
-                                       self.action_mock,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          flow_urn,
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
     self.Open("/#c=C.0000000000000001")
@@ -513,16 +533,18 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.GRRFlow.StartFlow(flow_name="GetFile",
-                                      client_id=self.client_id,
-                                      pathspec=pathspec,
-                                      token=self.token)
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name="GetFile",
+        client_id=self.client_id,
+        pathspec=pathspec,
+        token=self.token)
 
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(flow_urn,
-                                       self.action_mock,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          flow_urn,
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
     def RaisingStub(*unused_args, **unused_kwargs):
@@ -546,16 +568,18 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test.plist"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    flow_urn = flow.GRRFlow.StartFlow(flow_name="GetFile",
-                                      client_id=self.client_id,
-                                      pathspec=pathspec,
-                                      token=self.token)
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name="GetFile",
+        client_id=self.client_id,
+        pathspec=pathspec,
+        token=self.token)
 
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(flow_urn,
-                                       self.action_mock,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          flow_urn,
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
         pass
 
     def RaisingStub(*unused_args, **unused_kwargs):
@@ -584,17 +608,17 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     email_descriptor = output_plugin.OutputPluginDescriptor(
         plugin_name=email_plugin.EmailOutputPlugin.__name__,
         plugin_args=email_plugin.EmailOutputPluginArgs(
-            email_address="test@localhost",
-            emails_limit=42))
+            email_address="test@localhost", emails_limit=42))
 
-    args = flows_processes.ListProcessesArgs(filename_regex="test[a-z]*",
-                                             fetch_binaries=True)
+    args = flows_processes.ListProcessesArgs(
+        filename_regex="test[a-z]*", fetch_binaries=True)
 
-    flow.GRRFlow.StartFlow(flow_name=flows_processes.ListProcesses.__name__,
-                           args=args,
-                           client_id=self.client_id,
-                           output_plugins=[email_descriptor],
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        flow_name=flows_processes.ListProcesses.__name__,
+        args=args,
+        client_id=self.client_id,
+        output_plugins=[email_descriptor],
+        token=self.token)
 
     # Navigate to client and select newly created flow.
     self.Open("/#c=C.0000000000000001")
@@ -631,9 +655,10 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "ListProcesses")
 
   def testCheckCreateHuntButtonIsOnlyEnabledWithFlowSelection(self):
-    flow.GRRFlow.StartFlow(client_id=self.client_id,
-                           flow_name=RecursiveTestFlow.__name__,
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name=RecursiveTestFlow.__name__,
+        token=self.token)
 
     # Open client and find the flow.
     self.Open("/#c=C.0000000000000001")

@@ -32,10 +32,11 @@ def main(_):
       "Context applied when running the admin user interface GUI.")
   startup.Init()
 
-  if (not os.path.exists(os.path.join(config_lib.CONFIG[
-      "AdminUI.document_root"], "dist/grr-ui.bundle.js")) or
-      not os.path.exists(os.path.join(config_lib.CONFIG[
-          "AdminUI.document_root"], "dist/grr-ui.bundle.css"))):
+  if (not os.path.exists(
+      os.path.join(config_lib.CONFIG["AdminUI.document_root"],
+                   "dist/grr-ui.bundle.js")) or not os.path.exists(
+                       os.path.join(config_lib.CONFIG["AdminUI.document_root"],
+                                    "dist/grr-ui.bundle.css"))):
     raise RuntimeError("Can't find compiled JS/CSS bundles. "
                        "Please reinstall the PIP package using "
                        "\"pip install -e .\" to rebuild the bundles.")
@@ -53,10 +54,11 @@ def main(_):
   for port in range(config_lib.CONFIG["AdminUI.port"], max_port + 1):
     # Make a simple reference implementation WSGI server
     try:
-      server = simple_server.make_server(bind_address,
-                                         port,
-                                         django_lib.GetWSGIHandler(),
-                                         server_class=ThreadingDjango)
+      server = simple_server.make_server(
+          bind_address,
+          port,
+          django_lib.GetWSGIHandler(),
+          server_class=ThreadingDjango)
       break
     except socket.error as e:
       if e.errno == socket.errno.EADDRINUSE and port < max_port:
@@ -72,10 +74,8 @@ def main(_):
       raise ValueError("Need a valid cert file to enable SSL.")
 
     key_file = config_lib.CONFIG["AdminUI.ssl_key_file"]
-    server.socket = ssl.wrap_socket(server.socket,
-                                    certfile=cert_file,
-                                    keyfile=key_file,
-                                    server_side=True)
+    server.socket = ssl.wrap_socket(
+        server.socket, certfile=cert_file, keyfile=key_file, server_side=True)
     proto = "HTTPS"
 
     # SSL errors are swallowed by the WSGIServer so if your configuration does

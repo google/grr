@@ -41,10 +41,10 @@ class ApiCallRouterTest(test_lib.GRRBaseTest):
     self.assertTrue(methods)
 
   def testGetAnnotatedMethodsReturnsMethodsFromAllClassesInMroChain(self):
-    self.assertTrue("SomeRandomMethod" in
-                    DummyApiCallRouter.GetAnnotatedMethods())
-    self.assertTrue("SomeRandomMethod" in
-                    DummyApiCallRouterChild.GetAnnotatedMethods())
+    self.assertTrue(
+        "SomeRandomMethod" in DummyApiCallRouter.GetAnnotatedMethods())
+    self.assertTrue(
+        "SomeRandomMethod" in DummyApiCallRouterChild.GetAnnotatedMethods())
 
 
 def main(argv):

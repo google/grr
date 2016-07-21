@@ -33,8 +33,8 @@ class OSXInstaller(installer.Installer):
       f.write(fd.read())
 
     packaged_config = config_lib.CONFIG.MakeNewConfig()
-    packaged_config.Initialize(filename=installer_config,
-                               parser=config_lib.YamlParser)
+    packaged_config.Initialize(
+        filename=installer_config, parser=config_lib.YamlParser)
 
     new_config = config_lib.CONFIG.MakeNewConfig()
     new_config.SetWriteBack(config_lib.CONFIG["Config.writeback"])

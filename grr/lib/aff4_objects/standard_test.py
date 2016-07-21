@@ -66,9 +66,8 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
     self.assertEqual(dest_fd.Read(5000), src_content + src_content)
 
   def testMultiStreamStreamsSingleFileWithSingleChunk(self):
-    with aff4.FACTORY.Create("aff4:/foo",
-                             aff4_type=aff4_standard.BlobImage,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        "aff4:/foo", aff4_type=aff4_standard.BlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("123456789"))
 
@@ -80,15 +79,13 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
     self.assertIs(chunks_fds[0][0], fd)
 
   def testMultiStreamStreamsSinglfeFileWithTwoChunks(self):
-    with aff4.FACTORY.Create("aff4:/foo",
-                             aff4_type=aff4_standard.BlobImage,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        "aff4:/foo", aff4_type=aff4_standard.BlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("123456789"))
 
-    with aff4.FACTORY.Create("aff4:/bar",
-                             aff4_type=aff4_standard.BlobImage,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        "aff4:/bar", aff4_type=aff4_standard.BlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("abcd"))
 
@@ -105,15 +102,13 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
     self.assertIs(chunks_fds[1][0], fd2)
 
   def testMultiStreamStreamsTwoFilesWithTwoChunksInEach(self):
-    with aff4.FACTORY.Create("aff4:/foo",
-                             aff4_type=aff4_standard.BlobImage,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        "aff4:/foo", aff4_type=aff4_standard.BlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
 
-    with aff4.FACTORY.Create("aff4:/bar",
-                             aff4_type=aff4_standard.BlobImage,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        "aff4:/bar", aff4_type=aff4_standard.BlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("*" * 10 + "abcd"))
 
@@ -136,9 +131,8 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
     self.assertIs(chunks_fds[3][0], fd2)
 
   def testMultiStreamReturnsExceptionIfChunkIsMissing(self):
-    with aff4.FACTORY.Create("aff4:/foo",
-                             aff4_type=aff4_standard.BlobImage,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        "aff4:/foo", aff4_type=aff4_standard.BlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("123456789"))
 
@@ -157,9 +151,8 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
     self.assertEqual(e.missing_chunks, [blob_id])
 
   def testMultiStreamIgnoresTheFileIfAnyChunkIsMissingInReadAheadChunks(self):
-    with aff4.FACTORY.Create("aff4:/foo",
-                             aff4_type=aff4_standard.BlobImage,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        "aff4:/foo", aff4_type=aff4_standard.BlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
 
@@ -186,9 +179,8 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
     # If the file is split between 2 batches of chunks, and the missing
     # chunk is in the second batch, the first batch will be succesfully
     # yielded.
-    with aff4.FACTORY.Create("aff4:/foo",
-                             aff4_type=aff4_standard.BlobImage,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        "aff4:/foo", aff4_type=aff4_standard.BlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
 
@@ -218,9 +210,8 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
   def testMultiStreamSkipsBigFileIfFirstChunkIsMissing(self):
     # If the file is split between 2 batches of chunks, and the missing
     # chunk is in the first batch, the file will be skipped entirely.
-    with aff4.FACTORY.Create("aff4:/foo",
-                             aff4_type=aff4_standard.BlobImage,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        "aff4:/foo", aff4_type=aff4_standard.BlobImage, token=self.token) as fd:
       fd.SetChunksize(10)
       fd.AppendContent(StringIO.StringIO("*" * 10 + "123456789"))
 
@@ -244,10 +235,11 @@ class BlobImageTest(test_lib.AFF4ObjectTest):
 class LabelSetTest(test_lib.AFF4ObjectTest):
 
   def testAddListRemoveLabels(self):
-    index = aff4.FACTORY.Create("aff4:/index/labels/client_set_test",
-                                aff4_standard.LabelSet,
-                                mode="rw",
-                                token=self.token)
+    index = aff4.FACTORY.Create(
+        "aff4:/index/labels/client_set_test",
+        aff4_standard.LabelSet,
+        mode="rw",
+        token=self.token)
     self.assertListEqual([], index.ListLabels())
     index.Add("label1")
     index.Add("label2")
@@ -271,10 +263,11 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     """Makes sure we can add a chunk and modify it."""
 
     urn = aff4.ROOT_URN.Add("temp_sparse_image.dd")
-    fd = aff4.FACTORY.Create(urn,
-                             aff4_type=aff4_standard.AFF4SparseImage,
-                             token=self.token,
-                             mode="rw")
+    fd = aff4.FACTORY.Create(
+        urn,
+        aff4_type=aff4_standard.AFF4SparseImage,
+        token=self.token,
+        mode="rw")
     fd.Set(fd.Schema._CHUNKSIZE, rdfvalue.RDFInteger(1024))
     fd.chunksize = 1024
     fd.Flush()
@@ -284,9 +277,10 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     blob_contents = "A" * fd.chunksize
     blob_hash = self.AddBlobToBlobStore(blob_contents).decode("hex")
 
-    fd.AddBlob(blob_hash=blob_hash,
-               length=len(blob_contents),
-               chunk_number=chunk_number)
+    fd.AddBlob(
+        blob_hash=blob_hash,
+        length=len(blob_contents),
+        chunk_number=chunk_number)
     fd.Flush()
 
     # Make sure the size is correct.
@@ -309,10 +303,11 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
     """Read a chunk, and test that the next few are in cache."""
 
     urn = aff4.ROOT_URN.Add("temp_sparse_image.dd")
-    fd = aff4.FACTORY.Create(urn,
-                             aff4_type=aff4_standard.AFF4SparseImage,
-                             token=self.token,
-                             mode="rw")
+    fd = aff4.FACTORY.Create(
+        urn,
+        aff4_type=aff4_standard.AFF4SparseImage,
+        token=self.token,
+        mode="rw")
     fd.Set(fd.Schema._CHUNKSIZE, rdfvalue.RDFInteger(1024))
     fd.chunksize = 1024
     fd.Flush()
@@ -326,9 +321,8 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
       blob_contents = str(chunk % 10) * fd.chunksize
       blobs.append(blob_contents)
       blob_hash = self.AddBlobToBlobStore(blob_contents).decode("hex")
-      fd.AddBlob(blob_hash=blob_hash,
-                 length=len(blob_contents),
-                 chunk_number=chunk)
+      fd.AddBlob(
+          blob_hash=blob_hash, length=len(blob_contents), chunk_number=chunk)
       blob_hashes.append(blob_hash)
 
     self.assertEqual(fd.size, fd.chunksize * num_chunks)
@@ -349,10 +343,11 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
 
   def testReadingAfterLastChunk(self):
     urn = aff4.ROOT_URN.Add("temp_sparse_image.dd")
-    fd = aff4.FACTORY.Create(urn,
-                             aff4_type=aff4_standard.AFF4SparseImage,
-                             token=self.token,
-                             mode="rw")
+    fd = aff4.FACTORY.Create(
+        urn,
+        aff4_type=aff4_standard.AFF4SparseImage,
+        token=self.token,
+        mode="rw")
     fd.Set(fd.Schema._CHUNKSIZE, rdfvalue.RDFInteger(1024))
     fd.chunksize = 1024
     fd.Flush()
@@ -366,9 +361,8 @@ class AFF4SparseImageTest(test_lib.AFF4ObjectTest):
       # Make sure the blobs have unique content.
       blob_contents = str(chunk % 10) * fd.chunksize
       blob_hash = self.AddBlobToBlobStore(blob_contents).decode("hex")
-      fd.AddBlob(blob_hash=blob_hash,
-                 length=len(blob_contents),
-                 chunk_number=chunk)
+      fd.AddBlob(
+          blob_hash=blob_hash, length=len(blob_contents), chunk_number=chunk)
 
     # Make sure we can read the chunks we just wrote without error.
     fd.Seek(start_chunk * fd.chunksize)
@@ -397,8 +391,8 @@ class VFSDirectoryTest(test_lib.AFF4ObjectTest):
           client_id.Add("fs/os").Add(path),
           aff4_type=aff4_standard.VFSDirectory,
           token=self.token)
-      pathspec = rdf_paths.PathSpec(path=path,
-                                    pathtype=rdf_paths.PathSpec.PathType.OS)
+      pathspec = rdf_paths.PathSpec(
+          path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
       d.Set(d.Schema.PATHSPEC, pathspec)
       d.Close()
 

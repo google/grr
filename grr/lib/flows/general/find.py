@@ -57,7 +57,7 @@ class FindFiles(flow.GRRFlow):
   args_type = FindFilesArgs
   friendly_name = "Find Files"
 
-  @flow.StateHandler(next_state="IterateFind")
+  @flow.StateHandler()
   def Start(self, unused_response):
     """Issue the find request to the client."""
     self.state.Register("received_count", 0)
@@ -73,7 +73,7 @@ class FindFiles(flow.GRRFlow):
     # Call the client with it
     self.CallClient("Find", self.state.args.findspec, next_state="IterateFind")
 
-  @flow.StateHandler(next_state="IterateFind")
+  @flow.StateHandler()
   def IterateFind(self, responses):
     """Iterate in this state until no more results are available."""
     if not responses.success:
@@ -88,9 +88,8 @@ class FindFiles(flow.GRRFlow):
 
       # TODO(user): This ends up being fairly expensive.
       if stat.S_ISDIR(response.hit.st_mode):
-        fd = aff4.FACTORY.Create(vfs_urn,
-                                 standard.VFSDirectory,
-                                 token=self.token)
+        fd = aff4.FACTORY.Create(
+            vfs_urn, standard.VFSDirectory, token=self.token)
       else:
         fd = aff4.FACTORY.Create(vfs_urn, aff4_grr.VFSFile, token=self.token)
 
@@ -118,7 +117,6 @@ class FindFiles(flow.GRRFlow):
           self.state.args.findspec.iterator.number,
           self.state.args.max_results - self.state.received_count)
 
-      self.CallClient("Find",
-                      self.state.args.findspec,
-                      next_state="IterateFind")
+      self.CallClient(
+          "Find", self.state.args.findspec, next_state="IterateFind")
       self.Log("%d files processed.", self.state.received_count)

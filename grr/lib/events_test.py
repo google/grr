@@ -37,8 +37,8 @@ class ClientListener(flow.EventListener):
 
 
 class FlowDoneListener(flow.EventListener):
-  well_known_session_id = rdfvalue.SessionID(queue=rdfvalue.RDFURN("EV"),
-                                             flow_name="FlowDone")
+  well_known_session_id = rdfvalue.SessionID(
+      queue=rdfvalue.RDFURN("EV"), flow_name="FlowDone")
   EVENTS = ["Not used"]
   received_events = []
 
@@ -76,18 +76,18 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
 
     # Run the flow in the simulated way
     client_mock = action_mocks.ActionMock()
-    for _ in test_lib.TestFlowHelper("DummyLogFlow",
-                                     client_mock,
-                                     client_id=self.client_id,
-                                     notification_urn=rdfvalue.SessionID(
-                                         queue=rdfvalue.RDFURN("EV"),
-                                         flow_name="FlowDone"),
-                                     token=self.token):
+    for _ in test_lib.TestFlowHelper(
+        "DummyLogFlow",
+        client_mock,
+        client_id=self.client_id,
+        notification_urn=rdfvalue.SessionID(
+            queue=rdfvalue.RDFURN("EV"), flow_name="FlowDone"),
+        token=self.token):
       pass
 
     # The event goes to an external queue so we need another worker.
-    worker = test_lib.MockWorker(queues=[rdfvalue.RDFURN("EV")],
-                                 token=self.token)
+    worker = test_lib.MockWorker(
+        queues=[rdfvalue.RDFURN("EV")], token=self.token)
     worker.Simulate()
 
     self.assertEqual(len(FlowDoneListener.received_events), 1)
@@ -105,7 +105,8 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
     event = rdf_flows.GrrMessage(
         session_id=rdfvalue.SessionID(flow_name="SomeFlow"),
         name="test message",
-        payload=rdf_paths.PathSpec(path="foobar", pathtype="TSK"),
+        payload=rdf_paths.PathSpec(
+            path="foobar", pathtype="TSK"),
         source="aff4:/C.0000000000000001",
         auth_state="AUTHENTICATED")
 

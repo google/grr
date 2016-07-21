@@ -84,8 +84,8 @@ class FieldParserTests(test_lib.GRRBaseTest):
                 ["this", "should", "be", "another", "entry",
                  "with this quoted text as one field"],
                 ["an entrywith only two", "fields"]]
-    cfg = config_file.FieldParser(sep=["[ \t\f\v]+", ":", ";"],
-                                  comments=["#", ";;"])
+    cfg = config_file.FieldParser(
+        sep=["[ \t\f\v]+", ":", ";"], comments=["#", ";;"])
     results = cfg.ParseEntries(test_data)
     for i, expect in enumerate(expected):
       self.assertItemsEqual(expect, results[i])
@@ -617,9 +617,9 @@ class NtpParserTests(test_lib.GRRBaseTest):
     results = results[0]
 
     # Check all the expected "simple" config keywords are present.
-    expected_config_keywords = set(["driftfile", "statsdir", "filegen", "ttl",
-                                    "broadcastdelay"]) | set(
-                                        parser._defaults.keys())
+    expected_config_keywords = set(
+        ["driftfile", "statsdir", "filegen", "ttl",
+         "broadcastdelay"]) | set(parser._defaults.keys())
     self.assertEqual(expected_config_keywords, set(results.config.keys()))
 
     # Check all the expected "keyed" config keywords are present.

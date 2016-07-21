@@ -28,8 +28,8 @@ class CollectionFilesExportPluginTest(test_lib.GRRBaseTest):
     self.client_id = client_ids[0]
     self.out = self.client_id.Add("fs/os")
 
-    data_store.default_token = access_control.ACLToken(username="user",
-                                                       reason="reason")
+    data_store.default_token = access_control.ACLToken(
+        username="user", reason="reason")
 
   def CreateDir(self, dirpath):
     path = self.out.Add(dirpath)
@@ -45,9 +45,8 @@ class CollectionFilesExportPluginTest(test_lib.GRRBaseTest):
     return path
 
   def CreateCollection(self, collection_path, paths):
-    with aff4.FACTORY.Create(collection_path,
-                             collects.RDFValueCollection,
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        collection_path, collects.RDFValueCollection, token=self.token) as fd:
       for p in paths:
         fd.Add(rdfvalue.RDFURN(p))
 
@@ -64,9 +63,10 @@ class CollectionFilesExportPluginTest(test_lib.GRRBaseTest):
     plugin.ConfigureArgParser(parser)
 
     with utils.TempDirectory() as tmpdir:
-      plugin.Run(parser.parse_args(args=[
-          "--path", str(collection_path), "--output", tmpdir
-      ]))
+      plugin.Run(
+          parser.parse_args(args=[
+              "--path", str(collection_path), "--output", tmpdir
+          ]))
 
       expected_outdir = os.path.join(tmpdir, self.out.Path()[1:])
       self.assertTrue("testfile1" in os.listdir(expected_outdir))

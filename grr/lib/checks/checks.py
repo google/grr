@@ -713,12 +713,13 @@ def CheckHost(host_data,
     # TODO(user): Get labels (see grr/lib/export.py for acquisition
     # from client)
     pass
-  return CheckRegistry.Process(host_data,
-                               os_name=os_name,
-                               cpe=cpe,
-                               labels=labels,
-                               restrict_checks=restrict_checks,
-                               exclude_checks=exclude_checks)
+  return CheckRegistry.Process(
+      host_data,
+      os_name=os_name,
+      cpe=cpe,
+      labels=labels,
+      restrict_checks=restrict_checks,
+      exclude_checks=exclude_checks)
 
 
 def LoadConfigsFromFile(file_path):
@@ -733,9 +734,10 @@ def LoadCheckFromFile(file_path, check_id, overwrite_if_exists=True):
   conf = configs.get(check_id)
   check = Check(**conf)
   check.Validate()
-  CheckRegistry.RegisterCheck(check,
-                              source="file:%s" % file_path,
-                              overwrite_if_exists=overwrite_if_exists)
+  CheckRegistry.RegisterCheck(
+      check,
+      source="file:%s" % file_path,
+      overwrite_if_exists=overwrite_if_exists)
   logging.debug("Loaded check %s from %s", check.check_id, file_path)
   return check
 
@@ -750,9 +752,10 @@ def LoadChecksFromFiles(file_paths, overwrite_if_exists=True):
       # Validate will raise if the check doesn't load.
       check.Validate()
       loaded.append(check)
-      CheckRegistry.RegisterCheck(check,
-                                  source="file:%s" % file_path,
-                                  overwrite_if_exists=overwrite_if_exists)
+      CheckRegistry.RegisterCheck(
+          check,
+          source="file:%s" % file_path,
+          overwrite_if_exists=overwrite_if_exists)
       logging.debug("Loaded check %s from %s", check.check_id, file_path)
   return loaded
 

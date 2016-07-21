@@ -52,8 +52,7 @@ class RepackingTests(test_lib.GRRBaseTest):
 
       # Validate the config appended to the OS X package.
       zf = zipfile.ZipFile(
-          glob.glob(os.path.join(new_dir, "installers/*.pkg")).pop(),
-          mode="r")
+          glob.glob(os.path.join(new_dir, "installers/*.pkg")).pop(), mode="r")
       fd = zf.open("config.yaml")
 
       # We can't load the included build.yaml because the package hasn't been
@@ -62,8 +61,8 @@ class RepackingTests(test_lib.GRRBaseTest):
       loaded.pop("Config.includes")
 
       packaged_config = config_lib.CONFIG.MakeNewConfig()
-      packaged_config.Initialize(parser=config_lib.YamlParser,
-                                 data=yaml.safe_dump(loaded))
+      packaged_config.Initialize(
+          parser=config_lib.YamlParser, data=yaml.safe_dump(loaded))
       packaged_config.Validate(sections=build.ClientRepacker.CONFIG_SECTIONS)
       repacker = build.ClientRepacker()
       repacker.ValidateEndConfig(packaged_config)

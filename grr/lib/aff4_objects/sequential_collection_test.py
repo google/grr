@@ -19,9 +19,10 @@ class TestSequentialCollection(sequential_collection.SequentialCollection):
 class SequentialCollectionTest(test_lib.AFF4ObjectTest):
 
   def testAddScan(self):
-    with aff4.FACTORY.Create("aff4:/sequential_collection/testAddScan",
-                             TestSequentialCollection,
-                             token=self.token) as collection:
+    with aff4.FACTORY.Create(
+        "aff4:/sequential_collection/testAddScan",
+        TestSequentialCollection,
+        token=self.token) as collection:
       for i in range(100):
         collection.Add(rdfvalue.RDFInteger(i))
 
@@ -58,9 +59,10 @@ class SequentialCollectionTest(test_lib.AFF4ObjectTest):
       self.assertEqual(i, 10)
 
   def testMultiResolve(self):
-    with aff4.FACTORY.Create("aff4:/sequential_collection/testAddScan",
-                             TestSequentialCollection,
-                             token=self.token) as collection:
+    with aff4.FACTORY.Create(
+        "aff4:/sequential_collection/testAddScan",
+        TestSequentialCollection,
+        token=self.token) as collection:
       timestamps = []
       for i in range(100):
         timestamps.append(collection.Add(rdfvalue.RDFInteger(i)))
@@ -72,18 +74,20 @@ class SequentialCollectionTest(test_lib.AFF4ObjectTest):
       self.assertEqual(even_results[49], 98)
 
   def testDelete(self):
-    with aff4.FACTORY.Create("aff4:/sequential_collection/testDelete",
-                             TestSequentialCollection,
-                             token=self.token) as collection:
+    with aff4.FACTORY.Create(
+        "aff4:/sequential_collection/testDelete",
+        TestSequentialCollection,
+        token=self.token) as collection:
       for i in range(100):
         collection.Add(rdfvalue.RDFInteger(i))
 
-    aff4.FACTORY.Delete("aff4:/sequential_collection/testDelete",
-                        token=self.token)
+    aff4.FACTORY.Delete(
+        "aff4:/sequential_collection/testDelete", token=self.token)
 
-    with aff4.FACTORY.Create("aff4:/sequential_collection/testDelete",
-                             TestSequentialCollection,
-                             token=self.token) as collection:
+    with aff4.FACTORY.Create(
+        "aff4:/sequential_collection/testDelete",
+        TestSequentialCollection,
+        token=self.token) as collection:
       for _ in collection.Scan():
         self.fail("Deleted and recreated SequentialCollection should be empty")
 
@@ -112,9 +116,10 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
     t.start()
 
   def testAddGet(self):
-    with aff4.FACTORY.Create("aff4:/sequential_collection/testAddGet",
-                             TestIndexedSequentialCollection,
-                             token=self.token) as collection:
+    with aff4.FACTORY.Create(
+        "aff4:/sequential_collection/testAddGet",
+        TestIndexedSequentialCollection,
+        token=self.token) as collection:
       self.assertEqual(collection.CalculateLength(), 0)
       for i in range(100):
         collection.Add(rdfvalue.RDFInteger(i))
@@ -125,9 +130,10 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
       self.assertEqual(len(collection), 100)
 
   def testStaticAddGet(self):
-    with aff4.FACTORY.Create("aff4:/sequential_collection/testStaticAddGet",
-                             TestIndexedSequentialCollection,
-                             token=self.token) as collection:
+    with aff4.FACTORY.Create(
+        "aff4:/sequential_collection/testStaticAddGet",
+        TestIndexedSequentialCollection,
+        token=self.token) as collection:
       self.assertEqual(collection.CalculateLength(), 0)
       for i in range(100):
         TestIndexedSequentialCollection.StaticAdd(
@@ -140,9 +146,10 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
       self.assertEqual(len(collection), 100)
 
   def testIndexCreate(self):
-    with aff4.FACTORY.Create("aff4:/sequential_collection/testIndexCreate",
-                             TestIndexedSequentialCollection,
-                             token=self.token) as collection:
+    with aff4.FACTORY.Create(
+        "aff4:/sequential_collection/testIndexCreate",
+        TestIndexedSequentialCollection,
+        token=self.token) as collection:
       for i in range(10 * 1024):
         collection.Add(rdfvalue.RDFInteger(i))
 
@@ -166,9 +173,10 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
     # Now check that the index was persisted to aff4 by re-opening and checking
     # that a read from head does load full index (optimistic load):
 
-    with aff4.FACTORY.Create("aff4:/sequential_collection/testIndexCreate",
-                             TestIndexedSequentialCollection,
-                             token=self.token) as collection:
+    with aff4.FACTORY.Create(
+        "aff4:/sequential_collection/testIndexCreate",
+        TestIndexedSequentialCollection,
+        token=self.token) as collection:
       self.assertEqual(collection._index, None)
       _ = collection[0]
       self.assertEqual(
@@ -176,9 +184,10 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
                                              6144, 7168, 8192, 9216])
 
   def testIndexedReads(self):
-    with aff4.FACTORY.Create("aff4:/sequential_collection/testIndexedReads",
-                             TestIndexedSequentialCollection,
-                             token=self.token) as collection:
+    with aff4.FACTORY.Create(
+        "aff4:/sequential_collection/testIndexedReads",
+        TestIndexedSequentialCollection,
+        token=self.token) as collection:
       data_size = 4 * 1024
       for i in range(data_size):
         collection.Add(rdfvalue.RDFInteger(i))
@@ -194,9 +203,9 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
 
   def testListing(self):
     test_urn = "aff4:/sequential_collection/testIndexedListing"
-    with aff4.FACTORY.Create(test_urn,
-                             TestIndexedSequentialCollection,
-                             token=self.token) as collection:
+    with aff4.FACTORY.Create(
+        test_urn, TestIndexedSequentialCollection,
+        token=self.token) as collection:
       timestamps = []
       for i in range(100):
         timestamps.append(collection.Add(rdfvalue.RDFInteger(i)))
@@ -226,9 +235,10 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
                             (isq, "INDEX_WRITE_DELAY", rdfvalue.Duration("0s")),
                             (isq, "INDEX_SPACING", 8),
                             (isq, "UpdateIndex", UpdateIndex)):
-      with aff4.FACTORY.Create("aff4:/sequential_collection/testAutoIndexing",
-                               TestIndexedSequentialCollection,
-                               token=self.token) as collection:
+      with aff4.FACTORY.Create(
+          "aff4:/sequential_collection/testAutoIndexing",
+          TestIndexedSequentialCollection,
+          token=self.token) as collection:
         collection.Flush()
         for i in range(2048):
           collection.Add(rdfvalue.RDFInteger(i))
@@ -237,9 +247,10 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
       if not indexing_done.wait(timeout=10):
         self.fail("Indexing did not finish in time.")
 
-      with aff4.FACTORY.Open("aff4:/sequential_collection/testAutoIndexing",
-                             TestIndexedSequentialCollection,
-                             token=self.token) as collection:
+      with aff4.FACTORY.Open(
+          "aff4:/sequential_collection/testAutoIndexing",
+          TestIndexedSequentialCollection,
+          token=self.token) as collection:
         _ = collection[0]
         self.assertGreater(len(collection._index), 16)
 
@@ -247,9 +258,10 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
 class GeneralIndexedCollectionTest(test_lib.AFF4ObjectTest):
 
   def testAddGet(self):
-    with aff4.FACTORY.Create("aff4:/sequential_collection/testAddGetIndexed",
-                             sequential_collection.GeneralIndexedCollection,
-                             token=self.token) as collection:
+    with aff4.FACTORY.Create(
+        "aff4:/sequential_collection/testAddGetIndexed",
+        sequential_collection.GeneralIndexedCollection,
+        token=self.token) as collection:
       collection.Add(rdfvalue.RDFInteger(42))
       collection.Add(rdfvalue.RDFString("the meaning of life"))
       self.assertEqual(collection[0].__class__, rdfvalue.RDFInteger)

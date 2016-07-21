@@ -32,22 +32,22 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     for i in range(0, 10):
       test_lib.ClientFixture("C.0%015X" % i, token=self.token, fixture=fixture)
 
-      with aff4.FACTORY.Open("C.0%015X" % i,
-                             mode="rw",
-                             token=self.token) as client:
+      with aff4.FACTORY.Open(
+          "C.0%015X" % i, mode="rw", token=self.token) as client:
         client.AddLabels("Label1", "Label2", owner="GRR")
         client.AddLabels("UserLabel", owner="jim")
 
     # Make 10 linux clients 12 hours apart.
     for i in range(0, 10):
-      test_lib.ClientFixture("C.1%015X" % i,
-                             token=self.token,
-                             fixture=client_fixture.LINUX_FIXTURE)
+      test_lib.ClientFixture(
+          "C.1%015X" % i,
+          token=self.token,
+          fixture=client_fixture.LINUX_FIXTURE)
 
   def _CheckVersionStats(self, label, attribute, counts):
 
-    fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats/%s" % label,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        "aff4:/stats/ClientFleetStats/%s" % label, token=self.token)
     histogram = fd.Get(attribute)
 
     # There should be counts[0] instances in 1 day actives.
@@ -84,14 +84,15 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     self._CheckVersionStats("Label2", histogram, [0, 0, 10, 10])
 
     # This shouldn't exist since it isn't a system label
-    aff4.FACTORY.Open("aff4:/stats/ClientFleetStats/UserLabel",
-                      aff4.AFF4Volume,
-                      token=self.token)
+    aff4.FACTORY.Open(
+        "aff4:/stats/ClientFleetStats/UserLabel",
+        aff4.AFF4Volume,
+        token=self.token)
 
   def _CheckOSStats(self, label, attribute, counts):
 
-    fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats/%s" % label,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        "aff4:/stats/ClientFleetStats/%s" % label, token=self.token)
     histogram = fd.Get(attribute)
 
     # There should be counts[0] instances in 1 day actives.
@@ -136,8 +137,8 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
                        [0, 0, {"Windows": 10}, {"Windows": 10}])
 
   def _CheckAccessStats(self, label, count):
-    fd = aff4.FACTORY.Open("aff4:/stats/ClientFleetStats/%s" % label,
-                           token=self.token)
+    fd = aff4.FACTORY.Open(
+        "aff4:/stats/ClientFleetStats/%s" % label, token=self.token)
 
     histogram = fd.Get(fd.Schema.LAST_CONTACTED_HISTOGRAM)
 
@@ -170,43 +171,33 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
       with test_lib.FakeTime(t):
         urn = self.client_id.Add("stats")
 
-        stats_fd = aff4.FACTORY.Create(urn,
-                                       aff4_stats.ClientStats,
-                                       token=self.token,
-                                       mode="rw")
+        stats_fd = aff4.FACTORY.Create(
+            urn, aff4_stats.ClientStats, token=self.token, mode="rw")
         st = client_rdf.ClientStats(RSS_size=int(t))
         stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
 
         stats_fd.Close()
 
-    stat_obj = aff4.FACTORY.Open(urn,
-                                 age=aff4.ALL_TIMES,
-                                 token=self.token,
-                                 ignore_cache=True)
+    stat_obj = aff4.FACTORY.Open(
+        urn, age=aff4.ALL_TIMES, token=self.token, ignore_cache=True)
     stat_entries = list(stat_obj.GetValuesForAttribute(stat_obj.Schema.STATS))
     self.assertEqual(len(stat_entries), 3)
     self.assertTrue(max_age in [e.RSS_size for e in stat_entries])
 
     with test_lib.FakeTime(2.5 * max_age):
-      for _ in test_lib.TestFlowHelper("PurgeClientStats",
-                                       None,
-                                       client_id=self.client_id,
-                                       token=self.token):
+      for _ in test_lib.TestFlowHelper(
+          "PurgeClientStats", None, client_id=self.client_id, token=self.token):
         pass
 
-    stat_obj = aff4.FACTORY.Open(urn,
-                                 age=aff4.ALL_TIMES,
-                                 token=self.token,
-                                 ignore_cache=True)
+    stat_obj = aff4.FACTORY.Open(
+        urn, age=aff4.ALL_TIMES, token=self.token, ignore_cache=True)
     stat_entries = list(stat_obj.GetValuesForAttribute(stat_obj.Schema.STATS))
     self.assertEqual(len(stat_entries), 1)
     self.assertTrue(max_age not in [e.RSS_size for e in stat_entries])
 
   def _SetSummaries(self, client_id):
-    client = aff4.FACTORY.Create(client_id,
-                                 aff4_grr.VFSGRRClient,
-                                 mode="rw",
-                                 token=self.token)
+    client = aff4.FACTORY.Create(
+        client_id, aff4_grr.VFSGRRClient, mode="rw", token=self.token)
     client.Set(client.Schema.HOSTNAME(client_id))
     client.Set(client.Schema.SYSTEM("Darwin"))
     client.Set(client.Schema.OS_RELEASE("OSX"))
@@ -235,25 +226,25 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
         # The test harness doesn't understand the callstate at a later time that
         # this flow is doing, so we need to disable check_flow_errors.
-        for _ in test_lib.TestFlowHelper("EndToEndTests",
-                                         self.client_mock,
-                                         client_id=self.client_id,
-                                         check_flow_errors=False,
-                                         token=self.token):
+        for _ in test_lib.TestFlowHelper(
+            "EndToEndTests",
+            self.client_mock,
+            client_id=self.client_id,
+            check_flow_errors=False,
+            token=self.token):
           pass
 
-      test_lib.TestHuntHelperWithMultipleMocks({},
-                                               check_flow_errors=False,
-                                               token=self.token)
-      hunt_ids = list(aff4.FACTORY.Open("aff4:/hunts",
-                                        token=self.token).ListChildren())
+      test_lib.TestHuntHelperWithMultipleMocks(
+          {}, check_flow_errors=False, token=self.token)
+      hunt_ids = list(
+          aff4.FACTORY.Open(
+              "aff4:/hunts", token=self.token).ListChildren())
       # We have only created one hunt, and we should have started with a clean
       # aff4 space.
       self.assertEqual(len(hunt_ids), 1)
 
-      hunt_obj = aff4.FACTORY.Open(hunt_ids[0],
-                                   token=self.token,
-                                   age=aff4.ALL_TIMES)
+      hunt_obj = aff4.FACTORY.Open(
+          hunt_ids[0], token=self.token, age=aff4.ALL_TIMES)
       self.assertItemsEqual(
           sorted(hunt_obj.GetClients()), sorted(self.client_ids))
 

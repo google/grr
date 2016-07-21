@@ -92,17 +92,18 @@ class PasswdParser(parsers.FileParser):
       if not line:
         return
       dat = dict(zip(fields, line.split(":")))
-      user = rdf_client.User(username=dat["username"],
-                             uid=int(dat["uid"]),
-                             homedir=dat["homedir"],
-                             shell=dat["shell"],
-                             gid=int(dat["gid"]),
-                             full_name=dat["fullname"])
+      user = rdf_client.User(
+          username=dat["username"],
+          uid=int(dat["uid"]),
+          homedir=dat["homedir"],
+          shell=dat["shell"],
+          gid=int(dat["gid"]),
+          full_name=dat["fullname"])
       return user
 
     except (IndexError, KeyError):
-      raise parsers.ParseError("Invalid passwd file at line %d. %s" %
-                               ((index + 1), line))
+      raise parsers.ParseError("Invalid passwd file at line %d. %s" % (
+          (index + 1), line))
 
   def Parse(self, stat, file_object, knowledge_base):
     """Parse the passwd file."""
@@ -186,8 +187,8 @@ class LinuxWtmpParser(parsers.FileParser):
         users[record.user] = record.sec
 
     for user, last_login in users.iteritems():
-      yield rdf_client.User(username=utils.SmartUnicode(user),
-                            last_logon=last_login * 1000000)
+      yield rdf_client.User(
+          username=utils.SmartUnicode(user), last_logon=last_login * 1000000)
 
 
 class NetgroupParser(parsers.FileParser):
@@ -229,8 +230,9 @@ class NetgroupParser(parsers.FileParser):
             _, user, _ = member.split(",")
             if user not in users and user not in blacklist:
               if not username_regex.match(user):
-                yield rdf_anomaly.Anomaly(type="PARSER_ANOMALY",
-                                          symptom="Invalid username: %s" % user)
+                yield rdf_anomaly.Anomaly(
+                    type="PARSER_ANOMALY",
+                    symptom="Invalid username: %s" % user)
               else:
                 users.add(user)
                 yield rdf_client.User(username=utils.SmartUnicode(user))
@@ -374,9 +376,8 @@ class LinuxBaseShadowParser(parsers.FileParser):
           v.pw_entry.store = "UNKNOWN"
 
   def _Anomaly(self, msg, found):
-    return rdf_anomaly.Anomaly(type="PARSER_ANOMALY",
-                               symptom=msg,
-                               finding=found)
+    return rdf_anomaly.Anomaly(
+        type="PARSER_ANOMALY", symptom=msg, finding=found)
 
   @staticmethod
   def MemberDiff(data1, set1_name, data2, set2_name):
@@ -849,6 +850,5 @@ class PathParser(parsers.FileParser):
     else:
       paths = self._ParseShVariables(lines)
     for path_name, path_vals in paths.iteritems():
-      yield rdf_protodict.AttributedDict(config=stat.pathspec.path,
-                                         name=path_name,
-                                         vals=path_vals)
+      yield rdf_protodict.AttributedDict(
+          config=stat.pathspec.path, name=path_name, vals=path_vals)

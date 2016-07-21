@@ -21,8 +21,7 @@ class RekallVADParserTest(test_lib.GRRBaseTest):
                                 "rekall_vad_result.dat.gz")
 
     result = rdf_rekall_types.RekallResponse(
-        json_messages=gzip.open(ps_list_file).read(10000000),
-        plugin="pslist")
+        json_messages=gzip.open(ps_list_file).read(10000000), plugin="pslist")
 
     knowledge_base = rdf_client.KnowledgeBase()
     knowledge_base.environ_systemdrive = "C:"

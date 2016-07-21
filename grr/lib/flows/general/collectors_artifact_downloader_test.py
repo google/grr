@@ -75,12 +75,13 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
     if artifact_list is None:
       artifact_list = ["WindowsRunKeys"]
 
-    urn = flow.GRRFlow.StartFlow(flow_name="ArtifactFilesDownloaderFlow",
-                                 client_id=self.client_id,
-                                 artifact_list=artifact_list,
-                                 use_tsk=use_tsk,
-                                 output=self.output_path,
-                                 token=self.token)
+    urn = flow.GRRFlow.StartFlow(
+        flow_name="ArtifactFilesDownloaderFlow",
+        client_id=self.client_id,
+        artifact_list=artifact_list,
+        use_tsk=use_tsk,
+        output=self.output_path,
+        token=self.token)
     for _ in test_lib.TestFlowHelper(urn, token=self.token):
       pass
 
@@ -95,9 +96,10 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
 
   def MakeRegistryStatEntry(self, path, value):
     options = rdf_paths.PathSpec.Options.CASE_LITERAL
-    pathspec = rdf_paths.PathSpec(path=path,
-                                  path_options=options,
-                                  pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+    pathspec = rdf_paths.PathSpec(
+        path=path,
+        path_options=options,
+        pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
 
     return rdf_client.StatEntry(
         aff4path=self.client_id.Add("registry").Add(path),
@@ -143,15 +145,16 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
   def testIncludesGuessedPathspecIfFileFetchFailsIntoReply(self):
     self.collector_replies = [self.MakeRegistryStatEntry(
         u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo", u"C:\\Windows\\bar.exe")]
-    self.failed_files = [rdf_paths.PathSpec(path="C:\\Windows\\bar.exe",
-                                            pathtype="OS")]
+    self.failed_files = [rdf_paths.PathSpec(
+        path="C:\\Windows\\bar.exe", pathtype="OS")]
 
     results = self.RunFlow()
 
     self.assertEquals(len(results), 1)
-    self.assertEquals(results[0].found_pathspec,
-                      rdf_paths.PathSpec(path="C:\\Windows\\bar.exe",
-                                         pathtype="OS"))
+    self.assertEquals(
+        results[0].found_pathspec,
+        rdf_paths.PathSpec(
+            path="C:\\Windows\\bar.exe", pathtype="OS"))
     self.assertFalse(results[0].HasField("downloaded_file"))
 
   def testIncludesDownloadedFilesIntoReplyIfFetchSucceeds(self):

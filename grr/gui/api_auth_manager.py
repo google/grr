@@ -141,10 +141,10 @@ class APIACLInit(registry.InitHook):
     global API_AUTH_MGR
     API_AUTH_MGR = APIAuthorizationManager()
 
-    stats.STATS.RegisterCounterMetric("grr_api_auth_success",
-                                      fields=[("handler", str), ("user", str)])
-    stats.STATS.RegisterCounterMetric("grr_api_auth_fail",
-                                      fields=[("handler", str), ("user", str)])
+    stats.STATS.RegisterCounterMetric(
+        "grr_api_auth_success", fields=[("handler", str), ("user", str)])
+    stats.STATS.RegisterCounterMetric(
+        "grr_api_auth_fail", fields=[("handler", str), ("user", str)])
 
   def RunOnce(self):
     allowed_contexts = ["AdminUI Context"]

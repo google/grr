@@ -1247,19 +1247,18 @@ class GrrConfigManager(object):
       calc_context = self.context
 
     type_info_obj = self.FindTypeInfo(name)
-    _, return_value = self._GetValue(name,
-                                     context=calc_context,
-                                     default=default)
+    _, return_value = self._GetValue(
+        name, context=calc_context, default=default)
 
     # If we returned the specified default, we just return it here.
     if return_value is default:
       return default
 
     try:
-      return_value = self.InterpolateValue(return_value,
-                                           default_section=name.split(".")[0],
-                                           type_info_obj=type_info_obj,
-                                           context=calc_context)
+      return_value = self.InterpolateValue(
+          return_value,
+          default_section=name.split(".")[0], type_info_obj=type_info_obj,
+          context=calc_context)
     except (lexer.ParseError, ValueError) as e:
       # We failed to parse the value, but a default was specified, so we just
       # return that.
@@ -1306,9 +1305,7 @@ class GrrConfigManager(object):
 
         # Recurse into the new context configuration.
         for context_raw_data, value, new_path in self._ResolveContext(
-            context, name,
-            context_raw_data,
-            path=path + [element]):
+            context, name, context_raw_data, path=path + [element]):
           yield context_raw_data, value, new_path
 
   def _GetValue(self, name, context, default=utils.NotAValue):
@@ -1391,11 +1388,12 @@ class GrrConfigManager(object):
     # It is only possible to interpolate strings...
     if isinstance(value, basestring):
       try:
-        value = StringInterpolator(value,
-                                   self,
-                                   default_section=default_section,
-                                   parameter=type_info_obj.name,
-                                   context=context).Parse()
+        value = StringInterpolator(
+            value,
+            self,
+            default_section=default_section,
+            parameter=type_info_obj.name,
+            context=context).Parse()
       except InterpolationError as e:
         e.AddContext(value)
         raise
@@ -1405,9 +1403,8 @@ class GrrConfigManager(object):
 
     # ... and lists of strings.
     if isinstance(value, list):
-      value = [self.InterpolateValue(v,
-                                     default_section=default_section,
-                                     context=context) for v in value]
+      value = [self.InterpolateValue(
+          v, default_section=default_section, context=context) for v in value]
 
     return value
 
@@ -1448,57 +1445,56 @@ class GrrConfigManager(object):
   def DEFINE_bool(self, name, default, help, constant=False):
     """A helper for defining boolean options."""
     self.AddOption(
-        type_info.Bool(name=name, default=default,
-                       description=help),
+        type_info.Bool(
+            name=name, default=default, description=help),
         constant=constant)
 
   def DEFINE_float(self, name, default, help, constant=False):
     """A helper for defining float options."""
     self.AddOption(
-        type_info.Float(name=name, default=default,
-                        description=help),
+        type_info.Float(
+            name=name, default=default, description=help),
         constant=constant)
 
   def DEFINE_integer(self, name, default, help, constant=False):
     """A helper for defining integer options."""
     self.AddOption(
-        type_info.Integer(name=name,
-                          default=default,
-                          description=help),
+        type_info.Integer(
+            name=name, default=default, description=help),
         constant=constant)
 
   def DEFINE_string(self, name, default, help, constant=False):
     """A helper for defining string options."""
     self.AddOption(
-        type_info.String(name=name,
-                         default=default or "",
-                         description=help),
+        type_info.String(
+            name=name, default=default or "", description=help),
         constant=constant)
 
   def DEFINE_integer_list(self, name, default, help, constant=False):
     """A helper for defining lists of integer options."""
     self.AddOption(
-        type_info.List(name=name,
-                       default=default,
-                       description=help,
-                       validator=type_info.Integer()),
+        type_info.List(
+            name=name,
+            default=default,
+            description=help,
+            validator=type_info.Integer()),
         constant=constant)
 
   def DEFINE_list(self, name, default, help, constant=False):
     """A helper for defining lists of strings options."""
     self.AddOption(
-        type_info.List(name=name,
-                       default=default,
-                       description=help,
-                       validator=type_info.String()),
+        type_info.List(
+            name=name,
+            default=default,
+            description=help,
+            validator=type_info.String()),
         constant=constant)
 
   def DEFINE_constant_string(self, name, default, help):
     """A helper for defining constant strings."""
     self.AddOption(
-        type_info.String(name=name,
-                         default=default or "",
-                         description=help),
+        type_info.String(
+            name=name, default=default or "", description=help),
         constant=True)
 
   def DEFINE_context(self, name):
@@ -1528,14 +1524,16 @@ def DEFINE_bool(name, default, help):
 
 def DEFINE_float(name, default, help):
   """A helper for defining float options."""
-  CONFIG.AddOption(type_info.Float(
-      name=name, default=default, description=help))
+  CONFIG.AddOption(
+      type_info.Float(
+          name=name, default=default, description=help))
 
 
 def DEFINE_integer(name, default, help):
   """A helper for defining integer options."""
-  CONFIG.AddOption(type_info.Integer(
-      name=name, default=default, description=help))
+  CONFIG.AddOption(
+      type_info.Integer(
+          name=name, default=default, description=help))
 
 
 def DEFINE_boolean(name, default, help):
@@ -1545,55 +1543,56 @@ def DEFINE_boolean(name, default, help):
 
 def DEFINE_string(name, default, help):
   """A helper for defining string options."""
-  CONFIG.AddOption(type_info.String(name=name,
-                                    default=default or "",
-                                    description=help))
+  CONFIG.AddOption(
+      type_info.String(
+          name=name, default=default or "", description=help))
 
 
 def DEFINE_bytes(name, default, help):
   """A helper for defining bytes options."""
-  CONFIG.AddOption(type_info.Bytes(name=name,
-                                   default=default or "",
-                                   description=help))
+  CONFIG.AddOption(
+      type_info.Bytes(
+          name=name, default=default or "", description=help))
 
 
 def DEFINE_choice(name, default, choices, help):
   """A helper for defining choice string options."""
-  CONFIG.AddOption(type_info.Choice(name=name,
-                                    default=default,
-                                    choices=choices,
-                                    description=help))
+  CONFIG.AddOption(
+      type_info.Choice(
+          name=name, default=default, choices=choices, description=help))
 
 
 def DEFINE_multichoice(name, default, choices, help):
   """Choose multiple options from a list."""
-  CONFIG.AddOption(type_info.MultiChoice(name=name,
-                                         default=default,
-                                         choices=choices,
-                                         description=help))
+  CONFIG.AddOption(
+      type_info.MultiChoice(
+          name=name, default=default, choices=choices, description=help))
 
 
 def DEFINE_integer_list(name, default, help):
   """A helper for defining lists of integer options."""
-  CONFIG.AddOption(type_info.List(name=name,
-                                  default=default,
-                                  description=help,
-                                  validator=type_info.Integer()))
+  CONFIG.AddOption(
+      type_info.List(
+          name=name,
+          default=default,
+          description=help,
+          validator=type_info.Integer()))
 
 
 def DEFINE_list(name, default, help):
   """A helper for defining lists of strings options."""
-  CONFIG.AddOption(type_info.List(name=name,
-                                  default=default,
-                                  description=help,
-                                  validator=type_info.String()))
+  CONFIG.AddOption(
+      type_info.List(
+          name=name,
+          default=default,
+          description=help,
+          validator=type_info.String()))
 
 
 def DEFINE_semantic(semantic_type, name, default=None, description=""):
-  CONFIG.AddOption(type_info.RDFValueType(rdfclass=semantic_type,
-                                          name=name,
-                                          default=default,
-                                          help=description))
+  CONFIG.AddOption(
+      type_info.RDFValueType(
+          rdfclass=semantic_type, name=name, default=default, help=description))
 
 
 def DEFINE_option(type_descriptor):
@@ -1603,9 +1602,8 @@ def DEFINE_option(type_descriptor):
 def DEFINE_constant_string(name, default, help):
   """A helper for defining constant strings."""
   CONFIG.AddOption(
-      type_info.String(name=name,
-                       default=default or "",
-                       description=help),
+      type_info.String(
+          name=name, default=default or "", description=help),
       constant=True)
 
 # pylint: enable=g-bad-name

@@ -37,10 +37,8 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
   @staticmethod
   def FindForemanRules(hunt, token):
-    fman = aff4.FACTORY.Open("aff4:/foreman",
-                             mode="r",
-                             aff4_type=aff4_grr.GRRForeman,
-                             token=token)
+    fman = aff4.FACTORY.Open(
+        "aff4:/foreman", mode="r", aff4_type=aff4_grr.GRRForeman, token=token)
     hunt_rules = []
     rules = fman.Get(fman.Schema.RULES, [])
     for rule in rules:
@@ -62,18 +60,14 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     # Add 2 distinct clients
     client_id = "C.1%015d" % 0
     fd = aff4.FACTORY.Create(
-        rdf_client.ClientURN(client_id),
-        aff4_grr.VFSGRRClient,
-        token=token)
+        rdf_client.ClientURN(client_id), aff4_grr.VFSGRRClient, token=token)
     fd.Set(fd.Schema.SYSTEM("Windows"))
     fd.Set(fd.Schema.CLOCK(2336650631137737))
     fd.Close()
 
     client_id = "C.1%015d" % 1
     fd = aff4.FACTORY.Create(
-        rdf_client.ClientURN(client_id),
-        aff4_grr.VFSGRRClient,
-        token=token)
+        rdf_client.ClientURN(client_id), aff4_grr.VFSGRRClient, token=token)
     fd.Set(fd.Schema.SYSTEM("Linux"))
     fd.Set(fd.Schema.CLOCK(2336650631137737))
     fd.Close()
@@ -83,10 +77,9 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     with self.ACLChecksDisabled():
       # Create a Foreman with an empty rule set.
-      with aff4.FACTORY.Create("aff4:/foreman",
-                               aff4_grr.GRRForeman,
-                               mode="rw",
-                               token=self.token) as self.foreman:
+      with aff4.FACTORY.Create(
+          "aff4:/foreman", aff4_grr.GRRForeman, mode="rw",
+          token=self.token) as self.foreman:
         self.foreman.Set(self.foreman.Schema.RULES())
         self.foreman.Close()
 
@@ -406,10 +399,11 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
   def testLabelsHuntRuleDisplaysAvailableLabels(self):
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Open("C.0000000000000001",
-                             aff4_type=aff4_grr.VFSGRRClient,
-                             mode="rw",
-                             token=self.token) as client:
+      with aff4.FACTORY.Open(
+          "C.0000000000000001",
+          aff4_type=aff4_grr.VFSGRRClient,
+          mode="rw",
+          token=self.token) as client:
         client.AddLabels("foo", owner="owner1")
         client.AddLabels("bar", owner="owner2")
 
@@ -446,15 +440,13 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
       client_ids = self.SetupClients(10)
 
     with self.ACLChecksDisabled():
-      with aff4.FACTORY.Open(client_ids[1],
-                             mode="rw",
-                             token=self.token) as client:
+      with aff4.FACTORY.Open(
+          client_ids[1], mode="rw", token=self.token) as client:
         client.AddLabels("foo", owner="owner1")
         client.AddLabels("bar", owner="owner2")
 
-      with aff4.FACTORY.Open(client_ids[7],
-                             mode="rw",
-                             token=self.token) as client:
+      with aff4.FACTORY.Open(
+          client_ids[7], mode="rw", token=self.token) as client:
         client.AddLabels("bar", owner="GRR")
 
     self.Open("/#main=ManageHunts")
@@ -518,14 +510,13 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
             rdf_foreman.ForemanClientRule(
                 rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
                 regex=rdf_foreman.ForemanRegexClientRule(
-                    attribute_name="GRR client",
-                    attribute_regex="GRR"))
+                    attribute_name="GRR client", attribute_regex="GRR"))
         ]),
         output_plugins=[
             output_plugin.OutputPluginDescriptor(
                 plugin_name="DummyOutputPlugin",
-                plugin_args=DummyOutputPlugin.args_type(filename_regex="blah!",
-                                                        fetch_binaries=True))
+                plugin_args=DummyOutputPlugin.args_type(
+                    filename_regex="blah!", fetch_binaries=True))
         ],
         client_rate=60,
         token=token)
@@ -749,12 +740,12 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
       runner_args = last_hunt.state.context.args
       self.assertAlmostEqual(runner_args.client_rate, 42)
       self.assertEqual(runner_args.description, "my personal copy")
-      self.assertEqual(runner_args.client_rule_set,
-                       rdf_foreman.ForemanClientRuleSet(rules=[
-                           rdf_foreman.ForemanClientRule(
-                               os=rdf_foreman.ForemanOsClientRule(
-                                   os_darwin=True))
-                       ]))
+      self.assertEqual(
+          runner_args.client_rule_set,
+          rdf_foreman.ForemanClientRuleSet(rules=[
+              rdf_foreman.ForemanClientRule(os=rdf_foreman.ForemanOsClientRule(
+                  os_darwin=True))
+          ]))
 
   def testCopyHuntHandlesLiteralExpressionCorrectly(self):
     """Literals are raw bytes. Testing that raw bytes are processed right."""
@@ -767,12 +758,13 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
           description="model hunt",
           flow_runner_args=flow_runner.FlowRunnerArgs(
               flow_name=file_finder.FileFinder.__name__),
-          flow_args=file_finder.FileFinderArgs(conditions=[
-              file_finder.FileFinderCondition(
-                  condition_type="CONTENTS_LITERAL_MATCH",
-                  contents_literal_match=literal_match)
-          ],
-                                               paths=["/tmp/evil.txt"]),
+          flow_args=file_finder.FileFinderArgs(
+              conditions=[
+                  file_finder.FileFinderCondition(
+                      condition_type="CONTENTS_LITERAL_MATCH",
+                      contents_literal_match=literal_match)
+              ],
+              paths=["/tmp/evil.txt"]),
           token=self.token)
 
     self.Open("/#main=ManageHunts")

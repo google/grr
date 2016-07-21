@@ -8,26 +8,27 @@ from setuptools import setup
 
 # Note this component was renamed from grr-chipsec so as not to conflict with
 # the grr-chipsec module published on pypi.
-setup_args = dict(name="grr-chipsec-component",
-                  version="1.2.2.2",
-                  description="Chipsec GRR Integration module.",
-                  license="GPL",
-                  url="https://github.com/chipsec/chipsec/",
-                  author="Thiebaud Weksteen",
-                  author_email="tweksteen@gmail.com",
-                  classifiers=[
-                      "Development Status :: 4 - Beta",
-                      "Environment :: Console",
-                      "Operating System :: OS Independent",
-                      "Programming Language :: Python",
-                  ],
-                  packages=[
-                      "actions"
-                  ],
-                  install_requires=[
-                      "grr-chipsec == 1.2.2.2",
-                  ],
-                  zip_safe=False)
+setup_args = dict(
+    name="grr-chipsec-component",
+    version="1.2.2.2",
+    description="Chipsec GRR Integration module.",
+    license="GPL",
+    url="https://github.com/chipsec/chipsec/",
+    author="Thiebaud Weksteen",
+    author_email="tweksteen@gmail.com",
+    classifiers=[
+        "Development Status :: 4 - Beta",
+        "Environment :: Console",
+        "Operating System :: OS Independent",
+        "Programming Language :: Python",
+    ],
+    packages=[
+        "actions"
+    ],
+    install_requires=[
+        "grr-chipsec == 1.2.2.2",
+    ],
+    zip_safe=False)
 
 # Currently this is only enabled in Linux.
 if platform.system() != "Linux":

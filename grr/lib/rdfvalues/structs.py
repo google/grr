@@ -753,10 +753,11 @@ class ProtoEnum(ProtoSignedInteger):
       if not (v.__class__ is int or v.__class__ is long):
         raise type_info.TypeValueError("Enum values must be integers.")
 
-    self.enum_container = EnumContainer(name=enum_name,
-                                        descriptions=enum_descriptions,
-                                        enum_labels=enum_labels,
-                                        **(enum or {}))
+    self.enum_container = EnumContainer(
+        name=enum_name,
+        descriptions=enum_descriptions,
+        enum_labels=enum_labels,
+        **(enum or {}))
     self.enum = self.enum_container.enum_dict
     self.reverse_enum = self.enum_container.reverse_enum
 
@@ -766,8 +767,8 @@ class ProtoEnum(ProtoSignedInteger):
 
   def GetDefault(self, container=None):
     _ = container
-    return EnumNamedValue(self.default,
-                          name=self.reverse_enum.get(self.default))
+    return EnumNamedValue(
+        self.default, name=self.reverse_enum.get(self.default))
 
   def Validate(self, value, **_):
     """Check that value is a valid enum."""
@@ -820,16 +821,16 @@ class ProtoBoolean(ProtoEnum):
   type = rdfvalue.RDFBool
 
   def __init__(self, **kwargs):
-    super(ProtoBoolean, self).__init__(enum_name="Bool",
-                                       enum=dict(True=1, False=0),
-                                       **kwargs)
+    super(ProtoBoolean, self).__init__(
+        enum_name="Bool", enum=dict(
+            True=1, False=0), **kwargs)
 
     self.proto_type_name = "bool"
 
   def GetDefault(self, container=None):
     """Return boolean value."""
-    return rdfvalue.RDFBool(super(ProtoBoolean, self).GetDefault(
-        container=container))
+    return rdfvalue.RDFBool(
+        super(ProtoBoolean, self).GetDefault(container=container))
 
   def Validate(self, value, **_):
     """Check that value is a valid enum."""
@@ -839,8 +840,9 @@ class ProtoBoolean(ProtoEnum):
     return rdfvalue.RDFBool(super(ProtoBoolean, self).Validate(value))
 
   def ConvertFromWireFormat(self, value, container=None):
-    return rdfvalue.RDFBool(super(ProtoBoolean, self).ConvertFromWireFormat(
-        value, container=container))
+    return rdfvalue.RDFBool(
+        super(ProtoBoolean, self).ConvertFromWireFormat(
+            value, container=container))
 
 
 class ProtoEmbedded(ProtoType):
@@ -1103,8 +1105,8 @@ class RepeatedFieldHelper(object):
     return False
 
   def Copy(self):
-    return RepeatedFieldHelper(wrapped_list=self.wrapped_list[:],
-                               type_descriptor=self.type_descriptor)
+    return RepeatedFieldHelper(
+        wrapped_list=self.wrapped_list[:], type_descriptor=self.type_descriptor)
 
   def Append(self, rdf_value=utils.NotAValue, wire_format=None, **kwargs):
     """Append the value to our internal list."""
@@ -1147,8 +1149,8 @@ class RepeatedFieldHelper(object):
       for i in range(*item.indices(len(self))):
         result.append(self.wrapped_list[i])
 
-      return self.__class__(wrapped_list=result,
-                            type_descriptor=self.type_descriptor)
+      return self.__class__(
+          wrapped_list=result, type_descriptor=self.type_descriptor)
 
     python_format, wire_format = self.wrapped_list[item]
     if python_format is None:
@@ -1213,19 +1215,20 @@ class ProtoList(ProtoType):
 
     self.wire_type = delegate.wire_type
 
-    super(ProtoList, self).__init__(name=delegate.name,
-                                    description=delegate.description,
-                                    field_number=delegate.field_number,
-                                    friendly_name=delegate.friendly_name,
-                                    labels=labels)
+    super(ProtoList, self).__init__(
+        name=delegate.name,
+        description=delegate.description,
+        field_number=delegate.field_number,
+        friendly_name=delegate.friendly_name,
+        labels=labels)
 
   def IsDirty(self, value):
     return value.IsDirty()
 
   def GetDefault(self, container=None):
     # By default an empty RepeatedFieldHelper.
-    return RepeatedFieldHelper(type_descriptor=self.delegate,
-                               container=container)
+    return RepeatedFieldHelper(
+        type_descriptor=self.delegate, container=container)
 
   def Validate(self, value, **_):
     """Check that value is a list of the required type."""
@@ -1331,11 +1334,12 @@ class ProtoRDFValue(ProtoBinary):
   # delegate descriptor.
   _kwargs = None
 
-  _PROTO_DATA_STORE_LOOKUP = dict(bytes=ProtoBinary,
-                                  unsigned_integer=ProtoUnsignedInteger,
-                                  integer=ProtoUnsignedInteger,
-                                  signed_integer=ProtoSignedInteger,
-                                  string=ProtoString)
+  _PROTO_DATA_STORE_LOOKUP = dict(
+      bytes=ProtoBinary,
+      unsigned_integer=ProtoUnsignedInteger,
+      integer=ProtoUnsignedInteger,
+      signed_integer=ProtoSignedInteger,
+      string=ProtoString)
 
   def __init__(self, rdf_type=None, default=None, **kwargs):
     super(ProtoRDFValue, self).__init__(default=default, **kwargs)
@@ -1404,8 +1408,8 @@ class ProtoRDFValue(ProtoBinary):
     return python_format.dirty
 
   def Definition(self):
-    return ("\n  // Semantic Type: %s" %
-            self.type.__name__) + self.primitive_desc.Definition()
+    return ("\n  // Semantic Type: %s" % self.type.__name__
+           ) + self.primitive_desc.Definition()
 
   def Validate(self, value, **_):
     # Try to coerce into the correct type:
@@ -1421,8 +1425,8 @@ class ProtoRDFValue(ProtoBinary):
     # Wire format should be compatible with the data_store_type for the
     # rdfvalue. We use the delegate primitive descriptor to perform the
     # conversion.
-    value = self.primitive_desc.ConvertFromWireFormat(value,
-                                                      container=container)
+    value = self.primitive_desc.ConvertFromWireFormat(
+        value, container=container)
 
     result = self.type(value)
 
@@ -1437,9 +1441,10 @@ class ProtoRDFValue(ProtoBinary):
     if field_number is not None:
       new_args["field_number"] = field_number
 
-    return ProtoRDFValue(rdf_type=self.original_proto_type_name,
-                         default=getattr(self, "default", None),
-                         **new_args)
+    return ProtoRDFValue(
+        rdf_type=self.original_proto_type_name,
+        default=getattr(self, "default", None),
+        **new_args)
 
   def _FormatField(self):
     result = "  optional %s %s = %s" % (self.proto_type_name, self.name,
@@ -1707,8 +1712,8 @@ class RDFStruct(rdfvalue.RDFValue):
     for k, (python_format, wire_format,
             type_descriptor) in sorted(self.GetRawData().items()):
       if python_format is None:
-        python_format = type_descriptor.ConvertFromWireFormat(wire_format,
-                                                              container=self)
+        python_format = type_descriptor.ConvertFromWireFormat(
+            wire_format, container=self)
 
       # Skip printing of unknown fields.
       if isinstance(k, basestring):
@@ -1782,8 +1787,8 @@ class RDFStruct(rdfvalue.RDFValue):
 
     # Decode on demand and cache for next time.
     if python_format is None:
-      python_format = type_descriptor.ConvertFromWireFormat(wire_format,
-                                                            container=self)
+      python_format = type_descriptor.ConvertFromWireFormat(
+          wire_format, container=self)
 
       self._data[attr] = (python_format, wire_format, type_descriptor)
 
@@ -1872,10 +1877,11 @@ class EnumContainer(object):
     self.name = name
 
     for k, v in kwargs.items():
-      v = EnumNamedValue(v,
-                         name=k,
-                         description=descriptions.get(k, None),
-                         labels=enum_labels.get(k, None))
+      v = EnumNamedValue(
+          v,
+          name=k,
+          description=descriptions.get(k, None),
+          labels=enum_labels.get(k, None))
       self.enum_dict[k] = v
       self.reverse_enum[v] = k
       setattr(self, k, v)
@@ -2187,6 +2193,22 @@ class RDFProtoStruct(RDFStruct):
   def UnionCast(self):
     union_field = getattr(self, self.union_field)
     cast_field_name = str(union_field).lower()
+
+    set_fields = set(type_descriptor.name
+                     for type_descriptor, _ in self.ListSetFields())
+
+    union_cases = [
+        case.lower()
+        for case in self.type_infos[self.union_field].enum_container.enum_dict
+    ]
+
+    mismatched_union_cases = (
+        set_fields.intersection(union_cases).difference([cast_field_name]))
+
+    if mismatched_union_cases:
+      raise ValueError("Inconsistent union proto data. Expected only %r "
+                       "to be set, %r are also set." %
+                       (cast_field_name, list(mismatched_union_cases)))
 
     try:
       return getattr(self, cast_field_name)

@@ -138,7 +138,7 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
       self.Log("Processed batch %d (batch size %d).", batch_index,
                self.BATCH_SIZE)
 
-  @flow.StateHandler(next_state="CreateArchive")
+  @flow.StateHandler()
   def Start(self):
     """Register state variables and proceed to download the files."""
 
@@ -165,9 +165,8 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
   @flow.StateHandler()
   def CreateArchive(self, _):
     # Create an output zip or tar file in the temp space.
-    with aff4.FACTORY.Create(None,
-                             standard.TempImageFile,
-                             token=self.token) as outfd:
+    with aff4.FACTORY.Create(
+        None, standard.TempImageFile, token=self.token) as outfd:
       if self.args.format == self.args.ArchiveFormat.ZIP:
         file_extension = "zip"
       elif self.args.format == self.args.ArchiveFormat.TAR_GZ:
@@ -186,8 +185,7 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
       collection = aff4.FACTORY.Open(self.args.collection_urn, token=self.token)
 
       buffered_outfd = io.BufferedWriter(
-          RawIOBaseBridge(outfd),
-          buffer_size=1024 * 1024 * 12)
+          RawIOBaseBridge(outfd), buffer_size=1024 * 1024 * 12)
       if self.args.format == self.args.ArchiveFormat.ZIP:
         streaming_writer = utils.StreamingZipWriter(buffered_outfd, "w",
                                                     zipfile.ZIP_DEFLATED)
@@ -231,9 +229,10 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
         "%s@%s" % (creator, config_lib.CONFIG.Get("Logging.domain")),
         "grr-noreply@%s" % config_lib.CONFIG.Get("Logging.domain"),
         subject,
-        template % dict(notification_message=self.args.notification_message,
-                        archived=self.state.archived_files,
-                        total=self.state.total_files,
-                        admin_ui=config_lib.CONFIG["AdminUI.url"],
-                        signature=config_lib.CONFIG["Email.signature"]),
+        template % dict(
+            notification_message=self.args.notification_message,
+            archived=self.state.archived_files,
+            total=self.state.total_files,
+            admin_ui=config_lib.CONFIG["AdminUI.url"],
+            signature=config_lib.CONFIG["Email.signature"]),
         is_html=True)

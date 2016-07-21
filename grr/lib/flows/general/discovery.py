@@ -18,8 +18,8 @@ from grr.proto import flows_pb2
 class EnrolmentInterrogateEvent(flow.EventListener):
   """An event handler which will schedule interrogation on client enrollment."""
   EVENTS = ["ClientEnrollment"]
-  well_known_session_id = rdfvalue.SessionID(queue=queues.ENROLLMENT,
-                                             flow_name="Interrogate")
+  well_known_session_id = rdfvalue.SessionID(
+      queue=queues.ENROLLMENT, flow_name="Interrogate")
 
   def CheckSource(self, source):
     if not isinstance(source, rdfvalue.SessionID):
@@ -32,10 +32,11 @@ class EnrolmentInterrogateEvent(flow.EventListener):
   @flow.EventHandler(source_restriction=True)
   def ProcessMessage(self, message=None, event=None):
     _ = message
-    flow.GRRFlow.StartFlow(client_id=event,
-                           flow_name="Interrogate",
-                           queue=queues.ENROLLMENT,
-                           token=self.token)
+    flow.GRRFlow.StartFlow(
+        client_id=event,
+        flow_name="Interrogate",
+        queue=queues.ENROLLMENT,
+        token=self.token)
 
 
 class InterrogateArgs(rdf_structs.RDFProtoStruct):
@@ -50,28 +51,22 @@ class Interrogate(flow.GRRFlow):
   args_type = InterrogateArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
-  @flow.StateHandler(next_state=["Platform", "InstallDate",
-                                 "EnumerateInterfaces", "EnumerateFilesystems",
-                                 "ClientInfo", "ClientConfiguration"])
+  @flow.StateHandler()
   def Start(self):
     """Start off all the tests."""
 
     # Create the objects we need to exist.
     self.Load()
     fd = aff4.FACTORY.Create(
-        self.client.urn.Add("network"),
-        network.Network,
-        token=self.token)
+        self.client.urn.Add("network"), network.Network, token=self.token)
     fd.Close()
 
     # Make sure we always have a VFSDirectory with a pathspec at fs/os
-    pathspec = rdf_paths.PathSpec(path="/",
-                                  pathtype=rdf_paths.PathSpec.PathType.OS)
+    pathspec = rdf_paths.PathSpec(
+        path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
     urn = self.client.PathspecToURN(pathspec, self.client.urn)
-    with aff4.FACTORY.Create(urn,
-                             standard.VFSDirectory,
-                             mode="w",
-                             token=self.token) as fd:
+    with aff4.FACTORY.Create(
+        urn, standard.VFSDirectory, mode="w", token=self.token) as fd:
       fd.Set(fd.Schema.PATHSPEC, pathspec)
 
     self.CallClient("GetPlatformInfo", next_state="Platform")
@@ -99,7 +94,7 @@ class Interrogate(flow.GRRFlow):
       return
     self.client.Set(self.client.Schema.MEMORY_SIZE(responses.First()))
 
-  @flow.StateHandler(next_state=["ProcessKnowledgeBase"])
+  @flow.StateHandler()
   def Platform(self, responses):
     """Stores information about the platform."""
     if responses.success:
@@ -120,8 +115,9 @@ class Interrogate(flow.GRRFlow):
       # Manager\Environment\PROCESSOR_ARCHITECTURE
       # "AMD64", "IA64" or "x86"
       self.client.Set(self.client.Schema.ARCH(response.machine))
-      self.client.Set(self.client.Schema.UNAME("%s-%s-%s" % (
-          response.system, response.release, response.version)))
+      self.client.Set(
+          self.client.Schema.UNAME("%s-%s-%s" % (
+              response.system, response.release, response.version)))
       self.client.Flush(sync=True)
 
       if response.system == "Windows":
@@ -131,15 +127,15 @@ class Interrogate(flow.GRRFlow):
             token=self.token) as fd:
           fd.Set(fd.Schema.PATHSPEC,
                  fd.Schema.PATHSPEC(
-                     path="/",
-                     pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
+                     path="/", pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
 
       # Update the client index
-      aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                          aff4_type=client_index.ClientIndex,
-                          mode="rw",
-                          object_exists=True,
-                          token=self.token).AddClient(self.client)
+      aff4.FACTORY.Create(
+          client_index.MAIN_INDEX,
+          aff4_type=client_index.ClientIndex,
+          mode="rw",
+          object_exists=True,
+          token=self.token).AddClient(self.client)
 
     else:
       self.Log("Could not retrieve Platform info.")
@@ -147,10 +143,11 @@ class Interrogate(flow.GRRFlow):
     if self.client.Get(self.client.Schema.SYSTEM):
       # We will accept a partial KBInit rather than raise, so pass
       # require_complete=False.
-      self.CallFlow("KnowledgeBaseInitializationFlow",
-                    require_complete=False,
-                    lightweight=self.args.lightweight,
-                    next_state="ProcessKnowledgeBase")
+      self.CallFlow(
+          "KnowledgeBaseInitializationFlow",
+          require_complete=False,
+          lightweight=self.args.lightweight,
+          next_state="ProcessKnowledgeBase")
     else:
       self.Log("Unknown system type, skipping KnowledgeBaseInitializationFlow")
 
@@ -171,7 +168,7 @@ class Interrogate(flow.GRRFlow):
         "Artifacts.interrogate_store_in_aff4_skip"])
     return original_set.union(add_set) - skip_set
 
-  @flow.StateHandler(next_state=["ProcessArtifactResponses"])
+  @flow.StateHandler()
   def ProcessKnowledgeBase(self, responses):
     """Collect and store any extra non-kb artifacts."""
     if not responses.success:
@@ -180,17 +177,19 @@ class Interrogate(flow.GRRFlow):
     # Collect any non-knowledgebase artifacts that will be stored in aff4.
     artifact_list = self._GetExtraArtifactsForCollection()
     if artifact_list:
-      self.CallFlow("ArtifactCollectorFlow",
-                    artifact_list=artifact_list,
-                    next_state="ProcessArtifactResponses",
-                    store_results_in_aff4=True)
+      self.CallFlow(
+          "ArtifactCollectorFlow",
+          artifact_list=artifact_list,
+          next_state="ProcessArtifactResponses",
+          store_results_in_aff4=True)
 
     # Update the client index
-    aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                        aff4_type=client_index.ClientIndex,
-                        mode="rw",
-                        object_exists=True,
-                        token=self.token).AddClient(self.client)
+    aff4.FACTORY.Create(
+        client_index.MAIN_INDEX,
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        object_exists=True,
+        token=self.token).AddClient(self.client)
 
   @flow.StateHandler()
   def ProcessArtifactResponses(self, responses):
@@ -204,9 +203,7 @@ class Interrogate(flow.GRRFlow):
     """Enumerates the interfaces."""
     if responses.success and responses:
       net_fd = aff4.FACTORY.Create(
-          self.client.urn.Add("network"),
-          network.Network,
-          token=self.token)
+          self.client.urn.Add("network"), network.Network, token=self.token)
       interface_list = net_fd.Schema.INTERFACES()
       mac_addresses = []
       ip_addresses = []
@@ -245,9 +242,10 @@ class Interrogate(flow.GRRFlow):
 
           offset = int(offset)
 
-          pathspec = rdf_paths.PathSpec(path=device,
-                                        pathtype=rdf_paths.PathSpec.PathType.OS,
-                                        offset=offset)
+          pathspec = rdf_paths.PathSpec(
+              path=device,
+              pathtype=rdf_paths.PathSpec.PathType.OS,
+              offset=offset)
 
           pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
@@ -258,8 +256,8 @@ class Interrogate(flow.GRRFlow):
           continue
 
         if response.device:
-          pathspec = rdf_paths.PathSpec(path=response.device,
-                                        pathtype=rdf_paths.PathSpec.PathType.OS)
+          pathspec = rdf_paths.PathSpec(
+              path=response.device, pathtype=rdf_paths.PathSpec.PathType.OS)
 
           pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
@@ -270,8 +268,9 @@ class Interrogate(flow.GRRFlow):
 
         if response.mount_point:
           # Create the OS device
-          pathspec = rdf_paths.PathSpec(path=response.mount_point,
-                                        pathtype=rdf_paths.PathSpec.PathType.OS)
+          pathspec = rdf_paths.PathSpec(
+              path=response.mount_point,
+              pathtype=rdf_paths.PathSpec.PathType.OS)
 
           urn = self.client.PathspecToURN(pathspec, self.client.urn)
           fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
@@ -317,8 +316,9 @@ class Interrogate(flow.GRRFlow):
     self.SendReply(summary)
 
     # Update the client index
-    aff4.FACTORY.Create(client_index.MAIN_INDEX,
-                        aff4_type=client_index.ClientIndex,
-                        mode="rw",
-                        object_exists=True,
-                        token=self.token).AddClient(self.client)
+    aff4.FACTORY.Create(
+        client_index.MAIN_INDEX,
+        aff4_type=client_index.ClientIndex,
+        mode="rw",
+        object_exists=True,
+        token=self.token).AddClient(self.client)

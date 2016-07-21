@@ -111,22 +111,20 @@ class AFF4KeywordIndex(aff4.AFF4Object):
     if sync:
       with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
         for keyword in set(keywords):
-          mutation_pool.Set(
-              self._KeywordToURN(keyword),
-              self.INDEX_COLUMN_FORMAT % name,
-              "",
-              timestamp=timestamp,
-              **kwargs)
+          mutation_pool.Set(self._KeywordToURN(keyword),
+                            self.INDEX_COLUMN_FORMAT % name,
+                            "",
+                            timestamp=timestamp,
+                            **kwargs)
     else:
       for keyword in set(keywords):
-        data_store.DB.Set(
-            self._KeywordToURN(keyword),
-            self.INDEX_COLUMN_FORMAT % name,
-            "",
-            token=self.token,
-            sync=False,
-            timestamp=timestamp,
-            **kwargs)
+        data_store.DB.Set(self._KeywordToURN(keyword),
+                          self.INDEX_COLUMN_FORMAT % name,
+                          "",
+                          token=self.token,
+                          sync=False,
+                          timestamp=timestamp,
+                          **kwargs)
 
   def RemoveKeywordsForName(self, name, keywords, sync=True):
     """Removes keywords for a name.
