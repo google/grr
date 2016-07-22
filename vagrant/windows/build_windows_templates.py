@@ -130,18 +130,16 @@ class WindowsTemplateBuilder(object):
     We dont need to run special compilers so just enter the virtualenv and
     build. Python will already find its own MSVC for python compilers.
     """
-    subprocess.check_call([self.GRR_CLIENT_BUILD64, "--arch", "amd64",
-                           "--verbose", "build", "--output", args.output_dir])
-    subprocess.check_call([self.GRR_CLIENT_BUILD32, "--arch", "i386",
-                           "--verbose", "build", "--output", args.output_dir])
+    subprocess.check_call([self.GRR_CLIENT_BUILD64, "--verbose", "build",
+                           "--output", args.output_dir])
+    subprocess.check_call([self.GRR_CLIENT_BUILD32, "--verbose", "build",
+                           "--output", args.output_dir])
 
   def BuildComponents(self):
-    subprocess.check_call([self.GRR_CLIENT_BUILD64, "--arch", "amd64",
-                           "--verbose", "build_components", "--output",
-                           args.output_dir])
-    subprocess.check_call([self.GRR_CLIENT_BUILD32, "--arch", "i386",
-                           "--verbose", "build_components", "--output",
-                           args.output_dir])
+    subprocess.check_call([self.GRR_CLIENT_BUILD64, "--verbose",
+                           "build_components", "--output", args.output_dir])
+    subprocess.check_call([self.GRR_CLIENT_BUILD32, "--verbose",
+                           "build_components", "--output", args.output_dir])
 
   def CopyResultsToCloudStorage(self):
     paths = glob.glob("%s\\*" % args.output_dir)

@@ -515,11 +515,14 @@ class RequestApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
     # Notify to the users.
     for user in self.args.approver.split(","):
       user = user.strip()
-      fd = aff4.FACTORY.Create(
-          aff4.ROOT_URN.Add("users").Add(user),
-          aff4_users.GRRUser,
-          mode="rw",
-          token=self.token)
+      try:
+        fd = aff4.FACTORY.Open(
+            aff4.ROOT_URN.Add("users").Add(user),
+            aff4_type=aff4_users.GRRUser,
+            mode="rw",
+            token=self.token)
+      except aff4.InstantiationError:
+        continue
 
       fd.Notify("GrantAccess", approval_urn,
                 "Please grant access to %s" % subject_title, self.session_id)

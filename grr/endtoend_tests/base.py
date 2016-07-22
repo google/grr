@@ -3,6 +3,7 @@
 
 
 
+import re
 import traceback
 import unittest
 
@@ -184,6 +185,45 @@ class AutomatedTest(ClientTestBase):
 
   # Prevents this from automatically registering.
   __abstract = True  # pylint: disable=g-bad-name
+
+
+class TestVFSPathExists(AutomatedTest):
+  """Test that checks expected VFS files were created."""
+  result_type = aff4_grr.VFSFile
+  output_path = None
+  file_to_find = None
+
+  def CheckFlow(self):
+    """Verify VFS paths were created."""
+    pos = self.output_path.find("*")
+    urn = None
+    if pos > 0:
+      base_urn = self.client_id.Add(self.output_path[:pos])
+      for urn in RecursiveListChildren(prefix=base_urn, token=self.token):
+        if re.search(self.output_path + "$", str(urn)):
+          self.delete_urns.add(urn.Add(self.file_to_find))
+          self.delete_urns.add(urn)
+          break
+      self.assertNotEqual(urn, None, "Could not locate Directory.")
+    else:
+      urn = self.client_id.Add(self.output_path)
+
+    fd = aff4.FACTORY.Open(
+        urn.Add(self.file_to_find), mode="r", token=self.token)
+
+    # All types are instances of AFF4Volume so we can't use isinstance.
+    # pylint: disable=unidiomatic-typecheck
+    if type(fd) == aff4.AFF4Volume:
+      self.fail(("No results were written to the data store. Maybe the GRR "
+                 "client is not running with root privileges?"))
+    # pylint: enable=unidiomatic-typecheck
+    self.assertEqual(type(fd), self.result_type)
+
+  def tearDown(self):
+    if not self.delete_urns:
+      self.delete_urns.add(
+          self.client_id.Add(self.output_path).Add(self.file_to_find))
+    super(TestVFSPathExists, self).tearDown()
 
 
 class LocalWorkerTest(ClientTestBase):

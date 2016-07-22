@@ -10,6 +10,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import security
+from grr.lib.aff4_objects import users
 
 
 class ApprovalTest(test_lib.GRRBaseTest):
@@ -98,6 +99,26 @@ class ApprovalTest(test_lib.GRRBaseTest):
     with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
                                  "Couldn't open any of 1 approvals"):
       security.Approval.GetApprovalForObject(self.client_id, token=self.token)
+
+  def testApprovalDoesNotCreateUser(self):
+
+    username = "doesnotexist"
+
+    user = aff4.FACTORY.Open(
+        "aff4:/users/%s" % username, ignore_cache=True, token=self.token)
+    self.assertFalse(isinstance(user, users.GRRUser))
+
+    flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name="RequestClientApprovalFlow",
+        reason=self.token.reason,
+        subject_urn=self.client_id,
+        approver=username,
+        token=self.token)
+
+    user = aff4.FACTORY.Open(
+        "aff4:/users/%s" % username, ignore_cache=True, token=self.token)
+    self.assertFalse(isinstance(user, users.GRRUser))
 
 
 class ApprovalWithReasonTest(test_lib.GRRBaseTest):
