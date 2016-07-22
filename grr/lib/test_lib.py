@@ -733,6 +733,9 @@ class GRRBaseTest(unittest.TestCase):
     with aff4.FACTORY.Open(session_id, mode="rw", token=self.token) as flow_obj:
       flow_obj.Notify(notification_type, subject, message)
 
+  def GenerateToken(self, username, reason):
+    return access_control.ACLToken(username=username, reason=reason)
+
 
 class EmptyActionTest(GRRBaseTest):
   """Test the client Actions."""

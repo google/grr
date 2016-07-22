@@ -1845,6 +1845,9 @@ message AuditEvent {
     HUNT_STOPPED = 13;
     CLIENT_ADD_LABEL = 14;
     CLIENT_REMOVE_LABEL = 15;
+    USER_ADD = 16;
+    USER_UPDATE = 17;
+    USER_DELETE = 18;
   };
 
   optional Action action = 3 [default=UNKNOWN];

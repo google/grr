@@ -17,8 +17,10 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import events
 from grr.lib import utils
 from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import users
 from grr.lib.builders import signing
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -28,6 +30,15 @@ DIGEST_ALGORITHM_STR = "sha256"
 
 SUPPORTED_PLATFORMS = ["windows", "linux", "darwin"]
 SUPPORTED_ARCHITECTURES = ["i386", "amd64"]
+
+
+class Error(Exception):
+  """Base error class."""
+  pass
+
+
+class UserError(Error):
+  pass
 
 
 def UploadSignedConfigBlob(content,
@@ -286,3 +297,138 @@ def ListComponents(token=None):
       print "Available platform signatures:"
       for v in sorted(versions):
         print "-", v
+
+
+def ShowUser(username, token=None):
+  """Implementation of the show_user command."""
+  if username is None:
+    fd = aff4.FACTORY.Open("aff4:/users", token=token)
+    for user in fd.OpenChildren():
+      if isinstance(user, users.GRRUser):
+        print user.Describe()
+  else:
+    user = aff4.FACTORY.Open("aff4:/users/%s" % username, token=token)
+    if isinstance(user, users.GRRUser):
+      print user.Describe()
+    else:
+      print "User %s not found" % username
+
+
+def AddUser(username, password=None, labels=None, token=None):
+  """Implementation of the add_user command."""
+  user_urn = "aff4:/users/%s" % username
+  try:
+    if aff4.FACTORY.Open(user_urn, users.GRRUser, token=token):
+      raise UserError("Cannot add user %s: User already exists." % username)
+  except aff4.InstantiationError:
+    pass
+
+  fd = aff4.FACTORY.Create(user_urn, users.GRRUser, mode="rw", token=token)
+  # Note this accepts blank passwords as valid.
+  if password is None:
+    password = getpass.getpass(prompt="Please enter password for user '%s': " %
+                               username)
+  fd.SetPassword(password)
+
+  if labels:
+    fd.AddLabels(*set(labels), owner="GRR")
+
+  fd.Close()
+
+  print "Added user %s." % username
+
+  events.Events.PublishEvent(
+      "Audit",
+      events.AuditEvent(
+          user=token.username, action="USER_ADD", urn=user_urn),
+      token=token)
+
+
+def UpdateUser(username,
+               password,
+               add_labels=None,
+               delete_labels=None,
+               token=None):
+  """Implementation of the update_user command."""
+  user_urn = "aff4:/users/%s" % username
+  try:
+    fd = aff4.FACTORY.Open(user_urn, users.GRRUser, mode="rw", token=token)
+  except aff4.InstantiationError:
+    raise UserError("User %s does not exist." % username)
+
+  # Note this accepts blank passwords as valid.
+  if password:
+    if not isinstance(password, basestring):
+      password = getpass.getpass(
+          prompt="Please enter password for user '%s': " % username)
+    fd.SetPassword(password)
+
+  # Use sets to dedup input.
+  current_labels = set()
+
+  # Build a list of existing labels.
+  for label in fd.GetLabels():
+    current_labels.add(label.name)
+
+  # Build a list of labels to be added.
+  expanded_add_labels = set()
+  if add_labels:
+    for label in add_labels:
+      # Split up any space or comma separated labels in the list.
+      labels = label.split(",")
+      expanded_add_labels.update(labels)
+
+  # Build a list of labels to be removed.
+  expanded_delete_labels = set()
+  if delete_labels:
+    for label in delete_labels:
+      # Split up any space or comma separated labels in the list.
+      labels = label.split(",")
+      expanded_delete_labels.update(labels)
+
+  # Set subtraction to remove labels being added and deleted at the same time.
+  clean_add_labels = expanded_add_labels - expanded_delete_labels
+  clean_del_labels = expanded_delete_labels - expanded_add_labels
+
+  # Create final list using difference to only add new labels.
+  final_add_labels = clean_add_labels - current_labels
+
+  # Create final list using intersection to only remove existing labels.
+  final_del_labels = clean_del_labels & current_labels
+
+  if final_add_labels:
+    fd.AddLabels(*final_add_labels, owner="GRR")
+
+  if final_del_labels:
+    fd.RemoveLabels(*final_del_labels, owner="GRR")
+
+  fd.Close()
+
+  print "Updated user %s" % username
+
+  ShowUser(username, token=token)
+
+  events.Events.PublishEvent(
+      "Audit",
+      events.AuditEvent(
+          user=token.username, action="USER_UPDATE", urn=user_urn),
+      token=token)
+
+
+def DeleteUser(username, token=None):
+  """Deletes an existing user."""
+  user_urn = "aff4:/users/%s" % username
+  try:
+    aff4.FACTORY.Open(user_urn, users.GRRUser, token=token)
+  except aff4.InstantiationError:
+    print "User %s not found." % username
+    return
+
+  aff4.FACTORY.Delete(user_urn, token=token)
+  print "User %s has been deleted." % username
+
+  events.Events.PublishEvent(
+      "Audit",
+      events.AuditEvent(
+          user=token.username, action="USER_DELETE", urn=user_urn),
+      token=token)

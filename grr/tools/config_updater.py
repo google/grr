@@ -35,18 +35,7 @@ from grr.lib import rekall_profile_server
 from grr.lib import repacking
 from grr.lib import startup
 from grr.lib import utils
-from grr.lib.aff4_objects import users
 from grr.lib.rdfvalues import crypto as rdf_crypto
-
-
-class Error(Exception):
-  """Base error class."""
-  pass
-
-
-class UserError(Error):
-  pass
-
 
 parser = flags.PARSER
 parser.description = ("Set configuration parameters for the GRR Server."
@@ -140,112 +129,11 @@ parser_initialize.add_argument(
 parser_set_var.add_argument("var", help="Variable to set.")
 parser_set_var.add_argument("val", help="Value to set.")
 
-
-def AddUser(username, password=None, labels=None, token=None):
-  """Implementation of the add_user command."""
-  try:
-    if aff4.FACTORY.Open(
-        "aff4:/users/%s" % username, users.GRRUser, token=token):
-      raise UserError("Cannot add user %s: User already exists." % username)
-  except aff4.InstantiationError:
-    pass
-
-  fd = aff4.FACTORY.Create(
-      "aff4:/users/%s" % username, users.GRRUser, mode="rw", token=token)
-  # Note this accepts blank passwords as valid.
-  if password is None:
-    password = getpass.getpass(prompt="Please enter password for user '%s': " %
-                               username)
-  fd.SetPassword(password)
-
-  if labels:
-    fd.AddLabels(*set(labels), owner="GRR")
-
-  fd.Close()
-
-  print "Added user %s." % username
-
-
-def UpdateUser(username,
-               password,
-               add_labels=None,
-               delete_labels=None,
-               token=None):
-  """Implementation of the update_user command."""
-  try:
-    fd = aff4.FACTORY.Open(
-        "aff4:/users/%s" % username, users.GRRUser, mode="rw", token=token)
-  except aff4.InstantiationError:
-    raise UserError("User %s does not exist." % username)
-
-  # Note this accepts blank passwords as valid.
-  if password:
-    if not isinstance(password, basestring):
-      password = getpass.getpass(
-          prompt="Please enter password for user '%s': " % username)
-    fd.SetPassword(password)
-
-  # Use sets to dedup input.
-  current_labels = set()
-
-  # Build a list of existing labels.
-  for label in fd.GetLabels():
-    current_labels.add(label.name)
-
-  # Build a list of labels to be added.
-  expanded_add_labels = set()
-  if add_labels:
-    for label in add_labels:
-      # Split up any space or comma separated labels in the list.
-      labels = label.split(",")
-      expanded_add_labels.update(labels)
-
-  # Build a list of labels to be removed.
-  expanded_delete_labels = set()
-  if delete_labels:
-    for label in delete_labels:
-      # Split up any space or comma separated labels in the list.
-      labels = label.split(",")
-      expanded_delete_labels.update(labels)
-
-  # Set subtraction to remove labels being added and deleted at the same time.
-  clean_add_labels = expanded_add_labels - expanded_delete_labels
-  clean_del_labels = expanded_delete_labels - expanded_add_labels
-
-  # Create final list using difference to only add new labels.
-  final_add_labels = clean_add_labels - current_labels
-
-  # Create final list using intersection to only remove existing labels.
-  final_del_labels = clean_del_labels & current_labels
-
-  if final_add_labels:
-    fd.AddLabels(*final_add_labels, owner="GRR")
-
-  if final_del_labels:
-    fd.RemoveLabels(*final_del_labels, owner="GRR")
-
-  fd.Close()
-
-  print "Updated user %s" % username
-
-  ShowUser(username, token=token)
-
 # Delete an existing user.
-parser_update_user = subparsers.add_parser(
+parser_delete_user = subparsers.add_parser(
     "delete_user", help="Delete an user account.")
 
-parser_update_user.add_argument("username", help="Username to update.")
-
-
-def DeleteUser(username, token=None):
-  try:
-    aff4.FACTORY.Open("aff4:/users/%s" % username, users.GRRUser, token=token)
-  except aff4.InstantiationError:
-    print "User %s not found." % username
-    return
-
-  aff4.FACTORY.Delete("aff4:/users/%s" % username, token=token)
-  print "User %s has been deleted." % username
+parser_delete_user.add_argument("username", help="Username to delete.")
 
 # Show user account.
 parser_show_user = subparsers.add_parser(
@@ -256,21 +144,6 @@ parser_show_user.add_argument(
     default=None,
     nargs="?",
     help="Username to display. If not specified, list all users.")
-
-
-def ShowUser(username, token=None):
-  """Implementation of the show_user command."""
-  if username is None:
-    fd = aff4.FACTORY.Open("aff4:/users", token=token)
-    for user in fd.OpenChildren():
-      if isinstance(user, users.GRRUser):
-        print user.Describe()
-  else:
-    user = aff4.FACTORY.Open("aff4:/users/%s" % username, token=token)
-    if isinstance(user, users.GRRUser):
-      print user.Describe()
-    else:
-      print "User %s not found" % username
 
 # Generate Keys Arguments
 parser_generate_keys.add_argument(
@@ -704,14 +577,14 @@ def AddUsers(token=None):
 
   print "\nStep 3: Adding Admin User"
   try:
-    AddUser(
+    maintenance_utils.AddUser(
         "admin",
         labels=["admin"],
         token=token,
         password=flags.FLAGS.admin_password)
-  except UserError:
+  except maintenance_utils.UserError:
     if flags.FLAGS.noprompt:
-      UpdateUser(
+      maintenance_utils.UpdateUser(
           "admin",
           password=flags.FLAGS.admin_password,
           add_labels=["admin"],
@@ -719,7 +592,8 @@ def AddUsers(token=None):
     else:
       if ((raw_input("User 'admin' already exists, do you want to "
                      "reset the password? [yN]: ").upper() or "N") == "Y"):
-        UpdateUser("admin", password=True, add_labels=["admin"], token=token)
+        maintenance_utils.UpdateUser(
+            "admin", password=True, add_labels=["admin"], token=token)
 
 
 def InstallTemplatePackage():
@@ -898,21 +772,21 @@ def main(unused_argv):
         upload=flags.FLAGS.upload, token=token)
 
   elif flags.FLAGS.subparser_name == "show_user":
-    ShowUser(flags.FLAGS.username, token=token)
+    maintenance_utils.ShowUser(flags.FLAGS.username, token=token)
 
   elif flags.FLAGS.subparser_name == "update_user":
     try:
-      UpdateUser(
+      maintenance_utils.UpdateUser(
           flags.FLAGS.username,
           flags.FLAGS.password,
           flags.FLAGS.add_labels,
           flags.FLAGS.delete_labels,
           token=token)
-    except UserError as e:
+    except maintenance_utils.UserError as e:
       print e
 
   elif flags.FLAGS.subparser_name == "delete_user":
-    DeleteUser(flags.FLAGS.username, token=token)
+    maintenance_utils.DeleteUser(flags.FLAGS.username, token=token)
 
   elif flags.FLAGS.subparser_name == "add_user":
     labels = []
@@ -923,8 +797,9 @@ def main(unused_argv):
       labels.extend(flags.FLAGS.labels)
 
     try:
-      AddUser(flags.FLAGS.username, flags.FLAGS.password, labels, token=token)
-    except UserError as e:
+      maintenance_utils.AddUser(
+          flags.FLAGS.username, flags.FLAGS.password, labels, token=token)
+    except maintenance_utils.UserError as e:
       print e
 
   elif flags.FLAGS.subparser_name == "upload_python":

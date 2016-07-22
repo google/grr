@@ -3,9 +3,11 @@
 
 
 from grr.lib import action_mocks
+from grr.lib import aff4
 from grr.lib import events
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -160,6 +162,40 @@ class GeneralFlowsTest(test_lib.FlowTestsBaseclass):
       self.assertEqual(NoClientListener.received_events[i][0].source,
                        "aff4:/Source%d" % i)
       self.assertEqual(NoClientListener.received_events[i][1].path, "foobar")
+
+  def testUserModificationAudit(self):
+    worker = test_lib.MockWorker(token=self.token)
+    token = self.GenerateToken(username="usermodtest", reason="reason")
+
+    maintenance_utils.AddUser(
+        "testuser", password="xxx", labels=["admin"], token=token)
+    worker.Simulate()
+
+    maintenance_utils.UpdateUser(
+        "testuser", "xxx", delete_labels=["admin"], token=token)
+    worker.Simulate()
+
+    maintenance_utils.DeleteUser("testuser", token=token)
+    worker.Simulate()
+
+    log_entries = []
+    for log in aff4.FACTORY.Open(
+        "aff4:/audit/logs", token=self.token).OpenChildren():
+      log_entries.extend(log)
+
+    self.assertEqual(len(log_entries), 3)
+
+    self.assertEqual(log_entries[0].action, "USER_ADD")
+    self.assertEqual(log_entries[0].urn, "aff4:/users/testuser")
+    self.assertEqual(log_entries[0].user, "usermodtest")
+
+    self.assertEqual(log_entries[1].action, "USER_UPDATE")
+    self.assertEqual(log_entries[1].urn, "aff4:/users/testuser")
+    self.assertEqual(log_entries[1].user, "usermodtest")
+
+    self.assertEqual(log_entries[2].action, "USER_DELETE")
+    self.assertEqual(log_entries[2].urn, "aff4:/users/testuser")
+    self.assertEqual(log_entries[2].user, "usermodtest")
 
 
 def main(argv):
