@@ -5,6 +5,8 @@ import itertools
 
 from grr.gui import api_call_handler_base
 
+from grr.gui.api_plugins import flow as api_plugins_flow
+
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
@@ -144,6 +146,50 @@ class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
     except aff4.InstantiationError:
       raise CronJobNotFoundError("Cron job with id %s could not be found" %
                                  args.cron_job_id)
+
+
+class ApiListCronJobFlowsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListCronJobFlowsArgs
+
+
+class ApiListCronJobFlowsHandler(api_call_handler_base.ApiCallHandler):
+  """Retrieves the given cron job's flows."""
+
+  category = CATEGORY
+  args_type = ApiListCronJobFlowsArgs
+  result_type = api_plugins_flow.ApiListFlowsResult
+
+  def Handle(self, args, token=None):
+    cron_job_root_urn = aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(
+        args.cron_job_id)
+
+    return api_plugins_flow.ApiListFlowsHandler.BuildFlowList(
+        cron_job_root_urn, args.count, args.offset, token=token)
+
+
+class ApiGetCronJobFlowArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetCronJobFlowArgs
+
+
+class ApiGetCronJobFlowHandler(api_call_handler_base.ApiCallHandler):
+  """Renders given cron flow.
+
+  Only top-level flows can be targeted. Times returned in the response are micro
+  seconds since epoch.
+  """
+
+  category = CATEGORY
+  args_type = ApiGetCronJobFlowArgs
+  result_type = api_plugins_flow.ApiFlow
+  strip_json_root_fields_types = False
+
+  def Handle(self, args, token=None):
+    flow_urn = aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(
+        args.cron_job_id).Add(args.flow_id.Basename())
+    flow_obj = aff4.FACTORY.Open(
+        flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
+
+    return api_plugins_flow.ApiFlow().InitFromAff4Object(flow_obj)
 
 
 class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):

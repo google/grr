@@ -5,6 +5,7 @@
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import flow_runner
 from grr.lib import test_lib
 # pylint: disable=unused-import
 from grr.lib.flows.general import timelines as _
@@ -23,7 +24,6 @@ class TestTimelines(test_lib.FlowTestsBaseclass):
                                test_lib.ClientVFSHandlerFixture):
 
       client_mock = action_mocks.ActionMock("ListDirectory")
-      output_path = "analysis/Timeline/MAC"
 
       pathspec = rdf_paths.PathSpec(
           path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
@@ -37,16 +37,16 @@ class TestTimelines(test_lib.FlowTestsBaseclass):
         pass
 
       # Now make a timeline
-      for _ in test_lib.TestFlowHelper(
+      for s in test_lib.TestFlowHelper(
           "MACTimes",
           client_mock,
           client_id=self.client_id,
           token=self.token,
-          path="/",
-          output=output_path):
-        pass
+          path="/"):
+        session_id = s
 
-      fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+      fd = aff4.FACTORY.Open(
+          session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
       timestamp = 0
       events = list(fd.Query("event.stat.pathspec.path contains grep"))

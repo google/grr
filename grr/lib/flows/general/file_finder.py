@@ -327,8 +327,8 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
     super(FileFinder, self).End()
 
     self.Log("Found and processed %d files.", self.state.files_found)
-    if self.runner.output is not None:
-      urn = self.runner.output.urn
+    if self.runner.IsWritingResults():
+      urn = self.runner.output_urn
     else:
       urn = self.client_id
 

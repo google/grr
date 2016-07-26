@@ -4,6 +4,7 @@
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import flow_runner
 from grr.lib import test_lib
 # pylint: disable=unused-import
 from grr.lib.flows.general import artifact_fallbacks as _
@@ -18,17 +19,16 @@ class TestSystemRootSystemDriveFallbackFlow(test_lib.FlowTestsBaseclass):
                                test_lib.ClientVFSHandlerFixture):
       client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
-      for _ in test_lib.TestFlowHelper(
+      for s in test_lib.TestFlowHelper(
           "SystemRootSystemDriveFallbackFlow",
           client_mock,
           client_id=self.client_id,
           token=self.token,
-          artifact_name="SystemRoot",
-          output="systemroot"):
-        pass
+          artifact_name="SystemRoot"):
+        session_id = s
 
       output_fd = aff4.FACTORY.Open(
-          self.client_id.Add("systemroot"), token=self.token)
+          session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
       self.assertEqual(len(output_fd), 1)
       self.assertEqual(

@@ -74,11 +74,10 @@ class CSVOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
   def GetOutputFd(self, value_type):
     """Initializes output AFF4Image for a given value type."""
     file_name = value_type + ".csv"
-    try:
-      output_stream = self._GetOutputStream(file_name)
-    except KeyError:
-      output_stream = self._CreateOutputStream(file_name)
 
+    output_stream = self._CreateOutputStream(file_name)
+
+    if output_stream.tell() == 0:
       self.WriteCSVHeader(output_stream, value_type)
 
     return output_stream

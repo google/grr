@@ -7,7 +7,6 @@ from grr.lib.aff4_objects import aff4_rekall
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import filestore
-from grr.lib.aff4_objects import filetypes
 from grr.lib.aff4_objects import filters
 from grr.lib.aff4_objects import network
 from grr.lib.aff4_objects import security

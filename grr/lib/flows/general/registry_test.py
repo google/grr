@@ -5,9 +5,10 @@
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import flow_runner
 from grr.lib import rdfvalue
 from grr.lib import test_lib
-from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import sequential_collection
 from grr.lib.flows.general import file_finder
 # pylint: disable=unused-import
 from grr.lib.flows.general import registry
@@ -36,7 +37,6 @@ class TestRegistryFinderFlow(RegistryFlowTest):
   def setUp(self):
     super(TestRegistryFinderFlow, self).setUp()
 
-    self.output_path = "analysis/file_finder"
     self.client_mock = action_mocks.ActionMock("Find", "TransferBuffer",
                                                "HashBuffer", "FingerprintFile",
                                                "FingerprintFile", "Grep",
@@ -49,41 +49,40 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     if conditions is None:
       conditions = []
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "RegistryFinder",
         self.client_mock,
         client_id=self.client_id,
         keys_paths=keys_paths,
         conditions=conditions,
-        token=self.token,
-        output=self.output_path):
-      pass
+        token=self.token):
+      session_id = s
+    return session_id
 
-  def AssertNoResults(self):
-    self.assertRaises(
-        aff4.InstantiationError,
-        aff4.FACTORY.Open,
-        self.client_id.Add(self.output_path),
-        aff4_type=collects.RDFValueCollection,
+  def AssertNoResults(self, session_id):
+    res = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX),
+        aff4_type=sequential_collection.GeneralIndexedCollection,
         token=self.token)
+    self.assertEqual(len(res), 0)
 
-  def GetResults(self):
+  def GetResults(self, session_id):
     fd = aff4.FACTORY.Open(
-        self.client_id.Add(self.output_path),
-        aff4_type=collects.RDFValueCollection,
+        session_id.Add(flow_runner.RESULTS_SUFFIX),
+        aff4_type=sequential_collection.GeneralIndexedCollection,
         token=self.token)
     return list(fd)
 
   def testFindsNothingIfNothingMatchesTheGlob(self):
-    self.RunFlow(["HKEY_USERS/S-1-5-20/Software/Microsoft/"
-                  "Windows/CurrentVersion/Run/NonMatch*"])
-    self.AssertNoResults()
+    session_id = self.RunFlow(["HKEY_USERS/S-1-5-20/Software/Microsoft/"
+                               "Windows/CurrentVersion/Run/NonMatch*"])
+    self.AssertNoResults(session_id)
 
   def testFindsKeysWithSingleGlobWithoutConditions(self):
-    self.RunFlow(["HKEY_USERS/S-1-5-20/Software/Microsoft/"
-                  "Windows/CurrentVersion/Run/*"])
+    session_id = self.RunFlow(["HKEY_USERS/S-1-5-20/Software/Microsoft/"
+                               "Windows/CurrentVersion/Run/*"])
 
-    results = self.GetResults()
+    results = self.GetResults(session_id)
     self.assertEqual(len(results), 2)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
@@ -93,12 +92,12 @@ class TestRegistryFinderFlow(RegistryFlowTest):
                      if r.stat_entry.aff4path.Basename() == "MctAdmin"])
 
   def testFindsKeysWithTwoGlobsWithoutConditions(self):
-    self.RunFlow(["HKEY_USERS/S-1-5-20/Software/Microsoft/"
-                  "Windows/CurrentVersion/Run/Side*",
-                  "HKEY_USERS/S-1-5-20/Software/Microsoft/"
-                  "Windows/CurrentVersion/Run/Mct*"])
+    session_id = self.RunFlow(["HKEY_USERS/S-1-5-20/Software/Microsoft/"
+                               "Windows/CurrentVersion/Run/Side*",
+                               "HKEY_USERS/S-1-5-20/Software/Microsoft/"
+                               "Windows/CurrentVersion/Run/Mct*"])
 
-    results = self.GetResults()
+    results = self.GetResults(session_id)
     self.assertEqual(len(results), 2)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
@@ -117,10 +116,11 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         self.client_id, mode="rw", token=self.token) as client:
       client.Set(client.Schema.KNOWLEDGE_BASE, kb)
 
-    self.RunFlow(["HKEY_USERS/%%users.sid%%/Software/Microsoft/Windows/"
-                  "CurrentVersion/*"])
+    session_id = self.RunFlow(
+        ["HKEY_USERS/%%users.sid%%/Software/Microsoft/Windows/"
+         "CurrentVersion/*"])
 
-    results = self.GetResults()
+    results = self.GetResults(session_id)
     self.assertEqual(len(results), 1)
 
     key = ("/HKEY_USERS/S-1-5-21-2911950750-476812067-1487428992-1001/"
@@ -136,26 +136,26 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
         bytes_before=10, bytes_after=10, literal="CanNotFindMe")
 
-    self.RunFlow(
+    session_id = self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
         [registry.RegistryFinderCondition(
             condition_type=registry.RegistryFinderCondition.Type.
             VALUE_LITERAL_MATCH,
             value_literal_match=value_literal_match)])
-    self.AssertNoResults()
+    self.AssertNoResults(session_id)
 
   def testFindsKeyIfItMatchesLiteralMatchCondition(self):
     value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
         bytes_before=10, bytes_after=10, literal="Windows Sidebar\\Sidebar.exe")
 
-    self.RunFlow(
+    session_id = self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
         [registry.RegistryFinderCondition(
             condition_type=registry.RegistryFinderCondition.Type.
             VALUE_LITERAL_MATCH,
             value_literal_match=value_literal_match)])
 
-    results = self.GetResults()
+    results = self.GetResults(session_id)
     self.assertEqual(len(results), 1)
     self.assertEqual(len(results[0].matches), 1)
 
@@ -176,26 +176,26 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     value_regex_match = file_finder.FileFinderContentsRegexMatchCondition(
         bytes_before=10, bytes_after=10, regex=".*CanNotFindMe.*")
 
-    self.RunFlow(
+    session_id = self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
         [registry.RegistryFinderCondition(
             condition_type=registry.RegistryFinderCondition.Type.
             VALUE_REGEX_MATCH,
             value_regex_match=value_regex_match)])
-    self.AssertNoResults()
+    self.AssertNoResults(session_id)
 
   def testFindsKeyIfItMatchesRegexMatchCondition(self):
     value_regex_match = file_finder.FileFinderContentsRegexMatchCondition(
         bytes_before=10, bytes_after=10, regex="Windows.+\\.exe")
 
-    self.RunFlow(
+    session_id = self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
         [registry.RegistryFinderCondition(
             condition_type=registry.RegistryFinderCondition.Type.
             VALUE_REGEX_MATCH,
             value_regex_match=value_regex_match)])
 
-    results = self.GetResults()
+    results = self.GetResults(session_id)
     self.assertEqual(len(results), 1)
     self.assertEqual(len(results[0].matches), 1)
 
@@ -217,13 +217,13 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         min_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
         max_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
 
-    self.RunFlow(
+    session_id = self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
         [registry.RegistryFinderCondition(
             condition_type=registry.RegistryFinderCondition.Type.
             MODIFICATION_TIME,
             modification_time=modification_time)])
-    self.AssertNoResults()
+    self.AssertNoResults(session_id)
 
   def testFindsKeysIfModificationTimeConditionMatches(self):
     modification_time = file_finder.FileFinderModificationTimeCondition(
@@ -232,14 +232,14 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         max_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(
             1247546054 + 1))
 
-    self.RunFlow(
+    session_id = self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
         [registry.RegistryFinderCondition(
             condition_type=registry.RegistryFinderCondition.Type.
             MODIFICATION_TIME,
             modification_time=modification_time)])
 
-    results = self.GetResults()
+    results = self.GetResults(session_id)
     self.assertEqual(len(results), 2)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
@@ -258,7 +258,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
         bytes_before=10, bytes_after=10, literal="Windows Sidebar\\Sidebar.exe")
 
-    self.RunFlow(
+    session_id = self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
         [registry.RegistryFinderCondition(
             condition_type=registry.RegistryFinderCondition.Type.
@@ -269,7 +269,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
              VALUE_LITERAL_MATCH,
              value_literal_match=value_literal_match)])
 
-    results = self.GetResults()
+    results = self.GetResults(session_id)
     self.assertEqual(len(results), 1)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
@@ -279,12 +279,12 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
   def testSizeCondition(self):
     # There are two values, one is 20 bytes, the other 53.
-    self.RunFlow(
+    session_id = self.RunFlow(
         ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
         [registry.RegistryFinderCondition(
             condition_type=registry.RegistryFinderCondition.Type.SIZE,
             size=file_finder.FileFinderSizeCondition(min_file_size=50))])
-    results = self.GetResults()
+    results = self.GetResults(session_id)
     self.assertEqual(len(results), 1)
     self.assertGreater(results[0].stat_entry.st_size, 50)
 

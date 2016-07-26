@@ -107,15 +107,14 @@ class TestFileFinderOSHomedir(TestFileFinderOSLinux):
   Exercise globbing and interpolation.
   """
   platforms = ["Linux", "Darwin", "Windows"]
-  test_output_path = "/analysis/test/homedirs"
   action = file_finder.FileFinderAction(
       action_type=file_finder.FileFinderAction.Action.STAT)
   args = {"paths": ["%%users.homedir%%/*"],
           "action": action,
-          "runner_args": flow_runner.FlowRunnerArgs(output=test_output_path)}
+          "runner_args": flow_runner.FlowRunnerArgs()}
 
   def CheckFlow(self):
     results = aff4.FACTORY.Open(
-        self.client_id.Add(self.test_output_path), token=self.token)
+        self.session_id.Add("Results"), token=self.token)
     self.assertEqual(type(results), collects.RDFValueCollection)
     self.assertTrue(len(results) > 1)

@@ -20,6 +20,7 @@ from grr.lib import data_store
 from grr.lib import lexer
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import stats
 from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import aff4_rdfvalues
@@ -316,20 +317,31 @@ class Factory(object):
                     age=NEWEST_TIME):
     """Retrieves all the attributes for all the urns."""
     urns = set([utils.SmartUnicode(u) for u in urns])
+    to_read = {}
     if not ignore_cache:
-      for subject in list(urns):
+      for subject in urns:
         key = self._MakeCacheInvariant(subject, token, age)
 
         try:
           yield subject, self.cache.Get(key)
-          urns.remove(subject)
-        except KeyError:
-          pass
+          try:
+            stats.STATS.IncrementCounter("aff4_cache_hits")
+          except KeyError:
+            pass
 
-    # If there are any urns left we get them from the database.
-    if urns:
+        except KeyError:
+          try:
+            stats.STATS.IncrementCounter("aff4_cache_misses")
+          except KeyError:
+            pass
+          to_read[subject] = key
+    else:
+      to_read = {urn: self._MakeCacheInvariant(urn, token, age) for urn in urns}
+
+    # Urns not present in the cache we need to get from the database.
+    if to_read:
       for subject, values in data_store.DB.MultiResolvePrefix(
-          urns,
+          to_read,
           AFF4_PREFIXES,
           timestamp=self.ParseAgeSpecification(age),
           token=token,
@@ -338,8 +350,7 @@ class Factory(object):
         # Ensure the values are sorted.
         values.sort(key=lambda x: x[-1], reverse=True)
 
-        key = self._MakeCacheInvariant(subject, token, age)
-        self.cache.Put(key, values)
+        self.cache.Put(to_read[subject], values)
 
         yield utils.SmartUnicode(subject), values
 
@@ -460,23 +471,6 @@ class Factory(object):
 
     except access_control.UnauthorizedAccess:
       pass
-
-  def _ExpandURNComponents(self, urn, unique_urns):
-    """This expands URNs.
-
-    This method breaks the urn into all the urns from its path components and
-    adds them to the set unique_urns.
-
-    Args:
-      urn: An RDFURN.
-      unique_urns: A set to add the components of the urn to.
-    """
-
-    x = ROOT_URN
-    for component in rdfvalue.RDFURN(urn).Path().split("/"):
-      if component:
-        x = x.Add(component)
-        unique_urns.add(x)
 
   def _MakeCacheInvariant(self, urn, token, age):
     """Returns an invariant key for an AFF4 object.
@@ -756,15 +750,9 @@ class Factory(object):
       token = data_store.default_token
 
     if "r" in mode and (local_cache is None or urn not in local_cache):
-      # Warm up the cache. The idea is to prefetch all the path components in
-      # the same round trip and make sure this data is in cache, so that as each
-      # AFF4 object is instantiated it can read attributes from cache rather
-      # than round tripping to the data store.
-      unique_urn = set()
-      self._ExpandURNComponents(urn, unique_urn)
       local_cache = dict(
           self.GetAttributes(
-              unique_urn, age=age, ignore_cache=ignore_cache, token=token))
+              [urn], age=age, ignore_cache=ignore_cache, token=token))
 
     # Read the row from the table. We know the object already exists if there is
     # some data in the local_cache already for this object.
@@ -1963,7 +1951,7 @@ class AFF4Object(object):
     This maintains object validity.
     """
     # This effectively moves all the values from the new_attributes to the
-    # _attributes caches.
+    # synced_attributes caches.
     for attribute, value_array in self.new_attributes.iteritems():
       if not attribute.versioned or self.age_policy == NEWEST_TIME:
         # Store the latest version if there are multiple unsynced versions.
@@ -3146,6 +3134,8 @@ class AFF4InitHook(registry.InitHook):
 
     FACTORY = Factory()  # pylint: disable=g-bad-name
     # pylint: enable=unused-variable,global-statement,g-import-not-at-top
+    stats.STATS.RegisterCounterMetric("aff4_cache_hits")
+    stats.STATS.RegisterCounterMetric("aff4_cache_misses")
 
 
 class AFF4Filter(object):

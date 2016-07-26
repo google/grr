@@ -7,8 +7,9 @@ import os
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import flow_runner
 from grr.lib import test_lib
-from grr.lib.aff4_objects import filetypes as aff4_filetypes
+from grr.lib.aff4_objects import sequential_collection
 from grr.lib.flows.general import filetypes
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import plist as rdf_plist
@@ -17,35 +18,37 @@ from grr.lib.rdfvalues import plist as rdf_plist
 class TestPlistFlows(test_lib.FlowTestsBaseclass):
   """Tests the PlistValueFilter flow."""
 
-  def _RunFlow(self, flow, context=None, query=None, output=None):
+  def _RunFlow(self, flow, context=None, query=None):
     client_mock = action_mocks.ActionMock("PlistQuery")
     request = rdf_plist.PlistRequest(context=context, query=query)
     request.pathspec.path = os.path.join(self.base_path, "test.plist")
     request.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         flow,
         client_mock,
         client_id=self.client_id,
         token=self.token,
-        request=request,
-        output=output):
-      pass
+        request=request):
+      session_id = s
 
-  def _CheckOutputAFF4Type(self, output):
+    return session_id
+
+  def _CheckOutput(self, session_id):
     # Check the output file is created
-    output_path = self.client_id.Add(output)
-    aff4.FACTORY.Open(
-        output_path, aff4_type=aff4_filetypes.AFF4PlistQuery, token=self.token)
+    output_path = session_id.Add(flow_runner.RESULTS_SUFFIX)
+    results = aff4.FACTORY.Open(
+        output_path,
+        aff4_type=sequential_collection.GeneralIndexedCollection,
+        token=self.token)
+    self.assertEqual(len(results), 1)
+    self.assertEqual(results[0]["nested1"]["nested11"]["key112"], "value112")
 
   def testPlistValueFilter(self):
-    output = "analysis/plistvaluefilter_test"
-    self._RunFlow(
-        filetypes.PlistValueFilter.__name__,
-        context="",
-        query="",
-        output=output)
-    self._CheckOutputAFF4Type(output)
+
+    session_id = self._RunFlow(
+        filetypes.PlistValueFilter.__name__, context="", query="")
+    self._CheckOutput(session_id)
 
 
 def main(argv):

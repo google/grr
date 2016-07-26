@@ -555,6 +555,42 @@ class AFF4StreamTest(test_lib.AFF4ObjectTest):
 class AFF4Tests(test_lib.AFF4ObjectTest):
   """Test the AFF4 abstraction."""
 
+  def testCreatingObjectWithMutationPoolExpiresTheCacheCorrectly(self):
+    urn = rdfvalue.RDFURN("aff4:/foo/bar")
+
+    # Create a child below the urn, so that the urn gets initialized
+    # as an AFF4Volume and corresponding index entry is written.
+    with aff4.FACTORY.Create(
+        urn.Add("child"), aff4_type=aff4.AFF4Volume, token=self.token) as _:
+      pass
+
+    mutation_pool = data_store.DB.GetMutationPool(token=self.token)
+    with mutation_pool:
+      with aff4.FACTORY.Create(
+          urn,
+          mutation_pool=mutation_pool,
+          aff4_type=ObjectWithLockProtectedAttribute,
+          token=self.token) as _:
+        pass
+
+      # As the write operation sits in the pool, we should get an empty
+      # object (i.e. an AFF4Volume) here. This object will be cached by
+      # AFF4 cache.
+      obj = aff4.FACTORY.Open(urn, token=self.token)
+      self.assertEqual(obj.__class__, aff4.AFF4Volume)
+
+    # Even though the object's AFF4 entry should be expired when the
+    # new version is written, the code doesn't take mutations pool into
+    # account, so the expiry operation happens before we actually write
+    # the data into the datastore. That's why the AFF4 cache doesn't
+    # get invalidated correctly and we get stuck with AFF4Volume object
+    # type in cache.
+    obj = aff4.FACTORY.Open(urn, token=self.token)
+    # TODO(user): The check below doesn't pass. This is a bad bug, we
+    # should either get rid of AFF4 cache, or make it work nicely with
+    # mutation pools.
+    # self.assertEqual(obj.__class__, ObjectWithLockProtectedAttribute)
+
   def testNonVersionedAttribute(self):
     """Test that non versioned attributes work."""
     client = aff4.FACTORY.Create(

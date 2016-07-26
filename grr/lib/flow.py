@@ -609,14 +609,8 @@ class GRRFlow(aff4.AFF4Volume):
     This method is called prior to destruction of the flow to give
     the flow a chance to clean up.
     """
-    if self.runner.output is not None:
-      self.Notify("FlowStatus", self.urn,
-                  u"{0} completed with {1} results".format(
-                      self.__class__.__name__, len(self.runner.output)))
-
-    else:
-      self.Notify("FlowStatus", self.urn,
-                  "Flow %s completed" % self.__class__.__name__)
+    self.Notify("FlowStatus", self.urn,
+                "Flow %s completed" % self.__class__.__name__)
 
   @StateHandler()
   def Start(self, unused_message=None):

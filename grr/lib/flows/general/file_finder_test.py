@@ -12,11 +12,12 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import flow_runner
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import standard
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
@@ -115,13 +116,14 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         continue
       self.assertEqual(fd.Get(fd.Schema.SIZE), 0)
 
-  def CheckFilesInCollection(self, fnames):
+  def CheckFilesInCollection(self, fnames, session_id=None):
+    session_id = session_id or self.last_session_id
     if fnames:
       # If results are expected, check that they are present in the collection.
       # Also check that there are no other files.
       output = aff4.FACTORY.Open(
-          self.client_id.Add(self.output_path),
-          aff4_type=collects.RDFValueCollection,
+          session_id.Add(flow_runner.RESULTS_SUFFIX),
+          aff4_type=sequential_collection.GeneralIndexedCollection,
           token=self.token)
       self.assertEqual(len(output), len(fnames))
 
@@ -131,13 +133,12 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         self.assertTrue(isinstance(result, file_finder.FileFinderResult))
         self.assertEqual(result.stat_entry.aff4path.Basename(), fname)
     else:
-      # If no results are expected, collection shouldn't be created.
-      self.assertRaises(
-          aff4.InstantiationError,
-          aff4.FACTORY.Open,
-          self.client_id.Add(self.output_path),
-          aff4_type=collects.RDFValueCollection,
+      # No results expected.
+      results = aff4.FACTORY.Open(
+          session_id.Add(flow_runner.RESULTS_SUFFIX),
+          aff4_type=sequential_collection.GeneralIndexedCollection,
           token=self.token)
+      self.assertEqual(len(results), 0)
 
   def CheckReplies(self, replies, action, expected_files):
     reply_count = 0
@@ -161,7 +162,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
               action=file_finder.FileFinderAction.Action.STAT):
     send_reply = test_lib.Instrument(flow.GRRFlow, "SendReply")
     with send_reply:
-      for _ in test_lib.TestFlowHelper(
+      for s in test_lib.TestFlowHelper(
           "FileFinder",
           self.client_mock,
           client_id=self.client_id,
@@ -169,9 +170,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
           pathtype=rdf_paths.PathSpec.PathType.OS,
           action=file_finder.FileFinderAction(action_type=action),
           conditions=conditions,
-          token=self.token,
-          output=self.output_path):
-        pass
+          token=self.token):
+        self.last_session_id = s
 
     return send_reply.args
 
@@ -208,7 +208,6 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestFileFinderFlow, self).setUp()
-    self.output_path = "analysis/file_finder"
     self.client_mock = FileFinderActionMock()
     self.fixture_path = os.path.join(self.base_path, "searching")
     self.path = os.path.join(self.fixture_path, "*.log")
@@ -283,8 +282,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
       # Check that the results' matches fields are correctly filled.
       fd = aff4.FACTORY.Open(
-          self.client_id.Add(self.output_path),
-          aff4_type=collects.RDFValueCollection,
+          self.last_session_id.Add(flow_runner.RESULTS_SUFFIX),
+          aff4_type=sequential_collection.GeneralIndexedCollection,
           token=self.token)
       self.assertEqual(len(fd), 1)
       self.assertEqual(len(fd[0].matches), 1)
@@ -305,22 +304,21 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
     paths = [os.path.join(os.path.dirname(self.fixture_path), "hello.exe")]
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "FileFinder",
         self.client_mock,
         client_id=self.client_id,
         paths=paths,
         pathtype=rdf_paths.PathSpec.PathType.OS,
         conditions=[literal_condition],
-        token=self.token,
-        output=self.output_path):
-      pass
+        token=self.token):
+      session_id = s
 
     # Check that the results' matches fields are correctly filled. Expecting a
     # match from hello.exe
     fd = aff4.FACTORY.Open(
-        self.client_id.Add(self.output_path),
-        aff4_type=collects.RDFValueCollection,
+        session_id.Add(flow_runner.RESULTS_SUFFIX),
+        aff4_type=sequential_collection.GeneralIndexedCollection,
         token=self.token)
     self.assertEqual(len(fd[0].matches), 1)
     self.assertEqual(fd[0].matches[0].offset, 0)
@@ -351,8 +349,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
           non_expected_files=non_expected_files)
 
       fd = aff4.FACTORY.Open(
-          self.client_id.Add(self.output_path),
-          aff4_type=collects.RDFValueCollection,
+          self.last_session_id.Add(flow_runner.RESULTS_SUFFIX),
+          aff4_type=sequential_collection.GeneralIndexedCollection,
           token=self.token)
       self.assertEqual(len(fd), 1)
       self.assertEqual(len(fd[0].matches), 1)
@@ -395,8 +393,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
       # Check the output file is created
       fd = aff4.FACTORY.Open(
-          self.client_id.Add(self.output_path),
-          aff4_type=collects.RDFValueCollection,
+          self.last_session_id.Add(flow_runner.RESULTS_SUFFIX),
+          aff4_type=sequential_collection.GeneralIndexedCollection,
           token=self.token)
 
       self.assertEqual(len(fd), 1)
@@ -442,8 +440,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
       # Check the output file is created
       fd = aff4.FACTORY.Open(
-          self.client_id.Add(self.output_path),
-          aff4_type=collects.RDFValueCollection,
+          self.last_session_id.Add(flow_runner.RESULTS_SUFFIX),
+          aff4_type=sequential_collection.GeneralIndexedCollection,
           token=self.token)
 
       self.assertEqual(len(fd), 1)
@@ -491,8 +489,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         paths=[self.path],
         pathtype=rdf_paths.PathSpec.PathType.OS,
         action=action,
-        token=self.token,
-        output=self.output_path):
+        token=self.token):
       pass
 
     self.CheckFilesDownloaded(expected_files)
@@ -603,21 +600,20 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     paths = [os.path.join(os.path.dirname(self.fixture_path), "*.log"),
              os.path.join(os.path.dirname(self.fixture_path), "auth.log")]
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "FileFinder",
         self.client_mock,
         client_id=self.client_id,
         paths=paths,
         pathtype=rdf_paths.PathSpec.PathType.MEMORY,
-        token=self.token,
-        output=self.output_path):
-      pass
+        token=self.token):
+      session_id = s
 
     # Both auth.log and *.log should be present, because we don't apply
     # any conditions and by default FileFinder treats given paths as paths
     # to memory devices when using PathType=MEMORY. So checking
     # files existence doesn't make much sense.
-    self.CheckFilesInCollection(["*.log", "auth.log"])
+    self.CheckFilesInCollection(["*.log", "auth.log"], session_id=session_id)
 
   def testAppliesLiteralConditionWhenMemoryPathTypeIsUsed(self):
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
@@ -641,7 +637,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         # download memeory or send it to the socket.
         for action in sorted(
             file_finder.FileFinderAction.Action.enum_dict.values()):
-          for _ in test_lib.TestFlowHelper(
+          for s in test_lib.TestFlowHelper(
               "FileFinder",
               self.client_mock,
               client_id=self.client_id,
@@ -649,15 +645,14 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
               pathtype=rdf_paths.PathSpec.PathType.MEMORY,
               conditions=[literal_condition],
               action=file_finder.FileFinderAction(action_type=action),
-              token=self.token,
-              output=self.output_path):
-            pass
+              token=self.token):
+            session_id = s
 
-          self.CheckFilesInCollection(["auth.log"])
+          self.CheckFilesInCollection(["auth.log"], session_id=session_id)
 
           fd = aff4.FACTORY.Open(
-              self.client_id.Add(self.output_path),
-              aff4_type=collects.RDFValueCollection,
+              session_id.Add(flow_runner.RESULTS_SUFFIX),
+              aff4_type=sequential_collection.GeneralIndexedCollection,
               token=self.token)
           self.assertEqual(fd[0].stat_entry.pathspec.CollapsePath(), paths[0])
           self.assertEqual(len(fd), 1)

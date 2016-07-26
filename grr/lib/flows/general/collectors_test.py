@@ -18,10 +18,10 @@ from grr.lib import artifact_registry
 from grr.lib import artifact_utils
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
+from grr.lib import flow_runner
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import sequential_collection
 # pylint: disable=unused-import
 from grr.lib.flows.general import artifact_fallbacks
 from grr.lib.flows.general import collectors
@@ -199,19 +199,17 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
           attributes={"client_action": r"ListProcesses"})
       self.fakeartifact.sources.append(coll1)
       artifact_list = ["FakeArtifact"]
-      for _ in test_lib.TestFlowHelper(
+      for s in test_lib.TestFlowHelper(
           "ArtifactCollectorFlow",
           client_mock,
           artifact_list=artifact_list,
           token=self.token,
-          client_id=self.client_id,
-          output="test_artifact"):
-        pass
+          client_id=self.client_id):
+        session_id = s
 
       # Test the AFF4 file that was created.
       fd = aff4.FACTORY.Open(
-          rdfvalue.RDFURN(self.client_id).Add("test_artifact"),
-          token=self.token)
+          session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
       self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
       self.assertTrue(len(fd) == 1)
 
@@ -229,25 +227,26 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
       self.fakeartifact.sources.append(coll1)
       self.fakeartifact2.sources.append(coll1)
       artifact_list = ["FakeArtifact", "FakeArtifact2"]
-      for _ in test_lib.TestFlowHelper(
+      for s in test_lib.TestFlowHelper(
           "ArtifactCollectorFlow",
           client_mock,
           artifact_list=artifact_list,
           token=self.token,
           client_id=self.client_id,
-          output="test_artifact",
           split_output_by_artifact=True):
-        pass
+        session_id = s
 
       # Check that we got two separate collections based on artifact name
       fd = aff4.FACTORY.Open(
-          rdfvalue.RDFURN(self.client_id).Add("test_artifact_FakeArtifact"),
+          session_id.Add("%s_%s" %
+                         (flow_runner.RESULTS_SUFFIX, "FakeArtifact")),
           token=self.token)
       self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
       self.assertEqual(len(fd), 1)
 
       fd = aff4.FACTORY.Open(
-          rdfvalue.RDFURN(self.client_id).Add("test_artifact_FakeArtifact2"),
+          session_id.Add("%s_%s" %
+                         (flow_runner.RESULTS_SUFFIX, "FakeArtifact2")),
           token=self.token)
       self.assertEqual(len(fd), 1)
       self.assertTrue(isinstance(list(fd)[0], rdf_client.Process))
@@ -263,21 +262,27 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
           conditions=["os == 'Windows'"])
       self.fakeartifact.sources.append(coll1)
       fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-      self.assertEqual(fd.__class__, aff4.AFF4Volume)
+      self.assertEqual(fd.__class__,
+                       sequential_collection.GeneralIndexedCollection)
+      self.assertEqual(len(fd), 0)
 
       # Now run with matching or condition.
       coll1.conditions = ["os == 'Linux' or os == 'Windows'"]
       self.fakeartifact.sources = []
       self.fakeartifact.sources.append(coll1)
       fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-      self.assertEqual(fd.__class__, collects.RDFValueCollection)
+      self.assertEqual(fd.__class__,
+                       sequential_collection.GeneralIndexedCollection)
+      self.assertNotEqual(len(fd), 0)
 
       # Now run with impossible or condition.
       coll1.conditions.append("os == 'NotTrue'")
       self.fakeartifact.sources = []
       self.fakeartifact.sources.append(coll1)
       fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-      self.assertEqual(fd.__class__, aff4.AFF4Volume)
+      self.assertEqual(fd.__class__,
+                       sequential_collection.GeneralIndexedCollection)
+      self.assertEqual(len(fd), 0)
 
   def testRegistryValueArtifact(self):
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.REGISTRY,
@@ -295,18 +300,17 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
             }]})
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
-        for _ in test_lib.TestFlowHelper(
+        for s in test_lib.TestFlowHelper(
             "ArtifactCollectorFlow",
             client_mock,
             artifact_list=artifact_list,
             token=self.token,
-            client_id=self.client_id,
-            output="test_artifact"):
-          pass
+            client_id=self.client_id):
+          session_id = s
 
     # Test the statentry got stored with the correct aff4path.
     fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("test_artifact"), token=self.token)
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
     self.assertTrue(isinstance(list(fd)[0], rdf_client.StatEntry))
     self.assertTrue(str(fd[0].aff4path).endswith("BootExecute"))
 
@@ -325,17 +329,16 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
             }]})
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
-        for _ in test_lib.TestFlowHelper(
+        for s in test_lib.TestFlowHelper(
             "ArtifactCollectorFlow",
             client_mock,
             artifact_list=artifact_list,
             token=self.token,
-            client_id=self.client_id,
-            output="test_artifact"):
-          pass
+            client_id=self.client_id):
+          session_id = s
 
     fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("test_artifact"), token=self.token)
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
     self.assertTrue(isinstance(list(fd)[0], rdf_client.StatEntry))
     self.assertEqual(fd[0].registry_data.GetValue(), "DefaultValue")
 
@@ -350,7 +353,9 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
           supported_os=["Windows"])
       self.fakeartifact.sources.append(coll1)
       fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-      self.assertEqual(fd.__class__, aff4.AFF4Volume)
+      self.assertEqual(fd.__class__,
+                       sequential_collection.GeneralIndexedCollection)
+      self.assertEqual(len(fd), 0)
 
       # Now run with matching or condition.
       coll1.conditions = []
@@ -358,7 +363,9 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
       self.fakeartifact.sources = []
       self.fakeartifact.sources.append(coll1)
       fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-      self.assertEqual(fd.__class__, collects.RDFValueCollection)
+      self.assertEqual(fd.__class__,
+                       sequential_collection.GeneralIndexedCollection)
+      self.assertNotEqual(len(fd), 0)
 
       # Now run with impossible or condition.
       coll1.conditions = ["os == 'Linux' or os == 'Windows'"]
@@ -366,27 +373,27 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
       self.fakeartifact.sources = []
       self.fakeartifact.sources.append(coll1)
       fd = self._RunClientActionArtifact(client_mock, ["FakeArtifact"])
-      self.assertEqual(fd.__class__, aff4.AFF4Volume)
+      self.assertEqual(fd.__class__,
+                       sequential_collection.GeneralIndexedCollection)
+      self.assertEqual(len(fd), 0)
 
   def _RunClientActionArtifact(self, client_mock, artifact_list):
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
     self.output_count += 1
-    output = "test_artifact_%d" % self.output_count
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow",
         client_mock,
         artifact_list=artifact_list,
         token=self.token,
-        client_id=self.client_id,
-        output=output):
-      pass
+        client_id=self.client_id):
+      session_id = s
 
     # Test the AFF4 file was not created, as flow should not have run due to
     # conditions.
     fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add(output), token=self.token)
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
     return fd
 
 

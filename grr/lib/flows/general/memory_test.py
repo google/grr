@@ -14,6 +14,7 @@ from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import flow_runner
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import filesystem
@@ -94,8 +95,6 @@ class TestMemoryCollector(MemoryTest):
   def setUp(self):
     super(TestMemoryCollector, self).setUp()
 
-    self.output_path = "analysis/memory_scanner"
-
     self.key = rdf_crypto.AES128Key.FromHex("1a5eafcc77d428863d4c2441ea26e5a5")
     self.iv = rdf_crypto.AES128Key.FromHex("2241b14c64874b1898dad4de7173d8c0")
 
@@ -119,10 +118,7 @@ class TestMemoryCollector(MemoryTest):
 
   def RunWithDownload(self):
     self.flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id,
-        flow_name="MemoryCollector",
-        token=self.token,
-        output=self.output_path)
+        client_id=self.client_id, flow_name="MemoryCollector", token=self.token)
 
     for _ in test_lib.TestFlowHelper(
         self.flow_urn,
@@ -255,17 +251,16 @@ class ListVADBinariesTest(MemoryTest):
 
   def testListsBinaries(self):
     client_mock = ListVADBinariesActionMock()
-    output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "ListVADBinaries",
         client_mock,
         client_id=self.client_id,
-        token=self.token,
-        output=output_path):
-      pass
+        token=self.token):
+      session_id = s
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     # Sorting output collection to make the test deterministic
     paths = sorted([x.CollapsePath() for x in fd])
@@ -277,18 +272,17 @@ class ListVADBinariesTest(MemoryTest):
     process2_exe = "\\WINDOWS\\foo.exe"
 
     client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
-    output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "ListVADBinaries",
         client_mock,
         client_id=self.client_id,
         token=self.token,
-        fetch_binaries=True,
-        output=output_path):
-      pass
+        fetch_binaries=True):
+      session_id = s
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     # Sorting output collection to make the test deterministic
     binaries = sorted(fd, key=lambda x: x.aff4path)
@@ -306,18 +300,17 @@ class ListVADBinariesTest(MemoryTest):
   def testDoesNotFetchDuplicates(self):
     process = "\\WINDOWS\\bar.exe"
     client_mock = ListVADBinariesActionMock([process, process])
-    output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "ListVADBinaries",
         client_mock,
         client_id=self.client_id,
         fetch_binaries=True,
-        token=self.token,
-        output=output_path):
-      pass
+        token=self.token):
+      session_id = s
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
     binaries = list(fd)
 
     self.assertEqual(len(binaries), 1)
@@ -330,19 +323,18 @@ class ListVADBinariesTest(MemoryTest):
     process2_exe = "\\WINDOWS\\foo.exe"
 
     client_mock = ListVADBinariesActionMock([process1_exe, process2_exe])
-    output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "ListVADBinaries",
         client_mock,
         client_id=self.client_id,
         token=self.token,
-        output=output_path,
         filename_regex=".*bar\\.exe$",
         fetch_binaries=True):
-      pass
+      session_id = s
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
     binaries = list(fd)
 
     self.assertEqual(len(binaries), 1)
@@ -354,19 +346,18 @@ class ListVADBinariesTest(MemoryTest):
     process1_exe = "\\WINDOWS\\bar.exe"
 
     client_mock = ListVADBinariesActionMock([process1_exe])
-    output_path = "analysis/ListVADBinariesTest1"
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "ListVADBinaries",
         client_mock,
         check_flow_errors=False,
         client_id=self.client_id,
         token=self.token,
-        output=output_path,
         fetch_binaries=True):
-      pass
+      session_id = s
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
     binaries = list(fd)
 
     self.assertEqual(len(binaries), 1)

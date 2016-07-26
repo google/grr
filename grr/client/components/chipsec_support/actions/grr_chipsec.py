@@ -8,8 +8,13 @@ from logging import handlers
 import StringIO
 
 
+# Force Chipsec to execute as not frozen so it can find its configuration files.
+from chipsec import file as chipsec_file  # pylint: disable=g-bad-import-order
+
+chipsec_file.main_is_frozen = lambda: False
+
 # Initialize the Chipsec plugins
-from chipsec import chipset
+from chipsec import chipset  # pylint: disable=g-import-not-at-top
 from chipsec import logger
 from chipsec.hal import acpi
 from chipsec.hal import spi

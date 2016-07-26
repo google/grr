@@ -289,6 +289,16 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.GetCronJob(args, token=token)
 
+  def ListCronJobFlows(self, args, token=None):
+    # Everybody can list cron jobs' flows.
+
+    return self.delegate.ListCronJobFlows(args, token=token)
+
+  def GetCronJobFlow(self, args, token=None):
+    # Everybody can get cron flows.
+
+    return self.delegate.GetCronJobFlow(args, token=token)
+
   def DeleteCronJob(self, args, token=None):
     self.CheckCronJobAccess(args.cron_job_id, token=token)
 

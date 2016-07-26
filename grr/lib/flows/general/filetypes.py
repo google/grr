@@ -2,9 +2,7 @@
 """File-type specific flows."""
 
 
-from grr.lib import aff4
 from grr.lib import flow
-from grr.lib.aff4_objects import filetypes
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
@@ -54,13 +52,6 @@ class PlistValueFilter(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self, unused_response):
     """Issue a request to list the directory."""
-    if self.runner.output is not None:
-      self.runner.output = aff4.FACTORY.Create(
-          self.runner.output.urn,
-          filetypes.AFF4PlistQuery,
-          mode="w",
-          token=self.token)
-
     self.CallClient(
         "PlistQuery", request=self.args.request, next_state="Receive")
 

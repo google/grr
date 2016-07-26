@@ -363,6 +363,130 @@
       "url": "/api/cron-jobs"
     }
   ],
+  "ApiListCronJobFlowsHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiFlow",
+            "value": {
+              "args": {
+                "age": 0,
+                "type": "EmptyFlowArgs",
+                "value": {}
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "last_active_at": {
+                "age": 44000000,
+                "type": "RDFDatetime",
+                "value": 44000000
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GRRVersionBreakDown"
+              },
+              "nested_flows": [],
+              "started_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 44000000
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "age": 0,
+                "type": "SessionID",
+                "value": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListCronJobFlowsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "args": {},
+            "creator": "test",
+            "last_active_at": 44000000,
+            "name": "GRRVersionBreakDown",
+            "nested_flows": [],
+            "started_at": 44000000,
+            "state": "RUNNING",
+            "urn": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
+          }
+        ]
+      },
+      "url": "/api/cron-jobs/GRRVersionBreakDown/flows"
+    }
+  ],
+  "ApiGetCronJobFlowHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "age": 0,
+        "type": "ApiFlow",
+        "value": {
+          "args": {
+            "age": 0,
+            "type": "EmptyFlowArgs",
+            "value": {}
+          },
+          "creator": {
+            "age": 0,
+            "type": "unicode",
+            "value": "test"
+          },
+          "last_active_at": {
+            "age": 44000000,
+            "type": "RDFDatetime",
+            "value": 44000000
+          },
+          "name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "GRRVersionBreakDown"
+          },
+          "started_at": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 44000000
+          },
+          "state": {
+            "age": 0,
+            "type": "EnumNamedValue",
+            "value": "RUNNING"
+          },
+          "urn": {
+            "age": 0,
+            "type": "SessionID",
+            "value": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
+          }
+        }
+      },
+      "test_class": "ApiGetCronJobFlowHandlerRegressionTest",
+      "type_stripped_response": {
+        "args": {},
+        "creator": "test",
+        "last_active_at": 44000000,
+        "name": "GRRVersionBreakDown",
+        "started_at": 44000000,
+        "state": "RUNNING",
+        "urn": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
+      },
+      "url": "/api/cron-jobs/GRRVersionBreakDown/flows/F:ABCDEF11"
+    }
+  ],
   "ApiCreateFlowHandler": [
     {
       "method": "POST",
@@ -1404,7 +1528,7 @@
     {
       "method": "GET",
       "response": {
-        "command": "/usr/bin/grr_export --username test collection_files --path aff4:/C.1000000000000000/analysis/ListProcesses/test-42 --output ."
+        "command": "/usr/bin/grr_export --username test collection_files --path aff4:/C.1000000000000000/flows/W:ABCDEF/Results --output ."
       },
       "test_class": "ApiGetFlowResultsExportCommandHandlerRegressionTest",
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/results/export-command"
@@ -7821,14 +7945,14 @@
                   "errors": [],
                   "logs": [],
                   "output_base_urn": {
-                    "age": 0,
+                    "age": 42000000,
                     "type": "RDFURN",
-                    "value": "aff4:/C.1000000000000000/analysis/ListProcesses-EmailOutputPlugin/test-42"
+                    "value": "aff4:/C.1000000000000000/flows/W:ABCDEF/PluginOutput"
                   },
                   "source_urn": {
-                    "age": 0,
+                    "age": 42000000,
                     "type": "RDFURN",
-                    "value": "aff4:/C.1000000000000000/analysis/ListProcesses/test-42"
+                    "value": "aff4:/C.1000000000000000/flows/W:ABCDEF/Results"
                   },
                   "token": {
                     "age": 0,
@@ -7877,8 +8001,8 @@
               "emails_sent": 0,
               "errors": [],
               "logs": [],
-              "output_base_urn": "aff4:/C.1000000000000000/analysis/ListProcesses-EmailOutputPlugin/test-42",
-              "source_urn": "aff4:/C.1000000000000000/analysis/ListProcesses/test-42",
+              "output_base_urn": "aff4:/C.1000000000000000/flows/W:ABCDEF/PluginOutput",
+              "source_urn": "aff4:/C.1000000000000000/flows/W:ABCDEF/Results",
               "token": {
                 "expiry": 32427003069000000,
                 "reason": "Running tests",

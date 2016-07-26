@@ -233,7 +233,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Notifications")
 
     # Click on the "flow completed" notification.
-    self.Click("css=td:contains('GetFile completed with 1 results')")
+    self.Click("css=td:contains('Flow GetFile completed')")
     self.WaitUntilNot(self.IsTextPresent, "Notifications")
 
     # Check that clicking on a notification changes the location and shows
@@ -311,12 +311,12 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
 
   def testExportTabIsEnabledForStatEntryResults(self):
     with self.ACLChecksDisabled():
-      for _ in test_lib.TestFlowHelper(
+      for s in test_lib.TestFlowHelper(
           "FlowWithOneStatEntryResult",
           self.action_mock,
           client_id=self.client_id,
           token=self.token):
-        pass
+        session_id = s
 
     self.Open("/#c=C.0000000000000001")
     self.Click("css=a[grrtarget='client.flows']")
@@ -324,9 +324,8 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     self.Click("css=li[heading=Results]")
     self.Click("link=Show GRR export tool command")
 
-    self.WaitUntil(
-        self.IsTextPresent, "--username test collection_files "
-        "--path aff4:/C.0000000000000001/analysis/FlowWithOneStatEntryResult")
+    self.WaitUntil(self.IsTextPresent, "--username test collection_files "
+                   "--path %s/Results" % session_id)
 
   def testHashesAreDisplayedCorrectly(self):
     with self.ACLChecksDisabled():

@@ -719,11 +719,14 @@ class StatsHunt(implementation.GRRHunt):
     self._MakeLock()
 
   def Save(self):
-    # Make sure we call any remaining clients before we are saved
-    with self.client_list_lock:
-      call_list, self.client_list = self.client_list, None
+    # Only call remaining clients if the hunt was actually started (the hunt
+    # may be flushed before being started).
+    if self.Get(self.Schema.STATE) == "STARTED":
+      # Make sure we call any remaining clients before we are saved
+      with self.client_list_lock:
+        call_list, self.client_list = self.client_list, None
 
-    self._CallClients(call_list)
+      self._CallClients(call_list)
 
     super(StatsHunt, self).Save()
 

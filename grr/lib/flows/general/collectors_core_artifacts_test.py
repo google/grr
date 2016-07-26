@@ -15,7 +15,7 @@ from grr.lib import artifact_utils
 from grr.lib import client_fixture
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import rdfvalue
+from grr.lib import flow_runner
 from grr.lib import test_lib
 # pylint: disable=unused-import
 from grr.lib.flows.general import artifact_fallbacks
@@ -39,34 +39,31 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
   def _CheckDriveAndRoot(self):
     client_mock = action_mocks.ActionMock("StatFile", "ListDirectory")
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow",
         client_mock,
         artifact_list=[
             "SystemDriveEnvironmentVariable"
         ],
         token=self.token,
-        client_id=self.client_id,
-        output="testsystemdrive"):
-      pass
+        client_id=self.client_id):
+      session_id = s
 
     fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("testsystemdrive"),
-        token=self.token)
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
     self.assertEqual(len(fd), 1)
     self.assertEqual(str(fd[0]), "C:")
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow",
         client_mock,
         artifact_list=["SystemRoot"],
         token=self.token,
-        client_id=self.client_id,
-        output="testsystemroot"):
-      pass
+        client_id=self.client_id):
+      session_id = s
 
     fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("testsystemroot"), token=self.token)
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
     self.assertEqual(len(fd), 1)
     # Filesystem gives WINDOWS, registry gives Windows
     self.assertTrue(str(fd[0]) in [r"C:\Windows", r"C:\WINDOWS"])
@@ -91,8 +88,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
               "SystemDriveEnvironmentVariable"
           ],
           token=self.token,
-          client_id=self.client_id,
-          output="testsystemdrive"):
+          client_id=self.client_id):
         pass
 
     # No registry, so this should use the fallback flow
@@ -205,19 +201,18 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
                                               "ListDirectory")
 
         artifact_list = ["WinDirEnvironmentVariable"]
-        for _ in test_lib.TestFlowHelper(
+        for s in test_lib.TestFlowHelper(
             "ArtifactCollectorFlow",
             client_mock,
             artifact_list=artifact_list,
             token=self.token,
             client_id=self.client_id,
             dependencies=artifact_utils.ArtifactCollectorFlowArgs.Dependency.
-            FETCH_NOW,
-            output="testRetrieveDependencies"):
-          pass
+            FETCH_NOW):
+          session_id = s
 
         output = aff4.FACTORY.Open(
-            self.client_id.Add("testRetrieveDependencies"), token=self.token)
+            session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
         self.assertEqual(len(output), 1)
         self.assertEqual(output[0], r"C:\Windows")
 

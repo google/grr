@@ -18,6 +18,7 @@ config.bowerDir = './bower_components';
 config.distDir = 'dist';
 config.tempDir = 'tmp';
 
+var isWatching = false;
 
 /**
  * Third-party tasks.
@@ -48,7 +49,6 @@ gulp.task('compile-third-party-js', function() {
                    config.bowerDir + '/Flot/jquery.flot.time.js',
 
                    config.bowerDir + '/jquery-ui/jquery-ui.js',
-                   config.bowerDir + '/jquery-timeentry/jquery-plugin.js',
                    config.bowerDir + '/jstree/dist/jstree.js',
                    config.bowerDir + '/moment/moment.js',
 
@@ -96,7 +96,6 @@ gulp.task('compile-third-party-bootstrap-css', function() {
 gulp.task('compile-third-party-css', ['copy-third-party-resources',
                                       'compile-third-party-bootstrap-css'], function() {
   return gulp.src([config.bowerDir + '/jstree/dist/themes/default/style.css',
-                   config.bowerDir + '/jquery-timeentry/jquery.timeentry.css',
                    config.bowerDir + '/bootstrap/dist/css/bootstrap.css',
                    config.bowerDir + '/angular-bootstrap/ui-bootstrap-csp.css',
                    config.bowerDir + '/font-awesome/css/font-awesome.css',
@@ -142,6 +141,9 @@ gulp.task('compile-grr-closure-ui-js', ['compile-grr-angular-template-cache'], f
         errorHandler: function(err) {
           console.log(err);
           this.emit('end');
+          if (!isWatching) {
+            process.exit(1);
+          }
         }
       }))
       .pipe(gulpClosureCompiler({
@@ -215,6 +217,10 @@ gulp.task('compile-grr-ui-css', function() {
         errorHandler: function(err) {
           console.log(err);
           this.emit('end');
+
+          if (!isWatching) {
+            process.exit(1);
+          }
         }
       }))
       .pipe(gulpSass({
@@ -244,6 +250,8 @@ gulp.task('compile', ['compile-third-party',
  */
 
 gulp.task('watch', function() {
+  isWatching = true;
+
   gulp.watch(['javascript/**/*.js', 'angular-components/**/*.js'],
              ['compile-grr-ui-js']);
   gulp.watch(['css/**/*.css', 'css/**/*.scss', 'angular-components/**/*.scss'],

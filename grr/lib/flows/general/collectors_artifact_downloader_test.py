@@ -9,9 +9,10 @@ from grr.lib import aff4
 from grr.lib import artifact
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import flow_runner
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import sequential_collection
 # pylint: disable=unused-import
 from grr.lib.flows.general import artifact_fallbacks
 from grr.lib.flows.general import collectors
@@ -33,7 +34,6 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
       artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
       fd.Set(kb)
 
-    self.output_path = "analysis/artifact_files_downloader"
     self.stubbers = []
 
     self.collector_replies = []
@@ -80,15 +80,14 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
         client_id=self.client_id,
         artifact_list=artifact_list,
         use_tsk=use_tsk,
-        output=self.output_path,
         token=self.token)
     for _ in test_lib.TestFlowHelper(urn, token=self.token):
       pass
 
     try:
       results_fd = aff4.FACTORY.Open(
-          self.client_id.Add(self.output_path),
-          aff4_type=collects.RDFValueCollection,
+          urn.Add(flow_runner.RESULTS_SUFFIX),
+          aff4_type=sequential_collection.GeneralIndexedCollection,
           token=self.token)
       return list(results_fd)
     except aff4.InstantiationError:

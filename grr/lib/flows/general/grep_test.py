@@ -7,8 +7,8 @@ import os
 from grr.client.client_actions import searching
 from grr.lib import action_mocks
 from grr.lib import aff4
-from grr.lib import data_store
 from grr.lib import flags
+from grr.lib import flow_runner
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
@@ -77,23 +77,22 @@ class TestSearchFileContentWithFixture(GrepTests):
     self.vfs_overrider.Stop()
 
   def testNormalGrep(self):
-    output_path = "analysis/grep1"
     grepspec = rdf_client.BareGrepSpec(
         mode=rdf_client.GrepSpec.Mode.FIRST_HIT, literal="hello")
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "SearchFileContent",
         self.client_mock,
         client_id=self.client_id,
         paths=["/proc/10/cmdline"],
         pathtype=rdf_paths.PathSpec.PathType.OS,
         token=self.token,
-        output=output_path,
         grep=grepspec):
-      pass
+      session_id = s
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     self.assertEqual(len(fd), 1)
     self.assertEqual(fd[0].offset, 3)
@@ -106,24 +105,22 @@ class TestSearchFileContentWithFixture(GrepTests):
 
     self.CreateFile(filename, data)
 
-    output_path = "analysis/grep2"
-
     grepspec = rdf_client.BareGrepSpec(
         mode=rdf_client.GrepSpec.Mode.ALL_HITS, literal="HIT")
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "SearchFileContent",
         self.client_mock,
         client_id=self.client_id,
         paths=["/c/Downloads/grepfile.txt"],
         pathtype=rdf_paths.PathSpec.PathType.OS,
         grep=grepspec,
-        token=self.token,
-        output=output_path):
-      pass
+        token=self.token):
+      session_id = s
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     self.assertEqual(len(fd), 100)
     self.assertEqual(fd[15].offset, 523)
@@ -141,26 +138,22 @@ class TestSearchFileContentWithFixture(GrepTests):
       data = "X" * (searching.Grep.BUFF_SIZE - len("HIT")) + "HIT" + "X" * 1000
       self.CreateFile(filename, data)
 
-      output_path = "analysis/grep"
-      output_urn = self.client_id.Add(output_path)
-      data_store.DB.DeleteSubject(output_urn, token=self.token)
-
       grepspec = rdf_client.BareGrepSpec(
           mode=rdf_client.GrepSpec.Mode.FIRST_HIT, literal="HIT")
 
-      for _ in test_lib.TestFlowHelper(
+      for s in test_lib.TestFlowHelper(
           "SearchFileContent",
           self.client_mock,
           client_id=self.client_id,
           paths=["/c/Downloads/grepfile.txt"],
           pathtype=rdf_paths.PathSpec.PathType.OS,
           token=self.token,
-          output=output_path,
           grep=grepspec):
-        pass
+        session_id = s
 
       # Check the output file is created
-      fd = aff4.FACTORY.Open(output_urn, token=self.token)
+      fd = aff4.FACTORY.Open(
+          session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
       self.assertEqual(len(fd), 1)
       self.assertEqual(fd[0].offset, searching.Grep.BUFF_SIZE - len("HIT"))
       self.assertEqual(fd[0].length, 23)
@@ -186,18 +179,16 @@ class TestSearchFileContent(GrepTests):
     args.grep.mode = rdf_client.GrepSpec.Mode.ALL_HITS
 
     # Run the flow.
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "SearchFileContent",
         client_mock,
         client_id=self.client_id,
-        output="analysis/grep/testing",
         args=args,
         token=self.token):
-      pass
+      session_id = s
 
     fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("/analysis/grep/testing"),
-        token=self.token)
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     # Make sure that there is a hit.
     self.assertEqual(len(fd), 1)
@@ -218,18 +209,16 @@ class TestSearchFileContent(GrepTests):
     args = grep.SearchFileContentArgs(paths=[path])
 
     # Run the flow.
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "SearchFileContent",
         client_mock,
         client_id=self.client_id,
-        output="analysis/grep/testing",
         args=args,
         token=self.token):
-      pass
+      session_id = s
 
     fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("/analysis/grep/testing"),
-        token=self.token)
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     self.assertEqual(len(fd), 3)
 
@@ -246,18 +235,16 @@ class TestSearchFileContent(GrepTests):
     args = grep.SearchFileContentArgs(paths=[path], also_download=True)
 
     # Run the flow.
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "SearchFileContent",
         client_mock,
         client_id=self.client_id,
-        output="analysis/grep/testing",
         args=args,
         token=self.token):
-      pass
+      session_id = s
 
     fd = aff4.FACTORY.Open(
-        rdfvalue.RDFURN(self.client_id).Add("/analysis/grep/testing"),
-        token=self.token)
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     self.assertEqual(len(fd), 3)
 

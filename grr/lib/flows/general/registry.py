@@ -170,7 +170,6 @@ class GetMRU(flow.GRRFlow):
       self.CallFlow(
           "FindFiles",
           findspec=findspec,
-          output=None,
           next_state="StoreMRUs",
           request_data=dict(username=user.username))
 

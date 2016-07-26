@@ -24,7 +24,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import throttle
 from grr.lib import utils
-from grr.lib.aff4_objects import collects as aff4_collections
+from grr.lib.aff4_objects import sequential_collection
 from grr.lib.flows.general import administrative
 from grr.lib.flows.general import discovery
 from grr.lib.flows.general import file_finder
@@ -79,22 +79,12 @@ class ApiListFlowsHandlerRegressionTest(
       flow_id_1 = flow.GRRFlow.StartFlow(
           flow_name=discovery.Interrogate.__name__,
           client_id=client_urn,
-          # TODO(user): output="" has to be specified because otherwise
-          # output collection object is created and stored in state.context.
-          # When AFF4Object is serialized, it gets serialized as
-          # <AFF4Object@[address] blah> which breaks the regression, because
-          # the address is always different. Storing AFF4Object in a state
-          # is bad, and we should use blind writes to write to the output
-          # collection. Remove output="" as soon as the issue is resolved.
-          output="",
           token=self.token)
 
     with test_lib.FakeTime(44):
       flow_id_2 = flow.GRRFlow.StartFlow(
           flow_name=processes.ListProcesses.__name__,
           client_id=client_urn,
-          # TODO(user): See comment above regarding output="".
-          output="",
           token=self.token)
 
     self.Check(
@@ -530,11 +520,10 @@ class ApiGetRobotGetFilesOperationStateHandlerRegressionTest(
       # Put something in the output collection
       flow_obj = aff4.FACTORY.Open(
           flow_urn, aff4_type=flow.GRRFlow, token=self.token)
-      flow_state = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
 
       with aff4.FACTORY.Create(
-          flow_state.context.output_urn,
-          aff4_type=aff4_collections.RDFValueCollection,
+          flow_obj.GetRunner().output_urn,
+          aff4_type=sequential_collection.GeneralIndexedCollection,
           token=self.token) as collection:
         collection.Add(rdf_client.ClientSummary())
 

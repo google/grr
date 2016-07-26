@@ -88,13 +88,14 @@ var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
  * @param {angular.$http} $http The Angular http service.
  * @param {!angular.$q} $q
  * @param {!angular.$interval} $interval
+ * @param {!angular.$timeout} $timeout
  * @param {grrUi.core.loadingIndicatorService.LoadingIndicatorService} grrLoadingIndicatorService
  * @constructor
  * @ngInject
  * @export
  */
 grrUi.core.apiService.ApiService = function(
-    $http, $q, $interval, grrLoadingIndicatorService) {
+    $http, $q, $interval, $timeout, grrLoadingIndicatorService) {
   /** @private {angular.$http} */
   this.http_ = $http;
 
@@ -103,6 +104,9 @@ grrUi.core.apiService.ApiService = function(
 
   /** @private {!angular.$interval} */
   this.interval_ = $interval;
+
+  /** @private {!angular.$timeout} */
+  this.timeout_ = $timeout;
 
   /** @private {grrUi.core.loadingIndicatorService.LoadingIndicatorService} */
   this.grrLoadingIndicatorService_ = grrLoadingIndicatorService;
@@ -119,7 +123,7 @@ ApiService.service_name = 'grrApiService';
  * Fetches data for a given API url via the specified HTTP method.
  *
  * @param {string} method The HTTP method to use, e.g. HEAD, GET, etc.
- * @param {string} apiPath API path to trigger/
+ * @param {string} apiPath API path to trigger.
  * @param {Object<string, string>=} opt_params Query parameters.
  * @param {Object<string, string>=} opt_requestSettings Request settings
  *     (cache, etc).
@@ -149,7 +153,7 @@ ApiService.prototype.sendRequest_ = function(method, apiPath, opt_params,
 /**
  * Fetches data for a given API url via HTTP HEAD method.
  *
- * @param {string} apiPath API path to trigger/
+ * @param {string} apiPath API path to trigger.
  * @param {Object<string, string>=} opt_params Query parameters.
  * @return {!angular.$q.Promise} Promise that resolves to the result.
  */
@@ -160,7 +164,7 @@ ApiService.prototype.head = function(apiPath, opt_params) {
 /**
  * Fetches data for a given API url via HTTP GET method.
  *
- * @param {string} apiPath API path to trigger/
+ * @param {string} apiPath API path to trigger.
  * @param {Object<string, string>=} opt_params Query parameters.
  * @return {!angular.$q.Promise} Promise that resolves to the result.
  */
@@ -171,7 +175,7 @@ ApiService.prototype.get = function(apiPath, opt_params) {
 /**
  * Fetches data for a given API url via HTTP GET method.
  *
- * @param {string} apiPath API path to trigger/
+ * @param {string} apiPath API path to trigger.
  * @param {Object<string, string>=} opt_params Query parameters.
  * @return {!angular.$q.Promise} Promise that resolves to the result.
  */
@@ -182,7 +186,7 @@ ApiService.prototype.getCached = function(apiPath, opt_params) {
 /**
  * Deletes the resource behind a given API url via HTTP DELETE method.
  *
- * @param {string} apiPath API path to trigger/
+ * @param {string} apiPath API path to trigger.
  * @param {Object<string, string>=} opt_params Query parameters.
  * @return {!angular.$q.Promise} Promise that resolves to the result.
  */
@@ -191,9 +195,46 @@ ApiService.prototype.delete = function(apiPath, opt_params) {
 };
 
 /**
+ * Polls a given URL every second until the given condition is satisfied
+ * (if opt_checkFn is undefined, meaning no condition was provided, then
+ * the condiition is having JSON responses's 'state' attribute being
+ * equal to 'FINISHED').
+ *
+ * @param {string} apiPath API path to trigger.
+ * @param {Object<string, string>=} opt_params Query parameters.
+ * @param {Function=} opt_checkFn Function that checks if
+ *     polling can be stopped. Default implementation checks for operation
+ *     status to be "FINISHED" (response.data.status == 'FINISHED').
+ * @return {!angular.$q.Promise} Promise that resolves to the HTTP response
+ *     for which checkFn() call returned true or to the first failed
+ *     HTTP response (with status code != 200).
+ */
+ApiService.prototype.poll = function(apiPath, opt_params, opt_checkFn) {
+  if (angular.isUndefined(opt_checkFn)) {
+    opt_checkFn = function(response) {
+      return response['data']['state'] == 'FINISHED';
+    }.bind(this);
+  }
+
+  var pollIteration = function() {
+    return this.get(apiPath, opt_params).then(function success(response) {
+      if (opt_checkFn(response)) {
+        return response;
+      } else {
+        return this.timeout_(pollIteration, 1000);
+      }
+    }.bind(this), function failure(response) {
+      return this.q_.reject(response);
+    }.bind(this));
+  }.bind(this);
+
+  return pollIteration();
+};
+
+/**
  * Initiates a file download via HTTP GET method.
  *
- * @param {string} apiPath API path to trigger/
+ * @param {string} apiPath API path to trigger.
  * @param {Object<string, string>=} opt_params Query parameters.
  * @return {!angular.$q.Promise} Promise that resolves to the download status.
  */

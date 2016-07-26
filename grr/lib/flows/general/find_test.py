@@ -4,6 +4,7 @@
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import flow_runner
 from grr.lib import test_lib
 from grr.lib import type_info
 from grr.lib import utils
@@ -36,7 +37,6 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
   def testFindFiles(self):
     """Test that the Find flow works with files."""
     client_mock = action_mocks.ActionMock("Find")
-    output_path = "analysis/FindFlowTest1"
 
     # Prepare a findspec.
     findspec = rdf_client.FindSpec(
@@ -44,17 +44,17 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "FindFiles",
         client_mock,
         client_id=self.client_id,
         token=self.token,
-        output=output_path,
         findspec=findspec):
-      pass
+      session_id = s
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     # Should match ["bash" and "rbash"].
     matches = set([x.aff4path.Basename() for x in fd])
@@ -69,7 +69,6 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
   def testFindFilesWithGlob(self):
     """Test that the Find flow works with glob."""
     client_mock = action_mocks.ActionMock("Find")
-    output_path = "analysis/FindFlowTest1"
 
     # Prepare a findspec.
     findspec = rdf_client.FindSpec(
@@ -77,17 +76,17 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "FindFiles",
         client_mock,
         client_id=self.client_id,
         token=self.token,
-        output=output_path,
         findspec=findspec):
-      pass
+      session_id = s
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     # Make sure that bash is a file.
     matches = set([x.aff4path.Basename() for x in fd])
@@ -103,7 +102,6 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     """Test that the Find flow works with directories."""
 
     client_mock = action_mocks.ActionMock("Find")
-    output_path = "analysis/FindFlowTest2"
 
     # Prepare a findspec.
     findspec = rdf_client.FindSpec(
@@ -111,17 +109,17 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "FindFiles",
         client_mock,
         client_id=self.client_id,
         token=self.token,
-        output=output_path,
         findspec=findspec):
-      pass
+      session_id = s
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     # Make sure that bin is a directory
     self.assertEqual(len(fd), 2)
@@ -134,7 +132,6 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     """Test that the Find flow works when specifying proto directly."""
 
     client_mock = action_mocks.ActionMock("Find")
-    output_path = "analysis/FindFlowTest4"
 
     # Prepare a findspec.
     findspec = rdf_client.FindSpec(
@@ -142,19 +139,19 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
         pathspec=rdf_paths.PathSpec(
             path="/", pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "FindFiles",
         client_mock,
         client_id=self.client_id,
         token=self.token,
         findspec=findspec,
         iteration_count=3,
-        output=output_path,
         max_results=7):
-      pass
+      session_id = s
 
     # Check the output file is created
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     # Make sure we got the right number of results.
     self.assertEqual(len(fd), 7)
@@ -163,7 +160,6 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     """Test we overwrite the collection every time the flow is executed."""
 
     client_mock = action_mocks.ActionMock("Find")
-    output_path = "analysis/FindFlowTest5"
 
     # Prepare a findspec.
     findspec = rdf_client.FindSpec()
@@ -171,33 +167,33 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
     findspec.pathspec.path = "/"
     findspec.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "FindFiles",
         client_mock,
         client_id=self.client_id,
         token=self.token,
-        findspec=findspec,
-        output=output_path):
-      pass
+        findspec=findspec):
+      session_id = s
 
     # Check the output file with the right number of results.
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     self.assertEqual(len(fd), 2)
 
     # Now find a new result, should overwrite the collection
     findspec.path_regex = "dd"
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "FindFiles",
         client_mock,
         client_id=self.client_id,
         token=self.token,
         findspec=findspec,
-        output=output_path,
         max_results=1):
-      pass
+      session_id = s
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
     self.assertEqual(len(fd), 1)
 
 

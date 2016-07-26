@@ -178,6 +178,9 @@ describe('"recursive list directory" button', function() {
         }
       });
 
+      // Polling will start immediately after POST request is successful.
+      spyOn(grrApiService, 'get').and.returnValue($q.defer().promise);
+
       var element = renderTestTemplate();
       browserTrigger(element.find('button'), 'click');
       browserTrigger($('button[name=Proceed]'), 'click');

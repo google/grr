@@ -157,11 +157,12 @@ message FlowRunnerArgs {
       label: ADVANCED
     }];
 
-  optional string output = 16 [(sem_type) = {
-      description: "If set, a relative URN to the client's namespace where "
-      "a collection will be created, and the result will be written to.",
-      label: ADVANCED
-    }, default="analysis/{p}/{u}-{t}"];
+  // DEPRECATED, output is now fixed.
+  //optional string output = 16 [(sem_type) = {
+  //    description: "If set, a relative URN to the client's namespace where "
+  //    "a collection will be created, and the result will be written to.",
+  //    label: ADVANCED
+  //  }, default="analysis/{p}/{u}-{t}"];
 
   optional string logs_collection_urn = 17 [(sem_type) = {
       type: "RDFURN",
@@ -1194,7 +1195,7 @@ message UpdateVFSFileArgs {
     }, default="CONTAINS"];
 }
 
-// Next field ID: 5
+// Next field ID: 6
 message MultiGetFileArgs {
   repeated PathSpec pathspecs = 2 [(sem_type) = {
       description: "Pathspecs of files to be retrieved.",
@@ -1213,6 +1214,10 @@ message MultiGetFileArgs {
       label: ADVANCED
     }, default=1000000000]; // 1Gb.
 
+  optional uint64 maximum_pending_files = 5 [(sem_type) = {
+      description: "Maximum number of files to be downloading simultaneously."
+      label: ADVANCED
+    }, default=1000];
 }
 
 // Next field ID: 6

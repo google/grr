@@ -2,7 +2,6 @@
 """These flows are designed for high performance transfers."""
 
 
-import hashlib
 import time
 import zlib
 
@@ -12,7 +11,6 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
-from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import filestore
@@ -189,21 +187,26 @@ class HashTracker(object):
   def __init__(self, hash_response, is_known=False):
     self.hash_response = hash_response
     self.is_known = is_known
-    self.digest = hash_response.data.encode("hex")
+
+  def Digest(self):
+    return self.hash_response.data.encode("hex")
 
 
 class FileTracker(object):
   """A Class to track a single file download."""
 
-  def __init__(self, stat_entry, client_id, request_data, index=None):
+  # We need to be careful about what is stored in the file tracker so we use
+  # __slots__ to ensure that non-registered attributes are not set.
+  __slots__ = ["fd", "client_id", "stat_entry", "hash_obj", "hash_list",
+               "index", "bytes_read", "size_to_download"]
+
+  def __init__(self, client_id, index=None):
+    # We hold onto the AFF4 file object.
     self.fd = None
-    self.stat_entry = stat_entry
+    self.client_id = client_id
+    self.stat_entry = None
     self.hash_obj = None
     self.hash_list = []
-    self.pathspec = stat_entry.pathspec
-    self.urn = aff4_grr.VFSGRRClient.PathspecToURN(self.pathspec, client_id)
-    self.stat_entry.aff4path = self.urn
-    self.request_data = request_data
     self.index = index
 
     # The total number of bytes available in this file. This may be different
@@ -215,12 +218,20 @@ class FileTracker(object):
     # - a limit to the file size in the flow (self.args.file_size).
     self.size_to_download = 0
 
+  def SetStatEntry(self, stat_entry):
+    self.stat_entry = stat_entry
+    self.stat_entry.aff4path = aff4_grr.VFSGRRClient.PathspecToURN(
+        stat_entry.pathspec, self.client_id)
+
   def __str__(self):
+    if not self.stat_entry:
+      return "<Tracker>"
+
     sha256 = self.hash_obj and self.hash_obj.sha256
     if sha256:
-      return "<Tracker: %s (sha256: %s)>" % (self.urn, sha256)
+      return "<Tracker: %s (sha256: %s)>" % (self.stat_entry.aff4path, sha256)
     else:
-      return "<Tracker: %s >" % self.urn
+      return "<Tracker: %s >" % self.stat_entry.aff4path
 
   def CreateVFSFile(self, filetype, token=None, chunksize=None):
     """Create a VFSFile with stat_entry metadata.
@@ -236,15 +247,25 @@ class FileTracker(object):
       sets self.fd
     Returns:
       filehandle open for write
+
+    Raises:
+      RuntimeError: If this is called before setting a stat_entry with
+        SetStatEntry().
     """
+    if not self.stat_entry:
+      raise RuntimeError("Can not create a VFSFile without a stat_entry.")
 
     # We create the file in the client namespace and populate with metadata.
-    self.fd = aff4.FACTORY.Create(self.urn, filetype, mode="w", token=token)
+    self.fd = aff4.FACTORY.Create(
+        self.stat_entry.aff4path, filetype, mode="w", token=token)
     self.fd.SetChunksize(chunksize)
+
+  def Close(self, sync):
+    """Close and finalize the AFF4 object."""
     self.fd.Set(self.fd.Schema.STAT(self.stat_entry))
-    self.fd.Set(self.fd.Schema.PATHSPEC(self.pathspec))
+    self.fd.Set(self.fd.Schema.PATHSPEC(self.stat_entry.pathspec))
     self.fd.Set(self.fd.Schema.CONTENT_LAST(rdfvalue.RDFDatetime().Now()))
-    return self.fd
+    self.fd.Close(sync=sync)
 
 
 class MultiGetFileMixin(object):
@@ -288,8 +309,20 @@ class MultiGetFileMixin(object):
     # values are FileTracker instances.
     self.state.Register("pending_files", {})
 
-    # A mapping of index values to the original pathspecs.
-    self.state.Register("indexed_pathspecs", {})
+    # The maximum number of files we are allowed to download concurrently.
+    self.state.Register("maximum_pending_files", 1000)
+
+    # As pathspecs are added to the flow they are appended to this array. We
+    # then simply pass their index in this array as a surrogate for the full
+    # pathspec. This allows us to use integers to track pathspecs in dicts etc.
+    self.state.Register("indexed_pathspecs", [])
+
+    # The index of the next pathspec to start. Pathspecs are added to
+    # indexed_pathspecs and wait there until there are free trackers for
+    # them. When the number of pending_files falls below the
+    # "maximum_pending_files" count, we increment this index and start of
+    # downloading another pathspec.
+    self.state.Register("next_pathspec_to_start", 0)
 
     # Set of blobs we still need to fetch.
     self.state.Register("blobs_we_need", set())
@@ -301,24 +334,39 @@ class MultiGetFileMixin(object):
         token=self.token)
     self.state.Register("filestore", fd)
 
-  def GenerateIndex(self, pathspec):
-    h = hashlib.sha256()
-    h.update(pathspec.SerializeToString())
-    return h.hexdigest()
-
   def StartFileFetch(self, pathspec, request_data=None):
     """The entry point for this flow mixin - Schedules new file transfer."""
     # Create an index so we can find this pathspec later.
-    index = self.GenerateIndex(pathspec)
-    self.state.indexed_pathspecs[index] = pathspec
+    self.state.indexed_pathspecs.append((pathspec, request_data or {}))
+    self._TryToStartNextPathspec()
 
-    request_data = request_data or {}
-    request_data["index"] = index
+  def _TryToStartNextPathspec(self):
+    """Try to schedule the next pathspec if there is enough capacity."""
+    # Nothing to do here.
+    if self.state.maximum_pending_files <= len(self.state.pending_files):
+      return
+
+    if self.state.maximum_pending_files <= len(self.state.pending_hashes):
+      return
+
+    try:
+      index = self.state.next_pathspec_to_start
+      pathspec = self.state.indexed_pathspecs[index][0]
+      self.state.next_pathspec_to_start = index + 1
+    except IndexError:
+      # We did all the pathspecs, nothing left to do here.
+      return
+
+    # Add the file tracker to the pending hashes list where it waits until the
+    # hash comes back.
+    self.state.pending_hashes[index] = FileTracker(self.client_id, index)
+
+    # First state the file, then hash the file.
     self.CallClient(
         "StatFile",
         pathspec=pathspec,
         next_state="StoreStat",
-        request_data=request_data)
+        request_data=dict(index=index))
 
     request = rdf_client.FingerprintRequest(
         pathspec=pathspec, max_filesize=self.state.file_size)
@@ -332,7 +380,23 @@ class MultiGetFileMixin(object):
         "HashFile",
         request,
         next_state="ReceiveFileHash",
-        request_data=request_data)
+        request_data=dict(index=index))
+
+  def _ReceiveFetchedFile(self, tracker):
+    """Remove pathspec for this index and call the ReceiveFetchedFile method."""
+    index = tracker.index
+    _, request_data = self.state.indexed_pathspecs[index]
+    self.state.indexed_pathspecs[index] = (None, None)
+    self.state.pending_hashes.pop(index, None)
+    self.state.pending_files.pop(index, None)
+
+    # Report the request_data for this flow's caller.
+    self.ReceiveFetchedFile(
+        tracker.stat_entry, tracker.hash_obj, request_data=request_data)
+
+    # We have a bit more room in the pending_hashes so we try to schedule
+    # another pathspec.
+    self._TryToStartNextPathspec()
 
   def ReceiveFetchedFile(self, stat_entry, file_hash, request_data=None):
     """This method will be called for each new file successfully fetched.
@@ -343,6 +407,21 @@ class MultiGetFileMixin(object):
       request_data: Arbitrary dictionary that was passed to the corresponding
                     StartFileFetch call.
     """
+
+  def _FileFetchFailed(self, index, request_name):
+    """Remove pathspec for this index and call the FileFetchFailed method."""
+    # Remove pathspec and request_data from index.
+    pathspec, request_data = self.state.indexed_pathspecs[index]
+    self.state.indexed_pathspecs[index] = (None, None)
+    self.state.pending_hashes.pop(index, None)
+    self.state.pending_files.pop(index, None)
+
+    # Report the request_data for this flow's caller.
+    self.FileFetchFailed(pathspec, request_name, request_data=request_data)
+
+    # We have a bit more room in the pending_hashes so we try to schedule
+    # another pathspec.
+    self._TryToStartNextPathspec()
 
   def FileFetchFailed(self, pathspec, request_name, request_data=None):
     """This method will be called when stat or hash requests fail.
@@ -357,27 +436,21 @@ class MultiGetFileMixin(object):
   @flow.StateHandler()
   def StoreStat(self, responses):
     """Stores stat entry in the flow's state."""
-
+    index = responses.request_data["index"]
     if not responses.success:
       self.Log("Failed to stat file: %s", responses.status)
-      self.FileFetchFailed(
-          responses.request.request.payload.pathspec,
-          responses.request.request.name,
-          request_data=responses.request_data)
+      # Report failure.
+      self._FileFetchFailed(index, responses.request.request.name)
       return
 
-    stat_entry = responses.First()
-    index = responses.request_data["index"]
-    self.state.pending_hashes[index] = FileTracker(stat_entry, self.client_id,
-                                                   responses.request_data,
-                                                   index)
+    tracker = self.state.pending_hashes[index]
+    tracker.SetStatEntry(responses.First())
 
   @flow.StateHandler()
   def ReceiveFileHash(self, responses):
     """Add hash digest to tracker and check with filestore."""
     # Support old clients which may not have the new client action in place yet.
     # TODO(user): Deprecate once all clients have the HashFile action.
-
     if not responses.success and responses.request.request.name == "HashFile":
       logging.debug(
           "HashFile action not available, falling back to FingerprintFile.")
@@ -392,10 +465,8 @@ class MultiGetFileMixin(object):
     if not responses.success:
       self.Log("Failed to hash file: %s", responses.status)
       self.state.pending_hashes.pop(index, None)
-      self.FileFetchFailed(
-          responses.request.request.payload.pathspec,
-          responses.request.request.name,
-          request_data=responses.request_data)
+      # Report the error.
+      self._FileFetchFailed(index, responses.request.request.name)
       return
 
     self.state.files_hashed += 1
@@ -407,7 +478,8 @@ class MultiGetFileMixin(object):
       hash_obj = rdf_crypto.Hash()
 
       if len(response.results) < 1 or response.results[0]["name"] != "generic":
-        self.Log("Failed to hash file: %s", self.state.indexed_pathspecs[index])
+        self.Log("Failed to hash file: %s",
+                 self.state.indexed_pathspecs[index][0])
         self.state.pending_hashes.pop(index, None)
         return
 
@@ -418,17 +490,16 @@ class MultiGetFileMixin(object):
           value = result.GetItem(hash_type)
           setattr(hash_obj, hash_type, value)
       except AttributeError:
-        self.Log("Failed to hash file: %s", self.state.indexed_pathspecs[index])
+        self.Log("Failed to hash file: %s",
+                 self.state.indexed_pathspecs[index][0])
         self.state.pending_hashes.pop(index, None)
         return
 
     try:
       tracker = self.state.pending_hashes[index]
     except KeyError:
-      # TODO(user): implement a test for this and handle the failure
-      # gracefully: i.e. maybe we can continue with an empty StatEntry.
-      self.Error("Couldn't stat the file, but got the hash (%s): %s" %
-                 (utils.SmartStr(index), utils.SmartStr(response.pathspec)))
+      # Hashing the file failed, but we did stat it.
+      self._FileFetchFailed(index, responses.request.request.name)
       return
 
     tracker.hash_obj = hash_obj
@@ -516,16 +587,13 @@ class MultiGetFileMixin(object):
         file_tracker.fd.Set(hashset)
 
         # Add this file to the index at the canonical location
-        existing_blob.AddIndex(file_tracker.urn)
+        existing_blob.AddIndex(file_tracker.stat_entry.aff4path)
 
         # It is not critical that this file be written immediately.
-        file_tracker.fd.Close(sync=False)
+        file_tracker.Close(sync=False)
 
-        # Let the caller know we have this file already.
-        self.ReceiveFetchedFile(
-            file_tracker.stat_entry,
-            file_tracker.hash_obj,
-            request_data=file_tracker.request_data)
+        # Report this hit to the flow's caller.
+        self._ReceiveFetchedFile(file_tracker)
 
     # Now we iterate over all the files which are not in the store and arrange
     # for them to be copied.
@@ -564,7 +632,7 @@ class MultiGetFileMixin(object):
           length = self.CHUNK_SIZE
         self.CallClient(
             "HashBuffer",
-            pathspec=file_tracker.pathspec,
+            pathspec=file_tracker.stat_entry.pathspec,
             offset=i * self.CHUNK_SIZE,
             length=length,
             next_state="CheckHash",
@@ -589,13 +657,13 @@ class MultiGetFileMixin(object):
     hash_response = responses.First()
     if not responses.success or not hash_response:
       self.Log("Failed to read %s: %s" % (file_tracker.urn, responses.status))
-      del self.state.pending_files[index]
+      self._FileFetchFailed(index, responses.request.request.name)
       return
 
     hash_tracker = HashTracker(hash_response)
     file_tracker.hash_list.append(hash_tracker)
 
-    self.state.blobs_we_need.add(hash_tracker.digest)
+    self.state.blobs_we_need.add(hash_tracker.Digest())
 
     if len(self.state.blobs_we_need) > self.MIN_CALL_TO_FILE_STORE:
       self.FetchFileContent()
@@ -618,9 +686,9 @@ class MultiGetFileMixin(object):
     for index, file_tracker in self.state.pending_files.iteritems():
       for hash_tracker in file_tracker.hash_list:
         # Make sure we read the correct pathspec on the client.
-        hash_tracker.hash_response.pathspec = file_tracker.pathspec
+        hash_tracker.hash_response.pathspec = file_tracker.stat_entry.pathspec
 
-        if hash_tracker.digest in blobs_we_have:
+        if hash_tracker.Digest() in blobs_we_have:
           # If we have the data we may call our state directly.
           self.CallState(
               [hash_tracker.hash_response],
@@ -650,7 +718,8 @@ class MultiGetFileMixin(object):
 
     # Failed to read the file - ignore it.
     if not responses.success:
-      return self.RemoveInFlightFile(index)
+      self._FileFetchFailed(index, responses.request.request.name)
+      return
 
     response = responses.First()
     file_tracker = self.state.pending_files.get(index)
@@ -659,11 +728,11 @@ class MultiGetFileMixin(object):
 
       if (response.length < file_tracker.fd.chunksize or
           response.offset + response.length >= file_tracker.size_to_download):
-        # File done, remove from the store and close it.
-        self.RemoveInFlightFile(index)
-
         # Close and write the file to the data store.
-        file_tracker.fd.Close(sync=True)
+        file_tracker.Close(sync=True)
+
+        # File done, remove from the store and close it.
+        self._ReceiveFetchedFile(file_tracker)
 
         # Publish the new file event to cause the file to be added to the
         # filestore. This is not time critical so do it when we have spare
@@ -678,16 +747,6 @@ class MultiGetFileMixin(object):
         if not self.state.files_fetched % 100:
           self.Log("Fetched %d of %d files.", self.state.files_fetched,
                    self.state.files_to_fetch)
-
-  def RemoveInFlightFile(self, index):
-    """Removes a file from the pending files list."""
-
-    file_tracker = self.state.pending_files.pop(index)
-    if file_tracker:
-      self.ReceiveFetchedFile(
-          file_tracker.stat_entry,
-          file_tracker.hash_obj,
-          request_data=file_tracker.request_data)
 
   @flow.StateHandler()
   def End(self):
@@ -715,7 +774,7 @@ class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
     super(MultiGetFile, self).Start()
 
     self.state.use_external_stores = self.args.use_external_stores
-
+    self.state.maximum_pending_files = self.args.maximum_pending_files
     self.state.file_size = self.args.file_size
 
     unique_paths = set()

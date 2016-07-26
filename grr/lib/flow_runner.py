@@ -56,13 +56,11 @@ queues. Child flow runners all share their parent's queue manager.
 """
 
 import threading
-import time
 import traceback
 
 
 import logging
 from grr.client import actions
-from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import events
@@ -73,7 +71,6 @@ from grr.lib import rdfvalue
 from grr.lib import stats
 from grr.lib import utils
 
-from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import multi_type_collection
 from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import users as aff4_users
@@ -102,7 +99,10 @@ class FlowLogCollection(sequential_collection.IndexedSequentialCollection):
   RDF_TYPE = rdf_flows.FlowLog
 
 
+RESULTS_SUFFIX = "Results"
 RESULTS_PER_TYPE_SUFFIX = "ResultsPerType"
+
+OUTPUT_PLUGIN_BASE_SUFFIX = "PluginOutput"
 
 
 class FlowRunner(object):
@@ -151,16 +151,20 @@ class FlowRunner(object):
       self.queue_manager = queue_manager.QueueManager(
           token=self.token, store=self.data_store)
 
+    self.queued_replies = []
+
     self.outbound_lock = threading.Lock()
     self.flow_obj = flow_obj
 
     # Initialize from a new runner args proto.
     if runner_args is not None:
+      self.args = runner_args
+      self.session_id = self.GetNewSessionID()
+      self.flow_obj.urn = self.session_id
+
       # Flow state does not have a valid context, we need to create one.
       self.context = self.InitializeContext(runner_args)
-      self.args = runner_args
-
-      self.context.Register("session_id", self.GetNewSessionID())
+      self.context.Register("session_id", self.session_id)
 
     else:
       # Retrieve args from the flow object's context. The flow object is
@@ -170,7 +174,7 @@ class FlowRunner(object):
 
       self.args = self.context.args
 
-    # Populate the flow object's urn with the new session id.
+    # Populate the flow object's urn with the session id.
     self.flow_obj.urn = self.session_id = self.context.session_id
 
     # Sent replies are cached so that they can be processed by output plugins
@@ -191,53 +195,33 @@ class FlowRunner(object):
     # HuntRunnerArgs and not FlowRunnerArgs. HuntRunner and FlowRunner
     # should share the functionality in some other way, not through
     # inheritance.
-    if runner_args is not None and not (
-        parent_runner and getattr(self.args, "send_replies", None) and
-        not getattr(self.args, "write_intermediate_results", None)):
-      with aff4.FACTORY.Create(
-          self.multi_type_output_urn,
-          aff4_type=multi_type_collection.MultiTypeCollection,
-          token=self.token) as _:
-        pass
+    if runner_args is not None and self.IsWritingResults():
+      with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+        with aff4.FACTORY.Create(
+            self.output_urn,
+            aff4_type=sequential_collection.GeneralIndexedCollection,
+            mutation_pool=mutation_pool,
+            token=self.token):
+          pass
+        with aff4.FACTORY.Create(
+            self.multi_type_output_urn,
+            aff4_type=multi_type_collection.MultiTypeCollection,
+            mutation_pool=mutation_pool,
+            token=self.token):
+          pass
 
-  @property
-  def output(self):
-    return self.context.output
-
-  @property
-  def output_urn(self):
-    """Returns urn of the output collection.
-
-    Note that the output collection itself is nullified when flow is terminated,
-    so we're keeping the urn separately for further reference.
-
-    Returns:
-      URN of the output collection.
-    """
-    return self.context.output_urn
-
-  @output.setter
-  def output(self, value):
-    self.context.output = value
-    if self.context.output is not None:
-      self.context.output_urn = self.context.output.urn
+  def IsWritingResults(self):
+    return (not self.parent_runner or
+            not getattr(self.args, "send_replies", None) or
+            getattr(self.args, "write_intermediate_results", None))
 
   @property
   def multi_type_output_urn(self):
     return self.flow_obj.urn.Add(RESULTS_PER_TYPE_SUFFIX)
 
-  def _CreateOutputCollection(self, args):
-    # Can only really have an output collection if we are using a client.
-    if args.client_id and args.output:
-      output_name = args.output.format(
-          t=time.time(),
-          p=self.flow_obj.__class__.__name__,
-          u=self.token.username)
-
-      return aff4.FACTORY.Create(
-          args.client_id.Add(output_name),
-          collects.RDFValueCollection,
-          token=self.token)
+  @property
+  def output_urn(self):
+    return self.flow_obj.urn.Add(RESULTS_SUFFIX)
 
   def _GetLogsCollectionURN(self, logs_collection_urn):
     if self.parent_runner is not None and not logs_collection_urn:
@@ -282,11 +266,6 @@ class FlowRunner(object):
     if args is None:
       args = FlowRunnerArgs()
 
-    output_collection = self._CreateOutputCollection(args)
-    # Output collection is nullified when flow is terminated, so we're
-    # keeping the urn separately for further reference.
-    output_urn = (output_collection is not None) and output_collection.urn
-
     output_plugins_states = []
     for plugin_descriptor in args.output_plugins:
       if not args.client_id:
@@ -294,22 +273,11 @@ class FlowRunner(object):
                  "the client.", plugin_descriptor.plugin_name)
         continue
 
-      if not args.output:
-        self.Log("Not initializing output plugin %s as output path pattern is "
-                 "not specified in the flow args.",
-                 plugin_descriptor.plugin_name)
-        continue
-
-      output_path = args.output.format(
-          t=time.time(),
-          p=(self.flow_obj.__class__.__name__ + "-" +
-             plugin_descriptor.plugin_name),
-          u=self.token.username)
-      output_base_urn = args.client_id.Add(output_path)
+      output_base_urn = self.session_id.Add(OUTPUT_PLUGIN_BASE_SUFFIX)
 
       plugin_class = plugin_descriptor.GetPluginClass()
       plugin = plugin_class(
-          output_urn,
+          self.output_urn,
           args=plugin_descriptor.plugin_args,
           output_base_urn=output_base_urn,
           token=self.token)
@@ -337,9 +305,7 @@ class FlowRunner(object):
         network_bytes_sent=0,
         next_outbound_id=1,
         next_processed_request=1,
-        output=output_collection,
         output_plugins_states=output_plugins_states,
-        output_urn=output_urn,
         outstanding_requests=0,
         remaining_cpu_quota=args.cpu_limit,
         state=rdf_flows.Flow.State.RUNNING,
@@ -796,7 +762,6 @@ class FlowRunner(object):
                request_data=None,
                client_id=None,
                base_session_id=None,
-               output=None,
                **kwargs):
     """Creates a new flow and send its responses to a state.
 
@@ -822,10 +787,6 @@ class FlowRunner(object):
        client_id: If given, the flow is started for this client.
 
        base_session_id: A URN which will be used to build a URN.
-
-       output: A relative output name for the child collection. Normally
-         subflows do not write their own collections, but this can be specified
-         to change this behaviour.
 
        **kwargs: Arguments for the child flow.
 
@@ -879,7 +840,6 @@ class FlowRunner(object):
         parent_flow=self.flow_obj,
         _store=self.data_store,
         sync=sync,
-        output=output,
         queue=self.args.queue,
         write_intermediate_results=write_intermediate,
         logs_collection_urn=logs_urn,
@@ -927,31 +887,32 @@ class FlowRunner(object):
       self.queue_manager.QueueResponse(request_state.session_id, msg)
 
       if self.args.write_intermediate_results:
-        self.context.output.Add(response)
-        multi_type_collection.MultiTypeCollection.StaticAdd(
-            self.multi_type_output_urn, self.token, response)
-    else:
-      # Only write the reply to the collection if we are the parent flow.  This
-      # avoids creating a collection for every intermediate flow result.
-      self.context.output.Add(response)
-      multi_type_collection.MultiTypeCollection.StaticAdd(
-          self.multi_type_output_urn, self.token, response)
+        self.QueueReplyForResultsCollection(response)
 
-    if self.args.client_id:
-      # While wrapping the response in GrrMessage is not strictly necessary for
-      # output plugins, GrrMessage.source may be used by these plugins to fetch
-      # client's metadata and include it into the exported data.
-      self.sent_replies.append(
-          rdf_flows.GrrMessage(
-              payload=response, source=self.args.client_id))
     else:
-      self.sent_replies.append(response)
+      # Only write the reply to the collection if we are the parent flow.
+      self.QueueReplyForResultsCollection(response)
 
   def FlushMessages(self):
     """Flushes the messages that were queued."""
     # Only flush queues if we are the top level runner.
     if self.parent_runner is None:
       self.queue_manager.Flush()
+
+    if self.queued_replies:
+      with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+        for response in self.queued_replies:
+          sequential_collection.GeneralIndexedCollection.StaticAdd(
+              self.output_urn,
+              self.token,
+              response,
+              mutation_pool=mutation_pool)
+          multi_type_collection.MultiTypeCollection.StaticAdd(
+              self.multi_type_output_urn,
+              self.token,
+              response,
+              mutation_pool=mutation_pool)
+      self.queued_replies = []
 
   def Error(self, backtrace, client_id=None, status=None):
     """Kills this flow with an error."""
@@ -1033,18 +994,6 @@ class FlowRunner(object):
     # This flow might already not be running.
     if self.context.state != rdf_flows.Flow.State.RUNNING:
       return
-
-    try:
-      # Close off the output collection.
-      if self.output and len(self.output):
-        self.output.Close()
-        logging.info("%s flow results written to %s", len(self.output),
-                     self.output.urn)
-        self.output = None
-
-    except access_control.UnauthorizedAccess:
-      # This might fail if the output has a pickled token.
-      pass
 
     if self.args.request_state.session_id:
       # Make a response or use the existing one.
@@ -1142,6 +1091,19 @@ class FlowRunner(object):
 
   def QueueNotification(self, *args, **kw):
     self.queue_manager.QueueNotification(*args, **kw)
+
+  def QueueReplyForResultsCollection(self, response):
+    self.queued_replies.append(response)
+
+    if self.args.client_id:
+      # While wrapping the response in GrrMessage is not strictly necessary for
+      # output plugins, GrrMessage.source may be used by these plugins to fetch
+      # client's metadata and include it into the exported data.
+      self.sent_replies.append(
+          rdf_flows.GrrMessage(
+              payload=response, source=self.args.client_id))
+    else:
+      self.sent_replies.append(response)
 
   def SetStatus(self, status):
     self.context.status = status

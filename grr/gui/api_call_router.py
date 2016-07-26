@@ -439,6 +439,20 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("Cron")
+  @ArgsType(api_cron.ApiListCronJobFlowsArgs)
+  @ResultType(api_flow.ApiListFlowsResult)
+  @Http("GET", "/api/cron-jobs/<cron_job_id>/flows")
+  def ListCronJobFlows(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("Cron")
+  @ArgsType(api_cron.ApiGetCronJobFlowArgs)
+  @ResultType(api_flow.ApiFlow)
+  @Http("GET", "/api/cron-jobs/<cron_job_id>/flows/<flow_id>")
+  def GetCronJobFlow(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("Cron")
   @ArgsType(api_cron.ApiDeleteCronJobArgs)
   @Http("POST", "/api/cron-jobs/<cron_job_id>/actions/delete")
   def DeleteCronJob(self, args, token=None):

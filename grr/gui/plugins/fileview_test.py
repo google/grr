@@ -19,6 +19,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
+from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -68,7 +69,7 @@ class TestLegacyFileView(FileViewTestBase):
     self.Click("link=c")
 
     # Perform recursive refresh
-    self.Click("css=button[name=RecursiveRefresh]")
+    self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
     self.WaitUntil(self.IsTextPresent, "Recursive Refresh")
     self.WaitUntil(self.IsTextPresent, "Max depth")
@@ -77,7 +78,7 @@ class TestLegacyFileView(FileViewTestBase):
     self.Click("css=button[name=Proceed]")
 
     self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
-    self.Click("css=button[name=Close]")
+    self.WaitUntilNot(self.IsTextPresent, "Refresh started successfully!")
 
     # Go to "Manage Flows" tab and check that RecursiveListDirectory flow has
     # been created.
@@ -131,6 +132,14 @@ class TestFileView(FileViewTestBase):
           path, aff4_type=aff4_grr.VFSFile, mode="w", token=token) as fd:
         fd.Write(content)
         fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime().Now())
+
+  def _CreateFolder(self, path, timestamp, token=None):
+    """Creates a VFS folder."""
+    with test_lib.FakeTime(timestamp):
+      with aff4.FACTORY.Create(
+          path, aff4_type=aff4_standard.VFSDirectory, mode="w",
+          token=token) as _:
+        pass
 
   def testOpeningVfsOfUnapprovedClientRedirectsToHostInfoPage(self):
     self.Open("/#/clients/C.0000000000000002/vfs/")
@@ -365,28 +374,17 @@ class TestFileView(FileViewTestBase):
 
   def testUnicodeContentIsShownInTree(self):
     # Open VFS view for client 1 on a specific location.
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView&t=_fs-os-c")
+    self.Open("/#clients/C.0000000000000001/vfs/fs/os/c/Downloads/")
 
-    # Wait until the folder gets selected and its information displayed in
-    # the details pane.
-    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs/os/c")
-
-    # Click on the "Downloads" subfolder.
-    self.Click("css=#_fs-os-c-Downloads a")
-
-    # Some more unicode testing.
+    # Click on the file containing unicode characters.
     self.Click(u"css=tr:contains(\"中.txt\")")
-    self.Click("css=li[heading=Download]")
+    # Then click on the "Download" tab.
+    self.Click("css=li[heading=Download]:not(.disabled)")
 
     self.WaitUntil(self.IsTextPresent, u"中国新闻网新闻中.txt")
 
-    # Test the hex viewer.
-    self.Click("css=#_fs-os-proc a")
-    self.Click("css=li[heading=Stats]")
-    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs/os/proc")
-
-    self.Click("css=#_fs-os-proc-10 a")
-    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs/os/proc/10")
+  def testHexViewer(self):
+    self.Open("/#clients/C.0000000000000001/vfs/fs/os/proc/10/")
 
     self.Click("css=td:contains(\"cmdline\")")
     self.Click("css=li[heading=HexView]:not(.disabled)")
@@ -490,24 +488,10 @@ class TestFileView(FileViewTestBase):
 
   def testRefreshDirectoryStartsFlow(self):
     # Open VFS view for client 1.
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView")
-
-    # Choose some directory with pathspec in the ClientFixture.
-    self.Click("css=#_fs a")
-    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs")
-
-    self.Click("css=#_fs-os a")
-    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs/os")
-
-    self.Click("css=#_fs-os-Users a")
-    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs/os/Users")
-
-    self.Click("css=#_fs-os-Users-Shared a")
-    self.WaitUntil(self.IsTextPresent, "C.0000000000000001/fs/os/Users/Shared")
-    self.WaitUntil(self.IsTextPresent, "/Users/Shared")
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/Users/Shared/")
 
     # Grab the root directory again - should produce an Interrogate flow.
-    self.Click("css=button#refresh-dir")
+    self.Click("css=button#refresh-dir:not([disabled])")
 
     # Go to the flow management screen.
     self.Click("css=a[grrtarget='client.flows']")
@@ -538,43 +522,25 @@ class TestFileView(FileViewTestBase):
         "--username test file --path "
         "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt --output .")
 
-  def testUpdateButton(self):
-    self.Open("/")
-
-    self.Type("client_query", "C.0000000000000001")
-    self.Click("client_query_submit")
-
-    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
-                        "css=span[type=subject]")
-
-    # Choose client 1
-    self.Click("css=td:contains('0001')")
-
-    # Go to Browse VFS
-    self.Click("css=a[grrtarget='client.vfs']")
-    self.Click("css=#_fs i.jstree-icon")
-    self.Click("css=#_fs-os i.jstree-icon")
-    self.Click("link=c")
-
-    # Ensure that refresh button is enabled
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=button[id^=refresh][disabled]")
-
-    # Grab the root directory again - should produce an Interrogate flow.
-    self.Click("css=button[id^=refresh]")
-
-    # Check that the button got disabled
-    # TODO(user): Implement this logic, so that the button is disabled not
-    # globally, but on per-one-operation basis. See the comment in
-    # file-table.html.
-    # self.WaitUntil(self.IsElementPresent, "css=button[id^=refresh][disabled]")
-
+  def _RunUpdateFlow(self, client_id):
     # Get the flows that should have been started and finish them.
     with self.ACLChecksDisabled():
-      client_id = rdf_client.ClientURN("C.0000000000000001")
-
       fd = aff4.FACTORY.Open(client_id.Add("flows"), token=self.token)
       flows = list(fd.ListChildren())
+
+      self._CreateFileVersion(
+          client_id.Add("fs/os/c/a.txt"),
+          "Hello World",
+          timestamp=TIME_0,
+          token=self.token)
+      self._CreateFolder(
+          client_id.Add("fs/os/c/TestFolder"),
+          timestamp=TIME_0,
+          token=self.token)
+      self._CreateFolder(
+          client_id.Add("fs/os/c/bin/TestBinFolder"),
+          timestamp=TIME_0,
+          token=self.token)
 
       client_mock = action_mocks.ActionMock()
       for flow_urn in flows:
@@ -586,24 +552,188 @@ class TestFileView(FileViewTestBase):
             check_flow_errors=False):
           pass
 
+  def testUpdateButtonGetsDisabledWhileUpdateIsRunning(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Click("css=button[id=refresh-dir]:not([disabled])")
+
+    # Check that the button got disabled.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button[id=refresh-dir][disabled]")
+
+    client_id = rdf_client.ClientURN("C.0000000000000001")
+    self._RunUpdateFlow(client_id)
+
     # Ensure that refresh button is enabled again.
     #
-    # TODO(user): Implement this logic, so that the button is disabled not
-    # globally, but on per-one-operation basis. See the comment in
-    # file-table.html.
-    # TODO(user): ideally, we should also check that something got
-    # updated, not only that button got enabled back.
-    # self.WaitUntilNot(self.IsElementPresent,
-    #                   "css=button[id^=refresh][disabled]")
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=button[id=refresh-dir][disabled]")
 
-  def testClickingOnTreeNodeRefrehsesChildrenFoldersList(self):
-    self.Open("/#c=C.0000000000000001&main=VirtualFileSystemView")
+  def testUpdateButtonGetsReenabledWhenUpdateEnds(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Click("css=button[id=refresh-dir]:not([disabled])")
 
-    # Go to Browse VFS
-    self.Click("css=a[grrtarget='client.vfs']")
-    self.Click("css=#_fs i.jstree-icon")
-    self.Click("css=#_fs-os i.jstree-icon")
-    self.Click("link=c")
+    # Check that the button got re-enabled.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button[id=refresh-dir][disabled]")
+
+    client_id = rdf_client.ClientURN("C.0000000000000001")
+    self._RunUpdateFlow(client_id)
+
+    # Check that the button got re-enabled.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button[id=refresh-dir]:not([disabled])")
+
+  def testSwitchingFoldersWhileUpdatingEnablesUpdateButton(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Click("css=button[id=refresh-dir]:not([disabled])")
+
+    # Check that the button got disabled.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button[id=refresh-dir][disabled]")
+
+    self.Click("css=#_fs-os-c-bin a")
+
+    # Ensure that refresh button is enabled again.
+    #
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=button[id=refresh-dir][disabled]")
+
+  def testTreeAndFileListRefreshedWhenUpdateCompletes(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Click("css=button[id=refresh-dir]:not([disabled])")
+
+    client_id = rdf_client.ClientURN("C.0000000000000001")
+    self._RunUpdateFlow(client_id)
+
+    # The flow should be finished now, and file/tree lists update should
+    # be triggered.
+    # Ensure that the tree got updated as well as files list.
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('TestFolder')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=#_fs-os-c-TestFolder i.jstree-icon")
+
+  def testTreeAndFileListRefreshedWhenUpdateCompletesWhenSelectionChanged(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Click("css=button[id=refresh-dir]:not([disabled])")
+
+    # Change the selection while the update is in progress.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button[id=refresh-dir][disabled]")
+    self.Click("css=#_fs-os-c-bin a")
+
+    client_id = rdf_client.ClientURN("C.0000000000000001")
+    self._RunUpdateFlow(client_id)
+
+    # The flow should be finished now, and directory tree update should
+    # be triggered, even though the selection has changed during the update.
+    #
+    # Ensure that the tree got updated as well as files list.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=#_fs-os-c-TestFolder i.jstree-icon")
+
+  def testRecursiveUpdateButtonGetsDisabledWhileUpdateIsRunning(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
+
+    self.Click("css=button[name=Proceed]")
+    # The message should come and go (and the dialog should close itself).
+    self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
+    self.WaitUntilNot(self.IsTextPresent, "Refresh started successfully!")
+
+    # Check that the button got disabled
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button[name=RecursiveRefresh][disabled]")
+
+    client_id = rdf_client.ClientURN("C.0000000000000001")
+    self._RunUpdateFlow(client_id)
+
+    # Ensure that refresh button is enabled again.
+    #
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=button[name=RecursiveRefresh][disabled]")
+
+  def testRecursiveUpdateButtonGetsReenabledWhenUpdateEnds(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
+
+    self.Click("css=button[name=Proceed]")
+    # The message should come and go (and the dialog should close itself).
+    self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
+    self.WaitUntilNot(self.IsTextPresent, "Refresh started successfully!")
+
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button[name=RecursiveRefresh][disabled]")
+
+    client_id = rdf_client.ClientURN("C.0000000000000001")
+    self._RunUpdateFlow(client_id)
+
+    # Check that the button got enabled again.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button[name=RecursiveRefresh]:not([disabled])")
+
+  def testSwitchingFoldersReEnablesRecursiveUpdateButton(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
+
+    self.Click("css=button[name=Proceed]")
+    # The message should come and go (and the dialog should close itself).
+    self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
+    self.WaitUntilNot(self.IsTextPresent, "Refresh started successfully!")
+
+    self.Click("css=#_fs-os-c-bin a")
+
+    # Ensure that refresh button is enabled again.
+    #
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=button[name=RecursiveRefresh][disabled]")
+
+  def testTreeAndFileListRefreshedWhenRecursiveUpdateCompletes(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
+
+    self.Click("css=button[name=Proceed]")
+    # The message should come and go (and the dialog should close itself).
+    self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
+    self.WaitUntilNot(self.IsTextPresent, "Refresh started successfully!")
+
+    client_id = rdf_client.ClientURN("C.0000000000000001")
+    self._RunUpdateFlow(client_id)
+
+    # The flow should be finished now, and file/tree lists update should
+    # be triggered.
+    # Ensure that the tree got updated as well as files list.
+    self.WaitUntil(self.IsElementPresent, "css=tr:contains('TestFolder')")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=#_fs-os-c-TestFolder i.jstree-icon")
+
+  def testViewUpdatedWhenRecursiveUpdateCompletesAfterSelectionChange(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+    self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
+
+    self.Click("css=button[name=Proceed]")
+    # The message should come and go (and the dialog should close itself).
+    self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
+    self.WaitUntilNot(self.IsTextPresent, "Refresh started successfully!")
+
+    # Change the selection while the update is in progress.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button[name=RecursiveRefresh][disabled]")
+    self.Click("css=#_fs-os-c-bin a")
+
+    client_id = rdf_client.ClientURN("C.0000000000000001")
+    self._RunUpdateFlow(client_id)
+
+    # The flow should be finished now, and directory tree update should
+    # be triggered, even though the selection has changed during the update.
+    #
+    # Ensure that the tree got updated as well as files list.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=#_fs-os-c-TestFolder i.jstree-icon")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=#_fs-os-c-bin-TestBinFolder i.jstree-icon")
+
+  def testClickingOnTreeNodeRefreshesChildrenFoldersList(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
 
     self.WaitUntil(self.IsElementPresent, "link=Downloads")
     self.WaitUntil(self.IsElementPresent, "link=bin")
@@ -613,6 +743,27 @@ class TestFileView(FileViewTestBase):
           "aff4:/C.0000000000000001/fs/os/c/bin", token=self.token)
 
     self.Click("link=c")
+    self.WaitUntil(self.IsElementPresent, "link=Downloads")
+    self.WaitUntilNot(self.IsElementPresent, "link=bin")
+
+  def testClickingOnTreeNodeArrowRefreshesChildrenFoldersList(self):
+    self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+
+    self.WaitUntil(self.IsElementPresent, "link=Downloads")
+    self.WaitUntil(self.IsElementPresent, "link=bin")
+
+    with self.ACLChecksDisabled():
+      aff4.FACTORY.Delete(
+          "aff4:/C.0000000000000001/fs/os/c/bin", token=self.token)
+
+    # Click on the arrow icon, it should close the tree branch.
+    self.Click("css=#_fs-os-c i.jstree-icon")
+    self.WaitUntilNot(self.IsElementPresent, "link=Downloads")
+    self.WaitUntilNot(self.IsElementPresent, "link=bin")
+
+    # Click on the arrow icon again, it should reopen the tree
+    # branch. It should be updated.
+    self.Click("css=#_fs-os-c i.jstree-icon")
     self.WaitUntil(self.IsElementPresent, "link=Downloads")
     self.WaitUntilNot(self.IsElementPresent, "link=bin")
 
@@ -636,7 +787,7 @@ class TestFileView(FileViewTestBase):
     self.Click("link=c")
 
     # Perform recursive refresh
-    self.Click("css=button[name=RecursiveRefresh]")
+    self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
     self.WaitUntil(self.IsTextPresent, "Recursive Refresh")
     self.WaitUntil(self.IsTextPresent, "Max depth")
@@ -645,7 +796,7 @@ class TestFileView(FileViewTestBase):
     self.Click("css=button[name=Proceed]")
 
     self.WaitUntil(self.IsTextPresent, "Refresh started successfully!")
-    self.Click("css=button[name=Close]")
+    self.WaitUntilNot(self.IsTextPresent, "Refresh started successfully!")
 
     # Go to "Manage Flows" tab and check that RecursiveListDirectory flow has
     # been created.

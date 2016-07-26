@@ -46,7 +46,13 @@ class FakeTransaction(data_store.CommonTransaction):
     self.Unlock()
 
   def Commit(self):
-    super(FakeTransaction, self).Commit()
+    # Locking here ensures that datastore reads in the middle of the
+    # transaction are not possible. This prevents nasty race conditions
+    # in Selenium tests where 2 threads (test thread and AdminUI server thread)
+    # may access the datastore at the same time.
+    with self.store.lock:
+      super(FakeTransaction, self).Commit()
+
     self.Unlock()
 
   def Unlock(self):

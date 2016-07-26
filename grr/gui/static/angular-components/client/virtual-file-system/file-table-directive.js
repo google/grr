@@ -24,6 +24,9 @@ var ERROR_EVENT_NAME =
 var OPERATION_POLL_INTERVAL = 1000;
 
 
+var ensurePathIsFolder = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder;
+
+
 /**
  * Controller for FileTableDirective.
  *
@@ -48,17 +51,14 @@ grrUi.client.virtualFileSystem.fileTableDirective.FileTableController = function
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
+  /** @private {string} */
+  this.selectedFilePath_;
+
   /** @type {string} */
   this.fileListUrl;
 
   /** @type {?string} */
-  this.refreshOperationId;
-
-  /** @private {!angular.$q.Promise} */
-  this.refreshOperationInterval_;
-
-  /** @private {string} */
-  this.selectedFilePath_;
+  this.lastRefreshOperationId;
 
   /**
    * Used for UI binding with a filter edit field.
@@ -105,6 +105,9 @@ FileTableController.prototype.onFilePathChange_ = function(newValue, oldValue) {
 
   if (newFolder !== oldFolder) {
     this.refreshFileList_();
+
+    // Reset the "refresh directory" button state.
+    this.lastRefreshOperationId = null;
   }
 };
 
@@ -148,7 +151,7 @@ FileTableController.prototype.selectFile = function(file) {
 FileTableController.prototype.selectFolder = function(file) {
   var clientId = this.fileContext['clientId'];
   var filePath = file['value']['path']['value'];
-  filePath = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder(filePath);
+  filePath = ensurePathIsFolder(filePath);
 
   // Always reset the version if the file is selected.
   this.fileContext.selectFile(filePath, 0);
@@ -165,61 +168,37 @@ FileTableController.prototype.startVfsRefreshOperation = function() {
   var selectedFilePath = this.fileContext['selectedFilePath'];
   var selectedFolderPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath(
       selectedFilePath);
-  var url = 'clients/' + clientId + '/vfs-refresh-operations';
 
+  var url = 'clients/' + clientId + '/vfs-refresh-operations';
   var refreshOperation = {
     file_path: selectedFolderPath,
     max_depth: 0,
     notify_user: false
   };
 
-  this.grrApiService_.post(
-      url, refreshOperation).then(
-      function success(response) {
-        this.refreshOperationId = response['data']['operation_id'];
-        this.monitorRefreshOperation_();
-      }.bind(this),
-      function failure(response) {
-        this.refreshOperationId = null;
-        this.interval_.cancel(this.refreshOperationInterval_);
+  // Setting this.lastRefreshOperationId means that the update button
+  // will get disabled immediately.
+  var operationId = this.lastRefreshOperationId = 'unknown';
+  this.grrApiService_.post(url, refreshOperation)
+      .then(
+          function success(response) {
+            operationId = this.lastRefreshOperationId =
+                response['data']['operation_id'];
+
+            return this.grrApiService_.poll(url + '/' + operationId);
+          }.bind(this))
+      .then(
+          function success() {
+            this.rootScope_.$broadcast(
+                REFRESH_FOLDER_EVENT, ensurePathIsFolder(selectedFolderPath));
+          }.bind(this))
+      .finally(function() {
+        if (this.lastRefreshOperationId == operationId) {
+          this.lastRefreshOperationId = null;
+        }
       }.bind(this));
 };
 
-/**
- * Polls the refresh operation state.
- *
- * @private
- */
-FileTableController.prototype.monitorRefreshOperation_ = function() {
-  this.refreshOperationInterval_ = this.interval_(
-      this.pollRefreshOperationState_.bind(this),
-      OPERATION_POLL_INTERVAL);
-};
-
-/**
- * Polls the refresh operation state.
- *
- * @private
- */
-FileTableController.prototype.pollRefreshOperationState_ = function() {
-  var clientId = this.fileContext['clientId'];
-  var url = 'clients/' + clientId + '/vfs-refresh-operations/' + this.refreshOperationId;
-
-  this.grrApiService_.get(url).then(
-    function success(response) {
-      if (response['data']['state'] === 'FINISHED') {
-        this.refreshOperationId = '';
-        this.interval_.cancel(this.refreshOperationInterval_);
-
-        // Force directives to refresh the current folder.
-        this.rootScope_.$broadcast(REFRESH_FOLDER_EVENT);
-      }
-    }.bind(this),
-    function failure(response) {
-      this.refreshOperationId = null;
-      this.interval_.cancel(this.refreshOperationInterval_);
-    }.bind(this));
-};
 
 /**
  * Updates the file filter.

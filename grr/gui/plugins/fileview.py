@@ -21,6 +21,7 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import aff4_rekall
 from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import export
@@ -175,38 +176,6 @@ class CollectionRenderer(StatEntryRenderer):
         row.append(value)
 
       self.result.append(row)
-
-    return renderers.TemplateRenderer.Layout(self, request, response)
-
-
-class GrepResultRenderer(semantic.RDFProtoRenderer):
-  """Nicely format grep results."""
-  classname = "GrepResultList"
-  name = "Grep Result Listing"
-
-  layout_template = renderers.Template("""
-<table class='proto_table'>
-<thead>
-<tr><th>Offset</th><th>Data</th></tr>
-</thead>
-<tbody>
-  {% for row in this.results %}
-    <tr>
-    {% for value in row %}
-      <td class="proto_value">
-        {{value|escape}}
-      </td>
-    {% endfor %}
-    </tr>
-  {% endfor %}
-</tbody>
-</table>
-""")
-
-  def Layout(self, request, response):
-    self.results = []
-    for row in self.proxy:
-      self.results.append([row.offset, repr(row)])
 
     return renderers.TemplateRenderer.Layout(self, request, response)
 
@@ -1453,17 +1422,27 @@ dump client info in YAML format.</em></p>
 
   @staticmethod
   def IsCollectionExportable(collection_urn_or_obj, token=None):
-    if isinstance(collection_urn_or_obj, collects.RDFValueCollection):
+    # TODO(user): Remove support for RDFValueCollection.
+    if isinstance(collection_urn_or_obj,
+                  (collects.RDFValueCollection,
+                   sequential_collection.GeneralIndexedCollection)):
       collection = collection_urn_or_obj
     else:
-      collection = aff4.FACTORY.Create(
-          collection_urn_or_obj,
-          collects.RDFValueCollection,
-          mode="r",
-          token=token)
-
-    if not collection:
-      return False
+      try:
+        collection = aff4.FACTORY.Open(
+            collection_urn_or_obj,
+            aff4_type=collects.RDFValueCollection,
+            mode="r",
+            token=token)
+      except aff4.InstantiationError:
+        try:
+          collection = aff4.FACTORY.Open(
+              collection_urn_or_obj,
+              aff4_type=sequential_collection.GeneralIndexedCollection,
+              mode="r",
+              token=token)
+        except aff4.InstantiationError:
+          return False
 
     try:
       export.CollectionItemToAff4Path(collection[0])

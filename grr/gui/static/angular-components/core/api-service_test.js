@@ -11,13 +11,14 @@ var grr = grr || {};
 
 
 describe('API service', function() {
-  var $httpBackend, $interval, grrApiService;
+  var $httpBackend, $interval, $timeout, grrApiService;
 
   beforeEach(module(grrUi.core.module.name));
 
   beforeEach(inject(function($injector) {
     $httpBackend = $injector.get('$httpBackend');
     $interval = $injector.get('$interval');
+    $timeout = $injector.get('$timeout');
     grrApiService = $injector.get('grrApiService');
   }));
 
@@ -220,6 +221,117 @@ describe('API service', function() {
       $httpBackend.whenGET(
           '/api/some/path%3Ffoo%26bar?key1=value1&key2=value2').respond(200);
       grrApiService.get('some/path?foo&bar', {key1: 'value1', key2: 'value2'});
+      $httpBackend.flush();
+    });
+  });
+
+  describe('poll() method', function() {
+    it('triggers url once if condition is immediately satisfied', function() {
+      $httpBackend.expectGET('/api/some/path').respond(200, {
+        'state': 'FINISHED'
+      });
+
+      grrApiService.poll('some/path');
+
+      $httpBackend.flush();
+      $timeout.flush(2000);
+      // No requests should be outstanding by this point.
+    });
+
+    it('succeeds and returns response if first try succeeds', function() {
+      $httpBackend.expectGET('/api/some/path').respond(200, {
+        'foo': 'bar',
+        'state': 'FINISHED'
+      });
+
+      var successHandlerCalled = false;
+      grrApiService.poll('some/path').then(function(response) {
+        expect(response['data']).toEqual({
+          'foo': 'bar',
+          'state': 'FINISHED'
+        });
+        successHandlerCalled = true;
+      });
+
+      $httpBackend.flush();
+      expect(successHandlerCalled).toBe(true);
+    });
+
+    it('triggers url multiple times if condition is not satisfied', function() {
+      $httpBackend.expectGET('/api/some/path').respond(200, {});
+
+      grrApiService.poll('some/path');
+
+      $httpBackend.flush();
+
+      $httpBackend.expectGET('/api/some/path').respond(200, {});
+      $timeout.flush(2000);
+      $httpBackend.flush();
+    });
+
+    it('succeeds and returns response if second try succeeds', function() {
+      $httpBackend.expectGET('/api/some/path').respond(200, {});
+
+      var successHandlerCalled = false;
+      grrApiService.poll('some/path').then(function(response) {
+        expect(response['data']).toEqual({
+          'foo': 'bar',
+          'state': 'FINISHED'
+        });
+        successHandlerCalled = true;
+      });
+
+      $httpBackend.flush();
+
+      $httpBackend.expectGET('/api/some/path').respond(200, {
+        'foo': 'bar',
+        'state': 'FINISHED'
+      });
+      $timeout.flush(2000);
+      $httpBackend.flush();
+
+      expect(successHandlerCalled).toBe(true);
+    });
+
+    it('fails if first try fails', function() {
+      $httpBackend.expectGET('/api/some/path').respond(500);
+
+      var failureHandleCalled = false;
+      grrApiService.poll('some/path').then(function success() {
+      }, function failure() {
+        failureHandleCalled = true;
+      });
+
+      $httpBackend.flush();
+      expect(failureHandleCalled).toBe(true);
+    });
+
+    it('fails if first try is correct, but second one fails', function() {
+      $httpBackend.expectGET('/api/some/path').respond(200, {});
+
+      var failureHandleCalled = false;
+      grrApiService.poll('some/path').then(function success() {
+      }, function failure() {
+        failureHandleCalled = true;
+      });
+
+      $httpBackend.flush();
+
+      $httpBackend.expectGET('/api/some/path').respond(500);
+      $timeout.flush(2000);
+      $httpBackend.flush();
+
+      expect(failureHandleCalled).toBe(true);
+    });
+
+    it('returns response payload on failure', function() {
+      $httpBackend.expectGET('/api/some/path').respond(500, {'foo': 'bar'});
+
+      grrApiService.poll('some/path').then(function success() {
+      }, function failure(response) {
+        expect(response['data']).toEqual({'foo': 'bar'});
+      });
+
       $httpBackend.flush();
     });
   });

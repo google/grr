@@ -52,7 +52,7 @@ grrUi.client.virtualFileSystem.fileTreeDirective.FileTreeController = function(
   this.fileContext;
 
   this.scope_.$on(REFRESH_FOLDER_EVENT,
-      this.onSelectedFilePathChange_.bind(this));
+      this.onRefreshFolderEvent_.bind(this));
 
   this.scope_.$watch('controller.fileContext.clientId',
       this.onClientIdChange_.bind(this));
@@ -94,7 +94,7 @@ FileTreeController.prototype.initTree_ = function() {
     }
   });
 
-  this.treeElement_.on("changed.jstree", function (e, data) {
+  this.treeElement_.on('changed.jstree', function (e, data) {
     // We're only interested in actual "select" events (not "ready" event,
     // which is sent when the node is loaded).
     if (data['action'] !== 'select_node') {
@@ -115,6 +115,19 @@ FileTreeController.prototype.initTree_ = function() {
     // it gets refreshed.
     var treeInstance = data['instance'];
     treeInstance['refresh_node'](data.node);
+  }.bind(this));
+
+  this.treeElement_.on('close_node.jstree', function(e, data) {
+    data.node['data']['refreshOnOpen'] = true;
+  }.bind(this));
+
+  this.treeElement_.on('open_node.jstree', function(e, data) {
+    if (data.node['data']['refreshOnOpen']) {
+      data.node['data']['refreshOnOpen'] = false;
+
+      var treeInstance = data['instance'];
+      treeInstance['refresh_node'](data.node);
+    }
   }.bind(this));
 
   this.treeElement_.on("loaded.jstree", function () {
@@ -171,6 +184,20 @@ FileTreeController.prototype.parseFileResponse_ = function(response) {
   }.bind(this));
 
   return result;
+};
+
+/**
+ * Is triggered by REFRESH_FOLDER_EVENT.
+ * @private
+ */
+FileTreeController.prototype.onRefreshFolderEvent_ = function(e, path) {
+  if (angular.isUndefined(path)) {
+    path = this.fileContext['selectedFilePath'];
+  }
+
+  var nodeId = getFileId(getFolderFromPath(path));
+  var node = $('#' + nodeId);
+  this.treeElement_.jstree(true)['refresh_node'](node);
 };
 
 /**

@@ -854,6 +854,28 @@ message ApiGetCronJobArgs {
     }];
 }
 
+message ApiListCronJobFlowsArgs {
+  optional string cron_job_id = 1 [(sem_type) = {
+      description: "Cron job id."
+    }];
+  optional int64 offset = 2 [(sem_type) = {
+      description: "Starting offset."
+    }];
+  optional int64 count = 3 [(sem_type) = {
+      description: "Max number of flows to fetch."
+    }];
+};
+
+message ApiGetCronJobFlowArgs {
+  optional string cron_job_id = 1 [(sem_type) = {
+      description: "Cron job id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "SessionID",
+      description: "Flow id."
+    }];
+}
+
 message ApiDeleteCronJobArgs {
   optional string cron_job_id = 1 [(sem_type) = {
       description: "The id of the cron job."

@@ -130,7 +130,6 @@ supported_os: [ "Linux" ]
           artifact_list=artifact_list,
           token=self.token,
           client_id=self.client_id,
-          output="analysis/{p}/{u}-{t}",
           split_output_by_artifact=True):
         pass
 
@@ -150,7 +149,6 @@ supported_os: [ "Linux" ]
           artifact_list=artifact_list,
           token=self.token,
           client_id=self.client_id,
-          output="analysis/{p}/{u}-{t}",
           split_output_by_artifact=True):
         pass
 

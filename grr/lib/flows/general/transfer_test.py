@@ -209,6 +209,53 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
     self.CompareFDs(fd1, fd2)
 
+  def testMultiGetFileMultiFiles(self):
+    """Test MultiGetFile downloading many files at once."""
+
+    client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
+                                          "StatFile", "HashBuffer")
+
+    pathspecs = []
+    # Make 100 files to download.
+    for i in xrange(100):
+      path = os.path.join(self.temp_dir, "test_%s.txt" % i)
+      with open(path, "wb") as fd:
+        fd.write("Hello")
+
+      pathspecs.append(
+          rdf_paths.PathSpec(
+              pathtype=rdf_paths.PathSpec.PathType.OS, path=path))
+
+    args = transfer.MultiGetFileArgs(
+        pathspecs=pathspecs, maximum_pending_files=10)
+    for session_id in test_lib.TestFlowHelper(
+        "MultiGetFile",
+        client_mock,
+        token=self.token,
+        client_id=self.client_id,
+        args=args):
+      # Check up on the internal flow state.
+      flow_obj = aff4.FACTORY.Open(session_id, mode="r", token=self.token)
+      flow_state = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
+      # All the pathspecs should be in this list.
+      self.assertEqual(len(flow_state.indexed_pathspecs), 100)
+
+      # At any one time, there should not be more than 10 files or hashes
+      # pending.
+      self.assertLessEqual(len(flow_state.pending_files), 10)
+      self.assertLessEqual(len(flow_state.pending_hashes), 10)
+
+    # When we finish there should be no pathspecs stored in the flow state.
+    for flow_pathspec, flow_request_data in flow_state.indexed_pathspecs:
+      self.assertIsNone(flow_pathspec)
+      self.assertIsNone(flow_request_data)
+
+    # Now open each file and make sure the data is there.
+    for pathspec in pathspecs:
+      urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+      fd = aff4.FACTORY.Open(urn, token=self.token)
+      self.assertEqual("Hello", fd.Read(100000))
+
   def testMultiGetFileSetsFileHashAttributeWhenMultipleChunksDownloaded(self):
     client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
                                           "StatFile", "HashBuffer")

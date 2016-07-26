@@ -10,9 +10,10 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import client_fixture
 from grr.lib import flags
+from grr.lib import flow_runner
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import sequential_collection
 # For RegistryFinder pylint: disable=unused-import
 from grr.lib.flows.general import registry as _
 # pylint: enable=unused-import
@@ -262,26 +263,22 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
                                           "HashBuffer", "FingerprintFile",
                                           "FingerprintFile", "Grep", "StatFile")
 
-    output_path = "analysis/file_finder"
     client_id = self.SetupClients(1)[0]
 
-    aff4.FACTORY.Delete(client_id.Add(output_path), token=self.token)
-
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "RegistryFinder",
         client_mock,
         client_id=client_id,
         keys_paths=paths,
         conditions=[],
-        token=self.token,
-        output=output_path):
-      pass
+        token=self.token):
+      session_id = s
 
     try:
       return list(
           aff4.FACTORY.Open(
-              client_id.Add(output_path),
-              aff4_type=collects.RDFValueCollection,
+              session_id.Add(flow_runner.RESULTS_SUFFIX),
+              aff4_type=sequential_collection.GeneralIndexedCollection,
               token=self.token))
     except aff4.InstantiationError:
       return []
@@ -346,6 +343,7 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
     pb = rdf_paths.PathSpec(
         path="/HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest",
         pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+
     output_path = client_id.Add("registry").Add(pb.first.path)
     aff4.FACTORY.Delete(output_path, token=self.token)
 

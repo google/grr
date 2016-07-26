@@ -57,6 +57,7 @@ class SequentialCollection(aff4.AFF4Object):
                 rdf_value,
                 timestamp=None,
                 suffix=None,
+                mutation_pool=None,
                 **kwargs):
     """Adds an rdf value to a collection.
 
@@ -76,6 +77,9 @@ class SequentialCollection(aff4.AFF4Object):
 
       suffix: A 'fractional timestamp' suffix to reduce the chance of
           collisions. Defaults to a random number.
+
+      mutation_pool: An optional MutationPool object to write to. If not given,
+                     the data_store is used directly.
 
       **kwargs: Keyword arguments to pass through to the underlying database
         call.
@@ -97,16 +101,27 @@ class SequentialCollection(aff4.AFF4Object):
     if isinstance(timestamp, rdfvalue.RDFDatetime):
       timestamp = timestamp.AsMicroSecondsFromEpoch()
 
+    if not rdf_value.age:
+      rdf_value.age.Now()
+
     if not isinstance(collection_urn, rdfvalue.RDFURN):
       collection_urn = rdfvalue.RDFURN(collection_urn)
 
     result_subject = cls._MakeURN(collection_urn, timestamp, suffix)
-    data_store.DB.Set(result_subject,
-                      cls.ATTRIBUTE,
-                      rdf_value.SerializeToString(),
-                      timestamp=timestamp,
-                      token=token,
-                      **kwargs)
+    if mutation_pool:
+      mutation_pool.Set(result_subject,
+                        cls.ATTRIBUTE,
+                        rdf_value.SerializeToString(),
+                        timestamp=timestamp,
+                        **kwargs)
+    else:
+      data_store.DB.Set(result_subject,
+                        cls.ATTRIBUTE,
+                        rdf_value.SerializeToString(),
+                        timestamp=timestamp,
+                        token=token,
+                        **kwargs)
+
     return cls._ParseURN(result_subject)
 
   def Add(self, rdf_value, timestamp=None, suffix=None, **kwargs):
@@ -422,6 +437,9 @@ class GeneralIndexedCollection(IndexedSequentialCollection):
 
   @classmethod
   def StaticAdd(cls, collection_urn, token, rdf_value, **kwargs):
+    if not rdf_value.age:
+      rdf_value.age.Now()
+
     super(GeneralIndexedCollection, cls).StaticAdd(
         collection_urn,
         token,

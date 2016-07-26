@@ -122,6 +122,80 @@ class ApiCreateCronJobHandlerRegressionTest(
         replace=ReplaceCronJobUrn)
 
 
+class ApiListCronJobFlowsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Test cron job flows list handler."""
+
+  handler = "ApiListCronJobFlowsHandler"
+
+  flow_name = cron_system.GRRVersionBreakDown.__name__
+
+  def setUp(self):
+    super(ApiListCronJobFlowsHandlerRegressionTest, self).setUp()
+
+    with test_lib.FakeTime(44):
+      cron_args = cronjobs.CreateCronJobFlowArgs(
+          periodicity="7d", lifetime="1d")
+      cron_args.flow_runner_args.flow_name = self.flow_name
+      cronjobs.CRON_MANAGER.ScheduleFlow(
+          cron_args, job_name=self.flow_name, token=self.token)
+
+      cronjobs.CRON_MANAGER.RunOnce(token=self.token)
+
+  def _GetFlowId(self):
+    cron_job_urn = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))[0]
+    cron_job = aff4.FACTORY.Open(cron_job_urn, token=self.token)
+
+    cron_job_flow_urn = list(cron_job.ListChildren())[0]
+
+    return cron_job_flow_urn.Basename()
+
+  def Run(self):
+    flow_id = self._GetFlowId()
+
+    self.Check(
+        "GET",
+        "/api/cron-jobs/%s/flows" % self.flow_name,
+        replace={flow_id: "F:ABCDEF11"})
+
+
+class ApiGetCronJobFlowHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Test cron job flow getter handler."""
+
+  handler = "ApiGetCronJobFlowHandler"
+
+  def setUp(self):
+    super(ApiGetCronJobFlowHandlerRegressionTest, self).setUp()
+
+    self.flow_name = cron_system.GRRVersionBreakDown.__name__
+
+    with test_lib.FakeTime(44):
+      cron_args = cronjobs.CreateCronJobFlowArgs(
+          periodicity="7d", lifetime="1d")
+      cron_args.flow_runner_args.flow_name = self.flow_name
+      cronjobs.CRON_MANAGER.ScheduleFlow(
+          cron_args, job_name=self.flow_name, token=self.token)
+
+      cronjobs.CRON_MANAGER.RunOnce(token=self.token)
+
+  def _GetFlowId(self):
+    cron_job_urn = list(cronjobs.CRON_MANAGER.ListJobs(token=self.token))[0]
+    cron_job = aff4.FACTORY.Open(cron_job_urn, token=self.token)
+
+    cron_job_flow_urn = list(cron_job.ListChildren())[0]
+
+    return cron_job_flow_urn.Basename()
+
+  def Run(self):
+    flow_id = self._GetFlowId()
+
+    self.Check(
+        "GET",
+        "/api/cron-jobs/%s/flows/%s" % (self.flow_name, flow_id),
+        replace={flow_id: "F:ABCDEF11"})
+
+
 class ApiDeleteCronJobHandlerTest(test_lib.GRRBaseTest, CronJobsTestMixin):
   """Test delete cron job handler."""
 

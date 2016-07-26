@@ -451,11 +451,6 @@ class GRRSignedBlob(aff4.AFF4Stream):
     self.fd.seek(offset, whence)
 
 
-class GrepResultsCollection(RDFValueCollection):
-  """A collection of grep results."""
-  _rdf_type = rdf_client.BufferReference
-
-
 class ClientAnomalyCollection(RDFValueCollection):
   """A collection of anomalies related to a client.
 

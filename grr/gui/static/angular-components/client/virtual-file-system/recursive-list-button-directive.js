@@ -3,11 +3,20 @@
 goog.provide('grrUi.client.virtualFileSystem.recursiveListButtonDirective.RecursiveListButtonController');
 goog.provide('grrUi.client.virtualFileSystem.recursiveListButtonDirective.RecursiveListButtonDirective');
 
+goog.require('grrUi.client.virtualFileSystem.events');
+
+goog.require('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
 goog.require('grrUi.client.virtualFileSystem.utils.getFolderFromPath');
 
 
 goog.scope(function() {
 
+
+var REFRESH_FOLDER_EVENT =
+    grrUi.client.virtualFileSystem.events.REFRESH_FOLDER_EVENT;
+
+
+var ensurePathIsFolder = grrUi.client.virtualFileSystem.utils.ensurePathIsFolder;
 
 var getFolderFromPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath;
 
@@ -16,7 +25,9 @@ var getFolderFromPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath;
  * Controller for RecursiveListButtonDirective.
  *
  * @constructor
+ * @param {!angular.Scope} $rootScope
  * @param {!angular.Scope} $scope
+ * @param {!angular.$timeout} $timeout
  * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
  * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @param {!grrUi.core.reflectionService.ReflectionService} grrReflectionService
@@ -24,9 +35,15 @@ var getFolderFromPath = grrUi.client.virtualFileSystem.utils.getFolderFromPath;
  */
 grrUi.client.virtualFileSystem.recursiveListButtonDirective
     .RecursiveListButtonController = function(
-    $scope, $modal, grrApiService, grrReflectionService) {
+    $rootScope, $scope, $timeout, $modal, grrApiService, grrReflectionService) {
+  /** @private {!angular.Scope} */
+  this.rootScope_ = $rootScope;
+
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
+
+  /** @private {!angular.$timeout} */
+  this.timeout_ = $timeout;
 
   /** @private {!angularUi.$modal} */
   this.modal_ = $modal;
@@ -37,8 +54,11 @@ grrUi.client.virtualFileSystem.recursiveListButtonDirective
   /** @private {!grrUi.core.reflectionService.ReflectionService} */
   this.grrReflectionService_ = grrReflectionService;
 
-  /** @type {?boolean} */
-  this.requestSent;
+  /** @type {?string} */
+  this.lastOperationId;
+
+  /** @type {Object} */
+  this.refreshOperation;
 
   /** @type {?boolean} */
   this.done;
@@ -46,8 +66,11 @@ grrUi.client.virtualFileSystem.recursiveListButtonDirective
   /** @type {?string} */
   this.error;
 
-  /** @type {Object} */
-  this.refreshOperation;
+  /** @private {angularUi.$modalInstance} */
+  this.modalInstance;
+
+  this.scope_.$watchGroup(['clientId', 'filePath'],
+                          this.onClientOrPathChange_.bind(this));
 };
 var RecursiveListButtonController =
     grrUi.client.virtualFileSystem.recursiveListButtonDirective
@@ -61,12 +84,22 @@ RecursiveListButtonController.MAX_DEPTH = 5;
 
 
 /**
+ * Handles changes in clientId and filePath bindings.
+ *
+ * @private
+ */
+RecursiveListButtonController.prototype.onClientOrPathChange_ = function() {
+  this.lastOperationId = null;
+};
+
+
+/**
  * Handles mouse clicks on itself.
  *
  * @export
  */
 RecursiveListButtonController.prototype.onClick = function() {
-  this.requestSent = false;
+  this.isDisabled = true;
   this.done = false;
   this.error = null;
 
@@ -85,7 +118,7 @@ RecursiveListButtonController.prototype.onClick = function() {
 
     this.refreshOperation['value']['notify_user'] = true;
 
-    this.modal_.open({
+    this.modalInstance = this.modal_.open({
       templateUrl: '/static/angular-components/client/virtual-file-system/' +
           'recursive-list-button-modal.html',
       scope: this.scope_
@@ -109,18 +142,39 @@ RecursiveListButtonController.prototype.createRefreshOperation = function() {
   }
 
   var url = 'clients/' + clientId + '/vfs-refresh-operations';
-  this.grrApiService_.post(
-      url, this.refreshOperation, true).then(
-      function success() {
-        this.done = true;
-      }.bind(this),
-      function failure(response) {
-        this.done = true;
-        this.error = response.data.message || 'Unknown error.';
-        this.requestSent = false;
-      }.bind(this));
+  var refreshOperation = angular.copy(this.refreshOperation);
 
-  this.requestSent = true;
+  // Setting this.lastOperationId means that the update button will get
+  // disabled immediately.
+  var operationId = this.lastOperationId = 'unknown';
+  this.grrApiService_.post(url, refreshOperation, true)
+      .then(
+          function success(response) {
+            this.done = true;
+            // Make modal dialog go away in 1 second.
+            this.timeout_(function() {
+              this.modalInstance.close();
+            }.bind(this), 1000);
+
+            operationId = this.lastOperationId =
+                response['data']['operation_id'];
+            return this.grrApiService_.poll(url + '/' + operationId);
+          }.bind(this),
+          function failure(response) {
+            this.done = true;
+            this.error = response['data']['message'] || 'Unknown error.';
+          }.bind(this))
+      .then(
+          function success() {
+            var path = refreshOperation['value']['file_path']['value'];
+            this.rootScope_.$broadcast(
+                REFRESH_FOLDER_EVENT, ensurePathIsFolder(path));
+          }.bind(this))
+      .finally(function() {
+        if (this.lastOperationId == operationId) {
+          this.lastOperationId = null;
+        }
+      }.bind(this));
 };
 
 /**

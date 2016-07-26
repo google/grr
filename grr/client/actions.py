@@ -270,8 +270,11 @@ class ActionPlugin(object):
 
     self.nanny_controller.Heartbeat()
 
-    user_start, system_start = self.cpu_start
-    user_end, system_end = self.proc.cpu_times()
+    user_start = self.cpu_start.user
+    system_start = self.cpu_start.system
+    cpu_times = self.proc.cpu_times()
+    user_end = cpu_times.user
+    system_end = cpu_times.system
 
     used_cpu = user_end - user_start + system_end - system_start
 

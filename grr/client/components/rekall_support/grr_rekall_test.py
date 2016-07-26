@@ -15,6 +15,7 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import flow_runner
 from grr.lib import test_lib
 
 from grr.lib.aff4_objects import aff4_grr
@@ -55,6 +56,9 @@ class RekallTestSuite(test_lib.EmptyActionTest):
 
     Args:
       request: A RekallRequest() proto.
+
+    Returns:
+      The session_id of the AnalyzeClientMemory flow.
     """
     # For this test we force the client to write the profile cache in the temp
     # directory. This forces the profiles to always be downloaded from the
@@ -67,15 +71,14 @@ class RekallTestSuite(test_lib.EmptyActionTest):
       self.CreateClient()
 
       # Allow the real RekallAction to run against the image.
-      for _ in test_lib.TestFlowHelper(
+      for s in test_lib.TestFlowHelper(
           "AnalyzeClientMemory",
           action_mocks.MemoryClientMock("RekallAction", "WriteRekallProfile",
                                         "DeleteGRRTempFiles"),
           token=self.token,
           client_id=self.client_id,
-          request=request,
-          output="analysis/memory"):
-        pass
+          request=request):
+        session_id = s
 
       # Check that the profiles are also cached locally.
       test_profile_dir = os.path.join(config_lib.CONFIG["Test.data_dir"],
@@ -88,6 +91,8 @@ class RekallTestSuite(test_lib.EmptyActionTest):
       self.assertEqual(
           json.load(gzip.open(os.path.join(self.temp_dir, p_name))),
           json.load(gzip.open(os.path.join(test_profile_dir, p_name))))
+
+    return session_id
 
 
 def RequireTestImage(f):
@@ -120,11 +125,11 @@ class RekallTests(RekallTestSuite):
             args=dict(method=["PsActiveProcessHead", "CSRSS"])),
         rdf_rekall_types.PluginRequest(plugin="modules")
     ]
-    self.LaunchRekallPlugin(request)
+    session_id = self.LaunchRekallPlugin(request)
 
     # Get the result collection - it should be a RekallResponseCollection.
     fd = aff4.FACTORY.Open(
-        self.client_id.Add("analysis/memory"), token=self.token)
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     # Ensure that the client_id is set on each message. This helps us demux
     # messages from different clients, when analyzing the collection from a
@@ -166,11 +171,11 @@ class RekallTests(RekallTestSuite):
                 pid=[4, 2860], method="PsActiveProcessHead")),
     ]
 
-    self.LaunchRekallPlugin(request)
+    session_id = self.LaunchRekallPlugin(request)
 
     # Get the result collection - it should be a RekallResponseCollection.
     fd = aff4.FACTORY.Open(
-        self.client_id.Add("analysis/memory"), token=self.token)
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     json_blobs = [x.json_messages for x in fd]
     json_blobs = "".join(json_blobs)
@@ -190,11 +195,11 @@ class RekallTests(RekallTestSuite):
                 proc_regex="dumpit", method="PsActiveProcessHead")),
     ]
 
-    self.LaunchRekallPlugin(request)
+    session_id = self.LaunchRekallPlugin(request)
 
     # Get the result collection - it should be a RekallResponseCollection.
     fd = aff4.FACTORY.Open(
-        self.client_id.Add("analysis/memory"), token=self.token)
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     json_blobs = [x.json_messages for x in fd]
     json_blobs = "".join(json_blobs)
@@ -231,7 +236,6 @@ class RekallTests(RekallTestSuite):
         "vtop", "windows_stations"
     ]
 
-    output_urn = self.client_id.Add("analysis/memory")
     failed_plugins = []
 
     for plugin in plugins:
@@ -242,10 +246,11 @@ class RekallTests(RekallTestSuite):
         request = rdf_rekall_types.RekallRequest()
         request.plugins = [rdf_rekall_types.PluginRequest(plugin=plugin)]
 
-        self.LaunchRekallPlugin(request)
+        session_id = self.LaunchRekallPlugin(request)
 
         # Get the result collection - it should be a RekallResponseCollection.
-        fd = aff4.FACTORY.Open(output_urn, token=self.token)
+        fd = aff4.FACTORY.Open(
+            session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
         # Try to render the result.
         fd.RenderAsText()
       except Exception:  # pylint: disable=broad-except

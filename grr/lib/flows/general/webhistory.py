@@ -10,8 +10,8 @@ import os
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib import flow_utils
+from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.parsers import chrome_history
@@ -24,7 +24,7 @@ class ChromeHistoryArgs(rdf_structs.RDFProtoStruct):
 
 
 class ChromeHistory(flow.GRRFlow):
-  """Retrieve and analyze the chrome history for a machine.
+  r"""Retrieve and analyze the chrome history for a machine.
 
   Default directories as per:
     http://www.chromium.org/user-experience/user-data-directory
@@ -56,10 +56,6 @@ class ChromeHistory(flow.GRRFlow):
     self.state.Register("history_paths", [])
     if self.state.args.history_path:
       self.state.history_paths.append(self.state.args.history_path)
-
-    if self.runner.output is not None:
-      self.runner.output = aff4.FACTORY.Create(
-          self.runner.output.urn, aff4_grr.VFSAnalysisFile, token=self.token)
 
     if not self.state.history_paths:
       self.state.history_paths = self.GuessHistoryPaths(
@@ -97,9 +93,7 @@ class ChromeHistory(flow.GRRFlow):
           str_entry = "%s %s %s %s %s %s" % (
               datetime.datetime.utcfromtimestamp(epoch64 / 1e6), url, dat1,
               dat2, dat3, dtype)
-
-          if self.runner.output is not None:
-            self.runner.output.write(utils.SmartStr(str_entry) + "\n")
+          self.SendReply(rdfvalue.RDFString(utils.SmartStr(str_entry)))
 
         self.Log("Wrote %d Chrome History entries for user %s from %s", count,
                  self.state.args.username,
@@ -150,7 +144,7 @@ class FirefoxHistoryArgs(rdf_structs.RDFProtoStruct):
 
 
 class FirefoxHistory(flow.GRRFlow):
-  """Retrieve and analyze the Firefox history for a machine.
+  r"""Retrieve and analyze the Firefox history for a machine.
 
   Default directories as per:
     http://www.forensicswiki.org/wiki/Mozilla_Firefox_3_History_File_Format
@@ -189,10 +183,6 @@ class FirefoxHistory(flow.GRRFlow):
       if not self.state.history_paths:
         raise flow.FlowError("Could not find valid History paths.")
 
-    if self.runner.output is not None:
-      self.runner.output = aff4.FACTORY.Create(
-          self.runner.output.urn, aff4_grr.VFSAnalysisFile, token=self.token)
-
     filename = "places.sqlite"
     for path in self.state.history_paths:
       self.CallFlow(
@@ -216,8 +206,7 @@ class FirefoxHistory(flow.GRRFlow):
           str_entry = "%s %s %s %s" % (
               datetime.datetime.utcfromtimestamp(epoch64 / 1e6), url, dat1,
               dtype)
-          if self.runner.output is not None:
-            self.runner.output.write(utils.SmartStr(str_entry) + "\n")
+          self.SendReply(rdfvalue.RDFString(utils.SmartStr(str_entry)))
         self.Log("Wrote %d Firefox History entries for user %s from %s", count,
                  self.args.username, response.stat_entry.pathspec.Basename())
         self.state.hist_count += count
@@ -323,10 +312,6 @@ class CacheGrep(flow.GRRFlow):
   def StartRequests(self):
     """Generate and send the Find requests."""
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
-    if self.runner.output is not None:
-      self.runner.output.Set(
-          self.runner.output.Schema.DESCRIPTION("CacheGrep for {0}".format(
-              self.args.data_regex)))
 
     usernames = [
         "%s\\%s" % (u.userdomain, u.username) for u in self.state.users

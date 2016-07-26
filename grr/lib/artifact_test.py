@@ -7,7 +7,6 @@
 import gzip
 import os
 import subprocess
-import time
 
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
@@ -19,12 +18,13 @@ from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import flow_runner
 from grr.lib import parsers
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import sequential_collection
 # For ArtifactCollectorFlow pylint: disable=unused-import
 from grr.lib.flows.general import collectors
 # pylint: enable=unused-import
@@ -179,21 +179,20 @@ class ArtifactTest(test_lib.FlowTestsBaseclass):
     if client_mock is None:
       client_mock = self.MockClient(client_id=self.client_id)
 
-    output_name = "/analysis/output/%s" % int(time.time())
-
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow",
         client_mock=client_mock,
-        output=output_name,
         client_id=self.client_id,
         artifact_list=artifact_list,
         token=self.token,
         **kw):
-      pass
+      session_id = s
 
-    output_urn = self.client_id.Add(output_name)
+    output_urn = session_id.Add(flow_runner.RESULTS_SUFFIX)
     return aff4.FACTORY.Open(
-        output_urn, aff4_type=collects.RDFValueCollection, token=self.token)
+        output_urn,
+        aff4_type=sequential_collection.GeneralIndexedCollection,
+        token=self.token)
 
 
 class GRRArtifactTest(ArtifactTest):

@@ -5,15 +5,9 @@
     <div class="navbar-inner">
       <div class="navbar-form pull-left">
 
-        <!-- TODO(user): disabling the button if refresh operation is
-             in progress is problematic, as users may want to refresh a
-             number of folders without waiting for each one of them to
-             finish before they refresh the next one.
-             Button should show the state of the operation state and the
-             state should be per-folder.
-             add->ng-disabled="controller.refreshOperationId" -->
         <button id="refresh-dir" class="btn btn-default"
                 title="Refresh this directory listing."
+                ng-disabled="controller.lastRefreshOperationId"
                 ng-click="controller.startVfsRefreshOperation()">
           <img src="/static/images/stock_refresh.png" class="toolbar_icon" />
         </button>

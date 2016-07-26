@@ -18,6 +18,7 @@ from grr.lib import rdfvalue
 from grr.lib import throttle
 from grr.lib import utils
 from grr.lib.aff4_objects import collects as aff4_collects
+from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
@@ -174,12 +175,22 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
         flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
 
     output_urn = flow_obj.GetRunner().output_urn
-    # TODO(user): RDFValueCollection is a deprecated type.
-    output_collection = aff4.FACTORY.Create(
-        output_urn,
-        aff4_type=aff4_collects.RDFValueCollection,
-        mode="r",
-        token=token)
+    try:
+      # TODO(user): Remove support for RDFValueCollection.
+      output_collection = aff4.FACTORY.Open(
+          output_urn,
+          aff4_type=aff4_collects.RDFValueCollection,
+          mode="r",
+          token=token)
+    except aff4.InstantiationError:
+      try:
+        output_collection = aff4.FACTORY.Open(
+            output_urn,
+            aff4_type=sequential_collection.GeneralIndexedCollection,
+            mode="r",
+            token=token)
+      except aff4.InstantiationError:
+        return ApiListFlowResultsResult(total_count=0)
 
     items = api_call_handler_utils.FilterAff4Collection(output_collection,
                                                         args.offset, args.count,
@@ -469,30 +480,29 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiListFlowsArgs
   result_type = ApiListFlowsResult
 
-  def _GetCreationTime(self, obj):
+  @staticmethod
+  def _GetCreationTime(obj):
     try:
       return obj.state.context.get("create_time")
     except AttributeError:
       return obj.Get(obj.Schema.LAST, 0)
 
-  def Handle(self, args, token=None):
-    client_root_urn = args.client_id.Add("flows")
-
-    if not args.count:
+  @staticmethod
+  def BuildFlowList(root_urn, count, offset, token=None):
+    if not count:
       stop = None
     else:
-      stop = args.offset + args.count
+      stop = offset + count
 
-    root_children_urns = aff4.FACTORY.Open(
-        client_root_urn, token=token).ListChildren()
+    root_children_urns = aff4.FACTORY.Open(root_urn, token=token).ListChildren()
     root_children_urns = sorted(
         root_children_urns, key=lambda x: x.age, reverse=True)
-    root_children_urns = root_children_urns[args.offset:stop]
+    root_children_urns = root_children_urns[offset:stop]
 
     root_children = aff4.FACTORY.MultiOpen(
         root_children_urns, aff4_type=flow.GRRFlow, token=token)
     root_children = sorted(
-        root_children, key=self._GetCreationTime, reverse=True)
+        root_children, key=ApiListFlowsHandler._GetCreationTime, reverse=True)
 
     nested_children_urns = dict(
         aff4.FACTORY.RecursiveMultiListChildren(
@@ -521,7 +531,8 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
           except KeyError:
             pass
 
-        children = sorted(children, key=self._GetCreationTime, reverse=True)
+        children = sorted(
+            children, key=ApiListFlowsHandler._GetCreationTime, reverse=True)
         try:
           api_flow.nested_flows = BuildList(children)
         except KeyError:
@@ -531,6 +542,12 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
       return result
 
     return ApiListFlowsResult(items=BuildList(root_children))
+
+  def Handle(self, args, token=None):
+    client_root_urn = args.client_id.Add("flows")
+
+    return self.BuildFlowList(
+        client_root_urn, args.count, args.offset, token=token)
 
 
 class ApiStartRobotGetFilesOperationArgs(rdf_structs.RDFProtoStruct):
@@ -665,15 +682,22 @@ class ApiGetRobotGetFilesOperationStateHandler(
     except aff4.InstantiationError:
       raise RobotGetFilesOperationNotFoundError()
 
-    flow_state = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
     try:
+      # TODO(user): Remove support for RDFValueCollection.
       result_collection = aff4.FACTORY.Open(
-          flow_state.context.output_urn,
+          flow_obj.GetRunner().output_urn,
           aff4_type=aff4_collects.RDFValueCollection,
           token=token)
       result_count = len(result_collection)
     except aff4.InstantiationError:
-      result_count = 0
+      try:
+        result_collection = aff4.FACTORY.Open(
+            flow_obj.GetRunner().output_urn,
+            aff4_type=sequential_collection.GeneralIndexedCollection,
+            token=token)
+        result_count = len(result_collection)
+      except aff4.InstantiationError:
+        result_count = 0
 
     api_flow_obj = ApiFlow().InitFromAff4Object(flow_obj)
     return ApiGetRobotGetFilesOperationStateResult(

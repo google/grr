@@ -7,8 +7,9 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import flow_runner
 from grr.lib import test_lib
-from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import sequential_collection
 # pylint: disable=unused-import
 from grr.lib.flows.general import processes as _
 # pylint: enable=unused-import
@@ -41,17 +42,14 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
         ctime=long(1333718907.167083 * 1e6))])
 
     flow_urn = flow.GRRFlow.StartFlow(
-        client_id=self.client_id,
-        flow_name="ListProcesses",
-        output="Processes",
-        token=self.token)
-    for _ in test_lib.TestFlowHelper(
+        client_id=self.client_id, flow_name="ListProcesses", token=self.token)
+    for s in test_lib.TestFlowHelper(
         flow_urn, client_mock, client_id=self.client_id, token=self.token):
-      pass
+      session_id = s
 
     # Check the output collection
     processes = aff4.FACTORY.Open(
-        self.client_id.Add("Processes"), token=self.token)
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     self.assertEqual(len(processes), 1)
     self.assertEqual(processes[0].ctime, 1333718907167083L)
@@ -85,16 +83,15 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
         flow_name="ListProcesses",
-        output="Processes",
         filename_regex=r".*cmd2.exe",
         token=self.token)
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         flow_urn, client_mock, client_id=self.client_id, token=self.token):
-      pass
+      session_id = s
 
     # Expect one result that matches regex
     processes = aff4.FACTORY.Open(
-        self.client_id.Add("Processes"), token=self.token)
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
 
     self.assertEqual(len(processes), 1)
     self.assertEqual(processes[0].ctime, 1333718907167083L)
@@ -115,23 +112,21 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
         ctime=long(1333718907.167083 * 1e6))
 
     client_mock = ListProcessesMock([process])
-    output_path = "analysis/GetBinariesFlowTest1"
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "ListProcesses",
         client_mock,
         fetch_binaries=True,
         client_id=self.client_id,
-        token=self.token,
-        output=output_path):
-      pass
+        token=self.token):
+      session_id = s
 
-    # No file created since no output matched.
-    with self.assertRaises(IOError):
-      aff4.FACTORY.Open(
-          self.client_id.Add(output_path),
-          aff4_type=collects.RDFValueCollection,
-          token=self.token)
+    # No output matched.
+    results = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX),
+        aff4_type=sequential_collection.GeneralIndexedCollection,
+        token=self.token)
+    self.assertEqual(len(results), 0)
 
   def testFetchesAndStoresBinary(self):
     process = rdf_client.Process(
@@ -142,18 +137,17 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
         ctime=long(1333718907.167083 * 1e6))
 
     client_mock = ListProcessesMock([process])
-    output_path = "analysis/GetBinariesFlowTest1"
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "ListProcesses",
         client_mock,
         client_id=self.client_id,
         fetch_binaries=True,
-        token=self.token,
-        output=output_path):
-      pass
+        token=self.token):
+      session_id = s
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
     binaries = list(fd)
     self.assertEqual(len(binaries), 1)
     self.assertEqual(binaries[0].pathspec.path, process.exe)
@@ -175,18 +169,17 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
         ctime=long(1333718907.167083 * 1e6))
 
     client_mock = ListProcessesMock([process1, process2])
-    output_path = "analysis/GetBinariesFlowTest1"
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "ListProcesses",
         client_mock,
         client_id=self.client_id,
         fetch_binaries=True,
-        token=self.token,
-        output=output_path):
-      pass
+        token=self.token):
+      session_id = s
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
     self.assertEqual(len(fd), 1)
 
   def testWhenFetchingIgnoresMissingFiles(self):
@@ -205,19 +198,18 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
         ctime=long(1333718907.167083 * 1e6))
 
     client_mock = ListProcessesMock([process1, process2])
-    output_path = "analysis/GetBinariesFlowTest1"
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "ListProcesses",
         client_mock,
         client_id=self.client_id,
         fetch_binaries=True,
         token=self.token,
-        check_flow_errors=False,
-        output=output_path):
-      pass
+        check_flow_errors=False):
+      session_id = s
 
-    fd = aff4.FACTORY.Open(self.client_id.Add(output_path), token=self.token)
+    fd = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
     binaries = list(fd)
     self.assertEqual(len(binaries), 1)
     self.assertEqual(binaries[0].pathspec.path, process1.exe)

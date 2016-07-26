@@ -177,6 +177,14 @@ class RobustUnpickler(pickle.Unpickler):
       self.append(UnknownObject)
 
   dispatch[pickle.GLOBAL] = load_global
+
+  def load_newobj(self):
+    try:
+      pickle.Unpickler.load_newobj(self)
+    except Exception:
+      self.stack[-1] = UnknownObject()
+
+  dispatch[pickle.NEWOBJ] = load_newobj
   # pylint: enable=invalid-name, broad-except
 
 
@@ -217,7 +225,7 @@ class FlowState(rdfvalue.RDFValue):
         raise rdfvalue.DecodeError(e)
 
   def SerializeToString(self):
-    return cPickle.dumps(self.data)
+    return cPickle.dumps(self.data, -1)
 
   def Empty(self):
     return not bool(self.data)

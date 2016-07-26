@@ -144,13 +144,15 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
 
   @flow.StateHandler()
   def StartAnalysis(self, responses):
+    # TODO(user): This is not good, it does not change the
+    # collection that stores the results split by type...
+
     # Our output collection is a RekallResultCollection.
-    if self.runner.output is not None:
-      self.runner.output = aff4.FACTORY.Create(
-          self.runner.output.urn,
-          aff4_rekall.RekallResponseCollection,
-          mode="rw",
-          token=self.token)
+    aff4.FACTORY.Create(
+        self.runner.output_urn,
+        aff4_rekall.RekallResponseCollection,
+        mode="rw",
+        token=self.token)
 
     self.state.Register("rekall_context_messages", {})
     self.state.Register("output_files", [])
@@ -268,8 +270,8 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
       all_errors = u"\n".join([unicode(e) for e in self.state.plugin_errors])
       raise flow.FlowError("Error running plugins: %s" % all_errors)
 
-    if self.runner.output is not None:
-      self.Notify("ViewObject", self.runner.output.urn,
+    if self.runner.IsWritingResults():
+      self.Notify("ViewObject", self.runner.output_urn,
                   "Ran analyze client memory")
 
   def GetProfileByName(self, name, version):
@@ -329,12 +331,6 @@ class ListVADBinaries(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Request VAD data."""
-    if self.runner.output is not None:
-      self.runner.output.Set(
-          self.runner.output.Schema.DESCRIPTION(
-              "GetProcessesBinariesRekall binaries (regex: %s) " %
-              self.args.filename_regex or "None"))
-
     self.CallFlow(
         "ArtifactCollectorFlow",
         artifact_list=["FullVADBinaryList"],

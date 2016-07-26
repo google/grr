@@ -247,6 +247,10 @@ class OutputPluginWithOutputStreams(OutputPlugin):
 
   __abstract = True  # pylint: disable=g-bad-name
 
+  def __init__(self, *args, **kw):
+    super(OutputPluginWithOutputStreams, self).__init__(*args, **kw)
+    self.stream_objects = {}
+
   def Initialize(self):
     super(OutputPluginWithOutputStreams, self).Initialize()
     self.state.Register("output_streams", {})
@@ -254,39 +258,22 @@ class OutputPluginWithOutputStreams(OutputPlugin):
   def Flush(self):
     super(OutputPluginWithOutputStreams, self).Flush()
 
-    for stream in self.state.output_streams.values():
+    for stream in self.stream_objects.values():
       stream.Flush()
-
-  def _GetOutputStream(self, name):
-    """Gets output stream with a given name."""
-    return self.state.output_streams[name]
 
   def _CreateOutputStream(self, name):
     """Creates new output stream with a given name."""
-    try:
-      return self.state.output_streams[name]
-    except KeyError:
-      output_stream = aff4.FACTORY.Create(
-          self.state.output_base_urn.Add(name),
-          aff4.AFF4UnversionedImage,
-          mode="w",
-          token=self.token)
-      self.state.output_streams[name] = output_stream
-      return output_stream
+    if name in self.stream_objects:
+      return self.stream_objects[name]
 
-  @property
-  def output_streams_map(self):
-    """Mapping of output streams names into URNs.
+    urn = self.state.output_base_urn.Add(name)
+    self.state.output_streams[name] = urn
 
-    Returns:
-      Dictionary with "stream name" -> "stream urn" key value pairs.
-    """
-    return dict((k, v.urn) for k, v in self.state.output_streams.items())
-
-  @property
-  def reverse_output_streams_map(self):
-    """Mapping of output streams urns into names."""
-    return dict((v.urn, k) for k, v in self.state.output_streams.items())
+    output_stream = aff4.FACTORY.Create(
+        urn, aff4_type=aff4.AFF4UnversionedImage, mode="rw", token=self.token)
+    output_stream.Seek(0, 2)
+    self.stream_objects[name] = output_stream
+    return output_stream
 
   def OpenOutputStreams(self):
     """Opens all the used output streams.
@@ -294,16 +281,18 @@ class OutputPluginWithOutputStreams(OutputPlugin):
     Returns:
       Dictionary with "stream name" -> "stream object" key-value pairs.
     """
-    streams = list(
-        aff4.FACTORY.MultiOpen(
-            self.output_streams_map.values(),
-            aff4_type=aff4.AFF4UnversionedImage,
-            token=self.token))
+    urn_to_names = {self.state.output_base_urn.Add(name): name
+                    for name in self.stream_objects}
+    streams = aff4.FACTORY.MultiOpen(
+        urn_to_names.keys(),
+        aff4_type=aff4.AFF4UnversionedImage,
+        token=self.token)
 
+    # Name -> Stream object.
     result = {}
-    reverse_map = self.reverse_output_streams_map
+
     for stream in streams:
-      result[reverse_map[stream.urn]] = stream
+      result[urn_to_names[stream.urn]] = stream
 
     return result
 

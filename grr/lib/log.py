@@ -46,6 +46,8 @@ class GrrApplicationLogger(object):
 
   def LogHttpApiCall(self, request, response):
     """Log an api call based on the django.http request and response objects."""
+    # TODO(user): This is broken, please fix.
+    return
 
     log_msg = "API call [%s] by %s: %s [%d]" % (response.get("X-API-Method",
                                                              "unknown"),

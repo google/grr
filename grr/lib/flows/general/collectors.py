@@ -749,11 +749,11 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       output_collection_map: dict of collections when splitting by artifact
     """
     if self.args.split_output_by_artifact:
-      if (self.runner.output is not None and
+      if (self.runner.IsWritingResults() and
           artifact_name not in output_collection_map):
         # Create the new collections in the same directory but not as children,
         # so they are visible in the GUI
-        urn = "_".join((str(self.runner.output.urn),
+        urn = "_".join((str(self.runner.output_urn),
                         utils.SmartStr(artifact_name)))
         collection = aff4.FACTORY.Create(
             urn, collects.RDFValueCollection, mode="rw", token=self.token)
@@ -871,8 +871,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     if self.args.on_no_results_error and self.state.response_count == 0:
       raise artifact_utils.ArtifactProcessingError(
           "Artifact collector returned 0 responses.")
-    if self.runner.output is not None:
-      urn = self.runner.output.urn
+    if self.runner.IsWritingResults():
+      urn = self.runner.output_urn
     else:
       urn = self.client_id
 

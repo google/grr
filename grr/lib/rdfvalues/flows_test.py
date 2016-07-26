@@ -2,6 +2,7 @@
 """Test for the flow state class."""
 
 
+import cPickle
 
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -60,7 +61,8 @@ class FlowStateTest(test_base.RDFValueTestCase):
       result = rdf_flows.FlowState(serialized)
 
       # The pickle error should be available here.
-      self.assertTrue(isinstance(result.errors, TypeError))
+      self.assertTrue(
+          isinstance(result.errors, (cPickle.UnpicklingError, TypeError)))
 
       # The bad field should be replaced with an UnknownObject instance.
       self.assertTrue(isinstance(result.urn, rdf_flows.UnknownObject))
