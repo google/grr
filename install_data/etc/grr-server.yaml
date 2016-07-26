@@ -199,8 +199,8 @@ ConfigUpdater Context:
   ConfigUpdater.old_config: /etc/grr/grr-server.conf
 
 Demo Context:
-  Client.control_urls:
-    - http://%(Frontend.bind_address):%(Frontend.bind_port)/control
+  Client.server_urls:
+    - http://%(Frontend.bind_address):%(Frontend.bind_port)/
 
   Client.poll_max: 5
 

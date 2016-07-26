@@ -24,12 +24,12 @@ from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
 
 
-class ApiCreateUserApprovalHandlerTestMixin(object):
-  """Base class for tests testing CreateUser*ApprovalHandlers."""
+class ApiCreateApprovalHandlerTestMixin(object):
+  """Base class for tests testing Create*ApprovalHandlers."""
 
   APPROVAL_TYPE = None
 
-  def SetUpUserApprovalTest(self):
+  def SetUpApprovalTest(self):
     self.CreateUser("test")
     self.CreateUser("approver")
 
@@ -105,13 +105,13 @@ class ApiCreateUserApprovalHandlerTestMixin(object):
     self.assertEqual(addresses[0], ("approver", "test", "test@example.com"))
 
 
-class ApiGetUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
-  """Test for ApiGetUserClientApprovalHandler."""
+class ApiGetClientApprovalHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiGetClientApprovalHandler."""
 
   def setUp(self):
-    super(ApiGetUserClientApprovalHandlerTest, self).setUp()
+    super(ApiGetClientApprovalHandlerTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
-    self.handler = user_plugin.ApiGetUserClientApprovalHandler()
+    self.handler = user_plugin.ApiGetClientApprovalHandler()
 
   def testRendersRequestedClientApproval(self):
     flow_urn = flow.GRRFlow.StartFlow(
@@ -126,7 +126,7 @@ class ApiGetUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
         flow_urn, aff4_type=flow.GRRFlow, token=self.token)
     approval_id = flow_fd.state.approval_id
 
-    args = user_plugin.ApiGetUserClientApprovalArgs(
+    args = user_plugin.ApiGetClientApprovalArgs(
         client_id=self.client_id,
         approval_id=approval_id,
         username=self.token.username)
@@ -165,7 +165,7 @@ class ApiGetUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
         subject_urn=self.client_id,
         token=approver_token)
 
-    args = user_plugin.ApiGetUserClientApprovalArgs(
+    args = user_plugin.ApiGetClientApprovalArgs(
         client_id=self.client_id,
         approval_id=approval_id,
         username=self.token.username)
@@ -177,7 +177,7 @@ class ApiGetUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
         sorted([approver_token.username, self.token.username]))
 
   def testRaisesWhenApprovalIsNotFound(self):
-    args = user_plugin.ApiGetUserClientApprovalArgs(
+    args = user_plugin.ApiGetClientApprovalArgs(
         client_id=self.client_id,
         approval_id="approval:112233",
         username=self.token.username)
@@ -188,11 +188,11 @@ class ApiGetUserClientApprovalHandlerTest(test_lib.GRRBaseTest):
       self.handler.Handle(args, token=self.token)
 
 
-class ApiGetUserClientApprovalHandlerRegressionTest(
+class ApiGetClientApprovalHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiGetUserClientApprovalHandler."""
+  """Regression test for ApiGetClientApprovalHandler."""
 
-  handler = "ApiGetUserClientApprovalHandler"
+  handler = "ApiGetClientApprovalHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -253,32 +253,32 @@ class ApiGetUserClientApprovalHandlerRegressionTest(
           replace={approval2_id: "approval:222222"})
 
 
-class ApiCreateUserClientApprovalHandlerTest(
-    test_lib.GRRBaseTest, ApiCreateUserApprovalHandlerTestMixin):
-  """Test for ApiCreateUserClientApprovalHandler."""
+class ApiCreateClientApprovalHandlerTest(test_lib.GRRBaseTest,
+                                         ApiCreateApprovalHandlerTestMixin):
+  """Test for ApiCreateClientApprovalHandler."""
 
   APPROVAL_TYPE = aff4_security.ClientApproval
 
   def setUp(self):
-    super(ApiCreateUserClientApprovalHandlerTest, self).setUp()
+    super(ApiCreateClientApprovalHandlerTest, self).setUp()
 
-    self.SetUpUserApprovalTest()
+    self.SetUpApprovalTest()
 
     self.subject_urn = client_id = self.SetupClients(1)[0]
 
-    self.handler = user_plugin.ApiCreateUserClientApprovalHandler()
+    self.handler = user_plugin.ApiCreateClientApprovalHandler()
 
-    self.args = user_plugin.ApiCreateUserClientApprovalArgs(client_id=client_id)
+    self.args = user_plugin.ApiCreateClientApprovalArgs(client_id=client_id)
     self.args.approval.reason = self.token.reason
     self.args.approval.notified_users = ["approver"]
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
-class ApiCreateUserClientApprovalHandlerRegressionTest(
+class ApiCreateClientApprovalHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiCreateUserClientApprovalHandler."""
+  """Regression test for ApiCreateClientApprovalHandler."""
 
-  handler = "ApiCreateUserClientApprovalHandler"
+  handler = "ApiCreateClientApprovalHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -313,14 +313,14 @@ class ApiCreateUserClientApprovalHandlerRegressionTest(
           replace=ReplaceApprovalId)
 
 
-class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
-  """Test for ApiListUserApprovalsHandler."""
+class ApiListClientApprovalsHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiListApprovalsHandler."""
 
   CLIENT_COUNT = 5
 
   def setUp(self):
-    super(ApiListUserClientApprovalsHandlerTest, self).setUp()
-    self.handler = user_plugin.ApiListUserClientApprovalsHandler()
+    super(ApiListClientApprovalsHandlerTest, self).setUp()
+    self.handler = user_plugin.ApiListClientApprovalsHandler()
     self.client_ids = self.SetupClients(self.CLIENT_COUNT)
 
   def _RequestClientApprovals(self):
@@ -330,7 +330,7 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
   def testRendersRequestedClientApprovals(self):
     self._RequestClientApprovals()
 
-    args = user_plugin.ApiListUserClientApprovalsArgs()
+    args = user_plugin.ApiListClientApprovalsArgs()
     result = self.handler.Handle(args, token=self.token)
 
     # All approvals should be returned.
@@ -342,7 +342,7 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
     self._RequestClientApprovals()
 
     # Get approvals for a specific client. There should be exactly one.
-    args = user_plugin.ApiListUserClientApprovalsArgs(client_id=client_id)
+    args = user_plugin.ApiListClientApprovalsArgs(client_id=client_id)
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), 1)
@@ -352,8 +352,8 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
     self._RequestClientApprovals()
 
     # We only requested approvals so far, so all of them should be invalid.
-    args = user_plugin.ApiListUserClientApprovalsArgs(
-        state=user_plugin.ApiListUserClientApprovalsArgs.State.INVALID)
+    args = user_plugin.ApiListClientApprovalsArgs(
+        state=user_plugin.ApiListClientApprovalsArgs.State.INVALID)
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), self.CLIENT_COUNT)
@@ -368,8 +368,8 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
     self._RequestClientApprovals()
 
     # We only requested approvals so far, so none of them is valid.
-    args = user_plugin.ApiListUserClientApprovalsArgs(
-        state=user_plugin.ApiListUserClientApprovalsArgs.State.VALID)
+    args = user_plugin.ApiListClientApprovalsArgs(
+        state=user_plugin.ApiListClientApprovalsArgs.State.VALID)
     result = self.handler.Handle(args, token=self.token)
 
     # We do not have any approved approvals yet.
@@ -391,15 +391,15 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
     self.GrantClientApproval(
         client_id, self.token.username, reason=self.token.reason)
 
-    args = user_plugin.ApiListUserClientApprovalsArgs(
+    args = user_plugin.ApiListClientApprovalsArgs(
         client_id=client_id,
-        state=user_plugin.ApiListUserClientApprovalsArgs.State.VALID)
+        state=user_plugin.ApiListClientApprovalsArgs.State.VALID)
     result = self.handler.Handle(args, token=self.token)
 
     # We have a valid approval for the requested client.
     self.assertEqual(len(result.items), 1)
 
-    args.state = user_plugin.ApiListUserClientApprovalsArgs.State.INVALID
+    args.state = user_plugin.ApiListClientApprovalsArgs.State.INVALID
     result = self.handler.Handle(args, token=self.token)
 
     # However, we do not have any invalid approvals for the client.
@@ -414,7 +414,7 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
         self.token.reason = "Request reason %d" % i
         self.RequestClientApproval(client_id, token=self.token)
 
-    args = user_plugin.ApiListUserClientApprovalsArgs(
+    args = user_plugin.ApiListClientApprovalsArgs(
         client_id=client_id, offset=0, count=5)
     result = self.handler.Handle(args, token=self.token)
 
@@ -425,8 +425,7 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
       self.assertEqual(item.reason, "Request reason %d" % i)
 
     # When no count is specified, take all items from offset to the end.
-    args = user_plugin.ApiListUserClientApprovalsArgs(
-        client_id=client_id, offset=7)
+    args = user_plugin.ApiListClientApprovalsArgs(client_id=client_id, offset=7)
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), 4)
@@ -434,11 +433,11 @@ class ApiListUserClientApprovalsHandlerTest(test_lib.GRRBaseTest):
       self.assertEqual(item.reason, "Request reason %d" % i)
 
 
-class ApiListUserClientApprovalsHandlerRegressionTest(
+class ApiListClientApprovalsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiListUserClientApprovalsHandlerTest."""
+  """Regression test for ApiListClientApprovalsHandlerTest."""
 
-  handler = "ApiListUserClientApprovalsHandler"
+  handler = "ApiListClientApprovalsHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -499,12 +498,12 @@ class ApiListUserClientApprovalsHandlerRegressionTest(
                    approval2_id: "approval:222222"})
 
 
-class ApiGetUserHuntApprovalHandlerRegressionTest(
+class ApiGetHuntApprovalHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
-  """Regression test for ApiGetUserHuntApprovalHandler."""
+  """Regression test for ApiGetHuntApprovalHandler."""
 
-  handler = "ApiGetUserHuntApprovalHandler"
+  handler = "ApiGetHuntApprovalHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -562,36 +561,36 @@ class ApiGetUserHuntApprovalHandlerRegressionTest(
                    approval2_id: "approval:222222"})
 
 
-class ApiCreateUserHuntApprovalHandlerTest(
-    test_lib.GRRBaseTest, ApiCreateUserApprovalHandlerTestMixin,
-    standard_test.StandardHuntTestMixin):
-  """Test for ApiCreateUserHuntApprovalHandler."""
+class ApiCreateHuntApprovalHandlerTest(test_lib.GRRBaseTest,
+                                       ApiCreateApprovalHandlerTestMixin,
+                                       standard_test.StandardHuntTestMixin):
+  """Test for ApiCreateHuntApprovalHandler."""
 
   APPROVAL_TYPE = aff4_security.HuntApproval
 
   def setUp(self):
-    super(ApiCreateUserHuntApprovalHandlerTest, self).setUp()
+    super(ApiCreateHuntApprovalHandlerTest, self).setUp()
 
-    self.SetUpUserApprovalTest()
+    self.SetUpApprovalTest()
 
     with self.CreateHunt(description="foo") as hunt_obj:
       self.subject_urn = hunt_urn = hunt_obj.urn
       hunt_id = hunt_urn.Basename()
 
-    self.handler = user_plugin.ApiCreateUserHuntApprovalHandler()
+    self.handler = user_plugin.ApiCreateHuntApprovalHandler()
 
-    self.args = user_plugin.ApiCreateUserHuntApprovalArgs(hunt_id=hunt_id)
+    self.args = user_plugin.ApiCreateHuntApprovalArgs(hunt_id=hunt_id)
     self.args.approval.reason = self.token.reason
     self.args.approval.notified_users = ["approver"]
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
-class ApiCreateUserHuntApprovalHandlerRegressionTest(
+class ApiCreateHuntApprovalHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
-  """Regression test for ApiCreateUserHuntApprovalHandler."""
+  """Regression test for ApiCreateHuntApprovalHandler."""
 
-  handler = "ApiCreateUserHuntApprovalHandler"
+  handler = "ApiCreateHuntApprovalHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -620,12 +619,12 @@ class ApiCreateUserHuntApprovalHandlerRegressionTest(
           replace=ReplaceHuntAndApprovalIds)
 
 
-class ApiListUserHuntApprovalsHandlerTest(test_lib.GRRBaseTest):
-  """Test for ApiListUserHuntApprovalsHandler."""
+class ApiListHuntApprovalsHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiListHuntApprovalsHandler."""
 
   def setUp(self):
-    super(ApiListUserHuntApprovalsHandlerTest, self).setUp()
-    self.handler = user_plugin.ApiListUserHuntApprovalsHandler()
+    super(ApiListHuntApprovalsHandlerTest, self).setUp()
+    self.handler = user_plugin.ApiListHuntApprovalsHandler()
 
   def testRendersRequestedHuntAppoval(self):
     with hunts.GRRHunt.StartHunt(
@@ -639,17 +638,17 @@ class ApiListUserHuntApprovalsHandlerTest(test_lib.GRRBaseTest):
         approver="approver",
         token=self.token)
 
-    args = user_plugin.ApiListUserHuntApprovalsArgs()
+    args = user_plugin.ApiListHuntApprovalsArgs()
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), 1)
 
 
-class ApiListUserHuntApprovalsHandlerRegressionTest(
+class ApiListHuntApprovalsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiListUserClientApprovalsHandlerTest."""
+  """Regression test for ApiListClientApprovalsHandlerTest."""
 
-  handler = "ApiListUserHuntApprovalsHandler"
+  handler = "ApiListHuntApprovalsHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -676,11 +675,11 @@ class ApiListUserHuntApprovalsHandlerRegressionTest(
                    approval_id: "approval:112233"})
 
 
-class ApiGetUserCronApprovalHandlerRegressionTest(
+class ApiGetCronJobApprovalHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiGetUserCronApprovalHandler."""
+  """Regression test for ApiGetCronJobApprovalHandler."""
 
-  handler = "ApiGetUserCronApprovalHandler"
+  handler = "ApiGetCronJobApprovalHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -728,28 +727,28 @@ class ApiGetUserCronApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "GET",
-          "/api/users/test/approvals/cron/%s/%s" %
+          "/api/users/test/approvals/cron-job/%s/%s" %
           (cron1_urn.Basename(), approval1_id),
           replace={cron1_urn.Basename(): "CronJob_123456",
                    approval1_id: "approval:111111"})
       self.Check(
           "GET",
-          "/api/users/test/approvals/cron/%s/%s" %
+          "/api/users/test/approvals/cron-job/%s/%s" %
           (cron2_urn.Basename(), approval2_id),
           replace={cron2_urn.Basename(): "CronJob_567890",
                    approval2_id: "approval:222222"})
 
 
-class ApiCreateUserCronApprovalHandlerTest(
-    test_lib.GRRBaseTest, ApiCreateUserApprovalHandlerTestMixin):
-  """Test for ApiCreateUserCronApprovalHandler."""
+class ApiCreateCronJobApprovalHandlerTest(test_lib.GRRBaseTest,
+                                          ApiCreateApprovalHandlerTestMixin):
+  """Test for ApiCreateCronJobApprovalHandler."""
 
   APPROVAL_TYPE = aff4_security.CronJobApproval
 
   def setUp(self):
-    super(ApiCreateUserCronApprovalHandlerTest, self).setUp()
+    super(ApiCreateCronJobApprovalHandlerTest, self).setUp()
 
-    self.SetUpUserApprovalTest()
+    self.SetUpApprovalTest()
 
     cron_manager = aff4_cronjobs.CronManager()
     cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
@@ -758,19 +757,19 @@ class ApiCreateUserCronApprovalHandlerTest(
         cron_args=cron_args, token=self.token)
     cron_id = cron_urn.Basename()
 
-    self.handler = user_plugin.ApiCreateUserCronApprovalHandler()
+    self.handler = user_plugin.ApiCreateCronJobApprovalHandler()
 
-    self.args = user_plugin.ApiCreateUserCronApprovalArgs(cron_job_id=cron_id)
+    self.args = user_plugin.ApiCreateCronJobApprovalArgs(cron_job_id=cron_id)
     self.args.approval.reason = self.token.reason
     self.args.approval.notified_users = ["approver"]
     self.args.approval.email_cc_addresses = ["test@example.com"]
 
 
-class ApiCreateUserCronApprovalHandlerRegressionTest(
+class ApiCreateCronJobApprovalHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
-  """Regression test for ApiCreateUserCronApprovalHandler."""
+  """Regression test for ApiCreateCronJobApprovalHandler."""
 
-  handler = "ApiCreateUserCronApprovalHandler"
+  handler = "ApiCreateCronJobApprovalHandler"
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -795,7 +794,7 @@ class ApiCreateUserCronApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "POST",
-          "/api/users/me/approvals/cron/%s" % cron_id, {"approval": {
+          "/api/users/me/approvals/cron-job/%s" % cron_id, {"approval": {
               "reason": "really important reason!",
               "notified_users": ["approver1", "approver2"],
               "email_cc_addresses": ["test@example.com"]
@@ -803,12 +802,12 @@ class ApiCreateUserCronApprovalHandlerRegressionTest(
           replace=ReplaceCronAndApprovalIds)
 
 
-class ApiListUserCronApprovalsHandlerTest(test_lib.GRRBaseTest):
-  """Test for ApiListUserCronApprovalsHandler."""
+class ApiListCronJobApprovalsHandlerTest(test_lib.GRRBaseTest):
+  """Test for ApiListCronJobApprovalsHandler."""
 
   def setUp(self):
-    super(ApiListUserCronApprovalsHandlerTest, self).setUp()
-    self.handler = user_plugin.ApiListUserCronApprovalsHandler()
+    super(ApiListCronJobApprovalsHandlerTest, self).setUp()
+    self.handler = user_plugin.ApiListCronJobApprovalsHandler()
 
   def testRendersRequestedCronJobApproval(self):
     cron_manager = aff4_cronjobs.CronManager()
@@ -824,7 +823,7 @@ class ApiListUserCronApprovalsHandlerTest(test_lib.GRRBaseTest):
         approver="approver",
         token=self.token)
 
-    args = user_plugin.ApiListUserCronApprovalsArgs()
+    args = user_plugin.ApiListCronJobApprovalsArgs()
     result = self.handler.Handle(args, token=self.token)
 
     self.assertEqual(len(result.items), 1)

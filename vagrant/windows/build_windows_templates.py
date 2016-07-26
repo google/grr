@@ -4,6 +4,7 @@
 import argparse
 import glob
 import os
+import shutil
 import subprocess
 
 parser = argparse.ArgumentParser(description="Build windows templates.")
@@ -39,6 +40,14 @@ parser.add_argument(
     help="gsutil binary. The default is the SDK install location since that's "
     "likely the one the user has authorized their creds for")
 
+parser.add_argument(
+    "--test_repack_install",
+    action="store_true",
+    default=False,
+    help="Test repacking by calling repack on the template after building,"
+    "then try and install the result. For use by integration tests. If you use "
+    "this option you must run as admin.")
+
 args = parser.parse_args()
 
 
@@ -66,6 +75,9 @@ class WindowsTemplateBuilder(object):
 
   PROTOC = r"C:\grr_deps\protoc\protoc.exe"
   GIT = r"C:\Program Files\Git\bin\git.exe"
+
+  INSTALL_PATH = r"C:\Windows\System32\GRR"
+  SERVICE_NAME = "GRR Monitor"
 
   def Clean(self):
     """Clean the build environment."""
@@ -108,13 +120,13 @@ class WindowsTemplateBuilder(object):
   def CopySdistsFromCloudStorage(self):
     """Use gsutil to copy sdists from cloud storage."""
     subprocess.check_call([args.gsutil, "cp",
-                           "gs://%s/grr-response-core-*.tar.gz" %
+                           "gs://%s/grr-response-core-*.zip" %
                            args.cloud_storage_sdist_bucket, self.BUILDDIR])
     core = glob.glob(os.path.join(self.BUILDDIR,
                                   "grr-response-core-*.zip")).pop()
 
     subprocess.check_call([args.gsutil, "cp",
-                           "gs://%s/grr-response-client-*.tar.gz" %
+                           "gs://%s/grr-response-client-*.zip" %
                            args.cloud_storage_sdist_bucket, self.BUILDDIR])
     client = glob.glob(os.path.join(self.BUILDDIR,
                                     "grr-response-client-*.zip")).pop()
@@ -141,6 +153,67 @@ class WindowsTemplateBuilder(object):
     subprocess.check_call([self.GRR_CLIENT_BUILD32, "--verbose",
                            "build_components", "--output", args.output_dir])
 
+  def _RepackTemplates(self):
+    """Repack templates with a dummy config."""
+    dummy_config = os.path.join(
+        args.grr_src, "grr/config/grr-response-test/test_data/dummyconfig.yaml")
+    template_i386 = glob.glob(os.path.join(args.output_dir, "*_i386*.zip")).pop(
+    )
+    template_amd64 = glob.glob(os.path.join(args.output_dir,
+                                            "*_amd64*.zip")).pop()
+
+    # We put the installers in the output dir so they get stored as build
+    # artifacts and we can test the 32bit build manually.
+    subprocess.check_call([self.GRR_CLIENT_BUILD64, "--verbose",
+                           "--secondary_configs", dummy_config, "repack",
+                           "--template", template_amd64, "--output_dir",
+                           args.output_dir])
+    subprocess.check_call([self.GRR_CLIENT_BUILD64, "--verbose", "--context",
+                           "DebugClientBuild Context", "--secondary_configs",
+                           dummy_config, "repack", "--template", template_amd64,
+                           "--output_dir", args.output_dir])
+    subprocess.check_call([self.GRR_CLIENT_BUILD32, "--verbose",
+                           "--secondary_configs", dummy_config, "repack",
+                           "--template", template_i386, "--output_dir",
+                           args.output_dir])
+    subprocess.check_call([self.GRR_CLIENT_BUILD32, "--verbose", "--context",
+                           "DebugClientBuild Context", "--secondary_configs",
+                           dummy_config, "repack", "--template", template_i386,
+                           "--output_dir", args.output_dir])
+
+  def _CleanupInstall(self):
+    """Cleanup from any previous installer enough for _CheckInstallSuccess."""
+    shutil.rmtree(self.INSTALL_PATH)
+    if os.path.exists(self.INSTALL_PATH):
+      raise RuntimeError("Install path still exists: %s" % self.INSTALL_PATH)
+
+    # Deliberately don't check return code, since service may not be installed.
+    subprocess.call(["sc", "stop", self.SERVICE_NAME])
+    output = subprocess.check_output(["sc", "query", self.SERVICE_NAME])
+    if "RUNNING" in output:
+      raise RuntimeError("Service still running: %s" % output)
+
+  def _CheckInstallSuccess(self):
+    """Check if installer installed correctly."""
+    if not os.path.exists(self.INSTALL_PATH):
+      raise RuntimeError("Install failed, no files at: %s" % self.INSTALL_PATH)
+
+    output = subprocess.check_output(["sc", "query", self.SERVICE_NAME])
+    if "RUNNING" not in output:
+      raise RuntimeError(
+          "GRR service not running after install, sc query output: %s" % output)
+
+  def _InstallInstallers(self):
+    """Install the installer built by RepackTemplates."""
+    # 32 bit binary will refuse to install on a 64bit system so we only install
+    # the 64 bit version
+    installer_amd64 = glob.glob(
+        os.path.join(args.output_dir, "dbg_*_amd64.exe")).pop()
+    self._CleanupInstall()
+    # The exit code is always 0, test to see if install was actually successful.
+    subprocess.check_call([installer_amd64])
+    self._CheckInstallSuccess()
+
   def CopyResultsToCloudStorage(self):
     paths = glob.glob("%s\\*" % args.output_dir)
     subprocess.check_call([args.gsutil, "-m", "cp"] + paths + [
@@ -161,6 +234,9 @@ class WindowsTemplateBuilder(object):
     self.InstallGRR(client_sdist)
     self.BuildTemplates()
     self.BuildComponents()
+    if args.test_repack_install:
+      self._RepackTemplates()
+      self._InstallInstallers()
     if args.cloud_storage_output_bucket:
       self.CopyResultsToCloudStorage()
 

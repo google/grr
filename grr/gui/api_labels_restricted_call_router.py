@@ -230,20 +230,20 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
   # Approvals methods.
   # =================
   #
-  def CreateUserClientApproval(self, args, token=None):
+  def CreateClientApproval(self, args, token=None):
     self.CheckClientLabels(args.client_id, token=token)
 
-    return self.delegate.CreateUserClientApproval(args, token=token)
+    return self.delegate.CreateClientApproval(args, token=token)
 
-  def GetUserClientApproval(self, args, token=None):
+  def GetClientApproval(self, args, token=None):
     self.CheckClientLabels(args.client_id, token=token)
 
-    return self.delegate.GetUserClientApproval(args, token=token)
+    return self.delegate.GetClientApproval(args, token=token)
 
-  def ListUserClientApprovals(self, args, token=None):
+  def ListClientApprovals(self, args, token=None):
     # Everybody can list their own user client approvals.
 
-    return self.delegate.ListUserClientApprovals(args, token=token)
+    return self.delegate.ListClientApprovals(args, token=token)
 
   # User settings methods.
   # =====================

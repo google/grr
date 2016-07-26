@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Tests for building and repacking clients."""
+
+import os
 import StringIO
+
 import mock
 import yaml
 
@@ -53,6 +56,18 @@ class BuildTests(test_lib.GRRBaseTest):
       raw_data = parser.RawData()
 
       self.assertIn("Client.deploy_time", raw_data)
+
+  def testRepackerDummyClientConfig(self):
+    """Ensure our dummy client config can pass validation.
+
+    This config is used to exercise repacking code in integration testing, here
+    we just make sure it will pass validation.
+    """
+    new_config = config_lib.CONFIG.MakeNewConfig()
+    new_config.Initialize()
+    new_config.LoadSecondaryConfig(
+        os.path.join(config_lib.CONFIG["Test.data_dir"], "dummyconfig.yaml"))
+    build.ClientRepacker().ValidateEndConfig(new_config)
 
 
 def main(argv):

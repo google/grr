@@ -14,7 +14,7 @@ install:
   - cmd: C:\grr_src\vagrant\windows\install_for_build.bat
 
 build_script:
-  - cmd: C:\Python27-x64\python.exe C:\grr_src\vagrant\windows\build_windows_templates.py --grr_src=C:\grr_src --output_dir=C:\grr_src\output
+  - cmd: C:\Python27-x64\python.exe C:\grr_src\vagrant\windows\build_windows_templates.py --grr_src=C:\grr_src --output_dir=C:\grr_src\output --test_repack_install
 
 artifacts:
   - path: output

@@ -49,7 +49,7 @@ class ApiGrrUser(rdf_structs.RDFProtoStruct):
 
 
 def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
-  """Initializes Api(User|Client|Cron)Approval from an AFF4 object."""
+  """Initializes Api(Client|Hunt|CronJob)Approval from an AFF4 object."""
 
   api_approval.id = approval_obj.urn.Basename()
   api_approval.reason = approval_obj.Get(approval_obj.Schema.REASON)
@@ -75,8 +75,8 @@ def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
   return api_approval
 
 
-class ApiUserClientApproval(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiUserClientApproval
+class ApiClientApproval(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiClientApproval
 
   def InitFromAff4Object(self, approval_obj, approval_subject_obj=None):
     if not approval_subject_obj:
@@ -90,8 +90,8 @@ class ApiUserClientApproval(rdf_structs.RDFProtoStruct):
     return _InitApiApprovalFromAff4Object(self, approval_obj)
 
 
-class ApiUserHuntApproval(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiUserHuntApproval
+class ApiHuntApproval(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiHuntApproval
 
   def InitFromAff4Object(self, approval_obj, approval_subject_obj=None):
     if not approval_subject_obj:
@@ -104,8 +104,8 @@ class ApiUserHuntApproval(rdf_structs.RDFProtoStruct):
     return _InitApiApprovalFromAff4Object(self, approval_obj)
 
 
-class ApiUserCronApproval(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiUserCronApproval
+class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiCronJobApproval
 
   def InitFromAff4Object(self, approval_obj, approval_subject_obj=None):
     if not approval_subject_obj:
@@ -119,11 +119,11 @@ class ApiUserCronApproval(rdf_structs.RDFProtoStruct):
     return _InitApiApprovalFromAff4Object(self, approval_obj)
 
 
-class ApiCreateUserClientApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiCreateUserClientApprovalArgs
+class ApiCreateClientApprovalArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiCreateClientApprovalArgs
 
 
-class ApiCreateUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
+class ApiCreateClientApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Creates new user client approval and notifies requested approvers."""
 
   category = CATEGORY
@@ -132,8 +132,8 @@ class ApiCreateUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
   # the fields.
   strip_json_root_fields_types = False
 
-  args_type = ApiCreateUserClientApprovalArgs
-  result_type = ApiUserClientApproval
+  args_type = ApiCreateClientApprovalArgs
+  result_type = ApiClientApproval
 
   def Handle(self, args, token=None):
     if not args.approval.reason:
@@ -157,14 +157,14 @@ class ApiCreateUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
         age=aff4.ALL_TIMES,
         token=token)
 
-    return ApiUserClientApproval().InitFromAff4Object(approval_obj)
+    return ApiClientApproval().InitFromAff4Object(approval_obj)
 
 
-class ApiGetUserClientApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetUserClientApprovalArgs
+class ApiGetClientApprovalArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetClientApprovalArgs
 
 
-class ApiGetUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
+class ApiGetClientApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Returns details about an approval for a given client and reason."""
 
   category = CATEGORY
@@ -173,8 +173,8 @@ class ApiGetUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
   # the fields.
   strip_json_root_fields_types = False
 
-  args_type = ApiGetUserClientApprovalArgs
-  result_type = ApiUserClientApproval
+  args_type = ApiGetClientApprovalArgs
+  result_type = ApiClientApproval
 
   def Handle(self, args, token=None):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add(args.client_id.Basename()).Add(
@@ -184,10 +184,10 @@ class ApiGetUserClientApprovalHandler(api_call_handler_base.ApiCallHandler):
         aff4_type=aff4_security.ClientApproval,
         age=aff4.ALL_TIMES,
         token=token)
-    return ApiUserClientApproval().InitFromAff4Object(approval_obj)
+    return ApiClientApproval().InitFromAff4Object(approval_obj)
 
 
-class ApiListUserApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
+class ApiListApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
   """Renders list of all user approvals."""
 
   category = CATEGORY
@@ -274,22 +274,22 @@ class ApiListUserApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
     return converted_approvals
 
 
-class ApiListUserClientApprovalsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListUserClientApprovalsArgs
+class ApiListClientApprovalsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListClientApprovalsArgs
 
 
-class ApiListUserClientApprovalsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListUserClientApprovalsResult
+class ApiListClientApprovalsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListClientApprovalsResult
 
 
-class ApiListUserClientApprovalsHandler(ApiListUserApprovalsHandlerBase):
+class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
   """Returns list of user's clients approvals."""
 
-  args_type = ApiListUserClientApprovalsArgs
-  result_type = ApiListUserClientApprovalsResult
+  args_type = ApiListClientApprovalsArgs
+  result_type = ApiListClientApprovalsResult
 
   def _ApprovalToApiApproval(self, approval_obj, subject):
-    return ApiUserClientApproval().InitFromAff4Object(
+    return ApiClientApproval().InitFromAff4Object(
         approval_obj, approval_subject_obj=subject)
 
   def _CheckClientId(self, client_id, approval):
@@ -303,10 +303,10 @@ class ApiListUserClientApprovalsHandler(ApiListUserApprovalsHandlerBase):
     except access_control.UnauthorizedAccess:
       is_valid = False
 
-    if state == ApiListUserClientApprovalsArgs.State.VALID:
+    if state == ApiListClientApprovalsArgs.State.VALID:
       return is_valid
 
-    if state == ApiListUserClientApprovalsArgs.State.INVALID:
+    if state == ApiListClientApprovalsArgs.State.INVALID:
       return not is_valid
 
   def _BuildFilter(self, args):
@@ -336,15 +336,15 @@ class ApiListUserClientApprovalsHandler(ApiListUserApprovalsHandlerBase):
 
     approvals, subjects_by_urn = self._GetApprovals(
         "client", args.offset, args.count, filter_func=filter_func, token=token)
-    return ApiListUserClientApprovalsResult(items=self._HandleApprovals(
+    return ApiListClientApprovalsResult(items=self._HandleApprovals(
         approvals, subjects_by_urn, self._ApprovalToApiApproval))
 
 
-class ApiCreateUserHuntApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiCreateUserHuntApprovalArgs
+class ApiCreateHuntApprovalArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiCreateHuntApprovalArgs
 
 
-class ApiCreateUserHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
+class ApiCreateHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Creates new user hunt approval and notifies requested approvers."""
 
   category = CATEGORY
@@ -353,8 +353,8 @@ class ApiCreateUserHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
   # the fields.
   strip_json_root_fields_types = False
 
-  args_type = ApiCreateUserHuntApprovalArgs
-  result_type = ApiUserHuntApproval
+  args_type = ApiCreateHuntApprovalArgs
+  result_type = ApiHuntApproval
 
   def Handle(self, args, token=None):
     if not args.approval.reason:
@@ -376,14 +376,14 @@ class ApiCreateUserHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
         age=aff4.ALL_TIMES,
         token=token)
 
-    return ApiUserHuntApproval().InitFromAff4Object(approval_obj)
+    return ApiHuntApproval().InitFromAff4Object(approval_obj)
 
 
-class ApiGetUserHuntApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetUserHuntApprovalArgs
+class ApiGetHuntApprovalArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetHuntApprovalArgs
 
 
-class ApiGetUserHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
+class ApiGetHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Returns details about approval for a given hunt, user and approval id."""
 
   category = CATEGORY
@@ -392,8 +392,8 @@ class ApiGetUserHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
   # the fields.
   strip_json_root_fields_types = False
 
-  args_type = ApiGetUserHuntApprovalArgs
-  result_type = ApiUserHuntApproval
+  args_type = ApiGetHuntApprovalArgs
+  result_type = ApiHuntApproval
 
   def Handle(self, args, token=None):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add("hunts").Add(args.hunt_id).Add(
@@ -403,39 +403,39 @@ class ApiGetUserHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
         aff4_type=aff4_security.HuntApproval,
         age=aff4.ALL_TIMES,
         token=token)
-    return ApiUserHuntApproval().InitFromAff4Object(approval_obj)
+    return ApiHuntApproval().InitFromAff4Object(approval_obj)
 
 
-class ApiListUserHuntApprovalsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListUserHuntApprovalsArgs
+class ApiListHuntApprovalsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntApprovalsArgs
 
 
-class ApiListUserHuntApprovalsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListUserHuntApprovalsResult
+class ApiListHuntApprovalsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListHuntApprovalsResult
 
 
-class ApiListUserHuntApprovalsHandler(ApiListUserApprovalsHandlerBase):
+class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
   """Returns list of user's hunts approvals."""
 
-  args_type = ApiListUserHuntApprovalsArgs
-  result_type = ApiListUserHuntApprovalsResult
+  args_type = ApiListHuntApprovalsArgs
+  result_type = ApiListHuntApprovalsResult
 
   def _ApprovalToApiApproval(self, approval_obj, subject):
-    return ApiUserHuntApproval().InitFromAff4Object(
+    return ApiHuntApproval().InitFromAff4Object(
         approval_obj, approval_subject_obj=subject)
 
   def Handle(self, args, token=None):
     approvals, subjects_by_urn = self._GetApprovals(
         "hunt", args.offset, args.count, token=token)
-    return ApiListUserHuntApprovalsResult(items=self._HandleApprovals(
+    return ApiListHuntApprovalsResult(items=self._HandleApprovals(
         approvals, subjects_by_urn, self._ApprovalToApiApproval))
 
 
-class ApiCreateUserCronApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiCreateUserCronApprovalArgs
+class ApiCreateCronJobApprovalArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiCreateCronJobApprovalArgs
 
 
-class ApiCreateUserCronApprovalHandler(api_call_handler_base.ApiCallHandler):
+class ApiCreateCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Creates new user cron approval and notifies requested approvers."""
 
   category = CATEGORY
@@ -444,8 +444,8 @@ class ApiCreateUserCronApprovalHandler(api_call_handler_base.ApiCallHandler):
   # the fields.
   strip_json_root_fields_types = False
 
-  args_type = ApiCreateUserCronApprovalArgs
-  result_type = ApiUserCronApproval
+  args_type = ApiCreateCronJobApprovalArgs
+  result_type = ApiCronJobApproval
 
   def Handle(self, args, token=None):
     if not args.approval.reason:
@@ -467,14 +467,14 @@ class ApiCreateUserCronApprovalHandler(api_call_handler_base.ApiCallHandler):
         age=aff4.ALL_TIMES,
         token=token)
 
-    return ApiUserCronApproval().InitFromAff4Object(approval_obj)
+    return ApiCronJobApproval().InitFromAff4Object(approval_obj)
 
 
-class ApiGetUserCronApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetUserCronApprovalArgs
+class ApiGetCronJobApprovalArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetCronJobApprovalArgs
 
 
-class ApiGetUserCronApprovalHandler(api_call_handler_base.ApiCallHandler):
+class ApiGetCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
   """Returns details about approval for a given cron, user and approval id."""
 
   category = CATEGORY
@@ -483,8 +483,8 @@ class ApiGetUserCronApprovalHandler(api_call_handler_base.ApiCallHandler):
   # the fields.
   strip_json_root_fields_types = False
 
-  args_type = ApiGetUserCronApprovalArgs
-  result_type = ApiUserCronApproval
+  args_type = ApiGetCronJobApprovalArgs
+  result_type = ApiCronJobApproval
 
   def Handle(self, args, token=None):
     approval_urn = aff4.ROOT_URN.Add("ACL").Add("cron").Add(
@@ -494,31 +494,31 @@ class ApiGetUserCronApprovalHandler(api_call_handler_base.ApiCallHandler):
         aff4_type=aff4_security.CronJobApproval,
         age=aff4.ALL_TIMES,
         token=token)
-    return ApiUserCronApproval().InitFromAff4Object(approval_obj)
+    return ApiCronJobApproval().InitFromAff4Object(approval_obj)
 
 
-class ApiListUserCronApprovalsArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListUserCronApprovalsArgs
+class ApiListCronJobApprovalsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListCronJobApprovalsArgs
 
 
-class ApiListUserCronApprovalsResult(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiListUserCronApprovalsResult
+class ApiListCronJobApprovalsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListCronJobApprovalsResult
 
 
-class ApiListUserCronApprovalsHandler(ApiListUserApprovalsHandlerBase):
+class ApiListCronJobApprovalsHandler(ApiListApprovalsHandlerBase):
   """Returns list of user's cron jobs approvals."""
 
-  args_type = ApiListUserCronApprovalsArgs
-  result_type = ApiListUserCronApprovalsResult
+  args_type = ApiListCronJobApprovalsArgs
+  result_type = ApiListCronJobApprovalsResult
 
   def _ApprovalToApiApproval(self, approval_obj, subject):
-    return ApiUserCronApproval().InitFromAff4Object(
+    return ApiCronJobApproval().InitFromAff4Object(
         approval_obj, approval_subject_obj=subject)
 
   def Handle(self, args, token=None):
     approvals, subjects_by_urn = self._GetApprovals(
         "cron", args.offset, args.count, token=token)
-    return ApiListUserCronApprovalsResult(items=self._HandleApprovals(
+    return ApiListCronJobApprovalsResult(items=self._HandleApprovals(
         approvals, subjects_by_urn, self._ApprovalToApiApproval))
 
 

@@ -72,9 +72,9 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_list(
     name="Client.server_urls", default=[], help="Base URL for client control.")
 
-# Deprecated. Remove when all installations switch to Client.server_urls.
-config_lib.DEFINE_list("Client.control_urls", ["http://localhost:8080/control"],
-                       "List of URLs of the controlling server.")
+config_lib.DEFINE_list("Client.control_urls", [],
+                       "DEPRECATED List of URLs of the controlling server. "
+                       "Use server_urls instead.")
 
 config_lib.DEFINE_integer("Client.http_timeout", 100,
                           "Timeout for HTTP requests.")

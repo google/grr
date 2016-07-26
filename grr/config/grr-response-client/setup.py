@@ -71,13 +71,16 @@ setup_args = dict(
     },
     cmdclass={"sdist": Sdist},
     data_files=["version.ini"],
-    # We need pyinstaller 3.2 for centos but it's broken on windows.
+    # We need pyinstaller 3.2 for centos to build it at all, and other OSes for
+    # this:
+    # https://github.com/pyinstaller/pyinstaller/issues/1425
+    # but it's broken on windows 32 bit:
     # https://github.com/google/grr/issues/367
+    # Once there is a new release of pyinstaller we can get rid of this.
     install_requires=[
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-    ] + (["pyinstaller==3.2"] if
-         (platform.linux_distribution()[0] == "CentOS") else [
-             "pyinstaller==3.1.1"
-         ]),)
+    ] + (["pyinstaller==3.2"] if (platform.system() != "Windows") else [
+        "pyinstaller==3.1.1"
+    ]),)
 
 setup(**setup_args)

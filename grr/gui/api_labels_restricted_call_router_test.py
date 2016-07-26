@@ -168,11 +168,11 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
     self.CheckMethod(c.GetStatsStoreMetric)
 
     # Approvals methods.
-    self.CheckMethod(c.CreateUserClientApproval, client_id=self.client_id)
-    self.CheckMethod(c.GetUserClientApproval, client_id=self.client_id)
-    self.CheckMethod(c.ListUserClientApprovals, client_id=self.client_id)
-    self.CheckMethod(c.ListUserHuntApprovals)
-    self.CheckMethod(c.ListUserCronApprovals)
+    self.CheckMethod(c.CreateClientApproval, client_id=self.client_id)
+    self.CheckMethod(c.GetClientApproval, client_id=self.client_id)
+    self.CheckMethod(c.ListClientApprovals, client_id=self.client_id)
+    self.CheckMethod(c.ListHuntApprovals)
+    self.CheckMethod(c.ListCronJobApprovals)
 
     # User settings methods.
     self.CheckMethod(c.GetPendingUserNotificationsCount)
@@ -230,7 +230,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
-        "ListUserClientApprovals"
+        "ListClientApprovals"
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithoutVfsAndUnapprovedClientWithWrongLabelName(self):
@@ -238,7 +238,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
-        "ListUserClientApprovals"
+        "ListClientApprovals"
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithoutVfsAndUnapprovedClientWithWrongLabelOwner(self):
@@ -247,17 +247,17 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
-        "ListUserClientApprovals"
+        "ListClientApprovals"
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithoutVfsAndSingleProperlyLabeledUnapprovedClient(self):
     router = api_router.ApiLabelsRestrictedCallRouter(labels_whitelist=["foo"])
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
-        "ListUserClientApprovals",
+        "ListClientApprovals",
         "GetClient",
-        "CreateUserClientApproval",
-        "GetUserClientApproval"
+        "CreateClientApproval",
+        "GetClientApproval"
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithoutVfsAndSingleProperlyLabeledApprovedClient(self):
@@ -266,10 +266,10 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
     router = api_router.ApiLabelsRestrictedCallRouter(labels_whitelist=["foo"])
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
-        "ListUserClientApprovals",
+        "ListClientApprovals",
         "GetClient",
-        "CreateUserClientApproval",
-        "GetUserClientApproval"
+        "CreateClientApproval",
+        "GetClientApproval"
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   # Check router with vfs access turned on.
@@ -278,7 +278,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
-        "ListUserClientApprovals",
+        "ListClientApprovals",
 
         # This operation is always allowed as it doesn't depend on a client
         # id.
@@ -291,10 +291,10 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
-        "ListUserClientApprovals",
+        "ListClientApprovals",
         "GetClient",
-        "CreateUserClientApproval",
-        "GetUserClientApproval",
+        "CreateClientApproval",
+        "GetClientApproval",
 
         # This operation is always allowed as it doesn't depend on a client
         # id.
@@ -310,10 +310,10 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         # Client methods.
         "SearchClients",
-        "ListUserClientApprovals",
+        "ListClientApprovals",
         "GetClient",
-        "CreateUserClientApproval",
-        "GetUserClientApproval",
+        "CreateClientApproval",
+        "GetClientApproval",
 
         # VFS methods
         "ListFiles",
@@ -334,7 +334,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
-        "ListUserClientApprovals",
+        "ListClientApprovals",
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithFlowsWithoutVfsAndSingleProperlyLabeledUnapprovedClient(self):
@@ -343,10 +343,10 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
-        "ListUserClientApprovals",
+        "ListClientApprovals",
         "GetClient",
-        "CreateUserClientApproval",
-        "GetUserClientApproval",
+        "CreateClientApproval",
+        "GetClientApproval",
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithFlowsWithoutVfsAndSingleProperlyLabeledAndApprovedClient(self):
@@ -358,10 +358,10 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         # Clients methods.
         "SearchClients",
-        "ListUserClientApprovals",
+        "ListClientApprovals",
         "GetClient",
-        "CreateUserClientApproval",
-        "GetUserClientApproval",
+        "CreateClientApproval",
+        "GetClientApproval",
 
         # Flows methods.
         "ListFlows",

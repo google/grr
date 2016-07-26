@@ -154,6 +154,306 @@
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/actions/cancel"
     }
   ],
+  "ApiCreateClientApprovalHandler": [
+    {
+      "method": "POST",
+      "request_payload": {
+        "approval": {
+          "email_cc_addresses": [
+            "test@example.com"
+          ],
+          "notified_users": [
+            "approver1",
+            "approver2"
+          ],
+          "reason": "really important reason!"
+        }
+      },
+      "response": {
+        "age": 0,
+        "type": "ApiClientApproval",
+        "value": {
+          "approvers": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "test"
+            }
+          ],
+          "email_cc_addresses": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "test@example.com"
+            }
+          ],
+          "id": {
+            "age": 0,
+            "type": "unicode",
+            "value": "approval:112233"
+          },
+          "is_valid": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "is_valid_message": {
+            "age": 0,
+            "type": "unicode",
+            "value": "Requires 2 approvers for access."
+          },
+          "notified_users": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver1"
+            },
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver2"
+            }
+          ],
+          "reason": {
+            "age": 0,
+            "type": "unicode",
+            "value": "really important reason!"
+          },
+          "subject": {
+            "age": 42000000,
+            "type": "ApiClient",
+            "value": {
+              "agent_info": {
+                "age": 42000000,
+                "type": "ClientInformation",
+                "value": {
+                  "client_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  }
+                }
+              },
+              "hardware_info": {
+                "age": 0,
+                "type": "HardwareInfo",
+                "value": {}
+              },
+              "labels": [],
+              "last_seen_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "os_info": {
+                "age": 0,
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "node": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0"
+                  },
+                  "version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  }
+                }
+              },
+              "urn": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": []
+            }
+          }
+        }
+      },
+      "test_class": "ApiCreateClientApprovalHandlerRegressionTest",
+      "type_stripped_response": {
+        "approvers": [
+          "test"
+        ],
+        "email_cc_addresses": [
+          "test@example.com"
+        ],
+        "id": "approval:112233",
+        "is_valid": false,
+        "is_valid_message": "Requires 2 approvers for access.",
+        "notified_users": [
+          "approver1",
+          "approver2"
+        ],
+        "reason": "really important reason!",
+        "subject": {
+          "agent_info": {
+            "client_name": "GRR Monitor"
+          },
+          "hardware_info": {},
+          "labels": [],
+          "last_seen_at": 42000000,
+          "os_info": {
+            "fqdn": "Host-0.example.com",
+            "node": "Host-0",
+            "version": ""
+          },
+          "urn": "aff4:/C.1000000000000000",
+          "users": []
+        }
+      },
+      "url": "/api/users/me/approvals/client/C.1000000000000000"
+    }
+  ],
+  "ApiCreateCronJobApprovalHandler": [
+    {
+      "method": "POST",
+      "request_payload": {
+        "approval": {
+          "email_cc_addresses": [
+            "test@example.com"
+          ],
+          "notified_users": [
+            "approver1",
+            "approver2"
+          ],
+          "reason": "really important reason!"
+        }
+      },
+      "response": {
+        "age": 0,
+        "type": "ApiCronJobApproval",
+        "value": {
+          "approvers": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "test"
+            }
+          ],
+          "email_cc_addresses": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "test@example.com"
+            }
+          ],
+          "id": {
+            "age": 0,
+            "type": "unicode",
+            "value": "approval:112233"
+          },
+          "is_valid": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "is_valid_message": {
+            "age": 0,
+            "type": "unicode",
+            "value": "Requires 2 approvers for access."
+          },
+          "notified_users": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver1"
+            },
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver2"
+            }
+          ],
+          "reason": {
+            "age": 0,
+            "type": "unicode",
+            "value": "really important reason!"
+          },
+          "subject": {
+            "age": 0,
+            "type": "ApiCronJob",
+            "value": {
+              "allow_overruns": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": ""
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": ""
+              },
+              "flow_runner_args": {
+                "age": 0,
+                "type": "FlowRunnerArgs",
+                "value": {}
+              },
+              "lifetime": {
+                "age": 0,
+                "type": "Duration",
+                "value": 0
+              },
+              "periodicity": {
+                "age": 0,
+                "type": "Duration",
+                "value": 86400
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "ENABLED"
+              },
+              "urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/cron/CronJob_123456"
+              }
+            }
+          }
+        }
+      },
+      "test_class": "ApiCreateCronJobApprovalHandlerRegressionTest",
+      "type_stripped_response": {
+        "approvers": [
+          "test"
+        ],
+        "email_cc_addresses": [
+          "test@example.com"
+        ],
+        "id": "approval:112233",
+        "is_valid": false,
+        "is_valid_message": "Requires 2 approvers for access.",
+        "notified_users": [
+          "approver1",
+          "approver2"
+        ],
+        "reason": "really important reason!",
+        "subject": {
+          "allow_overruns": false,
+          "description": "",
+          "flow_name": "",
+          "flow_runner_args": {},
+          "lifetime": 0,
+          "periodicity": 86400,
+          "state": "ENABLED",
+          "urn": "aff4:/cron/CronJob_123456"
+        }
+      },
+      "url": "/api/users/me/approvals/cron-job/CronJob_123456"
+    }
+  ],
   "ApiCreateCronJobHandler": [
     {
       "method": "POST",
@@ -363,130 +663,6 @@
       "url": "/api/cron-jobs"
     }
   ],
-  "ApiListCronJobFlowsHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": 0,
-            "type": "ApiFlow",
-            "value": {
-              "args": {
-                "age": 0,
-                "type": "EmptyFlowArgs",
-                "value": {}
-              },
-              "creator": {
-                "age": 0,
-                "type": "unicode",
-                "value": "test"
-              },
-              "last_active_at": {
-                "age": 44000000,
-                "type": "RDFDatetime",
-                "value": 44000000
-              },
-              "name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "GRRVersionBreakDown"
-              },
-              "nested_flows": [],
-              "started_at": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 44000000
-              },
-              "state": {
-                "age": 0,
-                "type": "EnumNamedValue",
-                "value": "RUNNING"
-              },
-              "urn": {
-                "age": 0,
-                "type": "SessionID",
-                "value": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
-              }
-            }
-          }
-        ]
-      },
-      "test_class": "ApiListCronJobFlowsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "args": {},
-            "creator": "test",
-            "last_active_at": 44000000,
-            "name": "GRRVersionBreakDown",
-            "nested_flows": [],
-            "started_at": 44000000,
-            "state": "RUNNING",
-            "urn": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
-          }
-        ]
-      },
-      "url": "/api/cron-jobs/GRRVersionBreakDown/flows"
-    }
-  ],
-  "ApiGetCronJobFlowHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "age": 0,
-        "type": "ApiFlow",
-        "value": {
-          "args": {
-            "age": 0,
-            "type": "EmptyFlowArgs",
-            "value": {}
-          },
-          "creator": {
-            "age": 0,
-            "type": "unicode",
-            "value": "test"
-          },
-          "last_active_at": {
-            "age": 44000000,
-            "type": "RDFDatetime",
-            "value": 44000000
-          },
-          "name": {
-            "age": 0,
-            "type": "unicode",
-            "value": "GRRVersionBreakDown"
-          },
-          "started_at": {
-            "age": 0,
-            "type": "RDFDatetime",
-            "value": 44000000
-          },
-          "state": {
-            "age": 0,
-            "type": "EnumNamedValue",
-            "value": "RUNNING"
-          },
-          "urn": {
-            "age": 0,
-            "type": "SessionID",
-            "value": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
-          }
-        }
-      },
-      "test_class": "ApiGetCronJobFlowHandlerRegressionTest",
-      "type_stripped_response": {
-        "args": {},
-        "creator": "test",
-        "last_active_at": 44000000,
-        "name": "GRRVersionBreakDown",
-        "started_at": 44000000,
-        "state": "RUNNING",
-        "urn": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
-      },
-      "url": "/api/cron-jobs/GRRVersionBreakDown/flows/F:ABCDEF11"
-    }
-  ],
   "ApiCreateFlowHandler": [
     {
       "method": "POST",
@@ -572,7 +748,7 @@
       "url": "/api/clients/C.1000000000000000/flows"
     }
   ],
-  "ApiCreateUserClientApprovalHandler": [
+  "ApiCreateHuntApprovalHandler": [
     {
       "method": "POST",
       "request_payload": {
@@ -589,307 +765,7 @@
       },
       "response": {
         "age": 0,
-        "type": "ApiUserClientApproval",
-        "value": {
-          "approvers": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "test"
-            }
-          ],
-          "email_cc_addresses": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "test@example.com"
-            }
-          ],
-          "id": {
-            "age": 0,
-            "type": "unicode",
-            "value": "approval:112233"
-          },
-          "is_valid": {
-            "age": 0,
-            "type": "RDFBool",
-            "value": false
-          },
-          "is_valid_message": {
-            "age": 0,
-            "type": "unicode",
-            "value": "Requires 2 approvers for access."
-          },
-          "notified_users": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "approver1"
-            },
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "approver2"
-            }
-          ],
-          "reason": {
-            "age": 0,
-            "type": "unicode",
-            "value": "really important reason!"
-          },
-          "subject": {
-            "age": 42000000,
-            "type": "ApiClient",
-            "value": {
-              "agent_info": {
-                "age": 42000000,
-                "type": "ClientInformation",
-                "value": {
-                  "client_name": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "GRR Monitor"
-                  }
-                }
-              },
-              "hardware_info": {
-                "age": 0,
-                "type": "HardwareInfo",
-                "value": {}
-              },
-              "labels": [],
-              "last_seen_at": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "os_info": {
-                "age": 0,
-                "type": "Uname",
-                "value": {
-                  "fqdn": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Host-0.example.com"
-                  },
-                  "node": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Host-0"
-                  },
-                  "version": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": ""
-                  }
-                }
-              },
-              "urn": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
-              },
-              "users": []
-            }
-          }
-        }
-      },
-      "test_class": "ApiCreateUserClientApprovalHandlerRegressionTest",
-      "type_stripped_response": {
-        "approvers": [
-          "test"
-        ],
-        "email_cc_addresses": [
-          "test@example.com"
-        ],
-        "id": "approval:112233",
-        "is_valid": false,
-        "is_valid_message": "Requires 2 approvers for access.",
-        "notified_users": [
-          "approver1",
-          "approver2"
-        ],
-        "reason": "really important reason!",
-        "subject": {
-          "agent_info": {
-            "client_name": "GRR Monitor"
-          },
-          "hardware_info": {},
-          "labels": [],
-          "last_seen_at": 42000000,
-          "os_info": {
-            "fqdn": "Host-0.example.com",
-            "node": "Host-0",
-            "version": ""
-          },
-          "urn": "aff4:/C.1000000000000000",
-          "users": []
-        }
-      },
-      "url": "/api/users/me/approvals/client/C.1000000000000000"
-    }
-  ],
-  "ApiCreateUserCronApprovalHandler": [
-    {
-      "method": "POST",
-      "request_payload": {
-        "approval": {
-          "email_cc_addresses": [
-            "test@example.com"
-          ],
-          "notified_users": [
-            "approver1",
-            "approver2"
-          ],
-          "reason": "really important reason!"
-        }
-      },
-      "response": {
-        "age": 0,
-        "type": "ApiUserCronApproval",
-        "value": {
-          "approvers": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "test"
-            }
-          ],
-          "email_cc_addresses": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "test@example.com"
-            }
-          ],
-          "id": {
-            "age": 0,
-            "type": "unicode",
-            "value": "approval:112233"
-          },
-          "is_valid": {
-            "age": 0,
-            "type": "RDFBool",
-            "value": false
-          },
-          "is_valid_message": {
-            "age": 0,
-            "type": "unicode",
-            "value": "Requires 2 approvers for access."
-          },
-          "notified_users": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "approver1"
-            },
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "approver2"
-            }
-          ],
-          "reason": {
-            "age": 0,
-            "type": "unicode",
-            "value": "really important reason!"
-          },
-          "subject": {
-            "age": 0,
-            "type": "ApiCronJob",
-            "value": {
-              "allow_overruns": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "description": {
-                "age": 0,
-                "type": "unicode",
-                "value": ""
-              },
-              "flow_name": {
-                "age": 0,
-                "type": "unicode",
-                "value": ""
-              },
-              "flow_runner_args": {
-                "age": 0,
-                "type": "FlowRunnerArgs",
-                "value": {}
-              },
-              "lifetime": {
-                "age": 0,
-                "type": "Duration",
-                "value": 0
-              },
-              "periodicity": {
-                "age": 0,
-                "type": "Duration",
-                "value": 86400
-              },
-              "state": {
-                "age": 0,
-                "type": "EnumNamedValue",
-                "value": "ENABLED"
-              },
-              "urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/cron/CronJob_123456"
-              }
-            }
-          }
-        }
-      },
-      "test_class": "ApiCreateUserCronApprovalHandlerRegressionTest",
-      "type_stripped_response": {
-        "approvers": [
-          "test"
-        ],
-        "email_cc_addresses": [
-          "test@example.com"
-        ],
-        "id": "approval:112233",
-        "is_valid": false,
-        "is_valid_message": "Requires 2 approvers for access.",
-        "notified_users": [
-          "approver1",
-          "approver2"
-        ],
-        "reason": "really important reason!",
-        "subject": {
-          "allow_overruns": false,
-          "description": "",
-          "flow_name": "",
-          "flow_runner_args": {},
-          "lifetime": 0,
-          "periodicity": 86400,
-          "state": "ENABLED",
-          "urn": "aff4:/cron/CronJob_123456"
-        }
-      },
-      "url": "/api/users/me/approvals/cron/CronJob_123456"
-    }
-  ],
-  "ApiCreateUserHuntApprovalHandler": [
-    {
-      "method": "POST",
-      "request_payload": {
-        "approval": {
-          "email_cc_addresses": [
-            "test@example.com"
-          ],
-          "notified_users": [
-            "approver1",
-            "approver2"
-          ],
-          "reason": "really important reason!"
-        }
-      },
-      "response": {
-        "age": 0,
-        "type": "ApiUserHuntApproval",
+        "type": "ApiHuntApproval",
         "value": {
           "approvers": [
             {
@@ -1005,7 +881,7 @@
           }
         }
       },
-      "test_class": "ApiCreateUserHuntApprovalHandlerRegressionTest",
+      "test_class": "ApiCreateHuntApprovalHandlerRegressionTest",
       "type_stripped_response": {
         "approvers": [
           "test"
@@ -1051,6 +927,266 @@
       },
       "test_class": "ApiCreateVfsRefreshOperationHandlerRegressionTest",
       "url": "/api/clients/C.1000000000000000/vfs-refresh-operations"
+    }
+  ],
+  "ApiGetClientApprovalHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "age": 0,
+        "type": "ApiClientApproval",
+        "value": {
+          "approvers": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "test"
+            }
+          ],
+          "email_cc_addresses": [],
+          "id": {
+            "age": 0,
+            "type": "unicode",
+            "value": "approval:111111"
+          },
+          "is_valid": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "is_valid_message": {
+            "age": 0,
+            "type": "unicode",
+            "value": "Requires 2 approvers for access."
+          },
+          "notified_users": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver"
+            }
+          ],
+          "reason": {
+            "age": 0,
+            "type": "unicode",
+            "value": "foo"
+          },
+          "subject": {
+            "age": 42000000,
+            "type": "ApiClient",
+            "value": {
+              "agent_info": {
+                "age": 42000000,
+                "type": "ClientInformation",
+                "value": {
+                  "client_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  }
+                }
+              },
+              "hardware_info": {
+                "age": 0,
+                "type": "HardwareInfo",
+                "value": {}
+              },
+              "labels": [],
+              "last_seen_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "os_info": {
+                "age": 0,
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "node": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0"
+                  },
+                  "version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  }
+                }
+              },
+              "urn": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "users": []
+            }
+          }
+        }
+      },
+      "test_class": "ApiGetClientApprovalHandlerRegressionTest",
+      "type_stripped_response": {
+        "approvers": [
+          "test"
+        ],
+        "email_cc_addresses": [],
+        "id": "approval:111111",
+        "is_valid": false,
+        "is_valid_message": "Requires 2 approvers for access.",
+        "notified_users": [
+          "approver"
+        ],
+        "reason": "foo",
+        "subject": {
+          "agent_info": {
+            "client_name": "GRR Monitor"
+          },
+          "hardware_info": {},
+          "labels": [],
+          "last_seen_at": 42000000,
+          "os_info": {
+            "fqdn": "Host-0.example.com",
+            "node": "Host-0",
+            "version": ""
+          },
+          "urn": "aff4:/C.1000000000000000",
+          "users": []
+        }
+      },
+      "url": "/api/users/test/approvals/client/C.1000000000000000/approval:111111"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "age": 0,
+        "type": "ApiClientApproval",
+        "value": {
+          "approvers": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver"
+            },
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "test"
+            }
+          ],
+          "email_cc_addresses": [],
+          "id": {
+            "age": 0,
+            "type": "unicode",
+            "value": "approval:222222"
+          },
+          "is_valid": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": true
+          },
+          "notified_users": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver"
+            }
+          ],
+          "reason": {
+            "age": 0,
+            "type": "unicode",
+            "value": "bar"
+          },
+          "subject": {
+            "age": 42000000,
+            "type": "ApiClient",
+            "value": {
+              "agent_info": {
+                "age": 42000000,
+                "type": "ClientInformation",
+                "value": {
+                  "client_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRR Monitor"
+                  }
+                }
+              },
+              "hardware_info": {
+                "age": 0,
+                "type": "HardwareInfo",
+                "value": {}
+              },
+              "labels": [],
+              "last_seen_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "os_info": {
+                "age": 0,
+                "type": "Uname",
+                "value": {
+                  "fqdn": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-1.example.com"
+                  },
+                  "node": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-1"
+                  },
+                  "version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  }
+                }
+              },
+              "urn": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000001"
+              },
+              "users": []
+            }
+          }
+        }
+      },
+      "test_class": "ApiGetClientApprovalHandlerRegressionTest",
+      "type_stripped_response": {
+        "approvers": [
+          "approver",
+          "test"
+        ],
+        "email_cc_addresses": [],
+        "id": "approval:222222",
+        "is_valid": true,
+        "notified_users": [
+          "approver"
+        ],
+        "reason": "bar",
+        "subject": {
+          "agent_info": {
+            "client_name": "GRR Monitor"
+          },
+          "hardware_info": {},
+          "labels": [],
+          "last_seen_at": 42000000,
+          "os_info": {
+            "fqdn": "Host-1.example.com",
+            "node": "Host-1",
+            "version": ""
+          },
+          "urn": "aff4:/C.1000000000000001",
+          "users": []
+        }
+      },
+      "url": "/api/users/test/approvals/client/C.1000000000000001/approval:222222"
     }
   ],
   "ApiGetClientHandler": [
@@ -1401,6 +1537,295 @@
       "url": "/api/config/NonExistingOption"
     }
   ],
+  "ApiGetCronJobApprovalHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "age": 0,
+        "type": "ApiCronJobApproval",
+        "value": {
+          "approvers": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "test"
+            }
+          ],
+          "email_cc_addresses": [],
+          "id": {
+            "age": 0,
+            "type": "unicode",
+            "value": "approval:111111"
+          },
+          "is_valid": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "is_valid_message": {
+            "age": 0,
+            "type": "unicode",
+            "value": "Requires 2 approvers for access."
+          },
+          "notified_users": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver"
+            }
+          ],
+          "reason": {
+            "age": 0,
+            "type": "unicode",
+            "value": "foo"
+          },
+          "subject": {
+            "age": 0,
+            "type": "ApiCronJob",
+            "value": {
+              "allow_overruns": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": ""
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": ""
+              },
+              "flow_runner_args": {
+                "age": 0,
+                "type": "FlowRunnerArgs",
+                "value": {}
+              },
+              "lifetime": {
+                "age": 0,
+                "type": "Duration",
+                "value": 0
+              },
+              "periodicity": {
+                "age": 0,
+                "type": "Duration",
+                "value": 86400
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "ENABLED"
+              },
+              "urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/cron/CronJob_123456"
+              }
+            }
+          }
+        }
+      },
+      "test_class": "ApiGetCronJobApprovalHandlerRegressionTest",
+      "type_stripped_response": {
+        "approvers": [
+          "test"
+        ],
+        "email_cc_addresses": [],
+        "id": "approval:111111",
+        "is_valid": false,
+        "is_valid_message": "Requires 2 approvers for access.",
+        "notified_users": [
+          "approver"
+        ],
+        "reason": "foo",
+        "subject": {
+          "allow_overruns": false,
+          "description": "",
+          "flow_name": "",
+          "flow_runner_args": {},
+          "lifetime": 0,
+          "periodicity": 86400,
+          "state": "ENABLED",
+          "urn": "aff4:/cron/CronJob_123456"
+        }
+      },
+      "url": "/api/users/test/approvals/cron-job/CronJob_123456/approval:111111"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "age": 0,
+        "type": "ApiCronJobApproval",
+        "value": {
+          "approvers": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver"
+            },
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "test"
+            }
+          ],
+          "email_cc_addresses": [],
+          "id": {
+            "age": 0,
+            "type": "unicode",
+            "value": "approval:222222"
+          },
+          "is_valid": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": true
+          },
+          "notified_users": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver"
+            }
+          ],
+          "reason": {
+            "age": 0,
+            "type": "unicode",
+            "value": "bar"
+          },
+          "subject": {
+            "age": 0,
+            "type": "ApiCronJob",
+            "value": {
+              "allow_overruns": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": ""
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": ""
+              },
+              "flow_runner_args": {
+                "age": 0,
+                "type": "FlowRunnerArgs",
+                "value": {}
+              },
+              "lifetime": {
+                "age": 0,
+                "type": "Duration",
+                "value": 0
+              },
+              "periodicity": {
+                "age": 0,
+                "type": "Duration",
+                "value": 86400
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "ENABLED"
+              },
+              "urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/cron/CronJob_567890"
+              }
+            }
+          }
+        }
+      },
+      "test_class": "ApiGetCronJobApprovalHandlerRegressionTest",
+      "type_stripped_response": {
+        "approvers": [
+          "approver",
+          "test"
+        ],
+        "email_cc_addresses": [],
+        "id": "approval:222222",
+        "is_valid": true,
+        "notified_users": [
+          "approver"
+        ],
+        "reason": "bar",
+        "subject": {
+          "allow_overruns": false,
+          "description": "",
+          "flow_name": "",
+          "flow_runner_args": {},
+          "lifetime": 0,
+          "periodicity": 86400,
+          "state": "ENABLED",
+          "urn": "aff4:/cron/CronJob_567890"
+        }
+      },
+      "url": "/api/users/test/approvals/cron-job/CronJob_567890/approval:222222"
+    }
+  ],
+  "ApiGetCronJobFlowHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "age": 0,
+        "type": "ApiFlow",
+        "value": {
+          "args": {
+            "age": 0,
+            "type": "EmptyFlowArgs",
+            "value": {}
+          },
+          "creator": {
+            "age": 0,
+            "type": "unicode",
+            "value": "test"
+          },
+          "last_active_at": {
+            "age": 44000000,
+            "type": "RDFDatetime",
+            "value": 44000000
+          },
+          "name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "GRRVersionBreakDown"
+          },
+          "started_at": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 44000000
+          },
+          "state": {
+            "age": 0,
+            "type": "EnumNamedValue",
+            "value": "RUNNING"
+          },
+          "urn": {
+            "age": 0,
+            "type": "SessionID",
+            "value": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
+          }
+        }
+      },
+      "test_class": "ApiGetCronJobFlowHandlerRegressionTest",
+      "type_stripped_response": {
+        "args": {},
+        "creator": "test",
+        "last_active_at": 44000000,
+        "name": "GRRVersionBreakDown",
+        "started_at": 44000000,
+        "state": "RUNNING",
+        "urn": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
+      },
+      "url": "/api/cron-jobs/GRRVersionBreakDown/flows/F:ABCDEF11"
+    }
+  ],
   "ApiGetFileDownloadCommandHandler": [
     {
       "method": "GET",
@@ -1677,6 +2102,286 @@
         "username": "test"
       },
       "url": "/api/users/me"
+    }
+  ],
+  "ApiGetHuntApprovalHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "age": 0,
+        "type": "ApiHuntApproval",
+        "value": {
+          "approvers": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "test"
+            }
+          ],
+          "email_cc_addresses": [],
+          "id": {
+            "age": 0,
+            "type": "unicode",
+            "value": "approval:111111"
+          },
+          "is_valid": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "is_valid_message": {
+            "age": 0,
+            "type": "unicode",
+            "value": "Requires 2 approvers for access."
+          },
+          "notified_users": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver"
+            }
+          ],
+          "reason": {
+            "age": 0,
+            "type": "unicode",
+            "value": "foo"
+          },
+          "subject": {
+            "age": 0,
+            "type": "ApiHunt",
+            "value": {
+              "client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
+              "client_rate": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "created": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "hunt1"
+              },
+              "expires": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 1209642000000
+              },
+              "is_robot": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "PAUSED"
+              },
+              "total_cpu_usage": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "total_net_usage": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "urn": {
+                "age": 0,
+                "type": "SessionID",
+                "value": "aff4:/hunts/H:123456"
+              }
+            }
+          }
+        }
+      },
+      "test_class": "ApiGetHuntApprovalHandlerRegressionTest",
+      "type_stripped_response": {
+        "approvers": [
+          "test"
+        ],
+        "email_cc_addresses": [],
+        "id": "approval:111111",
+        "is_valid": false,
+        "is_valid_message": "Requires 2 approvers for access.",
+        "notified_users": [
+          "approver"
+        ],
+        "reason": "foo",
+        "subject": {
+          "client_limit": 100,
+          "client_rate": 0,
+          "created": 42000000,
+          "creator": "test",
+          "description": "hunt1",
+          "expires": 1209642000000,
+          "is_robot": false,
+          "name": "GenericHunt",
+          "state": "PAUSED",
+          "total_cpu_usage": 0,
+          "total_net_usage": 0,
+          "urn": "aff4:/hunts/H:123456"
+        }
+      },
+      "url": "/api/users/test/approvals/hunt/H:123456/approval:111111"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "age": 0,
+        "type": "ApiHuntApproval",
+        "value": {
+          "approvers": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver"
+            },
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "test"
+            }
+          ],
+          "email_cc_addresses": [],
+          "id": {
+            "age": 0,
+            "type": "unicode",
+            "value": "approval:222222"
+          },
+          "is_valid": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": true
+          },
+          "notified_users": [
+            {
+              "age": 0,
+              "type": "unicode",
+              "value": "approver"
+            }
+          ],
+          "reason": {
+            "age": 0,
+            "type": "unicode",
+            "value": "bar"
+          },
+          "subject": {
+            "age": 0,
+            "type": "ApiHunt",
+            "value": {
+              "client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 100
+              },
+              "client_rate": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "created": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "hunt2"
+              },
+              "expires": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 1209642000000
+              },
+              "is_robot": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "PAUSED"
+              },
+              "total_cpu_usage": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "total_net_usage": {
+                "age": 0,
+                "type": "long",
+                "value": 0
+              },
+              "urn": {
+                "age": 0,
+                "type": "SessionID",
+                "value": "aff4:/hunts/H:567890"
+              }
+            }
+          }
+        }
+      },
+      "test_class": "ApiGetHuntApprovalHandlerRegressionTest",
+      "type_stripped_response": {
+        "approvers": [
+          "approver",
+          "test"
+        ],
+        "email_cc_addresses": [],
+        "id": "approval:222222",
+        "is_valid": true,
+        "notified_users": [
+          "approver"
+        ],
+        "reason": "bar",
+        "subject": {
+          "client_limit": 100,
+          "client_rate": 0,
+          "created": 42000000,
+          "creator": "test",
+          "description": "hunt2",
+          "expires": 1209642000000,
+          "is_robot": false,
+          "name": "GenericHunt",
+          "state": "PAUSED",
+          "total_cpu_usage": 0,
+          "total_net_usage": 0,
+          "urn": "aff4:/hunts/H:567890"
+        }
+      },
+      "url": "/api/users/test/approvals/hunt/H:567890/approval:222222"
     }
   ],
   "ApiGetHuntClientCompletionStatsHandler": [
@@ -5505,778 +6210,6 @@
       "url": "/api/stats/store/WORKER/metrics/sample_event?start=42000000&end=3600000000&distribution_handling_mode=DH_COUNT"
     }
   ],
-  "ApiGetUserClientApprovalHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "age": 0,
-        "type": "ApiUserClientApproval",
-        "value": {
-          "approvers": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "test"
-            }
-          ],
-          "email_cc_addresses": [],
-          "id": {
-            "age": 0,
-            "type": "unicode",
-            "value": "approval:111111"
-          },
-          "is_valid": {
-            "age": 0,
-            "type": "RDFBool",
-            "value": false
-          },
-          "is_valid_message": {
-            "age": 0,
-            "type": "unicode",
-            "value": "Requires 2 approvers for access."
-          },
-          "notified_users": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "approver"
-            }
-          ],
-          "reason": {
-            "age": 0,
-            "type": "unicode",
-            "value": "foo"
-          },
-          "subject": {
-            "age": 42000000,
-            "type": "ApiClient",
-            "value": {
-              "agent_info": {
-                "age": 42000000,
-                "type": "ClientInformation",
-                "value": {
-                  "client_name": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "GRR Monitor"
-                  }
-                }
-              },
-              "hardware_info": {
-                "age": 0,
-                "type": "HardwareInfo",
-                "value": {}
-              },
-              "labels": [],
-              "last_seen_at": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "os_info": {
-                "age": 0,
-                "type": "Uname",
-                "value": {
-                  "fqdn": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Host-0.example.com"
-                  },
-                  "node": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Host-0"
-                  },
-                  "version": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": ""
-                  }
-                }
-              },
-              "urn": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
-              },
-              "users": []
-            }
-          }
-        }
-      },
-      "test_class": "ApiGetUserClientApprovalHandlerRegressionTest",
-      "type_stripped_response": {
-        "approvers": [
-          "test"
-        ],
-        "email_cc_addresses": [],
-        "id": "approval:111111",
-        "is_valid": false,
-        "is_valid_message": "Requires 2 approvers for access.",
-        "notified_users": [
-          "approver"
-        ],
-        "reason": "foo",
-        "subject": {
-          "agent_info": {
-            "client_name": "GRR Monitor"
-          },
-          "hardware_info": {},
-          "labels": [],
-          "last_seen_at": 42000000,
-          "os_info": {
-            "fqdn": "Host-0.example.com",
-            "node": "Host-0",
-            "version": ""
-          },
-          "urn": "aff4:/C.1000000000000000",
-          "users": []
-        }
-      },
-      "url": "/api/users/test/approvals/client/C.1000000000000000/approval:111111"
-    },
-    {
-      "method": "GET",
-      "response": {
-        "age": 0,
-        "type": "ApiUserClientApproval",
-        "value": {
-          "approvers": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "approver"
-            },
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "test"
-            }
-          ],
-          "email_cc_addresses": [],
-          "id": {
-            "age": 0,
-            "type": "unicode",
-            "value": "approval:222222"
-          },
-          "is_valid": {
-            "age": 0,
-            "type": "RDFBool",
-            "value": true
-          },
-          "notified_users": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "approver"
-            }
-          ],
-          "reason": {
-            "age": 0,
-            "type": "unicode",
-            "value": "bar"
-          },
-          "subject": {
-            "age": 42000000,
-            "type": "ApiClient",
-            "value": {
-              "agent_info": {
-                "age": 42000000,
-                "type": "ClientInformation",
-                "value": {
-                  "client_name": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "GRR Monitor"
-                  }
-                }
-              },
-              "hardware_info": {
-                "age": 0,
-                "type": "HardwareInfo",
-                "value": {}
-              },
-              "labels": [],
-              "last_seen_at": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "os_info": {
-                "age": 0,
-                "type": "Uname",
-                "value": {
-                  "fqdn": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Host-1.example.com"
-                  },
-                  "node": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Host-1"
-                  },
-                  "version": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": ""
-                  }
-                }
-              },
-              "urn": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000001"
-              },
-              "users": []
-            }
-          }
-        }
-      },
-      "test_class": "ApiGetUserClientApprovalHandlerRegressionTest",
-      "type_stripped_response": {
-        "approvers": [
-          "approver",
-          "test"
-        ],
-        "email_cc_addresses": [],
-        "id": "approval:222222",
-        "is_valid": true,
-        "notified_users": [
-          "approver"
-        ],
-        "reason": "bar",
-        "subject": {
-          "agent_info": {
-            "client_name": "GRR Monitor"
-          },
-          "hardware_info": {},
-          "labels": [],
-          "last_seen_at": 42000000,
-          "os_info": {
-            "fqdn": "Host-1.example.com",
-            "node": "Host-1",
-            "version": ""
-          },
-          "urn": "aff4:/C.1000000000000001",
-          "users": []
-        }
-      },
-      "url": "/api/users/test/approvals/client/C.1000000000000001/approval:222222"
-    }
-  ],
-  "ApiGetUserCronApprovalHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "age": 0,
-        "type": "ApiUserCronApproval",
-        "value": {
-          "approvers": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "test"
-            }
-          ],
-          "email_cc_addresses": [],
-          "id": {
-            "age": 0,
-            "type": "unicode",
-            "value": "approval:111111"
-          },
-          "is_valid": {
-            "age": 0,
-            "type": "RDFBool",
-            "value": false
-          },
-          "is_valid_message": {
-            "age": 0,
-            "type": "unicode",
-            "value": "Requires 2 approvers for access."
-          },
-          "notified_users": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "approver"
-            }
-          ],
-          "reason": {
-            "age": 0,
-            "type": "unicode",
-            "value": "foo"
-          },
-          "subject": {
-            "age": 0,
-            "type": "ApiCronJob",
-            "value": {
-              "allow_overruns": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "description": {
-                "age": 0,
-                "type": "unicode",
-                "value": ""
-              },
-              "flow_name": {
-                "age": 0,
-                "type": "unicode",
-                "value": ""
-              },
-              "flow_runner_args": {
-                "age": 0,
-                "type": "FlowRunnerArgs",
-                "value": {}
-              },
-              "lifetime": {
-                "age": 0,
-                "type": "Duration",
-                "value": 0
-              },
-              "periodicity": {
-                "age": 0,
-                "type": "Duration",
-                "value": 86400
-              },
-              "state": {
-                "age": 0,
-                "type": "EnumNamedValue",
-                "value": "ENABLED"
-              },
-              "urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/cron/CronJob_123456"
-              }
-            }
-          }
-        }
-      },
-      "test_class": "ApiGetUserCronApprovalHandlerRegressionTest",
-      "type_stripped_response": {
-        "approvers": [
-          "test"
-        ],
-        "email_cc_addresses": [],
-        "id": "approval:111111",
-        "is_valid": false,
-        "is_valid_message": "Requires 2 approvers for access.",
-        "notified_users": [
-          "approver"
-        ],
-        "reason": "foo",
-        "subject": {
-          "allow_overruns": false,
-          "description": "",
-          "flow_name": "",
-          "flow_runner_args": {},
-          "lifetime": 0,
-          "periodicity": 86400,
-          "state": "ENABLED",
-          "urn": "aff4:/cron/CronJob_123456"
-        }
-      },
-      "url": "/api/users/test/approvals/cron/CronJob_123456/approval:111111"
-    },
-    {
-      "method": "GET",
-      "response": {
-        "age": 0,
-        "type": "ApiUserCronApproval",
-        "value": {
-          "approvers": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "approver"
-            },
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "test"
-            }
-          ],
-          "email_cc_addresses": [],
-          "id": {
-            "age": 0,
-            "type": "unicode",
-            "value": "approval:222222"
-          },
-          "is_valid": {
-            "age": 0,
-            "type": "RDFBool",
-            "value": true
-          },
-          "notified_users": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "approver"
-            }
-          ],
-          "reason": {
-            "age": 0,
-            "type": "unicode",
-            "value": "bar"
-          },
-          "subject": {
-            "age": 0,
-            "type": "ApiCronJob",
-            "value": {
-              "allow_overruns": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "description": {
-                "age": 0,
-                "type": "unicode",
-                "value": ""
-              },
-              "flow_name": {
-                "age": 0,
-                "type": "unicode",
-                "value": ""
-              },
-              "flow_runner_args": {
-                "age": 0,
-                "type": "FlowRunnerArgs",
-                "value": {}
-              },
-              "lifetime": {
-                "age": 0,
-                "type": "Duration",
-                "value": 0
-              },
-              "periodicity": {
-                "age": 0,
-                "type": "Duration",
-                "value": 86400
-              },
-              "state": {
-                "age": 0,
-                "type": "EnumNamedValue",
-                "value": "ENABLED"
-              },
-              "urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/cron/CronJob_567890"
-              }
-            }
-          }
-        }
-      },
-      "test_class": "ApiGetUserCronApprovalHandlerRegressionTest",
-      "type_stripped_response": {
-        "approvers": [
-          "approver",
-          "test"
-        ],
-        "email_cc_addresses": [],
-        "id": "approval:222222",
-        "is_valid": true,
-        "notified_users": [
-          "approver"
-        ],
-        "reason": "bar",
-        "subject": {
-          "allow_overruns": false,
-          "description": "",
-          "flow_name": "",
-          "flow_runner_args": {},
-          "lifetime": 0,
-          "periodicity": 86400,
-          "state": "ENABLED",
-          "urn": "aff4:/cron/CronJob_567890"
-        }
-      },
-      "url": "/api/users/test/approvals/cron/CronJob_567890/approval:222222"
-    }
-  ],
-  "ApiGetUserHuntApprovalHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "age": 0,
-        "type": "ApiUserHuntApproval",
-        "value": {
-          "approvers": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "test"
-            }
-          ],
-          "email_cc_addresses": [],
-          "id": {
-            "age": 0,
-            "type": "unicode",
-            "value": "approval:111111"
-          },
-          "is_valid": {
-            "age": 0,
-            "type": "RDFBool",
-            "value": false
-          },
-          "is_valid_message": {
-            "age": 0,
-            "type": "unicode",
-            "value": "Requires 2 approvers for access."
-          },
-          "notified_users": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "approver"
-            }
-          ],
-          "reason": {
-            "age": 0,
-            "type": "unicode",
-            "value": "foo"
-          },
-          "subject": {
-            "age": 0,
-            "type": "ApiHunt",
-            "value": {
-              "client_limit": {
-                "age": 0,
-                "type": "long",
-                "value": 100
-              },
-              "client_rate": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "created": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "creator": {
-                "age": 0,
-                "type": "unicode",
-                "value": "test"
-              },
-              "description": {
-                "age": 0,
-                "type": "unicode",
-                "value": "hunt1"
-              },
-              "expires": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 1209642000000
-              },
-              "is_robot": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "GenericHunt"
-              },
-              "state": {
-                "age": 0,
-                "type": "EnumNamedValue",
-                "value": "PAUSED"
-              },
-              "total_cpu_usage": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "total_net_usage": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "urn": {
-                "age": 0,
-                "type": "SessionID",
-                "value": "aff4:/hunts/H:123456"
-              }
-            }
-          }
-        }
-      },
-      "test_class": "ApiGetUserHuntApprovalHandlerRegressionTest",
-      "type_stripped_response": {
-        "approvers": [
-          "test"
-        ],
-        "email_cc_addresses": [],
-        "id": "approval:111111",
-        "is_valid": false,
-        "is_valid_message": "Requires 2 approvers for access.",
-        "notified_users": [
-          "approver"
-        ],
-        "reason": "foo",
-        "subject": {
-          "client_limit": 100,
-          "client_rate": 0,
-          "created": 42000000,
-          "creator": "test",
-          "description": "hunt1",
-          "expires": 1209642000000,
-          "is_robot": false,
-          "name": "GenericHunt",
-          "state": "PAUSED",
-          "total_cpu_usage": 0,
-          "total_net_usage": 0,
-          "urn": "aff4:/hunts/H:123456"
-        }
-      },
-      "url": "/api/users/test/approvals/hunt/H:123456/approval:111111"
-    },
-    {
-      "method": "GET",
-      "response": {
-        "age": 0,
-        "type": "ApiUserHuntApproval",
-        "value": {
-          "approvers": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "approver"
-            },
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "test"
-            }
-          ],
-          "email_cc_addresses": [],
-          "id": {
-            "age": 0,
-            "type": "unicode",
-            "value": "approval:222222"
-          },
-          "is_valid": {
-            "age": 0,
-            "type": "RDFBool",
-            "value": true
-          },
-          "notified_users": [
-            {
-              "age": 0,
-              "type": "unicode",
-              "value": "approver"
-            }
-          ],
-          "reason": {
-            "age": 0,
-            "type": "unicode",
-            "value": "bar"
-          },
-          "subject": {
-            "age": 0,
-            "type": "ApiHunt",
-            "value": {
-              "client_limit": {
-                "age": 0,
-                "type": "long",
-                "value": 100
-              },
-              "client_rate": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "created": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 42000000
-              },
-              "creator": {
-                "age": 0,
-                "type": "unicode",
-                "value": "test"
-              },
-              "description": {
-                "age": 0,
-                "type": "unicode",
-                "value": "hunt2"
-              },
-              "expires": {
-                "age": 0,
-                "type": "RDFDatetime",
-                "value": 1209642000000
-              },
-              "is_robot": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "GenericHunt"
-              },
-              "state": {
-                "age": 0,
-                "type": "EnumNamedValue",
-                "value": "PAUSED"
-              },
-              "total_cpu_usage": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "total_net_usage": {
-                "age": 0,
-                "type": "long",
-                "value": 0
-              },
-              "urn": {
-                "age": 0,
-                "type": "SessionID",
-                "value": "aff4:/hunts/H:567890"
-              }
-            }
-          }
-        }
-      },
-      "test_class": "ApiGetUserHuntApprovalHandlerRegressionTest",
-      "type_stripped_response": {
-        "approvers": [
-          "approver",
-          "test"
-        ],
-        "email_cc_addresses": [],
-        "id": "approval:222222",
-        "is_valid": true,
-        "notified_users": [
-          "approver"
-        ],
-        "reason": "bar",
-        "subject": {
-          "client_limit": 100,
-          "client_rate": 0,
-          "created": 42000000,
-          "creator": "test",
-          "description": "hunt2",
-          "expires": 1209642000000,
-          "is_robot": false,
-          "name": "GenericHunt",
-          "state": "PAUSED",
-          "total_cpu_usage": 0,
-          "total_net_usage": 0,
-          "urn": "aff4:/hunts/H:567890"
-        }
-      },
-      "url": "/api/users/test/approvals/hunt/H:567890/approval:222222"
-    }
-  ],
   "ApiGetVfsTimelineHandler": [
     {
       "method": "GET",
@@ -6793,6 +6726,406 @@
       "url": "/api/users/me/notifications?filter=other"
     }
   ],
+  "ApiListClientApprovalsHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiClientApproval",
+            "value": {
+              "approvers": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "approver"
+                },
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "test"
+                }
+              ],
+              "email_cc_addresses": [],
+              "id": {
+                "age": 0,
+                "type": "unicode",
+                "value": "approval:222222"
+              },
+              "is_valid": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": true
+              },
+              "notified_users": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "approver"
+                }
+              ],
+              "reason": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Running tests"
+              },
+              "subject": {
+                "age": 42000000,
+                "type": "ApiClient",
+                "value": {
+                  "agent_info": {
+                    "age": 42000000,
+                    "type": "ClientInformation",
+                    "value": {
+                      "client_name": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "GRR Monitor"
+                      }
+                    }
+                  },
+                  "hardware_info": {
+                    "age": 0,
+                    "type": "HardwareInfo",
+                    "value": {}
+                  },
+                  "labels": [],
+                  "last_seen_at": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 42000000
+                  },
+                  "os_info": {
+                    "age": 0,
+                    "type": "Uname",
+                    "value": {
+                      "fqdn": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Host-1.example.com"
+                      },
+                      "node": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Host-1"
+                      },
+                      "version": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": ""
+                      }
+                    }
+                  },
+                  "urn": {
+                    "age": 0,
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000001"
+                  },
+                  "users": []
+                }
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiClientApproval",
+            "value": {
+              "approvers": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "test"
+                }
+              ],
+              "email_cc_addresses": [],
+              "id": {
+                "age": 0,
+                "type": "unicode",
+                "value": "approval:111111"
+              },
+              "is_valid": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "is_valid_message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Requires 2 approvers for access."
+              },
+              "notified_users": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "approver"
+                }
+              ],
+              "reason": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Running tests"
+              },
+              "subject": {
+                "age": 42000000,
+                "type": "ApiClient",
+                "value": {
+                  "agent_info": {
+                    "age": 42000000,
+                    "type": "ClientInformation",
+                    "value": {
+                      "client_name": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "GRR Monitor"
+                      }
+                    }
+                  },
+                  "hardware_info": {
+                    "age": 0,
+                    "type": "HardwareInfo",
+                    "value": {}
+                  },
+                  "labels": [],
+                  "last_seen_at": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 42000000
+                  },
+                  "os_info": {
+                    "age": 0,
+                    "type": "Uname",
+                    "value": {
+                      "fqdn": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Host-0.example.com"
+                      },
+                      "node": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Host-0"
+                      },
+                      "version": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": ""
+                      }
+                    }
+                  },
+                  "urn": {
+                    "age": 0,
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "users": []
+                }
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListClientApprovalsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "approvers": [
+              "approver",
+              "test"
+            ],
+            "email_cc_addresses": [],
+            "id": "approval:222222",
+            "is_valid": true,
+            "notified_users": [
+              "approver"
+            ],
+            "reason": "Running tests",
+            "subject": {
+              "agent_info": {
+                "client_name": "GRR Monitor"
+              },
+              "hardware_info": {},
+              "labels": [],
+              "last_seen_at": 42000000,
+              "os_info": {
+                "fqdn": "Host-1.example.com",
+                "node": "Host-1",
+                "version": ""
+              },
+              "urn": "aff4:/C.1000000000000001",
+              "users": []
+            }
+          },
+          {
+            "approvers": [
+              "test"
+            ],
+            "email_cc_addresses": [],
+            "id": "approval:111111",
+            "is_valid": false,
+            "is_valid_message": "Requires 2 approvers for access.",
+            "notified_users": [
+              "approver"
+            ],
+            "reason": "Running tests",
+            "subject": {
+              "agent_info": {
+                "client_name": "GRR Monitor"
+              },
+              "hardware_info": {},
+              "labels": [],
+              "last_seen_at": 42000000,
+              "os_info": {
+                "fqdn": "Host-0.example.com",
+                "node": "Host-0",
+                "version": ""
+              },
+              "urn": "aff4:/C.1000000000000000",
+              "users": []
+            }
+          }
+        ]
+      },
+      "url": "/api/users/me/approvals/client"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiClientApproval",
+            "value": {
+              "approvers": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "test"
+                }
+              ],
+              "email_cc_addresses": [],
+              "id": {
+                "age": 0,
+                "type": "unicode",
+                "value": "approval:111111"
+              },
+              "is_valid": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "is_valid_message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Requires 2 approvers for access."
+              },
+              "notified_users": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "approver"
+                }
+              ],
+              "reason": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Running tests"
+              },
+              "subject": {
+                "age": 42000000,
+                "type": "ApiClient",
+                "value": {
+                  "agent_info": {
+                    "age": 42000000,
+                    "type": "ClientInformation",
+                    "value": {
+                      "client_name": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "GRR Monitor"
+                      }
+                    }
+                  },
+                  "hardware_info": {
+                    "age": 0,
+                    "type": "HardwareInfo",
+                    "value": {}
+                  },
+                  "labels": [],
+                  "last_seen_at": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 42000000
+                  },
+                  "os_info": {
+                    "age": 0,
+                    "type": "Uname",
+                    "value": {
+                      "fqdn": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Host-0.example.com"
+                      },
+                      "node": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Host-0"
+                      },
+                      "version": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": ""
+                      }
+                    }
+                  },
+                  "urn": {
+                    "age": 0,
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "users": []
+                }
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListClientApprovalsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "approvers": [
+              "test"
+            ],
+            "email_cc_addresses": [],
+            "id": "approval:111111",
+            "is_valid": false,
+            "is_valid_message": "Requires 2 approvers for access.",
+            "notified_users": [
+              "approver"
+            ],
+            "reason": "Running tests",
+            "subject": {
+              "agent_info": {
+                "client_name": "GRR Monitor"
+              },
+              "hardware_info": {},
+              "labels": [],
+              "last_seen_at": 42000000,
+              "os_info": {
+                "fqdn": "Host-0.example.com",
+                "node": "Host-0",
+                "version": ""
+              },
+              "urn": "aff4:/C.1000000000000000",
+              "users": []
+            }
+          }
+        ]
+      },
+      "url": "/api/users/me/approvals/client/C.1000000000000000"
+    }
+  ],
   "ApiListClientCrashesHandler": [
     {
       "method": "GET",
@@ -6979,6 +7312,73 @@
         ]
       },
       "url": "/api/clients/labels"
+    }
+  ],
+  "ApiListCronJobFlowsHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiFlow",
+            "value": {
+              "args": {
+                "age": 0,
+                "type": "EmptyFlowArgs",
+                "value": {}
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "last_active_at": {
+                "age": 44000000,
+                "type": "RDFDatetime",
+                "value": 44000000
+              },
+              "name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GRRVersionBreakDown"
+              },
+              "nested_flows": [],
+              "started_at": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 44000000
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "urn": {
+                "age": 0,
+                "type": "SessionID",
+                "value": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListCronJobFlowsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "args": {},
+            "creator": "test",
+            "last_active_at": 44000000,
+            "name": "GRRVersionBreakDown",
+            "nested_flows": [],
+            "started_at": 44000000,
+            "state": "RUNNING",
+            "urn": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
+          }
+        ]
+      },
+      "url": "/api/cron-jobs/GRRVersionBreakDown/flows"
     }
   ],
   "ApiListCronJobsHandler": [
@@ -8263,6 +8663,155 @@
         ]
       },
       "url": "/api/clients/C.1000000000000000/flows"
+    }
+  ],
+  "ApiListHuntApprovalsHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiHuntApproval",
+            "value": {
+              "approvers": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "test"
+                }
+              ],
+              "email_cc_addresses": [],
+              "id": {
+                "age": 0,
+                "type": "unicode",
+                "value": "approval:112233"
+              },
+              "is_valid": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "is_valid_message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Requires 2 approvers for access."
+              },
+              "notified_users": [
+                {
+                  "age": 0,
+                  "type": "unicode",
+                  "value": "approver"
+                }
+              ],
+              "reason": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Running tests"
+              },
+              "subject": {
+                "age": 0,
+                "type": "ApiHunt",
+                "value": {
+                  "client_limit": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 100
+                  },
+                  "client_rate": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 20
+                  },
+                  "created": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 42000000
+                  },
+                  "creator": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "test"
+                  },
+                  "description": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  },
+                  "expires": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 1209642000000
+                  },
+                  "is_robot": {
+                    "age": 0,
+                    "type": "RDFBool",
+                    "value": false
+                  },
+                  "name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GenericHunt"
+                  },
+                  "state": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "PAUSED"
+                  },
+                  "total_cpu_usage": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "total_net_usage": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 0
+                  },
+                  "urn": {
+                    "age": 0,
+                    "type": "SessionID",
+                    "value": "aff4:/hunts/H:123456"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListHuntApprovalsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "approvers": [
+              "test"
+            ],
+            "email_cc_addresses": [],
+            "id": "approval:112233",
+            "is_valid": false,
+            "is_valid_message": "Requires 2 approvers for access.",
+            "notified_users": [
+              "approver"
+            ],
+            "reason": "Running tests",
+            "subject": {
+              "client_limit": 100,
+              "client_rate": 20,
+              "created": 42000000,
+              "creator": "test",
+              "description": "",
+              "expires": 1209642000000,
+              "is_robot": false,
+              "name": "GenericHunt",
+              "state": "PAUSED",
+              "total_cpu_usage": 0,
+              "total_net_usage": 0,
+              "urn": "aff4:/hunts/H:123456"
+            }
+          }
+        ]
+      },
+      "url": "/api/users/me/approvals/hunt"
     }
   ],
   "ApiListHuntClientsHandler": [
@@ -11256,555 +11805,6 @@
         }
       },
       "url": "/api/stats/store/WORKER/metadata"
-    }
-  ],
-  "ApiListUserClientApprovalsHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": 0,
-            "type": "ApiUserClientApproval",
-            "value": {
-              "approvers": [
-                {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "approver"
-                },
-                {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "test"
-                }
-              ],
-              "email_cc_addresses": [],
-              "id": {
-                "age": 0,
-                "type": "unicode",
-                "value": "approval:222222"
-              },
-              "is_valid": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": true
-              },
-              "notified_users": [
-                {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "approver"
-                }
-              ],
-              "reason": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Running tests"
-              },
-              "subject": {
-                "age": 42000000,
-                "type": "ApiClient",
-                "value": {
-                  "agent_info": {
-                    "age": 42000000,
-                    "type": "ClientInformation",
-                    "value": {
-                      "client_name": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "GRR Monitor"
-                      }
-                    }
-                  },
-                  "hardware_info": {
-                    "age": 0,
-                    "type": "HardwareInfo",
-                    "value": {}
-                  },
-                  "labels": [],
-                  "last_seen_at": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 42000000
-                  },
-                  "os_info": {
-                    "age": 0,
-                    "type": "Uname",
-                    "value": {
-                      "fqdn": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "Host-1.example.com"
-                      },
-                      "node": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "Host-1"
-                      },
-                      "version": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": ""
-                      }
-                    }
-                  },
-                  "urn": {
-                    "age": 0,
-                    "type": "ClientURN",
-                    "value": "aff4:/C.1000000000000001"
-                  },
-                  "users": []
-                }
-              }
-            }
-          },
-          {
-            "age": 0,
-            "type": "ApiUserClientApproval",
-            "value": {
-              "approvers": [
-                {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "test"
-                }
-              ],
-              "email_cc_addresses": [],
-              "id": {
-                "age": 0,
-                "type": "unicode",
-                "value": "approval:111111"
-              },
-              "is_valid": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "is_valid_message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Requires 2 approvers for access."
-              },
-              "notified_users": [
-                {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "approver"
-                }
-              ],
-              "reason": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Running tests"
-              },
-              "subject": {
-                "age": 42000000,
-                "type": "ApiClient",
-                "value": {
-                  "agent_info": {
-                    "age": 42000000,
-                    "type": "ClientInformation",
-                    "value": {
-                      "client_name": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "GRR Monitor"
-                      }
-                    }
-                  },
-                  "hardware_info": {
-                    "age": 0,
-                    "type": "HardwareInfo",
-                    "value": {}
-                  },
-                  "labels": [],
-                  "last_seen_at": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 42000000
-                  },
-                  "os_info": {
-                    "age": 0,
-                    "type": "Uname",
-                    "value": {
-                      "fqdn": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "Host-0.example.com"
-                      },
-                      "node": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "Host-0"
-                      },
-                      "version": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": ""
-                      }
-                    }
-                  },
-                  "urn": {
-                    "age": 0,
-                    "type": "ClientURN",
-                    "value": "aff4:/C.1000000000000000"
-                  },
-                  "users": []
-                }
-              }
-            }
-          }
-        ]
-      },
-      "test_class": "ApiListUserClientApprovalsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "approvers": [
-              "approver",
-              "test"
-            ],
-            "email_cc_addresses": [],
-            "id": "approval:222222",
-            "is_valid": true,
-            "notified_users": [
-              "approver"
-            ],
-            "reason": "Running tests",
-            "subject": {
-              "agent_info": {
-                "client_name": "GRR Monitor"
-              },
-              "hardware_info": {},
-              "labels": [],
-              "last_seen_at": 42000000,
-              "os_info": {
-                "fqdn": "Host-1.example.com",
-                "node": "Host-1",
-                "version": ""
-              },
-              "urn": "aff4:/C.1000000000000001",
-              "users": []
-            }
-          },
-          {
-            "approvers": [
-              "test"
-            ],
-            "email_cc_addresses": [],
-            "id": "approval:111111",
-            "is_valid": false,
-            "is_valid_message": "Requires 2 approvers for access.",
-            "notified_users": [
-              "approver"
-            ],
-            "reason": "Running tests",
-            "subject": {
-              "agent_info": {
-                "client_name": "GRR Monitor"
-              },
-              "hardware_info": {},
-              "labels": [],
-              "last_seen_at": 42000000,
-              "os_info": {
-                "fqdn": "Host-0.example.com",
-                "node": "Host-0",
-                "version": ""
-              },
-              "urn": "aff4:/C.1000000000000000",
-              "users": []
-            }
-          }
-        ]
-      },
-      "url": "/api/users/me/approvals/client"
-    },
-    {
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": 0,
-            "type": "ApiUserClientApproval",
-            "value": {
-              "approvers": [
-                {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "test"
-                }
-              ],
-              "email_cc_addresses": [],
-              "id": {
-                "age": 0,
-                "type": "unicode",
-                "value": "approval:111111"
-              },
-              "is_valid": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "is_valid_message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Requires 2 approvers for access."
-              },
-              "notified_users": [
-                {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "approver"
-                }
-              ],
-              "reason": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Running tests"
-              },
-              "subject": {
-                "age": 42000000,
-                "type": "ApiClient",
-                "value": {
-                  "agent_info": {
-                    "age": 42000000,
-                    "type": "ClientInformation",
-                    "value": {
-                      "client_name": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "GRR Monitor"
-                      }
-                    }
-                  },
-                  "hardware_info": {
-                    "age": 0,
-                    "type": "HardwareInfo",
-                    "value": {}
-                  },
-                  "labels": [],
-                  "last_seen_at": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 42000000
-                  },
-                  "os_info": {
-                    "age": 0,
-                    "type": "Uname",
-                    "value": {
-                      "fqdn": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "Host-0.example.com"
-                      },
-                      "node": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "Host-0"
-                      },
-                      "version": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": ""
-                      }
-                    }
-                  },
-                  "urn": {
-                    "age": 0,
-                    "type": "ClientURN",
-                    "value": "aff4:/C.1000000000000000"
-                  },
-                  "users": []
-                }
-              }
-            }
-          }
-        ]
-      },
-      "test_class": "ApiListUserClientApprovalsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "approvers": [
-              "test"
-            ],
-            "email_cc_addresses": [],
-            "id": "approval:111111",
-            "is_valid": false,
-            "is_valid_message": "Requires 2 approvers for access.",
-            "notified_users": [
-              "approver"
-            ],
-            "reason": "Running tests",
-            "subject": {
-              "agent_info": {
-                "client_name": "GRR Monitor"
-              },
-              "hardware_info": {},
-              "labels": [],
-              "last_seen_at": 42000000,
-              "os_info": {
-                "fqdn": "Host-0.example.com",
-                "node": "Host-0",
-                "version": ""
-              },
-              "urn": "aff4:/C.1000000000000000",
-              "users": []
-            }
-          }
-        ]
-      },
-      "url": "/api/users/me/approvals/client/C.1000000000000000"
-    }
-  ],
-  "ApiListUserHuntApprovalsHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": 0,
-            "type": "ApiUserHuntApproval",
-            "value": {
-              "approvers": [
-                {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "test"
-                }
-              ],
-              "email_cc_addresses": [],
-              "id": {
-                "age": 0,
-                "type": "unicode",
-                "value": "approval:112233"
-              },
-              "is_valid": {
-                "age": 0,
-                "type": "RDFBool",
-                "value": false
-              },
-              "is_valid_message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Requires 2 approvers for access."
-              },
-              "notified_users": [
-                {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "approver"
-                }
-              ],
-              "reason": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Running tests"
-              },
-              "subject": {
-                "age": 0,
-                "type": "ApiHunt",
-                "value": {
-                  "client_limit": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 100
-                  },
-                  "client_rate": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 20
-                  },
-                  "created": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 42000000
-                  },
-                  "creator": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "test"
-                  },
-                  "description": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": ""
-                  },
-                  "expires": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 1209642000000
-                  },
-                  "is_robot": {
-                    "age": 0,
-                    "type": "RDFBool",
-                    "value": false
-                  },
-                  "name": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "GenericHunt"
-                  },
-                  "state": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "PAUSED"
-                  },
-                  "total_cpu_usage": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "total_net_usage": {
-                    "age": 0,
-                    "type": "long",
-                    "value": 0
-                  },
-                  "urn": {
-                    "age": 0,
-                    "type": "SessionID",
-                    "value": "aff4:/hunts/H:123456"
-                  }
-                }
-              }
-            }
-          }
-        ]
-      },
-      "test_class": "ApiListUserHuntApprovalsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "approvers": [
-              "test"
-            ],
-            "email_cc_addresses": [],
-            "id": "approval:112233",
-            "is_valid": false,
-            "is_valid_message": "Requires 2 approvers for access.",
-            "notified_users": [
-              "approver"
-            ],
-            "reason": "Running tests",
-            "subject": {
-              "client_limit": 100,
-              "client_rate": 20,
-              "created": 42000000,
-              "creator": "test",
-              "description": "",
-              "expires": 1209642000000,
-              "is_robot": false,
-              "name": "GenericHunt",
-              "state": "PAUSED",
-              "total_cpu_usage": 0,
-              "total_net_usage": 0,
-              "urn": "aff4:/hunts/H:123456"
-            }
-          }
-        ]
-      },
-      "url": "/api/users/me/approvals/hunt"
     }
   ],
   "ApiOutputPluginsListHandler": [

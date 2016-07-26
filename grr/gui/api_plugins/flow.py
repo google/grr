@@ -178,11 +178,11 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
     try:
       # TODO(user): Remove support for RDFValueCollection.
       output_collection = aff4.FACTORY.Open(
-          output_urn,
+          flow_obj.state.context.output_urn,
           aff4_type=aff4_collects.RDFValueCollection,
           mode="r",
           token=token)
-    except aff4.InstantiationError:
+    except (aff4.InstantiationError, AttributeError):
       try:
         output_collection = aff4.FACTORY.Open(
             output_urn,
@@ -685,11 +685,11 @@ class ApiGetRobotGetFilesOperationStateHandler(
     try:
       # TODO(user): Remove support for RDFValueCollection.
       result_collection = aff4.FACTORY.Open(
-          flow_obj.GetRunner().output_urn,
+          flow_obj.state.context.output_urn,
           aff4_type=aff4_collects.RDFValueCollection,
           token=token)
       result_count = len(result_collection)
-    except aff4.InstantiationError:
+    except (aff4.InstantiationError, AttributeError):
       try:
         result_collection = aff4.FACTORY.Open(
             flow_obj.GetRunner().output_urn,

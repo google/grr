@@ -603,69 +603,69 @@ class ApiCallRouter(object):
   # =================
   #
   @Category("User")
-  @ArgsType(api_user.ApiCreateUserClientApprovalArgs)
-  @ResultType(api_user.ApiUserClientApproval)
+  @ArgsType(api_user.ApiCreateClientApprovalArgs)
+  @ResultType(api_user.ApiClientApproval)
   @Http("POST", "/api/users/me/approvals/client/<client_id>")
-  def CreateUserClientApproval(self, args, token=None):
+  def CreateClientApproval(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
-  @ArgsType(api_user.ApiGetUserClientApprovalArgs)
-  @ResultType(api_user.ApiUserClientApproval)
+  @ArgsType(api_user.ApiGetClientApprovalArgs)
+  @ResultType(api_user.ApiClientApproval)
   @Http("GET",
         "/api/users/<username>/approvals/client/<client_id>/<approval_id>")
-  def GetUserClientApproval(self, args, token=None):
+  def GetClientApproval(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
-  @ArgsType(api_user.ApiListUserClientApprovalsArgs)
-  @ResultType(api_user.ApiListUserClientApprovalsResult)
+  @ArgsType(api_user.ApiListClientApprovalsArgs)
+  @ResultType(api_user.ApiListClientApprovalsResult)
   @Http("GET", "/api/users/me/approvals/client")
   @Http("GET", "/api/users/me/approvals/client/<client_id>")
-  def ListUserClientApprovals(self, args, token=None):
+  def ListClientApprovals(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
-  @ArgsType(api_user.ApiCreateUserHuntApprovalArgs)
-  @ResultType(api_user.ApiUserHuntApproval)
+  @ArgsType(api_user.ApiCreateHuntApprovalArgs)
+  @ResultType(api_user.ApiHuntApproval)
   @Http("POST", "/api/users/me/approvals/hunt/<hunt_id>")
-  def CreateUserHuntApproval(self, args, token=None):
+  def CreateHuntApproval(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
-  @ArgsType(api_user.ApiGetUserHuntApprovalArgs)
-  @ResultType(api_user.ApiUserHuntApproval)
+  @ArgsType(api_user.ApiGetHuntApprovalArgs)
+  @ResultType(api_user.ApiHuntApproval)
   @Http("GET", "/api/users/<username>/approvals/hunt/<hunt_id>/<approval_id>")
-  def GetUserHuntApproval(self, args, token=None):
+  def GetHuntApproval(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
-  @ArgsType(api_user.ApiListUserHuntApprovalsArgs)
-  @ResultType(api_user.ApiListUserHuntApprovalsResult)
+  @ArgsType(api_user.ApiListHuntApprovalsArgs)
+  @ResultType(api_user.ApiListHuntApprovalsResult)
   @Http("GET", "/api/users/me/approvals/hunt")
-  def ListUserHuntApprovals(self, args, token=None):
+  def ListHuntApprovals(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
-  @ArgsType(api_user.ApiCreateUserCronApprovalArgs)
-  @ResultType(api_user.ApiUserCronApproval)
-  @Http("POST", "/api/users/me/approvals/cron/<cron_job_id>")
-  def CreateUserCronApproval(self, args, token=None):
+  @ArgsType(api_user.ApiCreateCronJobApprovalArgs)
+  @ResultType(api_user.ApiCronJobApproval)
+  @Http("POST", "/api/users/me/approvals/cron-job/<cron_job_id>")
+  def CreateCronJobApproval(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
-  @ArgsType(api_user.ApiGetUserCronApprovalArgs)
-  @ResultType(api_user.ApiUserCronApproval)
+  @ArgsType(api_user.ApiGetCronJobApprovalArgs)
+  @ResultType(api_user.ApiCronJobApproval)
   @Http("GET",
-        "/api/users/<username>/approvals/cron/<cron_job_id>/<approval_id>")
-  def GetUserCronApproval(self, args, token=None):
+        "/api/users/<username>/approvals/cron-job/<cron_job_id>/<approval_id>")
+  def GetCronJobApproval(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
-  @ArgsType(api_user.ApiListUserCronApprovalsArgs)
-  @ResultType(api_user.ApiListUserCronApprovalsResult)
-  @Http("GET", "/api/users/me/approvals/cron")
-  def ListUserCronApprovals(self, args, token=None):
+  @ArgsType(api_user.ApiListCronJobApprovalsArgs)
+  @ResultType(api_user.ApiListCronJobApprovalsResult)
+  @Http("GET", "/api/users/me/approvals/cron-job")
+  def ListCronJobApprovals(self, args, token=None):
     raise NotImplementedError()
 
   # User settings methods.

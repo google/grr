@@ -970,14 +970,14 @@ message ApiGetConfigOptionArgs {
     }];
 }
 
-message ApiCreateUserHuntApprovalArgs {
+message ApiCreateHuntApprovalArgs {
   optional string hunt_id = 1 [(sem_type) = {
       description: "Hunt id."
     }];
-  optional ApiUserHuntApproval approval = 2;
+  optional ApiHuntApproval approval = 2;
 }
 
-message ApiGetUserHuntApprovalArgs {
+message ApiGetHuntApprovalArgs {
   optional string hunt_id = 1 [(sem_type) = {
       description: "Hunt id."
     }];
@@ -991,7 +991,7 @@ message ApiGetUserHuntApprovalArgs {
     }];
 }
 
-message ApiListUserHuntApprovalsArgs {
+message ApiListHuntApprovalsArgs {
   optional int64 offset = 1 [(sem_type) = {
       description: "Approvals starting offset."
     }];
@@ -1000,18 +1000,18 @@ message ApiListUserHuntApprovalsArgs {
     }];
 }
 
-message ApiListUserHuntApprovalsResult {
-  repeated ApiUserHuntApproval items = 1;
+message ApiListHuntApprovalsResult {
+  repeated ApiHuntApproval items = 1;
 }
 
-message ApiCreateUserCronApprovalArgs {
+message ApiCreateCronJobApprovalArgs {
   optional string cron_job_id = 1 [(sem_type) = {
       description: "Cron id."
     }];
-  optional ApiUserCronApproval approval = 2;
+  optional ApiCronJobApproval approval = 2;
 }
 
-message ApiGetUserCronApprovalArgs {
+message ApiGetCronJobApprovalArgs {
   optional string cron_job_id = 1 [(sem_type) = {
       description: "Cron id."
     }];
@@ -1025,7 +1025,7 @@ message ApiGetUserCronApprovalArgs {
     }];
 }
 
-message ApiListUserCronApprovalsArgs {
+message ApiListCronJobApprovalsArgs {
   optional int64 offset = 1 [(sem_type) = {
       description: "Approvals starting offset."
     }];
@@ -1034,19 +1034,19 @@ message ApiListUserCronApprovalsArgs {
     }];
 }
 
-message ApiListUserCronApprovalsResult {
-  repeated ApiUserCronApproval items = 1;
+message ApiListCronJobApprovalsResult {
+  repeated ApiCronJobApproval items = 1;
 }
 
-message ApiCreateUserClientApprovalArgs {
+message ApiCreateClientApprovalArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client id."
     }];
-  optional ApiUserClientApproval approval = 2;
+  optional ApiClientApproval approval = 2;
 }
 
-message ApiGetUserClientApprovalArgs {
+message ApiGetClientApprovalArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client id."
@@ -1062,7 +1062,7 @@ message ApiGetUserClientApprovalArgs {
 };
 
 
-message ApiListUserClientApprovalsArgs {
+message ApiListClientApprovalsArgs {
   enum State {
     ANY = 0;
     VALID = 1;
@@ -1084,8 +1084,8 @@ message ApiListUserClientApprovalsArgs {
     }];
 }
 
-message ApiListUserClientApprovalsResult {
-  repeated ApiUserClientApproval items = 1;
+message ApiListClientApprovalsResult {
+  repeated ApiClientApproval items = 1;
 }
 
 message ApiStartRobotGetFilesOperationArgs {
@@ -1269,7 +1269,7 @@ message ApiFlowDescriptor {
     }];
 }
 
-message ApiUserHuntApproval {
+message ApiHuntApproval {
   optional ApiHunt subject = 1 [(sem_type) = {
       description: "A hunt that has to be accessed after this approval "
       "is granted."
@@ -1307,7 +1307,7 @@ message ApiUserHuntApproval {
     }];
 }
 
-message ApiUserCronApproval {
+message ApiCronJobApproval {
   optional ApiCronJob subject = 1 [(sem_type) = {
       description: "A cron job that has to be accessed after this approval "
       "is granted."
@@ -1345,7 +1345,7 @@ message ApiUserCronApproval {
     }];
 }
 
-message ApiUserClientApproval {
+message ApiClientApproval {
   optional ApiClient subject = 1 [(sem_type) = {
       description: "A client that has to be accessed after this approval "
       "is granted."

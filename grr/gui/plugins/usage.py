@@ -349,7 +349,7 @@ class HuntApprovals30(HuntApprovals):
   time_offset = rdfvalue.Duration("30d")
 
 
-class CronApprovals(HuntApprovals):
+class CronJobApprovals(HuntApprovals):
   """Last week's cron approvals."""
   category = "/Server/Approvals/Crons/  7 days"
   title = "Cron approval requests and grants for the last 7 days"
@@ -357,7 +357,7 @@ class CronApprovals(HuntApprovals):
            events.AuditEvent.Action.CRON_APPROVAL_REQUEST]
 
 
-class CronApprovals30(CronApprovals):
+class CronJobApprovals30(CronJobApprovals):
   """Last month's cron approvals."""
   category = "/Server/Approvals/Crons/ 30 days"
   title = "Cron approval requests and grants for the last 30 days"

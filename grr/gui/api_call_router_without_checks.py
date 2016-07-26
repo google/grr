@@ -239,32 +239,32 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   # Approvals methods.
   # =================
   #
-  def CreateUserClientApproval(self, args, token=None):
-    return api_user.ApiCreateUserClientApprovalHandler()
+  def CreateClientApproval(self, args, token=None):
+    return api_user.ApiCreateClientApprovalHandler()
 
-  def GetUserClientApproval(self, args, token=None):
-    return api_user.ApiGetUserClientApprovalHandler()
+  def GetClientApproval(self, args, token=None):
+    return api_user.ApiGetClientApprovalHandler()
 
-  def ListUserClientApprovals(self, args, token=None):
-    return api_user.ApiListUserClientApprovalsHandler()
+  def ListClientApprovals(self, args, token=None):
+    return api_user.ApiListClientApprovalsHandler()
 
-  def CreateUserHuntApproval(self, args, token=None):
-    return api_user.ApiCreateUserHuntApprovalHandler()
+  def CreateHuntApproval(self, args, token=None):
+    return api_user.ApiCreateHuntApprovalHandler()
 
-  def GetUserHuntApproval(self, args, token=None):
-    return api_user.ApiGetUserHuntApprovalHandler()
+  def GetHuntApproval(self, args, token=None):
+    return api_user.ApiGetHuntApprovalHandler()
 
-  def ListUserHuntApprovals(self, args, token=None):
-    return api_user.ApiListUserHuntApprovalsHandler()
+  def ListHuntApprovals(self, args, token=None):
+    return api_user.ApiListHuntApprovalsHandler()
 
-  def CreateUserCronApproval(self, args, token=None):
-    return api_user.ApiCreateUserCronApprovalHandler()
+  def CreateCronJobApproval(self, args, token=None):
+    return api_user.ApiCreateCronJobApprovalHandler()
 
-  def GetUserCronApproval(self, args, token=None):
-    return api_user.ApiGetUserCronApprovalHandler()
+  def GetCronJobApproval(self, args, token=None):
+    return api_user.ApiGetCronJobApprovalHandler()
 
-  def ListUserCronApprovals(self, args, token=None):
-    return api_user.ApiListUserCronApprovalsHandler()
+  def ListCronJobApprovals(self, args, token=None):
+    return api_user.ApiListCronJobApprovalsHandler()
 
   # User settings methods.
   # =====================

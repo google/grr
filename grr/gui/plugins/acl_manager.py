@@ -481,8 +481,8 @@ Authorization request ({{this.reason|escape}}) failed:
 
     self.cc_address = config_lib.CONFIG["Email.approval_optional_cc_address"]
 
-    recent_reasons_list = api_user.ApiListUserClientApprovalsHandler().Handle(
-        api_user.ApiListUserClientApprovalsArgs(count=5), token=request.token)
+    recent_reasons_list = api_user.ApiListClientApprovalsHandler().Handle(
+        api_user.ApiListClientApprovalsArgs(count=5), token=request.token)
     self.recent_reasons = [x.reason for x in recent_reasons_list.items]
 
     if namespace == "hunts":

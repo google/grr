@@ -21,6 +21,8 @@ if False:
   import UserString
   import _LWPCookieJar
   import _abcoll
+  # https://github.com/pyinstaller/pyinstaller/issues/1425
+  import _cffi_backend
   import _osx_support
   import _pyio
   import _strptime

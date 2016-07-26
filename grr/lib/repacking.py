@@ -92,7 +92,7 @@ class TemplateRepacker(object):
       return signing.RPMCodeSigner(passwd, pub_keyfile, gpg_name)
 
   def RepackTemplate(self,
-                     template,
+                     template_path,
                      output_dir,
                      upload=False,
                      token=None,
@@ -106,7 +106,7 @@ class TemplateRepacker(object):
     repacked.
 
     Args:
-      template: ltemplate path string
+      template_path: template path string
       output_dir: Output files will be put in this directory.
       upload: If specified we also upload the repacked binary into the
       token: Token to use when uploading to the datastore.
@@ -118,8 +118,6 @@ class TemplateRepacker(object):
     """
     orig_config = config_lib.CONFIG
     repack_config = RepackConfig()
-    template_path = os.path.join(
-        config_lib.CONFIG["ClientBuilder.template_dir"], template)
     print "Repacking template: %s" % template_path
     config_lib.CONFIG = repack_config.GetConfigFromTemplate(template_path)
 
@@ -174,17 +172,20 @@ class TemplateRepacker(object):
   def RepackAllTemplates(self, upload=False, token=None):
     """Repack all the templates in ClientBuilder.template_dir."""
     for template in os.listdir(config_lib.CONFIG["ClientBuilder.template_dir"]):
+      template_path = os.path.join(
+          config_lib.CONFIG["ClientBuilder.template_dir"], template)
+
       self.RepackTemplate(
-          template,
+          template_path,
           os.path.join(config_lib.CONFIG["ClientBuilder.executables_dir"],
                        "installers"),
           upload=upload,
           token=token)
       # If it's windows also repack a debug version.
-      if template.endswith(".exe.zip"):
-        print "Repacking as debug installer: %s." % template
+      if template_path.endswith(".exe.zip"):
+        print "Repacking as debug installer: %s." % template_path
         self.RepackTemplate(
-            template,
+            template_path,
             os.path.join(config_lib.CONFIG["ClientBuilder.executables_dir"],
                          "installers"),
             upload=upload,

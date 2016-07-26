@@ -414,53 +414,53 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
   # Approvals methods.
   # =================
   #
-  def CreateUserClientApproval(self, args, token=None):
+  def CreateClientApproval(self, args, token=None):
     # Everybody can create a user client approval.
 
-    return self.delegate.CreateUserClientApproval(args, token=token)
+    return self.delegate.CreateClientApproval(args, token=token)
 
-  def GetUserClientApproval(self, args, token=None):
+  def GetClientApproval(self, args, token=None):
     # Everybody can have access to everybody's client approvals, provided
     # they know: a client id, a username of the requester and a reason.
 
-    return self.delegate.GetUserClientApproval(args, token=token)
+    return self.delegate.GetClientApproval(args, token=token)
 
-  def ListUserClientApprovals(self, args, token=None):
+  def ListClientApprovals(self, args, token=None):
     # Everybody can list their own user client approvals.
 
-    return self.delegate.ListUserClientApprovals(args, token=token)
+    return self.delegate.ListClientApprovals(args, token=token)
 
-  def CreateUserHuntApproval(self, args, token=None):
+  def CreateHuntApproval(self, args, token=None):
     # Everybody can request a hunt approval.
 
-    return self.delegate.CreateUserHuntApproval(args, token=token)
+    return self.delegate.CreateHuntApproval(args, token=token)
 
-  def GetUserHuntApproval(self, args, token=None):
+  def GetHuntApproval(self, args, token=None):
     # Everybody can have access to everybody's hunts approvals, provided
     # they know: a hunt id, a username of the requester and a reason.
 
-    return self.delegate.GetUserHuntApproval(args, token=token)
+    return self.delegate.GetHuntApproval(args, token=token)
 
-  def ListUserHuntApprovals(self, args, token=None):
+  def ListHuntApprovals(self, args, token=None):
     # Everybody can list their own user hunt approvals.
 
-    return self.delegate.ListUserHuntApprovals(args, token=token)
+    return self.delegate.ListHuntApprovals(args, token=token)
 
-  def CreateUserCronApproval(self, args, token=None):
+  def CreateCronJobApproval(self, args, token=None):
     # Everybody can request a cron job approval.
 
-    return self.delegate.CreateUserCronApproval(args, token=token)
+    return self.delegate.CreateCronJobApproval(args, token=token)
 
-  def GetUserCronApproval(self, args, token=None):
+  def GetCronJobApproval(self, args, token=None):
     # Everybody can have access to everybody's crons approvals, provided
     # they know: a cron job id, a username of the requester and a reason.
 
-    return self.delegate.GetUserCronApproval(args, token=token)
+    return self.delegate.GetCronJobApproval(args, token=token)
 
-  def ListUserCronApprovals(self, args, token=None):
+  def ListCronJobApprovals(self, args, token=None):
     # Everybody can list their own user cron approvals.
 
-    return self.delegate.ListUserCronApprovals(args, token=token)
+    return self.delegate.ListCronJobApprovals(args, token=token)
 
   # User settings methods.
   # =====================

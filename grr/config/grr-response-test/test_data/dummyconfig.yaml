@@ -1,0 +1,7 @@
+# This yaml is used in repacking integration tests so that we can exercise the
+# repack code without having to do a full initialize.
+#
+
+Client.server_urls: ["http://localhost:8000"]
+Client.executable_signing_public_key: "-----BEGIN PUBLIC"
+CA.certificate: "-----BEGIN CERTIFICATE"
