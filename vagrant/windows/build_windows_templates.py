@@ -183,9 +183,10 @@ class WindowsTemplateBuilder(object):
 
   def _CleanupInstall(self):
     """Cleanup from any previous installer enough for _CheckInstallSuccess."""
-    shutil.rmtree(self.INSTALL_PATH)
     if os.path.exists(self.INSTALL_PATH):
-      raise RuntimeError("Install path still exists: %s" % self.INSTALL_PATH)
+      shutil.rmtree(self.INSTALL_PATH)
+      if os.path.exists(self.INSTALL_PATH):
+        raise RuntimeError("Install path still exists: %s" % self.INSTALL_PATH)
 
     # Deliberately don't check return code, since service may not be installed.
     subprocess.call(["sc", "stop", self.SERVICE_NAME])

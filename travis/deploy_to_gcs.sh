@@ -48,7 +48,7 @@ grr_client_build --verbose --secondary_configs grr/config/grr-response-test/test
 # just waits for the installer to be available in a cloud storage bucket for the
 # build, then installs it.
 if [[ "$TRAVIS_OS_NAME" == "osx" ]]; then
-  sudo installer -pkg built_installer/*.pkg -target /
+  sudo installer -pkg built_templates/*.pkg -target /
 fi
 
 # If we don't have the sdk, go get it. While we could cache the cloud sdk

@@ -38,6 +38,9 @@ Vagrant.configure(2) do |config|
     end
     config.vm.box_download_checksum_type = "sha256"
     config.vm.box_download_checksum = "15a36cfe264f3eb58bb9c540d9de5a5a945b8c5162d6fd66b59925ed0a832e86"
+    # This tries to run apt-get update, which fails until we fix the
+    # sources.list (see install_linux.sh)
+    config.vbguest.auto_update = false
   end
 
   config.vm.define "ubuntu_lucid64" do |box|
@@ -48,6 +51,9 @@ Vagrant.configure(2) do |config|
     end
     config.vm.box_download_checksum_type = "sha256"
     config.vm.box_download_checksum = "f7d6b78fa492fe964f5ba89702f890b309d97fd0a23aa717f6e138752d2e7a69"
+    # This tries to run apt-get update, which fails until we fix the
+    # sources.list (see install_linux.sh)
+    config.vbguest.auto_update = false
   end
 
   config.vm.define "ubuntu_precise32" do |box|

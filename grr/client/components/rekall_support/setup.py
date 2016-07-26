@@ -25,7 +25,7 @@ setup_args = dict(
         "rekall_pb2",
     ],
     install_requires=[
-        "rekall-core == 1.5.2rc1",
+        "rekall-core == 1.5.2.post1",
     ],
     zip_safe=False,)
 

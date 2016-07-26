@@ -708,24 +708,26 @@ class LinuxClientRepacker(ClientRepacker):
             "ClientBuilder.debian_package_base", context=self.context)
         output_base = config_lib.CONFIG.Get("ClientRepacker.output_basename",
                                             context=self.context)
-        utils.EnsureDirExists(os.path.dirname(output_path))
-
-        for extension in [".changes", config_lib.CONFIG.Get(
-            "ClientBuilder.output_extension", context=self.context)]:
-          input_name = "%s%s" % (filename_base, extension)
-          output_name = "%s%s" % (output_base, extension)
-
-          shutil.move(
-              os.path.join(tmp_dir, input_name),
-              os.path.join(os.path.dirname(output_path), output_name))
-
-        logging.info("Created package %s", output_path)
-        return output_path
       finally:
         try:
           os.chdir(old_working_dir)
         except OSError:
           pass
+
+      utils.EnsureDirExists(os.path.dirname(output_path))
+
+      for extension in [".changes",
+                        config_lib.CONFIG.Get("ClientBuilder.output_extension",
+                                              context=self.context)]:
+        input_name = "%s%s" % (filename_base, extension)
+        output_name = "%s%s" % (output_base, extension)
+
+        shutil.move(
+            os.path.join(tmp_dir, input_name),
+            os.path.join(os.path.dirname(output_path), output_name))
+
+      logging.info("Created package %s", output_path)
+      return output_path
 
 
 class CentosClientRepacker(LinuxClientRepacker):

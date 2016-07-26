@@ -13,8 +13,16 @@ function system_update() {
   if [ $DISTRO == "Ubuntu" ]; then
     # Fix for old Vagrant versions to boot precise64, see
     # https://github.com/mitchellh/vagrant/issues/289
-    if [ "${codename}" == "precise" ]; then
+    if [ "${CODENAME}" == "precise" ]; then
       echo "set grub-pc/install_devices /dev/sda" | debconf-communicate
+    fi
+    # Lucid is EOL as of April 2015. We can continue to support it with GRR like
+    # this, but there's definitely no security updates so we will want to drop
+    # it at some point.
+    if [ "${CODENAME}" == "lucid" ]; then
+      echo Fixing sources.list to point at old-releases.ubuntu.com
+      sudo sed -i s'/us\.archive\.ubuntu\.com/old\-releases\.ubuntu\.com/' /etc/apt/sources.list
+      sudo sed -i s'/security\.ubuntu\.com/old\-releases\.ubuntu\.com/' /etc/apt/sources.list
     fi
     apt-get --yes update
     apt-get --yes upgrade
@@ -97,10 +105,9 @@ function install_python_from_source() {
   if [ $DISTRO == "Ubuntu" ]; then
     # This is essentially "apt-get build-dep python2.6|7" but without
     # libssl-dev so we don't end up using the wrong headers
-    codename=$(lsb_release -cs)
-    if [ "${codename}" == "lucid" ]; then
+    if [ "${CODENAME}" == "lucid" ]; then
       apt-get --force-yes --yes install build-essential autoconf automake autotools-dev blt blt-dev cvs debhelper fontconfig-config gdb gettext html2text intltool-debian libbluetooth-dev libbluetooth3 libbz2-dev libcroco3 libdb4.8-dev libexpat1-dev libffi-dev libfile-copy-recursive-perl libfontconfig1 libfontconfig1-dev libfontenc1 libfreetype6-dev libgl1-mesa-dri libgl1-mesa-glx libice6 libjpeg62 liblcms1 libmail-sendmail-perl libncurses5-dev libncursesw5-dev libpaper-utils libpaper1 libpthread-stubs0 libpthread-stubs0-dev libreadline-dev libreadline6-dev libsm6 libsqlite3-dev libsys-hostname-long-perl libxext-dev libxfixes3 libxft-dev libxft2 libxi6 libxinerama1 libxmu6 libxpm4 libxrender-dev libxrender1 libxslt1.1 libxss-dev libxss1 libxt6 libxtst6 libxv1 libxxf86dga1 libxxf86vm1 m4 pkg-config po-debconf python-docutils python-imaging python-jinja2 python-lxml python-pygments python-roman python-sphinx sharutils tcl8.5 tcl8.5-dev tk8.5 tk8.5-dev ttf-dejavu-core update-inetd x11-common x11-utils x11proto-core-dev x11proto-input-dev x11proto-kb-dev x11proto-render-dev x11proto-scrnsaver-dev x11proto-xext-dev xbitmaps xterm xtrans-dev zlib1g-dev libx11-dev libxau-dev libxaw7 libxcb1-dev libxdamage1 libxdmcp-dev zlib1g-dev bzip2 libncurses-dev sqlite3 libgdbm-dev libdb-dev readline-common libpcap-dev
-    elif [ "${codename}" == "precise" ]; then
+    elif [ "${CODENAME}" == "precise" ]; then
       apt-get --force-yes --yes install build-essential autoconf automake autotools-dev blt blt-dev debhelper dh-apparmor diffstat docutils-common gdb gettext help2man html2text intltool-debian libbluetooth-dev libbluetooth3 libbz2-dev libcroco3 libdb5.1-dev libexpat1-dev libffi-dev libfontconfig1-dev libfreetype6-dev libgdbm-dev libgettextpo0 libjs-sphinxdoc libjs-underscore libncursesw5-dev libpthread-stubs0 libpthread-stubs0-dev libreadline-dev libreadline6-dev libsqlite3-dev libtinfo-dev libunistring0 libx11-dev libxau-dev libxcb1-dev libxdmcp-dev libxext-dev libxft-dev libxrender-dev libxss-dev libxss1 m4 pkg-config po-debconf python-docutils python-jinja2 python-markupsafe python-pygments python-roman python-sphinx quilt sharutils sphinx-common tcl8.5 tcl8.5-dev tk8.5 tk8.5-dev x11proto-core-dev x11proto-input-dev x11proto-kb-dev x11proto-render-dev x11proto-scrnsaver-dev x11proto-xext-dev xorg-sgml-doctools xtrans-dev xvfb zlib1g-dev
     else
       echo "Only supporting precise and lucid"
@@ -189,6 +196,7 @@ elif [ $DISTRO == "CentOS" ]; then
 else
   usage
 fi
+CODENAME=$(lsb_release -cs)
 
 system_update
 install_openssl
