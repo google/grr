@@ -57,7 +57,6 @@ class GenericRDFProtoTest(RDFValueBaseTest):
             default=rdfvalue.RDFInteger(0),
             rdf_type=rdfvalue.RDFInteger))
 
-    # Ensure there is an rdf_map so we know that st_size is an RDFInteger:
     self.assertIsInstance(sample.test, rdfvalue.RDFInteger)
 
     # Can we assign an RDFValue instance?

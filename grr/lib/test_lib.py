@@ -1091,7 +1091,7 @@ class StatsDeltaAssertionContext(object):
       new_count = new_count.count
 
     self.test.assertEqual(new_count - self.prev_count, self.delta,
-                          "%s (fields=%s) expected to change with detla=%d" %
+                          "%s (fields=%s) expected to change with delta=%d" %
                           (self.varname, self.fields, self.delta))
 
 

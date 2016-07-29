@@ -5,10 +5,7 @@
   </div>
 
   <div grr-splitter-pane id="main_bottomPane" class="rightBottomPane">
-    <grr-force-refresh refresh-trigger="controller.selectedCronJobUrn">
-      <grr-legacy-renderer renderer="CronJobManagementTabs"
-                           query-params="{cron_job_urn: controller.selectedCronJobUrn}">
-      </grr-legacy-renderer>
-    </grr-force-refresh>
+    <grr-cron-job-inspector cron-job-urn="controller.selectedCronJobUrn">
+    </grr-cron-job-inspector>
   </div>
 </div>

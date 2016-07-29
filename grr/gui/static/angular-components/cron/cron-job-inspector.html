@@ -1,0 +1,19 @@
+<div class="padded" grr-force-refresh refresh-trigger="cronJobUrn">
+
+  <div ng-if="!cronJobUrn">
+    Please select a cron job to see the details.
+  </div>
+
+  <tabset ng-if="cronJobUrn">
+    <tab heading="Details" id="Details">
+      <grr-legacy-renderer renderer="ShowFlowInformation"
+                           query-params="{flow: cronJobUrn}" />
+    </tab>
+
+    <tab heading="Flows" id="Flows">
+      <grr-cron-job-flows-list cron-job-urn="cronJobUrn">
+      </grr-cron-job-flows-list>
+    </tab>
+  </tabset>
+
+</div>

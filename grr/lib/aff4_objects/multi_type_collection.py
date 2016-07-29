@@ -2,6 +2,8 @@
 """MultiTypeCollection implementation."""
 
 from grr.lib import aff4
+from grr.lib import data_store
+from grr.lib import rdfvalue
 
 from grr.lib.aff4_objects import sequential_collection
 
@@ -11,6 +13,8 @@ from grr.lib.rdfvalues import flows as rdf_flows
 class MultiTypeCollection(aff4.AFF4Object):
   """A collection that stores multiple types of data in per-type sequences."""
 
+  VALUE_TYPE_PREFIX = "aff4:value_type_"
+
   @classmethod
   def StaticAdd(cls,
                 collection_urn,
@@ -18,6 +22,7 @@ class MultiTypeCollection(aff4.AFF4Object):
                 rdf_value,
                 timestamp=None,
                 suffix=None,
+                mutation_pool=None,
                 **kwargs):
     """Adds an rdf value to a collection.
 
@@ -41,6 +46,9 @@ class MultiTypeCollection(aff4.AFF4Object):
       suffix: A 'fractional timestamp' suffix to reduce the chance of
           collisions. Defaults to a random number.
 
+      mutation_pool: An optional MutationPool object to write to. If not given,
+                     the data_store is used directly.
+
       **kwargs: Keyword arguments to pass through to the underlying database
         call.
 
@@ -60,20 +68,40 @@ class MultiTypeCollection(aff4.AFF4Object):
 
     value_type = rdf_value.args_rdf_name or rdf_flows.GrrMessage.__name__
 
+    # In order to make this fast, we never actually generate the
+    # subcollections, we just use them. This means that we cannot use
+    # ListChildren to get all the items stored in this
+    # MultiTypeCollection.
     subpath = collection_urn.Add(value_type)
-    with aff4.FACTORY.Create(
+    sequential_collection.GrrMessageCollection.StaticAdd(
         subpath,
-        aff4_type=sequential_collection.GrrMessageCollection,
-        mode="w",
-        token=token) as collection_obj:
-      collection_obj.Add(rdf_value,
-                         timestamp=timestamp,
-                         suffix=suffix,
-                         **kwargs)
+        token,
+        rdf_value,
+        timestamp=timestamp,
+        suffix=suffix,
+        mutation_pool=mutation_pool,
+        **kwargs)
+
+    if mutation_pool:
+      mutation_pool.Set(collection_urn,
+                        "%s%s" % (cls.VALUE_TYPE_PREFIX, value_type),
+                        1,
+                        timestamp=0,
+                        **kwargs)
+    else:
+      data_store.DB.Set(collection_urn,
+                        "%s%s" % (cls.VALUE_TYPE_PREFIX, value_type),
+                        1,
+                        timestamp=0,
+                        token=token,
+                        **kwargs)
 
   def ListStoredTypes(self):
-    sub_collections_urns = aff4.FACTORY.ListChildren(self.urn, token=self.token)
-    return [urn.Basename() for urn in sub_collections_urns]
+    res = []
+    for attribute, _, _ in data_store.DB.ResolveRow(self.urn, token=self.token):
+      if attribute.startswith(self.VALUE_TYPE_PREFIX):
+        res.append(attribute[len(self.VALUE_TYPE_PREFIX):])
+    return res
 
   def ScanByType(self,
                  type_name,
@@ -102,7 +130,7 @@ class MultiTypeCollection(aff4.AFF4Object):
 
     """
     sub_collection_urn = self.urn.Add(type_name)
-    sub_collection = aff4.FACTORY.Open(
+    sub_collection = aff4.FACTORY.Create(
         sub_collection_urn,
         aff4_type=sequential_collection.GrrMessageCollection,
         token=self.token)
@@ -114,7 +142,7 @@ class MultiTypeCollection(aff4.AFF4Object):
 
   def LengthByType(self, type_name):
     sub_collection_urn = self.urn.Add(type_name)
-    sub_collection = aff4.FACTORY.Open(
+    sub_collection = aff4.FACTORY.Create(
         sub_collection_urn,
         aff4_type=sequential_collection.GrrMessageCollection,
         token=self.token)
@@ -158,26 +186,34 @@ class MultiTypeCollection(aff4.AFF4Object):
         **kwargs)
 
   def __iter__(self):
-    sub_collections_urns = aff4.FACTORY.ListChildren(self.urn, token=self.token)
-    sub_collections = aff4.FACTORY.MultiOpen(
-        sub_collections_urns,
-        aff4_type=sequential_collection.GrrMessageCollection,
-        token=self.token)
-    for sub_collection in sub_collections:
+    sub_collection_urns = [self.urn.Add(stored_type)
+                           for stored_type in self.ListStoredTypes()]
+    for sub_collection_urn in sub_collection_urns:
+      sub_collection = aff4.FACTORY.Create(
+          sub_collection_urn,
+          aff4_type=sequential_collection.GrrMessageCollection,
+          token=self.token)
       for item in sub_collection:
         yield item
 
   def __len__(self):
-    sub_collections_urns = aff4.FACTORY.ListChildren(self.urn, token=self.token)
-    sub_collections = aff4.FACTORY.MultiOpen(
-        sub_collections_urns,
-        aff4_type=sequential_collection.GrrMessageCollection,
-        token=self.token)
+    l = 0
+    sub_collection_urns = [self.urn.Add(stored_type)
+                           for stored_type in self.ListStoredTypes()]
+    for sub_collection_urn in sub_collection_urns:
+      sub_collection = aff4.FACTORY.Create(
+          sub_collection_urn,
+          aff4_type=sequential_collection.GrrMessageCollection,
+          token=self.token)
+      l += len(sub_collection)
 
-    return sum(len(c) for c in sub_collections)
+    return l
 
   def OnDelete(self, deletion_pool=None):
     super(MultiTypeCollection, self).OnDelete(deletion_pool=deletion_pool)
 
-    for sub_collection_urn in deletion_pool.ListChildren(self.urn):
-      deletion_pool.MarkForDeletion(sub_collection_urn)
+    for urn, _, _ in data_store.DB.ScanAttribute(
+        self.urn,
+        sequential_collection.SequentialCollection.ATTRIBUTE,
+        token=self.token):
+      deletion_pool.MarkForDeletion(rdfvalue.RDFURN(urn))

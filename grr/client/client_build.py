@@ -292,7 +292,6 @@ def main(_):
   config_lib.CONFIG.AddContext(
       "ClientBuilder Context",
       "Context applied when we run the client builder script.")
-
   startup.ClientInit()
 
   # Use basic console output logging so we can see what is happening.
@@ -303,12 +302,12 @@ def main(_):
 
   if args.subparser_name == "build":
     TemplateBuilder().BuildTemplate(
-        context=flags.FLAGS.context, output=flags.FLAGS.output)
+        context=config_lib.CONFIG.context, output=flags.FLAGS.output)
   elif args.subparser_name == "repack":
     result_path = repacking.TemplateRepacker().RepackTemplate(
         args.template,
         args.output_dir,
-        context=flags.FLAGS.context,
+        context=config_lib.CONFIG.context,
         sign=args.sign)
 
     if not result_path:

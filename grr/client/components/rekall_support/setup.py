@@ -6,7 +6,7 @@ from setuptools import setup
 
 setup_args = dict(
     name="grr-rekall",
-    version="0.4",
+    version="1.5.2.post1",
     description="Rekall GRR Integration module.",
     license="GPL",
     url="https://www.rekall-forensic.com/",

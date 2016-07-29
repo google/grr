@@ -104,6 +104,8 @@ class MultiTypeCollectionTest(test_lib.AFF4ObjectTest):
     self.collection.Add(rdf_flows.GrrMessage(payload=rdfvalue.RDFString("foo")))
     self.collection.Add(
         rdf_flows.GrrMessage(payload=rdfvalue.RDFURN("aff4:/foo/bar")))
+    # Need to make sure the object actually exists so we can delete it.
+    self.collection.Flush()
 
     aff4.FACTORY.Delete(self.collection.urn, token=self.token)
     for urn in data_store.DB.subjects.keys():

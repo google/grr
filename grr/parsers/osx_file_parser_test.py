@@ -49,6 +49,8 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
         parser.Parse("/usr/sbin/system_profiler", ["SPHardwareDataType -xml"],
                      content, "", 0, 5, None))
     self.assertEqual(result[0].serial_number, "C02JQ0F5F6L9")
+    self.assertEqual(result[0].bios_version, "MBP101.00EE.B02")
+    self.assertEqual(result[0].system_product_name, "MacBookPro10,1")
 
   def testOSXLaunchdPlistParser(self):
     parser = osx_file_parser.OSXLaunchdPlistParser()

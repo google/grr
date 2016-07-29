@@ -190,9 +190,6 @@ class WindowsTemplateBuilder(object):
 
     # Deliberately don't check return code, since service may not be installed.
     subprocess.call(["sc", "stop", self.SERVICE_NAME])
-    output = subprocess.check_output(["sc", "query", self.SERVICE_NAME])
-    if "RUNNING" in output:
-      raise RuntimeError("Service still running: %s" % output)
 
   def _CheckInstallSuccess(self):
     """Check if installer installed correctly."""

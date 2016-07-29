@@ -230,7 +230,8 @@ class HttpRequestHandler(object):
                      rendered_data,
                      method_name=None,
                      headers=None,
-                     token=None):
+                     token=None,
+                     no_audit_log=False):
     """Builds HTTPResponse object from rendered data and HTTP status."""
 
     response = http.HttpResponse(
@@ -242,6 +243,8 @@ class HttpRequestHandler(object):
       response["X-GRR-Reason"] = utils.SmartStr(token.reason)
     if method_name:
       response["X-API-Method"] = method_name
+    if no_audit_log:
+      response["X-No-Log"] = "True"
 
     for key, value in (headers or {}).items():
       response[key] = value
@@ -405,10 +408,15 @@ class HttpRequestHandler(object):
           return self._BuildResponse(
               200, {"status": "OK"},
               method_name=method_metadata.name,
-              headers=headers)
+              headers=headers,
+              no_audit_log=method_metadata.no_audit_log_required,
+              token=token)
         else:
           return self._BuildResponse(
-              200, {"status": "OK"}, method_name=method_metadata.name)
+              200, {"status": "OK"},
+              method_name=method_metadata.name,
+              no_audit_log=method_metadata.no_audit_log_required,
+              token=token)
 
       if (method_metadata.result_type ==
           method_metadata.BINARY_STREAM_RESULT_TYPE):
@@ -422,7 +430,11 @@ class HttpRequestHandler(object):
           rendered_data = self.StripTypeInfo(rendered_data)
 
         return self._BuildResponse(
-            200, rendered_data, method_name=method_metadata.name)
+            200,
+            rendered_data,
+            method_name=method_metadata.name,
+            no_audit_log=method_metadata.no_audit_log_required,
+            token=token)
     except access_control.UnauthorizedAccess as e:
       logging.exception("Access denied to %s (%s) with %s: %s", request.path,
                         request.method, method_metadata.name, e)
@@ -437,23 +449,34 @@ class HttpRequestHandler(object):
               message="Access denied by ACL: %s" % e.message,
               subject=utils.SmartStr(e.subject)),
           headers=additional_headers,
-          method_name=method_metadata.name)
+          method_name=method_metadata.name,
+          no_audit_log=method_metadata.no_audit_log_required,
+          token=token)
     except api_call_handler_base.ResourceNotFoundError as e:
       return self._BuildResponse(
-          404, dict(message=e.message), method_name=method_metadata.name)
+          404,
+          dict(message=e.message),
+          method_name=method_metadata.name,
+          no_audit_log=method_metadata.no_audit_log_required,
+          token=token)
     except NotImplementedError as e:
       return self._BuildResponse(
-          501, dict(message=e.message), method_name=method_metadata.name)
+          501,
+          dict(message=e.message),
+          method_name=method_metadata.name,
+          no_audit_log=method_metadata.no_audit_log_required,
+          token=token)
     except Exception as e:  # pylint: disable=broad-except
       logging.exception("Error while processing %s (%s) with %s: %s",
                         request.path, request.method,
                         handler.__class__.__name__, e)
-
       return self._BuildResponse(
           500,
           dict(
               message=str(e), traceBack=traceback.format_exc()),
-          method_name=method_metadata.name)
+          method_name=method_metadata.name,
+          no_audit_log=method_metadata.no_audit_log_required,
+          token=token)
 
 
 def RenderHttpResponse(request):

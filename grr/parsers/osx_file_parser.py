@@ -43,17 +43,20 @@ class OSXSPHardwareDataTypeParser(parsers.CommandParser):
     _ = stderr, time_taken, args, knowledge_base  # Unused
     self.CheckReturn(cmd, return_val)
 
-    serial_number = []
-    hardware_list = []
     plist = binplist.readPlist(cStringIO.StringIO(stdout))
 
     if len(plist) > 1:
       raise parsers.ParseError("SPHardwareDataType plist has too many items.")
 
     hardware_list = plist[0]["_items"][0]
-    serial_number = hardware_list["serial_number"]
+    serial_number = getattr(hardware_list, "serial_number", None)
+    system_product_name = getattr(hardware_list, "machine_model", None)
+    bios_version = getattr(hardware_list, "boot_rom_version", None)
 
-    yield rdf_client.HardwareInfo(serial_number=serial_number)
+    yield rdf_client.HardwareInfo(
+        serial_number=serial_number,
+        bios_version=bios_version,
+        system_product_name=system_product_name)
 
 
 class OSXLaunchdPlistParser(parsers.FileParser):

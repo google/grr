@@ -27,7 +27,6 @@ from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
-from grr.lib.rdfvalues import structs as rdf_structs
 
 # Factor to convert from seconds to microseconds
 MICROSECONDS = 1000000
@@ -1372,15 +1371,10 @@ class Attribute(object):
     result = self.attribute_type
     for field_name in self.field_names:
       # Support the new semantic protobufs.
-      if issubclass(result, rdf_structs.RDFProtoStruct):
-        try:
-          result = result.type_infos.get(field_name).type
-        except AttributeError:
-          raise AttributeError("Invalid attribute %s" % field_name)
-      else:
-        # TODO(user): Remove and deprecate.
-        # Support for the old RDFProto.
-        result = result.rdf_map.get(field_name, rdfvalue.RDFString)
+      try:
+        result = result.type_infos.get(field_name).type
+      except AttributeError:
+        raise AttributeError("Invalid attribute %s" % field_name)
 
     return result
 

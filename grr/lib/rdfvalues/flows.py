@@ -10,7 +10,6 @@ import time
 
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import jobs_pb2
@@ -113,16 +112,10 @@ class GrrStatus(rdf_structs.RDFProtoStruct):
   """
   protobuf = jobs_pb2.GrrStatus
 
-  rdf_map = dict(cpu_used=rdf_client.CpuSeconds)
-
 
 class GrrNotification(rdf_structs.RDFProtoStruct):
   """A flow notification."""
   protobuf = jobs_pb2.GrrNotification
-
-
-class Backtrace(rdfvalue.RDFString):
-  """A special type representing a backtrace."""
 
 
 class RequestState(rdf_structs.RDFProtoStruct):
@@ -136,10 +129,6 @@ class Flow(rdf_structs.RDFProtoStruct):
   itself.
   """
   protobuf = jobs_pb2.Flow
-
-  # Reference to an AFF4 object where this flow was read from. Note that this
-  # is a runtime-only attribute and is not serialized.
-  aff4_object = None
 
 
 class UnknownObject(object):
