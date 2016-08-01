@@ -7,7 +7,7 @@ from grr.client.components.rekall_support import rekall_types as rdf_rekall_type
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import config_lib
-from grr.lib.aff4_objects import collects
+from grr.lib import flow_runner
 
 
 class AbstractTestAnalyzeClientMemory(base.ClientTestBase):
@@ -19,9 +19,7 @@ class AbstractTestAnalyzeClientMemory(base.ClientTestBase):
   on the console to make these tests pass.
   """
   flow = "AnalyzeClientMemory"
-  test_output_path = "analysis/memory"
-  args = {"request": rdf_rekall_types.RekallRequest(),
-          "output": test_output_path}
+  args = {"request": rdf_rekall_types.RekallRequest()}
 
   def setUpRequest(self):
     raise NotImplementedError("Implemented by subclasses")
@@ -36,23 +34,15 @@ class AbstractTestAnalyzeClientMemory(base.ClientTestBase):
       # an end to end test. We change it temporarily to allow the test to pass.
       config_lib.CONFIG.Set("Rekall.profile_server", "GRRRekallProfileServer")
 
-    # RDFValueCollections need to be deleted recursively.
-    aff4.FACTORY.Delete(
-        self.client_id.Add(self.test_output_path), token=self.token)
     super(AbstractTestAnalyzeClientMemory, self).setUp()
 
   def tearDown(self):
-    # RDFValueCollections need to be deleted recursively.
-    aff4.FACTORY.Delete(
-        self.client_id.Add(self.test_output_path), token=self.token)
     config_lib.CONFIG.Set("Rekall.profile_server", self.old_config)
     super(AbstractTestAnalyzeClientMemory, self).tearDown()
 
   def CheckFlow(self):
-    self.response = aff4.FACTORY.Open(
-        self.client_id.Add(self.test_output_path), token=self.token)
-    self.assertIsInstance(self.response, collects.RDFValueCollection)
-    self.assertTrue(len(self.response) >= 1)
+    self.responses = self.CheckCollectionNotEmptyWithRetry(
+        self.session_id.Add(flow_runner.RESULTS_SUFFIX), self.token)
 
   def OpenFlow(self):
     """Returns the flow used on this test."""
@@ -100,7 +90,7 @@ class TestAnalyzeClientMemoryWindowsDLLList(
     super(TestAnalyzeClientMemoryWindowsDLLList, self).CheckFlow()
 
     # Make sure the dlllist found our process by regex:
-    response_str = "".join([x.json_messages for x in self.response])
+    response_str = "".join([x.json_messages for x in self.responses])
     self.assertIn(self.binaryname, response_str)
 
 
@@ -115,16 +105,12 @@ class TestAnalyzeClientMemoryMac(AbstractTestAnalyzeClientMemory,
     ]
 
   def CheckFlow(self):
-    response = aff4.FACTORY.Open(
-        self.client_id.Add(self.test_output_path), token=self.token)
+    super(TestAnalyzeClientMemoryMac, self).CheckFlow()
     binary_name = config_lib.CONFIG.Get(
         "Client.binary_name", context=["Client Context", "Platform:Darwin"])
-
-    responses = list(response)
-    self.assertTrue(len(responses))
     self.assertTrue(
-        any([binary_name in response.json_messages for response in list(
-            response)]))
+        any([binary_name in response.json_messages for response in
+             self.responses]))
 
 
 class TestAnalyzeClientMemoryLinux(AbstractTestAnalyzeClientMemory):
@@ -137,9 +123,9 @@ class TestAnalyzeClientMemoryLinux(AbstractTestAnalyzeClientMemory):
     ]
 
   def CheckForInit(self):
-    responses = aff4.FACTORY.Open(
-        self.client_id.Add(self.test_output_path), token=self.token)
-    self.assertTrue(any(["\"init\"" in r.json_messages for r in responses]))
+    super(TestAnalyzeClientMemoryLinux, self).CheckFlow()
+    self.assertTrue(
+        any(["\"init\"" in r.json_messages for r in self.responses]))
 
   def CheckFlow(self):
     self.CheckForInit()
@@ -156,9 +142,8 @@ class TestAnalyzeClientMemoryLoggingWorks(AbstractTestAnalyzeClientMemory):
     self.args["request"].session["logging_level"] = "DEBUG"
 
   def CheckFlow(self):
-    response = aff4.FACTORY.Open(
-        self.client_id.Add(self.test_output_path), token=self.token)
-    self.assertIn("\"level\":\"DEBUG\"", response[0].json_messages)
+    super(TestAnalyzeClientMemoryLoggingWorks, self).CheckFlow()
+    self.assertIn("\"level\":\"DEBUG\"", self.responses[0].json_messages)
 
 
 class TestAnalyzeClientMemoryNonexistantPlugin(AbstractTestAnalyzeClientMemory):
@@ -241,12 +226,10 @@ class TestSigScan(AbstractTestAnalyzeClientMemoryWindows):
     ]
 
   def CheckFlow(self):
-    collection = aff4.FACTORY.Open(
-        self.client_id.Add(self.test_output_path), token=self.token)
-    self.assertIsInstance(collection, collects.RDFValueCollection)
+    super(TestSigScan, self).CheckFlow()
     self.assertTrue(
         any(["Hit in kernel AS:" in response.json_messages
-             for response in list(collection)]))
+             for response in self.responses]))
 
 
 class TestYarascanExists(AbstractTestAnalyzeClientMemory):

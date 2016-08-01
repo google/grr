@@ -4,6 +4,7 @@
 
 
 import re
+import time
 import traceback
 import unittest
 
@@ -22,6 +23,10 @@ from grr.lib.rdfvalues import client as rdf_client
 
 class Error(Exception):
   """Test base error."""
+
+
+class ErrorEmptyCollection(Error):
+  """Raise when we expect values in a collection, but it is empty."""
 
 
 class TestStateUncleanError(Error):
@@ -54,6 +59,10 @@ class ClientTestBase(unittest.TestCase):
   network_bytes_limit = None
   timeout = flow_utils.DEFAULT_TIMEOUT
   test_output_path = None
+  # How long after flow is marked complete we should expect results to be
+  # available in the collection. This is essentially how quickly we expect
+  # results to be available to users in the UI.
+  RESULTS_SLA_SECONDS = 2
 
   # Only run on clients after this version
   client_min_version = None
@@ -177,6 +186,17 @@ class ClientTestBase(unittest.TestCase):
     magic_values = ["cafebabe", "cefaedfe", "cffaedfe"]
     magic_values = [x.decode("hex") for x in magic_values]
     self.assertTrue(data[:4] in magic_values)
+
+  def CheckCollectionNotEmptyWithRetry(self, collection_urn, token):
+    coll = aff4.FACTORY.Open(collection_urn, mode="r", token=token)
+    coll_list = list(coll)
+    if not coll_list:
+      time.sleep(self.RESULTS_SLA_SECONDS)
+      coll_list = list(coll)
+      if not coll_list:
+        raise ErrorEmptyCollection("No values in %s after SLA: %s seconds" %
+                                   (collection_urn, self.RESULTS_SLA_SECONDS))
+    return coll_list
 
 
 class AutomatedTest(ClientTestBase):

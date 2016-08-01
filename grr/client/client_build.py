@@ -255,11 +255,11 @@ class MultiTemplateRepacker(object):
         signing = False
         passwd = None
         if sign:
-          if "exe" in template:
+          if template.endswith(".exe.zip"):
             passwd = windows_passwd
             signing = True
             repack_args.append("--sign")
-          elif "rpm" in template:
+          elif template.endswith(".rpm.zip"):
             passwd = rpm_passwd
             signing = True
             repack_args.append("--sign")

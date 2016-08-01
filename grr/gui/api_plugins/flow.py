@@ -517,7 +517,12 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
       """Builds list of flows recursively."""
       result = []
       for fd in fds:
-        api_flow = ApiFlow().InitFromAff4Object(fd)
+
+        try:
+          api_flow = ApiFlow().InitFromAff4Object(fd)
+        except AttributeError:
+          # If this doesn't work there's no way to recover.
+          continue
 
         try:
           children_urns = nested_children_urns[fd.urn]

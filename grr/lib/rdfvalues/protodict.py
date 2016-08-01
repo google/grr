@@ -233,6 +233,11 @@ class AttributedDict(Dict):
   protobuf = jobs_pb2.AttributedDict
 
   def __getattr__(self, item):
+    # Pickle is checking for the presence of overrides for various builtins.
+    # Without this check we swallow the error and return None, which confuses
+    # pickle protocol version 2.
+    if item.startswith("__"):
+      raise AttributeError()
     return self.GetItem(item)
 
 

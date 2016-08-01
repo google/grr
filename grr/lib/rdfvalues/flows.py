@@ -174,6 +174,14 @@ class RobustUnpickler(pickle.Unpickler):
       self.stack[-1] = UnknownObject()
 
   dispatch[pickle.NEWOBJ] = load_newobj
+
+  def load_obj(self):
+    try:
+      pickle.Unpickler.load_obj(self)
+    except Exception:
+      self.append(UnknownObject)
+
+  dispatch[pickle.OBJ] = load_obj
   # pylint: enable=invalid-name, broad-except
 
 

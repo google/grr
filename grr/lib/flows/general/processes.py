@@ -66,6 +66,8 @@ class ListProcesses(flow.GRRFlow):
         else:
           self.SendReply(p)
       if skipped:
+        # It's normal to have lots of sleeping processes with no executable path
+        # associated.
         self.Log("Skipped %s entries, missing path for regex" % skipped)
 
   @flow.StateHandler()

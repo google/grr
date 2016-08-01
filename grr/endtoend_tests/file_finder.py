@@ -3,9 +3,7 @@
 
 
 from grr.endtoend_tests import transfer
-from grr.lib import aff4
 from grr.lib import flow_runner
-from grr.lib.aff4_objects import collects
 
 from grr.lib.flows.general import file_finder
 
@@ -114,7 +112,5 @@ class TestFileFinderOSHomedir(TestFileFinderOSLinux):
           "runner_args": flow_runner.FlowRunnerArgs()}
 
   def CheckFlow(self):
-    results = aff4.FACTORY.Open(
-        self.session_id.Add("Results"), token=self.token)
-    self.assertEqual(type(results), collects.RDFValueCollection)
-    self.assertTrue(len(results) > 1)
+    self.CheckCollectionNotEmptyWithRetry(
+        self.session_id.Add(flow_runner.RESULTS_SUFFIX), self.token)
