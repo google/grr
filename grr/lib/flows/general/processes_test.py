@@ -104,20 +104,73 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
         return
     raise RuntimeError("Skipped process not mentioned in logs")
 
-  def testWhenFetchingFiltersOutProcessesWithoutExeAttribute(self):
-    process = rdf_client.Process(
+  def testProcessListingFilterConnectionState(self):
+    p1 = rdf_client.Process(
+        pid=2,
+        ppid=1,
+        cmdline=["cmd.exe"],
+        exe="c:\\windows\\cmd.exe",
+        ctime=long(1333718907.167083 * 1e6),
+        connections=rdf_client.NetworkConnection(
+            family="INET", state="CLOSED"))
+    p2 = rdf_client.Process(
+        pid=3,
+        ppid=1,
+        cmdline=["cmd2.exe"],
+        exe="c:\\windows\\cmd2.exe",
+        ctime=long(1333718907.167083 * 1e6),
+        connections=rdf_client.NetworkConnection(
+            family="INET", state="LISTEN"))
+    p3 = rdf_client.Process(
+        pid=4,
+        ppid=1,
+        cmdline=["missing_exe.exe"],
+        ctime=long(1333718907.167083 * 1e6),
+        connections=rdf_client.NetworkConnection(
+            family="INET", state="ESTABLISHED"))
+    client_mock = ListProcessesMock([p1, p2, p3])
+
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name="ListProcesses",
+        connection_states=["ESTABLISHED", "LISTEN"],
+        token=self.token)
+    for s in test_lib.TestFlowHelper(
+        flow_urn, client_mock, client_id=self.client_id, token=self.token):
+      session_id = s
+
+    processes = aff4.FACTORY.Open(
+        session_id.Add(flow_runner.RESULTS_SUFFIX), token=self.token)
+    self.assertEqual(len(processes), 2)
+    states = set()
+    for process in processes:
+      states.add(str(process.connections[0].state))
+    self.assertItemsEqual(states, ["ESTABLISHED", "LISTEN"])
+
+  def testWhenFetchingFiltersOutProcessesWithoutExeAndConnectionState(self):
+    p1 = rdf_client.Process(
         pid=2,
         ppid=1,
         cmdline=["test_img.dd"],
         ctime=long(1333718907.167083 * 1e6))
 
-    client_mock = ListProcessesMock([process])
+    p2 = rdf_client.Process(
+        pid=2,
+        ppid=1,
+        cmdline=["cmd.exe"],
+        exe="c:\\windows\\cmd.exe",
+        ctime=long(1333718907.167083 * 1e6),
+        connections=rdf_client.NetworkConnection(
+            family="INET", state="ESTABLISHED"))
+
+    client_mock = ListProcessesMock([p1, p2])
 
     for s in test_lib.TestFlowHelper(
         "ListProcesses",
         client_mock,
         fetch_binaries=True,
         client_id=self.client_id,
+        connection_states=["LISTEN"],
         token=self.token):
       session_id = s
 

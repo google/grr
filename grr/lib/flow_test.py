@@ -5,6 +5,10 @@
 import time
 
 
+import mock
+
+import logging
+
 from grr.client import actions
 from grr.client import vfs
 from grr.lib import access_control
@@ -116,6 +120,24 @@ class FlowWithMultipleResultTypes(flow.GRRFlow):
     self.SendReply(rdfvalue.RDFURN("aff4:/foo/bar"))
     self.SendReply(rdfvalue.RDFURN("aff4:/foo1/bar1"))
     self.SendReply(rdfvalue.RDFURN("aff4:/foo2/bar2"))
+
+
+class MultiEndedFlow(flow.GRRFlow):
+  """This flow will end - call the End state - multiple times."""
+
+  @flow.StateHandler()
+  def Start(self):
+    counter = 0
+    self.state.Register("counter", counter)
+    self.CallState(next_state="End")
+
+  @flow.StateHandler()
+  def End(self, unused_responses):
+    super(MultiEndedFlow, self).End()
+
+    self.state.counter += 1
+    if self.state.counter < 3:
+      self.CallState(next_state="End")
 
 
 class FlowCreationTest(BasicFlowTest):
@@ -663,6 +685,20 @@ class FlowTest(BasicFlowTest):
         flow_name="BadArgsFlow1",
         arg1=rdf_paths.PathSpec(),
         token=self.token)
+
+  def testMultipleEndsWarn(self):
+    """Check that flows which call the End state multiple times warn."""
+    client_mock = action_mocks.ActionMock("ReadBuffer")
+    with mock.patch.object(logging, "warning") as logging_warning_mock:
+      for _ in test_lib.TestFlowHelper(
+          "MultiEndedFlow",
+          client_mock,
+          client_id=self.client_id,
+          check_flow_errors=True,
+          token=self.token):
+        pass
+
+      self.assertTrue(logging_warning_mock.called)
 
 
 class FlowTerminationTest(BasicFlowTest):

@@ -1,8 +1,10 @@
 #!/usr/bin/env python
 """An implementation of linux client builder."""
+import fnmatch
 import logging
 import os
 import shutil
+import subprocess
 import zipfile
 
 from grr.lib import build
@@ -16,6 +18,21 @@ class LinuxClientBuilder(build.ClientBuilder):
   def __init__(self, context=None):
     super(LinuxClientBuilder, self).__init__(context=context)
     self.context.append("Target:Linux")
+
+  def StripLibraries(self, directory):
+    matches = []
+    for root, _, filenames in os.walk(directory):
+      for filename in fnmatch.filter(filenames, "*.so*"):
+        # strip dies with errors on ffi libs, leave them alone.
+        if "ffi" not in filename:
+          matches.append(os.path.join(root, filename))
+    cmd = ["strip"]
+    cmd.extend(matches)
+    subprocess.check_call(cmd)
+
+  def BuildWithPyInstaller(self):
+    super(LinuxClientBuilder, self).BuildWithPyInstaller()
+    self.StripLibraries(self.output_dir)
 
   def MakeExecutableTemplate(self, output_file=None):
     super(LinuxClientBuilder, self).MakeExecutableTemplate(

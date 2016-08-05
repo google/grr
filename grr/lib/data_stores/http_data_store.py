@@ -634,7 +634,7 @@ class HTTPDataStore(data_store.DataStore):
             return results.iteritems()
           remaining_limit -= len(values)
 
-        results[utils.SmartStr(subject)] = values
+        results[subject] = values
     return results.iteritems()
 
   def ScanAttributes(self,

@@ -326,15 +326,16 @@ class FakeDataStore(data_store.DataStore):
                          limit=None):
     required_access = self.GetRequiredResolveAccess(attribute_prefix)
 
+    unicode_to_orig = {utils.SmartUnicode(s): s for s in subjects}
     result = {}
-    for subject in subjects:
-      s = utils.SmartUnicode(subject)
+    for unicode_subject, orig_subject in unicode_to_orig.iteritems():
 
       # If any of the subjects is forbidden we fail the entire request.
-      self.security_manager.CheckDataStoreAccess(token, [s], required_access)
+      self.security_manager.CheckDataStoreAccess(token, [unicode_subject],
+                                                 required_access)
 
       values = self.ResolvePrefix(
-          subject,
+          unicode_subject,
           attribute_prefix,
           token=token,
           timestamp=timestamp,
@@ -346,12 +347,12 @@ class FakeDataStore(data_store.DataStore):
       if limit:
         if limit < len(values):
           values = values[:limit]
-        result[s] = values
+        result[orig_subject] = values
         limit -= len(values)
         if limit <= 0:
           return result.iteritems()
       else:
-        result[s] = values
+        result[orig_subject] = values
 
     return result.iteritems()
 

@@ -537,6 +537,22 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       self.assertIn((u"metadata:XXX", "2", 102), row)
       self.assertNotIn((u"metadata:XX", "1", 101), row)
 
+    # Test unicode subjects.
+    unicode_string = u"this is a uñîcödé string"
+    attributes = set()
+    for i in range(5, 10):
+      attributes.add(("metadata:%s" % i, "data%d" % i))
+      data_store.DB.MultiSet(
+          unicode_string, {"metadata:%s" % i: ["data%d" % i]},
+          token=self.token)
+
+    result = dict(
+        data_store.DB.MultiResolvePrefix(
+            [unicode_string], ["metadata:"], token=self.token))
+
+    result_set = set((k, v) for k, v, _ in result[unicode_string])
+    self.assertEqual(result_set, attributes)
+
   def _MakeTimestampedRows(self):
     # Make some rows.
     rows = []
@@ -569,27 +585,36 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
     self.assertListEqual(sorted(timestamps), sorted(expected_timestamps))
 
-  def testMultiResolvePrefixType(self):
-    rows = self._MakeTimestampedRows()
+  def testMultiResolvePrefixTypePreservation(self):
+    rows = [
+        "aff4:/row:str",
+        u"aff4:/row:unicode",
+        rdfvalue.RDFURN("aff4:/row:URN"),
+        "aff4:/row:str",
+        u"aff4:/row:unicode",
+        rdfvalue.RDFURN("aff4:/row:URN"),
+    ]
 
-    for r in rows:
-      self.assertIsInstance(r, basestring)
+    i = 0
+    for row_name in rows:
+      timestamp = rdfvalue.RDFDatetime(100 + i)
+      data_store.DB.Set(row_name,
+                        "metadata:%s" % i,
+                        i,
+                        timestamp=timestamp,
+                        token=self.token)
+      i += 1
 
     subjects = dict(
         data_store.DB.MultiResolvePrefix(
-            rows, ["metadata:3", "metadata:7"], token=self.token))
+            rows, ["metadata:0", "metadata:2", "metadata:4"], token=self.token))
 
-    for s in subjects:
-      self.assertIsInstance(s, basestring)
+    self.assertEqual(
+        set([type(s) for s in subjects]), set([type(s) for s in rows]))
 
-    rows = [rdfvalue.RDFURN(r) for r in rows]
-
-    subjects = dict(
-        data_store.DB.MultiResolvePrefix(
-            rows, ["metadata:3", "metadata:7"], token=self.token))
-
-    for s in subjects:
-      self.assertIsInstance(s, basestring)
+    self.assertIn(rows[0], subjects)
+    self.assertIn(rows[2], subjects)
+    self.assertIn(rows[4], subjects)
 
   def testResolvePrefixResultsOrderedInDecreasingTimestampOrder1(self):
     predicate1 = "metadata:predicate1"

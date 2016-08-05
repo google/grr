@@ -2,17 +2,18 @@
 """End to end tests for lib.flows.general.file_finder."""
 
 
-from grr.endtoend_tests import transfer
+from grr.endtoend_tests import base
 from grr.lib import flow_runner
 
 from grr.lib.flows.general import file_finder
 
 
-class TestFileFinderOSWindows(transfer.TestGetFileOSWindows):
+class TestFileFinderOSWindows(base.VFSPathContentIsPE):
   """Download a file with FileFinder.
 
   Exercise globbing, interpolation and filtering.
   """
+  platforms = ["Windows"]
   flow = "FileFinder"
   test_output_path = "/fs/os/.*/Windows/System32/notepad.exe"
 
@@ -31,20 +32,23 @@ class TestFileFinderOSWindows(transfer.TestGetFileOSWindows):
           "action": action}
 
 
-class TestFileFinderTSKWindows(TestFileFinderOSWindows):
+class TestFileFinderTSKWindows(base.VFSPathContentIsPE):
+  """Download notepad with TSK on windows."""
+  platforms = ["Windows"]
+  flow = "FileFinder"
+  test_output_path = "/fs/os/.*/Windows/System32/notepad.exe"
 
   download = file_finder.FileFinderDownloadActionOptions()
   action = file_finder.FileFinderAction(
       action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
       download=download)
-  test_output_path = "/fs/tsk/.*/Windows/System32/notepad.exe"
 
   args = {"paths": ["%%environ_systemroot%%\\System32\\notepad.*"],
           "action": action,
           "pathtype": "TSK"}
 
 
-class TestFileFinderOSLinux(transfer.TestGetFileOSLinux):
+class TestFileFinderOSLinux(base.VFSPathContentIsELF):
   """Download a file with FileFinder."""
   platforms = ["Linux"]
   flow = "FileFinder"
@@ -65,7 +69,7 @@ class TestFileFinderOSLinux(transfer.TestGetFileOSLinux):
           "action": action}
 
 
-class TestFileFinderOSLinuxProc(transfer.TestGetFileOSLinux):
+class TestFileFinderOSLinuxProc(base.VFSPathContentExists):
   """Download a /proc/sys entry with FileFinder."""
   platforms = ["Linux"]
   flow = "FileFinder"
@@ -86,25 +90,20 @@ class TestFileFinderOSLinuxProc(transfer.TestGetFileOSLinux):
           "conditions": filecondition,
           "action": action}
 
-  def CheckFile(self, fd):
-    data = fd.Read(10)
-    # Some value was read from the sysctl.
-    self.assertTrue(data)
 
-
-class TestFileFinderOSDarwin(TestFileFinderOSLinux):
+class TestFileFinderOSDarwin(base.VFSPathContentIsMachO):
   platforms = ["Darwin"]
+  flow = "FileFinder"
+  test_output_path = "/fs/os/bin/ps"
 
-  def CheckFile(self, fd):
-    self.CheckMacMagic(fd)
 
-
-class TestFileFinderOSHomedir(TestFileFinderOSLinux):
+class TestFileFinderOSHomedir(base.AutomatedTest):
   """List files in homedir with FileFinder.
 
   Exercise globbing and interpolation.
   """
   platforms = ["Linux", "Darwin", "Windows"]
+  flow = "FileFinder"
   action = file_finder.FileFinderAction(
       action_type=file_finder.FileFinderAction.Action.STAT)
   args = {"paths": ["%%users.homedir%%/*"],

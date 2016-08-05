@@ -2,7 +2,6 @@
 """End to end tests for lib.flows.general.transfer."""
 
 import hashlib
-import re
 import socket
 import threading
 
@@ -11,7 +10,6 @@ from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -121,59 +119,41 @@ class TestMultiGetFile(base.AutomatedTest):
 #########
 
 
-class TestGetFileTSKLinux(base.AutomatedTest):
+class TestGetFileTSKLinux(base.VFSPathContentIsELF):
   """Tests if GetFile works on Linux using Sleuthkit."""
   platforms = ["Linux"]
   flow = "GetFile"
   args = {"pathspec": rdf_paths.PathSpec(
       path="/usr/bin/diff", pathtype=rdf_paths.PathSpec.PathType.TSK)}
-
   # Interpolate for /dev/mapper-...
   test_output_path = "/fs/tsk/.*/usr/bin/diff"
 
-  def CheckFlow(self):
-    pos = self.test_output_path.find("*")
-    if pos > 0:
-      prefix = self.client_id.Add(self.test_output_path[:pos])
-      for urn in base.RecursiveListChildren(prefix=prefix, token=self.token):
-        if re.search(self.test_output_path + "$", str(urn)):
-          self.delete_urns.add(urn)
-          return self.CheckFile(aff4.FACTORY.Open(urn, token=self.token))
 
-      self.fail(("Output file not found. Maybe the GRR client "
-                 "is not running with root privileges?"))
-
-    else:
-      urn = self.client_id.Add(self.test_output_path)
-      fd = aff4.FACTORY.Open(urn, token=self.token)
-      if isinstance(fd, standard.BlobImage):
-        return self.CheckFile(fd)
-      self.fail("Output file %s not found." % urn)
-
-  def CheckFile(self, fd):
-    data = fd.Read(10)
-    self.assertEqual(data[1:4], "ELF")
-
-
-class TestMultiGetFileTSKLinux(TestGetFileTSKLinux):
+class TestMultiGetFileTSKLinux(base.VFSPathContentIsELF):
   """Tests if MultiGetFile works on Linux using Sleuthkit."""
+  platforms = ["Linux"]
   flow = "MultiGetFile"
   args = {"pathspecs": [rdf_paths.PathSpec(
       path="/usr/bin/diff", pathtype=rdf_paths.PathSpec.PathType.TSK)]}
+  test_output_path = "/fs/tsk/.*/usr/bin/diff"
 
 
-class TestGetFileOSLinux(TestGetFileTSKLinux):
+class TestGetFileOSLinux(base.VFSPathContentIsELF):
   """Tests if GetFile works on Linux."""
+  platforms = ["Linux"]
+  flow = "GetFile"
   args = {"pathspec": rdf_paths.PathSpec(
       path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.OS)}
   test_output_path = "/fs/os/bin/ls"
 
 
-class TestMultiGetFileOSLinux(TestGetFileOSLinux):
+class TestMultiGetFileOSLinux(base.VFSPathContentIsELF):
   """Tests if MultiGetFile works on Linux."""
+  platforms = ["Linux"]
   flow = "MultiGetFile"
   args = {"pathspecs": [rdf_paths.PathSpec(
       path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.OS)]}
+  test_output_path = "/fs/os/bin/ls"
 
 
 class TestSendFile(base.LocalClientTest):
@@ -245,105 +225,62 @@ class TestSendFile(base.LocalClientTest):
 ##########
 
 
-class TestMultiGetFileTSKMac(TestGetFileTSKLinux):
-  """Tests if MultiGetFile works on Mac using Sleuthkit."""
-  platforms = ["Darwin"]
-
-  flow = "MultiGetFile"
-
-  def setUp(self):
-    # TODO(user): At some point we'd like GRR to also be able to correctly
-    # open a pathspec that only specifies "/" and TSK. For now, this doesn't
-    # work though so we try all the available devices and just make sure
-    # that we can get at least one result.
-    pathspecs = []
-    tsk_dirs = aff4.FACTORY.Open(
-        self.client_id.Add("fs/tsk/dev"), token=self.token).OpenChildren()
-
-    for d in tsk_dirs:
-      pathspec = d.Get(d.Schema.PATHSPEC)
-      if pathspec:
-        pathspec.nested_path = rdf_paths.PathSpec(
-            path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.TSK)
-        pathspecs.append(pathspec)
-    if not pathspecs:
-      self.fail("No suitable devices found for TSK.")
-
-    self.args = {"pathspecs": pathspecs}
-
-  def CheckFile(self, fd):
-    self.CheckMacMagic(fd)
-
-
-class TestGetFileOSMac(TestGetFileOSLinux):
+class TestGetFileOSMac(base.VFSPathContentIsMachO):
   """Tests if GetFile works on Mac."""
   platforms = ["Darwin"]
+  flow = "GetFile"
+  args = {"pathspec": rdf_paths.PathSpec(
+      path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.OS)}
+  test_output_path = "/fs/os/bin/ls"
 
-  def CheckFile(self, fd):
-    self.CheckMacMagic(fd)
 
-
-class TestMultiGetFileOSMac(TestGetFileOSMac):
+class TestMultiGetFileOSMac(base.VFSPathContentIsMachO):
   """Tests if MultiGetFile works on Mac."""
+  platforms = ["Darwin"]
   flow = "MultiGetFile"
   args = {"pathspecs": [rdf_paths.PathSpec(
       path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.OS)]}
+  test_output_path = "/fs/os/bin/ls"
 
 ###########
 # Windows #
 ###########
 
 
-class TestGetFileOSWindows(TestGetFileOSLinux):
+class TestGetFileOSWindows(base.VFSPathContentIsPE):
   """Tests if GetFile works on Windows."""
   platforms = ["Windows"]
+  flow = "GetFile"
   args = {"pathspec": rdf_paths.PathSpec(
       path="C:\\Windows\\regedit.exe", pathtype=rdf_paths.PathSpec.PathType.OS)}
   test_output_path = "/fs/os/C:/Windows/regedit.exe"
 
-  def CheckFile(self, fd):
-    data = fd.Read(10)
-    self.assertEqual(data[:2], "MZ")
 
-
-class TestMultiGetFileOSWindows(TestGetFileOSWindows):
+class TestMultiGetFileOSWindows(base.VFSPathContentIsPE):
   """Tests if MultiGetFile works on Windows."""
+  platforms = ["Windows"]
   flow = "MultiGetFile"
   args = {"pathspecs": [rdf_paths.PathSpec(
       path="C:\\Windows\\regedit.exe",
       pathtype=rdf_paths.PathSpec.PathType.OS)]}
+  test_output_path = "/fs/os/C:/Windows/regedit.exe"
 
 
-class TestGetFileTSKWindows(TestGetFileOSWindows):
+class TestGetFileTSKWindows(base.VFSPathContentIsPE):
   """Tests if GetFile works on Windows using TSK."""
+  platforms = ["Windows"]
+  flow = "GetFile"
   args = {"pathspec": rdf_paths.PathSpec(
       path="C:\\Windows\\regedit.exe",
       pathtype=rdf_paths.PathSpec.PathType.TSK)}
-
-  def CheckFlow(self):
-    urn = self.client_id.Add("/fs/tsk")
-    fd = aff4.FACTORY.Open(urn, mode="r", token=self.token)
-    volumes = list(fd.OpenChildren())
-    found = False
-    for volume in volumes:
-      file_urn = volume.urn.Add("Windows/regedit.exe")
-      fd = aff4.FACTORY.Open(file_urn, mode="r", token=self.token)
-      try:
-        data = fd.Read(10)
-        if data[:2] == "MZ":
-          found = True
-          self.delete_urns.add(file_urn)
-          break
-      except AttributeError:
-        # If the file does not exist on this volume, Open returns a aff4volume
-        # which does not have a Read method.
-        pass
-    self.assertTrue(found)
+  test_output_path = "/fs/tsk/.*/Windows/regedit.exe"
 
 
-class TestMultiGetFileTSKWindows(TestGetFileTSKWindows):
+class TestMultiGetFileTSKWindows(base.VFSPathContentIsPE):
   """Tests if MultiGetFile works on Windows using TSK."""
+  platforms = ["Windows"]
   flow = "MultiGetFile"
   args = {"pathspecs": [rdf_paths.PathSpec(
       path="C:\\Windows\\regedit.exe",
       pathtype=rdf_paths.PathSpec.PathType.TSK)]}
+  test_output_path = "/fs/tsk/.*/Windows/regedit.exe"

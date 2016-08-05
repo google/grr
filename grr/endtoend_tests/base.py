@@ -62,7 +62,7 @@ class ClientTestBase(unittest.TestCase):
   # How long after flow is marked complete we should expect results to be
   # available in the collection. This is essentially how quickly we expect
   # results to be available to users in the UI.
-  RESULTS_SLA_SECONDS = 2
+  RESULTS_SLA_SECONDS = 10
 
   # Only run on clients after this version
   client_min_version = None
@@ -187,15 +187,38 @@ class ClientTestBase(unittest.TestCase):
     magic_values = [x.decode("hex") for x in magic_values]
     self.assertTrue(data[:4] in magic_values)
 
+  def CheckELFMagic(self, fd):
+    data = fd.Read(10)
+    self.assertEqual(data[1:4], "ELF")
+
+  def CheckPEMagic(self, fd):
+    data = fd.Read(10)
+    self.assertEqual(data[:2], "MZ")
+
   def CheckCollectionNotEmptyWithRetry(self, collection_urn, token):
+    """Check collection for results, return list if they exist.
+
+    Args:
+      collection_urn: URN of the collection
+      token: User token
+
+    Returns:
+      The collection contents as a list
+    Raises:
+      ErrorEmptyCollection: if the collection has no results after
+      self.RESULTS_SLA_SECONDS
+    """
     coll = aff4.FACTORY.Open(collection_urn, mode="r", token=token)
     coll_list = list(coll)
     if not coll_list:
-      time.sleep(self.RESULTS_SLA_SECONDS)
-      coll_list = list(coll)
-      if not coll_list:
-        raise ErrorEmptyCollection("No values in %s after SLA: %s seconds" %
-                                   (collection_urn, self.RESULTS_SLA_SECONDS))
+
+      for _ in range(self.RESULTS_SLA_SECONDS):
+        time.sleep(1)
+        coll_list = list(coll)
+        if coll_list:
+          return coll_list
+      raise ErrorEmptyCollection("No values in %s after SLA: %s seconds" %
+                                 (collection_urn, self.RESULTS_SLA_SECONDS))
     return coll_list
 
 
@@ -244,6 +267,55 @@ class TestVFSPathExists(AutomatedTest):
       self.delete_urns.add(
           self.client_id.Add(self.output_path).Add(self.file_to_find))
     super(TestVFSPathExists, self).tearDown()
+
+
+class VFSPathContentExists(AutomatedTest):
+  test_output_path = None
+
+  def CheckFlow(self):
+    pos = self.test_output_path.find("*")
+    if pos > 0:
+      prefix = self.client_id.Add(self.test_output_path[:pos])
+      for urn in RecursiveListChildren(prefix=prefix, token=self.token):
+        if re.search(self.test_output_path + "$", str(urn)):
+          self.delete_urns.add(urn)
+          return self.CheckFile(aff4.FACTORY.Open(urn, token=self.token))
+
+      self.fail(("Output file not found. Maybe the GRR client "
+                 "is not running with root privileges?"))
+
+    else:
+      urn = self.client_id.Add(self.test_output_path)
+      fd = aff4.FACTORY.Open(urn, token=self.token)
+      # All types are instances of AFF4Volume so we can't use isinstance.
+      # pylint: disable=unidiomatic-typecheck
+      if type(fd) != aff4.AFF4Volume:
+        return self.CheckFile(fd)
+      # pylint: enable=unidiomatic-typecheck
+      self.fail("Output file %s not found." % urn)
+
+  def CheckFile(self, fd):
+    data = fd.Read(10)
+    # Some value was read from the sysctl.
+    self.assertTrue(data)
+
+
+class VFSPathContentIsELF(VFSPathContentExists):
+
+  def CheckFile(self, fd):
+    self.CheckELFMagic(fd)
+
+
+class VFSPathContentIsMachO(VFSPathContentExists):
+
+  def CheckFile(self, fd):
+    self.CheckMacMagic(fd)
+
+
+class VFSPathContentIsPE(VFSPathContentExists):
+
+  def CheckFile(self, fd):
+    self.CheckPEMagic(fd)
 
 
 class LocalWorkerTest(ClientTestBase):

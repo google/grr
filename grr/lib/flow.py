@@ -43,6 +43,7 @@ self.state.context.args: The flow runners args. This is an instance of
 
 import functools
 import operator
+import traceback
 
 
 import logging
@@ -611,6 +612,18 @@ class GRRFlow(aff4.AFF4Volume):
     """
     self.Notify("FlowStatus", self.urn,
                 "Flow %s completed" % self.__class__.__name__)
+
+    if not hasattr(self.state, "end_tracebacks"):
+      # This is used to track down multiple End state calls in the same flow.
+      end_tracebacks = []
+      self.state.Register("end_tracebacks", end_tracebacks)
+
+    self.state.end_tracebacks.append("".join(traceback.format_stack()))
+
+    if len(self.state.end_tracebacks) > 1:
+      logging.warning("End state called multiple times in a single flow."
+                      "Tracebacks of the calls:\n%s",
+                      "\n".join(self.state.end_tracebacks))
 
   @StateHandler()
   def Start(self, unused_message=None):

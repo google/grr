@@ -24,6 +24,20 @@ class ListProcesses(flow.GRRFlow):
     """Start processing."""
     self.CallClient("ListProcesses", next_state="IterateProcesses")
 
+  def _FilenameMatch(self, process):
+    if not self.args.filename_regex:
+      return True
+    return self.args.filename_regex.Match(process.exe)
+
+  def _ConnectionStateMatch(self, process):
+    if not self.args.connection_states:
+      return True
+
+    for connection in process.connections:
+      if connection.state in self.args.connection_states:
+        return True
+    return False
+
   @flow.StateHandler()
   def IterateProcesses(self, responses):
     """This stores the processes."""
@@ -37,7 +51,8 @@ class ListProcesses(flow.GRRFlow):
       # deduplicate the list.
       paths_to_fetch = set()
       for p in responses:
-        if p.exe and self.args.filename_regex.Match(p.exe):
+        if p.exe and self.args.filename_regex.Match(
+            p.exe) and self._ConnectionStateMatch(p):
           paths_to_fetch.add(p.exe)
       paths_to_fetch = sorted(paths_to_fetch)
 
@@ -55,19 +70,19 @@ class ListProcesses(flow.GRRFlow):
       # Only send the list of processes if we don't fetch the binaries
       skipped = 0
       for p in responses:
-        # If we have a regex filter, apply it to the .exe attribute (set for OS
-        # X and linux too)
-        if self.args.filename_regex:
-          if p.exe:
-            if self.args.filename_regex.Match(p.exe):
+        # It's normal to have lots of sleeping processes with no executable path
+        # associated.
+        if p.exe:
+          if self._FilenameMatch(p) and self._ConnectionStateMatch(p):
+            self.SendReply(p)
+        else:
+          if self.args.connection_states:
+            if self._ConnectionStateMatch(p):
               self.SendReply(p)
           else:
             skipped += 1
-        else:
-          self.SendReply(p)
+
       if skipped:
-        # It's normal to have lots of sleeping processes with no executable path
-        # associated.
         self.Log("Skipped %s entries, missing path for regex" % skipped)
 
   @flow.StateHandler()

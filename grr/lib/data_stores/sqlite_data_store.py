@@ -744,7 +744,7 @@ class SqliteDataStore(data_store.DataStore):
             result[subject] = values[:remaining_limit]
             return result.iteritems()
           remaining_limit -= len(values)
-        result[utils.SmartStr(subject)] = values
+        result[subject] = values
 
     return result.iteritems()
 

@@ -664,7 +664,7 @@ class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
 
             # Remove aff4:/<client_id> to have a more concise path to the
             # subject.
-            item.file_path = "/".join(subject.split("/")[2:])
+            item.file_path = "/".join(str(subject).split("/")[2:])
             if c == "m":
               item.action = ApiVfsTimelineItem.FileActionType.MODIFICATION
             elif c == "a":

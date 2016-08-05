@@ -8,6 +8,7 @@ import "grr/proto/jobs.proto";
 import "grr/proto/knowledge_base.proto";
 import "grr/proto/output_plugin.proto";
 import "grr/proto/semantic.proto";
+import "grr/proto/sysinfo.proto";
 
 
 // This is the user's access token.
@@ -1251,7 +1252,7 @@ message VerifyHuntOutputPluginsCronFlowArgs {
     }];
 }
 
-// Next field ID: 3
+// Next field ID: 4
 message ListProcessesArgs {
   optional string filename_regex = 1 [(sem_type) = {
       type: "RegularExpression",
@@ -1262,6 +1263,13 @@ message ListProcessesArgs {
   optional bool fetch_binaries = 2 [(sem_type) = {
       friendly_name: "Fetch Binaries",
     }, default=false];
+
+  repeated NetworkConnection.State connection_states = 3 [(sem_type) = {
+    description: "Network connection states to match. If a process has any "
+                 "network connections in any status listed here, it will be "
+                 "considered a match",
+  }];
+
 }
 
 // Next field ID: 3
