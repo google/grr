@@ -1,0 +1,14 @@
+<grr-approval-info approval-type="'hunt'"
+                   username="controller.username"
+                   object-id="controller.huntId"
+                   approval-id="controller.approvalId">
+</grr-approval-info>
+
+<hr>
+
+<div class="padded">
+  <!-- TODO(user): grr-hunt-overview should accept hunt-id, not hunt-urn. -->
+  <grr-hunt-overview hunt-urn="'aff4:/hunts/' + controller.huntId"
+                     no-hunt-details="true">
+  </grr-hunt-overview>
+</div>

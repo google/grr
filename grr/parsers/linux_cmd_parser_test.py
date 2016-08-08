@@ -21,7 +21,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
   def testYumListCmdParser(self):
     """Ensure we can extract packages from yum output."""
     parser = linux_cmd_parser.YumListCmdParser()
-    content = open(os.path.join(self.base_path, "yum.out")).read()
+    content = open(os.path.join(self.base_path, "yum.out"), "rb").read()
     out = list(
         parser.Parse("/usr/bin/yum", ["list installed -q"], content, "", 0, 5,
                      None))
@@ -34,7 +34,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
   def testYumRepolistCmdParser(self):
     """Test to see if we can get data from yum repolist output."""
     parser = linux_cmd_parser.YumRepolistCmdParser()
-    content = open(os.path.join(self.base_path, "repolist.out")).read()
+    content = open(os.path.join(self.base_path, "repolist.out"), "rb").read()
     repolist = list(
         parser.Parse("/usr/bin/yum", ["repolist", "-v", "-q"], content, "", 0,
                      5, None))
@@ -84,7 +84,8 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
   def testDpkgCmdParser(self):
     """Ensure we can extract packages from dpkg output."""
     parser = linux_cmd_parser.DpkgCmdParser()
-    content = open(os.path.join(self.base_path, "checks/data/dpkg.out")).read()
+    content = open(os.path.join(self.base_path, "checks/data/dpkg.out"),
+                   "rb").read()
     out = list(
         parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5, None))
     self.assertEqual(len(out), 181)
@@ -94,8 +95,9 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
   def testDpkgCmdParserPrecise(self):
     """Ensure we can extract packages from dpkg output on ubuntu precise."""
     parser = linux_cmd_parser.DpkgCmdParser()
-    content = open(os.path.join(self.base_path,
-                                "checks/data/dpkg.precise.out")).read()
+    content = open(
+        os.path.join(self.base_path, "checks/data/dpkg.precise.out"),
+        "rb").read()
     out = list(
         parser.Parse("/usr/bin/dpkg", ["--list"], content, "", 0, 5, None))
     self.assertEqual(len(out), 30)
@@ -105,7 +107,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
   def testDmidecodeParser(self):
     """Test to see if we can get data from dmidecode output."""
     parser = linux_cmd_parser.DmidecodeCmdParser()
-    content = open(os.path.join(self.base_path, "dmidecode.out")).read()
+    content = open(os.path.join(self.base_path, "dmidecode.out"), "rb").read()
     hardware = parser.Parse("/usr/sbin/dmidecode", ["-q"], content, "", 0, 5,
                             None)
     self.assertTrue(isinstance(hardware, rdf_client.HardwareInfo))
@@ -128,7 +130,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     """Tests for the PsCmdParser class."""
     parser = linux_cmd_parser.PsCmdParser()
     # Check the detailed 'ps' output. i.e. lots of args.
-    content = open(os.path.join(self.base_path, "pscmd.out")).read()
+    content = open(os.path.join(self.base_path, "pscmd.out"), "rb").read()
     args = ["h", "-ewwo",
             "pid,ppid,comm,ruid,uid,suid,rgid,gid,sgid,user,tty,stat,nice,"
             "thcount,pcpu,rss,vsz,pmem,cmd"]
@@ -152,7 +154,7 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     self.assertEquals(args, process.cmdline)
 
     # Check the simple 'ps -ef' output.
-    content = open(os.path.join(self.base_path, "psefcmd.out")).read()
+    content = open(os.path.join(self.base_path, "psefcmd.out"), "rb").read()
     args = ["-ef"]
     processes = list(parser.Parse("/bin/ps", args, content, "", 0, 5, None))
     # Confirm we parsed all the appropriate lines.

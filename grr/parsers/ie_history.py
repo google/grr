@@ -166,7 +166,7 @@ def main(argv):
     for input_glob in argv[1:]:
       files_to_process += glob.glob(input_glob)
     for input_file in files_to_process:
-      ie = IEParser(open(input_file))
+      ie = IEParser(open(input_file, "rb"))
       for dat in ie.Parse():
         dat["ctime"] = datetime.datetime.utcfromtimestamp(dat["ctime"] / 1e6)
         print "{ctime} {header} {url}".format(**dat)

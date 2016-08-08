@@ -245,6 +245,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def GetClientApproval(self, args, token=None):
     return api_user.ApiGetClientApprovalHandler()
 
+  def GrantClientApproval(self, args, token=None):
+    return api_user.ApiGrantClientApprovalHandler()
+
   def ListClientApprovals(self, args, token=None):
     return api_user.ApiListClientApprovalsHandler()
 
@@ -254,6 +257,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def GetHuntApproval(self, args, token=None):
     return api_user.ApiGetHuntApprovalHandler()
 
+  def GrantHuntApproval(self, args, token=None):
+    return api_user.ApiGrantHuntApprovalHandler()
+
   def ListHuntApprovals(self, args, token=None):
     return api_user.ApiListHuntApprovalsHandler()
 
@@ -262,6 +268,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
 
   def GetCronJobApproval(self, args, token=None):
     return api_user.ApiGetCronJobApprovalHandler()
+
+  def GrantCronJobApproval(self, args, token=None):
+    return api_user.ApiGrantCronJobApprovalHandler()
 
   def ListCronJobApprovals(self, args, token=None):
     return api_user.ApiListCronJobApprovalsHandler()

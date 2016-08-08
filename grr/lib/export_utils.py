@@ -140,7 +140,7 @@ def DownloadFile(file_obj, target_path, buffer_size=BUFFER_SIZE):
   """
   logging.info(u"Downloading: %s to: %s", file_obj.urn, target_path)
 
-  target_file = open(target_path, "w")
+  target_file = open(target_path, "wb")
   file_obj.Seek(0)
   count = 0
 
@@ -389,5 +389,5 @@ def DumpClientYaml(client_urn, target_dir, token=None, overwrite=False):
     pass
   filepath = os.path.join(dirpath, "client_info.yaml")
   if not os.path.isfile(filepath) or overwrite:
-    with open(filepath, "w") as out_file:
+    with open(filepath, "wb") as out_file:
       out_file.write(serialize.YamlDumper(fd))

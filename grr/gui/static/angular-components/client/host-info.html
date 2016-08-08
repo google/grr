@@ -5,22 +5,25 @@
     <span>{$ controller.clientId $}</span>
   </h1>
 
-  <grr-check-client-access client-id="controller.clientId" no-redirect="true"
-                           out-has-access="controller.hasClientAccess">
-  </grr-check-client-access>
+  <div ng-if="!readOnly">
+    <grr-check-client-access client-id="controller.clientId" no-redirect="true"
+                             out-has-access="controller.hasClientAccess">
+    </grr-check-client-access>
 
-  <div class="no-approval alert alert-danger alert-block"
-       ng-if="controller.hasClientAccess !== undefined && !controller.hasClientAccess">
-    <i class="fa fa-warning"></i> You do not have an <b>approval</b> for this client. <br/>
+    <div class="no-approval alert alert-danger alert-block"
+         ng-if="controller.hasClientAccess !== undefined && !controller.hasClientAccess">
+      <i class="fa fa-warning"></i> You do not have an <b>approval</b> for this client. <br/>
 
-    <button name="requestApproval" class="btn btn-default"
-            ng-click="controller.requestApproval()">Request Approval</button>
+      <button name="requestApproval" class="btn btn-default"
+              ng-click="controller.requestApproval()">Request Approval</button>
+    </div>
   </div>
 
   <!-- Toolbar -->
   <div class="client-actions">
 
-    <button class="btn btn-default"
+    <button ng-if="!readOnly"
+            class="btn btn-default"
             ng-click="controller.interrogate()"
             ng-disabled="!controller.hasClientAccess || controller.interrogateOperationId">
       <i class="fa fa-search-plus"
@@ -43,6 +46,7 @@
                           url="controller.clientVersionUrl">
     </grr-version-dropdown>
 
+    <div class="clearfix"></div>
   </div>
 
 

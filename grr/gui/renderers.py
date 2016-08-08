@@ -6,7 +6,6 @@ import copy
 import csv
 import functools
 import json
-import os
 import re
 import StringIO
 import traceback
@@ -830,7 +829,7 @@ class TreeRenderer(TemplateRenderer):
     self.RenderBranch(path, request)
     for name, friendly_name, icon, behaviour in self._elements:
       if name:
-        fullpath = os.path.join(path, name)
+        fullpath = "%s/%s" % (path, name)
         if fullpath in self.hidden_branches:
           continue
         data = dict(

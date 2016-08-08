@@ -43,7 +43,9 @@ class ClientStatsCollector(threading.Thread):
   def Collect(self):
     """Collects the stats."""
 
-    user, system = self.proc.cpu_times()
+    cpu_times = self.proc.cpu_times()
+    user = cpu_times.user
+    system = cpu_times.system
     percent = self.proc.cpu_percent()
     self.cpu_samples.append((rdfvalue.RDFDatetime().Now(), user, system,
                              percent))

@@ -39,8 +39,13 @@ var ResultsCollectionController =
  */
 ResultsCollectionController.prototype.transformItems = function(items) {
   if (!angular.isDefined(this.resultsAreFiles)) {
-    this.resultsAreFiles = items.length > 0 &&
-        grrUi.core.fileDownloadUtils.getFileUrnFromValue(items[0]) != null;
+    this.resultsAreFiles = false;
+    for (var i = 0; i <= items.length > 0; i++) {
+      if (grrUi.core.fileDownloadUtils.getFileUrnFromValue(items[i]) != null) {
+        this.resultsAreFiles = true;
+        break;
+      }
+    }
   }
 
   if (this.scope_['transformItems']) {

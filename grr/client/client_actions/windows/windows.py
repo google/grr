@@ -194,7 +194,8 @@ def RunWMIQuery(query, baseobj=r"winmgmts:\root\cimv2"):
   try:
     for result in query_results:
       response = rdf_protodict.Dict()
-      properties = list(result.Properties_) + list(result.SystemProperties_)
+      properties = (list(result.Properties_) +
+                    list(getattr(result, "SystemProperties_", [])))
 
       for prop in properties:
         if prop.Name not in IGNORE_PROPS:

@@ -33,7 +33,8 @@ class FilehashTest(test_lib.EmptyActionTest):
     for f in result[0].results:
       fingers[f["name"]] = f
     generic_sha256 = fingers["generic"]["sha256"]
-    self.assertEqual(generic_sha256, hashlib.sha256(open(path).read()).digest())
+    self.assertEqual(generic_sha256,
+                     hashlib.sha256(open(path, "rb").read()).digest())
 
     # Make sure all fingers are listed in types and vice versa.
     t_map = {rdf_client.FingerprintTuple.Type.FPT_GENERIC: "generic",

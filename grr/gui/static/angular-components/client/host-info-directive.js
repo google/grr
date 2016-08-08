@@ -55,10 +55,15 @@ grrUi.client.hostInfoDirective.HostInfoController = function(
   /** @private {!angular.$q.Promise} */
   this.interrogateOperationInterval_;
 
-  this.scope_.$watch('controller.clientVersion',
-      this.onClientVersionChange_.bind(this));
+  // clientId may be inferred from the URL or passed explicitly as
+  // a parameter.
   this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'clientId',
       this.onClientIdChange_.bind(this));
+  this.scope_.$watch('clientId', this.onClientIdChange_.bind(this));
+
+  this.scope_.$watch('controller.clientVersion',
+      this.onClientVersionChange_.bind(this));
+  // TODO(user): use grrApiService.poll for polling.
   this.scope_.$on('$destroy',
       this.stopMonitorInterrogateOperation_.bind(this));
 };
@@ -194,7 +199,10 @@ HostInfoController.prototype.stopMonitorInterrogateOperation_ = function() {
  */
 grrUi.client.hostInfoDirective.HostInfoDirective = function() {
   return {
-    scope: {},
+    scope: {
+      'clientId': '=',
+      'readOnly': '='
+    },
     restrict: 'E',
     templateUrl: '/static/angular-components/client/host-info.html',
     controller: HostInfoController,

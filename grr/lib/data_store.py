@@ -77,6 +77,26 @@ class TransactionError(Error):
 default_token = None
 
 
+def GetDefaultToken(token):
+  """Returns the provided token or the default token.
+
+  Args:
+    token: A token or None.
+
+  Raises:
+    access_control.UnauthorizedAccess, if no token was provided.
+  """
+  if token is None:
+    token = default_token
+
+  if not isinstance(token, access_control.ACLToken):
+    raise access_control.UnauthorizedAccess(
+        "Token is not properly specified. It should be an "
+        "instance of grr.lib.access_control.ACLToken()")
+
+  return token
+
+
 class MutationPool(object):
   """A mutation pool.
 

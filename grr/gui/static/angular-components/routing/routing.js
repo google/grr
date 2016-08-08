@@ -84,6 +84,31 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
     })
 
     //
+    // Approvals states.
+    //
+    .state('clientApproval', {
+      url: '/users/:username/approvals/client/:clientId/:approvalId',
+      template: '<grr-client-approval-view />',
+      title: function(params) {
+        return ['Approvals', params['username'], params['clientId']];
+      }
+    })
+    .state('huntApproval', {
+      url: '/users/:username/approvals/hunt/:huntId/:approvalId',
+      template: '<grr-hunt-approval-view />',
+      title: function(params) {
+        return ['Approvals', params['username'], params['huntId']];
+      }
+    })
+    .state('cronJobApproval', {
+      url: '/users/:username/approvals/cron-job/:cronJobId/:approvalId',
+      template: '<grr-cron-job-approval-view />',
+      title: function(params) {
+        return ['Approvals', params['username'], params['cronJobId']];
+      }
+    })
+
+    //
     // Management states.
     //
 

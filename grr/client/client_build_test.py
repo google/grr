@@ -54,8 +54,8 @@ class MultiRepackTest(ClientBuildTests):
     config_dir = tempfile.mkdtemp()
     self.label1_config = os.path.join(config_dir, "label1.yaml")
     self.label2_config = os.path.join(config_dir, "label2.yaml")
-    open(self.label1_config, mode="w").write("Client.labels: [label1]")
-    open(self.label2_config, mode="w").write("Client.labels: [label2]")
+    open(self.label1_config, mode="wb").write("Client.labels: [label1]")
+    open(self.label2_config, mode="wb").write("Client.labels: [label2]")
     self.template_dir = tempfile.mkdtemp()
     self.deb_template = os.path.join(self.template_dir,
                                      "grr_3.1.0.2_amd64.deb.zip")
@@ -63,9 +63,9 @@ class MultiRepackTest(ClientBuildTests):
                                      "GRR_3.1.0.2_i386.exe.zip")
     self.xar_template = os.path.join(self.template_dir,
                                      "grr_3.1.0.2_amd64.xar.zip")
-    open(self.deb_template, mode="w").write("linux")
-    open(self.exe_template, mode="w").write("windows")
-    open(self.xar_template, mode="w").write("darwin")
+    open(self.deb_template, mode="wb").write("linux")
+    open(self.exe_template, mode="wb").write("windows")
+    open(self.xar_template, mode="wb").write("darwin")
 
     self.output_dir = tempfile.mkdtemp()
 

@@ -1185,7 +1185,7 @@ class StreamingZipWriter(object):
   all the necessary API to do streaming writes.
   """
 
-  def __init__(self, fd_or_path, mode="w", compression=zipfile.ZIP_STORED):
+  def __init__(self, fd_or_path, mode="wb", compression=zipfile.ZIP_STORED):
     """Open streaming ZIP file with mode read "r", write "w" or append "a".
 
     Args:

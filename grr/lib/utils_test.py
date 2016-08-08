@@ -409,7 +409,7 @@ class StreamingZipWriterTest(test_lib.GRRBaseTest):
 
       with utils.TempDirectory() as temp_dir:
         zip_path = os.path.join(temp_dir, "archive.zip")
-        with open(zip_path, "w") as fd:
+        with open(zip_path, "wb") as fd:
           fd.write(outfd.getvalue())
 
         zip_fd = zipfile.ZipFile(outfd, "r")

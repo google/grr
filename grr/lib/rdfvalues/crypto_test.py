@@ -61,8 +61,8 @@ class SignedBlobTest(test_base.RDFValueTestCase):
     sample.Verify(self.public_key)
 
   def testM2CryptoCompatibility(self):
-    serialized_blob = open(os.path.join(self.base_path,
-                                        "m2crypto/signed_blob")).read()
+    serialized_blob = open(
+        os.path.join(self.base_path, "m2crypto/signed_blob"), "rb").read()
     blob = rdf_crypto.SignedBlob(serialized_blob)
 
     self.assertTrue(blob.Verify(self.public_key))
@@ -357,8 +357,9 @@ class RSATest(CryptoTestBase):
     public_key.Verify(message, signature_pss)
 
   def testM2CryptoSigningCompatibility(self):
-    pem = open(os.path.join(self.base_path, "m2crypto/rsa_key")).read()
-    signature = open(os.path.join(self.base_path, "m2crypto/signature")).read()
+    pem = open(os.path.join(self.base_path, "m2crypto/rsa_key"), "rb").read()
+    signature = open(os.path.join(self.base_path, "m2crypto/signature"),
+                     "rb").read()
     private_key = rdf_crypto.RSAPrivateKey(pem)
     message = "Signed by M2Crypto!"
 
@@ -368,10 +369,10 @@ class RSATest(CryptoTestBase):
     public_key.Verify(message, signature)
 
   def testM2CryptoEncryptionCompatibility(self):
-    pem = open(os.path.join(self.base_path, "m2crypto/rsa_key")).read()
+    pem = open(os.path.join(self.base_path, "m2crypto/rsa_key"), "rb").read()
     private_key = rdf_crypto.RSAPrivateKey(pem)
-    ciphertext = open(os.path.join(self.base_path,
-                                   "m2crypto/rsa_ciphertext")).read()
+    ciphertext = open(
+        os.path.join(self.base_path, "m2crypto/rsa_ciphertext"), "rb").read()
     message = "Encrypted by M2Crypto!"
 
     plaintext = private_key.Decrypt(ciphertext)
@@ -444,7 +445,8 @@ class RDFX509CertTest(CryptoTestBase):
       client_cert.Verify(wrong_key.GetPublicKey())
 
   def testExpiredTestCertificate(self):
-    pem = open(os.path.join(self.base_path, "outdated_certificate")).read()
+    pem = open(os.path.join(self.base_path, "outdated_certificate"),
+               "rb").read()
     certificate = rdf_crypto.RDFX509Cert(pem)
 
     exception_catcher = self.assertRaises(rdf_crypto.VerificationError)

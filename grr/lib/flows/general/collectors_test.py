@@ -181,7 +181,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     # Test the AFF4 file that was created.
     fd1 = aff4.FACTORY.Open(
         "%s/fs/os/%s" % (self.client_id, file_path), token=self.token)
-    fd2 = open(file_path)
+    fd2 = open(file_path, "rb")
     fd2.seek(0, 2)
 
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))

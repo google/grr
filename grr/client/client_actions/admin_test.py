@@ -55,7 +55,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     self.assertEqual(config_lib.CONFIG["Client.foreman_check_frequency"], 3600)
 
     # Test the config file got written.
-    data = open(self.config_file).read()
+    data = open(self.config_file, "rb").read()
     self.assertTrue("server_urls: {0}".format(",".join(location)) in data)
 
     self.urls = []

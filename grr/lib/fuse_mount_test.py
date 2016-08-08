@@ -265,7 +265,7 @@ class GRRFuseTest(GRRFuseTestBase):
 
   def WriteFileAndList(self, filename, contents):
     path = os.path.join(self.temp_dir, filename)
-    with open(path, "w") as f:
+    with open(path, "wb") as f:
       f.write(contents)
 
     self.ListDirectoryOnClient(self.temp_dir)
@@ -294,7 +294,7 @@ class GRRFuseTest(GRRFuseTestBase):
 
     client_path = self.ClientPathToAFF4Path(path)
 
-    with open(path, "w") as f:
+    with open(path, "wb") as f:
       f.seek(start_point)
       f.write(contents)
 
@@ -326,7 +326,7 @@ class GRRFuseTest(GRRFuseTestBase):
     expected_contents = ("Y" * start_point + contents)[:8 * chunksize]
 
     # Now, we'll write to the file in those previously missing chunks.
-    with open(path, "w+") as f:
+    with open(path, "wb+") as f:
       f.seek(0)
       f.write(expected_contents)
 

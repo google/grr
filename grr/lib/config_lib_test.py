@@ -645,13 +645,13 @@ Section1.int: 3
       subdir = os.path.join(temp_dir, "subdir")
       os.makedirs(subdir)
       configthree = os.path.join(subdir, "3.yaml")
-      with open(configone, "w") as fd:
+      with open(configone, "wb") as fd:
         fd.write(one)
 
-      with open(configtwo, "w") as fd:
+      with open(configtwo, "wb") as fd:
         fd.write(two)
 
-      with open(configthree, "w") as fd:
+      with open(configthree, "wb") as fd:
         fd.write(three)
 
       # Using filename

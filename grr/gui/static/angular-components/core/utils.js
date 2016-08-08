@@ -1,6 +1,7 @@
 'use strict';
 
 goog.provide('grrUi.core.utils.camelCaseToDashDelimited');
+goog.provide('grrUi.core.utils.stripAff4Prefix');
 
 
 /**
@@ -23,4 +24,19 @@ grrUi.core.utils.camelCaseToDashDelimited = function(input) {
         .replace(/^-+/, '') // Removing leading '-'.
         .replace(/-+$/, '') // Removing trailing '-'.
         .toLowerCase();
+};
+
+/**
+ * Strips 'aff4:/' prefix from the string.
+ *
+ * @param {string} input
+ * @return {string} String without 'aff4:/' prefix.
+ */
+grrUi.core.utils.stripAff4Prefix = function(input) {
+  var aff4Prefix = 'aff4:/';
+  if (input.toLowerCase().indexOf(aff4Prefix) == 0) {
+    return input.substr(aff4Prefix.length);
+  } else {
+    return input;
+  }
 };

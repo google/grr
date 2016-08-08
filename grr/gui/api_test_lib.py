@@ -141,7 +141,8 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
 
     with open(
         os.path.join(DOCUMENT_ROOT,
-                     "angular-components/docs/api-docs-examples.json")) as fd:
+                     "angular-components/docs/api-docs-examples.json"),
+        "rb") as fd:
       prev_data = json.load(fd)
 
     checks = prev_data[self.handler]

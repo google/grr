@@ -1,0 +1,26 @@
+<h2>Grant access to a {$ controller.approvalTypeTitle $}</h2>
+
+<p>
+  The user <strong>{$ username $}</strong> has requested you to grant them
+  access based on:
+</p>
+
+<blockquote>
+  {$ controller.approvalObject.reason $}
+</blockquote>
+
+<button class="btn"
+        name="grant-approval"
+        ng-class="{'btn-success': !controller.approvalObject.isValid,
+                   'btn-warning': controller.approvalObject.isValid}"
+        ng-click="controller.onClick()"
+        ng-disabled="controller.requestSent">
+  <i ng-if="controller.requestSent && !controller.statusMessage"
+     class="fa fa-spinner fa-spin fa-fw"></i>
+  Approve
+</button>
+
+<span class="status-message"
+      ng-if="controller.requestSent && controller.statusMessage">
+  <em>{$ controller.statusMessage $}</em>
+</span>

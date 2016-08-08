@@ -57,7 +57,7 @@ def main(argv):
     files_to_process += glob.glob(input_glob)
 
   for input_file in files_to_process:
-    events = OSXQuarantineEvents(open(input_file))
+    events = OSXQuarantineEvents(open(input_file, "rb"))
 
     for data in events.Parse():
       timestamp, entry_type, url, data1, data2, data3, _, _, _, _, _ = data

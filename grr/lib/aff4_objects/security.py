@@ -774,28 +774,33 @@ class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):
 
   approval_type = ClientApproval
 
+  @property
+  def subject_urn(self):
+    return self.client_id or rdf_client.ClientURN(self.args.subject_urn)
+
   def BuildApprovalUrn(self, approval_id):
     """Builds approval object urn."""
     event = events.AuditEvent(
         user=self.token.username,
         action="CLIENT_APPROVAL_REQUEST",
-        client=self.client_id,
+        client=self.subject_urn,
         description=self.args.reason)
     events.Events.PublishEvent("Audit", event, token=self.token)
 
-    return self.ApprovalUrnBuilder(self.client_id.Path(), self.token.username,
+    return self.ApprovalUrnBuilder(self.subject_urn.Path(), self.token.username,
                                    approval_id)
 
   def BuildApprovalSymlinksUrns(self, approval_id):
     """Builds list of symlinks URNs for the approval object."""
-    return [self.ApprovalSymlinkUrnBuilder("client", self.client_id.Basename(),
+    return [self.ApprovalSymlinkUrnBuilder("client",
+                                           self.subject_urn.Basename(),
                                            self.token.username, approval_id)]
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    client = aff4.FACTORY.Open(self.subject_urn, token=self.token)
     hostname = client.Get(client.Schema.HOSTNAME)
-    return u"GRR client %s (%s)" % (self.client_id.Basename(), hostname)
+    return u"GRR client %s (%s)" % (self.subject_urn.Basename(), hostname)
 
 
 class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
@@ -805,6 +810,10 @@ class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
 
   approval_type = ClientApproval
 
+  @property
+  def subject_urn(self):
+    return self.client_id or rdf_client.ClientURN(self.args.subject_urn)
+
   def BuildApprovalUrn(self, approval_id):
     """Builds approval object urn."""
     events.Events.PublishEvent(
@@ -812,23 +821,23 @@ class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
         events.AuditEvent(
             user=self.token.username,
             action="CLIENT_APPROVAL_GRANT",
-            client=self.client_id,
+            client=self.subject_urn,
             description=self.args.reason),
         token=self.token)
 
-    return self.ApprovalUrnBuilder(self.client_id.Path(), self.args.delegate,
+    return self.ApprovalUrnBuilder(self.subject_urn.Path(), self.args.delegate,
                                    approval_id)
 
   def BuildAccessUrl(self):
     """Builds the urn to access this object."""
-    return urllib.urlencode((("c", self.client_id),
+    return urllib.urlencode((("c", self.subject_urn),
                              ("main", "HostInformation")))
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
-    client = aff4.FACTORY.Open(self.client_id, token=self.token)
+    client = aff4.FACTORY.Open(self.subject_urn, token=self.token)
     hostname = client.Get(client.Schema.HOSTNAME)
-    return u"GRR client %s (%s)" % (self.client_id.Basename(), hostname)
+    return u"GRR client %s (%s)" % (self.subject_urn.Basename(), hostname)
 
 
 class BreakGlassGrantClientApprovalFlow(BreakGlassGrantApprovalWithReasonFlow):

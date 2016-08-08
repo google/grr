@@ -253,6 +253,45 @@ class ApiGetClientApprovalHandlerRegressionTest(
           replace={approval2_id: "approval:222222"})
 
 
+class ApiGrantClientApprovalHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiGrantClientApprovalHandler."""
+
+  handler = "ApiGrantClientApprovalHandler"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      self.CreateAdminUser("requestor")
+
+      clients = self.SetupClients(1)
+      for client_id in clients:
+        # Delete the certificate as it's being regenerated every time the
+        # client is created.
+        with aff4.FACTORY.Open(
+            client_id, mode="rw", token=self.token) as grr_client:
+          grr_client.DeleteAttribute(grr_client.Schema.CERT)
+
+    with test_lib.FakeTime(44):
+      requestor_token = access_control.ACLToken(username="requestor")
+      flow_urn = flow.GRRFlow.StartFlow(
+          client_id=clients[0],
+          flow_name="RequestClientApprovalFlow",
+          reason="foo",
+          subject_urn=clients[0],
+          approver=self.token.username,
+          token=requestor_token)
+      flow_fd = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
+      approval_id = flow_fd.state.approval_id
+
+    with test_lib.FakeTime(126):
+      self.Check(
+          "POST",
+          "/api/users/requestor/approvals/client/%s/%s/actions/grant" %
+          (clients[0].Basename(), approval_id),
+          replace={approval_id: "approval:111111"})
+
+
 class ApiCreateClientApprovalHandlerTest(test_lib.GRRBaseTest,
                                          ApiCreateApprovalHandlerTestMixin):
   """Test for ApiCreateClientApprovalHandler."""
@@ -561,6 +600,42 @@ class ApiGetHuntApprovalHandlerRegressionTest(
                    approval2_id: "approval:222222"})
 
 
+class ApiGrantHuntApprovalHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest,
+    standard_test.StandardHuntTestMixin):
+  """Regression test for ApiGrantHuntApprovalHandler."""
+
+  handler = "ApiGrantHuntApprovalHandler"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      self.CreateAdminUser("requestor")
+
+      with self.CreateHunt(description="a hunt") as hunt_obj:
+        hunt_urn = hunt_obj.urn
+        hunt_id = hunt_urn.Basename()
+
+    with test_lib.FakeTime(44):
+      requestor_token = access_control.ACLToken(username="requestor")
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name="RequestHuntApprovalFlow",
+          reason="foo",
+          subject_urn=hunt_urn,
+          approver=self.token.username,
+          token=requestor_token)
+      flow_fd = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
+      approval_id = flow_fd.state.approval_id
+
+    with test_lib.FakeTime(126):
+      self.Check(
+          "POST",
+          "/api/users/requestor/approvals/hunt/%s/%s/actions/grant" %
+          (hunt_id, approval_id),
+          replace={hunt_id: "H:123456",
+                   approval_id: "approval:111111"})
+
+
 class ApiCreateHuntApprovalHandlerTest(test_lib.GRRBaseTest,
                                        ApiCreateApprovalHandlerTestMixin,
                                        standard_test.StandardHuntTestMixin):
@@ -737,6 +812,43 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
           (cron2_urn.Basename(), approval2_id),
           replace={cron2_urn.Basename(): "CronJob_567890",
                    approval2_id: "approval:222222"})
+
+
+class ApiGrantCronJobApprovalHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiGrantCronJobApprovalHandler."""
+
+  handler = "ApiGrantCronJobApprovalHandler"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      self.CreateAdminUser("requestor")
+
+      cron_manager = aff4_cronjobs.CronManager()
+      cron_args = aff4_cronjobs.CreateCronJobFlowArgs(
+          periodicity="1d", allow_overruns=False)
+      cron_urn = cron_manager.ScheduleFlow(
+          cron_args=cron_args, token=self.token)
+
+    with test_lib.FakeTime(44):
+      requestor_token = access_control.ACLToken(username="requestor")
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name="RequestCronJobApprovalFlow",
+          reason="foo",
+          subject_urn=cron_urn,
+          approver=self.token.username,
+          token=requestor_token)
+      flow_fd = aff4.FACTORY.Open(
+          flow_urn, aff4_type=flow.GRRFlow, token=self.token)
+      approval_id = flow_fd.state.approval_id
+
+    with test_lib.FakeTime(126):
+      self.Check(
+          "POST",
+          "/api/users/requestor/approvals/cron-job/%s/%s/actions/grant" %
+          (cron_urn.Basename(), approval_id),
+          replace={cron_urn.Basename(): "CronJob_123456",
+                   approval_id: "approval:111111"})
 
 
 class ApiCreateCronJobApprovalHandlerTest(test_lib.GRRBaseTest,

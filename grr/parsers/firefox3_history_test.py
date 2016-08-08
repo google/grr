@@ -22,7 +22,7 @@ class Firefox3HistoryTest(test_lib.GRRBaseTest):
   def testBasicParsing(self):
     """Test we can parse a standard file."""
     history_file = os.path.join(self.base_path, "places.sqlite")
-    history = firefox3_history.Firefox3History(open(history_file))
+    history = firefox3_history.Firefox3History(open(history_file, "rb"))
     # Parse returns (timestamp, dtype, url, title)
     entries = [x for x in history.Parse()]
 
@@ -41,7 +41,7 @@ class Firefox3HistoryTest(test_lib.GRRBaseTest):
   def testNewHistoryFile(self):
     """Tests reading of history files written by recent versions of Firefox."""
     history_file = os.path.join(self.base_path, "new_places.sqlite")
-    history = firefox3_history.Firefox3History(open(history_file))
+    history = firefox3_history.Firefox3History(open(history_file, "rb"))
     entries = [x for x in history.Parse()]
 
     self.assertEqual(len(entries), 3)

@@ -41,7 +41,9 @@ class RekallTestSuite(test_lib.EmptyActionTest):
   def setUp(self):
     super(RekallTestSuite, self).setUp()
     self.client_id = self.SetupClients(1)[0]
-    test_lib.WriteComponent(token=self.token)
+    test_lib.WriteComponent(
+        token=self.token,
+        version=memory.AnalyzeClientMemoryArgs().component_version)
 
   def CreateClient(self):
     client = aff4.FACTORY.Create(

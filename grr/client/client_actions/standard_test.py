@@ -144,7 +144,7 @@ print "Done."
   def testExecuteBinary(self):
     """Test the basic ExecuteBinaryCommand action."""
     signed_blob = rdf_crypto.SignedBlob()
-    signed_blob.Sign(open("/bin/ls").read(), self.signing_key)
+    signed_blob.Sign(open("/bin/ls", "rb").read(), self.signing_key)
 
     writefile = utils.Join(self.temp_dir, "binexecute", "ablob")
     os.makedirs(os.path.dirname(writefile))
@@ -201,7 +201,7 @@ class TestCopyPathToFile(test_lib.EmptyActionTest):
   def setUp(self):
     super(TestCopyPathToFile, self).setUp()
     self.path_in = os.path.join(self.base_path, "morenumbers.txt")
-    self.hash_in = hashlib.sha1(open(self.path_in).read()).hexdigest()
+    self.hash_in = hashlib.sha1(open(self.path_in, "rb").read()).hexdigest()
     self.pathspec = rdf_paths.PathSpec(
         path=self.path_in, pathtype=rdf_paths.PathSpec.PathType.OS)
 
@@ -213,7 +213,8 @@ class TestCopyPathToFile(test_lib.EmptyActionTest):
         dest_dir=self.temp_dir,
         gzip_output=False)
     result = self.RunAction("CopyPathToFile", request)[0]
-    hash_out = hashlib.sha1(open(result.dest_path.path).read()).hexdigest()
+    hash_out = hashlib.sha1(open(result.dest_path.path, "rb").read()).hexdigest(
+    )
     self.assertEqual(self.hash_in, hash_out)
 
   def testCopyPathToFileLimitLength(self):
@@ -224,12 +225,12 @@ class TestCopyPathToFile(test_lib.EmptyActionTest):
         dest_dir=self.temp_dir,
         gzip_output=False)
     result = self.RunAction("CopyPathToFile", request)[0]
-    output = open(result.dest_path.path).read()
+    output = open(result.dest_path.path, "rb").read()
     self.assertEqual(len(output), 23)
 
   def testCopyPathToFileOffsetandLimit(self):
 
-    with open(self.path_in) as f:
+    with open(self.path_in, "rb") as f:
       f.seek(38)
       out = f.read(25)
       hash_in = hashlib.sha1(out).hexdigest()
@@ -241,7 +242,7 @@ class TestCopyPathToFile(test_lib.EmptyActionTest):
         dest_dir=self.temp_dir,
         gzip_output=False)
     result = self.RunAction("CopyPathToFile", request)[0]
-    output = open(result.dest_path.path).read()
+    output = open(result.dest_path.path, "rb").read()
     self.assertEqual(len(output), 25)
     hash_out = hashlib.sha1(output).hexdigest()
     self.assertEqual(hash_in, hash_out)

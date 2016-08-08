@@ -94,7 +94,8 @@ HuntOverviewController.prototype.showHuntDetails = function() {
 grrUi.hunt.huntOverviewDirective.HuntOverviewDirective = function() {
   return {
     scope: {
-      huntUrn: '='
+      huntUrn: '=',
+      noHuntDetails: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/hunt/hunt-overview.html',

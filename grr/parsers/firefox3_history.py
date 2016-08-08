@@ -79,7 +79,7 @@ def main(argv):
     files_to_process += glob.glob(input_glob)
 
   for input_file in files_to_process:
-    firefox3 = Firefox3History(open(input_file))
+    firefox3 = Firefox3History(open(input_file, "rb"))
 
     for timestamp, entry_type, url, title in firefox3.Parse():
       try:

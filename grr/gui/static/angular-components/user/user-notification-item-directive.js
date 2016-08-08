@@ -6,12 +6,14 @@ goog.provide('grrUi.user.userNotificationItemDirective.annotateApiNotification')
 goog.provide('grrUi.user.userNotificationItemDirective.openReference');
 goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
 goog.require('grrUi.core.apiService.stripTypeInfo');
+goog.require('grrUi.core.utils.stripAff4Prefix');
 
 goog.scope(function() {
 
 var module = grrUi.user.userNotificationItemDirective;
 var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 var getFileId = grrUi.client.virtualFileSystem.fileViewDirective.getFileId;
+var stripAff4Prefix = grrUi.core.utils.stripAff4Prefix;
 
 /**
  * Opens the reference of a notification.
@@ -43,7 +45,12 @@ grrUi.user.userNotificationItemDirective.annotateApiNotification =
   var urlParams = getUrlParameters_(notification);
   notification['isPending'] = notification['value']['is_pending']['value'];
   if (urlParams) {
-    notification['link'] = $.param(urlParams);
+    if (angular.isObject(urlParams)) {
+      notification['link'] = $.param(/** @type {Object} */ (urlParams));
+    } else {
+      notification['link'] = urlParams;
+    }
+
     notification['isFileDownload'] = urlParams['main'] === 'DownloadFile';
     notification['refType'] =
         notification['value']['reference']['value']['type']['value'];
@@ -70,8 +77,9 @@ var annotateApiNotification = module.annotateApiNotification;
  * Creates a link for the notification.
  *
  * @param {Object} notification The notification.
- * @return {Object<string, string>} The URL parameters for the given
- *                                  notification.
+ * @return {Object<string, string>|string} The URL parameters or the URL
+ * path for the given notification.
+ *
  * @private
  */
 var getUrlParameters_ = function(notification) {
@@ -86,6 +94,8 @@ var getUrlParameters_ = function(notification) {
   var referenceDetails = reference[referenceType.toLowerCase()];
   var urlParameters = {};
 
+  // TODO(user): Get rid of a giant 'if' and refactor to
+  // 'handler-by-reference-type' approach.
   if (referenceType === 'DISCOVERY') {
       urlParameters['c'] = referenceDetails['client_id'];
       urlParameters['main'] = 'HostInformation';
@@ -111,9 +121,28 @@ var getUrlParameters_ = function(notification) {
       urlParameters['flow'] = referenceDetails['flow_urn'];
       urlParameters['c'] = referenceDetails['client_id'];
       urlParameters['main'] = 'ManageFlows';
-  } else if (referenceType === 'GRANT_ACCESS') {
-      urlParameters['acl'] = referenceDetails['acl'];
-      urlParameters['main'] = 'GrantAccess';
+  } else if (referenceType === 'CLIENT_APPROVAL') {
+    var clientId = stripAff4Prefix(referenceDetails['client_id']);
+    return ['users',
+            referenceDetails['username'],
+            'approvals',
+            'client',
+            clientId,
+            referenceDetails['approval_id']].join('/');
+  } else if (referenceType === 'HUNT_APPROVAL') {
+    return ['users',
+            referenceDetails['username'],
+            'approvals',
+            'hunt',
+            referenceDetails['hunt_id'],
+            referenceDetails['approval_id']].join('/');
+  } else if (referenceType === 'CRON_JOB_APPROVAL') {
+    return ['users',
+            referenceDetails['username'],
+            'approvals',
+            'cron-job',
+            referenceDetails['cron_job_id'],
+            referenceDetails['approval_id']].join('/');
   }
   return urlParameters;
 };

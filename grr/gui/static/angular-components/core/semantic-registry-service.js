@@ -68,7 +68,6 @@ SemanticRegistryService.prototype.registerDirective = function(
   this.directivesByType_[type] = directive;
 };
 
-
 /**
  * Returns most specific directive for a given MRO.
  *

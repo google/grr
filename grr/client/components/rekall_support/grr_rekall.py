@@ -206,8 +206,16 @@ class GrrRekallSession(session.Session):
     self.action.Progress()
 
   def GetRenderer(self, **kwargs):
+    # Reuse the same renderer on recursive GetRenderer() calls.
+    if self.renderers:
+      return self.renderers[-1]
+
     # We will use this renderer to push results to the server.
-    return GRRRekallRenderer(rekall_session=self, action=self.action, **kwargs)
+    result = GRRRekallRenderer(
+        rekall_session=self, action=self.action, **kwargs)
+    self.renderers.append(result)
+
+    return result
 
 # Short term storage for profile data.
 UPLOADED_PROFILES = {}

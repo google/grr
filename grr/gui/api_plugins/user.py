@@ -54,8 +54,12 @@ def _InitApiApprovalFromAff4Object(api_approval, approval_obj):
   api_approval.id = approval_obj.urn.Basename()
   api_approval.reason = approval_obj.Get(approval_obj.Schema.REASON)
 
+  # We should check the approval validity from the standpoint of the user
+  # who had requested it.
+  test_token = access_control.ACLToken(
+      username=approval_obj.Get(approval_obj.Schema.REQUESTOR))
   try:
-    approval_obj.CheckAccess(approval_obj.token)
+    approval_obj.CheckAccess(test_token)
     api_approval.is_valid = True
   except access_control.UnauthorizedAccess as e:
     api_approval.is_valid = False
@@ -119,12 +123,8 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
     return _InitApiApprovalFromAff4Object(self, approval_obj)
 
 
-class ApiCreateClientApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiCreateClientApprovalArgs
-
-
-class ApiCreateClientApprovalHandler(api_call_handler_base.ApiCallHandler):
-  """Creates new user client approval and notifies requested approvers."""
+class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
+  """Base class for all Crate*Approval handlers."""
 
   category = CATEGORY
 
@@ -132,20 +132,23 @@ class ApiCreateClientApprovalHandler(api_call_handler_base.ApiCallHandler):
   # the fields.
   strip_json_root_fields_types = False
 
-  args_type = ApiCreateClientApprovalArgs
-  result_type = ApiClientApproval
+  # AFF4 type of the approval object to be checked. Should be set by a subclass.
+  approval_aff4_type = None
+
+  # Flow to be used to grant the approval. Flow class is expected. Should be set
+  # by a subclass.
+  approval_create_flow = None
 
   def Handle(self, args, token=None):
     if not args.approval.reason:
       raise ValueError("Approval reason can't be empty.")
 
     flow_urn = flow.GRRFlow.StartFlow(
-        client_id=args.client_id,
-        flow_name=aff4_security.RequestClientApprovalFlow.__name__,
+        flow_name=self.__class__.approval_create_flow.__name__,
         reason=args.approval.reason,
         approver=",".join(args.approval.notified_users),
         email_cc_address=",".join(args.approval.email_cc_addresses),
-        subject_urn=args.client_id,
+        subject_urn=args.BuildSubjectUrn(),
         token=token)
 
     flow_fd = aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, token=token)
@@ -153,38 +156,11 @@ class ApiCreateClientApprovalHandler(api_call_handler_base.ApiCallHandler):
 
     approval_obj = aff4.FACTORY.Open(
         approval_urn,
-        aff4_type=aff4_security.ClientApproval,
+        aff4_type=self.__class__.approval_aff4_type,
         age=aff4.ALL_TIMES,
         token=token)
 
-    return ApiClientApproval().InitFromAff4Object(approval_obj)
-
-
-class ApiGetClientApprovalArgs(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiGetClientApprovalArgs
-
-
-class ApiGetClientApprovalHandler(api_call_handler_base.ApiCallHandler):
-  """Returns details about an approval for a given client and reason."""
-
-  category = CATEGORY
-
-  # We return a single object and have to preserve type information of all
-  # the fields.
-  strip_json_root_fields_types = False
-
-  args_type = ApiGetClientApprovalArgs
-  result_type = ApiClientApproval
-
-  def Handle(self, args, token=None):
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add(args.client_id.Basename()).Add(
-        args.username).Add(args.approval_id)
-    approval_obj = aff4.FACTORY.Open(
-        approval_urn,
-        aff4_type=aff4_security.ClientApproval,
-        age=aff4.ALL_TIMES,
-        token=token)
-    return ApiClientApproval().InitFromAff4Object(approval_obj)
+    return self.__class__.result_type().InitFromAff4Object(approval_obj)
 
 
 class ApiListApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
@@ -274,7 +250,118 @@ class ApiListApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
     return converted_approvals
 
 
-class ApiListClientApprovalsArgs(rdf_structs.RDFProtoStruct):
+class ApiGetApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
+  """Base class for all Get*Approval handlers."""
+
+  category = CATEGORY
+
+  # We return a single object and have to preserve type information of all
+  # the fields.
+  strip_json_root_fields_types = False
+
+  # AFF4 type of the approval object to be checked. Should be set by a subclass.
+  approval_aff4_type = None
+
+  def Handle(self, args, token=None):
+    approval_urn = args.BuildApprovalObjUrn()
+    approval_obj = aff4.FACTORY.Open(
+        approval_urn,
+        aff4_type=self.__class__.approval_aff4_type,
+        age=aff4.ALL_TIMES,
+        token=token)
+    return self.__class__.result_type().InitFromAff4Object(approval_obj)
+
+
+class ApiGrantApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
+  """Base class reused by all client approval handlers."""
+
+  # We return a single object and have to preserve type information of all
+  # the fields.
+  strip_json_root_fields_types = False
+
+  # AFF4 type of the approval object to be checked. Should be set by a subclass.
+  approval_aff4_type = None
+
+  # Flow to be used to grant the approval. Flow class is expected. Should be set
+  # by a subclass.
+  approval_grant_flow = None
+
+  def Handle(self, args, token=None):
+    subject_urn = args.BuildSubjectUrn()
+    approval_urn = args.BuildApprovalObjUrn()
+
+    approval_request = aff4.FACTORY.Open(
+        approval_urn, aff4_type=self.__class__.approval_aff4_type, token=token)
+    reason = approval_request.Get(approval_request.Schema.REASON)
+
+    flow.GRRFlow.StartFlow(
+        flow_name=self.__class__.approval_grant_flow.__name__,
+        reason=reason,
+        delegate=args.username,
+        subject_urn=subject_urn,
+        token=token)
+
+    approval_request = aff4.FACTORY.Open(
+        approval_urn,
+        aff4_type=self.__class__.approval_aff4_type,
+        age=aff4.ALL_TIMES,
+        token=token)
+    return self.__class__.result_type().InitFromAff4Object(approval_request)
+
+
+class ApiClientApprovalArgsBase(rdf_structs.RDFProtoStruct):
+
+  __abstract = True  # pylint: disable=g-bad-name
+
+  def BuildSubjectUrn(self):
+    return self.client_id
+
+  def BuildApprovalObjUrn(self):
+    return aff4.ROOT_URN.Add("ACL").Add(self.client_id.Basename()).Add(
+        self.username).Add(self.approval_id)
+
+
+class ApiCreateClientApprovalArgs(ApiClientApprovalArgsBase):
+  protobuf = api_pb2.ApiCreateClientApprovalArgs
+
+
+class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
+  """Creates new user client approval and notifies requested approvers."""
+
+  args_type = ApiCreateClientApprovalArgs
+  result_type = ApiClientApproval
+
+  approval_obj_type = aff4_security.ClientApproval
+  approval_create_flow = aff4_security.RequestClientApprovalFlow
+
+
+class ApiGetClientApprovalArgs(ApiClientApprovalArgsBase):
+  protobuf = api_pb2.ApiGetClientApprovalArgs
+
+
+class ApiGetClientApprovalHandler(ApiGetApprovalHandlerBase):
+  """Returns details about an approval for a given client and reason."""
+
+  args_type = ApiGetClientApprovalArgs
+  result_type = ApiClientApproval
+
+  approval_obj_type = aff4_security.ClientApproval
+
+
+class ApiGrantClientApprovalArgs(ApiClientApprovalArgsBase):
+  protobuf = api_pb2.ApiGrantClientApprovalArgs
+
+
+class ApiGrantClientApprovalHandler(ApiGrantApprovalHandlerBase):
+
+  args_type = ApiGrantClientApprovalArgs
+  result_type = ApiClientApproval
+
+  approval_aff4_type = aff4_security.ClientApproval
+  approval_grant_flow = aff4_security.GrantClientApprovalFlow
+
+
+class ApiListClientApprovalsArgs(ApiClientApprovalArgsBase):
   protobuf = api_pb2.ApiListClientApprovalsArgs
 
 
@@ -340,73 +427,59 @@ class ApiListClientApprovalsHandler(ApiListApprovalsHandlerBase):
         approvals, subjects_by_urn, self._ApprovalToApiApproval))
 
 
-class ApiCreateHuntApprovalArgs(rdf_structs.RDFProtoStruct):
+class ApiHuntApprovalArgsBase(rdf_structs.RDFProtoStruct):
+
+  __abstract = True  # pylint: disable=g-bad-name
+
+  def BuildSubjectUrn(self):
+    return aff4.ROOT_URN.Add("hunts").Add(self.hunt_id)
+
+  def BuildApprovalObjUrn(self):
+    return aff4.ROOT_URN.Add("ACL").Add(self.BuildSubjectUrn().Path()).Add(
+        self.username).Add(self.approval_id)
+
+
+class ApiCreateHuntApprovalArgs(ApiHuntApprovalArgsBase):
   protobuf = api_pb2.ApiCreateHuntApprovalArgs
 
 
-class ApiCreateHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
+class ApiCreateHuntApprovalHandler(ApiCreateApprovalHandlerBase):
   """Creates new user hunt approval and notifies requested approvers."""
-
-  category = CATEGORY
-
-  # We return a single object and have to preserve type information of all
-  # the fields.
-  strip_json_root_fields_types = False
 
   args_type = ApiCreateHuntApprovalArgs
   result_type = ApiHuntApproval
 
-  def Handle(self, args, token=None):
-    if not args.approval.reason:
-      raise ValueError("Approval reason can't be empty.")
-
-    flow_urn = flow.GRRFlow.StartFlow(
-        flow_name=aff4_security.RequestHuntApprovalFlow.__name__,
-        reason=args.approval.reason,
-        approver=",".join(args.approval.notified_users),
-        email_cc_address=",".join(args.approval.email_cc_addresses),
-        subject_urn=rdfvalue.RDFURN("hunts").Add(args.hunt_id),
-        token=token)
-    flow_fd = aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, token=token)
-    approval_urn = flow_fd.state.approval_urn
-
-    approval_obj = aff4.FACTORY.Open(
-        approval_urn,
-        aff4_type=aff4_security.HuntApproval,
-        age=aff4.ALL_TIMES,
-        token=token)
-
-    return ApiHuntApproval().InitFromAff4Object(approval_obj)
+  approval_obj_type = aff4_security.HuntApproval
+  approval_create_flow = aff4_security.RequestHuntApprovalFlow
 
 
-class ApiGetHuntApprovalArgs(rdf_structs.RDFProtoStruct):
+class ApiGetHuntApprovalArgs(ApiHuntApprovalArgsBase):
   protobuf = api_pb2.ApiGetHuntApprovalArgs
 
 
-class ApiGetHuntApprovalHandler(api_call_handler_base.ApiCallHandler):
+class ApiGetHuntApprovalHandler(ApiGetApprovalHandlerBase):
   """Returns details about approval for a given hunt, user and approval id."""
-
-  category = CATEGORY
-
-  # We return a single object and have to preserve type information of all
-  # the fields.
-  strip_json_root_fields_types = False
 
   args_type = ApiGetHuntApprovalArgs
   result_type = ApiHuntApproval
 
-  def Handle(self, args, token=None):
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add("hunts").Add(args.hunt_id).Add(
-        args.username).Add(args.approval_id)
-    approval_obj = aff4.FACTORY.Open(
-        approval_urn,
-        aff4_type=aff4_security.HuntApproval,
-        age=aff4.ALL_TIMES,
-        token=token)
-    return ApiHuntApproval().InitFromAff4Object(approval_obj)
+  approval_obj_type = aff4_security.HuntApproval
 
 
-class ApiListHuntApprovalsArgs(rdf_structs.RDFProtoStruct):
+class ApiGrantHuntApprovalArgs(ApiHuntApprovalArgsBase):
+  protobuf = api_pb2.ApiGrantHuntApprovalArgs
+
+
+class ApiGrantHuntApprovalHandler(ApiGrantApprovalHandlerBase):
+
+  args_type = ApiGrantHuntApprovalArgs
+  result_type = ApiHuntApproval
+
+  approval_aff4_type = aff4_security.HuntApproval
+  approval_grant_flow = aff4_security.GrantHuntApprovalFlow
+
+
+class ApiListHuntApprovalsArgs(ApiHuntApprovalArgsBase):
   protobuf = api_pb2.ApiListHuntApprovalsArgs
 
 
@@ -431,73 +504,59 @@ class ApiListHuntApprovalsHandler(ApiListApprovalsHandlerBase):
         approvals, subjects_by_urn, self._ApprovalToApiApproval))
 
 
-class ApiCreateCronJobApprovalArgs(rdf_structs.RDFProtoStruct):
+class ApiCronJobApprovalArgsBase(rdf_structs.RDFProtoStruct):
+
+  __abstract = True  # pylint: disable=g-bad-name
+
+  def BuildSubjectUrn(self):
+    return aff4.ROOT_URN.Add("cron").Add(self.cron_job_id)
+
+  def BuildApprovalObjUrn(self):
+    return aff4.ROOT_URN.Add("ACL").Add(self.BuildSubjectUrn().Path()).Add(
+        self.username).Add(self.approval_id)
+
+
+class ApiCreateCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
   protobuf = api_pb2.ApiCreateCronJobApprovalArgs
 
 
-class ApiCreateCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
+class ApiCreateCronJobApprovalHandler(ApiCreateApprovalHandlerBase):
   """Creates new user cron approval and notifies requested approvers."""
-
-  category = CATEGORY
-
-  # We return a single object and have to preserve type information of all
-  # the fields.
-  strip_json_root_fields_types = False
 
   args_type = ApiCreateCronJobApprovalArgs
   result_type = ApiCronJobApproval
 
-  def Handle(self, args, token=None):
-    if not args.approval.reason:
-      raise ValueError("Approval reason can't be empty.")
-
-    flow_urn = flow.GRRFlow.StartFlow(
-        flow_name=aff4_security.RequestCronJobApprovalFlow.__name__,
-        reason=args.approval.reason,
-        approver=",".join(args.approval.notified_users),
-        email_cc_address=",".join(args.approval.email_cc_addresses),
-        subject_urn=rdfvalue.RDFURN("cron").Add(args.cron_job_id),
-        token=token)
-    flow_fd = aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, token=token)
-    approval_urn = flow_fd.state.approval_urn
-
-    approval_obj = aff4.FACTORY.Open(
-        approval_urn,
-        aff4_type=aff4_security.CronJobApproval,
-        age=aff4.ALL_TIMES,
-        token=token)
-
-    return ApiCronJobApproval().InitFromAff4Object(approval_obj)
+  approval_aff4_type = aff4_security.CronJobApproval
+  approval_create_flow = aff4_security.RequestCronJobApprovalFlow
 
 
-class ApiGetCronJobApprovalArgs(rdf_structs.RDFProtoStruct):
+class ApiGetCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
   protobuf = api_pb2.ApiGetCronJobApprovalArgs
 
 
-class ApiGetCronJobApprovalHandler(api_call_handler_base.ApiCallHandler):
+class ApiGetCronJobApprovalHandler(ApiGetApprovalHandlerBase):
   """Returns details about approval for a given cron, user and approval id."""
-
-  category = CATEGORY
-
-  # We return a single object and have to preserve type information of all
-  # the fields.
-  strip_json_root_fields_types = False
 
   args_type = ApiGetCronJobApprovalArgs
   result_type = ApiCronJobApproval
 
-  def Handle(self, args, token=None):
-    approval_urn = aff4.ROOT_URN.Add("ACL").Add("cron").Add(
-        args.cron_job_id).Add(args.username).Add(args.approval_id)
-    approval_obj = aff4.FACTORY.Open(
-        approval_urn,
-        aff4_type=aff4_security.CronJobApproval,
-        age=aff4.ALL_TIMES,
-        token=token)
-    return ApiCronJobApproval().InitFromAff4Object(approval_obj)
+  approval_aff4_type = aff4_security.CronJobApproval
 
 
-class ApiListCronJobApprovalsArgs(rdf_structs.RDFProtoStruct):
+class ApiGrantCronJobApprovalArgs(ApiCronJobApprovalArgsBase):
+  protobuf = api_pb2.ApiGrantCronJobApprovalArgs
+
+
+class ApiGrantCronJobApprovalHandler(ApiGrantApprovalHandlerBase):
+
+  args_type = ApiGrantCronJobApprovalArgs
+  result_type = ApiCronJobApproval
+
+  approval_aff4_type = aff4_security.CronJobApproval
+  approval_grant_flow = aff4_security.GrantCronJobApprovalFlow
+
+
+class ApiListCronJobApprovalsArgs(ApiCronJobApprovalArgsBase):
   protobuf = api_pb2.ApiListCronJobApprovalsArgs
 
 
@@ -742,10 +801,25 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
       reference.flow_status = ApiNotificationFlowStatusReference(
           flow_urn=notification.source, client_id=components[0])
 
+    # TODO(user): refactor GrantAccess notification so that we don't have
+    # to infer approval type from the URN.
     elif notification.type == "GrantAccess":
-      reference.type = reference_type_enum.GRANT_ACCESS
-      reference.grant_access = ApiNotificationGrantAccessReference(
-          acl=notification.subject)
+      components = self._GetUrnComponents(notification)
+      if rdf_client.ClientURN.Validate(components[1]):
+        reference.type = reference_type_enum.CLIENT_APPROVAL
+        reference.client_approval.client_id = components[1]
+        reference.client_approval.approval_id = components[-1]
+        reference.client_approval.username = components[-2]
+      elif components[1] == "hunts":
+        reference.type = reference_type_enum.HUNT_APPROVAL
+        reference.hunt_approval.hunt_id = components[2]
+        reference.hunt_approval.approval_id = components[-1]
+        reference.hunt_approval.username = components[-2]
+      elif components[1] == "cron":
+        reference.type = reference_type_enum.CRON_JOB_APPROVAL
+        reference.cron_job_approval.cron_job_id = components[2]
+        reference.cron_job_approval.approval_id = components[-1]
+        reference.cron_job_approval.username = components[-2]
 
     elif notification.type == "ArchiveGenerationFinished":
       reference.type = reference_type_enum.ARCHIVE_GENERATION_FINISHED
@@ -802,8 +876,16 @@ class ApiNotificationFlowStatusReference(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiNotificationFlowStatusReference
 
 
-class ApiNotificationGrantAccessReference(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiNotificationGrantAccessReference
+class ApiNotificationClientApprovalReference(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiNotificationClientApprovalReference
+
+
+class ApiNotificationHuntApprovalReference(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiNotificationHuntApprovalReference
+
+
+class ApiNotificationCronJobApprovalReference(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiNotificationCronJobApprovalReference
 
 
 class ApiListAndResetUserNotificationsHandler(

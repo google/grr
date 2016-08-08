@@ -81,7 +81,7 @@ class ApiDeleteArtifactsHandlerTest(test_lib.GRRBaseTest):
     artifact_registry.REGISTRY.ClearRegistry()
     test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
-    with open(test_artifacts_file) as fd:
+    with open(test_artifacts_file, "rb") as fd:
       artifact.UploadArtifactYamlFile(fd.read(), token=self.token)
 
   def testDeletesArtifactsWithSpecifiedNames(self):

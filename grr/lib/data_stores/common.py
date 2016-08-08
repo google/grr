@@ -34,16 +34,10 @@ def ConvertStringToFilename(name):
 
 
 def Components(subject):
-  if isinstance(subject, rdfvalue.RDFURN):
-    return subject.Split()
-  else:
-    # If it is not a URN, we convert to unicode and then try to strip
-    # aff4:/ from the beginning of the string.
-    path = utils.SmartUnicode(subject)
-    if not path.startswith("aff4:/"):
-      return "aff4", ""
-    path = path[len("aff4:/"):]
-    return path.split(os.path.sep)
+  if not isinstance(subject, rdfvalue.RDFURN):
+    subject = rdfvalue.RDFURN(subject)
+
+  return subject.Split()
 
 
 @utils.MemoizeFunction()

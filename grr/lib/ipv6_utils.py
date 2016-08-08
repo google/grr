@@ -79,16 +79,23 @@ def _ZeroPad(addr_string):
   return "".join(addr_array)
 
 
-def InetAtoN(addr_string):
+def InetPtoN(protocol, addr_string):
   """Convert ipv6 string to packed bytes.
 
   Args:
+    protocol: socket.AF_INET or socket.AF_INET6
     addr_string: IPv6 address string
   Returns:
     bytestring representing address
   Raises:
     socket.error: on bad IPv6 address format
   """
+  if protocol == socket.AF_INET:
+    return socket.inet_aton(addr_string)
+
+  if protocol != socket.AF_INET6:
+    raise socket.error("Unsupported protocol")
+
   if not addr_string:
     raise socket.error("Empty address string")
 
@@ -108,16 +115,23 @@ def InetAtoN(addr_string):
     raise socket.error("Error decoding: %s" % addr_string)
 
 
-def InetNtoA(packed_bytes):
+def InetNtoP(protocol, packed_bytes):
   """Convert ipv6 packed bytes to string.
 
   Args:
+    protocol: protocol
     packed_bytes: bytestring
   Returns:
     ipv6 string
   Raises:
     socket.error: on bad bytestring
   """
+
+  if protocol == socket.AF_INET:
+    return socket.inet_ntoa(packed_bytes)
+
+  if protocol != socket.AF_INET6:
+    raise socket.error("Unsupported protocol")
 
   if len(packed_bytes) != 16:
     raise socket.error("IPv6 addresses are 16 bytes long, got %s for %s" %
@@ -158,3 +172,17 @@ def InetNtoA(packed_bytes):
       result_str = result_str.replace(largest_zero_str, "::", 1)
 
   return result_str
+
+# If the implementation supports it, just use the native functions.
+# pylint: disable=invalid-name
+
+# Keep a reference to the custom functions in case we really want them (for
+# tests).
+CustomInetNtoP = InetNtoP
+CustomInetPtoN = InetPtoN
+
+if getattr(socket, "inet_ntop", None):
+  InetNtoP = socket.inet_ntop
+
+if getattr(socket, "inet_pton", None):
+  InetPtoN = socket.inet_pton

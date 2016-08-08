@@ -82,7 +82,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     # Test the AFF4 file that was created.
     urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
     fd1 = aff4.FACTORY.Open(urn, token=self.token)
-    fd2 = open(pathspec.path)
+    fd2 = open(pathspec.path, "rb")
     fd2.seek(0, 2)
 
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
@@ -145,7 +145,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
         pathspecs=[pathspec]):
       pass
 
-    data = open(pathspec.last.path).read()
+    data = open(pathspec.last.path, "rb").read()
 
     # Test the AFF4 file that was created - it should be empty since by default
     # we judge the file size based on its stat.st_size.
@@ -203,7 +203,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     # Test the AFF4 file that was created.
     urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
     fd1 = aff4.FACTORY.Open(urn, token=self.token)
-    fd2 = open(pathspec.path)
+    fd2 = open(pathspec.path, "rb")
     fd2.seek(0, 2)
 
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
@@ -282,7 +282,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.assertTrue(fd_hash)
 
     h = hashlib.sha256()
-    with open(os.path.join(self.base_path, "test_img.dd")) as model_fd:
+    with open(os.path.join(self.base_path, "test_img.dd"), "rb") as model_fd:
       h.update(model_fd.read())
     self.assertEqual(fd_hash.sha256, h.digest())
 

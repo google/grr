@@ -186,7 +186,7 @@ def SignComponentContent(component_filename, output_filename):
   Raises:
     RuntimeError: If called for any other OS than windows.
   """
-  component = rdf_client.ClientComponent(open(component_filename).read())
+  component = rdf_client.ClientComponent(open(component_filename, "rb").read())
   print "Opened component %s." % component.summary.name
 
   if component.build_system.system == "Windows":
@@ -201,7 +201,7 @@ def SignComponent(component_filename, overwrite=False, token=None):
   """Sign and upload the component to the data store."""
 
   print "Signing and uploading component %s" % component_filename
-  component = rdf_client.ClientComponent(open(component_filename).read())
+  component = rdf_client.ClientComponent(open(component_filename, "rb").read())
   print "Opened component %s." % component.summary.name
 
   client_context = ["Platform:%s" % component.build_system.system.title(),
@@ -316,6 +316,7 @@ def ShowUser(username, token=None):
 
 def AddUser(username, password=None, labels=None, token=None):
   """Implementation of the add_user command."""
+  token = data_store.GetDefaultToken(token)
   user_urn = "aff4:/users/%s" % username
   try:
     if aff4.FACTORY.Open(user_urn, users.GRRUser, token=token):
@@ -350,6 +351,8 @@ def UpdateUser(username,
                delete_labels=None,
                token=None):
   """Implementation of the update_user command."""
+  token = data_store.GetDefaultToken(token)
+
   user_urn = "aff4:/users/%s" % username
   try:
     fd = aff4.FACTORY.Open(user_urn, users.GRRUser, mode="rw", token=token)
@@ -417,6 +420,7 @@ def UpdateUser(username,
 
 def DeleteUser(username, token=None):
   """Deletes an existing user."""
+  token = data_store.GetDefaultToken(token)
   user_urn = "aff4:/users/%s" % username
   try:
     aff4.FACTORY.Open(user_urn, users.GRRUser, token=token)

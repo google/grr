@@ -236,7 +236,7 @@ def CopyFiles(rebalance, server_id):
     return False
   # Write list of removed files to temporary directory
   remove_file = _FileWithRemoveList(loc, rebalance)
-  with open(remove_file, "w") as fp:
+  with open(remove_file, "wb") as fp:
     for f in removed_list:
       fp.write(f.encode("utf8") + "\n")
   return True
@@ -323,7 +323,7 @@ def MoveFiles(rebalance, is_master):
   to_remove = []
   if os.path.exists(remove_file):
     to_remove = [line.decode("utf8").rstrip("\n")
-                 for line in open(remove_file, "r")]
+                 for line in open(remove_file, "rb")]
   for fname in to_remove:
     if not fname.startswith(loc):
       logging.warning("Wrong file to remove: %s", fname)

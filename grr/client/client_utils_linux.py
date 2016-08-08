@@ -42,7 +42,8 @@ def GetMountpoints(data=None):
 
   # Check all the mounted filesystems.
   if data is None:
-    data = "\n".join([open(x).read() for x in ["/proc/mounts", "/etc/mtab"]])
+    data = "\n".join(
+        [open(x, "rb").read() for x in ["/proc/mounts", "/etc/mtab"]])
 
   for line in data.splitlines():
     try:
@@ -193,7 +194,7 @@ class NannyThread(threading.Thread):
 
   def WriteNannyStatus(self, status):
     try:
-      with open(config_lib.CONFIG["Nanny.statusfile"], "w") as fd:
+      with open(config_lib.CONFIG["Nanny.statusfile"], "wb") as fd:
         fd.write(status)
     except (IOError, OSError):
       pass
@@ -241,14 +242,14 @@ class NannyController(object):
     logfile = self._GetLogFilename()
 
     try:
-      with open(logfile, "w") as fd:
+      with open(logfile, "wb") as fd:
         fd.write(grr_message)
     except (IOError, OSError):
       # Check if we're missing directories and try to create them.
       if not os.path.isdir(os.path.dirname(logfile)):
         try:
           os.makedirs(os.path.dirname(logfile))
-          with open(logfile, "w") as fd:
+          with open(logfile, "wb") as fd:
             fd.write(grr_message)
         except (IOError, OSError):
           logging.exception("Couldn't write nanny transaction log to %s",
@@ -261,7 +262,7 @@ class NannyController(object):
   def CleanTransactionLog(self):
     """Wipes the transaction log."""
     try:
-      with open(self._GetLogFilename(), "w") as fd:
+      with open(self._GetLogFilename(), "wb") as fd:
         fd.write("")
     except (IOError, OSError):
       pass
@@ -269,7 +270,7 @@ class NannyController(object):
   def GetTransactionLog(self):
     """Return a GrrMessage instance from the transaction log or None."""
     try:
-      with open(self._GetLogFilename(), "r") as fd:
+      with open(self._GetLogFilename(), "rb") as fd:
         data = fd.read(self.max_log_size)
     except (IOError, OSError):
       return
@@ -290,7 +291,7 @@ class NannyController(object):
 
   def GetNannyStatus(self):
     try:
-      with open(config_lib.CONFIG["Nanny.statusfile"], "r") as fd:
+      with open(config_lib.CONFIG["Nanny.statusfile"], "rb") as fd:
         return fd.read(self.max_log_size)
     except (IOError, OSError):
       return None

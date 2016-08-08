@@ -182,14 +182,13 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     self.Click("css=td:contains('grant access to GRR client')")
 
-    self.WaitUntilContains("Grant Access for GRR Use", self.GetText,
+    self.WaitUntilContains("Grant access", self.GetText,
                            "css=h2:contains('Grant')")
     self.WaitUntil(self.IsTextPresent, "The user test has requested")
 
     self.Click("css=button:contains('Approve')")
 
-    self.WaitUntil(self.IsTextPresent,
-                   "You have granted access for C.0000000000000001 to test")
+    self.WaitUntil(self.IsTextPresent, "Approval granted.")
 
     self.WaitForNotification("aff4:/users/test")
     self.Open("/")
@@ -359,7 +358,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.Click("notification_button")
     self.Click("css=td:contains('Please grant access to hunt')")
 
-    self.WaitUntilContains("Grant Access for GRR Use", self.GetText,
+    self.WaitUntilContains("Grant access", self.GetText,
                            "css=h2:contains('Grant')")
     self.WaitUntil(self.IsTextPresent, "The user test has requested")
 
@@ -370,8 +369,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Clients Scheduled")
 
     self.Click("css=button:contains('Approve')")
-    self.WaitUntil(self.IsTextPresent,
-                   "You have granted access for %s to test" % hunt_id)
+    self.WaitUntil(self.IsTextPresent, "Approval granted.")
 
     self.WaitForNotification("aff4:/users/test")
     self.Open("/")
@@ -653,7 +651,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     self.Click("css=td:contains('Please grant access to a cron job')")
 
-    self.WaitUntilContains("Grant Access for GRR Use", self.GetText,
+    self.WaitUntilContains("Grant access", self.GetText,
                            "css=h2:contains('Grant')")
     self.WaitUntil(self.IsTextPresent, "The user test has requested")
 
@@ -662,8 +660,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "CRON_ARGS")
 
     self.Click("css=button:contains('Approve')")
-    self.WaitUntil(self.IsTextPresent,
-                   "You have granted access for aff4:/cron/OSBreakDown to test")
+    self.WaitUntil(self.IsTextPresent, "Approval granted.")
 
     # Now test starts up
     self.Open("/")

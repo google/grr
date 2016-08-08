@@ -342,9 +342,9 @@ class NetworkAddress(structs.RDFProtoStruct):
     else:
       try:
         if self.address_type == NetworkAddress.Family.INET:
-          return socket.inet_ntoa(str(self.packed_bytes))
+          return ipv6_utils.InetNtoP(socket.AF_INET, str(self.packed_bytes))
         else:
-          return ipv6_utils.InetNtoA(str(self.packed_bytes))
+          return ipv6_utils.InetNtoP(socket.AF_INET6, str(self.packed_bytes))
       except ValueError as e:
         return str(e)
 
@@ -353,11 +353,11 @@ class NetworkAddress(structs.RDFProtoStruct):
     if ":" in value:
       # IPv6
       self.address_type = NetworkAddress.Family.INET6
-      self.packed_bytes = ipv6_utils.InetAtoN(value)
+      self.packed_bytes = ipv6_utils.InetPtoN(socket.AF_INET6, value)
     else:
       # IPv4
       self.address_type = NetworkAddress.Family.INET
-      self.packed_bytes = socket.inet_aton(value)
+      self.packed_bytes = ipv6_utils.InetPtoN(socket.AF_INET, value)
 
 
 class DNSClientConfiguration(structs.RDFProtoStruct):
@@ -386,10 +386,10 @@ class Interface(structs.RDFProtoStruct):
       else:
         if address.address_type == NetworkAddress.Family.INET:
           results.append(
-              socket.inet_ntop(socket.AF_INET, str(address.packed_bytes)))
+              ipv6_utils.InetNtoP(socket.AF_INET, str(address.packed_bytes)))
         else:
           results.append(
-              socket.inet_ntop(socket.AF_INET6, str(address.packed_bytes)))
+              ipv6_utils.InetNtoP(socket.AF_INET6, str(address.packed_bytes)))
     return results
 
 

@@ -164,7 +164,7 @@ setup_args = dict(
         "ipaddr==2.1.11",
         "ipython==4.1.1",
         "pip>=8.1.1,<9",
-        "psutil==4.0.0",
+        "psutil==4.3.0",
         "pyaml==15.8.2",
         "pycrypto==2.6.1",
         "python-dateutil==2.5.3",

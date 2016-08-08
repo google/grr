@@ -27,7 +27,7 @@ class WindowsCodeSignerTest(test_lib.GRRBaseTest):
 
     # Simulate osslsign writing the signed file
     outname = "%s.signed" % intemp.name
-    open(outname, "w").write("content")
+    open(outname, "wb").write("content")
 
     with mock.patch.object(pexpect, "spawn"):
       with mock.patch.object(signing.subprocess, "check_call"):

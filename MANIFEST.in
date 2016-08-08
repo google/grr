@@ -24,3 +24,5 @@ recursive-exclude grr-response-* *
 
 recursive-exclude client/minicomm *
 recursive-exclude * *.pyc
+
+exclude install_data/etc/server.local.yaml

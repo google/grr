@@ -18,6 +18,7 @@ from grr.lib import flow_runner
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import filesystem
+from grr.lib.flows.general import memory
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -52,7 +53,9 @@ class MemoryTest(test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(MemoryTest, self).setUp()
-    test_lib.WriteComponent(token=self.token)
+    test_lib.WriteComponent(
+        token=self.token,
+        version=memory.AnalyzeClientMemoryArgs().component_version)
 
 
 class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
@@ -63,7 +66,7 @@ class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
                                     "searching/auth.log")
 
     # The data in the file.
-    with open(self.memory_file, "r") as f:
+    with open(self.memory_file, "rb") as f:
       self.memory_dump = f.read()
 
     super(MemoryCollectorClientMock, self).__init__("TransferBuffer",
@@ -100,7 +103,7 @@ class TestMemoryCollector(MemoryTest):
 
     self.memory_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
                                     "searching/auth.log")
-    with open(self.memory_file, "r") as f:
+    with open(self.memory_file, "rb") as f:
       self.memory_dump = f.read()
     self.assertTrue(self.memory_dump)
 
@@ -172,7 +175,7 @@ class TestMemoryCollector(MemoryTest):
 
   def testM2CryptoCipherCompatibility(self):
     m2crypto_ciphertext = open(
-        os.path.join(self.base_path, "m2crypto/send_file_data")).read()
+        os.path.join(self.base_path, "m2crypto/send_file_data"), "rb").read()
     key = rdf_crypto.EncryptionKey("x" * 16)
     iv = rdf_crypto.EncryptionKey("y" * 16)
 

@@ -236,12 +236,12 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     os.makedirs(fourth_level_dir)
 
     top_level_path = self.temp_dir
-    open(utils.JoinPath(top_level_path, "bar"), "w").close()
+    open(utils.JoinPath(top_level_path, "bar"), "wb").close()
     for level in range(1, 5):
       top_level_path = utils.JoinPath(top_level_path, level)
       for filename in ("foo", "fOo", "bar"):
         file_path = utils.JoinPath(top_level_path, filename + str(level))
-        open(file_path, "w").close()
+        open(file_path, "wb").close()
         self.assertTrue(os.path.exists(file_path))
 
   def testGlobWithStarStar(self):
@@ -252,7 +252,7 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # Test filename and directory with spaces
     os.makedirs(utils.JoinPath(self.temp_dir, "1/2 space"))
     path_spaces = utils.JoinPath(self.temp_dir, "1/2 space/foo something")
-    open(path_spaces, "w").close()
+    open(path_spaces, "wb").close()
     self.assertTrue(os.path.exists(path_spaces))
 
     # Get the foos using default of 3 directory levels.

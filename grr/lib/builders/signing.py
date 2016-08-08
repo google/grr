@@ -54,7 +54,7 @@ class WindowsCodeSigner(CodeSigner):
       temp_in.write(in_buffer)
       temp_in.seek(0)
       outfile = self.SignFile(temp_in.name)
-      return open(outfile, "r").read()
+      return open(outfile, "rb").read()
 
   def SignFile(self, in_filename, out_filename=None):
     """Sign a file using osslsigncode.

@@ -421,9 +421,22 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
   def GetClientApproval(self, args, token=None):
     # Everybody can have access to everybody's client approvals, provided
-    # they know: a client id, a username of the requester and a reason.
+    # they know: a client id, a username of the requester and an approval id.
 
     return self.delegate.GetClientApproval(args, token=token)
+
+  def GrantClientApproval(self, args, token=None):
+    # Everybody can grant everybody's client approvals, provided
+    # they know: a client id, a username of the requester and an approval id.
+    #
+    # NOTE: Granting an approval doesn't necessarily mean that corresponding
+    # approval request becomes fulfilled right away. Calling this method
+    # adds the caller to the approval's approvers list. Then it depends
+    # on a particular approval if this list is sufficient or not.
+    # Typical case: user can grant his own approval, but this won't make
+    # the approval valid.
+
+    return self.delegate.GrantClientApproval(args, token=token)
 
   def ListClientApprovals(self, args, token=None):
     # Everybody can list their own user client approvals.
@@ -437,9 +450,22 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
   def GetHuntApproval(self, args, token=None):
     # Everybody can have access to everybody's hunts approvals, provided
-    # they know: a hunt id, a username of the requester and a reason.
+    # they know: a hunt id, a username of the requester and an approval id.
 
     return self.delegate.GetHuntApproval(args, token=token)
+
+  def GrantHuntApproval(self, args, token=None):
+    # Everybody can grant everybody's hunts approvals, provided
+    # they know: a hunt id, a username of the requester and an approval id.
+    #
+    # NOTE: Granting an approval doesn't necessarily mean that corresponding
+    # approval request becomes fulfilled right away. Calling this method
+    # adds the caller to the approval's approvers list. Then it depends
+    # on a particular approval if this list is sufficient or not.
+    # Typical case: user can grant his own approval, but this won't make
+    # the approval valid.
+
+    return self.delegate.GrantHuntApproval(args, token=token)
 
   def ListHuntApprovals(self, args, token=None):
     # Everybody can list their own user hunt approvals.
@@ -453,9 +479,22 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
   def GetCronJobApproval(self, args, token=None):
     # Everybody can have access to everybody's crons approvals, provided
-    # they know: a cron job id, a username of the requester and a reason.
+    # they know: a cron job id, a username of the requester and an approval id.
 
     return self.delegate.GetCronJobApproval(args, token=token)
+
+  def GrantCronJobApproval(self, args, token=None):
+    # Everybody can have access to everybody's crons approvals, provided
+    # they know: a cron job id, a username of the requester and an approval id.
+    #
+    # NOTE: Granting an approval doesn't necessarily mean that corresponding
+    # approval request becomes fulfilled right away. Calling this method
+    # adds the caller to the approval's approvers list. Then it depends
+    # on a particular approval if this list is sufficient or not.
+    # Typical case: user can grant his own approval, but this won't make
+    # the approval valid.
+
+    return self.delegate.GrantCronJobApproval(args, token=token)
 
   def ListCronJobApprovals(self, args, token=None):
     # Everybody can list their own user cron approvals.

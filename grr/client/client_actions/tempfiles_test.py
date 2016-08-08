@@ -50,7 +50,7 @@ class GRRTempFileTestDirectory(test_lib.GRRBaseTest):
 
   def testDeleteGRRTempFile(self):
     grr_tempfile = os.path.join(self.existsdir, self.prefix)
-    open(grr_tempfile, "w").write("something")
+    open(grr_tempfile, "wb").write("something")
     tempfiles.DeleteGRRTempFile(grr_tempfile)
     self.assertFalse(os.path.exists(grr_tempfile))
 
@@ -94,7 +94,7 @@ class GRRTempFileTestFilename(test_lib.GRRBaseTest):
     tempfiles.DeleteGRRTempFile(fd.name)
     self.assertFalse(os.path.exists(fd.name))
 
-    fd = open(os.path.join(self.temp_dir, "notatmpfile"), "w")
+    fd = open(os.path.join(self.temp_dir, "notatmpfile"), "wb")
     fd.write("something")
     fd.close()
     self.assertTrue(os.path.exists(fd.name))
@@ -119,7 +119,7 @@ class DeleteGRRTempFiles(test_lib.EmptyActionTest):
     self.tempdir_overrider.Start()
 
     self.not_tempfile = os.path.join(self.temp_dir, "notatempfile")
-    open(self.not_tempfile, "w").write("something")
+    open(self.not_tempfile, "wb").write("something")
 
     self.temp_fd = tempfiles.CreateGRRTempFile(self.dirname)
     self.temp_fd2 = tempfiles.CreateGRRTempFile(self.dirname)
@@ -147,14 +147,14 @@ class DeleteGRRTempFiles(test_lib.EmptyActionTest):
 
     file1 = utils.JoinPath(tempdir1, "file1")
     file2 = utils.JoinPath(tempdir2, "file2")
-    open(file1, "w").write("something")
-    open(file2, "w").write("something")
+    open(file1, "wb").write("something")
+    open(file2, "wb").write("something")
 
     # Unrelated file in the tempdir_roots should be left alone.
     not_a_grr_file1 = utils.JoinPath(temproot1, "file1")
     not_a_grr_file2 = utils.JoinPath(temproot1, "file2")
-    open(not_a_grr_file1, "w").write("something")
-    open(not_a_grr_file2, "w").write("something")
+    open(not_a_grr_file1, "wb").write("something")
+    open(not_a_grr_file2, "wb").write("something")
 
     self.assertTrue(os.path.exists(file1))
     self.assertTrue(os.path.exists(file2))

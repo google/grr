@@ -28,6 +28,7 @@ from grr.lib.aff4_objects import sequential_collection
 # For ArtifactCollectorFlow pylint: disable=unused-import
 from grr.lib.flows.general import collectors
 # pylint: enable=unused-import
+from grr.lib.flows.general import memory
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -229,7 +230,7 @@ class GRRArtifactTest(ArtifactTest):
 
       test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
                                          "artifacts", "test_artifacts.json")
-      filecontent = open(test_artifacts_file).read()
+      filecontent = open(test_artifacts_file, "rb").read()
       artifact.UploadArtifactYamlFile(filecontent, token=self.token)
       loaded_artifacts = artifact_registry.REGISTRY.GetArtifacts()
       self.assertEqual(len(loaded_artifacts), 18)
@@ -425,7 +426,9 @@ class ArtifactFlowWindowsTest(ArtifactTest):
 
   def testRekallPsListArtifact(self):
     """Check we can run Rekall based artifacts."""
-    test_lib.WriteComponent(token=self.token)
+    test_lib.WriteComponent(
+        token=self.token,
+        version=memory.AnalyzeClientMemoryArgs().component_version)
 
     fd = self.RunCollectorAndGetCollection(["RekallPsList"], RekallMock(
         self.client_id, "rekall_pslist_result.dat.gz"))
@@ -437,7 +440,9 @@ class ArtifactFlowWindowsTest(ArtifactTest):
 
   def testRekallVadArtifact(self):
     """Check we can run Rekall based artifacts."""
-    test_lib.WriteComponent(token=self.token)
+    test_lib.WriteComponent(
+        token=self.token,
+        version=memory.AnalyzeClientMemoryArgs().component_version)
 
     # The client should now be populated with the data we care about.
     with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:

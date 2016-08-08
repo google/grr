@@ -130,7 +130,7 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
 
     with utils.TempDirectory() as temp_dir:
       archive_path = os.path.join(temp_dir, "archive.zip")
-      with open(archive_path, "w") as out_fd:
+      with open(archive_path, "wb") as out_fd:
         out_fd.write(zip_fd_contents)
 
       # Builtin python ZipFile implementation doesn't support symlinks,
@@ -144,11 +144,11 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
       self.assertTrue(
           os.path.islink(utils.SmartStr(os.path.join(prefix, u"中国新闻网新闻中.txt"))))
 
-      with open(os.path.join(prefix, "hello1.txt"), "r") as fd:
+      with open(os.path.join(prefix, "hello1.txt"), "rb") as fd:
         self.assertEqual(fd.read(), "hello1")
 
       with open(utils.SmartStr(os.path.join(prefix, u"中国新闻网新闻中.txt")),
-                "r") as fd:
+                "rb") as fd:
         self.assertEqual(fd.read(), "hello2")
 
   def testCreatesTarContainingDeduplicatedCollectionFiles(self):
@@ -165,7 +165,7 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
 
     with utils.TempDirectory() as temp_dir:
       archive_path = os.path.join(temp_dir, "archive.tar.gz")
-      with open(archive_path, "w") as out_fd:
+      with open(archive_path, "wb") as out_fd:
         out_fd.write(tar_fd_contents)
 
       subprocess.check_call(["tar", "-xf", archive_path, "-C", temp_dir])
@@ -177,11 +177,11 @@ class TestExportCollectionFilesAsArchive(test_lib.FlowTestsBaseclass):
       self.assertTrue(
           os.path.islink(utils.SmartStr(os.path.join(prefix, u"中国新闻网新闻中.txt"))))
 
-      with open(os.path.join(prefix, "hello1.txt"), "r") as fd:
+      with open(os.path.join(prefix, "hello1.txt"), "rb") as fd:
         self.assertEqual(fd.read(), "hello1")
 
       with open(utils.SmartStr(os.path.join(prefix, u"中国新闻网新闻中.txt")),
-                "r") as fd:
+                "rb") as fd:
         self.assertEqual(fd.read(), "hello2")
 
 

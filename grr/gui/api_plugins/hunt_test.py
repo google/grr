@@ -378,7 +378,7 @@ class ApiGetHuntFilesArchiveHandlerTest(test_lib.GRRBaseTest,
 
     with utils.TempDirectory() as temp_dir:
       tar_path = os.path.join(temp_dir, "archive.tar.gz")
-      with open(tar_path, "w") as fd:
+      with open(tar_path, "wb") as fd:
         for chunk in result.GenerateContent():
           fd.write(chunk)
 
@@ -392,7 +392,7 @@ class ApiGetHuntFilesArchiveHandlerTest(test_lib.GRRBaseTest,
           break
 
       self.assertTrue(manifest_file_path)
-      with open(manifest_file_path) as fd:
+      with open(manifest_file_path, "rb") as fd:
         manifest = yaml.safe_load(fd.read())
 
         self.assertEqual(manifest["archived_files"], 10)

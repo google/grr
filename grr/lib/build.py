@@ -156,7 +156,7 @@ class ClientBuilder(BuilderBase):
                          version_ini)
     shutil.copy(version_ini, os.path.join(self.output_dir, "version.ini"))
 
-    with open(os.path.join(self.output_dir, "build.yaml"), "w") as fd:
+    with open(os.path.join(self.output_dir, "build.yaml"), "wb") as fd:
       self.WriteBuildYaml(fd)
 
   def WriteBuildYaml(self, fd):

@@ -43,7 +43,7 @@ class TestArtifactManagementRender(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "TestDrivers")
 
   def testArtifactDeletion(self):
-    with open(self.json_file) as fd:
+    with open(self.json_file, "rb") as fd:
       artifact_value = fd.read()
     artifact.UploadArtifactYamlFile(artifact_value, token=self.token)
 

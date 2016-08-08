@@ -597,8 +597,11 @@ def AddUsers(token=None):
 
 
 def InstallTemplatePackage():
+  """Call pip to install the templates."""
   virtualenv_bin = os.path.dirname(sys.executable)
-  pip = "%s/pip" % virtualenv_bin
+  extension = os.path.splitext(sys.executable)[1]
+  pip = "%s/pip%s" % (virtualenv_bin, extension)
+
   # Install the GRR server component to satisfy the dependency below.
   major_minor_version = ".".join(
       pkg_resources.get_distribution("grr-response-core").version.split(".")[0:
@@ -614,20 +617,31 @@ def ManageBinaries(config=None, token=None):
   """Repack templates into installers."""
   print("\nStep 4: Installing template package and repackaging clients with"
         " new configuration.")
+  pack_templates = False
+  download_templates = False
 
   if flags.FLAGS.noprompt:
     if not flags.FLAGS.no_templates_download:
-      InstallTemplatePackage()
-  elif ((raw_input("Download and upgrade client templates? You can skip "
+      download_templates = pack_templates = True
+
+  else:
+    if ((raw_input("Download client templates? You can skip "
                    "this if templates are already installed."
                    "[Yn]: ").upper() or "Y") == "Y"):
+      download_templates = True
+
+    if (raw_input("Repack client templates?" "[Yn]: ").upper() or "Y") == "Y":
+      pack_templates = True
+
+  if download_templates:
     InstallTemplatePackage()
 
   # Build debug binaries, then build release binaries.
-  repacking.TemplateRepacker().RepackAllTemplates(upload=True, token=token)
-  print "\nStep 5: Signing and uploading client components."
+  if pack_templates:
+    repacking.TemplateRepacker().RepackAllTemplates(upload=True, token=token)
 
-  maintenance_utils.SignAllComponents(token=token)
+    print "\nStep 5: Signing and uploading client components."
+    maintenance_utils.SignAllComponents(token=token)
 
   print "\nInitialization complete, writing configuration."
   config.Write()
@@ -725,7 +739,7 @@ def UploadRaw(file_path, aff4_path, token=None):
   """Upload a file to the datastore."""
   full_path = rdfvalue.RDFURN(aff4_path).Add(os.path.basename(file_path))
   fd = aff4.FACTORY.Create(full_path, "AFF4Image", mode="w", token=token)
-  fd.Write(open(file_path).read(1024 * 1024 * 30))
+  fd.Write(open(file_path, "rb").read(1024 * 1024 * 30))
   fd.Close()
   return str(fd.urn)
 
@@ -803,7 +817,7 @@ def main(unused_argv):
       print e
 
   elif flags.FLAGS.subparser_name == "upload_python":
-    content = open(flags.FLAGS.file).read(1024 * 1024 * 30)
+    content = open(flags.FLAGS.file, "rb").read(1024 * 1024 * 30)
     aff4_path = flags.FLAGS.dest_path
     if not aff4_path:
       python_hack_root_urn = config_lib.CONFIG.Get("Config.python_hack_root")
@@ -813,7 +827,7 @@ def main(unused_argv):
         content, aff4_path=aff4_path, client_context=context, token=token)
 
   elif flags.FLAGS.subparser_name == "upload_exe":
-    content = open(flags.FLAGS.file).read(1024 * 1024 * 30)
+    content = open(flags.FLAGS.file, "rb").read(1024 * 1024 * 30)
     context = ["Platform:%s" % flags.FLAGS.platform.title(), "Client Context"]
 
     if flags.FLAGS.dest_path:
@@ -861,11 +875,11 @@ def main(unused_argv):
     print "Uploaded to %s" % uploaded
 
   elif flags.FLAGS.subparser_name == "upload_artifact":
-    json.load(open(flags.FLAGS.file))  # Check it will parse.
+    json.load(open(flags.FLAGS.file, "rb"))  # Check it will parse.
     base_urn = aff4.ROOT_URN.Add("artifact_store")
     try:
       artifact.UploadArtifactYamlFile(
-          open(flags.FLAGS.file).read(1000000),
+          open(flags.FLAGS.file, "rb").read(1000000),
           base_urn=base_urn,
           token=None,
           overwrite=flags.FLAGS.overwrite_artifact)

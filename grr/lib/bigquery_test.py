@@ -36,10 +36,10 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
     schema_data = json.load(
         open(
             os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
-                         "ExportedFile.schema")))
+                         "ExportedFile.schema"), "rb"))
     data_fd = open(
         os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
-                     "ExportedFile.json.gz"))
+                     "ExportedFile.json.gz"), "rb")
     now = rdfvalue.RDFDatetime().Now().AsSecondsFromEpoch()
     job_id = "hunts_HFFE1D044_Results_%s" % now
     bq_client.InsertData("ExportedFile", data_fd, schema_data, job_id)

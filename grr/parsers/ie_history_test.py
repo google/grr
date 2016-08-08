@@ -18,7 +18,7 @@ class IEHistoryTest(test_lib.GRRBaseTest):
   def testBasicParsing(self):
     """Test we can parse a standard file."""
     hist_file = os.path.join(self.base_path, "index.dat")
-    c = ie_history.IEParser(open(hist_file))
+    c = ie_history.IEParser(open(hist_file, "rb"))
     entries = [x for x in c.Parse()]
 
     # Check that our results are properly time ordered

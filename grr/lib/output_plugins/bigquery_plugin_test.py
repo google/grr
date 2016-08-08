@@ -64,7 +64,7 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     expected_schema_data = json.load(
         open(
             os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
-                         "ExportedFile.schema")))
+                         "ExportedFile.schema"), "rb"))
 
     # It's easier to just compare the two dicts but even a change to the proto
     # description requires you to fix the json so we just compare field names
@@ -114,7 +114,7 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     # Compare to our stored data.
     expected_fd = open(
         os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
-                     "ExportedFile.json"))
+                     "ExportedFile.json"), "rb")
 
     # Bigquery expects a newline separarted list of JSON dicts, but this isn't
     # valid JSON so we can't just load the whole thing and compare.
@@ -205,7 +205,7 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     # Compare to our stored data.
     expected_fd = open(
         os.path.join(config_lib.CONFIG["Test.data_dir"], "bigquery",
-                     "ExportedFile.json"))
+                     "ExportedFile.json"), "rb")
 
     # Check that the same entries we expect are spread across the two files.
     counter = 0

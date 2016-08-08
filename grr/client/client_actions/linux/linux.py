@@ -210,7 +210,7 @@ class EnumerateUsers(actions.ActionPlugin):
     for filename in sorted(os.listdir("/var/log")):
       if filename.startswith("wtmp"):
         try:
-          wtmp = open(os.path.join("/var/log", filename)).read()
+          wtmp = open(os.path.join("/var/log", filename), "rb").read()
         except IOError:
           continue
 
@@ -275,7 +275,7 @@ class EnumerateFilesystems(actions.ActionPlugin):
     """Parses the currently mounted devices."""
     # This handles the case where the same filesystem is mounted on
     # multiple places.
-    with open(filename) as fd:
+    with open(filename, "rb") as fd:
       for line in fd:
         try:
           device, mnt_point, fs_type, _ = line.split(" ", 3)

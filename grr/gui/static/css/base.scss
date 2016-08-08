@@ -9,6 +9,7 @@
 @import 'grr/gui/static/css/mixins';
 
 // Directive style includes
+@import 'grr/gui/static/angular-components/acl/approval-info';
 @import 'grr/gui/static/angular-components/artifact/artifacts-list-form';
 @import 'grr/gui/static/angular-components/client/check-client-access';
 @import 'grr/gui/static/angular-components/client/host-info';
@@ -176,7 +177,6 @@ div[ui-view] {
   > grr-legacy-renderer,
   > div > grr-legacy-renderer,
   > *,
-  > * > div,
   > * > div > grr-legacy-renderer {
     display: block;
     height: 100%;

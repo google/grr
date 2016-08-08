@@ -66,11 +66,11 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         archive_format=archive_format,
         prefix="test_prefix",
         description="Test description")
-    with open(self.fd_path, "w") as out_fd:
+    with open(self.fd_path, "wb") as out_fd:
       for chunk in archive_generator.Generate(collection, token=self.token):
         out_fd.write(chunk)
 
-    self.fd = open(self.fd_path, "r")
+    self.fd = open(self.fd_path, "rb")
     return self.fd, self.fd_path
 
   def tearDown(self):

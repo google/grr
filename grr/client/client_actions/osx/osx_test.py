@@ -52,7 +52,7 @@ class OSXFilesystemTests(OSXClientTests):
     """Ensure we can enumerate file systems successfully."""
     path = os.path.join(self.base_path, "osx_fsdata")
     results = self.osx.client_utils_osx.ParseFileSystemsStruct(
-        self.osx.client_utils_osx.StatFS64Struct, 7, open(path).read())
+        self.osx.client_utils_osx.StatFS64Struct, 7, open(path, "rb").read())
     self.assertEqual(len(results), 7)
     self.assertEqual(results[0].f_fstypename, "hfs")
     self.assertEqual(results[0].f_mntonname, "/")

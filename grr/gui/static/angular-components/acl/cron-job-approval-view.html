@@ -1,0 +1,14 @@
+<grr-approval-info approval-type="'cron-job'"
+                   username="controller.username"
+                   object-id="controller.cronJobId"
+                   approval-id="controller.approvalId">
+</grr-approval-info>
+
+<hr>
+
+<!-- TODO(user): get rid of legacy renderer here. -->
+<grr-force-refresh trigger="controller.cronJobId">
+  <grr-legacy-renderer ng-if="controller.cronJobId"
+                       renderer="ShowFlowInformation"
+                       query-params="{flow: 'aff4:/cron/' + controller.cronJobId}" />
+</grr-force-refresh>

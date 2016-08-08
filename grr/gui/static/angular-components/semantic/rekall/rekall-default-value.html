@@ -1,6 +1,7 @@
 <table class="proto_table">
-  <tr ng-repeat="(k, v) in ::value track by $index">
-    <td class="proto_key">
+  <tr ng-repeat="(k, v) in ::value track by $index"
+      ng-if="::k !== 'mro' && k !== 'id'">
+    <td class="proto_key" ng-if="::k !== 'data'">
       <i>{$ ::k $}</i>
     </td>
     <td class="proto_value">

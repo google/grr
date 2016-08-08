@@ -23,7 +23,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
 
   def testMalformedLsbReleaseFile(self):
     path = os.path.join(self.parser_test_dir, "lsb-release-bad")
-    with open(path) as f:
+    with open(path, "rb") as f:
       data = f.read()
     parser = linux_release_parser.LsbReleaseParseHandler(data)
 
@@ -34,7 +34,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
 
   def testGoodLsbReleaseFile(self):
     path = os.path.join(self.parser_test_dir, "lsb-release")
-    with open(path) as f:
+    with open(path, "rb") as f:
       data = f.read()
     parser = linux_release_parser.LsbReleaseParseHandler(data)
 
@@ -45,7 +45,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
 
   def testFallbackLsbReleaseFile(self):
     path = os.path.join(self.parser_test_dir, "lsb-release-notubuntu")
-    with open(path) as f:
+    with open(path, "rb") as f:
       data = f.read()
     parser = linux_release_parser.LsbReleaseParseHandler(data)
 
@@ -56,7 +56,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
 
   def testReleaseFileRedHatish(self):
     path = os.path.join(self.parser_test_dir, "oracle-release")
-    with open(path) as f:
+    with open(path, "rb") as f:
       data = f.read()
     parser = linux_release_parser.ReleaseFileParseHandler("OracleLinux")
     parser(data)
@@ -68,7 +68,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
 
   def testMalformedReleaseFileRedHatish(self):
     path = os.path.join(self.parser_test_dir, "oracle-release-bad")
-    with open(path) as f:
+    with open(path, "rb") as f:
       data = f.read()
     parser = linux_release_parser.ReleaseFileParseHandler("OracleLinux")
     parser(data)
@@ -83,7 +83,7 @@ class LinuxReleaseParserTest(test_lib.GRRBaseTest):
     stats = []
     files = []
     for filepath, localfile in testdata:
-      files.append(open(localfile))
+      files.append(open(localfile, "rb"))
 
       p = rdf_paths.PathSpec(path=filepath)
       s = rdf_client.StatEntry(pathspec=p)

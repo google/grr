@@ -26,7 +26,7 @@ class SQLiteFileTest(test_lib.GRRBaseTest):
   def testTmpFiles(self):
     """This should force a write to a tmp file."""
     filename = os.path.join(self.base_path, "places.sqlite")
-    file_stream = StringIO.StringIO(open(filename).read())
+    file_stream = StringIO.StringIO(open(filename, "rb").read())
     database_file = sqlite_file.SQLiteFile(file_stream)
     entries = [x for x in database_file.Query(self.query)]
     self.assertEqual(len(entries), 92)

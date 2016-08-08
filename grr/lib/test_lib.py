@@ -1852,7 +1852,7 @@ class Popen(object):
 
     try:
       # Store the content of the executable file.
-      Popen.binary = open(run[0]).read()
+      Popen.binary = open(run[0], "rb").read()
     except IOError:
       Popen.binary = None
 
@@ -2504,7 +2504,7 @@ class FakeTestDataVFSHandler(ClientVFSHandlerFixtureBase):
     if not os.path.exists(test_data_path):
       raise IOError("Could not find %s" % test_data_path)
 
-    data = open(test_data_path, "r").read()[self.offset:self.offset + length]
+    data = open(test_data_path, "rb").read()[self.offset:self.offset + length]
 
     self.offset += len(data)
     return data

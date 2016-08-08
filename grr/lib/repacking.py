@@ -158,7 +158,7 @@ class TemplateRepacker(object):
           dest = config_lib.CONFIG.Get("Executables.installer",
                                        context=repack_context)
           maintenance_utils.UploadSignedConfigBlob(
-              open(result_path).read(100 * 1024 * 1024),
+              open(result_path, "rb").read(100 * 1024 * 1024),
               dest,
               client_context=repack_context,
               token=token)

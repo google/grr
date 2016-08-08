@@ -44,7 +44,8 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
 
   def testOSXSPHardwareDataTypeParser(self):
     parser = osx_file_parser.OSXSPHardwareDataTypeParser()
-    content = open(os.path.join(self.base_path, "system_profiler.xml")).read()
+    content = open(os.path.join(self.base_path, "system_profiler.xml"),
+                   "rb").read()
     result = list(
         parser.Parse("/usr/sbin/system_profiler", ["SPHardwareDataType -xml"],
                      content, "", 0, 5, None))
@@ -59,7 +60,7 @@ class TestOSXFileParsing(test_lib.GRRBaseTest):
     results = []
     for plist in plists:
       path = os.path.join(self.base_path, "parser_test", plist)
-      plist_file = open(path)
+      plist_file = open(path, "rb")
       stat = rdf_client.StatEntry(
           aff4path=rdf_client.ClientURN(client).Add("fs/os").Add(path),
           pathspec=rdf_paths.PathSpec(

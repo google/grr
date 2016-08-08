@@ -637,6 +637,15 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("User")
+  @ArgsType(api_user.ApiGrantClientApprovalArgs)
+  @ResultType(api_user.ApiClientApproval)
+  @Http("POST",
+        "/api/users/<username>/approvals/client/<client_id>/<approval_id>/"
+        "actions/grant")
+  def GrantClientApproval(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("User")
   @ArgsType(api_user.ApiListClientApprovalsArgs)
   @ResultType(api_user.ApiListClientApprovalsResult)
   @NoAuditLogRequired()
@@ -662,6 +671,14 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("User")
+  @ArgsType(api_user.ApiGrantHuntApprovalArgs)
+  @ResultType(api_user.ApiHuntApproval)
+  @Http("POST", "/api/users/<username>/approvals/hunt/<hunt_id>/<approval_id>/"
+        "actions/grant")
+  def GrantHuntApproval(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("User")
   @ArgsType(api_user.ApiListHuntApprovalsArgs)
   @ResultType(api_user.ApiListHuntApprovalsResult)
   @NoAuditLogRequired()
@@ -683,6 +700,15 @@ class ApiCallRouter(object):
   @Http("GET",
         "/api/users/<username>/approvals/cron-job/<cron_job_id>/<approval_id>")
   def GetCronJobApproval(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("User")
+  @ArgsType(api_user.ApiGrantCronJobApprovalArgs)
+  @ResultType(api_user.ApiCronJobApproval)
+  @Http("POST",
+        "/api/users/<username>/approvals/cron-job/<cron_job_id>/<approval_id>/"
+        "actions/grant")
+  def GrantCronJobApproval(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")

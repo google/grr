@@ -34,7 +34,7 @@ def GetDPKGData():
   # Load some dpkg data
   parser = linux_cmd_parser.DpkgCmdParser()
   test_data = os.path.join(CHECKS_DIR, "data/dpkg.out")
-  with open(test_data) as f:
+  with open(test_data, "rb") as f:
     DPKG_SW.extend(
         parser.Parse("/usr/bin/dpkg", ["-l"], f.read(), "", 0, 5, None))
   return DPKG_SW
@@ -47,7 +47,7 @@ def GetWMIData():
   # Load some wmi data
   parser = wmi_parser.WMIInstalledSoftwareParser()
   test_data = os.path.join(CHECKS_DIR, "data/wmi_sw.yaml")
-  with open(test_data) as f:
+  with open(test_data, "rb") as f:
     wmi = yaml.safe_load(f)
     for sw in wmi:
       WMI_SW.extend(parser.Parse(None, sw, None))
@@ -61,7 +61,7 @@ def GetSSHDConfig():
   parser = config_file_parsers.SshdConfigParser()
   test_data = os.path.join(config_lib.CONFIG["Test.data_dir"],
                            "VFSFixture/etc/ssh/sshd_config")
-  with open(test_data) as f:
+  with open(test_data, "rb") as f:
     SSHD_CFG.extend(parser.Parse(None, f, None))
   return SSHD_CFG
 
@@ -400,7 +400,7 @@ class ProbeTest(ChecksTestBase):
     super(ProbeTest, self).setUp(**kwargs)
     if not self.configs:
       config_file = os.path.join(CHECKS_DIR, "probes.yaml")
-      with open(config_file) as data:
+      with open(config_file, "rb") as data:
         for cfg in yaml.safe_load_all(data):
           name = cfg.get("name")
           probe_cfg = cfg.get("probe", [{}])
@@ -444,7 +444,7 @@ class MethodTest(ChecksTestBase):
     super(MethodTest, self).setUp(**kwargs)
     if not self.configs:
       config_file = os.path.join(CHECKS_DIR, "sw.yaml")
-      with open(config_file) as data:
+      with open(config_file, "rb") as data:
         check_def = yaml.safe_load(data)
         self.configs = check_def["method"]
 
@@ -476,7 +476,7 @@ class CheckTest(ChecksTestBase):
     super(CheckTest, self).setUp(**kwargs)
     if not self.cfg:
       config_file = os.path.join(CHECKS_DIR, "sw.yaml")
-      with open(config_file) as data:
+      with open(config_file, "rb") as data:
         self.cfg = yaml.safe_load(data)
       self.host_data = {
           "DebianPackagesStatus": {
@@ -550,7 +550,7 @@ class HintDefinitionTests(ChecksTestBase):
     super(HintDefinitionTests, self).setUp(**kwargs)
     if not self.configs:
       config_file = os.path.join(CHECKS_DIR, "sw.yaml")
-      with open(config_file) as data:
+      with open(config_file, "rb") as data:
         cfg = yaml.safe_load(data)
     chk = checks.Check(**cfg)
     self.lin_method, self.win_method, self.foo_method = list(chk.method)
