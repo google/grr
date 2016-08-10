@@ -162,7 +162,7 @@ setup_args = dict(
         "PyYAML==3.11",
         "binplist==0.1.4",
         "ipaddr==2.1.11",
-        "ipython==4.1.1",
+        "ipython==5.0.0",
         "pip>=8.1.1,<9",
         "psutil==4.3.0",
         "pyaml==15.8.2",
@@ -173,6 +173,7 @@ setup_args = dict(
         "urllib3==1.14",
         "protobuf==2.6.1",
         "wheel==0.29",
+        "virtualenv==15.0.3",
     ],
     extras_require={
         # The following requirements are needed in Windows.

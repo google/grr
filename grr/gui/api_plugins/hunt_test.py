@@ -873,14 +873,17 @@ class ApiListHuntClientsHandlerRegressionTest(
 
       self.client_ids = self.SetupClients(5)
       self.AssignTasksToClients(client_ids=self.client_ids)
-      self.RunHunt(client_ids=self.client_ids[3:])
+      # Only running the hunt on a single client, as SampleMock
+      # implementation is non-deterministic in terms of resources
+      # usage that gets reported back to the hunt.
+      self.RunHunt(client_ids=[self.client_ids[-1]], failrate=0)
 
     # Create replace dictionary.
     replace = {hunt_urn.Basename(): "H:123456"}
 
     # Add all sub flows to replace dict.
-    all_flows = hunts.GRRHunt.GetAllSubflowUrns(hunt_urn, self.client_ids,
-                                                self.token)
+    all_flows = hunts.GRRHunt.GetAllSubflowUrns(
+        hunt_urn, self.client_ids, token=self.token)
 
     for flow_urn in all_flows:
       replace[flow_urn.Basename()] = "W:123456"

@@ -116,6 +116,9 @@ def CheckUselessComponentModules(virtualenv_interpreter):
                         for x in pip.get_installed_distributions())
 
   for component_name in component_modules:
+    if "==" not in component_name:
+      continue
+
     dist_name, version = component_name.split("==")
     # We already know about it - it will not be packaged.
     if dist_name in SKIPPED_MODULES:

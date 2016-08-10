@@ -1,0 +1,74 @@
+<grr-confirmation-dialog name="RequestApprovalDialog"
+                         title="'Request ' + controller.subjectTitle + ' Approval'"
+                         proceed="controller.proceed()"
+                         proceed-name="'Submit'"
+                         proceed-class="'btn-success'"
+                         can-proceed="controller.reason && controller.approversList"
+                         auto-close-on-success="true">
+
+  <p class="text-info">
+    Approval is required to access this
+    {$ controller.subjectTitle | lowercase $}.
+
+    <blockquote ng-if="accessErrorDescription">
+      {$ accessErrorDescription $}
+    </blockquote>
+  </p>
+
+  <h3>Create a new approval request.</h3>
+  <form class="form-horizontal acl-form">
+    <div class="form-group">
+      <label class="control-label">Approvers</label>
+      <div class="controls">
+        <input type="text" name="acl_approver" class="form-control"
+               ng-model="controller.approversList"
+               placeholder="approver1,approver2,approver3">
+        </input>
+      </div>
+    </div>
+
+
+    <div class="form-group" ng-if="controller.ccAddresses.length">
+      <div class="controls">
+        <input type="checkbox" name="cc_approval" class="form-control"
+               ng-model="controller.useCcAddresses">
+        </input>
+        <label>CC {$ controller.ccAddresses.join(', ') $}</label>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="control-label">Reason</label>
+      <div class="controls">
+        <select class="form-control"
+                name="acl_recent_reasons"
+                ng-model="controller.selectedRecentReason">
+          <option value="">Enter New Reason...</option>
+          <option ng-repeat="reason in controller.recentReasons"
+                  value="{$ reason $}">{$ reason $}</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label class="control-label"></label>
+      <div class="controls">
+        <input type="text" name="acl_reason" class="form-control"
+               ng-disabled="controller.selectedRecentReason"
+               ng-model="controller.reason">
+        </input>
+      </div>
+    </div>
+
+    <div class="form-group" ng-if="approvalType == 'client'">
+      <div class="controls">
+        <input type="checkbox" name="keepalive" class="form-control"
+               ng-model="controller.keepClientAlive">
+        </input>
+        <label>Keep this client alive as soon as it comes online.</label>
+      </div>
+    </div>
+
+  </form>
+
+</grr-confirmation-dialog>

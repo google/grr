@@ -1,6 +1,7 @@
 'use strict';
 
 goog.provide('grrUi.core.utils.camelCaseToDashDelimited');
+goog.provide('grrUi.core.utils.stringToList');
 goog.provide('grrUi.core.utils.stripAff4Prefix');
 
 
@@ -25,6 +26,28 @@ grrUi.core.utils.camelCaseToDashDelimited = function(input) {
         .replace(/-+$/, '') // Removing trailing '-'.
         .toLowerCase();
 };
+
+
+/**
+ * Splits comma-separated string into a list of strings. Trims every string
+ * along the way.
+ *
+ * @param {string} input Comma-separated string.
+ * @return {Array<string>} List of trimmed strings.
+ */
+grrUi.core.utils.stringToList = function(input) {
+  var result = [];
+
+  angular.forEach((input || '').split(','), function(item) {
+    item = item.trim();
+    if (item) {
+      result.push(item);
+    }
+  });
+
+  return result;
+};
+
 
 /**
  * Strips 'aff4:/' prefix from the string.

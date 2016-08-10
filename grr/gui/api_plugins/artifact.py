@@ -83,7 +83,11 @@ class ApiUploadArtifactHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiUploadArtifactArgs
 
   def Handle(self, args, token=None):
-    artifact.UploadArtifactYamlFile(args.artifact, token=token)
+    artifact.UploadArtifactYamlFile(
+        args.artifact,
+        token=token,
+        overwrite=True,
+        overwrite_system_artifacts=False)
 
 
 class ApiDeleteArtifactsArgs(rdf_structs.RDFProtoStruct):
@@ -104,12 +108,16 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
     deps = set()
     to_delete = set(args.names)
     for artifact_obj in artifacts:
-      deps.update(artifact_obj.GetArtifactDependencies() & to_delete)
+      if artifact_obj.name in to_delete:
+        continue
+
+      if artifact_obj.GetArtifactDependencies() & to_delete:
+        deps.add(str(artifact_obj.name))
 
     if deps:
       raise ValueError(
           "Artifact(s) %s depend(s) on one of the artifacts to delete." %
-          (",".join(list(deps))))
+          (",".join(deps)))
 
     with aff4.FACTORY.Create(
         "aff4:/artifact_store",
@@ -118,17 +126,17 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
         token=token) as store:
       all_artifacts = list(store)
 
-    filtered_artifacts, found_artifacts = [], []
+    filtered_artifacts, found_artifact_names = set(), set()
     for artifact_value in all_artifacts:
       if artifact_value.name in to_delete:
-        found_artifacts.append(artifact_value)
+        found_artifact_names.add(artifact_value.name)
       else:
-        filtered_artifacts.append(artifact_value)
+        filtered_artifacts.add(artifact_value)
 
-    if len(found_artifacts) != len(to_delete):
-      not_found = to_delete - set(found_artifacts)
+    if len(found_artifact_names) != len(to_delete):
+      not_found = to_delete - found_artifact_names
       raise ValueError("Artifact(s) to delete (%s) not found." %
-                       ",".join(list(not_found)))
+                       ",".join(not_found))
 
     # TODO(user): this is ugly and error- and race-condition- prone.
     # We need to store artifacts not in an RDFValueCollection, which is an

@@ -248,7 +248,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # This should be rejected now and a form request is made.
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
-    self.Click("css=#acl_dialog button[name=Close]")
+    self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
@@ -298,7 +298,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # This should be rejected now and a form request is made.
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
-    self.Click("css=#acl_dialog button[name=Close]")
+    self.Click("css=grr-request-approval-dialog button[name=Cancel]")
 
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
@@ -352,7 +352,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # This should be rejected now and a form request is made.
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
-    self.Click("css=#acl_dialog button[name=Close]")
+    self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
@@ -409,7 +409,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # This should be rejected now and a form request is made.
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
-    self.Click("css=#acl_dialog button[name=Close]")
+    self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
@@ -446,10 +446,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     client_mock = test_lib.SampleHuntMock(failrate=failrate)
     test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
 
-  def testHuntDetailView(self):
+  def testHuntClientsView(self):
     """Test the detailed client view works."""
-    with self.ACLChecksDisabled():
-      self.SetupHuntDetailView(failrate=-1)
+    hunt = self._CreateHuntWithDownloadedFile()
 
     # Open up and click on View Hunts then the first Hunt.
     self.Open("/")
@@ -463,25 +462,18 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=li[heading=Overview]")
     self.WaitUntil(self.IsTextPresent, "Hunt URN")
 
-    # Check the Hunt Details.
-    self.Click("css=button[name=ViewHuntDetails]")
-    self.WaitUntil(self.IsTextPresent, "Viewing Hunt aff4:/hunts/")
+    # Check the Hunt Clients tab.
+    self.Click("css=li[heading=Clients]")
 
-    self.WaitUntil(self.IsTextPresent, "COMPLETED")
+    client_id = self.client_ids[0]
+    self.WaitUntil(self.IsElementPresent,
+                   "css=tr:contains('%s')" % client_id.Basename())
 
-    # Select the first client which should have errors.
-    self.Click("css=td:contains('%s')" % self.client_ids[1].Basename())
-    self.WaitUntil(self.IsTextPresent, "Last Checkin")
-
-    self.Click("css=a[renderer=HuntLogRenderer]")
-    self.WaitUntil(self.IsTextPresent, "GetFile Flow Completed")
-
-    self.Click("css=a[renderer=HuntErrorRenderer]")
-    self.WaitUntil(self.IsTextPresent, "Client Error 1")
-
-    self.Click("css=a[renderer=HuntHostInformationRenderer]")
-    self.WaitUntil(self.IsTextPresent, "CLIENT_INFO")
-    self.WaitUntil(self.IsTextPresent, "VFSGRRClient")
+    hunt_flows = list(
+        aff4.FACTORY.ListChildren(
+            hunt.urn.Add(client_id.Basename()), token=self.token))
+    self.assertEqual(len(hunt_flows), 1)
+    self.WaitUntil(self.IsTextPresent, utils.SmartStr(hunt_flows[0]))
 
   def testHuntOverviewShowsStats(self):
     """Test the detailed client view works."""
@@ -1012,7 +1004,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     # TODO(user): Fail *any* test if we get a 500 in the process.
     self.WaitUntilNot(self.IsTextPresent, "Loading...")
 
-  def testOutstandingClientsTabShowsAllNonCompletedClients(self):
+  def testClientsTabShowsCompletedAndOutstandingClients(self):
     with self.ACLChecksDisabled():
       # Create some clients and a hunt to view.
       self.CreateSampleHunt()
@@ -1026,8 +1018,14 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     self.Open("/#main=ManageHunts")
     self.Click("css=td:contains('GenericHunt')")
-    self.Click("css=li[heading=Outstanding]")
+    self.Click("css=li[heading=Clients]")
 
+    self.Click("css=label[name=ShowCompletedClients]")
+    for client_id in finished_client_ids:
+      self.WaitUntilContains(client_id.Basename(), self.GetText,
+                             "css=.tab-content")
+
+    self.Click("css=label[name=ShowOutstandingClients]")
     for client_id in outstanding_client_ids:
       self.WaitUntilContains(client_id.Basename(), self.GetText,
                              "css=.tab-content")

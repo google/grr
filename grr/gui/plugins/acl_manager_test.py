@@ -168,9 +168,12 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
                    "css=h3:contains('Create a new approval')")
 
     # This asks the user "test" (which is us) to approve the request.
-    self.Type("css=input[id=acl_approver]", "test")
-    self.Type("css=input[id=acl_reason]", self.reason)
-    self.Click("acl_dialog_submit")
+    self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
+              "test")
+    self.Type("css=grr-request-approval-dialog input[name=acl_reason]",
+              self.reason)
+    self.Click(
+        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
 
     self.WaitForNotification("aff4:/users/test")
     # User test logs in as an approver.
@@ -279,28 +282,34 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=h3:contains('Create a new approval')")
 
-    self.WaitUntilEqual(2, self.GetCssCount,
-                        "css=select[id=acl_recent_reasons] option")
-    self.assertEqual(
-        "Enter New Reason...",
-        self.GetText("css=select[id=acl_recent_reasons] option:nth(0)"))
-    self.assertEqual(
-        test_reason,
-        self.GetText("css=select[id=acl_recent_reasons] option:nth(1)"))
+    self.WaitUntilEqual(2, self.GetCssCount, "css=grr-request-approval-dialog "
+                        "select[name=acl_recent_reasons] option")
+    self.assertEqual("Enter New Reason...", self.GetText(
+        "css=grr-request-approval-dialog "
+        "select[name=acl_recent_reasons] option:nth(0)"))
+    self.assertEqual(test_reason, self.GetText(
+        "css=grr-request-approval-dialog "
+        "select[name=acl_recent_reasons] option:nth(1)"))
 
     # The reason text box should be there and enabled.
-    element = self.GetElement("css=input[id=acl_reason]")
+    element = self.GetElement(
+        "css=grr-request-approval-dialog input[name=acl_reason]")
     self.assertTrue(element.is_enabled())
 
-    self.Select("css=select[id=acl_recent_reasons]", test_reason)
+    self.Select(
+        "css=grr-request-approval-dialog select[name=acl_recent_reasons]",
+        test_reason)
 
     # Make sure clicking the recent reason greys out the reason text box.
-    element = self.GetElement("css=input[id=acl_reason]")
+    element = self.GetElement(
+        "css=grr-request-approval-dialog input[name=acl_reason]")
     self.assertFalse(element.is_enabled())
 
     # Ok now submit this.
-    self.Type("css=input[id=acl_approver]", "test")
-    self.Click("acl_dialog_submit")
+    self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
+              "test")
+    self.Click(
+        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
 
     # "Request Approval" dialog should go away.
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
@@ -344,9 +353,12 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
                    "css=h3:contains('Create a new approval')")
 
     # This asks the user "test" (which is us) to approve the request.
-    self.Type("css=input[id=acl_approver]", "test")
-    self.Type("css=input[id=acl_reason]", self.reason)
-    self.Click("acl_dialog_submit")
+    self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
+              "test")
+    self.Type("css=grr-request-approval-dialog input[name=acl_reason]",
+              self.reason)
+    self.Click(
+        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
 
     # "Request Approval" dialog should go away
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
@@ -385,7 +397,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
 
     # Click on Run and wait for dialog again.
-    self.Click("css=button[name=RunHunt]")
+    self.Click("css=button[name=RunHunt]:not([disabled])")
     self.WaitUntil(self.IsTextPresent,
                    "Are you sure you want to run this hunt?")
     # Click on "Proceed" and wait for authorization dialog to appear.
@@ -393,7 +405,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # This is insufficient - we need 2 approvers.
     self.WaitUntilContains("Requires 2 approvers for access.", self.GetText,
-                           "css=div#acl_form")
+                           "css=grr-request-approval-dialog")
 
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
@@ -426,7 +438,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # This is still insufficient - one of the approvers should have
     # "admin" label.
     self.WaitUntilContains("At least 1 approver(s) should have 'admin' label.",
-                           self.GetText, "css=div#acl_form")
+                           self.GetText, "css=grr-request-approval-dialog")
 
     # Let's make "approver" an admin.
     with self.ACLChecksDisabled():
@@ -528,7 +540,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
     self.WaitUntil(self.IsTextPresent, "No approval found")
 
-    self.Click("css=#acl_dialog button[name=Close]")
+    self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
     self.WaitUntil(self.IsElementPresent,
@@ -548,7 +560,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
     self.WaitUntil(self.IsTextPresent, "No approval found")
 
-    self.Click("css=#acl_dialog button[name=Close]")
+    self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
@@ -637,9 +649,12 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
                    "css=h3:contains('Create a new approval')")
 
     # This asks the user "test" (which is us) to approve the request.
-    self.Type("css=input[id=acl_approver]", "test")
-    self.Type("css=input[id=acl_reason]", self.reason)
-    self.Click("acl_dialog_submit")
+    self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
+              "test")
+    self.Type("css=grr-request-approval-dialog input[name=acl_reason]",
+              self.reason)
+    self.Click(
+        "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
 
     # "Request Approval" dialog should go away
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
@@ -684,7 +699,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # This is insufficient - we need 2 approvers.
     self.WaitUntilContains("Requires 2 approvers for access.", self.GetText,
-                           "css=div#acl_form")
+                           "css=grr-request-approval-dialog")
 
     # Lets add another approver.
     token = access_control.ACLToken(username="approver")
@@ -717,7 +732,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # This is still insufficient - one of the approvers should have
     # "admin" label.
     self.WaitUntilContains("At least 1 approver(s) should have 'admin' label.",
-                           self.GetText, "css=div#acl_form")
+                           self.GetText, "css=grr-request-approval-dialog")
 
     # Let's make "approver" an admin.
     with self.ACLChecksDisabled():

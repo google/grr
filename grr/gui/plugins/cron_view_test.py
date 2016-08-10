@@ -144,7 +144,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
     # This should be rejected now and a form request is made.
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
-    self.Click("css=#acl_dialog button[name=Close]")
+    self.Click("css=grr-request-approval-dialog button[name=Cancel]")
 
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
@@ -190,7 +190,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
 
-    self.Click("css=#acl_dialog button[name=Close]")
+    self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
@@ -235,7 +235,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.Click("css=button[name=Proceed]")
     self.WaitUntil(self.IsTextPresent, "Create a new approval")
 
-    self.Click("css=#acl_dialog button[name=Close]")
+    self.Click("css=grr-request-approval-dialog button[name=Cancel]")
     # Wait for dialog to disappear.
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
@@ -285,7 +285,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
       self.Click("css=button[name=Proceed]")
       self.WaitUntil(self.IsTextPresent, "Create a new approval")
 
-      self.Click("css=#acl_dialog button[name=Close]")
+      self.Click("css=grr-request-approval-dialog button[name=Cancel]")
       # Wait for dialog to disappear.
       self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 

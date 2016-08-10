@@ -1,6 +1,7 @@
 'use strict';
 
 goog.require('grrUi.core.utils.camelCaseToDashDelimited');
+goog.require('grrUi.core.utils.stringToList');
 
 describe('core utils', function() {
 
@@ -36,4 +37,23 @@ describe('core utils', function() {
     });
   });
 
+
+  describe('stringToList', function() {
+    var stringToList = grrUi.core.utils.stringToList;
+
+    it('returns empty list for empty string', function() {
+      var result = stringToList('');
+      expect(result).toEqual([]);
+    });
+
+    it('splits 3 items correctly', function() {
+      var result = stringToList('a, b, c');
+      expect(result).toEqual(['a', 'b', 'c']);
+    });
+
+    it('trims spaces from elements', function() {
+      var result = stringToList('a  , b  ,c ');
+      expect(result).toEqual(['a', 'b', 'c']);
+    });
+  });
 });

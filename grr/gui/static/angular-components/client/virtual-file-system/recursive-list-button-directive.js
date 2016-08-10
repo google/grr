@@ -158,7 +158,13 @@ RecursiveListButtonController.prototype.createRefreshOperation = function() {
 
             operationId = this.lastOperationId =
                 response['data']['operation_id'];
-            return this.grrApiService_.poll(url + '/' + operationId);
+
+            var pollPromise = this.grrApiService_.poll(url + '/' + operationId);
+            this.scope_.$on('$destroy', function() {
+              this.grrApiService_.cancelPoll(pollPromise);
+            }.bind(this));
+
+            return pollPromise;
           }.bind(this),
           function failure(response) {
             this.done = true;

@@ -61,7 +61,7 @@ UploadArtifactDialogController.prototype.proceed = function() {
 
   this.inProgress = true;
   this.grrApiService_.post(
-    '/artifacts/upload', {}, false, {'artifact': this.file}).then(
+    '/artifacts', {}, false, {'artifact': this.file}).then(
       function success() {
         deferred.resolve('Artifact was successfully uploaded.');
       }.bind(this),

@@ -322,6 +322,8 @@ class IndexedSequentialCollection(SequentialCollection):
     self._index = None
 
   def _ReadIndex(self):
+    if self._index:
+      return
     self._index = {0: (0, 0)}
     self._max_indexed = 0
     for (attr, value, ts) in data_store.DB.ResolvePrefix(
@@ -330,7 +332,7 @@ class IndexedSequentialCollection(SequentialCollection):
       self._index[i] = (ts, int(value, 16))
       self._max_indexed = max(i, self._max_indexed)
 
-  def _MaybeWriteIndex(self, i, ts):
+  def _MaybeWriteIndex(self, i, ts, mutation_pool):
     """Write index marker i."""
     if i > self._max_indexed and i % self.INDEX_SPACING == 0:
       # We only write the index if the timestamp is more than 5 minutes in the
@@ -341,11 +343,10 @@ class IndexedSequentialCollection(SequentialCollection):
         # give up in that case. TODO(user): Remove this when the ACL
         # system allows.
         try:
-          data_store.DB.Set(self.urn,
+          mutation_pool.Set(self.urn,
                             self.INDEX_ATTRIBUTE_PREFIX + "%08x" % i,
                             "%06x" % ts[1],
-                            ts[0],
-                            token=self.token,
+                            timestamp=ts[0],
                             replace=True)
           self._index[i] = ts
           self._max_indexed = max(i, self._max_indexed)
@@ -354,8 +355,7 @@ class IndexedSequentialCollection(SequentialCollection):
 
   def _IndexedScan(self, i, max_records=None):
     """Scan records starting with index i."""
-    if not self._index:
-      self._ReadIndex()
+    self._ReadIndex()
 
     # The record number that we will read next.
     idx = 0
@@ -377,12 +377,15 @@ class IndexedSequentialCollection(SequentialCollection):
     if max_records is not None:
       max_records += i - idx
 
-    for (ts, value) in self.Scan(
-        after_timestamp=start_ts, max_records=max_records, include_suffix=True):
-      self._MaybeWriteIndex(idx, ts)
-      if idx >= i:
-        yield (idx, ts, value)
-      idx += 1
+    with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+      for (ts, value) in self.Scan(
+          after_timestamp=start_ts,
+          max_records=max_records,
+          include_suffix=True):
+        self._MaybeWriteIndex(idx, ts, mutation_pool)
+        if idx >= i:
+          yield (idx, ts, value)
+        idx += 1
 
   def GenerateItems(self, offset=0):
     for (_, _, value) in self._IndexedScan(offset):
@@ -397,8 +400,7 @@ class IndexedSequentialCollection(SequentialCollection):
       raise RuntimeError("Index must be >= 0")
 
   def CalculateLength(self):
-    if not self._index:
-      self._ReadIndex()
+    self._ReadIndex()
     highest_index = None
     for (i, _, _) in self._IndexedScan(self._max_indexed):
       highest_index = i
@@ -410,9 +412,8 @@ class IndexedSequentialCollection(SequentialCollection):
     return self.CalculateLength()
 
   def UpdateIndex(self):
-    if not self._index:
-      self._ReadIndex()
-    for (_, _, _) in self._IndexedScan(self._max_indexed):
+    self._ReadIndex()
+    for _ in self._IndexedScan(self._max_indexed):
       pass
 
   @classmethod

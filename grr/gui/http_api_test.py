@@ -164,9 +164,10 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
     request.scheme = "http"
     request.environ = {"SERVER_NAME": "foo.bar", "SERVER_PORT": 1234}
     request.user = username
-    if method in ["GET", "HEAD", "DELETE"]:
+    if method in ["GET", "HEAD"]:
       request.GET = query_parameters
-    request.META = {}
+    request.META = {"CONTENT_TYPE": "application/json; charset=utf-8"}
+    request.body = ""
 
     return request
 

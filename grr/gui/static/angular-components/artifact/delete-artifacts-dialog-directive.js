@@ -40,8 +40,8 @@ var DeleteArtifactsDialogController =
 DeleteArtifactsDialogController.prototype.proceed = function() {
   var deferred = this.q_.defer();
 
-  this.grrApiService_.post(
-      '/artifacts/delete', { names: this.scope_['names'] }).then(
+  this.grrApiService_.delete(
+      '/artifacts', { names: this.scope_['names'] }).then(
         function success() {
           deferred.resolve('Artifacts were deleted successfully.');
         }.bind(this),

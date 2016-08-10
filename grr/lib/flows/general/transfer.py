@@ -79,10 +79,6 @@ class GetFile(flow.GRRFlow):
     response = responses.First()
     if responses.success and response:
       self.state.stat = response
-      # TODO(user): This is a workaround for broken clients sending back
-      # empty pathspecs for pathtype MEMORY. Not needed for clients > 3.0.0.5.
-      if self.state.stat.pathspec.path:
-        self.args.pathspec = self.state.stat.pathspec
     else:
       if not self.args.ignore_stat_failure:
         raise IOError("Error: %s" % responses.status)
@@ -124,7 +120,7 @@ class GetFile(flow.GRRFlow):
     Note that this is pinned on the client id - i.e. the client can not change
     aff4 objects outside its tree.
     """
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(self.args.pathspec,
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(self.state.stat.pathspec,
                                               self.client_id)
 
     self.state.stat.aff4path = urn

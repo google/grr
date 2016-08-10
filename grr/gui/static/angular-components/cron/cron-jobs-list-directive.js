@@ -230,10 +230,10 @@ CronJobsListController.prototype.showDeleteCronJobConfirmation = function() {
  */
 CronJobsListController.prototype.deleteCronJob_ = function() {
   var cronJobId = this.selectedCronJobUrn.split('/')[2];
-  var url = 'cron-jobs/' + cronJobId + '/actions/delete';
+  var url = 'cron-jobs/' + cronJobId;
   var deferred = this.q_.defer();
 
-  this.grrApiService_.post(url).then(
+  this.grrApiService_.delete(url).then(
     function success(){
       deferred.resolve('Cron job was deleted successfully!');
     },

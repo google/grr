@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 import os
+import platform
 import stat
 import time
+import unittest
 
 import mock
 
@@ -59,6 +61,9 @@ class WindowsActionTests(test_lib.OSSpecificClientTests):
     super(WindowsActionTests, self).tearDown()
     self.module_patcher.stop()
 
+  @unittest.skipIf(platform.system() == "Darwin", (
+      "IPv6 address strings are cosmetically slightly different on OS X, "
+      "and we only expect this parsing code to run on Linux or maybe Windows"))
   def testEnumerateInterfaces(self):
     # Stub out wmi.WMI().Win32_NetworkAdapterConfiguration(IPEnabled=1)
     wmi_object = self.windows.wmi.WMI.return_value

@@ -329,7 +329,8 @@ class RegistryFile(vfs.VFSHandler):
         raise IOError("Unable to open key %s" % self.key_name)
 
   def Stat(self):
-    if not self.last_modified:
+    # mtime is only available for keys, not values.
+    if self.is_directory and not self.last_modified:
       with OpenKey(self.hive, self.local_path) as key:
         (self.number_of_keys, self.number_of_values,
          self.last_modified) = QueryInfoKey(key)

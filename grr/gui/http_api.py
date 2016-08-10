@@ -157,9 +157,9 @@ class HttpRequestHandler(object):
     """Build an ACLToken from the request."""
 
     # The request.GET dictionary will also be filled on HEAD and DELETE calls.
-    if request.method in ["GET", "HEAD", "DELETE"]:
+    if request.method in ["GET", "HEAD"]:
       reason = request.GET.get("reason", "")
-    elif request.method == "POST":
+    elif request.method in ["POST", "DELETE"]:
       # The header X-GRR-REASON is set in api-service.js, which django converts
       # to HTTP_X_GRR_REASON.
       reason = utils.SmartUnicode(
@@ -281,7 +281,7 @@ class HttpRequestHandler(object):
   def _GetArgsFromRequest(self, request, method_metadata, route_args):
     """Builds args struct out of HTTP request."""
 
-    if request.method in ["GET", "HEAD", "DELETE"]:
+    if request.method in ["GET", "HEAD"]:
       if method_metadata.args_type:
         unprocessed_request = request.GET
         if hasattr(unprocessed_request, "dict"):
@@ -296,7 +296,7 @@ class HttpRequestHandler(object):
 
       else:
         args = None
-    elif request.method == "POST":
+    elif request.method in ["POST", "DELETE"]:
       try:
         args = method_metadata.args_type()
         for type_info in args.type_infos:
@@ -310,7 +310,7 @@ class HttpRequestHandler(object):
           for name, fd in request.FILES.items():
             args.Set(name, fd.read())
         else:
-          payload = json.loads(request.body)
+          payload = json.loads(request.body or "{}")
           if payload:
             args.FromDict(payload)
       except Exception as e:  # pylint: disable=broad-except

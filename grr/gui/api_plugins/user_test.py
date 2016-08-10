@@ -20,6 +20,8 @@ from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
 from grr.lib.aff4_objects import security as aff4_security
 from grr.lib.aff4_objects import users as aff4_users
 
+from grr.lib.flows.general import administrative
+
 from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
 
@@ -311,6 +313,16 @@ class ApiCreateClientApprovalHandlerTest(test_lib.GRRBaseTest,
     self.args.approval.reason = self.token.reason
     self.args.approval.notified_users = ["approver"]
     self.args.approval.email_cc_addresses = ["test@example.com"]
+
+  def testKeepAliveFlowIsStartedWhenFlagIsSet(self):
+    self.args.keep_client_alive = True
+
+    self.handler.Handle(self.args, self.token)
+    flows = aff4.FACTORY.Open(
+        self.subject_urn.Add("flows"), token=self.token).OpenChildren()
+    keep_alive_flow = [f for f in flows
+                       if f.__class__ == administrative.KeepAlive]
+    self.assertEqual(len(keep_alive_flow), 1)
 
 
 class ApiCreateClientApprovalHandlerRegressionTest(

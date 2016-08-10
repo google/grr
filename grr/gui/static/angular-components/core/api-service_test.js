@@ -238,6 +238,29 @@ describe('API service', function() {
       // No requests should be outstanding by this point.
     });
 
+    it('does not call callbacks when cancelled via cancelPoll()', function() {
+      $httpBackend.expectGET('/api/some/path').respond(200, {});
+
+      var successHandlerCalled = false;
+      var failureHandlerCalled = false;
+      var finallyHandlerCalled = false;
+      var pollPromise = grrApiService.poll('some/path');
+
+      pollPromise.then(function() {
+        successHandlerCalled = true;
+      }, function() {
+        failureHandlerCalled = true;
+      }).finally(function() {
+        finallyHandlerCalled = true;
+      });
+      grrApiService.cancelPoll(pollPromise);
+
+      $httpBackend.flush();
+      expect(successHandlerCalled).toBe(false);
+      expect(failureHandlerCalled).toBe(false);
+      expect(finallyHandlerCalled).toBe(false);
+    });
+
     it('succeeds and returns response if first try succeeds', function() {
       $httpBackend.expectGET('/api/some/path').respond(200, {
         'foo': 'bar',
@@ -338,36 +361,30 @@ describe('API service', function() {
 
   describe('delete() method', function() {
     it('adds "/api/" to a given url', function() {
-      $httpBackend.whenDELETE('/api/some/path').respond(200);
+      $httpBackend.expectDELETE('/api/some/path').respond(200);
       grrApiService.delete('some/path');
       $httpBackend.flush();
     });
 
     it('adds "/api/" to a given url starting with "/"', function() {
-      $httpBackend.whenDELETE('/api/some/path').respond(200);
+      $httpBackend.expectDELETE('/api/some/path').respond(200);
       grrApiService.delete('/some/path');
       $httpBackend.flush();
     });
 
-    it('passes user-provided headers in the request', function() {
-      $httpBackend.whenDELETE('/api/some/path?key1=value1&key2=value2').
-          respond(200);
+    it('passes user-provided data in the request', function() {
+      $httpBackend.expect(
+          'DELETE', '/api/some/path', {key1: 'value1', key2: 'value2'})
+              .respond(200);
       grrApiService.delete('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 
-    it('passes user-provided headers in the request', function() {
-      $httpBackend.whenDELETE('/api/some/path?' +
-          'key1=value1&key2=value2').respond(200);
-      grrApiService.delete('some/path', {key1: 'value1', key2: 'value2'});
-      $httpBackend.flush();
-    });
 
     it('url-escapes the path', function() {
-      $httpBackend.whenDELETE(
-          '/api/some/path%3Ffoo%26bar?key1=value1&key2=value2').respond(200);
-      grrApiService.delete('some/path?foo&bar',
-                           {key1: 'value1', key2: 'value2'});
+      $httpBackend.expectDELETE(
+          '/api/some/path%3Ffoo%26bar').respond(200);
+      grrApiService.delete('some/path?foo&bar');
       $httpBackend.flush();
     });
   });
@@ -382,14 +399,6 @@ describe('API service', function() {
     it('adds "/api/" to a given url starting with "/"', function() {
       $httpBackend.whenPOST('/api/some/path').respond(200);
       grrApiService.post('/some/path', {});
-      $httpBackend.flush();
-    });
-
-    it('passes user-provided headers in the request', function() {
-      $httpBackend.whenPOST(
-          '/api/some/path', {key1: 'value1', key2: 'value2'}).
-              respond(200);
-      grrApiService.post('some/path', {key1: 'value1', key2: 'value2'});
       $httpBackend.flush();
     });
 

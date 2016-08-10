@@ -1,0 +1,45 @@
+<div class="pull-right horizontally-padded">
+  <div class="btn-group" data-toggle="buttons">
+    <label class="btn btn-default" name="ShowOutstandingClients"
+           ng-click="controller.clientType = 'outstanding'">
+      <input type="radio">Outstanding</input>
+    </label>
+    <label class="btn btn-default active" name="ShowCompletedClients"
+           ng-click="controller.clientType = 'completed'">
+      <input type="radio">Completed</input>
+    </label>
+  </div>
+</div>
+<div class="padded clearfix"></div>
+
+<grr-force-refresh refresh-trigger="controller.huntClientsUrl">
+
+  <table class="table table-striped table-condensed table-bordered full-width">
+    <thead>
+      <tr>
+        <th>Client</th>
+        <th>Flow</th>
+        <th>User CPU (s)</th>
+        <th>System CPU (s)</th>
+        <th>Network Traffic</th>
+        <th>Pending Requests</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr grr-infinite-table grr-api-items-provider url="::controller.huntClientsUrl">
+        <td><grr-semantic-value value="::item.value.client_id" /></td>
+        <td><grr-semantic-value value="::item.value.flow_urn" /></td>
+        <td>{$ ::item.value.cpu_usage.value.user_cpu_time.value || 0 | number: 2 $}s</td>
+        <td>{$ ::item.value.cpu_usage.value.system_cpu_time.value || 0 | number: 2 $}s</td>
+        <td>{$ ::item.value.network_bytes_sent.value || 0 | number: 0 $}b</td>
+        <td>
+          <span ng-repeat="pendingRequest in ::item.value.pending_requests">
+            <grr-semantic-value="::pendingRequest"></grr-semantic-value>
+            <hr ng-if="::!$last">
+          </span>
+        </td>
+      </tr>
+    </tbody>
+  </table>
+
+</grr-force-refresh>

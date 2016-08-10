@@ -492,6 +492,9 @@ class TestFileView(FileViewTestBase):
 
     # Grab the root directory again - should produce an Interrogate flow.
     self.Click("css=button#refresh-dir:not([disabled])")
+    # Check that the button got disabled.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button[id=refresh-dir][disabled]")
 
     # Go to the flow management screen.
     self.Click("css=a[grrtarget='client.flows']")
@@ -554,8 +557,8 @@ class TestFileView(FileViewTestBase):
 
   def testUpdateButtonGetsDisabledWhileUpdateIsRunning(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
-    self.Click("css=button[id=refresh-dir]:not([disabled])")
 
+    self.Click("css=button[id=refresh-dir]:not([disabled])")
     # Check that the button got disabled.
     self.WaitUntil(self.IsElementPresent,
                    "css=button[id=refresh-dir][disabled]")
@@ -570,9 +573,9 @@ class TestFileView(FileViewTestBase):
 
   def testUpdateButtonGetsReenabledWhenUpdateEnds(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
-    self.Click("css=button[id=refresh-dir]:not([disabled])")
 
-    # Check that the button got re-enabled.
+    self.Click("css=button[id=refresh-dir]:not([disabled])")
+    # Check that the button got disabled.
     self.WaitUntil(self.IsElementPresent,
                    "css=button[id=refresh-dir][disabled]")
 
@@ -585,8 +588,8 @@ class TestFileView(FileViewTestBase):
 
   def testSwitchingFoldersWhileUpdatingEnablesUpdateButton(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
-    self.Click("css=button[id=refresh-dir]:not([disabled])")
 
+    self.Click("css=button[id=refresh-dir]:not([disabled])")
     # Check that the button got disabled.
     self.WaitUntil(self.IsElementPresent,
                    "css=button[id=refresh-dir][disabled]")
@@ -600,7 +603,10 @@ class TestFileView(FileViewTestBase):
 
   def testTreeAndFileListRefreshedWhenUpdateCompletes(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
+
     self.Click("css=button[id=refresh-dir]:not([disabled])")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=button[id=refresh-dir][disabled]")
 
     client_id = rdf_client.ClientURN("C.0000000000000001")
     self._RunUpdateFlow(client_id)
@@ -614,11 +620,12 @@ class TestFileView(FileViewTestBase):
 
   def testTreeAndFileListRefreshedWhenUpdateCompletesWhenSelectionChanged(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
-    self.Click("css=button[id=refresh-dir]:not([disabled])")
 
+    self.Click("css=button[id=refresh-dir]:not([disabled])")
     # Change the selection while the update is in progress.
     self.WaitUntil(self.IsElementPresent,
                    "css=button[id=refresh-dir][disabled]")
+
     self.Click("css=#_fs-os-c-bin a")
 
     client_id = rdf_client.ClientURN("C.0000000000000001")

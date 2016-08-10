@@ -519,29 +519,45 @@ def ApplyParserToResponses(processor_obj, responses, source, state, token):
 def UploadArtifactYamlFile(file_content,
                            base_urn=None,
                            token=None,
-                           overwrite=True):
+                           overwrite=True,
+                           overwrite_system_artifacts=False):
   """Upload a yaml or json file as an artifact to the datastore."""
-  _ = overwrite
   loaded_artifacts = []
   if not base_urn:
     base_urn = aff4.ROOT_URN.Add("artifact_store")
   registry_obj = artifact_registry.REGISTRY
 
   new_artifacts = registry_obj.ArtifactsFromYaml(file_content)
+  new_artifact_names = set()
   # A quick syntax check before we upload anything.
   for artifact_value in new_artifacts:
     artifact_value.ValidateSyntax()
+    new_artifact_names.add(artifact_value.name)
 
   # Iterate through each artifact adding it to the collection.
   with aff4.FACTORY.Create(
       base_urn, aff4_type=collects.RDFValueCollection, token=token,
-      mode="rw") as artifact_coll:
+      mode="r") as artifact_coll:
+    current_artifacts = list(artifact_coll)
+
+  # We need to remove artifacts we are overwriting.
+  filtered_artifacts = [art for art in current_artifacts
+                        if art.name not in new_artifact_names]
+
+  with aff4.FACTORY.Create(
+      base_urn, aff4_type=collects.RDFValueCollection, token=token,
+      mode="w") as artifact_coll:
+
+    for artifact_value in filtered_artifacts:
+      artifact_coll.Add(artifact_value)
+
     for artifact_value in new_artifacts:
       artifact_coll.Add(artifact_value)
       registry_obj.RegisterArtifact(
           artifact_value,
           source="datastore:%s" % base_urn,
-          overwrite_if_exists=overwrite)
+          overwrite_if_exists=overwrite,
+          overwrite_system_artifacts=overwrite_system_artifacts)
       loaded_artifacts.append(artifact_value)
       logging.info("Uploaded artifact %s to %s", artifact_value.name, base_urn)
 

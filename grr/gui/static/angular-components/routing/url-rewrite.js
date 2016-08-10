@@ -45,11 +45,6 @@ grrUi.routing.rewriteUrl = function(url) {
       var huntId = huntUrn ? huntUrn.split('/')[2] : '';
       return '/hunts/' + huntId;
 
-    case 'ManageHuntsClientView':
-      var huntUrn = hashState['hunt_id'];
-      var huntId = huntUrn ? huntUrn.split('/')[2] : '';
-      return '/hunt-details/' + huntId;
-
     case 'ShowStatistics':
       var selection = hashState['t'] || '';
       return '/stats?selection=' + selection;

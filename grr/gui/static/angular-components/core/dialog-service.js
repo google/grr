@@ -78,7 +78,8 @@ DialogService.prototype.openDirectiveDialog = function(directive, opt_params){
   if(angular.isDefined(opt_params)){
     angular.forEach(opt_params || {}, function(value, key) {
       modalScope[key] = opt_params[key];
-      paramString += ' ' + key + '="' + key + '"';
+      paramString += ' ' + grrUi.core.utils.camelCaseToDashDelimited(key) +
+          '="' + key + '"';
     });
   }
 

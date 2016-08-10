@@ -88,6 +88,39 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
     self.CompareFDs(fd1, fd2)
 
+  def testGetFilePathCorrection(self):
+    """Tests that the pathspec returned is used for the aff4path."""
+    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile")
+    # Deliberately using the wrong casing.
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS,
+        path=os.path.join(self.base_path, "TEST_IMG.dd"))
+
+    for s in test_lib.TestFlowHelper(
+        "GetFile",
+        client_mock,
+        token=self.token,
+        client_id=self.client_id,
+        pathspec=pathspec):
+      session_id = s
+
+    results = list(
+        aff4.FACTORY.Open(
+            session_id.Add("Results"), token=self.token))
+    self.assertEqual(len(results), 1)
+    res_pathspec = results[0].pathspec
+
+    # Fix path for Windows testing.
+    pathspec.path = pathspec.path.replace("\\", "/")
+    # Test the AFF4 file that was created.
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(res_pathspec, self.client_id)
+    fd1 = aff4.FACTORY.Open(urn, token=self.token)
+    fd2 = open(res_pathspec.path, "rb")
+    fd2.seek(0, 2)
+
+    self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
+    self.CompareFDs(fd1, fd2)
+
   @unittest.skipUnless(platform.system() == "Linux",
                        "/proc only exists on Linux")
   def testMultiGetFileOfSpecialFiles(self):

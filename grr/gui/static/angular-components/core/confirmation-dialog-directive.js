@@ -11,12 +11,16 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
+ * @param {!angular.$timeout} $timeout
  * @ngInject
  */
 grrUi.core.confirmationDialogDirective.ConfirmationDialogController =
-  function($scope) {
+  function($scope, $timeout) {
     /** @private {!angular.Scope} */
     this.scope_ = $scope;
+
+    /** @private {!angular.$timeout} */
+    this.timeout_ = $timeout;
 
     /** @export {?string} */
     this.error;
@@ -39,6 +43,12 @@ ConfirmationDialogController.prototype.proceed = function() {
   if(result){
     result.then(function success(successMessage) {
       this.success = successMessage;
+
+      if (this.scope_['autoCloseOnSuccess']) {
+        this.timeout_(function() {
+          this.close();
+        }.bind(this), 1000);
+      }
     }.bind(this), function failure(errorMessage) {
       this.error = errorMessage;
     }.bind(this));
@@ -91,8 +101,10 @@ grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective = function() 
       closeName: '=',
       cancelName: '=',
       proceedName: '=',
+      proceedClass: '=',
       proceed: '&',
-      canProceed: '&?'
+      canProceed: '&?',
+      autoCloseOnSuccess: '='
     },
     restrict: 'E',
     transclude: true,
@@ -114,4 +126,3 @@ grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective
 
 
 });
-

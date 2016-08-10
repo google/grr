@@ -130,8 +130,8 @@ ApiService.service_name = 'grrApiService';
  * @return {!angular.$q.Promise} Promise that resolves to the result.
  * @private
  */
-ApiService.prototype.sendRequest_ = function(method, apiPath, opt_params,
-                                             opt_requestSettings) {
+ApiService.prototype.sendRequestWithoutPayload_ = function(
+    method, apiPath, opt_params, opt_requestSettings) {
   var requestParams = angular.extend({}, opt_params);
   var requestSettings = angular.extend({}, opt_requestSettings);
 
@@ -158,7 +158,7 @@ ApiService.prototype.sendRequest_ = function(method, apiPath, opt_params,
  * @return {!angular.$q.Promise} Promise that resolves to the result.
  */
 ApiService.prototype.head = function(apiPath, opt_params) {
-  return this.sendRequest_("HEAD", apiPath, opt_params);
+  return this.sendRequestWithoutPayload_("HEAD", apiPath, opt_params);
 };
 
 /**
@@ -169,7 +169,7 @@ ApiService.prototype.head = function(apiPath, opt_params) {
  * @return {!angular.$q.Promise} Promise that resolves to the result.
  */
 ApiService.prototype.get = function(apiPath, opt_params) {
-  return this.sendRequest_("GET", apiPath, opt_params);
+  return this.sendRequestWithoutPayload_("GET", apiPath, opt_params);
 };
 
 /**
@@ -180,18 +180,8 @@ ApiService.prototype.get = function(apiPath, opt_params) {
  * @return {!angular.$q.Promise} Promise that resolves to the result.
  */
 ApiService.prototype.getCached = function(apiPath, opt_params) {
-  return this.sendRequest_("GET", apiPath, opt_params, {cache: true});
-};
-
-/**
- * Deletes the resource behind a given API url via HTTP DELETE method.
- *
- * @param {string} apiPath API path to trigger.
- * @param {Object<string, string>=} opt_params Query parameters.
- * @return {!angular.$q.Promise} Promise that resolves to the result.
- */
-ApiService.prototype.delete = function(apiPath, opt_params) {
-  return this.sendRequest_("DELETE", apiPath, opt_params);
+  return this.sendRequestWithoutPayload_("GET", apiPath, opt_params,
+                                         {cache: true});
 };
 
 /**
@@ -216,7 +206,12 @@ ApiService.prototype.poll = function(apiPath, opt_params, opt_checkFn) {
     }.bind(this);
   }
 
+  var cancelled = false;
   var pollIteration = function() {
+    if (cancelled) {
+      return;
+    }
+
     return this.get(apiPath, opt_params).then(function success(response) {
       if (opt_checkFn(response)) {
         return response;
@@ -228,7 +223,21 @@ ApiService.prototype.poll = function(apiPath, opt_params, opt_checkFn) {
     }.bind(this));
   }.bind(this);
 
-  return pollIteration();
+  var result = pollIteration();
+  result['cancel'] = function() {
+    cancelled = true;
+  };
+  return result;
+};
+
+/**
+ * Cancels polling previously started by poll(). As a result of this
+ * the promise will neither be resolved, nor rejected.
+ *
+ * @param {!angular.$q.Promise} pollPromise Promise returned by poll() call.
+ */
+ApiService.prototype.cancelPoll = function(pollPromise) {
+  pollPromise.cancel();
 };
 
 /**
@@ -300,12 +309,13 @@ ApiService.prototype.downloadFile = function(apiPath, opt_params) {
 
 
 /**
- * Sends POST request to the server.
+ * Sends request with a payload (POST/UPDATE/DELETE) to the server.
  *
+ * @param {string} httpMethod HTTP method to use.
  * @param {string} apiPath API path to trigger.
  * @param {Object<string, string>=} opt_params Dictionary that will be
         sent as a POST payload.
- * @param {boolean} opt_stripTypeInfo If true, treat opt_params as JSON-encoded
+ * @param {boolean=} opt_stripTypeInfo If true, treat opt_params as JSON-encoded
  *      RDFValue with rich type information. This type information
  *      will be stripped before opt_params is sent as a POST payload.
  *
@@ -317,9 +327,11 @@ ApiService.prototype.downloadFile = function(apiPath, opt_params) {
  *      to the server.
  *
  * @return {!angular.$q.Promise} Promise that resolves to the server response.
+ *
+ * @private
  */
-ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
-                                     opt_files) {
+ApiService.prototype.sendRequestWithPayload_ = function(
+    httpMethod, apiPath, opt_params, opt_stripTypeInfo, opt_files) {
   opt_params = opt_params || {};
 
   if (opt_stripTypeInfo) {
@@ -330,7 +342,7 @@ ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
   var request;
   if (angular.equals(opt_files || {}, {})) {
     request = {
-      method: 'POST',
+      method: httpMethod,
       url: encodeUrlPath('/api/' + apiPath.replace(/^\//, '')),
       data: opt_params,
       headers: {}
@@ -359,5 +371,54 @@ ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
     this.grrLoadingIndicatorService_.stopLoading(loadingKey);
   }.bind(this));
 };
+
+
+/**
+ * Sends POST request to the server.
+ *
+ * @param {string} apiPath API path to trigger.
+ * @param {Object<string, string>=} opt_params Dictionary that will be
+        sent as a POST payload.
+ * @param {boolean=} opt_stripTypeInfo If true, treat opt_params as JSON-encoded
+ *      RDFValue with rich type information. This type information
+ *      will be stripped before opt_params is sent as a POST payload.
+ *
+ *      This option is useful when sending values edited with forms back to the
+ *      server. Values edited by semantic forms will have rich type information
+ *      in them, while server will be expecting stripped down version of the
+ *      same data. See stripTypeInfo() documentation for an example.
+ * @param {Object<string, File>=} opt_files Dictionary with files to be uploaded
+ *      to the server.
+ *
+ * @return {!angular.$q.Promise} Promise that resolves to the server response.
+ */
+ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
+                                     opt_files) {
+  return this.sendRequestWithPayload_(
+      'POST', apiPath, opt_params, opt_stripTypeInfo, opt_files);
+};
+
+
+/**
+ * Deletes the resource behind a given API url via HTTP DELETE method.
+ *
+ * @param {string} apiPath API path to trigger.
+ * @param {Object<string, string>=} opt_params Dictionary that will be
+        sent as a DELETE payload.
+ * @param {boolean=} opt_stripTypeInfo If true, treat opt_params as JSON-encoded
+ *      RDFValue with rich type information. This type information
+ *      will be stripped before opt_params is sent as a POST payload.
+ *
+ *      This option is useful when sending values edited with forms back to the
+ *      server. Values edited by semantic forms will have rich type information
+ *      in them, while server will be expecting stripped down version of the
+ *      same data. See stripTypeInfo() documentation for an example.
+ * @return {!angular.$q.Promise} Promise that resolves to the result.
+ */
+ApiService.prototype.delete = function(apiPath, opt_params, opt_stripTypeInfo) {
+  return this.sendRequestWithPayload_(
+      'DELETE', apiPath, opt_params, opt_stripTypeInfo);
+};
+
 
 });  // goog.scope

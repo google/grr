@@ -1,14 +1,20 @@
 goog.provide('grrUi.acl.module');
+goog.require('grrUi.acl.aclDialogService.AclDialogService');
 goog.require('grrUi.acl.approvalInfoDirective.ApprovalInfoDirective');
 goog.require('grrUi.acl.clientApprovalViewDirective.ClientApprovalViewDirective');
 goog.require('grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewDirective');
 goog.require('grrUi.acl.grantAccessDirective.GrantAccessDirective');
 goog.require('grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective');
+goog.require('grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective');
 
 /**
  * Angular module for acl GRR UI components.
  */
 grrUi.acl.module = angular.module('grrUi.acl', ['grrUi.core']);
+
+grrUi.acl.module.service(
+    grrUi.acl.aclDialogService.AclDialogService.service_name,
+    grrUi.acl.aclDialogService.AclDialogService);
 
 grrUi.acl.module.directive(
     grrUi.acl.approvalInfoDirective.ApprovalInfoDirective.directive_name,
@@ -25,3 +31,6 @@ grrUi.acl.module.directive(
 grrUi.acl.module.directive(
     grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective.directive_name,
     grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective);
+grrUi.acl.module.directive(
+    grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective.directive_name,
+    grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective);

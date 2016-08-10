@@ -27,7 +27,7 @@
       {$ cancelName || 'Cancel' $}
     </button>
 
-    <button class="btn btn-primary"
+    <button class="btn {$ proceedClass || 'btn-primary' $}"
             ng-click="controller.proceed()"
             ng-disabled="canProceed && !canProceed()"
             name="Proceed">

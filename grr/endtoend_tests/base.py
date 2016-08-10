@@ -281,8 +281,9 @@ class VFSPathContentExists(AutomatedTest):
           self.delete_urns.add(urn)
           return self.CheckFile(aff4.FACTORY.Open(urn, token=self.token))
 
-      self.fail(("Output file not found. Maybe the GRR client "
-                 "is not running with root privileges?"))
+      self.fail(
+          ("Output file %s not found. Maybe the GRR client "
+           "is not running with root privileges?" % self.test_output_path))
 
     else:
       urn = self.client_id.Add(self.test_output_path)

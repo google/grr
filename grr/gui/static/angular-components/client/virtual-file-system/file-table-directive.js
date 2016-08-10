@@ -185,7 +185,12 @@ FileTableController.prototype.startVfsRefreshOperation = function() {
             operationId = this.lastRefreshOperationId =
                 response['data']['operation_id'];
 
-            return this.grrApiService_.poll(url + '/' + operationId);
+            var pollPromise = this.grrApiService_.poll(url + '/' + operationId);
+            this.scope_.$on('$destroy', function() {
+              this.grrApiService_.cancelPoll(pollPromise);
+            }.bind(this));
+
+            return pollPromise;
           }.bind(this))
       .then(
           function success() {

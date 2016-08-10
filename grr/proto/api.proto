@@ -730,6 +730,34 @@ message ApiListHuntClientsArgs {
     }];
 };
 
+message ApiHuntClientPendingRequest {
+  optional string flow_urn = 1 [(sem_type) = {
+      type: "RDFURN",
+      description: "The flow urn."
+    }];
+  optional string incomplete_request_id = 2 [(sem_type) = {
+      description: "The id of the incomplete request."
+    }];
+  optional string next_state = 3 [(sem_type) = {
+      description: "The next state of the flow."
+    }];
+  optional string expected_args = 4 [(sem_type) = {
+      description: "The name of the expected arguments."
+    }];
+  optional int64 available_responses_count = 5 [(sem_type) = {
+      description: "The number of available responses."
+    }];
+  optional string expected_responses = 6 [(sem_type) = {
+      description: "The expected responses."
+    }];
+  optional bool is_status_available = 7 [(sem_type) = {
+      description: "Whether the status is available or not."
+    }];
+  optional int64 available_client_requests_count = 8 [(sem_type) = {
+      description: "The number of client requests available."
+    }];
+}
+
 message ApiHuntClient {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
@@ -739,27 +767,13 @@ message ApiHuntClient {
       type: "RDFURN",
       description: "The flow urn."
     }];
-  optional string incomplete_request_id = 3 [(sem_type) = {
-      description: "The id of the incomplete request."
+  optional CpuSeconds cpu_usage = 10 [(sem_type) = {
+      description: "CPU usage (in seconds)."
     }];
-  optional string next_state = 4 [(sem_type) = {
-      description: "The next state of the flow."
+  optional int64 network_bytes_sent = 11 [(sem_type) = {
+      description: "Network usage (in bytes)."
     }];
-  optional string expected_args = 5 [(sem_type) = {
-      description: "The name of the expected arguments."
-    }];
-  optional int64 available_responses_count = 6 [(sem_type) = {
-      description: "The number of available responses."
-    }];
-  optional string expected_responses = 7 [(sem_type) = {
-      description: "The expected responses."
-    }];
-  optional bool is_status_available = 8 [(sem_type) = {
-      description: "Whether the status is available or not."
-    }];
-  optional int64 available_client_requests_count = 9 [(sem_type) = {
-      description: "The number of client requests available."
-    }];
+  repeated ApiHuntClientPendingRequest pending_requests = 12;
 };
 
 message ApiListHuntClientsResult {
@@ -1072,6 +1086,10 @@ message ApiCreateClientApprovalArgs {
       description: "Client id."
     }];
   optional ApiClientApproval approval = 2;
+  optional bool keep_client_alive = 3 [(sem_type) = {
+      description: "If true, the client will be kept alive for an hour right "
+      "after the approval request is sent."
+    }];
 }
 
 message ApiGetClientApprovalArgs {

@@ -4,6 +4,7 @@ goog.provide('grrUi.hunt.module');
 
 goog.require('grrUi.core.module');
 
+goog.require('grrUi.hunt.huntClientsDirective.HuntClientsDirective');
 goog.require('grrUi.hunt.huntContextDirective.HuntContextDirective');
 goog.require('grrUi.hunt.huntCrashesDirective.HuntCrashesDirective');
 goog.require('grrUi.hunt.huntDetailsDirective.HuntDetailsDirective');
@@ -11,7 +12,6 @@ goog.require('grrUi.hunt.huntErrorsDirective.HuntErrorsDirective');
 goog.require('grrUi.hunt.huntGraphDirective.HuntGraphDirective');
 goog.require('grrUi.hunt.huntInspectorDirective.HuntInspectorDirective');
 goog.require('grrUi.hunt.huntLogDirective.HuntLogDirective');
-goog.require('grrUi.hunt.huntOutstandingClientsDirective.HuntOutstandingClientsDirective');
 goog.require('grrUi.hunt.huntOverviewDirective.HuntOverviewDirective');
 goog.require('grrUi.hunt.huntResultsDirective.HuntResultsDirective');
 goog.require('grrUi.hunt.huntStatsDirective.HuntStatsDirective');
@@ -31,6 +31,9 @@ grrUi.hunt.module = angular.module('grrUi.hunt',
                                     grrUi.hunt.newHuntWizard.module.name]);
 
 
+grrUi.hunt.module.directive(
+    grrUi.hunt.huntClientsDirective.HuntClientsDirective.directive_name,
+    grrUi.hunt.huntClientsDirective.HuntClientsDirective);
 grrUi.hunt.module.directive(
     grrUi.hunt.huntContextDirective.HuntContextDirective.directive_name,
     grrUi.hunt.huntContextDirective.HuntContextDirective);
@@ -55,9 +58,6 @@ grrUi.hunt.module.directive(
 grrUi.hunt.module.directive(
     grrUi.hunt.huntOverviewDirective.HuntOverviewDirective.directive_name,
     grrUi.hunt.huntOverviewDirective.HuntOverviewDirective);
-grrUi.hunt.module.directive(
-    grrUi.hunt.huntOutstandingClientsDirective.HuntOutstandingClientsDirective.directive_name,
-    grrUi.hunt.huntOutstandingClientsDirective.HuntOutstandingClientsDirective);
 grrUi.hunt.module.directive(
     grrUi.hunt.huntResultsDirective.HuntResultsDirective.directive_name,
     grrUi.hunt.huntResultsDirective.HuntResultsDirective);

@@ -1,6 +1,9 @@
 #!/usr/bin/env python
 """Tests for grr.parsers.wmi_parser."""
 
+import platform
+import unittest
+
 from grr.lib import client_fixture
 from grr.lib import flags
 from grr.lib import test_lib
@@ -13,6 +16,9 @@ from grr.parsers import wmi_parser
 
 class WMIParserTest(test_lib.FlowTestsBaseclass):
 
+  @unittest.skipIf(platform.system() == "Darwin", (
+      "IPv6 address strings are cosmetically slightly different on OS X, "
+      "and we only expect this parsing code to run on Linux or maybe Windows"))
   def testInterfaceParsing(self):
     parser = wmi_parser.WMIInterfacesParser()
     rdf_dict = rdf_protodict.Dict()

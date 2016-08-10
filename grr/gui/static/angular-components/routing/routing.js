@@ -142,15 +142,6 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
         }
       }
     })
-    // The hunt details are rendered on the topmost level and are therefore
-    // also represented by a top level state. This will be deprecated later.
-    .state('huntDetails', {
-      url: '/hunt-details/:huntId',
-      template: '<grr-hunt-details />',
-      params: {
-        huntId: { value: null, squash: true }
-      }
-    })
     .state('stats', {
       url: '/stats?selection',
       template: '<grr-stats-view />',

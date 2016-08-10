@@ -83,7 +83,7 @@ setup_args = dict(
         "pexpect==4.0.1",
         "portpicker==1.1.1",
         "python-crontab==2.0.1",
-        "rekall-core~=1.5.1",
+        "rekall-core~=1.5.3",
         "Werkzeug==0.11.3",
         "wsgiref==0.1.2",
     ],

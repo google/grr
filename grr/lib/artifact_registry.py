@@ -169,12 +169,22 @@ class ArtifactRegistry(object):
   def RegisterArtifact(self,
                        artifact_rdfvalue,
                        source="datastore",
-                       overwrite_if_exists=False):
+                       overwrite_if_exists=False,
+                       overwrite_system_artifacts=False):
     """Registers a new artifact."""
-    if not overwrite_if_exists and artifact_rdfvalue.name in self._artifacts:
-      raise ArtifactDefinitionError("Artifact named %s already exists and "
-                                    "overwrite_if_exists is set to False." %
-                                    artifact_rdfvalue.name)
+    artifact_name = artifact_rdfvalue.name
+    if artifact_name in self._artifacts:
+      if not overwrite_if_exists:
+        raise ArtifactDefinitionError("Artifact named %s already exists and "
+                                      "overwrite_if_exists is set to False." %
+                                      artifact_name)
+      elif not overwrite_system_artifacts:
+        artifact_obj = self._artifacts[artifact_name]
+        if not artifact_obj.loaded_from.startswith("datastore:"):
+          # This artifact was not uploaded to the datastore but came from a
+          # file, refuse to overwrite.
+          raise ArtifactDefinitionError("System artifact %s cannot be "
+                                        "overwritten." % artifact_name)
 
     # Preserve where the artifact was loaded from to help debugging.
     artifact_rdfvalue.loaded_from = source

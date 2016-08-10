@@ -18,14 +18,16 @@ describe('confirmation dialog directive', function() {
     $q = $injector.get('$q');
   }));
 
-  var render = function(title, message, proceedCallback) {
+  var render = function(title, message, proceedCallback, buttonClass) {
     $rootScope.title = title;
     $rootScope.message = message;
     $rootScope.proceed = proceedCallback;
+    $rootScope.buttonClass = buttonClass;
 
     var template = '<grr-confirmation-dialog ' +
                    '    title="title" ' +
-                   '    proceed="proceed()">' +
+                   '    proceed="proceed()"' +
+                   '    proceed-class="buttonClass">' +
                    '  {$ message $}' +
                    '</grr-confirmation-dialog>';
     var element = $compile(template)($rootScope);
@@ -40,6 +42,11 @@ describe('confirmation dialog directive', function() {
     var element = render(title, message);
     expect(element.find('.modal-header h3').text().trim()).toBe(title);
     expect(element.find('.modal-body').text().trim()).toContain(message);
+  });
+
+  it('applies given style to "proceed" button', function() {
+    var element = render('title', 'message', undefined, 'btn-warning');
+    expect(element.find('button.btn-warning')).not.toBe(undefined);
   });
 
   it('shows success on proceed promise resolve', function() {
@@ -89,7 +96,5 @@ describe('confirmation dialog directive', function() {
     $rootScope.$apply();
     expect($('button[name=Proceed][disabled]', element).length).toBe(0);
   });
-  // someDDirectiveName  -> some-d-directive-name
-  // someDDDirectiveName -> some-d-d-directive-name
-  // someADirectiveName  -> some-a-directive-name
+
 });

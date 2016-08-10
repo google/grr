@@ -1038,9 +1038,9 @@ class GRRHunt(flow.GRRFlow):
         self._GetCollectionItems(self.completed_clients_collection_urn))
     outstanding = started - completed
 
-    return {"STARTED": sorted(started),
-            "COMPLETED": sorted(completed),
-            "OUTSTANDING": sorted(outstanding)}
+    return {"STARTED": started,
+            "COMPLETED": completed,
+            "OUTSTANDING": outstanding}
 
   def GetClientStates(self, client_list, client_chunk=50):
     """Take in a client list and return dicts with their age and hostname."""
@@ -1070,7 +1070,8 @@ class GRRHunt(flow.GRRFlow):
       runner.CheckExpiry()
 
   @staticmethod
-  def GetAllSubflowUrns(hunt_urn, client_urns, token=None):
+  def GetAllSubflowUrns(hunt_urn, client_urns, top_level_only=False,
+                        token=None):
     """Lists all subflows for a given hunt for all clients in client_urns."""
     client_ids = [urn.Split()[0] for urn in client_urns]
     client_bases = [hunt_urn.Add(client_id) for client_id in client_ids]
@@ -1086,6 +1087,9 @@ class GRRHunt(flow.GRRFlow):
             next_flows.append(flow_urn)
       all_flows.extend(next_flows)
       act_flows = next_flows
+
+      if top_level_only:
+        break
 
     return all_flows
 

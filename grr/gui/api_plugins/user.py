@@ -19,6 +19,8 @@ from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
 from grr.lib.aff4_objects import security as aff4_security
 from grr.lib.aff4_objects import users as aff4_users
 
+from grr.lib.flows.general import administrative
+
 from grr.lib.hunts import implementation
 
 from grr.lib.rdfvalues import client as rdf_client
@@ -333,6 +335,19 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
 
   approval_obj_type = aff4_security.ClientApproval
   approval_create_flow = aff4_security.RequestClientApprovalFlow
+
+  def Handle(self, args, token=None):
+    result = super(ApiCreateClientApprovalHandler, self).Handle(
+        args, token=token)
+
+    if args.keep_client_alive:
+      flow.GRRFlow.StartFlow(
+          client_id=args.client_id,
+          flow_name=administrative.KeepAlive.__name__,
+          duration=3600,
+          token=token)
+
+    return result
 
 
 class ApiGetClientApprovalArgs(ApiClientApprovalArgsBase):

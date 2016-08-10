@@ -155,14 +155,14 @@ class ApiCallRouter(object):
 
   @Category("Artifacts")
   @ArgsType(api_artifact.ApiUploadArtifactArgs)
-  @Http("POST", "/api/artifacts/upload")
+  @Http("POST", "/api/artifacts")
   @NoAuditLogRequired()
   def UploadArtifact(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Artifacts")
   @ArgsType(api_artifact.ApiDeleteArtifactsArgs)
-  @Http("POST", "/api/artifacts/delete")
+  @Http("DELETE", "/api/artifacts")
   @NoAuditLogRequired()
   def DeleteArtifacts(self, args, token=None):
     raise NotImplementedError()
@@ -472,7 +472,7 @@ class ApiCallRouter(object):
 
   @Category("Cron")
   @ArgsType(api_cron.ApiDeleteCronJobArgs)
-  @Http("POST", "/api/cron-jobs/<cron_job_id>/actions/delete")
+  @Http("DELETE", "/api/cron-jobs/<cron_job_id>")
   def DeleteCronJob(self, args, token=None):
     raise NotImplementedError()
 

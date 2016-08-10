@@ -14,7 +14,7 @@ recursive-exclude grr/gui/static/node_modules *
 recursive-exclude grr/gui/static/tmp *
 recursive-exclude client/minicomm *
 recursive-exclude executables *.zip
-recursive-exclude executables/windows/installers *.exe
+recursive-exclude executables/installers *
 recursive-exclude executables *.bin
 recursive-exclude executables/components *
 recursive-exclude executables/linux *
