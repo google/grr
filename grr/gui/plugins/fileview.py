@@ -1257,6 +1257,13 @@ class AFF4Stats(renderers.TemplateRenderer):
           continue
 
         values = list(fd.GetValuesForAttribute(attribute))
+        try:
+          # Unpack GrrMessages and EmbeddedRDFValues.
+          values = [v.payload for v in values]
+          values = filter(None, values)
+        except AttributeError:
+          pass
+
         multi = len(values) > 1
 
         if values:

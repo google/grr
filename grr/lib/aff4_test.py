@@ -1273,7 +1273,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     # Try to open a single flow.
     flow_obj = aff4.FACTORY.Open(session_ids[0], mode="r", token=self.token)
 
-    self.assertEqual(flow_obj.state.context.args.flow_name, "FlowOrderTest")
+    self.assertEqual(flow_obj.runner_args.flow_name, "FlowOrderTest")
     self.assertEqual(flow_obj.session_id, session_ids[0])
 
     self.assertEqual(flow_obj.__class__.__name__, "FlowOrderTest")

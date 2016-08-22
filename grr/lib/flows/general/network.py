@@ -23,23 +23,24 @@ class Netstat(flow.GRRFlow):
     """Collect the connections and store in the datastore.
 
     Args:
-      responses: A list of sysinfo_pb2.NetworkConnection objects.
+      responses: A list of rdf_client.NetworkConnection objects.
 
     Raises:
       flow.FlowError: On failure to get retrieve the connections.
     """
-    self.state.Register("urn", self.client_id.Add("network"))
-    net_fd = aff4.FACTORY.Create(
-        self.state.urn, network.Network, token=self.token)
-    if responses.success:
-      conns = net_fd.Schema.CONNECTIONS()
-      for response in responses:
-        self.SendReply(response)
-        conns.Append(response)
-    else:
+    if not responses.success:
       raise flow.FlowError("Failed to get connections. Err: {0}".format(
           responses.status))
-    self.state.Register("conn_count", len(conns))
+
+    self.state.urn = self.client_id.Add("network")
+    net_fd = aff4.FACTORY.Create(
+        self.state.urn, network.Network, token=self.token)
+    conns = net_fd.Schema.CONNECTIONS()
+    for response in responses:
+      self.SendReply(response)
+      conns.Append(response)
+
+    self.state.conn_count = len(conns)
 
     net_fd.Set(conns)
     net_fd.Close()

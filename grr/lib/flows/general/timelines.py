@@ -24,7 +24,7 @@ class MACTimes(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """This could take a while so we just schedule for the worker."""
-    self.state.Register("urn", self.client_id.Add(self.args.path))
+    self.state.urn = self.client_id.Add(self.args.path)
 
     # Main work done in another process.
     self.CallState(next_state="CreateTimeline")

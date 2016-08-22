@@ -667,7 +667,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     # Check that we can not write to it.
     flow_obj.mode = "rw"
 
-    state = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
+    state = flow_obj.Get(flow_obj.Schema.FLOW_STATE_DICT)
     flow_obj.Set(state)
 
     # This is not allowed - Users can not write to flows.

@@ -18,7 +18,6 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
@@ -34,6 +33,7 @@ from grr.lib.hunts import implementation
 from grr.lib.hunts import process_results
 from grr.lib.hunts import standard
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import foreman as rdf_foreman
 
@@ -65,9 +65,9 @@ class FailingInFlushDummyHuntOutputPlugin(output_plugin.OutputPlugin):
 class StatefulDummyHuntOutputPlugin(output_plugin.OutputPlugin):
   data = []
 
-  def Initialize(self):
-    super(StatefulDummyHuntOutputPlugin, self).Initialize()
-    self.state.Register("index", 0)
+  def InitializeState(self, state):
+    super(StatefulDummyHuntOutputPlugin, self).InitializeState(state)
+    self.state.index = 0
 
   def ProcessResponses(self, unused_responses):
     StatefulDummyHuntOutputPlugin.data.append(self.state.index)
@@ -152,7 +152,7 @@ class StandardHuntTestMixin(object):
   def CreateHunt(self, token=None, **kwargs):
     return hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
@@ -278,7 +278,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
   def testStoppingHuntMarksAllStartedFlowsAsPendingForTermination(self):
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="InfiniteFlow"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="InfiniteFlow"),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
             rdf_foreman.ForemanClientRule(
                 rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
@@ -308,8 +308,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
       flow_obj = aff4.FACTORY.Open(
           flows_list[0], aff4_type=InfiniteFlow, token=self.token)
-      self.assertEqual(flow_obj.state.context.state, "ERROR")
-      self.assertEqual(flow_obj.state.context.backtrace, "Parent hunt stopped.")
+      self.assertEqual(flow_obj.context.state, "ERROR")
+      self.assertEqual(flow_obj.context.backtrace, "Parent hunt stopped.")
 
   def testGenericHuntWithoutOutputPlugins(self):
     """This tests running the hunt on some clients."""
@@ -330,9 +330,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       # Results collection is always written, even if there are no output
       # plugins.
       collection = aff4.FACTORY.Open(
-          hunt_obj.state.context.results_collection_urn,
-          mode="r",
-          token=self.token)
+          hunt_obj.results_collection_urn, mode="r", token=self.token)
 
       # We should receive stat entries.
       i = 0
@@ -389,7 +387,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     hunt_urn = self.StartHunt()
     hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
     collects.ResultsOutputCollection.ScheduleNotification(
-        hunt_obj.state.context.results_collection_urn, token=self.token)
+        hunt_obj.results_collection_urn, token=self.token)
     self.ProcessHuntOutputPlugins()
 
   def testOutputPluginsProcessOnlyNewResultsOnEveryRun(self):
@@ -836,7 +834,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
   def _AppendFlowRequest(self, flows, client_id, file_id):
     flows.Append(
         client_ids=["C.1%015d" % client_id],
-        runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+        runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
                 path="/tmp/evil%s.txt" % file_id,
@@ -967,7 +965,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     with test_lib.FakeTime(1000, increment=1e-6):
       with hunts.GRRHunt.StartHunt(
           hunt_name="GenericHunt",
-          flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+          flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
           flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
               path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)),
           client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
@@ -1015,7 +1013,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     with test_lib.FakeTime(1000):
       with hunts.GRRHunt.StartHunt(
           hunt_name="GenericHunt",
-          flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+          flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
           flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
               path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)),
           client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
@@ -1067,7 +1065,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     """This tests running the hunt on some clients."""
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
                 path="/tmp/evil.txt",
@@ -1115,7 +1113,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     with aff4.FACTORY.Open(
         hunt_session_id, mode="rw", token=self.token) as hunt_obj:
       runner = hunt_obj.GetRunner()
-      runner.args.client_limit = 10
+      runner.runner_args.client_limit = 10
       runner.Start()
 
     # Pretend to be the foreman now and dish out hunting jobs to all the
@@ -1138,7 +1136,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt",
             pathtype=rdf_paths.PathSpec.PathType.OS,)),
@@ -1166,7 +1164,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     # This is called once for each state method. Each flow above runs the
     # Start and the StoreResults methods.
-    usage_stats = hunt.state.context.usage_stats
+    usage_stats = hunt.context.usage_stats
     self.assertEqual(usage_stats.user_cpu_stats.num, 10)
     self.assertTrue(math.fabs(usage_stats.user_cpu_stats.mean - 5.5) < 1e-7)
     self.assertTrue(
@@ -1200,7 +1198,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     """This tests running the hunt on some clients."""
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="DummyLogFlow"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="DummyLogFlow"),
         client_rate=0,
         token=self.token) as hunt:
       hunt.Run()
@@ -1246,7 +1244,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     # the label test).
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="UpdateClient"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="UpdateClient"),
         flow_args=administrative.UpdateClientArgs(),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
             rdf_foreman.ForemanClientRule(
@@ -1276,7 +1274,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
   def _CreateHunt(self, token):
     return hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
@@ -1446,7 +1444,6 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
         plugin_name=DummyHuntOutputPluginWithRaisingVerifier.__name__)])
     self.AssignTasksToClients()
     self.RunHunt()
-
     prev_count, _ = self.GetVerificationsStats()
     self.assertRaises(
         standard.HuntVerificationError,

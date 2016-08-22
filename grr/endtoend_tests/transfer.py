@@ -34,7 +34,7 @@ class MultiGetFileTestFlow(flow.GRRFlow):
     deleted.  If you need the client files for debugging, remove the lifetime
     parameter from CopyPathToFile.
     """
-    self.state.Register("client_hashes", {})
+    self.state.client_hashes = {}
     urandom = rdf_paths.PathSpec(
         path="/dev/urandom", pathtype=rdf_paths.PathSpec.PathType.OS)
 
@@ -109,10 +109,10 @@ class TestMultiGetFile(base.AutomatedTest):
 
     # Check flow completed normally, checking is done inside the flow
     runner = flow_obj.GetRunner()
-    self.assertFalse(runner.context.get("backtrace", ""))
-    self.assertEqual(runner.GetState(), rdf_flows.Flow.State.TERMINATED,
+    self.assertFalse(runner.context.backtrace)
+    self.assertEqual(runner.GetState(), rdf_flows.FlowContext.State.TERMINATED,
                      "Expected TERMINATED state, got %s" %
-                     flow_obj.state.context.state)
+                     flow_obj.context.state)
 
 #########
 # Linux #
@@ -214,9 +214,8 @@ class TestSendFile(base.LocalClientTest):
     if self.local_client:
       original_data = open("/bin/ls", "rb").read()
       received_cipher = "".join(self.listener.result)
-      cipher = rdf_crypto.AES128CBCCipher(
-          key=self.key, iv=self.iv, mode=rdf_crypto.AES128CBCCipher.OP_DECRYPT)
-      received_data = cipher.Update(received_cipher) + cipher.Final()
+      cipher = rdf_crypto.AES128CBCCipher(key=self.key, iv=self.iv)
+      received_data = cipher.Decrypt(received_cipher)
 
       self.assertEqual(received_data, original_data)
 

@@ -28,7 +28,6 @@ class FindFiles(flow.GRRFlow):
     - Filter for files with sizes between min and max limits
     - Filter for files that contain "Data Regular Expression" in the first 1MB
         of file data
-    - Return AFF4Collection of the results
 
     Path and data regexes, and file size limits are optional. Don"t encode path
     information in the regex.  See correct usage below.
@@ -42,10 +41,8 @@ class FindFiles(flow.GRRFlow):
     Match: "/usr/local/admin"          (directory)
     No Match: "/usr/admin/local/blah"
 
-    The result from this flow is an AFF4Collection which will be created on the
-    output path, containing all aff4 objects on the client which match the
-    criteria. These files will not be downloaded by this flow, only the metadata
-    of the file is fetched.
+    Matching files will not be downloaded by this flow, only the
+    metadata of the file is fetched.
 
     Note: This flow is inefficient for collecting a large number of files.
 
@@ -60,8 +57,7 @@ class FindFiles(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self, unused_response):
     """Issue the find request to the client."""
-    self.state.Register("received_count", 0)
-    self.state.Register("collection", None)
+    self.state.received_count = 0
 
     # Build up the request protobuf.
     self.args.findspec.iterator.number = self.args.iteration_count
@@ -71,7 +67,7 @@ class FindFiles(flow.GRRFlow):
       self.args.findspec.path_regex = self.args.findspec.path_glob.AsRegEx()
 
     # Call the client with it
-    self.CallClient("Find", self.state.args.findspec, next_state="IterateFind")
+    self.CallClient("Find", self.args.findspec, next_state="IterateFind")
 
   @flow.StateHandler()
   def IterateFind(self, responses):
@@ -107,16 +103,15 @@ class FindFiles(flow.GRRFlow):
     # Exit if we hit the max result count we wanted or we're finished. Note that
     # we may exceed the max_results if the iteration yielded too many results,
     # we simply will not return to the client for another iteration.
-    if (self.state.received_count < self.state.args.max_results and
+    if (self.state.received_count < self.args.max_results and
         responses.iterator.state != responses.iterator.State.FINISHED):
 
-      self.state.args.findspec.iterator = responses.iterator
+      self.args.findspec.iterator = responses.iterator
 
       # If we are close to max_results reduce the iterator.
-      self.state.args.findspec.iterator.number = min(
-          self.state.args.findspec.iterator.number,
-          self.state.args.max_results - self.state.received_count)
+      self.args.findspec.iterator.number = min(
+          self.args.findspec.iterator.number,
+          self.args.max_results - self.state.received_count)
 
-      self.CallClient(
-          "Find", self.state.args.findspec, next_state="IterateFind")
+      self.CallClient("Find", self.args.findspec, next_state="IterateFind")
       self.Log("%d files processed.", self.state.received_count)

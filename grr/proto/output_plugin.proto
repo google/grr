@@ -5,6 +5,7 @@
 syntax = "proto2";
 
 import "grr/proto/export.proto";
+import "grr/proto/jobs.proto";
 import "grr/proto/semantic.proto";
 
 
@@ -20,10 +21,15 @@ message OutputPluginDescriptor {
     }];
 }
 
+message OutputPluginState {
+  optional OutputPluginDescriptor plugin_descriptor = 1;
+  optional AttributedDict plugin_state = 2;
+}
+
 // Next id: 7
 message OutputPluginBatchProcessingStatus {
   enum Status {
-    SUCCESS = 0; // Batch was succesffully processed.
+    SUCCESS = 0; // Batch was succesfully processed.
     ERROR = 1;  // Batch wasn't processed due to an error.
   }
 

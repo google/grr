@@ -146,6 +146,7 @@ class ClientTestBase(unittest.TestCase):
     """Verify urns have been deleted."""
     try:
       for urn in urns:
+        # TODO(user): aff4.FACTORY.Stat() is the right thing to use here.
         # We open each urn to generate InstantiationError on failures, multiopen
         # ignores these errors.  This isn't too slow since it's almost always
         # just one path anyway.
@@ -185,7 +186,10 @@ class ClientTestBase(unittest.TestCase):
     data = fd.Read(10)
     magic_values = ["cafebabe", "cefaedfe", "cffaedfe"]
     magic_values = [x.decode("hex") for x in magic_values]
-    self.assertTrue(data[:4] in magic_values)
+    self.assertIn(
+        data[:4],
+        magic_values,
+        msg="Data %s not one of %s" % (data[:4], magic_values))
 
   def CheckELFMagic(self, fd):
     data = fd.Read(10)

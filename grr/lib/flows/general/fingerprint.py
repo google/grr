@@ -61,7 +61,7 @@ class FingerprintFileMixin(object):
     else:
       urn = aff4_grr.VFSGRRClient.PathspecToURN(self.args.pathspec,
                                                 self.client_id)
-    self.state.Register("urn", urn)
+    self.state.urn = urn
 
     fd = aff4.FACTORY.Create(urn, aff4_grr.VFSFile, mode="w", token=self.token)
 

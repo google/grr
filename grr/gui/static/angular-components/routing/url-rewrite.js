@@ -98,9 +98,14 @@ grrUi.routing.rewriteUrl = function(url) {
       return '/clients/' + clientId;
 
     case 'VirtualFileSystemView':
-      var t = hashState['t'] || '';
-      return '/clients/' + clientId + '/vfs/' +
-          encodeUrlPath(ensurePathIsFolder(getFilePathFromId(t)));
+      var path;
+      if (hashState['aff4_path']) {
+        path = hashState['aff4_path'].slice(
+            hashState['c'].length + 1);
+      } else {
+        path = ensurePathIsFolder(getFilePathFromId(hashState['t'] || ''));
+      }
+      return '/clients/' + clientId + '/vfs/' + encodeUrlPath(path);
 
     case 'TimelineMain':
     case 'ContainerViewer':

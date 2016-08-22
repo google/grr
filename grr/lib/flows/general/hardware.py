@@ -30,7 +30,7 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
     """Load grr_chipsec component on the client."""
     self.LoadComponentOnClient(
         name="grr-chipsec-component",
-        version="1.2.2",
+        version=self.args.component_version,
         next_state="CollectDebugInfo")
 
   @flow.StateHandler()
@@ -68,10 +68,11 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
       self.Log("No path returned. Skipping host.")
       self.CallState(next_state="End")
     else:
-      self.state.Register("image_path", responses.First().path)
+      image_path = responses.First().path
       self.CallFlow(
           "MultiGetFile",
-          pathspecs=[self.state.image_path,],
+          pathspecs=[image_path],
+          request_data={"image_path": image_path},
           next_state="DeleteTemporaryImage")
 
   @flow.StateHandler()
@@ -93,7 +94,7 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
     # Clean up the temporary image from the client.
     self.CallClient(
         "DeleteGRRTempFiles",
-        self.state.image_path,
+        responses.request_data["image_path"],
         next_state="TemporaryImageRemoved")
 
   @flow.StateHandler()

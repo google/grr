@@ -17,7 +17,6 @@ from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import events
 from grr.lib import flags
-from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import maintenance_utils
 from grr.lib import queues
@@ -134,12 +133,12 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     self.assertTrue(str(self.client_id) in email_message["title"])
 
     # Make sure the flow state is included in the email message.
-    for s in ["Flow name", "FlowWithOneClientRequest", "current_state"]:
+    for s in ["Flow name", "FlowWithOneClientRequest", "Current state"]:
       self.assertTrue(s in email_message["message"])
 
     flow_obj = aff4.FACTORY.Open(
         client.flow_id, age=aff4.ALL_TIMES, token=self.token)
-    self.assertEqual(flow_obj.state.context.state, rdf_flows.Flow.State.ERROR)
+    self.assertEqual(flow_obj.context.state, rdf_flows.FlowContext.State.ERROR)
 
     # Make sure client object is updated with the last crash.
     client_obj = aff4.FACTORY.Open(self.client_id, token=self.token)
@@ -180,7 +179,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
 
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=flow_runner.FlowRunnerArgs(
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name="FlowWithOneClientRequest"),
         client_rate=0,
         crash_alert_email="crashes@example.com",

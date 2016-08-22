@@ -137,7 +137,7 @@ FormController.prototype.onHuntRunnerArgsChange_ = function(newValue) {
  * @export
  */
 FormController.prototype.sendRequest = function() {
-  this.grrApiService_.post('/hunts/create', {
+  this.grrApiService_.post('/hunts', {
     hunt_runner_args: stripTypeInfo(this.scope_['huntRunnerArgs']),
     hunt_args: stripTypeInfo(this.scope_['genericHuntArgs'])
   }).then(function resolve(response) {

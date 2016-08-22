@@ -52,10 +52,23 @@ parser_repack = subparsers.add_parser(
     "repack", help="Build installer from a template.")
 
 parser_repack.add_argument(
+    "--debug_build",
+    action="store_true",
+    default=False,
+    help="Build a debug installer.")
+
+parser_repack.add_argument(
     "--sign",
     action="store_true",
     default=False,
     help="Sign installer binaries.")
+
+parser_repack.add_argument(
+    "--signed_template",
+    action="store_true",
+    default=False,
+    help="Set to true if template was signed with sign_template. This is only "
+    "necessary when repacking a windows template many times.")
 
 parser_repack.add_argument(
     "--template",
@@ -82,6 +95,13 @@ parser_multi.add_argument(
     help="Sign installer binaries.")
 
 parser_multi.add_argument(
+    "--signed_template",
+    action="store_true",
+    default=False,
+    help="Set to true if template was signed with sign_template. This is only "
+    "necessary when repacking a windows template many times.")
+
+parser_multi.add_argument(
     "--templates",
     default=None,
     required=True,
@@ -104,6 +124,21 @@ parser_multi.add_argument(
     default=None,
     required=True,
     help="The directory where we output our installers.")
+
+parser_signer = subparsers.add_parser(
+    "sign_template",
+    help="Sign client libraries in a client template."
+    "Use this when you are repacking a windows template many times and "
+    "need all binaries inside signed.")
+
+parser_signer.add_argument(
+    "--template", default=None, required=True, help="Template to sign.")
+
+parser_signer.add_argument(
+    "--output_file",
+    default=None,
+    required=True,
+    help="Where to write the new template with signed libs.")
 
 if component:
   parser_build_component = subparsers.add_parser(
@@ -229,7 +264,8 @@ class MultiTemplateRepacker(object):
                       templates,
                       output_dir,
                       config=None,
-                      sign=False):
+                      sign=False,
+                      signed_template=False):
     """Call repacker in a subprocess."""
     if sign:
       # Doing this here avoids multiple prompting when doing lots of repacking.
@@ -259,6 +295,8 @@ class MultiTemplateRepacker(object):
             passwd = windows_passwd
             signing = True
             repack_args.append("--sign")
+            if signed_template:
+              repack_args.append("--signed_template")
           elif template.endswith(".rpm.zip"):
             passwd = rpm_passwd
             signing = True
@@ -270,6 +308,18 @@ class MultiTemplateRepacker(object):
                 SpawnProcess, (repack_args,),
                 dict(
                     signing=signing, passwd=passwd)))
+
+        # Also build debug if it's windows.
+        if template.endswith(".exe.zip"):
+          debug_args = []
+          debug_args.extend(repack_args)
+          debug_args.append("--debug_build")
+          print "Calling %s" % " ".join(debug_args)
+          results.append(
+              pool.apply_async(
+                  SpawnProcess, (debug_args,),
+                  dict(
+                      signing=signing, passwd=passwd)))
 
     try:
       pool.close()
@@ -289,9 +339,10 @@ class MultiTemplateRepacker(object):
 
 def main(_):
   """Launch the appropriate builder."""
-  config_lib.CONFIG.AddContext(
-      "ClientBuilder Context",
-      "Context applied when we run the client builder script.")
+  # We deliberately use flags.FLAGS.context because startup.py pollutes
+  # config_lib.CONFIG.context with the running system context.
+  context = flags.FLAGS.context
+  context.append("ClientBuilder Context")
   startup.ClientInit()
 
   # Use basic console output logging so we can see what is happening.
@@ -301,14 +352,16 @@ def main(_):
   logger.handlers = [handler]
 
   if args.subparser_name == "build":
-    TemplateBuilder().BuildTemplate(
-        context=config_lib.CONFIG.context, output=flags.FLAGS.output)
+    TemplateBuilder().BuildTemplate(context=context, output=flags.FLAGS.output)
   elif args.subparser_name == "repack":
+    if args.debug_build:
+      context.append("DebugClientBuild Context")
     result_path = repacking.TemplateRepacker().RepackTemplate(
         args.template,
         args.output_dir,
-        context=config_lib.CONFIG.context,
-        sign=args.sign)
+        context=context,
+        sign=args.sign,
+        signed_template=args.signed_template)
 
     if not result_path:
       raise ErrorDuringRepacking(" ".join(sys.argv[:]))
@@ -318,12 +371,18 @@ def main(_):
         args.templates,
         args.output_dir,
         config=args.config,
-        sign=args.sign)
+        sign=args.sign,
+        signed_template=args.signed_template)
   elif args.subparser_name == "build_components":
     component.BuildComponents(output_dir=flags.FLAGS.output)
   elif args.subparser_name == "build_component":
     component.BuildComponent(
         flags.FLAGS.setup_file, output_dir=flags.FLAGS.output)
+  elif args.subparser_name == "sign_template":
+    repacking.TemplateRepacker().SignTemplate(
+        args.template, args.output_file, context=context)
+    if not os.path.exists(args.output_file):
+      raise RuntimeError("Signing failed: output not written")
 
 
 if __name__ == "__main__":

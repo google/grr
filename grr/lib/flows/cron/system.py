@@ -14,7 +14,6 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import export_utils
 from grr.lib import flow
-from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import rdfvalue
 from grr.lib import utils
@@ -24,6 +23,7 @@ from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.flows.general import discovery as flows_discovery
 from grr.lib.flows.general import endtoend as flows_endtoend
 from grr.lib.hunts import standard as hunts_standard
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import stats as rdfstats
 from grr.server import foreman as rdf_foreman
 
@@ -282,16 +282,16 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
         client_limit=0,
-        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="Interrogate"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="Interrogate"),
         flow_args=flows_discovery.InterrogateArgs(lightweight=False),
         output_plugins=self.GetOutputPlugins(),
         token=self.token) as hunt:
 
       runner = hunt.GetRunner()
-      runner.args.client_rate = 50
-      runner.args.expiry_time = "1w"
-      runner.args.description = ("Interrogate run by cron to keep host"
-                                 "info fresh.")
+      runner.runner_args.client_rate = 50
+      runner.runner_args.expiry_time = "1w"
+      runner.runner_args.description = ("Interrogate run by cron to keep host"
+                                        "info fresh.")
       runner.Start()
 
 
@@ -331,10 +331,11 @@ class StatsHuntCronFlow(cronjobs.SystemCronFlow):
         token=self.token) as hunt:
 
       runner = hunt.GetRunner()
-      runner.args.client_rate = 0
-      runner.args.client_limit = config_lib.CONFIG.Get("StatsHunt.ClientLimit")
-      runner.args.expiry_time = self.frequency
-      runner.args.description = "Stats hunt for high-res client info."
+      runner.runner_args.client_rate = 0
+      runner.runner_args.client_limit = config_lib.CONFIG.Get(
+          "StatsHunt.ClientLimit")
+      runner.runner_args.expiry_time = self.frequency
+      runner.runner_args.description = "Stats hunt for high-res client info."
       runner.Start()
 
 
@@ -384,12 +385,12 @@ class EndToEndTests(cronjobs.SystemCronFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.state.Register("hunt_id", None)
-    self.state.Register("client_ids", set())
-    self.state.Register("client_ids_failures", set())
-    self.state.Register("client_ids_result_reported", set())
+    self.state.hunt_id = None
+    self.state.client_ids = set()
+    self.state.client_ids_failures = set()
+    self.state.client_ids_result_reported = set()
 
-    self.state.client_ids = base.GetClientTestTargets(token=self.token)
+    self.state.client_ids = list(base.GetClientTestTargets(token=self.token))
 
     if not self.state.client_ids:
       self.Log("No clients to test on, define them in "
@@ -400,7 +401,7 @@ class EndToEndTests(cronjobs.SystemCronFlow):
     # targets without an approval.
     token = access_control.ACLToken(
         username="GRRWorker", reason="Running endtoend tests.").SetUID()
-    runner_args = flow_runner.FlowRunnerArgs(flow_name="EndToEndTestFlow")
+    runner_args = rdf_flows.FlowRunnerArgs(flow_name="EndToEndTestFlow")
 
     flow_request = hunts_standard.FlowRequest(
         client_ids=self.state.client_ids,

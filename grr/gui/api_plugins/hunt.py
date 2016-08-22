@@ -14,6 +14,7 @@ from grr.gui.api_plugins import output_plugin as api_output_plugin
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import events
 from grr.lib import flow
 from grr.lib import flow_runner
 from grr.lib import hunts
@@ -28,6 +29,7 @@ from grr.lib.flows.general import export
 from grr.lib.hunts import implementation
 from grr.lib.hunts import results as hunts_results
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.lib.rdfvalues import stats as stats_rdf
 from grr.lib.rdfvalues import structs as rdf_structs
 
@@ -44,6 +46,30 @@ class HuntNotFoundError(api_call_handler_base.ResourceNotFoundError):
 
 class HuntFileNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when a hunt file could not be found."""
+
+
+class Error(Exception):
+  pass
+
+
+class InvalidHuntStateError(Error):
+  pass
+
+
+class HuntNotStartableError(Error):
+  pass
+
+
+class HuntNotStoppableError(Error):
+  pass
+
+
+class HuntNotModifiableError(Error):
+  pass
+
+
+class HuntNotDeletableError(Error):
+  pass
 
 
 class ApiHunt(rdf_structs.RDFProtoStruct):
@@ -74,14 +100,14 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
     context = runner.context
 
     self.urn = hunt.urn
-    self.name = context.args.hunt_name
+    self.name = hunt.runner_args.hunt_name
     self.state = str(hunt.Get(hunt.Schema.STATE))
-    self.client_limit = context.args.client_limit
-    self.client_rate = context.args.client_rate
+    self.client_limit = hunt.runner_args.client_limit
+    self.client_rate = hunt.runner_args.client_rate
     self.created = context.create_time
     self.expires = context.expires
     self.creator = context.creator
-    self.description = context.args.description
+    self.description = hunt.runner_args.description
     self.is_robot = context.creator == "GRRWorker"
 
     hunt_stats = context.usage_stats
@@ -96,9 +122,9 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
       self.remaining_clients_count = (
           all_clients_count - completed_clients_count)
 
-      self.hunt_args = hunt.state.args
-      self.hunt_runner_args = context.args
-      self.client_rule_set = runner.args.client_rule_set
+      self.hunt_args = hunt.args
+      self.hunt_runner_args = hunt.runner_args
+      self.client_rule_set = runner.runner_args.client_rule_set
 
     return self
 
@@ -142,10 +168,10 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
     return [ApiHunt().InitFromAff4Object(hunt_obj) for hunt_obj in hunt_list]
 
   def _CreatedByFilter(self, username, hunt_obj):
-    return hunt_obj.creator == username
+    return hunt_obj.context.creator == username
 
   def _DescriptionContainsFilter(self, substring, hunt_obj):
-    return substring in hunt_obj.state.context.args.description
+    return substring in hunt_obj.runner_args.description
 
   def _Username(self, username, token):
     if username == "me":
@@ -197,7 +223,7 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
 
     hunt_list = []
     for hunt in fd.OpenChildren(children=children):
-      if not isinstance(hunt, hunts.GRRHunt) or not hunt.state:
+      if not isinstance(hunt, hunts.GRRHunt) or hunt.state is None:
         continue
 
       hunt_list.append(hunt)
@@ -227,7 +253,7 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
     hunt_list = []
     active_children_map = {}
     for hunt in fd.OpenChildren(children=active_children):
-      if (not isinstance(hunt, hunts.GRRHunt) or not hunt.state or
+      if (not isinstance(hunt, hunts.GRRHunt) or hunt.state is None or
           not filter_func(hunt)):
         continue
       active_children_map[hunt.urn] = hunt
@@ -272,6 +298,7 @@ class ApiGetHuntHandler(api_call_handler_base.ApiCallHandler):
   category = CATEGORY
   args_type = ApiGetHuntArgs
   result_type = ApiHunt
+  strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
     try:
@@ -762,7 +789,7 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
                               hunt_api_object.description,
                               hunt_api_object.creator, hunt_api_object.created))
 
-    collection_urn = hunt.state.context.results_collection_urn
+    collection_urn = hunt.results_collection_urn
     collection = aff4.FACTORY.Open(collection_urn, token=token)
 
     target_file_prefix = "hunt_" + hunt.urn.Basename().replace(":", "_")
@@ -1027,6 +1054,18 @@ class ApiGetHuntContextArgs(rdf_structs.RDFProtoStruct):
 class ApiGetHuntContextResult(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiGetHuntContextResult
 
+  def GetArgsClass(self):
+    hunt_name = self.runner_args.hunt_name
+
+    if hunt_name:
+      hunt_cls = hunts.GRRHunt.classes.get(hunt_name)
+      if hunt_cls is None:
+        raise ValueError("Hunt %s not known by this implementation." %
+                         hunt_name)
+
+      # The required protobuf for this class is in args_type.
+      return hunt_cls.args_type
+
 
 class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
   """Handles requests for hunt contexts."""
@@ -1040,10 +1079,23 @@ class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
     hunt = aff4.FACTORY.Open(
         HUNTS_ROOT_PATH.Add(args.hunt_id), aff4_type=hunts.GRRHunt, token=token)
 
-    context = api_call_handler_utils.ApiDataObject().InitFromDataObject(
-        hunt.state.context)
+    if isinstance(hunt.context, rdf_hunts.HuntContext):  # New style hunt.
+      # TODO(user): Hunt state will go away soon, we don't render it anymore.
+      state = api_call_handler_utils.ApiDataObject()
+      result = ApiGetHuntContextResult(context=hunt.context, state=state)
+      # Assign args last since it needs the other fields set to
+      # determine the args protobuf.
+      result.args = hunt.args
+      return result
 
-    return ApiGetHuntContextResult(context=context)
+    else:
+      # Just pack the whole context data object in the state
+      # field. This contains everything for old style hunts so we at
+      # least show the data somehow.
+      context = api_call_handler_utils.ApiDataObject().InitFromDataObject(
+          hunt.context)
+
+      return ApiGetHuntContextResult(state=context)
 
 
 class ApiCreateHuntArgs(rdf_structs.RDFProtoStruct):
@@ -1078,6 +1130,133 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
       # Nothing really to do here - hunts are always created in the paused
       # state.
       logging.info("User %s created a new %s hunt (%s)", token.username,
-                   hunt.state.args.flow_runner_args.flow_name, hunt.urn)
+                   hunt.args.flow_runner_args.flow_name, hunt.urn)
 
       return ApiHunt().InitFromAff4Object(hunt, with_full_summary=True)
+
+
+class ApiModifyHuntArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiModifyHuntArgs
+
+
+class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
+  """Handles hunt modifys (this includes starting/stopping the hunt)."""
+
+  category = CATEGORY
+  args_type = ApiModifyHuntArgs
+  result_type = ApiHunt
+  strip_json_root_fields_types = False
+
+  def Handle(self, args, token=None):
+    hunt_urn = HUNTS_ROOT_PATH.Add(args.hunt_id)
+    try:
+      hunt = aff4.FACTORY.Open(
+          hunt_urn, aff4_type=hunts.GRRHunt, mode="rw", token=token)
+    except aff4.InstantiationError:
+      raise HuntNotFoundError("Hunt with id %s could not be found" %
+                              args.hunt_id)
+
+    current_state = hunt.Get(hunt.Schema.STATE)
+    hunt_changes = []
+    runner = hunt.GetRunner()
+
+    if args.HasField("client_limit"):
+      hunt_changes.append("Client Limit: Old=%s, New=%s" %
+                          (runner.runner_args.client_limit, args.client_limit))
+      runner.runner_args.client_limit = args.client_limit
+
+    if args.HasField("client_rate"):
+      hunt_changes.append("Client Rate: Old=%s, New=%s" %
+                          (runner.runner_args.client_rate, args.client_limit))
+      runner.runner_args.client_rate = args.client_rate
+
+    if args.HasField("expires"):
+      hunt_changes.append("Expires: Old=%s, New=%s" % (runner.context.expires,
+                                                       args.expires))
+      runner.context.expires = args.expires
+
+    if hunt_changes and current_state != "PAUSED":
+      raise HuntNotModifiableError(
+          "Hunt's client limit/client rate/expiry time attributes "
+          "can only be changed if hunt's current state is "
+          "PAUSED")
+
+    if args.HasField("state"):
+      hunt_changes.append("State: Old=%s, New=%s" % (current_state, args.state))
+
+      if args.state == ApiHunt.State.STARTED:
+        if current_state != "PAUSED":
+          raise HuntNotStartableError(
+              "Hunt can only be started from PAUSED state.")
+        hunt.Run()
+
+      elif args.state == ApiHunt.State.STOPPED:
+        if current_state not in ["PAUSED", "STARTED"]:
+          raise HuntNotStoppableError(
+              "Hunt can only be stopped from STARTED or "
+              "PAUSED states.")
+        hunt.Stop()
+
+      else:
+        raise InvalidHuntStateError(
+            "Hunt's state can only be updated to STARTED or STOPPED")
+
+    # Publish an audit event.
+    # TODO(user): this should be properly tested.
+    event = events.AuditEvent(
+        user=token.username,
+        action="HUNT_MODIFIED",
+        urn=hunt_urn,
+        description=", ".join(hunt_changes))
+    events.Events.PublishEvent("Audit", event, token=token)
+
+    hunt.Close()
+
+    hunt = aff4.FACTORY.Open(
+        hunt_urn, aff4_type=hunts.GRRHunt, mode="rw", token=token)
+    return ApiHunt().InitFromAff4Object(hunt, with_full_summary=True)
+
+
+class ApiDeleteHuntArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiDeleteHuntArgs
+
+
+class ApiDeleteHuntHandler(api_call_handler_base.ApiCallHandler):
+  """Handles hunt deletions."""
+
+  category = CATEGORY
+  args_type = ApiDeleteHuntArgs
+  strip_json_root_fields_types = False
+
+  def Handle(self, args, token=None):
+    hunt_urn = HUNTS_ROOT_PATH.Add(args.hunt_id)
+    try:
+      with aff4.FACTORY.Open(
+          hunt_urn, aff4_type=implementation.GRRHunt, mode="rw",
+          token=token) as hunt:
+
+        all_clients_count, _, _ = hunt.GetClientsCounts()
+        # We can only delete hunts that have no scheduled clients or are in the
+        # PAUSED state.
+        if hunt.Get(hunt.Schema.STATE) != "PAUSED" or all_clients_count != 0:
+          raise HuntNotDeletableError("Can only delete a paused hunt without "
+                                      "scheduled clients.")
+
+        # If some clients reported back to the hunt, it can only be deleted
+        # if AdminUI.allow_hunt_results_delete is True.
+        if (not config_lib.CONFIG["AdminUI.allow_hunt_results_delete"] and
+            hunt.client_count):
+          raise HuntNotDeletableError(
+              "Unable to delete a hunt with results while "
+              "AdminUI.allow_hunt_results_delete is disabled.")
+
+      # If we got here, it means that the hunt was found, deletion
+      # is allowed in the config, and the hunt is paused and has no
+      # scheduled clients.
+      # This means that we can safely delete the hunt.
+      aff4.FACTORY.Delete(hunt_urn, token=token)
+
+    except aff4.InstantiationError:
+      # Raise standard NotFoundError if the hunt object can't be opened.
+      raise HuntNotFoundError("Hunt with id %s could not be found" %
+                              args.hunt_id)

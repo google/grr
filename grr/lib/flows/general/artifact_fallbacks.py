@@ -26,7 +26,7 @@ class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
 
   @flow.StateHandler()
   def Start(self):
-    self.state.Register("success", False)
+    self.state.success = False
     system_drive_opts = ["C:", "D:"]
     for drive in system_drive_opts:
       pathspec = rdf_paths.PathSpec(

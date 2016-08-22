@@ -17,8 +17,8 @@ class ListVolumeShadowCopies(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self, unused_response):
     """Query the client for available Volume Shadow Copies using a WMI query."""
-    self.state.Register("shadows", [])
-    self.state.Register("raw_device", None)
+    self.state.shadows = []
+    self.state.raw_device = None
 
     self.CallClient(
         "WmiQuery",

@@ -8,7 +8,6 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
-from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import test_lib
@@ -17,6 +16,7 @@ from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import foreman as rdf_foreman
 
@@ -255,13 +255,13 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     # Check that the hunt was created with a correct flow
     hunt = hunts_list[0]
-    self.assertEqual(hunt.state.args.flow_runner_args.flow_name,
+    self.assertEqual(hunt.args.flow_runner_args.flow_name,
                      file_finder.FileFinder.__name__)
-    self.assertEqual(hunt.state.args.flow_args.paths[0], "/tmp")
-    self.assertEqual(hunt.state.args.flow_args.pathtype,
+    self.assertEqual(hunt.args.flow_args.paths[0], "/tmp")
+    self.assertEqual(hunt.args.flow_args.pathtype,
                      rdf_paths.PathSpec.PathType.TSK)
-    # self.assertEqual(hunt.state.args.flow_args.ignore_errors, True)
-    self.assertTrue(hunt.state.args.output_plugins[0].plugin_name,
+    # self.assertEqual(hunt.args.flow_args.ignore_errors, True)
+    self.assertTrue(hunt.args.output_plugins[0].plugin_name,
                     "DummyOutputPlugin")
 
     # Check that hunt was not started
@@ -362,10 +362,10 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     # Check that the hunt was created with a correct literal value.
     hunt = hunts_list[0]
-    self.assertEqual(hunt.state.args.flow_runner_args.flow_name,
+    self.assertEqual(hunt.args.flow_runner_args.flow_name,
                      file_finder.FileFinder.__name__)
     self.assertEqual(
-        hunt.state.args.flow_args.conditions[0].contents_literal_match.literal,
+        hunt.args.flow_args.conditions[0].contents_literal_match.literal,
         "foo\x0d\xc8bar")
 
   def testOutputPluginsListEmptyWhenNoDefaultOutputPluginSet(self):
@@ -502,7 +502,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
         description=description,
-        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path="/tmp/evil.txt",
             pathtype=rdf_paths.PathSpec.PathType.TSK,)),
@@ -634,8 +634,8 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
       # Check that hunts runner arguments are equal except for the description.
       # Hunt copy has ' (copy)' added to the description.
-      first_runner_args = first_hunt.state.context.args
-      last_runner_args = last_hunt.state.context.args
+      first_runner_args = first_hunt.runner_args
+      last_runner_args = last_hunt.runner_args
 
       self.assertEqual(first_runner_args.description + " (copy)",
                        last_runner_args.description)
@@ -737,7 +737,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
       self.assertEqual(
           last_hunt.args.output_plugins[1].plugin_args.fetch_binaries, True)
 
-      runner_args = last_hunt.state.context.args
+      runner_args = last_hunt.runner_args
       self.assertAlmostEqual(runner_args.client_rate, 42)
       self.assertEqual(runner_args.description, "my personal copy")
       self.assertEqual(
@@ -756,7 +756,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
       hunts.GRRHunt.StartHunt(
           hunt_name="GenericHunt",
           description="model hunt",
-          flow_runner_args=flow_runner.FlowRunnerArgs(
+          flow_runner_args=rdf_flows.FlowRunnerArgs(
               flow_name=file_finder.FileFinder.__name__),
           flow_args=file_finder.FileFinderArgs(
               conditions=[
@@ -806,9 +806,9 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     last_hunt = aff4.FACTORY.Open(hunts_list[-1], token=self.token)
 
     # Check that the hunt was created with a correct literal value.
-    self.assertEqual(last_hunt.state.args.flow_runner_args.flow_name,
+    self.assertEqual(last_hunt.args.flow_runner_args.flow_name,
                      file_finder.FileFinder.__name__)
-    self.assertEqual(last_hunt.state.args.flow_args.conditions[0]
+    self.assertEqual(last_hunt.args.flow_args.conditions[0]
                      .contents_literal_match.literal, "foo\x0d\xc8bar")
 
   def testCopyHuntPreservesRuleType(self):
@@ -816,7 +816,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
       hunts.GRRHunt.StartHunt(
           hunt_name="GenericHunt",
           description="model hunt",
-          flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+          flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
           flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
               path="/tmp/evil.txt",
               pathtype=rdf_paths.PathSpec.PathType.TSK,)),

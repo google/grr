@@ -3,9 +3,7 @@
 """Linux specific utils."""
 
 
-import locale
 import os
-import sys
 import threading
 import time
 
@@ -92,12 +90,12 @@ def LinGetRawDevice(path):
 def CanonicalPathToLocalPath(path):
   """Linux uses a normal path.
 
-  If sys.getfilesystemencoding() returns None normally any call to
-  a system function will try to encode the string to ASCII.
-  A modern version of Linux will use UTF-8 as (narrow) string encoding.
-  locale.getpreferredencoding() seems to return ASCII at this point.
-  So for older versions of Linux we'll need to rely on
-  locale.getdefaultlocale()[1]. If everything fails we fallback to UTF-8.
+  We always want to encode as UTF-8 here. If the environment for the
+  client is broken, Python might assume an ASCII based filesystem
+  (those should be rare nowadays) and things will go wrong if we let
+  Python decide what to do. If the filesystem actually is ASCII,
+  encoding and decoding will not change anything so things will still
+  work as expected.
 
   Args:
     path: the canonical path as an Unicode string
@@ -105,14 +103,9 @@ def CanonicalPathToLocalPath(path):
   Returns:
     a unicode string or an encoded (narrow) string dependent on
     system settings
+
   """
-  canonical_path = utils.NormalizePath(path)
-
-  if sys.getfilesystemencoding():
-    return canonical_path
-
-  encoding = locale.getdefaultlocale()[1] or "UTF-8"
-  return canonical_path.encode(encoding)
+  return utils.SmartStr(utils.NormalizePath(path))
 
 
 def LocalPathToCanonicalPath(path):

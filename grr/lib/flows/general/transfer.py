@@ -2,7 +2,6 @@
 """These flows are designed for high performance transfers."""
 
 
-import time
 import zlib
 
 import logging
@@ -60,13 +59,13 @@ class GetFile(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Get information about the file from the client."""
-    self.state.Register("max_chunk_number",
-                        max(2, self.args.read_length / self.CHUNK_SIZE))
+    self.state.max_chunk_number = max(2,
+                                      self.args.read_length / self.CHUNK_SIZE)
 
-    self.state.Register("current_chunk_number", 0)
-    self.state.Register("file_size", 0)
-    self.state.Register("fd", None)
-    self.state.Register("stat", None)
+    self.state.current_chunk_number = 0
+    self.state.file_size = 0
+    self.state.blobs = []
+    self.state.stat_entry = None
 
     self.CallClient(
         "StatFile",
@@ -78,61 +77,41 @@ class GetFile(flow.GRRFlow):
     """Fix up the pathspec of the file."""
     response = responses.First()
     if responses.success and response:
-      self.state.stat = response
+      self.state.stat_entry = response
     else:
       if not self.args.ignore_stat_failure:
         raise IOError("Error: %s" % responses.status)
 
       # Just fill up a bogus stat entry.
-      self.state.stat = rdf_client.StatEntry(pathspec=self.args.pathspec)
+      self.state.stat_entry = rdf_client.StatEntry(pathspec=self.args.pathspec)
 
     # Adjust the size from st_size if read length is not specified.
     if self.args.read_length == 0:
-      self.state.file_size = self.state.stat.st_size
+      self.state.file_size = self.state.stat_entry.st_size
     else:
       self.state.file_size = self.args.read_length
 
     self.state.max_chunk_number = (self.state.file_size / self.CHUNK_SIZE) + 1
 
-    self.CreateBlobImage()
     self.FetchWindow(
-        min(self.WINDOW_SIZE, self.state.max_chunk_number -
-            self.state.current_chunk_number))
+        min(self.WINDOW_SIZE, self.state.max_chunk_number - self.state[
+            "current_chunk_number"]))
 
   def FetchWindow(self, number_of_chunks_to_readahead):
     """Read ahead a number of buffers to fill the window."""
     for _ in range(number_of_chunks_to_readahead):
 
       # Do not read past the end of file
-      if self.state.current_chunk_number > self.state.max_chunk_number:
+      next_offset = self.state.current_chunk_number * self.CHUNK_SIZE
+      if next_offset >= self.state.file_size:
         return
 
       request = rdf_client.BufferReference(
           pathspec=self.args.pathspec,
-          offset=self.state.current_chunk_number * self.CHUNK_SIZE,
+          offset=next_offset,
           length=self.CHUNK_SIZE)
       self.CallClient("TransferBuffer", request, next_state="ReadBuffer")
       self.state.current_chunk_number += 1
-
-  def CreateBlobImage(self):
-    """Force creation of the new AFF4 object.
-
-    Note that this is pinned on the client id - i.e. the client can not change
-    aff4 objects outside its tree.
-    """
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(self.state.stat.pathspec,
-                                              self.client_id)
-
-    self.state.stat.aff4path = urn
-
-    # Create a new BlobImage for the data. Note that this object is pickled
-    # with this flow between states.
-    self.state.fd = aff4.FACTORY.Create(
-        urn, aff4_grr.VFSBlobImage, token=self.token)
-
-    # The chunksize must be set to be the same as the transfer chunk size.
-    self.state.fd.SetChunksize(self.CHUNK_SIZE)
-    self.state.fd.Set(self.state.fd.Schema.STAT(self.state.stat))
 
   @flow.StateHandler()
   def ReadBuffer(self, responses):
@@ -144,124 +123,51 @@ class GetFile(flow.GRRFlow):
         raise IOError("Missing hash for offset %s missing" % response.offset)
 
       if response.offset <= self.state.max_chunk_number * self.CHUNK_SIZE:
-        # Write the hash to the index. Note that response.data is the hash of
-        # the block (32 bytes) and response.length is the length of the block.
-        self.state.fd.AddBlob(response.data, response.length)
+        # Response.data is the hash of the block (32 bytes) and
+        # response.length is the length of the block.
+        self.state.blobs.append((response.data, response.length))
         self.Log("Received blob hash %s", response.data.encode("hex"))
-        self.Status("Received %s bytes", self.state.fd.size)
 
         # Add one more chunk to the window.
         self.FetchWindow(1)
 
+      if response.offset + response.length >= self.state.file_size:
+        # File is complete.
+        stat_entry = self.state.stat_entry
+        urn = aff4_grr.VFSGRRClient.PathspecToURN(
+            self.state.stat_entry.pathspec, self.client_id)
+
+        stat_entry.aff4path = urn
+        with aff4.FACTORY.Create(
+            urn, aff4_grr.VFSBlobImage, token=self.token) as fd:
+          fd.SetChunksize(self.CHUNK_SIZE)
+          fd.Set(fd.Schema.STAT(stat_entry))
+
+          for data, length in self.state.blobs:
+            fd.AddBlob(data, length)
+            fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime().Now())
+
+          # Save some space.
+          del self.state.blobs
+
+        self.state.success = True
+
   @flow.StateHandler()
   def End(self):
     """Finalize reading the file."""
-    fd = self.state.fd
-    if fd is None:
-      self.Notify("ViewObject", self.client_id, "File failed to be transferred")
+    if not self.state.get("success"):
+      self.Log("File transfer failed.")
+      self.Notify("ViewObject", self.client_id, "File transfer failed.")
     else:
-      self.Notify("ViewObject", fd.urn, "File transferred successfully")
-
-      self.Log("Finished reading %s", fd.urn)
-      self.Log("Flow Completed in %s seconds",
-               time.time() - self.state.context.create_time / 1e6)
-
-      stat_response = self.state.fd.Get(self.state.fd.Schema.STAT)
-
-      fd.size = min(fd.size, self.state.file_size)
-      fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime().Now())
-      fd.Close(sync=True)
+      stat_entry = self.state.stat_entry
+      self.Log("File %s transferred successfully.", stat_entry.aff4path)
+      self.Notify("ViewObject", stat_entry.aff4path,
+                  "File transferred successfully.")
 
       # Notify any parent flows the file is ready to be used now.
-      self.SendReply(stat_response)
+      self.SendReply(stat_entry)
 
     super(GetFile, self).End()
-
-
-class HashTracker(object):
-
-  def __init__(self, hash_response, is_known=False):
-    self.hash_response = hash_response
-    self.is_known = is_known
-
-  def Digest(self):
-    return self.hash_response.data.encode("hex")
-
-
-class FileTracker(object):
-  """A Class to track a single file download."""
-
-  # We need to be careful about what is stored in the file tracker so we use
-  # __slots__ to ensure that non-registered attributes are not set.
-  __slots__ = ["fd", "client_id", "stat_entry", "hash_obj", "hash_list",
-               "index", "bytes_read", "size_to_download"]
-
-  def __init__(self, client_id, index=None):
-    # We hold onto the AFF4 file object.
-    self.fd = None
-    self.client_id = client_id
-    self.stat_entry = None
-    self.hash_obj = None
-    self.hash_list = []
-    self.index = index
-
-    # The total number of bytes available in this file. This may be different
-    # from the size as reported by stat() for special files (e.g. proc files).
-    self.bytes_read = 0
-
-    # The number of bytes we are expected to fetch. This value depends on
-    # - the bytes available (stat_entry.st_size or bytes_read if available).
-    # - a limit to the file size in the flow (self.args.file_size).
-    self.size_to_download = 0
-
-  def SetStatEntry(self, stat_entry):
-    self.stat_entry = stat_entry
-    self.stat_entry.aff4path = aff4_grr.VFSGRRClient.PathspecToURN(
-        stat_entry.pathspec, self.client_id)
-
-  def __str__(self):
-    if not self.stat_entry:
-      return "<Tracker>"
-
-    sha256 = self.hash_obj and self.hash_obj.sha256
-    if sha256:
-      return "<Tracker: %s (sha256: %s)>" % (self.stat_entry.aff4path, sha256)
-    else:
-      return "<Tracker: %s >" % self.stat_entry.aff4path
-
-  def CreateVFSFile(self, filetype, token=None, chunksize=None):
-    """Create a VFSFile with stat_entry metadata.
-
-    We don't do this in __init__ since we need to first need to determine the
-    appropriate filetype.
-
-    Args:
-      filetype: string filetype
-      token: ACL token
-      chunksize: BlobImage chunksize
-    Side-Effect:
-      sets self.fd
-    Returns:
-      filehandle open for write
-
-    Raises:
-      RuntimeError: If this is called before setting a stat_entry with
-        SetStatEntry().
-    """
-    if not self.stat_entry:
-      raise RuntimeError("Can not create a VFSFile without a stat_entry.")
-
-    # We create the file in the client namespace and populate with metadata.
-    self.fd = aff4.FACTORY.Create(
-        self.stat_entry.aff4path, filetype, mode="w", token=token)
-    self.fd.SetChunksize(chunksize)
-
-  def Close(self, sync):
-    """Close and finalize the AFF4 object."""
-    self.fd.Set(self.fd.Schema.STAT(self.stat_entry))
-    self.fd.Set(self.fd.Schema.PATHSPEC(self.stat_entry.pathspec))
-    self.fd.Set(self.fd.Schema.CONTENT_LAST(rdfvalue.RDFDatetime().Now()))
-    self.fd.Close(sync=sync)
 
 
 class MultiGetFileMixin(object):
@@ -282,53 +188,49 @@ class MultiGetFileMixin(object):
   # allows us to amortize file store round trips and increases throughput.
   MIN_CALL_TO_FILE_STORE = 200
 
-  def Start(self):
+  def Start(self,
+            file_size=0,
+            maximum_pending_files=1000,
+            use_external_stores=False):
     """Initialize our state."""
     super(MultiGetFileMixin, self).Start()
 
-    self.state.Register("files_hashed", 0)
-    self.state.Register("use_external_stores", False)
-    self.state.Register("file_size", 0)
-    self.state.Register("files_to_fetch", 0)
-    self.state.Register("files_fetched", 0)
-    self.state.Register("files_skipped", 0)
+    self.state.files_hashed = 0
+    self.state.use_external_stores = use_external_stores
+    self.state.file_size = file_size
+    self.state.files_to_fetch = 0
+    self.state.files_fetched = 0
+    self.state.files_skipped = 0
 
     # Counter to batch up hash checking in the filestore
-    self.state.Register("files_hashed_since_check", 0)
+    self.state.files_hashed_since_check = 0
 
     # A dict of file trackers which are waiting to be checked by the file
     # store.  Keys are vfs urns and values are FileTrack instances.  Values are
     # copied to pending_files for download if not present in FileStore.
-    self.state.Register("pending_hashes", {})
+    self.state.pending_hashes = {}
 
     # A dict of file trackers currently being fetched. Keys are vfs urns and
     # values are FileTracker instances.
-    self.state.Register("pending_files", {})
+    self.state.pending_files = {}
 
     # The maximum number of files we are allowed to download concurrently.
-    self.state.Register("maximum_pending_files", 1000)
+    self.state.maximum_pending_files = maximum_pending_files
 
     # As pathspecs are added to the flow they are appended to this array. We
     # then simply pass their index in this array as a surrogate for the full
     # pathspec. This allows us to use integers to track pathspecs in dicts etc.
-    self.state.Register("indexed_pathspecs", [])
+    self.state.indexed_pathspecs = []
 
     # The index of the next pathspec to start. Pathspecs are added to
     # indexed_pathspecs and wait there until there are free trackers for
     # them. When the number of pending_files falls below the
-    # "maximum_pending_files" count, we increment this index and start of
+    # "maximum_pending_files" count] = we increment this index and start of
     # downloading another pathspec.
-    self.state.Register("next_pathspec_to_start", 0)
+    self.state.next_pathspec_to_start = 0
 
     # Set of blobs we still need to fetch.
-    self.state.Register("blobs_we_need", set())
-
-    fd = aff4.FACTORY.Open(
-        filestore.FileStore.PATH,
-        filestore.FileStore,
-        mode="r",
-        token=self.token)
-    self.state.Register("filestore", fd)
+    self.state.blobs_we_need = set()
 
   def StartFileFetch(self, pathspec, request_data=None):
     """The entry point for this flow mixin - Schedules new file transfer."""
@@ -355,7 +257,7 @@ class MultiGetFileMixin(object):
 
     # Add the file tracker to the pending hashes list where it waits until the
     # hash comes back.
-    self.state.pending_hashes[index] = FileTracker(self.client_id, index)
+    self.state.pending_hashes[index] = {"index": index}
 
     # First state the file, then hash the file.
     self.CallClient(
@@ -380,7 +282,7 @@ class MultiGetFileMixin(object):
 
   def _ReceiveFetchedFile(self, tracker):
     """Remove pathspec for this index and call the ReceiveFetchedFile method."""
-    index = tracker.index
+    index = tracker["index"]
     _, request_data = self.state.indexed_pathspecs[index]
     self.state.indexed_pathspecs[index] = (None, None)
     self.state.pending_hashes.pop(index, None)
@@ -388,7 +290,7 @@ class MultiGetFileMixin(object):
 
     # Report the request_data for this flow's caller.
     self.ReceiveFetchedFile(
-        tracker.stat_entry, tracker.hash_obj, request_data=request_data)
+        tracker["stat_entry"], tracker["hash_obj"], request_data=request_data)
 
     # We have a bit more room in the pending_hashes so we try to schedule
     # another pathspec.
@@ -440,7 +342,7 @@ class MultiGetFileMixin(object):
       return
 
     tracker = self.state.pending_hashes[index]
-    tracker.SetStatEntry(responses.First())
+    tracker["stat_entry"] = responses.First()
 
   @flow.StateHandler()
   def ReceiveFileHash(self, responses):
@@ -498,8 +400,8 @@ class MultiGetFileMixin(object):
       self._FileFetchFailed(index, responses.request.request.name)
       return
 
-    tracker.hash_obj = hash_obj
-    tracker.bytes_read = response.bytes_read
+    tracker["hash_obj"] = hash_obj
+    tracker["bytes_read"] = response.bytes_read
 
     self.state.files_hashed_since_check += 1
     if self.state.files_hashed_since_check >= self.MIN_CALL_TO_FILE_STORE:
@@ -523,35 +425,44 @@ class MultiGetFileMixin(object):
     # This map represents all the hashes in the pending urns.
     file_hashes = {}
 
-    # Store urns by hash to allow us to remove duplicates.
-    # keys are hashdigest objects, values are arrays of tracker objects.
-    hash_to_urn = {}
+    # Store a mapping of hash to tracker. Keys are hashdigest objects,
+    # values are arrays of tracker dicts.
+    hash_to_tracker = {}
     for index, tracker in self.state.pending_hashes.iteritems():
 
       # We might not have gotten this hash yet
-      if tracker.hash_obj is None:
+      if tracker.get("hash_obj") is None:
         continue
 
-      digest = tracker.hash_obj.sha256
-      file_hashes[index] = tracker.hash_obj
-      hash_to_urn.setdefault(digest, []).append(tracker)
+      hash_obj = tracker["hash_obj"]
+      digest = hash_obj.sha256
+      file_hashes[index] = hash_obj
+      hash_to_tracker.setdefault(digest, []).append(tracker)
 
     # First we get all the files which are present in the file store.
     files_in_filestore = set()
-    for file_store_urn, hash_obj in self.state.filestore.CheckHashes(
+
+    # TODO(user): This object never changes, could this be a class attribute?
+    filestore_obj = aff4.FACTORY.Open(
+        filestore.FileStore.PATH,
+        filestore.FileStore,
+        mode="r",
+        token=self.token)
+
+    for file_store_urn, hash_obj in filestore_obj.CheckHashes(
         file_hashes.values(), external=self.state.use_external_stores):
 
       self.HeartBeat()
 
       # Since checkhashes only returns one digest per unique hash we need to
       # find any other files pending download with the same hash.
-      for tracker in hash_to_urn[hash_obj.sha256]:
+      for tracker in hash_to_tracker[hash_obj.sha256]:
         self.state.files_skipped += 1
-        file_hashes.pop(tracker.index)
+        file_hashes.pop(tracker["index"])
         files_in_filestore.add(file_store_urn)
         # Remove this tracker from the pending_hashes store since we no longer
         # need to process it.
-        self.state.pending_hashes.pop(tracker.index)
+        self.state.pending_hashes.pop(tracker["index"])
 
     # Now that the check is done, reset our counter
     self.state.files_hashed_since_check = 0
@@ -565,28 +476,30 @@ class MultiGetFileMixin(object):
         self.Log("Filestore File %s has no hash.", existing_blob.urn)
         continue
 
-      for file_tracker in hash_to_urn.get(hashset.sha256, []):
+      for file_tracker in hash_to_tracker.get(hashset.sha256, []):
+        stat_entry = file_tracker["stat_entry"]
         # Due to potential filestore corruption, the existing_blob files can
         # have 0 size, make sure our size matches the actual size in that case.
         if existing_blob.size == 0:
-          existing_blob.size = (file_tracker.bytes_read or
-                                file_tracker.stat_entry.st_size)
+          existing_blob.size = (file_tracker["bytes_read"] or
+                                stat_entry.st_size)
 
         # Create a file in the client name space with the same classtype and
         # populate its attributes.
-        file_tracker.CreateVFSFile(
-            existing_blob.__class__,
-            token=self.token,
-            chunksize=self.CHUNK_SIZE)
+        stat_entry.aff4path = aff4_grr.VFSGRRClient.PathspecToURN(
+            stat_entry.pathspec, self.client_id)
 
-        file_tracker.fd.FromBlobImage(existing_blob)
-        file_tracker.fd.Set(hashset)
+        with aff4.FACTORY.Create(
+            stat_entry.aff4path,
+            existing_blob.__class__,
+            mode="w",
+            token=self.token) as fd:
+
+          fd.FromBlobImage(existing_blob)
+          fd.Set(hashset)
 
         # Add this file to the index at the canonical location
-        existing_blob.AddIndex(file_tracker.stat_entry.aff4path)
-
-        # It is not critical that this file be written immediately.
-        file_tracker.Close(sync=False)
+        existing_blob.AddIndex(stat_entry.aff4path)
 
         # Report this hit to the flow's caller.
         self._ReceiveFetchedFile(file_tracker)
@@ -600,20 +513,16 @@ class MultiGetFileMixin(object):
       file_tracker = self.state.pending_hashes.pop(index)
       self.state.pending_files[index] = file_tracker
 
-      # Create the VFS file for this file tracker.
-      file_tracker.CreateVFSFile(
-          aff4_grr.VFSBlobImage, token=self.token, chunksize=self.CHUNK_SIZE)
-
       # If we already know how big the file is we use that, otherwise fall back
       # to the size reported by stat.
-      if file_tracker.bytes_read > 0:
-        file_tracker.size_to_download = file_tracker.bytes_read
+      if file_tracker["bytes_read"] > 0:
+        file_tracker["size_to_download"] = file_tracker["bytes_read"]
       else:
-        file_tracker.size_to_download = file_tracker.stat_entry.st_size
+        file_tracker["size_to_download"] = file_tracker["stat_entry"].st_size
 
       # We do not have the file here yet - we need to retrieve it.
       expected_number_of_hashes = (
-          file_tracker.size_to_download / self.CHUNK_SIZE + 1)
+          file_tracker["size_to_download"] / self.CHUNK_SIZE + 1)
 
       # We just hash ALL the chunks in the file now. NOTE: This maximizes client
       # VFS cache hit rate and is far more efficient than launching multiple
@@ -623,12 +532,12 @@ class MultiGetFileMixin(object):
       for i in range(expected_number_of_hashes):
         if i == expected_number_of_hashes - 1:
           # The last chunk is short.
-          length = file_tracker.size_to_download % self.CHUNK_SIZE
+          length = file_tracker["size_to_download"] % self.CHUNK_SIZE
         else:
           length = self.CHUNK_SIZE
         self.CallClient(
             "HashBuffer",
-            pathspec=file_tracker.stat_entry.pathspec,
+            pathspec=file_tracker["stat_entry"].pathspec,
             offset=i * self.CHUNK_SIZE,
             length=length,
             next_state="CheckHash",
@@ -652,14 +561,15 @@ class MultiGetFileMixin(object):
 
     hash_response = responses.First()
     if not responses.success or not hash_response:
-      self.Log("Failed to read %s: %s" % (file_tracker.urn, responses.status))
+      urn = aff4_grr.VFSGRRClient.PathspecToURN(
+          file_tracker["stat_entry"].pathspec, self.client_id)
+      self.Log("Failed to read %s: %s" % (urn, responses.status))
       self._FileFetchFailed(index, responses.request.request.name)
       return
 
-    hash_tracker = HashTracker(hash_response)
-    file_tracker.hash_list.append(hash_tracker)
+    file_tracker.setdefault("hash_list", []).append(hash_response)
 
-    self.state.blobs_we_need.add(hash_tracker.Digest())
+    self.state.blobs_we_need.add(hash_response.data.encode("hex"))
 
     if len(self.state.blobs_we_need) > self.MIN_CALL_TO_FILE_STORE:
       self.FetchFileContent()
@@ -680,14 +590,15 @@ class MultiGetFileMixin(object):
 
     # Now iterate over all the blobs and add them directly to the blob image.
     for index, file_tracker in self.state.pending_files.iteritems():
-      for hash_tracker in file_tracker.hash_list:
+      for hash_response in file_tracker.get("hash_list", []):
         # Make sure we read the correct pathspec on the client.
-        hash_tracker.hash_response.pathspec = file_tracker.stat_entry.pathspec
+        hash_response.pathspec = file_tracker["stat_entry"].pathspec
 
-        if hash_tracker.Digest() in blobs_we_have:
+        digest = hash_response.data.encode("hex")
+        if digest in blobs_we_have:
           # If we have the data we may call our state directly.
           self.CallState(
-              [hash_tracker.hash_response],
+              [hash_response],
               next_state="WriteBuffer",
               request_data=dict(index=index))
 
@@ -695,12 +606,12 @@ class MultiGetFileMixin(object):
           # We dont have this blob - ask the client to transmit it.
           self.CallClient(
               "TransferBuffer",
-              hash_tracker.hash_response,
+              hash_response,
               next_state="WriteBuffer",
               request_data=dict(index=index))
 
       # Clear the file tracker's hash list.
-      file_tracker.hash_list = []
+      file_tracker["hash_list"] = []
 
   @flow.StateHandler()
   def WriteBuffer(self, responses):
@@ -720,12 +631,33 @@ class MultiGetFileMixin(object):
     response = responses.First()
     file_tracker = self.state.pending_files.get(index)
     if file_tracker:
-      file_tracker.fd.AddBlob(response.data, response.length)
+      file_tracker.setdefault("blobs", []).append(
+          (response.data, response.length))
 
-      if (response.length < file_tracker.fd.chunksize or
-          response.offset + response.length >= file_tracker.size_to_download):
-        # Close and write the file to the data store.
-        file_tracker.Close(sync=True)
+      download_size = file_tracker["size_to_download"]
+      if (response.length < self.CHUNK_SIZE or
+          response.offset + response.length >= download_size):
+
+        # Write the file to the data store.
+        stat_entry = file_tracker["stat_entry"]
+        stat_entry.aff4path = aff4_grr.VFSGRRClient.PathspecToURN(
+            stat_entry.pathspec, self.client_id)
+        with aff4.FACTORY.Create(
+            stat_entry.aff4path,
+            aff4_grr.VFSBlobImage,
+            mode="w",
+            token=self.token) as fd:
+
+          fd.SetChunksize(self.CHUNK_SIZE)
+          fd.Set(fd.Schema.STAT(stat_entry))
+          fd.Set(fd.Schema.PATHSPEC(stat_entry.pathspec))
+          fd.Set(fd.Schema.CONTENT_LAST(rdfvalue.RDFDatetime().Now()))
+
+          for digest, length in file_tracker["blobs"]:
+            fd.AddBlob(digest, length)
+
+          # Save some space.
+          del file_tracker["blobs"]
 
         # File done, remove from the store and close it.
         self._ReceiveFetchedFile(file_tracker)
@@ -735,7 +667,7 @@ class MultiGetFileMixin(object):
         # capacity.
         self.Publish(
             "FileStore.AddFileToStore",
-            file_tracker.fd.urn,
+            stat_entry.aff4path,
             priority=rdf_flows.GrrMessage.Priority.LOW_PRIORITY)
 
         self.state.files_fetched += 1
@@ -767,11 +699,10 @@ class MultiGetFile(MultiGetFileMixin, flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Start state of the flow."""
-    super(MultiGetFile, self).Start()
-
-    self.state.use_external_stores = self.args.use_external_stores
-    self.state.maximum_pending_files = self.args.maximum_pending_files
-    self.state.file_size = self.args.file_size
+    super(MultiGetFile, self).Start(
+        file_size=self.args.file_size,
+        maximum_pending_files=self.args.maximum_pending_files,
+        use_external_stores=self.args.use_external_stores)
 
     unique_paths = set()
 

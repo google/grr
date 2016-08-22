@@ -815,8 +815,11 @@ message ApiGetHuntContextArgs {
 };
 
 message ApiGetHuntContextResult {
-  optional ApiDataObject context = 1 [(sem_type) = {
+  optional HuntContext context = 1 [(sem_type) = {
       description: "The hunt context."
+    }];
+  optional ApiDataObject state = 2 [(sem_type) = {
+      description: "The hunt state."
     }];
 };
 
@@ -828,6 +831,31 @@ message ApiCreateHuntArgs {
       description: "Hunt arguments."
     }];
 };
+
+message ApiModifyHuntArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id."
+    }];
+  optional ApiHunt.State state = 2 [(sem_type) = {
+      description: "Hunt state."
+    }];
+  optional int64 client_limit = 3 [(sem_type) = {
+      description: "Client limit.",
+    }];
+  optional int64 client_rate = 4 [(sem_type) = {
+      description: "Client rate.",
+    }];
+  optional uint64 expires = 5 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "When the hunt should expire."
+    }];
+}
+
+message ApiDeleteHuntArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id."
+    }];
+}
 
 message ApiGetRDFValueDescriptorArgs {
   optional string type = 1 [(sem_type) = {
@@ -1585,14 +1613,14 @@ message ApiHunt {
     }];
   optional uint64 created = 12 [(sem_type) = {
       type: "RDFDatetime",
-      description: "When hunt was created."
+      description: "Creation time of the hunt."
     }];
   optional uint64 expires = 13 [(sem_type) = {
       type: "RDFDatetime",
-      description: "When hunt was last active."
+      description: "Expiration time of the hunt."
     }];
   optional string creator = 14 [(sem_type) = {
-      description: "Who started the flow."
+      description: "Name of the user who created the hunt."
     }];
   optional string description = 15 [(sem_type) = {
       description: "Hunt description."

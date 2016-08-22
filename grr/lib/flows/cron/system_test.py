@@ -262,23 +262,23 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     self.client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
 
     endtoend = system.EndToEndTests(None, token=self.token)
-    endtoend.state.Register("hunt_id", "aff4:/temphuntid")
-    endtoend.state.Register("client_ids", set(self.client_ids))
-    endtoend.state.Register("client_ids_failures", set())
-    endtoend.state.Register("client_ids_result_reported", set())
+    endtoend.state.hunt_id = "aff4:/temphuntid"
+    endtoend.state.client_ids = set(self.client_ids)
+    endtoend.state.client_ids_failures = set()
+    endtoend.state.client_ids_result_reported = set()
 
     # No results at all
     self.assertRaises(flow.FlowError, endtoend._CheckForSuccess, [])
 
     # Not enough client results
-    endtoend.state.Register("client_ids_failures", set())
-    endtoend.state.Register("client_ids_result_reported", set())
+    endtoend.state.client_ids_failures = set()
+    endtoend.state.client_ids_result_reported = set()
     self.assertRaises(flow.FlowError, endtoend._CheckForSuccess,
                       [self._CreateResult(True, "aff4:/C.6000000000000001")])
 
     # All clients succeeded
-    endtoend.state.Register("client_ids_failures", set())
-    endtoend.state.Register("client_ids_result_reported", set())
+    endtoend.state.client_ids_failures = set()
+    endtoend.state.client_ids_result_reported = set()
     endtoend._CheckForSuccess([self._CreateResult(True,
                                                   "aff4:/C.6000000000000000"),
                                self._CreateResult(True,
@@ -287,8 +287,8 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
                                                   "aff4:/C.6000000000000002")])
 
     # All clients complete, but some failures
-    endtoend.state.Register("client_ids_failures", set())
-    endtoend.state.Register("client_ids_result_reported", set())
+    endtoend.state.client_ids_failures = set()
+    endtoend.state.client_ids_result_reported = set()
     self.assertRaises(flow.FlowError, endtoend._CheckForSuccess,
                       [self._CreateResult(True, "aff4:/C.6000000000000000"),
                        self._CreateResult(False, "aff4:/C.6000000000000001"),

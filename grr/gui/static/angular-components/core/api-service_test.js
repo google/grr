@@ -389,6 +389,36 @@ describe('API service', function() {
     });
   });
 
+  describe('patch() method', function() {
+    it('adds "/api/" to a given url', function() {
+      $httpBackend.expectPATCH('/api/some/path').respond(200);
+      grrApiService.patch('some/path');
+      $httpBackend.flush();
+    });
+
+    it('adds "/api/" to a given url starting with "/"', function() {
+      $httpBackend.expectPATCH('/api/some/path').respond(200);
+      grrApiService.patch('/some/path');
+      $httpBackend.flush();
+    });
+
+    it('passes user-provided data in the request', function() {
+      $httpBackend.expect(
+          'PATCH', '/api/some/path', {key1: 'value1', key2: 'value2'})
+              .respond(200);
+      grrApiService.patch('some/path', {key1: 'value1', key2: 'value2'});
+      $httpBackend.flush();
+    });
+
+
+    it('url-escapes the path', function() {
+      $httpBackend.expectPATCH(
+          '/api/some/path%3Ffoo%26bar').respond(200);
+      grrApiService.patch('some/path?foo&bar');
+      $httpBackend.flush();
+    });
+  });
+
   describe('post() method', function() {
     it('adds "/api/" to a given url', function() {
       $httpBackend.whenPOST('/api/some/path').respond(200);

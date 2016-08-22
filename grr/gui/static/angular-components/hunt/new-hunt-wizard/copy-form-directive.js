@@ -57,8 +57,8 @@ CopyFormController.prototype.onHuntUrnChange_ = function() {
 CopyFormController.prototype.onHuntFetched_ = function(response) {
   var hunt = response['data'];
 
-  this.genericHuntArgs = angular.copy(hunt['hunt_args']);
-  this.huntRunnerArgs = angular.copy(hunt['hunt_runner_args']);
+  this.genericHuntArgs = angular.copy(hunt['value']['hunt_args']);
+  this.huntRunnerArgs = angular.copy(hunt['value']['hunt_runner_args']);
 
   if (angular.isDefined(this.huntRunnerArgs['value']['description'])) {
     this.huntRunnerArgs['value']['description']['value'] += ' (copy)';

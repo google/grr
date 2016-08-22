@@ -66,18 +66,19 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
   def testInterpolateArgs(self):
     collect_flow = collectors.ArtifactCollectorFlow(None, token=self.token)
 
-    collect_flow.state.Register("knowledge_base", rdf_client.KnowledgeBase())
+    kb = rdf_client.KnowledgeBase()
+    kb.MergeOrAddUser(rdf_client.User(username="test1"))
+    kb.MergeOrAddUser(rdf_client.User(username="test2"))
+    collect_flow.state["knowledge_base"] = kb
+
     collect_flow.current_artifact_name = "blah"
-    collect_flow.state.knowledge_base.MergeOrAddUser(
-        rdf_client.User(username="test1"))
-    collect_flow.state.knowledge_base.MergeOrAddUser(
-        rdf_client.User(username="test2"))
     collect_flow.args = artifact_utils.ArtifactCollectorFlowArgs()
 
     test_rdf = rdf_client.KnowledgeBase()
     action_args = {"usernames": ["%%users.username%%", "%%users.username%%"],
                    "nointerp": "asdfsdf",
                    "notastring": test_rdf}
+
     kwargs = collect_flow.InterpolateDict(action_args)
     self.assertItemsEqual(kwargs["usernames"],
                           ["test1", "test2", "test1", "test2"])
@@ -132,12 +133,11 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
       collect_flow = collectors.ArtifactCollectorFlow(None, token=self.token)
       collect_flow.args = mock.Mock()
       collect_flow.args.ignore_interpolation_errors = False
-      collect_flow.state.Register("knowledge_base", rdf_client.KnowledgeBase())
+      kb = rdf_client.KnowledgeBase()
+      kb.MergeOrAddUser(rdf_client.User(username="test1"))
+      kb.MergeOrAddUser(rdf_client.User(username="test2"))
+      collect_flow.state["knowledge_base"] = kb
       collect_flow.current_artifact_name = "blah"
-      collect_flow.state.knowledge_base.MergeOrAddUser(
-          rdf_client.User(username="test1"))
-      collect_flow.state.knowledge_base.MergeOrAddUser(
-          rdf_client.User(username="test2"))
 
       collector = artifact_registry.ArtifactSource(
           type=artifact_registry.ArtifactSource.SourceType.GREP,
@@ -161,7 +161,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
 
-    # Dynamically add a ArtifactSource specifying the base path.
+    # Dynamically add an ArtifactSource specifying the base path.
     file_path = os.path.join(self.base_path, "test_img.dd")
     coll1 = artifact_registry.ArtifactSource(
         type=artifact_registry.ArtifactSource.SourceType.FILE,
@@ -185,6 +185,32 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     fd2.seek(0, 2)
 
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
+
+  def testArtifactSkipping(self):
+    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
+                                          "FingerprintFile", "HashBuffer",
+                                          "HashFile")
+    client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
+    # This does not match the Artifact so it will not be collected.
+    client.Set(client.Schema.SYSTEM("Windows"))
+    kb = client.Get(client.Schema.KNOWLEDGE_BASE)
+    kb.os = "Windows"
+    client.Set(client.Schema.KNOWLEDGE_BASE, kb)
+    client.Flush()
+
+    artifact_list = ["FakeArtifact"]
+    for s in test_lib.TestFlowHelper(
+        "ArtifactCollectorFlow",
+        client_mock,
+        artifact_list=artifact_list,
+        use_tsk=False,
+        token=self.token,
+        client_id=self.client_id):
+      session_id = s
+    flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
+    self.assertEqual(len(flow_obj.state.artifacts_skipped_due_to_condition), 1)
+    self.assertEqual(flow_obj.state.artifacts_skipped_due_to_condition[0],
+                     ["FakeArtifact", "os == 'Linux'"])
 
   def testRunGrrClientActionArtifact(self):
     """Test we can get a GRR client artifact."""

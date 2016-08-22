@@ -75,18 +75,17 @@ class FlowThrottler(object):
     # Save DB roundtrips by checking both conditions at once. This means the dup
     # interval has a maximum of 1 day.
     for flow_obj in aff4.FACTORY.MultiOpen(flow_list, token=token):
-      flow_state = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
-      flow_context = flow_state.context
+      flow_context = flow_obj.context
 
       # If dup_interval is set, check for identical flows run within the
       # duplicate interval
       if self.dup_interval and flow_context.create_time > dup_boundary:
-        if flow_context.args.flow_name == flow_name:
+        if flow_obj.runner_args.flow_name == flow_name:
 
           # Raise if either the args are the same, or the args were empty, to
           # which None is the equivalent.
-          if flow_state.args == flow_args or (
-              isinstance(flow_state.args, flow.EmptyFlowArgs) and
+          if flow_obj.args == flow_args or (
+              isinstance(flow_obj.args, flow.EmptyFlowArgs) and
               flow_args is None):
             raise ErrorFlowDuplicate("Identical %s already run on %s at %s" %
                                      (flow_name, client_id,

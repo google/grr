@@ -95,15 +95,9 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     # The tree is opened to the correct place
     self.WaitUntil(self.IsElementPresent, "css=li[id=_fs-os-proc-10]")
 
-    # TODO(user): We should not need to click on the file here again. This
-    # is only required since we need to support both legacy and Angular VFS
-    # implementation. Once we deprecated the legacy implementation, this line
-    # can be removed.
-    self.Click("css=td:contains(exe)")
-
     # The stats pane shows the target file
-    self.WaitUntilContains("aff4:/C.0000000000000001/fs/os/proc/10/exe",
-                           self.GetText, "css=.tab-content h3")
+    self.WaitUntil(self.IsTextPresent,
+                   "aff4:/C.0000000000000001/fs/os/proc/10/exe")
 
     # Now select a FlowStatus notification,
     # should navigate to the broken flow.

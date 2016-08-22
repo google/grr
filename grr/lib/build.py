@@ -245,6 +245,7 @@ class ClientRepacker(BuilderBase):
   def __init__(self, context=None, signer=None):
     super(ClientRepacker, self).__init__(context=context)
     self.signer = signer
+    self.signed_template = False
 
   def GetClientConfig(self, context, validate=True):
     """Generates the client config file for inclusion in deployable binaries."""
@@ -450,13 +451,16 @@ class WindowsClientRepacker(ClientRepacker):
     output_zip.writestr(service_bin_name, self.Sign(service_bin_dat.getvalue()))
     completed_files.append(service_template.filename)
 
-    # Copy the rest of the files from the template to the new zip.  Current
-    # practice is to only sign the grr client and nanny executables, not the
-    # dlls.
-    for template_file in z_template.namelist():
-      if template_file not in completed_files:
-        CopyFileInZip(z_template, template_file, output_zip)
-
+    if self.signed_template:
+      # If the template libs were already signed we can skip signing
+      CreateNewZipWithSignedLibs(
+          z_template, output_zip, ignore_files=completed_files)
+    else:
+      CreateNewZipWithSignedLibs(
+          z_template,
+          output_zip,
+          ignore_files=completed_files,
+          signer=self.signer)
     output_zip.close()
 
     return self.MakeSelfExtractingZip(zip_data.getvalue(), output_path)
@@ -863,8 +867,27 @@ def CopyFileInZip(from_zip, from_name, to_zip, to_name=None, signer=None):
   if to_name is None:
     to_name = from_name
   if signer:
+    logging.debug("Signing %s", from_name)
     data = signer.SignBuffer(data)
   to_zip.writestr(to_name, data)
+
+
+def CreateNewZipWithSignedLibs(z_in,
+                               z_out,
+                               ignore_files=None,
+                               signer=None,
+                               skip_signing_files=None):
+  ignore_files = ignore_files or []
+  skip_signing_files = skip_signing_files or []
+  extensions_to_sign = [".sys", ".exe", ".dll", ".pyd"]
+  for template_file in z_in.namelist():
+    if template_file not in ignore_files:
+      extension = os.path.splitext(template_file)[1].lower()
+      if (signer and template_file not in skip_signing_files and
+          extension in extensions_to_sign):
+        CopyFileInZip(z_in, template_file, z_out, signer=signer)
+      else:
+        CopyFileInZip(z_in, template_file, z_out)
 
 
 def SetPeSubsystem(fd, console=True):

@@ -18,6 +18,7 @@ goog.require('grrUi.hunt.huntStatsDirective.HuntStatsDirective');
 goog.require('grrUi.hunt.huntStatusIconDirective.HuntStatusIconDirective');
 goog.require('grrUi.hunt.huntsListDirective.HuntsListDirective');
 goog.require('grrUi.hunt.huntsViewDirective.HuntsViewDirective');
+goog.require('grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogDirective');
 
 goog.require('grrUi.hunt.newHuntWizard.module');
 
@@ -73,3 +74,7 @@ grrUi.hunt.module.directive(
 grrUi.hunt.module.directive(
     grrUi.hunt.huntsViewDirective.HuntsViewDirective.directive_name,
     grrUi.hunt.huntsViewDirective.HuntsViewDirective);
+grrUi.hunt.module.directive(
+    grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogDirective
+        .directive_name,
+    grrUi.hunt.modifyHuntDialogDirective.ModifyHuntDialogDirective);

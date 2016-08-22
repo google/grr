@@ -246,7 +246,7 @@ class GRRWorker(object):
   def _ProcessRegularFlowMessages(self, flow_obj, notification):
     """Processes messages for a given flow."""
     session_id = notification.session_id
-    if not isinstance(flow_obj, flow.GRRFlow):
+    if not isinstance(flow_obj, flow.FlowBase):
       logging.warn("%s is not a proper flow object (got %s)", session_id,
                    type(flow_obj))
 
@@ -278,7 +278,7 @@ class GRRWorker(object):
 
     # Something went wrong - log it in the flow.
     except Exception as e:  # pylint: disable=broad-except
-      runner.context.state = rdf_flows.Flow.State.ERROR
+      runner.context.state = rdf_flows.FlowContext.State.ERROR
       runner.context.backtrace = traceback.format_exc()
       logging.error("Flow %s: %s", flow_obj, e)
       raise FlowProcessingError(e)

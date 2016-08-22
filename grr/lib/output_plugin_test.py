@@ -4,11 +4,11 @@
 
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import test_lib
 from grr.lib.hunts import standard
+from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class TestOutputPlugin(output_plugin.OutputPlugin):
@@ -20,11 +20,11 @@ class TestOutputPlugin(output_plugin.OutputPlugin):
 class TestOutputPluginVerifier(output_plugin.OutputPluginVerifier):
 
   def VerifyHuntOutput(self, plugin, hunt):
-    if hunt.GetRunner().args.description == "raise":
+    if hunt.runner_args.description == "raise":
       raise RuntimeError("oh no")
 
     return output_plugin.OutputPluginVerificationResult(
-        status_message=hunt.GetRunner().args.description)
+        status_message=hunt.runner_args.description)
 
 
 class OutputPluginVerifierTest(test_lib.GRRBaseTest):
@@ -35,7 +35,7 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
         plugin_name="TestOutputPlugin")]
     with hunts.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
-        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         output_plugins=output_plugins,
         description=description,
         client_rate=0,
@@ -45,8 +45,8 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
   def _GetPlugin(self, hunt):
     results_metadata = aff4.FACTORY.Open(
         hunt.urn.Add("ResultsMetadata"), token=self.token)
-    descriptor, state = results_metadata.Get(
-        results_metadata.Schema.OUTPUT_PLUGINS).values()[0]
+    descriptor, state = next(
+        results_metadata.Get(results_metadata.Schema.OUTPUT_PLUGINS).values())
     return descriptor.GetPluginForState(state)
 
   def setUp(self):

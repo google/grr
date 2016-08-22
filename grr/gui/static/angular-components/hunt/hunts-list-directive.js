@@ -12,18 +12,30 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
+ * @param {!angular.$q} $q
  * @param {!angularUi.$modal} $modal Bootstrap UI modal service.
+ * @param {grrUi.core.dialogService.DialogService} grrDialogService
+ * @param {!grrUi.core.apiService.ApiService} grrApiService
  * @ngInject
  */
 grrUi.hunt.huntsListDirective.HuntsListController = function(
-    $scope, $modal) {
+    $scope, $q, $modal, grrDialogService, grrApiService) {
   // Injected dependencies.
 
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
+  /** @private {!angular.$q} */
+  this.q_ = $q;
+
   /** @private {!angularUi.$modal} */
   this.modal_ = $modal;
+
+  /** @private {grrUi.core.dialogService.DialogService} */
+  this.grrDialogService_ = grrDialogService;
+
+  /** @private {!grrUi.core.apiService.ApiService} */
+  this.grrApiService_ = grrApiService;
 
   // Internal state.
 
@@ -58,6 +70,29 @@ var HuntsListController = grrUi.hunt.huntsListDirective.HuntsListController;
  */
 HuntsListController.prototype.huntsUrl = '/hunts';
 
+
+HuntsListController.prototype.buildHuntUrl_ = function() {
+  var components = this.scope_['selectedHuntUrn'].split('/');
+  var basename = components[components.length - 1];
+  return this.huntsUrl + '/' + basename;
+};
+
+HuntsListController.prototype.wrapApiPromise_ = function(promise, successMessage) {
+    return promise.then(
+        function success() {
+          return successMessage;
+        }.bind(this),
+        function failure(response) {
+          if (response['status'] === 403) {
+            // TODO(user): migrate from using grr.publish to using
+            // Angular services.
+            grr.publish('unauthorized',
+                        response['data']['subject'],
+                        response['data']['message']);
+          }
+          return this.q_.reject(response['data']['message']);
+        }.bind(this));
+};
 
 /**
  * Selects given item in the list.
@@ -108,16 +143,19 @@ HuntsListController.prototype.newHunt = function() {
  * @export
  */
 HuntsListController.prototype.runHunt = function() {
-  var modalInstance = this.modal_.open({
-    template: '<grr-legacy-renderer renderer="RunHuntConfirmationDialog" ' +
-        'query-params="{hunt_id: selectedHuntUrn}" />',
-    scope: this.scope_
-  });
+  var modalPromise = this.grrDialogService_.openConfirmation(
+      'Run this hunt?',
+      'Are you sure you want to run this hunt?',
+      function() {
+        var promise = this.grrApiService_.patch(this.buildHuntUrl_(),
+                                                {state: 'STARTED'});
+        return this.wrapApiPromise_(promise, 'Hunt started successfully!');
+      }.bind(this));
 
   // TODO(user): there's no need to trigger update on dismiss.
   // Doing so only to maintain compatibility with legacy GRR code.
   // Remove as soon as legacy GRR code is removed.
-  modalInstance.result.then(function resolve() {
+  modalPromise.then(function resolve() {
     this.triggerUpdate();
   }.bind(this), function dismiss() {
     this.triggerUpdate();
@@ -131,16 +169,20 @@ HuntsListController.prototype.runHunt = function() {
  * @export
  */
 HuntsListController.prototype.stopHunt = function() {
-  var modalInstance = this.modal_.open({
-    template: '<grr-legacy-renderer renderer="StopHuntConfirmationDialog" ' +
-        'query-params="{hunt_id: selectedHuntUrn}" />',
-    scope: this.scope_
-  });
+  var modalPromise = this.grrDialogService_.openConfirmation(
+      'Stop this hunt?',
+      'Are you sure you want to stop this hunt? Once a hunt is ' +
+          'stopped, resuming it is not possible.',
+      function() {
+        var promise = this.grrApiService_.patch(this.buildHuntUrl_(),
+                                                {state: 'STOPPED'});
+        return this.wrapApiPromise_(promise, 'Hunt stopped successfully!');
+      }.bind(this));
 
   // TODO(user): there's no need to trigger update on dismiss.
   // Doing so only to maintain compatibility with legacy GRR code.
   // Remove as soon as legacy GRR code is removed.
-  modalInstance.result.then(function resolve() {
+  modalPromise.then(function resolve() {
     this.triggerUpdate();
   }.bind(this), function dismiss() {
     this.triggerUpdate();
@@ -154,16 +196,17 @@ HuntsListController.prototype.stopHunt = function() {
  * @export
  */
 HuntsListController.prototype.modifyHunt = function() {
-  var modalInstance = this.modal_.open({
-    template: '<grr-legacy-renderer renderer="ModifyHuntDialog" ' +
-        'query-params="{hunt_id: selectedHuntUrn}" />',
-    scope: this.scope_
-  });
+  var components = this.scope_['selectedHuntUrn'].split('/');
+  var huntId = components[components.length - 1];
+
+  var argsObj = {};
+  var modalPromise = this.grrDialogService_.openDirectiveDialog(
+    'grrModifyHuntDialog', { huntId: huntId });
 
   // TODO(user): there's no need to trigger update on dismiss.
   // Doing so only to maintain compatibility with legacy GRR code.
   // Remove as soon as legacy GRR code is removed.
-  modalInstance.result.then(function resolve() {
+  modalPromise.then(function resolve() {
     this.triggerUpdate();
   }.bind(this), function dismiss() {
     this.triggerUpdate();
@@ -210,16 +253,18 @@ HuntsListController.prototype.copyHunt = function() {
  * @export
  */
 HuntsListController.prototype.deleteHunt = function() {
-  var modalInstance = this.modal_.open({
-    template: '<grr-legacy-renderer renderer="DeleteHuntDialog" ' +
-        'query-params="{hunt_id: selectedHuntUrn}" />',
-    scope: this.scope_
-  });
+  var modalPromise = this.grrDialogService_.openConfirmation(
+      'Delete this hunt?',
+      'Are you sure you want to delete this hunt?',
+      function() {
+        var promise = this.grrApiService_.delete(this.buildHuntUrl_());
+        return this.wrapApiPromise_(promise, 'Hunt deleted successfully!');
+      }.bind(this));
 
   // TODO(user): there's no need to trigger update on dismiss.
   // Doing so only to maintain compatibility with legacy GRR code.
   // Remove as soon as legacy GRR code is removed.
-  modalInstance.result.then(function resolve() {
+  modalPromise.then(function resolve() {
     this.triggerUpdate();
   }.bind(this), function dismiss() {
     this.triggerUpdate();

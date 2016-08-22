@@ -221,6 +221,12 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def CreateHunt(self, args, token=None):
     return api_hunt.ApiCreateHuntHandler()
 
+  def ModifyHunt(self, args, token=None):
+    return api_hunt.ApiModifyHuntHandler()
+
+  def DeleteHunt(self, args, token=None):
+    return api_hunt.ApiDeleteHuntHandler()
+
   def GetHuntFilesArchive(self, args, token=None):
     return api_hunt.ApiGetHuntFilesArchiveHandler()
 

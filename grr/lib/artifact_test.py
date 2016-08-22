@@ -578,10 +578,10 @@ class GrrKbWindowsTest(GrrKbTest):
       collect_obj = artifact.CollectArtifactDependencies(None, token=self.token)
       collect_obj.args = args
       collect_obj.knowledge_base = None
-      collect_obj.state.Register("all_deps", set())
-      collect_obj.state.Register("awaiting_deps_artifacts", [])
-      collect_obj.state.Register(
-          "knowledge_base", rdf_client.KnowledgeBase(os="Windows"))
+      collect_obj.state["all_deps"] = set()
+      collect_obj.state["awaiting_deps_artifacts"] = []
+      collect_obj.state["knowledge_base"] = rdf_client.KnowledgeBase(
+          os="Windows")
       no_deps = collect_obj.GetFirstFlowsForCollection()
 
       self.assertItemsEqual(no_deps, [])
@@ -624,10 +624,9 @@ class GrrKbWindowsTest(GrrKbTest):
         kb_init = artifact.KnowledgeBaseInitializationFlow(
             None, token=self.token)
         kb_init.args = args
-        kb_init.state.Register("all_deps", set())
-        kb_init.state.Register("awaiting_deps_artifacts", [])
-        kb_init.state.Register(
-            "knowledge_base", rdf_client.KnowledgeBase(os="Windows"))
+        kb_init.state["all_deps"] = set()
+        kb_init.state["awaiting_deps_artifacts"] = []
+        kb_init.state["knowledge_base"] = rdf_client.KnowledgeBase(os="Windows")
         no_deps = kb_init.GetFirstFlowsForCollection()
 
         self.assertItemsEqual(no_deps, ["DepsControlSet", "DepsHomedir2"])

@@ -56,6 +56,18 @@ class SampleDeleteHandler(api_call_handler_base.ApiCallHandler):
     return {"method": "DELETE", "resource": args.resource_id}
 
 
+class SamplePatchHandlerArgs(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.SamplePatchHandlerArgs
+
+
+class SamplePatchHandler(api_call_handler_base.ApiCallHandler):
+
+  args_type = SamplePatchHandlerArgs
+
+  def Render(self, args, token=None):
+    return {"method": "PATCH", "resource": args.resource_id}
+
+
 class TestHttpApiRouter(api_call_router.ApiCallRouter):
   """Test router with custom methods."""
 
@@ -78,6 +90,11 @@ class TestHttpApiRouter(api_call_router.ApiCallRouter):
   @api_call_router.ArgsType(SampleDeleteHandlerArgs)
   def SampleDelete(self, args, token=None):
     return SampleDeleteHandler()
+
+  @api_call_router.Http("PATCH", "/test_resource/<resource_id>")
+  @api_call_router.ArgsType(SamplePatchHandlerArgs)
+  def SamplePatch(self, args, token=None):
+    return SamplePatchHandler()
 
   @api_call_router.Http("GET", "/failure/not-found")
   def FailureNotFound(self, args, token=None):
@@ -283,6 +300,15 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
 
     self.assertEqual(
         json.loads(response.content), {"method": "DELETE",
+                                       "resource": "R:123456"})
+    self.assertEqual(response.status_code, 200)
+
+  def testRendersPatchHandlerCorrectly(self):
+    response = self._RenderResponse(
+        self._CreateRequest("PATCH", "/test_resource/R:123456"))
+
+    self.assertEqual(
+        json.loads(response.content), {"method": "PATCH",
                                        "resource": "R:123456"})
     self.assertEqual(response.status_code, 200)
 

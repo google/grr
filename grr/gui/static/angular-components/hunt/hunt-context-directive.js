@@ -22,6 +22,8 @@ grrUi.hunt.huntContextDirective.HuntContextController = function(
 
   /** @export {Object} */
   this.context;
+  /** @export {Object} */
+  this.state;
 
   $scope.$watch('huntUrn', this.onHuntUrnChange_.bind(this));
 };
@@ -46,6 +48,7 @@ HuntContextController.prototype.onHuntUrnChange_ = function(huntUrn) {
   var url = '/hunts/' + huntId + '/context';
   this.grrApiService_.get(url).then(function success(response) {
     this.context = response.data['context'];
+    this.state = response.data['state'];
   }.bind(this));
 };
 

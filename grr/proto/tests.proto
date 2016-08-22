@@ -108,3 +108,7 @@ message ApiRDFProtoStructRendererSample {
 message SampleDeleteHandlerArgs {
   optional string resource_id = 1;
 }
+
+message SamplePatchHandlerArgs {
+  optional string resource_id = 1;
+}

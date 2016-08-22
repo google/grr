@@ -69,7 +69,7 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
                generated values (like hunts IDs) in the regression data.
     Raises:
       ValueError: if unsupported method argument is passed. Currently only
-                  "GET" and "POST" are supported.
+                  "GET", "POST", "DELETE" and "PATCH" are supported.
     """
     parsed_url = urlparse.urlparse(url)
     request = utils.DataObject(
@@ -83,7 +83,7 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
 
     if method == "GET":
       request.GET = dict(urlparse.parse_qsl(parsed_url.query))
-    elif method == "POST":
+    elif method in ["POST", "DELETE", "PATCH"]:
       request.body = json.dumps(payload or "")
     else:
       raise ValueError("Unsupported method: %s." % method)

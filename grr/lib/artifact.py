@@ -131,13 +131,13 @@ class CollectArtifactDependencies(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """For each artifact, create subflows for each collector."""
-    self.state.Register("knowledge_base", None)
-    self.state.Register("fulfilled_deps", [])
-    self.state.Register("partial_fulfilled_deps", set())
-    self.state.Register("all_deps", set())
-    self.state.Register("in_flight_artifacts", [])
-    self.state.Register("awaiting_deps_artifacts", [])
-    self.state.Register("completed_artifacts", [])
+    self.state.knowledge_base = None
+    self.state.fulfilled_deps = []
+    self.state.partial_fulfilled_deps = set()
+    self.state.all_deps = set()
+    self.state.in_flight_artifacts = []
+    self.state.awaiting_deps_artifacts = []
+    self.state.completed_artifacts = []
 
     self.InitializeKnowledgeBase()
     first_flows = self.GetFirstFlowsForCollection()
@@ -263,7 +263,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
       if (self.state.awaiting_deps_artifacts and
           not self.state.in_flight_artifacts):
         missing_deps = list(
-            self.state.all_deps.difference(self.state.fulfilled_deps))
+            self.state.all_deps.difference(self.state["fulfilled_deps"]))
 
         if self.args.require_complete:
           raise flow.FlowError("KnowledgeBase initialization failed as the "
@@ -439,7 +439,7 @@ class KnowledgeBaseInitializationFlow(CollectArtifactDependencies):
                            " KnowledgeBase" % self.client_id)
 
 
-def ApplyParserToResponses(processor_obj, responses, source, state, token):
+def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
   """Parse responses using the specified processor and the right args.
 
   Args:
@@ -447,7 +447,7 @@ def ApplyParserToResponses(processor_obj, responses, source, state, token):
     responses: A list of, or single response depending on the processors
        process_together setting.
     source: The source responsible for producing the responses.
-    state: The current state of an artifact collection flow.
+    flow_obj: An artifact collection flow.
     token: The token used in an artifact collection flow.
 
   Raises:
@@ -475,6 +475,7 @@ def ApplyParserToResponses(processor_obj, responses, source, state, token):
     else:
       parse_method = processor_obj.Parse
 
+    state = flow_obj.state
     if isinstance(processor_obj, parsers.CommandParser):
       # Command processor only supports one response at a time.
       response = responses
@@ -509,7 +510,7 @@ def ApplyParserToResponses(processor_obj, responses, source, state, token):
 
     elif isinstance(processor_obj, (parsers.ArtifactFilesParser)):
       result_iterator = parse_method(responses, state.knowledge_base,
-                                     state.path_type)
+                                     flow_obj.GetPathType())
 
     else:
       raise RuntimeError("Unsupported parser detected %s" % processor_obj)

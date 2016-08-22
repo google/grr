@@ -370,7 +370,7 @@ class UpdateVFSFile(flow.GRRFlow):
   ACL_ENFORCED = False
 
   def Init(self):
-    self.state.Register("get_file_flow_urn")
+    self.state.get_file_flow_urn = None
 
   @flow.StateHandler()
   def Start(self):

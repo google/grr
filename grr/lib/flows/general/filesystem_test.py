@@ -531,8 +531,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
       pass
 
     fd = aff4.FACTORY.Open(session_id, token=self.token)
-    self.assertIn("KnowledgeBaseInterpolationError", fd.state.context.backtrace)
-    self.assertEqual("ERROR", str(fd.state.context.state))
+    self.assertIn("KnowledgeBaseInterpolationError", fd.context.backtrace)
+    self.assertEqual("ERROR", str(fd.context.state))
 
   def testGlobRoundtrips(self):
     """Tests that glob doesn't use too many client round trips."""

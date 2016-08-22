@@ -85,13 +85,11 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
     # Click on the first flow and wait for flow details panel to appear.
     self.Click("css=#main_bottomPane td:contains('OSBreakDown')")
-    self.WaitUntil(self.IsTextPresent, "FLOW_STATE")
-    self.WaitUntil(self.IsTextPresent, "outstanding_requests")
+    self.WaitUntil(self.IsTextPresent, "Outstanding requests")
 
     # Close the panel.
     self.Click("css=#main_bottomPane .panel button.close")
-    self.WaitUntilNot(self.IsTextPresent, "FLOW_STATE")
-    self.WaitUntilNot(self.IsTextPresent, "outstanding_requests")
+    self.WaitUntilNot(self.IsTextPresent, "Outstanding requests")
 
   def testToolbarStateForDisabledCronJob(self):
     with self.ACLChecksDisabled():

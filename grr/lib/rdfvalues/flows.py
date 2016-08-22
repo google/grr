@@ -12,7 +12,9 @@ from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
+from grr.proto import flows_pb2
 from grr.proto import jobs_pb2
+from grr.proto import output_plugin_pb2
 
 
 class GrrMessage(rdf_structs.RDFProtoStruct):
@@ -122,15 +124,6 @@ class RequestState(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.RequestState
 
 
-class Flow(rdf_structs.RDFProtoStruct):
-  """A Flow protobuf.
-
-  The flow protobuf holds metadata about the flow, as well as the pickled flow
-  itself.
-  """
-  protobuf = jobs_pb2.Flow
-
-
 class UnknownObject(object):
   """A placeholder for class instances that can not be unpickled."""
 
@@ -185,6 +178,8 @@ class RobustUnpickler(pickle.Unpickler):
   # pylint: enable=invalid-name, broad-except
 
 
+# TODO(user): Remove this class, it's only used for backwards
+# compatibility now.
 class FlowState(rdfvalue.RDFValue):
   """The state of a running flow.
 
@@ -222,7 +217,7 @@ class FlowState(rdfvalue.RDFValue):
         raise rdfvalue.DecodeError(e)
 
   def SerializeToString(self):
-    return cPickle.dumps(self.data, -1)
+    raise NotImplementedError("This class is deprecated.")
 
   def Empty(self):
     return not bool(self.data)
@@ -270,6 +265,14 @@ class FlowState(rdfvalue.RDFValue):
     return dir(self.data) + dir(self.__class__)
 
 
+class OutputPluginState(rdf_structs.RDFProtoStruct):
+  protobuf = output_plugin_pb2.OutputPluginState
+
+
+class FlowContext(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.FlowContext
+
+
 class Notification(rdf_structs.RDFProtoStruct):
   """A notification is used in the GUI to alert users.
 
@@ -315,11 +318,6 @@ class CipherMetadata(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.CipherMetadata
 
 
-class HuntError(rdf_structs.RDFProtoStruct):
-  """An RDFValue class representing a hunt error."""
-  protobuf = jobs_pb2.HuntError
-
-
 class FlowLog(rdf_structs.RDFProtoStruct):
   """An RDFValue class representing flow log entries."""
   protobuf = jobs_pb2.FlowLog
@@ -333,3 +331,12 @@ class ClientCommunication(rdf_structs.RDFProtoStruct):
   protobuf = jobs_pb2.ClientCommunication
 
   num_messages = 0
+
+
+class FlowRunnerArgs(rdf_structs.RDFProtoStruct):
+  """The argument to the flow runner.
+
+  Note that all flows receive these arguments. This object is stored in the
+  flows state.context.arg attribute.
+  """
+  protobuf = flows_pb2.FlowRunnerArgs

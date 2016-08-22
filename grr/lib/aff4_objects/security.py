@@ -467,9 +467,9 @@ class RequestApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
   def Start(self):
     """Create the Approval object and notify the Approval Granter."""
     approval_id = "approval:%X" % utils.PRNG.GetULong()
-    self.state.Register("approval_id", approval_id)
+    self.state.approval_id = approval_id
     approval_urn = self.BuildApprovalUrn(approval_id)
-    self.state.Register("approval_urn", approval_urn)
+    self.state.approval_urn = approval_urn
 
     subject_title = self.BuildSubjectTitle()
     email_msg_id = email.utils.make_msgid()

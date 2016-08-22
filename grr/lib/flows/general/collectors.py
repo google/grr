@@ -65,23 +65,23 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   args_type = artifact_utils.ArtifactCollectorFlowArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
+  def GetPathType(self):
+    if self.args.use_tsk:
+      return paths.PathSpec.PathType.TSK
+    return paths.PathSpec.PathType.OS
+
   @flow.StateHandler()
   def Start(self):
     """For each artifact, create subflows for each collector."""
     self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
 
-    self.state.Register("artifacts_skipped_due_to_condition", [])
-    self.state.Register("response_count", 0)
-    self.state.Register("failed_count", 0)
-    self.state.Register("artifacts_failed", [])
-    self.state.Register("knowledge_base", self.args.knowledge_base)
-    self.state.Register("called_fallbacks", set())
-    self.state.Register("client_anomaly_store", None)
-
-    if self.args.use_tsk:
-      self.state.Register("path_type", paths.PathSpec.PathType.TSK)
-    else:
-      self.state.Register("path_type", paths.PathSpec.PathType.OS)
+    self.state.artifacts_failed = []
+    self.state.artifacts_skipped_due_to_condition = []
+    self.state.called_fallbacks = set()
+    self.state.client_anomalies = []
+    self.state.failed_count = 0
+    self.state.knowledge_base = self.args.knowledge_base
+    self.state.response_count = 0
 
     if (self.args.dependencies ==
         artifact_utils.ArtifactCollectorFlowArgs.Dependency.FETCH_NOW):
@@ -157,8 +157,8 @@ class ArtifactCollectorFlow(flow.GRRFlow):
                                            self.state.knowledge_base):
         logging.debug("Artifact %s condition %s failed on %s", artifact_name,
                       condition, self.client_id)
-        self.state.artifacts_skipped_due_to_condition.append((artifact_name,
-                                                              condition))
+        self.state.artifacts_skipped_due_to_condition.append(
+            (artifact_name, condition))
         return
 
     # Call the source defined action for each source.
@@ -182,11 +182,11 @@ class ArtifactCollectorFlow(flow.GRRFlow):
               type_name == source_type.LIST_FILES):
           # TODO(user): LIST_FILES will be replaced in favor of
           # DIRECTORY as used by the public artifacts repo.
-          self.Glob(source, self.state.path_type)
+          self.Glob(source, self.GetPathType())
         elif type_name == source_type.FILE:
-          self.GetFiles(source, self.state.path_type, self.args.max_file_size)
+          self.GetFiles(source, self.GetPathType(), self.args.max_file_size)
         elif type_name == source_type.GREP:
-          self.Grep(source, self.state.path_type)
+          self.Grep(source, self.GetPathType())
         elif type_name == source_type.PATH:
           # TODO(user): GRR currently ignores PATH types, they are currently
           # only useful to plaso during bootstrapping when the registry is
@@ -593,8 +593,14 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       self._FinalizeSplitCollection(output_collection_map)
     if self.args.store_results_in_aff4:
       self._FinalizeMappedAFF4Locations(artifact_name, aff4_output_map)
-    if self.state.client_anomaly_store:
-      self.state.client_anomaly_store.Flush()
+    if self.state.client_anomalies:
+      with aff4.FACTORY.Create(
+          self.client_id.Add("anomalies"),
+          collects.RDFValueCollection,
+          token=self.token,
+          mode="rw") as store:
+        for anomaly_value in self.state.client_anomalies:
+          store.Add(anomaly_value)
 
   @flow.StateHandler()
   def ProcessCollectedRegistryStatEntry(self, responses):
@@ -686,13 +692,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def _StoreAnomaly(self, anomaly_value):
     """Write anomalies to the client in the data store."""
-    if not self.state.client_anomaly_store:
-      self.state.client_anomaly_store = aff4.FACTORY.Create(
-          self.client_id.Add("anomalies"),
-          collects.RDFValueCollection,
-          token=self.token,
-          mode="rw")
-    self.state.client_anomaly_store.Add(anomaly_value)
+    self.state.client_anomalies.append(anomaly_value)
 
   def _ParseResponses(self, processor_obj, responses, responses_obj,
                       artifact_name, source, aff4_output_map,
@@ -714,8 +714,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     """
     _ = responses_obj
     result_iterator = artifact.ApplyParserToResponses(processor_obj, responses,
-                                                      source, self.state,
-                                                      self.token)
+                                                      source, self, self.token)
 
     artifact_return_types = self._GetArtifactReturnTypes(source)
 
@@ -928,7 +927,7 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
     super(ArtifactFilesDownloaderFlow, self).Start()
 
     self.state.file_size = self.args.max_file_size
-    self.state.Register("results_to_download", [])
+    self.state.results_to_download = []
 
     self.CallFlow(
         ArtifactCollectorFlow.__name__,

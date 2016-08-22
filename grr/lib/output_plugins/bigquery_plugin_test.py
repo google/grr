@@ -40,7 +40,7 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
         args=plugin_args,
         token=self.token)
 
-    plugin.Initialize()
+    plugin.InitializeState(plugin.state)
 
     messages = []
     for response in responses:
@@ -232,7 +232,7 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
         args=plugin_args,
         token=self.token)
 
-    plugin.Initialize()
+    plugin.InitializeState(plugin.state)
 
     messages = []
     for response in responses:

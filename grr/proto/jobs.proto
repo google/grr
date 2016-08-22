@@ -418,25 +418,9 @@ message ClientInformation {
   repeated string labels = 6;
 }
 
-// This is used to store a task in task scheduler
-// DEPRECATED. The task scheduler now directly supports GRRMessages.
-message Task {
-  optional uint64 id = 1;
-  optional bytes value = 2;
-
-  // Number of retransmission before the task is discarded. Note this is a low
-  // level task scheduler parameter which is not related to the
-  // RequestState.transmission_count. A task will be retransmitted automatically
-  // even if the worker does not process it.
-  optional int32 ttl = 3 [ default = 5 ];
-  optional uint64 eta = 4;
-  optional string queue = 5;
-  optional GrrMessage.Priority priority = 6 [ default = MEDIUM_PRIORITY ];
-  optional string last_lease = 7;
-};
-
 // A generic protobuf to deliver some data
 // The data can be a single value a protobuf or a list.
+// Next field: 13
 message DataBlob {
   optional int64 integer = 1;
   optional bytes data = 2;
@@ -450,6 +434,7 @@ message DataBlob {
       description: "Store an embedded arbitrary RDFValue."
     }];
   optional float float = 11;
+  optional BlobArray set = 12;  // For storing sets.
 
   enum CompressionType {
     UNCOMPRESSED = 0;
@@ -566,75 +551,6 @@ message RequestState {
 
   // The original message request.
   optional GrrMessage request = 10;
-};
-
-// Flows are pickled in the data store:
-message Flow {
-  optional string name = 1;
-  optional bytes pickle = 2;
-  optional uint64 ts_id = 3;
-  enum State {
-    RUNNING = 0;
-    TERMINATED = 1;
-    ERROR = 3;   // Flows which raise are marked as having an error.
-
-    // A well known flow will not queue any messages and always
-    // forward messages to the worker:
-    WELL_KNOWN = 2;
-  };
-
-  optional State state = 4 [default = RUNNING];
-  optional string session_id = 5  [(sem_type) = {
-      type: "SessionID"
-    }];
-
-  // The number of outstanding requests in this flow
-  optional uint32 outstanding_requests = 6 [default = 0];
-
-  optional string creator = 7;
-
-  optional string backtrace = 8 [(sem_type) = {
-      type: "RDFString",
-      description: "Flows terminated with an error include this backtrace.",
-    }];
-
-  optional uint64 create_time = 9 [default = 0, (sem_type) = {
-      type: "RDFDatetime",
-      description: "When this flow was created.",
-    }];
-
-  // A progress indicator from 0-100.
-  optional int32 progress = 10 [default = 0];
-
-  // Dict of arguments passed to the flow.
-  optional Dict args = 11;
-
-  // Event ID - unique id for user initiated event.
-  optional string event_id = 12;
-
-  // RequestState - Only populated in child flows
-  optional RequestState request_state = 14;
-
-  // A helpful status message that can be set by flows to track their progress.
-  optional string status = 15;
-
-  // The children of this flow.
-  repeated string children = 16;
-
-  // The client id for this flow.
-  optional string client_id = 17 [(sem_type) = {
-      type: "ClientURN"
-    }];
-
-  // The cpu seconds used on the client to complete this flow.
-  optional CpuSeconds cpu_used = 18;
-
-  // The bandwidth used for this flow.
-  optional uint64 network_bytes_sent = 19;
-
-  // The priority of this flow.
-  optional GrrMessage.Priority priority = 20;
-
 };
 
 message CpuSeconds {

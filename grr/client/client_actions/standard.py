@@ -576,7 +576,9 @@ class ListProcesses(actions.ActionPlugin):
         pass
 
       try:
-        (response.user_cpu_time, response.system_cpu_time) = proc.cpu_times()
+        cpu_times = proc.cpu_times()
+        response.user_cpu_time = cpu_times.user
+        response.system_cpu_time = cpu_times.system
         # This is very time consuming so we do not collect cpu_percent here.
         # response.cpu_percent = proc.get_cpu_percent()
       except (psutil.NoSuchProcess, psutil.AccessDenied):

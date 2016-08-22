@@ -35,7 +35,7 @@ class NetworkLimitTestFlow(flow.GRRFlow):
   def MultiGetFile(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
-    self.state.Register("dest_path", responses.First().dest_path)
+    self.state.dest_path = responses.First().dest_path
     self.CallFlow(
         "MultiGetFile", pathspecs=[self.state.dest_path], next_state="Done")
 
@@ -73,7 +73,7 @@ class TestCPULimit(base.AutomatedTest):
     # reading old state.
     with aff4.FACTORY.OpenWithLock(
         self.session_id, token=self.token) as flow_obj:
-      backtrace = flow_obj.state.context.get("backtrace", "")
+      backtrace = flow_obj.context.backtrace
 
     if backtrace:
       if "BusyHang not available" in backtrace:
@@ -103,8 +103,8 @@ class TestNetworkFlowLimit(base.AutomatedTest):
         self.session_id, token=self.token) as flow_obj:
       # Make sure we transferred approximately the right amount of data.
       self.assertAlmostEqual(
-          flow_obj.state.context.network_bytes_sent, 500 * 1024, delta=30000)
-      backtrace = flow_obj.state.context.get("backtrace", "")
+          flow_obj.context.network_bytes_sent, 500 * 1024, delta=30000)
+      backtrace = flow_obj.context.backtrace
       self.assertIsNotNone(backtrace)
       self.assertTrue("Network bytes limit exceeded." in backtrace)
 
@@ -119,7 +119,7 @@ class TestMultiGetFileNetworkLimitExceeded(base.AutomatedTest):
     # reading old state.
     with aff4.FACTORY.OpenWithLock(
         self.session_id, token=self.token) as flow_obj:
-      backtrace = flow_obj.state.context.get("backtrace", "")
+      backtrace = flow_obj.context.backtrace
       self.assertTrue("Network bytes limit exceeded." in backtrace)
 
       self.urn = self.client_id.Add(flow_obj.state.dest_path.path)

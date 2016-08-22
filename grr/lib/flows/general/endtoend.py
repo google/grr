@@ -34,8 +34,9 @@ class EndToEndTestFlow(flow.GRRFlow):
   args_type = EndToEndTestFlowArgs
   behaviours = flow.GRRFlow.behaviours + "ADVANCED"
 
-  def RunTest(self, cls):
+  def RunTest(self, test_name):
     """Run the test flow."""
+    cls = base.AutomatedTest.classes[test_name]
     test_object = cls(client_id=self.client_id,
                       platform=self.state.client_summary.system_info.system,
                       token=self.token,
@@ -63,31 +64,31 @@ class EndToEndTestFlow(flow.GRRFlow):
     # method will kill the EndToEndTest run.  Protecting and reporting on this
     # significantly complicates this code, and a flow raising in Start is really
     # broken, so we allow this behaviour.
-    test_object.session_id = self.CallFlow(
+    session_id = self.CallFlow(
         test_object.flow,
         next_state="ProcessResults",
         write_intermediate_results=True,
         **test_object.args)
 
     # Save the object so we can call CheckFlow once the flow is done
-    self.state.flow_test_map[test_object.session_id] = test_object
+    self.state.flow_test_map[session_id] = test_name
 
-  def _AddTest(self, cls, system, client_version):
-    if aff4.issubclass(cls, base.AutomatedTest):
-      if system not in cls.platforms:
-        return
-      if cls.client_min_version and client_version < cls.client_min_version:
-        return
-      if not cls.__name__.startswith("Abstract"):
-        self.state.test_set.add(cls)
+  def _AddTest(self, test_name, system, client_version):
+    cls = base.AutomatedTest.classes[test_name]
+    if system not in cls.platforms:
+      return
+    if cls.client_min_version and client_version < cls.client_min_version:
+      return
+    if not cls.__name__.startswith("Abstract"):
+      self.state.test_set.add(test_name)
 
   @flow.StateHandler()
   def Start(self):
-    self.state.Register("test_set", set())
-    self.state.Register("flow_test_map", {})
-    self.state.Register("client_summary", None)
-    self.state.Register("pass_count", 0)
-    self.state.Register("fail_count", 0)
+    self.state.test_set = set()
+    self.state.flow_test_map = {}
+    self.state.client_summary = None
+    self.state.pass_count = 0
+    self.state.fail_count = 0
 
     self.client = aff4.FACTORY.Open(self.client_id, token=self.token)
     self.state.client_summary = self.client.GetSummary()
@@ -95,13 +96,12 @@ class EndToEndTestFlow(flow.GRRFlow):
     client_version = self.state.client_summary.client_info.client_version
 
     for test_name in self.args.test_names:
-      self._AddTest(base.AutomatedTest.classes[test_name], system,
-                    client_version)
+      self._AddTest(test_name, system, client_version)
 
     # If no tests were specified, get all the AutomatedTest classes.
     if not self.args.test_names:
-      for cls in base.AutomatedTest.classes.values():
-        self._AddTest(cls, system, client_version)
+      for cls_name in base.AutomatedTest.classes:
+        self._AddTest(cls_name, system, client_version)
 
     if not self.state.test_set:
       raise flow.FlowError("No applicable tests for client: %s" %
@@ -116,8 +116,16 @@ class EndToEndTestFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def ProcessResults(self, responses):
-    test_object = self.state.flow_test_map[responses.status.child_session_id]
-    cls_name = test_object.__class__.__name__
+    child_session_id = responses.status.child_session_id
+    cls_name = self.state.flow_test_map[child_session_id]
+    cls = base.AutomatedTest.classes[cls_name]
+    test_object = cls(client_id=self.client_id,
+                      platform=self.state.client_summary.system_info.system,
+                      token=self.token,
+                      local_worker=False)
+    test_object.setUp()
+    test_object.session_id = child_session_id
+
     system = self.state.client_summary.system_info.system
     result = EndToEndTestResult(test_class_name=cls_name, success=False)
     try:

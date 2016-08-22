@@ -91,13 +91,32 @@ class TemplateRepacker(object):
                                        context=context)
       return signing.RPMCodeSigner(passwd, pub_keyfile, gpg_name)
 
+  def SignTemplate(self, template_path, output_file, context=None):
+    if not template_path.endswith(".exe.zip"):
+      raise RuntimeError(
+          "Signing templates is only worthwhile for windows, rpms are signed "
+          "at the package level and signing isn't supported for others.")
+    context.append("Target:Windows")
+    signer = self.GetSigner(context)
+    z_in = zipfile.ZipFile(open(template_path, "rb"))
+    with zipfile.ZipFile(
+        output_file, mode="w", compression=zipfile.ZIP_DEFLATED) as z_out:
+      # The grr executables will be signed for each individual build after
+      # repack.
+      build.CreateNewZipWithSignedLibs(
+          z_in,
+          z_out,
+          skip_signing_files=["grr-client.exe", "GRRservice.exe"],
+          signer=signer)
+
   def RepackTemplate(self,
                      template_path,
                      output_dir,
                      upload=False,
                      token=None,
                      sign=False,
-                     context=None):
+                     context=None,
+                     signed_template=False):
     """Repack binaries based on the configuration.
 
     We repack all templates in the templates directory. We expect to find only
@@ -112,6 +131,9 @@ class TemplateRepacker(object):
       token: Token to use when uploading to the datastore.
       sign: If true, we want to digitally sign the installer.
       context: Array of context strings
+      signed_template: If true, the libraries in the template are already
+      signed. This is only used for windows when repacking the template multiple
+      times.
 
     Returns:
       A list of output installers generated.
@@ -140,6 +162,7 @@ class TemplateRepacker(object):
         if sign:
           signer = self.GetSigner(repack_context)
         builder_obj = self.GetRepacker(context=repack_context, signer=signer)
+        builder_obj.signed_template = signed_template
         result_path = builder_obj.MakeDeployableBinary(template_path,
                                                        output_path)
       except Exception as e:  # pylint: disable=broad-except

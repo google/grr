@@ -438,6 +438,7 @@ class ApiCallRouter(object):
   @Category("Cron")
   @ArgsType(api_cron.ApiListCronJobsArgs)
   @ResultType(api_cron.ApiListCronJobsResult)
+  @NoAuditLogRequired()
   @Http("GET", "/api/cron-jobs")
   def ListCronJobs(self, args, token=None):
     raise NotImplementedError()
@@ -483,6 +484,7 @@ class ApiCallRouter(object):
   @ArgsType(api_hunt.ApiListHuntsArgs)
   @ResultType(api_hunt.ApiListHuntsResult)
   @Http("GET", "/api/hunts")
+  @NoAuditLogRequired()
   def ListHunts(self, args, token=None):
     raise NotImplementedError()
 
@@ -582,9 +584,20 @@ class ApiCallRouter(object):
   @ArgsType(api_hunt.ApiCreateHuntArgs)
   @ResultType(api_hunt.ApiHunt)
   @Http("POST", "/api/hunts")
-  # TODO(user): deprecate old URL
-  @Http("POST", "/api/hunts/create")
   def CreateHunt(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("Hunts")
+  @ArgsType(api_hunt.ApiModifyHuntArgs)
+  @ResultType(api_hunt.ApiHunt)
+  @Http("PATCH", "/api/hunts/<hunt_id>")
+  def ModifyHunt(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("Hunts")
+  @ArgsType(api_hunt.ApiDeleteHuntArgs)
+  @Http("DELETE", "/api/hunts/<hunt_id>")
+  def DeleteHunt(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -608,12 +621,14 @@ class ApiCallRouter(object):
   @Category("Other")
   @ArgsType(api_stats.ApiListStatsStoreMetricsMetadataArgs)
   @Http("GET", "/api/stats/store/<component>/metadata")
+  @NoAuditLogRequired()
   def ListStatsStoreMetricsMetadata(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Other")
   @Http("GET", "/api/stats/store/<component>/metrics/<metric_name>")
   @ArgsType(api_stats.ApiGetStatsStoreMetricArgs)
+  @NoAuditLogRequired()
   def GetStatsStoreMetric(self, args, token=None):
     raise NotImplementedError()
 

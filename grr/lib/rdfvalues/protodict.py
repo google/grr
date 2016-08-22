@@ -46,6 +46,10 @@ class DataBlob(rdf_structs.RDFProtoStruct):
       self.list.content.Extend([DataBlob().SetValue(
           v, raise_on_error=raise_on_error) for v in value])
 
+    elif isinstance(value, set):
+      self.set.content.Extend([DataBlob().SetValue(
+          v, raise_on_error=raise_on_error) for v in value])
+
     elif isinstance(value, dict):
       self.dict.FromDict(value, raise_on_error=raise_on_error)
 
@@ -70,7 +74,7 @@ class DataBlob(rdf_structs.RDFProtoStruct):
       return None
 
     field_names = ["integer", "string", "data", "boolean", "list", "dict",
-                   "rdf_value", "float"]
+                   "rdf_value", "float", "set"]
 
     values = [getattr(self, x) for x in field_names if self.HasField(x)]
 
@@ -93,6 +97,9 @@ class DataBlob(rdf_structs.RDFProtoStruct):
 
     elif self.HasField("list"):
       return [x.GetValue() for x in self.list.content]
+
+    elif self.HasField("set"):
+      return set([x.GetValue() for x in self.set.content])
 
     else:
       return values[0]
@@ -133,7 +140,13 @@ class Dict(rdf_structs.RDFProtoStruct):
   def ToDict(self):
     result = {}
     for x in self.dat:
-      result[x.k.GetValue()] = x.v.GetValue()
+      key = x.k.GetValue()
+      result[key] = x.v.GetValue()
+      try:
+        # Try to unpack nested AttributedDicts
+        result[key] = result[key].ToDict()
+      except AttributeError:
+        pass
 
     return result
 
@@ -239,6 +252,13 @@ class AttributedDict(Dict):
     if item.startswith("__"):
       raise AttributeError()
     return self.GetItem(item)
+
+  def __setattr__(self, item, value):
+    # Existing class or instance members are assigned to normally.
+    if hasattr(self.__class__, item) or item in self.__dict__:
+      object.__setattr__(self, item, value)
+    else:
+      self.SetItem(item, value)
 
 
 # Old clients still send back "RDFProtoDicts" so we need to keep this around.

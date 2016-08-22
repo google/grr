@@ -79,7 +79,6 @@ def Homepage(request):
       "acl_manager.js",
       "artifact_view.js",
       "configuration_view.js",
-      "container_viewer.js",
       "cron_view.js",
       "fileview.js",
       "fileview_widgets.js",

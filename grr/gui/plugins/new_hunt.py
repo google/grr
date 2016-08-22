@@ -13,12 +13,12 @@ from grr.gui.plugins import wizards
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
-from grr.lib import flow_runner
 from grr.lib import output_plugin
 from grr.lib import type_info
 from grr.lib.hunts import implementation
 from grr.lib.hunts import standard
 from grr.lib.rdfvalues import aff4_rdfvalues
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.server import foreman as rdf_foreman
 
 
@@ -60,7 +60,7 @@ class HuntArgsParser(object):
         flow_cls.args_type(), prefix="args").ParseArgs(self.request)
 
     self.flow_runner_args = forms.SemanticProtoFormRenderer(
-        flow_runner.FlowRunnerArgs(), prefix="runner").ParseArgs(self.request)
+        rdf_flows.FlowRunnerArgs(), prefix="runner").ParseArgs(self.request)
 
     self.flow_runner_args.flow_name = flow_name
 

@@ -22,6 +22,7 @@ from grr.lib import utils
 
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import flows_pb2
@@ -29,16 +30,6 @@ from grr.proto import flows_pb2
 
 class Error(Exception):
   pass
-
-
-class CronSpec(rdfvalue.Duration):
-  data_store_type = "string"
-
-  def SerializeToDataStore(self):
-    return self.SerializeToString()
-
-  def ParseFromDataStore(self, value):
-    return self.ParseFromString(value)
 
 
 class CreateCronJobFlowArgs(rdf_structs.RDFProtoStruct):
@@ -179,10 +170,9 @@ class SystemCronFlow(flow.GRRFlow):
 
   __abstract = True  # pylint: disable=g-bad-name
 
-  def WriteState(self):
-    if "w" in self.mode:
-      # For normal flows it's a bug to write an empty state, here it's ok.
-      self.Set(self.Schema.FLOW_STATE(self.state))
+  def _ValidateState(self):
+    # For normal flows it's a bug to write an empty state, here it's ok.
+    pass
 
 
 class StateReadError(Error):
@@ -206,7 +196,10 @@ class StatefulSystemCronFlow(SystemCronFlow):
     try:
       cron_job = aff4.FACTORY.Open(
           self.cron_job_urn, aff4_type=CronJob, token=self.token)
-      return cron_job.Get(cron_job.Schema.STATE, default=rdf_flows.FlowState())
+      res = cron_job.Get(cron_job.Schema.STATE_DICT)
+      if res:
+        return flow.AttributedDict(res.ToDict())
+      return flow.AttributedDict()
     except aff4.InstantiationError as e:
       raise StateReadError(e)
 
@@ -214,7 +207,7 @@ class StatefulSystemCronFlow(SystemCronFlow):
     try:
       with aff4.FACTORY.OpenWithLock(
           self.cron_job_urn, aff4_type=CronJob, token=self.token) as cron_job:
-        cron_job.Set(cron_job.Schema.STATE(state))
+        cron_job.Set(cron_job.Schema.STATE_DICT(state))
     except aff4.InstantiationError as e:
       raise StateWriteError(e)
 
@@ -347,17 +340,16 @@ class ManageCronJobFlow(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     data_store.DB.security_manager.CheckCronJobAccess(self.token.RealUID(),
-                                                      self.state.args.urn)
+                                                      self.args.urn)
 
-    if self.state.args.action == self.args_type.Action.DISABLE:
-      CRON_MANAGER.DisableJob(self.state.args.urn, token=self.token)
-    elif self.state.args.action == self.args_type.Action.ENABLE:
-      CRON_MANAGER.EnableJob(self.state.args.urn, token=self.token)
-    elif self.state.args.action == self.args_type.Action.DELETE:
-      CRON_MANAGER.DeleteJob(self.state.args.urn, token=self.token)
-    elif self.state.args.action == self.args_type.Action.RUN:
-      CRON_MANAGER.RunOnce(
-          urns=[self.state.args.urn], token=self.token, force=True)
+    if self.args.action == self.args_type.Action.DISABLE:
+      CRON_MANAGER.DisableJob(self.args.urn, token=self.token)
+    elif self.args.action == self.args_type.Action.ENABLE:
+      CRON_MANAGER.EnableJob(self.args.urn, token=self.token)
+    elif self.args.action == self.args_type.Action.DELETE:
+      CRON_MANAGER.DeleteJob(self.args.urn, token=self.token)
+    elif self.args.action == self.args_type.Action.RUN:
+      CRON_MANAGER.RunOnce(urns=[self.args.urn], token=self.token, force=True)
 
 
 class CreateCronJobFlow(flow.GRRFlow):
@@ -371,7 +363,7 @@ class CreateCronJobFlow(flow.GRRFlow):
   def Start(self):
     # Anyone can create a cron job but they need to get approval to start it.
     CRON_MANAGER.ScheduleFlow(
-        cron_args=self.state.args, disabled=True, token=self.token)
+        cron_args=self.args, disabled=True, token=self.token)
 
 
 class CronJob(aff4.AFF4Volume):
@@ -410,9 +402,9 @@ class CronJob(aff4.AFF4Volume):
         lock_protected=True,
         creates_new_object_version=False)
 
-    STATE = aff4.Attribute(
-        "aff4:cron/state",
-        rdf_flows.FlowState,
+    STATE_DICT = aff4.Attribute(
+        "aff4:cron/state_dict",
+        rdf_protodict.AttributedDict,
         "Cron flow state that is kept between iterations",
         lock_protected=True,
         versioned=False)
@@ -442,7 +434,7 @@ class CronJob(aff4.AFF4Volume):
         return False
 
       runner = current_flow.GetRunner()
-      return runner.context.state == rdf_flows.Flow.State.RUNNING
+      return runner.context.state == rdf_flows.FlowContext.State.RUNNING
     return False
 
   def DueToRun(self):
@@ -532,7 +524,7 @@ class CronJob(aff4.AFF4Volume):
       current_flow = aff4.FACTORY.Open(current_flow_urn, token=self.token)
       runner = current_flow.GetRunner()
       if not runner.IsRunning():
-        if runner.context.state == rdf_flows.Flow.State.ERROR:
+        if runner.context.state == rdf_flows.FlowContext.State.ERROR:
           self.Set(self.Schema.LAST_RUN_STATUS,
                    rdf_cronjobs.CronJobRunStatus(
                        status=rdf_cronjobs.CronJobRunStatus.Status.ERROR))

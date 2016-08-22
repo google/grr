@@ -12,7 +12,7 @@ import logging
 from grr.lib import aff4
 from grr.lib import registry
 from grr.lib import utils
-from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import output_plugin_pb2
 
@@ -79,7 +79,7 @@ class OutputPlugin(object):
                        data (if needed).
       args: This plugin's arguments.
       token: Security token.
-      state: Instance of rdf_flows.FlowState. Represents plugin's state. If this
+      state: A dict representing the plugin's state. If this
              is passed, no initialization will be performed, only the state will
              be applied.
     Raises:
@@ -91,29 +91,31 @@ class OutputPlugin(object):
                        "or 'token'.")
 
     if not state:
-      self.state = state or rdf_flows.FlowState()
-      self.state.Register("source_urn", source_urn)
-      self.state.Register("output_base_urn", output_base_urn)
-      self.state.Register("args", args)
-      self.state.Register("token", token)
+      self.state = rdf_protodict.AttributedDict()
+      self.state.source_urn = source_urn
+      self.state.output_base_urn = output_base_urn
+      self.state.args = args
+      self.state.token = token
 
-      self.Initialize()
+      self.InitializeState(self.state)
     else:
       self.state = state
 
-    self.args = self.state.args
-    self.token = self.state.token
+    self.args = self.state["args"]
+    self.token = self.state["token"]
 
     self.lock = threading.RLock()
 
-  def Initialize(self):
-    """Initializes the output plugin.
+  def InitializeState(self, state):
+    """Initializes the state the output plugin can use later.
 
-    Initialize() is called only once per plugin's lifetime. It will be called
-    when hunt or flow is created.
+    InitializeState() is called only once per plugin's lifetime. It
+    will be called when hunt or flow is created. It should be used to
+    register state variables. It's called on the worker, so no
+    security checks apply.
 
-    Initialize() can be used to register state variables. It's called on the
-    worker, so no security checks apply.
+    Args:
+      state: The state that will be persisted - a dict.
     """
 
   @abc.abstractmethod
@@ -251,9 +253,9 @@ class OutputPluginWithOutputStreams(OutputPlugin):
     super(OutputPluginWithOutputStreams, self).__init__(*args, **kw)
     self.stream_objects = {}
 
-  def Initialize(self):
-    super(OutputPluginWithOutputStreams, self).Initialize()
-    self.state.Register("output_streams", {})
+  def InitializeState(self, state):
+    super(OutputPluginWithOutputStreams, self).InitializeState(state)
+    state["output_streams"] = {}
 
   def Flush(self):
     super(OutputPluginWithOutputStreams, self).Flush()
@@ -320,6 +322,7 @@ class OutputPluginDescriptor(rdf_structs.RDFProtoStruct):
 
   def GetPluginForState(self, plugin_state):
     cls = self.GetPluginClass()
+
     return cls(None, state=plugin_state)
 
   def GetPluginVerifiersClasses(self):

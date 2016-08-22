@@ -22,6 +22,7 @@ from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
@@ -94,15 +95,15 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
     else:
       self.urn = flow_obj.urn
 
-    self.name = flow_obj.state.context.args.flow_name
-    self.started_at = flow_obj.state.context.create_time
+    self.name = flow_obj.runner_args.flow_name
+    self.started_at = flow_obj.context.create_time
     self.last_active_at = flow_obj.Get(flow_obj.Schema.LAST)
-    self.creator = flow_obj.state.context.creator
+    self.creator = flow_obj.context.creator
 
     if flow_obj.Get(flow_obj.Schema.CLIENT_CRASH):
       self.state = "CLIENT_CRASHED"
     else:
-      self.state = flow_obj.state.context.state
+      self.state = flow_obj.context.state
 
     try:
       self.args = flow_obj.args
@@ -174,7 +175,14 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
     flow_obj = aff4.FACTORY.Open(
         flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
 
-    output_urn = flow_obj.GetRunner().output_urn
+    # TODO(user): Remove this as soon as possible. Once we do, old
+    # flow results will not be shown properly in the UI anymore.
+    try:
+      output_urn = flow_obj.GetRunner().output_urn
+    except AttributeError:
+      # Old style flow.
+      output_urn = flow_obj.GetRunner().context.output_urn
+
     try:
       # TODO(user): Remove support for RDFValueCollection.
       output_collection = aff4.FACTORY.Open(
@@ -312,7 +320,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
     collection_urn = flow_obj.GetRunner().output_urn
     target_file_prefix = "%s_flow_%s_%s" % (
-        args.client_id.Basename(), flow_obj.state.context.args.flow_name,
+        args.client_id.Basename(), flow_obj.runner_args.flow_name,
         flow_urn.Basename().replace(":", "_"))
 
     collection = aff4.FACTORY.Open(collection_urn, token=token)
@@ -362,7 +370,9 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
 
     type_indices = {}
     result = []
-    for plugin_descriptor, plugin_state in output_plugins_states:
+    for output_plugin_state in output_plugins_states:
+      plugin_descriptor = output_plugin_state.plugin_descriptor
+      plugin_state = output_plugin_state.plugin_state
       type_index = type_indices.setdefault(plugin_descriptor.plugin_name, 0)
       type_indices[plugin_descriptor.plugin_name] += 1
 
@@ -407,7 +417,10 @@ class ApiListFlowOutputPluginLogsHandlerBase(
     # Good example is the UI code.
     type_indices = {}
     found_state = None
-    for plugin_descriptor, plugin_state in output_plugins_states:
+
+    for output_plugin_state in output_plugins_states:
+      plugin_descriptor = output_plugin_state.plugin_descriptor
+      plugin_state = output_plugin_state.plugin_state
       type_index = type_indices.setdefault(plugin_descriptor.plugin_name, 0)
       type_indices[plugin_descriptor.plugin_name] += 1
 
@@ -482,10 +495,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
 
   @staticmethod
   def _GetCreationTime(obj):
-    try:
-      return obj.state.context.get("create_time")
-    except AttributeError:
-      return obj.Get(obj.Schema.LAST, 0)
+    return obj.context.create_time or obj.Get(obj.Schema.LAST, 0)
 
   @staticmethod
   def BuildFlowList(root_urn, count, offset, token=None):
@@ -613,7 +623,7 @@ class ApiStartRobotGetFilesOperationHandler(
 
     # Limit the whole flow to 200MB so if a glob matches lots of small files we
     # still don't have too much impact.
-    runner_args = flow_runner.FlowRunnerArgs(
+    runner_args = rdf_flows.FlowRunnerArgs(
         client_id=client_urn,
         flow_name=file_finder.FileFinder.__name__,
         network_bytes_limit=200 * 1000 * 1000)

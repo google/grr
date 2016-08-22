@@ -269,7 +269,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
         args=args):
       # Check up on the internal flow state.
       flow_obj = aff4.FACTORY.Open(session_id, mode="r", token=self.token)
-      flow_state = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
+      flow_state = flow_obj.state
       # All the pathspecs should be in this list.
       self.assertEqual(len(flow_state.indexed_pathspecs), 100)
 

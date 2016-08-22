@@ -37,7 +37,8 @@ class AbstractTestAnalyzeClientMemory(base.ClientTestBase):
     super(AbstractTestAnalyzeClientMemory, self).setUp()
 
   def tearDown(self):
-    config_lib.CONFIG.Set("Rekall.profile_server", self.old_config)
+    if "Test Context" in config_lib.CONFIG.context:
+      config_lib.CONFIG.Set("Rekall.profile_server", self.old_config)
     super(AbstractTestAnalyzeClientMemory, self).tearDown()
 
   def CheckFlow(self):
@@ -155,17 +156,16 @@ class TestAnalyzeClientMemoryNonexistantPlugin(AbstractTestAnalyzeClientMemory):
         rdf_rekall_types.PluginRequest(plugin="idontexist")
     ]
 
-  def CheckForError(self, flow_state):
-    self.assertEqual(flow_state.context.state.name, "ERROR")
+  def CheckForError(self, flow_obj):
+    self.assertEqual(flow_obj.context.state, "ERROR")
 
-  def CheckForInvalidPlugin(self, flow_state):
-    self.assertIn("invalid plugin", str(flow_state.context.backtrace).lower())
+  def CheckForInvalidPlugin(self, flow_obj):
+    self.assertIn("invalid plugin", str(flow_obj.context.backtrace).lower())
 
   def CheckFlow(self):
     flow = self.OpenFlow()
-    flow_state = flow.Get(flow.SchemaCls.FLOW_STATE)
-    self.CheckForError(flow_state)
-    self.CheckForInvalidPlugin(flow_state)
+    self.CheckForError(flow)
+    self.CheckForInvalidPlugin(flow)
 
 
 class TestAnalyzeClientMemoryPluginBadParamsFails(
@@ -178,15 +178,14 @@ class TestAnalyzeClientMemoryPluginBadParamsFails(
             plugin="pslist", args=dict(abcdefg=12345))
     ]
 
-  def CheckForInvalidArgs(self, flow_state):
-    self.assertIn("InvalidArgs", flow_state.context.backtrace)
+  def CheckForInvalidArgs(self, flow_obj):
+    self.assertIn("InvalidArgs", flow_obj.context.backtrace)
 
   def CheckFlow(self):
     flow = self.OpenFlow()
-    flow_state = flow.Get(flow.SchemaCls.FLOW_STATE)
     # First check that the flow ended up with an error
-    self.CheckForError(flow_state)
-    self.CheckForInvalidArgs(flow_state)
+    self.CheckForError(flow)
+    self.CheckForInvalidArgs(flow)
 
 
 class TestAnalyzeClientMemoryNonexistantPluginWithExisting(
@@ -200,11 +199,11 @@ class TestAnalyzeClientMemoryNonexistantPluginWithExisting(
     ]
 
   def CheckFlow(self):
+    super(TestAnalyzeClientMemoryNonexistantPlugin, self).CheckFlow()
     flow = self.OpenFlow()
-    flow_state = flow.Get(flow.SchemaCls.FLOW_STATE)
     # idontexist should throw an error and have invalid plugin in the backtrace.
-    self.CheckForError(flow_state)
-    self.CheckForInvalidPlugin(flow_state)
+    self.CheckForError(flow)
+    self.CheckForInvalidPlugin(flow)
     # but pslist should still give results.
     self.CheckForInit()
 
@@ -241,20 +240,18 @@ class TestYarascanExists(AbstractTestAnalyzeClientMemory):
         rdf_rekall_types.PluginRequest(plugin="yarascan")
     ]
 
-  def CheckForError(self, flow_state):
+  def CheckForError(self, flow_obj):
     # Invoking yarascan without arguments will report an ERROR.
-    self.assertEqual(flow_state.context.state.name, "ERROR")
+    self.assertEqual(flow_obj.context.state, "ERROR")
 
-  def CheckForInvalidPlugin(self, flow_state):
+  def CheckForInvalidPlugin(self, flow_obj):
     # When a plugin doesn't exist, Rekall raises with an "Invalid plugin"
-    self.assertNotIn("invalid plugin",
-                     str(flow_state.context.backtrace).lower())
+    self.assertNotIn("invalid plugin", str(flow_obj.context.backtrace).lower())
     # Yarascan without arguments will generate a PluginError as it requires
     # arguments.
-    self.assertIn("PluginError", flow_state.context.backtrace)
+    self.assertIn("PluginError", flow_obj.context.backtrace)
 
   def CheckFlow(self):
     flow = self.OpenFlow()
-    flow_state = flow.Get(flow.SchemaCls.FLOW_STATE)
-    self.CheckForError(flow_state)
-    self.CheckForInvalidPlugin(flow_state)
+    self.CheckForError(flow)
+    self.CheckForInvalidPlugin(flow)

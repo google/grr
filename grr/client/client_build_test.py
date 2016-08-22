@@ -79,8 +79,8 @@ class MultiRepackTest(ClientBuildTests):
         [self.deb_template, self.exe_template, self.xar_template],
         self.output_dir)
 
-    # 3 templates x 2 labels = 6 repacks
-    self.assertEqual(self.pool_obj.apply_async.call_count, 6)
+    # (3 templates + 1 debug) x 2 labels = 8 repacks
+    self.assertEqual(self.pool_obj.apply_async.call_count, 8)
 
 
 def main(argv):

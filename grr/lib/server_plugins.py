@@ -31,6 +31,7 @@ from grr.lib.blob_stores import registry_init
 from grr.lib.data_stores import registry_init
 from grr.lib.flows.cron import registry_init
 from grr.lib.flows.general import registry_init
+from grr.lib.flows.local import registry_init
 
 from grr.parsers import registry_init
 

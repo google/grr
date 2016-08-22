@@ -52,7 +52,7 @@ class FlowResponseSerialization(flow.GRRFlow):
   @flow.StateHandler()
   def Response1(self, messages):
     """Record the message id for testing."""
-    self.state.Register("messages", messages)
+    self.state.messages = list(messages)
     self.CallClient(
         "ReturnBlob",
         rdf_client.EchoRequest(data="test"),
@@ -127,8 +127,7 @@ class MultiEndedFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    counter = 0
-    self.state.Register("counter", counter)
+    self.state.counter = 0
     self.CallState(next_state="End")
 
   @flow.StateHandler()
@@ -231,7 +230,7 @@ class FlowCreationTest(BasicFlowTest):
         token=self.token)
     runner = flow_obj.GetRunner()
     self.assertEqual(runner.IsRunning(), False)
-    self.assertEqual(runner.context.state, rdf_flows.Flow.State.ERROR)
+    self.assertEqual(runner.context.state, rdf_flows.FlowContext.State.ERROR)
 
     reason = "no reason"
     session_id = flow.GRRFlow.StartFlow(
@@ -245,7 +244,7 @@ class FlowCreationTest(BasicFlowTest):
         token=self.token)
     runner = flow_obj.GetRunner()
     self.assertEqual(runner.IsRunning(), False)
-    self.assertEqual(runner.context.state, rdf_flows.Flow.State.ERROR)
+    self.assertEqual(runner.context.state, rdf_flows.FlowContext.State.ERROR)
     self.assertTrue(reason in runner.context.status)
 
   def testChildTermination(self):
@@ -270,7 +269,7 @@ class FlowCreationTest(BasicFlowTest):
 
     runner = flow_obj.GetRunner()
     self.assertEqual(runner.IsRunning(), False)
-    self.assertEqual(runner.context.state, rdf_flows.Flow.State.ERROR)
+    self.assertEqual(runner.context.state, rdf_flows.FlowContext.State.ERROR)
 
     self.assertTrue("user test" in runner.context.status)
     self.assertTrue(reason in runner.context.status)
@@ -279,7 +278,7 @@ class FlowCreationTest(BasicFlowTest):
         children[0].urn, aff4_type=CallClientChildFlow, token=self.token)
     runner = child.GetRunner()
     self.assertEqual(runner.IsRunning(), False)
-    self.assertEqual(runner.context.state, rdf_flows.Flow.State.ERROR)
+    self.assertEqual(runner.context.state, rdf_flows.FlowContext.State.ERROR)
 
     self.assertTrue("user test" in runner.context.status)
     self.assertTrue("Parent flow terminated." in runner.context.status)
@@ -757,7 +756,7 @@ class FlowOutputPluginsTest(BasicFlowTest):
               plugins=None,
               flow_args=None,
               client_mock=None):
-    runner_args = flow_runner.FlowRunnerArgs(
+    runner_args = rdf_flows.FlowRunnerArgs(
         flow_name=flow_name or "GetFile", output_plugins=plugins)
 
     if flow_args is None:
@@ -820,7 +819,7 @@ class FlowOutputPluginsTest(BasicFlowTest):
     flow_urn = self.RunFlow(plugins=output_plugin.OutputPluginDescriptor(
         plugin_name="FailingDummyFlowOutputPlugin"))
     flow_obj = aff4.FACTORY.Open(flow_urn, token=self.token)
-    self.assertEqual(flow_obj.state.context.state, "TERMINATED")
+    self.assertEqual(flow_obj.context.state, "TERMINATED")
 
   def testFailingPluginDoesNotImpactOtherPlugins(self):
     self.RunFlow(plugins=[

@@ -1,11 +1,15 @@
 #!/usr/bin/env python
+# -*- mode: python; encoding: utf-8 -*-
 """End to end tests for lib.flows.general.file_finder."""
 
 
 from grr.endtoend_tests import base
+from grr.lib import flow
 from grr.lib import flow_runner
 
 from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class TestFileFinderOSWindows(base.VFSPathContentIsPE):
@@ -36,7 +40,7 @@ class TestFileFinderTSKWindows(base.VFSPathContentIsPE):
   """Download notepad with TSK on windows."""
   platforms = ["Windows"]
   flow = "FileFinder"
-  test_output_path = "/fs/os/.*/Windows/System32/notepad.exe"
+  test_output_path = "/fs/tsk/.*/Windows/System32/notepad.exe"
 
   download = file_finder.FileFinderDownloadActionOptions()
   action = file_finder.FileFinderAction(
@@ -94,6 +98,11 @@ class TestFileFinderOSLinuxProc(base.VFSPathContentExists):
 class TestFileFinderOSDarwin(base.VFSPathContentIsMachO):
   platforms = ["Darwin"]
   flow = "FileFinder"
+  download = file_finder.FileFinderDownloadActionOptions()
+  action = file_finder.FileFinderAction(
+      action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
+      download=download)
+  args = {"paths": ["/bin/ps"], "action": action}
   test_output_path = "/fs/os/bin/ps"
 
 
@@ -108,7 +117,56 @@ class TestFileFinderOSHomedir(base.AutomatedTest):
       action_type=file_finder.FileFinderAction.Action.STAT)
   args = {"paths": ["%%users.homedir%%/*"],
           "action": action,
-          "runner_args": flow_runner.FlowRunnerArgs()}
+          "runner_args": rdf_flows.FlowRunnerArgs()}
+
+  def CheckFlow(self):
+    self.CheckCollectionNotEmptyWithRetry(
+        self.session_id.Add(flow_runner.RESULTS_SUFFIX), self.token)
+
+
+class UnicodeTestFlow(flow.GRRFlow):
+  """A flow that tests unicode file name handling."""
+
+  @flow.StateHandler()
+  def Start(self):
+    urandom = rdf_paths.PathSpec(
+        path="/dev/urandom", pathtype=rdf_paths.PathSpec.PathType.OS)
+
+    test_path = u"/tmp/uñîcödé"
+
+    self.CallClient(
+        "CopyPathToFile",
+        offset=0,
+        length=1024,
+        src_path=urandom,
+        dest_dir=test_path,
+        gzip_output=False,
+        lifetime=600,
+        next_state="StartDownload")
+
+  @flow.StateHandler()
+  def StartDownload(self, responses):
+    if not responses.success:
+      raise flow.FlowError(responses.status)
+
+    action = file_finder.FileFinderAction(
+        action_type=file_finder.FileFinderAction.Action.DOWNLOAD)
+
+    paths = [response.dest_path.path for response in responses]
+    args = {"paths": paths, "action": action}
+    self.CallFlow("FileFinder", next_state="Done", **args)
+
+  @flow.StateHandler()
+  def Done(self, responses):
+    for response in responses:
+      self.SendReply(response)
+
+
+class TestUnicode(base.LocalClientTest):
+  """Tests we handle unicode filenames properly."""
+
+  platforms = ["Linux"]
+  flow = "UnicodeTestFlow"
 
   def CheckFlow(self):
     self.CheckCollectionNotEmptyWithRetry(

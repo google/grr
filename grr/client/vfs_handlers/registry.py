@@ -48,37 +48,9 @@ class FileTime(ctypes.Structure):
               ("dwHighDateTime", ctypes.wintypes.DWORD)]
 
 
-RegCloseKey = advapi32.RegCloseKey  # pylint: disable=g-bad-name
+RegCloseKey = advapi32["RegCloseKey"]  # pylint: disable=g-bad-name
 RegCloseKey.restype = ctypes.c_long
 RegCloseKey.argtypes = [ctypes.c_void_p]
-
-RegEnumKeyEx = advapi32.RegEnumKeyExW  # pylint: disable=g-bad-name
-RegEnumKeyEx.restype = ctypes.c_long
-RegEnumKeyEx.argtypes = [ctypes.c_void_p, ctypes.wintypes.DWORD,
-                         ctypes.c_wchar_p, LPDWORD, LPDWORD, ctypes.c_wchar_p,
-                         LPDWORD, ctypes.POINTER(FileTime)]
-
-RegEnumValue = advapi32.RegEnumValueW  # pylint: disable=g-bad-name
-RegEnumValue.restype = ctypes.c_long
-RegEnumValue.argtypes = [ctypes.c_void_p, ctypes.wintypes.DWORD,
-                         ctypes.c_wchar_p, LPDWORD, LPDWORD, LPDWORD, LPBYTE,
-                         LPDWORD]
-
-RegOpenKeyEx = advapi32.RegOpenKeyExW  # pylint: disable=g-bad-name
-RegOpenKeyEx.restype = ctypes.c_long
-RegOpenKeyEx.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_ulong,
-                         ctypes.c_ulong, ctypes.POINTER(ctypes.c_void_p)]
-
-RegQueryInfoKey = advapi32.RegQueryInfoKeyW  # pylint: disable=g-bad-name
-RegQueryInfoKey.restype = ctypes.c_long
-RegQueryInfoKey.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD,
-                            LPDWORD, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
-                            LPDWORD, LPDWORD, ctypes.POINTER(FileTime)]
-
-RegQueryValueEx = advapi32.RegQueryValueExW  # pylint: disable=g-bad-name
-RegQueryValueEx.restype = ctypes.c_long
-RegQueryValueEx.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD,
-                            LPBYTE, LPDWORD]
 
 
 class KeyHandle(object):
@@ -113,9 +85,14 @@ class KeyHandle(object):
 
 def OpenKey(key, sub_key):
   """This calls the Windows OpenKeyEx function in a Unicode safe way."""
+  regopenkeyex = advapi32["RegOpenKeyExW"]
+  regopenkeyex.restype = ctypes.c_long
+  regopenkeyex.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_ulong,
+                           ctypes.c_ulong, ctypes.POINTER(ctypes.c_void_p)]
+
   new_key = KeyHandle()
   # Don't use KEY_WOW64_64KEY (0x100) since it breaks on Windows 2000
-  rc = RegOpenKeyEx(key.handle, sub_key, 0, KEY_READ, ctypes.cast(
+  rc = regopenkeyex(key.handle, sub_key, 0, KEY_READ, ctypes.cast(
       ctypes.byref(new_key.handle), ctypes.POINTER(ctypes.c_void_p)))
   if rc != ERROR_SUCCESS:
     raise ctypes.WinError(2)
@@ -131,11 +108,30 @@ def CloseKey(key):
 
 def QueryInfoKey(key):
   """This calls the Windows RegQueryInfoKey function in a Unicode safe way."""
+  # Rekall uses exactly the same code to make registry calls. This is a problem
+  # because python validates the FileTime object when it is passed at call time.
+  # So if the advapi32.RegQueryInfoKeyW.argtypes currently has the argument
+  # defined as a rekall.plugins.response.registry.FileTime object instead of the
+  # GRR version it will raise with "expected LP_FileTime instance instead of
+  # pointer to FileTime". To avoid this we use getitem to access the methods we
+  # want since this seems to get us a new function pointer each time instead of
+  # using the one modified by rekall. Since this may not be reliable long-term
+  # we also set the argtypes just before we use them, which leaves a tiny
+  # possibility of a race but should be safe for practical purposes.
+  # TODO(user): a better approach may be to move rekall and GRR to share
+  # https://github.com/DanielStutzbach/winreg_unicode
+  regqueryinfokey = advapi32["RegQueryInfoKeyW"]
+  regqueryinfokey.restype = ctypes.c_long
+  regqueryinfokey.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD,
+                              LPDWORD, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
+                              LPDWORD, LPDWORD, LPDWORD,
+                              ctypes.POINTER(FileTime)]
+
   null = LPDWORD()
   num_sub_keys = ctypes.wintypes.DWORD()
   num_values = ctypes.wintypes.DWORD()
   ft = FileTime()
-  rc = RegQueryInfoKey(key.handle, ctypes.c_wchar_p(), null, null,
+  rc = regqueryinfokey(key.handle, ctypes.c_wchar_p(), null, null,
                        ctypes.byref(num_sub_keys), null, null,
                        ctypes.byref(num_values), null, null, null,
                        ctypes.byref(ft))
@@ -150,12 +146,17 @@ def QueryInfoKey(key):
 
 def QueryValueEx(key, value_name):
   """This calls the Windows QueryValueEx function in a Unicode safe way."""
+  regqueryvalueex = advapi32["RegQueryValueExW"]
+  regqueryvalueex.restype = ctypes.c_long
+  regqueryvalueex.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD,
+                              LPDWORD, LPBYTE, LPDWORD]
+
   size = 256
   data_type = ctypes.wintypes.DWORD()
   while True:
     tmp_size = ctypes.wintypes.DWORD(size)
     buf = ctypes.create_string_buffer(size)
-    rc = RegQueryValueEx(key.handle, value_name, LPDWORD(),
+    rc = regqueryvalueex(key.handle, value_name, LPDWORD(),
                          ctypes.byref(data_type), ctypes.cast(buf, LPBYTE),
                          ctypes.byref(tmp_size))
     if rc != ERROR_MORE_DATA:
@@ -175,9 +176,15 @@ def QueryValueEx(key, value_name):
 
 def EnumKey(key, index):
   """This calls the Windows RegEnumKeyEx function in a Unicode safe way."""
+  regenumkeyex = advapi32["RegEnumKeyExW"]
+  regenumkeyex.restype = ctypes.c_long
+  regenumkeyex.argtypes = [ctypes.c_void_p, ctypes.wintypes.DWORD,
+                           ctypes.c_wchar_p, LPDWORD, LPDWORD, ctypes.c_wchar_p,
+                           LPDWORD, ctypes.POINTER(FileTime)]
+
   buf = ctypes.create_unicode_buffer(257)
   length = ctypes.wintypes.DWORD(257)
-  rc = RegEnumKeyEx(key.handle, index, ctypes.cast(buf, ctypes.c_wchar_p),
+  rc = regenumkeyex(key.handle, index, ctypes.cast(buf, ctypes.c_wchar_p),
                     ctypes.byref(length), LPDWORD(), ctypes.c_wchar_p(),
                     LPDWORD(), ctypes.POINTER(FileTime)())
   if rc != 0:
@@ -188,10 +195,24 @@ def EnumKey(key, index):
 
 def EnumValue(key, index):
   """This calls the Windows RegEnumValue function in a Unicode safe way."""
+  regenumvalue = advapi32["RegEnumValueW"]
+  regenumvalue.restype = ctypes.c_long
+  regenumvalue.argtypes = [ctypes.c_void_p, ctypes.wintypes.DWORD,
+                           ctypes.c_wchar_p, LPDWORD, LPDWORD, LPDWORD, LPBYTE,
+                           LPDWORD]
+
+  regqueryinfokey = advapi32["RegQueryInfoKeyW"]
+  regqueryinfokey.restype = ctypes.c_long
+  regqueryinfokey.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD,
+                              LPDWORD, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
+                              LPDWORD, LPDWORD, LPDWORD,
+                              ctypes.POINTER(FileTime)]
+
   null = ctypes.POINTER(ctypes.wintypes.DWORD)()
   value_size = ctypes.wintypes.DWORD()
   data_size = ctypes.wintypes.DWORD()
-  rc = RegQueryInfoKey(key.handle, ctypes.c_wchar_p(), null, null, null, null,
+
+  rc = regqueryinfokey(key.handle, ctypes.c_wchar_p(), null, null, null, null,
                        null, null, ctypes.byref(value_size),
                        ctypes.byref(data_size), null,
                        ctypes.POINTER(FileTime)())
@@ -209,7 +230,7 @@ def EnumValue(key, index):
     tmp_value_size = ctypes.wintypes.DWORD(value_size.value)
     tmp_data_size = ctypes.wintypes.DWORD(data_size.value)
     data_type = ctypes.wintypes.DWORD()
-    rc = RegEnumValue(key.handle, index, ctypes.cast(value, ctypes.c_wchar_p),
+    rc = regenumvalue(key.handle, index, ctypes.cast(value, ctypes.c_wchar_p),
                       ctypes.byref(tmp_value_size), null,
                       ctypes.byref(data_type), ctypes.cast(data, LPBYTE),
                       ctypes.byref(tmp_data_size))

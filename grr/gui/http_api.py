@@ -156,10 +156,10 @@ class HttpRequestHandler(object):
   def BuildToken(request, execution_time):
     """Build an ACLToken from the request."""
 
-    # The request.GET dictionary will also be filled on HEAD and DELETE calls.
+    # The request.GET dictionary will also be filled on HEAD calls.
     if request.method in ["GET", "HEAD"]:
       reason = request.GET.get("reason", "")
-    elif request.method in ["POST", "DELETE"]:
+    elif request.method in ["POST", "DELETE", "PATCH"]:
       # The header X-GRR-REASON is set in api-service.js, which django converts
       # to HTTP_X_GRR_REASON.
       reason = utils.SmartUnicode(
@@ -296,7 +296,7 @@ class HttpRequestHandler(object):
 
       else:
         args = None
-    elif request.method in ["POST", "DELETE"]:
+    elif request.method in ["POST", "DELETE", "PATCH"]:
       try:
         args = method_metadata.args_type()
         for type_info in args.type_infos:

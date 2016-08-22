@@ -235,7 +235,7 @@ class BlobImage(aff4.AFF4ImageBase):
       self.Set(self.Schema.SIZE(self.size))
       self.Set(self.Schema.HASHES(self.index.getvalue()))
       self.Set(self.Schema.FINALIZED(self.finalized))
-    super(BlobImage, self).Flush(sync)
+    super(BlobImage, self).Flush(sync=sync)
 
   def AppendContent(self, src_fd):
     """Create new blob hashes and append to BlobImage.
@@ -391,6 +391,7 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
   chunksize = 512 * 1024
 
   class SchemaCls(aff4.AFF4ImageBase.SchemaCls):
+    """The schema class for AFF4SparseImage."""
 
     PATHSPEC = VFSDirectory.SchemaCls.PATHSPEC
 
@@ -573,6 +574,7 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
         self._dirty = True
 
     index_urn = self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number)
+    # TODO(user): This opens a subobject for each AddBlob call :/
     with aff4.FACTORY.Create(
         index_urn, aff4.AFF4MemoryStream, token=self.token) as fd:
       fd.write(blob_hash)

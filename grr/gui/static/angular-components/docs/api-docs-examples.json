@@ -929,6 +929,16 @@
       "url": "/api/clients/C.1000000000000000/vfs-refresh-operations"
     }
   ],
+  "ApiDeleteHuntHandler": [
+    {
+      "method": "DELETE",
+      "response": {
+        "status": "OK"
+      },
+      "test_class": "ApiDeleteHuntHandlerRegressionTest",
+      "url": "/api/hunts/H:123456"
+    }
+  ],
   "ApiGetClientApprovalHandler": [
     {
       "method": "GET",
@@ -2639,167 +2649,231 @@
     {
       "method": "GET",
       "response": {
-        "all_clients_count": 0,
-        "client_limit": 100,
-        "client_rate": 0,
-        "client_rule_set": {
-          "age": 0,
-          "type": "ForemanClientRuleSet",
-          "value": {
-            "rules": [
-              {
-                "age": 0,
-                "type": "ForemanClientRule",
-                "value": {
-                  "regex": {
-                    "age": 0,
-                    "type": "ForemanRegexClientRule",
-                    "value": {
-                      "attribute_name": {
-                        "age": 0,
-                        "type": "AFF4Attribute",
-                        "value": "GRR client"
-                      },
-                      "attribute_regex": {
-                        "age": 0,
-                        "type": "RegularExpression",
-                        "value": "GRR"
-                      }
-                    }
-                  },
-                  "rule_type": {
-                    "age": 0,
-                    "type": "EnumNamedValue",
-                    "value": "REGEX"
-                  }
-                }
-              }
-            ]
-          }
-        },
-        "completed_clients_count": 0,
-        "created": 42000000,
-        "creator": "test",
-        "description": "the hunt",
-        "expires": 1209642000000,
-        "hunt_args": {
-          "age": 0,
-          "type": "GenericHuntArgs",
-          "value": {
-            "flow_args": {
-              "age": 0,
-              "type": "GetFileArgs",
-              "value": {
-                "pathspec": {
+        "age": 0,
+        "type": "ApiHunt",
+        "value": {
+          "all_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "client_limit": {
+            "age": 0,
+            "type": "long",
+            "value": 100
+          },
+          "client_rate": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "client_rule_set": {
+            "age": 0,
+            "type": "ForemanClientRuleSet",
+            "value": {
+              "rules": [
+                {
                   "age": 0,
-                  "type": "PathSpec",
+                  "type": "ForemanClientRule",
                   "value": {
-                    "path": {
+                    "regex": {
                       "age": 0,
-                      "type": "unicode",
-                      "value": "/tmp/evil.txt"
+                      "type": "ForemanRegexClientRule",
+                      "value": {
+                        "attribute_name": {
+                          "age": 0,
+                          "type": "AFF4Attribute",
+                          "value": "GRR client"
+                        },
+                        "attribute_regex": {
+                          "age": 0,
+                          "type": "RegularExpression",
+                          "value": "GRR"
+                        }
+                      }
                     },
-                    "pathtype": {
+                    "rule_type": {
                       "age": 0,
                       "type": "EnumNamedValue",
-                      "value": "OS"
+                      "value": "REGEX"
                     }
                   }
                 }
-              }
-            },
-            "flow_runner_args": {
-              "age": 0,
-              "type": "FlowRunnerArgs",
-              "value": {
-                "flow_name": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "GetFile"
-                }
-              }
+              ]
             }
-          }
-        },
-        "hunt_runner_args": {
-          "age": 0,
-          "type": "HuntRunnerArgs",
-          "value": {
-            "client_rate": {
-              "age": 0,
-              "type": "float",
-              "value": 0.0
-            },
-            "client_rule_set": {
-              "age": 0,
-              "type": "ForemanClientRuleSet",
-              "value": {
-                "rules": [
-                  {
+          },
+          "completed_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "created": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 42000000
+          },
+          "creator": {
+            "age": 0,
+            "type": "unicode",
+            "value": "test"
+          },
+          "description": {
+            "age": 0,
+            "type": "unicode",
+            "value": "the hunt"
+          },
+          "expires": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 1209642000000
+          },
+          "hunt_args": {
+            "age": 0,
+            "type": "GenericHuntArgs",
+            "value": {
+              "flow_args": {
+                "age": 0,
+                "type": "GetFileArgs",
+                "value": {
+                  "pathspec": {
                     "age": 0,
-                    "type": "ForemanClientRule",
+                    "type": "PathSpec",
                     "value": {
-                      "regex": {
+                      "path": {
                         "age": 0,
-                        "type": "ForemanRegexClientRule",
-                        "value": {
-                          "attribute_name": {
-                            "age": 0,
-                            "type": "AFF4Attribute",
-                            "value": "GRR client"
-                          },
-                          "attribute_regex": {
-                            "age": 0,
-                            "type": "RegularExpression",
-                            "value": "GRR"
-                          }
-                        }
+                        "type": "unicode",
+                        "value": "/tmp/evil.txt"
                       },
-                      "rule_type": {
+                      "pathtype": {
                         "age": 0,
                         "type": "EnumNamedValue",
-                        "value": "REGEX"
+                        "value": "OS"
                       }
                     }
                   }
-                ]
-              }
-            },
-            "description": {
-              "age": 0,
-              "type": "unicode",
-              "value": "the hunt"
-            },
-            "hunt_name": {
-              "age": 0,
-              "type": "unicode",
-              "value": "GenericHunt"
-            },
-            "token": {
-              "age": 0,
-              "type": "ACLToken",
-              "value": {
-                "reason": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "Running tests"
-                },
-                "username": {
-                  "age": 0,
-                  "type": "unicode",
-                  "value": "test"
+                }
+              },
+              "flow_runner_args": {
+                "age": 0,
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "flow_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GetFile"
+                  }
                 }
               }
             }
+          },
+          "hunt_runner_args": {
+            "age": 0,
+            "type": "HuntRunnerArgs",
+            "value": {
+              "client_rate": {
+                "age": 0,
+                "type": "float",
+                "value": 0.0
+              },
+              "client_rule_set": {
+                "age": 0,
+                "type": "ForemanClientRuleSet",
+                "value": {
+                  "rules": [
+                    {
+                      "age": 0,
+                      "type": "ForemanClientRule",
+                      "value": {
+                        "regex": {
+                          "age": 0,
+                          "type": "ForemanRegexClientRule",
+                          "value": {
+                            "attribute_name": {
+                              "age": 0,
+                              "type": "AFF4Attribute",
+                              "value": "GRR client"
+                            },
+                            "attribute_regex": {
+                              "age": 0,
+                              "type": "RegularExpression",
+                              "value": "GRR"
+                            }
+                          }
+                        },
+                        "rule_type": {
+                          "age": 0,
+                          "type": "EnumNamedValue",
+                          "value": "REGEX"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "the hunt"
+              },
+              "hunt_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "token": {
+                "age": 0,
+                "type": "ACLToken",
+                "value": {
+                  "reason": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Running tests"
+                  },
+                  "username": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "test"
+                  }
+                }
+              }
+            }
+          },
+          "is_robot": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "GenericHunt"
+          },
+          "remaining_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "state": {
+            "age": 0,
+            "type": "EnumNamedValue",
+            "value": "PAUSED"
+          },
+          "total_cpu_usage": {
+            "age": 0,
+            "type": "float",
+            "value": 5000.0
+          },
+          "total_net_usage": {
+            "age": 0,
+            "type": "long",
+            "value": 1000000
+          },
+          "urn": {
+            "age": 0,
+            "type": "SessionID",
+            "value": "aff4:/hunts/H:123456"
           }
-        },
-        "is_robot": false,
-        "name": "GenericHunt",
-        "remaining_clients_count": 0,
-        "state": "PAUSED",
-        "total_cpu_usage": 5000.0,
-        "total_net_usage": 1000000,
-        "urn": "aff4:/hunts/H:123456"
+        }
       },
       "test_class": "ApiGetHuntHandlerRegressionTest",
       "type_stripped_response": {
@@ -8708,7 +8782,7 @@
               },
               "state": {
                 "age": 0,
-                "type": "DataObject",
+                "type": "AttributedDict",
                 "value": {
                   "args": {
                     "age": 0,
@@ -8734,12 +8808,12 @@
                   "errors": [],
                   "logs": [],
                   "output_base_urn": {
-                    "age": 42000000,
+                    "age": 0,
                     "type": "RDFURN",
                     "value": "aff4:/C.1000000000000000/flows/W:ABCDEF/PluginOutput"
                   },
                   "source_urn": {
-                    "age": 42000000,
+                    "age": 0,
                     "type": "RDFURN",
                     "value": "aff4:/C.1000000000000000/flows/W:ABCDEF/Results"
                   },
@@ -11063,7 +11137,7 @@
               },
               "state": {
                 "age": 0,
-                "type": "DataObject",
+                "type": "AttributedDict",
                 "value": {
                   "args": {
                     "age": 0,
@@ -11082,12 +11156,12 @@
                     }
                   },
                   "output_base_urn": {
-                    "age": 42000000,
+                    "age": 0,
                     "type": "RDFURN",
                     "value": "aff4:/hunts/H:123456/Results/DummyHuntTestOutputPlugin"
                   },
                   "source_urn": {
-                    "age": 42000000,
+                    "age": 0,
                     "type": "RDFURN",
                     "value": "aff4:/hunts/H:123456/Results"
                   },
@@ -12682,6 +12756,320 @@
         }
       },
       "url": "/api/stats/store/WORKER/metadata"
+    }
+  ],
+  "ApiModifyHuntHandler": [
+    {
+      "method": "PATCH",
+      "request_payload": {
+        "client_limit": 142
+      },
+      "response": {
+        "age": 0,
+        "type": "ApiHunt",
+        "value": {
+          "all_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "client_limit": {
+            "age": 0,
+            "type": "long",
+            "value": 142
+          },
+          "client_rate": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "client_rule_set": {
+            "age": 0,
+            "type": "ForemanClientRuleSet",
+            "value": {
+              "rules": [
+                {
+                  "age": 0,
+                  "type": "ForemanClientRule",
+                  "value": {
+                    "regex": {
+                      "age": 0,
+                      "type": "ForemanRegexClientRule",
+                      "value": {
+                        "attribute_name": {
+                          "age": 0,
+                          "type": "AFF4Attribute",
+                          "value": "GRR client"
+                        },
+                        "attribute_regex": {
+                          "age": 0,
+                          "type": "RegularExpression",
+                          "value": "GRR"
+                        }
+                      }
+                    },
+                    "rule_type": {
+                      "age": 0,
+                      "type": "EnumNamedValue",
+                      "value": "REGEX"
+                    }
+                  }
+                }
+              ]
+            }
+          },
+          "completed_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "created": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 42000000
+          },
+          "creator": {
+            "age": 0,
+            "type": "unicode",
+            "value": "test"
+          },
+          "description": {
+            "age": 0,
+            "type": "unicode",
+            "value": "the hunt"
+          },
+          "expires": {
+            "age": 0,
+            "type": "RDFDatetime",
+            "value": 1209642000000
+          },
+          "hunt_args": {
+            "age": 0,
+            "type": "GenericHuntArgs",
+            "value": {
+              "flow_args": {
+                "age": 0,
+                "type": "GetFileArgs",
+                "value": {
+                  "pathspec": {
+                    "age": 0,
+                    "type": "PathSpec",
+                    "value": {
+                      "path": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "/tmp/evil.txt"
+                      },
+                      "pathtype": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "OS"
+                      }
+                    }
+                  }
+                }
+              },
+              "flow_runner_args": {
+                "age": 0,
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "flow_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GetFile"
+                  }
+                }
+              }
+            }
+          },
+          "hunt_runner_args": {
+            "age": 0,
+            "type": "HuntRunnerArgs",
+            "value": {
+              "client_limit": {
+                "age": 0,
+                "type": "long",
+                "value": 142
+              },
+              "client_rate": {
+                "age": 0,
+                "type": "float",
+                "value": 0.0
+              },
+              "client_rule_set": {
+                "age": 0,
+                "type": "ForemanClientRuleSet",
+                "value": {
+                  "rules": [
+                    {
+                      "age": 0,
+                      "type": "ForemanClientRule",
+                      "value": {
+                        "regex": {
+                          "age": 0,
+                          "type": "ForemanRegexClientRule",
+                          "value": {
+                            "attribute_name": {
+                              "age": 0,
+                              "type": "AFF4Attribute",
+                              "value": "GRR client"
+                            },
+                            "attribute_regex": {
+                              "age": 0,
+                              "type": "RegularExpression",
+                              "value": "GRR"
+                            }
+                          }
+                        },
+                        "rule_type": {
+                          "age": 0,
+                          "type": "EnumNamedValue",
+                          "value": "REGEX"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              "description": {
+                "age": 0,
+                "type": "unicode",
+                "value": "the hunt"
+              },
+              "hunt_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GenericHunt"
+              },
+              "token": {
+                "age": 0,
+                "type": "ACLToken",
+                "value": {
+                  "reason": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Running tests"
+                  },
+                  "username": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "test"
+                  }
+                }
+              }
+            }
+          },
+          "is_robot": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "GenericHunt"
+          },
+          "remaining_clients_count": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "state": {
+            "age": 0,
+            "type": "EnumNamedValue",
+            "value": "COMPLETED"
+          },
+          "total_cpu_usage": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "total_net_usage": {
+            "age": 0,
+            "type": "long",
+            "value": 0
+          },
+          "urn": {
+            "age": 0,
+            "type": "SessionID",
+            "value": "aff4:/hunts/H:123456"
+          }
+        }
+      },
+      "test_class": "ApiModifyHuntHandlerRegressionTest",
+      "type_stripped_response": {
+        "all_clients_count": 0,
+        "client_limit": 142,
+        "client_rate": 0,
+        "client_rule_set": {
+          "rules": [
+            {
+              "regex": {
+                "attribute_name": "GRR client",
+                "attribute_regex": "GRR"
+              },
+              "rule_type": "REGEX"
+            }
+          ]
+        },
+        "completed_clients_count": 0,
+        "created": 42000000,
+        "creator": "test",
+        "description": "the hunt",
+        "expires": 1209642000000,
+        "hunt_args": {
+          "flow_args": {
+            "pathspec": {
+              "path": "/tmp/evil.txt",
+              "pathtype": "OS"
+            }
+          },
+          "flow_runner_args": {
+            "flow_name": "GetFile"
+          }
+        },
+        "hunt_runner_args": {
+          "client_limit": 142,
+          "client_rate": 0.0,
+          "client_rule_set": {
+            "rules": [
+              {
+                "regex": {
+                  "attribute_name": "GRR client",
+                  "attribute_regex": "GRR"
+                },
+                "rule_type": "REGEX"
+              }
+            ]
+          },
+          "description": "the hunt",
+          "hunt_name": "GenericHunt",
+          "token": {
+            "reason": "Running tests",
+            "username": "test"
+          }
+        },
+        "is_robot": false,
+        "name": "GenericHunt",
+        "remaining_clients_count": 0,
+        "state": "COMPLETED",
+        "total_cpu_usage": 0,
+        "total_net_usage": 0,
+        "urn": "aff4:/hunts/H:123456"
+      },
+      "url": "/api/hunts/H:123456"
+    },
+    {
+      "method": "PATCH",
+      "request_payload": {
+        "state": "STOPPED"
+      },
+      "response": {
+        "message": "Hunt can only be stopped from STARTED or PAUSED states.",
+        "traceBack": "<traceback content>"
+      },
+      "test_class": "ApiModifyHuntHandlerRegressionTest",
+      "url": "/api/hunts/H:123456"
     }
   ],
   "ApiOutputPluginsListHandler": [

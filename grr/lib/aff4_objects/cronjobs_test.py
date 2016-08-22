@@ -69,11 +69,11 @@ class DummyStatefulSystemCronJob(cronjobs.StatefulSystemCronFlow):
   @flow.StateHandler()
   def Start(self):
     state = self.ReadCronState()
-    value = state.get("value", default=0)
+    value = state.get("value", 0)
 
     DummyStatefulSystemCronJob.VALUES.append(value)
 
-    state.Register("value", value + 1)
+    state["value"] = value + 1
     self.WriteCronState(state)
 
 
@@ -143,7 +143,7 @@ class CronTest(test_lib.AFF4ObjectTest):
 
     # Check that the link points to the correct flow.
     cron_job_flow = aff4.FACTORY.Open(cron_job_flows[0], token=self.token)
-    self.assertEqual(cron_job_flow.state.context.args.flow_name, "FakeCronJob")
+    self.assertEqual(cron_job_flow.runner_args.flow_name, "FakeCronJob")
 
   def testDisabledCronJobDoesNotScheduleFlows(self):
     cron_manager = cronjobs.CronManager()

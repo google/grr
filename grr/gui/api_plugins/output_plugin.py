@@ -4,7 +4,7 @@
 from grr.gui import api_call_handler_base
 
 from grr.lib import output_plugin
-from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
@@ -35,4 +35,4 @@ class ApiOutputPlugin(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiOutputPlugin
 
   def GetStateClass(self):
-    return rdf_flows.FlowState
+    return rdf_protodict.AttributedDict

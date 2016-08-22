@@ -322,13 +322,13 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     # This flow is still in state Incoming.
     flow_obj = aff4.FACTORY.Open(session_id_1, token=self.token)
     self.assertTrue(
-        flow_obj.state.context.state != rdf_flows.Flow.State.TERMINATED)
-    self.assertEqual(flow_obj.state.context["current_state"], "Incoming")
+        flow_obj.context.state != rdf_flows.FlowContext.State.TERMINATED)
+    self.assertEqual(flow_obj.context.current_state, "Incoming")
     # This flow should be done.
     flow_obj = aff4.FACTORY.Open(session_id_2, token=self.token)
     self.assertTrue(
-        flow_obj.state.context.state == rdf_flows.Flow.State.TERMINATED)
-    self.assertEqual(flow_obj.state.context["current_state"], "End")
+        flow_obj.context.state == rdf_flows.FlowContext.State.TERMINATED)
+    self.assertEqual(flow_obj.context.current_state, "End")
 
   def testNoKillNotificationsScheduledForHunts(self):
     worker_obj = worker.GRRWorker(token=self.token)
@@ -425,9 +425,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       worker_obj.thread_pool.Join()
 
     killed_flow = aff4.FACTORY.Open(session_id, token=self.token)
-    self.assertEqual(killed_flow.state.context.state,
-                     rdf_flows.Flow.State.ERROR)
-    self.assertEqual(killed_flow.state.context.status,
+    self.assertEqual(killed_flow.context.state,
+                     rdf_flows.FlowContext.State.ERROR)
+    self.assertEqual(killed_flow.context.status,
                      "Terminated by user test. Reason: Stuck in the worker")
 
   def testStuckNotificationGetsDeletedAfterTheFlowIsTerminated(self):
@@ -458,9 +458,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
         worker_obj.RunOnce()
 
       killed_flow = aff4.FACTORY.Open(session_id, token=self.token)
-      self.assertEqual(killed_flow.state.context.state,
-                       rdf_flows.Flow.State.ERROR)
-      self.assertEqual(killed_flow.state.context.status,
+      self.assertEqual(killed_flow.context.state,
+                       rdf_flows.FlowContext.State.ERROR)
+      self.assertEqual(killed_flow.context.status,
                        "Terminated by user test. Reason: Stuck in the worker")
 
       # Check that stuck notification has been removed.
@@ -516,8 +516,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
       # Check that the flow wasn't killed forecfully.
       checked_flow = aff4.FACTORY.Open(session_id, token=self.token)
-      self.assertEqual(checked_flow.state.context.state,
-                       rdf_flows.Flow.State.RUNNING)
+      self.assertEqual(checked_flow.context.state,
+                       rdf_flows.FlowContext.State.RUNNING)
 
     finally:
       # Release the semaphore so that worker thread unblocks and finishes
@@ -528,8 +528,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     # Check that the flow has finished normally.
     checked_flow = aff4.FACTORY.Open(session_id, token=self.token)
-    self.assertEqual(checked_flow.state.context.state,
-                     rdf_flows.Flow.State.TERMINATED)
+    self.assertEqual(checked_flow.context.state,
+                     rdf_flows.FlowContext.State.TERMINATED)
 
   def testNonStuckFlowDoesNotGetTerminated(self):
     worker_obj = worker.GRRWorker(token=self.token)
@@ -549,7 +549,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       worker_obj.thread_pool.Join()
 
     flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
-    self.assertEqual(flow_obj.state.context.state, rdf_flows.Flow.State.RUNNING)
+    self.assertEqual(flow_obj.context.state,
+                     rdf_flows.FlowContext.State.RUNNING)
 
     # Set the time to max worker flow duration + 1 minute. If the 'kill'
     # notification isn't deleted we should get it now.
@@ -560,7 +561,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
 
     flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
     # Check that flow didn't get terminated due to a logic bug.
-    self.assertEqual(flow_obj.state.context.state, rdf_flows.Flow.State.RUNNING)
+    self.assertEqual(flow_obj.context.state,
+                     rdf_flows.FlowContext.State.RUNNING)
 
   def testProcessMessagesWellKnown(self):
     worker_obj = worker.GRRWorker(token=self.token)
@@ -791,9 +793,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
       worker_obj.thread_pool.Join()
 
     flow_obj = aff4.FACTORY.Open(session_id, token=self.token)
-    self.assertFalse(flow_obj.state.context.backtrace)
-    self.assertNotEqual(flow_obj.state.context.state,
-                        rdf_flows.Flow.State.ERROR)
+    self.assertFalse(flow_obj.context.backtrace)
+    self.assertNotEqual(flow_obj.context.state,
+                        rdf_flows.FlowContext.State.ERROR)
 
     request_data = data_store.DB.ResolvePrefix(
         session_id.Add("state"), "flow:", token=self.token)

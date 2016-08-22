@@ -477,8 +477,8 @@ class HuntTest(test_lib.FlowTestsBaseclass):
 
     hunt_obj = aff4.FACTORY.Open(
         hunt.session_id, mode="rw", age=aff4.ALL_TIMES, token=self.token)
-
     started, finished, errors = hunt_obj.GetClientsCounts()
+
     self.assertEqual(started, 10)
     # There should be errors for the five clients where the hunt raised.
     self.assertEqual(errors, 5)

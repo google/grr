@@ -107,7 +107,7 @@ class ApiClientTest(test_lib.GRRBaseTest):
     self.assertEqual(len(list(children)), 1)
     result_flow_obj = aff4.FACTORY.Open(
         result_flow.data["urn"], token=self.token)
-    self.assertEqual(result_flow_obj.state.args, args)
+    self.assertEqual(result_flow_obj.args, args)
 
   def testCreateFlowFromClientObject(self):
     client_urn = self.SetupClients(1)[0]
@@ -125,7 +125,7 @@ class ApiClientTest(test_lib.GRRBaseTest):
     self.assertEqual(len(list(children)), 1)
     result_flow_obj = aff4.FACTORY.Open(
         result_flow.data["urn"], token=self.token)
-    self.assertEqual(result_flow_obj.state.args, args)
+    self.assertEqual(result_flow_obj.args, args)
 
 
 class CSRFProtectionTest(test_lib.GRRBaseTest):
@@ -238,6 +238,43 @@ class CSRFProtectionTest(test_lib.GRRBaseTest):
         cookies=cookies)
 
     self.assertEquals(response.status_code, 200)
+
+  def testPATCHRequestWithoutCSRFTokenFails(self):
+    response = requests.patch(self.base_url + "/api/hunts/H:123456")
+
+    self.assertEquals(response.status_code, 403)
+    self.assertTrue("CSRF" in response.text)
+
+  def testPATCHRequestWithCSRFTokenInCookiesAndNotInHeadersFails(self):
+    # Fetch csrf token from the cookie set on the main page.
+    index_response = requests.get(self.base_url)
+    csrf_token = index_response.cookies.get("csrftoken")
+
+    cookies = {"csrftoken": csrf_token}
+
+    response = requests.patch(
+        self.base_url + "/api/hunts/H:123456", cookies=cookies)
+
+    self.assertEquals(response.status_code, 403)
+    self.assertTrue("CSRF" in response.text)
+
+  def testPATCHRequestWithCSRFTokenInCookiesAndHeadersSucceeds(self):
+    # Fetch csrf token from the cookie set on the main page.
+    index_response = requests.get(self.base_url)
+    csrf_token = index_response.cookies.get("csrftoken")
+
+    headers = {
+        "x-csrftoken": csrf_token,
+        "x-requested-with": "XMLHttpRequest"
+    }
+    cookies = {"csrftoken": csrf_token}
+
+    response = requests.patch(
+        self.base_url + "/api/hunts/H:123456", headers=headers, cookies=cookies)
+
+    # We consider 404 to be a normal response here.
+    # Hunt H:123456 doesn't exist.
+    self.assertEquals(response.status_code, 404)
 
 
 def main(argv):

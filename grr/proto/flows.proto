@@ -11,6 +11,72 @@ import "grr/proto/semantic.proto";
 import "grr/proto/sysinfo.proto";
 
 
+// The flow context.
+// Next field: 17
+message FlowContext {
+  optional string backtrace = 1;
+  optional ClientResources client_resources = 2;
+  optional uint64 create_time = 3 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional string creator = 4;
+  optional string current_state = 5;
+  optional uint64 kill_timestamp = 6 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional uint64 network_bytes_sent = 7;
+  optional uint64 next_outbound_id = 8 [default = 1];
+  optional uint64 next_processed_request = 9 [default = 1];
+  repeated OutputPluginState output_plugins_states = 10;
+  optional uint64 outstanding_requests = 11;
+  optional uint64 remaining_cpu_quota = 12;
+  optional string session_id = 13 [(sem_type) = {
+      type: "SessionID"
+    }];
+
+  enum State {
+    RUNNING = 0;
+    TERMINATED = 1;
+    ERROR = 3;   // Flows which raise are marked as having an error.
+
+    // A well known flow will not queue any messages and always
+    // forward messages to the worker:
+    WELL_KNOWN = 2;
+  };
+
+  optional State state = 14;
+  optional string status = 15;
+  optional bool user_notified = 16;
+}
+
+// The hunt context.
+// Next field: 14
+message HuntContext {
+  optional ClientResources client_resources = 1;
+  optional uint64 create_time = 2 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional string creator = 3;
+  optional uint64 expires = 4 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional uint64 network_bytes_sent = 5;
+  optional uint64 next_client_due = 6 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional uint64 next_outbound_id = 7 [default = 1];
+  optional uint64 next_processed_request = 8 [default = 1];
+  optional uint64 outstanding_requests = 9;
+  optional uint64 remaining_cpu_quota = 10;
+  optional string session_id = 11 [(sem_type) = {
+      type: "SessionID"
+    }];
+  optional uint64 start_time = 12 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional ClientResourcesStats usage_stats = 13;
+}
+
 // This is the user's access token.
 // Next field: 9
 message ACLToken {
@@ -996,10 +1062,10 @@ message CreateCronJobFlowArgs {
       description: "A human readable description of the cron job."
     }];
 
-  optional string periodicity = 2 [(sem_type) = {
-      type: "CronSpec",
+  optional uint64 periodicity = 2 [(sem_type) = {
+      type: "Duration",
       description: "How often to run this hunt."
-    }, default="7d"];
+    }, default=604800]; // 7d
 
   optional FlowRunnerArgs flow_runner_args = 3;
   optional bytes flow_args = 4 [(sem_type) = {
@@ -1705,7 +1771,7 @@ message DumpProcessMemoryArgs {
   }];
 }
 
-// Next field ID: 4
+// Next field ID: 5
 message DumpFlashImageArgs {
   optional uint32 log_level = 1 [(sem_type) = {
       description: "Set the log level. If set, the log returned "
@@ -1721,6 +1787,10 @@ message DumpFlashImageArgs {
       "syslog before running the action. This can be used for debugging in "
       "case the client crashes during the image dumping process.",
     }];
+  optional string component_version = 4 [(sem_type) = {
+      description: "Version of Chipsec component to be used.",
+      label: ADVANCED
+    }, default="1.2.2.2"];
 }
 
 // Next field ID: 4

@@ -3,14 +3,18 @@
 
 
 
+from grr.gui import api_call_handler_base
 from grr.gui import api_call_router
 from grr.gui import api_call_router_without_checks
 
 from grr.lib import access_control
+from grr.lib import aff4
 from grr.lib import rdfvalue
 
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import user_managers
+
+from grr.lib.hunts import implementation
 
 
 class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
@@ -381,6 +385,38 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     # Everybody can create a hunt.
 
     return self.delegate.CreateHunt(args, token=token)
+
+  def ModifyHunt(self, args, token=None):
+    # Starting/stopping hunt or modifying its attributes requires an approval.
+    #
+    # TODO(user): introduce a special type for hunt ids and use
+    # to check the correctness of args.hunt_id. Currently args.hunt_id accepts
+    # any URN, whereas we want it to accept only hunt ids, i.e. H:123456.
+    self.CheckHuntAccess(rdfvalue.RDFURN(args.hunt_id).Basename(), token=token)
+
+    return self.delegate.ModifyHunt(args, token=token)
+
+  def _GetHuntObj(self, hunt_id, token=None):
+    hunt_urn = aff4.ROOT_URN.Add("hunts").Add(hunt_id)
+    try:
+      return aff4.FACTORY.Open(
+          hunt_urn, aff4_type=implementation.GRRHunt, token=token)
+    except aff4.InstantiationError:
+      raise api_call_handler_base.ResourceNotFoundError(
+          "Hunt with id %s could not be found" % hunt_id)
+
+  def DeleteHunt(self, args, token=None):
+    hunt_obj = self._GetHuntObj(args.hunt_id, token=token)
+
+    # Hunt's creator is allowed to delete the hunt.
+    if token.username != hunt_obj.creator:
+      # TODO(user): introduce a special type for hunt ids and use
+      # to check the correctness of args.hunt_id. Currently args.hunt_id accepts
+      # any URN, whereas we want it to accept only hunt ids, i.e. H:123456.
+      self.CheckHuntAccess(
+          rdfvalue.RDFURN(args.hunt_id).Basename(), token=token)
+
+    return self.delegate.DeleteHunt(args, token=token)
 
   def GetHuntFilesArchive(self, args, token=None):
     # TODO(user): introduce a special type for hunt ids and use

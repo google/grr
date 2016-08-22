@@ -11,11 +11,12 @@ messages are processed, the flow can be suspended indefinitely into the data
 store. When replies arrive from the client, or a child flow, the flow is woken
 up and the responses are sent to one of the flow state methods.
 
-In order for the flow to be suspended and restored, its state is pickled. Rather
-than pickling the entire flow, the preserved state is well defined and can be
-found in the flow's "state" attribute. Note that this means that any parameters
-assigned to the flow object itself are not preserved across state executions -
-only parameters specifically stored in the state are preserved.
+In order for the flow to be suspended and restored, its state is
+stored in a protobuf. Rather than storing the entire flow, the
+preserved state is well defined and can be found in the flow's "state"
+attribute. Note that this means that any parameters assigned to the
+flow object itself are not preserved across state executions - only
+parameters specifically stored in the state are preserved.
 
 In order to actually run the flow, a FlowRunner is used. The flow runner is
 responsible for queuing messages to clients, launching child flows etc. The
@@ -23,21 +24,22 @@ runner stores internal flow management information inside the flow's state, in a
 variable called "context". This context should only be used by the runner itself
 and not manipulated by the flow.
 
-Before a flow is allowed to store a parameter in the state object, the parameter
-must be registered:
+The flow state is a normal dict (even though only types supported by
+the ProtoDict class are supported in the state):
 
-self.state.Register("parameter_name", parameter_name)
+self.state.parameter_name = parameter_name
 
 The following defaults parameters exist in the flow's state:
 
-self.state.args: The flow's protocol buffer args - an instance of
+self.args: The flow's protocol buffer args - an instance of
   self.args_type. If the flow was instantiated using keywords only, a new
   instance of the args is created.
 
-self.state.context: The flow runner's context.
+self.context: The flow runner's context.
 
-self.state.context.args: The flow runners args. This is an instance of
+self.runner_args: The flow runners args. This is an instance of
   FlowRunnerArgs() which may be build from keyword args.
+
 """
 
 
@@ -310,6 +312,19 @@ def StateHandler(auth_required=True):
   return Decorator
 
 
+# This is an implementation of an AttributedDict taken from
+# http://stackoverflow.com/questions/4984647/accessing-dict-keys-like-an-attribute-in-python
+# It works very well but there is a small drawback - there is no way
+# to assign an attribute to this dict that does not get serialized. Do
+# not inherit from this class, there might be interesting side
+# effects.
+class AttributedDict(dict):
+
+  def __init__(self, *args, **kwargs):
+    super(AttributedDict, self).__init__(*args, **kwargs)
+    self.__dict__ = self
+
+
 class PendingFlowTermination(rdf_structs.RDFProtoStruct):
   """Descriptor of a pending flow termination."""
   protobuf = jobs_pb2.PendingFlowTermination
@@ -386,129 +401,23 @@ class FlowBehaviour(Behaviour):
   }
 
 
-class GRRFlow(aff4.AFF4Volume):
-  """A container aff4 object to maintain a flow.
-
-  Flow objects are executed and scheduled by the workers, and extend
-  grr.flow.GRRFlow. This object contains the flows object within an AFF4
-  container.
-
-  Note: Usually this object can not be created by users using the regular
-  aff4.FACTORY.Create() method since it requires elevated permissions. This
-  object can instead be created using the flow.GRRFlow.StartFlow() method.
-
-  After creation, access to the flow object can still be obtained through
-  the usual aff4.FACTORY.Open() method.
-
-  The GRRFlow object should be extended by flow implementations, adding state
-  handling methods (State methods are called with responses and should be
-  decorated using the StateHandler() decorator). The mechanics of running the
-  flow are separated from the flow itself, using the runner object. Then
-  FlowRunner() for the flow can be obtained from the flow.GetRunner(). The
-  runner contains all the methods specific to running, scheduling and
-  interrogating the flow:
-
-
-  with aff4.FACTORY.Open(flow_urn, mode="rw") as fd:
-    runner = fd.GetRunner()
-    runner.ProcessCompletedRequests(messages)
-
-  """
-
-  class SchemaCls(aff4.AFF4Volume.SchemaCls):
-    """Attributes specific to GRRFlow."""
-
-    FLOW_STATE = aff4.Attribute(
-        "aff4:flow_state",
-        rdf_flows.FlowState,
-        "The current state of this flow.",
-        "FlowState",
-        versioned=False,
-        creates_new_object_version=False)
-
-    NOTIFICATION = aff4.Attribute("aff4:notification", rdf_flows.Notification,
-                                  "Notifications for the flow.")
-
-    CLIENT_CRASH = aff4.Attribute(
-        "aff4:client_crash",
-        rdf_client.ClientCrash,
-        "Client crash details in case of a crash.",
-        default=None,
-        creates_new_object_version=False)
-
-    PENDING_TERMINATION = aff4.Attribute(
-        "aff4:pending_termination",
-        PendingFlowTermination,
-        "If true, this flow will be "
-        "terminated as soon as any of its "
-        "states are called.",
-        creates_new_object_version=False)
-
-  # This is used to arrange flows into a tree view
-  category = ""
-  friendly_name = None
-
-  # If this is set, the flow is only displayed in the UI if the user has one of
-  # the labels given.
-  AUTHORIZED_LABELS = []
-
-  __metaclass__ = registry.MetaclassRegistry
-
-  # Should ACLs be enforced on this flow? This implies the user must have full
-  # access to the client before they can run this flow.
-  ACL_ENFORCED = True
-
-  # Behaviors set attributes of this flow. See FlowBehavior() above.
-  behaviours = FlowBehaviour("Client Flow", "ADVANCED")
+class FlowBase(aff4.AFF4Volume):
+  """The base class for Flows and Hunts."""
 
   # Alternatively we can specify a single semantic protobuf that will be used to
   # provide the args.
   args_type = EmptyFlowArgs
 
-  # This will be populated with an active runner.
-  runner = None
-
-  # This will be set to the flow's state. Flows can store information in the
-  # state object which will be serialized between state executions.
-  state = None
-
-  runner_cls = flow_runner.FlowRunner
-
-  # If True we let the flow handle its own client crashes. Otherwise the flow
-  # is killed when the client crashes.
-  handles_crashes = False
-
   def Initialize(self):
-    """The initialization method."""
-    if "r" in self.mode:
-      self.state = self.Get(self.Schema.FLOW_STATE)
-      if self.state:
-        self.Load()
+    # This will be set to the state. Flows and Hunts can store
+    # information in the state object which will be serialized between
+    # state executions.
+    self.state = None
 
-        # A convenience attribute to allow flows to access their args directly.
-        self.args = self.state.get("args")
+    # This will be populated with an active runner.
+    self.runner = None
 
-    if self.state is None:
-      self.state = self.Schema.FLOW_STATE()
-    elif self.state.errors:
-      logging.warning("Failed to read state for %s - forcing read only mode.",
-                      self.urn)
-      self.mode = "r"
-
-  @classmethod
-  def GetDefaultArgs(cls, token=None):
-    """Return a useful default args semantic value.
-
-    This should be extended by flows.
-
-    Args:
-      token: The ACL token for the user.
-
-    Returns:
-      an instance of cls.args_type pre-populated with useful data
-    """
-    _ = token
-    return cls.args_type()
+    self.args = None
 
   @classmethod
   def FilterArgsFromSemanticProtobuf(cls, protobuf, kwargs):
@@ -518,56 +427,26 @@ class GRRFlow(aff4.AFF4Volume):
       if value is not None:
         setattr(protobuf, descriptor.name, value)
 
-  def UpdateKillNotification(self):
-    # If kill timestamp is set (i.e. if the flow is currently being
-    # processed by the worker), delete the old "kill if stuck" notification
-    # and schedule a new one, further in the future.
-    if (self.runner.schedule_kill_notifications and
-        self.runner.context.kill_timestamp):
-      with queue_manager.QueueManager(token=self.token) as manager:
-        manager.DeleteNotification(
-            self.session_id,
-            start=self.runner.context.kill_timestamp,
-            end=self.runner.context.kill_timestamp + rdfvalue.Duration("1s"))
+  def CreateRunner(self, parent_runner=None, runner_args=None, **kw):
+    """Make a new runner."""
+    raise NotImplementedError("Cannot call CreateRunner on the base class.")
 
-        stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
-            "Worker.stuck_flows_timeout"])
-        self.runner.context.kill_timestamp = (
-            rdfvalue.RDFDatetime().Now() + stuck_flows_timeout)
-        manager.QueueNotification(
-            session_id=self.session_id,
-            in_progress=True,
-            timestamp=self.runner.context.kill_timestamp)
+  def GetRunner(self):
+    # If we already created the runner, just reuse it.
+    if self.runner:
+      return self.runner
 
-  def HeartBeat(self):
-    if self.locked:
-      lease_time = config_lib.CONFIG["Worker.flow_lease_time"]
-      if self.CheckLease() < lease_time / 2:
-        logging.info("%s: Extending Lease", self.session_id)
-        self.UpdateLease(lease_time)
-
-        self.UpdateKillNotification()
-    else:
-      logging.warning("%s is heartbeating while not being locked.", self.urn)
-
-  def WriteState(self):
-    if "w" in self.mode:
-      if self.state.Empty():
-        raise IOError("Trying to write an empty state for flow %s." % self.urn)
-      self.Set(self.Schema.FLOW_STATE(self.state))
-
-  def FlushMessages(self):
-    """Write all the messages queued in the queue manager."""
-    self.GetRunner().FlushMessages()
+    # Otherwise make a new runner.
+    return self.CreateRunner()
 
   def Flush(self, sync=True):
-    """Flushes the flow and all its requests to the data_store."""
+    """Flushes the flow/hunt and all its requests to the data_store."""
     # Check for Lock expiration first.
     self.CheckLease()
     self.Save()
     self.WriteState()
     self.Load()
-    super(GRRFlow, self).Flush(sync=sync)
+    super(FlowBase, self).Flush(sync=sync)
     # Writing the messages queued in the queue_manager of the runner always has
     # to be the last thing that happens or we will have a race condition.
     self.FlushMessages()
@@ -578,30 +457,14 @@ class GRRFlow(aff4.AFF4Volume):
     self.CheckLease()
     self.Save()
     self.WriteState()
-    super(GRRFlow, self).Close(sync=sync)
+    super(FlowBase, self).Close(sync=sync)
     # Writing the messages queued in the queue_manager of the runner always has
     # to be the last thing that happens or we will have a race condition.
     self.FlushMessages()
 
-  def CreateRunner(self, parent_runner=None, runner_args=None, **kw):
-    """Make a new runner."""
-    self.runner = self.runner_cls(
-        self,
-        token=self.token,
-        parent_runner=parent_runner,
-        runner_args=runner_args,
-        **kw)
-
-    return self.runner
-
-  def GetRunner(self):
-    # If we already created the runner, just reuse it.
-    if self.runner:
-      return self.runner
-
-    # Otherwise make a new runner.
-    self.runner = self.runner_cls(self)
-    return self.runner
+  def FlushMessages(self):
+    """Write all the messages queued in the queue manager."""
+    self.GetRunner().FlushMessages()
 
   @StateHandler()
   def End(self):
@@ -613,12 +476,8 @@ class GRRFlow(aff4.AFF4Volume):
     self.Notify("FlowStatus", self.urn,
                 "Flow %s completed" % self.__class__.__name__)
 
-    if not hasattr(self.state, "end_tracebacks"):
-      # This is used to track down multiple End state calls in the same flow.
-      end_tracebacks = []
-      self.state.Register("end_tracebacks", end_tracebacks)
-
-    self.state.end_tracebacks.append("".join(traceback.format_stack()))
+    tb = "".join(traceback.format_stack())
+    self.state.setdefault("end_tracebacks", []).append(tb)
 
     if len(self.state.end_tracebacks) > 1:
       logging.warning("End state called multiple times in a single flow."
@@ -649,122 +508,6 @@ class GRRFlow(aff4.AFF4Volume):
     Save() methods to remove the object during Save() and recreate it during
     Load().
     """
-
-  def Log(self, format_str, *args):
-    """Logs the message using the flow's standard logging.
-
-    Args:
-      format_str: Format string
-      *args: arguments to the format string
-    """
-    self.GetRunner().Log(format_str, *args)
-
-  def GetLog(self):
-    return self.GetRunner().GetLog()
-
-  def Status(self, format_str, *args):
-    """Flows can call this method to set a status message visible to users."""
-    self.GetRunner().Status(format_str, *args)
-
-  def Notify(self, message_type, subject, msg):
-    """Send a notification to the originating user.
-
-    Args:
-       message_type: The type of the message. This allows the UI to format
-         a link to the original object e.g. "ViewObject" or "HostInformation"
-       subject: The urn of the AFF4 object of interest in this link.
-       msg: A free form textual message.
-    """
-    self.GetRunner().Notify(message_type, subject, msg)
-
-  def Publish(self,
-              event_name,
-              message=None,
-              session_id=None,
-              priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY):
-    """Publish a message to an event queue.
-
-    Args:
-       event_name: The name of the event to publish to.
-       message: An RDFValue instance to publish to the event listeners.
-       session_id: The session id to send from, defaults to self.session_id.
-       priority: Controls the priority of this message.
-    """
-    result = message
-    logging.debug("Publishing %s to %s", utils.SmartUnicode(message)[:100],
-                  event_name)
-
-    # Wrap message in a GrrMessage so it can be queued.
-    if not isinstance(message, rdf_flows.GrrMessage):
-      result = rdf_flows.GrrMessage(payload=message)
-
-    result.session_id = session_id or self.session_id
-    result.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
-    result.source = self.session_id
-    result.priority = priority
-
-    self.runner.Publish(event_name, result)
-
-  # The following methods simply delegate to the runner. They are meant to only
-  # be called from within the flow's state handling methods (i.e. a runner
-  # should already exist by calling GetRunner() method).
-  def CallClient(self,
-                 action_name,
-                 request=None,
-                 next_state=None,
-                 request_data=None,
-                 **kwargs):
-    return self.runner.CallClient(
-        action_name=action_name,
-        request=request,
-        next_state=next_state,
-        request_data=request_data,
-        **kwargs)
-
-  def CallStateInline(self,
-                      messages=None,
-                      next_state="",
-                      request_data=None,
-                      responses=None):
-    if responses is None:
-      responses = FakeResponses(messages, request_data)
-
-    getattr(self, next_state)(self.runner, direct_response=responses)
-
-  def CallState(self,
-                messages=None,
-                next_state="",
-                request_data=None,
-                start_time=None):
-    return self.runner.CallState(
-        messages=messages,
-        next_state=next_state,
-        request_data=request_data,
-        start_time=start_time)
-
-  def CallFlow(self, flow_name, next_state=None, request_data=None, **kwargs):
-    return self.runner.CallFlow(
-        flow_name, next_state=next_state, request_data=request_data, **kwargs)
-
-  def SendReply(self, response):
-    return self.runner.SendReply(response)
-
-  def Error(self, backtrace, client_id=None):
-    return self.runner.Error(backtrace, client_id=client_id)
-
-  def Terminate(self):
-    return self.runner.Terminate()
-
-  @property
-  def session_id(self):
-    return self.state.context.session_id
-
-  @property
-  def client_id(self):
-    return self.state.context.args.client_id
-
-  def Name(self):
-    return self.__class__.__name__
 
   @classmethod
   def StartFlow(cls, args=None, runner_args=None,  # pylint: disable=g-bad-name
@@ -799,7 +542,7 @@ class GRRFlow(aff4.AFF4Volume):
 
     # Build the runner args from the keywords.
     if runner_args is None:
-      runner_args = flow_runner.FlowRunnerArgs()
+      runner_args = rdf_flows.FlowRunnerArgs()
 
     cls.FilterArgsFromSemanticProtobuf(runner_args, kwargs)
 
@@ -857,11 +600,9 @@ class GRRFlow(aff4.AFF4Volume):
     # Check that the flow args are valid.
     args.Validate()
 
-    # Store the flow args in the state.
-    flow_obj.state.Register("args", args)
-
-    # A convenience attribute to allow flows to access their args directly.
+    # Store the flow args.
     flow_obj.args = args
+    flow_obj.runner_args = runner_args
 
     # At this point we should exhaust all the keyword args. If any are left
     # over, we do not know what to do with them so raise.
@@ -910,6 +651,342 @@ class GRRFlow(aff4.AFF4Volume):
           token=token)
 
     return flow_obj.urn
+
+  @property
+  def session_id(self):
+    return self.context.session_id
+
+  def Publish(self,
+              event_name,
+              message=None,
+              session_id=None,
+              priority=rdf_flows.GrrMessage.Priority.MEDIUM_PRIORITY):
+    """Publish a message to an event queue.
+
+    Args:
+       event_name: The name of the event to publish to.
+       message: An RDFValue instance to publish to the event listeners.
+       session_id: The session id to send from, defaults to self.session_id.
+       priority: Controls the priority of this message.
+    """
+    result = message
+    logging.debug("Publishing %s to %s", utils.SmartUnicode(message)[:100],
+                  event_name)
+
+    # Wrap message in a GrrMessage so it can be queued.
+    if not isinstance(message, rdf_flows.GrrMessage):
+      result = rdf_flows.GrrMessage(payload=message)
+
+    result.session_id = session_id or self.session_id
+    result.auth_state = rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED
+    result.source = self.session_id
+    result.priority = priority
+
+    self.runner.Publish(event_name, result)
+
+  def Log(self, format_str, *args):
+    """Logs the message using the flow's standard logging.
+
+    Args:
+      format_str: Format string
+      *args: arguments to the format string
+    """
+    self.GetRunner().Log(format_str, *args)
+
+  def GetLog(self):
+    return self.GetRunner().GetLog()
+
+  # The following methods simply delegate to the runner. They are meant to only
+  # be called from within the state handling methods (i.e. a runner
+  # should already exist by calling GetRunner() method).
+  def CallClient(self,
+                 action_name,
+                 request=None,
+                 next_state=None,
+                 request_data=None,
+                 **kwargs):
+    return self.runner.CallClient(
+        action_name=action_name,
+        request=request,
+        next_state=next_state,
+        request_data=request_data,
+        **kwargs)
+
+  def CallStateInline(self,
+                      messages=None,
+                      next_state="",
+                      request_data=None,
+                      responses=None):
+    if responses is None:
+      responses = FakeResponses(messages, request_data)
+
+    getattr(self, next_state)(self.runner, direct_response=responses)
+
+  def CallState(self,
+                messages=None,
+                next_state="",
+                request_data=None,
+                start_time=None):
+    return self.runner.CallState(
+        messages=messages,
+        next_state=next_state,
+        request_data=request_data,
+        start_time=start_time)
+
+  def CallFlow(self, flow_name, next_state=None, request_data=None, **kwargs):
+    return self.runner.CallFlow(
+        flow_name, next_state=next_state, request_data=request_data, **kwargs)
+
+
+class GRRFlow(FlowBase):
+  """A container aff4 object to maintain a flow.
+
+  Flow objects are executed and scheduled by the workers, and extend
+  grr.flow.GRRFlow. This object contains the flows object within an AFF4
+  container.
+
+  Note: Usually this object can not be created by users using the regular
+  aff4.FACTORY.Create() method since it requires elevated permissions. This
+  object can instead be created using the flow.GRRFlow.StartFlow() method.
+
+  After creation, access to the flow object can still be obtained through
+  the usual aff4.FACTORY.Open() method.
+
+  The GRRFlow object should be extended by flow implementations, adding state
+  handling methods (State methods are called with responses and should be
+  decorated using the StateHandler() decorator). The mechanics of running the
+  flow are separated from the flow itself, using the runner object. Then
+  FlowRunner() for the flow can be obtained from the flow.GetRunner(). The
+  runner contains all the methods specific to running, scheduling and
+  interrogating the flow:
+
+
+  with aff4.FACTORY.Open(flow_urn, mode="rw") as fd:
+    runner = fd.GetRunner()
+    runner.ProcessCompletedRequests(messages)
+
+  """
+
+  class SchemaCls(aff4.AFF4Volume.SchemaCls):
+    """Attributes specific to GRRFlow."""
+
+    # TODO(user): DEPRECATED, do not use.
+    FLOW_STATE = aff4.Attribute(
+        "aff4:flow_state",
+        rdf_flows.FlowState,
+        "The current state of this flow.",
+        "FlowState",
+        versioned=False,
+        creates_new_object_version=False)
+
+    FLOW_STATE_DICT = aff4.Attribute(
+        "aff4:flow_state_dict",
+        rdf_protodict.AttributedDict,
+        "The current state of this flow.",
+        "FlowStateDict",
+        versioned=False,
+        creates_new_object_version=False)
+
+    FLOW_ARGS = aff4.Attribute(
+        "aff4:flow_args",
+        rdf_protodict.EmbeddedRDFValue,
+        "The arguments for this flow.",
+        "FlowArgs",
+        versioned=False,
+        creates_new_object_version=False)
+
+    FLOW_CONTEXT = aff4.Attribute(
+        "aff4:flow_context",
+        rdf_flows.FlowContext,
+        "The metadata for this flow.",
+        "FlowContext",
+        versioned=False,
+        creates_new_object_version=False)
+
+    FLOW_RUNNER_ARGS = aff4.Attribute(
+        "aff4:flow_runner_args",
+        rdf_flows.FlowRunnerArgs,
+        "The runner arguments used for this flow.",
+        "FlowRunnerArgs",
+        versioned=False,
+        creates_new_object_version=False)
+
+    NOTIFICATION = aff4.Attribute("aff4:notification", rdf_flows.Notification,
+                                  "Notifications for the flow.")
+
+    CLIENT_CRASH = aff4.Attribute(
+        "aff4:client_crash",
+        rdf_client.ClientCrash,
+        "Client crash details in case of a crash.",
+        default=None,
+        creates_new_object_version=False)
+
+    PENDING_TERMINATION = aff4.Attribute(
+        "aff4:pending_termination",
+        PendingFlowTermination,
+        "If true, this flow will be "
+        "terminated as soon as any of its "
+        "states are called.",
+        creates_new_object_version=False)
+
+  # This is used to arrange flows into a tree view
+  category = ""
+  friendly_name = None
+
+  # If this is set, the flow is only displayed in the UI if the user has one of
+  # the labels given.
+  AUTHORIZED_LABELS = []
+
+  # Should ACLs be enforced on this flow? This implies the user must have full
+  # access to the client before they can run this flow.
+  ACL_ENFORCED = True
+
+  # Behaviors set attributes of this flow. See FlowBehavior() above.
+  behaviours = FlowBehaviour("Client Flow", "ADVANCED")
+
+  # If True we let the flow handle its own client crashes. Otherwise the flow
+  # is killed when the client crashes.
+  handles_crashes = False
+
+  def Initialize(self):
+    """The initialization method."""
+    super(GRRFlow, self).Initialize()
+
+    if "r" in self.mode:
+      state = self.Get(self.Schema.FLOW_STATE_DICT)
+      self.context = self.Get(self.Schema.FLOW_CONTEXT)
+      self.runner_args = self.Get(self.Schema.FLOW_RUNNER_ARGS)
+      args = self.Get(self.Schema.FLOW_ARGS)
+      if args:
+        self.args = args.payload
+
+      if state:
+        self.state = AttributedDict(state.ToDict())
+      else:
+        # This might be an old style flow.
+        state = self.Get(self.Schema.FLOW_STATE)
+        if state:
+          # Old style flows are read only.
+          self.mode = "r"
+          self.state = state
+          # TODO(user): Backwards compatibility hack. Remove this once
+          # there are no legacy flows left we still need to display in the UI.
+          if self.context is None:
+            try:
+              self.context = state.context
+            except KeyError:
+              pass
+
+          # TODO(user): Backwards compatibility hack. Remove this once
+          # there are no legacy flows left we still need to display in the UI.
+          if self.runner_args is None:
+            try:
+              self.runner_args = self.context.args
+            except KeyError:
+              pass
+        else:
+          self.state = AttributedDict()
+
+      self.Load()
+
+    if self.state is None:
+      self.state = AttributedDict()
+
+  def CreateRunner(self, **kw):
+    """Make a new runner."""
+    self.runner = flow_runner.FlowRunner(self, token=self.token, **kw)
+    return self.runner
+
+  @classmethod
+  def GetDefaultArgs(cls, token=None):
+    """Return a useful default args semantic value.
+
+    This should be extended by flows.
+
+    Args:
+      token: The ACL token for the user.
+
+    Returns:
+      an instance of cls.args_type pre-populated with useful data
+    """
+    _ = token
+    return cls.args_type()
+
+  def UpdateKillNotification(self):
+    # If kill timestamp is set (i.e. if the flow is currently being
+    # processed by the worker), delete the old "kill if stuck" notification
+    # and schedule a new one, further in the future.
+    if (self.runner.schedule_kill_notifications and
+        self.runner.context.kill_timestamp):
+      with queue_manager.QueueManager(token=self.token) as manager:
+        manager.DeleteNotification(
+            self.session_id,
+            start=self.runner.context.kill_timestamp,
+            end=self.runner.context.kill_timestamp + rdfvalue.Duration("1s"))
+
+        stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
+            "Worker.stuck_flows_timeout"])
+        self.runner.context.kill_timestamp = (
+            rdfvalue.RDFDatetime().Now() + stuck_flows_timeout)
+        manager.QueueNotification(
+            session_id=self.session_id,
+            in_progress=True,
+            timestamp=self.runner.context.kill_timestamp)
+
+  def HeartBeat(self):
+    if self.locked:
+      lease_time = config_lib.CONFIG["Worker.flow_lease_time"]
+      if self.CheckLease() < lease_time / 2:
+        logging.info("%s: Extending Lease", self.session_id)
+        self.UpdateLease(lease_time)
+
+        self.UpdateKillNotification()
+    else:
+      logging.warning("%s is heartbeating while not being locked.", self.urn)
+
+  def _ValidateState(self):
+    if self.context is None:
+      raise IOError("Trying to write a flow without context: %s." % self.urn)
+
+  def WriteState(self):
+    if "w" in self.mode:
+      self._ValidateState()
+      self.Set(self.Schema.FLOW_ARGS(self.args))
+      self.Set(self.Schema.FLOW_CONTEXT(self.context))
+      self.Set(self.Schema.FLOW_RUNNER_ARGS(self.runner_args))
+      protodict = rdf_protodict.AttributedDict().FromDict(self.state)
+      self.Set(self.Schema.FLOW_STATE_DICT(protodict))
+
+  def Status(self, format_str, *args):
+    """Flows can call this method to set a status message visible to users."""
+    self.GetRunner().Status(format_str, *args)
+
+  def Notify(self, message_type, subject, msg):
+    """Send a notification to the originating user.
+
+    Args:
+       message_type: The type of the message. This allows the UI to format
+         a link to the original object e.g. "ViewObject" or "HostInformation"
+       subject: The urn of the AFF4 object of interest in this link.
+       msg: A free form textual message.
+    """
+    self.GetRunner().Notify(message_type, subject, msg)
+
+  def SendReply(self, response):
+    return self.runner.SendReply(response)
+
+  def Error(self, backtrace, client_id=None):
+    return self.runner.Error(backtrace, client_id=client_id)
+
+  def Terminate(self):
+    return self.runner.Terminate()
+
+  @property
+  def client_id(self):
+    return self.runner_args.client_id
+
+  def Name(self):
+    return self.__class__.__name__
 
   @classmethod
   def MarkForTermination(cls, flow_urn, reason=None, sync=False, token=None):
@@ -969,7 +1046,7 @@ class GRRFlow(aff4.AFF4Volume):
       # means that we have access to the client (if it's not a global
       # flow).
       data_store.DB.security_manager.CheckIfCanStartFlow(
-          token, flow_obj.Name(), with_client_id=runner.args.client_id)
+          token, flow_obj.Name(), with_client_id=runner.runner_args.client_id)
 
       # This calls runner.Terminate to kill the flow
       runner.Error(reason, status=status)
@@ -1221,10 +1298,9 @@ class WellKnownFlow(GRRFlow):
 
     queue_manager.QueueManager(token=self.token).Schedule(msg)
 
-  def WriteState(self):
-    if "w" in self.mode:
-      # For normal flows it's a bug to write an empty state, here it's ok.
-      self.Set(self.Schema.FLOW_STATE(self.state))
+  def _ValidateState(self):
+    # For normal flows it's a bug to write an empty state, here it's ok.
+    pass
 
   def UpdateKillNotification(self):
     # For WellKnownFlows it doesn't make sense to kill them ever.

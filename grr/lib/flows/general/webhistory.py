@@ -51,21 +51,20 @@ class ChromeHistory(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Determine the Chrome directory."""
-    self.state.Register("hist_count", 0)
+    self.state.hist_count = 0
     # List of paths where history files are located
-    self.state.Register("history_paths", [])
-    if self.state.args.history_path:
-      self.state.history_paths.append(self.state.args.history_path)
+    self.state.history_paths = []
+    if self.args.history_path:
+      self.state.history_paths.append(self.args.history_path)
 
     if not self.state.history_paths:
-      self.state.history_paths = self.GuessHistoryPaths(
-          self.state.args.username)
+      self.state.history_paths = self.GuessHistoryPaths(self.args.username)
 
     if not self.state.history_paths:
       raise flow.FlowError("Could not find valid History paths.")
 
     filenames = ["History"]
-    if self.state.args.get_archive:
+    if self.args.get_archive:
       filenames.append("Archived History")
 
     for path in self.state.history_paths:
@@ -73,7 +72,7 @@ class ChromeHistory(flow.GRRFlow):
         self.CallFlow(
             "FileFinder",
             paths=[os.path.join(path, fname)],
-            pathtype=self.state.args.pathtype,
+            pathtype=self.args.pathtype,
             action=file_finder.FileFinderAction(
                 action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
             next_state="ParseFiles")
@@ -96,8 +95,7 @@ class ChromeHistory(flow.GRRFlow):
           self.SendReply(rdfvalue.RDFString(utils.SmartStr(str_entry)))
 
         self.Log("Wrote %d Chrome History entries for user %s from %s", count,
-                 self.state.args.username,
-                 response.stat_entry.pathspec.Basename())
+                 self.args.username, response.stat_entry.pathspec.Basename())
         self.state.hist_count += count
 
   def GuessHistoryPaths(self, username):
@@ -172,8 +170,8 @@ class FirefoxHistory(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Determine the Firefox history directory."""
-    self.state.Register("hist_count", 0)
-    self.state.Register("history_paths", [])
+    self.state.hist_count = 0
+    self.state.history_paths = []
 
     if self.args.history_path:
       self.state.history_paths.append(self.args.history_path)
@@ -188,7 +186,7 @@ class FirefoxHistory(flow.GRRFlow):
       self.CallFlow(
           "FileFinder",
           paths=[os.path.join(path, "**2", filename)],
-          pathtype=self.state.args.pathtype,
+          pathtype=self.args.pathtype,
           action=file_finder.FileFinderAction(
               action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
           next_state="ParseFiles")
@@ -289,7 +287,7 @@ class CacheGrep(flow.GRRFlow):
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     system = client.Get(client.Schema.SYSTEM)
     paths = BROWSER_PATHS.get(system)
-    self.state.Register("all_paths", [])
+    self.state.all_paths = []
     if self.args.check_chrome:
       self.state.all_paths += paths.get("Chrome", [])
     if self.args.check_ie:
@@ -299,7 +297,7 @@ class CacheGrep(flow.GRRFlow):
     if not self.state.all_paths:
       raise flow.FlowError("Unsupported system %s for CacheGrep" % system)
 
-    self.state.Register("users", [])
+    self.state.users = []
     for user in self.args.grep_users:
       user_info = flow_utils.GetUserInfo(client, user)
       if not user_info:
@@ -332,7 +330,7 @@ class CacheGrep(flow.GRRFlow):
         self.CallFlow(
             "FileFinder",
             paths=[os.path.join(full_path, "**5")],
-            pathtype=self.state.args.pathtype,
+            pathtype=self.args.pathtype,
             conditions=[condition],
             action=file_finder.FileFinderAction(
                 action_type=file_finder.FileFinderAction.Action.DOWNLOAD),

@@ -309,7 +309,7 @@ ApiService.prototype.downloadFile = function(apiPath, opt_params) {
 
 
 /**
- * Sends request with a payload (POST/UPDATE/DELETE) to the server.
+ * Sends request with a payload (POST/PATCH/DELETE) to the server.
  *
  * @param {string} httpMethod HTTP method to use.
  * @param {string} apiPath API path to trigger.
@@ -355,7 +355,7 @@ ApiService.prototype.sendRequestWithPayload_ = function(
     fd.append('_params_', angular.toJson(opt_params || {}));
 
     request = {
-      method: 'POST',
+      method: httpMethod,
       url: encodeUrlPath('/api/' + apiPath.replace(/^\//, '')),
       data: fd,
       transformRequest: angular.identity,
@@ -418,6 +418,28 @@ ApiService.prototype.post = function(apiPath, opt_params, opt_stripTypeInfo,
 ApiService.prototype.delete = function(apiPath, opt_params, opt_stripTypeInfo) {
   return this.sendRequestWithPayload_(
       'DELETE', apiPath, opt_params, opt_stripTypeInfo);
+};
+
+
+/**
+ * Patches the resource behind a given API url via HTTP PATCH method.
+ *
+ * @param {string} apiPath API path to trigger.
+ * @param {Object<string, string>=} opt_params Dictionary that will be
+        sent as a UDATE payload.
+ * @param {boolean=} opt_stripTypeInfo If true, treat opt_params as JSON-encoded
+ *      RDFValue with rich type information. This type information
+ *      will be stripped before opt_params is sent as a POST payload.
+ *
+ *      This option is useful when sending values edited with forms back to the
+ *      server. Values edited by semantic forms will have rich type information
+ *      in them, while server will be expecting stripped down version of the
+ *      same data. See stripTypeInfo() documentation for an example.
+ * @return {!angular.$q.Promise} Promise that resolves to the result.
+ */
+ApiService.prototype.patch = function(apiPath, opt_params, opt_stripTypeInfo) {
+  return this.sendRequestWithPayload_(
+      'PATCH', apiPath, opt_params, opt_stripTypeInfo);
 };
 
 

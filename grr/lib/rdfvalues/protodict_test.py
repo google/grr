@@ -102,11 +102,14 @@ class DictTest(test_base.RDFProtoTestCase):
         key1={"A": 1},
         key2=rdf_protodict.Dict({"A": 1}),
         key3=[1, 2, 3, [1, 2, [3]]],
-        key4=[[], None, ["abc"]])
+        key4=[[], None, ["abc"]],
+        key5=set([1, 2, 3]))
 
     sample = rdf_protodict.Dict(**test_dict)
     self.CheckTestDict(test_dict, sample)
-    self.CheckTestDict(test_dict, sample.ToDict())
+    to_dict = sample.ToDict()
+    self.CheckTestDict(test_dict, to_dict)
+    self.assertIsInstance(to_dict["key1"], dict)
 
   def testNestedDictsOpaqueTypes(self):
 

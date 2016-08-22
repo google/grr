@@ -1686,7 +1686,7 @@ grrUiApp.run(function($injector, $http, $cookies, grrReflectionService) {
 
   // Ensure CSRF token is in place for Angular-initiated HTTP requests.
   $http.defaults.headers.post['X-CSRFToken'] = $cookies.get('csrftoken');
-  $http.defaults.headers.delete = {
+  $http.defaults.headers.delete = $http.defaults.headers.patch = {
     'X-CSRFToken': $cookies.get('csrftoken')
   };
 

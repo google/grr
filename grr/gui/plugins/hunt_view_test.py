@@ -18,7 +18,6 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
@@ -61,7 +60,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     with hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=flow_runner.FlowRunnerArgs(flow_name="GetFile"),
+        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
             path=path or "/tmp/evil.txt",
             pathtype=rdf_paths.PathSpec.PathType.OS,)),
@@ -107,7 +106,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       runner.Start()
 
       with aff4.FACTORY.Open(
-          runner.context.results_collection_urn,
+          hunt.results_collection_urn,
           aff4_type=hunts_results.HuntResultCollection,
           mode="w",
           token=self.token) as collection:
@@ -268,7 +267,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
     # Click on "Cancel" and check that dialog disappears.
-    self.Click("css=button[name=Cancel]")
+    self.Click("css=button[name=Close]")
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     # View should be refreshed automatically.
@@ -318,7 +317,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
     # Click on "Cancel" and check that dialog disappears.
-    self.Click("css=button[name=Cancel]")
+    self.Click("css=button[name=Close]")
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     # View should be refreshed automatically.
@@ -341,11 +340,18 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # Click on Modify button and check that dialog appears.
     self.Click("css=button[name=ModifyHunt]")
-    self.WaitUntil(self.IsTextPresent, "Modify a hunt")
+    self.WaitUntil(self.IsTextPresent, "Modify this hunt")
 
-    self.Type("css=input[id=v_-client_limit]", "4483")
-    self.Type("css=input[id=v_-expiry_time]",
-              str(rdfvalue.Duration("5m").Expiry()))
+    expiry_time = rdfvalue.Duration("5m").Expiry().Format("%Y-%m-%d %H:%M")
+
+    self.Type(
+        "css=grr-modify-hunt-dialog label:contains('Client limit') ~ * input",
+        "4483")
+    self.Type(
+        "css=grr-modify-hunt-dialog label:contains('Client rate') ~ * input",
+        "42")
+    self.Type("css=grr-modify-hunt-dialog label:contains('Expires') ~ * input",
+              expiry_time)
 
     # Click on Proceed.
     self.Click("css=button[name=Proceed]")
@@ -362,11 +368,16 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # Click on Modify button and check that dialog appears.
     self.Click("css=button[name=ModifyHunt]")
-    self.WaitUntil(self.IsTextPresent, "Modify a hunt")
+    self.WaitUntil(self.IsTextPresent, "Modify this hunt")
 
-    self.Type("css=input[id=v_-client_limit]", "4483")
-    self.Type("css=input[id=v_-expiry_time]",
-              str(rdfvalue.Duration("5m").Expiry()))
+    self.Type(
+        "css=grr-modify-hunt-dialog label:contains('Client limit') ~ * input",
+        "4483")
+    self.Type(
+        "css=grr-modify-hunt-dialog label:contains('Client rate') ~ * input",
+        "42")
+    self.Type("css=grr-modify-hunt-dialog label:contains('Expires') ~ * input",
+              expiry_time)
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
@@ -376,12 +387,13 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
     # Click on "Cancel" and check that dialog disappears.
-    self.Click("css=button[name=Cancel]")
+    self.Click("css=button[name=Close]")
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     # View should be refreshed automatically.
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
     self.WaitUntil(self.IsTextPresent, "4483")
+    self.WaitUntil(self.IsTextPresent, expiry_time)
 
   def testDeleteHunt(self):
     with self.ACLChecksDisabled():
@@ -402,7 +414,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # Click on delete button.
     self.Click("css=button[name=DeleteHunt]")
-    self.WaitUntil(self.IsTextPresent, "Delete a hunt")
+    self.WaitUntil(self.IsTextPresent, "Delete this hunt")
 
     # Click on Proceed.
     self.Click("css=button[name=Proceed]")
@@ -423,17 +435,17 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # Click on Delete button and check that dialog appears.
     self.Click("css=button[name=DeleteHunt]")
-    self.WaitUntil(self.IsTextPresent, "Delete a hunt")
+    self.WaitUntil(self.IsTextPresent, "Delete this hunt")
 
     # Click on "Proceed" and wait for success label to appear.
     # Also check that "Proceed" button gets disabled.
     self.Click("css=button[name=Proceed]")
 
-    self.WaitUntil(self.IsTextPresent, "Hunt Deleted!")
+    self.WaitUntil(self.IsTextPresent, "Hunt deleted successfully!")
     self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
     # Click on "Cancel" and check that dialog disappears.
-    self.Click("css=button[name=Cancel]")
+    self.Click("css=button[name=Close]")
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
   def SetupHuntDetailView(self, failrate=2):
@@ -479,7 +491,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     """Test the detailed client view works."""
     with self.ACLChecksDisabled():
       with self.CreateSampleHunt() as hunt:
-        hunt_stats = hunt.state.context.usage_stats
+        hunt_stats = hunt.context.usage_stats
         hunt_stats.user_cpu_stats.sum = 5000
         hunt_stats.network_bytes_sent_stats.sum = 1000000
 
@@ -894,9 +906,8 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     for client_id in self.client_ids:
       self.WaitUntil(self.IsTextPresent, str(client_id))
-      self.WaitUntil(
-          self.IsTextPresent,
-          "Finished reading " + str(client_id.Add("fs/os/tmp/evil.txt")))
+      self.WaitUntil(self.IsTextPresent, "File %s transferred successfully." %
+                     str(client_id.Add("fs/os/tmp/evil.txt")))
 
   def testLogsTabFiltersLogsByString(self):
     with self.ACLChecksDisabled():
@@ -911,14 +922,14 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.Click("css=grr-hunt-log button:contains('Filter')")
 
     self.WaitUntil(self.IsTextPresent, str(self.client_ids[-1]))
-    self.WaitUntil(self.IsTextPresent, "Finished reading " +
+    self.WaitUntil(self.IsTextPresent, "File %s transferred successfully." %
                    str(self.client_ids[-1].Add("fs/os/tmp/evil.txt")))
 
     for client_id in self.client_ids[:-1]:
       self.WaitUntilNot(self.IsTextPresent, str(client_id))
-      self.WaitUntilNot(
-          self.IsTextPresent,
-          "Finished reading " + str(client_id.Add("fs/os/tmp/evil.txt")))
+      self.WaitUntilNot(self.IsTextPresent,
+                        "File %s transferred successfully." %
+                        str(client_id.Add("fs/os/tmp/evil.txt")))
 
   def testLogsTabShowsDatesInUTC(self):
     with self.ACLChecksDisabled():
@@ -1041,24 +1052,12 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
     # Check for different context properties.
     self.WaitUntilContains(
-        "GetFile", self.GetText,
-        "css=table > tbody td.proto_key:contains(\"Description\") "
-        "~ td.proto_value")
-    self.WaitUntilContains(
-        "Running tests", self.GetText,
-        "css=table > tbody td.proto_key:contains(\"Reason\") "
-        "~ td.proto_value")
-    self.WaitUntilContains(
-        "Start", self.GetText,
-        "css=table > tbody td.proto_key:contains(\"current_state\") "
+        self.hunt_urn, self.GetText,
+        "css=table > tbody td.proto_key:contains(\"Session id\") "
         "~ td.proto_value")
     self.WaitUntilContains(
         "test", self.GetText,
-        "css=table > tbody td.proto_key:contains(\"creator\") "
-        "~ td.proto_value")
-    self.WaitUntilContains(
-        "%s/Results" % self.hunt_urn, self.GetText,
-        "css=table > tbody td.proto_key:contains(\"results_collection_urn\") "
+        "css=table > tbody td.proto_key:contains(\"Creator\") "
         "~ td.proto_value")
 
 

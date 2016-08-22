@@ -208,14 +208,10 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
     })
     .state('client.vfs', {
       url: '/vfs/{path:pathWithUnescapedSlashes}?version&mode&tab',
-      template: '<grr-file-legacy-view />',
+      template: '<grr-file-view />',
       title: function(params) {
         return '/' + (params['path'] || '');
       }
-    })
-    .state('client.vfsContainer', {
-      url: '/vfs-container?path&query',
-      template: '<grr-file-container-view />',
     })
     .state('client.flows', {
       url: '/flows/:flowId',

@@ -121,7 +121,7 @@ class ModifyHuntDialog(renderers.ConfirmationDialogRenderer):
       runner = hunt.GetRunner()
 
       hunt_args = hunts_standard.ModifyHuntFlowArgs(
-          client_limit=runner.args.client_limit,
+          client_limit=runner.runner_args.client_limit,
           expiry_time=runner.context.expires,)
 
       self.hunt_params_form = forms.SemanticProtoFormRenderer(
@@ -439,7 +439,11 @@ class HuntOverviewRenderer(AbstractLogRenderer):
   <dt>Client rule set</dt>
   <dd>{{ this.client_rule_set|safe }}</dd>
 
-  <dt>Arguments</dt><dd>{{ this.args_str|safe }}</dd>
+  <dt>Arguments</dt>
+  <dd>{{ this.args_str|safe }}</dd>
+
+  <dt>Runner Arguments</dt>
+  <dd>{{ this.runner_args_str|safe }}</dd>
 
 {% for key, val in this.data.items %}
   <dt>{{ key|escape }}</dt><dd>{{ val|escape }}</dd>
@@ -481,10 +485,10 @@ class HuntOverviewRenderer(AbstractLogRenderer):
         self.hunt = aff4.FACTORY.Open(
             self.hunt_id, aff4_type=implementation.GRRHunt, token=request.token)
 
-        if self.hunt.state.Empty():
+        if self.hunt.state is None:
           raise IOError("No valid state could be found.")
 
-        hunt_stats = self.hunt.state.context.usage_stats
+        hunt_stats = self.hunt.context.usage_stats
         self.cpu_sum = "%.2f" % hunt_stats.user_cpu_stats.sum
         self.net_sum = hunt_stats.network_bytes_sent_stats.sum
 
@@ -494,7 +498,7 @@ class HuntOverviewRenderer(AbstractLogRenderer):
             self.all_clients_count - self.completed_clients_count)
 
         runner = self.hunt.GetRunner()
-        self.hunt_name = runner.args.hunt_name
+        self.hunt_name = runner.runner_args.hunt_name
         self.hunt_creator = runner.context.creator
 
         self.data = py_collections.OrderedDict()
@@ -502,15 +506,17 @@ class HuntOverviewRenderer(AbstractLogRenderer):
         self.data["Expiry Time"] = runner.context.expires
         self.data["Status"] = self.hunt.Get(self.hunt.Schema.STATE)
 
-        self.client_limit = runner.args.client_limit
-        self.client_rate = runner.args.client_rate
+        self.client_limit = runner.runner_args.client_limit
+        self.client_rate = runner.runner_args.client_rate
 
-        self.args_str = renderers.DictRenderer(
-            self.hunt.state, filter_keys=["context"]).RawHTML(request)
+        renderer = semantic.FindRendererForObject(self.hunt.args)
+        self.args_str = renderer.RawHTML(request)
+        renderer = semantic.FindRendererForObject(self.hunt.runner_args)
+        self.runner_args_str = renderer.RawHTML(request)
 
-        if runner.args.client_rule_set:
+        if runner.runner_args.client_rule_set:
           self.client_rule_set = foreman.RuleArray(
-              runner.args.client_rule_set).RawHTML(request)
+              runner.runner_args.client_rule_set).RawHTML(request)
         else:
           self.client_rule_set = "None"
 
@@ -521,7 +527,7 @@ class HuntOverviewRenderer(AbstractLogRenderer):
 
 
 class HuntContextView(renderers.TemplateRenderer):
-  """Render a the hunt context."""
+  """Render the hunt context."""
 
   layout_template = renderers.Template("""
 {{this.args_str|safe}}
@@ -536,8 +542,7 @@ class HuntContextView(renderers.TemplateRenderer):
     if self.hunt.state.Empty():
       raise IOError("No valid state could be found.")
 
-    self.args_str = renderers.DictRenderer(self.hunt.state.context).RawHTML(
-        request)
+    self.args_str = renderers.DictRenderer(self.hunt.context).RawHTML(request)
 
     return super(HuntContextView, self).Layout(request, response)
 
@@ -743,7 +748,7 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
         if hunt.state.Empty():
           raise IOError("No valid state could be found.")
 
-        self.stats = hunt.state.context.usage_stats
+        self.stats = hunt.context.usage_stats
 
         self.user_cpu_json_data = self._HistogramToJSON(
             self.stats.user_cpu_stats.histogram)

@@ -49,7 +49,8 @@ class TestWorkflowWithoutApprovals(test_lib.GRRSeleniumTest):
     self.Click("css=a[grrtarget='client.vfs']")
 
     # Make sure "Browse Virtual Filesystem" pane is displayed.
-    self.WaitUntil(self.IsTextPresent, "stat.st_size")
+    self.WaitUntil(self.IsTextPresent, "Please select a file or a folder to "
+                   "see its details here.")
 
     self.WaitUntilNot(self.IsElementPresent,
                       "css=h3:contains('Create a new approval')")
@@ -97,6 +98,8 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     with hunts.GRRHunt.StartHunt(
         hunt_name="SampleHunt",
+        client_rate=100,
+        filename="TestFilename",
         client_rule_set=client_rule_set,
         token=token or self.token) as hunt:
 
@@ -379,6 +382,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Hunt ID")
     self.WaitUntil(self.IsTextPresent, "Hunt URN")
     self.WaitUntil(self.IsTextPresent, "Clients Scheduled")
+    self.WaitUntil(self.IsTextPresent, "TestFilename")
 
     self.Click("css=button:contains('Approve')")
     self.WaitUntil(self.IsTextPresent, "Approval granted.")
@@ -550,8 +554,10 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Click on Modify button and check that dialog appears.
     self.Click("css=button[name=ModifyHunt]")
-    self.WaitUntil(self.IsTextPresent, "Modify a hunt")
-    self.WaitUntil(self.IsElementPresent, "css=input[id=v_-client_limit]")
+    self.WaitUntil(self.IsTextPresent, "Modify this hunt")
+    self.WaitUntil(
+        self.IsElementPresent,
+        "css=grr-modify-hunt-dialog label:contains('Client limit') ~ * input")
 
     # Click on "Proceed" and wait for authorization dialog to appear.
     self.Click("name=Proceed")
@@ -569,6 +575,22 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     #
     self.Click("css=tr:contains('SampleHunt') td:contains('test')")
 
+    # Modify hunt
+
+    # Click on Modify button and check that dialog appears.
+    self.Click("css=button[name=ModifyHunt]")
+    self.WaitUntil(self.IsTextPresent, "Modify this hunt")
+
+    # Click on "Proceed" and wait for success label to appear.
+    # Also check that "Proceed" button gets disabled.
+    self.Click("css=button[name=Proceed]")
+    self.WaitUntil(self.IsTextPresent, "Hunt modified successfully!")
+    self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
+
+    # Click on "Cancel" and check that dialog disappears.
+    self.Click("css=button[name=Close]")
+    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
+
     # Run hunt
 
     # Click on Run and wait for dialog again.
@@ -583,7 +605,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
     # Click on "Cancel" and check that dialog disappears.
-    self.Click("css=button[name=Cancel]")
+    self.Click("css=button[name=Close]")
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=StopHunt]:not([disabled])")
@@ -602,26 +624,10 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
     # Click on "Cancel" and check that dialog disappears.
-    self.Click("css=button[name=Cancel]")
+    self.Click("css=button[name=Close]")
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=ModifyHunt]:not([disabled])")
-
-    # Modify hunt
-
-    # Click on Modify button and check that dialog appears.
-    self.Click("css=button[name=ModifyHunt]")
-    self.WaitUntil(self.IsTextPresent, "Modify a hunt")
-
-    # Click on "Proceed" and wait for success label to appear.
-    # Also check that "Proceed" button gets disabled.
-    self.Click("css=button[name=Proceed]")
-    self.WaitUntil(self.IsTextPresent, "Hunt modified successfully!")
-    self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
-
-    # Click on "Cancel" and check that dialog disappears.
-    self.Click("css=button[name=Cancel]")
-    self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
   def testCronJobACLWorkflow(self):
     with self.ACLChecksDisabled():

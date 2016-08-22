@@ -60,7 +60,6 @@ class TestParserDependency(base.AutomatedTest):
         self.session_id.Add(flow_runner.RESULTS_SUFFIX), self.token)
 
   def tearDown(self):
-    # Set the KB to an empty object
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
     client.Set(client.Schema.KNOWLEDGE_BASE, self.old_kb)
     client.Flush()

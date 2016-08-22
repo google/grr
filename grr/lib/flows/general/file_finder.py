@@ -113,11 +113,9 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
       # Nothing to do.
       return
 
-    self.state.Register("files_found", 0)
-    self.state.Register(
-        "sorted_conditions",
-        sorted(
-            self.args.conditions, key=self._ConditionWeight))
+    self.state.files_found = 0
+    self.state.sorted_conditions = sorted(
+        self.args.conditions, key=self._ConditionWeight)
 
     self.state.file_size = self.args.file_size
 
@@ -149,7 +147,6 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
   def GlobReportMatch(self, response):
     """This method is called by the glob mixin when there is a match."""
     super(FileFinder, self).GlobReportMatch(response)
-
     self.ApplyCondition(
         FileFinderResult(stat_entry=response), condition_index=0)
 
@@ -269,7 +266,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
 
   def ProcessAction(self, response):
     """Applies action specified by user to responses."""
-    action = self.state.args.action.action_type
+    action = self.args.action.action_type
 
     if action == FileFinderAction.Action.STAT:
       # If action is STAT, we already have all the data we need to send the

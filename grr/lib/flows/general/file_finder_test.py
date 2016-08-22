@@ -106,7 +106,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
   def CheckFilesDownloaded(self, fnames):
     for fname in fnames:
       fd = aff4.FACTORY.Open(self.FileNameToURN(fname), token=self.token)
-      self.assertTrue(fd.Get(fd.Schema.SIZE) > 100)
+      self.assertGreater(fd.Get(fd.Schema.SIZE), 100)
 
   def CheckFilesNotDownloaded(self, fnames):
     for fname in fnames:
@@ -189,8 +189,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     for fname in expected_files + non_expected_files:
       aff4.FACTORY.Delete(self.FileNameToURN(fname), token=self.token)
 
-      results = self.RunFlow(paths=paths, conditions=conditions, action=action)
-      self.CheckReplies(results, action, expected_files)
+    results = self.RunFlow(paths=paths, conditions=conditions, action=action)
+    self.CheckReplies(results, action, expected_files)
 
     self.CheckFilesInCollection(expected_files)
 

@@ -51,7 +51,7 @@ DialogService.prototype.openConfirmation = function(title, message, proceed){
   var modalInstance = this.modal_.open({
     template:
       '<grr-confirmation-dialog title="title" proceed="proceed()" >' +
-      '  {$ message $}' +
+      '  <div class="vertically-padded">{$ message $}</div>' +
       '</grr-confirmation-dialog>',
     scope: modalScope
   });

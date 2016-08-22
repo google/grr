@@ -32,7 +32,7 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
         output_base_urn=self.base_urn,
         args=plugin_args,
         token=self.token)
-    plugin.Initialize()
+    plugin.InitializeState(plugin.state)
 
     messages = []
     for response in responses:

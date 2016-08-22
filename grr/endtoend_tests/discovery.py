@@ -40,6 +40,9 @@ class TestClientInterrogateEndToEnd(base.AutomatedTest):
   user_win_kb_attributes = ["sid", "userprofile", "appdata", "localappdata",
                             "internet_cache", "cookies", "recent", "personal",
                             "startup", "localappdata_low"]
+
+  # When run on Windows this flow has 20 sub flows, so it takes some time to
+  # complete.
   timeout = 240
 
   def setUp(self):
@@ -50,8 +53,6 @@ class TestClientInterrogateEndToEnd(base.AutomatedTest):
         token=self.token)
     aff4.FACTORY.Flush()
 
-    # When run on Windows this flow has 20 sub flows, so it takes some time to
-    # complete.
     self.assertRaises(AssertionError, self.CheckFlow)
 
   def _IsCompleteWindowsUser(self, user):

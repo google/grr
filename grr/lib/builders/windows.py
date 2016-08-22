@@ -21,6 +21,12 @@ MODULE_PATTERNS = [
     re.compile("msvcp.+.dll", re.I)
 ]
 
+# We copy these files manually because pyinstaller destroys them to the point
+# where they can't be signed. They don't ever seem to be loaded but they are
+# part of the VC90 manifest.
+FILES_FROM_VIRTUALENV = [r"Lib\site-packages\pythonwin\mfc90.dll",
+                         r"Lib\site-packages\pythonwin\mfc90u.dll"]
+
 PROCESS_QUERY_INFORMATION = 0x400
 PROCESS_VM_READ = 0x10
 
@@ -66,6 +72,9 @@ def EnumMissingModules():
     for pattern in MODULE_PATTERNS:
       if pattern.match(os.path.basename(module_filename)):
         yield module_filename
+
+  for venv_file in FILES_FROM_VIRTUALENV:
+    yield os.path.join(sys.prefix, venv_file)
 
 
 class WindowsClientBuilder(build.ClientBuilder):
@@ -131,18 +140,6 @@ class WindowsClientBuilder(build.ClientBuilder):
       shutil.copy(
           os.path.join(self.nanny_dir, vs_arch, build_type, "GRRNanny.exe"),
           os.path.join(self.output_dir, "GRRservice.exe"))
-
-  def BuildWithPyInstaller(self):
-    """Use pyinstaller to build a client package."""
-    # Pyinstaller caches libraries here, clear them out to avoid problems when
-    # building both 32 and 64bit.
-    directory = os.path.expandvars("%APPDATA%\\pyinstaller\\bincache00_py27")
-    logging.info("Clearing directory %s", directory)
-    try:
-      shutil.rmtree(directory)
-    except OSError:
-      pass
-    super(WindowsClientBuilder, self).BuildWithPyInstaller()
 
   def MakeExecutableTemplate(self, output_file=None):
     """Windows templates also include the nanny."""

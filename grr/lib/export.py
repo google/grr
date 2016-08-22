@@ -9,7 +9,6 @@ easily be written to a relational database or just to a set of files.
 import hashlib
 import json
 import re
-import stat
 import time
 
 import logging
@@ -530,7 +529,7 @@ class StatEntryToExportedRegistryKeyConverter(ExportConverter):
       except UnicodeEncodeError:
         # If we can't represent this as a string...
         # let's just get the byte representation *shrug*
-        data = stat.registry_data.GetValue()
+        data = stat_entry.registry_data.GetValue()
         # Get the byte representation of the string
         data = unicode(data).encode("utf-16be")
 

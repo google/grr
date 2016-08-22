@@ -81,12 +81,12 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
     super(BigQueryOutputPlugin, self).__init__(*args, **kwargs)
     self.temp_output_trackers = {}
 
-  def Initialize(self):
-    super(BigQueryOutputPlugin, self).Initialize()
+  def InitializeState(self, state):
+    super(BigQueryOutputPlugin, self).InitializeState(state)
     # The last job ID if there was a failure. Keys are output types.
-    self.state.Register("output_jobids", {})
+    self.state.output_jobids = {}
     # Total number of BigQuery upload failures.
-    self.state.Register("failure_count", 0)
+    self.state.failure_count = 0
 
   def ProcessResponses(self, responses):
     default_metadata = export.ExportedMetadata(
@@ -199,7 +199,10 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
       # If we have a job id stored, that means we failed last time. Re-use the
       # job id and append to the same file if it continues to fail. This avoids
       # writing many files on failure.
-      job_id = self.state.output_jobids.setdefault(tracker.output_type, job_id)
+      if tracker.output_type in self.state.output_jobids:
+        job_id = self.state.output_jobids[tracker.output_type]
+      else:
+        self.state.output_jobids[tracker.output_type] = job_id
 
       if self.state.failure_count >= config_lib.CONFIG[
           "BigQuery.max_upload_failures"]:
@@ -214,9 +217,10 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
                                    tracker.gzip_filehandle_parent,
                                    tracker.schema, job_id)
           self.state.failure_count = max(0, self.state.failure_count - 1)
-          self.state.output_jobids.pop(tracker.output_type)
+          del self.state.output_jobids[tracker.output_type]
         except bigquery.BigQueryJobUploadError:
           self.state.failure_count += 1
+
           self._WriteToAFF4(job_id, tracker.schema,
                             tracker.gzip_filehandle_parent, self.token)
 

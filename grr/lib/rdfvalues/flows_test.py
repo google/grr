@@ -19,22 +19,36 @@ class FlowStateTest(test_base.RDFValueTestCase):
     res.Register("number", number)
     return res
 
+  # Pickling has been deprecated so some tests won't work.
   def testComparisons(self):
-    """Checks that object comparisons work."""
-    sample1 = self.GenerateSample(1)
+    pass
 
-    self.assertTrue(sample1 == self.GenerateSample(1))
-    self.assertFalse(sample1 == self.GenerateSample(2))
-    self.assertTrue(sample1 != self.GenerateSample(2))
+  def testInitialization(self):
+    pass
+
+  def testHashability(self):
+    pass
+
+  def testSerialization(self):
+    pass
 
   def testFlowState(self):
-    state = rdf_flows.FlowState()
-    state.Register("teststate", 1)
-    state.teststate = 100
 
-    state.Register("context", utils.DataObject())
-    state.context.testcontext = 50
-    s = state.SerializeToString()
+    # Pickling has been deprecated.
+
+    # state = rdf_flows.FlowState()
+    # state.Register("teststate", 1)
+    # state.teststate = 100
+
+    # state.Register("context", utils.DataObject())
+    # state.context.testcontext = 50
+    # s = state.SerializeToString()
+
+    s = """
+gAJjZ29vZ2xlMy5vcHMuc2VjdXJpdHkuZ3JyLmxpYi51dGlscwpEYXRhT2JqZWN0CnEBKYFxAihV
+B2NvbnRleHRxA2gBKYFxBFULdGVzdGNvbnRleHRxBUsyc31xBmJVCXRlc3RzdGF0ZXEHS2R1fXEI
+Yi4=
+""".decode("base64")
 
     new_state = rdf_flows.FlowState()
     new_state.ParseFromString(s)
@@ -48,11 +62,21 @@ class FlowStateTest(test_base.RDFValueTestCase):
 
   def testBadPickle(self):
     """Test that we can recover some of the bad pickle."""
-    state = rdf_flows.FlowState()
-    # Store an instance of a RDFURN here.
-    state.Register("urn", rdfvalue.RDFURN("aff4:/"))
 
-    serialized = state.SerializeToString()
+    # Pickling has been deprecated.
+
+    # state = rdf_flows.FlowState()
+    # # Store an instance of a RDFURN here.
+    # state.Register("urn", rdfvalue.RDFURN("aff4:/"))
+
+    # serialized = state.SerializeToString()
+
+    serialized = """
+gAJjZ29vZ2xlMy5vcHMuc2VjdXJpdHkuZ3JyLmxpYi51dGlscwpEYXRhT2JqZWN0CnEBKYFxAlUD
+dXJucQNjZ29vZ2xlMy5vcHMuc2VjdXJpdHkuZ3JyLmxpYi5yZGZ2YWx1ZQpSREZVUk4KcQQpgXEF
+fXEGKFUSX19waWNrbGVkX3JkZnZhbHVlcQeIVQRkYXRhcQhVBmFmZjQ6L1UDYWdlcQlLAHVic31x
+CmIu
+""".decode("base64")
 
     # Substitute the class with something entirely different.
     with utils.Stubber(rdfvalue, "RDFURN", None):

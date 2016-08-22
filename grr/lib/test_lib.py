@@ -327,7 +327,10 @@ class MockWindowsProcess(object):
     return 1
 
   def cpu_times(self):
-    return (1.0, 1.0)
+    cpu_times = collections.namedtuple(
+        "CPUTimes", ["user", "system", "children_user", "children_system"])
+    return cpu_times(
+        user=1.0, system=1.0, children_user=1.0, children_system=1.0)
 
   def cpu_percent(self):
     return 10.0
@@ -1830,7 +1833,7 @@ class MockWorker(worker.GRRWorker):
             runner.ProcessCompletedRequests(notification, self.pool)
 
             if (self.check_flow_errors and
-                runner.context.state == rdf_flows.Flow.State.ERROR):
+                runner.context.state == rdf_flows.FlowContext.State.ERROR):
               logging.exception("Flow terminated in state %s with an error: %s",
                                 runner.context.current_state,
                                 runner.context.backtrace)
@@ -1875,12 +1878,12 @@ def CheckFlowErrors(total_flows, token=None):
     except IOError:
       continue
 
-    if flow_obj.state.context.state != rdf_flows.Flow.State.TERMINATED:
+    if flow_obj.context.state != rdf_flows.FlowContext.State.TERMINATED:
       if flags.FLAGS.debug:
         pdb.set_trace()
       raise RuntimeError("Flow %s completed in state %s" %
-                         (flow_obj.state.context.args.flow_name,
-                          flow_obj.state.context.state))
+                         (flow_obj.runner_args.flow_name,
+                          flow_obj.context.state))
 
 
 def TestFlowHelper(flow_urn_or_cls_name,

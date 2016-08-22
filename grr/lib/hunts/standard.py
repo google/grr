@@ -62,7 +62,7 @@ class CreateGenericHuntFlow(flow.GRRFlow):
       # Nothing really to do here - hunts are always created in the paused
       # state.
       self.Log("User %s created a new %s hunt (%s)", self.token.username,
-               hunt.state.args.flow_runner_args.flow_name, hunt.urn)
+               hunt.args.flow_runner_args.flow_name, hunt.urn)
 
 
 class CreateAndRunGenericHuntFlow(flow.GRRFlow):
@@ -88,7 +88,7 @@ class CreateAndRunGenericHuntFlow(flow.GRRFlow):
       hunt.Run()
 
       self.Log("User %s created a new %s hunt (%s)", self.token.username,
-               hunt.state.args.flow_runner_args.flow_name, hunt.urn)
+               hunt.args.flow_runner_args.flow_name, hunt.urn)
 
 
 class StartHuntFlowArgs(rdf_structs.RDFProtoStruct):
@@ -216,9 +216,10 @@ class ModifyHuntFlow(flow.GRRFlow):
         changes.append("Expires: Old=%s, New=%s" % (runner.context.expires,
                                                     self.args.expiry_time))
 
-      if runner.args.client_limit != self.args.client_limit:
-        changes.append("Client Limit: Old=%s, New=%s" %
-                       (runner.args.client_limit, self.args.client_limit))
+      if runner.runner_args.client_limit != self.args.client_limit:
+        changes.append(
+            "Client Limit: Old=%s, New=%s" %
+            (runner.runner_args.client_limit, self.args.client_limit))
 
       description = ", ".join(changes)
       event = events.AuditEvent(
@@ -230,7 +231,7 @@ class ModifyHuntFlow(flow.GRRFlow):
 
       # Just go ahead and change the hunt now.
       runner.context.expires = self.args.expiry_time
-      runner.args.client_limit = self.args.client_limit
+      runner.runner_args.client_limit = self.args.client_limit
 
 
 class CheckHuntAccessFlowArgs(rdf_structs.RDFProtoStruct):
@@ -368,14 +369,13 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
     for hunt in hunts:
       hunts_by_urns[hunt.urn] = hunt
 
-    results_metadata_urns = [hunt.urn.Add("ResultsMetadata") for hunt in hunts]
+    results_metadata_urns = [hunt.results_metadata_urn for hunt in hunts]
     results_metadata_objects = aff4.FACTORY.MultiOpen(
         results_metadata_urns,
         aff4_type=implementation.HuntResultsMetadata,
         token=self.token)
 
     results = {}
-
     for mdata in results_metadata_objects:
       hunt_urn = rdfvalue.RDFURN(mdata.urn.Dirname())
       hunt = hunts_by_urns[hunt_urn]
@@ -465,12 +465,12 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
   def Start(self):
     hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
 
-    if not self.state.args.check_range:
-      self.state.args.check_range = rdfvalue.Duration(
+    if not self.args.check_range:
+      self.args.check_range = rdfvalue.Duration(
           "%ds" % int(self.__class__.frequency.seconds * 2))
 
     range_end = rdfvalue.RDFDatetime().Now()
-    range_start = rdfvalue.RDFDatetime().Now() - self.state.args.check_range
+    range_start = rdfvalue.RDFDatetime().Now() - self.args.check_range
 
     children_urns = list(hunts_root.ListChildren(age=(range_start, range_end)))
     children_urns.sort(key=operator.attrgetter("age"), reverse=True)
@@ -480,7 +480,7 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
     hunts_to_process = []
     for hunt in hunts_root.OpenChildren(children_urns):
       # Skip non-GenericHunts or hunts that could not be unpickled.
-      if not isinstance(hunt, GenericHunt) or not hunt.state:
+      if not isinstance(hunt, GenericHunt) or hunt.state is None:
         self.Log("Skipping: %s." % utils.SmartStr(hunt.urn))
         continue
 
@@ -536,11 +536,11 @@ class GenericHunt(implementation.GRRHunt):
     # Just run the flow on this client.
     for client_id in responses:
       flow_urn = self.CallFlow(
-          args=self.state.args.flow_args,
+          args=self.args.flow_args,
           client_id=client_id,
           next_state="MarkDone",
           sync=False,
-          runner_args=self.state.args.flow_runner_args)
+          runner_args=self.args.flow_runner_args)
       started_flows.append(flow_urn)
 
     collects.PackedVersionedCollection.AddToCollection(
@@ -606,7 +606,7 @@ class GenericHunt(implementation.GRRHunt):
     resources.cpu_usage.user_cpu_time = status.cpu_time_used.user_cpu_time
     resources.cpu_usage.system_cpu_time = status.cpu_time_used.system_cpu_time
     resources.network_bytes_sent = status.network_bytes_sent
-    self.state.context.usage_stats.RegisterResources(resources)
+    self.context.usage_stats.RegisterResources(resources)
 
   @flow.StateHandler()
   def MarkDone(self, responses):
@@ -641,14 +641,14 @@ class VariableGenericHunt(GenericHunt):
   args_type = VariableGenericHuntArgs
 
   def SetDescription(self, description=None):
-    self.state.context.args.description = description or "Variable Generic Hunt"
+    self.runner_args.description = description or "Variable Generic Hunt"
 
   @flow.StateHandler()
   def RunClient(self, responses):
     started_flows = []
 
     for client_id in responses:
-      for flow_request in self.state.args.flows:
+      for flow_request in self.args.flows:
         for requested_client_id in flow_request.client_ids:
           if requested_client_id == client_id:
             flow_urn = self.CallFlow(
@@ -674,7 +674,7 @@ class VariableGenericHunt(GenericHunt):
       token: A datastore access token.
     """
     client_ids = set()
-    for flow_request in self.state.args.flows:
+    for flow_request in self.args.flows:
       for client_id in flow_request.client_ids:
         client_ids.add(client_id)
 
@@ -701,8 +701,8 @@ class StatsHunt(implementation.GRRHunt):
 
     # Force all client communication to be LOW_PRIORITY. This ensures that
     # clients do not switch to fast poll mode when returning stats messages.
-    self.runner.args.priority = "LOW_PRIORITY"
-    self.runner.args.require_fastpoll = False
+    self.runner_args.priority = "LOW_PRIORITY"
+    self.runner_args.require_fastpoll = False
 
     # The first time we're loaded we create these variables here.  After we are
     # sent to storage we recreate them in the Load method.

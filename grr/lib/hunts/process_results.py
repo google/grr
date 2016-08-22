@@ -59,18 +59,23 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
   DEFAULT_BATCH_SIZE = 5000
 
   def CheckIfRunningTooLong(self):
-    if self.state.args.max_running_time:
+    if self.args.max_running_time:
       elapsed = (rdfvalue.RDFDatetime().Now().AsSecondsFromEpoch() -
                  self.start_time.AsSecondsFromEpoch())
-      if elapsed > self.state.args.max_running_time:
+      if elapsed > self.args.max_running_time:
         return True
     return False
 
   def LoadPlugins(self, metadata_obj):
     output_plugins = metadata_obj.Get(metadata_obj.Schema.OUTPUT_PLUGINS)
+    if not output_plugins:
+      return output_plugins, []
+
+    output_plugins = output_plugins.ToDict()
     used_plugins = []
     unused_plugins = []
-    for _, (plugin_def, state) in output_plugins.data.iteritems():
+
+    for plugin_def, state in output_plugins.itervalues():
       if not hasattr(plugin_def, "GetPluginForState"):
         logging.error("Invalid plugin_def: %s", plugin_def)
         continue
@@ -132,7 +137,7 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
       return 0
 
     hunt_urn = rdfvalue.RDFURN(hunt_results_urn.Dirname())
-    batch_size = self.state.args.batch_size or self.DEFAULT_BATCH_SIZE
+    batch_size = self.args.batch_size or self.DEFAULT_BATCH_SIZE
     metadata_urn = hunt_urn.Add("ResultsMetadata")
     exceptions_by_plugin = {}
     num_processed_for_hunt = 0
@@ -182,8 +187,8 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
     self.start_time = rdfvalue.RDFDatetime().Now()
 
     exceptions_by_hunt = {}
-    if not self.state.args.max_running_time:
-      self.state.args.max_running_time = rdfvalue.Duration("%ds" % int(
+    if not self.args.max_running_time:
+      self.args.max_running_time = rdfvalue.Duration("%ds" % int(
           ProcessHuntResultCollectionsCronFlow.lifetime.seconds * 0.6))
 
     while not self.CheckIfRunningTooLong():

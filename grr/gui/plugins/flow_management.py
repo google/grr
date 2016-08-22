@@ -12,7 +12,6 @@ from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flow
-from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
@@ -21,6 +20,7 @@ from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import file_finder as flows_file_finder
 from grr.lib.flows.general import registry as flows_registry
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import standard as rdf_standard
 
@@ -271,7 +271,7 @@ Launched Flow {{this.flow_name}} with the following args:<br>
           prefix="args").RawHTML(request)
 
       self.runner_form = forms.SemanticProtoFormRenderer(
-          flow_runner.FlowRunnerArgs(flow_name=self.flow_name),
+          rdf_flows.FlowRunnerArgs(flow_name=self.flow_name),
           prefix="runner").RawHTML(request)
 
     response = super(SemanticProtoFlowForm, self).Layout(request, response)
@@ -299,7 +299,7 @@ Launched Flow {{this.flow_name}} with the following args:<br>
             response, "SemanticProtoFlowForm.RenderAjaxError", error=str(e))
 
       self.runner_args = forms.SemanticProtoFormRenderer(
-          flow_runner.FlowRunnerArgs(), prefix="runner_").ParseArgs(request)
+          rdf_flows.FlowRunnerArgs(), prefix="runner_").ParseArgs(request)
 
       self.runner_args.Validate()
 
@@ -602,10 +602,7 @@ class ListFlowsTable(renderers.TableRenderer):
 """ + renderers.TableRenderer.layout_template
 
   def _GetCreationTime(self, obj):
-    try:
-      return obj.state.context.get("create_time")
-    except AttributeError:
-      return obj.Get(obj.Schema.LAST, 0)
+    return obj.context.create_time or obj.Get(obj.Schema.LAST, 0)
 
   def __init__(self, **kwargs):
     super(ListFlowsTable, self).__init__(**kwargs)
@@ -671,11 +668,11 @@ class ListFlowsTable(renderers.TableRenderer):
           if flow_obj.Get(flow_obj.Schema.CLIENT_CRASH):
             row["State"] = "CLIENT_CRASHED"
           else:
-            row["State"] = flow_obj.state.context.state
+            row["State"] = flow_obj.context.state
 
-          row["Flow Name"] = flow_obj.state.context.args.flow_name
-          row["Creation Time"] = flow_obj.state.context.create_time
-          row["Creator"] = flow_obj.state.context.creator
+          row["Flow Name"] = flow_obj.runner_args.flow_name
+          row["Creation Time"] = flow_obj.context.create_time
+          row["Creator"] = flow_obj.context.creator
         except AttributeError:
           row["Flow Name"] = "Failed to open flow."
 

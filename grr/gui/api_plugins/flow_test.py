@@ -18,7 +18,6 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import flow_runner
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -33,6 +32,7 @@ from grr.lib.flows.general import transfer
 from grr.lib.hunts import standard_test
 from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -105,8 +105,7 @@ class ApiListFlowResultsHandlerRegressionTest(
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
-    runner_args = flow_runner.FlowRunnerArgs(
-        flow_name=transfer.GetFile.__name__)
+    runner_args = rdf_flows.FlowRunnerArgs(flow_name=transfer.GetFile.__name__)
 
     flow_args = transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
         path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS))

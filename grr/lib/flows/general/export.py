@@ -154,10 +154,10 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
           "Collection URN points to neither clients nor hunts "
           "namespaces: %s" % utils.SmartStr(self.args.collection_urn))
 
-    self.state.Register("total_files", 0)
-    self.state.Register("archived_files", 0)
-    self.state.Register("output_archive_urn", None)
-    self.state.Register("output_size", 0)
+    self.state.total_files = 0
+    self.state.archived_files = 0
+    self.state.output_archive_urn = None
+    self.state.output_size = 0
 
     # The actual work is done on the workers.
     self.CallState(next_state="CreateArchive")
@@ -224,7 +224,7 @@ class ExportCollectionFilesAsArchive(flow.GRRFlow):
 
     subject = "%s." % self.args.notification_message
 
-    creator = self.state.context.creator
+    creator = self.context.creator
     email_alerts.EMAIL_ALERTER.SendEmail(
         "%s@%s" % (creator, config_lib.CONFIG.Get("Logging.domain")),
         "grr-noreply@%s" % config_lib.CONFIG.Get("Logging.domain"),

@@ -1,0 +1,17 @@
+<grr-confirmation-dialog name="ModifyHuntDialog"
+                         title="'Modify this hunt'"
+                         proceed="controller.proceed()"
+                         proceed-name="'Modify!'"
+                         can-proceed="controller.argsObj">
+
+
+  <grr-form-proto ng-if="controller.argsObj"
+                  value="controller.argsObj"
+                  visible-fields="['client_limit', 'client_rate', 'expires']">
+  </grr-form-proto>
+
+  <div ng-if="!controller.argsObj">
+    <i class="fa fa-spinner fa-spin fa-fw"></i> Loading...
+  </div>
+
+</grr-confirmation-dialog>

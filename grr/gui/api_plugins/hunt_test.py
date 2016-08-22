@@ -19,7 +19,6 @@ from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import flow_runner
 from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
@@ -28,6 +27,7 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
+from grr.lib.hunts import implementation
 from grr.lib.hunts import process_results
 from grr.lib.hunts import results as hunt_results
 from grr.lib.hunts import standard_test
@@ -252,7 +252,7 @@ class ApiGetHuntHandlerRegressionTest(api_test_lib.ApiCallHandlerRegressionTest,
       with self.CreateHunt(description="the hunt") as hunt_obj:
         hunt_urn = hunt_obj.urn
 
-        hunt_stats = hunt_obj.state.context.usage_stats
+        hunt_stats = hunt_obj.context.usage_stats
         hunt_stats.user_cpu_stats.sum = 5000
         hunt_stats.network_bytes_sent_stats.sum = 1000000
 
@@ -334,7 +334,7 @@ class ApiGetHuntFilesArchiveHandlerTest(test_lib.GRRBaseTest,
 
     self.hunt = hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=flow_runner.FlowRunnerArgs(
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=file_finder.FileFinderArgs(
             paths=[os.path.join(self.base_path, "test.plist")],
@@ -412,7 +412,7 @@ class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,
     self.file_path = os.path.join(self.base_path, "test.plist")
     self.hunt = hunts.GRRHunt.StartHunt(
         hunt_name="GenericHunt",
-        flow_runner_args=flow_runner.FlowRunnerArgs(
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
         flow_args=file_finder.FileFinderArgs(
             paths=[self.file_path],
@@ -421,7 +421,7 @@ class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,
         token=self.token)
     self.hunt.Run()
 
-    self.results_urn = self.hunt.state.context.results_collection_urn
+    self.results_urn = self.hunt.results_collection_urn
     self.aff4_file_path = rdfvalue.RDFURN("os").Add(self.file_path)
 
     self.client_id = self.SetupClients(1)[0]
@@ -902,83 +902,173 @@ class ApiListHuntClientsHandlerRegressionTest(
         replace=replace)
 
 
-class ApiGetHuntContextHandlerTest(test_lib.GRRBaseTest,
-                                   standard_test.StandardHuntTestMixin):
-  """Test for ApiGetHuntContextHandler.
-
-  This is done as unit test, since the hunt context is a dictionary and
-  may change frequently.
-  """
-
-  def _CallHandler(self):
-    result = self.handler.Handle(
-        hunt_plugin.ApiGetHuntContextArgs(hunt_id=self.hunt.urn.Basename()),
-        token=self.token)
-    return result.context
-
-  def _FindValueByKey(self, items, key):
-    return next((item.value for item in items if item.key == key), None)
-
-  def _IsFieldInvalid(self, items, key):
-    return next((item.invalid for item in items if item.key == key), False)
+class ApiModifyHuntHandlerTest(test_lib.GRRBaseTest,
+                               standard_test.StandardHuntTestMixin):
+  """Test for ApiModifyHuntHandler."""
 
   def setUp(self):
-    super(ApiGetHuntContextHandlerTest, self).setUp()
-    self.handler = hunt_plugin.ApiGetHuntContextHandler()
+    super(ApiModifyHuntHandlerTest, self).setUp()
 
-    # Set up mock hunt and context.
-    with self.CreateHunt(description="the hunt") as hunt:
-      # Assign for easier access.
-      self.hunt = hunt
-      self.context = self.hunt.state.context
+    self.handler = hunt_plugin.ApiModifyHuntHandler()
 
-      # Add custom properties for the tests.
-      self.context.Register("string_prop", "some test value")
-      self.context.Register("time_prop", rdfvalue.RDFDatetime().Now())
-      self.context.Register("int_prop", 42)
-      self.context.Register("valid_float_prop", 42.0)
-      self.context.Register("invalid_float_prop", 42.5)
-      self.context.Register("bool_prop", True)
-      self.context.Register("none_prop", None)
-      self.context.Register("non_proto_prop", object())
-      self.context.Register(
-          "proto_prop",
-          hunt_plugin.ApiGetHuntContextArgs(hunt_id=hunt.urn.Basename()))
+    self.hunt = self.CreateHunt(description="the hunt")
+    self.hunt_urn = self.hunt.urn
 
-  def testPrimitivePropertiesAreReturnedCorrectly(self):
-    result = self._CallHandler()
+    self.args = hunt_plugin.ApiModifyHuntArgs(hunt_id=self.hunt.urn.Basename())
 
-    self.assertEqual(
-        self._FindValueByKey(result.items, "string_prop"),
-        self.context["string_prop"])
-    self.assertEqual(
-        self._FindValueByKey(result.items, "time_prop"),
-        self.context["time_prop"])
-    self.assertEqual(
-        self._FindValueByKey(result.items, "int_prop"),
-        self.context["int_prop"])
-    self.assertEqual(
-        self._FindValueByKey(result.items, "valid_float_prop"),
-        self.context["valid_float_prop"])
-    self.assertEqual(
-        self._FindValueByKey(result.items, "bool_prop"),
-        self.context["bool_prop"])
-    self.assertTrue(self._IsFieldInvalid(result.items, "invalid_float_prop"))
+  def testDoesNothingIfArgsHaveNoChanges(self):
+    before = hunt_plugin.ApiHunt().InitFromAff4Object(
+        aff4.FACTORY.Open(
+            self.hunt.urn, token=self.token))
 
-  def testNoneIsReturnedAsInvalid(self):
-    result = self._CallHandler()
-    self.assertTrue(self._IsFieldInvalid(result.items, "none_prop"))
+    self.handler.Handle(self.args, token=self.token)
 
-  def testNonProtoNonPrimitivePropertiesAreReturnedAsInvalid(self):
-    result = self._CallHandler()
-    self.assertTrue(self._IsFieldInvalid(result.items, "non_proto_prop"))
+    after = hunt_plugin.ApiHunt().InitFromAff4Object(
+        aff4.FACTORY.Open(
+            self.hunt.urn, token=self.token))
 
-  def testProtoPropertiesAreReturnedCorrectly(self):
-    result = self._CallHandler()
+    self.assertEqual(before, after)
 
-    value = self._FindValueByKey(result.items, "proto_prop")
-    self.assertEqual(value.__class__.__name__, "ApiGetHuntContextArgs")
-    self.assertEqual(value.hunt_id, self.hunt.urn.Basename())
+  def testRaisesIfStateIsSetToNotStartedOrStopped(self):
+    with self.assertRaises(hunt_plugin.InvalidHuntStateError):
+      self.args.state = "COMPLETED"
+      self.handler.Handle(self.args, token=self.token)
+
+  def testRaisesWhenStartingHuntInTheWrongState(self):
+    self.hunt.Run()
+    self.hunt.Stop()
+
+    with self.assertRaises(hunt_plugin.HuntNotStartableError):
+      self.args.state = "STARTED"
+      self.handler.Handle(self.args, token=self.token)
+
+  def testRaisesWhenStoppingHuntInTheWrongState(self):
+    self.hunt.Run()
+    self.hunt.Stop()
+
+    with self.assertRaises(hunt_plugin.HuntNotStoppableError):
+      self.args.state = "STOPPED"
+      self.handler.Handle(self.args, token=self.token)
+
+  def testStartsHuntCorrectly(self):
+    self.args.state = "STARTED"
+    self.handler.Handle(self.args, token=self.token)
+
+    hunt = aff4.FACTORY.Open(self.hunt_urn, token=self.token)
+    self.assertEqual(hunt.Get(hunt.Schema.STATE), "STARTED")
+
+  def testStopsHuntCorrectly(self):
+    self.args.state = "STOPPED"
+    self.handler.Handle(self.args, token=self.token)
+
+    hunt = aff4.FACTORY.Open(self.hunt_urn, token=self.token)
+    self.assertEqual(hunt.Get(hunt.Schema.STATE), "STOPPED")
+
+  def testRaisesWhenModifyingHuntInNonPausedState(self):
+    self.hunt.Run()
+
+    with self.assertRaises(hunt_plugin.HuntNotModifiableError):
+      self.args.client_rate = 100
+      self.handler.Handle(self.args, token=self.token)
+
+  def testModifiesHuntCorrectly(self):
+    self.args.client_rate = 100
+    self.args.client_limit = 42
+    self.args.expires = rdfvalue.RDFDatetime().FromSecondsFromEpoch(42)
+
+    self.handler.Handle(self.args, token=self.token)
+
+    after = hunt_plugin.ApiHunt().InitFromAff4Object(
+        aff4.FACTORY.Open(
+            self.hunt.urn, token=self.token))
+    self.assertEqual(after.client_rate, 100)
+    self.assertEqual(after.client_limit, 42)
+    self.assertEqual(after.expires,
+                     rdfvalue.RDFDatetime().FromSecondsFromEpoch(42))
+
+  def testDoesNotModifyHuntIfStateChangeFails(self):
+    with self.assertRaises(hunt_plugin.InvalidHuntStateError):
+      self.args.client_limit = 42
+      self.args.state = "COMPLETED"
+      self.handler.Handle(self.args, token=self.token)
+
+    after = hunt_plugin.ApiHunt().InitFromAff4Object(
+        aff4.FACTORY.Open(
+            self.hunt.urn, token=self.token))
+    self.assertNotEqual(after.client_limit, 42)
+
+
+class ApiModifyHuntHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest,
+    standard_test.StandardHuntTestMixin):
+
+  handler = "ApiModifyHuntHandler"
+
+  def Run(self):
+    # Check client_limit update.
+    with test_lib.FakeTime(42):
+      hunt = self.CreateHunt(description="the hunt")
+
+    # Create replace dictionary.
+    replace = {hunt.urn.Basename(): "H:123456"}
+
+    self.Check(
+        "PATCH",
+        "/api/hunts/%s" % hunt.urn.Basename(), {"client_limit": 142},
+        replace=replace)
+    self.Check(
+        "PATCH",
+        "/api/hunts/%s" % hunt.urn.Basename(), {"state": "STOPPED"},
+        replace=replace)
+
+
+class ApiDeleteHuntHandlerTest(test_lib.GRRBaseTest,
+                               standard_test.StandardHuntTestMixin):
+  """Test for ApiDeleteHuntHandler."""
+
+  def setUp(self):
+    super(ApiDeleteHuntHandlerTest, self).setUp()
+
+    self.handler = hunt_plugin.ApiDeleteHuntHandler()
+
+    self.hunt = self.CreateHunt(description="the hunt")
+    self.hunt_urn = self.hunt.urn
+
+    self.args = hunt_plugin.ApiDeleteHuntArgs(hunt_id=self.hunt.urn.Basename())
+
+  def testRaisesIfHuntNotFound(self):
+    with self.assertRaises(hunt_plugin.HuntNotFoundError):
+      self.handler.Handle(
+          hunt_plugin.ApiDeleteHuntArgs(hunt_id="H:123456"), token=self.token)
+
+  def testRaisesIfHuntIsRunning(self):
+    self.hunt.Run()
+
+    with self.assertRaises(hunt_plugin.HuntNotDeletableError):
+      self.handler.Handle(self.args, token=self.token)
+
+  def testDeletesHunt(self):
+    self.handler.Handle(self.args, token=self.token)
+
+    with self.assertRaises(aff4.InstantiationError):
+      aff4.FACTORY.Open(
+          self.hunt_urn, aff4_type=implementation.GRRHunt, token=self.token)
+
+
+class ApiDeleteHuntHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest,
+    standard_test.StandardHuntTestMixin):
+
+  handler = "ApiDeleteHuntHandler"
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      hunt = self.CreateHunt(description="the hunt")
+
+    # Create replace dictionary.
+    replace = {hunt.urn.Basename(): "H:123456"}
+
+    self.Check("DELETE", "/api/hunts/%s" % hunt.urn.Basename(), replace=replace)
 
 
 def main(argv):

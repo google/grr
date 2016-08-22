@@ -96,7 +96,13 @@ describe('search box directive', function() {
 
   it('should forward to the hunt details if a hunt was found', function() {
     mockApiServiceReponse({
-      'hunts/H:12345678': { urn: 'aff4:/H:12345678' }
+      'hunts/H:12345678': {
+        value: {
+          urn: {
+            value: 'aff4:/H:12345678'
+          }
+        }
+      }
     });
     spyOn(grrRoutingService, 'go');
 

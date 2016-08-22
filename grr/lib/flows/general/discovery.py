@@ -79,6 +79,10 @@ class Interrogate(flow.GRRFlow):
     self.CallClient("EnumerateFilesystems", next_state="EnumerateFilesystems")
 
   def Load(self):
+    # TODO(user): This is not great. Every time we want to show the
+    # flow in the UI for example, we need to open a sub object. Also,
+    # Load() is called on Flush()... This is slow and unnecessary.
+
     # Ensure there is a client object
     self.client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
 

@@ -120,7 +120,7 @@ SearchBoxController.prototype.isHuntId_ = function(input) {
 SearchBoxController.prototype.checkHunt_ = function(huntId) {
   this.grrApiService_.get('hunts/' + huntId).then(
     function success(response) {
-      var huntUrn = response.data['urn'];
+      var huntUrn = response.data['value']['urn']['value'];
       var components = huntUrn.split('/');
       var huntId = components[components.length - 1];
       this.grrRoutingService_.go('hunts', {huntId: huntId});

@@ -640,7 +640,10 @@ Click <a href='%(admin_ui)s/#%(urn)s'> here </a> to access this machine.
 <p>%(signature)s</p>
 <p>
 P.S. The state of the failing flow was:
+%(context)s
 %(state)s
+%(args)s
+%(runner_args)s
 
 %(nanny_msg)s
 
@@ -690,7 +693,7 @@ P.S. The state of the failing flow was:
       if hunt_session_id and hunt_session_id != message.session_id:
         hunt_obj = aff4.FACTORY.Open(
             hunt_session_id, aff4_type=implementation.GRRHunt, token=self.token)
-        email = hunt_obj.GetRunner().args.crash_alert_email
+        email = hunt_obj.runner_args.crash_alert_email
         if email:
           to_send.append(email)
     except aff4.InstantiationError:
@@ -708,7 +711,11 @@ P.S. The state of the failing flow was:
       hostname = client.Get(client.Schema.HOSTNAME)
       url = urllib.urlencode((("c", client_id), ("main", "HostInformation")))
 
-      renderer = rendering.FindRendererForObject(flow_obj.state)
+      context_html = rendering.FindRendererForObject(flow_obj.context).RawHTML()
+      state_html = rendering.FindRendererForObject(flow_obj.state).RawHTML()
+      args_html = rendering.FindRendererForObject(flow_obj.args).RawHTML()
+      runner_args_html = rendering.FindRendererForObject(
+          flow_obj.runner_args).RawHTML()
 
       email_alerts.EMAIL_ALERTER.SendEmail(
           email_address,
@@ -718,7 +725,10 @@ P.S. The state of the failing flow was:
               client_id=client_id,
               admin_ui=config_lib.CONFIG["AdminUI.url"],
               hostname=hostname,
-              state=renderer.RawHTML(),
+              context=context_html,
+              state=state_html,
+              args=args_html,
+              runner_args=runner_args_html,
               urn=url,
               nanny_msg=nanny_msg,
               signature=config_lib.CONFIG["Email.signature"]),
@@ -811,8 +821,8 @@ class KeepAlive(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.state.Register("end_time", self.args.duration.Expiry())
-    self.CallState(next_state="SendMessage")
+    self.state.end_time = self.args.duration.Expiry()
+    self.CallStateInline(next_state="SendMessage")
 
   @flow.StateHandler()
   def SendMessage(self, responses):
@@ -934,15 +944,15 @@ class RunReport(flow.GRRGlobalFlow):
 
   @flow.StateHandler()
   def Start(self):
-    if self.state.args.report_name not in reports.Report.classes:
-      raise flow.FlowError("No such report %s" % self.state.args.report_name)
+    if self.args.report_name not in reports.Report.classes:
+      raise flow.FlowError("No such report %s" % self.args.report_name)
     else:
       self.CallState(next_state="RunReport")
 
   @flow.StateHandler()
   def RunReport(self):
     """Run the report."""
-    report_cls = reports.Report.GetPlugin(self.state.args.report_name)
+    report_cls = reports.Report.GetPlugin(self.args.report_name)
     report_obj = report_cls(token=self.token)
     report_obj.Run()
-    report_obj.MailReport(self.state.args.email)
+    report_obj.MailReport(self.args.email)

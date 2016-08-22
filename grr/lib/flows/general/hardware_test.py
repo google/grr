@@ -8,11 +8,10 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
-from grr.lib.aff4_objects import collects
 # pylint: disable=unused-import
 from grr.lib.flows.general import hardware
+
 # pylint: enable=unused-import
-from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class DumpFlashImageMock(action_mocks.ActionMock):
@@ -26,8 +25,12 @@ class DumpFlashImageMock(action_mocks.ActionMock):
     response = chipsec_types.DumpFlashImageResponse(path=flash_path, logs=logs)
     return [response]
 
+  def LoadComponent(self, args):
+    """Just assume that we can load the component during testing."""
+    return [args]
 
-class UnknownChipsetDumpMock(action_mocks.ActionMock):
+
+class UnknownChipsetDumpMock(DumpFlashImageMock):
 
   def DumpFlashImage(self, args):
     logs = ["Unknown chipset"]
@@ -35,7 +38,7 @@ class UnknownChipsetDumpMock(action_mocks.ActionMock):
     return [response]
 
 
-class FailDumpMock(action_mocks.ActionMock):
+class FailDumpMock(DumpFlashImageMock):
 
   def DumpFlashImage(self, args):
     raise IOError("Unexpected error")
@@ -46,29 +49,22 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
 
   def setUp(self):
     super(TestDumpFlashImage, self).setUp()
-    self.vfs_overrider = test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
-                                               test_lib.FakeFullVFSHandler)
-    self.vfs_overrider.Start()
-    test_lib.ClientFixture(self.client_id, token=self.token)
-
-    # Create a fake component so we can launch the LoadComponent flow.
-    fd = aff4.FACTORY.Create(
-        "aff4:/config/components/grr-chipsec-component_1.2.2",
-        collects.ComponentObject,
-        mode="w",
+    test_lib.WriteComponent(
+        name="grr-chipsec-component",
+        version="1.2.2.2",
+        modules=["grr_chipsec"],
         token=self.token)
-    fd.Set(fd.Schema.COMPONENT(name="grr-chipsec-component", version="1.2.2"))
-    fd.Close()
 
-  def tearDown(self):
-    self.vfs_overrider.Stop()
-    super(TestDumpFlashImage, self).tearDown()
+    # Setup a specific client so the knowledge base is correctly
+    # initialised for the artifact collection.
+    clients = self.SetupClients(1, system="Linux", os_version="16.04")
+    self.client_id = clients[0]
 
   def testDumpFlash(self):
     """Dump Flash Image."""
     client_mock = DumpFlashImageMock("StatFile", "MultiGetFile", "HashFile",
-                                     "HashBuffer", "LoadComponent",
-                                     "TransferBuffer", "DeleteGRRTempFiles")
+                                     "HashBuffer", "TransferBuffer",
+                                     "DeleteGRRTempFiles")
 
     for _ in test_lib.TestFlowHelper(
         "DumpFlashImage",
@@ -83,8 +79,8 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
   def testUnknownChipset(self):
     """Fail to dump flash of unknown chipset."""
     client_mock = UnknownChipsetDumpMock("StatFile", "MultiGetFile", "HashFile",
-                                         "HashBuffer", "LoadComponent",
-                                         "TransferBuffer", "DeleteGRRTempFiles")
+                                         "HashBuffer", "TransferBuffer",
+                                         "DeleteGRRTempFiles")
 
     # Manually start the flow in order to be able to read the logs
     flow_urn = flow.GRRFlow.StartFlow(
@@ -99,8 +95,8 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
 
   def testFailedDumpImage(self):
     """Fail to dump flash."""
-    client_mock = FailDumpMock("StatFile", "MultiGetFile", "LoadComponent",
-                               "HashFile", "HashBuffer", "TransferBuffer",
+    client_mock = FailDumpMock("StatFile", "MultiGetFile", "HashFile",
+                               "HashBuffer", "TransferBuffer",
                                "DeleteGRRTempFiles")
 
     for _ in test_lib.TestFlowHelper(

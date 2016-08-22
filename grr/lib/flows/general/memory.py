@@ -47,14 +47,14 @@ class MemoryCollector(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.state.Register("output_urn", None)
+    self.state.output_urn = None
 
     # Use Rekall to grab memory. We no longer manually check for kcore's
     # existence since Rekall does it for us and runs additionally checks (like
     # the actual usability of kcore).
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     memory_size = client.Get(client.Schema.MEMORY_SIZE)
-    self.state.Register("memory_size", memory_size)
+    self.state.memory_size = memory_size
 
     # Should we check if there is enough free space?
     if self.args.check_disk_free_space:
@@ -125,7 +125,6 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.state.Register("component_version", None)
     # Load all the components we will be needing on the client.
     self.LoadComponentOnClient(
         name="grr-rekall",
@@ -154,28 +153,32 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
         mode="rw",
         token=self.token)
 
-    self.state.Register("rekall_context_messages", {})
-    self.state.Register("output_files", [])
-    self.state.Register("plugin_errors", [])
+    self.state.rekall_context_messages = {}
+    self.state.output_files = []
+    self.state.plugin_errors = []
 
-    self.state.Register("rekall_request", self.args.request.Copy())
+    request = self.args.request.Copy()
 
     # We always push the inventory to the request. This saves a round trip
     # because the client always needs it (so it can figure out if its cache is
     # still valid).
-    self.state.rekall_request.profiles.append(
+    request.profiles.append(
         self.GetProfileByName("inventory",
                               constants.PROFILE_REPOSITORY_VERSION))
 
     if self.args.debug_logging:
-      self.state.rekall_request.session[u"logging_level"] = u"DEBUG"
+      request.session[u"logging_level"] = u"DEBUG"
 
     # We want to disable local profile building on the client machines.
-    self.state.rekall_request.session[u"autodetect_build_local"] = u"none"
+    request.session[u"autodetect_build_local"] = u"none"
 
     # The client will use rekall in live mode.
-    if "live" not in self.state.rekall_request.session:
-      self.state.rekall_request.session["live"] = "Memory"
+    request.session["live"] = True
+
+    if "live" not in request.session:
+      request.session["live"] = "Memory"
+
+    self.state.rekall_request = request
 
     self.CallClient(
         "RekallAction", self.state.rekall_request, next_state="StoreResults")

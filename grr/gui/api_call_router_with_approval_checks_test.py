@@ -6,6 +6,7 @@
 
 import mock
 
+from grr.gui import api_call_handler_base
 from grr.gui import api_call_router_with_approval_checks as api_router
 
 from grr.gui.api_plugins import client as api_client
@@ -18,11 +19,13 @@ from grr.lib import access_control
 from grr.lib import flags
 from grr.lib import test_lib
 
+from grr.lib.hunts import standard_test
+
 from grr.lib.rdfvalues import client as rdf_client
 
 
 class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
-    test_lib.GRRBaseTest):
+    test_lib.GRRBaseTest, standard_test.StandardHuntTestMixin):
   """Tests for an ApiCallRouterWithApprovalChecksWithoutRobotAccess."""
 
   # ACCESS_CHECKED_METHODS is used to identify the methods that are tested
@@ -41,13 +44,19 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     self.router = api_router.ApiCallRouterWithApprovalChecksWithoutRobotAccess(
         delegate=self.delegate_mock, legacy_manager=self.legacy_manager_mock)
 
-  def CheckMethodIsAccessChecked(self, method, access_type, args=None):
+  def CheckMethodIsAccessChecked(self,
+                                 method,
+                                 access_type,
+                                 args=None,
+                                 token=None):
+    token = token or self.token
+
     # Check that legacy access control manager is called and that the method
     # is then delegated.
-    method(args, token=self.token)
+    method(args, token=token)
     self.assertTrue(getattr(self.legacy_manager_mock, access_type).called)
     getattr(self.delegate_mock, method.__name__).assert_called_with(
-        args, token=self.token)
+        args, token=token)
 
     self.delegate_mock.reset_mock()
     self.legacy_manager_mock.reset_mock()
@@ -59,7 +68,7 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
               access_type).side_effect = access_control.UnauthorizedAccess("")
 
       with self.assertRaises(access_control.UnauthorizedAccess):
-        method(args, token=self.token)
+        method(args, token=token)
 
       self.assertTrue(getattr(self.legacy_manager_mock, access_type).called)
       self.assertFalse(getattr(self.delegate_mock, method.__name__).called)
@@ -69,8 +78,10 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
       self.delegate_mock.reset_mock()
       self.legacy_manager_mock.reset_mock()
 
-  def CheckMethodIsNotAccessChecked(self, method, args=None):
-    method(args, token=self.token)
+  def CheckMethodIsNotAccessChecked(self, method, args=None, token=None):
+    token = token or self.token
+
+    method(args, token=token)
 
     self.assertFalse(self.legacy_manager_mock.CheckClientAccess.called)
     self.assertFalse(self.legacy_manager_mock.CheckHuntAccess.called)
@@ -79,7 +90,7 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     self.assertFalse(self.legacy_manager_mock.CheckDataStoreAccess.called)
 
     getattr(self.delegate_mock, method.__name__).assert_called_with(
-        args, token=self.token)
+        args, token=token)
 
     self.delegate_mock.reset_mock()
     self.legacy_manager_mock.reset_mock()
@@ -231,8 +242,37 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
         self.router.DeleteCronJob, "CheckCronJobAccess", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
+      "ModifyHunt",
+      "DeleteHunt",
       "GetHuntFilesArchive",
       "GetHuntFile"])  # pyformat: disable
+
+  def testModifyHuntIsAccessChecked(self):
+    args = api_hunt.ApiModifyHuntArgs(hunt_id="H:123456")
+
+    self.CheckMethodIsAccessChecked(
+        self.router.ModifyHunt, "CheckHuntAccess", args=args)
+
+  def testDeleteHuntRaisesIfHuntNotFound(self):
+    args = api_hunt.ApiDeleteHuntArgs(hunt_id="H:123456")
+    with self.assertRaises(api_call_handler_base.ResourceNotFoundError):
+      self.router.DeleteHunt(args, token=self.token)
+
+  def testDeleteHuntIsAccessCheckedIfUserIsNotCreator(self):
+    hunt = self.CreateHunt()
+    args = api_hunt.ApiDeleteHuntArgs(hunt_id=hunt.urn.Basename())
+
+    self.CheckMethodIsAccessChecked(
+        self.router.DeleteHunt,
+        "CheckHuntAccess",
+        args=args,
+        token=access_control.ACLToken(username="foo"))
+
+  def testDeleteHuntIsNotAccessCheckedIfUserIsCreator(self):
+    hunt = self.CreateHunt()
+    args = api_hunt.ApiDeleteHuntArgs(hunt_id=hunt.urn.Basename())
+
+    self.CheckMethodIsNotAccessChecked(self.router.DeleteHunt, args=args)
 
   def testGetHuntFilesArchiveIsAccessChecked(self):
     args = api_hunt.ApiGetHuntFilesArchiveArgs(hunt_id="H:123456")
