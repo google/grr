@@ -116,8 +116,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
                      "123456")
 
   def _CheckNetworkInfo(self):
-    net_fd = aff4.FACTORY.Open(self.fd.urn.Add("network"), token=self.token)
-    interfaces = list(net_fd.Get(net_fd.Schema.INTERFACES))
+    interfaces = list(self.fd.Get(self.fd.Schema.INTERFACES))
     self.assertEqual(interfaces[0].mac_address, "123456")
     self.assertEqual(interfaces[0].addresses[0].human_readable, "100.100.100.1")
     self.assertEqual(

@@ -1,0 +1,17 @@
+<!-- We're using "controller.artifactType && ..." syntax so that the expression is
+     resolved to undefined when artifactType is undefined. This way one-time
+     binding doesn't get removed until controller.artifactType becomes something
+     other than undefined (see "One-time binding" section here:
+     https://docs.angularjs.org/guide/expression). -->
+<span ng-class="::{'system': controller.artifactType && controller.artifactType === 'SYSTEM',
+                   'user': controller.artifactType && controller.artifactType === 'USER'}">
+  <nobr>
+    {$ ::value.value $}
+
+    <span class="icon"
+          title="Custom Uploaded Artifact"
+          ng-if="::controller.artifactType && controller.artifactType === 'USER'">
+      <i class="fa fa-user fa-1" aria-hidden="true"></i>
+    </span>
+  </nobr>
+</span>

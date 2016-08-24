@@ -25,7 +25,6 @@ from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import user_managers
 from grr.lib.flows.general import administrative
 from grr.lib.flows.general import transfer
@@ -378,16 +377,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
   def testProcessHunResultsCronFlowDoesNothingWhenThereAreNoResults(self):
     # There's no hunt, nothing. Just assert that cron job completes
     # successfully.
-    self.ProcessHuntOutputPlugins()
-
-  def testProcessHuntResultCronFlowDoesNothingOnFalseNotifications(self):
-    # There may be cases when we've got the notification, but for some reason
-    # there are no new results in the corresponding hunt. Assert that cron
-    # job handles this scenario gracefully.
-    hunt_urn = self.StartHunt()
-    hunt_obj = aff4.FACTORY.Open(hunt_urn, token=self.token)
-    collects.ResultsOutputCollection.ScheduleNotification(
-        hunt_obj.results_collection_urn, token=self.token)
     self.ProcessHuntOutputPlugins()
 
   def testOutputPluginsProcessOnlyNewResultsOnEveryRun(self):

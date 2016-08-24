@@ -23,23 +23,25 @@ class TestCmdProcessor(parsers.CommandParser):
 class TestArtifactRender(test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
-  def setUp(self):
-    super(TestArtifactRender, self).setUp()
+  def _UploadCustomArtifacts(self):
+    artifact_registry.REGISTRY.ClearRegistry()
+    test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
+                                       "artifacts", "test_artifacts.json")
+    with open(test_artifacts_file, "rb") as fd:
+      artifact.UploadArtifactYamlFile(fd.read(), token=self.token)
+
+  def _LoadSystemArtifacts(self):
     artifact_registry.REGISTRY.ClearRegistry()
     test_artifacts_file = os.path.join(config_lib.CONFIG["Test.data_dir"],
                                        "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
-  def tearDown(self):
-    super(TestArtifactRender, self).tearDown()
-    artifact.ArtifactLoader().RunOnce()
-
   def testArtifactRendering(self):
-    self.Open("/")
     with self.ACLChecksDisabled():
+      self._LoadSystemArtifacts()
       self.RequestAndGrantClientApproval("C.0000000000000001")
-    self.Open("/")
 
+    self.Open("/")
     self.Type("client_query", "C.0000000000000001")
     self.Click("client_query_submit")
 
@@ -80,6 +82,64 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
     # Check the artifact description loaded.
     self.WaitUntil(self.IsTextPresent, "Test command artifact for dpkg.")
     self.WaitUntil(self.IsTextPresent, "TestCmdProcessor")
+
+  def testSystemArtifactsAreNotMarkedInStartFlowForm(self):
+    with self.ACLChecksDisabled():
+      self._LoadSystemArtifacts()
+      self.RequestAndGrantClientApproval("C.0000000000000001")
+
+    self.Open("/#/clients/C.0000000000000001/launch-flow")
+    self.Click("css=#_Collectors")
+    self.Click("link=ArtifactCollectorFlow")
+
+    self.WaitUntil(self.IsElementPresent, "css=*:contains('TestCmdArtifact')")
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=span[title~='Custom Uploaded Artifact'] > i.fa-user")
+
+  def testCustomArtifactsAreMarkedInStartFlowForm(self):
+    with self.ACLChecksDisabled():
+      self._UploadCustomArtifacts()
+      self.RequestAndGrantClientApproval("C.0000000000000001")
+
+    self.Open("/#/clients/C.0000000000000001/launch-flow")
+    self.Click("css=#_Collectors")
+    self.Click("link=ArtifactCollectorFlow")
+
+    self.WaitUntil(self.IsElementPresent, "css=*:contains('TestCmdArtifact') > "
+                   "span[title~='Custom Uploaded Artifact'] > i.fa-user")
+
+  def testSystemArtifactsAreNotMarkedInFlowArguments(self):
+    with self.ACLChecksDisabled():
+      self._UploadCustomArtifacts()
+      self.RequestAndGrantClientApproval("C.0000000000000001")
+
+    self.Open("/#/clients/C.0000000000000001/launch-flow")
+    self.Click("css=#_Collectors")
+    self.Click("link=ArtifactCollectorFlow")
+
+    self.DoubleClick(
+        "css=grr-artifacts-list-form tr:contains('TestCmdArtifact')")
+    self.Click("css=button.Launch")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-artifact-name:contains('TestCmdArtifact')")
+    self.WaitUntilNot(self.IsElementPresent,
+                      "css=span[title~='Custom Uploaded Artifact'] > i.fa-user")
+
+  def testCustomArtifactsAreMarkedInFlowArguments(self):
+    with self.ACLChecksDisabled():
+      self._UploadCustomArtifacts()
+      self.RequestAndGrantClientApproval("C.0000000000000001")
+
+    self.Open("/#/clients/C.0000000000000001/launch-flow")
+    self.Click("css=#_Collectors")
+    self.Click("link=ArtifactCollectorFlow")
+
+    self.DoubleClick(
+        "css=grr-artifacts-list-form tr:contains('TestCmdArtifact')")
+    self.Click("css=button.Launch")
+    self.WaitUntil(self.IsElementPresent,
+                   "css=grr-artifact-name:contains('TestCmdArtifact') "
+                   "span[title~='Custom Uploaded Artifact'] > i.fa-user")
 
 
 def main(argv):

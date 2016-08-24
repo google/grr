@@ -154,10 +154,10 @@ parser_generate_keys.add_argument(
 
 # Repack arguments.
 parser_repack_clients.add_argument(
-    "--upload",
-    default=True,
-    action="store_false",
-    help="Upload the client binaries to the datastore.")
+    "--noupload",
+    default=False,
+    action="store_true",
+    help="Don't upload the client binaries to the datastore.")
 
 # Parent parser used in other upload based parsers.
 parser_upload_args = argparse.ArgumentParser(add_help=False)
@@ -782,8 +782,8 @@ def main(unused_argv):
     config_lib.CONFIG.Write()
 
   elif flags.FLAGS.subparser_name == "repack_clients":
-    repacking.TemplateRepacker().RepackAllTemplates(
-        upload=flags.FLAGS.upload, token=token)
+    upload = not flags.FLAGS.noupload
+    repacking.TemplateRepacker().RepackAllTemplates(upload=upload, token=token)
 
   elif flags.FLAGS.subparser_name == "show_user":
     maintenance_utils.ShowUser(flags.FLAGS.username, token=token)

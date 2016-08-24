@@ -173,7 +173,9 @@ ApiService.prototype.get = function(apiPath, opt_params) {
 };
 
 /**
- * Fetches data for a given API url via HTTP GET method.
+ * Fetches data for a given API url via HTTP GET method and caches the response.
+ * Returns cached response immediately (without querying the server),
+ * if available.
  *
  * @param {string} apiPath API path to trigger.
  * @param {Object<string, string>=} opt_params Query parameters.

@@ -16,7 +16,6 @@ from grr.lib import flow
 from grr.lib import master
 from grr.lib import queue_manager as queue_manager_lib
 from grr.lib import queues as queues_config
-from grr.lib import rdfvalue
 from grr.lib import registry
 # pylint: disable=unused-import
 from grr.lib import server_stubs
@@ -255,55 +254,14 @@ class GRRWorker(object):
       raise FlowProcessingError("Not a GRRFlow.")
 
     runner = flow_obj.GetRunner()
-    if runner.schedule_kill_notifications:
-      # Create a notification for the flow in the future that
-      # indicates that this flow is in progess. We'll delete this
-      # notification when we're done with processing completed
-      # requests. If we're stuck for some reason, the notification
-      # will be delivered later and the stuck flow will get
-      # terminated.
-      stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
-          "Worker.stuck_flows_timeout"])
-      kill_timestamp = (rdfvalue.RDFDatetime().Now() + stuck_flows_timeout)
-      with queue_manager_lib.QueueManager(token=self.token) as manager:
-        manager.QueueNotification(
-            session_id=session_id, in_progress=True, timestamp=kill_timestamp)
-
-      # kill_timestamp may get updated via flow.HeartBeat() calls, so we
-      # have to store it in the runner context.
-      runner.context.kill_timestamp = kill_timestamp
-
     try:
       runner.ProcessCompletedRequests(notification, self.thread_pool)
-
-    # Something went wrong - log it in the flow.
     except Exception as e:  # pylint: disable=broad-except
+      # Something went wrong - log it in the flow.
       runner.context.state = rdf_flows.FlowContext.State.ERROR
       runner.context.backtrace = traceback.format_exc()
       logging.error("Flow %s: %s", flow_obj, e)
       raise FlowProcessingError(e)
-
-    finally:
-      # Delete kill notification as the flow got processed and is not
-      # stuck.
-      with queue_manager_lib.QueueManager(token=self.token) as manager:
-        if runner.schedule_kill_notifications:
-          manager.DeleteNotification(
-              session_id,
-              start=runner.context.kill_timestamp,
-              end=runner.context.kill_timestamp)
-          runner.context.kill_timestamp = None
-
-        if (runner.process_requests_in_order and notification.last_status and (
-            runner.context.next_processed_request <= notification.last_status)):
-          logging.debug("Had to reschedule a notification: %s", notification)
-          # We are processing requests in order and have received a
-          # notification for a specific request but could not process
-          # that request. This might be a race condition in the data
-          # store so we reschedule the notification in the future.
-          delay = config_lib.CONFIG["Worker.notification_retry_interval"]
-          manager.QueueNotification(
-              notification, timestamp=notification.timestamp + delay)
 
   def _ProcessMessages(self, notification, queue_manager):
     """Does the real work with a single flow."""

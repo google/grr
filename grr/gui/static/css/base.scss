@@ -10,7 +10,9 @@
 
 // Directive style includes
 @import 'grr/gui/static/angular-components/acl/approval-info';
+@import 'grr/gui/static/angular-components/acl/request-approval-dialog';
 @import 'grr/gui/static/angular-components/artifact/artifacts-list-form';
+@import 'grr/gui/static/angular-components/artifact/artifact-name';
 @import 'grr/gui/static/angular-components/client/check-client-access';
 @import 'grr/gui/static/angular-components/client/host-info';
 @import 'grr/gui/static/angular-components/client/virtual-file-system/breadcrumbs';

@@ -485,9 +485,6 @@ class HuntOverviewRenderer(AbstractLogRenderer):
         self.hunt = aff4.FACTORY.Open(
             self.hunt_id, aff4_type=implementation.GRRHunt, token=request.token)
 
-        if self.hunt.state is None:
-          raise IOError("No valid state could be found.")
-
         hunt_stats = self.hunt.context.usage_stats
         self.cpu_sum = "%.2f" % hunt_stats.user_cpu_stats.sum
         self.net_sum = hunt_stats.network_bytes_sent_stats.sum
@@ -539,8 +536,6 @@ class HuntContextView(renderers.TemplateRenderer):
       self.hunt_id = request.REQ.get("hunt_id")
     self.hunt = aff4.FACTORY.Open(
         self.hunt_id, aff4_type=implementation.GRRHunt, token=request.token)
-    if self.hunt.state.Empty():
-      raise IOError("No valid state could be found.")
 
     self.args_str = renderers.DictRenderer(self.hunt.context).RawHTML(request)
 
@@ -745,8 +740,6 @@ class HuntStatsRenderer(renderers.TemplateRenderer):
       try:
         hunt = aff4.FACTORY.Open(
             hunt_id, aff4_type=implementation.GRRHunt, token=request.token)
-        if hunt.state.Empty():
-          raise IOError("No valid state could be found.")
 
         self.stats = hunt.context.usage_stats
 

@@ -8,7 +8,6 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
-from grr.lib.aff4_objects import network
 from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -57,9 +56,6 @@ class Interrogate(flow.GRRFlow):
 
     # Create the objects we need to exist.
     self.Load()
-    fd = aff4.FACTORY.Create(
-        self.client.urn.Add("network"), network.Network, token=self.token)
-    fd.Close()
 
     # Make sure we always have a VFSDirectory with a pathspec at fs/os
     pathspec = rdf_paths.PathSpec(
@@ -205,33 +201,28 @@ class Interrogate(flow.GRRFlow):
   @flow.StateHandler()
   def EnumerateInterfaces(self, responses):
     """Enumerates the interfaces."""
-    if responses.success and responses:
-      net_fd = aff4.FACTORY.Create(
-          self.client.urn.Add("network"), network.Network, token=self.token)
-      interface_list = net_fd.Schema.INTERFACES()
-      mac_addresses = []
-      ip_addresses = []
-      for response in responses:
-        interface_list.Append(response)
+    if not (responses.success and responses):
+      self.Log("Could not enumerate interfaces: %s" % responses.status)
+      return
 
-        # Add a hex encoded string for searching
-        if (response.mac_address and
-            response.mac_address != "\x00" * len(response.mac_address)):
-          mac_addresses.append(response.mac_address.human_readable_address)
+    interface_list = self.client.Schema.INTERFACES()
+    mac_addresses = []
+    ip_addresses = []
+    for response in responses:
+      interface_list.Append(response)
 
-        for address in response.addresses:
-          if address.human_readable_address not in self.FILTERED_IPS:
-            ip_addresses.append(address.human_readable_address)
+      # Add a hex encoded string for searching
+      if (response.mac_address and
+          response.mac_address != "\x00" * len(response.mac_address)):
+        mac_addresses.append(response.mac_address.human_readable_address)
 
-      self.client.Set(self.client.Schema.MAC_ADDRESS("\n".join(mac_addresses)))
-      self.client.Set(self.client.Schema.HOST_IPS("\n".join(ip_addresses)))
+      for address in response.addresses:
+        if address.human_readable_address not in self.FILTERED_IPS:
+          ip_addresses.append(address.human_readable_address)
 
-      net_fd.Set(net_fd.Schema.INTERFACES(interface_list))
-      net_fd.Close()
-      self.client.Set(self.client.Schema.LAST_INTERFACES(interface_list))
-
-    else:
-      self.Log("Could not enumerate interfaces.")
+    self.client.Set(self.client.Schema.MAC_ADDRESS("\n".join(mac_addresses)))
+    self.client.Set(self.client.Schema.HOST_IPS("\n".join(ip_addresses)))
+    self.client.Set(self.client.Schema.INTERFACES(interface_list))
 
   @flow.StateHandler()
   def EnumerateFilesystems(self, responses):

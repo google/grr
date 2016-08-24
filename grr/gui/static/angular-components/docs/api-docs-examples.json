@@ -239,6 +239,18 @@
                 "type": "HardwareInfo",
                 "value": {}
               },
+              "knowledge_base": {
+                "age": 42000000,
+                "type": "KnowledgeBase",
+                "value": {
+                  "hostname": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "users": []
+                }
+              },
               "labels": [],
               "last_seen_at": {
                 "age": 0,
@@ -297,6 +309,10 @@
             "client_name": "GRR Monitor"
           },
           "hardware_info": {},
+          "knowledge_base": {
+            "hostname": "Host-0.example.com",
+            "users": []
+          },
           "labels": [],
           "last_seen_at": 42000000,
           "os_info": {
@@ -715,6 +731,58 @@
             "type": "unicode",
             "value": "ListProcesses"
           },
+          "runner_args": {
+            "age": 0,
+            "type": "FlowRunnerArgs",
+            "value": {
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListProcesses"
+              },
+              "notify_to_user": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              },
+              "priority": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "HIGH_PRIORITY"
+              },
+              "token": {
+                "age": 0,
+                "type": "ACLToken",
+                "value": {
+                  "expiry": {
+                    "age": 0,
+                    "type": "RDFDatetime",
+                    "value": 102000000
+                  },
+                  "process": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRRAdminUI"
+                  },
+                  "reason": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": ""
+                  },
+                  "username": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "test"
+                  }
+                }
+              }
+            }
+          },
           "started_at": {
             "age": 0,
             "type": "RDFDatetime",
@@ -741,6 +809,18 @@
         "creator": "test",
         "last_active_at": 42000000,
         "name": "ListProcesses",
+        "runner_args": {
+          "client_id": "aff4:/C.1000000000000000",
+          "flow_name": "ListProcesses",
+          "notify_to_user": false,
+          "priority": "HIGH_PRIORITY",
+          "token": {
+            "expiry": 102000000,
+            "process": "GRRAdminUI",
+            "reason": "",
+            "username": "test"
+          }
+        },
         "started_at": 42000000,
         "state": "RUNNING",
         "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
@@ -1001,6 +1081,18 @@
                 "type": "HardwareInfo",
                 "value": {}
               },
+              "knowledge_base": {
+                "age": 42000000,
+                "type": "KnowledgeBase",
+                "value": {
+                  "hostname": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "users": []
+                }
+              },
               "labels": [],
               "last_seen_at": {
                 "age": 0,
@@ -1056,6 +1148,10 @@
             "client_name": "GRR Monitor"
           },
           "hardware_info": {},
+          "knowledge_base": {
+            "hostname": "Host-0.example.com",
+            "users": []
+          },
           "labels": [],
           "last_seen_at": 42000000,
           "os_info": {
@@ -1130,6 +1226,18 @@
                 "type": "HardwareInfo",
                 "value": {}
               },
+              "knowledge_base": {
+                "age": 42000000,
+                "type": "KnowledgeBase",
+                "value": {
+                  "hostname": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-1.example.com"
+                  },
+                  "users": []
+                }
+              },
               "labels": [],
               "last_seen_at": {
                 "age": 0,
@@ -1185,6 +1293,10 @@
             "client_name": "GRR Monitor"
           },
           "hardware_info": {},
+          "knowledge_base": {
+            "hostname": "Host-1.example.com",
+            "users": []
+          },
           "labels": [],
           "last_seen_at": 42000000,
           "os_info": {
@@ -1222,11 +1334,28 @@
             "type": "HardwareInfo",
             "value": {}
           },
+          "knowledge_base": {
+            "age": 42000000,
+            "type": "KnowledgeBase",
+            "value": {
+              "hostname": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Host-0.example.com"
+              },
+              "users": []
+            }
+          },
           "labels": [],
           "last_seen_at": {
             "age": 0,
             "type": "RDFDatetime",
             "value": 42000000
+          },
+          "memory_size": {
+            "age": 42000000,
+            "type": "ByteSize",
+            "value": 4294967296
           },
           "os_info": {
             "age": 0,
@@ -1263,8 +1392,13 @@
           "client_name": "GRR Monitor"
         },
         "hardware_info": {},
+        "knowledge_base": {
+          "hostname": "Host-0.example.com",
+          "users": []
+        },
         "labels": [],
         "last_seen_at": 42000000,
+        "memory_size": 4294967296,
         "os_info": {
           "fqdn": "Host-0.example.com",
           "node": "Host-0",
@@ -1806,6 +1940,38 @@
             "type": "unicode",
             "value": "GRRVersionBreakDown"
           },
+          "runner_args": {
+            "age": 0,
+            "type": "FlowRunnerArgs",
+            "value": {
+              "base_session_id": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/cron/GRRVersionBreakDown"
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GRRVersionBreakDown"
+              },
+              "token": {
+                "age": 0,
+                "type": "ACLToken",
+                "value": {
+                  "reason": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Running tests"
+                  },
+                  "username": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "test"
+                  }
+                }
+              }
+            }
+          },
           "started_at": {
             "age": 0,
             "type": "RDFDatetime",
@@ -1829,6 +1995,14 @@
         "creator": "test",
         "last_active_at": 44000000,
         "name": "GRRVersionBreakDown",
+        "runner_args": {
+          "base_session_id": "aff4:/cron/GRRVersionBreakDown",
+          "flow_name": "GRRVersionBreakDown",
+          "token": {
+            "reason": "Running tests",
+            "username": "test"
+          }
+        },
         "started_at": 44000000,
         "state": "RUNNING",
         "urn": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
@@ -1914,6 +2088,68 @@
             "type": "InterrogateArgs",
             "value": {}
           },
+          "context": {
+            "age": 0,
+            "type": "FlowContext",
+            "value": {
+              "client_resources": {
+                "age": 0,
+                "type": "ClientResources",
+                "value": {
+                  "cpu_usage": {
+                    "age": 0,
+                    "type": "CpuSeconds",
+                    "value": {}
+                  }
+                }
+              },
+              "create_time": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 42000000
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "current_state": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Start"
+              },
+              "next_outbound_id": {
+                "age": 0,
+                "type": "long",
+                "value": 9
+              },
+              "outstanding_requests": {
+                "age": 0,
+                "type": "long",
+                "value": 8
+              },
+              "remaining_cpu_quota": {
+                "age": 0,
+                "type": "long",
+                "value": 7200
+              },
+              "session_id": {
+                "age": 0,
+                "type": "SessionID",
+                "value": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "user_notified": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              }
+            }
+          },
           "creator": {
             "age": 0,
             "type": "unicode",
@@ -1928,6 +2164,38 @@
             "age": 0,
             "type": "unicode",
             "value": "Interrogate"
+          },
+          "runner_args": {
+            "age": 0,
+            "type": "FlowRunnerArgs",
+            "value": {
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Interrogate"
+              },
+              "token": {
+                "age": 0,
+                "type": "ACLToken",
+                "value": {
+                  "reason": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Running tests"
+                  },
+                  "username": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "test"
+                  }
+                }
+              }
+            }
           },
           "started_at": {
             "age": 0,
@@ -1949,9 +2217,31 @@
       "test_class": "ApiGetFlowHandlerRegressionTest",
       "type_stripped_response": {
         "args": {},
+        "context": {
+          "client_resources": {
+            "cpu_usage": {}
+          },
+          "create_time": 42000000,
+          "creator": "test",
+          "current_state": "Start",
+          "next_outbound_id": 9,
+          "outstanding_requests": 8,
+          "remaining_cpu_quota": 7200,
+          "session_id": "aff4:/C.1000000000000000/flows/F:ABCDEF12",
+          "state": "RUNNING",
+          "user_notified": false
+        },
         "creator": "test",
         "last_active_at": 42000000,
         "name": "Interrogate",
+        "runner_args": {
+          "client_id": "aff4:/C.1000000000000000",
+          "flow_name": "Interrogate",
+          "token": {
+            "reason": "Running tests",
+            "username": "test"
+          }
+        },
         "started_at": 42000000,
         "state": "RUNNING",
         "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
@@ -4144,6 +4434,24 @@
             "type": "RDFString"
           },
           {
+            "doc": "Current flow state data.",
+            "dynamic": false,
+            "friendly_name": "State data",
+            "index": 10,
+            "name": "state_data",
+            "repeated": false,
+            "type": "ApiDataObject"
+          },
+          {
+            "doc": "Current flow context.",
+            "dynamic": false,
+            "friendly_name": "Context",
+            "index": 11,
+            "name": "context",
+            "repeated": false,
+            "type": "FlowContext"
+          },
+          {
             "doc": "Nested flows started by this flow.",
             "dynamic": false,
             "friendly_name": "Nested flows",
@@ -4247,6 +4555,24 @@
             "name": "creator",
             "repeated": false,
             "type": "RDFString"
+          },
+          {
+            "doc": "Current flow state data.",
+            "dynamic": false,
+            "friendly_name": "State data",
+            "index": 10,
+            "name": "state_data",
+            "repeated": false,
+            "type": "ApiDataObject"
+          },
+          {
+            "doc": "Current flow context.",
+            "dynamic": false,
+            "friendly_name": "Context",
+            "index": 11,
+            "name": "context",
+            "repeated": false,
+            "type": "FlowContext"
           },
           {
             "doc": "Nested flows started by this flow.",
@@ -6491,6 +6817,18 @@
                 "type": "HardwareInfo",
                 "value": {}
               },
+              "knowledge_base": {
+                "age": 42000000,
+                "type": "KnowledgeBase",
+                "value": {
+                  "hostname": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "users": []
+                }
+              },
               "labels": [],
               "last_seen_at": {
                 "age": 0,
@@ -6546,6 +6884,10 @@
             "client_name": "GRR Monitor"
           },
           "hardware_info": {},
+          "knowledge_base": {
+            "hostname": "Host-0.example.com",
+            "users": []
+          },
           "labels": [],
           "last_seen_at": 42000000,
           "os_info": {
@@ -7253,6 +7595,18 @@
                     "type": "HardwareInfo",
                     "value": {}
                   },
+                  "knowledge_base": {
+                    "age": 42000000,
+                    "type": "KnowledgeBase",
+                    "value": {
+                      "hostname": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Host-1.example.com"
+                      },
+                      "users": []
+                    }
+                  },
                   "labels": [],
                   "last_seen_at": {
                     "age": 0,
@@ -7349,6 +7703,18 @@
                     "type": "HardwareInfo",
                     "value": {}
                   },
+                  "knowledge_base": {
+                    "age": 42000000,
+                    "type": "KnowledgeBase",
+                    "value": {
+                      "hostname": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Host-0.example.com"
+                      },
+                      "users": []
+                    }
+                  },
                   "labels": [],
                   "last_seen_at": {
                     "age": 0,
@@ -7408,6 +7774,10 @@
                 "client_name": "GRR Monitor"
               },
               "hardware_info": {},
+              "knowledge_base": {
+                "hostname": "Host-1.example.com",
+                "users": []
+              },
               "labels": [],
               "last_seen_at": 42000000,
               "os_info": {
@@ -7436,6 +7806,10 @@
                 "client_name": "GRR Monitor"
               },
               "hardware_info": {},
+              "knowledge_base": {
+                "hostname": "Host-0.example.com",
+                "users": []
+              },
               "labels": [],
               "last_seen_at": 42000000,
               "os_info": {
@@ -7514,6 +7888,18 @@
                     "type": "HardwareInfo",
                     "value": {}
                   },
+                  "knowledge_base": {
+                    "age": 42000000,
+                    "type": "KnowledgeBase",
+                    "value": {
+                      "hostname": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Host-0.example.com"
+                      },
+                      "users": []
+                    }
+                  },
                   "labels": [],
                   "last_seen_at": {
                     "age": 0,
@@ -7573,6 +7959,10 @@
                 "client_name": "GRR Monitor"
               },
               "hardware_info": {},
+              "knowledge_base": {
+                "hostname": "Host-0.example.com",
+                "users": []
+              },
               "labels": [],
               "last_seen_at": 42000000,
               "os_info": {
@@ -7807,6 +8197,38 @@
                 "value": "GRRVersionBreakDown"
               },
               "nested_flows": [],
+              "runner_args": {
+                "age": 0,
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "base_session_id": {
+                    "age": 0,
+                    "type": "RDFURN",
+                    "value": "aff4:/cron/GRRVersionBreakDown"
+                  },
+                  "flow_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "GRRVersionBreakDown"
+                  },
+                  "token": {
+                    "age": 0,
+                    "type": "ACLToken",
+                    "value": {
+                      "reason": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Running tests"
+                      },
+                      "username": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "test"
+                      }
+                    }
+                  }
+                }
+              },
               "started_at": {
                 "age": 0,
                 "type": "RDFDatetime",
@@ -7835,6 +8257,14 @@
             "last_active_at": 44000000,
             "name": "GRRVersionBreakDown",
             "nested_flows": [],
+            "runner_args": {
+              "base_session_id": "aff4:/cron/GRRVersionBreakDown",
+              "flow_name": "GRRVersionBreakDown",
+              "token": {
+                "reason": "Running tests",
+                "username": "test"
+              }
+            },
             "started_at": 44000000,
             "state": "RUNNING",
             "urn": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
@@ -8878,6 +9308,239 @@
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/output-plugins"
     }
   ],
+  "ApiListFlowRequestsHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 0,
+            "type": "ApiFlowRequest",
+            "value": {
+              "request_id": {
+                "age": 0,
+                "type": "unicode",
+                "value": "flow:request:00000001"
+              },
+              "request_state": {
+                "age": 0,
+                "type": "RequestState",
+                "value": {
+                  "client_id": {
+                    "age": 0,
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "id": {
+                    "age": 0,
+                    "type": "long",
+                    "value": 1
+                  },
+                  "next_state": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "IterateProcesses"
+                  },
+                  "request": {
+                    "age": 0,
+                    "type": "GrrMessage",
+                    "value": {
+                      "cpu_limit": {
+                        "age": 0,
+                        "type": "float",
+                        "value": 7200.0
+                      },
+                      "name": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "ListProcesses"
+                      },
+                      "priority": {
+                        "age": 0,
+                        "type": "EnumNamedValue",
+                        "value": "MEDIUM_PRIORITY"
+                      },
+                      "queue": {
+                        "age": 0,
+                        "type": "RDFURN",
+                        "value": "aff4:/C.1000000000000000/tasks"
+                      },
+                      "request_id": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 1
+                      },
+                      "require_fastpoll": {
+                        "age": 0,
+                        "type": "RDFBool",
+                        "value": true
+                      },
+                      "session_id": {
+                        "age": 0,
+                        "type": "FlowSessionID",
+                        "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+                      },
+                      "task_id": {
+                        "age": 0,
+                        "type": "long",
+                        "value": 42
+                      }
+                    }
+                  },
+                  "session_id": {
+                    "age": 0,
+                    "type": "SessionID",
+                    "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+                  }
+                }
+              },
+              "responses": [
+                {
+                  "age": 0,
+                  "type": "GrrMessage",
+                  "value": {
+                    "auth_state": {
+                      "age": 0,
+                      "type": "EnumNamedValue",
+                      "value": "AUTHENTICATED"
+                    },
+                    "cpu_limit": {
+                      "age": 0,
+                      "type": "float",
+                      "value": 7200.0
+                    },
+                    "eta": {
+                      "age": 0,
+                      "type": "RDFDatetime",
+                      "value": 42000000
+                    },
+                    "last_lease": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "test@test.host:42"
+                    },
+                    "name": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "ListProcesses"
+                    },
+                    "payload": {
+                      "age": 0,
+                      "type": "GrrStatus",
+                      "value": {
+                        "status": {
+                          "age": 0,
+                          "type": "EnumNamedValue",
+                          "value": "GENERIC_ERROR"
+                        }
+                      }
+                    },
+                    "payload_type": {
+                      "age": 0,
+                      "type": "unicode",
+                      "value": "GrrStatus"
+                    },
+                    "priority": {
+                      "age": 0,
+                      "type": "EnumNamedValue",
+                      "value": "MEDIUM_PRIORITY"
+                    },
+                    "queue": {
+                      "age": 0,
+                      "type": "RDFURN",
+                      "value": "aff4:/C.1000000000000000/tasks"
+                    },
+                    "request_id": {
+                      "age": 0,
+                      "type": "long",
+                      "value": 1
+                    },
+                    "require_fastpoll": {
+                      "age": 0,
+                      "type": "RDFBool",
+                      "value": true
+                    },
+                    "response_id": {
+                      "age": 0,
+                      "type": "long",
+                      "value": 1
+                    },
+                    "session_id": {
+                      "age": 0,
+                      "type": "FlowSessionID",
+                      "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+                    },
+                    "task_id": {
+                      "age": 0,
+                      "type": "long",
+                      "value": 42
+                    },
+                    "task_ttl": {
+                      "age": 0,
+                      "type": "long",
+                      "value": 6
+                    },
+                    "type": {
+                      "age": 0,
+                      "type": "EnumNamedValue",
+                      "value": "STATUS"
+                    }
+                  }
+                }
+              ]
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListFlowRequestsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "request_id": "flow:request:00000001",
+            "request_state": {
+              "client_id": "aff4:/C.1000000000000000",
+              "id": 1,
+              "next_state": "IterateProcesses",
+              "request": {
+                "cpu_limit": 7200.0,
+                "name": "ListProcesses",
+                "priority": "MEDIUM_PRIORITY",
+                "queue": "aff4:/C.1000000000000000/tasks",
+                "request_id": 1,
+                "require_fastpoll": true,
+                "session_id": "aff4:/C.1000000000000000/flows/W:ABCDEF",
+                "task_id": 42
+              },
+              "session_id": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+            },
+            "responses": [
+              {
+                "auth_state": "AUTHENTICATED",
+                "cpu_limit": 7200.0,
+                "eta": 42000000,
+                "last_lease": "test@test.host:42",
+                "name": "ListProcesses",
+                "payload": {
+                  "status": "GENERIC_ERROR"
+                },
+                "payload_type": "GrrStatus",
+                "priority": "MEDIUM_PRIORITY",
+                "queue": "aff4:/C.1000000000000000/tasks",
+                "request_id": 1,
+                "require_fastpoll": true,
+                "response_id": 1,
+                "session_id": "aff4:/C.1000000000000000/flows/W:ABCDEF",
+                "task_id": 42,
+                "task_ttl": 6,
+                "type": "STATUS"
+              }
+            ]
+          }
+        ]
+      },
+      "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/requests"
+    }
+  ],
   "ApiListFlowResultsHandler": [
     {
       "method": "GET",
@@ -9039,6 +9702,38 @@
                 "value": "ListProcesses"
               },
               "nested_flows": [],
+              "runner_args": {
+                "age": 0,
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "client_id": {
+                    "age": 0,
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "flow_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "ListProcesses"
+                  },
+                  "token": {
+                    "age": 0,
+                    "type": "ACLToken",
+                    "value": {
+                      "reason": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Running tests"
+                      },
+                      "username": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "test"
+                      }
+                    }
+                  }
+                }
+              },
               "started_at": {
                 "age": 0,
                 "type": "RDFDatetime",
@@ -9081,6 +9776,38 @@
                 "value": "Interrogate"
               },
               "nested_flows": [],
+              "runner_args": {
+                "age": 0,
+                "type": "FlowRunnerArgs",
+                "value": {
+                  "client_id": {
+                    "age": 0,
+                    "type": "ClientURN",
+                    "value": "aff4:/C.1000000000000000"
+                  },
+                  "flow_name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Interrogate"
+                  },
+                  "token": {
+                    "age": 0,
+                    "type": "ACLToken",
+                    "value": {
+                      "reason": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Running tests"
+                      },
+                      "username": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "test"
+                      }
+                    }
+                  }
+                }
+              },
               "started_at": {
                 "age": 0,
                 "type": "RDFDatetime",
@@ -9109,6 +9836,14 @@
             "last_active_at": 44000000,
             "name": "ListProcesses",
             "nested_flows": [],
+            "runner_args": {
+              "client_id": "aff4:/C.1000000000000000",
+              "flow_name": "ListProcesses",
+              "token": {
+                "reason": "Running tests",
+                "username": "test"
+              }
+            },
             "started_at": 44000000,
             "state": "RUNNING",
             "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
@@ -9119,6 +9854,14 @@
             "last_active_at": 43000000,
             "name": "Interrogate",
             "nested_flows": [],
+            "runner_args": {
+              "client_id": "aff4:/C.1000000000000000",
+              "flow_name": "Interrogate",
+              "token": {
+                "reason": "Running tests",
+                "username": "test"
+              }
+            },
             "started_at": 43000000,
             "state": "RUNNING",
             "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
@@ -13116,6 +13859,18 @@
                 "type": "HardwareInfo",
                 "value": {}
               },
+              "knowledge_base": {
+                "age": 42000000,
+                "type": "KnowledgeBase",
+                "value": {
+                  "hostname": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Host-0.example.com"
+                  },
+                  "users": []
+                }
+              },
               "labels": [],
               "last_seen_at": {
                 "age": 0,
@@ -13161,6 +13916,10 @@
               "client_name": "GRR Monitor"
             },
             "hardware_info": {},
+            "knowledge_base": {
+              "hostname": "Host-0.example.com",
+              "users": []
+            },
             "labels": [],
             "last_seen_at": 42000000,
             "os_info": {

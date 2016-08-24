@@ -8,14 +8,12 @@ import time
 
 import logging
 
-from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import email_alerts
 from grr.lib import export_utils
 from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib.aff4_objects import aff4_grr
-from grr.lib.aff4_objects import network
 
 
 class Report(object):
@@ -39,8 +37,6 @@ class ClientReport(Report):
 
   # List of attributes to add to the report from the / path in the client.
   REPORT_ATTRS = []
-  # List of tuples of (path, attribute) to add to the report.
-  EXTENDED_REPORT_ATTRS = []
 
   __abstract = True  # pylint: disable=g-bad-name
 
@@ -48,7 +44,6 @@ class ClientReport(Report):
     self.token = token
     self.results = []
     self.fields = [f.name for f in self.REPORT_ATTRS]
-    self.fields += [f[1].name for f in self.EXTENDED_REPORT_ATTRS]
     self.thread_num = thread_num
     self.broken_clients = []  # Clients that are broken or fail to run.
 
@@ -140,10 +135,7 @@ class ClientReport(Report):
   def _QueryResults(self, max_age):
     """Query each record in the client database."""
     report_iter = ClientReportIterator(
-        max_age=max_age,
-        token=self.token,
-        report_attrs=self.REPORT_ATTRS,
-        extended_report_attrs=self.EXTENDED_REPORT_ATTRS)
+        max_age=max_age, token=self.token, report_attrs=self.REPORT_ATTRS)
     self.broken_clients = report_iter.broken_subjects
     return report_iter.Run()
 
@@ -159,10 +151,7 @@ class ClientListReport(ClientReport):
       aff4_grr.VFSGRRClient.SchemaCls.GetAttribute("Architecture"),
       aff4_grr.VFSGRRClient.SchemaCls.GetAttribute("Uname"),
       aff4_grr.VFSGRRClient.SchemaCls.GetAttribute("GRR client"),
-  ]
-
-  EXTENDED_REPORT_ATTRS = [
-      ("network", network.Network.SchemaCls.GetAttribute("Interfaces"))
+      aff4_grr.VFSGRRClient.SchemaCls.GetAttribute("Interfaces"),
   ]
 
   REPORT_NAME = "GRR Client List Report"
@@ -206,17 +195,15 @@ class VersionBreakdownReport(ClientReport):
 class ClientReportIterator(export_utils.IterateAllClients):
   """Iterate through all clients generating basic client information."""
 
-  def __init__(self, report_attrs, extended_report_attrs, **kwargs):
+  def __init__(self, report_attrs, **kwargs):
     """Initialize.
 
     Args:
       report_attrs: Attributes to retrieve.
-      extended_report_attrs: Path, Attribute tuples to retrieve.
       **kwargs: Additional args to fall through to client iterator.
     """
     super(ClientReportIterator, self).__init__(**kwargs)
     self.report_attrs = report_attrs
-    self.extended_report_attrs = extended_report_attrs
 
   def IterFunction(self, client, out_queue, unused_token):
     """Extract report attributes."""
@@ -234,27 +221,15 @@ class ClientReportIterator(export_utils.IterateAllClients):
 
         result[attr.name] = "%s %s" % (c_info.client_name,
                                        str(c_info.client_version))
-      else:
-        result[attr.name] = client.Get(attr)
-
-    for sub_path, attr in self.extended_report_attrs:
-      try:
-        # TODO(user): Update this to use MultiOpen.
-        client_sub = aff4.FACTORY.Open(
-            client.urn.Add(sub_path), token=self.token)
-      except IOError:
-        # If the path is not found, just continue.
-        continue
-      # Special case formatting for some attributes.
-      if attr.name == "Interfaces":
-        interfaces = client_sub.Get(attr)
+      elif attr.name == "Interfaces":
+        interfaces = client.Get(attr)
         if interfaces:
           try:
             result[attr.name] = ",".join(interfaces.GetIPAddresses())
           except AttributeError:
             result[attr.name] = ""
       else:
-        result[attr.name] = client_sub.Get(attr)
+        result[attr.name] = client.Get(attr)
 
     out_queue.put(result)
 

@@ -282,12 +282,6 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(flows), 1)
     self.assertIn(hunt.session_id.Basename(), str(flows[0]))
 
-  def testCallbackWithLimit(self):
-
-    self.assertRaises(RuntimeError, self.testCallback, 2000)
-
-    self.testCallback(100)
-
   def testProcessing(self):
     """This tests running the hunt on some clients."""
 

@@ -245,11 +245,11 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
     })
 
 
-class FilterAff4CollectionTest(test_lib.GRRBaseTest):
-  """Test for FilterAff4Collection."""
+class FilterCollectionTest(test_lib.GRRBaseTest):
+  """Test for FilterCollection."""
 
   def setUp(self):
-    super(FilterAff4CollectionTest, self).setUp()
+    super(FilterCollectionTest, self).setUp()
 
     with aff4.FACTORY.Create(
         "aff4:/tmp/foo/bar", collects.RDFValueCollection,
@@ -260,27 +260,27 @@ class FilterAff4CollectionTest(test_lib.GRRBaseTest):
     self.fd = aff4.FACTORY.Open("aff4:/tmp/foo/bar", token=self.token)
 
   def testFiltersByOffsetAndCount(self):
-    data = api_call_handler_utils.FilterAff4Collection(self.fd, 2, 5, None)
+    data = api_call_handler_utils.FilterCollection(self.fd, 2, 5, None)
     self.assertEqual(len(data), 5)
     self.assertEqual(data[0].path, "/var/os/tmp-2")
     self.assertEqual(data[-1].path, "/var/os/tmp-6")
 
   def testIngoresTooBigCount(self):
-    data = api_call_handler_utils.FilterAff4Collection(self.fd, 0, 50, None)
+    data = api_call_handler_utils.FilterCollection(self.fd, 0, 50, None)
     self.assertEqual(len(data), 10)
     self.assertEqual(data[0].path, "/var/os/tmp-0")
     self.assertEqual(data[-1].path, "/var/os/tmp-9")
 
   def testRaisesOnNegativeOffset(self):
     with self.assertRaises(ValueError):
-      api_call_handler_utils.FilterAff4Collection(self.fd, -10, 0, None)
+      api_call_handler_utils.FilterCollection(self.fd, -10, 0, None)
 
   def testRaisesOnNegativeCount(self):
     with self.assertRaises(ValueError):
-      api_call_handler_utils.FilterAff4Collection(self.fd, 0, -10, None)
+      api_call_handler_utils.FilterCollection(self.fd, 0, -10, None)
 
   def testFiltersByFilterString(self):
-    data = api_call_handler_utils.FilterAff4Collection(self.fd, 0, 0, "tmp-8")
+    data = api_call_handler_utils.FilterCollection(self.fd, 0, 0, "tmp-8")
     self.assertEqual(len(data), 1)
     self.assertEqual(data[0].path, "/var/os/tmp-8")
 

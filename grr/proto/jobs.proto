@@ -1411,6 +1411,13 @@ message FindSpec {
   optional uint64 gid = 17 [(sem_type) = {
       description: "Group ID to match against a file's GID."
     }];
+
+  optional bool quick_listing = 18 [(sem_type) = {
+      description: "Triggers an optimized algorithm that only returns file "
+      "paths and whether or not they are directories. This is mutually "
+      "exclusive with all conditions.",
+      label: HIDDEN
+    }, default = false];
 }
 
 message PlistRequest {

@@ -9,6 +9,8 @@ goog.require('grrUi.flow.flowDescriptorsTreeDirective.FlowDescriptorsTreeDirecti
 goog.require('grrUi.flow.flowInfoDirective.FlowInfoDirective');
 goog.require('grrUi.flow.flowInspectorDirective.FlowInspectorDirective');
 goog.require('grrUi.flow.flowLogDirective.FlowLogDirective');
+goog.require('grrUi.flow.flowOverviewDirective.FlowOverviewDirective');
+goog.require('grrUi.flow.flowRequestsDirective.FlowRequestsDirective');
 goog.require('grrUi.flow.flowResultsDirective.FlowResultsDirective');
 goog.require('grrUi.flow.flowStatusIconDirective.FlowStatusIconDirective');
 goog.require('grrUi.flow.flowsListDirective.FlowsListDirective');
@@ -41,6 +43,12 @@ grrUi.flow.module.directive(
 grrUi.flow.module.directive(
     grrUi.flow.flowLogDirective.FlowLogDirective.directive_name,
     grrUi.flow.flowLogDirective.FlowLogDirective);
+grrUi.flow.module.directive(
+    grrUi.flow.flowOverviewDirective.FlowOverviewDirective.directive_name,
+    grrUi.flow.flowOverviewDirective.FlowOverviewDirective);
+grrUi.flow.module.directive(
+    grrUi.flow.flowRequestsDirective.FlowRequestsDirective.directive_name,
+    grrUi.flow.flowRequestsDirective.FlowRequestsDirective);
 grrUi.flow.module.directive(
     grrUi.flow.flowResultsDirective.FlowResultsDirective.directive_name,
     grrUi.flow.flowResultsDirective.FlowResultsDirective);

@@ -18,6 +18,7 @@ from chipsec import chipset  # pylint: disable=g-import-not-at-top
 from chipsec import logger
 from chipsec.hal import acpi
 from chipsec.hal import spi
+from chipsec.helper import oshelper
 
 import chipsec_types
 
@@ -88,7 +89,9 @@ class DumpFlashImage(actions.ActionPlugin):
           self.Progress()
         dest_fd.write("".join(bios))
 
-    except chipset.UnknownChipsetError as err:
+    except (chipset.UnknownChipsetError, oshelper.OsHelperError) as err:
+      # If the chipset is not recognised or if the helper threw an error,
+      # report gracefully the error to the flow.
       if args.log_level:
         self.LogError(err)
       tempfiles.DeleteGRRTempFile(dest_pathspec.path)

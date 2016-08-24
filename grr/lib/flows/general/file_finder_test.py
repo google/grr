@@ -114,7 +114,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
       # Directories have no size attribute.
       if fd.Get(fd.Schema.TYPE) == standard.VFSDirectory:
         continue
-      self.assertEqual(fd.Get(fd.Schema.SIZE), 0)
+      if fd.Schema.SIZE is not None:
+        self.assertEqual(fd.Get(fd.Schema.SIZE), 0)
 
   def CheckFilesInCollection(self, fnames, session_id=None):
     session_id = session_id or self.last_session_id
@@ -194,7 +195,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
     self.CheckFilesInCollection(expected_files)
 
-    if action == file_finder.FileFinderAction.Action.STAT:
+    if action in [file_finder.FileFinderAction.Action.STAT,
+                  file_finder.FileFinderAction.Action.LIST]:
       self.CheckFilesNotDownloaded(expected_files + non_expected_files)
       self.CheckFilesNotHashed(expected_files + non_expected_files)
     elif action == file_finder.FileFinderAction.Action.DOWNLOAD:
@@ -216,6 +218,24 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     self.RunFlowAndCheckResults(
         action=file_finder.FileFinderAction.Action.STAT,
         expected_files=["auth.log", "dpkg.log", "dpkg_false.log"])
+
+  def testFileFinderListActionRaisesWithConditions(self):
+    match = file_finder.FileFinderContentsLiteralMatchCondition(
+        mode=file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
+        bytes_before=10,
+        bytes_after=10,
+        literal="session opened for user dearjohn")
+
+    literal_condition = file_finder.FileFinderCondition(
+        condition_type=file_finder.FileFinderCondition.Type.
+        CONTENTS_LITERAL_MATCH,
+        contents_literal_match=match)
+
+    # RuntimeError: The LIST FileFinder action doesn't support conditions.
+    with self.assertRaises(RuntimeError):
+      self.RunFlow(
+          action=file_finder.FileFinderAction.Action.LIST,
+          conditions=[literal_condition])
 
   def testFileFinderStat(self):
     files_to_check = [
@@ -258,6 +278,10 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         action=file_finder.FileFinderAction.Action.HASH,
         expected_files=["auth.log", "dpkg.log", "dpkg_false.log"])
 
+  CONDITION_TESTS_ACTIONS = sorted(
+      set(file_finder.FileFinderAction.Action.enum_dict.values()) -
+      {file_finder.FileFinderAction.Action.LIST})
+
   def testLiteralMatchConditionWithDifferentActions(self):
     expected_files = ["auth.log"]
     non_expected_files = ["dpkg.log", "dpkg_false.log"]
@@ -272,8 +296,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         CONTENTS_LITERAL_MATCH,
         contents_literal_match=match)
 
-    for action in sorted(file_finder.FileFinderAction.Action.enum_dict.values(
-    )):
+    for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(
           action=action,
           conditions=[literal_condition],
@@ -340,8 +363,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
             bytes_after=10,
             regex="session opened for user .*?john"))
 
-    for action in sorted(file_finder.FileFinderAction.Action.enum_dict.values(
-    )):
+    for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(
           action=action,
           conditions=[regex_condition],
@@ -383,8 +405,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
             bytes_after=10,
             regex="format.*should"))
 
-    for action in sorted(file_finder.FileFinderAction.Action.enum_dict.values(
-    )):
+    for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(
           action=action,
           conditions=[regex_condition1, regex_condition2],
@@ -430,8 +451,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
             bytes_after=10,
             regex=".*"))
 
-    for action in sorted(file_finder.FileFinderAction.Action.enum_dict.values(
-    )):
+    for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(
           action=action,
           conditions=[regex_condition1, regex_condition2],
@@ -463,8 +483,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         condition_type=file_finder.FileFinderCondition.Type.SIZE,
         size=file_finder.FileFinderSizeCondition(max_file_size=max(sizes) + 1))
 
-    for action in sorted(file_finder.FileFinderAction.Action.enum_dict.values(
-    )):
+    for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(
           action=action,
           conditions=[size_condition],
@@ -522,8 +541,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
             bytes_after=10,
             regex="session opened for user .*?john"))
 
-    for action in sorted(file_finder.FileFinderAction.Action.enum_dict.values(
-    )):
+    for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(
           action=action,
           conditions=[size_condition, regex_condition],
@@ -531,8 +549,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
           non_expected_files=non_expected_files)
 
     # Check that order of conditions doesn't influence results
-    for action in sorted(file_finder.FileFinderAction.Action.enum_dict.values(
-    )):
+    for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(
           action=action,
           conditions=[regex_condition, size_condition],
@@ -549,8 +566,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         modification_time=file_finder.FileFinderModificationTimeCondition(
             min_last_modified_time=change_time))
 
-    for action in sorted(file_finder.FileFinderAction.Action.enum_dict.values(
-    )):
+    for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(
           action=action,
           conditions=[modification_time_condition],
@@ -567,8 +583,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         access_time=file_finder.FileFinderAccessTimeCondition(
             min_last_access_time=change_time))
 
-    for action in sorted(file_finder.FileFinderAction.Action.enum_dict.values(
-    )):
+    for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(
           action=action,
           conditions=[access_time_condition],
@@ -585,8 +600,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         inode_change_time=file_finder.FileFinderInodeChangeTimeCondition(
             min_last_inode_change_time=change_time))
 
-    for action in sorted(file_finder.FileFinderAction.Action.enum_dict.values(
-    )):
+    for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(
           action=action,
           conditions=[inode_change_time_condition],
@@ -635,8 +649,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
         # Check this condition with all the actions. This makes sense, as we may
         # download memeory or send it to the socket.
-        for action in sorted(
-            file_finder.FileFinderAction.Action.enum_dict.values()):
+        for action in self.CONDITION_TESTS_ACTIONS:
           for s in test_lib.TestFlowHelper(
               "FileFinder",
               self.client_mock,

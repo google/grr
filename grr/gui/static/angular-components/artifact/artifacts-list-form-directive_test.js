@@ -7,7 +7,7 @@ goog.require('grrUi.tests.module');
 var browserTrigger = grrUi.tests.browserTrigger;
 
 describe('artifacts list form directive', function() {
-  var $q, $compile, $rootScope, grrApiService;
+  var $q, $compile, $rootScope, grrArtifactDescriptorsService;
   var descriptorLinux, descriptorDarwinWindows;
 
   beforeEach(module('/static/angular-components/artifact/artifacts-list-form.html'));
@@ -20,7 +20,7 @@ describe('artifacts list form directive', function() {
     $q = $injector.get('$q');
     $compile = $injector.get('$compile');
     $rootScope = $injector.get('$rootScope');
-    grrApiService = $injector.get('grrApiService');
+    grrArtifactDescriptorsService = $injector.get('grrArtifactDescriptorsService');
   }));
 
   var renderTestTemplate = function(value) {
@@ -40,17 +40,28 @@ describe('artifacts list form directive', function() {
     return element;
   };
 
-  describe('when API calls fail', function() {
+  it('shows "Loading artifacts..." while artifacts are being loaded', function() {
+    var deferred = $q.defer();
+    spyOn(grrArtifactDescriptorsService, 'listDescriptors').and
+        .returnValue(deferred.promise);
+
+    var element = renderTestTemplate([]);
+    expect(element.text()).toContain('Loading artifacts...');
+  });
+
+  describe('when descriptors listing fails', function() {
     beforeEach(function() {
-      spyOn(grrApiService, 'get').and.callFake(function() {
+      spyOn(grrArtifactDescriptorsService, 'listDescriptors').and.callFake(function() {
         var deferred = $q.defer();
-        deferred.reject({
-          data: {
-            message: 'Oh no!'
-          }
-        });
+        deferred.reject('Oh no!');
         return deferred.promise;
       });
+    });
+
+    it('hides "Loading artifacts..." message', function() {
+      var element = renderTestTemplate([]);
+
+      expect(element.text()).not.toContain('Loading artifacts...');
     });
 
     it('shows a failure message on artifacts fetch failure', function() {
@@ -60,7 +71,7 @@ describe('artifacts list form directive', function() {
     });
   });
 
-  describe('when API calls succeed', function() {
+  describe('when descriptors listing succeeds', function() {
     beforeEach(function() {
       descriptorLinux = {
         type: 'ArtifactDescriptor',
@@ -93,18 +104,20 @@ describe('artifacts list form directive', function() {
         }
       };
 
-      spyOn(grrApiService, 'get').and.callFake(function() {
+      spyOn(grrArtifactDescriptorsService, 'listDescriptors').and.callFake(function() {
         var deferred = $q.defer();
         deferred.resolve({
-          data: {
-            items: [
-              descriptorLinux,
-              descriptorDarwinWindows
-            ]
-          }
+          'FooLinux': descriptorLinux,
+          'BarDarwinWindows': descriptorDarwinWindows
         });
         return deferred.promise;
       });
+    });
+
+    it('hides "Loading artifacts..." message', function() {
+      var element = renderTestTemplate([]);
+
+      expect(element.text()).not.toContain('Loading artifacts...');
     });
 
     it('shows all artifacts for selection by default', function() {

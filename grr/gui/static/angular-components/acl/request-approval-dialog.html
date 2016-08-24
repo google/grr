@@ -30,10 +30,11 @@
 
     <div class="form-group" ng-if="controller.ccAddresses.length">
       <div class="controls">
-        <input type="checkbox" name="cc_approval" class="form-control"
-               ng-model="controller.useCcAddresses">
-        </input>
-        <label>CC {$ controller.ccAddresses.join(', ') $}</label>
+        <label>
+          <input type="checkbox" name="cc_approval" ng-model="controller.useCcAddresses">
+          </input>
+          CC {$ controller.ccAddresses.join(', ') $}
+        </label>
       </div>
     </div>
 
@@ -62,10 +63,11 @@
 
     <div class="form-group" ng-if="approvalType == 'client'">
       <div class="controls">
-        <input type="checkbox" name="keepalive" class="form-control"
-               ng-model="controller.keepClientAlive">
-        </input>
-        <label>Keep this client alive as soon as it comes online.</label>
+        <label>
+          <input type="checkbox" name="keepalive" ng-model="controller.keepClientAlive">
+          </input>
+          Keep this client alive as soon as it comes online.
+        </label>
       </div>
     </div>
 

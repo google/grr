@@ -6,6 +6,7 @@ goog.provide('grrUi.semantic.module');
 
 goog.require('grrUi.core.module');
 goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
+goog.require('grrUi.semantic.byteSizeDirective.ByteSizeDirective');
 goog.require('grrUi.semantic.bytesDirective.BytesDirective');
 goog.require('grrUi.semantic.clientUrnDirective.ClientUrnDirective');
 goog.require('grrUi.semantic.dataObjectDirective.DataObjectDirective');
@@ -43,6 +44,9 @@ grrUi.semantic.module = angular.module('grrUi.semantic',
                                         grrUi.semantic.rekall.module.name,
                                         'ui.bootstrap']);
 
+grrUi.semantic.module.directive(
+    grrUi.semantic.byteSizeDirective.ByteSizeDirective.directive_name,
+    grrUi.semantic.byteSizeDirective.ByteSizeDirective);
 grrUi.semantic.module.directive(
     grrUi.semantic.bytesDirective.BytesDirective.directive_name,
     grrUi.semantic.bytesDirective.BytesDirective);
@@ -119,6 +123,9 @@ grrUi.semantic.module.service(
 grrUi.semantic.module.run(function(grrSemanticValueDirectivesRegistryService) {
   var registry = grrSemanticValueDirectivesRegistryService;
 
+  registry.registerDirective(
+      grrUi.semantic.byteSizeDirective.ByteSizeDirective.semantic_type,
+      grrUi.semantic.byteSizeDirective.ByteSizeDirective);
   registry.registerDirective(
       grrUi.semantic.bytesDirective.BytesDirective.semantic_type,
       grrUi.semantic.bytesDirective.BytesDirective);

@@ -11,16 +11,16 @@ goog.scope(function() {
  *
  * @constructor
  * @param {!angular.Scope} $scope
- * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService} grrArtifactDescriptorsService
  * @ngInject
  */
 grrUi.artifact.artifactsListFormDirective.ArtifactsListFormController =
-    function($scope, grrApiService) {
+    function($scope, grrArtifactDescriptorsService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @private {!grrUi.core.apiService.ApiService} */
-  this.grrApiService_ = grrApiService;
+  /** @private {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService} */
+  this.grrArtifactDescriptorsService_ = grrArtifactDescriptorsService;
 
   /** @export {Array<Object>} */
   this.descriptorsList = [];
@@ -49,7 +49,7 @@ grrUi.artifact.artifactsListFormDirective.ArtifactsListFormController =
   /** @export {Function} Bound function to be used as a filter. */
   this.platformFilterRef = this.platformFilter.bind(this);
 
-  this.grrApiService_.get('/artifacts').then(
+  this.grrArtifactDescriptorsService_.listDescriptors().then(
       this.onArtifactsResponse_.bind(this),
       this.onArtifactsRequestFailure_.bind(this));
 
@@ -118,27 +118,24 @@ ArtifactsListFormController.prototype.platformFilter = function(descriptor) {
 /**
  * Handles server's response with a list of artifacts.
  *
- * @param {Object} response
+ * @param {!Object<string, Object>} descriptors
  * @private
  */
 ArtifactsListFormController.prototype.onArtifactsResponse_ = function(
-    response) {
-  this.descriptors = {};
-  angular.forEach(response['data']['items'], function(descriptor) {
-    this.descriptors[descriptor.value.artifact.value.name.value] = descriptor;
-  }.bind(this));
+    descriptors) {
+  this.descriptors = descriptors;
 };
 
 
 /**
  * Handles errors that happen when requesting list of available artifacts.
  *
- * @param {Object} response
+ * @param {string} error
  * @private
  */
 ArtifactsListFormController.prototype.onArtifactsRequestFailure_ = function(
-    response) {
-  this.descriptorsError = response.data['message'];
+    error) {
+  this.descriptorsError = error;
 };
 
 /**

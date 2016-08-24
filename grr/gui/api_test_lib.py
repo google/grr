@@ -7,6 +7,7 @@ import abc
 import json
 import os
 import re
+import socket
 import urlparse
 
 from grr import gui
@@ -51,6 +52,15 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
   def setUp(self):
     super(ApiCallHandlerRegressionTest, self).setUp()
     self.checks = []
+
+    self.syscalls_stubber = utils.MultiStubber(
+        (socket, "gethostname", lambda: "test.host"),
+        (os, "getpid", lambda: 42))
+    self.syscalls_stubber.Start()
+
+  def tearDown(self):
+    super(ApiCallHandlerRegressionTest, self).tearDown()
+    self.syscalls_stubber.Stop()
 
   def NoAuthorizationChecks(self):
     return utils.Stubber(api_auth_manager, "API_AUTH_MGR",

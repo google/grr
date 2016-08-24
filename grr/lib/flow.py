@@ -427,7 +427,7 @@ class FlowBase(aff4.AFF4Volume):
       if value is not None:
         setattr(protobuf, descriptor.name, value)
 
-  def CreateRunner(self, parent_runner=None, runner_args=None, **kw):
+  def CreateRunner(self, **kw):
     """Make a new runner."""
     raise NotImplementedError("Cannot call CreateRunner on the base class.")
 
@@ -511,7 +511,7 @@ class FlowBase(aff4.AFF4Volume):
 
   @classmethod
   def StartFlow(cls, args=None, runner_args=None,  # pylint: disable=g-bad-name
-                parent_flow=None, _store=None, sync=True, **kwargs):
+                parent_flow=None, sync=True, **kwargs):
     """The main factory function for Creating and executing a new flow.
 
     Args:
@@ -523,8 +523,6 @@ class FlowBase(aff4.AFF4Volume):
         to initialize the runner for this flow.
 
       parent_flow: A parent flow or None if this is a top level flow.
-      _store: The data store to use for running this flow (only used for
-              testing).
 
       sync: If True, the Start method of this flow will be called
          inline. Otherwise we schedule the starting of this flow on another
@@ -616,9 +614,7 @@ class FlowBase(aff4.AFF4Volume):
       parent_runner = None
 
     runner = flow_obj.CreateRunner(
-        parent_runner=parent_runner,
-        runner_args=runner_args,
-        _store=_store or data_store.DB)
+        parent_runner=parent_runner, runner_args=runner_args)
 
     logging.info(u"Scheduling %s(%s) on %s", flow_obj.urn,
                  runner_args.flow_name, runner_args.client_id)
@@ -865,23 +861,27 @@ class GRRFlow(FlowBase):
       else:
         # This might be an old style flow.
         state = self.Get(self.Schema.FLOW_STATE)
+        # TODO(user): Backwards compatibility hack. Remove this once
+        # there are no legacy flows left we still need to display in the UI.
         if state:
           # Old style flows are read only.
           self.mode = "r"
           self.state = state
-          # TODO(user): Backwards compatibility hack. Remove this once
-          # there are no legacy flows left we still need to display in the UI.
           if self.context is None:
             try:
               self.context = state.context
             except KeyError:
               pass
 
-          # TODO(user): Backwards compatibility hack. Remove this once
-          # there are no legacy flows left we still need to display in the UI.
           if self.runner_args is None:
             try:
               self.runner_args = self.context.args
+            except KeyError:
+              pass
+
+          if self.args is None:
+            try:
+              self.args = state.args
             except KeyError:
               pass
         else:
@@ -912,27 +912,6 @@ class GRRFlow(FlowBase):
     _ = token
     return cls.args_type()
 
-  def UpdateKillNotification(self):
-    # If kill timestamp is set (i.e. if the flow is currently being
-    # processed by the worker), delete the old "kill if stuck" notification
-    # and schedule a new one, further in the future.
-    if (self.runner.schedule_kill_notifications and
-        self.runner.context.kill_timestamp):
-      with queue_manager.QueueManager(token=self.token) as manager:
-        manager.DeleteNotification(
-            self.session_id,
-            start=self.runner.context.kill_timestamp,
-            end=self.runner.context.kill_timestamp + rdfvalue.Duration("1s"))
-
-        stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
-            "Worker.stuck_flows_timeout"])
-        self.runner.context.kill_timestamp = (
-            rdfvalue.RDFDatetime().Now() + stuck_flows_timeout)
-        manager.QueueNotification(
-            session_id=self.session_id,
-            in_progress=True,
-            timestamp=self.runner.context.kill_timestamp)
-
   def HeartBeat(self):
     if self.locked:
       lease_time = config_lib.CONFIG["Worker.flow_lease_time"]
@@ -940,7 +919,7 @@ class GRRFlow(FlowBase):
         logging.info("%s: Extending Lease", self.session_id)
         self.UpdateLease(lease_time)
 
-        self.UpdateKillNotification()
+        self.runner.HeartBeat()
     else:
       logging.warning("%s is heartbeating while not being locked.", self.urn)
 
@@ -989,17 +968,28 @@ class GRRFlow(FlowBase):
     return self.__class__.__name__
 
   @classmethod
-  def MarkForTermination(cls, flow_urn, reason=None, sync=False, token=None):
+  def MarkForTermination(cls,
+                         flow_urn,
+                         mutation_pool=None,
+                         reason=None,
+                         sync=False,
+                         token=None):
     """Mark the flow for termination as soon as any of its states are called."""
     # Doing a blind write here using low-level data store API. Accessing
     # the flow via AFF4 is not really possible here, because it forces a state
     # to be written in Close() method.
-    data_store.DB.Set(flow_urn,
-                      cls.SchemaCls.PENDING_TERMINATION.predicate,
-                      PendingFlowTermination(reason=reason),
-                      replace=False,
-                      sync=sync,
-                      token=token)
+    if mutation_pool:
+      mutation_pool.Set(flow_urn,
+                        cls.SchemaCls.PENDING_TERMINATION.predicate,
+                        PendingFlowTermination(reason=reason),
+                        replace=False)
+    else:
+      data_store.DB.Set(flow_urn,
+                        cls.SchemaCls.PENDING_TERMINATION.predicate,
+                        PendingFlowTermination(reason=reason),
+                        replace=False,
+                        sync=sync,
+                        token=token)
 
   @classmethod
   def TerminateFlow(cls,

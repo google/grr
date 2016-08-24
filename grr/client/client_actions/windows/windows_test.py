@@ -376,11 +376,18 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
     pathspec = rdf_paths.PathSpec(pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
 
     walk_tups_0 = list(vfs.VFSOpen(pathspec).RecursiveListNames())
+    walk_tups_1 = list(vfs.VFSOpen(pathspec).RecursiveListNames(depth=1))
+    walk_tups_2 = list(vfs.VFSOpen(pathspec).RecursiveListNames(depth=2))
+    walk_tups_inf = list(
+        vfs.VFSOpen(pathspec).RecursiveListNames(depth=float("inf")))
+
     self.assertEqual(walk_tups_0,
                      [(r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"], [])])
 
-    walk_tups_1 = list(vfs.VFSOpen(pathspec).RecursiveListNames(depth=1))
     self.assertEqual(walk_tups_1,
+                     [(r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"], [])])
+
+    self.assertEqual(walk_tups_2,
                      [(r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"], []),
                       (r"HKEY_LOCAL_MACHINE", [r"SOFTWARE", r"SYSTEM"], []),
                       (r"HKEY_USERS",
@@ -388,8 +395,6 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
                         r"S-1-5-21-2911950750-476812067-1487428992-1001",
                         r"S-1-5-21-702227000-2140022111-3110739999-1990"], [])])
 
-    walk_tups_inf = list(
-        vfs.VFSOpen(pathspec).RecursiveListNames(depth=float("inf")))
     self.assertEqual(
         walk_tups_inf,
         [(r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"], []),

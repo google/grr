@@ -217,7 +217,7 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     for username in client.Get(s.USERNAMES, []):
       TryAppend("user", username)
 
-    for interface in client.Get(s.LAST_INTERFACES, []):
+    for interface in client.Get(s.INTERFACES, []):
       if interface.mac_address:
         TryAppendMac(interface.mac_address.human_readable_address)
       for ip in interface.GetIPAddresses():

@@ -14,14 +14,19 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @param {!angular.$q} $q
  * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService} grrArtifactDescriptorsService
  * @ngInject
  */
-grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogController = function($scope, $q, grrApiService) {
+grrUi.artifact.deleteArtifactsDialogDirective.DeleteArtifactsDialogController = function(
+    $scope, $q, grrApiService, grrArtifactDescriptorsService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
+
+  /** @private {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService} */
+  this.grrArtifactDescriptorsService_ = grrArtifactDescriptorsService;
 
   /** @private {!angular.$q} */
   this.q_ = $q;
@@ -44,6 +49,7 @@ DeleteArtifactsDialogController.prototype.proceed = function() {
       '/artifacts', { names: this.scope_['names'] }).then(
         function success() {
           deferred.resolve('Artifacts were deleted successfully.');
+          this.grrArtifactDescriptorsService_.clearCache();
         }.bind(this),
         function failure(response) {
           deferred.reject(response.data.message);

@@ -50,7 +50,7 @@ message FlowContext {
 }
 
 // The hunt context.
-// Next field: 14
+// Next field: 13
 message HuntContext {
   optional ClientResources client_resources = 1;
   optional uint64 create_time = 2 [(sem_type) = {
@@ -66,15 +66,14 @@ message HuntContext {
     }];
   optional uint64 next_outbound_id = 7 [default = 1];
   optional uint64 next_processed_request = 8 [default = 1];
-  optional uint64 outstanding_requests = 9;
-  optional uint64 remaining_cpu_quota = 10;
-  optional string session_id = 11 [(sem_type) = {
+  optional uint64 remaining_cpu_quota = 9;
+  optional string session_id = 10 [(sem_type) = {
       type: "SessionID"
     }];
-  optional uint64 start_time = 12 [(sem_type) = {
+  optional uint64 start_time = 11 [(sem_type) = {
       type: "RDFDatetime",
     }];
-  optional ClientResourcesStats usage_stats = 13;
+  optional ClientResourcesStats usage_stats = 12;
 }
 
 // This is the user's access token.
@@ -335,11 +334,12 @@ message HuntRunnerArgs {
     // (instead of float). We force it to be float here by making it 20.5.
     default=20.5];
 
-  optional string logs_collection_urn = 14 [(sem_type) = {
-      type: "RDFURN",
-      description: "The logs collection to log to for the hunt.",
-      label: HIDDEN,
-    }];
+  // DEPRECATED.
+  // optional string logs_collection_urn = 14 [(sem_type) = {
+  //     type: "RDFURN",
+  //     description: "The logs collection to log to for the hunt.",
+  //     label: HIDDEN,
+  //   }];
 
   optional bool require_fastpoll = 15 [ default = true, (sem_type) = {
       description: "This value is passed to the client during CallClient, and "
@@ -1548,10 +1548,9 @@ message FileFinderAction {
 
   enum Action {
     STAT = 0 [(description) = "Stat"];
-
     HASH = 1 [(description) = "Hash"];
-
     DOWNLOAD = 2 [(description) = "Download"];
+    LIST = 3 [(description) = "List"];
   }
 
   optional Action action_type = 1 [default = STAT, (sem_type) = {
@@ -1790,7 +1789,7 @@ message DumpFlashImageArgs {
   optional string component_version = 4 [(sem_type) = {
       description: "Version of Chipsec component to be used.",
       label: ADVANCED
-    }, default="1.2.2.2"];
+    }, default="1.2.4.1"];
 }
 
 // Next field ID: 4
@@ -1805,5 +1804,5 @@ message DumpACPITableArgs {
   optional string component_version = 3 [(sem_type) = {
       description: "Version of Chipsec component to be used.",
       label: ADVANCED
-    }, default="1.2.2.2"];
+    }, default="1.2.4.1"];
 }

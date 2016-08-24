@@ -49,14 +49,13 @@ class NetstatTest(test_lib.FlowTestsBaseclass):
     fd.Set(fd.Schema.SYSTEM("Windows"))
     fd.Close()
 
-    for _ in test_lib.TestFlowHelper(
+    for s in test_lib.TestFlowHelper(
         "Netstat", ClientMock(), client_id=self.client_id, token=self.token):
-      pass
+      session_id = s
 
-    # Check the output file is created
-    fd = aff4.FACTORY.Open(self.client_id.Add("network"), token=self.token)
-    conns = fd.Get(fd.Schema.CONNECTIONS)
-
+    # Check the results are correct.
+    fd = aff4.FACTORY.Open(session_id.Add("Results"), token=self.token)
+    conns = list(fd)
     self.assertEqual(len(conns), 2)
     self.assertEqual(conns[0].local_address.ip, "0.0.0.0")
     self.assertEqual(conns[0].local_address.port, 22)

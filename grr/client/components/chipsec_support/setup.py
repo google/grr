@@ -10,7 +10,7 @@ from setuptools import setup
 # the grr-chipsec module published on pypi.
 setup_args = dict(
     name="grr-chipsec-component",
-    version="1.2.2.2",
+    version="1.2.4.1",
     description="Chipsec GRR Integration module.",
     license="GPL",
     url="https://github.com/chipsec/chipsec/",
@@ -26,7 +26,7 @@ setup_args = dict(
         "actions"
     ],
     install_requires=[
-        "grr-chipsec == 1.2.2.2",
+        "chipsec == 1.2.4",
     ],
     zip_safe=False)
 

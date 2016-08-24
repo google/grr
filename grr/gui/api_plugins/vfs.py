@@ -26,7 +26,7 @@ from grr.proto import api_pb2
 CATEGORY = "Files"
 
 # Files can only be accessed if their first path component is from this list.
-ROOT_FILES_WHITELIST = ["fs", "registry"]
+ROOT_FILES_WHITELIST = ["fs", "registry", "temp"]
 
 
 def ValidateVfsPath(path):

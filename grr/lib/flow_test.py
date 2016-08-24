@@ -17,7 +17,6 @@ from grr.lib import aff4
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import flow_runner
 from grr.lib import output_plugin
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
@@ -521,12 +520,12 @@ class FlowTest(BasicFlowTest):
     self.SendMessages(message_ids, flow_obj.session_id)
 
     # Send the status message
-    message = self.SendOKStatus(6, flow_obj.session_id)
+    self.SendOKStatus(6, flow_obj.session_id)
 
-    runner = flow_runner.FlowRunner(flow_obj)
-    notification = rdf_flows.Notification(
+    runner = flow_obj.GetRunner()
+    notification = rdf_flows.GrrNotification(
         timestamp=rdfvalue.RDFDatetime().Now())
-    runner.ProcessCompletedRequests(notification, [message])
+    runner.ProcessCompletedRequests(notification)
 
     # Check that the messages were processed in order
     self.assertEqual(flow_obj.messages, [1, 2, 3, 4, 5])
@@ -595,12 +594,12 @@ class FlowTest(BasicFlowTest):
     self.SendMessages(message_ids, flow_obj.session_id, authenticated=False)
 
     # Send the status message
-    message = self.SendOKStatus(6, flow_obj.session_id)
+    self.SendOKStatus(6, flow_obj.session_id)
 
-    runner = flow_runner.FlowRunner(flow_obj)
-    notification = rdf_flows.Notification(
+    runner = flow_obj.GetRunner()
+    notification = rdf_flows.GrrNotification(
         timestamp=rdfvalue.RDFDatetime().Now())
-    runner.ProcessCompletedRequests(notification, [message])
+    runner.ProcessCompletedRequests(notification)
 
     # Now messages should actually be processed
     self.assertEqual(flow_obj.messages, [])
@@ -633,8 +632,8 @@ class FlowTest(BasicFlowTest):
     # Send the status message
     message = self.SendOKStatus(7, flow_obj.session_id)
 
-    runner = flow_runner.FlowRunner(flow_obj)
-    notification = rdf_flows.Notification(
+    runner = flow_obj.GetRunner()
+    notification = rdf_flows.GrrNotification(
         timestamp=rdfvalue.RDFDatetime().Now())
     runner.ProcessCompletedRequests(notification, [message])
 

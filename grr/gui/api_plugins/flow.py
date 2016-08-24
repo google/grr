@@ -14,6 +14,7 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import flow_runner
+from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import throttle
 from grr.lib import utils
@@ -28,6 +29,10 @@ from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import api_pb2
 
 CATEGORY = "Flows"
+
+
+class FlowNotFoundError(api_call_handler_base.ResourceNotFoundError):
+  """Raised when a flow is not found."""
 
 
 class RobotGetFilesOperationNotFoundError(
@@ -81,7 +86,7 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
 
-  def InitFromAff4Object(self, flow_obj):
+  def InitFromAff4Object(self, flow_obj, with_state_and_context=False):
     # If the flow object is in fact a symlink, then we want to report the
     # symlink's URN as a flow's URN. Otherwise you may get unexpected
     # URNs while listing client's flows. For example, this may happend when
@@ -113,7 +118,34 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       # about the flow.
       pass
 
+    self.runner_args = flow_obj.runner_args
+
+    if with_state_and_context:
+      try:
+        self.context = flow_obj.context
+      except ValueError:
+        # TODO(user): remove after old-style flows are not important
+        # anymore (EOY2016).
+        pass
+
+      flow_state_dict = flow_obj.Get(flow_obj.Schema.FLOW_STATE_DICT)
+      if flow_state_dict is not None:
+        flow_state_data = flow_state_dict.ToDict()
+      else:
+        # We're dealing with old-style flow.
+        # TODO(user): remove after old-style flows are not important
+        # anymore (EOY2016).
+        flow_state_data = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
+
+      if flow_state_data:
+        self.state_data = (api_call_handler_utils.ApiDataObject()
+                           .InitFromDataObject(flow_state_data))
+
     return self
+
+
+class ApiFlowRequest(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiFlowRequest
 
 
 class ApiFlowResult(rdf_structs.RDFProtoStruct):
@@ -152,7 +184,56 @@ class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
     flow_obj = aff4.FACTORY.Open(
         flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
 
-    return ApiFlow().InitFromAff4Object(flow_obj)
+    return ApiFlow().InitFromAff4Object(flow_obj, with_state_and_context=True)
+
+
+class ApiListFlowRequestsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListFlowRequestsArgs
+
+
+class ApiListFlowRequestsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListFlowRequestsResult
+
+
+class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
+  """Renders list of requests of a given flow."""
+
+  category = CATEGORY
+  args_type = ApiListFlowRequestsArgs
+  result_type = ApiListFlowRequestsResult
+
+  def Handle(self, args, token=None):
+    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
+
+    # Check if this flow really exists.
+    try:
+      aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
+    except aff4.InstantiationError:
+      raise FlowNotFoundError()
+
+    result = ApiListFlowRequestsResult()
+    manager = queue_manager.QueueManager(token=token)
+    requests_responses = manager.FetchRequestsAndResponses(flow_urn)
+
+    stop = None
+    if args.count:
+      stop = args.offset + args.count
+
+    for request, responses in itertools.islice(requests_responses, args.offset,
+                                               stop):
+      if request.id == 0:
+        continue
+
+      api_request = ApiFlowRequest(
+          request_id=manager.FLOW_REQUEST_TEMPLATE % request.id,
+          request_state=request)
+
+      if responses:
+        api_request.responses = responses
+
+      result.items.append(api_request)
+
+    return result
 
 
 class ApiListFlowResultsArgs(rdf_structs.RDFProtoStruct):
@@ -200,9 +281,9 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
       except aff4.InstantiationError:
         return ApiListFlowResultsResult(total_count=0)
 
-    items = api_call_handler_utils.FilterAff4Collection(output_collection,
-                                                        args.offset, args.count,
-                                                        args.filter)
+    items = api_call_handler_utils.FilterCollection(output_collection,
+                                                    args.offset, args.count,
+                                                    args.filter)
     wrapped_items = [ApiFlowResult().InitFromRdfValue(item) for item in items]
     return ApiListFlowResultsResult(
         items=wrapped_items, total_count=len(output_collection))
@@ -232,10 +313,9 @@ class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
         mode="r",
         token=token)
 
-    result = api_call_handler_utils.FilterAff4Collection(logs_collection,
-                                                         args.offset,
-                                                         args.count,
-                                                         args.filter)
+    result = api_call_handler_utils.FilterCollection(logs_collection,
+                                                     args.offset, args.count,
+                                                     args.filter)
 
     return ApiListFlowLogsResult(items=result, total_count=len(logs_collection))
 

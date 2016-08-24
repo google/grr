@@ -1001,18 +1001,21 @@ class TestHostInformation(FileViewTestBase):
             self.client_id, mode="rw", token=self.token) as fd:
           fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.7000"))
           fd.Set(fd.Schema.HOSTNAME("Hostname T0"))
+          fd.Set(fd.Schema.MEMORY_SIZE(4294967296))
 
       with test_lib.FakeTime(TIME_1):
         with aff4.FACTORY.Open(
             self.client_id, mode="rw", token=self.token) as fd:
           fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("6.1.8000"))
           fd.Set(fd.Schema.HOSTNAME("Hostname T1"))
+          fd.Set(fd.Schema.MEMORY_SIZE(8589934592))
 
       with test_lib.FakeTime(TIME_2):
         with aff4.FACTORY.Open(
             self.client_id, mode="rw", token=self.token) as fd:
           fd.Set(fd.Schema.OS_VERSION, rdf_client.VersionString("7.0.0000"))
           fd.Set(fd.Schema.HOSTNAME("Hostname T2"))
+          fd.Set(fd.Schema.MEMORY_SIZE(12884901888))
 
   def testClickingOnInterrogateStartsInterrogateFlow(self):
     self.Open("/#c=" + self.client_id)
@@ -1060,17 +1063,20 @@ class TestHostInformation(FileViewTestBase):
         DateString(TIME_2), self.GetText,
         "css=.version-dropdown > option[selected]")
     self.WaitUntil(self.IsTextPresent, "Hostname T2")
+    self.WaitUntil(self.IsTextPresent, "12Gb")
 
     self.Click("css=select.version-dropdown > option:contains(\"%s\")" %
                DateString(TIME_1))
     self.WaitUntil(self.IsTextPresent, "Hostname T1")
     self.WaitUntil(self.IsTextPresent, "6.1.8000")
+    self.WaitUntil(self.IsTextPresent, "8Gb")
     self.WaitUntil(self.IsTextPresent, "Newer Version available")
 
     # Also the details show the selected version.
     self.Click("css=label:contains('Full details')")
     self.WaitUntil(self.IsTextPresent, "Hostname T1")
     self.WaitUntil(self.IsTextPresent, "6.1.8000")
+    self.WaitUntil(self.IsTextPresent, "8Gb")
 
     # Check that changing the version does not change the view, i.e. that
     # we are still in the full details view.
@@ -1078,6 +1084,7 @@ class TestHostInformation(FileViewTestBase):
                DateString(TIME_0))
     self.WaitUntil(self.IsTextPresent, "Hostname T0")
     self.WaitUntil(self.IsTextPresent, "6.1.7000")
+    self.WaitUntil(self.IsTextPresent, "4Gb")
 
 
 def main(argv):

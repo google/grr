@@ -242,7 +242,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
         fd.Set(fd.Schema.INSTALL_DATE(install_time))
         fd.Set(fd.Schema.KNOWLEDGE_BASE(kb))
         fd.Set(fd.Schema.USERNAMES([user]))
-        fd.Set(fd.Schema.LAST_INTERFACES([interface]))
+        fd.Set(fd.Schema.INTERFACES([interface]))
 
       with aff4.FACTORY.Open(
           "C.0000000000000000",

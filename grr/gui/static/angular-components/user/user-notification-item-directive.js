@@ -6,6 +6,7 @@ goog.provide('grrUi.user.userNotificationItemDirective.annotateApiNotification')
 goog.provide('grrUi.user.userNotificationItemDirective.openReference');
 goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFileId');
 goog.require('grrUi.core.apiService.stripTypeInfo');
+goog.require('grrUi.core.fileDownloadUtils.vfsRoots');
 goog.require('grrUi.core.utils.stripAff4Prefix');
 
 goog.scope(function() {
@@ -63,10 +64,15 @@ grrUi.user.userNotificationItemDirective.annotateApiNotification =
         'vfs']['value']['vfs_path']['value'];
       if (vfsPath.indexOf('/MACTimes/') != -1) {
         notification['legacyMacTimes'] = true;
-      } else if (vfsPath.indexOf('/fs/os/') == -1 &&
-          vfsPath.indexOf('/fs/tsk/') == -1 &&
-          vfsPath.indexOf('/registry/') == -1) {
-        notification['legacyVfsPath'] = true;
+      } else {
+        var vfsRoots = grrUi.core.fileDownloadUtils.vfsRoots;
+        var isLegitimatePath = vfsRoots.some(function(vfsRoot) {
+          return vfsPath.indexOf('/' + vfsRoot + '/') != -1;
+        });
+
+        if (!isLegitimatePath) {
+          notification['legacyVfsPath'] = true;
+        }
       }
     }
   }

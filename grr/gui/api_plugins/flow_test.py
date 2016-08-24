@@ -19,6 +19,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import output_plugin
+from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import throttle
@@ -92,6 +93,43 @@ class ApiListFlowsHandlerRegressionTest(
         "/api/clients/%s/flows" % client_urn.Basename(),
         replace={flow_id_1.Basename(): "F:ABCDEF10",
                  flow_id_2.Basename(): "F:ABCDEF11"})
+
+
+class ApiListFlowRequestsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+  """Regression test for ApiListFlowRequestsHandler."""
+
+  handler = "ApiListFlowRequestsHandler"
+
+  def setUp(self):
+    super(ApiListFlowRequestsHandlerRegressionTest, self).setUp()
+    self.client_id = self.SetupClients(1)[0]
+
+  def Run(self):
+    with test_lib.FakeTime(42):
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=processes.ListProcesses.__name__,
+          client_id=self.client_id,
+          token=self.token)
+
+    mock = test_lib.MockClient(self.client_id, None, token=self.token)
+    while mock.Next():
+      pass
+
+    replace = {flow_urn.Basename(): "W:ABCDEF"}
+
+    manager = queue_manager.QueueManager(token=self.token)
+    requests_responses = manager.FetchRequestsAndResponses(flow_urn)
+    for request, responses in requests_responses:
+      replace[str(request.request.task_id)] = "42"
+      for response in responses:
+        replace[str(response.task_id)] = "42"
+
+    self.Check(
+        "GET",
+        "/api/clients/%s/flows/%s/requests" % (self.client_id.Basename(),
+                                               flow_urn.Basename()),
+        replace=replace)
 
 
 class ApiListFlowResultsHandlerRegressionTest(

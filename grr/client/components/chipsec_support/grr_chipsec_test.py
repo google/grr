@@ -17,6 +17,10 @@ class MockUnknownChipsetError(RuntimeError):
   pass
 
 
+class MockOsHelperError(RuntimeError):
+  pass
+
+
 class MockSPI(mock.MagicMock):
 
   def get_SPI_region(self, unused_region):  # pylint: disable=invalid-name
@@ -26,11 +30,18 @@ class MockSPI(mock.MagicMock):
     return "\xff" * size
 
 
-class FaultyChipset(mock.MagicMock):
+class UnsupportedChipset(mock.MagicMock):
 
   def init(self, unused_platform, unused_load_driver):
     msg = "Unsupported Platform: VID = 0x0000, DID = 0x0000"
     raise MockUnknownChipsetError(msg)
+
+
+class FailingOsHelperChipset(mock.MagicMock):
+
+  def init(self, unused_platform, unused_load_driver):
+    msg = "Unable to open /sys/bus/pci/devices/0000:00:00.0/config"
+    raise MockOsHelperError(msg, -1)
 
 
 class GRRChipsecTest(test_lib.EmptyActionTest):
@@ -42,10 +53,13 @@ class GRRChipsecTest(test_lib.EmptyActionTest):
     self.chipsec_mock.chipset = mock.MagicMock()
     self.chipsec_mock.chipset.UnknownChipsetError = MockUnknownChipsetError
     self.chipsec_mock.hal = mock.MagicMock()
+    self.chipsec_mock.helper = mock.MagicMock()
+    self.chipsec_mock.helper.oshelper.OsHelperError = MockOsHelperError
     self.chipsec_mock.logger = mock.MagicMock()
 
     mock_modules = {"chipsec": self.chipsec_mock,
-                    "chipsec.hal": self.chipsec_mock.hal}
+                    "chipsec.hal": self.chipsec_mock.hal,
+                    "chipsec.helper": self.chipsec_mock.helper}
 
     self.chipsec_patch = mock.patch.dict(sys.modules, mock_modules)
     self.chipsec_patch.start()
@@ -90,7 +104,7 @@ class TestDumpFlashImage(GRRChipsecTest):
 
   def testDumpFlashImageUnknownChipset(self):
     """By default, if the chipset is unknown, no exception is raised."""
-    self.chipsec_mock.chipset.cs = FaultyChipset
+    self.chipsec_mock.chipset.cs = UnsupportedChipset
     args = chipsec_types.DumpFlashImageRequest()
     self.RunAction("DumpFlashImage", args)
 
@@ -100,13 +114,19 @@ class TestDumpFlashImage(GRRChipsecTest):
     If the chipset is unknown but verbose enabled, no exception is raised
     and at least one response should be returned with non-empty logs.
     """
-    self.chipsec_mock.chipset.cs = FaultyChipset
+    self.chipsec_mock.chipset.cs = UnsupportedChipset
     args = chipsec_types.DumpFlashImageRequest(log_level=1)
     self.RunAction("DumpFlashImage", args)
     self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
     self.assertGreaterEqual(len(self.results), 1)
     self.assertNotEquals(len(self.results[0].logs), 0)
     self.assertEquals(self.results[0].path.path, "")
+
+  def testDumpFlashImageOsHelperErrorChipset(self):
+    """If an exception is raised by the helper layer, handle it."""
+    self.chipsec_mock.chipset.cs = FailingOsHelperChipset
+    args = chipsec_types.DumpFlashImageRequest()
+    self.RunAction("DumpFlashImage", args)
 
 
 class MockACPI(object):
@@ -200,7 +220,7 @@ class TestDumpACPITable(GRRChipsecTest):
 
   def testDumpACPITableUnknownChipset(self):
     """By default, if the chipset is unknown, no exception is raised."""
-    self.chipsec_mock.chipset.cs = FaultyChipset
+    self.chipsec_mock.chipset.cs = UnsupportedChipset
     args = chipsec_types.DumpACPITableRequest(table_signature="FACP")
     self.RunAction("DumpACPITable", args)
 
@@ -210,7 +230,7 @@ class TestDumpACPITable(GRRChipsecTest):
     If the chipset is unknown but verbose enabled, no exception is raised
     and at least one response should be returned with non-empty logs.
     """
-    self.chipsec_mock.chipset.cs = FaultyChipset
+    self.chipsec_mock.chipset.cs = UnsupportedChipset
     args = chipsec_types.DumpACPITableRequest(
         table_signature="FACP", logging=True)
     self.RunAction("DumpACPITable", args)

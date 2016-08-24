@@ -10,6 +10,7 @@ import logging
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_handler_utils
 from grr.gui.api_plugins import output_plugin as api_output_plugin
+from grr.gui.api_plugins import vfs as api_vfs
 
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -223,7 +224,7 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
 
     hunt_list = []
     for hunt in fd.OpenChildren(children=children):
-      if not isinstance(hunt, hunts.GRRHunt) or hunt.state is None:
+      if not isinstance(hunt, hunts.GRRHunt):
         continue
 
       hunt_list.append(hunt)
@@ -253,8 +254,7 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
     hunt_list = []
     active_children_map = {}
     for hunt in fd.OpenChildren(children=active_children):
-      if (not isinstance(hunt, hunts.GRRHunt) or hunt.state is None or
-          not filter_func(hunt)):
+      if not isinstance(hunt, hunts.GRRHunt) or not filter_func(hunt):
         continue
       active_children_map[hunt.urn] = hunt
 
@@ -331,9 +331,9 @@ class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     results_collection = aff4.FACTORY.Open(
         HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Results"), mode="r", token=token)
-    items = api_call_handler_utils.FilterAff4Collection(results_collection,
-                                                        args.offset, args.count,
-                                                        args.filter)
+    items = api_call_handler_utils.FilterCollection(results_collection,
+                                                    args.offset, args.count,
+                                                    args.filter)
     wrapped_items = [ApiHuntResult().InitFromGrrMessage(item) for item in items]
 
     return ApiListHuntResultsResult(
@@ -364,10 +364,9 @@ class ApiListHuntCrashesHandler(api_call_handler_base.ApiCallHandler):
           token=token)
 
       total_count = len(aff4_crashes)
-      result = api_call_handler_utils.FilterAff4Collection(aff4_crashes,
-                                                           args.offset,
-                                                           args.count,
-                                                           args.filter)
+      result = api_call_handler_utils.FilterCollection(aff4_crashes,
+                                                       args.offset, args.count,
+                                                       args.filter)
     except aff4.InstantiationError:
       total_count = 0
       result = []
@@ -562,10 +561,9 @@ class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
           mode="r",
           token=token)
 
-    result = api_call_handler_utils.FilterAff4Collection(logs_collection,
-                                                         args.offset,
-                                                         args.count,
-                                                         args.filter)
+    result = api_call_handler_utils.FilterCollection(logs_collection,
+                                                     args.offset, args.count,
+                                                     args.filter)
 
     return ApiListHuntLogsResult(items=result, total_count=len(logs_collection))
 
@@ -594,10 +592,9 @@ class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
         mode="r",
         token=token)
 
-    result = api_call_handler_utils.FilterAff4Collection(errors_collection,
-                                                         args.offset,
-                                                         args.count,
-                                                         args.filter)
+    result = api_call_handler_utils.FilterCollection(errors_collection,
+                                                     args.offset, args.count,
+                                                     args.filter)
 
     return ApiListHuntErrorsResult(
         items=result, total_count=len(errors_collection))
@@ -848,6 +845,8 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
     if not args.timestamp:
       raise ValueError("timestamp can't be None")
 
+    api_vfs.ValidateVfsPath(args.vfs_path)
+
     hunt_results_urn = rdfvalue.RDFURN("aff4:/hunts").Add(args.hunt_id.Basename(
     )).Add("Results")
     results = aff4.FACTORY.Open(
@@ -855,7 +854,7 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
         aff4_type=hunts_results.HuntResultCollection,
         token=token)
 
-    expected_aff4_path = args.client_id.Add("fs").Add(args.vfs_path.Path())
+    expected_aff4_path = args.client_id.Add(args.vfs_path)
     # TODO(user): should after_tiestamp be strictly less than the desired
     # timestamp.
     timestamp = rdfvalue.RDFDatetime(int(args.timestamp) - 1)

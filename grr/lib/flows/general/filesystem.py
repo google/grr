@@ -548,7 +548,8 @@ class GlobMixin(object):
                    paths,
                    pathtype="OS",
                    root_path=None,
-                   no_file_type_check=False):
+                   no_file_type_check=False,
+                   quick_listing=False):
     """Starts the Glob.
 
     This is the main entry point for this flow mixin.
@@ -563,6 +564,9 @@ class GlobMixin(object):
       root_path: A pathspec where to start searching from.
       no_file_type_check: Work with all kinds of files - not only with regular
                           ones.
+      quick_listing: Triggers an optimized algorithm that only returns file
+                     paths and whether or not they are directories. This is
+                     mutually exclusive with all conditions.
     """
     patterns = []
 
@@ -575,6 +579,7 @@ class GlobMixin(object):
     self.state.pathtype = pathtype
     self.state.root_path = root_path
     self.state.no_file_type_check = no_file_type_check
+    self.state.quick_listing = quick_listing
 
     # Transform the patterns by substitution of client attributes. When the
     # client has multiple values for an attribute, this generates multiple
@@ -724,6 +729,7 @@ class GlobMixin(object):
     if (responses.iterator and
         responses.iterator.state != responses.iterator.State.FINISHED):
       findspec = rdf_client.FindSpec(responses.request.request.payload)
+      findspec.quick_listing = self.state.quick_listing
       findspec.iterator = responses.iterator
       self.CallClient(
           "Find",
@@ -866,7 +872,8 @@ class GlobMixin(object):
               pathspec=base_pathspec,
               cross_devs=True,
               max_depth=depth,
-              path_regex=path_regex)
+              path_regex=path_regex,
+              quick_listing=self.state.quick_listing)
 
           findspec.iterator.number = self.FILE_MAX_PER_DIR
           self.CallClient(
@@ -879,7 +886,10 @@ class GlobMixin(object):
           path_regex = "(?i)^" + "$|^".join(
               set([c.path for c in regexes_to_get])) + "$"
           findspec = rdf_client.FindSpec(
-              pathspec=base_pathspec, max_depth=1, path_regex=path_regex)
+              pathspec=base_pathspec,
+              max_depth=1,
+              path_regex=path_regex,
+              quick_listing=self.state.quick_listing)
 
           findspec.iterator.number = self.FILE_MAX_PER_DIR
           self.CallClient(
@@ -916,7 +926,7 @@ class Glob(GlobMixin, flow.GRRFlow):
         no_file_type_check=self.args.no_file_type_check)
 
   def GlobReportMatch(self, stat_response):
-    """Called when we've found a matching a StatEntry."""
+    """Called when we've found a matching StatEntry."""
     super(Glob, self).GlobReportMatch(stat_response)
     self.SendReply(stat_response)
 

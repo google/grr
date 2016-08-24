@@ -114,7 +114,8 @@ class TestNotifications(test_lib.GRRSeleniumTest):
                    "css=li.active a[grrtarget='client.flows']")
 
     # The stats pane shows the relevant flow
-    self.WaitUntilContains(self.session_id, self.GetText, "css=.tab-content h3")
+    self.WaitUntilContains(self.session_id, self.GetText,
+                           "css=grr-flow-overview")
 
   def testUserSettings(self):
     """Tests that user settings UI is working."""

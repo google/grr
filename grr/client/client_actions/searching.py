@@ -3,6 +3,7 @@
 
 
 import functools
+import itertools
 import stat
 
 import logging
@@ -12,6 +13,7 @@ from grr.client import vfs
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
 
 
 class Find(actions.IteratedAction):
@@ -27,8 +29,42 @@ class Find(actions.IteratedAction):
   # The filesystem we are limiting ourselves to, if cross_devs is false.
   filesystem_id = None
 
+  def QuickListDirectory(self, pathspec, state):
+    """Quick recursive generator of files."""
+    try:
+      fd = vfs.VFSOpen(pathspec, progress_callback=self.Progress)
+    except (IOError, OSError) as e:
+      # We failed to open the directory the server asked for because dir
+      # doesn't exist or some other reason. So we set status and return
+      # back to the caller ending the Iterator.
+      self.SetStatus(rdf_flows.GrrStatus.ReturnedStatus.IOERROR, e)
+
+      return
+
+    root = None
+    for top, dirs, files in fd.RecursiveListNames(self.request.max_depth,
+                                                  self.request.cross_devs):
+      if root is None:
+        root = top
+
+      # pyformat: disable
+      for name, is_dir in itertools.chain(((name, True) for name in dirs),
+                                          ((name, False) for name in files)):
+        # pyformat: enable
+        path = ("%s/%s" % (top, name))[len(root) + 1:]
+
+        if self.request.path_regex.Match(path):
+          # Generate fake minimal stat entries for compatibility.
+          yield rdf_client.StatEntry(
+              pathspec=fd.pathspec.Copy().Append(
+                  rdf_paths.PathSpec(
+                      pathtype=pathspec.pathtype,
+                      path=path,
+                      path_options="CASE_LITERAL")),
+              st_mode=rdf_client.StatMode(stat.S_IFDIR if is_dir else 0))
+
   def ListDirectory(self, pathspec, state, depth=0):
-    """A Recursive generator of files."""
+    """A recursive generator of files."""
     # Limit recursion depth
     if depth >= self.request.max_depth:
       return
@@ -185,9 +221,13 @@ class Find(actions.IteratedAction):
     filters = self.BuildChecks(request)
     limit = request.iterator.number
 
+    if self.request.quick_listing:
+      listing_strategy = self.QuickListDirectory
+    else:
+      listing_strategy = self.ListDirectory
+
     # TODO(user): What is a reasonable measure of work here?
-    for count, f in enumerate(
-        self.ListDirectory(request.pathspec, client_state)):
+    for count, f in enumerate(listing_strategy(request.pathspec, client_state)):
       self.Progress()
 
       # Ignore this file if any of the checks fail.

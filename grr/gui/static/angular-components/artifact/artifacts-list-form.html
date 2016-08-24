@@ -27,6 +27,12 @@
       </colgroup>
 
       <tbody>
+        <tr ng-if="!controller.descriptorsError && controller.descriptors === undefined">
+          <td>
+            <i class="fa fa-spinner fa-spin fa-1"></i>
+            <em>Loading artifacts...</em>
+          </td>
+        </tr>
         <tr ng-if="controller.descriptorsError" class="alert-danger danger">
           <td>
             <strong>Can't fetch artifacts list:</strong><br/>
@@ -42,8 +48,14 @@
           <td style="cursor: pointer; border: none"
               ng-dblclick="controller.add(descriptor.value.artifact.value.name)"
               ng-click="controller.selectedName = descriptor.value.artifact.value.name">
-            <div style="display:block" class="full-width-height">
+            <div style="display:block" class="full-width-height"
+                 ng-class="::{'custom-artifact': descriptor.value.is_custom.value === true}">
               {$ ::descriptor.value.artifact.value.name.value $}
+
+              <span title="Custom Uploaded Artifact"
+                    ng-if="::descriptor.value.is_custom.value === true">
+                <i class="fa fa-user fa-1" aria-hidden="true"></i>
+              </span>
             </div>
           </td>
         </tr>
@@ -81,6 +93,11 @@
               ng-class="{'row-selected': name == controller.selectedName}">
             <div style="display:block" class="full-width-height">
               <strong>{$ ::name.value $}</strong>
+
+              <span title="Custom Uploaded Artifact"
+                    ng-if="::controller.descriptors[name.value].value.is_custom.value === true">
+                <i class="fa fa-user fa-1" aria-hidden="true"></i>
+              </span>
             </div>
           </td>
         </tr>

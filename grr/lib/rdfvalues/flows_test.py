@@ -2,10 +2,8 @@
 """Test for the flow state class."""
 
 
-import cPickle
 
 from grr.lib import rdfvalue
-from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import test_base
 
@@ -31,73 +29,6 @@ class FlowStateTest(test_base.RDFValueTestCase):
 
   def testSerialization(self):
     pass
-
-  def testFlowState(self):
-
-    # Pickling has been deprecated.
-
-    # state = rdf_flows.FlowState()
-    # state.Register("teststate", 1)
-    # state.teststate = 100
-
-    # state.Register("context", utils.DataObject())
-    # state.context.testcontext = 50
-    # s = state.SerializeToString()
-
-    s = """
-gAJjZ29vZ2xlMy5vcHMuc2VjdXJpdHkuZ3JyLmxpYi51dGlscwpEYXRhT2JqZWN0CnEBKYFxAihV
-B2NvbnRleHRxA2gBKYFxBFULdGVzdGNvbnRleHRxBUsyc31xBmJVCXRlc3RzdGF0ZXEHS2R1fXEI
-Yi4=
-""".decode("base64")
-
-    new_state = rdf_flows.FlowState()
-    new_state.ParseFromString(s)
-
-    self.assertEqual(new_state.teststate, 100)
-    self.assertEqual(new_state.context.testcontext, 50)
-
-    # context and teststate
-    self.assertEqual(len(new_state), 2)
-    self.assertEqual(len(new_state.context), 1)
-
-  def testBadPickle(self):
-    """Test that we can recover some of the bad pickle."""
-
-    # Pickling has been deprecated.
-
-    # state = rdf_flows.FlowState()
-    # # Store an instance of a RDFURN here.
-    # state.Register("urn", rdfvalue.RDFURN("aff4:/"))
-
-    # serialized = state.SerializeToString()
-
-    serialized = """
-gAJjZ29vZ2xlMy5vcHMuc2VjdXJpdHkuZ3JyLmxpYi51dGlscwpEYXRhT2JqZWN0CnEBKYFxAlUD
-dXJucQNjZ29vZ2xlMy5vcHMuc2VjdXJpdHkuZ3JyLmxpYi5yZGZ2YWx1ZQpSREZVUk4KcQQpgXEF
-fXEGKFUSX19waWNrbGVkX3JkZnZhbHVlcQeIVQRkYXRhcQhVBmFmZjQ6L1UDYWdlcQlLAHVic31x
-CmIu
-""".decode("base64")
-
-    # Substitute the class with something entirely different.
-    with utils.Stubber(rdfvalue, "RDFURN", None):
-      # We now should not be able to restore the state normally since we can not
-      # find the RDFURN instance.
-      result = rdf_flows.FlowState(serialized)
-
-      # The pickle error should be available here.
-      self.assertTrue(
-          isinstance(result.errors, (cPickle.UnpicklingError, TypeError)))
-
-      # The bad field should be replaced with an UnknownObject instance.
-      self.assertTrue(isinstance(result.urn, rdf_flows.UnknownObject))
-
-      # Missing attribute is a different kind of error, but this is still
-      # trapped.
-      del rdfvalue.RDFURN
-
-      result = rdf_flows.FlowState(serialized)
-      self.assertTrue(isinstance(result.errors, AttributeError))
-      self.assertTrue(isinstance(result.urn, rdf_flows.UnknownObject))
 
 
 class SessionIDTest(test_base.RDFValueTestCase):

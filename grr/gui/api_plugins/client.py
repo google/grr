@@ -57,6 +57,8 @@ class ApiClient(rdf_structs.RDFProtoStruct):
         machine=client_obj.Get(client_obj.Schema.ARCH),
         fqdn=client_obj.Get(client_obj.Schema.FQDN),
         install_date=client_obj.Get(client_obj.Schema.INSTALL_DATE))
+    self.knowledge_base = client_obj.Get(client_obj.Schema.KNOWLEDGE_BASE)
+    self.memory_size = client_obj.Get(client_obj.Schema.MEMORY_SIZE)
 
     self.first_seen_at = client_obj.Get(client_obj.Schema.FIRST_SEEN)
     self.last_seen_at = client_obj.Get(client_obj.Schema.PING)
@@ -67,7 +69,7 @@ class ApiClient(rdf_structs.RDFProtoStruct):
       self.last_crash_at = last_crash.timestamp
 
     self.labels = client_obj.GetLabels()
-    self.interfaces = client_obj.Get(client_obj.Schema.LAST_INTERFACES)
+    self.interfaces = client_obj.Get(client_obj.Schema.INTERFACES)
     kb = client_obj.Get(client_obj.Schema.KNOWLEDGE_BASE)
     self.users = kb and kb.users or []
     self.volumes = client_obj.Get(client_obj.Schema.VOLUMES)
@@ -334,10 +336,9 @@ class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
           token=token)
 
       total_count = len(aff4_crashes)
-      result = api_call_handler_utils.FilterAff4Collection(aff4_crashes,
-                                                           args.offset,
-                                                           args.count,
-                                                           args.filter)
+      result = api_call_handler_utils.FilterCollection(aff4_crashes,
+                                                       args.offset, args.count,
+                                                       args.filter)
     except aff4.InstantiationError:
       total_count = 0
       result = []

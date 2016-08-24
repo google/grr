@@ -1,7 +1,9 @@
 'use strict';
 
+goog.provide('grrUi.core.fileDownloadUtils.downloadableVfsRoots');
 goog.provide('grrUi.core.fileDownloadUtils.getFileUrnFromValue');
 goog.provide('grrUi.core.fileDownloadUtils.makeValueDownloadable');
+goog.provide('grrUi.core.fileDownloadUtils.vfsRoots');
 
 
 goog.scope(function() {
@@ -9,6 +11,20 @@ goog.scope(function() {
 
 var fileDownloadUtils = grrUi.core.fileDownloadUtils;
 
+/**
+  * List of VFS roots that are accessible through Browse VFS UI.
+  *
+  * @const {Array<string>}
+  */
+fileDownloadUtils.vfsRoots = ['fs', 'registry', 'temp'];
+
+/**
+  * List of VFS roots that contain files that can be downloaded
+  * via the API.
+  *
+  * @const {Array<string>}
+  */
+fileDownloadUtils.downloadableVfsRoots = ['fs', 'temp'];
 
 /**
  * Returns AFF4 path of a file that a given value points to.

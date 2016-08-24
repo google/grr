@@ -929,36 +929,6 @@ class PackedVersionedCollection(RDFValueCollection):
     return self.IsAttributeSet(self.Schema.DATA)
 
 
-# TODO(user): remove when we don't care about hunts with results
-# in packed (and not sequential) collections.
-class ResultsOutputCollection(PackedVersionedCollection):
-  """Collection for hunt results storage.
-
-  This collection is essentially a PackedVersionedCollection with a
-  separate notification queue. Therefore, all new results are written
-  as versioned attributes.
-
-  This class is kept for backwards compatibility only and will be
-  removed soon.
-  """
-
-  notification_queue = "aff4:/_notifications/results_output"
-
-  class SchemaCls(PackedVersionedCollection.SchemaCls):
-    RESULTS_SOURCE = aff4.Attribute("aff4:results_source", rdfvalue.RDFURN,
-                                    "URN of a hunt where results came from.")
-
-  @property
-  def fd(self):
-    if self._fd is None:
-      self._CreateStream()
-      if "w" in self.mode and self._fd.size == 0:
-        # We want bigger chunks as we usually expect large number of results.
-        self._fd.SetChunksize(1024 * 1024)
-
-    return self._fd
-
-
 class CollectionsInitHook(registry.InitHook):
 
   def RunOnce(self):

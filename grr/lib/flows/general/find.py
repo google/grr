@@ -28,6 +28,7 @@ class FindFiles(flow.GRRFlow):
     - Filter for files with sizes between min and max limits
     - Filter for files that contain "Data Regular Expression" in the first 1MB
         of file data
+    - Return a StatEntry rdfvalue for each of the results
 
     Path and data regexes, and file size limits are optional. Don"t encode path
     information in the regex.  See correct usage below.
@@ -41,8 +42,9 @@ class FindFiles(flow.GRRFlow):
     Match: "/usr/local/admin"          (directory)
     No Match: "/usr/admin/local/blah"
 
-    Matching files will not be downloaded by this flow, only the
-    metadata of the file is fetched.
+    The result from this flow is a list of StatEntry objects, one for
+    each file matching the criteria. Matching files will not be
+    downloaded by this flow, only the metadata of the file is fetched.
 
     Note: This flow is inefficient for collecting a large number of files.
 

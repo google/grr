@@ -113,6 +113,11 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
       # Nothing to do.
       return
 
+    if self.args.action.action_type == FileFinderAction.Action.LIST:
+      if self.args.conditions:
+        raise RuntimeError("The LIST FileFinder action doesn't support "
+                           "conditions.")
+
     self.state.files_found = 0
     self.state.sorted_conditions = sorted(
         self.args.conditions, key=self._ConditionWeight)
@@ -142,7 +147,9 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
       self.GlobForPaths(
           self.args.paths,
           pathtype=self.args.pathtype,
-          no_file_type_check=self.args.no_file_type_check)
+          no_file_type_check=self.args.no_file_type_check,
+          quick_listing=(
+              self.args.action.action_type == FileFinderAction.Action.LIST))
 
   def GlobReportMatch(self, response):
     """This method is called by the glob mixin when there is a match."""
@@ -268,9 +275,9 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
     """Applies action specified by user to responses."""
     action = self.args.action.action_type
 
-    if action == FileFinderAction.Action.STAT:
-      # If action is STAT, we already have all the data we need to send the
-      # response.
+    if action in [FileFinderAction.Action.STAT, FileFinderAction.Action.LIST]:
+      # If action is STAT or LIST, we already have all the data we need
+      # to send the response.
       self.state.files_found += 1
       self.SendReply(response)
     elif (self.args.no_file_type_check or

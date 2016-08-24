@@ -231,7 +231,7 @@ class ApiDataObjectKeyValuePair(rdf_structs.RDFProtoStruct):
       raise ValueError("No class found for type %s." % self.type)
 
 
-def FilterAff4Collection(collection, offset, count=0, filter_value=None):
+def FilterCollection(collection, offset, count=0, filter_value=None):
   """Filters an aff4 collection, getting count elements, starting at offset."""
 
   if offset < 0:

@@ -18,7 +18,6 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
-from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.hunts import implementation
 from grr.lib.rdfvalues import client as rdf_client
@@ -479,8 +478,8 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
 
     hunts_to_process = []
     for hunt in hunts_root.OpenChildren(children_urns):
-      # Skip non-GenericHunts or hunts that could not be unpickled.
-      if not isinstance(hunt, GenericHunt) or hunt.state is None:
+      # Skip non-GenericHunts.
+      if not isinstance(hunt, GenericHunt):
         self.Log("Skipping: %s." % utils.SmartStr(hunt.urn))
         continue
 
@@ -515,24 +514,41 @@ class GenericHunt(implementation.GRRHunt):
 
   args_type = GenericHuntArgs
 
+  def _CreateAuditEvent(self, event_action):
+    flow_name = self.hunt_obj.args.flow_runner_args.flow_name
+
+    event = events.AuditEvent(
+        user=self.hunt_obj.token.username,
+        action=event_action,
+        urn=self.hunt_obj.urn,
+        flow_name=flow_name,
+        description=self.runner_args.description)
+    events.Events.PublishEvent("Audit", event, token=self.hunt_obj.token)
+
+  def SetDescription(self, description=None):
+    if description:
+      self.runner_args.description = description
+    else:
+      flow_name = self.args.flow_runner_args.flow_name
+      self.runner_args.description = flow_name
+
   @property
   def started_flows_collection_urn(self):
     return self.urn.Add("StartedFlows")
 
-  @flow.StateHandler()
-  def Start(self):
-    super(GenericHunt, self).Start()
+  def CreateCollections(self, mutation_pool):
+    super(GenericHunt, self).CreateCollections(mutation_pool)
 
     with aff4.FACTORY.Create(
         self.started_flows_collection_urn,
-        collects.PackedVersionedCollection,
+        implementation.RDFUrnCollection,
+        mutation_pool=mutation_pool,
         mode="w",
         token=self.token):
       pass
 
   @flow.StateHandler()
   def RunClient(self, responses):
-    started_flows = []
     # Just run the flow on this client.
     for client_id in responses:
       flow_urn = self.CallFlow(
@@ -541,29 +557,28 @@ class GenericHunt(implementation.GRRHunt):
           next_state="MarkDone",
           sync=False,
           runner_args=self.args.flow_runner_args)
-      started_flows.append(flow_urn)
-
-    collects.PackedVersionedCollection.AddToCollection(
-        self.started_flows_collection_urn,
-        started_flows,
-        sync=False,
-        token=self.token)
+      implementation.RDFUrnCollection.StaticAdd(
+          self.started_flows_collection_urn, self.token, flow_urn)
 
   def Stop(self):
     super(GenericHunt, self).Stop()
 
     started_flows = aff4.FACTORY.Create(
         self.started_flows_collection_urn,
-        collects.PackedVersionedCollection,
+        implementation.RDFUrnCollection,
         mode="r",
         token=self.token)
 
     self.Log("Hunt stop. Terminating all the started flows.")
     num_terminated_flows = 0
-    for started_flow in started_flows:
-      flow.GRRFlow.MarkForTermination(
-          started_flow, reason="Parent hunt stopped.", token=self.token)
-      num_terminated_flows += 1
+    with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
+      for started_flow in started_flows:
+        flow.GRRFlow.MarkForTermination(
+            started_flow,
+            reason="Parent hunt stopped.",
+            mutation_pool=mutation_pool,
+            token=self.token)
+        num_terminated_flows += 1
 
     self.Log("%d flows terminated.", num_terminated_flows)
 
@@ -645,24 +660,18 @@ class VariableGenericHunt(GenericHunt):
 
   @flow.StateHandler()
   def RunClient(self, responses):
-    started_flows = []
+    client_ids_to_schedule = set(responses)
+    for flow_request in self.args.flows:
+      for requested_client_id in flow_request.client_ids:
+        if requested_client_id in client_ids_to_schedule:
+          flow_urn = self.CallFlow(
+              args=flow_request.args,
+              runner_args=flow_request.runner_args,
+              next_state="MarkDone",
+              client_id=requested_client_id)
 
-    for client_id in responses:
-      for flow_request in self.args.flows:
-        for requested_client_id in flow_request.client_ids:
-          if requested_client_id == client_id:
-            flow_urn = self.CallFlow(
-                args=flow_request.args,
-                runner_args=flow_request.runner_args,
-                next_state="MarkDone",
-                client_id=client_id)
-            started_flows.append(flow_urn)
-
-    collects.PackedVersionedCollection.AddToCollection(
-        self.started_flows_collection_urn,
-        started_flows,
-        sync=False,
-        token=self.token)
+          implementation.RDFUrnCollection.StaticAdd(
+              self.started_flows_collection_urn, self.token, flow_urn)
 
   def ManuallyScheduleClients(self, token=None):
     """Schedule all flows without using the Foreman.
@@ -673,6 +682,7 @@ class VariableGenericHunt(GenericHunt):
     Args:
       token: A datastore access token.
     """
+
     client_ids = set()
     for flow_request in self.args.flows:
       for client_id in flow_request.client_ids:

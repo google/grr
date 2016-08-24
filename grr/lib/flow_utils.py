@@ -13,11 +13,11 @@ DEFAULT_TIMEOUT = 650
 
 
 def GetUserInfo(client, user):
-  """Get a User protobuf for a specific user.
+  r"""Get a User protobuf for a specific user.
 
   Args:
     client: A VFSGRRClient object.
-    user: Username as string. May contain domain like DOMAIN\\user.
+    user: Username as string. May contain domain like DOMAIN\user.
   Returns:
     A User rdfvalue or None
   """

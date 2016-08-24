@@ -231,6 +231,11 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.CancelFlow(args, token=token)
 
+  def ListFlowRequests(self, args, token=None):
+    self.CheckClientAccess(args.client_id, token=token)
+
+    return self.delegate.ListFlowRequests(args, token=token)
+
   def ListFlowResults(self, args, token=None):
     self.CheckClientAccess(args.client_id, token=token)
 

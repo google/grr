@@ -261,10 +261,11 @@ class ApiGetClientHandlerRegressionTest(
     with test_lib.FakeTime(42):
       client_ids = self.SetupClients(1)
 
-      # Delete the certificats as it's being regenerated every time the
-      # client is created.
       with aff4.FACTORY.Open(
           client_ids[0], mode="rw", token=self.token) as grr_client:
+        grr_client.Set(grr_client.Schema.MEMORY_SIZE(4294967296))
+        # Delete the certificate as it's being regenerated every time the
+        # client is created.
         grr_client.DeleteAttribute(grr_client.Schema.CERT)
 
     self.Check("GET", "/api/clients/%s" % client_ids[0].Basename())

@@ -107,6 +107,14 @@
         </grr-semantic-value>
       </dd>
 
+      <dt>Memory Size</dt>
+      <dd>
+        <div ng-if="!controller.client.value.memory_size">-</div>
+        <grr-semantic-value value="controller.client.value.memory_size"
+                            ng-if="controller.client.value.memory_size">
+        </grr-semantic-value>
+      </dd>
+
       <dt>Labels</dt>
       <dd>
         <span ng-if="!controller.client.value.labels.length">

@@ -3,6 +3,7 @@
 goog.provide('grrUi.hunt.huntResultsDirective.HuntResultsController');
 goog.provide('grrUi.hunt.huntResultsDirective.HuntResultsDirective');
 
+goog.require('grrUi.core.fileDownloadUtils.downloadableVfsRoots');
 goog.require('grrUi.core.fileDownloadUtils.getFileUrnFromValue');
 goog.require('grrUi.core.fileDownloadUtils.makeValueDownloadable');
 
@@ -83,13 +84,20 @@ HuntResultsController.prototype.transformItems = function(items) {
     var components = aff4Path.split('/');
     var clientId = components[0];
     var vfsPath = components.slice(1).join('/');
-    if (vfsPath.indexOf('fs/') === 0) {
-      vfsPath = vfsPath.substr(3);
-    } else {
+
+    var downloadableVfsRoots =
+        grrUi.core.fileDownloadUtils.downloadableVfsRoots;
+
+    var legitmiatePath = downloadableVfsRoots.some(function(vfsRoot) {
+      var prefix = vfsRoot + '/';
+      return vfsPath.startsWith(prefix);
+    }.bind(this));
+
+    if (!legitmiatePath) {
       return item;
     }
 
-    var downloadUrl = urlPrefix + '/' + clientId + '/fs/' + vfsPath;
+    var downloadUrl = urlPrefix + '/' + clientId + '/vfs-blob/' + vfsPath;
     var downloadParams = {'timestamp': item['value']['timestamp']['value']};
 
     var downloadableItem = angular.copy(item);

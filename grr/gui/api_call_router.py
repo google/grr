@@ -370,6 +370,13 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("Flows")
+  @ArgsType(api_flow.ApiListFlowRequestsArgs)
+  @ResultType(api_flow.ApiListFlowRequestsResult)
+  @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/requests")
+  def ListFlowRequests(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("Flows")
   @ArgsType(api_flow.ApiListFlowResultsArgs)
   @ResultType(api_flow.ApiListFlowResultsResult)
   @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/results")
@@ -610,8 +617,8 @@ class ApiCallRouter(object):
   @Category("Hunts")
   @ArgsType(api_hunt.ApiGetHuntFileArgs)
   @ResultBinaryStream()
-  @Http("GET",
-        "/api/hunts/<hunt_id>/results/clients/<client_id>/fs/<path:vfs_path>")
+  @Http("GET", "/api/hunts/<hunt_id>/results/clients/<client_id>/vfs-blob"
+        "/<path:vfs_path>")
   def GetHuntFile(self, args, token=None):
     raise NotImplementedError()
 

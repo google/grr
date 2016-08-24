@@ -192,6 +192,29 @@ message ApiCancelFlowArgs {
     }];
 }
 
+message ApiListFlowRequestsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "SessionID",
+      description: "Flow id."
+    }];
+  optional int64 offset = 3 [(sem_type) = {
+      description: "Results items starting offset."
+    }];
+  optional int64 count = 4 [(sem_type) = {
+      description: "Max number of results to fetch."
+    }];
+}
+
+message ApiListFlowRequestsResult {
+  repeated ApiFlowRequest items = 1 [(sem_type) = {
+      description: "Flow's requests list."
+    }];
+}
+
 message ApiListFlowResultsArgs {
   optional string client_id = 1 [(sem_type) = {
       type: "ClientURN",
@@ -217,9 +240,9 @@ message ApiListFlowResultsResult {
   repeated ApiFlowResult items = 1 [(sem_type) = {
       description: "The flow results."
     }];
-   optional int64 total_count = 2 [(sem_type) = {
+  optional int64 total_count = 2 [(sem_type) = {
       description: "Total count of items."
-   }];
+    }];
 }
 
 message ApiListFlowLogsArgs {
@@ -693,7 +716,6 @@ message ApiGetHuntFileArgs {
     }];
   optional string vfs_path = 4 [(sem_type) = {
       description: "AFF4 path to the file to be downloaded",
-      type: "RDFURN"
     }];
 }
 
@@ -1471,6 +1493,7 @@ message ApiClientApproval {
     }];
 }
 
+// Next id: 18
 message ApiClient {
   optional string urn = 1 [(sem_type) = {
       type: "ClientURN",
@@ -1480,6 +1503,11 @@ message ApiClient {
   optional ClientInformation agent_info = 2;
   optional HardwareInfo hardware_info = 3;
   optional Uname os_info = 4;
+  optional KnowledgeBase knowledge_base = 16;
+  optional uint64 memory_size = 17 [(sem_type) = {
+      type: "ByteSize",
+      description: "Memory available to this client."
+    }];
 
   optional uint64 first_seen_at = 6 [(sem_type) = {
       type: "RDFDatetime",
@@ -1506,12 +1534,15 @@ message ApiClient {
   repeated Interface interfaces = 12;
   repeated User users = 13;
   repeated Volume volumes = 14;
+
   optional uint64 age = 15 [(sem_type) = {
       type: "RDFDatetime",
       description: "Age of the client information."
     }];
 }
 
+
+// Next id: 12
 message ApiFlow {
   // Enum values here correspond to Flow.State values.
   enum State {
@@ -1550,9 +1581,22 @@ message ApiFlow {
       description: "Who started the flow."
     }];
 
+  optional ApiDataObject state_data = 10 [(sem_type) = {
+      description: "Current flow state data."
+    }];
+  optional FlowContext context = 11 [(sem_type) = {
+      description: "Current flow context."
+    }];
+
   repeated ApiFlow nested_flows = 9 [(sem_type) = {
       description: "Nested flows started by this flow."
     }];
+}
+
+message ApiFlowRequest {
+  optional string request_id = 1;
+  optional RequestState request_state = 2;
+  repeated GrrMessage responses = 3;
 }
 
 message ApiFlowResult {

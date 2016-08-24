@@ -555,10 +555,12 @@ class VFSTest(test_lib.GRRBaseTest):
     # Test the whole thing
     walk_tups_0 = list(directory.RecursiveListNames())
     walk_tups_1 = list(directory.RecursiveListNames(depth=1))
+    walk_tups_2 = list(directory.RecursiveListNames(depth=2))
     walk_tups_inf = list(directory.RecursiveListNames(depth=float("inf")))
 
     self.assertEqual(walk_tups_0, [(path, ["b"], [])])
-    self.assertEqual(walk_tups_1, [
+    self.assertEqual(walk_tups_1, [(path, ["b"], [])])
+    self.assertEqual(walk_tups_2, [
         (path, ["b"], []), ("%s/b" % path, ["c", "d"], [])
     ])
     self.assertEqual(walk_tups_inf, [
@@ -576,6 +578,7 @@ class VFSTest(test_lib.GRRBaseTest):
 
     walk_tups_0 = list(directory.RecursiveListNames())
     walk_tups_1 = list(directory.RecursiveListNames(depth=1))
+    walk_tups_2 = list(directory.RecursiveListNames(depth=2))
     walk_tups_inf = list(directory.RecursiveListNames(depth=float("inf")))
 
     self.assertEqual(walk_tups_0, [
@@ -584,6 +587,11 @@ class VFSTest(test_lib.GRRBaseTest):
     ])
 
     self.assertEqual(walk_tups_1, [
+        (u"/", [u"Test Directory", u"glob_test", u"home", u"lost+found",
+                u"איןד ןד ש אקדא", u"入乡随俗 海外春节别样过法"], []),
+    ])
+
+    self.assertEqual(walk_tups_2, [
         (u"/", [u"Test Directory", u"glob_test", u"home", u"lost+found",
                 u"איןד ןד ש אקדא", u"入乡随俗 海外春节别样过法"], []),
         (u"/Test Directory", [], [u"numbers.txt"]), (u"/glob_test", [u"a"], []),

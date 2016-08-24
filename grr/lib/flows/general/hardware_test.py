@@ -51,7 +51,7 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
     super(TestDumpFlashImage, self).setUp()
     test_lib.WriteComponent(
         name="grr-chipsec-component",
-        version="1.2.2.2",
+        version="1.2.4.1",
         modules=["grr_chipsec"],
         token=self.token)
 
@@ -155,7 +155,7 @@ class DumpACPITableTest(test_lib.FlowTestsBaseclass):
     super(DumpACPITableTest, self).setUp()
     test_lib.WriteComponent(
         name="grr-chipsec-component",
-        version="1.2.2.2",
+        version="1.2.4.1",
         modules=["grr_chipsec"],
         token=self.token)
 

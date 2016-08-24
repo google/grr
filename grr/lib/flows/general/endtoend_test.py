@@ -81,7 +81,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     self.client.Set(self.client.Schema.INSTALL_DATE(install_time))
     self.client.Set(self.client.Schema.KNOWLEDGE_BASE(kb))
     self.client.Set(self.client.Schema.USERNAMES([user]))
-    self.client.Set(self.client.Schema.LAST_INTERFACES([interface]))
+    self.client.Set(self.client.Schema.INTERFACES([interface]))
     self.client.Flush()
 
     self.client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
@@ -137,7 +137,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     self.client.Set(self.client.Schema.INSTALL_DATE(install_time))
     self.client.Set(self.client.Schema.KNOWLEDGE_BASE(kb))
     self.client.Set(self.client.Schema.USERNAMES([user]))
-    self.client.Set(self.client.Schema.LAST_INTERFACES([interface]))
+    self.client.Set(self.client.Schema.INTERFACES([interface]))
     self.client.Flush()
 
     args = endtoend.EndToEndTestFlowArgs(

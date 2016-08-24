@@ -2,6 +2,7 @@
 
 goog.provide('grrUi.semantic.urnDirective.UrnController');
 goog.provide('grrUi.semantic.urnDirective.UrnDirective');
+goog.require('grrUi.core.fileDownloadUtils.vfsRoots');
 
 goog.scope(function() {
 
@@ -64,14 +65,10 @@ UrnController.prototype.onValueChange_ = function(newValue) {
   // Get the components without an "aff4" one.
   var components = this.plainValue.split('/').slice(1);
   if (grrUi.semantic.urnDirective.CLIENT_ID_RE.test(components[0])) {
-    var path = components.slice(1).join('/');
-    if (path.startsWith('fs/os/') ||
-        path.startsWith('fs/tsk/') ||
-        path.startsWith('registry/')) {
-
+    if (grrUi.core.fileDownloadUtils.vfsRoots.includes(components[1])) {
       this.refParams = {
         clientId: components[0],
-        path: path
+        path: components.slice(1).join('/')
       };
 
       this.ref = this.grrRoutingService_.href('client.vfs', this.refParams);

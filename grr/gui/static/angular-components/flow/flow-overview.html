@@ -1,0 +1,65 @@
+<div ng-if="flowUrn && !controller.flow">
+  Loading...
+</div>
+
+<div ng-if="controller.flow">
+
+  <dl class="dl-horizontal dl-flow">
+    <dt>Name</dt>
+    <dd><grr-semantic-value value="controller.flow.value.name" /></dd>
+
+    <dt>Flow ID</dt>
+    <dd>{$ controller.flowId $}</dd>
+
+    <dt>Flow URN</dt>
+    <dd>{$ controller.flow.value.urn.value $}</dd>
+
+    <dt>Creator</dt>
+    <dd><grr-semantic-value value="controller.flow.value.creator" /></dd>
+
+    <dt>Start Time</dt>
+    <dd><grr-timestamp value="controller.flow.value.started_at" /></dd>
+
+    <dt>Last Active</dt>
+    <dd><grr-timestamp value="controller.flow.value.last_active_at" /></dd>
+
+    <dt>State</dt>
+    <dd><grr-semantic-value value="controller.flow.value.state" /></dd>
+    <br>
+
+    <dt>Arguments</dt>
+    <dd>
+      <grr-semantic-value value="controller.flow.value.args"
+                          ng-if="controller.flow.value.args">
+      </grr-semantic-value>
+      <span ng-if="!controller.flow.value.args">-</span>
+    </dd>
+    <br>
+
+    <dt>Runner Arguments</dt>
+    <dd>
+      <grr-semantic-value value="controller.flow.value.runner_args"
+                          ng-if="controller.flow.value.runner_args">
+      </grr-semantic-value>
+      <span ng-if="!controller.flow.value.runner_args">-</span>
+    </dd>
+    <br>
+
+    <dt>Context</dt>
+    <dd>
+      <grr-semantic-value value="controller.flow.value.context">
+      </grr-semantic-value>
+      <span ng-if="!controller.flow.value.context">-</span>
+    </dd>
+    <br>
+
+    <dt>State Data</dt>
+    <dd>
+      <grr-semantic-value value="controller.flow.value.state_data">
+      </grr-semantic-value>
+      <span ng-if="!controller.flow.value.state_data">-</span>
+    </dd>
+    <br>
+  </dl>
+
+</div>

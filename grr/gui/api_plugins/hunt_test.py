@@ -422,7 +422,7 @@ class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,
     self.hunt.Run()
 
     self.results_urn = self.hunt.results_collection_urn
-    self.aff4_file_path = rdfvalue.RDFURN("os").Add(self.file_path)
+    self.aff4_file_path = "fs/os/%s" % self.file_path
 
     self.client_id = self.SetupClients(1)[0]
     self.AssignTasksToClients(client_ids=[self.client_id])
@@ -455,6 +455,16 @@ class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,
     with self.assertRaises(ValueError):
       args = model_args.Copy()
       args.timestamp = None
+      self.handler.Handle(args)
+
+  def testRaisesIfVfsRootIsNotWhitelisted(self):
+    args = hunt_plugin.ApiGetHuntFileArgs(
+        hunt_id=self.hunt.urn.Basename(),
+        client_id=self.client_id,
+        vfs_path="flows/W:123456",
+        timestamp=rdfvalue.RDFDatetime().Now())
+
+    with self.assertRaises(ValueError):
       self.handler.Handle(args)
 
   def testRaisesIfResultIsBeforeTimestamp(self):

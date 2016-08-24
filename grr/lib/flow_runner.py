@@ -62,6 +62,7 @@ import traceback
 import logging
 from grr.client import actions
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import events
 # Note: OutputPluginDescriptor is also needed implicitly by FlowRunnerArgs
@@ -106,21 +107,7 @@ class FlowRunner(object):
   doesn't respond does not make the whole hunt wait.
   """
 
-  # If True, kill notifications will be scheduled by the worker when
-  # running runner.ProcessCompletedRequests().
-  schedule_kill_notifications = True
-
-  # Normal flows must process responses in order.
-  process_requests_in_order = True
-  queue_manager = None
-
-  client_id = None
-
-  def __init__(self,
-               flow_obj,
-               parent_runner=None,
-               runner_args=None,
-               _store=None,
+  def __init__(self, flow_obj, parent_runner=None, runner_args=None,
                token=None):
     """Constructor for the Flow Runner.
 
@@ -129,11 +116,9 @@ class FlowRunner(object):
       parent_runner: The parent runner of this runner.
       runner_args: A FlowRunnerArgs() instance containing initial values. If not
         specified, we use the runner_args from the flow_obj.
-      _store: An optional data store to use. (Usually only used in tests).
       token: An instance of access_control.ACLToken security token.
     """
     self.token = token or flow_obj.token
-    self.data_store = _store or data_store.DB
     self.parent_runner = parent_runner
 
     # If we have a parent runner, we use its queue manager.
@@ -141,8 +126,7 @@ class FlowRunner(object):
       self.queue_manager = parent_runner.queue_manager
     else:
       # Otherwise we use a new queue manager.
-      self.queue_manager = queue_manager.QueueManager(
-          token=self.token, store=self.data_store)
+      self.queue_manager = queue_manager.QueueManager(token=self.token)
 
     self.queued_replies = []
 
@@ -182,32 +166,29 @@ class FlowRunner(object):
     #
     # We can't create the collection as part of InitializeContext, as flow's
     # urn is not known when InitializeContext runs.
-    #
-    # TODO(user): this gets ugly, as HuntRunner inherits the constructor,
-    # but doesn't inherit the InitializeContext, therefore initializing
-    # the collection in the constructor is dangerous, as "args" may be
-    # HuntRunnerArgs and not FlowRunnerArgs. HuntRunner and FlowRunner
-    # should share the functionality in some other way, not through
-    # inheritance
     if runner_args is not None and self.IsWritingResults():
       with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
-        with aff4.FACTORY.Create(
-            self.output_urn,
-            aff4_type=sequential_collection.GeneralIndexedCollection,
-            mutation_pool=mutation_pool,
-            token=self.token):
-          pass
-        with aff4.FACTORY.Create(
-            self.multi_type_output_urn,
-            aff4_type=multi_type_collection.MultiTypeCollection,
-            mutation_pool=mutation_pool,
-            token=self.token):
-          pass
+        self.CreateCollections(mutation_pool)
+
+  def CreateCollections(self, mutation_pool):
+    logs_collection_urn = self._GetLogsCollectionURN(
+        self.runner_args.logs_collection_urn)
+    for urn, collection_type in [
+        (self.output_urn, sequential_collection.GeneralIndexedCollection),
+        (self.multi_type_output_urn, multi_type_collection.MultiTypeCollection),
+        (logs_collection_urn, FlowLogCollection),
+    ]:
+      with aff4.FACTORY.Create(
+          urn,
+          collection_type,
+          mode="w",
+          mutation_pool=mutation_pool,
+          token=self.token):
+        pass
 
   def IsWritingResults(self):
-    return (not self.parent_runner or
-            not getattr(self.runner_args, "send_replies", None) or
-            getattr(self.runner_args, "write_intermediate_results", None))
+    return (not self.parent_runner or not self.runner_args.send_replies or
+            self.runner_args.write_intermediate_results)
 
   @property
   def multi_type_output_urn(self):
@@ -401,7 +382,69 @@ class FlowRunner(object):
     # Notify the worker about it.
     self.QueueNotification(session_id=self.session_id, timestamp=start_time)
 
-  def ProcessCompletedRequests(self, notification, thread_pool):
+  def ScheduleKillNotification(self):
+    """Schedules a kill notification for this flow."""
+    # Create a notification for the flow in the future that
+    # indicates that this flow is in progess. We'll delete this
+    # notification when we're done with processing completed
+    # requests. If we're stuck for some reason, the notification
+    # will be delivered later and the stuck flow will get
+    # terminated.
+    stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
+        "Worker.stuck_flows_timeout"])
+    kill_timestamp = (rdfvalue.RDFDatetime().Now() + stuck_flows_timeout)
+    with queue_manager.QueueManager(token=self.token) as manager:
+      manager.QueueNotification(
+          session_id=self.session_id,
+          in_progress=True,
+          timestamp=kill_timestamp)
+
+    # kill_timestamp may get updated via flow.HeartBeat() calls, so we
+    # have to store it in the context.
+    self.context.kill_timestamp = kill_timestamp
+
+  def HeartBeat(self):
+    # If kill timestamp is set (i.e. if the flow is currently being
+    # processed by the worker), delete the old "kill if stuck" notification
+    # and schedule a new one, further in the future.
+    if self.context.kill_timestamp:
+      with queue_manager.QueueManager(token=self.token) as manager:
+        manager.DeleteNotification(
+            self.session_id,
+            start=self.context.kill_timestamp,
+            end=self.context.kill_timestamp + rdfvalue.Duration("1s"))
+
+        stuck_flows_timeout = rdfvalue.Duration(config_lib.CONFIG[
+            "Worker.stuck_flows_timeout"])
+        self.context.kill_timestamp = (
+            rdfvalue.RDFDatetime().Now() + stuck_flows_timeout)
+        manager.QueueNotification(
+            session_id=self.session_id,
+            in_progress=True,
+            timestamp=self.context.kill_timestamp)
+
+  def FinalizeProcessCompletedRequests(self, notification):
+    # Delete kill notification as the flow got processed and is not
+    # stuck.
+    with queue_manager.QueueManager(token=self.token) as manager:
+      manager.DeleteNotification(
+          self.session_id,
+          start=self.context.kill_timestamp,
+          end=self.context.kill_timestamp)
+      self.context.kill_timestamp = None
+
+      if (notification.last_status and
+          (self.context.next_processed_request <= notification.last_status)):
+        logging.debug("Had to reschedule a notification: %s", notification)
+        # We have received a notification for a specific request but
+        # could not process that request. This might be a race
+        # condition in the data store so we reschedule the
+        # notification in the future.
+        delay = config_lib.CONFIG["Worker.notification_retry_interval"]
+        manager.QueueNotification(
+            notification, timestamp=notification.timestamp + delay)
+
+  def ProcessCompletedRequests(self, notification, unused_thread_pool=None):
     """Go through the list of requests and process the completed ones.
 
     We take a snapshot in time of all requests and responses for this flow. We
@@ -415,9 +458,15 @@ class FlowRunner(object):
 
     Args:
       notification: The notification object that triggered this processing.
-      thread_pool: For regular flows, the messages have to be processed in
-                   order. Thus, the thread_pool argument is only used for hunts.
     """
+    self.ScheduleKillNotification()
+    try:
+      self._ProcessCompletedRequests(notification)
+    finally:
+      self.FinalizeProcessCompletedRequests(notification)
+
+  def _ProcessCompletedRequests(self, notification):
+    """Does the actual processing of the completed requests."""
     # First ensure that client messages are all removed. NOTE: We make a new
     # queue manager here because we want only the client messages to be removed
     # ASAP. This must happen before we actually run the flow to ensure the
@@ -448,21 +497,19 @@ class FlowRunner(object):
           if request.id == 0:
             continue
 
-          if self.process_requests_in_order:
-            if not responses:
-              break
+          if not responses:
+            break
 
-            # We are missing a needed request - maybe its not completed yet.
-            if request.id > self.context.next_processed_request:
-              stats.STATS.IncrementCounter("grr_response_out_of_order")
-              break
+          # We are missing a needed request - maybe its not completed yet.
+          if request.id > self.context.next_processed_request:
+            stats.STATS.IncrementCounter("grr_response_out_of_order")
+            break
 
-            # Not the request we are looking for - we have seen it before
-            # already.
-            if request.id < self.context.next_processed_request:
-              self.queue_manager.DeleteFlowRequestStates(self.session_id,
-                                                         request)
-              continue
+          # Not the request we are looking for - we have seen it before
+          # already.
+          if request.id < self.context.next_processed_request:
+            self.queue_manager.DeleteFlowRequestStates(self.session_id, request)
+            continue
 
           if not responses:
             continue
@@ -482,8 +529,7 @@ class FlowRunner(object):
           # If we get here its all good - run the flow.
           if self.IsRunning():
             self.flow_obj.HeartBeat()
-            self._Process(
-                request, responses, thread_pool=thread_pool, events=processing)
+            self.RunStateMethod(request.next_state, request, responses)
 
           # Quit early if we are no longer alive.
           else:
@@ -534,10 +580,6 @@ class FlowRunner(object):
         # Join any threads.
         for event in processing:
           event.wait()
-
-  def _Process(self, request, responses, **_):
-    """Flows process responses serially in the same thread."""
-    self.RunStateMethod(request.next_state, request, responses, event=None)
 
   def RunStateMethod(self,
                      method,
@@ -808,8 +850,7 @@ class FlowRunner(object):
     # either at the top level parent, or somewhere in the middle of
     # the call chain.
     write_intermediate = (kwargs.pop("write_intermediate_results", False) or
-                          getattr(self.runner_args,
-                                  "write_intermediate_results", False))
+                          self.runner_args.write_intermediate_results)
 
     try:
       event_id = self.runner_args.event_id
@@ -826,7 +867,6 @@ class FlowRunner(object):
         token=self.token,
         notify_to_user=False,
         parent_flow=self.flow_obj,
-        _store=self.data_store,
         sync=sync,
         queue=self.runner_args.queue,
         write_intermediate_results=write_intermediate,
@@ -1120,14 +1160,14 @@ class FlowRunner(object):
 
     self.SetStatus(utils.SmartUnicode(status))
 
-    with self.OpenLogsCollection(
-        self.runner_args.logs_collection_urn, mode="w") as logs_collection:
-      logs_collection.Add(
-          rdf_flows.FlowLog(
-              client_id=self.runner_args.client_id,
-              urn=self.session_id,
-              flow_name=self.flow_obj.__class__.__name__,
-              log_message=status))
+    log_entry = rdf_flows.FlowLog(
+        client_id=self.runner_args.client_id,
+        urn=self.session_id,
+        flow_name=self.flow_obj.__class__.__name__,
+        log_message=status)
+    logs_collection_urn = self._GetLogsCollectionURN(
+        self.runner_args.logs_collection_urn)
+    FlowLogCollection.StaticAdd(logs_collection_urn, self.token, log_entry)
 
   def GetLog(self):
     return self.OpenLogsCollection(

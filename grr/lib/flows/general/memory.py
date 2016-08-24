@@ -173,8 +173,6 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     request.session[u"autodetect_build_local"] = u"none"
 
     # The client will use rekall in live mode.
-    request.session["live"] = True
-
     if "live" not in request.session:
       request.session["live"] = "Memory"
 

@@ -14,8 +14,12 @@ goog.scope(function() {
  * @export
  */
 grrUi.core.basenameFilter.filterImplementation = function(input) {
-  var components = input.split('/');
-  return components[components.length - 1];
+  if (!angular.isString(input)) {
+    return input;
+  } else {
+    var components = input.split('/');
+    return components[components.length - 1];
+  }
 };
 
 

@@ -168,13 +168,6 @@ class VFSGRRClient(standard.VFSDirectory):
         "The last time the foreman checked us.",
         versioned=False)
 
-    LAST_INTERFACES = aff4.Attribute(
-        "aff4:last_interfaces",
-        rdf_client.Interfaces,
-        "Last seen network interfaces. Full history is maintained in the "
-        "clientid/network object. Separated for performance reasons.",
-        versioned=False)
-
     LAST_CRASH = aff4.Attribute(
         "aff4:last_crash",
         rdf_client.ClientCrash,
@@ -184,6 +177,9 @@ class VFSGRRClient(standard.VFSDirectory):
 
     VOLUMES = aff4.Attribute("aff4:volumes", rdf_client.Volumes,
                              "Client disk volumes.")
+
+    INTERFACES = aff4.Attribute("aff4:interfaces", rdf_client.Interfaces,
+                                "Network interfaces.", "Interfaces")
 
     HARDWARE_INFO = aff4.Attribute(
         "aff4:hardware_info",
@@ -320,7 +316,7 @@ class VFSGRRClient(standard.VFSDirectory):
     kb = self.Get(self.Schema.KNOWLEDGE_BASE)
     if kb:
       summary.users = kb.users
-    summary.interfaces = self.Get(self.Schema.LAST_INTERFACES)
+    summary.interfaces = self.Get(self.Schema.INTERFACES)
     summary.client_info = self.Get(self.Schema.CLIENT_INFO)
     summary.serial_number = self.Get(self.Schema.HARDWARE_INFO).serial_number
     summary.timestamp = self.age

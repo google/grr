@@ -124,6 +124,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def CancelFlow(self, args, token=None):
     return api_flow.ApiCancelFlowHandler()
 
+  def ListFlowRequests(self, args, token=None):
+    return api_flow.ApiListFlowRequestsHandler()
+
   def ListFlowResults(self, args, token=None):
     return api_flow.ApiListFlowResultsHandler()
 

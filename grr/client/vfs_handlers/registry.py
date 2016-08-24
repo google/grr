@@ -382,7 +382,7 @@ class RegistryFile(vfs.VFSHandler):
     return response
 
   def _Walk(self, depth=0, hive=None, hive_name=None, top=""):
-    if depth < 0:
+    if depth <= 0:
       return
 
     if hive is None:
@@ -431,7 +431,7 @@ class RegistryFile(vfs.VFSHandler):
                               r"%s\%s" % (top, key)):
           yield tup
 
-  def RecursiveListNames(self, depth=0):
+  def RecursiveListNames(self, depth=1, unused_cross_devs=None):
     if not self.IsDirectory():
       return iter(())
 

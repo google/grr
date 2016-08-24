@@ -14,9 +14,12 @@ goog.scope(function() {
  * @param {!angular.Scope} $scope
  * @param {!angular.$q} $q
  * @param {!grrUi.core.apiService.ApiService} grrApiService
+ * @param {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService}
+ *     grrArtifactDescriptorsService
  * @ngInject
  */
-grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogController = function($scope, $q, grrApiService) {
+grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogController =
+    function($scope, $q, grrApiService, grrArtifactDescriptorsService) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
@@ -25,6 +28,9 @@ grrUi.artifact.uploadArtifactDialogDirective.UploadArtifactDialogController = fu
 
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
+
+  /** @private {!grrUi.artifact.artifactDescriptorsService.ArtifactDescriptorsService} */
+  this.grrArtifactDescriptorsService_ = grrArtifactDescriptorsService;
 
   /** @export {Object} */
   this.file;
@@ -64,6 +70,7 @@ UploadArtifactDialogController.prototype.proceed = function() {
     '/artifacts', {}, false, {'artifact': this.file}).then(
       function success() {
         deferred.resolve('Artifact was successfully uploaded.');
+        this.grrArtifactDescriptorsService_.clearCache();
       }.bind(this),
       function failure(response) {
         deferred.reject(response.data.message);
