@@ -27,14 +27,14 @@ DACL_DEFAULT = 0
 
 
 def CanonicalPathToLocalPath(path):
-  """Converts the canonical paths as used by GRR to OS specific paths.
+  r"""Converts the canonical paths as used by GRR to OS specific paths.
 
   Due to the inconsistencies between handling paths in windows we need to
   convert a path to an OS specific version prior to using it. This function
   should be called just before any OS specific functions.
 
   Canonical paths on windows have:
-    - / instead of \\.
+    - / instead of \.
     - Begin with /X:// where X is the drive letter.
 
   Args:
@@ -254,13 +254,9 @@ class NannyController(object):
     """Write the message into the transaction log.
 
     Args:
-      grr_message: A GrrMessage instance or a string.
+      grr_message: A GrrMessage instance.
     """
-    try:
-      grr_message = grr_message.SerializeToString()
-    except AttributeError:
-      grr_message = str(grr_message)
-
+    grr_message = grr_message.SerializeToString()
     try:
       _winreg.SetValueEx(self._GetKey(), "Transaction", 0, _winreg.REG_BINARY,
                          grr_message)
@@ -292,7 +288,7 @@ class NannyController(object):
       return
 
     try:
-      return rdf_flows.GrrMessage(value)
+      return rdf_flows.GrrMessage.FromSerializedString(value)
     except message.Error:
       return
 

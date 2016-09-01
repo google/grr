@@ -65,7 +65,7 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
     end_time = args.end
 
     if not end_time:
-      end_time = rdfvalue.RDFDatetime().Now()
+      end_time = rdfvalue.RDFDatetime.Now()
 
     if not start_time:
       start_time = end_time - rdfvalue.Duration("1h")

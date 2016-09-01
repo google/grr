@@ -97,12 +97,12 @@ class SequentialCollection(aff4.AFF4Object):
                        cls.RDF_TYPE.__name__)
 
     if timestamp is None:
-      timestamp = rdfvalue.RDFDatetime().Now()
+      timestamp = rdfvalue.RDFDatetime.Now()
     if isinstance(timestamp, rdfvalue.RDFDatetime):
       timestamp = timestamp.AsMicroSecondsFromEpoch()
 
     if not rdf_value.age:
-      rdf_value.age.Now()
+      rdf_value.age = rdfvalue.RDFDatetime.Now()
 
     if not isinstance(collection_urn, rdfvalue.RDFURN):
       collection_urn = rdfvalue.RDFURN(collection_urn)
@@ -196,9 +196,8 @@ class SequentialCollection(aff4.AFF4Object):
         after_urn=after_urn,
         max_records=max_records,
         token=self.token):
-      rdf_value = self.RDF_TYPE(value)  # pylint: disable=not-callable
+      rdf_value = self.RDF_TYPE.FromSerializedString(value)
       rdf_value.age = timestamp
-
       if include_suffix:
         yield (self._ParseURN(subject), rdf_value)
       else:
@@ -211,7 +210,7 @@ class SequentialCollection(aff4.AFF4Object):
         self.ATTRIBUTE,
         token=self.token):
       _, value, timestamp = v[0]
-      rdf_value = self.RDF_TYPE(value)  # pylint: disable=not-callable
+      rdf_value = self.RDF_TYPE.FromSerializedString(value)
       rdf_value.age = timestamp
       yield rdf_value
 
@@ -284,7 +283,10 @@ BACKGROUND_INDEX_UPDATER = BackgroundIndexUpdater()
 class UpdaterStartHook(registry.InitHook):
 
   def RunOnce(self):
-    t = threading.Thread(None, BACKGROUND_INDEX_UPDATER.UpdateLoop)
+    t = threading.Thread(
+        None,
+        BACKGROUND_INDEX_UPDATER.UpdateLoop,
+        name="SequentialCollectionIndexUpdater")
     t.daemon = True
     t.start()
 
@@ -337,7 +339,7 @@ class IndexedSequentialCollection(SequentialCollection):
     if i > self._max_indexed and i % self.INDEX_SPACING == 0:
       # We only write the index if the timestamp is more than 5 minutes in the
       # past: hacky defense against a late write changing the count.
-      if ts[0] < (rdfvalue.RDFDatetime().Now() - self.INDEX_WRITE_DELAY
+      if ts[0] < (rdfvalue.RDFDatetime.Now() - self.INDEX_WRITE_DELAY
                  ).AsMicroSecondsFromEpoch():
         # We may be used in contexts were we don't have write access, so simply
         # give up in that case. TODO(user): Remove this when the ACL
@@ -439,7 +441,7 @@ class GeneralIndexedCollection(IndexedSequentialCollection):
   @classmethod
   def StaticAdd(cls, collection_urn, token, rdf_value, **kwargs):
     if not rdf_value.age:
-      rdf_value.age.Now()
+      rdf_value.age = rdfvalue.RDFDatetime.Now()
 
     super(GeneralIndexedCollection, cls).StaticAdd(
         collection_urn,

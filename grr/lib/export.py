@@ -55,7 +55,7 @@ class ExportedMetadata(rdf_structs.RDFProtoStruct):
         initializer=initializer, age=age, **kwarg)
 
     if not self.timestamp:
-      self.timestamp = rdfvalue.RDFDatetime().Now()
+      self.timestamp = rdfvalue.RDFDatetime.Now()
 
 
 class ExportedClient(rdf_structs.RDFProtoStruct):
@@ -266,7 +266,7 @@ class DataAgnosticExportConverter(ExportConverter):
       # field number is correct.
       if isinstance(desc, (type_info.ProtoBinary, type_info.ProtoString,
                            type_info.ProtoUnsignedInteger,
-                           type_info.ProtoEnum)):
+                           type_info.ProtoRDFValue, type_info.ProtoEnum)):
         # Incrementing field number by 1, as 1 is always occuppied by metadata.
         output_class.AddDescriptor(desc.Copy(field_number=number + 1))
 
@@ -1699,6 +1699,8 @@ def GetMetadata(client, token=None):
       client_fd.Get(client_fd.Schema.MAC_ADDRESS, u""))
 
   metadata.labels = u",".join(client_fd.GetLabelsNames())
+
+  metadata.hardware_info = client_fd.Get(client_fd.Schema.HARDWARE_INFO)
 
   return metadata
 

@@ -168,7 +168,7 @@ message ApiGetFlowArgs {
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
-      type: "SessionID",
+      type: "ApiFlowId",
       description: "Flow id."
     }];
 }
@@ -187,7 +187,7 @@ message ApiCancelFlowArgs {
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
-      type: "SessionID",
+      type: "ApiFlowId",
       description: "Flow id."
     }];
 }
@@ -198,7 +198,7 @@ message ApiListFlowRequestsArgs {
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
-      type: "SessionID",
+      type: "ApiFlowId",
       description: "Flow id."
     }];
   optional int64 offset = 3 [(sem_type) = {
@@ -221,7 +221,7 @@ message ApiListFlowResultsArgs {
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
-      type: "SessionID",
+      type: "ApiFlowId",
       description: "Flow id."
     }];
   optional int64 offset = 3 [(sem_type) = {
@@ -251,7 +251,7 @@ message ApiListFlowLogsArgs {
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
-      type: "SessionID",
+      type: "ApiFlowId",
       description: "Flow id."
     }];
   optional int64 offset = 3 [(sem_type) = {
@@ -281,7 +281,7 @@ message ApiGetFlowResultsExportCommandArgs {
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
-      type: "SessionID",
+      type: "ApiFlowId",
       description: "Flow id."
     }];
 }
@@ -298,7 +298,7 @@ message ApiListFlowOutputPluginsArgs {
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
-      type: "SessionID",
+      type: "ApiFlowId",
       description: "Flow id."
     }];
 }
@@ -313,7 +313,7 @@ message ApiListFlowOutputPluginLogsArgs {
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
-      type: "SessionID",
+      type: "ApiFlowId",
       description: "Flow id."
     }];
   optional string plugin_id = 3 [(sem_type) = {
@@ -345,7 +345,7 @@ message ApiListFlowOutputPluginErrorsArgs {
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
-      type: "SessionID",
+      type: "ApiFlowId",
       description: "Flow id."
     }];
   optional string plugin_id = 3 [(sem_type) = {
@@ -382,7 +382,7 @@ message ApiGetFlowFilesArchiveArgs {
     }];
   optional string flow_id = 2 [(sem_type) = {
       description: "Flow id.",
-      type: "SessionID"
+      type: "ApiFlowId"
     }];
   optional ArchiveFormat archive_format = 3;
 };
@@ -918,6 +918,21 @@ message ApiGetCronJobArgs {
     }];
 }
 
+message ApiForceRunCronJobArgs {
+  optional string cron_job_id = 1 [(sem_type) = {
+      description: "Cron job id."
+    }];
+}
+
+message ApiModifyCronJobArgs {
+  optional string cron_job_id = 1 [(sem_type) = {
+      description: "Cron job id."
+    }];
+  optional ApiCronJob.State state = 2 [(sem_type) = {
+      description: "New cron job state value."
+    }];
+}
+
 message ApiListCronJobFlowsArgs {
   optional string cron_job_id = 1 [(sem_type) = {
       description: "Cron job id."
@@ -935,7 +950,7 @@ message ApiGetCronJobFlowArgs {
       description: "Cron job id."
     }];
   optional string flow_id = 2 [(sem_type) = {
-      type: "SessionID",
+      type: "ApiFlowId",
       description: "Flow id."
     }];
 }
@@ -1542,7 +1557,7 @@ message ApiClient {
 }
 
 
-// Next id: 12
+// Next id: 13
 message ApiFlow {
   // Enum values here correspond to Flow.State values.
   enum State {
@@ -1556,6 +1571,11 @@ message ApiFlow {
       type: "SessionID",
       description: "Flow URN."
     }];
+  optional string flow_id = 12 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+
   optional string name = 2 [(sem_type) = {
       description: "Flow name.",
     }];
@@ -1702,6 +1722,7 @@ message ApiHuntResult {
     }];
 }
 
+// Next id: 13
 message ApiCronJob {
   enum State {
     ENABLED = 0;
@@ -2366,4 +2387,16 @@ message ApiDeletePendingGlobalNotificationArgs {
   optional GlobalNotification.Type type = 1 [(sem_type) = {
       description: "The type of the global notification to delete."
     }];
+}
+
+
+//
+// API call routers parameters.
+//
+message ApiLabelsRestrictedCallRouterParams {
+  repeated string labels_whitelist = 1;
+  repeated string labels_owners_whitelist = 2;
+
+  optional bool allow_flows_access = 3;
+  optional bool allow_vfs_access = 4;
 }

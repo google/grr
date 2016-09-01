@@ -83,6 +83,8 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
                        "aabbccddee00\nbbccddeeff00")
       self.assertEqual(parsed_output[i]["metadata.source_urn"],
                        self.results_urn)
+      self.assertEqual(parsed_output[i]["metadata.hardware_info.bios_version"],
+                       "Bios-Version-0")
 
       self.assertEqual(parsed_output[i]["urn"],
                        self.client_id.Add("/fs/os/foo/bar").Add(str(i)))

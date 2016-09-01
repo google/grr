@@ -371,7 +371,7 @@ class Factory(object):
       pass
 
     attributes[AFF4Object.SchemaCls.LAST] = [
-        rdfvalue.RDFDatetime().Now().SerializeToDataStore()
+        rdfvalue.RDFDatetime.Now().SerializeToDataStore()
     ]
     to_delete.add(AFF4Object.SchemaCls.LAST)
     if mutation_pool:
@@ -428,7 +428,7 @@ class Factory(object):
           # It's too big to query anyways...
           if dirname != u"/":
             attributes[AFF4Object.SchemaCls.LAST] = [
-                rdfvalue.RDFDatetime().Now().SerializeToDataStore()
+                rdfvalue.RDFDatetime.Now().SerializeToDataStore()
             ]
 
           if mutation_pool:
@@ -462,7 +462,7 @@ class Factory(object):
       pool.DeleteAttributes(dirname,
                             ["index:dir/%s" % utils.SmartStr(basename)])
       to_set = {AFF4Object.SchemaCls.LAST: [
-          rdfvalue.RDFDatetime().Now().SerializeToDataStore()
+          rdfvalue.RDFDatetime.Now().SerializeToDataStore()
       ]}
       pool.MultiSet(dirname, to_set, replace=True)
       if mutation_pool is None:
@@ -770,6 +770,7 @@ class Factory(object):
     # Now we have a AFF4Object, turn it into the type it is currently supposed
     # to be as specified by Schema.TYPE.
     existing_type = result.Get(result.Schema.TYPE, default="AFF4Volume")
+
     if existing_type:
       try:
         result = result.Upgrade(AFF4Object.classes[existing_type])
@@ -1276,7 +1277,6 @@ class Attribute(object):
     self.versioned = versioned
     self.lock_protected = lock_protected
     self.creates_new_object_version = creates_new_object_version
-
     # Field names can refer to a specific component of an attribute
     self.field_names = []
 
@@ -1514,8 +1514,8 @@ class LazyDecoder(object):
   def ToRDFValue(self):
     if self.decoded is None:
       try:
-        self.decoded = self.rdfvalue_cls(
-            initializer=self.serialized, age=self.age)
+        self.decoded = self.rdfvalue_cls.FromSerializedString(
+            self.serialized, age=self.age)
       except rdfvalue.DecodeError:
         return None
 
@@ -1918,8 +1918,8 @@ class AFF4Object(object):
       # version point in the life of the object.
       if self._new_version:
         to_set[self.Schema.TYPE] = [
-            (rdfvalue.RDFString(self.__class__.__name__).SerializeToDataStore(),
-             rdfvalue.RDFDatetime().Now())
+            (utils.SmartUnicode(self.__class__.__name__),
+             rdfvalue.RDFDatetime.Now())
         ]
 
       # We only update indexes if the schema does not forbid it and we are not
@@ -2034,7 +2034,6 @@ class AFF4Object(object):
       raise IOError("Object must be locked to write attribute %s." % attribute)
 
     self._CheckAttribute(attribute, value)
-
     # Does this represent a new version?
     if attribute.versioned:
       if attribute.creates_new_object_version:
@@ -2044,7 +2043,7 @@ class AFF4Object(object):
       if age:
         value.age = age
       else:
-        value.age.Now()
+        value.age = rdfvalue.RDFDatetime.Now()
 
     # Non-versioned attributes always replace previous versions and get written
     # at the earliest timestamp (so they appear in all objects).
@@ -2268,7 +2267,7 @@ class AFF4Object(object):
     current_labels = self.Get(self.Schema.LABELS, self.Schema.LABELS())
     for label_name in labels_names:
       label = aff4_rdfvalues.AFF4ObjectLabel(
-          name=label_name, owner=owner, timestamp=rdfvalue.RDFDatetime().Now())
+          name=label_name, owner=owner, timestamp=rdfvalue.RDFDatetime.Now())
       current_labels.AddLabel(label)
 
     self.Set(current_labels)
@@ -3066,7 +3065,7 @@ class AFF4ImageBase(AFF4Stream):
       data = self._WritePartial(data)
 
     self.size = max(self.size, self.offset)
-    self.content_last = rdfvalue.RDFDatetime().Now()
+    self.content_last = rdfvalue.RDFDatetime.Now()
 
   def Flush(self, sync=True):
     """Sync the chunk cache to storage."""
@@ -3185,7 +3184,7 @@ def issubclass(obj, cls):  # pylint: disable=redefined-builtin,g-bad-name
 
 def CurrentAuditLog():
   """Get the rdfurn of the current audit log."""
-  now_sec = rdfvalue.RDFDatetime().Now().AsSecondsFromEpoch()
+  now_sec = rdfvalue.RDFDatetime.Now().AsSecondsFromEpoch()
   rollover = config_lib.CONFIG["Logging.aff4_audit_log_rollover"]
   # This gives us a filename that only changes every
   # Logging.aff4_audit_log_rollover seconds, but is still a valid timestamp.

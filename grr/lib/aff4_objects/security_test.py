@@ -36,7 +36,7 @@ class ApprovalTest(test_lib.GRRBaseTest):
     self.RequestAndGrantClientApproval(self.client_id, token=self.token)
 
     # Make sure approval is expired by the time we call GetApprovalForObject.
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now + self.approval_expiration + rdfvalue.Duration(
         "1s")):
       with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
@@ -55,7 +55,7 @@ class ApprovalTest(test_lib.GRRBaseTest):
 
     # Make sure that approvals are expired by the time we call
     # GetApprovalForObject.
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now + self.approval_expiration + rdfvalue.Duration(
         "1s")):
       with self.assertRaisesRegexp(access_control.UnauthorizedAccess,
@@ -74,7 +74,7 @@ class ApprovalTest(test_lib.GRRBaseTest):
         username=self.token.username, reason="reason1")
     self.RequestAndGrantClientApproval(self.client_id, token=token1)
 
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now + self.approval_expiration, increment=1e-6):
       token2 = access_control.ACLToken(
           username=self.token.username, reason="reason2")
@@ -126,7 +126,7 @@ class ApprovalWithReasonTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(ApprovalWithReasonTest, self).setUp()
-    self.approval_obj = security.AbstractApprovalWithReason()
+    self.approval_obj = security.AbstractApprovalWithReasonMixin()
 
   def _CreateReason(self, reason, result):
     self.assertEqual(self.approval_obj.CreateReasonHTML(reason), result)

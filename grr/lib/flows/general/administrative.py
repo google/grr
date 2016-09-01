@@ -679,7 +679,7 @@ P.S. The state of the failing flow was:
         session_id=message.session_id,
         client_info=client_info,
         crash_message=status.error_message,
-        timestamp=rdfvalue.RDFDatetime().Now(),
+        timestamp=rdfvalue.RDFDatetime.Now(),
         crash_type=self.well_known_session_id)
 
     self.WriteAllCrashDetails(
@@ -838,8 +838,8 @@ class KeepAlive(flow.GRRFlow):
       self.Log(responses.status.error_message)
       raise flow.FlowError(responses.status.error_message)
 
-    if rdfvalue.RDFDatetime().Now() < self.state.end_time - self.sleep_time:
-      start_time = rdfvalue.RDFDatetime().Now() + self.sleep_time
+    if rdfvalue.RDFDatetime.Now() < self.state.end_time - self.sleep_time:
+      start_time = rdfvalue.RDFDatetime.Now() + self.sleep_time
       self.CallState(next_state="SendMessage", start_time=start_time)
 
 

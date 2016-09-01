@@ -152,7 +152,7 @@ class QueueManager(object):
     processing requests.
     """
     self.prev_frozen_timestamps.append(self.frozen_timestamp)
-    self.frozen_timestamp = rdfvalue.RDFDatetime().Now()
+    self.frozen_timestamp = rdfvalue.RDFDatetime.Now()
 
   def UnfreezeTimestamp(self):
     """Unfreezes the timestamp used for resolve/delete database queries."""
@@ -208,7 +208,7 @@ class QueueManager(object):
     status = {}
 
     if timestamp is None:
-      timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now())
+      timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now())
 
     for predicate, serialized, _ in self.data_store.ResolvePrefix(
         subject, [self.FLOW_REQUEST_PREFIX, self.FLOW_STATUS_PREFIX],
@@ -225,14 +225,14 @@ class QueueManager(object):
 
     for request_id, serialized in sorted(requests.items()):
       if request_id in status:
-        yield (rdf_flows.RequestState(serialized),
-               rdf_flows.GrrMessage(status[request_id]))
+        yield (rdf_flows.RequestState.FromSerializedString(serialized),
+               rdf_flows.GrrMessage.FromSerializedString(status[request_id]))
 
   def FetchCompletedResponses(self, session_id, timestamp=None, limit=10000):
     """Fetch only completed requests and responses up to a limit."""
 
     if timestamp is None:
-      timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now())
+      timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now())
 
     completed_requests = collections.deque(
         self.FetchCompletedRequests(
@@ -272,7 +272,8 @@ class QueueManager(object):
       for response_urn, request in sorted(response_subjects.items()):
         responses = []
         for _, serialized, _ in response_data.get(response_urn, []):
-          responses.append(rdf_flows.GrrMessage(serialized))
+          responses.append(
+              rdf_flows.GrrMessage.FromSerializedString(serialized))
 
         yield (request, sorted(responses, key=lambda msg: msg.response_id))
 
@@ -303,7 +304,7 @@ class QueueManager(object):
     requests = {}
 
     if timestamp is None:
-      timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now())
+      timestamp = (0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now())
 
     # Get some requests.
     for predicate, serialized, _ in self.data_store.ResolvePrefix(
@@ -326,10 +327,10 @@ class QueueManager(object):
             timestamp=timestamp))
 
     for urn, request_data in sorted(requests.items()):
-      request = rdf_flows.RequestState(request_data)
+      request = rdf_flows.RequestState.FromSerializedString(request_data)
       responses = []
       for _, serialized, _ in response_data.get(urn, []):
-        responses.append(rdf_flows.GrrMessage(serialized))
+        responses.append(rdf_flows.GrrMessage.FromSerializedString(serialized))
 
       yield (request, sorted(responses, key=lambda msg: msg.response_id))
 
@@ -366,7 +367,7 @@ class QueueManager(object):
         limit=self.request_limit):
       for _, serialized, _ in values:
 
-        request = rdf_flows.RequestState(serialized)
+        request = rdf_flows.RequestState.FromSerializedString(serialized)
 
         # Drop all responses to this request.
         response_subject = self.GetFlowResponseSubject(request.session_id,
@@ -628,7 +629,7 @@ class QueueManager(object):
     """
     if notifications_by_session_id is None:
       notifications_by_session_id = {}
-    end_time = self.frozen_timestamp or rdfvalue.RDFDatetime().Now()
+    end_time = self.frozen_timestamp or rdfvalue.RDFDatetime.Now()
     for predicate, serialized_notification, ts in self.data_store.ResolvePrefix(
         queue_shard,
         self.NOTIFY_PREDICATE_PREFIX,
@@ -638,7 +639,8 @@ class QueueManager(object):
 
       # Parse the notification.
       try:
-        notification = rdf_flows.GrrNotification(serialized_notification)
+        notification = rdf_flows.GrrNotification.FromSerializedString(
+            serialized_notification)
       except Exception:  # pylint: disable=broad-except
         logging.exception("Can't unserialize notification, deleting it: "
                           "predicate=%s, ts=%d", predicate, ts)
@@ -717,12 +719,12 @@ class QueueManager(object):
                         mutation_pool=None):
     """Does the actual queuing."""
     serialized_notifications = {}
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     expiry_time = config_lib.CONFIG["Worker.notification_expiry_time"]
     for notification in notifications:
       if not notification.first_queued:
         notification.first_queued = (self.frozen_timestamp or
-                                     rdfvalue.RDFDatetime().Now())
+                                     rdfvalue.RDFDatetime.Now())
       else:
         diff = now - notification.first_queued
         if diff.seconds >= expiry_time:
@@ -769,7 +771,7 @@ class QueueManager(object):
       start = int(start)
 
     if end is None:
-      end = self.frozen_timestamp or rdfvalue.RDFDatetime().Now()
+      end = self.frozen_timestamp or rdfvalue.RDFDatetime.Now()
 
     for queue, ids in utils.GroupBy(
         session_ids, lambda session_id: session_id.Queue()).iteritems():
@@ -813,7 +815,7 @@ class QueueManager(object):
         prefix,
         timestamp=self.data_store.ALL_TIMESTAMPS,
         token=self.token):
-      task = rdf_flows.GrrMessage(serialized)
+      task = rdf_flows.GrrMessage.FromSerializedString(serialized)
       task.eta = ts
       all_tasks.append(task)
 
@@ -870,8 +872,8 @@ class QueueManager(object):
     # Only grab attributes with timestamps in the past.
     for predicate, task, timestamp in transaction.ResolvePrefix(
         self.TASK_PREDICATE_PREFIX,
-        timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now())):
-      task = rdf_flows.GrrMessage(task)
+        timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now())):
+      task = rdf_flows.GrrMessage.FromSerializedString(task)
       task.eta = timestamp
       task.last_lease = "%s@%s:%d" % (user, socket.gethostname(), os.getpid())
       # Decrement the ttl
@@ -937,12 +939,12 @@ class WellKnownQueueManager(QueueManager):
             self.FLOW_RESPONSE_PREFIX,
             token=self.token,
             limit=self.response_limit,
-            timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime().Now()
+            timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now()
                       ))):
 
       # The predicate format is flow:response:REQUEST_ID:RESPONSE_ID. For well
       # known flows both request_id and response_id are randomized.
-      response = rdf_flows.GrrMessage(serialized)
+      response = rdf_flows.GrrMessage.FromSerializedString(serialized)
 
       yield rdf_flows.RequestState(id=0), [response]
 

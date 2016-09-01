@@ -4,6 +4,7 @@
 
 import codecs
 import collections
+import cProfile
 import datetime
 import email
 import functools
@@ -113,8 +114,15 @@ flags.DEFINE_list(
     None,
     help=("Test module to run. If not specified we run"
           "All modules in the test suite."))
+
 flags.DEFINE_list("labels", ["small"],
                   "A list of test labels to run. (e.g. benchmarks,small).")
+
+flags.DEFINE_string(
+    "profile", "", "If set, the test is run using cProfile, storing the "
+    "resulting profile data in the given filename. Running multiple tests"
+    "will overwrite this file so --tests should be used to limit this to a"
+    "single test.")
 
 
 class Error(Exception):
@@ -529,7 +537,12 @@ class GRRBaseTest(unittest.TestCase):
 
       ok = False
       try:
-        testMethod()
+        profile_filename = flags.FLAGS.profile
+        if profile_filename:
+          cProfile.runctx("testMethod()", globals(), locals(), profile_filename)
+        else:
+          testMethod()
+
         ok = True
       except self.failureException:
         # Break into interactive debugger on test failure.
@@ -690,7 +703,7 @@ class GRRBaseTest(unittest.TestCase):
           info = fd.Schema.CLIENT_INFO()
           info.client_name = "GRR Monitor"
           fd.Set(fd.Schema.CLIENT_INFO, info)
-          fd.Set(fd.Schema.PING, rdfvalue.RDFDatetime().Now())
+          fd.Set(fd.Schema.PING, rdfvalue.RDFDatetime.Now())
           fd.Set(fd.Schema.HOSTNAME("Host-%s" % i))
           fd.Set(fd.Schema.FQDN("Host-%s.example.com" % i))
           fd.Set(
@@ -707,6 +720,12 @@ class GRRBaseTest(unittest.TestCase):
           kb = rdf_client.KnowledgeBase()
           artifact.SetCoreGRRKnowledgeBaseValues(kb, fd)
           fd.Set(fd.Schema.KNOWLEDGE_BASE, kb)
+
+          hardware_info = fd.Schema.HARDWARE_INFO()
+          hardware_info.system_manufacturer = ("System-Manufacturer-%s" % i)
+          hardware_info.bios_version = ("Bios-Version-%s" % i)
+          fd.Set(fd.Schema.HARDWARE_INFO, hardware_info)
+
           fd.Flush()
 
           index.AddClient(fd)
@@ -1833,6 +1852,7 @@ class MockWorker(worker.GRRWorker):
             runner.ProcessCompletedRequests(notification, self.pool)
 
             if (self.check_flow_errors and
+                isinstance(flow_obj, flow.GRRFlow) and
                 runner.context.state == rdf_flows.FlowContext.State.ERROR):
               logging.exception("Flow terminated in state %s with an error: %s",
                                 runner.context.current_state,
@@ -2120,7 +2140,7 @@ def TestHuntHelper(client_mock,
       token=token)
 
 # Make the fixture appear to be 1 week old.
-FIXTURE_TIME = rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("8d")
+FIXTURE_TIME = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
 
 
 def FilterFixture(fixture=None, regex="."):
@@ -2246,6 +2266,8 @@ class ClientFixture(object):
             rdfvalue_object = attribute.attribute_type.FromTextFormat(
                 utils.SmartStr(value))
 
+          elif aff4.issubclass(attribute.attribute_type, rdfvalue.RDFInteger):
+            rdfvalue_object = attribute(int(value))
           else:
             rdfvalue_object = attribute(value)
 

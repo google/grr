@@ -87,7 +87,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
           manager.FLOW_RESPONSE_TEMPLATE % (1, message.response_id),
           token=self.token)
 
-      stored_message = rdf_flows.GrrMessage(stored_message)
+      stored_message = rdf_flows.GrrMessage.FromSerializedString(stored_message)
       self.assertRDFValuesEqual(stored_message, message)
 
     return messages
@@ -129,7 +129,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
           manager.FLOW_RESPONSE_TEMPLATE % (1, message.response_id),
           token=self.token)
 
-      stored_message = rdf_flows.GrrMessage(stored_message)
+      stored_message = rdf_flows.GrrMessage.FromSerializedString(stored_message)
       self.assertRDFValuesEqual(stored_message, message)
 
   def testWellKnownFlows(self):
@@ -270,7 +270,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
           manager.FLOW_REQUEST_TEMPLATE % request_id,
           token=self.token)
 
-      request_state = rdf_flows.RequestState(request_state)
+      request_state = rdf_flows.RequestState.FromSerializedString(request_state)
 
       # Check that task_id for the client message is correctly set in
       # request_state.

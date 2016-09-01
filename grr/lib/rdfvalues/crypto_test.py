@@ -63,7 +63,7 @@ class SignedBlobTest(test_base.RDFValueTestCase):
   def testM2CryptoCompatibility(self):
     serialized_blob = open(
         os.path.join(self.base_path, "m2crypto/signed_blob"), "rb").read()
-    blob = rdf_crypto.SignedBlob(serialized_blob)
+    blob = rdf_crypto.SignedBlob.FromSerializedString(serialized_blob)
 
     self.assertTrue(blob.Verify(self.public_key))
 
@@ -463,7 +463,7 @@ class RDFX509CertTest(CryptoTestBase):
         common_name="C.0000000000000000", private_key=private_key)
     client_cert = rdf_crypto.RDFX509Cert.ClientCertFromCSR(csr)
 
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     now_plus_year_and_a_bit = now + rdfvalue.Duration("55w")
     now_minus_a_bit = now - rdfvalue.Duration("1h")
     with test_lib.FakeTime(now_plus_year_and_a_bit):

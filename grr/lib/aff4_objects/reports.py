@@ -94,7 +94,7 @@ class ClientReport(Report):
 
   def MailReport(self, recipient, subject=None):
     """Mail the HTML report to recipient."""
-    dt = rdfvalue.RDFDatetime().Now().Format("%Y-%m-%dT%H-%MZ")
+    dt = rdfvalue.RDFDatetime.Now().Format("%Y-%m-%dT%H-%MZ")
     subject = subject or "%s - %s" % (self.REPORT_NAME, dt)
     csv_data = self.AsCsv()
     filename = "%s-%s.csv" % (self.REPORT_NAME, dt)
@@ -109,7 +109,7 @@ class ClientReport(Report):
 
   def MailHTMLReport(self, recipient, subject=None):
     """Mail the HTML report to recipient."""
-    dt = rdfvalue.RDFDatetime().Now().Format("%Y-%m-%dT%H-%MZ")
+    dt = rdfvalue.RDFDatetime.Now().Format("%Y-%m-%dT%H-%MZ")
     subject = subject or "%s - %s" % (self.REPORT_NAME, dt)
     report_text = self.AsHtmlTable()
 

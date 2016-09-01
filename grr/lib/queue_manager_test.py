@@ -252,7 +252,7 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     value, ts = data_store.DB.Resolve(
         test_queue, manager._TaskIdToColumn(task.task_id), token=self.token)
 
-    decoded = rdf_flows.GrrMessage(value)
+    decoded = rdf_flows.GrrMessage.FromSerializedString(value)
     self.assertRDFValuesEqual(decoded, task)
     self.assertGreater(ts, 0)
 

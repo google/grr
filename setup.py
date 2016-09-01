@@ -28,11 +28,17 @@ def find_data_files(source, ignore_dirs=None):
   return result
 
 
-def run_make_files(make_docs=False, make_ui_files=True, sync_artifacts=True):
+def run_make_files(make_docs=False,
+                   make_ui_files=True,
+                   force_compile_protos=False,
+                   sync_artifacts=True):
   """Builds necessary assets from sources."""
 
-  # Compile the protobufs.
-  subprocess.check_call(["python", "makefile.py"])
+  if force_compile_protos:
+    # Clean and recompile the protobufs.
+    subprocess.check_call(["python", "makefile.py", "--clean"])
+  else:
+    subprocess.check_call(["python", "makefile.py"])
 
   if sync_artifacts:
     # Sync the artifact repo with upstream for distribution.
@@ -71,6 +77,7 @@ class Sdist(sdist):
       ("no-make-docs", None, "Don't build ascii docs when building the sdist."),
       ("no-make-ui-files", None, "Don't build UI JS/CSS bundles (AdminUI "
        "won't work without them)."),
+      ("no-compile-protos", None, "Don't clean protos, use existing _pb2's."),
       ("no-sync-artifacts", None,
        "Don't sync the artifact repo. This is unnecessary for "
        "clients and old client build OSes can't make the SSL connection."),
@@ -80,12 +87,14 @@ class Sdist(sdist):
     self.no_make_docs = None
     self.no_sync_artifacts = None
     self.no_make_ui_files = None
+    self.no_compile_protos = None
     sdist.initialize_options(self)
 
   def run(self):
     run_make_files(
         make_docs=not self.no_make_docs,
         make_ui_files=not self.no_make_ui_files,
+        force_compile_protos=not self.no_compile_protos,
         sync_artifacts=not self.no_sync_artifacts)
     sdist.run(self)
 
@@ -171,7 +180,7 @@ setup_args = dict(
         "pytsk3==20160226",
         "pytz==2016.4",
         "urllib3==1.14",
-        "protobuf==2.6.1",
+        "protobuf==3.0.0",
         "wheel==0.29",
         "virtualenv==15.0.3",
     ],

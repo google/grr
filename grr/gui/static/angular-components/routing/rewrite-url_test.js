@@ -35,15 +35,15 @@ describe('rewriteUrl()', function() {
   mapping['main=ApiDocumentation'] = '/api-docs';
 
   // ACL checks.
-  mapping['main=GrantAccess'] = '/grant-access?acl=';
-  mapping['main=GrantAccess&acl=test'] = '/grant-access?acl=test';
+  mapping['main=GrantAccess&acl=' +
+      'aff4%3A%2FACL%2Fhunts%2FH%3A55AAAA70%2Ftest%2Fapproval%3A6AFF3CC9'] =
+      '/users/test/approvals/hunt/H:55AAAA70/approval:6AFF3CC9';
+  mapping['main=GrantAccess&acl=' +
+      'aff4%3A%2FACL%2FC.833c593a0fe6aca0%2Ftest%2Fapproval%3A8935BE23'] =
+      '/users/test/approvals/client/C.833c593a0fe6aca0/approval:8935BE23';
 
   // Canary test.
   mapping['main=CanaryTestRenderer'] = '/canary-test';
-
-  // ACL checks.
-  mapping['main=GrantAccess'] = '/grant-access?acl=';
-  mapping['main=GrantAccess&acl=test'] = '/grant-access?acl=test';
 
   // RDFValueCollection.
   mapping['main=RDFValueCollectionRenderer'] = '/rdf-collection?path=';

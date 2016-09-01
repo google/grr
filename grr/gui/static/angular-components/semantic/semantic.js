@@ -6,6 +6,9 @@ goog.provide('grrUi.semantic.module');
 
 goog.require('grrUi.core.module');
 goog.require('grrUi.core.semanticRegistry.SemanticRegistryService');
+
+goog.require('grrUi.routing.module');
+
 goog.require('grrUi.semantic.byteSizeDirective.ByteSizeDirective');
 goog.require('grrUi.semantic.bytesDirective.BytesDirective');
 goog.require('grrUi.semantic.clientUrnDirective.ClientUrnDirective');
@@ -40,6 +43,7 @@ goog.require('grrUi.semantic.urnDirective.UrnDirective');
  */
 grrUi.semantic.module = angular.module('grrUi.semantic',
                                        [grrUi.core.module.name,
+                                        grrUi.routing.module.name,
                                         grrUi.semantic.pseudo.module.name,
                                         grrUi.semantic.rekall.module.name,
                                         'ui.bootstrap']);

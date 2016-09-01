@@ -23,19 +23,14 @@ grrUi.flow.flowOverviewDirective.FlowOverviewController =
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  /** @type {string} */
-  this.scope_.flowUrn;
-
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
   /** @export {Object} */
   this.flow;
 
-  /** @export {string} */
-  this.flowId;
-
-  this.scope_.$watch('flowUrn', this.onFlowUrnChange.bind(this));
+  this.scope_.$watchGroup(['flowId', 'apiBasePath'],
+                          this.onFlowIdOrBasePathChange_.bind(this));
 };
 
 var FlowOverviewController =
@@ -43,31 +38,21 @@ var FlowOverviewController =
 
 
 /**
- * Handles flowUrn attribute changes.
+ * Handles directive's arguments changes.
  *
- * @param {string} newFlowUrn
- * @export
+ * @param {Array<string>} newValues
+ * @private
  */
-FlowOverviewController.prototype.onFlowUrnChange = function(newFlowUrn) {
+FlowOverviewController.prototype.onFlowIdOrBasePathChange_ = function(
+    newValues) {
   this.flow = null;
 
-  if (angular.isDefined(newFlowUrn)) {
-    var flowUrnComponents = stripAff4Prefix(newFlowUrn).split('/');
-    var clientId = flowUrnComponents[0];
-    this.flowId = flowUrnComponents[flowUrnComponents.length - 1];
-
-    var path = ['clients', clientId, 'flows', this.flowId].join('/');
-    this.grrApiService_.get(path).then(this.onFlowFetched.bind(this));
+  if (newValues.every(angular.isDefined)) {
+    var flowUrl = this.scope_['apiBasePath'] + '/' + this.scope_['flowId'];
+    this.grrApiService_.get(flowUrl).then(function(response) {
+      this.flow = response.data;
+    }.bind(this));
   }
-};
-
-
-/**
- * Called when flow data was fetched.
- * @param {Object} response Response from the server.
- */
-FlowOverviewController.prototype.onFlowFetched = function(response) {
-  this.flow = response.data;
 };
 
 
@@ -81,7 +66,8 @@ FlowOverviewController.prototype.onFlowFetched = function(response) {
 grrUi.flow.flowOverviewDirective.FlowOverviewDirective = function() {
   return {
     scope: {
-      flowUrn: '=',
+      flowId: '=',
+      apiBasePath: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/flow/flow-overview.html',

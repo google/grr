@@ -62,7 +62,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
   def setUp(self):
     super(TestEndToEndTestFlow, self).setUp()
     self.SetupClients(1, system="Linux", os_version="14.04", arch="x86_64")
-    install_time = rdfvalue.RDFDatetime().Now()
+    install_time = rdfvalue.RDFDatetime.Now()
     user = "testuser"
     userobj = rdf_client.User(username=user)
     interface = rdf_client.Interface(ifname="eth0")
@@ -117,7 +117,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     """Try to run linux tests on windows."""
     self.SetupClients(
         1, system="Windows", os_version="6.1.7601SP1", arch="AMD64")
-    install_time = rdfvalue.RDFDatetime().Now()
+    install_time = rdfvalue.RDFDatetime.Now()
     user = "testuser"
     userobj = rdf_client.User(username=user)
     interface = rdf_client.Interface(ifname="eth0")

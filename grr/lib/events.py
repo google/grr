@@ -26,7 +26,7 @@ class AuditEvent(rdf_structs.RDFProtoStruct):
     if not self.id:
       self.id = utils.PRNG.GetULong()
     if not self.timestamp:
-      self.timestamp = rdfvalue.RDFDatetime().Now()
+      self.timestamp = rdfvalue.RDFDatetime.Now()
 
 
 def EventHandler(source_restriction=False,
@@ -166,7 +166,7 @@ class Events(object):
           timestamp = None
           if delay:
             timestamp = (
-                rdfvalue.RDFDatetime().Now() + delay).AsMicroSecondsFromEpoch()
+                rdfvalue.RDFDatetime.Now() + delay).AsMicroSecondsFromEpoch()
 
           # Forward the message to the well known flow's queue.
           for event_urn in handler_urns:

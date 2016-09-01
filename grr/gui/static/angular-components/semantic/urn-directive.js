@@ -2,7 +2,7 @@
 
 goog.provide('grrUi.semantic.urnDirective.UrnController');
 goog.provide('grrUi.semantic.urnDirective.UrnDirective');
-goog.require('grrUi.core.fileDownloadUtils.vfsRoots');
+goog.require('grrUi.routing.aff4UrnToUrl');
 
 goog.scope(function() {
 
@@ -24,11 +24,14 @@ grrUi.semantic.urnDirective.UrnController = function(
   /** @private {!grrUi.routing.routingService.RoutingService} */
   this.grrRoutingService_ = grrRoutingService;
 
-  /** @type {?string} */
+  /** @type {string} */
   this.plainValue;
 
-  /** @type {?string} */
+  /** @type {string} */
   this.ref;
+
+  /** @type {string} */
+  this.refState;
 
   /** @type {Object} */
   this.refParams;
@@ -39,18 +42,9 @@ var UrnController = grrUi.semantic.urnDirective.UrnController;
 
 
 /**
- * Regex that matches files inside the client.
- *
- * @const
- * @export
- */
-grrUi.semantic.urnDirective.CLIENT_ID_RE = /^C\.[0-9a-fA-F]{16}$/;
-
-
-/**
  * Handles value changes.
  *
- * @param {?string} newValue
+ * @param {string} newValue
  * @private
  */
 UrnController.prototype.onValueChange_ = function(newValue) {
@@ -62,30 +56,12 @@ UrnController.prototype.onValueChange_ = function(newValue) {
     return;
   }
 
-  // Get the components without an "aff4" one.
-  var components = this.plainValue.split('/').slice(1);
-  if (grrUi.semantic.urnDirective.CLIENT_ID_RE.test(components[0])) {
-    if (grrUi.core.fileDownloadUtils.vfsRoots.includes(components[1])) {
-      this.refParams = {
-        clientId: components[0],
-        path: components.slice(1).join('/')
-      };
+  var urlResult = grrUi.routing.aff4UrnToUrl(this.plainValue);
+  if (urlResult) {
+    this.refState = urlResult.state;
+    this.refParams = urlResult.params;
 
-      this.ref = this.grrRoutingService_.href('client.vfs', this.refParams);
-    } else if (components[1] === 'flows' && components.length === 3) {
-      this.refParams = {
-        clientId: components[0],
-        flowId: components[2]
-      };
-
-      this.ref = this.grrRoutingService_.href('client.flows', this.refParams);
-    }
-  } else if (components[0] === 'hunts' && components.length === 2) {
-    this.refParams = {
-      huntId: components[1]
-    };
-
-    this.ref = this.grrRoutingService_.href('hunts', this.refParams);
+    this.ref = this.grrRoutingService_.href(urlResult.state, urlResult.params);
   }
 };
 

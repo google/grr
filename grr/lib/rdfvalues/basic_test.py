@@ -1,6 +1,5 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-# Copyright 2012 Google Inc. All Rights Reserved.
 """Basic rdfvalue tests."""
 
 
@@ -9,6 +8,7 @@ from datetime import datetime
 import time
 
 from grr.lib import rdfvalue
+from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.rdfvalues import test_base
 
@@ -253,9 +253,6 @@ class RDFURNTest(test_base.RDFValueTestCase):
   def testInitialization(self):
     """Check that we can initialize from common initializers."""
 
-    # Empty Initializer not allowed.
-    self.assertRaises(ValueError, self.rdfvalue_class)
-
     # Initialize from another instance.
     sample = self.GenerateSample("aff4:/")
 
@@ -279,7 +276,7 @@ class RDFDatetimeTest(test_base.RDFValueTestCase):
 
     # Human readable strings are assumed to always be in UTC
     # timezone. Initialize from the human readable string.
-    date1 = rdfvalue.RDFDatetime().ParseFromHumanReadable(time_string)
+    date1 = rdfvalue.RDFDatetime.FromHumanReadable(time_string)
 
     self.assertEqual(int(date1), 1320142980000000)
 
@@ -291,29 +288,26 @@ class RDFDatetimeTest(test_base.RDFValueTestCase):
     self.assertEqual(str(date1), time_string)
 
   def testInitFromEmptyString(self):
-    orig_time = time.time
-    time.time = lambda: 1000
-    try:
+    with test_lib.FakeTime(1000):
       # Init from an empty string should generate a DateTime object with a zero
       # time.
-      date = rdfvalue.RDFDatetime("")
+      date = rdfvalue.RDFDatetime.FromSerializedString("")
       self.assertEqual(int(date), 0)
 
       self.assertEqual(int(date.Now()), int(1000 * 1e6))
 
-    finally:
-      time.time = orig_time
-
   def testInitFromDatetimeObject(self):
     # Test initializing from a datetime object
     date = datetime(2015, 6, 17, 5, 22, 3)
-    self.assertEqual(rdfvalue.RDFDatetime(date).AsDatetime(), date)
+    self.assertEqual(rdfvalue.RDFDatetime.FromDatetime(date).AsDatetime(), date)
     date = datetime.utcfromtimestamp(99999)
-    self.assertEqual(rdfvalue.RDFDatetime(date).AsSecondsFromEpoch(), 99999)
+    self.assertEqual(
+        rdfvalue.RDFDatetime.FromDatetime(date).AsSecondsFromEpoch(), 99999)
 
     # Test microsecond support
     date = datetime(1970, 1, 1, 0, 0, 0, 1000)
-    self.assertEqual(rdfvalue.RDFDatetime(date).AsMicroSecondsFromEpoch(), 1000)
+    self.assertEqual(
+        rdfvalue.RDFDatetime.FromDatetime(date).AsMicroSecondsFromEpoch(), 1000)
 
   def testAddNumber(self):
     date = rdfvalue.RDFDatetime(1e9)

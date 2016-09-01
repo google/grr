@@ -53,8 +53,9 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     self.legacy_manager.CheckIfCanStartFlow(
         token.RealUID(), flow_name, with_client_id=False)
 
-  def __init__(self, legacy_manager=None, delegate=None):
-    super(ApiCallRouterWithApprovalChecksWithoutRobotAccess, self).__init__()
+  def __init__(self, params=None, legacy_manager=None, delegate=None):
+    super(ApiCallRouterWithApprovalChecksWithoutRobotAccess, self).__init__(
+        params=params)
 
     if not legacy_manager:
       legacy_manager = self._GetFullAccessControlManager()
@@ -297,6 +298,16 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     # Everybody can retrieve a cron job.
 
     return self.delegate.GetCronJob(args, token=token)
+
+  def ForceRunCronJob(self, args, token=None):
+    self.CheckCronJobAccess(args.cron_job_id, token=token)
+
+    return self.delegate.ForceRunCronJob(args, token=token)
+
+  def ModifyCronJob(self, args, token=None):
+    self.CheckCronJobAccess(args.cron_job_id, token=token)
+
+    return self.delegate.ModifyCronJob(args, token=token)
 
   def ListCronJobFlows(self, args, token=None):
     # Everybody can list cron jobs' flows.

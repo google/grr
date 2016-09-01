@@ -192,7 +192,7 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     if not args.timestamp:
-      age = rdfvalue.RDFDatetime().Now()
+      age = rdfvalue.RDFDatetime.Now()
     else:
       age = rdfvalue.RDFDatetime(args.timestamp)
 

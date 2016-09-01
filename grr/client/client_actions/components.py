@@ -180,13 +180,15 @@ class LoadComponent(actions.ActionPlugin):
 
     # Decrypt and check signature. The cipher is created when the component is
     # uploaded and contains the key to decrypt it.
-    signed_blob = rdf_crypto.SignedBlob(summary.cipher.Decrypt(crypted_data))
+    signed_blob = rdf_crypto.SignedBlob.FromSerializedString(
+        summary.cipher.Decrypt(crypted_data))
 
     # Ensure the blob is signed with the correct key.
     signed_blob.Verify(config_lib.CONFIG[
         "Client.executable_signing_public_key"])
 
-    component = rdf_client.ClientComponent(signed_blob.data)
+    component = rdf_client.ClientComponent.FromSerializedString(
+        signed_blob.data)
 
     # Make sure its the component we actually want.
     if (component.summary.name != summary.name or

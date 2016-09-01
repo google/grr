@@ -164,15 +164,6 @@ class ApiStringRenderer(ApiValueRenderer):
     return self._IncludeTypeInfo(utils.SmartUnicode(value), value)
 
 
-class ApiEnumRenderer(ApiValueRenderer):
-  """Renderer for deprecated (old-style) enums."""
-
-  value_class = rdf_structs.Enum
-
-  def RenderValue(self, value):
-    return self._IncludeTypeInfo(value.name, value)
-
-
 class ApiEnumNamedValueRenderer(ApiValueRenderer):
   """Renderer for new-style enums."""
 

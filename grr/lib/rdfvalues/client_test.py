@@ -48,7 +48,7 @@ class UserTests(test_base.RDFValueTestCase):
 
     serialized = proto.SerializeToString()
 
-    rdf_from_serialized = rdf_client.User(serialized)
+    rdf_from_serialized = rdf_client.User.FromSerializedString(serialized)
 
     self.assertEqual(rdf_from_serialized.username, proto.username)
     self.assertEqual(rdf_from_serialized.desktop, proto.desktop)
@@ -76,7 +76,7 @@ class UserTests(test_base.RDFValueTestCase):
 
     # fast protobufs interoperate with old serialized formats.
     serialized_data = proto.SerializeToString()
-    fast_proto = rdf_client.User(serialized_data)
+    fast_proto = rdf_client.User.FromSerializedString(serialized_data)
     self.assertEqual(fast_proto.last_logon, 1365177603180131)
     self.assertEqual(type(fast_proto.last_logon), rdfvalue.RDFDatetime)
 
@@ -144,13 +144,11 @@ class ClientURNTests(test_base.RDFValueTestCase):
     # Check we can handle URN as well as string
     rdf_client.ClientURN(rdf_client.ClientURN(test_set[0]))
 
-    error_set = ["B.00aaeccbb45f33a3", "", "c.00accbb45f33a3",
+    error_set = ["B.00aaeccbb45f33a3", "c.00accbb45f33a3",
                  "aff5:/C.00aaeccbb45f33a3"]
 
     for badurn in error_set:
       self.assertRaises(type_info.TypeValueError, rdf_client.ClientURN, badurn)
-
-    self.assertRaises(ValueError, rdf_client.ClientURN, None)
 
 
 class NetworkAddressTests(test_base.RDFValueTestCase):

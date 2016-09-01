@@ -68,7 +68,7 @@ class MostActiveUsers(statistics.PieChart):
     """Filter the last week of user actions."""
     try:
       offset = rdfvalue.Duration("7d")
-      now = rdfvalue.RDFDatetime().Now()
+      now = rdfvalue.RDFDatetime.Now()
       counts = {}
       for event in GetAuditLogEntries(offset, now, request.token):
         counts.setdefault(event.user, 0)
@@ -123,7 +123,7 @@ class UserActivity(StackChart):
       self.user_activity = {}
       week_duration = rdfvalue.Duration("7d")
       offset = rdfvalue.Duration(7 * 24 * 60 * 60 * self.WEEKS)
-      now = rdfvalue.RDFDatetime().Now()
+      now = rdfvalue.RDFDatetime.Now()
       for fd in GetAuditLogFiles(offset, now, request.token):
         for week in range(self.WEEKS):
           start = now - week * week_duration
@@ -174,7 +174,7 @@ class SystemFlows(statistics.Report, renderers.TableRenderer):
     # TODO(user): move the calculation to a cronjob and store results in
     # AFF4.
     try:
-      now = rdfvalue.RDFDatetime().Now()
+      now = rdfvalue.RDFDatetime.Now()
       # Store run count total and per-user
       counts = {}
       for event in GetAuditLogEntries(self.time_offset, now, request.token):
@@ -241,7 +241,7 @@ class ClientActivity(StackChart):
   def Layout(self, request, response):
     """Filter the last week of flows."""
     try:
-      now = rdfvalue.RDFDatetime().Now()
+      now = rdfvalue.RDFDatetime.Now()
       week_duration = rdfvalue.Duration("7d")
       offset = rdfvalue.Duration(7 * 24 * 60 * 60 * self.WEEKS)
       self.client_activity = {}
@@ -292,7 +292,7 @@ class AuditTable(statistics.Report, renderers.TableRenderer):
 
   def BuildTable(self, start_row, end_row, request):
     try:
-      now = rdfvalue.RDFDatetime().Now()
+      now = rdfvalue.RDFDatetime.Now()
       rows = []
       for event in GetAuditLogEntries(self.time_offset, now, request.token):
         if event.action in self.TYPES:

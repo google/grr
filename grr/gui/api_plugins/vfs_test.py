@@ -908,7 +908,7 @@ class ApiGetVfsTimelineAsCsvHandlerTest(test_lib.GRRBaseTest,
     for i in reversed(range(0, 5)):
       with test_lib.FakeTime(i):
         next_chunk = next(result.GenerateContent()).strip()
-        timestamp = rdfvalue.RDFDatetime().Now()
+        timestamp = rdfvalue.RDFDatetime.Now()
         if i == 4:  # The first row includes the column headings.
           self.assertEqual(next_chunk,
                            "Timestamp,Datetime,Message,Timestamp_desc\r\n"

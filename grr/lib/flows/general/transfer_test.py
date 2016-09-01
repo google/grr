@@ -244,7 +244,6 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
   def testMultiGetFileMultiFiles(self):
     """Test MultiGetFile downloading many files at once."""
-
     client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
                                           "StatFile", "HashBuffer")
 
@@ -279,8 +278,9 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
       self.assertLessEqual(len(flow_state.pending_hashes), 10)
 
     # When we finish there should be no pathspecs stored in the flow state.
-    for flow_pathspec, flow_request_data in flow_state.indexed_pathspecs:
+    for flow_pathspec in flow_state.indexed_pathspecs:
       self.assertIsNone(flow_pathspec)
+    for flow_request_data in flow_state.request_data_list:
       self.assertIsNone(flow_request_data)
 
     # Now open each file and make sure the data is there.
@@ -288,6 +288,36 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
       urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
       fd = aff4.FACTORY.Open(urn, token=self.token)
       self.assertEqual("Hello", fd.Read(100000))
+
+  def testMultiGetFileDeduplication(self):
+    client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
+                                          "StatFile", "HashBuffer")
+
+    pathspecs = []
+    # Make 10 files to download.
+    for i in xrange(10):
+      path = os.path.join(self.temp_dir, "test_%s.txt" % i)
+      with open(path, "wb") as fd:
+        fd.write("Hello")
+
+      pathspecs.append(
+          rdf_paths.PathSpec(
+              pathtype=rdf_paths.PathSpec.PathType.OS, path=path))
+
+    # All those files are the same so the individual chunks should
+    # only be downloaded once. By forcing maximum_pending_files=1,
+    # there should only be a single TransferBuffer call.
+    args = transfer.MultiGetFileArgs(
+        pathspecs=pathspecs, maximum_pending_files=1)
+    for _ in test_lib.TestFlowHelper(
+        "MultiGetFile",
+        client_mock,
+        token=self.token,
+        client_id=self.client_id,
+        args=args):
+      pass
+
+    self.assertEqual(client_mock.action_counts["TransferBuffer"], 1)
 
   def testMultiGetFileSetsFileHashAttributeWhenMultipleChunksDownloaded(self):
     client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",

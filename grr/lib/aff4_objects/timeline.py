@@ -137,7 +137,7 @@ class GRRTimeSeries(standard.VFSDirectory):
       except struct.error:
         break
 
-      event = Event(serialized_event)
+      event = Event.FromSerializedString(serialized_event)
       event.id = count
       count += 1
 

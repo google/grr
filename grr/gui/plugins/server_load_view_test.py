@@ -24,7 +24,7 @@ class TestServerLoadView(test_lib.GRRSeleniumTest):
 
     stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_num")
 
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     handle_data = [(3, now - rdfvalue.Duration("50m")),
                    (0, now - rdfvalue.Duration("45m")),
                    (1, now - rdfvalue.Duration("40m")),

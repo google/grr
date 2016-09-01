@@ -202,7 +202,7 @@ class DataStore(object):
     logging.info("Using security manager %s", security_manager)
     # Start the flusher thread.
     self.flusher_thread = utils.InterruptableThread(
-        target=self.Flush, sleep_time=0.5)
+        name="DataStore flusher thread", target=self.Flush, sleep_time=0.5)
     self.flusher_thread.start()
     self.monitor_thread = None
 
@@ -257,7 +257,9 @@ class DataStore(object):
     if self.monitor_thread:
       return
     self.monitor_thread = utils.InterruptableThread(
-        target=self._RegisterSize, sleep_time=60)
+        name="DataStore monitoring thread",
+        target=self._RegisterSize,
+        sleep_time=60)
     self.monitor_thread.start()
 
   def _RegisterSize(self):

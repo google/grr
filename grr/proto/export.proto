@@ -104,6 +104,9 @@ message ExportedMetadata {
                    "vs. data collected by cronjob."
     }];
 
+  optional HardwareInfo hardware_info = 16 [(sem_type) = {
+      description: "Hardware information of the client."
+    }];
 }
 
 message ExportedClient {

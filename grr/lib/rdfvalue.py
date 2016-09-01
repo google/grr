@@ -27,7 +27,6 @@ import logging
 
 from grr.lib import registry
 from grr.lib import utils
-from grr.proto import jobs_pb2
 
 # Factor to convert from seconds to microseconds
 MICROSECONDS = 1000000
@@ -77,12 +76,13 @@ class RDFValue(object):
 
   # This is how the attribute will be serialized to the data store. It must
   # indicate both the type emitted by SerializeToDataStore() and expected by
-  # ParseFromDataStore()
+  # FromDatastoreValue()
   data_store_type = "bytes"
 
   # URL pointing to a help page about this value type.
   context_help_url = None
 
+  _value = None
   _age = 0
 
   # Mark as dirty each time we modify this object.
@@ -113,12 +113,16 @@ class RDFValue(object):
     if initializer.__class__ == self.__class__:
       self.ParseFromString(initializer.SerializeToString())
 
-    elif initializer is not None:
-      self.ParseFromString(initializer)
-
   def Copy(self):
     """Make a new copy of this RDFValue."""
-    return self.__class__(initializer=self.SerializeToString())
+    res = self.__class__()
+    res.ParseFromString(self.SerializeToString())
+    return res
+
+  def SetRaw(self, value, age=None):
+    self._value = value
+    if age is not None:
+      self._age = age
 
   def __copy__(self):
     return self.Copy()
@@ -135,14 +139,26 @@ class RDFValue(object):
     """When assigning to this attribute it must be an RDFDatetime."""
     self._age = RDFDatetime(value, age=0)
 
-  def ParseFromDataStore(self, data_store_obj):
-    """Serialize from an object read from the datastore."""
-    return self.ParseFromString(data_store_obj)
-
   @abc.abstractmethod
   def ParseFromString(self, string):
     """Given a string, parse ourselves from it."""
     pass
+
+  @classmethod
+  def FromDatastoreValue(cls, value, age=None):
+    res = cls()
+    res.ParseFromString(value)
+    if age:
+      res.age = age
+    return res
+
+  @classmethod
+  def FromSerializedString(cls, value, age=None):
+    res = cls()
+    res.ParseFromString(value)
+    if age:
+      res.age = age
+    return res
 
   def SerializeToDataStore(self):
     """Serialize to a datastore compatible form."""
@@ -168,19 +184,9 @@ class RDFValue(object):
     else:
       self.__dict__ = data
 
-  def AsProto(self):
-    """Serialize into an RDFValue protobuf."""
-    return jobs_pb2.EmbeddedRDFValue(
-        age=int(self.age),
-        name=self.__class__.__name__,
-        data=self.SerializeToString())
-
   def __iter__(self):
     """This allows every RDFValue to be iterated over."""
     yield self
-
-  def __hash__(self):
-    return hash(self.SerializeToString())
 
   def Summary(self):
     """Return a summary representation of the object."""
@@ -199,12 +205,32 @@ class RDFValue(object):
   # The operators this type supports in the query language
   operators = dict(contains=(1, "ContainsMatch"))
 
+  def __eq__(self, other):
+    return self._value == other
+
+  def __ne__(self, other):
+    return not self.__eq__(other)
+
+  def __hash__(self):
+    return hash(self.SerializeToString())
+
+  def __bool__(self):
+    return bool(self._value)
+
+  def __nonzero__(self):
+    return bool(self._value)
+
 
 class RDFBytes(RDFValue):
   """An attribute which holds bytes."""
   data_store_type = "bytes"
 
   _value = ""
+
+  def __init__(self, initializer=None, age=None):
+    super(RDFBytes, self).__init__(initializer=initializer, age=age)
+    if not self._value and initializer is not None:
+      self.ParseFromString(initializer)
 
   def ParseFromString(self, string):
     # TODO(user): this needs some more test coverage, particularly around
@@ -237,18 +263,6 @@ class RDFBytes(RDFValue):
       return self._value == other._value  # pylint: disable=protected-access
     else:
       return self._value == other
-
-  def __ne__(self, other):
-    return not self.__eq__(other)
-
-  def __hash__(self):
-    return hash(self._value)
-
-  def __bool__(self):
-    return bool(self._value)
-
-  def __nonzero__(self):
-    return bool(self._value)
 
   def __len__(self):
     return len(self._value)
@@ -321,7 +335,7 @@ class HashDigest(RDFBytes):
 
 
 @functools.total_ordering
-class RDFInteger(RDFString):
+class RDFInteger(RDFValue):
   """Represent an integer."""
 
   data_store_type = "integer"
@@ -332,10 +346,15 @@ class RDFInteger(RDFString):
 
   def __init__(self, initializer=None, age=None):
     super(RDFInteger, self).__init__(initializer=initializer, age=age)
-    if initializer is None:
-      self._value = 0
-    else:
-      self.ParseFromString(initializer)
+    if self._value is None:
+      if initializer is None:
+        self._value = 0
+      else:
+        self._value = int(initializer)
+        # self.ParseFromString(initializer)
+
+  def SerializeToString(self):
+    return str(self._value)
 
   def ParseFromString(self, string):
     self._value = 0
@@ -345,15 +364,19 @@ class RDFInteger(RDFString):
       except TypeError as e:
         raise DecodeError(e)
 
+  def __str__(self):
+    return str(self._value)
+
+  def __unicode__(self):
+    return unicode(self._value)
+
+  @classmethod
+  def FromDatastoreValue(cls, value, age=None):
+    return cls(initializer=value, age=age)
+
   def SerializeToDataStore(self):
     """Use varint to store the integer."""
-    return int(self._value)
-
-  def Set(self, value):
-    if isinstance(value, (long, int)):
-      self._value = value
-    else:
-      self.ParseFromString(value)
+    return self._value
 
   def __long__(self):
     return long(self._value)
@@ -366,9 +389,6 @@ class RDFInteger(RDFString):
 
   def __index__(self):
     return self._value
-
-  def __eq__(self, other):
-    return self._value == other
 
   def __lt__(self, other):
     return self._value < other
@@ -425,6 +445,9 @@ class RDFInteger(RDFString):
   def __rdiv__(self, other):
     return other / self._value
 
+  def __hash__(self):
+    return hash(self._value)
+
   @staticmethod
   def LessThan(attribute, filter_implementation, value):
     return filter_implementation.GetFilter("PredicateLessThanFilter")(
@@ -467,26 +490,14 @@ class RDFDatetime(RDFInteger):
     elif isinstance(initializer, (int, long, float)):
       self._value = int(initializer)
 
-    elif isinstance(initializer, datetime.datetime):
-      seconds = calendar.timegm(initializer.utctimetuple())
-      self._value = (seconds * self.converter) + initializer.microsecond
-
-    elif isinstance(initializer, basestring):
-      try:
-        # Can be just a serialized integer.
-        self._value = int(initializer)
-      except ValueError:
-        if initializer:
-          # Try to parse from human readable string.
-          self.ParseFromHumanReadable(initializer)
-
     elif initializer is not None:
       raise InitializeError("Unknown initializer for RDFDateTime: %s." %
                             type(initializer))
 
-  def Now(self):
-    self._value = int(time.time() * self.converter)
-    return self
+  @classmethod
+  def Now(cls):
+    res = cls(int(time.time() * cls.converter))
+    return res
 
   def Format(self, fmt):
     """Return the value as a string formatted as per strftime semantics."""
@@ -513,6 +524,19 @@ class RDFDatetime(RDFInteger):
     self._value = value * self.converter
 
     return self
+
+  @classmethod
+  def FromDatetime(cls, value):
+    res = cls()
+    seconds = calendar.timegm(value.utctimetuple())
+    res.SetRaw((seconds * cls.converter) + value.microsecond)
+    return res
+
+  @classmethod
+  def FromHumanReadable(cls, value, eoy=False):
+    res = cls()
+    res.SetRaw(cls._ParseFromHumanReadable(value, eoy=eoy))
+    return res
 
   def ParseFromHumanReadable(self, string, eoy=False):
     self._value = self._ParseFromHumanReadable(string, eoy=eoy)
@@ -717,7 +741,7 @@ class Duration(RDFInteger):
 
   def Expiry(self, base_time=None):
     if base_time is None:
-      base_time = RDFDatetime().Now()
+      base_time = RDFDatetime.Now()
     else:
       base_time = base_time.Copy()
 
@@ -847,27 +871,31 @@ class RDFURN(RDFValue):
   # class for performance reasons.
   scheme = "aff4"
 
+  _string_urn = ""
+
   def __init__(self, initializer=None, age=None):
     """Constructor.
 
     Args:
       initializer: A string or another RDFURN.
       age: The age of this entry.
-    Raises:
-      ValueError: if no urn passed
     """
+    # This is a shortcut that is a bit faster than the standard way of
+    # using the RDFValue constructor to make a copy of the class. For
+    # RDFURNs that way is a bit slow since it would try to normalize
+    # the path again which is not needed - it comes from another
+    # RDFURN so it is already in the correct format.
     if isinstance(initializer, RDFURN):
       # Make a direct copy of the other object
       self._string_urn = initializer.Path()
-      super(RDFURN, self).__init__(None, age)
+      super(RDFURN, self).__init__(None, age=age)
       return
 
-    if initializer is None:
-      raise ValueError("URN cannot be None")
-
     super(RDFURN, self).__init__(initializer=initializer, age=age)
+    if self._value is None and initializer is not None:
+      self.ParseFromString(initializer)
 
-  def ParseFromString(self, initializer=None):
+  def ParseFromString(self, initializer):
     """Create RDFRUN from string.
 
     Args:
@@ -960,8 +988,11 @@ class RDFURN(RDFValue):
 
     return self._string_urn == other.Path()
 
-  def __ne__(self, other):
-    return not self.__eq__(other)
+  def __bool__(self):
+    return bool(self._string_urn)
+
+  def __nonzero__(self):
+    return bool(self._string_urn)
 
   def __lt__(self, other):
     return self._string_urn < other
@@ -1112,7 +1143,7 @@ class FlowSessionID(SessionID):
   # TODO(user): This is code to fix some legacy issues. Remove this when all
   # clients are built after Dec 2014.
 
-  def ParseFromString(self, initializer=None):
+  def ParseFromString(self, initializer):
     # Old clients sometimes send bare well known flow ids.
     if not utils.SmartStr(initializer).startswith("aff4"):
       initializer = "aff4:/flows/" + initializer

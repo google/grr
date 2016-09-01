@@ -201,7 +201,9 @@ def SignComponent(component_filename, overwrite=False, token=None):
   """Sign and upload the component to the data store."""
 
   print "Signing and uploading component %s" % component_filename
-  component = rdf_client.ClientComponent(open(component_filename, "rb").read())
+  serialized_component = open(component_filename, "rb").read()
+  component = rdf_client.ClientComponent.FromSerializedString(
+      serialized_component)
   print "Opened component %s." % component.summary.name
 
   client_context = ["Platform:%s" % component.build_system.system.title(),

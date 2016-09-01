@@ -35,7 +35,7 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     return keyword.lower()
 
   def _AnalyzeKeywords(self, keywords):
-    start_time = rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("180d")
+    start_time = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("180d")
     end_time = rdfvalue.RDFDatetime(self.LAST_TIMESTAMP)
     filtered_keywords = []
     unversioned_keywords = []
@@ -43,15 +43,14 @@ class ClientIndex(keyword_index.AFF4KeywordIndex):
     for k in keywords:
       if k.startswith(self.START_TIME_PREFIX):
         try:
-          start_time = rdfvalue.RDFDatetime(k[self.START_TIME_PREFIX_LEN:])
+          start_time = rdfvalue.RDFDatetime.FromHumanReadable(k[
+              self.START_TIME_PREFIX_LEN:])
         except ValueError:
           pass
       elif k.startswith(self.END_TIME_PREFIX):
         try:
-          time = rdfvalue.RDFDatetime()
-
-          time.ParseFromHumanReadable(k[self.END_TIME_PREFIX_LEN:], eoy=True)
-          end_time = time
+          end_time = rdfvalue.RDFDatetime.FromHumanReadable(
+              k[self.END_TIME_PREFIX_LEN:], eoy=True)
         except (TypeError, ValueError):
           pass
       elif k[0] == "+":

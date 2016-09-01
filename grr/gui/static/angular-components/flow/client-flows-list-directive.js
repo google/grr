@@ -74,19 +74,19 @@ ClientFlowsListController.prototype.onClientIdChange_ = function(newValue) {
  * @export
  */
 ClientFlowsListController.prototype.cancelButtonClicked = function() {
-  var components = this.scope_['selectedFlowUrn'].split('/');
-  var cancelUrl = this.flowsUrl + '/' + components[components.length - 1] +
-      '/actions/cancel';
+  var cancelUrl = [this.flowsUrl,
+                   this.scope_['selectedFlowId'],
+                   'actions/cancel'].join('/');
 
   this.grrApiService_.post(cancelUrl, {}).then(function() {
     this.triggerUpdate();
 
-    // This will force all the directives that depend on selectedFlowUrn
+    // This will force all the directives that depend on selectedFlowId
     // binding to refresh.
-    var urn = this.scope_['selectedFlowUrn'];
-    this.scope_['selectedFlowUrn'] = undefined;
+    var flowId = this.scope_['selectedFlowId'];
+    this.scope_['selectedFlowId'] = undefined;
     this.timeout_(function() {
-      this.scope_['selectedFlowUrn'] = urn;
+      this.scope_['selectedFlowId'] = flowId;
     }.bind(this), 0);
   }.bind(this));
 };
@@ -101,12 +101,13 @@ ClientFlowsListController.prototype.createHuntFromFlow = function() {
   var huntUrn;
 
   var modalScope = this.scope_.$new();
-  modalScope.flowUrn = this.scope_['selectedFlowUrn'];
-  modalScope.resolve = function(newHuntUrn) {
+  modalScope['clientId'] = this.scope_['clientId'];
+  modalScope['flowId'] = this.scope_['selectedFlowId'];
+  modalScope['resolve'] = function(newHuntUrn) {
     huntUrn = newHuntUrn;
     modalInstance.close();
   }.bind(this);
-  modalScope.reject = function() {
+  modalScope['reject'] = function() {
     modalInstance.dismiss();
   }.bind(this);
 
@@ -116,7 +117,7 @@ ClientFlowsListController.prototype.createHuntFromFlow = function() {
 
   var modalInstance = this.modal_.open({
     template: '<grr-new-hunt-wizard-create-from-flow-form on-resolve="resolve(huntUrn)" ' +
-        'on-reject="reject()" flow-urn="flowUrn" />',
+        'on-reject="reject()" flow-id="flowId" client-id="clientId" />',
     scope: modalScope,
     windowClass: 'wide-modal high-modal',
     size: 'lg'
@@ -137,7 +138,7 @@ grrUi.flow.clientFlowsListDirective.ClientFlowsListDirective = function() {
   return {
     scope: {
       clientId: '=',
-      selectedFlowUrn: '=?'
+      selectedFlowId: '=?'
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/flow/client-flows-list.html',

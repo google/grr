@@ -500,7 +500,7 @@ class FlowTest(BasicFlowTest):
         queue_manager.QueueManager.FLOW_REQUEST_TEMPLATE % message.request_id,
         token=self.token)
 
-    request_state = rdf_flows.RequestState(request_state)
+    request_state = rdf_flows.RequestState.FromSerializedString(request_state)
     request_state.status = status
 
     data_store.DB.Set(message.session_id.Add("state"),
@@ -524,7 +524,7 @@ class FlowTest(BasicFlowTest):
 
     runner = flow_obj.GetRunner()
     notification = rdf_flows.GrrNotification(
-        timestamp=rdfvalue.RDFDatetime().Now())
+        timestamp=rdfvalue.RDFDatetime.Now())
     runner.ProcessCompletedRequests(notification)
 
     # Check that the messages were processed in order
@@ -598,7 +598,7 @@ class FlowTest(BasicFlowTest):
 
     runner = flow_obj.GetRunner()
     notification = rdf_flows.GrrNotification(
-        timestamp=rdfvalue.RDFDatetime().Now())
+        timestamp=rdfvalue.RDFDatetime.Now())
     runner.ProcessCompletedRequests(notification)
 
     # Now messages should actually be processed
@@ -630,12 +630,12 @@ class FlowTest(BasicFlowTest):
     self.SendMessages(message_ids, flow_obj.session_id, authenticated=True)
 
     # Send the status message
-    message = self.SendOKStatus(7, flow_obj.session_id)
+    self.SendOKStatus(7, flow_obj.session_id)
 
     runner = flow_obj.GetRunner()
     notification = rdf_flows.GrrNotification(
-        timestamp=rdfvalue.RDFDatetime().Now())
-    runner.ProcessCompletedRequests(notification, [message])
+        timestamp=rdfvalue.RDFDatetime.Now())
+    runner.ProcessCompletedRequests(notification)
 
     # Some messages should actually be processed
     self.assertEqual(flow_obj.messages, [1, 2, 5, 6])
@@ -670,7 +670,7 @@ class FlowTest(BasicFlowTest):
 
     # Should raise on parsing default.
     self.assertRaises(
-        type_info.TypeValueError,
+        ValueError,
         flow.GRRFlow.StartFlow,
         client_id=self.client_id,
         flow_name="BadArgsFlow1",
@@ -1365,7 +1365,7 @@ class DelayedCallStateFlow(flow.GRRFlow):
     self.CallState(
         [rdfvalue.RDFString("Hello")],
         next_state="DelayedHello",
-        start_time=rdfvalue.RDFDatetime().Now() + 100)
+        start_time=rdfvalue.RDFDatetime.Now() + 100)
 
   @flow.StateHandler()
   def DelayedHello(self, responses):

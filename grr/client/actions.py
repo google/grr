@@ -91,7 +91,7 @@ class ActionPlugin(object):
     self.nanny_controller = None
     self.status = rdf_flows.GrrStatus(
         status=rdf_flows.GrrStatus.ReturnedStatus.OK)
-    self._last_gc_run = rdfvalue.RDFDatetime().Now()
+    self._last_gc_run = rdfvalue.RDFDatetime.Now()
     self._gc_frequency = config_lib.CONFIG["Client.gc_frequency"]
     self.proc = psutil.Process()
     self.cpu_start = self.proc.cpu_times()
@@ -188,7 +188,7 @@ class ActionPlugin(object):
     # After each action we can run the garbage collection to reduce our memory
     # footprint a bit. We don't do it too frequently though since this is
     # a bit expensive.
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     if now - self._last_gc_run > self._gc_frequency:
       gc.collect()
       self._last_gc_run = now

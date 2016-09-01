@@ -5,6 +5,7 @@
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow_runner
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -48,9 +49,17 @@ class TestParserDependency(base.AutomatedTest):
           "FETCH_NOW"}
 
   def setUp(self):
-    # Set the KB to an empty object
+    # We need to store the KB so we can put it back after the test.
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    self.old_kb = client.Get(client.Schema.KNOWLEDGE_BASE)
+    kb_backup = aff4.FACTORY.Create(
+        self.client_id.Add("temp").Add("TestParserDependency"),
+        aff4_grr.TempKnowledgeBase,
+        token=self.token)
+    kb_backup.Set(kb_backup.Schema.KNOWLEDGE_BASE,
+                  client.Get(client.Schema.KNOWLEDGE_BASE))
+    kb_backup.Close()
+
+    # Set the KB to an empty object
     client.Set(client.Schema.KNOWLEDGE_BASE, rdf_client.KnowledgeBase())
     client.Flush()
     super(TestParserDependency, self).setUp()
@@ -61,8 +70,15 @@ class TestParserDependency(base.AutomatedTest):
 
   def tearDown(self):
     client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-    client.Set(client.Schema.KNOWLEDGE_BASE, self.old_kb)
+    old_kb = aff4.FACTORY.Open(
+        self.client_id.Add("temp").Add("TestParserDependency"),
+        token=self.token)
+    client.Set(client.Schema.KNOWLEDGE_BASE,
+               old_kb.Get(old_kb.Schema.KNOWLEDGE_BASE))
     client.Flush()
+    aff4.FACTORY.Delete(
+        self.client_id.Add("temp").Add("TestParserDependency"),
+        token=self.token)
     super(TestParserDependency, self).tearDown()
 
 

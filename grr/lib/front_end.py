@@ -133,7 +133,7 @@ class ServerCommunicator(communicator.Communicator):
       # time moves forward.
       if client_time > long(remote_time):
         client.Set(client.Schema.CLOCK, rdfvalue.RDFDatetime(client_time))
-        client.Set(client.Schema.PING, rdfvalue.RDFDatetime().Now())
+        client.Set(client.Schema.PING, rdfvalue.RDFDatetime.Now())
         for label in client.Get(client.Schema.LABELS, []):
           stats.STATS.IncrementCounter(
               "client_pings_by_label", fields=[label.name])

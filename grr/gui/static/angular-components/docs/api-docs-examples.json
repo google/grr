@@ -235,9 +235,20 @@
                 }
               },
               "hardware_info": {
-                "age": 0,
+                "age": 42000000,
                 "type": "HardwareInfo",
-                "value": {}
+                "value": {
+                  "bios_version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
               },
               "knowledge_base": {
                 "age": 42000000,
@@ -308,7 +319,10 @@
           "agent_info": {
             "client_name": "GRR Monitor"
           },
-          "hardware_info": {},
+          "hardware_info": {
+            "bios_version": "Bios-Version-0",
+            "system_manufacturer": "System-Manufacturer-0"
+          },
           "knowledge_base": {
             "hostname": "Host-0.example.com",
             "users": []
@@ -721,6 +735,11 @@
             "type": "unicode",
             "value": "test"
           },
+          "flow_id": {
+            "age": 0,
+            "type": "ApiFlowId",
+            "value": "W:ABCDEF"
+          },
           "last_active_at": {
             "age": 42000000,
             "type": "RDFDatetime",
@@ -807,6 +826,7 @@
           "filename_regex": "."
         },
         "creator": "test",
+        "flow_id": "W:ABCDEF",
         "last_active_at": 42000000,
         "name": "ListProcesses",
         "runner_args": {
@@ -1019,6 +1039,16 @@
       "url": "/api/hunts/H:123456"
     }
   ],
+  "ApiForceRunCronJobHandler": [
+    {
+      "method": "POST",
+      "response": {
+        "status": "OK"
+      },
+      "test_class": "ApiForceRunCronJobRegressionTest",
+      "url": "/api/cron-jobs/OSBreakDown/actions/force-run"
+    }
+  ],
   "ApiGetClientApprovalHandler": [
     {
       "method": "GET",
@@ -1077,9 +1107,20 @@
                 }
               },
               "hardware_info": {
-                "age": 0,
+                "age": 42000000,
                 "type": "HardwareInfo",
-                "value": {}
+                "value": {
+                  "bios_version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
               },
               "knowledge_base": {
                 "age": 42000000,
@@ -1147,7 +1188,10 @@
           "agent_info": {
             "client_name": "GRR Monitor"
           },
-          "hardware_info": {},
+          "hardware_info": {
+            "bios_version": "Bios-Version-0",
+            "system_manufacturer": "System-Manufacturer-0"
+          },
           "knowledge_base": {
             "hostname": "Host-0.example.com",
             "users": []
@@ -1222,9 +1266,20 @@
                 }
               },
               "hardware_info": {
-                "age": 0,
+                "age": 42000000,
                 "type": "HardwareInfo",
-                "value": {}
+                "value": {
+                  "bios_version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Bios-Version-1"
+                  },
+                  "system_manufacturer": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "System-Manufacturer-1"
+                  }
+                }
               },
               "knowledge_base": {
                 "age": 42000000,
@@ -1292,7 +1347,10 @@
           "agent_info": {
             "client_name": "GRR Monitor"
           },
-          "hardware_info": {},
+          "hardware_info": {
+            "bios_version": "Bios-Version-1",
+            "system_manufacturer": "System-Manufacturer-1"
+          },
           "knowledge_base": {
             "hostname": "Host-1.example.com",
             "users": []
@@ -1330,9 +1388,20 @@
             }
           },
           "hardware_info": {
-            "age": 0,
+            "age": 42000000,
             "type": "HardwareInfo",
-            "value": {}
+            "value": {
+              "bios_version": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Bios-Version-0"
+              },
+              "system_manufacturer": {
+                "age": 0,
+                "type": "unicode",
+                "value": "System-Manufacturer-0"
+              }
+            }
           },
           "knowledge_base": {
             "age": 42000000,
@@ -1391,7 +1460,10 @@
         "agent_info": {
           "client_name": "GRR Monitor"
         },
-        "hardware_info": {},
+        "hardware_info": {
+          "bios_version": "Bios-Version-0",
+          "system_manufacturer": "System-Manufacturer-0"
+        },
         "knowledge_base": {
           "hostname": "Host-0.example.com",
           "users": []
@@ -1925,6 +1997,57 @@
             "type": "EmptyFlowArgs",
             "value": {}
           },
+          "context": {
+            "age": 0,
+            "type": "FlowContext",
+            "value": {
+              "create_time": {
+                "age": 0,
+                "type": "RDFDatetime",
+                "value": 44000000
+              },
+              "creator": {
+                "age": 0,
+                "type": "unicode",
+                "value": "test"
+              },
+              "current_state": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Start"
+              },
+              "next_outbound_id": {
+                "age": 0,
+                "type": "long",
+                "value": 2
+              },
+              "outstanding_requests": {
+                "age": 0,
+                "type": "long",
+                "value": 1
+              },
+              "remaining_cpu_quota": {
+                "age": 0,
+                "type": "long",
+                "value": 7200
+              },
+              "session_id": {
+                "age": 0,
+                "type": "SessionID",
+                "value": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
+              },
+              "state": {
+                "age": 0,
+                "type": "EnumNamedValue",
+                "value": "RUNNING"
+              },
+              "user_notified": {
+                "age": 0,
+                "type": "RDFBool",
+                "value": false
+              }
+            }
+          },
           "creator": {
             "age": 0,
             "type": "unicode",
@@ -1992,6 +2115,17 @@
       "test_class": "ApiGetCronJobFlowHandlerRegressionTest",
       "type_stripped_response": {
         "args": {},
+        "context": {
+          "create_time": 44000000,
+          "creator": "test",
+          "current_state": "Start",
+          "next_outbound_id": 2,
+          "outstanding_requests": 1,
+          "remaining_cpu_quota": 7200,
+          "session_id": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11",
+          "state": "RUNNING",
+          "user_notified": false
+        },
         "creator": "test",
         "last_active_at": 44000000,
         "name": "GRRVersionBreakDown",
@@ -2155,6 +2289,11 @@
             "type": "unicode",
             "value": "test"
           },
+          "flow_id": {
+            "age": 0,
+            "type": "ApiFlowId",
+            "value": "F:ABCDEF12"
+          },
           "last_active_at": {
             "age": 42000000,
             "type": "RDFDatetime",
@@ -2232,6 +2371,7 @@
           "user_notified": false
         },
         "creator": "test",
+        "flow_id": "F:ABCDEF12",
         "last_active_at": 42000000,
         "name": "Interrogate",
         "runner_args": {
@@ -4287,8 +4427,6 @@
         "mro": [
           "Duration",
           "RDFInteger",
-          "RDFString",
-          "RDFBytes",
           "RDFValue",
           "object"
         ],
@@ -4302,8 +4440,6 @@
         "mro": [
           "Duration",
           "RDFInteger",
-          "RDFString",
-          "RDFBytes",
           "RDFValue",
           "object"
         ],
@@ -4329,6 +4465,15 @@
             "name": "urn",
             "repeated": false,
             "type": "SessionID"
+          },
+          {
+            "doc": "Flow id.",
+            "dynamic": false,
+            "friendly_name": "Flow id",
+            "index": 12,
+            "name": "flow_id",
+            "repeated": false,
+            "type": "ApiFlowId"
           },
           {
             "default": {
@@ -4484,6 +4629,15 @@
             "name": "urn",
             "repeated": false,
             "type": "SessionID"
+          },
+          {
+            "doc": "Flow id.",
+            "dynamic": false,
+            "friendly_name": "Flow id",
+            "index": 12,
+            "name": "flow_id",
+            "repeated": false,
+            "type": "ApiFlowId"
           },
           {
             "default": "",
@@ -6813,9 +6967,20 @@
                 }
               },
               "hardware_info": {
-                "age": 0,
+                "age": 42000000,
                 "type": "HardwareInfo",
-                "value": {}
+                "value": {
+                  "bios_version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
               },
               "knowledge_base": {
                 "age": 42000000,
@@ -6883,7 +7048,10 @@
           "agent_info": {
             "client_name": "GRR Monitor"
           },
-          "hardware_info": {},
+          "hardware_info": {
+            "bios_version": "Bios-Version-0",
+            "system_manufacturer": "System-Manufacturer-0"
+          },
           "knowledge_base": {
             "hostname": "Host-0.example.com",
             "users": []
@@ -7591,9 +7759,20 @@
                     }
                   },
                   "hardware_info": {
-                    "age": 0,
+                    "age": 42000000,
                     "type": "HardwareInfo",
-                    "value": {}
+                    "value": {
+                      "bios_version": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Bios-Version-1"
+                      },
+                      "system_manufacturer": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "System-Manufacturer-1"
+                      }
+                    }
                   },
                   "knowledge_base": {
                     "age": 42000000,
@@ -7699,9 +7878,20 @@
                     }
                   },
                   "hardware_info": {
-                    "age": 0,
+                    "age": 42000000,
                     "type": "HardwareInfo",
-                    "value": {}
+                    "value": {
+                      "bios_version": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Bios-Version-0"
+                      },
+                      "system_manufacturer": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "System-Manufacturer-0"
+                      }
+                    }
                   },
                   "knowledge_base": {
                     "age": 42000000,
@@ -7773,7 +7963,10 @@
               "agent_info": {
                 "client_name": "GRR Monitor"
               },
-              "hardware_info": {},
+              "hardware_info": {
+                "bios_version": "Bios-Version-1",
+                "system_manufacturer": "System-Manufacturer-1"
+              },
               "knowledge_base": {
                 "hostname": "Host-1.example.com",
                 "users": []
@@ -7805,7 +7998,10 @@
               "agent_info": {
                 "client_name": "GRR Monitor"
               },
-              "hardware_info": {},
+              "hardware_info": {
+                "bios_version": "Bios-Version-0",
+                "system_manufacturer": "System-Manufacturer-0"
+              },
               "knowledge_base": {
                 "hostname": "Host-0.example.com",
                 "users": []
@@ -7884,9 +8080,20 @@
                     }
                   },
                   "hardware_info": {
-                    "age": 0,
+                    "age": 42000000,
                     "type": "HardwareInfo",
-                    "value": {}
+                    "value": {
+                      "bios_version": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Bios-Version-0"
+                      },
+                      "system_manufacturer": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "System-Manufacturer-0"
+                      }
+                    }
                   },
                   "knowledge_base": {
                     "age": 42000000,
@@ -7958,7 +8165,10 @@
               "agent_info": {
                 "client_name": "GRR Monitor"
               },
-              "hardware_info": {},
+              "hardware_info": {
+                "bios_version": "Bios-Version-0",
+                "system_manufacturer": "System-Manufacturer-0"
+              },
               "knowledge_base": {
                 "hostname": "Host-0.example.com",
                 "users": []
@@ -8186,6 +8396,11 @@
                 "type": "unicode",
                 "value": "test"
               },
+              "flow_id": {
+                "age": 0,
+                "type": "ApiFlowId",
+                "value": "F:ABCDEF11"
+              },
               "last_active_at": {
                 "age": 44000000,
                 "type": "RDFDatetime",
@@ -8254,6 +8469,7 @@
           {
             "args": {},
             "creator": "test",
+            "flow_id": "F:ABCDEF11",
             "last_active_at": 44000000,
             "name": "GRRVersionBreakDown",
             "nested_flows": [],
@@ -9041,6 +9257,181 @@
       "url": "/api/flows/descriptors?flow_type=global"
     }
   ],
+  "ApiListFlowLogsHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 52000000,
+            "type": "FlowLog",
+            "value": {
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListProcesses"
+              },
+              "log_message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Sample message: foo."
+              },
+              "urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+              }
+            }
+          },
+          {
+            "age": 55000000,
+            "type": "FlowLog",
+            "value": {
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListProcesses"
+              },
+              "log_message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Sample message: bar."
+              },
+              "urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+              }
+            }
+          }
+        ],
+        "total_count": 2
+      },
+      "test_class": "ApiListFlowLogsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "client_id": "aff4:/C.1000000000000000",
+            "flow_name": "ListProcesses",
+            "log_message": "Sample message: foo.",
+            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+          },
+          {
+            "client_id": "aff4:/C.1000000000000000",
+            "flow_name": "ListProcesses",
+            "log_message": "Sample message: bar.",
+            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+          }
+        ],
+        "total_count": 2
+      },
+      "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/log"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 52000000,
+            "type": "FlowLog",
+            "value": {
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListProcesses"
+              },
+              "log_message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Sample message: foo."
+              },
+              "urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+              }
+            }
+          }
+        ],
+        "total_count": 2
+      },
+      "test_class": "ApiListFlowLogsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "client_id": "aff4:/C.1000000000000000",
+            "flow_name": "ListProcesses",
+            "log_message": "Sample message: foo.",
+            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+          }
+        ],
+        "total_count": 2
+      },
+      "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/log?count=1"
+    },
+    {
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "age": 55000000,
+            "type": "FlowLog",
+            "value": {
+              "client_id": {
+                "age": 0,
+                "type": "ClientURN",
+                "value": "aff4:/C.1000000000000000"
+              },
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "ListProcesses"
+              },
+              "log_message": {
+                "age": 0,
+                "type": "unicode",
+                "value": "Sample message: bar."
+              },
+              "urn": {
+                "age": 0,
+                "type": "RDFURN",
+                "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+              }
+            }
+          }
+        ],
+        "total_count": 2
+      },
+      "test_class": "ApiListFlowLogsHandlerRegressionTest",
+      "type_stripped_response": {
+        "items": [
+          {
+            "client_id": "aff4:/C.1000000000000000",
+            "flow_name": "ListProcesses",
+            "log_message": "Sample message: bar.",
+            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+          }
+        ],
+        "total_count": 2
+      },
+      "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/log?count=1&offset=1"
+    }
+  ],
   "ApiListFlowOutputPluginErrorsHandler": [
     {
       "method": "GET",
@@ -9691,6 +10082,11 @@
                 "type": "unicode",
                 "value": "test"
               },
+              "flow_id": {
+                "age": 0,
+                "type": "ApiFlowId",
+                "value": "F:ABCDEF11"
+              },
               "last_active_at": {
                 "age": 44000000,
                 "type": "RDFDatetime",
@@ -9765,6 +10161,11 @@
                 "type": "unicode",
                 "value": "test"
               },
+              "flow_id": {
+                "age": 0,
+                "type": "ApiFlowId",
+                "value": "F:ABCDEF10"
+              },
               "last_active_at": {
                 "age": 43000000,
                 "type": "RDFDatetime",
@@ -9833,6 +10234,7 @@
           {
             "args": {},
             "creator": "test",
+            "flow_id": "F:ABCDEF11",
             "last_active_at": 44000000,
             "name": "ListProcesses",
             "nested_flows": [],
@@ -9851,6 +10253,7 @@
           {
             "args": {},
             "creator": "test",
+            "flow_id": "F:ABCDEF10",
             "last_active_at": 43000000,
             "name": "Interrogate",
             "nested_flows": [],
@@ -11292,179 +11695,6 @@
     }
   ],
   "ApiListHuntLogsHandler": [
-    {
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": 52000000,
-            "type": "FlowLog",
-            "value": {
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
-              },
-              "flow_name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "ListProcesses"
-              },
-              "log_message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Sample message: foo."
-              },
-              "urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
-              }
-            }
-          },
-          {
-            "age": 55000000,
-            "type": "FlowLog",
-            "value": {
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
-              },
-              "flow_name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "ListProcesses"
-              },
-              "log_message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Sample message: bar."
-              },
-              "urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
-              }
-            }
-          }
-        ],
-        "total_count": 2
-      },
-      "test_class": "ApiListFlowLogsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "client_id": "aff4:/C.1000000000000000",
-            "flow_name": "ListProcesses",
-            "log_message": "Sample message: foo.",
-            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
-          },
-          {
-            "client_id": "aff4:/C.1000000000000000",
-            "flow_name": "ListProcesses",
-            "log_message": "Sample message: bar.",
-            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
-          }
-        ],
-        "total_count": 2
-      },
-      "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/log"
-    },
-    {
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": 52000000,
-            "type": "FlowLog",
-            "value": {
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
-              },
-              "flow_name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "ListProcesses"
-              },
-              "log_message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Sample message: foo."
-              },
-              "urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
-              }
-            }
-          }
-        ],
-        "total_count": 2
-      },
-      "test_class": "ApiListFlowLogsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "client_id": "aff4:/C.1000000000000000",
-            "flow_name": "ListProcesses",
-            "log_message": "Sample message: foo.",
-            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
-          }
-        ],
-        "total_count": 2
-      },
-      "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/log?count=1"
-    },
-    {
-      "method": "GET",
-      "response": {
-        "items": [
-          {
-            "age": 55000000,
-            "type": "FlowLog",
-            "value": {
-              "client_id": {
-                "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
-              },
-              "flow_name": {
-                "age": 0,
-                "type": "unicode",
-                "value": "ListProcesses"
-              },
-              "log_message": {
-                "age": 0,
-                "type": "unicode",
-                "value": "Sample message: bar."
-              },
-              "urn": {
-                "age": 0,
-                "type": "RDFURN",
-                "value": "aff4:/C.1000000000000000/flows/W:ABCDEF"
-              }
-            }
-          }
-        ],
-        "total_count": 2
-      },
-      "test_class": "ApiListFlowLogsHandlerRegressionTest",
-      "type_stripped_response": {
-        "items": [
-          {
-            "client_id": "aff4:/C.1000000000000000",
-            "flow_name": "ListProcesses",
-            "log_message": "Sample message: bar.",
-            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
-          }
-        ],
-        "total_count": 2
-      },
-      "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/log?count=1&offset=1"
-    },
     {
       "method": "GET",
       "response": {
@@ -13501,6 +13731,164 @@
       "url": "/api/stats/store/WORKER/metadata"
     }
   ],
+  "ApiModifyCronJobHandler": [
+    {
+      "method": "PATCH",
+      "request_payload": {
+        "state": "ENABLED"
+      },
+      "response": {
+        "age": 0,
+        "type": "ApiCronJob",
+        "value": {
+          "allow_overruns": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "description": {
+            "age": 0,
+            "type": "unicode",
+            "value": ""
+          },
+          "flow_args": {
+            "age": 0,
+            "type": "EmptyFlowArgs",
+            "value": {}
+          },
+          "flow_name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "OSBreakDown"
+          },
+          "flow_runner_args": {
+            "age": 0,
+            "type": "FlowRunnerArgs",
+            "value": {
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "OSBreakDown"
+              }
+            }
+          },
+          "lifetime": {
+            "age": 0,
+            "type": "Duration",
+            "value": 604800
+          },
+          "periodicity": {
+            "age": 0,
+            "type": "Duration",
+            "value": 86400
+          },
+          "state": {
+            "age": 0,
+            "type": "EnumNamedValue",
+            "value": "ENABLED"
+          },
+          "urn": {
+            "age": 0,
+            "type": "RDFURN",
+            "value": "aff4:/cron/OSBreakDown"
+          }
+        }
+      },
+      "test_class": "ApiModifyCronJobRegressionTest",
+      "type_stripped_response": {
+        "allow_overruns": false,
+        "description": "",
+        "flow_args": {},
+        "flow_name": "OSBreakDown",
+        "flow_runner_args": {
+          "flow_name": "OSBreakDown"
+        },
+        "lifetime": 604800,
+        "periodicity": 86400,
+        "state": "ENABLED",
+        "urn": "aff4:/cron/OSBreakDown"
+      },
+      "url": "/api/cron-jobs/OSBreakDown"
+    },
+    {
+      "method": "PATCH",
+      "request_payload": {
+        "state": "DISABLED"
+      },
+      "response": {
+        "age": 0,
+        "type": "ApiCronJob",
+        "value": {
+          "allow_overruns": {
+            "age": 0,
+            "type": "RDFBool",
+            "value": false
+          },
+          "description": {
+            "age": 0,
+            "type": "unicode",
+            "value": ""
+          },
+          "flow_args": {
+            "age": 0,
+            "type": "EmptyFlowArgs",
+            "value": {}
+          },
+          "flow_name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "GRRVersionBreakDown"
+          },
+          "flow_runner_args": {
+            "age": 0,
+            "type": "FlowRunnerArgs",
+            "value": {
+              "flow_name": {
+                "age": 0,
+                "type": "unicode",
+                "value": "GRRVersionBreakDown"
+              }
+            }
+          },
+          "lifetime": {
+            "age": 0,
+            "type": "Duration",
+            "value": 604800
+          },
+          "periodicity": {
+            "age": 0,
+            "type": "Duration",
+            "value": 86400
+          },
+          "state": {
+            "age": 0,
+            "type": "EnumNamedValue",
+            "value": "DISABLED"
+          },
+          "urn": {
+            "age": 0,
+            "type": "RDFURN",
+            "value": "aff4:/cron/GRRVersionBreakDown"
+          }
+        }
+      },
+      "test_class": "ApiModifyCronJobRegressionTest",
+      "type_stripped_response": {
+        "allow_overruns": false,
+        "description": "",
+        "flow_args": {},
+        "flow_name": "GRRVersionBreakDown",
+        "flow_runner_args": {
+          "flow_name": "GRRVersionBreakDown"
+        },
+        "lifetime": 604800,
+        "periodicity": 86400,
+        "state": "DISABLED",
+        "urn": "aff4:/cron/GRRVersionBreakDown"
+      },
+      "url": "/api/cron-jobs/GRRVersionBreakDown"
+    }
+  ],
   "ApiModifyHuntHandler": [
     {
       "method": "PATCH",
@@ -13855,9 +14243,20 @@
                 }
               },
               "hardware_info": {
-                "age": 0,
+                "age": 42000000,
                 "type": "HardwareInfo",
-                "value": {}
+                "value": {
+                  "bios_version": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Bios-Version-0"
+                  },
+                  "system_manufacturer": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "System-Manufacturer-0"
+                  }
+                }
               },
               "knowledge_base": {
                 "age": 42000000,
@@ -13915,7 +14314,10 @@
             "agent_info": {
               "client_name": "GRR Monitor"
             },
-            "hardware_info": {},
+            "hardware_info": {
+              "bios_version": "Bios-Version-0",
+              "system_manufacturer": "System-Manufacturer-0"
+            },
             "knowledge_base": {
               "hostname": "Host-0.example.com",
               "users": []

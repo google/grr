@@ -224,12 +224,30 @@ class FileStoreHash(rdfvalue.RDFURN):
 
     super(FileStoreHash, self).__init__(initializer=initializer, age=age)
 
+    if initializer is not None:
+      # TODO(user): Parsing URNs to get information about the object
+      # is not the right way to do this. We need to find a better way
+      # here and remove all the custom deserialization methods.
+      self._ParseUrn()
+
+  @classmethod
+  def FromSerializedString(cls, value, age=None):
+    result = super(FileStoreHash, cls).FromSerializedString(value, age=None)
+    result._ParseUrn()  # pylint: disable=protected-access
+    return result
+
+  @classmethod
+  def FromDatastoreValue(cls, value, age=None):
+    result = super(FileStoreHash, cls).FromDatastoreValue(value, age=None)
+    result._ParseUrn()  # pylint: disable=protected-access
+    return result
+
+  def _ParseUrn(self):
     relative_name = self.RelativeName(HashFileStore.PATH)
     if not relative_name:
       raise ValueError("URN %s is not a hash file store urn. Hash file store "
                        "urn should start with %s." %
                        (str(self), str(HashFileStore.PATH)))
-
     relative_path = relative_name.split("/")
     if (len(relative_path) != 3 or
         relative_path[0] not in HashFileStore.HASH_TYPES or

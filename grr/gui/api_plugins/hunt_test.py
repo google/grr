@@ -435,7 +435,7 @@ class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,
         hunt_id=self.hunt.urn.Basename(),
         client_id=self.client_id,
         vfs_path=self.aff4_file_path,
-        timestamp=rdfvalue.RDFDatetime().Now())
+        timestamp=rdfvalue.RDFDatetime.Now())
 
     with self.assertRaises(ValueError):
       args = model_args.Copy()

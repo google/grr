@@ -18,6 +18,7 @@ from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
@@ -30,11 +31,131 @@ from grr.lib.flows.general import discovery
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.flows.general import transfer
+from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
 from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import test_base as rdf_test_base
+
+
+class DummyFlow(flow.GRRFlow):
+  """Dummy flow that does nothing."""
+
+
+class FlowWithOneNestedFlow(flow.GRRFlow):
+  """Flow that calls a nested flow."""
+
+  @flow.StateHandler()
+  def Start(self, unused_response=None):
+    self.CallFlow(DummyFlow.__name__, next_state="Done")
+
+  @flow.StateHandler()
+  def Done(self, unused_response=None):
+    pass
+
+
+class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
+                    standard_test.StandardHuntTestMixin):
+  """Test for ApiFlowId."""
+
+  rdfvalue_class = flow_plugin.ApiFlowId
+
+  def setUp(self):
+    super(ApiFlowIdTest, self).setUp()
+    self.client_urn = self.SetupClients(1)[0]
+
+  def GenerateSample(self, number=0):
+    return flow_plugin.ApiFlowId("F:" + "123" * (number + 1))
+
+  def testRaisesWhenInitializedFromInvalidValues(self):
+    with self.assertRaises(ValueError):
+      flow_plugin.ApiFlowId("blah")
+
+    with self.assertRaises(ValueError):
+      flow_plugin.ApiFlowId("foo/bar")
+
+  def testResolvesSimpleFlowURN(self):
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name=FlowWithOneNestedFlow.__name__,
+        client_id=self.client_urn,
+        token=self.token)
+    flow_id = flow_plugin.ApiFlowId(flow_urn.Basename())
+
+    self.assertEqual(
+        flow_id.ResolveClientFlowURN(
+            self.client_urn, token=self.token),
+        flow_urn)
+
+  def testResolvesNestedFlowURN(self):
+    flow_urn = flow.GRRFlow.StartFlow(
+        flow_name=FlowWithOneNestedFlow.__name__,
+        client_id=self.client_urn,
+        token=self.token)
+
+    children = list(
+        aff4.FACTORY.MultiOpen(
+            list(aff4.FACTORY.ListChildren(
+                flow_urn, token=self.token)),
+            aff4_type=flow.GRRFlow,
+            token=self.token))
+    self.assertEqual(len(children), 1)
+
+    flow_id = flow_plugin.ApiFlowId(flow_urn.Basename() + "/" + children[0]
+                                    .urn.Basename())
+    self.assertEqual(
+        flow_id.ResolveClientFlowURN(
+            self.client_urn, token=self.token),
+        children[0].urn)
+
+  def _StartHunt(self):
+    with hunts.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=FlowWithOneNestedFlow.__name__),
+        client_rate=0,
+        token=self.token) as hunt:
+      hunt.Run()
+
+    self.AssignTasksToClients(client_ids=[self.client_urn])
+    self.RunHunt(client_ids=[self.client_urn])
+
+  def testResolvesHuntFlowURN(self):
+    self._StartHunt()
+
+    client_flows_urns = list(
+        aff4.FACTORY.ListChildren(
+            self.client_urn.Add("flows"), token=self.token))
+    self.assertEqual(len(client_flows_urns), 1)
+
+    flow_id = flow_plugin.ApiFlowId(client_flows_urns[0].Basename())
+    self.assertEqual(
+        flow_id.ResolveClientFlowURN(
+            self.client_urn, token=self.token),
+        client_flows_urns[0])
+
+  def testResolvesNestedHuntFlowURN(self):
+    self._StartHunt()
+
+    client_flows_urns = list(
+        aff4.FACTORY.ListChildren(
+            self.client_urn.Add("flows"), token=self.token))
+    self.assertEqual(len(client_flows_urns), 1)
+
+    flow_fd = aff4.FACTORY.Open(client_flows_urns[0], token=self.token)
+    nested_flows_urns = list(flow_fd.ListChildren())
+    nested_flows = list(
+        aff4.FACTORY.MultiOpen(
+            nested_flows_urns, aff4_type=flow.GRRFlow, token=self.token))
+    self.assertEqual(len(nested_flows), 1)
+
+    flow_id = flow_plugin.ApiFlowId(client_flows_urns[0].Basename() + "/" +
+                                    nested_flows[0].urn.Basename())
+    self.assertEqual(
+        flow_id.ResolveClientFlowURN(
+            self.client_urn, token=self.token),
+        nested_flows[0].urn)
 
 
 class ApiGetFlowHandlerRegressionTest(
@@ -175,7 +296,7 @@ class ApiListFlowLogsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiListFlowResultsHandler."""
 
-  handler = "ApiListHuntLogsHandler"
+  handler = "ApiListFlowLogsHandler"
 
   def setUp(self):
     super(ApiListFlowLogsHandlerRegressionTest, self).setUp()

@@ -20,13 +20,12 @@ class StatsHistogram(rdf_structs.RDFProtoStruct):
   """Histogram with a user-provided set of bins."""
   protobuf = jobs_pb2.StatsHistogram
 
-  def __init__(self, initializer=None, **kwargs):
-    if isinstance(initializer, (list, tuple)):
-      super(StatsHistogram, self).__init__(initializer=None, **kwargs)
-      for histogram_bin in initializer:
-        self.bins.Append(StatsHistogramBin(range_max_value=histogram_bin))
-    else:
-      super(StatsHistogram, self).__init__(initializer=initializer, **kwargs)
+  @classmethod
+  def FromBins(cls, bins):
+    res = cls()
+    for b in bins:
+      res.bins.Append(StatsHistogramBin(range_max_value=b))
+    return res
 
   def RegisterValue(self, value):
     """Puts a given value into an appropriate bin."""
@@ -80,9 +79,11 @@ class ClientResourcesStats(rdf_structs.RDFProtoStruct):
     super(ClientResourcesStats, self).__init__(
         initializer=initializer, **kwargs)
 
-    self.user_cpu_stats.histogram = self.CPU_STATS_BINS
-    self.system_cpu_stats.histogram = self.CPU_STATS_BINS
-    self.network_bytes_sent_stats.histogram = self.NETWORK_STATS_BINS
+    self.user_cpu_stats.histogram = StatsHistogram.FromBins(self.CPU_STATS_BINS)
+    self.system_cpu_stats.histogram = StatsHistogram.FromBins(
+        self.CPU_STATS_BINS)
+    self.network_bytes_sent_stats.histogram = StatsHistogram.FromBins(
+        self.NETWORK_STATS_BINS)
 
     self.lock = threading.RLock()
 

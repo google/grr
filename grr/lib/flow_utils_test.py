@@ -25,7 +25,7 @@ class TestInterpolatePath(test_lib.FlowTestsBaseclass):
             userdomain="TESTDOMAIN",
             full_name="test user",
             homedir="c:\\Users\\test",
-            last_logon=rdfvalue.RDFDatetime("2012-11-10")))
+            last_logon=rdfvalue.RDFDatetime.FromHumanReadable("2012-11-10")))
 
     kb.users.Append(
         rdf_client.User(

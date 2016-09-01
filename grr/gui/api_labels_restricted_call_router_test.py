@@ -234,7 +234,9 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithoutVfsAndUnapprovedClientWithWrongLabelName(self):
-    router = api_router.ApiLabelsRestrictedCallRouter(labels_whitelist=["bar"])
+    params = api_router.ApiLabelsRestrictedCallRouterParams(
+        labels_whitelist=["bar"])
+    router = api_router.ApiLabelsRestrictedCallRouter(params=params)
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
@@ -242,8 +244,9 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithoutVfsAndUnapprovedClientWithWrongLabelOwner(self):
-    router = api_router.ApiLabelsRestrictedCallRouter(
+    params = api_router.ApiLabelsRestrictedCallRouterParams(
         labels_whitelist=["foo"], labels_owners_whitelist=["somebody"])
+    router = api_router.ApiLabelsRestrictedCallRouter(params=params)
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
@@ -251,7 +254,10 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithoutVfsAndSingleProperlyLabeledUnapprovedClient(self):
-    router = api_router.ApiLabelsRestrictedCallRouter(labels_whitelist=["foo"])
+    params = api_router.ApiLabelsRestrictedCallRouterParams(
+        labels_whitelist=["foo"])
+    router = api_router.ApiLabelsRestrictedCallRouter(params=params)
+
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
         "ListClientApprovals",
@@ -263,7 +269,9 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
   def testWithoutFlowsWithoutVfsAndSingleProperlyLabeledApprovedClient(self):
     self.RequestAndGrantClientApproval(self.client_urn, token=self.token)
 
-    router = api_router.ApiLabelsRestrictedCallRouter(labels_whitelist=["foo"])
+    params = api_router.ApiLabelsRestrictedCallRouterParams(
+        labels_whitelist=["foo"])
+    router = api_router.ApiLabelsRestrictedCallRouter(params=params)
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
         "ListClientApprovals",
@@ -274,7 +282,9 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
 
   # Check router with vfs access turned on.
   def testWithoutFlowsWithVfsAndSingleMislabeledUnapprovedClient(self):
-    router = api_router.ApiLabelsRestrictedCallRouter(allow_vfs_access=True)
+    params = api_router.ApiLabelsRestrictedCallRouterParams(
+        allow_vfs_access=True)
+    router = api_router.ApiLabelsRestrictedCallRouter(params=params)
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
@@ -286,8 +296,9 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithoutFlowsWithVfsAndSingleProperlyLabeledUnapprovedClient(self):
-    router = api_router.ApiLabelsRestrictedCallRouter(
+    params = api_router.ApiLabelsRestrictedCallRouterParams(
         labels_whitelist=["foo"], allow_vfs_access=True)
+    router = api_router.ApiLabelsRestrictedCallRouter(params=params)
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
@@ -304,8 +315,9 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
   def testWithoutFlowsWithVfsAndSingleProperlyLabeledAndApprovedClient(self):
     self.RequestAndGrantClientApproval(self.client_urn, token=self.token)
 
-    router = api_router.ApiLabelsRestrictedCallRouter(
+    params = api_router.ApiLabelsRestrictedCallRouterParams(
         labels_whitelist=["foo"], allow_vfs_access=True)
+    router = api_router.ApiLabelsRestrictedCallRouter(params=params)
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         # Client methods.
@@ -330,7 +342,9 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
 
   # Check router with flows access turned on.
   def testWithFlowsWithoutVfsAndSingleMislabeledUnapprovedClient(self):
-    router = api_router.ApiLabelsRestrictedCallRouter(allow_flows=True)
+    params = api_router.ApiLabelsRestrictedCallRouterParams(
+        allow_flows_access=True)
+    router = api_router.ApiLabelsRestrictedCallRouter(params=params)
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
@@ -338,8 +352,9 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
     ] + self.NON_ACLED_METHODS)  # pyformat: disable
 
   def testWithFlowsWithoutVfsAndSingleProperlyLabeledUnapprovedClient(self):
-    router = api_router.ApiLabelsRestrictedCallRouter(
-        labels_whitelist=["foo"], allow_flows=True)
+    params = api_router.ApiLabelsRestrictedCallRouterParams(
+        labels_whitelist=["foo"], allow_flows_access=True)
+    router = api_router.ApiLabelsRestrictedCallRouter(params=params)
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         "SearchClients",
@@ -352,8 +367,9 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
   def testWithFlowsWithoutVfsAndSingleProperlyLabeledAndApprovedClient(self):
     self.RequestAndGrantClientApproval(self.client_urn, token=self.token)
 
-    router = api_router.ApiLabelsRestrictedCallRouter(
-        labels_whitelist=["foo"], allow_flows=True)
+    params = api_router.ApiLabelsRestrictedCallRouterParams(
+        labels_whitelist=["foo"], allow_flows_access=True)
+    router = api_router.ApiLabelsRestrictedCallRouter(params=params)
 
     self.CheckOnlyFollowingMethodsArePermitted(router, [
         # Clients methods.

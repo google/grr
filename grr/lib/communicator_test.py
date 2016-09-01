@@ -124,7 +124,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
   def testClientPingAndClockIsUpdated(self):
     """Check PING and CLOCK are updated, simulate bad client clock."""
     new_client = self.MakeClientAFF4Record()
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     client_now = now - 20
     with test_lib.FakeTime(now):
       self.ClientServerCommunicate(timestamp=client_now)
@@ -165,7 +165,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
       client_object.AddLabels("testlabel")
       client_object.Flush(sync=True)
 
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now):
       self.ClientServerCommunicate(timestamp=now)
       self.assertEqual(
@@ -397,7 +397,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       return StringIO.StringIO(config_lib.CONFIG["Frontend.certificate"])
     _ = kwargs
     try:
-      self.client_communication = rdf_flows.ClientCommunication(req.data)
+      comms_cls = rdf_flows.ClientCommunication
+      self.client_communication = comms_cls.FromSerializedString(req.data)
 
       # Decrypt incoming messages
       self.messages, source, ts = self.server_communicator.DecodeMessages(
@@ -628,7 +629,11 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     def Corruptor(req, **_):
       """Futz with some of the fields."""
-      self.client_communication = rdf_flows.ClientCommunication(req.data)
+      comm_cls = rdf_flows.ClientCommunication
+      if req.data is not None:
+        self.client_communication = comm_cls.FromSerializedString(req.data)
+      else:
+        self.client_communication = comm_cls(None)
 
       if self.corruptor_field and "server.pem" not in req.get_full_url():
         orig_str_repr = self.client_communication.SerializeToString()

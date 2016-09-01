@@ -22,5 +22,4 @@ from grr.gui.plugins import searchclient_test
 from grr.gui.plugins import server_load_view_test
 from grr.gui.plugins import settings_view_test
 from grr.gui.plugins import statistics_test
-from grr.gui.plugins import timeline_view_test
 from grr.gui.plugins import usage_test

@@ -6,6 +6,7 @@ goog.require('grrUi.core.module');
 
 goog.require('grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListDirective');
 goog.require('grrUi.cron.cronJobInspectorDirective.CronJobInspectorDirective');
+goog.require('grrUi.cron.cronJobOverviewDirective.CronJobOverviewDirective');
 goog.require('grrUi.cron.cronJobStatusIconDirective.CronJobStatusIconDirective');
 goog.require('grrUi.cron.cronJobsListDirective.CronJobsListDirective');
 goog.require('grrUi.cron.cronViewDirective.CronViewDirective');
@@ -29,6 +30,10 @@ grrUi.cron.module.directive(
 grrUi.cron.module.directive(
     grrUi.cron.cronJobsListDirective.CronJobsListDirective.directive_name,
     grrUi.cron.cronJobsListDirective.CronJobsListDirective);
+grrUi.cron.module.directive(
+    grrUi.cron.cronJobOverviewDirective.CronJobOverviewDirective.
+        directive_name,
+    grrUi.cron.cronJobOverviewDirective.CronJobOverviewDirective);
 grrUi.cron.module.directive(
     grrUi.cron.cronJobStatusIconDirective.CronJobStatusIconDirective
         .directive_name,

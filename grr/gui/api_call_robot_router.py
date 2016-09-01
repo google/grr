@@ -10,8 +10,8 @@ from grr.gui import api_call_router_without_checks
 class ApiCallRobotRouter(api_call_router.ApiCallRouter):
   """Restricted router to be used by robots."""
 
-  def __init__(self, delegate=None):
-    super(ApiCallRobotRouter, self).__init__()
+  def __init__(self, params=None, delegate=None):
+    super(ApiCallRobotRouter, self).__init__(params=params)
 
     if not delegate:
       delegate = api_call_router_without_checks.ApiCallRouterWithoutChecks()

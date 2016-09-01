@@ -759,12 +759,12 @@ class GRRClientWorker(object):
   def CheckStats(self):
     """Checks if the last transmission of client stats is too long ago."""
     if self.last_stats_sent_time is None:
-      self.last_stats_sent_time = rdfvalue.RDFDatetime().Now()
+      self.last_stats_sent_time = rdfvalue.RDFDatetime.Now()
       stats.STATS.SetGaugeValue("grr_client_last_stats_sent_time",
                                 self.last_stats_sent_time.AsSecondsFromEpoch())
 
     time_since_last_check = (
-        rdfvalue.RDFDatetime().Now() - self.last_stats_sent_time)
+        rdfvalue.RDFDatetime.Now() - self.last_stats_sent_time)
 
     # No matter what, we don't want to send stats more often than
     # once per STATS_MIN_SEND_INTERVAL.
@@ -785,7 +785,7 @@ class GRRClientWorker(object):
           rdf_client.GetClientStatsRequest(
               start_time=self.last_stats_sent_time))
 
-      self.last_stats_sent_time = rdfvalue.RDFDatetime().Now()
+      self.last_stats_sent_time = rdfvalue.RDFDatetime.Now()
       stats.STATS.SetGaugeValue("grr_client_last_stats_sent_time",
                                 self.last_stats_sent_time.AsSecondsFromEpoch())
 

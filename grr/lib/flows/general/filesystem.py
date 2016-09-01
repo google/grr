@@ -762,7 +762,7 @@ class GlobMixin(object):
       for response in stat_responses:
         matching_components = []
         for next_node in base_node.keys():
-          pathspec = rdf_paths.PathSpec(next_node)
+          pathspec = rdf_paths.PathSpec.FromSerializedString(next_node)
 
           if self._MatchPath(pathspec, response):
             matching_path = base_path + [next_node]
@@ -795,7 +795,7 @@ class GlobMixin(object):
 
       # There are further components in the tree - iterate over them.
       for component_str, next_node in node.items():
-        component = rdf_paths.PathSpec(component_str)
+        component = rdf_paths.PathSpec.FromSerializedString(component_str)
         next_component = component_path + [component_str]
 
         # If we reach this point, we are instructed to go deeper into the

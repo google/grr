@@ -26,10 +26,13 @@ grrUi.flow.clientFlowsViewDirective.ClientFlowsViewController = function(
   this.clientId;
 
   /** @type {string} */
-  this.selectedFlowUrn;
+  this.selectedFlowId;
 
-  this.scope_.$watch('controller.selectedFlowUrn',
-                     this.onSelectedFlowUrnChange_.bind(this));
+  /** @type {string} */
+  this.flowApiBasePath;
+
+  this.scope_.$watch('controller.selectedFlowId',
+                     this.onSelectedFlowIdChange_.bind(this));
 
   this.grrRoutingService_.uiOnParamsChanged(this.scope_,
       ['clientId', 'flowId'], this.onParamsChange_.bind(this));
@@ -47,9 +50,8 @@ var ClientFlowsViewController =
  */
 ClientFlowsViewController.prototype.onParamsChange_ = function(newValues, opt_stateParams) {
   this.clientId = opt_stateParams['clientId'];
-  if (opt_stateParams['flowId']) {
-    this.selectedFlowUrn = 'aff4:/' + opt_stateParams['clientId'] + '/flows/'+ opt_stateParams['flowId'];
-  }
+  this.selectedFlowId = opt_stateParams['flowId'];
+  this.flowApiBasePath = ['clients', this.clientId, 'flows'].join('/');
 };
 
 /**
@@ -58,11 +60,10 @@ ClientFlowsViewController.prototype.onParamsChange_ = function(newValues, opt_st
  * @param {?string} newValue New binding value.
  * @private
  */
-ClientFlowsViewController.prototype.onSelectedFlowUrnChange_ = function(
+ClientFlowsViewController.prototype.onSelectedFlowIdChange_ = function(
     newValue) {
   if (angular.isDefined(newValue)) {
-    var flowId = this.selectedFlowUrn.split('/')[3];
-    this.grrRoutingService_.go('client.flows', {flowId: flowId});
+    this.grrRoutingService_.go('client.flows', {flowId: newValue});
   }
 };
 
@@ -73,9 +74,7 @@ ClientFlowsViewController.prototype.onSelectedFlowUrnChange_ = function(
  */
 grrUi.flow.clientFlowsViewDirective.ClientFlowsViewDirective = function() {
   return {
-    scope: {
-      clientId: '=',
-    },
+    scope: {},
     restrict: 'E',
     templateUrl: '/static/angular-components/flow/client-flows-view.html',
     controller: ClientFlowsViewController,

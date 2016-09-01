@@ -81,7 +81,7 @@ class ResultTest(test_lib.AFF4ObjectTest):
 
     # Push time forward past the default claim timeout, then we should be able
     # to re-read (and re-claim).
-    with test_lib.FakeTime(rdfvalue.RDFDatetime().Now() + rdfvalue.Duration(
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(
         "45m")):
       results_3 = hunts_results.HuntResultQueue.ClaimNotificationsForCollection(
           token=self.token)
@@ -108,7 +108,7 @@ class ResultTest(test_lib.AFF4ObjectTest):
 
     # Push time forward past the default claim timeout, then we should still
     # read nothing.
-    with test_lib.FakeTime(rdfvalue.RDFDatetime().Now() + rdfvalue.Duration(
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(
         "45m")):
       results_2 = hunts_results.HuntResultQueue.ClaimNotificationsForCollection(
           token=self.token)

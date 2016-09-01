@@ -61,7 +61,7 @@ class _ActiveCounter(object):
       label: Client label to which this should be applied.
       age: When this instance occurred.
     """
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     category = utils.SmartUnicode(category)
 
     for active_time in self.active_days:
@@ -241,7 +241,7 @@ class LastAccessStats(AbstractClientStatsCronFlow):
       self._StatsForLabel(label).AddAttribute(graph)
 
   def ProcessClient(self, client):
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
 
     ping = client.Get(client.Schema.PING)
     if ping:
@@ -440,7 +440,7 @@ class EndToEndTests(cronjobs.SystemCronFlow):
 
     wait_duration = rdfvalue.Duration(
         config_lib.CONFIG.Get("Test.end_to_end_result_check_wait"))
-    completed_time = rdfvalue.RDFDatetime().Now() + wait_duration
+    completed_time = rdfvalue.RDFDatetime.Now() + wait_duration
 
     self.CallState(next_state="CheckResults", start_time=completed_time)
 

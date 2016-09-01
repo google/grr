@@ -86,7 +86,8 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
       # Now try to create the correct RDFValue.
       result_cls = self.classes.get(self.args_rdf_name, rdfvalue.RDFString)
 
-      result = result_cls(self.Get("args"), age=self.args_age)
+      result = result_cls.FromSerializedString(
+          self.Get("args"), age=self.args_age)
       return result
 
   @payload.setter
@@ -263,6 +264,12 @@ class FlowState(rdfvalue.RDFValue):
 
   def __dir__(self):
     return dir(self.data) + dir(self.__class__)
+
+  def __bool__(self):
+    return bool(self.data)
+
+  def __nonzero__(self):
+    return bool(self.data)
 
 
 class OutputPluginState(rdf_structs.RDFProtoStruct):

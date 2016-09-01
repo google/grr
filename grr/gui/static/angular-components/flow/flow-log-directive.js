@@ -17,7 +17,11 @@ grrUi.flow.flowLogDirective.FlowLogController = function($scope) {
   /** @private {!angular.Scope} */
   this.scope_ = $scope;
 
-  this.scope_.$watch('flowUrn', this.onFlowUrnChange.bind(this));
+  /** @type {?string} */
+  this.logsUrl;
+
+  this.scope_.$watchGroup(['flowId', 'apiBasePath'],
+                          this.onFlowIdOrBasePathChange_.bind(this));
 };
 
 var FlowLogController =
@@ -25,15 +29,16 @@ var FlowLogController =
 
 
 /**
- * Handles flowUrn attribute changes.
- * @export
+ * Handles flowId attribute changes.
+ *
+ * @private
  */
-FlowLogController.prototype.onFlowUrnChange = function() {
-  if (angular.isDefined(this.scope_['flowUrn'])) {
-    var flowUrnComponents = this.scope_['flowUrn'].split('/');
-    var clientId = flowUrnComponents[1];
-    var flowId = flowUrnComponents[flowUrnComponents.length - 1];
-    this.logsUrl = 'clients/' + clientId + '/flows/' + flowId + "/log";
+FlowLogController.prototype.onFlowIdOrBasePathChange_ = function(newValue) {
+  if (angular.isDefined(this.scope_['flowId']) &&
+      angular.isDefined(this.scope_['apiBasePath'])) {
+    this.logsUrl = [this.scope_['apiBasePath'],
+                    this.scope_['flowId'],
+                    'log'].join('/');
   }
 };
 
@@ -48,7 +53,8 @@ FlowLogController.prototype.onFlowUrnChange = function() {
 grrUi.flow.flowLogDirective.FlowLogDirective = function() {
   return {
     scope: {
-      flowUrn: '='
+      flowId: '=',
+      apiBasePath: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/flow/flow-log.html',

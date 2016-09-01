@@ -172,8 +172,8 @@ class MasterTest(test_lib.GRRBaseTest):
           self.assertTrue(pool_class.requests[1]["body"])
 
           # Ensure that the register body is a valid rdfvalue.
-          rdf_data_server.DataStoreRegistrationRequest(pool_class.requests[1][
-              "body"])
+          rdf_data_server.DataStoreRegistrationRequest.FromSerializedString(
+              pool_class.requests[1]["body"])
 
           # Ensure the requests are POST requests.
           self.assertEqual(pool_class.requests[0]["method"], "POST")

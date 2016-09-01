@@ -70,7 +70,7 @@ class ApiListCronJobsHandlerRegressionTest(
       for i in range(4):
         with test_lib.FakeTime(200 + i * 10):
           with aff4.FACTORY.OpenWithLock(cron_urn, token=self.token) as job:
-            job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime().Now()))
+            job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime.Now()))
             job.Set(
                 job.Schema.LAST_RUN_STATUS(
                     status=rdf_cronjobs.CronJobRunStatus.Status.ERROR))
@@ -194,6 +194,39 @@ class ApiGetCronJobFlowHandlerRegressionTest(
         "GET",
         "/api/cron-jobs/%s/flows/%s" % (self.flow_name, flow_id),
         replace={flow_id: "F:ABCDEF11"})
+
+
+class ApiForceRunCronJobRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest, CronJobsTestMixin):
+  """Test cron job flow getter handler."""
+
+  handler = "ApiForceRunCronJobHandler"
+
+  def Run(self):
+    self.CreateCronJob(
+        flow_name=cron_system.OSBreakDown.__name__, token=self.token)
+
+    self.Check("POST", "/api/cron-jobs/%s/actions/force-run" %
+               cron_system.OSBreakDown.__name__)
+
+
+class ApiModifyCronJobRegressionTest(api_test_lib.ApiCallHandlerRegressionTest,
+                                     CronJobsTestMixin):
+  """Test cron job flow getter handler."""
+
+  handler = "ApiModifyCronJobHandler"
+
+  def Run(self):
+    self.CreateCronJob(
+        flow_name=cron_system.OSBreakDown.__name__, token=self.token)
+    self.CreateCronJob(
+        flow_name=cron_system.GRRVersionBreakDown.__name__, token=self.token)
+
+    self.Check("PATCH", "/api/cron-jobs/%s" % cron_system.OSBreakDown.__name__,
+               {"state": "ENABLED"})
+    self.Check("PATCH",
+               "/api/cron-jobs/%s" % cron_system.GRRVersionBreakDown.__name__,
+               {"state": "DISABLED"})
 
 
 class ApiDeleteCronJobHandlerTest(test_lib.GRRBaseTest, CronJobsTestMixin):

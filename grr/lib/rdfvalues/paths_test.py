@@ -54,7 +54,8 @@ class PathSpecTest(test_base.RDFProtoTestCase):
     pathspec_pb.nested_path.path = "foo"
     pathspec_pb.nested_path.pathtype = 2
 
-    reference_pathspec = rdf_paths.PathSpec(pathspec_pb.SerializeToString())
+    reference_pathspec = rdf_paths.PathSpec.FromSerializedString(
+        pathspec_pb.SerializeToString())
 
     # Create a new RDFPathspec from scratch.
     pathspec = rdf_paths.PathSpec()
@@ -78,13 +79,6 @@ class PathSpecTest(test_base.RDFProtoTestCase):
     # Accessors:
     self.assertEqual(pathspec.path, "/")
     self.assertEqual(pathspec.last.path, "foo")
-
-    # Initialize from a protobuf.
-    pathspec_pb_copy = jobs_pb2.PathSpec()
-    pathspec_pb_copy.CopyFrom(pathspec_pb)
-
-    pathspec = rdf_paths.PathSpec(pathspec_pb_copy)
-    self.assertRDFValuesEqual(pathspec, reference_pathspec)
 
     pathspec.first.path = "test"
     self.assertEqual(pathspec.last.path, "foo")

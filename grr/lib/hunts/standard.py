@@ -396,7 +396,7 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
     return results
 
   def _FillResult(self, result, plugin_id, plugin_descriptor):
-    result.timestamp = rdfvalue.RDFDatetime().Now()
+    result.timestamp = rdfvalue.RDFDatetime.Now()
     result.plugin_id = plugin_id
     result.plugin_descriptor = plugin_descriptor
     return result
@@ -468,8 +468,8 @@ class VerifyHuntOutputPluginsCronFlow(cronjobs.SystemCronFlow):
       self.args.check_range = rdfvalue.Duration(
           "%ds" % int(self.__class__.frequency.seconds * 2))
 
-    range_end = rdfvalue.RDFDatetime().Now()
-    range_start = rdfvalue.RDFDatetime().Now() - self.args.check_range
+    range_end = rdfvalue.RDFDatetime.Now()
+    range_start = rdfvalue.RDFDatetime.Now() - self.args.check_range
 
     children_urns = list(hunts_root.ListChildren(age=(range_start, range_end)))
     children_urns.sort(key=operator.attrgetter("age"), reverse=True)
@@ -767,7 +767,7 @@ class StatsHunt(implementation.GRRHunt):
     return call_list
 
   def _CallClients(self, client_id_list):
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     due = now + rdfvalue.Duration(config_lib.CONFIG[
         "StatsHunt.CollectionInterval"])
 

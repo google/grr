@@ -10,6 +10,7 @@ from grr.gui import runtests_test
 from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import flow
+from grr.lib import hunts
 from grr.lib import output_plugin
 from grr.lib import test_lib
 from grr.lib import utils
@@ -17,9 +18,12 @@ from grr.lib.flows.general import filesystem as flows_filesystem
 from grr.lib.flows.general import processes as flows_processes
 from grr.lib.flows.general import transfer as flows_transfer
 from grr.lib.flows.general import webhistory as flows_webhistory
+from grr.lib.hunts import standard
+from grr.lib.hunts import standard_test
 from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import tests_pb2
@@ -85,7 +89,8 @@ class FlowWithOneHashEntryResult(flow.GRRFlow):
     self.SendReply(hash_result)
 
 
-class TestFlowManagement(test_lib.GRRSeleniumTest):
+class TestFlowManagement(test_lib.GRRSeleniumTest,
+                         standard_test.StandardHuntTestMixin):
   """Test the flow management GUI."""
 
   def setUp(self):
@@ -207,6 +212,64 @@ class TestFlowManagement(test_lib.GRRSeleniumTest):
     # flow.
     self.WaitUntil(self.IsElementPresent,
                    "css=.tab-content td.proto_value:contains(StatFile)")
+
+  def testOverviewIsShownForNestedFlows(self):
+    with self.ACLChecksDisabled():
+      for _ in test_lib.TestFlowHelper(
+          RecursiveTestFlow.__name__,
+          self.action_mock,
+          client_id=self.client_id,
+          token=self.token):
+        pass
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a[grrtarget='client.flows']")
+
+    # There should be a RecursiveTestFlow in the list. Expand nested flows.
+    self.Click("css=tr:contains('RecursiveTestFlow') span.tree_branch")
+    # Click on a nested flow.
+    self.Click("css=tr:contains('RecursiveTestFlow'):nth(2)")
+
+    # Nested flow should have Depth argument set to 1.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=td:contains('Depth') ~ td:nth(0):contains('1')")
+
+    # Check that flow id of this flow has forward slash - i.e. consists of
+    # 2 components.
+    self.WaitUntil(self.IsTextPresent, "Flow ID")
+    flow_id = self.GetText("css=dt:contains('Flow ID') ~ dd:nth(0)")
+    self.assertTrue("/" in flow_id)
+
+  def testOverviewIsShownForNestedHuntFlows(self):
+    with self.ACLChecksDisabled():
+      with hunts.GRRHunt.StartHunt(
+          hunt_name=standard.GenericHunt.__name__,
+          flow_runner_args=rdf_flows.FlowRunnerArgs(
+              flow_name=RecursiveTestFlow.__name__),
+          client_rate=0,
+          token=self.token) as hunt:
+        hunt.Run()
+
+      self.AssignTasksToClients(client_ids=[self.client_id])
+      self.RunHunt(client_ids=[self.client_id])
+
+    self.Open("/#c=C.0000000000000001")
+    self.Click("css=a[grrtarget='client.flows']")
+
+    # There should be a RecursiveTestFlow in the list. Expand nested flows.
+    self.Click("css=tr:contains('RecursiveTestFlow') span.tree_branch")
+    # Click on a nested flow.
+    self.Click("css=tr:contains('RecursiveTestFlow'):nth(2)")
+
+    # Nested flow should have Depth argument set to 1.
+    self.WaitUntil(self.IsElementPresent,
+                   "css=td:contains('Depth') ~ td:nth(0):contains('1')")
+
+    # Check that flow id of this flow has forward slash - i.e. consists of
+    # 2 components.
+    self.WaitUntil(self.IsTextPresent, "Flow ID")
+    flow_id = self.GetText("css=dt:contains('Flow ID') ~ dd:nth(0)")
+    self.assertTrue("/" in flow_id)
 
   def testNotificationPointingToFlowIsShownOnFlowCompletion(self):
     self.Open("/")

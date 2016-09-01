@@ -35,7 +35,7 @@ class GlobalNotification(rdf_structs.RDFProtoStruct):
       self.duration = rdfvalue.Duration("2w")
 
     if not self.show_from:
-      self.show_from = rdfvalue.RDFDatetime().Now()
+      self.show_from = rdfvalue.RDFDatetime.Now()
 
   @property
   def hash(self):
@@ -160,14 +160,14 @@ class GRRUser(aff4.AFF4Object):
         "aff4:notification/pending",
         rdf_flows.NotificationList,
         "The notifications pending for the user.",
-        default="",
+        default=rdf_flows.NotificationList(),
         versioned=False)
 
     SHOWN_NOTIFICATIONS = aff4.Attribute(
         "aff4:notifications/shown",
         rdf_flows.NotificationList,
         "Notifications already shown to the user.",
-        default="",
+        default=rdf_flows.NotificationList(),
         versioned=False)
 
     SHOWN_GLOBAL_NOTIFICATIONS = aff4.Attribute(
@@ -178,7 +178,7 @@ class GRRUser(aff4.AFF4Object):
         versioned=False)
 
     GUI_SETTINGS = aff4.Attribute(
-        "aff4:gui/settings", GUISettings, "GUI Settings", default="")
+        "aff4:gui/settings", GUISettings, "GUI Settings", default=GUISettings())
 
     PASSWORD = aff4.Attribute("aff4:user/password", CryptedPassword,
                               "Encrypted Password for the user")
@@ -257,11 +257,11 @@ class GRRUser(aff4.AFF4Object):
     shown_notifications = self.Schema.SHOWN_NOTIFICATIONS()
 
     # Pending notifications first
-    pending = self.Get(self.Schema.PENDING_NOTIFICATIONS)
+    pending = self.Get(self.Schema.PENDING_NOTIFICATIONS, [])
     for notification in pending:
       shown_notifications.Append(notification)
 
-    notifications = self.Get(self.Schema.SHOWN_NOTIFICATIONS)
+    notifications = self.Get(self.Schema.SHOWN_NOTIFICATIONS, [])
     for notification in notifications:
       shown_notifications.Append(notification)
 
@@ -309,7 +309,7 @@ class GRRUser(aff4.AFF4Object):
       if notification in shown_notifications:
         continue
 
-      current_time = rdfvalue.RDFDatetime().Now()
+      current_time = rdfvalue.RDFDatetime.Now()
       if (notification.show_from + notification.duration >= current_time and
           current_time >= notification.show_from):
         result.append(notification)

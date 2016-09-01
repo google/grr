@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
 """Utils exporting data from AFF4 to the rest of the world."""
 
 import os
@@ -233,7 +232,8 @@ def DownloadCollection(coll_path,
     max_threads: Use this many threads to do the downloads.
   """
   completed_clients = set()
-  export_types = ["HuntResultCollection", "RDFValueCollection"]
+  export_types = ["HuntResultCollection", "RDFValueCollection",
+                  "GeneralIndexedCollection"]
   coll = aff4.FACTORY.Open(coll_path, token=token)
   if coll.__class__.__name__ not in export_types:
     logging.error("%s is not a valid collection. Typo? "

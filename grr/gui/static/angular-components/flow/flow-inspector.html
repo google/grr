@@ -1,24 +1,27 @@
-<div class="padded" grr-force-refresh refresh-trigger="flowUrn">
+<div class="padded" grr-force-refresh refresh-trigger="flowId">
 
-  <div ng-if="!flowUrn">
+  <div ng-if="!flowId">
     Please select a flow to see its details here.
   </div>
 
-  <tabset ng-if="flowUrn">
+  <tabset ng-if="flowId">
     <tab heading="Flow Information">
-      <grr-flow-overview flow-urn="flowUrn" />
+      <grr-flow-overview flow-id="flowId" api-base-path="apiBasePath" />
     </tab>
 
     <tab heading="Requests" select="requestsTabShown = true">
-      <grr-flow-requests flow-urn="flowUrn" ng-if="requestsTabShown" />
+      <grr-flow-requests flow-id="flowId" api-base-path="apiBasePath"
+                         ng-if="requestsTabShown" />
     </tab>
 
     <tab heading="Results" select="resultsTabShown = true">
-      <grr-flow-results flow-urn="flowUrn" ng-if="resultsTabShown" />
+      <grr-flow-results flow-id="flowId" api-base-path="apiBasePath"
+                        ng-if="resultsTabShown" />
     </tab>
 
     <tab heading="Log" select="logTabShown = true">
-      <grr-flow-log flow-urn="flowUrn" ng-if="logTabShown" />
+      <grr-flow-log flow-id="flowId" api-base-path="apiBasePath"
+                    ng-if="logTabShown" />
     </tab>
   </tabset>
 

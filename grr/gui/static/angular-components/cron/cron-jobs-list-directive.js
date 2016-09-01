@@ -41,7 +41,7 @@ grrUi.cron.cronJobsListDirective.CronJobsListController = function(
   /** @type {!Object<string, Object>} */
   this.cronJobsByUrn = {};
 
-  /** @type {string|undefined} */
+  /** @type {string} */
   this.selectedCronJobUrn;
 
   /**
@@ -79,6 +79,50 @@ var CronJobsListController =
  * @const {string}
  */
 CronJobsListController.prototype.cronUrl = '/cron-jobs';
+
+
+/**
+ * Wraps given API serice promise, so that if "forbidden" response is received,
+ * 'unauthorized' notification is published. This way user will see
+ * a 'Request an approval' dialog box, when needed.
+ *
+ * @param {!angular.$q.Promise} promise
+ * @param {string} successMessage Message to return on success.
+ * @return {!angular.$q.Promise} Wrapped promise.
+ *
+ * @private
+ */
+CronJobsListController.prototype.wrapApiPromise_ = function(
+    promise, successMessage) {
+    return promise.then(
+        function success() {
+          return successMessage;
+        }.bind(this),
+        function failure(response) {
+          if (response['status'] === 403) {
+            // TODO(user): migrate from using grr.publish to using
+            // Angular services.
+            grr.publish('unauthorized',
+                        response['data']['subject'],
+                        response['data']['message']);
+          }
+          return this.q_.reject(response['data']['message']);
+        }.bind(this));
+};
+
+
+/**
+ * Builds URL to get/patch/delete a cron job with a given URN.
+ *
+ * @param {string} cronJobUrn
+ * @return {string} Corresponding URL.
+ *
+ * @private
+ */
+CronJobsListController.prototype.buildCronJobUrl_ = function(cronJobUrn) {
+  var cronJobId = cronJobUrn.split('/')[2];
+  return 'cron-jobs/' + cronJobId;
+};
 
 
 /**
@@ -165,17 +209,21 @@ CronJobsListController.prototype.newCronJob = function() {
  * @export
  */
 CronJobsListController.prototype.enableCronJob = function() {
-  var modalInstance = this.modal_.open({
-    template: '<grr-legacy-renderer ' +
-        'renderer="EnableCronJobConfirmationDialog" ' +
-        'query-params="{cron_urn: controller.selectedCronJobUrn}" />',
-    scope: this.scope_
-  });
+  var modalPromise = this.grrDialogService_.openConfirmation(
+      'Enable this cron job?',
+      'Are you sure you want to ENABLE this cron job?',
+      function() {
+        var promise = this.grrApiService_.patch(
+            this.buildCronJobUrl_(this.selectedCronJobUrn),
+            {state: 'ENABLED'});
+        return this.wrapApiPromise_(promise,
+                                    'Cron job was ENABLED successfully!');
+      }.bind(this));
 
   // TODO(user): there's no need to trigger update on dismiss.
   // Doing so only to maintain compatibility with legacy GRR code.
   // Remove as soon as legacy GRR code is removed.
-  modalInstance.result.then(function resolve() {
+  modalPromise.then(function resolve() {
     this.triggerUpdate();
   }.bind(this), function dismiss() {
     this.triggerUpdate();
@@ -189,17 +237,21 @@ CronJobsListController.prototype.enableCronJob = function() {
  * @export
  */
 CronJobsListController.prototype.disableCronJob = function() {
-  var modalInstance = this.modal_.open({
-    template: '<grr-legacy-renderer ' +
-        'renderer="DisableCronJobConfirmationDialog" ' +
-        'query-params="{cron_urn: controller.selectedCronJobUrn}" />',
-    scope: this.scope_
-  });
+  var modalPromise = this.grrDialogService_.openConfirmation(
+      'Disable this cron job?',
+      'Are you sure you want to DISABLE this cron job?',
+      function() {
+        var promise = this.grrApiService_.patch(
+            this.buildCronJobUrl_(this.selectedCronJobUrn),
+            {state: 'DISABLED'});
+        return this.wrapApiPromise_(promise,
+                                    'Cron job was DISABLED successfully!');
+      }.bind(this));
 
   // TODO(user): there's no need to trigger update on dismiss.
   // Doing so only to maintain compatibility with legacy GRR code.
   // Remove as soon as legacy GRR code is removed.
-  modalInstance.result.then(function resolve() {
+  modalPromise.then(function resolve() {
     this.triggerUpdate();
   }.bind(this), function dismiss() {
     this.triggerUpdate();
@@ -229,8 +281,7 @@ CronJobsListController.prototype.showDeleteCronJobConfirmation = function() {
  * @private
  */
 CronJobsListController.prototype.deleteCronJob_ = function() {
-  var cronJobId = this.selectedCronJobUrn.split('/')[2];
-  var url = 'cron-jobs/' + cronJobId;
+  var url = this.buildCronJobUrl_(this.selectedCronJobUrn);
   var deferred = this.q_.defer();
 
   this.grrApiService_.delete(url).then(
@@ -256,17 +307,22 @@ CronJobsListController.prototype.deleteCronJob_ = function() {
  * @export
  */
 CronJobsListController.prototype.forceRunCronJob = function() {
-  var modalInstance = this.modal_.open({
-    template: '<grr-legacy-renderer ' +
-        'renderer="ForceRunCronJobConfirmationDialog" ' +
-        'query-params="{cron_urn: controller.selectedCronJobUrn}" />',
-    scope: this.scope_
-  });
+  var modalPromise = this.grrDialogService_.openConfirmation(
+      'Force-run this cron job?',
+      'Are you sure you want to FORCE-RUN this cron job?',
+      function() {
+        var promise = this.grrApiService_.post(
+            this.buildCronJobUrl_(this.selectedCronJobUrn) +
+                '/actions/force-run');
+        return this.wrapApiPromise_(
+            promise,
+            'Cron job flow was FORCE-STARTED successfully!');
+      }.bind(this));
 
   // TODO(user): there's no need to trigger update on dismiss.
   // Doing so only to maintain compatibility with legacy GRR code.
   // Remove as soon as legacy GRR code is removed.
-  modalInstance.result.then(function resolve() {
+  modalPromise.then(function resolve() {
     this.triggerUpdate();
   }.bind(this), function dismiss() {
     this.triggerUpdate();

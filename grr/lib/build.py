@@ -164,7 +164,7 @@ class ClientBuilder(BuilderBase):
     output = {
         "Client.build_environment":
             str(rdf_client.Uname.FromCurrentSystem().signature()),
-        "Client.build_time": str(rdfvalue.RDFDatetime().Now()),
+        "Client.build_time": str(rdfvalue.RDFDatetime.Now()),
         "Template.build_type": str(
             config_lib.CONFIG.Get("ClientBuilder.build_type",
                                   context=self.context)),
@@ -279,7 +279,7 @@ class ClientRepacker(BuilderBase):
 
             new_config.SetRaw(descriptor.name, value)
 
-      new_config.Set("Client.deploy_time", str(rdfvalue.RDFDatetime().Now()))
+      new_config.Set("Client.deploy_time", str(rdfvalue.RDFDatetime.Now()))
       new_config.Write()
 
       if validate:

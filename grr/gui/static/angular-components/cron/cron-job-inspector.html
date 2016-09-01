@@ -6,8 +6,8 @@
 
   <tabset ng-if="cronJobUrn">
     <tab heading="Details" id="Details">
-      <grr-legacy-renderer renderer="ShowFlowInformation"
-                           query-params="{flow: cronJobUrn}" />
+      <grr-cron-job-overview cron-job-urn="cronJobUrn">
+      </grr-cron-job-overview>
     </tab>
 
     <tab heading="Flows" id="Flows">

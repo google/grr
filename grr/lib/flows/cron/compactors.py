@@ -30,7 +30,7 @@ class PackedVersionedCollectionCompactor(cronjobs.SystemCronFlow):
     errors_count = 0
     already_locked_count = 0
 
-    freeze_timestamp = rdfvalue.RDFDatetime().Now()
+    freeze_timestamp = rdfvalue.RDFDatetime.Now()
     for urn in collects.PackedVersionedCollection.QueryNotifications(
         timestamp=freeze_timestamp, token=self.token):
       collects.PackedVersionedCollection.DeleteNotifications(

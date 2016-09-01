@@ -27,6 +27,10 @@ class ApiCallRouterNotFoundError(Error):
   """Used when a router with a given name can't be found."""
 
 
+class ApiCallRouterDoesNotExpectParameters(Error):
+  """Raised when params are passed to a router that doesn't expect them."""
+
+
 class APIAuthorization(object):
   """Authorization for users/groups to use an API handler."""
 
@@ -73,13 +77,23 @@ class APIAuthorizationManager(object):
   """Manages loading API authorizations and enforcing them."""
 
   def _CreateRouter(self, name, params=None):
+    """Creates a router with a given name and params."""
     try:
       router_cls = api_call_router.ApiCallRouter.classes[name]
     except KeyError:
       raise ApiCallRouterNotFoundError("%s not a valid router" % name)
 
-    params = params or {}
-    return router_cls(**params)
+    if not router_cls.params_type and params:
+      raise ApiCallRouterDoesNotExpectParameters("%s is not configurable" %
+                                                 name)
+
+    rdf_params = None
+    if router_cls.params_type:
+      rdf_params = router_cls.params_type()
+      if params:
+        rdf_params.FromDict(params)
+
+    return router_cls(params=rdf_params)
 
   def __init__(self):
     """Initializes the manager by reading the config file."""

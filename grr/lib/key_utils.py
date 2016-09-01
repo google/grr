@@ -28,8 +28,8 @@ def MakeCASignedCert(common_name,
   ])
   builder = builder.subject_name(subject)
 
-  valid_from = rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("1d")
-  valid_until = rdfvalue.RDFDatetime().Now() + rdfvalue.Duration("3650d")
+  valid_from = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d")
+  valid_until = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("3650d")
   builder = builder.not_valid_before(valid_from.AsDatetime())
   builder = builder.not_valid_after(valid_until.AsDatetime())
 
@@ -75,8 +75,8 @@ def MakeCACert(private_key,
   builder = builder.subject_name(subject)
   builder = builder.issuer_name(issuer)
 
-  valid_from = rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("1d")
-  valid_until = rdfvalue.RDFDatetime().Now() + rdfvalue.Duration("3650d")
+  valid_from = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d")
+  valid_until = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("3650d")
   builder = builder.not_valid_before(valid_from.AsDatetime())
   builder = builder.not_valid_after(valid_until.AsDatetime())
 

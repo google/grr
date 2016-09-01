@@ -653,7 +653,7 @@ class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
     for subject, values in data_store.DB.MultiResolvePrefix(
         child_urns, attribute.predicate, token=token):
       for _, serialized, _ in values:
-        stat = rdf_client.StatEntry(serialized)
+        stat = rdf_client.StatEntry.FromSerializedString(serialized)
 
         # Add a new event for each MAC time if it exists.
         for c in "mac":

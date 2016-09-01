@@ -107,7 +107,7 @@ class AFF4KeywordIndex(aff4.AFF4Object):
       **kwargs: Additional arguments to pass to the datastore.
     """
     if timestamp is None:
-      timestamp = rdfvalue.RDFDatetime().Now().AsMicroSecondsFromEpoch()
+      timestamp = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
     if sync:
       with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
         for keyword in set(keywords):

@@ -35,7 +35,7 @@ class CleanHunts(cronjobs.SystemCronFlow):
     hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
     hunts_urns = list(hunts_root.ListChildren())
 
-    deadline = rdfvalue.RDFDatetime().Now() - hunts_ttl
+    deadline = rdfvalue.RDFDatetime.Now() - hunts_ttl
 
     hunts = aff4.FACTORY.MultiOpen(
         hunts_urns, aff4_type=implementation.GRRHunt, token=self.token)
@@ -67,7 +67,7 @@ class CleanCronJobs(cronjobs.SystemCronFlow):
         jobs, aff4_type=cronjobs.CronJob, mode="r", token=self.token)
 
     for obj in jobs_objs:
-      age = rdfvalue.RDFDatetime().Now() - cron_jobs_ttl
+      age = rdfvalue.RDFDatetime.Now() - cron_jobs_ttl
       obj.DeleteJobFlows(age)
       self.HeartBeat()
 
@@ -90,7 +90,7 @@ class CleanTemp(cronjobs.SystemCronFlow):
     tmp_root = aff4.FACTORY.Open("aff4:/tmp", mode="r", token=self.token)
     tmp_urns = list(tmp_root.ListChildren())
 
-    deadline = rdfvalue.RDFDatetime().Now() - tmp_ttl
+    deadline = rdfvalue.RDFDatetime.Now() - tmp_ttl
 
     for tmp_group in utils.Grouper(tmp_urns, 10000):
       expired_tmp_urns = []
@@ -130,7 +130,7 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
 
     client_urns = index.LookupClients(["."])
 
-    deadline = rdfvalue.RDFDatetime().Now() - inactive_client_ttl
+    deadline = rdfvalue.RDFDatetime.Now() - inactive_client_ttl
 
     for client_group in utils.Grouper(client_urns, 1000):
       inactive_client_urns = []

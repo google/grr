@@ -1126,9 +1126,9 @@ class GRRFlow(FlowBase):
       for subject, serialized, _ in values:
         try:
           if "status" in subject:
-            msg = rdf_flows.GrrMessage(serialized)
+            msg = rdf_flows.GrrMessage.FromSerializedString(serialized)
           else:
-            msg = rdf_flows.RequestState(serialized)
+            msg = rdf_flows.RequestState.FromSerializedString(serialized)
         except Exception as e:  # pylint: disable=broad-except
           logging.warn("Error while parsing: %s", e)
           continue

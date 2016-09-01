@@ -16,68 +16,51 @@ goog.scope(function() {
  * @ngInject
  */
 grrUi.flow.flowResultsDirective.FlowResultsController = function($scope) {
-  /** @type {string} */
+  /** @private {!angular.Scope} */
+  this.scope_ = $scope;
+
+  /** @type {?string} */
   this.flowResultsUrl;
 
-  /** @type {string} */
+  /** @type {?string} */
   this.outputPluginsMetadataUrl;
 
-  /** @type {string} */
+  /** @type {?string} */
   this.downloadFilesUrl;
 
-  /** @type {string} */
+  /** @type {?string} */
   this.exportCommand;
 
-  $scope.$watch('flowUrn', this.onFlowUrnChange.bind(this));
+  this.scope_.$watchGroup(['flowId', 'apiBasePath'],
+                          this.onFlowIdOrBasePathChange_.bind(this));
 };
 var FlowResultsController =
     grrUi.flow.flowResultsDirective.FlowResultsController;
 
 
 /**
- * Handles flowUrn attribute changes.
+ * Handles directive's arguments changes.
  *
- * @param {string} newValue
- * @export
+ * @param {Array<string>} newValues
+ * @private
  */
-FlowResultsController.prototype.onFlowUrnChange = function(newValue) {
+FlowResultsController.prototype.onFlowIdOrBasePathChange_ = function(
+    newValues) {
   this.flowResultsUrl = this.outputPluginsMetadataUrl =
-      this.downloadFilesUrl = '';
+      this.downloadFilesUrl = null;
 
-  if (!angular.isString(newValue)) {
-    return;
+  if (newValues.every(angular.isDefined)) {
+    var flowUrl = this.scope_['apiBasePath'] + '/' + this.scope_['flowId'];
+    this.flowResultsUrl = flowUrl + '/results';
+    this.outputPluginsUrl = flowUrl + '/output-plugins';
+    this.exportCommandUrl = flowUrl + '/results/export-command';
+    this.downloadFilesUrl = flowUrl + '/results/files-archive';
   }
-
-  /**
-   * Flow urn is expected to look like:
-   * [aff4:/]C.0000111122223333/flows/F:ABC123
-   */
-  var components = newValue.split('/');
-  if (components.length == 0) {
-    throw new Error('Client\'s flow URN was empty.');
-  }
-
-  if (components[0] == 'aff4:') {
-    components = components.slice(1);
-  }
-  if (components.length < 3 || components[1] != 'flows') {
-    throw new Error('Unexpected client\'s flow URN structure: ' + newValue);
-  }
-
-  var clientId = components[0];
-  var flowId = components[2];
-
-  this.flowResultsUrl = '/clients/' + clientId + '/flows/' + flowId +
-      '/results';
-  this.outputPluginsUrl = '/clients/' + clientId + '/flows/' +
-      flowId + '/output-plugins';
-  this.exportCommandUrl = this.flowResultsUrl + '/export-command';
-  this.downloadFilesUrl = this.flowResultsUrl + '/files-archive';
 };
 
 
 /**
- * Directive for displaying results of a flow with a given URN.
+ * Directive for displaying results of a flow with a given URL.
  *
  * @constructor
  * @ngInject
@@ -86,7 +69,8 @@ FlowResultsController.prototype.onFlowUrnChange = function(newValue) {
 grrUi.flow.flowResultsDirective.FlowResultsDirective = function() {
   return {
     scope: {
-      flowUrn: '='
+      flowId: '=',
+      apiBasePath: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/flow/flow-results.html',

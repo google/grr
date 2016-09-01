@@ -3,7 +3,6 @@ goog.require('grrUi.acl.aclDialogService.AclDialogService');
 goog.require('grrUi.acl.approvalInfoDirective.ApprovalInfoDirective');
 goog.require('grrUi.acl.clientApprovalViewDirective.ClientApprovalViewDirective');
 goog.require('grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewDirective');
-goog.require('grrUi.acl.grantAccessDirective.GrantAccessDirective');
 goog.require('grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective');
 goog.require('grrUi.acl.requestApprovalDialogDirective.RequestApprovalDialogDirective');
 
@@ -25,9 +24,6 @@ grrUi.acl.module.directive(
 grrUi.acl.module.directive(
     grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewDirective.directive_name,
     grrUi.acl.cronJobApprovalViewDirective.CronJobApprovalViewDirective);
-grrUi.acl.module.directive(
-    grrUi.acl.grantAccessDirective.GrantAccessDirective.directive_name,
-    grrUi.acl.grantAccessDirective.GrantAccessDirective);
 grrUi.acl.module.directive(
     grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective.directive_name,
     grrUi.acl.huntApprovalViewDirective.HuntApprovalViewDirective);

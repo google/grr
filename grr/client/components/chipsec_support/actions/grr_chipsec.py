@@ -66,7 +66,7 @@ class DumpFlashImage(actions.ActionPlugin):
       logger.logger().LOG_TO_FILE = True
 
     # Create a temporary file to store the flash image.
-    dest_fd, dest_pathspec = tempfiles.CreateGRRTempFileVFS()
+    dest_fd, dest_pathspec = tempfiles.CreateGRRTempFileVFS(suffix=".flash")
 
     # Wrap most of Chipsec code to gather its logs in case of failure.
     try:

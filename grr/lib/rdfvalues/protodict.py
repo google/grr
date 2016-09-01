@@ -87,8 +87,9 @@ class DataBlob(rdf_structs.RDFProtoStruct):
     # Unpack RDFValues.
     if self.HasField("rdf_value"):
       try:
-        return rdfvalue.RDFValue.classes[self.rdf_value.name](
-            initializer=self.rdf_value.data, age=self.rdf_value.age)
+        rdf_class = rdfvalue.RDFValue.classes[self.rdf_value.name]
+        return rdf_class.FromSerializedString(
+            self.rdf_value.data, age=self.rdf_value.age)
       except (ValueError, KeyError) as e:
         if ignore_error:
           return e
@@ -120,10 +121,6 @@ class Dict(rdf_structs.RDFProtoStruct):
     # Support initializing from a mapping
     if isinstance(initializer, dict):
       self.FromDict(initializer)
-
-    # Initialize from a serialized string.
-    elif isinstance(initializer, str):
-      self.ParseFromString(initializer)
 
     # Can be initialized from kwargs (like a dict).
     elif initializer is None:
@@ -374,10 +371,11 @@ class EmbeddedRDFValue(rdf_structs.RDFProtoStruct):
     """Extracts and returns the serialized object."""
     try:
       rdf_cls = self.classes.get(self.name)
-      value = rdf_cls(self.data)
-      value.age = self.embedded_age
+      if rdf_cls:
+        value = rdf_cls.FromSerializedString(self.data)
+        value.age = self.embedded_age
 
-      return value
+        return value
     except TypeError:
       return None
 

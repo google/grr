@@ -19,6 +19,7 @@ from grr.lib import rdfvalue
 from grr.lib import throttle
 from grr.lib import utils
 from grr.lib.aff4_objects import collects as aff4_collects
+from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
 from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import file_finder
@@ -38,6 +39,72 @@ class FlowNotFoundError(api_call_handler_base.ResourceNotFoundError):
 class RobotGetFilesOperationNotFoundError(
     api_call_handler_base.ResourceNotFoundError):
   """Raises when "get files" operation is not found."""
+
+
+class ApiFlowId(rdfvalue.RDFString):
+  """Class encapsulating flows ids."""
+
+  def __init__(self, initializer=None, age=None):
+    super(ApiFlowId, self).__init__(initializer=initializer, age=age)
+
+    # TODO(user): move this to a separate validation method when
+    # common RDFValues validation approach is implemented.
+    if self._value:
+      components = self.Split()
+      for component in components:
+        try:
+          rdfvalue.SessionID.ValidateID(component)
+        except ValueError as e:
+          raise ValueError("Invalid flow id: %s (%s)" %
+                           (utils.SmartStr(self._value), e))
+
+  def _FlowIdToUrn(self, flow_id, client_id):
+    return aff4.ROOT_URN.Add(client_id.Basename()).Add("flows").Add(flow_id)
+
+  def ResolveCronJobFlowURN(self, cron_job_id):
+    """Resolve a URN of a flow with this id belonging to a given cron job."""
+    return aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(cron_job_id).Add(
+        self._value)
+
+  def ResolveClientFlowURN(self, client_id, token=None):
+    """Resolve a URN of a flow with this id belonging to a given client.
+
+    Note that this may need a roundtrip to the datastore. Resolving algorithm
+    is the following:
+    1.  If the flow id doesn't contain slashes (flow is not nested), we just
+        append it to the <client id>/flows.
+    2.  If the flow id has slashes (flow is nested), we check if the root
+        flow pointed to by <client id>/flows/<flow id> is a symlink.
+    2a. If it's a symlink, we append the rest of the flow id to the symlink
+        target.
+    2b. If it's not a symlink, we just append the whole id to
+        <client id>/flows (meaning we do the same as in 1).
+
+    Args:
+      client_id: Id of a client where this flow is supposed to be found on.
+      token: Credentials token.
+    Returns:
+      RDFURN pointing to a flow identified by this flow id and client id.
+    """
+    components = self.Split()
+    if len(components) == 1:
+      return self._FlowIdToUrn(self._value, client_id)
+    else:
+      root_urn = self._FlowIdToUrn(components[0], client_id)
+      try:
+        flow_symlink = aff4.FACTORY.Open(
+            root_urn,
+            aff4_type=aff4.AFF4Symlink,
+            follow_symlinks=False,
+            token=token)
+
+        return flow_symlink.Get(flow_symlink.Schema.SYMLINK_TARGET).Add(
+            "/".join(components[1:]))
+      except aff4.InstantiationError:
+        return self._FlowIdToUrn(self._value, client_id)
+
+  def Split(self):
+    return self._value.split("/")
 
 
 class ApiFlowDescriptor(rdf_structs.RDFProtoStruct):
@@ -86,19 +153,15 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       # The required protobuf for this class is in args_type.
       return flow_cls.args_type
 
-  def InitFromAff4Object(self, flow_obj, with_state_and_context=False):
-    # If the flow object is in fact a symlink, then we want to report the
-    # symlink's URN as a flow's URN. Otherwise you may get unexpected
-    # URNs while listing client's flows. For example, this may happend when
-    # a hunt was running on a client and a flow itself is located in the
-    # hunt's namespace, but was symlinked into the client's namespace:
-    #
-    # aff4:/hunts/H:123456/flows/H:987654 ->
-    #   aff4:/C.0000111122223333/flows/H:987654
-    if hasattr(flow_obj, "symlink_urn"):
-      self.urn = flow_obj.symlink_urn
-    else:
-      self.urn = flow_obj.urn
+  def InitFromAff4Object(self,
+                         flow_obj,
+                         flow_id=None,
+                         with_state_and_context=False):
+    # TODO(user): we should be able to infer flow id from the URN. Currently
+    # it's not possible due to an inconsistent way in which we create symlinks
+    # and name them.
+    self.flow_id = flow_id
+    self.urn = flow_obj.urn
 
     self.name = flow_obj.runner_args.flow_name
     self.started_at = flow_obj.context.create_time
@@ -180,11 +243,12 @@ class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
   strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
-    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
+    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
     flow_obj = aff4.FACTORY.Open(
         flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
 
-    return ApiFlow().InitFromAff4Object(flow_obj, with_state_and_context=True)
+    return ApiFlow().InitFromAff4Object(
+        flow_obj, flow_id=args.flow_id, with_state_and_context=True)
 
 
 class ApiListFlowRequestsArgs(rdf_structs.RDFProtoStruct):
@@ -203,7 +267,7 @@ class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFlowRequestsResult
 
   def Handle(self, args, token=None):
-    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
+    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
 
     # Check if this flow really exists.
     try:
@@ -252,7 +316,7 @@ class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFlowResultsResult
 
   def Handle(self, args, token=None):
-    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
+    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
     flow_obj = aff4.FACTORY.Open(
         flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
 
@@ -305,8 +369,8 @@ class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFlowLogsResult
 
   def Handle(self, args, token=None):
-    logs_collection_urn = args.client_id.Add("flows").Add(args.flow_id.Basename(
-    )).Add("Logs")
+    logs_collection_urn = args.flow_id.ResolveClientFlowURN(
+        args.client_id, token=token).Add("Logs")
     logs_collection = aff4.FACTORY.Create(
         logs_collection_urn,
         aff4_type=flow_runner.FlowLogCollection,
@@ -337,7 +401,7 @@ class ApiGetFlowResultsExportCommandHandler(
   result_type = ApiGetFlowResultsExportCommandResult
 
   def Handle(self, args, token=None):
-    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
+    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
     flow_obj = aff4.FACTORY.Open(
         flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
     output_urn = flow_obj.GetRunner().output_urn
@@ -373,27 +437,27 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       user.Notify("ArchiveGenerationFinished", None,
                   "Downloaded archive of flow %s from client %s (archived %d "
                   "out of %d items, archive size is %d)" %
-                  (args.flow_id.Basename(), args.client_id.Basename(),
+                  (args.flow_id, args.client_id.Basename(),
                    generator.archived_files, generator.total_files,
                    generator.output_size), self.__class__.__name__)
     except Exception as e:
       user.Notify("Error", None,
                   "Archive generation failed for flow %s on client %s: %s" %
-                  (args.flow_id.Basename(), args.client_id.Basename(),
-                   utils.SmartStr(e)), self.__class__.__name__)
+                  (args.flow_id, args.client_id.Basename(), utils.SmartStr(e)),
+                  self.__class__.__name__)
       raise
     finally:
       user.Close()
 
   def Handle(self, args, token=None):
-    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
+    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
     flow_obj = aff4.FACTORY.Open(
         flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
 
-    flow_api_object = ApiFlow().InitFromAff4Object(flow_obj)
+    flow_api_object = ApiFlow().InitFromAff4Object(
+        flow_obj, flow_id=args.flow_id)
     description = ("Files downloaded by flow %s (%s) that ran on client %s by "
-                   "user %s on %s" % (flow_api_object.name,
-                                      args.flow_id.Basename(),
+                   "user %s on %s" % (flow_api_object.name, args.flow_id,
                                       args.client_id.Basename(),
                                       flow_api_object.creator,
                                       flow_api_object.started_at))
@@ -442,7 +506,7 @@ class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListFlowOutputPluginsResult
 
   def Handle(self, args, token=None):
-    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
+    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
     flow_obj = aff4.FACTORY.Open(
         flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
 
@@ -484,7 +548,7 @@ class ApiListFlowOutputPluginLogsHandlerBase(
     if not self.attribute_name:
       raise ValueError("attribute_name can't be None")
 
-    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
+    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
     flow_obj = aff4.FACTORY.Open(
         flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
 
@@ -603,13 +667,18 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         token=token)
     nested_children_map = dict((x.urn, x) for x in nested_children)
 
-    def BuildList(fds):
+    def BuildList(fds, parent_id=None):
       """Builds list of flows recursively."""
       result = []
       for fd in fds:
 
         try:
-          api_flow = ApiFlow().InitFromAff4Object(fd)
+          urn = fd.symlink_urn or fd.urn
+          if parent_id:
+            flow_id = "%s/%s" % (parent_id, urn.Basename())
+          else:
+            flow_id = urn.Basename()
+          api_flow = ApiFlow().InitFromAff4Object(fd, flow_id=flow_id)
         except AttributeError:
           # If this doesn't work there's no way to recover.
           continue
@@ -629,7 +698,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
         children = sorted(
             children, key=ApiListFlowsHandler._GetCreationTime, reverse=True)
         try:
-          api_flow.nested_flows = BuildList(children)
+          api_flow.nested_flows = BuildList(children, parent_id=flow_id)
         except KeyError:
           pass
         result.append(api_flow)
@@ -794,7 +863,8 @@ class ApiGetRobotGetFilesOperationStateHandler(
       except aff4.InstantiationError:
         result_count = 0
 
-    api_flow_obj = ApiFlow().InitFromAff4Object(flow_obj)
+    api_flow_obj = ApiFlow().InitFromAff4Object(
+        flow_obj, flow_id=flow_id.Basename())
     return ApiGetRobotGetFilesOperationStateResult(
         state=api_flow_obj.state, result_count=result_count)
 
@@ -827,7 +897,7 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
         runner_args=args.flow.runner_args)
 
     fd = aff4.FACTORY.Open(flow_id, aff4_type=flow.GRRFlow, token=token)
-    return ApiFlow().InitFromAff4Object(fd)
+    return ApiFlow().InitFromAff4Object(fd, flow_id=flow_id.Basename())
 
 
 class ApiCancelFlowArgs(rdf_structs.RDFProtoStruct):
@@ -839,13 +909,9 @@ class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
 
   category = CATEGORY
   args_type = ApiCancelFlowArgs
-  privileged = True
 
   def Handle(self, args, token=None):
-    flow_urn = args.client_id.Add("flows").Add(args.flow_id.Basename())
-    # If we can read the flow, we're allowed to terminate it.
-    data_store.DB.security_manager.CheckDataStoreAccess(token.RealUID(),
-                                                        [flow_urn], "r")
+    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
 
     flow.GRRFlow.TerminateFlow(
         flow_urn, reason="Cancelled in GUI", token=token, force=True)

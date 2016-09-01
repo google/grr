@@ -145,7 +145,7 @@ class GetFile(flow.GRRFlow):
 
           for data, length in self.state.blobs:
             fd.AddBlob(data, length)
-            fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime().Now())
+            fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
 
           # Save some space.
           del self.state.blobs
@@ -221,6 +221,7 @@ class MultiGetFileMixin(object):
     # then simply pass their index in this array as a surrogate for the full
     # pathspec. This allows us to use integers to track pathspecs in dicts etc.
     self.state.indexed_pathspecs = []
+    self.state.request_data_list = []
 
     # The index of the next pathspec to start. Pathspecs are added to
     # indexed_pathspecs and wait there until there are free trackers for
@@ -229,13 +230,14 @@ class MultiGetFileMixin(object):
     # downloading another pathspec.
     self.state.next_pathspec_to_start = 0
 
-    # Set of blobs we still need to fetch.
-    self.state.blobs_we_need = set()
+    # Number of blob hashes we have received but not yet scheduled for download.
+    self.state.blob_hashes_pending = 0
 
   def StartFileFetch(self, pathspec, request_data=None):
     """The entry point for this flow mixin - Schedules new file transfer."""
     # Create an index so we can find this pathspec later.
-    self.state.indexed_pathspecs.append((pathspec, request_data or {}))
+    self.state.indexed_pathspecs.append(pathspec)
+    self.state.request_data_list.append(request_data)
     self._TryToStartNextPathspec()
 
   def _TryToStartNextPathspec(self):
@@ -249,7 +251,7 @@ class MultiGetFileMixin(object):
 
     try:
       index = self.state.next_pathspec_to_start
-      pathspec = self.state.indexed_pathspecs[index][0]
+      pathspec = self.state.indexed_pathspecs[index]
       self.state.next_pathspec_to_start = index + 1
     except IndexError:
       # We did all the pathspecs, nothing left to do here.
@@ -280,21 +282,30 @@ class MultiGetFileMixin(object):
         next_state="ReceiveFileHash",
         request_data=dict(index=index))
 
-  def _ReceiveFetchedFile(self, tracker):
-    """Remove pathspec for this index and call the ReceiveFetchedFile method."""
-    index = tracker["index"]
-    _, request_data = self.state.indexed_pathspecs[index]
-    self.state.indexed_pathspecs[index] = (None, None)
+  def _RemoveCompletedPathspec(self, index):
+    """Removes a pathspec from the list of pathspecs."""
+    pathspec = self.state.indexed_pathspecs[index]
+    request_data = self.state.request_data_list[index]
+
+    self.state.indexed_pathspecs[index] = None
+    self.state.request_data_list[index] = None
     self.state.pending_hashes.pop(index, None)
     self.state.pending_files.pop(index, None)
-
-    # Report the request_data for this flow's caller.
-    self.ReceiveFetchedFile(
-        tracker["stat_entry"], tracker["hash_obj"], request_data=request_data)
 
     # We have a bit more room in the pending_hashes so we try to schedule
     # another pathspec.
     self._TryToStartNextPathspec()
+    return pathspec, request_data
+
+  def _ReceiveFetchedFile(self, tracker):
+    """Remove pathspec for this index and call the ReceiveFetchedFile method."""
+    index = tracker["index"]
+
+    _, request_data = self._RemoveCompletedPathspec(index)
+
+    # Report the request_data for this flow's caller.
+    self.ReceiveFetchedFile(
+        tracker["stat_entry"], tracker["hash_obj"], request_data=request_data)
 
   def ReceiveFetchedFile(self, stat_entry, file_hash, request_data=None):
     """This method will be called for each new file successfully fetched.
@@ -308,18 +319,11 @@ class MultiGetFileMixin(object):
 
   def _FileFetchFailed(self, index, request_name):
     """Remove pathspec for this index and call the FileFetchFailed method."""
-    # Remove pathspec and request_data from index.
-    pathspec, request_data = self.state.indexed_pathspecs[index]
-    self.state.indexed_pathspecs[index] = (None, None)
-    self.state.pending_hashes.pop(index, None)
-    self.state.pending_files.pop(index, None)
+
+    pathspec, request_data = self._RemoveCompletedPathspec(index)
 
     # Report the request_data for this flow's caller.
     self.FileFetchFailed(pathspec, request_name, request_data=request_data)
-
-    # We have a bit more room in the pending_hashes so we try to schedule
-    # another pathspec.
-    self._TryToStartNextPathspec()
 
   def FileFetchFailed(self, pathspec, request_name, request_data=None):
     """This method will be called when stat or hash requests fail.
@@ -376,8 +380,7 @@ class MultiGetFileMixin(object):
       hash_obj = rdf_crypto.Hash()
 
       if len(response.results) < 1 or response.results[0]["name"] != "generic":
-        self.Log("Failed to hash file: %s",
-                 self.state.indexed_pathspecs[index][0])
+        self.Log("Failed to hash file: %s", self.state.indexed_pathspecs[index])
         self.state.pending_hashes.pop(index, None)
         return
 
@@ -388,8 +391,7 @@ class MultiGetFileMixin(object):
           value = result.GetItem(hash_type)
           setattr(hash_obj, hash_type, value)
       except AttributeError:
-        self.Log("Failed to hash file: %s",
-                 self.state.indexed_pathspecs[index][0])
+        self.Log("Failed to hash file: %s", self.state.indexed_pathspecs[index])
         self.state.pending_hashes.pop(index, None)
         return
 
@@ -438,7 +440,6 @@ class MultiGetFileMixin(object):
       digest = hash_obj.sha256
       file_hashes[index] = hash_obj
       hash_to_tracker.setdefault(digest, []).append(tracker)
-
     # First we get all the files which are present in the file store.
     files_in_filestore = set()
 
@@ -569,9 +570,9 @@ class MultiGetFileMixin(object):
 
     file_tracker.setdefault("hash_list", []).append(hash_response)
 
-    self.state.blobs_we_need.add(hash_response.data.encode("hex"))
+    self.state.blob_hashes_pending += 1
 
-    if len(self.state.blobs_we_need) > self.MIN_CALL_TO_FILE_STORE:
+    if self.state.blob_hashes_pending > self.MIN_CALL_TO_FILE_STORE:
       self.FetchFileContent()
 
   def FetchFileContent(self):
@@ -583,10 +584,16 @@ class MultiGetFileMixin(object):
     if not self.state.pending_files:
       return
 
-    # Check if we have all the blobs in the blob AFF4 namespace..
-    stats = aff4.FACTORY.Stat(self.state.blobs_we_need, token=self.token)
+    blob_urns = set()
+    for file_tracker in self.state.pending_files.itervalues():
+      for hash_response in file_tracker.get("hash_list", []):
+        blob_urn = "aff4:/blobs/%s" % hash_response.data.encode("hex")
+        blob_urns.add(blob_urn)
+
+    # Check what blobs we already have in the AFF4 namespace.
+    stats = aff4.FACTORY.Stat(blob_urns, token=self.token)
     blobs_we_have = set([x["urn"] for x in stats])
-    self.state.blobs_we_need = set()
+    self.state.blob_hashes_pending = 0
 
     # Now iterate over all the blobs and add them directly to the blob image.
     for index, file_tracker in self.state.pending_files.iteritems():
@@ -594,8 +601,8 @@ class MultiGetFileMixin(object):
         # Make sure we read the correct pathspec on the client.
         hash_response.pathspec = file_tracker["stat_entry"].pathspec
 
-        digest = hash_response.data.encode("hex")
-        if digest in blobs_we_have:
+        blob_urn = "aff4:/blobs/%s" % hash_response.data.encode("hex")
+        if blob_urn in blobs_we_have:
           # If we have the data we may call our state directly.
           self.CallState(
               [hash_response],

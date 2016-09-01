@@ -7,6 +7,32 @@
 import logging
 import os
 import subprocess
+from grr.lib import flags
+
+parser = flags.PARSER
+
+parser.add_argument(
+    "--clean",
+    action="store_true",
+    default=False,
+    help="Clean compiled protos.")
+
+args = parser.parse_args()
+
+
+def Clean():
+  """Clean out compiled protos."""
+  # Start running from one directory above the grr directory which is found by
+  # this scripts's location as __file__.
+  cwd = os.path.dirname(os.path.abspath(__file__))
+
+  # Find all the .proto files.
+  for (root, _, files) in os.walk(cwd):
+    for filename in files:
+      full_filename = os.path.join(root, filename)
+      if full_filename.endswith("_pb2.py") or full_filename.endswith(
+          "_pb2.pyc"):
+        os.unlink(full_filename)
 
 
 def MakeProto():
@@ -41,9 +67,9 @@ def MakeProto():
       raise RuntimeError("Unable to launch %s protoc compiler. Please "
                          "set the PROTOC environment variable.", protoc)
 
-    if "2.6.1" not in output:
+    if "3.0.0" not in output:
       raise RuntimeError("Incompatible protoc compiler detected. "
-                         "We need 2.6.1 not %s" % output)
+                         "We need 3.0.0 not %s" % output)
 
     for proto in protos_to_compile:
       logging.info("Compiling %s", proto)
@@ -67,4 +93,6 @@ if __name__ == "__main__":
   root_logger = logging.getLogger()
   root_logger.setLevel(logging.INFO)
 
+  if args.clean:
+    Clean()
   MakeProto()

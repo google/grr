@@ -17,26 +17,30 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import user_managers
 
+from grr.lib.rdfvalues import structs as rdf_structs
+
+from grr.proto import api_pb2
+
+
+class ApiLabelsRestrictedCallRouterParams(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiLabelsRestrictedCallRouterParams
+
 
 class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
   """Router that restricts access only to clients with certain labels."""
 
-  def __init__(self,
-               labels_whitelist=None,
-               labels_owners_whitelist=None,
-               allow_flows=False,
-               allow_vfs_access=False,
-               legacy_manager=None,
-               delegate=None):
-    super(ApiLabelsRestrictedCallRouter, self).__init__()
+  params_type = ApiLabelsRestrictedCallRouterParams
 
-    self.labels_whitelist = set(labels_whitelist or [])
+  def __init__(self, params=None, legacy_manager=None, delegate=None):
+    super(ApiLabelsRestrictedCallRouter, self).__init__(params=params)
+
+    self.params = params = params or self.__class__.params_type()
+
+    self.labels_whitelist = set(params.labels_whitelist)
     # "GRR" is a system label. Labels returned by the client during the
     # interrogate have owner="GRR".
-    self.labels_owners_whitelist = set(labels_owners_whitelist or ["GRR"])
-
-    self.allow_flows = allow_flows
-    self.allow_vfs_access = allow_vfs_access
+    self.labels_owners_whitelist = set(params.labels_owners_whitelist or
+                                       ["GRR"])
 
     if not legacy_manager:
       legacy_manager = user_managers.FullAccessControlManager()
@@ -62,12 +66,12 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
           utils.SmartStr(client_id))
 
   def CheckVfsAccessAllowed(self):
-    if not self.allow_vfs_access:
+    if not self.params.allow_vfs_access:
       raise access_control.UnauthorizedAccess(
           "User is not allowed to access virtual file system.")
 
   def CheckFlowsAllowed(self):
-    if not self.allow_flows:
+    if not self.params.allow_flows_access:
       raise access_control.UnauthorizedAccess(
           "User is not allowed to work with flows.")
 

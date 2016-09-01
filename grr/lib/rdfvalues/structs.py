@@ -653,41 +653,6 @@ class ProtoDouble(ProtoFixed64):
     return struct.unpack("<d", value[2])[0]
 
 
-# TODO(user): This is deprecated in favor of EnumNamedValue. Remove as soon
-# as there are no hunts with old-style Enum pickled in the state.
-class Enum(int):
-  """A class that wraps enums.
-
-  Enums are just integers, except when printed they have a name.
-  """
-
-  def __new__(cls, val, name=None, description=None):
-    instance = super(Enum, cls).__new__(cls, val)
-    instance.name = name or str(val)
-    instance.description = description
-
-    return instance
-
-  def __eq__(self, other):
-    return int(self) == other or self.name == other
-
-  def __str__(self):
-    return self.name
-
-  def __unicode__(self):
-    return unicode(self.name)
-
-
-class EnumValue(Enum):
-  """Backwards compatibility for stored data.
-
-  This class is necessary for reading data created with GRR server version
-  0.2.9-1 and earlier.  It can be removed when we can drop support for this old
-  data.
-  """
-  pass
-
-
 class EnumNamedValue(rdfvalue.RDFInteger):
   """A class that wraps enums.
 
@@ -996,7 +961,7 @@ class ProtoDynamicEmbedded(ProtoType):
 
   def ConvertFromWireFormat(self, value, container=None):
     """The wire format is simply a string."""
-    return self._type(container)(value[2])
+    return self._type(container).FromSerializedString(value[2])
 
   def ConvertToWireFormat(self, value):
     """Encode the nested protobuf into wire format."""
@@ -1037,7 +1002,7 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
     # TODO(user): Type stored in type_url is currently ignored when value is
     # decoded. We should use it to deserialize the value and then check
     # that value type and dynamic type are compatible.
-    return self._type(container)(result.value)
+    return self._type(container).FromSerializedString(result.value)
 
   def ConvertToWireFormat(self, value):
     """Encode the nested protobuf into wire format."""
@@ -1064,7 +1029,7 @@ class RepeatedFieldHelper(object):
     Args:
       wrapped_list: The list within the protobuf which we wrap.
       type_descriptor: A type descriptor describing the type of the list
-        elements..
+        elements.
       container: The protobuf which contains this repeated field.
 
     Raises:
@@ -1298,7 +1263,7 @@ class ProtoList(ProtoType):
     self.owner.AddDescriptor(self)
 
 
-class ProtoRDFValue(ProtoBinary):
+class ProtoRDFValue(ProtoType):
   """Serialize arbitrary rdfvalue members.
 
   RDFValue members can be serialized in a number of different ways according to
@@ -1334,6 +1299,9 @@ class ProtoRDFValue(ProtoBinary):
   # delegate descriptor.
   _kwargs = None
 
+  type = None
+  wire_type = WIRETYPE_LENGTH_DELIMITED
+
   _PROTO_DATA_STORE_LOOKUP = dict(
       bytes=ProtoBinary,
       unsigned_integer=ProtoUnsignedInteger,
@@ -1342,8 +1310,11 @@ class ProtoRDFValue(ProtoBinary):
       string=ProtoString)
 
   def __init__(self, rdf_type=None, default=None, **kwargs):
-    super(ProtoRDFValue, self).__init__(default=default, **kwargs)
+    super(ProtoRDFValue, self).__init__(**kwargs)
     self._kwargs = kwargs
+
+    if default is not None:
+      self.default = default
 
     if isinstance(rdf_type, basestring):
       self.original_proto_type_name = self.proto_type_name = rdf_type
@@ -1396,12 +1367,12 @@ class ProtoRDFValue(ProtoBinary):
 
   def GetDefault(self, container=None):
     _ = container
-    # We must return an instance of our type. This allows the field to be
-    # initialized with a string default.
-    if self.default is not None and self.default.__class__ is not self.type:
-      return self.Validate(self.default)
-    else:
-      return self.default
+    if self.default is None:
+      return None
+
+    if self.default.__class__ is not self.type:
+      self.default = self.Validate(self.default)
+    return self.default
 
   def IsDirty(self, python_format):
     """Return the dirty state of the python object."""
@@ -1416,7 +1387,7 @@ class ProtoRDFValue(ProtoBinary):
     if value.__class__ is not self.type:
       try:
         value = self.type(value)
-      except rdfvalue.DecodeError as e:
+      except (rdfvalue.DecodeError, TypeError) as e:
         raise type_info.TypeValueError(e)
 
     return value
@@ -1580,9 +1551,6 @@ class RDFStruct(rdfvalue.RDFValue):
 
     elif initializer.__class__ is self.__class__:
       self.CopyConstructor(initializer)
-
-    elif initializer.__class__ is str:
-      self.ParseFromString(initializer)
 
     else:
       raise ValueError("%s can not be initialized from %s" %
@@ -1983,7 +1951,7 @@ class RDFProtoStruct(RDFStruct):
       return dict((k, self._ToPrimitive(v)) for k, v in value.items())
     elif isinstance(value, RDFProtoStruct):
       return self._ToPrimitive(value.AsDict())
-    elif isinstance(value, (Enum, EnumValue, EnumNamedValue)):
+    elif isinstance(value, (EnumNamedValue)):
       return str(value)
     elif isinstance(value, rdfvalue.RDFBytes):
       return base64.encodestring(value.SerializeToString())
@@ -2148,7 +2116,7 @@ class RDFProtoStruct(RDFStruct):
     tmp = cls.protobuf()  # pylint: disable=not-callable
     text_format.Merge(text, tmp)
 
-    return cls(tmp.SerializeToString())
+    return cls.FromSerializedString(tmp.SerializeToString())
 
   @classmethod
   def AddDescriptor(cls, field_desc):

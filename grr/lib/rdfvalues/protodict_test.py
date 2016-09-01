@@ -50,7 +50,7 @@ class DictTest(test_base.RDFProtoTestCase):
   def testDictBehaviour(self):
     tested = rdf_protodict.Dict(a=1)
 
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     tested["b"] = now
 
     self.assertEqual(tested["b"], now)
@@ -65,9 +65,9 @@ class DictTest(test_base.RDFProtoTestCase):
         key1=1,                # Integer.
         key2="foo",            # String.
         key3=u"\u4f60\u597d",  # Unicode.
-        key5=rdfvalue.RDFDatetime("2012/12/11"),  # RDFValue.
+        key5=rdfvalue.RDFDatetime.FromHumanReadable("2012/12/11"),  # RDFValue.
         key6=None,             # Support None Encoding.
-        key7=structs.Enum(5, name="Test"),  # Integer like objects.
+        key7=structs.EnumNamedValue(5, name="Test"),  # Enums.
     )
 
     # Initialize through keywords.
@@ -82,7 +82,7 @@ class DictTest(test_base.RDFProtoTestCase):
     serialized = sample.SerializeToString()
     self.assertIsInstance(serialized, str)
 
-    sample = rdf_protodict.Dict(serialized)
+    sample = rdf_protodict.Dict.FromSerializedString(serialized)
     self.CheckTestDict(test_dict, sample)
 
     # Convert to a dict.
@@ -223,7 +223,7 @@ class RDFValueArrayTest(test_base.RDFProtoTestCase):
     test_list = [1,
                  2,  # Integers.
                  None,  # None.
-                 rdfvalue.RDFDatetime().Now(),  # An RDFValue instance.
+                 rdfvalue.RDFDatetime.Now(),  # An RDFValue instance.
                  [1, 2],  # A nested list.
                  u"升级程序",  # Unicode.
                 ]
@@ -242,7 +242,7 @@ class RDFValueArrayTest(test_base.RDFProtoTestCase):
     self.assertIsInstance(sample[0], rdfvalue.RDFString)
 
     # Reject appending invalid types.
-    self.assertRaises(ValueError, sample.Append, rdfvalue.RDFDatetime().Now())
+    self.assertRaises(ValueError, sample.Append, rdfvalue.RDFDatetime.Now())
 
   def testPop(self):
     sample = TestRDFValueArray()
@@ -265,10 +265,12 @@ class EmbeddedRDFValueTest(test_base.RDFProtoTestCase):
 
   def testAgePreserved(self):
     data = rdf_protodict.RDFValueArray([1, 2, 3])
-    now = rdfvalue.RDFDatetime().Now()
-    original_age = data.age.Now()
+    data.age = rdfvalue.RDFDatetime.Now()
+    original_age = data.age
 
-    self.assertTrue((now - data.age) < rdfvalue.Duration("5s"))
+    now = rdfvalue.RDFDatetime.Now()
+
+    self.assertLess((now - data.age), rdfvalue.Duration("5s"))
 
     embedded = rdf_protodict.EmbeddedRDFValue(payload=data)
     self.assertEqual(embedded.payload.age, original_age)

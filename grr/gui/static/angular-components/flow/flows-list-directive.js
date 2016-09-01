@@ -138,25 +138,25 @@ grrUi.flow.flowsListDirective.FlowsListController = function(
   this.element_ = $element;
 
   /** @type {!Object<string, Object>} */
-  this.flowsByUrn = {};
+  this.flowsById = {};
 
   /** @type {?string} */
-  this.selectedFlowUrn;
+  this.selectedFlowId;
 
   // Push the selection changes back to the scope, so that other UI components
   // can react on the change.
-  this.scope_.$watch('controller.selectedFlowUrn', function(newValue) {
+  this.scope_.$watch('controller.selectedFlowId', function(newValue) {
     // Only propagate real changes, don't propagate initial undefined
     // value.
     if (angular.isDefined(newValue)) {
-      this.scope_['selectedFlowUrn'] = newValue;
+      this.scope_['selectedFlowId'] = newValue;
     }
   }.bind(this));
 
   // If outer binding changes, we want to update our selection.
-  this.scope_.$watch('selectedFlowUrn', function(newValue) {
+  this.scope_.$watch('selectedFlowId', function(newValue) {
     if (angular.isDefined(newValue)) {
-      this.selectedFlowUrn = newValue;
+      this.selectedFlowId = newValue;
     }
   }.bind(this));
 };
@@ -170,7 +170,7 @@ var FlowsListController = grrUi.flow.flowsListDirective.FlowsListController;
  * @export
  */
 FlowsListController.prototype.selectItem = function(item) {
-  this.selectedFlowUrn = item['value']['urn']['value'];
+  this.selectedFlowId = item['value']['flow_id']['value'];
 };
 
 
@@ -186,11 +186,8 @@ FlowsListController.prototype.transformItems = function(items) {
   var flattenedItems = flattenFlowsList(items);
 
   angular.forEach(flattenedItems, function(item, index) {
-    var urn = item['value']['urn']['value'];
-    this.flowsByUrn[urn] = item;
-
-    var components = urn.split('/');
-    item.shortUrn = components[components.length - 1];
+    var components = item['value']['flow_id']['value'].split('/');
+    item.shortId = components[components.length - 1];
     item.shown = item.depth == 0;
     if (index < flattenedItems.length - 1 &&
         flattenedItems[index + 1].depth > item.depth) {
@@ -216,7 +213,7 @@ grrUi.flow.flowsListDirective.FlowsListDirective = function() {
   return {
     scope: {
       flowsUrl: '=',
-      selectedFlowUrn: '=?',
+      selectedFlowId: '=?',
       triggerUpdate: '=?'
     },
     restrict: 'E',

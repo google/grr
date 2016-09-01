@@ -20,7 +20,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
   def AddJobStatus(self, job_urn, status):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.OpenWithLock(job_urn, token=self.token) as job:
-        job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime().Now()))
+        job.Set(job.Schema.LAST_RUN_TIME(rdfvalue.RDFDatetime.Now()))
         job.Set(job.Schema.LAST_RUN_STATUS(status=status))
 
   def setUp(self):
@@ -77,8 +77,8 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=#main_bottomPane #Details")
     self.WaitUntil(self.IsElementPresent, "css=#main_bottomPane #Flows")
 
-    self.WaitUntil(self.IsTextPresent, "CURRENT_FLOW_URN")
-    self.WaitUntil(self.IsTextPresent, "CRON_ARGS")
+    self.WaitUntil(self.IsTextPresent, "Allow Overruns")
+    self.WaitUntil(self.IsTextPresent, "Flow Arguments")
 
     # Click on "Flows" tab
     self.Click("css=#main_bottomPane #Flows")
@@ -159,11 +159,11 @@ class TestCronView(test_lib.GRRSeleniumTest):
     # Also check that "Proceed" button gets disabled.
     self.Click("css=button[name=Proceed]")
 
-    self.WaitUntil(self.IsTextPresent, "Cron job was ENABLEd successfully!")
+    self.WaitUntil(self.IsTextPresent, "Cron job was ENABLED successfully!")
     self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
-    # Click on "Cancel" and check that dialog disappears.
-    self.Click("css=button[name=Cancel]")
+    # Click on "Close" and check that dialog disappears.
+    self.Click("css=button[name=Close]")
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     # View should be refreshed automatically.
@@ -204,11 +204,11 @@ class TestCronView(test_lib.GRRSeleniumTest):
     # Also check that "Proceed" button gets disabled.
     self.Click("css=button[name=Proceed]")
 
-    self.WaitUntil(self.IsTextPresent, "Cron job was DISABLEd successfully!")
+    self.WaitUntil(self.IsTextPresent, "Cron job was DISABLED successfully!")
     self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
-    # Click on "Cancel" and check that dialog disappears.
-    self.Click("css=button[name=Cancel]")
+    # Click on "Close" and check that dialog disappears.
+    self.Click("css=button[name=Close]")
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     # View should be refreshed automatically.
@@ -277,7 +277,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
       # Click on Force Run button and check that dialog appears.
       self.Click("css=button[name=ForceRunCronJob]:not([disabled])")
       self.WaitUntil(self.IsTextPresent,
-                     "Are you sure you want to RUN this cron job?")
+                     "Are you sure you want to FORCE-RUN this cron job?")
 
       # Click on "Proceed" and wait for authorization dialog to appear.
       self.Click("css=button[name=Proceed]")
@@ -293,18 +293,18 @@ class TestCronView(test_lib.GRRSeleniumTest):
       # Click on Force Run button and check that dialog appears.
       self.Click("css=button[name=ForceRunCronJob]:not([disabled])")
       self.WaitUntil(self.IsTextPresent,
-                     "Are you sure you want to RUN this cron job?")
+                     "Are you sure you want to FORCE-RUN this cron job?")
 
       # Click on "Proceed" and wait for success label to appear.
       # Also check that "Proceed" button gets disabled.
       self.Click("css=button[name=Proceed]")
 
-      # TODO(user): "RUNd", really? :)
-      self.WaitUntil(self.IsTextPresent, "Cron job was RUNd successfully!")
+      self.WaitUntil(self.IsTextPresent,
+                     "Cron job flow was FORCE-STARTED successfully!")
       self.assertFalse(self.IsElementPresent("css=button[name=Proceed]"))
 
-      # Click on "Cancel" and check that dialog disappears.
-      self.Click("css=button[name=Cancel]")
+      # Click on "Close" and check that dialog disappears.
+      self.Click("css=button[name=Close]")
       self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
       # View should be refreshed automatically. The last run date should appear.
@@ -408,11 +408,11 @@ class TestCronView(test_lib.GRRSeleniumTest):
     self.Click("css=grr-new-cron-job-wizard-form button.Next")
 
     # Select newly created cron job.
-    self.Click("css=td:contains('cron/CreateAndRunGenericHuntFlow_')")
+    self.Click("css=td:contains('CreateAndRunGenericHuntFlow_')")
 
     # Check that correct details are displayed in cron job details tab.
     self.WaitUntil(self.IsTextPresent, "CreateAndRunGenericHuntFlow")
-    self.WaitUntil(self.IsTextPresent, "Flow args")
+    self.WaitUntil(self.IsTextPresent, "Flow Arguments")
 
     self.assertTrue(self.IsTextPresent("Paths"))
     self.assertTrue(self.IsTextPresent("/tmp"))
@@ -466,7 +466,7 @@ class TestCronView(test_lib.GRRSeleniumTest):
 
     self.WaitUntil(self.IsElementPresent,
                    "css=tr.row-selected td:contains('OSBreakDown')")
-    self.WaitUntil(self.IsTextPresent, "cron/OSBreakDown")
+    self.WaitUntil(self.IsElementPresent, "css=dd:contains('OSBreakDown')")
 
 
 def main(argv):

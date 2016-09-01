@@ -306,7 +306,7 @@ supported_os: [Linux]
 
     # Check serialize/deserialize doesn't change order.
     serialized = artifact_obj.SerializeToString()
-    artifact_obj = artifact_registry.Artifact(serialized)
+    artifact_obj = artifact_registry.Artifact.FromSerializedString(serialized)
     arglist = artifact_obj.sources[0].attributes.get("args")
     self.assertEqual(arglist, ["-L", "-v", "-n"])
 

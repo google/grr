@@ -270,7 +270,7 @@ class FlowRunner(object):
                      plugin, e)
 
     context = rdf_flows.FlowContext(
-        create_time=rdfvalue.RDFDatetime().Now(),
+        create_time=rdfvalue.RDFDatetime.Now(),
         creator=args.creator or self.token.username,
         current_state="Start",
         output_plugins_states=output_plugins_states,
@@ -1218,7 +1218,7 @@ class FlowRunner(object):
           subject=utils.SmartUnicode(subject),
           message=utils.SmartUnicode(msg),
           source=self.session_id,
-          timestamp=rdfvalue.RDFDatetime().Now())
+          timestamp=rdfvalue.RDFDatetime.Now())
 
       data_store.DB.Set(self.session_id,
                         self.flow_obj.Schema.NOTIFICATION,

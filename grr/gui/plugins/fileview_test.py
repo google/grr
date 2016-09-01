@@ -71,7 +71,7 @@ class TestFileView(FileViewTestBase):
       with aff4.FACTORY.Create(
           path, aff4_type=aff4_grr.VFSFile, mode="w", token=token) as fd:
         fd.Write(content)
-        fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime().Now())
+        fd.Set(fd.Schema.CONTENT_LAST, rdfvalue.RDFDatetime.Now())
 
   def _CreateFolder(self, path, timestamp, token=None):
     """Creates a VFS folder."""
@@ -271,7 +271,7 @@ class TestFileView(FileViewTestBase):
             token=self.token):
           pass
 
-      time_in_future = rdfvalue.RDFDatetime().Now() + rdfvalue.Duration("1h")
+      time_in_future = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration("1h")
       # We have to make sure that the new version will not be within a second
       # from the current one, otherwise the previous one and the new one will
       # be indistinguishable in the UI (as it has a 1s precision when

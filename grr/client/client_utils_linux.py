@@ -227,10 +227,7 @@ class NannyController(object):
 
   def WriteTransactionLog(self, grr_message):
     """Write the message into the transaction log."""
-    try:
-      grr_message = grr_message.SerializeToString()
-    except AttributeError:
-      grr_message = str(grr_message)
+    grr_message = grr_message.SerializeToString()
 
     logfile = self._GetLogFilename()
 
@@ -270,7 +267,7 @@ class NannyController(object):
 
     try:
       if data:
-        return rdf_flows.GrrMessage(data)
+        return rdf_flows.GrrMessage.FromSerializedString(data)
     except (message.Error, rdfvalue.Error):
       return
 

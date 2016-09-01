@@ -51,8 +51,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     row = data_store.DB.ResolvePrefix(
         "aff4:/stats_store/some_pid", "", token=self.token)
     # Check that no plain counter is written.
-    values = [stats_store.StatsStoreValue(x[1]) for x in row
-              if x[0] == "aff4:stats_store/counter"]
+    values = [stats_store.StatsStoreValue.FromSerializedString(x[1])
+              for x in row if x[0] == "aff4:stats_store/counter"]
     self.assertEqual(len(values), 2)
 
     http_field_value = stats_store.StatsStoreFieldValue(
@@ -84,8 +84,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
 
     row = data_store.DB.ResolvePrefix(
         "aff4:/stats_store/some_pid", "", token=self.token)
-    values = [stats_store.StatsStoreValue(x[1]) for x in row
-              if x[0] == "aff4:stats_store/foo_event"]
+    values = [stats_store.StatsStoreValue.FromSerializedString(x[1])
+              for x in row if x[0] == "aff4:stats_store/foo_event"]
     self.assertEqual(len(values), 1)
 
     stored_value = values[0]
@@ -105,8 +105,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     row = data_store.DB.ResolvePrefix(
         "aff4:/stats_store/some_pid", "", token=self.token)
 
-    values = [stats_store.StatsStoreValue(x[1]) for x in row
-              if x[0] == "aff4:stats_store/foo_event"]
+    values = [stats_store.StatsStoreValue.FromSerializedString(x[1])
+              for x in row if x[0] == "aff4:stats_store/foo_event"]
     self.assertEqual(len(values), 2)
 
     http_field_value = stats_store.StatsStoreFieldValue(

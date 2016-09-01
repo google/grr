@@ -224,9 +224,9 @@ def GetStartTime(cron_cls):
     rdfvalue.RDFDatetime
   """
   if not cron_cls.start_time_randomization:
-    return rdfvalue.RDFDatetime().Now()
+    return rdfvalue.RDFDatetime.Now()
 
-  now = rdfvalue.RDFDatetime().Now()
+  now = rdfvalue.RDFDatetime.Now()
   window_ms = cron_cls.frequency.microseconds
 
   start_time_ms = random.randint(now.AsMicroSecondsFromEpoch(),
@@ -448,7 +448,7 @@ class CronJob(aff4.AFF4Volume):
 
     cron_args = self.Get(self.Schema.CRON_ARGS)
     last_run_time = self.Get(self.Schema.LAST_RUN_TIME)
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
 
     # Its time to run.
     if (last_run_time is None or
@@ -557,7 +557,7 @@ class CronJob(aff4.AFF4Volume):
         sync=False)
 
     self.Set(self.Schema.CURRENT_FLOW_URN, flow_urn)
-    self.Set(self.Schema.LAST_RUN_TIME, rdfvalue.RDFDatetime().Now())
+    self.Set(self.Schema.LAST_RUN_TIME, rdfvalue.RDFDatetime.Now())
     self.Flush()
 
 

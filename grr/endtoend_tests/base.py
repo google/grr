@@ -384,7 +384,7 @@ def GetClientTestTargets(client_ids=None,
     # Only test against client IDs that have checked in recently.  Test machines
     # tend to have lots of old client IDs hanging around that will cause lots of
     # waiting for timeouts in the tests.
-    if (rdfvalue.RDFDatetime().Now() - client.Get(client.Schema.LAST) >
+    if (rdfvalue.RDFDatetime.Now() - client.Get(client.Schema.LAST) >
         duration_threshold):
       client_id_set.remove(client.urn)
 

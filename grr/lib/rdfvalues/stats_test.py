@@ -18,7 +18,7 @@ class RunningStatsTest(test_base.RDFValueTestCase):
     value = stats_rdf.RunningStats()
     value.RegisterValue(number)
     value.RegisterValue(number * 2)
-    value.histogram = [2.0, number, 10.0]
+    value.histogram = stats_rdf.StatsHistogram.FromBins([2.0, number, 10.0])
     return value
 
   def testMeanIsCalculatedCorrectly(self):
@@ -43,7 +43,7 @@ class RunningStatsTest(test_base.RDFValueTestCase):
 
   def testHistogramIsCalculatedCorrectly(self):
     stats = stats_rdf.RunningStats()
-    stats.histogram = stats_rdf.StatsHistogram(initializer=[2.0, 4.0, 10.0])
+    stats.histogram = stats_rdf.StatsHistogram.FromBins([2.0, 4.0, 10.0])
 
     stats.RegisterValue(1.0)
     stats.RegisterValue(1.0)

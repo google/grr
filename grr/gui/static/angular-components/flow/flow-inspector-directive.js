@@ -14,7 +14,8 @@ goog.scope(function() {
 grrUi.flow.flowInspectorDirective.FlowInspectorDirective = function() {
   return {
     scope: {
-      flowUrn: '=',
+      flowId: '=',
+      apiBasePath: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/flow/flow-inspector.html'

@@ -2,6 +2,7 @@
 
 goog.require('grrUi.flow.module');
 goog.require('grrUi.tests.module');
+goog.require('grrUi.tests.stubDirective');
 
 describe('flow results directive', function() {
   var $compile, $rootScope;
@@ -19,10 +20,13 @@ describe('flow results directive', function() {
     $rootScope = $injector.get('$rootScope');
   }));
 
-  var renderTestTemplate = function(flowUrn) {
-    $rootScope.flowUrn = flowUrn;
+  var renderTestTemplate = function(flowId) {
+    $rootScope.flowId = flowId;
+    $rootScope.apiBasePath = 'foo/bar';
 
-    var template = '<grr-flow-results flow-urn="flowUrn" />';
+    var template =  '<grr-flow-results flow-id="flowId" ' +
+        'api-base-path="apiBasePath" />';
+
     var element = $compile(template)($rootScope);
     $rootScope.$apply();
 
@@ -30,35 +34,21 @@ describe('flow results directive', function() {
   };
 
   it('delegates rendering to grr-results-collection directive', function() {
-    var element = renderTestTemplate('aff4:/C.0000111122223333/flows/F:1234');
+    var element = renderTestTemplate('F:1234');
     var directive = element.find('grr-results-collection:nth(0)');
     expect(directive.length).toBe(1);
   });
 
-  it('handles flow urn starting with aff4', function() {
-    var element = renderTestTemplate('aff4:/C.0000111122223333/flows/F:1234');
+  it('builds grr-result-collection urls correctly', function() {
+    var element = renderTestTemplate('F:1234');
     var directive = element.find('grr-results-collection:nth(0)');
     expect(directive.scope().$eval(directive.attr('results-url'))).toEqual(
-        '/clients/C.0000111122223333/flows/F:1234/results');
+        'foo/bar/F:1234/results');
     expect(
         directive.scope().$eval(directive.attr('output-plugins-url'))).toEqual(
-            '/clients/C.0000111122223333/flows/F:1234/output-plugins');
+            'foo/bar/F:1234/output-plugins');
     expect(
         directive.scope().$eval(directive.attr('download-files-url'))).toEqual(
-            '/clients/C.0000111122223333/flows/F:1234/results/files-archive');
+            'foo/bar/F:1234/results/files-archive');
   });
-
-  it('handles flow urn not starting with aff4', function() {
-    var element = renderTestTemplate('C.0000111122223333/flows/F:1234');
-    var directive = element.find('grr-results-collection:nth(0)');
-    expect(directive.scope().$eval(directive.attr('results-url'))).toEqual(
-        '/clients/C.0000111122223333/flows/F:1234/results');
-    expect(
-        directive.scope().$eval(directive.attr('output-plugins-url'))).toEqual(
-            '/clients/C.0000111122223333/flows/F:1234/output-plugins');
-    expect(
-        directive.scope().$eval(directive.attr('download-files-url'))).toEqual(
-            '/clients/C.0000111122223333/flows/F:1234/results/files-archive');
-  });
-
 });

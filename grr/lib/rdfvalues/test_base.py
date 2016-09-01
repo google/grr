@@ -26,12 +26,12 @@ class GenericRDFProtoTest(RDFValueBaseTest):
     pathspec = rdf_paths.PathSpec(path=r"\\.\pmem", pathtype=1)
 
     # Should raise - incompatible RDFType.
-    self.assertRaises(type_info.TypeValueError, setattr, container, "device",
+    self.assertRaises(ValueError, setattr, container, "device",
                       rdfvalue.RDFString("hello"))
 
     # Should raise - incompatible RDFProto type.
     self.assertRaises(
-        type_info.TypeValueError,
+        ValueError,
         setattr,
         container,
         "device",
@@ -233,11 +233,8 @@ class RDFValueTestCase(RDFValueBaseTest):
     self.assertIsInstance(serialized, str)
 
     # Ensure we can parse it again.
-    rdfvalue_object = self.rdfvalue_class(serialized)
+    rdfvalue_object = self.rdfvalue_class.FromSerializedString(serialized)
     self.CheckRDFValue(rdfvalue_object, sample)
-
-    # Also by initialization.
-    self.CheckRDFValue(self.rdfvalue_class(serialized), sample)
 
     # Serializing to data store must produce something the data store can
     # handle.
@@ -253,7 +250,7 @@ class RDFValueTestCase(RDFValueBaseTest):
       self.fail("%s has no valid data_store_type" % self.rdfvalue_class)
 
     # Ensure we can parse it again.
-    rdfvalue_object = self.rdfvalue_class(serialized)
+    rdfvalue_object = self.rdfvalue_class.FromDatastoreValue(serialized)
     self.CheckRDFValue(rdfvalue_object, sample)
 
 
@@ -267,7 +264,8 @@ class RDFProtoTestCase(RDFValueTestCase):
     sample = self.GenerateSample()
 
     # RDFProto can be initialized from a serialized protobuf.
-    rdfvalue_sample = self.rdfvalue_class(sample.SerializeToString())
+    serialized = sample.SerializeToString()
+    rdfvalue_sample = self.rdfvalue_class.FromSerializedString(serialized)
     self.CheckRDFValue(rdfvalue_sample, sample)
 
     # RDFProto can be initialized from another RDFProto.

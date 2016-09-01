@@ -65,7 +65,7 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
     self.assertEqual(100, len(results_1))
 
-    with test_lib.FakeTime(rdfvalue.RDFDatetime().Now() + rdfvalue.Duration(
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(
         "45m")):
       with aff4.FACTORY.OpenWithLock(
           queue_urn, lease_time=200, token=self.token) as queue:
@@ -91,7 +91,7 @@ class QueueTest(test_lib.AFF4ObjectTest):
 
     # Wait past the default claim length, to make sure that delete actually did
     # something.
-    with test_lib.FakeTime(rdfvalue.RDFDatetime().Now() + rdfvalue.Duration(
+    with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(
         "45m")):
       with aff4.FACTORY.OpenWithLock(
           queue_urn, lease_time=200, token=self.token) as queue:
@@ -147,7 +147,7 @@ class QueueTest(test_lib.AFF4ObjectTest):
     with aff4.FACTORY.Create(queue_urn, TestQueue, token=self.token) as queue:
       for i in range(100):
         if i == 50:
-          middle = rdfvalue.RDFDatetime().Now()
+          middle = rdfvalue.RDFDatetime.Now()
         queue.Add(rdfvalue.RDFInteger(i))
 
     with aff4.FACTORY.OpenWithLock(

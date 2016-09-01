@@ -165,7 +165,9 @@ class DataMaster(object):
     # Start database measuring thread.
     sleep = config_lib.CONFIG["Dataserver.stats_frequency"]
     self.periodic_thread = utils.InterruptableThread(
-        target=self._PeriodicThread, sleep_time=sleep)
+        name="DataServer db measuring thread",
+        target=self._PeriodicThread,
+        sleep_time=sleep)
     self.periodic_thread.start()
     # Holds current rebalance operation.
     self.rebalance = None

@@ -112,3 +112,10 @@ message SampleDeleteHandlerArgs {
 message SamplePatchHandlerArgs {
   optional string resource_id = 1;
 }
+
+// For api_auth_manager_test.py
+
+message DummyAuthManagerTestConfigurableApiRouterParams {
+  optional string foo = 1;
+  optional uint64 bar = 2;
+}

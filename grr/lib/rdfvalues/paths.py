@@ -44,32 +44,11 @@ class PathSpec(rdf_structs.RDFProtoStruct):
   """
   protobuf = jobs_pb2.PathSpec
 
-  def __init__(self, initializer=None, age=None, **kwargs):
-    super(PathSpec, self).__init__(age=age, **kwargs)
-
-    # Instantiate from another PathSpec.
-    if isinstance(initializer, PathSpec):
-      # pylint: disable=protected-access
-      self.SetRawData(initializer._CopyRawData())
-      # pylint: enable=protected-access
-      self.age = initializer.age
-
-    # Allow initialization from a list of protobufs each representing a
-    # component.
-    elif isinstance(initializer, list):
-      for element in initializer:
-        self.last.SetRawData(element.GetRawData())
-
-    # Or we can initialize from a string.
-    elif isinstance(initializer, str):
-      self.ParseFromString(initializer)
-
-    # Legacy protocol buffer implementation.
-    elif isinstance(initializer, self.protobuf):
-      self.ParseFromString(initializer.SerializeToString())
-
-    elif initializer is not None:
-      raise rdfvalue.InitializeError("Unable to initialize")
+  def CopyConstructor(self, other):
+    # pylint: disable=protected-access
+    self.SetRawData(other._CopyRawData())
+    # pylint: enable=protected-access
+    self.age = other.age
 
   def __len__(self):
     """Return the total number of path components."""

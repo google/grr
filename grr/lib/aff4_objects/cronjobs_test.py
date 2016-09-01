@@ -239,7 +239,7 @@ class CronTest(test_lib.AFF4ObjectTest):
       start_time_randomization = False
 
     with test_lib.FakeTime(100):
-      now = rdfvalue.RDFDatetime().Now()
+      now = rdfvalue.RDFDatetime.Now()
 
       with mock.patch.object(
           random, "randint",
@@ -254,7 +254,7 @@ class CronTest(test_lib.AFF4ObjectTest):
       self.assertTrue(now <= start2 <= (now + TestSystemCron.frequency))
 
       # Check disabling gives us a start time of now()
-      now = rdfvalue.RDFDatetime().Now()
+      now = rdfvalue.RDFDatetime.Now()
       start1 = cronjobs.GetStartTime(NoRandom)
       start2 = cronjobs.GetStartTime(NoRandom)
 
@@ -263,7 +263,7 @@ class CronTest(test_lib.AFF4ObjectTest):
 
   def testSystemCronJobSetsStartTime(self):
     with test_lib.FakeTime(100):
-      now = rdfvalue.RDFDatetime().Now()
+      now = rdfvalue.RDFDatetime.Now()
       cronjobs.ScheduleSystemCronFlows(
           names=[DummySystemCronJob.__name__,
                  DummySystemCronJobStartNow.__name__],

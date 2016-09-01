@@ -84,7 +84,7 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
       s.SerializeToString()
 
     def RDFStructCreateAndSerializeFromProto():
-      s = rdf_client.User(test_proto)
+      s = rdf_client.User.FromSerializedString(test_proto)
       s.SerializeToString()
 
     def ProtoCreateAndSerialize():
@@ -155,7 +155,7 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
       self.assertEqual(s.job[100].request_id, 100)
 
     def SProtoDecode():
-      s = FastGrrMessageList(test_data)
+      s = FastGrrMessageList.FromSerializedString(test_data)
       self.assertEqual(s.job[100].request_id, 100)
 
     self.TimeIt(SProtoDecode, "SProto Repeated Decode", repetitions=repeats)
@@ -199,7 +199,7 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
       s.job.add(session_id="test", name="foobar", request_id=i)
 
     serialized = s.SerializeToString()
-    unserialized = FastGrrMessageList(serialized)
+    unserialized = FastGrrMessageList.FromSerializedString(serialized)
     self.assertEqual(len(unserialized.job), len(s.job))
 
     self.assertEqual(unserialized.job[134].session_id, "test")
@@ -308,7 +308,7 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
           name=u"foo", request_id=1, response_id=1, session_id=u"session")
       data = s.SerializeToString()
 
-      new_s = StructGrrMessage(initializer=data)
+      new_s = StructGrrMessage.FromSerializedString(data)
 
       return s, new_s
 
@@ -332,7 +332,7 @@ class RDFValueBenchmark(test_lib.AverageMicroBenchmarks):
       new_s.SerializeToString()
 
     def RDFStructDecodeEncode():
-      new_s = StructGrrMessage(initializer=data)
+      new_s = StructGrrMessage.FromSerializedString(data)
       new_s.SerializeToString()
 
     self.TimeIt(RDFStructDecodeEncode)

@@ -65,11 +65,6 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
       template: '<grr-api-docs />',
       title: 'API Docs'
     })
-    .state('grantAccess', {
-      url: '/grant-access?acl',
-      template: '<grr-grant-access />',
-      title: 'Review Access Approval'
-    })
     .state('canaryTest', {
       url: '/canary-test',
       template: '<grr-legacy-renderer renderer="CanaryTestRenderer" />'

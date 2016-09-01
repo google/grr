@@ -22,7 +22,7 @@
         transform-items="controller.transformItems(items)"
         trigger-update="triggerUpdate"
         ng-click="controller.selectItem(item)"
-        ng-class="{'row-selected': item.value.urn.value == controller.selectedFlowUrn}"
+        ng-class="{'row-selected': item.value.flow_id.value == controller.selectedFlowId}"
         ng-if="item.shown">
       <td><grr-flow-status-icon flow="::item" /></td>
       <td>
@@ -36,7 +36,7 @@
               style="margin-left: {$ ::item.depth $}em"
               class="tree_branch">
         </span>
-        {$ ::item.shortUrn $}
+        {$ ::item.shortId $}
       </td>
       <td>
         <grr-semantic-value value="::item.value.name" />

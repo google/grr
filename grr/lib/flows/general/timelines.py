@@ -60,7 +60,7 @@ class MACTimes(flow.GRRFlow):
       for subject, values in data_store.DB.MultiResolvePrefix(
           child_urns, attribute.predicate, token=self.token, limit=10000000):
         for _, serialized, _ in values:
-          stat = rdf_client.StatEntry(serialized)
+          stat = rdf_client.StatEntry.FromSerializedString(serialized)
           event = timeline.Event(source=utils.SmartUnicode(subject), stat=stat)
 
           # Add a new event for each MAC time if it exists.

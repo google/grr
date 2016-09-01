@@ -1,8 +1,8 @@
 <grr-flows-list flows-url="controller.flowsUrl"
-                selected-flow-urn="selectedFlowUrn">
+                selected-flow-id="controller.selectedFlowId">
 </grr-flows-list>
 
-<div ng-if="selectedFlowUrn"
+<div ng-if="controller.selectedFlowId"
      class="panel details-right-panel">
   <div class="padded">
     <button ng-click="controller.closeDetails()"
@@ -11,11 +11,12 @@
     </button>
   </div>
 
-  <div grr-force-refresh refresh-trigger="selectedFlowUrn" class="padded">
+  <div grr-force-refresh refresh-trigger="controller.selectedFlowId"
+       class="padded">
 
-    <grr-legacy-renderer renderer="ShowFlowInformation"
-                         query-params="{flow: selectedFlowUrn}">
-    </grr-legacy-renderer>
+    <grr-flow-overview flow-id="controller.selectedFlowId"
+                       api-base-path="controller.flowsUrl">
+    </grr-flow-overview>
 
   </div>
 </div>

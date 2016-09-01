@@ -194,7 +194,7 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
       # e.g. job_id: hunts_HFFE1D044_Results_ExportedFile_1446056474
       job_id = "{0}_{1}_{2}".format(
           urn_str, tracker.output_type,
-          rdfvalue.RDFDatetime().Now().AsSecondsFromEpoch())
+          rdfvalue.RDFDatetime.Now().AsSecondsFromEpoch())
 
       # If we have a job id stored, that means we failed last time. Re-use the
       # job id and append to the same file if it continues to fail. This avoids

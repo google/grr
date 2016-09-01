@@ -22,7 +22,13 @@ grrUi.cron.cronJobFlowsListDirective.CronJobFlowsListController = function(
   this.grrApiService_ = grrApiService;
 
   /** @type {?string} */
-  this.flowsUrl = null;
+  this.flowsUrl;
+
+  /** @type {?string} */
+  this.cronJobId;
+
+  /** @type {?string} */
+  this.selectedFlowId;
 
   this.scope_.$watch('cronJobUrn', this.onCronJobUrnChange_.bind(this));
 };
@@ -40,8 +46,8 @@ CronJobFlowsListController.prototype.onCronJobUrnChange_ = function(
     cronJobUrn) {
   if (angular.isString(cronJobUrn)) {
     var components = cronJobUrn.split('/');
-    var cronJobId  = components[components.length - 1];
-    this.flowsUrl = '/cron-jobs/' + cronJobId + '/flows';
+    this.cronJobId  = components[components.length - 1];
+    this.flowsUrl = '/cron-jobs/' + this.cronJobId + '/flows';
   }
 };
 
@@ -50,7 +56,7 @@ CronJobFlowsListController.prototype.onCronJobUrnChange_ = function(
  * Closes the flow details div.
  */
 CronJobFlowsListController.prototype.closeDetails = function() {
-  this.scope_['selectedFlowUrn'] = null;
+  this.selectedFlowId = null;
 };
 
 

@@ -677,8 +677,8 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "The user test has requested")
 
     # Cron job overview should be visible
-    self.WaitUntil(self.IsTextPresent, "aff4:/cron/OSBreakDown")
-    self.WaitUntil(self.IsTextPresent, "CRON_ARGS")
+    self.WaitUntil(self.IsTextPresent, "OSBreakDown")
+    self.WaitUntil(self.IsTextPresent, "Periodicity")
 
     self.Click("css=button:contains('Approve')")
     self.WaitUntil(self.IsTextPresent, "Approval granted.")
@@ -760,7 +760,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Also check that "Proceed" button gets disabled.
     self.Click("css=button[name=Proceed]")
 
-    self.WaitUntil(self.IsTextPresent, "Cron job was ENABLEd successfully!")
+    self.WaitUntil(self.IsTextPresent, "Cron job was ENABLED successfully!")
 
   def testEmailClientApprovalRequestLinkLeadsToACorrectPage(self):
     with self.ACLChecksDisabled():
@@ -793,9 +793,78 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "iwantapproval")
     self.WaitUntil(self.IsTextPresent, "Please please let me")
     # Check that host information is displayed.
-    self.WaitUntil(self.IsTextPresent, str(client_id))
-    self.WaitUntil(self.IsTextPresent, "HOSTNAME")
-    self.WaitUntil(self.IsTextPresent, "MAC_ADDRESS")
+    self.WaitUntil(self.IsTextPresent, client_id.Basename())
+    self.WaitUntil(self.IsTextPresent, "Host-0")
+
+  def testEmailHuntApprovalRequestLinkLeadsToACorrectPage(self):
+    with self.ACLChecksDisabled():
+      hunt_id = self.CreateSampleHunt()
+
+    messages_sent = []
+
+    def SendEmailStub(unused_from_user, unused_to_user, unused_subject, message,
+                      **unused_kwargs):
+      messages_sent.append(message)
+
+    # Request client approval, it will trigger an email message.
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub):
+      flow.GRRFlow.StartFlow(
+          flow_name="RequestHuntApprovalFlow",
+          reason="Please please let me",
+          subject_urn=hunt_id,
+          approver="test",
+          token=access_control.ACLToken(
+              username="iwantapproval", reason="test"))
+    self.assertEqual(len(messages_sent), 1)
+
+    # Extract link from the message text and open it.
+    m = re.search(r"href='(.+?)'", messages_sent[0], re.MULTILINE)
+    link = urlparse.urlparse(m.group(1))
+    self.Open(link.path + "?" + link.query + "#" + link.fragment)
+
+    # Check that requestor's username and reason are correctly displayed.
+    self.WaitUntil(self.IsTextPresent, "iwantapproval")
+    self.WaitUntil(self.IsTextPresent, "Please please let me")
+    # Check that host information is displayed.
+    self.WaitUntil(self.IsTextPresent, str(hunt_id))
+    self.WaitUntil(self.IsTextPresent, "SampleHunt")
+    self.WaitUntil(self.IsTextPresent, "TestFilename")
+
+  def testEmailCronJobApprovalRequestLinkLeadsToACorrectPage(self):
+    with self.ACLChecksDisabled():
+      cronjobs.ScheduleSystemCronFlows(
+          names=[cron_system.OSBreakDown.__name__], token=self.token)
+      cronjobs.CRON_MANAGER.DisableJob(
+          rdfvalue.RDFURN("aff4:/cron/OSBreakDown"))
+
+    messages_sent = []
+
+    def SendEmailStub(unused_from_user, unused_to_user, unused_subject, message,
+                      **unused_kwargs):
+      messages_sent.append(message)
+
+    # Request client approval, it will trigger an email message.
+    with utils.Stubber(email_alerts.EMAIL_ALERTER, "SendEmail", SendEmailStub):
+      flow.GRRFlow.StartFlow(
+          flow_name="RequestCronJobApprovalFlow",
+          reason="Please please let me",
+          subject_urn="aff4:/cron/OSBreakDown",
+          approver="test",
+          token=access_control.ACLToken(
+              username="iwantapproval", reason="test"))
+    self.assertEqual(len(messages_sent), 1)
+
+    # Extract link from the message text and open it.
+    m = re.search(r"href='(.+?)'", messages_sent[0], re.MULTILINE)
+    link = urlparse.urlparse(m.group(1))
+    self.Open(link.path + "?" + link.query + "#" + link.fragment)
+
+    # Check that requestor's username and reason are correctly displayed.
+    self.WaitUntil(self.IsTextPresent, "iwantapproval")
+    self.WaitUntil(self.IsTextPresent, "Please please let me")
+    # Check that host information is displayed.
+    self.WaitUntil(self.IsTextPresent, "OSBreakDown")
+    self.WaitUntil(self.IsTextPresent, "Periodicity")
 
 
 def main(argv):

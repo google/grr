@@ -115,6 +115,22 @@ class ApiCallRouter(object):
   __metaclass__ = registry.MetaclassRegistry
   __abstract = True  # pylint: disable=g-bad-name
 
+  # If router is configurable, RDFValue class of its configuration
+  # structure should be specified here. Params of this type will
+  # be initialized from the routers configuration file (defined
+  # by API.RouterACLConfigFile) and passed into the constructor
+  # using "params" keyword argument.
+  params_type = None
+
+  def __init__(self, params=None):
+    """Constructor. Accepts optional router parameters.
+
+    Args:
+      params: None, or an RDFValue instance of params_type.
+    """
+    super(ApiCallRouter, self).__init__()
+    _ = params
+
   @classmethod
   def GetAnnotatedMethods(cls):
     """Returns a dictionary of annotated router methods."""
@@ -348,7 +364,7 @@ class ApiCallRouter(object):
   @Category("Flows")
   @ArgsType(api_flow.ApiGetFlowArgs)
   @ResultType(api_flow.ApiFlow)
-  @Http("GET", "/api/clients/<client_id>/flows/<flow_id>")
+  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>")
   def GetFlow(self, args, token=None):
     raise NotImplementedError()
 
@@ -365,28 +381,28 @@ class ApiCallRouter(object):
 
   @Category("Flows")
   @ArgsType(api_flow.ApiCancelFlowArgs)
-  @Http("POST", "/api/clients/<client_id>/flows/<flow_id>/actions/cancel")
+  @Http("POST", "/api/clients/<client_id>/flows/<path:flow_id>/actions/cancel")
   def CancelFlow(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Flows")
   @ArgsType(api_flow.ApiListFlowRequestsArgs)
   @ResultType(api_flow.ApiListFlowRequestsResult)
-  @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/requests")
+  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/requests")
   def ListFlowRequests(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Flows")
   @ArgsType(api_flow.ApiListFlowResultsArgs)
   @ResultType(api_flow.ApiListFlowResultsResult)
-  @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/results")
+  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/results")
   def ListFlowResults(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Flows")
   @ArgsType(api_flow.ApiGetFlowResultsExportCommandArgs)
   @ResultType(api_flow.ApiGetFlowResultsExportCommandResult)
-  @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/results/"
+  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/results/"
         "export-command")
   def GetFlowResultsExportCommand(self, args, token=None):
     raise NotImplementedError()
@@ -394,7 +410,7 @@ class ApiCallRouter(object):
   @Category("Flows")
   @ArgsType(api_flow.ApiGetFlowFilesArchiveArgs)
   @ResultBinaryStream()
-  @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/results/"
+  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/results/"
         "files-archive")
   def GetFlowFilesArchive(self, args, token=None):
     raise NotImplementedError()
@@ -402,14 +418,14 @@ class ApiCallRouter(object):
   @Category("Flows")
   @ArgsType(api_flow.ApiListFlowOutputPluginsArgs)
   @ResultType(api_flow.ApiListFlowOutputPluginsResult)
-  @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/output-plugins")
+  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/output-plugins")
   def ListFlowOutputPlugins(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Flows")
   @ArgsType(api_flow.ApiListFlowOutputPluginLogsArgs)
   @ResultType(api_flow.ApiListFlowOutputPluginLogsResult)
-  @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/"
+  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/"
         "output-plugins/<plugin_id>/logs")
   def ListFlowOutputPluginLogs(self, args, token=None):
     raise NotImplementedError()
@@ -417,7 +433,7 @@ class ApiCallRouter(object):
   @Category("Flows")
   @ArgsType(api_flow.ApiListFlowOutputPluginErrorsArgs)
   @ResultType(api_flow.ApiListFlowOutputPluginErrorsResult)
-  @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/"
+  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/"
         "output-plugins/<plugin_id>/errors")
   def ListFlowOutputPluginErrors(self, args, token=None):
     raise NotImplementedError()
@@ -425,7 +441,7 @@ class ApiCallRouter(object):
   @Category("Flows")
   @ArgsType(api_flow.ApiListFlowLogsArgs)
   @ResultType(api_flow.ApiListFlowLogsResult)
-  @Http("GET", "/api/clients/<client_id>/flows/<flow_id>/log")
+  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/log")
   def ListFlowLogs(self, args, token=None):
     raise NotImplementedError()
 
@@ -462,6 +478,19 @@ class ApiCallRouter(object):
   @ResultType(api_cron.ApiCronJob)
   @Http("GET", "/api/cron-jobs/<cron_job_id>")
   def GetCronJob(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("Cron")
+  @ArgsType(api_cron.ApiForceRunCronJobArgs)
+  @Http("POST", "/api/cron-jobs/<cron_job_id>/actions/force-run")
+  def ForceRunCronJob(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("Hunts")
+  @ArgsType(api_cron.ApiModifyCronJobArgs)
+  @ResultType(api_cron.ApiCronJob)
+  @Http("PATCH", "/api/cron-jobs/<cron_job_id>")
+  def ModifyCronJob(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Cron")

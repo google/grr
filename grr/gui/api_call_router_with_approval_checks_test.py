@@ -239,9 +239,19 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
         self.router.CreateGlobalFlow, "CheckIfCanStartFlow", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
+      "ForceRunCronJob",
+      "ModifyCronJob",
       "DeleteCronJob"])  # pyformat: disable
 
   def testCronJobMethodsAreAccessChecked(self):
+    args = api_cron.ApiForceRunCronJobArgs(cron_job_id="TestCronJob")
+    self.CheckMethodIsAccessChecked(
+        self.router.ForceRunCronJob, "CheckCronJobAccess", args=args)
+
+    args = api_cron.ApiModifyCronJobArgs(cron_job_id="TestCronJob")
+    self.CheckMethodIsAccessChecked(
+        self.router.ModifyCronJob, "CheckCronJobAccess", args=args)
+
     args = api_cron.ApiDeleteCronJobArgs(cron_job_id="TestCronJob")
     self.CheckMethodIsAccessChecked(
         self.router.DeleteCronJob, "CheckCronJobAccess", args=args)

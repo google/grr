@@ -55,7 +55,7 @@ class VFSGRRClient(standard.VFSDirectory):
         rdf_client.ClientInformation,
         "GRR client information",
         "GRR client",
-        default="")
+        default=rdf_client.ClientInformation())
 
     LAST_BOOT_TIME = aff4.Attribute("metadata:LastBootTime",
                                     rdfvalue.RDFDatetime,
@@ -185,7 +185,7 @@ class VFSGRRClient(standard.VFSDirectory):
         "aff4:hardware_info",
         rdf_client.HardwareInfo,
         "Various hardware information.",
-        default="")
+        default=rdf_client.HardwareInfo())
 
     MEMORY_SIZE = aff4.Attribute("aff4:memory_size", rdfvalue.ByteSize,
                                  "Amount of memory this client's machine has.")
@@ -205,7 +205,7 @@ class VFSGRRClient(standard.VFSDirectory):
     else:
       # If there is no type attribute yet, we have only just been created and
       # not flushed yet, so just set timestamp to now.
-      return rdfvalue.RDFDatetime().Now()
+      return rdfvalue.RDFDatetime.Now()
 
   def Initialize(self):
     # Our URN must be a valid client.id.
@@ -318,10 +318,11 @@ class VFSGRRClient(standard.VFSDirectory):
       summary.users = kb.users
     summary.interfaces = self.Get(self.Schema.INTERFACES)
     summary.client_info = self.Get(self.Schema.CLIENT_INFO)
-    summary.serial_number = self.Get(self.Schema.HARDWARE_INFO).serial_number
+    hwi = self.Get(self.Schema.HARDWARE_INFO)
+    if hwi:
+      summary.serial_number = hwi.serial_number
+      summary.system_manufacturer = hwi.system_manufacturer
     summary.timestamp = self.age
-    summary.system_manufacturer = self.Get(
-        self.Schema.HARDWARE_INFO).system_manufacturer
 
     return summary
 
@@ -350,7 +351,8 @@ class VFSGRRClient(standard.VFSDirectory):
       client_requests.setdefault(client_id, [])
 
       for _, serialized, _ in requests:
-        client_requests[client_id].append(rdf_flows.GrrMessage(serialized))
+        msg = rdf_flows.GrrMessage.FromSerializedString(serialized)
+        client_requests[client_id].append(msg)
 
     return client_requests
 
@@ -703,6 +705,15 @@ class AFF4RekallProfile(aff4.AFF4Object):
   class SchemaCls(aff4.AFF4Object.SchemaCls):
     PROFILE = aff4.Attribute("aff4:profile", rdf_rekall_types.RekallProfile,
                              "A Rekall profile.")
+
+
+class TempKnowledgeBase(standard.VFSDirectory):
+  """This is only used in end to end tests."""
+
+  class SchemaCls(standard.VFSDirectory.SchemaCls):
+    KNOWLEDGE_BASE = aff4.Attribute("metadata:temp_knowledge_base",
+                                    rdf_client.KnowledgeBase,
+                                    "Artifact Knowledge Base", "KnowledgeBase")
 
 # The catchall client label used when compiling server-side stats about clients
 # by label.

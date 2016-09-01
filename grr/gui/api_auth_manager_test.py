@@ -10,6 +10,8 @@ from grr.gui import api_call_router
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.authorization import groups
+from grr.lib.rdfvalues import structs as rdf_structs
+from grr.proto import tests_pb2
 
 
 class DummyAuthManagerTestApiRouter(api_call_router.ApiCallRouter):
@@ -26,6 +28,20 @@ class DummyAuthManagerTestApiRouter3(api_call_router.ApiCallRouter):
 
 class DefaultDummyAuthManagerTestApiRouter(api_call_router.ApiCallRouter):
   pass
+
+
+class DummyAuthManagerTestConfigurableApiRouterParams(
+    rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.DummyAuthManagerTestConfigurableApiRouterParams
+
+
+class DummyAuthManagerTestConfigurableApiRouter(api_call_router.ApiCallRouter):
+  params_type = DummyAuthManagerTestConfigurableApiRouterParams
+
+  def __init__(self, params=None):
+    super(DummyAuthManagerTestConfigurableApiRouter, self).__init__(
+        params=params)
+    self.params = params
 
 
 class DummyGroupAccessManager(groups.GroupAccessManager):
@@ -230,6 +246,53 @@ groups:
       auth_mgr = api_auth_manager.APIAuthorizationManager()
       router = auth_mgr.GetRouterForUser("u1")
       self.assertEqual(router.__class__, DefaultDummyAuthManagerTestApiRouter)
+
+  def testRaisesWhenNonConfigurableRouterInitializedWithParams(self):
+    acls = """
+router: "DummyAuthManagerTestApiRouter"
+router_params:
+  foo: "Oh no!"
+  bar: 42
+users:
+- "u1"
+"""
+
+    with self.assertRaises(
+        api_auth_manager.ApiCallRouterDoesNotExpectParameters):
+      with mock.patch.object(
+          __builtin__, "open", mock.mock_open(read_data=acls)):
+        api_auth_manager.APIAuthorizationManager()
+
+  def testConfigurableRouterIsInitializedWithoutParameters(self):
+    acls = """
+router: "DummyAuthManagerTestConfigurableApiRouter"
+users:
+- "u1"
+"""
+
+    with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
+      auth_mgr = api_auth_manager.APIAuthorizationManager()
+
+    router = auth_mgr.GetRouterForUser("u1")
+    self.assertEqual(router.params.foo, "")
+    self.assertEqual(router.params.bar, 0)
+
+  def testConfigurableRouterIsInitializedWithParameters(self):
+    acls = """
+router: "DummyAuthManagerTestConfigurableApiRouter"
+router_params:
+  foo: "Oh no!"
+  bar: 42
+users:
+- "u1"
+"""
+
+    with mock.patch.object(__builtin__, "open", mock.mock_open(read_data=acls)):
+      auth_mgr = api_auth_manager.APIAuthorizationManager()
+
+    router = auth_mgr.GetRouterForUser("u1")
+    self.assertEqual(router.params.foo, "Oh no!")
+    self.assertEqual(router.params.bar, 42)
 
 
 def main(argv):

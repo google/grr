@@ -174,6 +174,30 @@ function install_packagetools() {
   fi
 }
 
+function install_proto_compiler {
+  VERSION=3.0.0
+  ARCH=$(uname -m)
+  # Get arch in the format that the protobuf urls use
+  if [ "${ARCH}" == "i686" ]; then
+    ARCH="x86_32"
+  fi
+
+  PROTO_DIR=/home/${INSTALL_USER}/protobuf
+
+  if [ ! -d "${PROTO_DIR}/bin" ]; then
+    cwd=$(pwd)
+    mkdir -p "${PROTO_DIR}"
+    cd "${PROTO_DIR}"
+    ${WGET} "https://github.com/google/protobuf/releases/download/v${VERSION}/protoc-${VERSION}-linux-${ARCH}.zip"
+    unzip "protoc-${VERSION}-linux-${ARCH}.zip"
+    chmod -R a+rx "${PROTO_DIR}"
+    echo export PROTOC="${PROTO_DIR}/bin/protoc" >> /etc/profile
+    cd "${cwd}"
+  else
+    echo "protoc already installed in ${PROTO_DIR}"
+  fi
+}
+
 function usage() {
   echo "Usage: install_linux.sh [Ubuntu|CentOS]"
   exit
@@ -204,4 +228,5 @@ install_wget
 install_python_from_source
 install_python_deps
 install_packagetools
+install_proto_compiler
 echo "Build environment provisioning complete."

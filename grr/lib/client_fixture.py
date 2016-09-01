@@ -56,6 +56,11 @@ revision: 0
 build_time: "unknown"
 labels: "client-label-23"
 """,
+        "aff4:hardware_info": """
+bios_version: "Version 1.23v"
+bios_vendor: "Sample BIOS Vendor"
+system_manufacturer: "Sample System Manufacturer"
+""",
     })),
     (u"/fs/os/c/regex.*?][{}--", (aff4_standard.VFSDirectory, {
         })),

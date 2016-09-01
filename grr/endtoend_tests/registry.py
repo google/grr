@@ -23,6 +23,7 @@ class TestFindWindowsRegistry(base.ClientTestBase):
   to run two flows and defines its own runTest to do so.  We should support
   this but it requires more work.
   """
+  flow = "DisabledTestFindWindowsRegistry"
   platforms = ["Windows"]
   reg_path = ("/HKEY_LOCAL_MACHINE/SOFTWARE/Microsoft/Windows NT/"
               "CurrentVersion/ProfileList/")

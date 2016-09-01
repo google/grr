@@ -70,10 +70,12 @@ class ClientCredentials(object):
     Returns:
       self.
     """
-    encrypted_creds = data_server.DataServerEncryptedCreds(string)
+    creds_cls = data_server.DataServerEncryptedCreds
+    encrypted_creds = creds_cls.FromSerializedString(string)
 
-    creds = data_server.DataServerClientCredentials(
-        encrypted_creds.GetPayload(username, password))
+    payload = encrypted_creds.GetPayload(username, password)
+    creds = data_server.DataServerClientCredentials.FromSerializedString(
+        payload)
 
     # Create client credentials.
     self.client_users = {}

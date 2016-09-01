@@ -20,7 +20,8 @@ grrUi.flow.flowRequestsDirective.FlowRequestsController = function($scope) {
   /** @type {string} */
   this.requestsUrl;
 
-  this.scope_.$watch('flowUrn', this.onFlowUrnChange.bind(this));
+  this.scope_.$watchGroup(['flowId', 'apiBasePath'],
+                          this.onFlowIdOrBasePathChange_.bind(this));
 };
 
 var FlowRequestsController =
@@ -28,17 +29,17 @@ var FlowRequestsController =
 
 
 /**
- * Handles flowUrn attribute changes.
+ * Handles directive's arguments changes.
  *
- * @param {string} newFlowUrn
- * @export
+ * @param {Array<string>} newValues
+ * @private
  */
-FlowRequestsController.prototype.onFlowUrnChange = function(newFlowUrn) {
-  if (angular.isDefined(newFlowUrn)) {
-    var flowUrnComponents = newFlowUrn.split('/');
-    var clientId = flowUrnComponents[1];
-    var flowId = flowUrnComponents[flowUrnComponents.length - 1];
-    this.requestsUrl = 'clients/' + clientId + '/flows/' + flowId + "/requests";
+FlowRequestsController.prototype.onFlowIdOrBasePathChange_ = function(
+    newValues) {
+  if (newValues.every(angular.isDefined)) {
+    this.requestsUrl = [this.scope_['apiBasePath'],
+                        this.scope_['flowId'],
+                        'requests'].join('/');
   }
 };
 
@@ -53,7 +54,8 @@ FlowRequestsController.prototype.onFlowUrnChange = function(newFlowUrn) {
 grrUi.flow.flowRequestsDirective.FlowRequestsDirective = function() {
   return {
     scope: {
-      flowUrn: '='
+      flowId: '=',
+      apiBasePath: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/flow/flow-requests.html',

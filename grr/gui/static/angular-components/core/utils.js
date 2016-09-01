@@ -1,8 +1,18 @@
 'use strict';
 
+goog.provide('grrUi.core.utils.CLIENT_ID_RE');
 goog.provide('grrUi.core.utils.camelCaseToDashDelimited');
 goog.provide('grrUi.core.utils.stringToList');
 goog.provide('grrUi.core.utils.stripAff4Prefix');
+
+
+/**
+ * Regex that matches client ids.
+ *
+ * @const
+ * @export
+ */
+grrUi.core.utils.CLIENT_ID_RE = /^C\.[0-9a-fA-F]{16}$/;
 
 
 /**

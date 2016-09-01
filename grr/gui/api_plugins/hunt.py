@@ -242,7 +242,7 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
                        "any kind of filtering is done (to prevent "
                        "queries of death)")
 
-    min_age = rdfvalue.RDFDatetime().Now() - args.active_within
+    min_age = rdfvalue.RDFDatetime.Now() - args.active_within
     active_children = []
     for child in children:
       if child.age > min_age:

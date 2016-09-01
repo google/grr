@@ -44,7 +44,8 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
 
   @flow.StateHandler()
   def DumpImage(self, responses):
-    """Intiate the dumping of the flash image."""
+    """Store hardware information and initiate dumping of the flash image."""
+    self.state.hardware_info = responses.First()
     self.CallClient(
         "DumpFlashImage",
         log_level=self.args.log_level,

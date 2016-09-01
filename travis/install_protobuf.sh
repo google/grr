@@ -4,16 +4,20 @@
 
 set -e
 
-VERSION=2.6.1
+VERSION=3.0.0
+ARCH=$(uname -m)
+# Get arch in the format that the protobuf urls use
+if [ "${ARCH}" == "i686" ]; then
+  ARCH="x86_32"
+fi
 
-if [ ! -d "$HOME/protobuf/lib" ]; then
+if [ ! -d "${HOME}/protobuf/bin" ]; then
   # CWD is grr src checked out by travis.
   cwd=$(pwd)
-  cd "${HOME}"
-  wget "https://github.com/google/protobuf/releases/download/v${VERSION}/protobuf-${VERSION}.tar.gz"
-  tar -xzvf "protobuf-${VERSION}.tar.gz"
-  cd "protobuf-${VERSION}"
-  ./configure --prefix="$HOME/protobuf" && make && make install
+  mkdir -p "${HOME}/protobuf"
+  cd "${HOME}/protobuf"
+  wget "https://github.com/google/protobuf/releases/download/v${VERSION}/protoc-${VERSION}-linux-${ARCH}.zip"
+  unzip "protoc-${VERSION}-linux-${ARCH}.zip"
   cd "${cwd}"
 else
   echo "Using cached proto directory $HOME/protobuf"

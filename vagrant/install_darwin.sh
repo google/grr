@@ -25,6 +25,24 @@ function install_homebrew() {
   brew install makedepend
 }
 
+function install_proto_compiler {
+  VERSION=3.0.0
+  PROTO_DIR=${HOME}/protobuf
+  if [ ! -d "${PROTO_DIR}/bin" ]; then
+    cwd=$(pwd)
+    mkdir -p "${PROTO_DIR}"
+    cd "${PROTO_DIR}"
+    curl -OfsSL "https://github.com/google/protobuf/releases/download/v${VERSION}/protoc-${VERSION}-osx-x86_64.zip"
+    unzip "protoc-${VERSION}-osx-x86_64.zip"
+    chmod -R a+rx "${PROTO_DIR}"
+    echo export PROTOC="${PROTO_DIR}/bin/protoc" >> "${HOME}/.bash_profile"
+    cd "${cwd}"
+  else
+    echo "protoc already installed in ${PROTO_DIR}"
+  fi
+}
+
+
 function xcrun_hack() {
   # It's apparently no longer enough to just have the commandline tools
   # installed, you 'need' all of xcode, which requires the GUI to install.
@@ -68,7 +86,7 @@ case $EUID in
   *)
     system_update
     install_homebrew
-    brew install protobuf
+    install_proto_compiler
     brew install libffi
     install_python
     install_python_deps

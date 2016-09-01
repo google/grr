@@ -64,7 +64,7 @@ class FlowThrottler(object):
       return
 
     flows_dir = aff4.FACTORY.Open(client_id.Add("flows"), token=token)
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     earlier = now - rdfvalue.Duration("1d")
     dup_boundary = now - self.dup_interval
 

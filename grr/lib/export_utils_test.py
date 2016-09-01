@@ -13,6 +13,7 @@ from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import standard
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
@@ -99,9 +100,16 @@ class TestExports(test_lib.FlowTestsBaseclass):
 
   def testDownloadCollection(self):
     """Check we can download files references in RDFValueCollection."""
+    self._testCollection(collects.RDFValueCollection)
+
+  def testDownloadGeneralIndexedCollection(self):
+    """Check we can download files references in GeneralIndexedCollection."""
+    self._testCollection(sequential_collection.GeneralIndexedCollection)
+
+  def _testCollection(self, collection_type):
     # Create a collection with URNs to some files.
     fd = aff4.FACTORY.Create(
-        "aff4:/testcoll", collects.RDFValueCollection, token=self.token)
+        "aff4:/testcoll", collection_type, token=self.token)
     fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")))
     fd.Add(rdf_client.StatEntry(aff4path=self.out.Add("testfile2")))
     fd.Add(

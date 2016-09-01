@@ -64,7 +64,7 @@ class CAEnroler(flow.GRRFlow):
 
     # Set and write the certificate to the client record.
     client.Set(client.Schema.CERT, cert)
-    client.Set(client.Schema.FIRST_SEEN, rdfvalue.RDFDatetime().Now())
+    client.Set(client.Schema.FIRST_SEEN, rdfvalue.RDFDatetime.Now())
 
     index = aff4.FACTORY.Create(
         client_index.MAIN_INDEX,

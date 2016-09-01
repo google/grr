@@ -187,7 +187,8 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     self.assertTrue(isinstance(test_pb.dynamic, TestStruct))
 
     # Test serialization/deserialization.
-    self.assertEqual(DynamicTypeTest(test_pb.SerializeToString()), test_pb)
+    serialized = test_pb.SerializeToString()
+    self.assertEqual(DynamicTypeTest.FromSerializedString(serialized), test_pb)
 
     # Test proto definition.
     self.assertEqual(DynamicTypeTest.EmitProto(),
@@ -208,8 +209,9 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     self.assertTrue(isinstance(test_pb.dynamic, TestStruct))
 
     # Test serialization/deserialization.
+    serialized = test_pb.SerializeToString()
     self.assertEqual(
-        DynamicAnyValueTypeTest(test_pb.SerializeToString()), test_pb)
+        DynamicAnyValueTypeTest.FromSerializedString(serialized), test_pb)
 
     # Test proto definition.
     self.assertEqual(DynamicAnyValueTypeTest.EmitProto(),
@@ -305,7 +307,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     data = tested.SerializeToString()
 
     # Parse it again.
-    new_tested = TestStruct(data)
+    new_tested = TestStruct.FromSerializedString(data)
 
     # Test the repeated field.
     self.assertEqual(len(new_tested.repeat_nested), 10)
@@ -331,14 +333,14 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     data = tested.SerializeToString()
 
     # Now unpack using a protobuf with less fields defined.
-    reduced_tested = PartialTest1(data)
+    reduced_tested = PartialTest1.FromSerializedString(data)
 
     self.assertEqual(reduced_tested.int, 5)
     self.assertRaises(AttributeError, getattr, reduced_tested, "foobar")
 
     # Re-Serialize using the simple protobuf.
     data2 = reduced_tested.SerializeToString()
-    decoded_tested = TestStruct(data2)
+    decoded_tested = TestStruct.FromSerializedString(data2)
 
     # The foobar field should have been preserved, despite PartialTest1() not
     # understanding it.
@@ -430,7 +432,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
 
     serialized = path.SerializeToString()
 
-    path = rdf_paths.PathSpec(serialized)
+    path = rdf_paths.PathSpec.FromSerializedString(serialized)
 
     # At this point the wire format cache is fully populated (since the proto
     # had been parsed). We change a deeply nested member.
@@ -456,7 +458,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     self.assertTrue(isinstance(m.timestamp, rdfvalue.RDFDatetime))
     self.assertEqual(m.timestamp, now)
 
-    rdf_now = rdfvalue.RDFDatetime().Now()
+    rdf_now = rdfvalue.RDFDatetime.Now()
 
     m.timestamp = rdf_now
     self.assertEqual(m.GetPrimitive("timestamp"), int(rdf_now))
@@ -554,7 +556,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     stat = rdf_client.StatEntry.protobuf(st_mode=16877)
     data = stat.SerializeToString()
 
-    result = rdf_client.StatEntry(data)
+    result = rdf_client.StatEntry.FromSerializedString(data)
 
     self.assertTrue(isinstance(result.st_mode, rdf_client.StatMode))
 

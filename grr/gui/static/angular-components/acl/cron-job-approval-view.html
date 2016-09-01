@@ -6,9 +6,7 @@
 
 <hr>
 
-<!-- TODO(user): get rid of legacy renderer here. -->
-<grr-force-refresh trigger="controller.cronJobId">
-  <grr-legacy-renderer ng-if="controller.cronJobId"
-                       renderer="ShowFlowInformation"
-                       query-params="{flow: 'aff4:/cron/' + controller.cronJobId}" />
-</grr-force-refresh>
+<!-- TODO(user): grr-cron-job-overview should accept cron-job-id, not
+     cron-job-urn. -->
+<grr-cron-job-overview ng-if="controller.cronJobId"
+                       cron-job-urn="'aff4:/cron/' + controller.cronJobId" />

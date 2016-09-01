@@ -23,7 +23,7 @@ def PopulateData(token=None):
 
       events.Events.PublishEvent("Audit", event, token=token)
 
-  now = int(rdfvalue.RDFDatetime().Now())
+  now = int(rdfvalue.RDFDatetime.Now())
   week_duration = 7 * 24 * 60 * 60 * 1e6
 
   SimulateUserActivity("test", "C.0000000000000001", now)

@@ -1,0 +1,76 @@
+<div ng-if="cronJobUrn && !controller.cronJob">
+  Loading...
+</div>
+
+<div ng-if="controller.cronJob">
+
+  <dl class="dl-horizontal dl-flow">
+    <div class="dl-group">
+      <dt>ID</dt>
+      <dd>{$ controller.cronJobId $}</dd>
+
+      <dt>Flow Name</dt>
+      <dd>
+        <grr-semantic-value value="controller.cronJob.value.flow_name">
+        </grr-semantic-value>
+      </dd>
+
+      <dt>Description</dt>
+      <dd>
+        <grr-semantic-value value="controller.cronJob.value.description">
+        </grr-semantic-value>
+      </dd>
+
+      <dt>State</dt>
+      <dd>
+        <grr-semantic-value value="controller.cronJob.value.state">
+        </grr-semantic-value>
+      </dd>
+    </div>
+
+
+    <div class="dl-group">
+      <dt>Periodicity</dt>
+      <dd>
+        <grr-semantic-value value="controller.cronJob.value.periodicity">
+        </grr-semantic-value>
+      </dd>
+
+      <dt>Last Run Time</dt>
+      <dd>
+        <grr-semantic-value value="controller.cronJob.value.last_run_time">
+        </grr-semantic-value>
+      </dd>
+
+      <dt>Max Iteration Lifetime</dt>
+      <dd>
+        <grr-semantic-value value="controller.cronJob.value.lifetime">
+        </grr-semantic-value>
+      </dd>
+
+      <dt>Allow Overruns</dt>
+      <dd>
+        <grr-semantic-value value="controller.cronJob.value.allow_overruns">
+        </grr-semantic-value>
+      </dd>
+    </div>
+
+    <div class="dl-group">
+      <dt>Flow Arguments</dt>
+      <dd>
+        <grr-semantic-value value="controller.cronJob.value.flow_args">
+        </grr-semantic-value>
+      </dd>
+    </div>
+
+    <div class="dl-group">
+      <dt>Flow Runner Arguments</dt>
+      <dd>
+        <grr-semantic-value value="controller.cronJob.value.flow_runner_args">
+        </grr-semantic-value>
+      </dd>
+    </div>
+
+  </dl>
+
+</div>

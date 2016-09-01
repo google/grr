@@ -177,7 +177,7 @@ class HttpRequestHandler(object):
         username=request.user,
         reason=reason,
         process="GRRAdminUI",
-        expiry=rdfvalue.RDFDatetime().Now() + execution_time)
+        expiry=rdfvalue.RDFDatetime.Now() + execution_time)
 
     for field in ["REMOTE_ADDR", "HTTP_X_FORWARDED_FOR"]:
       remote_addr = request.META.get(field, "")
@@ -278,6 +278,19 @@ class HttpRequestHandler(object):
 
     return response
 
+  def _SetField(self, args, type_info, value):
+    """Sets fields on the arg rdfvalue object."""
+    if hasattr(type_info, "enum"):
+      try:
+        coerced_obj = type_info.enum[value.upper()]
+      except KeyError:
+        # A bool is an enum but serializes to "1" / "0" which are both not in
+        # enum or reverse_enum.
+        coerced_obj = type_info.type.FromSerializedString(value)
+    else:
+      coerced_obj = type_info.type.FromSerializedString(value)
+    args.Set(type_info.name, coerced_obj)
+
   def _GetArgsFromRequest(self, request, method_metadata, route_args):
     """Builds args struct out of HTTP request."""
 
@@ -290,9 +303,9 @@ class HttpRequestHandler(object):
         args = method_metadata.args_type()
         for type_info in args.type_infos:
           if type_info.name in route_args:
-            args.Set(type_info.name, route_args[type_info.name])
+            self._SetField(args, type_info, route_args[type_info.name])
           elif type_info.name in unprocessed_request:
-            args.Set(type_info.name, unprocessed_request[type_info.name])
+            self._SetField(args, type_info, unprocessed_request[type_info.name])
 
       else:
         args = None
@@ -301,7 +314,7 @@ class HttpRequestHandler(object):
         args = method_metadata.args_type()
         for type_info in args.type_infos:
           if type_info.name in route_args:
-            args.Set(type_info.name, route_args[type_info.name])
+            self._SetField(args, type_info, route_args[type_info.name])
 
         if request.META["CONTENT_TYPE"].startswith("multipart/form-data;"):
           payload = json.loads(request.POST["_params_"])

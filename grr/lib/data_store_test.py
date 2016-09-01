@@ -118,7 +118,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     stored_proto, _ = data_store.DB.Resolve(
         self.test_row, predicate, token=self.token)
 
-    stored_proto = rdf_flows.GrrMessage(stored_proto)
+    stored_proto = rdf_flows.GrrMessage.FromSerializedString(stored_proto)
     self.assertEqual(stored_proto.session_id, value.session_id)
 
   def testMultiSet(self):
@@ -2499,7 +2499,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
     for _ in range(self.RECORDS):
       indexed_collection.Add(
           rdfvalue.RDFString(self._GenerateRandomString(self.RECORD_SIZE)),
-          timestamp=rdfvalue.RDFDatetime().Now() - self.INDEX_DELAY)
+          timestamp=rdfvalue.RDFDatetime.Now() - self.INDEX_DELAY)
     elapsed_time = time.time() - start_time
     self.AddResult("Seq. Coll. Add (size %d)" % self.RECORD_SIZE, elapsed_time,
                    self.RECORDS)

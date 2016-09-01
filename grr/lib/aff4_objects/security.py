@@ -230,7 +230,7 @@ class ApprovalWithApproversAndReason(Approval):
           subject=self.urn,
           requested_access=token.requested_access)
 
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
 
     # Is this an emergency access?
     break_glass = self.Get(self.Schema.BREAK_GLASS)
@@ -285,7 +285,7 @@ class ApprovalWithApproversAndReason(Approval):
     # age=aff4.ALL_TIMES because versioning is used to store lists
     # of approvers. This doesn't seem right and has to be fixed.
     approvers = set()
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     for approver in self.GetValuesForAttribute(self.Schema.APPROVER):
       if approver.age + lifetime > now:
         approvers.add(utils.SmartStr(approver))
@@ -322,7 +322,7 @@ class ClientApproval(ApprovalWithApproversAndReason):
     if not client_approval_auth.CLIENT_APPROVAL_AUTH_MGR.IsActive():
       return True
 
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     approvers = self.GetApprovers(now)
     requester, client_urn = self.InferUserAndSubjectFromUrn()
     # Open the client object with superuser privs so we can get the list of
@@ -406,7 +406,7 @@ class CronJobApproval(ApprovalWithApproversAndReason):
     return (user, aff4.ROOT_URN.Add("cron").Add(cron_job_name))
 
 
-class AbstractApprovalWithReason(object):
+class AbstractApprovalWithReasonMixin(object):
   """Abstract class for approval requests/grants."""
   approval_type = None
 
@@ -420,10 +420,6 @@ class AbstractApprovalWithReason(object):
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
-    raise NotImplementedError()
-
-  def BuildAccessUrl(self):
-    """Builds the urn to access this object."""
     raise NotImplementedError()
 
   def CreateReasonHTML(self, reason):
@@ -459,9 +455,14 @@ class RequestApprovalWithReasonFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.RequestApprovalWithReasonFlowArgs
 
 
-class RequestApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
+class RequestApprovalWithReasonFlow(AbstractApprovalWithReasonMixin,
+                                    flow.GRRFlow):
   """Base flow class for flows that request approval of a certain type."""
   args_type = RequestApprovalWithReasonFlowArgs
+
+  def BuildApprovalReviewUrlPath(self, approval_id):
+    """Build the url path to the approval review page."""
+    raise NotImplementedError()
 
   @flow.StateHandler()
   def Start(self):
@@ -535,13 +536,13 @@ class RequestApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
 
     template = u"""
 <html><body><h1>Approval to access
-<a href='%(admin_ui)s#%(approval_urn)s'>%(subject_title)s</a> requested.</h1>
+<a href='%(admin_ui)s#%(approval_url)s'>%(subject_title)s</a> requested.</h1>
 
 The user "%(username)s" has requested access to
-<a href='%(admin_ui)s#%(approval_urn)s'>%(subject_title)s</a>
+<a href='%(admin_ui)s#%(approval_url)s'>%(subject_title)s</a>
 for the purpose of "%(reason)s".
 
-Please click <a href='%(admin_ui)s#%(approval_urn)s'>
+Please click <a href='%(admin_ui)s#%(approval_url)s'>
 here
 </a> to review this request and then grant access.
 
@@ -553,15 +554,12 @@ here
     # If you feel like it, add a funny cat picture here :)
     image = config_lib.CONFIG["Email.approval_signature"]
 
-    url = urllib.urlencode((("acl", utils.SmartStr(approval_urn)),
-                            ("main", "GrantAccess")))
-
     body = template % dict(
         username=self.token.username,
         reason=reason,
         admin_ui=config_lib.CONFIG["AdminUI.url"],
         subject_title=subject_title,
-        approval_urn=url,
+        approval_url=self.BuildApprovalReviewUrlPath(approval_id),
         image=image,
         signature=config_lib.CONFIG["Email.signature"])
 
@@ -579,7 +577,8 @@ class GrantApprovalWithReasonFlowArgs(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.GrantApprovalWithReasonFlowArgs
 
 
-class GrantApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
+class GrantApprovalWithReasonFlow(AbstractApprovalWithReasonMixin,
+                                  flow.GRRFlow):
   """Base flows class for flows that grant approval of a certain type."""
   args_type = GrantApprovalWithReasonFlowArgs
 
@@ -623,7 +622,7 @@ class GrantApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
           subject=self.args.subject_urn)
 
     subject_title = self.BuildSubjectTitle()
-    access_urn = self.BuildAccessUrl()
+    access_url = self.BuildAccessUrl()
 
     # This object must already exist.
     try:
@@ -665,13 +664,13 @@ class GrantApprovalWithReasonFlow(AbstractApprovalWithReason, flow.GRRFlow):
 
     template = u"""
 <html><body><h1>Access to
-<a href='%(admin_ui)s#%(subject_urn)s'>%(subject_title)s</a> granted.</h1>
+<a href='%(admin_ui)s#%(subject_url)s'>%(subject_title)s</a> granted.</h1>
 
 The user %(username)s has granted access to
-<a href='%(admin_ui)s#%(subject_urn)s'>%(subject_title)s</a> for the
+<a href='%(admin_ui)s#%(subject_url)s'>%(subject_title)s</a> for the
 purpose of "%(reason)s".
 
-Please click <a href='%(admin_ui)s#%(subject_urn)s'>here</a> to access it.
+Please click <a href='%(admin_ui)s#%(subject_url)s'>here</a> to access it.
 
 <p>Thanks,</p>
 <p>%(signature)s</p>
@@ -682,7 +681,7 @@ Please click <a href='%(admin_ui)s#%(subject_urn)s'>here</a> to access it.
         username=self.token.username,
         reason=reason,
         admin_ui=config_lib.CONFIG["AdminUI.url"],
-        subject_urn=access_urn,
+        subject_url=access_url,
         signature=config_lib.CONFIG["Email.signature"])
 
     # Email subject should match approval request, and we add message id
@@ -720,11 +719,11 @@ class BreakGlassGrantApprovalWithReasonFlow(GrantApprovalWithReasonFlow):
         approval_request.Schema.APPROVER(self.token.username))
 
     # This is a break glass approval.
-    break_glass = approval_request.Schema.BREAK_GLASS().Now()
+    break_glass = rdfvalue.RDFDatetime.Now()
 
     # By default a break_glass approval only lasts 24 hours.
-    break_glass += 60 * 60 * 24 * 1e6
-    approval_request.Set(break_glass)
+    break_glass += rdfvalue.Duration("24h")
+    approval_request.Set(approval_request.Schema.BREAK_GLASS, break_glass)
     approval_request.Close(sync=True)
 
     # Notify the user.
@@ -801,6 +800,10 @@ class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):
     client = aff4.FACTORY.Open(self.subject_urn, token=self.token)
     hostname = client.Get(client.Schema.HOSTNAME)
     return u"GRR client %s (%s)" % (self.subject_urn.Basename(), hostname)
+
+  def BuildApprovalReviewUrlPath(self, approval_id):
+    return "/".join(["users", self.token.username, "approvals", "client",
+                     self.subject_urn.Basename(), approval_id])
 
 
 class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
@@ -898,6 +901,10 @@ class RequestHuntApprovalFlow(RequestApprovalWithReasonFlow):
     """Returns the string with subject's title."""
     return u"hunt %s" % self.args.subject_urn.Basename()
 
+  def BuildApprovalReviewUrlPath(self, approval_id):
+    return "/".join(["users", self.token.username, "approvals", "hunt",
+                     self.args.subject_urn.Basename(), approval_id])
+
 
 class GrantHuntApprovalFlow(GrantApprovalWithReasonFlow):
   """Grant the approval requested."""
@@ -940,7 +947,7 @@ class RequestCronJobApprovalFlow(RequestApprovalWithReasonFlow):
 
   def BuildApprovalUrn(self, approval_id):
     """Builds approval object URN."""
-    # In this case subject_urn is hunt's URN.
+    # In this case subject_urn is a cron job's URN.
     events.Events.PublishEvent(
         "Audit",
         events.AuditEvent(
@@ -962,6 +969,10 @@ class RequestCronJobApprovalFlow(RequestApprovalWithReasonFlow):
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
     return u"a cron job"
+
+  def BuildApprovalReviewUrlPath(self, approval_id):
+    return "/".join(["users", self.token.username, "approvals", "cron-job",
+                     self.args.subject_urn.Basename(), approval_id])
 
 
 class GrantCronJobApprovalFlow(GrantApprovalWithReasonFlow):

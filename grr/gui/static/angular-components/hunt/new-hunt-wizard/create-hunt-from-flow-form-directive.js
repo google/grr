@@ -38,7 +38,8 @@ grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective.CreateHuntFromFlowFormC
       'GenericHuntArgs', true).then(function(descriptors) {
     angular.extend(this.descriptors_, descriptors);
 
-    this.scope_.$watch('flowUrn', this.onFlowUrnChange_.bind(this));
+    this.scope_.$watchGroup(['flowId', 'clientId'],
+                            this.onFlowIdClientIdChange_.bind(this));
   }.bind(this));
 };
 
@@ -47,19 +48,18 @@ var CreateHuntFromFlowFormController =
 
 
 /**
- * Handles flowUrn attribute changes.
+ * Handles flowId/clientId attributes changes.
  *
+ * @param {Array<string>} newValues
  * @private
  */
-CreateHuntFromFlowFormController.prototype.onFlowUrnChange_ = function() {
-  var flowUrn = this.scope_['flowUrn'];
-
-  if (angular.isDefined(flowUrn)) {
-    var flowUrnComponents = flowUrn.split('/');
-    var clientId = flowUrnComponents[1];
-    var flowId = flowUrnComponents[flowUrnComponents.length - 1];
-
-    var flowUrl = 'clients/' + clientId + '/flows/' + flowId;
+CreateHuntFromFlowFormController.prototype.onFlowIdClientIdChange_ = function(
+    newValues) {
+  if (newValues.every(angular.isDefined)) {
+    var flowUrl = ['clients',
+                   this.scope_['clientId'],
+                   'flows',
+                   this.scope_['flowId']].join('/');
     this.grrApiService_.get(flowUrl).then(function(response) {
       this.flow_ = response['data'];
     }.bind(this)).then(this.onFlowDataFetched_.bind(this));
@@ -94,7 +94,8 @@ CreateHuntFromFlowFormController.prototype.onFlowDataFetched_ = function() {
 grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective.CreateHuntFromFlowFormDirective = function() {
   return {
     scope: {
-      flowUrn: '=',
+      flowId: '=',
+      clientId: '=',
       onResolve: '&',
       onReject: '&'
     },

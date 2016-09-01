@@ -95,7 +95,7 @@ class DataServerConnection(object):
       replylen_str = self._ReadExactly(sutils.SIZE_PACKER.size)
       replylen = sutils.SIZE_PACKER.unpack(replylen_str)[0]
       reply = self._ReadExactly(replylen)
-      response = rdf_data_store.DataStoreResponse(reply)
+      response = rdf_data_store.DataStoreResponse.FromSerializedString(reply)
       CheckResponseStatus(response)
       return response
     except (socket.error, socket.timeout, IOError) as e:
@@ -338,7 +338,7 @@ class DataServer(object):
     while True:
       data = self._FetchMapping()
       if data:
-        mapping = rdf_data_server.DataServerMapping(data)
+        mapping = rdf_data_server.DataServerMapping.FromSerializedString(data)
         return mapping
 
       if time.time() - started > config_lib.CONFIG[

@@ -20,13 +20,6 @@ from grr.lib import registry
 from grr.lib.aff4_objects import standard as aff4_standard
 
 
-class ConfigManager(renderers.AngularDirectiveRenderer):
-  description = "Settings"
-  behaviours = frozenset(["Configuration"])
-
-  directive = "grr-config-view"
-
-
 class BinaryConfigurationView(renderers.Splitter2WayVertical):
   """This is the main view to browse files."""
   behaviours = frozenset(["Configuration"])

@@ -194,7 +194,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
       cmd_str = self._ReadExactly(sock, cmdlen)
     except (socket.timeout, socket.error):
       return ""
-    cmd = rdf_data_server.DataStoreCommand(cmd_str)
+    cmd = rdf_data_server.DataStoreCommand.FromSerializedString(cmd_str)
 
     request = cmd.request
     op = cmd.command
@@ -222,7 +222,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if not self.MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
-    request = rdf_data_server.DataStoreRegistrationRequest(self.post_data)
+    request = rdf_data_server.DataStoreRegistrationRequest.FromSerializedString(
+        self.post_data)
 
     port = request.port
     addr = self.client_address[0]
@@ -254,7 +255,7 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
                     "is not registered yet", self.client_address)
       self._EmptyResponse(constants.RESPONSE_SERVER_NOT_REGISTERED)
       return
-    state = rdf_data_server.DataServerState(self.post_data)
+    state = rdf_data_server.DataServerState.FromSerializedString(self.post_data)
     self.data_server.UpdateState(state)
     logging.info("Received new state from server %s", self.client_address)
     # Response with our mapping.
@@ -292,7 +293,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     sock.setblocking(1)
 
     # But first we need to validate the client by reading the token.
-    token = rdf_data_server.DataStoreAuthToken(self.post_data)
+    token = rdf_data_server.DataStoreAuthToken.FromSerializedString(
+        self.post_data)
     perms = self.NONCE_STORE.ValidateAuthTokenClient(token)
     if not perms:
       sock.sendall("IP\n")
@@ -358,7 +360,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if self.MASTER.IsRebalancing():
       self._EmptyResponse(constants.RESPONSE_MASTER_IS_REBALANCING)
       return
-    new_mapping = rdf_data_server.DataServerMapping(self.post_data)
+    new_mapping = rdf_data_server.DataServerMapping.FromSerializedString(
+        self.post_data)
     rebalance_id = str(uuid.uuid4())
     reb = rdf_data_server.DataServerRebalance(
         id=rebalance_id, mapping=new_mapping)
@@ -376,7 +379,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
   def HandleRebalanceStatistics(self):
     """Call data server to count how much data needs to move in rebalancing."""
-    reb = rdf_data_server.DataServerRebalance(self.post_data)
+    reb = rdf_data_server.DataServerRebalance.FromSerializedString(
+        self.post_data)
     mapping = reb.mapping
     index = 0
     if not self.MASTER:
@@ -387,7 +391,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     self._Response(constants.RESPONSE_OK, body)
 
   def HandleRebalanceCopy(self):
-    reb = rdf_data_server.DataServerRebalance(self.post_data)
+    reb = rdf_data_server.DataServerRebalance.FromSerializedString(
+        self.post_data)
     index = 0
     if not self.MASTER:
       index = self.DATA_SERVER.Index()
@@ -404,7 +409,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if not self.MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
-    reb = rdf_data_server.DataServerRebalance(self.post_data)
+    reb = rdf_data_server.DataServerRebalance.FromSerializedString(
+        self.post_data)
     current = self.MASTER.IsRebalancing()
     if not current or current.id != reb.id:
       # Not the same ID.
@@ -420,7 +426,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     if not self.MASTER:
       self._EmptyResponse(constants.RESPONSE_NOT_MASTER_SERVER)
       return
-    reb = rdf_data_server.DataServerRebalance(self.post_data)
+    reb = rdf_data_server.DataServerRebalance.FromSerializedString(
+        self.post_data)
     current = self.MASTER.IsRebalancing()
     if not current or current.id != reb.id:
       # Not the same ID.
@@ -434,7 +441,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
 
   def HandleRebalancePerform(self):
     """Call data server to perform rebalance transaction."""
-    reb = rdf_data_server.DataServerRebalance(self.post_data)
+    reb = rdf_data_server.DataServerRebalance.FromSerializedString(
+        self.post_data)
     if not rebalance.MoveFiles(reb, self.MASTER):
       logging.critical("Failed to perform transaction %s", reb.id)
       self._EmptyResponse(constants.RESPONSE_FILES_NOT_MOVED)
@@ -496,7 +504,8 @@ class DataServerHandler(BaseHTTPRequestHandler, object):
     """Master wants to send the mapping to us."""
     if self.MASTER:
       return self._EmptyResponse(constants.RESPONSE_IS_MASTER_SERVER)
-    mapping = rdf_data_server.DataServerMapping(self.post_data)
+    mapping = rdf_data_server.DataServerMapping.FromSerializedString(
+        self.post_data)
     self.DATA_SERVER.SetMapping(mapping)
     # Return state server back.
     body = self.GetStatistics().SerializeToString()
@@ -716,7 +725,7 @@ class StandardDataServer(object):
         logging.warning("Could not send statistics to data master.")
         return False
       # Also receive the new mapping with new statistics.
-      mapping = rdf_data_server.DataServerMapping(res.data)
+      mapping = rdf_data_server.DataServerMapping.FromSerializedString(res.data)
       self.handler_cls.SERVICE.SaveServerMapping(mapping)
       return True
     except (urllib3.exceptions.MaxRetryError, errors.DataServerError):
@@ -739,7 +748,9 @@ class StandardDataServer(object):
     sleep = config_lib.CONFIG["Dataserver.stats_frequency"]
     self.failed = 0
     self.stat_thread = utils.InterruptableThread(
-        target=self._PeriodicThread, sleep_time=sleep)
+        name="DataServer stats sender",
+        target=self._PeriodicThread,
+        sleep_time=sleep)
     self.stat_thread.start()
 
   def LoadMapping(self):
@@ -756,7 +767,7 @@ class StandardDataServer(object):
       if res.status != constants.RESPONSE_OK:
         raise errors.DataServerError("Could not get server mapping from data "
                                      "master.")
-      mapping = rdf_data_server.DataServerMapping(res.data)
+      mapping = rdf_data_server.DataServerMapping.FromSerializedString(res.data)
       self.handler_cls.SERVICE.SaveServerMapping(mapping)
       return mapping
     except urllib3.exceptions.MaxRetryError:

@@ -49,7 +49,9 @@ class Manager(object):
   def Start(self):
     self._PeriodicThread()
     self.periodic_thread = utils.InterruptableThread(
-        target=self._PeriodicThread, sleep_time=10)
+        name="DataServer management thread",
+        target=self._PeriodicThread,
+        sleep_time=10)
     self.periodic_thread.start()
     return True
 

@@ -101,7 +101,7 @@ No actions currently in progress.
     self.client_id = rdf_client.ClientURN(request.REQ.get("client_id"))
     self.client_actions = []
 
-    current_time = rdfvalue.RDFDatetime().Now()
+    current_time = rdfvalue.RDFDatetime.Now()
     leased_tasks = []
     with queue_manager.QueueManager(token=request.token) as manager:
       tasks = manager.Query(self.client_id.Queue(), limit=1000)
@@ -127,7 +127,7 @@ No actions currently in progress.
                 parent_flow=dict(
                     name=flow_obj.Name(), urn=flow_obj.urn)))
 
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     hour_before_now = now - rdfvalue.Duration("1h")
 
     stats_urn = self.client_id.Add("stats")
@@ -239,7 +239,7 @@ class RequestTable(renderers.TableRenderer):
 
   def BuildTable(self, start_row, end_row, request):
     client_id = rdf_client.ClientURN(request.REQ.get("client_id"))
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
 
     # Make a local QueueManager.
     manager = queue_manager.QueueManager(token=request.token)
@@ -317,7 +317,7 @@ class ResponsesTable(renderers.TableRenderer):
         data_store.DB.ResolvePrefix(
             state_queue, predicate_pre, limit=end_row, token=request.token)):
 
-      message = rdf_flows.GrrMessage(serialized_message)
+      message = rdf_flows.GrrMessage.FromSerializedString(serialized_message)
 
       if i < start_row:
         continue

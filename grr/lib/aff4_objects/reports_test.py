@@ -29,7 +29,7 @@ class ReportsTest(test_lib.AFF4ObjectTest):
     # Also initialize a broken client with no hostname.
     with aff4.FACTORY.Open(
         client_ids[1], token=self.token, mode="rw") as client:
-      client.Set(client.Schema.CLIENT_INFO(""))
+      client.Set(client.Schema.CLIENT_INFO())
 
     # Create a report for all clients.
     report = reports.ClientListReport(token=self.token)

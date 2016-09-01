@@ -768,7 +768,7 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(obj.Get(obj.Schema.STORED), "bar")
 
   def testFlushNewestTime(self):
-    """Flush with age policy NEWEST_TIME should only keeps a single version."""
+    """Flush with age policy NEWEST_TIME should only keep a single version."""
     # Create an object to carry attributes
     obj = aff4.FACTORY.Create("foobar", aff4.AFF4Object, token=self.token)
     obj.Set(obj.Schema.STORED("www.google.com"))
@@ -1013,7 +1013,8 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
         self.client_id, aff4_grr.VFSGRRClient, token=self.token)
 
     # Certs invalid - The RDFX509Cert should check the validity of the cert
-    self.assertRaises(rdfvalue.DecodeError, rdf_crypto.RDFX509Cert, "My cert")
+    self.assertRaises(rdfvalue.DecodeError,
+                      rdf_crypto.RDFX509Cert.FromSerializedString, "My cert")
 
     fd.Close()
 

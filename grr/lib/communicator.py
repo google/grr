@@ -137,7 +137,8 @@ class ReceivedCipher(Cipher):
           response_comms.encrypted_cipher)
 
       # If we get here we have the session keys.
-      self.cipher = rdf_flows.CipherProperties(self.serialized_cipher)
+      self.cipher = rdf_flows.CipherProperties.FromSerializedString(
+          self.serialized_cipher)
 
       # Check the key lengths.
       if (len(self.cipher.key) != self.key_size / 8 or
@@ -153,7 +154,8 @@ class ReceivedCipher(Cipher):
       # encrypted payload.
       serialized_metadata = self.Decrypt(
           response_comms.encrypted_cipher_metadata, self.cipher.metadata_iv)
-      self.cipher_metadata = rdf_flows.CipherMetadata(serialized_metadata)
+      self.cipher_metadata = rdf_flows.CipherMetadata.FromSerializedString(
+          serialized_metadata)
 
     except (rdf_crypto.InvalidSignature, rdf_crypto.CipherError) as e:
       raise DecryptionError(e)
@@ -395,7 +397,8 @@ class Communicator(object):
        a Signed_Message_List rdfvalue
     """
     try:
-      response_comms = rdf_flows.ClientCommunication(encrypted_response)
+      response_comms = rdf_flows.ClientCommunication.FromSerializedString(
+          encrypted_response)
       return self.DecodeMessages(response_comms)
     except (rdfvalue.DecodeError, type_info.TypeValueError, ValueError,
             AttributeError) as e:
@@ -427,7 +430,7 @@ class Communicator(object):
       raise DecodingError("Compression scheme not supported")
 
     try:
-      result = rdf_flows.MessageList(data)
+      result = rdf_flows.MessageList.FromSerializedString(data)
     except rdfvalue.DecodeError:
       raise DecodingError("RDFValue parsing failed.")
 
@@ -477,7 +480,8 @@ class Communicator(object):
     # Decrypt the message with the per packet IV.
     plain = cipher.Decrypt(response_comms.encrypted, response_comms.packet_iv)
     try:
-      signed_message_list = rdf_flows.SignedMessageList(plain)
+      signed_message_list = rdf_flows.SignedMessageList.FromSerializedString(
+          plain)
     except rdfvalue.DecodeError as e:
       raise DecryptionError(str(e))
 

@@ -16,24 +16,6 @@ grr.Renderer('ClientURNRenderer', {
   }
 });
 
-
-grr.Renderer('KeyValueFormRenderer', {
-  Layout: function(state) {
-    var unique = state.unique;
-
-    $('#' + unique).find('a[data-type]').on('click', function() {
-      var jthis = $(this);
-      var target = jthis.closest('ul').data('name');
-      var json_store = jthis.closest('.FormData').data();
-      var value = jthis.data('type');
-
-      json_store[target] = value;
-      jthis.closest('div').find('button span.Type').text(value);
-    });
-  }
-});
-
-
 grr.Renderer('RDFValueArrayRenderer', {
   Layout: function(state) {
     var unique = state.unique;
@@ -48,14 +30,5 @@ grr.Renderer('RDFValueArrayRenderer', {
         length: array_length
       });
     });
-  }
-});
-
-
-grr.Renderer('AES128KeyFormRenderer', {
-  Layout: function(state) {
-    var prefix = state.prefix;
-
-    $('#' + prefix).change();
   }
 });

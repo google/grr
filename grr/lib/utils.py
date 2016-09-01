@@ -68,14 +68,22 @@ def Synchronized(f):
 class InterruptableThread(threading.Thread):
   """A class which exits once the main thread exits."""
 
-  def __init__(self, target=None, args=None, kwargs=None, sleep_time=10, **kw):
+  def __init__(self,
+               target=None,
+               args=None,
+               kwargs=None,
+               sleep_time=10,
+               name=None,
+               **kw):
     self.exit = False
     self.last_run = 0
     self.target = target
     self.args = args or ()
     self.kwargs = kwargs or {}
     self.sleep_time = sleep_time
-    super(InterruptableThread, self).__init__(**kw)
+    if name is None:
+      raise ValueError("Please name your threads.")
+    super(InterruptableThread, self).__init__(name=name, **kw)
 
     # Do not hold up program exit
     self.daemon = True
@@ -390,7 +398,7 @@ class TimeBasedCache(FastStore):
       TimeBasedCache.active_caches = weakref.WeakSet()
       # This thread is designed to never finish.
       TimeBasedCache.house_keeper_thread = InterruptableThread(
-          target=HouseKeeper)
+          name="HouseKeeperThread", target=HouseKeeper)
       TimeBasedCache.house_keeper_thread.start()
     TimeBasedCache.active_caches.add(self)
 

@@ -70,7 +70,7 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
   def testShows5LatestHunts(self):
     # Only hunts created in the last 31 days will get shown, so we have
     # to adjust their timestamps accordingly.
-    timestamp = rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("1d")
+    timestamp = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d")
     with self.ACLChecksDisabled():
       for i in range(20):
         with test_lib.FakeTime(timestamp + rdfvalue.Duration(1000 * i)):
@@ -91,7 +91,7 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
                       "div[name=RecentlyCreatedHunts]:contains('foo')")
 
   def testDoesNotShowHuntsOlderThan31Days(self):
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     with self.ACLChecksDisabled():
       with test_lib.FakeTime(now - rdfvalue.Duration("30d")):
         self.CreateSampleHunt("foo", token=self.token)
@@ -203,7 +203,7 @@ class TestNavigatorView(SearchClientTestBase):
 
   def CreateClient(self, last_ping=None):
     if last_ping is None:
-      last_ping = rdfvalue.RDFDatetime().Now()
+      last_ping = rdfvalue.RDFDatetime.Now()
 
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
@@ -254,13 +254,13 @@ class TestNavigatorView(SearchClientTestBase):
 
   def testOneDayClientStatus(self):
     client_id = self.CreateClient(
-        last_ping=rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("1h"))
+        last_ping=rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1h"))
     self.Open("/#c=" + str(client_id))
     self.WaitUntil(self.IsElementPresent, "css=img[src$='online-1d.png']")
 
   def testOfflineClientStatus(self):
     client_id = self.CreateClient(
-        last_ping=rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("1d"))
+        last_ping=rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d"))
     self.Open("/#c=" + str(client_id))
     self.WaitUntil(self.IsElementPresent, "css=img[src$='offline.png']")
 
@@ -276,7 +276,7 @@ class TestNavigatorView(SearchClientTestBase):
 
   def testOneDayClientStatusInClientSearch(self):
     client_id = self.CreateClient(
-        last_ping=rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("1h"))
+        last_ping=rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1h"))
 
     self.Open("/")
     self.Type("client_query", client_id.Basename())
@@ -287,7 +287,7 @@ class TestNavigatorView(SearchClientTestBase):
 
   def testOfflineClientStatusInClientSearch(self):
     client_id = self.CreateClient(
-        last_ping=rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("1d"))
+        last_ping=rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d"))
 
     self.Open("/")
     self.Type("client_query", client_id.Basename())
@@ -303,7 +303,7 @@ class TestNavigatorView(SearchClientTestBase):
     self.WaitUntilNot(self.IsTextPresent, "Last crash")
 
   def testCrashIsDisplayedInClientStatus(self):
-    timestamp = rdfvalue.RDFDatetime().Now()
+    timestamp = rdfvalue.RDFDatetime.Now()
     client_id = self.CreateClient(last_ping=timestamp)
     with self.ACLChecksDisabled():
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("5s"))
@@ -315,7 +315,7 @@ class TestNavigatorView(SearchClientTestBase):
                            "css=grr-client-summary .last-crash")
 
   def testOnlyTheLatestCrashIsDisplayed(self):
-    timestamp = rdfvalue.RDFDatetime().Now()
+    timestamp = rdfvalue.RDFDatetime.Now()
     client_id = self.CreateClient(last_ping=timestamp)
     with self.ACLChecksDisabled():
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("2h"))
@@ -328,7 +328,7 @@ class TestNavigatorView(SearchClientTestBase):
                            "css=grr-client-summary .last-crash")
 
   def testOnlyCrashesHappenedInPastWeekAreDisplayed(self):
-    timestamp = rdfvalue.RDFDatetime().Now()
+    timestamp = rdfvalue.RDFDatetime.Now()
     client_id = self.CreateClient(last_ping=timestamp)
     with self.ACLChecksDisabled():
       self.RecordCrash(client_id, timestamp - rdfvalue.Duration("8d"))
@@ -357,7 +357,7 @@ class TestNavigatorView(SearchClientTestBase):
     client_id = self.CreateClient()
     with self.ACLChecksDisabled():
       self.RecordCrash(client_id,
-                       rdfvalue.RDFDatetime().Now() - rdfvalue.Duration("25h"))
+                       rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("25h"))
 
     self.Open("/")
     self.Type("client_query", client_id.Basename())
@@ -371,7 +371,7 @@ class TestNavigatorView(SearchClientTestBase):
                       "img[src$='skull-icon.png']" % client_id.Basename())
 
   def testCrashIconAppearsInClientSearchIfClientCrashedRecently(self):
-    timestamp = rdfvalue.RDFDatetime().Now()
+    timestamp = rdfvalue.RDFDatetime.Now()
     client_id = self.CreateClient()
     with self.ACLChecksDisabled():
       self.RecordCrash(client_id, timestamp)
@@ -1072,6 +1072,24 @@ class TestClientSearch(SearchClientTestBase,
     # Check that correct navigation link is selected.
     self.WaitUntil(self.IsElementPresent,
                    "css=.active > a[grrtarget='client.launchFlows']")
+
+
+class TestDefaultGUISettings(test_lib.GRRSeleniumTest):
+
+  def testDefaultGUISettingsWork(self):
+    with self.ACLChecksDisabled():  # Use the default GUI settings.
+      aff4.FACTORY.Delete(aff4.ROOT_URN.Add("users/test"), token=self.token)
+
+    self.Open("/")  # Django displays an error here if the settings are invalid.
+
+    self.WaitUntil(self.IsTextPresent, "Welcome to GRR")
+
+    self.Click("css=grr-user-settings-button button")
+    self.WaitUntil(self.IsTextPresent, "Settings")
+
+    self.WaitUntil(self.IsTextPresent, "Mode")
+    self.WaitUntilEqual("BASIC (default)", self.GetSelectedLabel,
+                        "css=label:contains('Mode') ~ div.controls select")
 
 
 def main(argv):

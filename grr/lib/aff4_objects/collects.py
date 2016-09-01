@@ -143,7 +143,7 @@ class RDFValueCollection(aff4.AFF4Object):
                        self._rdf_type.__name__)
 
     if not rdf_value.age:
-      rdf_value.age.Now()
+      rdf_value.age = rdfvalue.RDFDatetime.Now()
 
     data = rdf_protodict.EmbeddedRDFValue(payload=rdf_value).SerializeToString()
     self.fd.Seek(0, 2)
@@ -168,7 +168,7 @@ class RDFValueCollection(aff4.AFF4Object):
                          self._rdf_type.__name__)
 
       if not rdf_value.age:
-        rdf_value.age.Now()
+        rdf_value.age = rdfvalue.RDFDatetime.Now()
 
     buf = cStringIO.StringIO()
     for index, rdf_value in enumerate(rdf_values):
@@ -225,7 +225,8 @@ class RDFValueCollection(aff4.AFF4Object):
       except struct.error:
         break
 
-      result = rdf_protodict.EmbeddedRDFValue(serialized_event)
+      result = rdf_protodict.EmbeddedRDFValue.FromSerializedString(
+          serialized_event)
 
       payload = result.payload
       if payload is not None:
@@ -507,7 +508,7 @@ class PackedVersionedCollection(RDFValueCollection):
       raise ValueError("token can't be None")
 
     if timestamp is None:
-      timestamp = rdfvalue.RDFDatetime().Now()
+      timestamp = rdfvalue.RDFDatetime.Now()
 
     for _, urn, urn_timestamp in data_store.DB.ResolvePrefix(
         cls.notification_queue,
@@ -543,7 +544,7 @@ class PackedVersionedCollection(RDFValueCollection):
                          cls._rdf_type.__name__)
 
       if not rdf_value.age:
-        rdf_value.age.Now()
+        rdf_value.age = rdfvalue.RDFDatetime.Now()
 
       data_attrs.append(
           cls.SchemaCls.DATA(rdf_protodict.EmbeddedRDFValue(payload=rdf_value)))
@@ -625,7 +626,7 @@ class PackedVersionedCollection(RDFValueCollection):
       rdf_value = self._rdf_type(**kwargs)  # pylint: disable=not-callable
 
     if not rdf_value.age:
-      rdf_value.age.Now()
+      rdf_value.age = rdfvalue.RDFDatetime.Now()
 
     self.Set(self.Schema.DATA(payload=rdf_value))
 
@@ -646,7 +647,7 @@ class PackedVersionedCollection(RDFValueCollection):
                          self._rdf_type.__name__)
 
       if not rdf_value.age:
-        rdf_value.age.Now()
+        rdf_value.age = rdfvalue.RDFDatetime.Now()
 
     for index, rdf_value in enumerate(rdf_values):
       self.Set(self.Schema.DATA(payload=rdf_value))
@@ -662,8 +663,9 @@ class PackedVersionedCollection(RDFValueCollection):
 
   def GenerateUncompactedItems(self, max_reversed_results=0, timestamp=None):
     if self.IsAttributeSet(self.Schema.DATA):
-      freeze_timestamp = timestamp or rdfvalue.RDFDatetime().Now()
+      freeze_timestamp = timestamp or rdfvalue.RDFDatetime.Now()
       results = []
+      data_obj = self.Schema.DATA()
       for _, value, _ in data_store.DB.ResolvePrefix(
           self.urn,
           self.Schema.DATA.predicate,
@@ -671,13 +673,13 @@ class PackedVersionedCollection(RDFValueCollection):
           timestamp=(0, freeze_timestamp)):
 
         if results is not None:
-          results.append(self.Schema.DATA(value).payload)
+          results.append(data_obj.FromSerializedString(value).payload)
           if max_reversed_results and len(results) > max_reversed_results:
             for result in results:
               yield result
             results = None
         else:
-          yield self.Schema.DATA(value).payload
+          yield data_obj.FromSerializedString(value).payload
 
       if results is not None:
         for result in reversed(results):
@@ -685,7 +687,7 @@ class PackedVersionedCollection(RDFValueCollection):
 
   def GenerateItems(self, offset=0):
     """First iterate over the versions, and then iterate over the stream."""
-    freeze_timestamp = rdfvalue.RDFDatetime().Now()
+    freeze_timestamp = rdfvalue.RDFDatetime.Now()
 
     index = 0
     byte_offset = 0
@@ -756,7 +758,7 @@ class PackedVersionedCollection(RDFValueCollection):
 
     # This timestamp will be used to delete attributes. We don't want
     # to delete anything that was added after we started the compaction.
-    freeze_timestamp = timestamp or rdfvalue.RDFDatetime().Now()
+    freeze_timestamp = timestamp or rdfvalue.RDFDatetime.Now()
 
     def UpdateIndex():
       seek_index = self.Get(self.Schema.SEEK_INDEX, SeekIndex())

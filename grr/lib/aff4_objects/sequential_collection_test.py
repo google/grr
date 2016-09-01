@@ -47,7 +47,7 @@ class SequentialCollectionTest(test_lib.AFF4ObjectTest):
         "aff4:/sequential_collection/testDuplicateTimestamps",
         TestSequentialCollection,
         token=self.token) as collection:
-      t = rdfvalue.RDFDatetime().Now()
+      t = rdfvalue.RDFDatetime.Now()
       for i in range(10):
         ts = collection.Add(rdfvalue.RDFInteger(i), timestamp=t)
         self.assertEqual(ts[0], t)
@@ -159,7 +159,7 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
       self.assertEqual(sorted(collection._index.keys()), [0])
 
       # Push the clock forward 10m, and we should build an index on access.
-      with test_lib.FakeTime(rdfvalue.RDFDatetime().Now() + rdfvalue.Duration(
+      with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(
           "10m")):
         # Read from start doesn't rebuild index (lazy rebuild)
         _ = collection[0]
@@ -191,7 +191,7 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
       data_size = 4 * 1024
       for i in range(data_size):
         collection.Add(rdfvalue.RDFInteger(i))
-      with test_lib.FakeTime(rdfvalue.RDFDatetime().Now() + rdfvalue.Duration(
+      with test_lib.FakeTime(rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(
           "10m")):
         for i in range(data_size - 1, data_size - 20, -1):
           self.assertEqual(collection[i], i)

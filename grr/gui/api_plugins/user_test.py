@@ -1241,7 +1241,7 @@ class ApiListPendingGlobalNotificationsHandlerRegressionTest(
   # Global notifications are only shown in a certain time interval. By default,
   # this is from the moment they are created until two weeks later. Create
   # a notification that is too old to be returned and two valid ones.
-  NOW = rdfvalue.RDFDatetime().Now()
+  NOW = rdfvalue.RDFDatetime.Now()
   TIME_TOO_EARLY = NOW - rdfvalue.Duration("4w")
   TIME_0 = NOW - rdfvalue.Duration("12h")
   TIME_1 = NOW - rdfvalue.Duration("1h")

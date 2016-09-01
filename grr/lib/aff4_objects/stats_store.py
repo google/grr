@@ -347,7 +347,7 @@ class StatsStore(aff4.AFF4Volume):
         except KeyError:
           continue
 
-        stored_value = StatsStoreValue(value_string)
+        stored_value = StatsStoreValue.FromSerializedString(value_string)
 
         fields_values = []
         if metadata.fields_defs:
@@ -685,7 +685,7 @@ class StatsStoreWorker(object):
 
       logging.debug("Removing old stats from stats store." "")
       try:
-        now = rdfvalue.RDFDatetime().Now().AsMicroSecondsFromEpoch()
+        now = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
         self.stats_store.DeleteStats(
             process_id=self.process_id,
             timestamp=(0, now - config_lib.CONFIG["StatsStore.ttl"] * 1000000),

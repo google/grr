@@ -58,7 +58,7 @@ class CleanHuntsTest(test_lib.FlowTestsBaseclass):
             flow_name=data_retention.CleanHunts.__name__,
             sync=True,
             token=self.token)
-        latest_timestamp = rdfvalue.RDFDatetime().Now()
+        latest_timestamp = rdfvalue.RDFDatetime.Now()
 
       hunts_urns = list(
           aff4.FACTORY.Open(
@@ -194,7 +194,7 @@ class CleanCronJobsTest(test_lib.FlowTestsBaseclass):
             flow_name=data_retention.CleanCronJobs.__name__,
             sync=True,
             token=self.token)
-        latest_timestamp = rdfvalue.RDFDatetime().Now()
+        latest_timestamp = rdfvalue.RDFDatetime.Now()
 
       remaining_children = []
 
@@ -257,7 +257,7 @@ class CleanTempTest(test_lib.FlowTestsBaseclass):
             flow_name=data_retention.CleanTemp.__name__,
             sync=True,
             token=self.token)
-        latest_timestamp = rdfvalue.RDFDatetime().Now()
+        latest_timestamp = rdfvalue.RDFDatetime.Now()
 
       tmp_urns = list(
           aff4.FACTORY.Open(
@@ -306,7 +306,7 @@ class CleanInactiveClientsTest(test_lib.FlowTestsBaseclass):
       with test_lib.FakeTime(40 + 60 * i):
         with aff4.FACTORY.Open(
             self.client_urns[i], mode="rw", token=self.token) as client:
-          client.Set(client.Schema.LAST(rdfvalue.RDFDatetime().Now()))
+          client.Set(client.Schema.LAST(rdfvalue.RDFDatetime.Now()))
 
   def testDoesNothingIfAgeLimitNotSetInConfig(self):
     with test_lib.FakeTime(40 + 60 * self.NUM_CLIENT):
@@ -330,7 +330,7 @@ class CleanInactiveClientsTest(test_lib.FlowTestsBaseclass):
             flow_name=data_retention.CleanInactiveClients.__name__,
             sync=True,
             token=self.token)
-        latest_timestamp = rdfvalue.RDFDatetime().Now()
+        latest_timestamp = rdfvalue.RDFDatetime.Now()
 
       aff4_root = aff4.FACTORY.Open("aff4:/", mode="r", token=self.token)
       aff4_urns = list(aff4_root.ListChildren())

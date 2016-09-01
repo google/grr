@@ -54,12 +54,15 @@ class RDFX509Cert(rdfvalue.RDFValue):
   """X509 certificates used to communicate with this client."""
 
   def __init__(self, initializer=None, age=None):
-    if isinstance(initializer, x509.Certificate):
-      self._value = initializer
-      self._age = age or rdfvalue.RDFDatetime(age=0)
-    else:
-      self._value = None
-      super(RDFX509Cert, self).__init__(initializer=initializer, age=age)
+    super(RDFX509Cert, self).__init__(initializer=initializer, age=age)
+    if self._value is None and initializer is not None:
+      if isinstance(initializer, x509.Certificate):
+        self._value = initializer
+      elif isinstance(initializer, basestring):
+        self.ParseFromString(initializer)
+      else:
+        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
+                                       (self.__class__, initializer))
 
   def GetRawCertificate(self):
     return self._value
@@ -123,7 +126,7 @@ class RDFX509Cert(rdfvalue.RDFValue):
     # that will add it, once it's in we should switch to using this.
 
     # Note that all times here are in UTC.
-    now = rdfvalue.RDFDatetime().Now().AsDatetime()
+    now = rdfvalue.RDFDatetime.Now().AsDatetime()
     if now > self._value.not_valid_after:
       raise VerificationError("Certificate expired!")
     if now < self._value.not_valid_before:
@@ -154,7 +157,7 @@ class RDFX509Cert(rdfvalue.RDFValue):
         x509.Name([x509.NameAttribute(oid.NameOID.COMMON_NAME, unicode(
             common_name))]))
 
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     now_plus_year = now + rdfvalue.Duration("52w")
     builder = builder.not_valid_after(now_plus_year.AsDatetime())
     now_minus_ten = now - rdfvalue.Duration("10s")
@@ -180,21 +183,23 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
                common_name=None,
                private_key=None,
                age=None):
-    if isinstance(initializer, x509.CertificateSigningRequest):
-      self._age = age or rdfvalue.RDFDatetime(age=0)
-      self._value = initializer
-    elif common_name and private_key:
-      self._age = age or rdfvalue.RDFDatetime(age=0)
-      self._value = x509.CertificateSigningRequestBuilder().subject_name(
-          x509.Name([x509.NameAttribute(oid.NameOID.COMMON_NAME, unicode(
-              common_name))])).sign(
-                  private_key.GetRawPrivateKey(),
-                  hashes.SHA256(),
-                  backend=openssl.backend)
-    else:
-      self._value = None
-      super(CertificateSigningRequest, self).__init__(
-          initializer=initializer, age=age)
+    super(CertificateSigningRequest, self).__init__(
+        initializer=initializer, age=age)
+    if self._value is None:
+      if isinstance(initializer, x509.CertificateSigningRequest):
+        self._value = initializer
+      elif isinstance(initializer, basestring):
+        self.ParseFromString(initializer)
+      elif common_name and private_key:
+        self._value = x509.CertificateSigningRequestBuilder().subject_name(
+            x509.Name([x509.NameAttribute(oid.NameOID.COMMON_NAME, unicode(
+                common_name))])).sign(
+                    private_key.GetRawPrivateKey(),
+                    hashes.SHA256(),
+                    backend=openssl.backend)
+      elif initializer is not None:
+        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
+                                       (self.__class__, initializer))
 
   def ParseFromString(self, csr_as_pem):
     self._value = x509.load_pem_x509_csr(csr_as_pem, backend=openssl.backend)
@@ -237,12 +242,15 @@ class RSAPublicKey(rdfvalue.RDFValue):
   """An RSA public key."""
 
   def __init__(self, initializer=None, age=None):
-    if isinstance(initializer, rsa.RSAPublicKey):
-      self._value = initializer
-      self._age = age or rdfvalue.RDFDatetime(age=0)
-    else:
-      self._value = None
-      super(RSAPublicKey, self).__init__(initializer=initializer, age=age)
+    super(RSAPublicKey, self).__init__(initializer=initializer, age=age)
+    if self._value is None and initializer is not None:
+      if isinstance(initializer, rsa.RSAPublicKey):
+        self._value = initializer
+      elif isinstance(initializer, basestring):
+        self.ParseFromString(initializer)
+      else:
+        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
+                                       (self.__class__, initializer))
 
   def GetRawPublicKey(self):
     return self._value
@@ -319,12 +327,15 @@ class RSAPrivateKey(rdfvalue.RDFValue):
 
   def __init__(self, initializer=None, age=None, allow_prompt=None):
     self.allow_prompt = allow_prompt
-    if isinstance(initializer, rsa.RSAPrivateKey):
-      self._value = initializer
-      self._age = age or rdfvalue.RDFDatetime(age=0)
-    else:
-      self._value = None
-      super(RSAPrivateKey, self).__init__(initializer=initializer, age=age)
+    super(RSAPrivateKey, self).__init__(initializer=initializer, age=age)
+    if self._value is None and initializer is not None:
+      if isinstance(initializer, rsa.RSAPrivateKey):
+        self._value = initializer
+      elif isinstance(initializer, basestring):
+        self.ParseFromString(initializer)
+      else:
+        raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
+                                       (self.__class__, initializer))
 
   def GetRawPrivateKey(self):
     return self._value
@@ -651,8 +662,6 @@ class AES128CBCCipher(object):
 class SymmetricCipher(rdf_structs.RDFProtoStruct):
   """Abstract symmetric cipher operations."""
   protobuf = jobs_pb2.SymmetricCipher
-
-  cipher = None
 
   @classmethod
   def Generate(cls, algorithm):

@@ -73,10 +73,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
   def testClientSubfieldGet(self):
     """Test we can get subfields of the client."""
     fd = aff4.FACTORY.Create(
-        "C.0000000000000000",
-        aff4_grr.VFSGRRClient,
-        token=self.token,
-        age=aff4.ALL_TIMES)
+        "C.0000000000000000", aff4_grr.VFSGRRClient, token=self.token)
 
     kb = fd.Schema.KNOWLEDGE_BASE()
     for i in range(5):
@@ -84,8 +81,9 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     fd.Set(kb)
     fd.Close()
 
-    for i, user in enumerate(
-        fd.GetValuesForAttribute("KnowledgeBase.users").next()):
+    fd = aff4.FACTORY.Open(
+        "C.0000000000000000", aff4_grr.VFSGRRClient, token=self.token)
+    for i, user in enumerate(fd.Get(fd.Schema.KNOWLEDGE_BASE).users):
       self.assertEqual(user.username, "user%s" % i)
 
   def testVFSFileContentLastNotUpdated(self):
@@ -211,7 +209,7 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
     kernel = "3.15-rc2"
     fqdn = "test.test.com"
     arch = "amd64"
-    install_time = rdfvalue.RDFDatetime().Now()
+    install_time = rdfvalue.RDFDatetime.Now()
     user = "testuser"
     userobj = rdf_client.User(username=user)
     interface = rdf_client.Interface(ifname="eth0")

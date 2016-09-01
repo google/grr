@@ -74,13 +74,16 @@ class EndToEndTestFlow(flow.GRRFlow):
     self.state.flow_test_map[session_id] = test_name
 
   def _AddTest(self, test_name, system, client_version):
+    # We need to exclude classes that aren't in automatedtest, but .classes is
+    # shared between all classes in the inheritance structure by design.
     cls = base.AutomatedTest.classes[test_name]
-    if system not in cls.platforms:
-      return
-    if cls.client_min_version and client_version < cls.client_min_version:
-      return
-    if not cls.__name__.startswith("Abstract"):
-      self.state.test_set.add(test_name)
+    if aff4.issubclass(cls, base.AutomatedTest):
+      if system not in cls.platforms:
+        return
+      if cls.client_min_version and client_version < cls.client_min_version:
+        return
+      if not cls.__name__.startswith("Abstract"):
+        self.state.test_set.add(test_name)
 
   @flow.StateHandler()
   def Start(self):
@@ -123,7 +126,6 @@ class EndToEndTestFlow(flow.GRRFlow):
                       platform=self.state.client_summary.system_info.system,
                       token=self.token,
                       local_worker=False)
-    test_object.setUp()
     test_object.session_id = child_session_id
 
     system = self.state.client_summary.system_info.system

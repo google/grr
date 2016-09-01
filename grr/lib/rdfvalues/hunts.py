@@ -3,7 +3,6 @@
 
 
 
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 from grr.proto import jobs_pb2
@@ -15,11 +14,6 @@ class HuntNotification(rdf_structs.RDFProtoStruct):
 
 class HuntContext(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.HuntContext
-
-  # TODO(user): A hunt runner should never even check...
-  @property
-  def state(self):
-    return rdf_flows.FlowContext.State.RUNNING
 
 
 class HuntRunnerArgs(rdf_structs.RDFProtoStruct):

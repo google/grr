@@ -134,6 +134,7 @@ class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
   category = CATEGORY
   args_type = ApiGetCronJobArgs
   result_type = ApiCronJob
+  strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
     try:
@@ -184,12 +185,12 @@ class ApiGetCronJobFlowHandler(api_call_handler_base.ApiCallHandler):
   strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
-    flow_urn = aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(
-        args.cron_job_id).Add(args.flow_id.Basename())
+    flow_urn = args.flow_id.ResolveCronJobFlowURN(args.cron_job_id)
     flow_obj = aff4.FACTORY.Open(
         flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
 
-    return api_plugins_flow.ApiFlow().InitFromAff4Object(flow_obj)
+    return api_plugins_flow.ApiFlow().InitFromAff4Object(
+        flow_obj, with_state_and_context=True)
 
 
 class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
@@ -230,6 +231,57 @@ class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
         urn, aff4_type=aff4_cronjobs.CronJob, token=token, age=aff4.ALL_TIMES)
 
     return ApiCronJob().InitFromAff4Object(fd)
+
+
+class ApiForceRunCronJobArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiForceRunCronJobArgs
+
+
+class ApiForceRunCronJobHandler(api_call_handler_base.ApiCallHandler):
+  """Force-runs a given cron job."""
+
+  category = CATEGORY
+  args_type = ApiForceRunCronJobArgs
+
+  def Handle(self, args, token=None):
+    if not args.cron_job_id:
+      raise ValueError("cron_job_id can't be empty")
+
+    cron_job_urn = aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(
+        args.cron_job_id)
+    aff4_cronjobs.CRON_MANAGER.RunOnce(
+        urns=[cron_job_urn], token=token, force=True)
+
+
+class ApiModifyCronJobArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiModifyCronJobArgs
+
+
+class ApiModifyCronJobHandler(api_call_handler_base.ApiCallHandler):
+  """Modifies given cron job (changes its state to ENABLED/DISABLED)."""
+
+  category = CATEGORY
+  args_type = ApiModifyCronJobArgs
+  result_type = ApiCronJob
+  strip_json_root_fields_types = False
+
+  def Handle(self, args, token=None):
+    if not args.cron_job_id:
+      raise ValueError("cron_job_id can't be empty")
+
+    cron_job_urn = aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(
+        args.cron_job_id)
+
+    if args.state == "ENABLED":
+      aff4_cronjobs.CRON_MANAGER.EnableJob(cron_job_urn, token=token)
+    elif args.state == "DISABLED":
+      aff4_cronjobs.CRON_MANAGER.DisableJob(cron_job_urn, token=token)
+    else:
+      raise ValueError("Invalid cron job state: %s", str(args.state))
+
+    cron_job_obj = aff4.FACTORY.Open(
+        cron_job_urn, aff4_type=aff4_cronjobs.CronJob, token=token)
+    return ApiCronJob().InitFromAff4Object(cron_job_obj)
 
 
 class ApiDeleteCronJobArgs(rdf_structs.RDFProtoStruct):

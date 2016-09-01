@@ -190,7 +190,7 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
 
     # Force an early flush. This max file size value has been chosen to force a
     # flush at least once, but not for all 10 records.
-    with test_lib.ConfigOverrider({"BigQuery.max_file_post_size": 700}):
+    with test_lib.ConfigOverrider({"BigQuery.max_file_post_size": 800}):
       output = self.ProcessResponses(
           plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
           responses=responses)

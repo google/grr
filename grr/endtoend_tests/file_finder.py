@@ -19,7 +19,7 @@ class TestFileFinderOSWindows(base.VFSPathContentIsPE):
   """
   platforms = ["Windows"]
   flow = "FileFinder"
-  test_output_path = "/fs/os/.*/Windows/System32/notepad.exe"
+  test_output_path = "/fs/os/C:/Windows/System32/notepad.exe"
 
   sizecondition = file_finder.FileFinderSizeCondition(max_file_size=1000000)
   filecondition = file_finder.FileFinderCondition(

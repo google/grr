@@ -670,6 +670,7 @@ class ExportTest(test_lib.GRRBaseTest):
     metadata = export.GetMetadata(client_urn, token=self.token)
     self.assertEqual(metadata.os, u"Windows")
     self.assertEqual(metadata.labels, u"client-label-24")
+    self.assertEqual(metadata.hardware_info.bios_version, u"Version 1.23v")
 
     client = aff4.FACTORY.Open(client_urn, mode="rw", token=self.token)
     client.SetLabels("a", "b")
@@ -1287,9 +1288,9 @@ class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):
     converted_value = self.ConvertOriginalValue(original_value)
 
     serialized = converted_value.SerializeToString()
-    unserialized_converted_value = converted_value.__class__(serialized)
+    deserialized = converted_value.__class__.FromSerializedString(serialized)
 
-    self.assertEqual(converted_value, unserialized_converted_value)
+    self.assertEqual(converted_value, deserialized)
 
 
 class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
@@ -1537,25 +1538,27 @@ class RekallResponseToExportedRekallProcessConverterTest(test_lib.GRRBaseTest):
 
   def testConvertsCompatibleMessage(self):
     messages = [[
-        "r", {"_EPROCESS": {
-            "Cybox": {
-                "Creation_Time": {
-                    "epoch": 1281506799,
+        "r", {
+            "_EPROCESS": {
+                "Cybox": {
+                    "Creation_Time": {
+                        "epoch": 1281506799,
+                    },
+                    "Image_Info": {
+                        "Command_Line": "\"C:\\Program Files\\VMware\\VMware "
+                                        "Tools\\TPAutoConnSvc.exe\"",
+                        "Path": "C:\\Program Files\\VMware\\VMware "
+                                "Tools\\TPAutoConnSvc.exe",
+                        "TrustedPath": "C:\\Program Files\\VMware\\VMware "
+                                       "Tools\\Trusted\\TPAutoConnSvc.exe",
+                        "type": "ProcessObj:ImageInfoType"
+                    },
+                    "Name": "TPAutoConnSvc.e",
+                    "PID": 1968,
+                    "Parent_PID": 676,
                 },
-                "Image_Info": {
-                    "Command_Line": "\"C:\\Program Files\\VMware\\VMware "
-                                    "Tools\\TPAutoConnSvc.exe\"",
-                    "Path": "C:\\Program Files\\VMware\\VMware "
-                            "Tools\\TPAutoConnSvc.exe",
-                    "TrustedPath": "C:\\Program Files\\VMware\\VMware "
-                                   "Tools\\Trusted\\TPAutoConnSvc.exe",
-                    "type": "ProcessObj:ImageInfoType"
-                },
-                "Name": "TPAutoConnSvc.e",
-                "PID": 1968,
-                "Parent_PID": 676,
             },
-        },}
+        }
     ]]
 
     rekall_response = rdf_rekall_types.RekallResponse(

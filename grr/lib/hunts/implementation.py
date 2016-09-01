@@ -759,10 +759,10 @@ class HuntRunner(object):
       args = rdf_hunts.HuntRunnerArgs()
 
     context = rdf_hunts.HuntContext(
-        create_time=rdfvalue.RDFDatetime().Now(),
+        create_time=rdfvalue.RDFDatetime.Now(),
         creator=self.token.username,
         expires=args.expiry_time.Expiry(),
-        start_time=rdfvalue.RDFDatetime().Now(),
+        start_time=rdfvalue.RDFDatetime.Now(),
         usage_stats=rdf_stats.ClientResourcesStats(),
         remaining_cpu_quota=args.cpu_limit,)
 
@@ -806,7 +806,7 @@ class HuntRunner(object):
 
     # When the next client can be scheduled. Implements gradual client
     # recruitment rate according to the client_rate.
-    self.context.next_client_due = rdfvalue.RDFDatetime().Now()
+    self.context.next_client_due = rdfvalue.RDFDatetime.Now()
 
     self._CreateAuditEvent("HUNT_STARTED")
 
@@ -820,7 +820,7 @@ class HuntRunner(object):
   def _AddForemanRule(self):
     """Adds a foreman rule for this hunt."""
     foreman_rule = rdf_foreman.ForemanRule(
-        created=rdfvalue.RDFDatetime().Now(),
+        created=rdfvalue.RDFDatetime.Now(),
         expires=self.context.expires,
         description="Hunt %s %s" %
         (self.session_id, self.runner_args.hunt_name),
@@ -894,7 +894,7 @@ class HuntRunner(object):
     return self.hunt_obj.Get(self.hunt_obj.Schema.STATE) == "COMPLETED"
 
   def IsHuntExpired(self):
-    return self.context.expires < rdfvalue.RDFDatetime().Now()
+    return self.context.expires < rdfvalue.RDFDatetime.Now()
 
   def IsHuntStarted(self):
     """Is this hunt considered started?
@@ -1075,22 +1075,23 @@ class GRRHunt(flow.FlowBase):
       self.runner_args = self.Get(self.Schema.HUNT_RUNNER_ARGS)
       self.context = self.Get(self.Schema.HUNT_CONTEXT)
 
-      # TODO(user): Backwards compatibility hack. Remove this once
-      # there are no legacy hunts left we still need to display in the UI.
-      if self.context is None and self.runner_args is None:
-        state_attr = "aff4:flow_state"
-        serialized_state = self.synced_attributes[state_attr][0].serialized
-        state = rdf_flows.FlowState(serialized_state)
-        if state is not None:
-          self.context = state.context
-          self.runner_args = self.context.args
-          self.mode = "r"
-
       args = self.Get(self.Schema.HUNT_ARGS)
       if args:
         self.args = args.payload
       else:
         self.args = None
+
+      # TODO(user): Backwards compatibility hack. Remove this once
+      # there are no legacy hunts left we still need to display in the UI.
+      if self.context is None and self.runner_args is None:
+        state_attr = "aff4:flow_state"
+        serialized_state = self.synced_attributes[state_attr][0].serialized
+        state = rdf_flows.FlowState.FromSerializedString(serialized_state)
+        if state is not None:
+          self.context = state.context
+          self.runner_args = self.context.args
+          self.mode = "r"
+          self.args = state.args
 
       self.Load()
 

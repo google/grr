@@ -298,8 +298,8 @@ class User(structs.RDFProtoStruct):
       # allows for backwards compatibility with clients returning KBUser
       # objects.
       # TODO(user): remove once all clients are newer than 3.0.7.1.
-      super(User, self).__init__(
-          initializer=initializer.SerializeToString(), age=age, **kwargs)
+      super(User, self).__init__(initializer=None, age=age, **kwargs)
+      self.ParseFromString(initializer.SerializeToString())
     else:
       super(User, self).__init__(initializer=initializer, age=age, **kwargs)
 

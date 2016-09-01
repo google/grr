@@ -1057,8 +1057,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
-                path="/tmp/evil.txt",
-                pathtype=rdf_paths.PathSpec.PathType.OS),),
+                path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS),
+        ),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
             rdf_foreman.ForemanClientRule(
                 rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
@@ -1476,7 +1476,7 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.assertEqual(results["SUCCESS"] - prev_results.get("SUCCESS", 0), 1)
 
   def testDoesNotCheckHuntsOutsideOfCheckRange(self):
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now - rdfvalue.Duration("61m"), increment=1e-6):
       self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
           plugin_name=VerifiableDummyHuntOutputPlugin.__name__)])

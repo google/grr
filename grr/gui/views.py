@@ -77,27 +77,14 @@ def Homepage(request):
   # grr.gui.plugins.acl_manager, we expect a js files called acl_manager.js.
   renderers_js_files = set([
       "acl_manager.js",
-      "artifact_view.js",
       "configuration_view.js",
-      "cron_view.js",
       "fileview.js",
-      "fileview_widgets.js",
-      "flow_management.js",
       "foreman.js",
-      "forms.js",
-      "hunt_view.js",
       "inspect_view.js",
-      "new_hunt.js",
-      "notifications.js",
-      "rekall_viewer.js",
       "reports_view.js",
-      "searchclient.js",
       "semantic.js",
-      "server_load_view.js",
       "statistics.js",
-      "timeline_view.js",
-      "usage.js",
-      "wizards.js"
+      "usage.js"
   ])  # pyformat: disable
 
   create_time = psutil.Process(os.getpid()).create_time()
@@ -308,7 +295,7 @@ def BuildToken(request, execution_time):
       username=request.user,
       reason=request.REQ.get("reason", ""),
       process="GRRAdminUI",
-      expiry=rdfvalue.RDFDatetime().Now() + execution_time)
+      expiry=rdfvalue.RDFDatetime.Now() + execution_time)
 
   for field in ["REMOTE_ADDR", "HTTP_X_FORWARDED_FOR"]:
     remote_addr = request.META.get(field, "")

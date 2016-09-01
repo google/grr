@@ -55,7 +55,7 @@ class Queue(aff4.AFF4Object):
       raise ValueError("This collection only accepts values of type %s." %
                        cls.rdf_type.__name__)
 
-    timestamp = rdfvalue.RDFDatetime().Now().AsMicroSecondsFromEpoch()
+    timestamp = rdfvalue.RDFDatetime.Now().AsMicroSecondsFromEpoch()
 
     if not isinstance(queue_urn, rdfvalue.RDFURN):
       queue_urn = rdfvalue.RDFURN(queue_urn)
@@ -123,7 +123,7 @@ class Queue(aff4.AFF4Object):
     if not self.locked:
       raise aff4.LockError("Queue must be locked to claim records.")
 
-    now = rdfvalue.RDFDatetime().Now()
+    now = rdfvalue.RDFDatetime.Now()
 
     after_urn = None
     if start_time:
@@ -142,10 +142,12 @@ class Queue(aff4.AFF4Object):
         # Unlikely case, but could happen if, say, a thread called RefreshClaims
         # so late that another thread already deleted the record.
         continue
-      if self.LOCK_ATTRIBUTE in values and rdfvalue.RDFDatetime(values[
-          self.LOCK_ATTRIBUTE][1]) > now:
-        continue
-      rdf_value = self.rdf_type(values[  # pylint: disable=not-callable
+      if self.LOCK_ATTRIBUTE in values:
+        timestamp = rdfvalue.RDFDatetime.FromSerializedString(values[
+            self.LOCK_ATTRIBUTE][1])
+        if timestamp > now:
+          continue
+      rdf_value = self.rdf_type.FromSerializedString(values[
           self.VALUE_ATTRIBUTE][1])
       if record_filter(rdf_value):
         filtered_count += 1
@@ -157,7 +159,7 @@ class Queue(aff4.AFF4Object):
       if len(results) >= limit:
         break
 
-    expiration = rdfvalue.RDFDatetime().Now() + rdfvalue.Duration(timeout)
+    expiration = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(timeout)
 
     with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
       for subject, _ in results:
@@ -176,7 +178,7 @@ class Queue(aff4.AFF4Object):
       LockError: If the queue is not locked.
 
     """
-    expiration = rdfvalue.RDFDatetime().Now() + rdfvalue.Duration(timeout)
+    expiration = rdfvalue.RDFDatetime.Now() + rdfvalue.Duration(timeout)
     with data_store.DB.GetMutationPool(token=self.token) as mutation_pool:
       for subject in ids:
         mutation_pool.Set(subject, self.LOCK_ATTRIBUTE, expiration)

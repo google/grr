@@ -167,6 +167,12 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def GetCronJob(self, args, token=None):
     return api_cron.ApiGetCronJobHandler()
 
+  def ForceRunCronJob(self, args, token=None):
+    return api_cron.ApiForceRunCronJobHandler()
+
+  def ModifyCronJob(self, args, token=None):
+    return api_cron.ApiModifyCronJobHandler()
+
   def ListCronJobFlows(self, args, token=None):
     return api_cron.ApiListCronJobFlowsHandler()
 

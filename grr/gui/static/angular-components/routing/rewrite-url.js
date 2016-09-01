@@ -5,6 +5,7 @@ goog.provide('grrUi.routing.rewriteUrl');
 goog.require('grrUi.client.virtualFileSystem.fileViewDirective.getFilePathFromId');
 goog.require('grrUi.client.virtualFileSystem.utils.ensurePathIsFolder');
 goog.require('grrUi.core.apiService.encodeUrlPath');
+goog.require('grrUi.routing.aff4UrnToUrl');
 
 
 goog.scope(function() {
@@ -75,9 +76,39 @@ grrUi.routing.rewriteUrl = function(url) {
     case 'ApiDocumentation':
       return '/api-docs';
 
+    // TODO(user): get rid of GrantAccess rewrite as soon as links in
+    // previously send approval notifications are not important.
     case 'GrantAccess':
       var acl = hashState['acl'] || '';
-      return '/grant-access?acl=' + acl;
+      var routingState = grrUi.routing.aff4UrnToUrl(acl);
+      switch (routingState['state']) {
+        case 'clientApproval':
+          return ['/users',
+                  routingState['params']['username'],
+                  'approvals',
+                  'client',
+                  routingState['params']['clientId'],
+                  routingState['params']['approvalId']].join('/');
+        case 'huntApproval':
+          return ['/users',
+                  routingState['params']['username'],
+                  'approvals',
+                  'hunt',
+                  routingState['params']['huntId'],
+                  routingState['params']['approvalId']].join('/');
+
+        case 'cronJobApproval':
+          return ['/users',
+                  routingState['params']['username'],
+                  'approvals',
+                  'cron-job',
+                  routingState['params']['cronJobId'],
+                  routingState['params']['approvalId']].join('/');
+
+        default:
+        break;
+      }
+      return '/';
 
     case 'CanaryTestRenderer':
       return '/canary-test';
