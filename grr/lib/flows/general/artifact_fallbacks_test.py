@@ -17,7 +17,7 @@ class TestSystemRootSystemDriveFallbackFlow(test_lib.FlowTestsBaseclass):
   def testSystemRootFallback(self):
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                test_lib.ClientVFSHandlerFixture):
-      client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
+      client_mock = action_mocks.ListDirectoryClientMock()
 
       for s in test_lib.TestFlowHelper(
           "SystemRootSystemDriveFallbackFlow",

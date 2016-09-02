@@ -6,6 +6,11 @@ import datetime
 import os
 
 
+from grr.client.client_actions import admin
+from grr.client.client_actions import file_fingerprint
+from grr.client.client_actions import searching
+from grr.client.client_actions import standard
+from grr.client.client_actions.linux import linux
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -14,7 +19,7 @@ from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import utils
 
-from grr.lib.aff4_objects import standard
+from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -185,7 +190,7 @@ class GRRFuseTest(GRRFuseTestBase):
 
     with aff4.FACTORY.Create(
         self.client_id.Add("fs/os"),
-        standard.VFSDirectory,
+        aff4_standard.VFSDirectory,
         mode="rw",
         token=self.token) as fd:
       fd.Set(fd.Schema.PATHSPEC(path="/", pathtype="OS"))
@@ -194,11 +199,19 @@ class GRRFuseTest(GRRFuseTestBase):
     self.grr_fuse = fuse_mount.GRRFuse(
         root="/", token=self.token, ignore_cache=True)
 
-    self.action_mock = action_mocks.ActionMock(
-        "TransferBuffer", "StatFile", "Find", "FingerprintFile", "HashBuffer",
-        "UpdateVFSFile", "EnumerateInterfaces", "EnumerateFilesystems",
-        "GetConfiguration", "GetConfig", "GetClientInfo", "GetInstallDate",
-        "GetPlatformInfo", "EnumerateUsers", "ListDirectory")
+    self.action_mock = action_mocks.ActionMock(admin.GetClientInfo,
+                                               admin.GetConfiguration,
+                                               admin.GetPlatformInfo,
+                                               file_fingerprint.FingerprintFile,
+                                               linux.EnumerateFilesystems,
+                                               linux.EnumerateInterfaces,
+                                               linux.EnumerateUsers,
+                                               linux.GetInstallDate,
+                                               searching.Find,
+                                               standard.HashBuffer,
+                                               standard.ListDirectory,
+                                               standard.StatFile,
+                                               standard.TransferBuffer,)
 
     self.client_mock = test_lib.MockClient(
         self.client_id, self.action_mock, token=self.token)
@@ -284,7 +297,7 @@ class GRRFuseTest(GRRFuseTestBase):
     """Make sure the right chunks get updated when we read a sparse file."""
     filename = "bigfile.txt"
     path = os.path.join(self.temp_dir, filename)
-    chunksize = standard.AFF4SparseImage.chunksize
+    chunksize = aff4_standard.AFF4SparseImage.chunksize
 
     # 8 chunks of data.
     contents = "bigdata!" * chunksize
@@ -308,7 +321,7 @@ class GRRFuseTest(GRRFuseTestBase):
 
     # Make sure it's an AFF4SparseImage
     fd = aff4.FACTORY.Open(client_path, mode="rw", token=self.token)
-    self.assertIsInstance(fd, standard.AFF4SparseImage)
+    self.assertIsInstance(fd, aff4_standard.AFF4SparseImage)
 
     missing_chunks = self.grr_fuse.GetMissingChunks(
         fd, length=10 * chunksize, offset=0)

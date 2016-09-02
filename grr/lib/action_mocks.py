@@ -3,7 +3,11 @@
 
 import socket
 
-from grr.client import actions
+from grr.client.client_actions import admin
+from grr.client.client_actions import components
+from grr.client.client_actions import file_fingerprint
+from grr.client.client_actions import searching
+from grr.client.client_actions import standard
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import client_fixture
@@ -26,7 +30,7 @@ class ActionMock(object):
 
   class MixedActionMock(ActionMock):
     def __init__(self):
-      super(MixedActionMock, self).__init__("RealAction")
+      super(MixedActionMock, self).__init__(client_actions.RealAction)
 
     def MockedAction(self, args):
       return []
@@ -35,19 +39,17 @@ class ActionMock(object):
   MockedAction.
   """
 
-  def __init__(self, *action_names, **kwargs):
+  def __init__(self, *action_classes, **kwargs):
     self.client_id = kwargs.get("client_id")
-    self.action_names = action_names
-    self.action_classes = dict([(
-        k, v) for (k, v) in actions.ActionPlugin.classes.items()
-                                if k in action_names])
-    self.action_counts = dict((x, 0) for x in action_names)
+    self.action_classes = {cls.__name__: cls for cls in action_classes}
+    self.action_counts = dict((cls_name, 0) for cls_name in self.action_classes)
+    self.recorded_args = {}
 
     # Create a single long lived client worker mock.
     self.client_worker = worker_mocks.FakeClientWorker()
 
   def RecordCall(self, action_name, action_args):
-    pass
+    self.recorded_args.setdefault(action_name, []).append(action_args)
 
   def HandleMessage(self, message):
     """Consume a message and execute the client action."""
@@ -58,7 +60,6 @@ class ActionMock(object):
       return getattr(self, message.name)(message.payload)
 
     self.RecordCall(message.name, message.payload)
-
     # Try to retrieve a suspended action from the client worker.
     try:
       suspended_action_id = message.payload.iterator.suspended_action
@@ -75,16 +76,6 @@ class ActionMock(object):
     return self.client_worker.Drain()
 
 
-class RecordingActionMock(ActionMock):
-
-  def __init__(self, *action_names):
-    super(RecordingActionMock, self).__init__(*action_names)
-    self.recorded_args = {}
-
-  def RecordCall(self, action_name, action_args):
-    self.recorded_args.setdefault(action_name, []).append(action_args)
-
-
 class InvalidActionMock(object):
   """An action mock which raises for all actions."""
 
@@ -92,60 +83,15 @@ class InvalidActionMock(object):
     raise RuntimeError("Invalid Action Mock.")
 
 
-class UnixVolumeClientMock(ActionMock):
-  """A mock of client filesystem volumes."""
-  unix_local = rdf_client.UnixVolume(mount_point="/usr")
-  unix_home = rdf_client.UnixVolume(mount_point="/")
-  path_results = [
-      rdf_client.Volume(
-          unixvolume=unix_local,
-          bytes_per_sector=4096,
-          sectors_per_allocation_unit=1,
-          actual_available_allocation_units=50,
-          total_allocation_units=100), rdf_client.Volume(
-              unixvolume=unix_home,
-              bytes_per_sector=4096,
-              sectors_per_allocation_unit=1,
-              actual_available_allocation_units=10,
-              total_allocation_units=100)
-  ]
-
-  def StatFS(self, _):
-    return self.path_results
-
-
-class WindowsVolumeClientMock(ActionMock):
-  """A mock of client filesystem volumes."""
-  windows_d = rdf_client.WindowsVolume(drive_letter="D:")
-  windows_c = rdf_client.WindowsVolume(drive_letter="C:")
-  path_results = [
-      rdf_client.Volume(
-          windowsvolume=windows_d,
-          bytes_per_sector=4096,
-          sectors_per_allocation_unit=1,
-          actual_available_allocation_units=50,
-          total_allocation_units=100), rdf_client.Volume(
-              windowsvolume=windows_c,
-              bytes_per_sector=4096,
-              sectors_per_allocation_unit=1,
-              actual_available_allocation_units=10,
-              total_allocation_units=100)
-  ]
-
-  def WmiQuery(self, query):
-    if query.query == u"SELECT * FROM Win32_LogicalDisk":
-      return client_fixture.WMI_SAMPLE
-    else:
-      return None
-
-
 class MemoryClientMock(ActionMock):
   """A mock of client state including memory actions."""
 
   def __init__(self, *args, **kwargs):
-    super(MemoryClientMock, self).__init__("LoadComponent", "StatFile",
-                                           "HashFile", "HashBuffer",
-                                           "TransferBuffer", *args, **kwargs)
+    super(MemoryClientMock, self).__init__(components.LoadComponent,
+                                           standard.HashBuffer,
+                                           standard.HashFile, standard.StatFile,
+                                           standard.TransferBuffer, *args,
+                                           **kwargs)
 
     # Create a fake component so we can launch the LoadComponent flow.
     fd = aff4.FACTORY.Create(
@@ -158,8 +104,70 @@ class MemoryClientMock(ActionMock):
     fd.Close()
 
 
+class GetFileClientMock(ActionMock):
+
+  def __init__(self, *args, **kwargs):
+    super(GetFileClientMock, self).__init__(standard.HashBuffer,
+                                            standard.StatFile,
+                                            standard.TransferBuffer, *args,
+                                            **kwargs)
+
+
+class FileFinderClientMock(ActionMock):
+
+  def __init__(self, *args, **kwargs):
+    super(FileFinderClientMock, self).__init__(file_fingerprint.FingerprintFile,
+                                               searching.Find, searching.Grep,
+                                               standard.HashBuffer,
+                                               standard.HashFile,
+                                               standard.StatFile,
+                                               standard.TransferBuffer, *args,
+                                               **kwargs)
+
+
+class MultiGetFileClientMock(ActionMock):
+
+  def __init__(self, *args, **kwargs):
+    super(MultiGetFileClientMock, self).__init__(
+        standard.HashFile, standard.StatFile, standard.HashBuffer,
+        standard.TransferBuffer, file_fingerprint.FingerprintFile, *args,
+        **kwargs)
+
+
+class ListDirectoryClientMock(ActionMock):
+
+  def __init__(self, *args, **kwargs):
+    super(ListDirectoryClientMock, self).__init__(standard.ListDirectory,
+                                                  standard.StatFile, *args,
+                                                  **kwargs)
+
+
+class GlobClientMock(ActionMock):
+
+  def __init__(self, *args, **kwargs):
+    super(GlobClientMock, self).__init__(searching.Find, standard.StatFile,
+                                         *args, **kwargs)
+
+
+class GrepClientMock(ActionMock):
+
+  def __init__(self, *args, **kwargs):
+    super(GrepClientMock, self).__init__(file_fingerprint.FingerprintFile,
+                                         searching.Find, searching.Grep,
+                                         standard.HashBuffer, standard.StatFile,
+                                         standard.TransferBuffer, *args,
+                                         **kwargs)
+
+
 class InterrogatedClient(ActionMock):
   """A mock of client state."""
+
+  def __init__(self, *args, **kwargs):
+    super(InterrogatedClient, self).__init__(
+        admin.GetLibraryVersions, file_fingerprint.FingerprintFile,
+        searching.Find, standard.GetMemorySize, standard.HashBuffer,
+        standard.HashFile, standard.ListDirectory, standard.StatFile,
+        standard.TransferBuffer, *args, **kwargs)
 
   def InitializeClient(self,
                        system="Linux",
@@ -243,5 +251,52 @@ class InterrogatedClient(ActionMock):
           except TypeError:
             rdf_dict[key] = "Failed to encode: %s" % value
       return [rdf_dict]
+    else:
+      return None
+
+
+class UnixVolumeClientMock(ListDirectoryClientMock):
+  """A mock of client filesystem volumes."""
+  unix_local = rdf_client.UnixVolume(mount_point="/usr")
+  unix_home = rdf_client.UnixVolume(mount_point="/")
+  path_results = [
+      rdf_client.Volume(
+          unixvolume=unix_local,
+          bytes_per_sector=4096,
+          sectors_per_allocation_unit=1,
+          actual_available_allocation_units=50,
+          total_allocation_units=100), rdf_client.Volume(
+              unixvolume=unix_home,
+              bytes_per_sector=4096,
+              sectors_per_allocation_unit=1,
+              actual_available_allocation_units=10,
+              total_allocation_units=100)
+  ]
+
+  def StatFS(self, _):
+    return self.path_results
+
+
+class WindowsVolumeClientMock(ListDirectoryClientMock):
+  """A mock of client filesystem volumes."""
+  windows_d = rdf_client.WindowsVolume(drive_letter="D:")
+  windows_c = rdf_client.WindowsVolume(drive_letter="C:")
+  path_results = [
+      rdf_client.Volume(
+          windowsvolume=windows_d,
+          bytes_per_sector=4096,
+          sectors_per_allocation_unit=1,
+          actual_available_allocation_units=50,
+          total_allocation_units=100), rdf_client.Volume(
+              windowsvolume=windows_c,
+              bytes_per_sector=4096,
+              sectors_per_allocation_unit=1,
+              actual_available_allocation_units=10,
+              total_allocation_units=100)
+  ]
+
+  def WmiQuery(self, query):
+    if query.query == u"SELECT * FROM Win32_LogicalDisk":
+      return client_fixture.WMI_SAMPLE
     else:
       return None

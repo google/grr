@@ -11,6 +11,8 @@ import time
 
 import psutil
 
+from grr.client.client_actions import admin
+from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import config_lib
@@ -63,8 +65,8 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     """Ensure we can retrieve and update the config."""
 
     # Only mock the pieces we care about.
-    client_mock = action_mocks.ActionMock("GetConfiguration",
-                                          "UpdateConfiguration")
+    client_mock = action_mocks.ActionMock(admin.GetConfiguration,
+                                          admin.UpdateConfiguration)
 
     loc = "http://www.example.com"
     new_config = rdf_protodict.Dict({"Client.server_urls": [loc],
@@ -253,7 +255,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     # Clean the client records.
     aff4.FACTORY.Delete(self.client_id, token=self.token)
 
-    client_mock = action_mocks.ActionMock("SendStartupInfo")
+    client_mock = action_mocks.ActionMock(admin.SendStartupInfo)
     for _ in test_lib.TestFlowHelper(
         "ClientActionRunner",
         client_mock,
@@ -326,7 +328,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
           int(client_info.age), int(fd.Get(fd.Schema.CLIENT_INFO).age))
 
   def testExecutePythonHack(self):
-    client_mock = action_mocks.ActionMock("ExecutePython")
+    client_mock = action_mocks.ActionMock(standard.ExecutePython)
     # This is the code we test. If this runs on the client mock we can check for
     # this attribute.
     sys.test_code_ran_here = False
@@ -349,7 +351,7 @@ sys.test_code_ran_here = True
     self.assertTrue(sys.test_code_ran_here)
 
   def testExecutePythonHackWithArgs(self):
-    client_mock = action_mocks.ActionMock("ExecutePython")
+    client_mock = action_mocks.ActionMock(standard.ExecutePython)
     sys.test_code_ran_here = 1234
     code = """
 import sys
@@ -370,7 +372,7 @@ sys.test_code_ran_here = py_args['value']
     self.assertEqual(sys.test_code_ran_here, 5678)
 
   def testExecuteBinariesWithArgs(self):
-    client_mock = action_mocks.ActionMock("ExecuteBinaryCommand")
+    client_mock = action_mocks.ActionMock(standard.ExecuteBinaryCommand)
 
     code = "I am a binary file"
     upload_path = config_lib.CONFIG["Executables.aff4_path"].Add("test.exe")
@@ -413,7 +415,7 @@ sys.test_code_ran_here = py_args['value']
           config_lib.CONFIG["Client.tempdir_roots"][0]))
 
   def testExecuteLargeBinaries(self):
-    client_mock = action_mocks.ActionMock("ExecuteBinaryCommand")
+    client_mock = action_mocks.ActionMock(standard.ExecuteBinaryCommand)
 
     code = "I am a large binary file" * 100
     upload_path = config_lib.CONFIG["Executables.aff4_path"].Add("test.exe")

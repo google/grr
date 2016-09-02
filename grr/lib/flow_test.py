@@ -11,6 +11,8 @@ import logging
 
 from grr.client import actions
 from grr.client import vfs
+from grr.client.client_actions import admin
+from grr.client.client_actions import standard
 from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import aff4
@@ -446,7 +448,7 @@ class FlowTest(BasicFlowTest):
 
   def testBrokenFlow(self):
     """Check that flows which call to incorrect states raise."""
-    client_mock = action_mocks.ActionMock("ReadBuffer")
+    client_mock = action_mocks.ActionMock(standard.ReadBuffer)
     with self.assertRaises(RuntimeError):
       for _ in test_lib.TestFlowHelper(
           "BrokenFlow",
@@ -573,7 +575,7 @@ class FlowTest(BasicFlowTest):
       messages.append(msg)
 
     with utils.Stubber(devnull, "ProcessMessage", StoreMessage):
-      client_mock = action_mocks.ActionMock("GetClientStats")
+      client_mock = action_mocks.ActionMock(admin.GetClientStats)
       for _ in test_lib.TestFlowHelper(
           "ClientActionRunner",
           client_mock,
@@ -686,7 +688,7 @@ class FlowTest(BasicFlowTest):
 
   def testMultipleEndsWarn(self):
     """Check that flows which call the End state multiple times warn."""
-    client_mock = action_mocks.ActionMock("ReadBuffer")
+    client_mock = action_mocks.ActionMock(standard.ReadBuffer)
     with mock.patch.object(logging, "warning") as logging_warning_mock:
       for _ in test_lib.TestFlowHelper(
           "MultiEndedFlow",
@@ -943,7 +945,7 @@ class GeneralFlowsTest(BasicFlowTest):
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS, MockVFSHandler):
       path = "/"
       # Run the flow in the simulated way
-      client_mock = action_mocks.ActionMock("IteratedListDirectory")
+      client_mock = action_mocks.ActionMock(standard.IteratedListDirectory)
       for _ in test_lib.TestFlowHelper(
           "IteratedListDirectory",
           client_mock,

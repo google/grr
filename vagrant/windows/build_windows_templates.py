@@ -73,7 +73,7 @@ class WindowsTemplateBuilder(object):
   PIP64 = os.path.join(VIRTUALENV64, r"Scripts\pip.exe")
   PIP32 = os.path.join(VIRTUALENV32, r"Scripts\pip.exe")
 
-  PROTOC = r"C:\grr_deps\protoc\protoc.exe"
+  PROTOC = r"C:\grr_deps\protoc\bin\protoc.exe"
   GIT = r"C:\Program Files\Git\bin\git.exe"
 
   INSTALL_PATH = r"C:\Windows\System32\GRR"

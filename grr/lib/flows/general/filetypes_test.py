@@ -4,6 +4,7 @@
 
 import os
 
+from grr.client.client_actions import plist
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -19,7 +20,7 @@ class TestPlistFlows(test_lib.FlowTestsBaseclass):
   """Tests the PlistValueFilter flow."""
 
   def _RunFlow(self, flow, context=None, query=None):
-    client_mock = action_mocks.ActionMock("PlistQuery")
+    client_mock = action_mocks.ActionMock(plist.PlistQuery)
     request = rdf_plist.PlistRequest(context=context, query=query)
     request.pathspec.path = os.path.join(self.base_path, "test.plist")
     request.pathspec.pathtype = rdf_paths.PathSpec.PathType.OS

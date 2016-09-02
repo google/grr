@@ -10,6 +10,7 @@ import StringIO
 import zipfile
 
 from grr.client import comms
+from grr.client.client_actions import components
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import test_lib
@@ -71,7 +72,9 @@ os._grr_component_was_here = True
         "Client.component_path": os.path.join(self.temp_dir, "components")
     }):
       self.RunAction(
-          "LoadComponent", message, grr_worker=MockClientWorker(self.token))
+          components.LoadComponent,
+          message,
+          grr_worker=MockClientWorker(self.token))
 
       # Make sure that the component was loaded.
       self.assertTrue(getattr(os, "_grr_component_was_here", False))

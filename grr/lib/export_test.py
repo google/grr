@@ -254,8 +254,7 @@ class ExportTest(test_lib.GRRBaseTest):
     pathspec.Append(
         path="/Ext2IFS_1_10b.exe", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                          "HashBuffer")
+    client_mock = action_mocks.GetFileClientMock()
     for _ in test_lib.TestFlowHelper(
         "GetFile",
         client_mock,
@@ -307,8 +306,7 @@ class ExportTest(test_lib.GRRBaseTest):
         path="/Ext2IFS_1_10b.exe", pathtype=rdf_paths.PathSpec.PathType.TSK)
     urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, client_id)
 
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                          "HashBuffer")
+    client_mock = action_mocks.GetFileClientMock()
     for _ in test_lib.TestFlowHelper(
         "GetFile",
         client_mock,

@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2011 Google Inc. All Rights Reserved.
 """This module loads all the selenium tests for the GUI."""
 
 
@@ -22,4 +21,3 @@ from grr.gui.plugins import searchclient_test
 from grr.gui.plugins import server_load_view_test
 from grr.gui.plugins import settings_view_test
 from grr.gui.plugins import statistics_test
-from grr.gui.plugins import usage_test

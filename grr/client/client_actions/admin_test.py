@@ -9,6 +9,7 @@ import StringIO
 import psutil
 
 from grr.client import comms
+from grr.client.client_actions import admin
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
@@ -49,7 +50,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     request["Client.server_urls"] = location
     request["Client.foreman_check_frequency"] = 3600
 
-    result = self.RunAction("UpdateConfiguration", request)
+    result = self.RunAction(admin.UpdateConfiguration, request)
 
     self.assertEqual(result, [])
     self.assertEqual(config_lib.CONFIG["Client.foreman_check_frequency"], 3600)
@@ -86,7 +87,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
       request["Client.server_urls"] = location
       request["Client.server_serial_number"] = 10
 
-      self.RunAction("UpdateConfiguration", request)
+      self.RunAction(admin.UpdateConfiguration, request)
 
       # Location can be set.
       self.assertEqual(config_lib.CONFIG["Client.server_urls"], location)
@@ -102,9 +103,9 @@ class ConfigActionTest(test_lib.EmptyActionTest):
     request["Client.server_urls"] = location
     request["Client.foreman_check_frequency"] = 3600
 
-    self.RunAction("UpdateConfiguration", request)
+    self.RunAction(admin.UpdateConfiguration, request)
     # Check that our GetConfig actually gets the real data.
-    self.RunAction("GetConfiguration")
+    self.RunAction(admin.GetConfiguration)
 
     self.assertEqual(config_lib.CONFIG["Client.foreman_check_frequency"], 3600)
     self.assertEqual(config_lib.CONFIG["Client.server_urls"], location)
@@ -155,7 +156,7 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
     stats.STATS.IncrementCounter("grr_client_sent_bytes", 2000)
 
     results = self.RunAction(
-        "GetClientStats",
+        admin.GetClientStats,
         grr_worker=MockClientWorker(),
         arg=rdf_client.GetClientStatsRequest())
 
@@ -186,7 +187,7 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
   def testFiltersDataPointsByStartTime(self):
     start_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(117)
     results = self.RunAction(
-        "GetClientStats",
+        admin.GetClientStats,
         grr_worker=MockClientWorker(),
         arg=rdf_client.GetClientStatsRequest(start_time=start_time))
 
@@ -202,7 +203,7 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
   def testFiltersDataPointsByEndTime(self):
     end_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(102)
     results = self.RunAction(
-        "GetClientStats",
+        admin.GetClientStats,
         grr_worker=MockClientWorker(),
         arg=rdf_client.GetClientStatsRequest(end_time=end_time))
 
@@ -219,7 +220,7 @@ class GetClientStatsActionTest(test_lib.EmptyActionTest):
     start_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(109)
     end_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(113)
     results = self.RunAction(
-        "GetClientStats",
+        admin.GetClientStats,
         grr_worker=MockClientWorker(),
         arg=rdf_client.GetClientStatsRequest(
             start_time=start_time, end_time=end_time))

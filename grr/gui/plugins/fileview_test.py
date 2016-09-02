@@ -260,8 +260,7 @@ class TestFileView(FileViewTestBase):
 
       flows = list(fd.ListChildren())
 
-      client_mock = action_mocks.ActionMock("StatFile", "HashFile",
-                                            "FingerprintFile")
+      client_mock = action_mocks.MultiGetFileClientMock()
       for flow_urn in flows:
         for _ in test_lib.TestFlowHelper(
             flow_urn,

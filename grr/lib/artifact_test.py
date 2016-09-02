@@ -10,6 +10,8 @@ import subprocess
 
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
+from grr.client.client_actions import file_fingerprint
+from grr.client.client_actions import searching
 from grr.client.client_actions import standard
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import action_mocks
@@ -21,6 +23,7 @@ from grr.lib import flags
 from grr.lib import flow_runner
 from grr.lib import parsers
 from grr.lib import rdfvalue
+from grr.lib import server_stubs
 from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
@@ -138,11 +141,15 @@ class ArtifactTest(test_lib.FlowTestsBaseclass):
     """Make sure things are initialized."""
     super(ArtifactTest, self).setUp()
     # Common group of mocks used by lots of tests.
-    self.client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                               "Find", "HashBuffer", "HashFile",
-                                               "ListDirectory",
-                                               "FingerprintFile", "Grep",
-                                               "WmiQuery")
+    self.client_mock = action_mocks.ActionMock(file_fingerprint.FingerprintFile,
+                                               searching.Find,
+                                               searching.Grep,
+                                               server_stubs.WmiQuery,
+                                               standard.HashBuffer,
+                                               standard.HashFile,
+                                               standard.ListDirectory,
+                                               standard.StatFile,
+                                               standard.TransferBuffer,)
 
   def LoadTestArtifacts(self):
     """Add the test artifacts in on top of whatever is in the registry."""
@@ -332,7 +339,8 @@ class ArtifactFlowLinuxTest(ArtifactTest):
 
   def testCmdArtifact(self):
     """Check we can run command based artifacts and get anomalies."""
-    client_mock = self.MockClient("ExecuteCommand", client_id=self.client_id)
+    client_mock = self.MockClient(
+        standard.ExecuteCommand, client_id=self.client_id)
     with utils.Stubber(subprocess, "Popen", test_lib.Popen):
       for _ in test_lib.TestFlowHelper(
           "ArtifactCollectorFlow",

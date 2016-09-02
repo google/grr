@@ -124,8 +124,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
 
     urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, client_id)
 
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                          "HashBuffer")
+    client_mock = action_mocks.GetFileClientMock()
     for _ in test_lib.TestFlowHelper(
         "GetFile",
         client_mock,
@@ -303,8 +302,8 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
                 hash_type="md5",
                 hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a"),
             token=self.token))
-    self.assertListEqual(hits, [self.client_id.Add("fs/tsk").Add(
-        self.base_path).Add("winexec_img.dd/Ext2IFS_1_10b.exe")])
+    self.assertListEqual(hits, [self.client_id.Add("fs/tsk").Add(self.base_path)
+                                .Add("winexec_img.dd/Ext2IFS_1_10b.exe")])
 
   def testGetClientsForHashWithAge(self):
     with utils.Stubber(time, "time", lambda: 42):

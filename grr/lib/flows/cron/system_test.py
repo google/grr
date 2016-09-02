@@ -214,7 +214,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     for clientid in self.client_ids:
       self._SetSummaries(clientid)
 
-    self.client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
+    self.client_mock = action_mocks.ListDirectoryClientMock()
 
     with test_lib.ConfigOverrider({
         "Test.end_to_end_client_ids": self.client_ids
@@ -259,7 +259,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     for clientid in self.client_ids:
       self._SetSummaries(clientid)
 
-    self.client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
+    self.client_mock = action_mocks.ListDirectoryClientMock()
 
     endtoend = system.EndToEndTests(None, token=self.token)
     endtoend.state.hunt_id = "aff4:/temphuntid"

@@ -35,10 +35,7 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
     self.vfs_overrider = test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                                test_lib.FakeTestDataVFSHandler)
     self.vfs_overrider.Start()
-    self.client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                               "Find", "HashBuffer",
-                                               "ListDirectory", "HashFile",
-                                               "FingerprintFile")
+    self.client_mock = action_mocks.FileFinderClientMock()
 
   def tearDown(self):
     super(TestCheckFlows, self).tearDown()

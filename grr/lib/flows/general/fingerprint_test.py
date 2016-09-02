@@ -6,6 +6,7 @@
 
 import os
 
+from grr.client.client_actions import file_fingerprint
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -27,7 +28,7 @@ class TestFingerprintFlow(test_lib.FlowTestsBaseclass):
     pathspec.Append(
         path="/winpmem-amd64.sys", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
-    client_mock = action_mocks.ActionMock("FingerprintFile")
+    client_mock = action_mocks.ActionMock(file_fingerprint.FingerprintFile)
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
       for _ in test_lib.TestFlowHelper(
           "FingerprintFile",

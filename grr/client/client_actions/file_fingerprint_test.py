@@ -9,10 +9,7 @@ import hashlib
 import os
 
 
-# Populate the action registry
-# pylint: disable=unused-import
-from grr.client import client_actions
-# pylint: enable=unused-import
+from grr.client.client_actions import file_fingerprint
 from grr.lib import flags
 from grr.lib import test_lib
 from grr.lib.rdfvalues import client as rdf_client
@@ -27,7 +24,8 @@ class FilehashTest(test_lib.EmptyActionTest):
     path = os.path.join(self.base_path, "numbers.txt")
     p = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
     result = self.RunAction(
-        "FingerprintFile", rdf_client.FingerprintRequest(pathspec=p))
+        file_fingerprint.FingerprintFile,
+        rdf_client.FingerprintRequest(pathspec=p))
     types = result[0].matching_types
     fingers = {}
     for f in result[0].results:
@@ -54,7 +52,7 @@ class FilehashTest(test_lib.EmptyActionTest):
     self.assertRaises(
         IOError,
         self.RunAction,
-        "FingerprintFile",
+        file_fingerprint.FingerprintFile,
         rdf_client.FingerprintRequest(pathspec=p))
 
 

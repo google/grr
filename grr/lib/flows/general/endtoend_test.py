@@ -84,7 +84,7 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     self.client.Set(self.client.Schema.INTERFACES([interface]))
     self.client.Flush()
 
-    self.client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
+    self.client_mock = action_mocks.ListDirectoryClientMock()
 
   def testRunSuccess(self):
     args = endtoend.EndToEndTestFlowArgs(

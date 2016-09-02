@@ -1,7 +1,5 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
-
-# Copyright 2010 Google Inc. All Rights Reserved.
 """Tests for grr.client.client_actions.plist."""
 
 
@@ -9,10 +7,7 @@
 import os
 
 
-# pylint: disable=unused-import
-from grr.client import client_plugins
-# pylint: enable=unused-import
-
+from grr.client.client_actions import plist
 from grr.lib import flags
 from grr.lib import plist as plist_lib
 from grr.lib import test_lib
@@ -94,35 +89,39 @@ class PlistTest(test_lib.EmptyActionTest):
 
     # SAFARI PLIST
     results = self._RunQuery(
-        plist="History.plist",
+        plist_file="History.plist",
         query='title contains "oogle"',
         context="WebHistoryDates")
     self.assertEqual(results[0][0], safari_plist_dict["WebHistoryDates"][0])
 
     # And now SAFARI XML
     results = self._RunQuery(
-        plist="History.xml.plist",
+        plist_file="History.xml.plist",
         query='title contains "oogle"',
         context="WebHistoryDates")
     self.assertEqual(results[0][0], safari_plist_dict["WebHistoryDates"][0])
 
   def testActionNonexistantFile(self):
     self.assertRaises(
-        IOError, self._RunQuery, query="", context="", plist="nonexistantfile")
+        IOError,
+        self._RunQuery,
+        query="",
+        context="",
+        plist_file="nonexistantfile")
 
   def testActionInvalidFile(self):
     self.assertRaises(
-        Exception, self._RunQuery, query="", context="", plist="History")
+        Exception, self._RunQuery, query="", context="", plist_file="History")
 
-  def _RunQuery(self, plist="test.plist", query="", context=""):
-    path = os.path.join(self.base_path, plist)
+  def _RunQuery(self, plist_file="test.plist", query="", context=""):
+    path = os.path.join(self.base_path, plist_file)
     pathspec = rdf_paths.PathSpec(
         path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
     plistrequest = rdf_plist.PlistRequest()
     plistrequest.query = query
     plistrequest.context = context
     plistrequest.pathspec = pathspec
-    return self.RunAction("PlistQuery", plistrequest)
+    return self.RunAction(plist.PlistQuery, plistrequest)
 
 
 def main(argv):

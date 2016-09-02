@@ -707,8 +707,7 @@ class ApiGetFlowFilesArchiveHandlerTest(test_lib.GRRBaseTest):
         paths=[os.path.join(self.base_path, "test.plist")],
         action=file_finder.FileFinderAction(action_type="DOWNLOAD"),
         token=self.token)
-    action_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                          "HashFile", "HashBuffer")
+    action_mock = action_mocks.FileFinderClientMock()
     for _ in test_lib.TestFlowHelper(
         self.flow_urn, action_mock, client_id=self.client_id, token=self.token):
       pass

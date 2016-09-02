@@ -4,6 +4,7 @@
 
 import os
 
+from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import flags
 from grr.lib import test_lib
@@ -17,7 +18,7 @@ from grr.lib.rdfvalues import paths as rdf_paths
 class TestDebugFlows(test_lib.FlowTestsBaseclass):
 
   def testClientAction(self):
-    client_mock = action_mocks.ActionMock("ListDirectory")
+    client_mock = action_mocks.ActionMock(standard.ListDirectory)
     pathspec = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test_img.dd"),
         pathtype=rdf_paths.PathSpec.PathType.OS)

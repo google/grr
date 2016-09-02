@@ -99,8 +99,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest,
     with self.ACLChecksDisabled():
       self.client_id = rdf_client.ClientURN("C.0000000000000001")
       self.RequestAndGrantClientApproval(self.client_id)
-      self.action_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                                 "HashFile", "HashBuffer")
+      self.action_mock = action_mocks.FileFinderClientMock()
 
   def testOpeningManageFlowsOfUnapprovedClientRedirectsToHostInfoPage(self):
     self.Open("/#/clients/C.0000000000000002/flows/")

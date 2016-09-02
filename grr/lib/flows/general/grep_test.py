@@ -67,7 +67,7 @@ class TestSearchFileContentWithFixture(GrepTests):
   def setUp(self):
     super(TestSearchFileContentWithFixture, self).setUp()
 
-    self.client_mock = action_mocks.ActionMock("Grep", "StatFile", "Find")
+    self.client_mock = action_mocks.GrepClientMock()
     self.vfs_overrider = test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                                test_lib.ClientVFSHandlerFixture)
     self.vfs_overrider.Start()
@@ -168,7 +168,7 @@ class TestSearchFileContent(GrepTests):
   def testSearchFileContents(self):
     pattern = "searching/*.log"
 
-    client_mock = action_mocks.ActionMock("Find", "Grep", "StatFile")
+    client_mock = action_mocks.GrepClientMock()
     path = os.path.join(self.base_path, pattern)
 
     args = grep.SearchFileContentArgs(
@@ -202,7 +202,7 @@ class TestSearchFileContent(GrepTests):
     """Search files without a grep specification."""
     pattern = "searching/*.log"
 
-    client_mock = action_mocks.ActionMock("Find", "Grep", "StatFile")
+    client_mock = action_mocks.GrepClientMock()
     path = os.path.join(self.base_path, pattern)
 
     # Do not provide a Grep expression - should match all files.
@@ -226,9 +226,7 @@ class TestSearchFileContent(GrepTests):
 
     pattern = "searching/*.log"
 
-    client_mock = action_mocks.ActionMock("Find", "Grep", "StatFile",
-                                          "FingerprintFile", "HashBuffer",
-                                          "TransferBuffer")
+    client_mock = action_mocks.GrepClientMock()
     path = os.path.join(self.base_path, pattern)
 
     # Do not provide a Grep expression - should match all files.

@@ -19,7 +19,7 @@ from grr.lib.rdfvalues import paths as rdf_paths
 class TestAuditSystem(test_lib.FlowTestsBaseclass):
 
   def testFlowExecution(self):
-    client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
+    client_mock = action_mocks.ListDirectoryClientMock()
 
     rollover = config_lib.CONFIG["Logging.aff4_audit_log_rollover"]
     # Set time to epoch + 20 intervals

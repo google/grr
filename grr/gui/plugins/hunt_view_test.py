@@ -624,8 +624,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
       hunt = self.CreateSampleHunt(
           path=os.path.join(self.base_path, "test.plist"), client_count=1)
 
-      action_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                            "HashFile", "HashBuffer")
+      action_mock = action_mocks.FileFinderClientMock()
       test_lib.TestHuntHelper(action_mock, self.client_ids, False, self.token)
 
       return hunt

@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for low-level flows."""
 
+from grr.client.client_actions import standard
 from grr.client.client_actions import tempfiles
 from grr.client.components.chipsec_support.actions import chipsec_types
 from grr.lib import action_mocks
@@ -16,6 +17,13 @@ from grr.lib.flows.general import hardware
 
 class DumpFlashImageMock(action_mocks.ActionMock):
   """Mock the flash dumping on the client side."""
+
+  def __init__(self, *args, **kwargs):
+    super(DumpFlashImageMock, self).__init__(standard.HashBuffer,
+                                             standard.HashFile,
+                                             standard.StatFile,
+                                             standard.TransferBuffer,
+                                             tempfiles.DeleteGRRTempFiles)
 
   def DumpFlashImage(self, args):
     flash_fd, flash_path = tempfiles.CreateGRRTempFileVFS()
@@ -62,9 +70,7 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
 
   def testDumpFlash(self):
     """Dump Flash Image."""
-    client_mock = DumpFlashImageMock("StatFile", "MultiGetFile", "HashFile",
-                                     "HashBuffer", "TransferBuffer",
-                                     "DeleteGRRTempFiles")
+    client_mock = DumpFlashImageMock()
 
     for _ in test_lib.TestFlowHelper(
         "DumpFlashImage",
@@ -78,9 +84,7 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
 
   def testUnknownChipset(self):
     """Fail to dump flash of unknown chipset."""
-    client_mock = UnknownChipsetDumpMock("StatFile", "MultiGetFile", "HashFile",
-                                         "HashBuffer", "TransferBuffer",
-                                         "DeleteGRRTempFiles")
+    client_mock = UnknownChipsetDumpMock()
 
     # Manually start the flow in order to be able to read the logs
     flow_urn = flow.GRRFlow.StartFlow(
@@ -95,9 +99,7 @@ class TestDumpFlashImage(test_lib.FlowTestsBaseclass):
 
   def testFailedDumpImage(self):
     """Fail to dump flash."""
-    client_mock = FailDumpMock("StatFile", "MultiGetFile", "HashFile",
-                               "HashBuffer", "TransferBuffer",
-                               "DeleteGRRTempFiles")
+    client_mock = FailDumpMock()
 
     for _ in test_lib.TestFlowHelper(
         "DumpFlashImage",

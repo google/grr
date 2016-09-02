@@ -109,9 +109,7 @@ supported_os: [ "Linux" ]
         self._testProcessCollectedArtifacts()
 
   def _testProcessCollectedArtifacts(self):
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "HashBuffer", "HashFile",
-                                          "FingerprintFile", "ListDirectory")
+    client_mock = action_mocks.FileFinderClientMock()
 
     # Get KB initialized
     for _ in test_lib.TestFlowHelper(

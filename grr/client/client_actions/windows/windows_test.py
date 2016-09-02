@@ -264,9 +264,7 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
       self.assertIn(f.registry_data.GetValue(), expected_data)
 
   def _RunRegistryFinder(self, paths=None):
-    client_mock = action_mocks.ActionMock("Find", "TransferBuffer",
-                                          "HashBuffer", "FingerprintFile",
-                                          "FingerprintFile", "Grep", "StatFile")
+    client_mock = action_mocks.GlobClientMock()
 
     client_id = self.SetupClients(1)[0]
 
@@ -352,7 +350,7 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
     output_path = client_id.Add("registry").Add(pb.first.path)
     aff4.FACTORY.Delete(output_path, token=self.token)
 
-    client_mock = action_mocks.ActionMock("ListDirectory", "StatFile")
+    client_mock = action_mocks.ListDirectoryClientMock()
 
     for _ in test_lib.TestFlowHelper(
         "ListDirectory",

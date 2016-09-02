@@ -11,6 +11,7 @@ import os
 import mock
 import psutil
 
+from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact
@@ -154,9 +155,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
   def testGetArtifact1(self):
     """Test we can get a basic artifact."""
 
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "FingerprintFile", "HashBuffer",
-                                          "HashFile")
+    client_mock = action_mocks.FileFinderClientMock()
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     client.Set(client.Schema.SYSTEM("Linux"))
     client.Flush()
@@ -187,9 +186,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd2.tell(), int(fd1.Get(fd1.Schema.SIZE)))
 
   def testArtifactSkipping(self):
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile", "Find",
-                                          "FingerprintFile", "HashBuffer",
-                                          "HashFile")
+    client_mock = action_mocks.ActionMock()
     client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
     # This does not match the Artifact so it will not be collected.
     client.Set(client.Schema.SYSTEM("Windows"))
@@ -215,7 +212,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
   def testRunGrrClientActionArtifact(self):
     """Test we can get a GRR client artifact."""
     with utils.Stubber(psutil, "process_iter", ProcessIter):
-      client_mock = action_mocks.ActionMock("ListProcesses")
+      client_mock = action_mocks.ActionMock(standard.ListProcesses)
       client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
       client.Set(client.Schema.SYSTEM("Linux"))
       client.Flush()
@@ -242,7 +239,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
   def testRunGrrClientActionArtifactSplit(self):
     """Test that artifacts get split into separate collections."""
     with utils.Stubber(psutil, "process_iter", ProcessIter):
-      client_mock = action_mocks.ActionMock("ListProcesses", "StatFile")
+      client_mock = action_mocks.ActionMock(standard.ListProcesses)
       client = aff4.FACTORY.Open(self.client_id, token=self.token, mode="rw")
       client.Set(client.Schema.SYSTEM("Linux"))
       client.Flush()
@@ -281,7 +278,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     """Test we can get a GRR client artifact with conditions."""
     with utils.Stubber(psutil, "process_iter", ProcessIter):
       # Run with false condition.
-      client_mock = action_mocks.ActionMock("ListProcesses")
+      client_mock = action_mocks.ActionMock(standard.ListProcesses)
       coll1 = artifact_registry.ArtifactSource(
           type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
           attributes={"client_action": "ListProcesses"},
@@ -316,7 +313,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
       with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                  test_lib.FakeFullVFSHandler):
 
-        client_mock = action_mocks.ActionMock("StatFile")
+        client_mock = action_mocks.ActionMock(standard.StatFile)
         coll1 = artifact_registry.ArtifactSource(
             type=artifact_registry.ArtifactSource.SourceType.REGISTRY_VALUE,
             attributes={"key_value_pairs": [{
@@ -346,7 +343,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
       with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                  test_lib.FakeFullVFSHandler):
 
-        client_mock = action_mocks.ActionMock("StatFile")
+        client_mock = action_mocks.ActionMock(standard.StatFile)
         coll1 = artifact_registry.ArtifactSource(
             type=artifact_registry.ArtifactSource.SourceType.REGISTRY_VALUE,
             attributes={"key_value_pairs": [{
@@ -372,7 +369,7 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     """Test supported_os inside the collector object."""
     with utils.Stubber(psutil, "process_iter", ProcessIter):
       # Run with false condition.
-      client_mock = action_mocks.ActionMock("ListProcesses")
+      client_mock = action_mocks.ActionMock(standard.ListProcesses)
       coll1 = artifact_registry.ArtifactSource(
           type=artifact_registry.ArtifactSource.SourceType.GRR_CLIENT_ACTION,
           attributes={"client_action": "ListProcesses"},

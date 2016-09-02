@@ -345,8 +345,7 @@ class ApiGetHuntFilesArchiveHandlerTest(test_lib.GRRBaseTest,
 
     client_ids = self.SetupClients(10)
     self.AssignTasksToClients(client_ids=client_ids)
-    action_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                          "HashFile", "HashBuffer")
+    action_mock = action_mocks.FileFinderClientMock()
     test_lib.TestHuntHelper(action_mock, client_ids, token=self.token)
 
   def testGeneratesZipArchive(self):
@@ -426,8 +425,7 @@ class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,
 
     self.client_id = self.SetupClients(1)[0]
     self.AssignTasksToClients(client_ids=[self.client_id])
-    action_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                          "HashFile", "HashBuffer")
+    action_mock = action_mocks.FileFinderClientMock()
     test_lib.TestHuntHelper(action_mock, [self.client_id], token=self.token)
 
   def testRaisesIfOneOfArgumentAttributesIsNone(self):

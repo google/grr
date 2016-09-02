@@ -64,7 +64,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
   def testGetFile(self):
     """Test that the GetFile flow works."""
 
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile")
+    client_mock = action_mocks.GetFileClientMock()
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"))
@@ -90,7 +90,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
   def testGetFilePathCorrection(self):
     """Tests that the pathspec returned is used for the aff4path."""
-    client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile")
+    client_mock = action_mocks.GetFileClientMock()
     # Deliberately using the wrong casing.
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS,
@@ -143,8 +143,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     since it thinks the file has a zero size, the flow will not download the
     file, and instead copy the zero size file into it.
     """
-    client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
-                                          "HashBuffer", "StatFile")
+    client_mock = action_mocks.MultiGetFileClientMock()
 
     # # Create a zero sized file.
     zero_sized_filename = os.path.join(self.temp_dir, "zero_size")
@@ -210,8 +209,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
   def testMultiGetFile(self):
     """Test MultiGetFile."""
 
-    client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
-                                          "StatFile", "HashBuffer")
+    client_mock = action_mocks.MultiGetFileClientMock()
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"))
@@ -244,8 +242,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
 
   def testMultiGetFileMultiFiles(self):
     """Test MultiGetFile downloading many files at once."""
-    client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
-                                          "StatFile", "HashBuffer")
+    client_mock = action_mocks.MultiGetFileClientMock()
 
     pathspecs = []
     # Make 100 files to download.
@@ -290,8 +287,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
       self.assertEqual("Hello", fd.Read(100000))
 
   def testMultiGetFileDeduplication(self):
-    client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
-                                          "StatFile", "HashBuffer")
+    client_mock = action_mocks.MultiGetFileClientMock()
 
     pathspecs = []
     # Make 10 files to download.
@@ -320,8 +316,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.assertEqual(client_mock.action_counts["TransferBuffer"], 1)
 
   def testMultiGetFileSetsFileHashAttributeWhenMultipleChunksDownloaded(self):
-    client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
-                                          "StatFile", "HashBuffer")
+    client_mock = action_mocks.MultiGetFileClientMock()
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path=os.path.join(self.base_path, "test_img.dd"))
@@ -350,8 +345,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.assertEqual(fd_hash.sha256, h.digest())
 
   def testMultiGetFileSizeLimit(self):
-    client_mock = action_mocks.ActionMock("TransferBuffer", "HashFile",
-                                          "StatFile", "HashBuffer")
+    client_mock = action_mocks.MultiGetFileClientMock()
     image_path = os.path.join(self.base_path, "test_img.dd")
     pathspec = rdf_paths.PathSpec(
         pathtype=rdf_paths.PathSpec.PathType.OS, path=image_path)

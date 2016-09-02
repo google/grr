@@ -18,6 +18,7 @@ import psutil
 from grr.client import client_plugins
 from grr.client import client_utils
 from grr.client.client_actions import standard
+from grr.client.client_actions.linux import linux
 # pylint: enable=unused-import, g-bad-import-order
 
 from grr.client import actions
@@ -47,10 +48,6 @@ class ProgressAction(actions.ActionPlugin):
         self.Progress()
 
 
-def process_iter():  # pylint: disable=g-bad-name
-  return iter([test_lib.MockWindowsProcess()])
-
-
 class ActionTest(test_lib.EmptyActionTest):
   """Test the client Actions."""
 
@@ -59,7 +56,7 @@ class ActionTest(test_lib.EmptyActionTest):
     path = os.path.join(self.base_path, "morenumbers.txt")
     p = rdf_paths.PathSpec(path=path, pathtype=rdf_paths.PathSpec.PathType.OS)
     result = self.RunAction(
-        "ReadBuffer",
+        standard.ReadBuffer,
         rdf_client.BufferReference(
             pathspec=p, offset=100, length=10))[0]
 
@@ -71,7 +68,7 @@ class ActionTest(test_lib.EmptyActionTest):
     """Tests listing directories."""
     p = rdf_paths.PathSpec(path=self.base_path, pathtype=0)
     results = self.RunAction(
-        "ListDirectory", rdf_client.ListDirRequest(pathspec=p))
+        standard.ListDirectory, rdf_client.ListDirRequest(pathspec=p))
     # Find the number.txt file
     result = None
     for result in results:
@@ -89,7 +86,7 @@ class ActionTest(test_lib.EmptyActionTest):
     p = rdf_paths.PathSpec(
         path=self.base_path, pathtype=rdf_paths.PathSpec.PathType.OS)
     non_iterated_results = self.RunAction(
-        "ListDirectory", rdf_client.ListDirRequest(pathspec=p))
+        standard.ListDirectory, rdf_client.ListDirRequest(pathspec=p))
 
     # Make sure we get some results.
     l = len(non_iterated_results)
@@ -99,7 +96,7 @@ class ActionTest(test_lib.EmptyActionTest):
     request = rdf_client.ListDirRequest(pathspec=p)
     request.iterator.number = 2
     while True:
-      responses = self.RunAction("IteratedListDirectory", request)
+      responses = self.RunAction(standard.IteratedListDirectory, request)
       results = responses[:-1]
       if not results:
         break
@@ -124,7 +121,7 @@ class ActionTest(test_lib.EmptyActionTest):
 
     while request.iterator.state != request.iterator.State.FINISHED:
       responses = self.RunAction(
-          "SuspendableListDirectory", request, grr_worker=grr_worker)
+          standard.SuspendableListDirectory, request, grr_worker=grr_worker)
       results.extend(responses)
       for response in responses:
         if isinstance(response, rdf_client.Iterator):
@@ -176,7 +173,7 @@ class ActionTest(test_lib.EmptyActionTest):
     grr_worker = worker_mocks.FakeClientWorker()
     while request.iterator.state != request.iterator.State.FINISHED:
       responses = self.ExecuteAction(
-          "RaisingListDirectory",
+          RaisingListDirectory,
           request,
           grr_worker=grr_worker,
           action_worker_cls=TestActionWorker)
@@ -220,7 +217,7 @@ class ActionTest(test_lib.EmptyActionTest):
     __builtin__.open = MockedOpen
     os.listdir = lambda x: ["wtmp"]
     try:
-      results = self.RunAction("EnumerateUsers")
+      results = self.RunAction(linux.EnumerateUsers)
     finally:
       # Restore the original methods.
       __builtin__.open = old_open
@@ -245,8 +242,11 @@ class ActionTest(test_lib.EmptyActionTest):
   def testProcessListing(self):
     """Tests if listing processes works."""
 
-    with utils.Stubber(psutil, "process_iter", process_iter):
-      results = self.RunAction("ListProcesses", None)
+    def ProcessIter():
+      return iter([test_lib.MockWindowsProcess()])
+
+    with utils.Stubber(psutil, "process_iter", ProcessIter):
+      results = self.RunAction(standard.ListProcesses, None)
 
       self.assertEqual(len(results), 1)
       result = results[0]
@@ -353,7 +353,8 @@ class ActionTest(test_lib.EmptyActionTest):
 
       # This test assumes "/" is the mount point for /usr/bin
       results = self.RunAction(
-          "StatFS", rdf_client.StatFSRequest(path_list=["/usr/bin", "/"]))
+          standard.StatFS,
+          rdf_client.StatFSRequest(path_list=["/usr/bin", "/"]))
       self.assertEqual(len(results), 2)
 
       # Both results should have mount_point as "/"
@@ -370,7 +371,7 @@ class ActionTest(test_lib.EmptyActionTest):
 
       # Test we get a result even if one path is bad
       results = self.RunAction(
-          "StatFS",
+          standard.StatFS,
           rdf_client.StatFSRequest(path_list=["/does/not/exist", "/"]))
       self.assertEqual(len(results), 1)
       self.assertEqual(result.Name(), "/")

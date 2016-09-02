@@ -765,7 +765,7 @@ class EmptyActionTest(GRRBaseTest):
   __metaclass__ = registry.MetaclassRegistry
 
   def RunAction(self,
-                action_name,
+                action_cls,
                 arg=None,
                 grr_worker=None,
                 action_worker_cls=None):
@@ -774,7 +774,7 @@ class EmptyActionTest(GRRBaseTest):
 
     self.results = []
     action = self._GetActionInstance(
-        action_name,
+        action_cls,
         arg=arg,
         grr_worker=grr_worker,
         action_worker_cls=action_worker_cls)
@@ -786,16 +786,16 @@ class EmptyActionTest(GRRBaseTest):
     return self.results
 
   def ExecuteAction(self,
-                    action_name,
+                    action_cls,
                     arg=None,
                     grr_worker=None,
                     action_worker_cls=None):
     message = rdf_flows.GrrMessage(
-        name=action_name, payload=arg, auth_state="AUTHENTICATED")
+        name=action_cls.__name__, payload=arg, auth_state="AUTHENTICATED")
 
     self.results = []
     action = self._GetActionInstance(
-        action_name,
+        action_cls,
         arg=arg,
         grr_worker=grr_worker,
         action_worker_cls=action_worker_cls)
@@ -805,7 +805,7 @@ class EmptyActionTest(GRRBaseTest):
     return self.results
 
   def _GetActionInstance(self,
-                         action_name,
+                         action_cls,
                          arg=None,
                          grr_worker=None,
                          action_worker_cls=None):
@@ -814,7 +814,7 @@ class EmptyActionTest(GRRBaseTest):
     This basically emulates GRRClientWorker.HandleMessage().
 
     Args:
-       action_name: The action to run.
+       action_cls: The action class to run.
        arg: A protobuf to pass the action.
        grr_worker: The GRRClientWorker instance to use. If not provided we make
          a new one.
@@ -838,7 +838,6 @@ class EmptyActionTest(GRRBaseTest):
       action = grr_worker.suspended_actions[suspended_action_id]
 
     except (AttributeError, KeyError):
-      action_cls = actions.ActionPlugin.classes[action_name]
       if issubclass(action_cls, actions.SuspendableAction):
         action = action_cls(
             grr_worker=grr_worker, action_worker_cls=action_worker_cls)

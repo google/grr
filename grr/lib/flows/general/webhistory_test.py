@@ -43,10 +43,7 @@ class TestWebHistory(WebHistoryFlowTest):
     self.client.Set(kb)
     self.client.Close()
 
-    self.client_mock = action_mocks.ActionMock("ReadBuffer", "FingerprintFile",
-                                               "HashBuffer", "TransferBuffer",
-                                               "StatFile", "Find",
-                                               "ListDirectory", "Grep")
+    self.client_mock = action_mocks.FileFinderClientMock()
 
     # Mock the client to make it look like the root partition is mounted off the
     # test image. This will force all flow access to come off the image.
@@ -179,10 +176,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
     fd.AddAttribute(fd.Schema.KNOWLEDGE_BASE, self.kb)
     fd.Flush()
 
-    self.client_mock = action_mocks.ActionMock("ReadBuffer", "FingerprintFile",
-                                               "HashBuffer", "HashFile",
-                                               "TransferBuffer", "StatFile",
-                                               "Find", "ListDirectory")
+    self.client_mock = action_mocks.FileFinderClientMock()
 
   def MockClientMountPointsWithImage(self, image_path, fs_type="ext2"):
     """Mock the client to run off a test image.

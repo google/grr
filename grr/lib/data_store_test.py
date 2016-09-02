@@ -2373,7 +2373,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
   def StartFlow(self, client_id):
     flow_id = flow.GRRFlow.StartFlow(
         client_id=client_id,
-        flow_name="ListDirectory",
+        flow_name=standard.ListDirectory,
         queue=self.queue,
         pathspec=rdf_paths.PathSpec(
             path="/",

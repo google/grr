@@ -2,6 +2,7 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the Timelines flow."""
 
+from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -23,7 +24,7 @@ class TestTimelines(test_lib.FlowTestsBaseclass):
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                test_lib.ClientVFSHandlerFixture):
 
-      client_mock = action_mocks.ActionMock("ListDirectory")
+      client_mock = action_mocks.ActionMock(standard.ListDirectory)
 
       pathspec = rdf_paths.PathSpec(
           path="/", pathtype=rdf_paths.PathSpec.PathType.OS)

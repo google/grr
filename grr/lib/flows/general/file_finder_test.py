@@ -18,7 +18,7 @@ from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import sequential_collection
-from grr.lib.aff4_objects import standard
+from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import paths as rdf_paths
@@ -26,12 +26,7 @@ from grr.lib.rdfvalues import paths as rdf_paths
 # pylint:mode=test
 
 
-class FileFinderActionMock(action_mocks.ActionMock):
-
-  def __init__(self):
-    super(FileFinderActionMock, self).__init__("Find", "TransferBuffer",
-                                               "HashBuffer", "FingerprintFile",
-                                               "HashFile", "Grep", "StatFile")
+class FileFinderActionMock(action_mocks.FileFinderClientMock):
 
   def HandleMessage(self, message):
     responses = super(FileFinderActionMock, self).HandleMessage(message)
@@ -112,7 +107,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     for fname in fnames:
       fd = aff4.FACTORY.Open(self.FileNameToURN(fname), token=self.token)
       # Directories have no size attribute.
-      if fd.Get(fd.Schema.TYPE) == standard.VFSDirectory:
+      if fd.Get(fd.Schema.TYPE) == aff4_standard.VFSDirectory:
         continue
       if fd.Schema.SIZE is not None:
         self.assertEqual(fd.Get(fd.Schema.SIZE), 0)
@@ -721,7 +716,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     # There should be one directory and three files. It's important that all
     # ADSs have been created as files or we won't be able to access the data.
     self.assertEqual(counter[aff4_grr.VFSBlobImage], 3)
-    self.assertEqual(counter[standard.VFSDirectory], 1)
+    self.assertEqual(counter[aff4_standard.VFSDirectory], 1)
 
     # Make sure we can access all the data.
     fd = aff4.FACTORY.Open(output.Add("a.txt"), token=self.token)

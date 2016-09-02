@@ -220,10 +220,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
                                         "LinuxRelease"],
            "Artifacts.interrogate_store_in_aff4": [],
            "Artifacts.netgroup_filter_regexes": [r"^login$"]}):
-        client_mock = action_mocks.InterrogatedClient(
-            "TransferBuffer", "StatFile", "Find", "HashBuffer", "ListDirectory",
-            "FingerprintFile", "GetLibraryVersions", "GetMemorySize",
-            "HashFile")
+        client_mock = action_mocks.InterrogatedClient()
         client_mock.InitializeClient()
 
         for _ in test_lib.TestFlowHelper(
@@ -263,10 +260,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
       with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                  test_lib.FakeFullVFSHandler):
 
-        client_mock = action_mocks.InterrogatedClient(
-            "TransferBuffer", "StatFile", "Find", "HashBuffer", "ListDirectory",
-            "FingerprintFile", "GetLibraryVersions", "GetMemorySize")
-
+        client_mock = action_mocks.InterrogatedClient()
         client_mock.InitializeClient(
             system="Windows", version="6.1.7600", kernel="6.1.7601")
 

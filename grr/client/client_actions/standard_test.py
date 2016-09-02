@@ -35,7 +35,7 @@ class TestExecutePython(test_lib.EmptyActionTest):
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
-    result = self.RunAction("ExecutePython", request)[0]
+    result = self.RunAction(standard.ExecutePython, request)[0]
 
     self.assertTrue(result.time_used > 0)
     self.assertEqual(result.return_val, "")
@@ -64,7 +64,7 @@ magic_return_str = decode(s)
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
-    result = self.RunAction("ExecutePython", request)[0]
+    result = self.RunAction(standard.ExecutePython, request)[0]
 
     self.assertTrue(result.time_used > 0)
     self.assertEqual(result.return_val, "Hello World!")
@@ -82,7 +82,7 @@ print "Done."
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
-    result = self.RunAction("ExecutePython", request)[0]
+    result = self.RunAction(standard.ExecutePython, request)[0]
 
     self.assertTrue(result.time_used > 0)
     self.assertEqual(result.return_val, "Calling f.\nF called: 1\nDone.\n")
@@ -101,7 +101,7 @@ print "Done."
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
-    result = self.RunAction("ExecutePython", request)[0]
+    result = self.RunAction(standard.ExecutePython, request)[0]
 
     self.assertTrue(result.time_used > 0)
     self.assertEqual(result.return_val, "Done.\n")
@@ -120,14 +120,14 @@ print "Done."
 
     # Should raise since the code has been modified.
     self.assertRaises(rdf_crypto.VerificationError, self.RunAction,
-                      "ExecutePython", request)
+                      standard.ExecutePython, request)
 
     # Lets also adjust the hash.
     signed_blob.digest = hashlib.sha256(signed_blob.data).digest()
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
 
     self.assertRaises(rdf_crypto.VerificationError, self.RunAction,
-                      "ExecutePython", request)
+                      standard.ExecutePython, request)
 
     # Make sure the code never ran.
     self.assertEqual(utils.TEST_VAL, "original")
@@ -139,7 +139,8 @@ print "Done."
     signed_blob.Sign(python_code, self.signing_key)
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
 
-    self.assertRaises(ValueError, self.RunAction, "ExecutePython", request)
+    self.assertRaises(ValueError, self.RunAction, standard.ExecutePython,
+                      request)
 
   def testExecuteBinary(self):
     """Test the basic ExecuteBinaryCommand action."""
@@ -151,7 +152,7 @@ print "Done."
     request = rdf_client.ExecuteBinaryRequest(
         executable=signed_blob, args=[__file__], write_path=writefile)
 
-    result = self.RunAction("ExecuteBinaryCommand", request)[0]
+    result = self.RunAction(standard.ExecuteBinaryCommand, request)[0]
 
     self.assertTrue(result.time_used > 0)
     self.assertTrue(__file__ in result.stdout)
@@ -162,7 +163,7 @@ print "Done."
     signed_blob = rdf_crypto.SignedBlob()
     signed_blob.Sign(python_code, self.signing_key)
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
-    result = self.RunAction("ExecutePython", request)[0]
+    result = self.RunAction(standard.ExecutePython, request)[0]
 
     self.assertEqual(result.return_val, "return string")
 
@@ -176,7 +177,7 @@ print "Done."
     signed_blob.Sign(python_code, signing_key)
     request = rdf_client.ExecutePythonRequest(python_code=signed_blob)
     self.assertRaises(rdf_crypto.VerificationError, self.RunAction,
-                      "ExecutePython", request)
+                      standard.ExecutePython, request)
 
   def testArgs(self):
     """Test passing arguments."""
@@ -190,7 +191,7 @@ utils.TEST_VAL = py_args[43]
     pdict = rdf_protodict.Dict({"test": "dict_arg", 43: "dict_arg2"})
     request = rdf_client.ExecutePythonRequest(
         python_code=signed_blob, py_args=pdict)
-    result = self.RunAction("ExecutePython", request)[0]
+    result = self.RunAction(standard.ExecutePython, request)[0]
     self.assertEqual(result.return_val, "dict_arg")
     self.assertEqual(utils.TEST_VAL, "dict_arg2")
 
@@ -212,7 +213,7 @@ class TestCopyPathToFile(test_lib.EmptyActionTest):
         src_path=self.pathspec,
         dest_dir=self.temp_dir,
         gzip_output=False)
-    result = self.RunAction("CopyPathToFile", request)[0]
+    result = self.RunAction(standard.CopyPathToFile, request)[0]
     hash_out = hashlib.sha1(open(result.dest_path.path, "rb").read()).hexdigest(
     )
     self.assertEqual(self.hash_in, hash_out)
@@ -224,7 +225,7 @@ class TestCopyPathToFile(test_lib.EmptyActionTest):
         src_path=self.pathspec,
         dest_dir=self.temp_dir,
         gzip_output=False)
-    result = self.RunAction("CopyPathToFile", request)[0]
+    result = self.RunAction(standard.CopyPathToFile, request)[0]
     output = open(result.dest_path.path, "rb").read()
     self.assertEqual(len(output), 23)
 
@@ -241,7 +242,7 @@ class TestCopyPathToFile(test_lib.EmptyActionTest):
         src_path=self.pathspec,
         dest_dir=self.temp_dir,
         gzip_output=False)
-    result = self.RunAction("CopyPathToFile", request)[0]
+    result = self.RunAction(standard.CopyPathToFile, request)[0]
     output = open(result.dest_path.path, "rb").read()
     self.assertEqual(len(output), 25)
     hash_out = hashlib.sha1(output).hexdigest()
@@ -254,7 +255,7 @@ class TestCopyPathToFile(test_lib.EmptyActionTest):
         src_path=self.pathspec,
         dest_dir=self.temp_dir,
         gzip_output=True)
-    result = self.RunAction("CopyPathToFile", request)[0]
+    result = self.RunAction(standard.CopyPathToFile, request)[0]
     self.assertEqual(
         hashlib.sha1(gzip.open(result.dest_path.path).read()).hexdigest(),
         self.hash_in)
@@ -267,7 +268,7 @@ class TestCopyPathToFile(test_lib.EmptyActionTest):
         dest_dir=self.temp_dir,
         gzip_output=False,
         lifetime=0.1)
-    result = self.RunAction("CopyPathToFile", request)[0]
+    result = self.RunAction(standard.CopyPathToFile, request)[0]
     self.assertTrue(os.path.exists(result.dest_path.path))
     time.sleep(1)
     self.assertFalse(os.path.exists(result.dest_path.path))
@@ -284,7 +285,7 @@ class TestNetworkByteLimits(test_lib.EmptyActionTest):
     self.data = "X" * 500
     self.old_read = standard.vfs.ReadVFS
     standard.vfs.ReadVFS = lambda x, y, z, progress_callback=None: self.data
-    self.transfer_buf = action_mocks.ActionMock("TransferBuffer")
+    self.transfer_buf = action_mocks.ActionMock(standard.TransferBuffer)
 
   def testTransferNetworkByteLimitError(self):
     message = rdf_flows.GrrMessage(

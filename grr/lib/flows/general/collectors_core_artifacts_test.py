@@ -8,6 +8,7 @@ windows interrogate, which is the most complex platform for interrogate.
 import os
 
 
+from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact_registry
@@ -37,7 +38,8 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
     self.SetupClients(1, system="Windows", os_version="6.2")
 
   def _CheckDriveAndRoot(self):
-    client_mock = action_mocks.ActionMock("StatFile", "ListDirectory")
+    client_mock = action_mocks.ActionMock(standard.StatFile,
+                                          standard.ListDirectory)
 
     for s in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow",
@@ -195,10 +197,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
       with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                  test_lib.FakeFullVFSHandler):
 
-        client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                              "Find", "HashBuffer", "HashFile",
-                                              "FingerprintFile",
-                                              "ListDirectory")
+        client_mock = action_mocks.ActionMock(standard.StatFile)
 
         artifact_list = ["WinDirEnvironmentVariable"]
         for s in test_lib.TestFlowHelper(

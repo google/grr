@@ -9,6 +9,7 @@ import json
 import os
 
 import logging
+from grr.client.client_actions import tempfiles
 from grr.client.components.rekall_support import grr_rekall
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 
@@ -76,9 +77,9 @@ class RekallTestSuite(test_lib.EmptyActionTest):
       # Allow the real RekallAction to run against the image.
       for s in test_lib.TestFlowHelper(
           "AnalyzeClientMemory",
-          action_mocks.MemoryClientMock(grr_rekall.RekallAction.__name__,
-                                        grr_rekall.WriteRekallProfile.__name__,
-                                        "DeleteGRRTempFiles"),
+          action_mocks.MemoryClientMock(grr_rekall.RekallAction,
+                                        grr_rekall.WriteRekallProfile,
+                                        tempfiles.DeleteGRRTempFiles),
           token=self.token,
           client_id=self.client_id,
           request=request):

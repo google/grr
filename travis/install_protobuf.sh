@@ -18,7 +18,7 @@ if [ ! -d "${HOME}/protobuf/bin" ]; then
   mkdir -p "${HOME}/protobuf"
   cd "${HOME}/protobuf"
   wget --quiet "https://github.com/google/protobuf/releases/download/v${VERSION}/protoc-${VERSION}-${OS}-${ARCH}.zip"
-  unzip "protoc-${VERSION}-linux-${ARCH}.zip"
+  unzip "protoc-${VERSION}-${OS}-${ARCH}.zip"
   cd "${cwd}"
 else
   echo "Using cached proto directory $HOME/protobuf"

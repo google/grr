@@ -2,6 +2,9 @@
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the registry flows."""
 
+from grr.client.client_actions import file_fingerprint
+from grr.client.client_actions import searching
+from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -34,14 +37,6 @@ class RegistryFlowTest(test_lib.FlowTestsBaseclass):
 class TestRegistryFinderFlow(RegistryFlowTest):
   """Tests for the RegistryFinder flow."""
 
-  def setUp(self):
-    super(TestRegistryFinderFlow, self).setUp()
-
-    self.client_mock = action_mocks.ActionMock("Find", "TransferBuffer",
-                                               "HashBuffer", "FingerprintFile",
-                                               "FingerprintFile", "Grep",
-                                               "StatFile")
-
   def RunFlow(self, keys_paths=None, conditions=None):
     if keys_paths is None:
       keys_paths = ["HKEY_USERS/S-1-5-20/Software/Microsoft/"
@@ -49,14 +44,18 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     if conditions is None:
       conditions = []
 
+    client_mock = action_mocks.ActionMock(searching.Find,
+                                          searching.Grep,)
+
     for s in test_lib.TestFlowHelper(
         "RegistryFinder",
-        self.client_mock,
+        client_mock,
         client_id=self.client_id,
         keys_paths=keys_paths,
         conditions=conditions,
         token=self.token):
       session_id = s
+
     return session_id
 
   def AssertNoResults(self, session_id):
@@ -295,7 +294,7 @@ class TestRegistryFlows(RegistryFlowTest):
   def testRegistryMRU(self):
     """Test that the MRU discovery flow. Flow is a work in Progress."""
     # Mock out the Find client action.
-    client_mock = action_mocks.ActionMock("Find")
+    client_mock = action_mocks.ActionMock(searching.Find)
 
     # Add some user accounts to this client.
     fd = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
@@ -340,9 +339,9 @@ class TestRegistryFlows(RegistryFlowTest):
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                test_lib.FakeFullVFSHandler):
 
-      client_mock = action_mocks.ActionMock("TransferBuffer", "StatFile",
-                                            "Find", "HashBuffer",
-                                            "FingerprintFile", "ListDirectory")
+      client_mock = action_mocks.ActionMock(file_fingerprint.FingerprintFile,
+                                            searching.Find,
+                                            standard.StatFile,)
 
       # Get KB initialized
       for _ in test_lib.TestFlowHelper(

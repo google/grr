@@ -90,14 +90,14 @@ class TestDumpFlashImage(GRRChipsecTest):
   def testDumpFlashImage(self):
     """Test the basic dump."""
     args = chipsec_types.DumpFlashImageRequest()
-    result = self.RunAction("DumpFlashImage", args)[0]
+    result = self.RunAction(self.grr_chipsec_module.DumpFlashImage, args)[0]
     with vfs.VFSOpen(result.path) as image:
       self.assertEqual(image.read(0x20000), "\xff" * 0x10000)
 
   def testDumpFlashImageVerbose(self):
     """Test the basic dump with the verbose mode enabled."""
     args = chipsec_types.DumpFlashImageRequest(log_level=1)
-    result = self.RunAction("DumpFlashImage", args)[0]
+    result = self.RunAction(self.grr_chipsec_module.DumpFlashImage, args)[0]
     with vfs.VFSOpen(result.path) as image:
       self.assertEqual(image.read(0x20000), "\xff" * 0x10000)
     self.assertNotEqual(self.chipsec_mock.logger.logger.call_count, 0)
@@ -106,7 +106,7 @@ class TestDumpFlashImage(GRRChipsecTest):
     """By default, if the chipset is unknown, no exception is raised."""
     self.chipsec_mock.chipset.cs = UnsupportedChipset
     args = chipsec_types.DumpFlashImageRequest()
-    self.RunAction("DumpFlashImage", args)
+    self.RunAction(self.grr_chipsec_module.DumpFlashImage, args)
 
   def testDumpFlashImageUnknownChipsetVerbose(self):
     """Test unknown chipset with verbose mode.
@@ -116,7 +116,7 @@ class TestDumpFlashImage(GRRChipsecTest):
     """
     self.chipsec_mock.chipset.cs = UnsupportedChipset
     args = chipsec_types.DumpFlashImageRequest(log_level=1)
-    self.RunAction("DumpFlashImage", args)
+    self.RunAction(self.grr_chipsec_module.DumpFlashImage, args)
     self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
     self.assertGreaterEqual(len(self.results), 1)
     self.assertNotEquals(len(self.results[0].logs), 0)
@@ -126,7 +126,7 @@ class TestDumpFlashImage(GRRChipsecTest):
     """If an exception is raised by the helper layer, handle it."""
     self.chipsec_mock.chipset.cs = FailingOsHelperChipset
     args = chipsec_types.DumpFlashImageRequest()
-    self.RunAction("DumpFlashImage", args)
+    self.RunAction(self.grr_chipsec_module.DumpFlashImage, args)
 
 
 class MockACPI(object):
@@ -181,7 +181,7 @@ class TestDumpACPITable(GRRChipsecTest):
   def testDumpValidSingleACPITable(self):
     """Tests basic valid ACPI table dump."""
     args = chipsec_types.DumpACPITableRequest(table_signature="DSDT")
-    result = self.RunAction("DumpACPITable", args)[0]
+    result = self.RunAction(self.grr_chipsec_module.DumpACPITable, args)[0]
     self.assertEqual(len(result.acpi_tables), 1)
     self.assertEqual(result.acpi_tables[0].table_address, 0xAABBCCDDEEFF0011)
     self.assertEqual(result.acpi_tables[0].table_blob,
@@ -190,7 +190,7 @@ class TestDumpACPITable(GRRChipsecTest):
   def testDumpValidMultipleACPITables(self):
     """Tests valid ACPI table dump that would yield several tables."""
     args = chipsec_types.DumpACPITableRequest(table_signature="SSDT")
-    result = self.RunAction("DumpACPITable", args)[0]
+    result = self.RunAction(self.grr_chipsec_module.DumpACPITable, args)[0]
     self.assertEqual(len(result.acpi_tables), 3)
     self.assertEqual(result.acpi_tables[0].table_address, 0x1234567890ABCDEF)
     self.assertEqual(result.acpi_tables[0].table_blob,
@@ -206,7 +206,7 @@ class TestDumpACPITable(GRRChipsecTest):
     """Tests valid ACPI table dump with verbose mode enabled."""
     args = chipsec_types.DumpACPITableRequest(
         table_signature="XSDT", logging=True)
-    result = self.RunAction("DumpACPITable", args)[0]
+    result = self.RunAction(self.grr_chipsec_module.DumpACPITable, args)[0]
     self.assertEqual(result.acpi_tables[0].table_address, 0x1122334455667788)
     self.assertEqual(result.acpi_tables[0].table_blob,
                      "\xAB" * 0xFF + "\xCD" * 0xFF)
@@ -215,14 +215,14 @@ class TestDumpACPITable(GRRChipsecTest):
   def testDumpInvalidACPITable(self):
     """Tests dumping invalid ACPI table."""
     args = chipsec_types.DumpACPITableRequest(table_signature="INVALID_TABLE")
-    result = self.RunAction("DumpACPITable", args)[0]
+    result = self.RunAction(self.grr_chipsec_module.DumpACPITable, args)[0]
     self.assertNotEquals(len(result.logs), 0)
 
   def testDumpACPITableUnknownChipset(self):
     """By default, if the chipset is unknown, no exception is raised."""
     self.chipsec_mock.chipset.cs = UnsupportedChipset
     args = chipsec_types.DumpACPITableRequest(table_signature="FACP")
-    self.RunAction("DumpACPITable", args)
+    self.RunAction(self.grr_chipsec_module.DumpACPITable, args)
 
   def testDumpACPITableUnknownChipsetVerbose(self):
     """Tests unknown chipset with verbose mode.
@@ -233,7 +233,7 @@ class TestDumpACPITable(GRRChipsecTest):
     self.chipsec_mock.chipset.cs = UnsupportedChipset
     args = chipsec_types.DumpACPITableRequest(
         table_signature="FACP", logging=True)
-    self.RunAction("DumpACPITable", args)
+    self.RunAction(self.grr_chipsec_module.DumpACPITable, args)
     self.assertNotEquals(self.chipsec_mock.logger.logger.call_count, 0)
     self.assertGreaterEqual(len(self.results), 1)
     self.assertNotEquals(len(self.results[0].logs), 0)
@@ -246,7 +246,7 @@ class TestDumpACPITable(GRRChipsecTest):
     """
     self.chipsec_mock.acpi.ACPI = MockACPIReadingRestrictedArea
     args = chipsec_types.DumpACPITableRequest(table_signature="FACP")
-    self.RunAction("DumpACPITable", args)
+    self.RunAction(self.grr_chipsec_module.DumpACPITable, args)
     self.assertGreaterEqual(len(self.results), 1)
     self.assertNotEquals(len(self.results[0].logs), 0)
 

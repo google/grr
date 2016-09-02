@@ -161,7 +161,7 @@ class FindTest(test_lib.EmptyActionTest):
         path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
     request = rdf_client.FindSpec(pathspec=pathspec, path_regex=".")
     request.iterator.number = 200
-    result = self.RunAction("Find", request)
+    result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
 
     # Ask for the files one at the time
@@ -170,7 +170,7 @@ class FindTest(test_lib.EmptyActionTest):
     request.iterator.number = 1
 
     while True:
-      result = self.RunAction("Find", request)
+      result = self.RunAction(searching.Find, request)
       if request.iterator.state == rdf_client.Iterator.State.FINISHED:
         break
 
@@ -196,7 +196,7 @@ class FindTest(test_lib.EmptyActionTest):
         path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
     request = rdf_client.FindSpec(pathspec=pathspec, path_regex=".*mp3")
     request.iterator.number = 200
-    result = self.RunAction("Find", request)
+    result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
 
     self.assertEqual(len(all_files), 1)
@@ -210,7 +210,7 @@ class FindTest(test_lib.EmptyActionTest):
     request = rdf_client.FindSpec(
         pathspec=pathspec, data_regex="Secret", cross_devs=True)
     request.iterator.number = 200
-    result = self.RunAction("Find", request)
+    result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
     self.assertEqual(len(all_files), 2)
     self.assertEqual(all_files[0].pathspec.Basename(), "file1.txt")
@@ -225,7 +225,7 @@ class FindTest(test_lib.EmptyActionTest):
         path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
 
     request.iterator.number = 200
-    results = self.RunAction("Find", request)
+    results = self.RunAction(searching.Find, request)
     all_files = []
     for result in results:
       if isinstance(result, rdf_client.FindSpec):
@@ -244,7 +244,7 @@ class FindTest(test_lib.EmptyActionTest):
         path="/mock2/", pathtype=rdf_paths.PathSpec.PathType.OS)
     request = rdf_client.FindSpec(pathspec=pathspec, cross_devs=True)
     request.iterator.number = 200
-    result = self.RunAction("Find", request)
+    result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
     self.assertEqual(len(all_files), 9)
 
@@ -255,20 +255,20 @@ class FindTest(test_lib.EmptyActionTest):
     request = rdf_client.FindSpec(
         pathspec=pathspec, cross_devs=True, path_regex=".")
     request.iterator.number = 200
-    results = self.RunAction("Find", request)
+    results = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in results if isinstance(x, rdf_client.FindSpec)]
     self.assertEqual(len(all_files), 9)
 
     request = rdf_client.FindSpec(
         pathspec=pathspec, cross_devs=False, path_regex=".")
     request.iterator.number = 200
-    results = self.RunAction("Find", request)
+    results = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in results if isinstance(x, rdf_client.FindSpec)]
     self.assertEqual(len(all_files), 7)
 
     request = rdf_client.FindSpec(pathspec=pathspec, path_regex=".")
     request.iterator.number = 200
-    results = self.RunAction("Find", request)
+    results = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in results if isinstance(x, rdf_client.FindSpec)]
     self.assertEqual(len(all_files), 7)
 
@@ -283,7 +283,7 @@ class FindTest(test_lib.EmptyActionTest):
     request = rdf_client.FindSpec(
         pathspec=pathspec, path_regex=".", perm_mode=0o644, cross_devs=True)
     request.iterator.number = 200
-    result = self.RunAction("Find", request)
+    result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
 
     self.assertEqual(len(all_files), 2)
@@ -303,7 +303,7 @@ class FindTest(test_lib.EmptyActionTest):
         perm_mask=0o7002,
         cross_devs=True)
     request.iterator.number = 200
-    result = self.RunAction("Find", request)
+    result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
 
     self.assertEqual(len(all_files), 2)
@@ -322,7 +322,7 @@ class FindTest(test_lib.EmptyActionTest):
         perm_mask=0o0100001,
         cross_devs=True)
     request.iterator.number = 200
-    result = self.RunAction("Find", request)
+    result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
 
     self.assertEqual(len(all_files), 2)
@@ -341,7 +341,7 @@ class FindTest(test_lib.EmptyActionTest):
         perm_mask=0o0040010,
         cross_devs=True)
     request.iterator.number = 200
-    result = self.RunAction("Find", request)
+    result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
 
     self.assertEqual(len(all_files), 3)
@@ -360,7 +360,7 @@ class FindTest(test_lib.EmptyActionTest):
     request = rdf_client.FindSpec(
         pathspec=pathspec, path_regex=".", uid=60, cross_devs=True)
     request.iterator.number = 200
-    result = self.RunAction("Find", request)
+    result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
 
     self.assertEqual(len(all_files), 2)
@@ -374,7 +374,7 @@ class FindTest(test_lib.EmptyActionTest):
     request = rdf_client.FindSpec(
         pathspec=pathspec, path_regex=".", uid=0, cross_devs=True)
     request.iterator.number = 200
-    result = self.RunAction("Find", request)
+    result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
 
     self.assertEqual(len(all_files), 3)
@@ -393,7 +393,7 @@ class FindTest(test_lib.EmptyActionTest):
     request = rdf_client.FindSpec(
         pathspec=pathspec, path_regex=".", gid=500, cross_devs=True)
     request.iterator.number = 200
-    result = self.RunAction("Find", request)
+    result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
 
     self.assertEqual(len(all_files), 2)
@@ -407,7 +407,7 @@ class FindTest(test_lib.EmptyActionTest):
     request = rdf_client.FindSpec(
         pathspec=pathspec, path_regex=".", gid=900, cross_devs=True)
     request.iterator.number = 200
-    result = self.RunAction("Find", request)
+    result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
 
     self.assertEqual(len(all_files), 2)
@@ -427,7 +427,7 @@ class FindTest(test_lib.EmptyActionTest):
     request = rdf_client.FindSpec(
         pathspec=pathspec, path_regex=".", uid=90, gid=500, cross_devs=True)
     request.iterator.number = 200
-    result = self.RunAction("Find", request)
+    result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
 
     self.assertEqual(len(all_files), 0)
@@ -437,7 +437,7 @@ class FindTest(test_lib.EmptyActionTest):
     request = rdf_client.FindSpec(
         pathspec=pathspec, path_regex=".", uid=50, gid=500, cross_devs=True)
     request.iterator.number = 200
-    result = self.RunAction("Find", request)
+    result = self.RunAction(searching.Find, request)
     all_files = [x.hit for x in result if isinstance(x, rdf_client.FindSpec)]
 
     self.assertEqual(len(all_files), 2)
@@ -478,7 +478,7 @@ class GrepTest(test_lib.EmptyActionTest):
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 0
 
-    result = self.RunAction("Grep", request)
+    result = self.RunAction(searching.Grep, request)
     hits = [x.offset for x in result]
     self.assertEqual(hits, [18, 288, 292, 296, 300, 304, 308, 312, 316, 320,
                             324, 329, 729, 1129, 1529, 1929, 2329, 2729, 3129,
@@ -499,7 +499,7 @@ class GrepTest(test_lib.EmptyActionTest):
             path=os.path.join(self.base_path, "numbers.txt"),
             pathtype=rdf_paths.PathSpec.PathType.OS))
 
-    result = self.RunAction("Grep", request)
+    result = self.RunAction(searching.Grep, request)
     hits = [x.offset for x in result]
     self.assertEqual(hits, [18, 288, 292, 296, 300, 304, 308, 312, 316, 320,
                             324, 329, 729, 1129, 1529, 1929, 2329, 2729, 3129,
@@ -520,7 +520,7 @@ class GrepTest(test_lib.EmptyActionTest):
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 0
 
-    result = self.RunAction("Grep", request)
+    result = self.RunAction(searching.Grep, request)
     self.assertEqual(len(result), 1)
     self.assertEqual(result[0].offset, 100)
 
@@ -533,7 +533,7 @@ class GrepTest(test_lib.EmptyActionTest):
     request.start_offset = 0
     request.length = 100
 
-    result = self.RunAction("Grep", request)
+    result = self.RunAction(searching.Grep, request)
     self.assertEqual(len(result), 0)
 
   def testGrepOffset(self):
@@ -549,7 +549,7 @@ class GrepTest(test_lib.EmptyActionTest):
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 0
 
-    result = self.RunAction("Grep", request)
+    result = self.RunAction(searching.Grep, request)
     self.assertEqual(len(result), 1)
     self.assertEqual(result[0].offset, 10)
 
@@ -561,7 +561,7 @@ class GrepTest(test_lib.EmptyActionTest):
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 5
 
-    result = self.RunAction("Grep", request)
+    result = self.RunAction(searching.Grep, request)
     self.assertEqual(len(result), 1)
     # This should still report 10.
     self.assertEqual(result[0].offset, 10)
@@ -574,7 +574,7 @@ class GrepTest(test_lib.EmptyActionTest):
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 11
 
-    result = self.RunAction("Grep", request)
+    result = self.RunAction(searching.Grep, request)
     self.assertEqual(len(result), 0)
 
   def testOffsetAndLength(self):
@@ -591,7 +591,7 @@ class GrepTest(test_lib.EmptyActionTest):
     request.start_offset = 11
     request.length = 100
 
-    result = self.RunAction("Grep", request)
+    result = self.RunAction(searching.Grep, request)
     self.assertEqual(len(result), 0)
 
   @SearchParams(1000, 100)
@@ -608,7 +608,7 @@ class GrepTest(test_lib.EmptyActionTest):
     request.target.pathtype = rdf_paths.PathSpec.PathType.OS
     request.start_offset = 0
 
-    result = self.RunAction("Grep", request)
+    result = self.RunAction(searching.Grep, request)
     self.assertEqual(len(result), 1)
     self.assertEqual(result[0].offset, 1500)
 
@@ -628,7 +628,7 @@ class GrepTest(test_lib.EmptyActionTest):
       request.target.pathtype = rdf_paths.PathSpec.PathType.OS
       request.start_offset = 0
 
-      result = self.RunAction("Grep", request)
+      result = self.RunAction(searching.Grep, request)
       self.assertEqual(len(result), 1)
       self.assertEqual(result[0].offset, 1000 + offset)
       expected = "X" * 10 + "HIT" + "X" * 10
@@ -652,7 +652,7 @@ class GrepTest(test_lib.EmptyActionTest):
         request.bytes_before = before
         request.bytes_after = after
 
-        result = self.RunAction("Grep", request)
+        result = self.RunAction(searching.Grep, request)
         self.assertEqual(len(result), 1)
         self.assertEqual(result[0].offset, 100)
         expected = "X" * before + "HIT" + "X" * after
@@ -676,7 +676,7 @@ class GrepTest(test_lib.EmptyActionTest):
       request.bytes_before = 10
       request.bytes_after = 10
 
-      result = self.RunAction("Grep", request)
+      result = self.RunAction(searching.Grep, request)
       self.assertEqual(len(result), 1)
       self.assertEqual(result[0].offset, offset)
       expected = data[max(0, offset - 10):offset + 3 + 10]
@@ -700,7 +700,7 @@ class GrepTest(test_lib.EmptyActionTest):
     request.bytes_before = 10
     request.bytes_after = 10
 
-    result = self.RunAction("Grep", request)
+    result = self.RunAction(searching.Grep, request)
     self.assertEqual(len(result), limit + 1)
     error = "maximum number of hits"
     self.assertTrue(error in utils.Xor(result[-1].data, self.XOR_OUT_KEY))
@@ -725,7 +725,7 @@ class FindBenchmarks(test_lib.AverageMicroBenchmarks, test_lib.EmptyActionTest):
           path=self.base_path, pathtype=rdf_paths.PathSpec.PathType.OS)
       request = rdf_client.FindSpec(pathspec=pathspec)
       request.iterator.number = 80
-      result = self.RunAction("Find", request)
+      result = self.RunAction(searching.Find, request)
       # 80 results plus one iterator.
       self.assertEqual(len(result), 81)
 

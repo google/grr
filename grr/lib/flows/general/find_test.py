@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 # -*- mode: python; encoding: utf-8 -*-
 """Tests for the Find flow."""
+from grr.client.client_actions import searching
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -36,7 +37,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
 
   def testFindFiles(self):
     """Test that the Find flow works with files."""
-    client_mock = action_mocks.ActionMock("Find")
+    client_mock = action_mocks.ActionMock(searching.Find)
 
     # Prepare a findspec.
     findspec = rdf_client.FindSpec(
@@ -68,7 +69,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
 
   def testFindFilesWithGlob(self):
     """Test that the Find flow works with glob."""
-    client_mock = action_mocks.ActionMock("Find")
+    client_mock = action_mocks.ActionMock(searching.Find)
 
     # Prepare a findspec.
     findspec = rdf_client.FindSpec(
@@ -101,7 +102,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
   def testFindDirectories(self):
     """Test that the Find flow works with directories."""
 
-    client_mock = action_mocks.ActionMock("Find")
+    client_mock = action_mocks.ActionMock(searching.Find)
 
     # Prepare a findspec.
     findspec = rdf_client.FindSpec(
@@ -131,7 +132,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
   def testFindWithMaxFiles(self):
     """Test that the Find flow works when specifying proto directly."""
 
-    client_mock = action_mocks.ActionMock("Find")
+    client_mock = action_mocks.ActionMock(searching.Find)
 
     # Prepare a findspec.
     findspec = rdf_client.FindSpec(
@@ -159,7 +160,7 @@ class TestFindFlow(test_lib.FlowTestsBaseclass):
   def testCollectionOverwriting(self):
     """Test we overwrite the collection every time the flow is executed."""
 
-    client_mock = action_mocks.ActionMock("Find")
+    client_mock = action_mocks.ActionMock(searching.Find)
 
     # Prepare a findspec.
     findspec = rdf_client.FindSpec()

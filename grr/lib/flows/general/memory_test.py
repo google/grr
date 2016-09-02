@@ -7,6 +7,9 @@ import gzip
 import json
 import os
 
+from grr.client.client_actions import file_fingerprint
+from grr.client.client_actions import searching
+from grr.client.client_actions import standard
 from grr.client.client_actions import tempfiles
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.lib import action_mocks
@@ -15,6 +18,7 @@ from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import flow_runner
+from grr.lib import server_stubs
 from grr.lib import test_lib
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import filesystem
@@ -69,12 +73,9 @@ class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
     with open(self.memory_file, "rb") as f:
       self.memory_dump = f.read()
 
-    super(MemoryCollectorClientMock, self).__init__("TransferBuffer",
-                                                    "StatFile", "Find",
-                                                    "HashBuffer",
-                                                    "FingerprintFile",
-                                                    "ListDirectory", "WmiQuery",
-                                                    "HashFile", "LoadComponent")
+      super(MemoryCollectorClientMock, self).__init__(
+          file_fingerprint.FingerprintFile, searching.Find,
+          server_stubs.WmiQuery, standard.ListDirectory)
 
   def DeleteGRRTempFiles(self, request):
     self.delete_request = request
@@ -189,12 +190,9 @@ class ListVADBinariesActionMock(action_mocks.MemoryClientMock):
   """Client with real file actions and mocked-out RekallAction."""
 
   def __init__(self, process_list=None):
-    super(ListVADBinariesActionMock, self).__init__("TransferBuffer",
-                                                    "StatFile", "Find",
-                                                    "HashBuffer",
-                                                    "FingerprintFile",
-                                                    "ListDirectory", "WmiQuery",
-                                                    "HashFile", "LoadComponent")
+    super(ListVADBinariesActionMock, self).__init__(
+        file_fingerprint.FingerprintFile, searching.Find,
+        standard.ListDirectory, server_stubs.WmiQuery)
     self.process_list = process_list or []
 
   def RekallAction(self, _):
