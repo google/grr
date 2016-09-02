@@ -4,6 +4,7 @@
 
 set -e
 
+OS=$1
 VERSION=3.0.0
 ARCH=$(uname -m)
 # Get arch in the format that the protobuf urls use
@@ -16,7 +17,7 @@ if [ ! -d "${HOME}/protobuf/bin" ]; then
   cwd=$(pwd)
   mkdir -p "${HOME}/protobuf"
   cd "${HOME}/protobuf"
-  wget "https://github.com/google/protobuf/releases/download/v${VERSION}/protoc-${VERSION}-linux-${ARCH}.zip"
+  wget --quiet "https://github.com/google/protobuf/releases/download/v${VERSION}/protoc-${VERSION}-${OS}-${ARCH}.zip"
   unzip "protoc-${VERSION}-linux-${ARCH}.zip"
   cd "${cwd}"
 else

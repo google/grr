@@ -1,5 +1,4 @@
 # A Docker container capable of running all GRR components.
-# Xenial has the correct version of the protobuf compiler (2.6.1).
 FROM ubuntu:xenial
 MAINTAINER Greg Castle github@mailgreg.com
 
@@ -12,7 +11,6 @@ RUN apt-get update && \
   libffi-dev \
   libssl-dev \
   prelink \
-  protobuf-compiler \
   python-dev \
   python-pip \
   rpm \
@@ -22,6 +20,13 @@ RUN apt-get update && \
   pip install virtualenv && \
   pip install setuptools --upgrade && \
   virtualenv /usr/share/grr-server
+
+# Install proto compiler
+RUN mkdir -p /usr/share/protobuf && \
+cd /usr/share/protobuf && \
+wget --quiet "https://github.com/google/protobuf/releases/download/v3.0.0/protoc-3.0.0-linux-x86_64.zip" && \
+unzip protoc-3.0.0-linux-x86_64.zip
+ENV PROTOC /usr/share/protobuf/bin/protoc
 
 # Make sure Bower will be able to run as root.
 # Install nodeenv, a prebuilt version of NodeJS and update the virtualenv
