@@ -860,6 +860,27 @@ Test1 Context:
     with self.assertRaises(type_info.TypeValueError):
       conf.MatchBuildContext("linux", "amd64", "deb")
 
+  def testNoUnicodeWriting(self):
+    conf = config_lib.CONFIG.MakeNewConfig()
+    config_file = os.path.join(self.temp_dir, "writeback.yaml")
+    conf.SetWriteBack(config_file)
+    conf.DEFINE_string("NewSection1.new_option1", u"Default Value", "Help")
+    conf.Set(unicode("NewSection1.new_option1"), u"New Value1")
+    conf.Write()
+
+    data = open(config_file).read()
+    self.assertFalse("!!python/unicode" in data)
+
+  def testNoUnicodeReading(self):
+    """Check that we can parse yaml files with unicode tags."""
+    data = """
+Client.labels: [Test1]
+!!python/unicode ClientBuilder.target_platforms:
+  - linux_amd64_deb
+"""
+    conf = config_lib.CONFIG.MakeNewConfig()
+    conf.Initialize(parser=config_lib.YamlParser, data=data)
+
 
 def main(argv):
   test_lib.GrrTestProgram(argv=argv)

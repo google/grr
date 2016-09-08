@@ -6,6 +6,7 @@ After=syslog.target network.target
 Type=simple
 PrivateTmp=true
 Restart=on-failure
+RestartSec=120
 LimitNOFILE=20000
 ExecStart=%(ClientBuilder.daemon_link) --config=%(ClientBuilder.target_dir)/%(ClientBuilder.config_filename)
 

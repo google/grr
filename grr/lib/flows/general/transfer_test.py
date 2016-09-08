@@ -7,12 +7,10 @@ import os
 import platform
 import unittest
 
-from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import test_lib
-from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
@@ -33,9 +31,6 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     self.old_chunk_size = transfer.GetFile.CHUNK_SIZE
     transfer.GetFile.WINDOW_SIZE = 10
     transfer.GetFile.CHUNK_SIZE = 600 * 1024
-
-    # We wiped the data_store so we have to retransmit all blobs.
-    standard.HASH_CACHE = utils.FastStore(100)
 
   def tearDown(self):
     super(TestTransfer, self).tearDown()

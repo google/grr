@@ -351,7 +351,6 @@ class RDFInteger(RDFValue):
         self._value = 0
       else:
         self._value = int(initializer)
-        # self.ParseFromString(initializer)
 
   def SerializeToString(self):
     return str(self._value)

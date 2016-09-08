@@ -712,6 +712,18 @@ class ApiGetFlowFilesArchiveHandlerTest(test_lib.GRRBaseTest):
         self.flow_urn, action_mock, client_id=self.client_id, token=self.token):
       pass
 
+  def _GetZipManifest(self, result):
+    out_fd = StringIO.StringIO()
+    for chunk in result.GenerateContent():
+      out_fd.write(chunk)
+
+    zip_fd = zipfile.ZipFile(out_fd, "r")
+    for name in zip_fd.namelist():
+      if name.endswith("MANIFEST"):
+        return yaml.safe_load(zip_fd.read(name))
+
+    return None
+
   def testGeneratesZipArchive(self):
     result = self.handler.Handle(
         flow_plugin.ApiGetFlowFilesArchiveArgs(
@@ -719,21 +731,68 @@ class ApiGetFlowFilesArchiveHandlerTest(test_lib.GRRBaseTest):
             flow_id=self.flow_urn.Basename(),
             archive_format="ZIP"),
         token=self.token)
-
-    out_fd = StringIO.StringIO()
-    for chunk in result.GenerateContent():
-      out_fd.write(chunk)
-
-    zip_fd = zipfile.ZipFile(out_fd, "r")
-    manifest = None
-    for name in zip_fd.namelist():
-      if name.endswith("MANIFEST"):
-        manifest = yaml.safe_load(zip_fd.read(name))
+    manifest = self._GetZipManifest(result)
 
     self.assertEqual(manifest["archived_files"], 1)
     self.assertEqual(manifest["failed_files"], 0)
     self.assertEqual(manifest["processed_files"], 1)
-    self.assertEqual(manifest["skipped_files"], 0)
+    self.assertEqual(manifest["ignored_files"], 0)
+
+  def testIgnoresFileNotMatchingPathGlobsWhitelist(self):
+    handler = flow_plugin.ApiGetFlowFilesArchiveHandler(
+        path_globs_blacklist=[],
+        path_globs_whitelist=[rdf_paths.GlobExpression("/**/foo.bar")])
+    result = handler.Handle(
+        flow_plugin.ApiGetFlowFilesArchiveArgs(
+            client_id=self.client_id,
+            flow_id=self.flow_urn.Basename(),
+            archive_format="ZIP"),
+        token=self.token)
+    manifest = self._GetZipManifest(result)
+    self.assertEqual(manifest["archived_files"], 0)
+    self.assertEqual(manifest["failed_files"], 0)
+    self.assertEqual(manifest["processed_files"], 1)
+    self.assertEqual(manifest["ignored_files"], 1)
+    self.assertEqual(manifest["ignored_files_list"], [
+        utils.SmartUnicode(
+            self.client_id.Add("fs/os").Add(self.base_path).Add("test.plist"))
+    ])
+
+  def testArchivesFileMatchingPathGlobsWhitelist(self):
+    handler = flow_plugin.ApiGetFlowFilesArchiveHandler(
+        path_globs_blacklist=[],
+        path_globs_whitelist=[rdf_paths.GlobExpression("/**/*/test.plist")])
+    result = handler.Handle(
+        flow_plugin.ApiGetFlowFilesArchiveArgs(
+            client_id=self.client_id,
+            flow_id=self.flow_urn.Basename(),
+            archive_format="ZIP"),
+        token=self.token)
+    manifest = self._GetZipManifest(result)
+    self.assertEqual(manifest["archived_files"], 1)
+    self.assertEqual(manifest["failed_files"], 0)
+    self.assertEqual(manifest["processed_files"], 1)
+    self.assertEqual(manifest["ignored_files"], 0)
+
+  def testIgnoresFileNotMatchingPathGlobsBlacklist(self):
+    handler = flow_plugin.ApiGetFlowFilesArchiveHandler(
+        path_globs_whitelist=[rdf_paths.GlobExpression("/**/*/test.plist")],
+        path_globs_blacklist=[rdf_paths.GlobExpression("**/*.plist")])
+    result = handler.Handle(
+        flow_plugin.ApiGetFlowFilesArchiveArgs(
+            client_id=self.client_id,
+            flow_id=self.flow_urn.Basename(),
+            archive_format="ZIP"),
+        token=self.token)
+    manifest = self._GetZipManifest(result)
+    self.assertEqual(manifest["archived_files"], 0)
+    self.assertEqual(manifest["failed_files"], 0)
+    self.assertEqual(manifest["processed_files"], 1)
+    self.assertEqual(manifest["ignored_files"], 1)
+    self.assertEqual(manifest["ignored_files_list"], [
+        utils.SmartUnicode(
+            self.client_id.Add("fs/os").Add(self.base_path).Add("test.plist"))
+    ])
 
   def testGeneratesTarGzArchive(self):
     result = self.handler.Handle(
@@ -765,7 +824,7 @@ class ApiGetFlowFilesArchiveHandlerTest(test_lib.GRRBaseTest):
         self.assertEqual(manifest["archived_files"], 1)
         self.assertEqual(manifest["failed_files"], 0)
         self.assertEqual(manifest["processed_files"], 1)
-        self.assertEqual(manifest["skipped_files"], 0)
+        self.assertEqual(manifest["ignored_files"], 0)
 
 
 def main(argv):

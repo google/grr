@@ -8,13 +8,14 @@ import requests
 
 from werkzeug import routing
 
+from google.protobuf import any_pb2
+
 from google.protobuf import message
 
 import logging
 
 from grr.gui.api_client import connector
 from grr.gui.api_client import utils
-from grr.proto import semantic_pb2
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +27,16 @@ class HttpConnector(connector.Connector):
     JSON = 0
     TYPED_JSON = 1
 
+  # pyformat: disable
   HANDLERS_MAP = routing.Map([
       routing.Rule(
-          "/api/clients", methods=["GET"], endpoint="SearchClients"),
+          "/api/clients",
+          methods=["GET"],
+          endpoint="SearchClients"),
       routing.Rule(
-          "/api/clients/<client_id>", methods=["GET"], endpoint="GetClient"),
+          "/api/clients/<client_id>",
+          methods=["GET"],
+          endpoint="GetClient"),
       routing.Rule(
           "/api/clients/<client_id>/flows",
           methods=["GET"],
@@ -39,7 +45,20 @@ class HttpConnector(connector.Connector):
           "/api/clients/<client_id>/flows",
           methods=["POST"],
           endpoint="CreateFlow"),
+      routing.Rule(
+          "/api/clients/<client_id>/flows/<path:flow_id>",
+          methods=["GET"],
+          endpoint="GetFlow"),
+      routing.Rule(
+          "/api/clients/<client_id>/flows/<path:flow_id>/results",
+          methods=["GET"],
+          endpoint="ListFlowResults"),
+      routing.Rule(
+          "/api/clients/<client_id>/flows/<path:flow_id>/results/files-archive",
+          methods=["GET"],
+          endpoint="GetFlowFilesArchive")
   ])
+  # pyformat: enable
 
   JSON_PREFIX = ")]}\'\n"
   DEFAULT_PAGE_SIZE = 50
@@ -103,7 +122,7 @@ class HttpConnector(connector.Connector):
     return result
 
   def _ToJSON(self, value):
-    if isinstance(value, semantic_pb2.AnyValue):
+    if isinstance(value, any_pb2.Any):
       proto = utils.TypeUrlToMessage(value.type_url)
       proto.ParseFromString(value.value)
       return self._ToJSON(proto)
@@ -112,6 +131,8 @@ class HttpConnector(connector.Connector):
       for descriptor, value in value.ListFields():
         result[descriptor.name] = self._ToJSON(value)
       return result
+    elif hasattr(value, "extend"):
+      return list(value)
     else:
       return value
 
@@ -144,7 +165,8 @@ class HttpConnector(connector.Connector):
         json=body,
         params=query_params,
         headers=headers,
-        cookies=cookies)
+        cookies=cookies,
+        auth=self.auth)
     prepped_request = request.prepare()
 
     session = requests.Session()

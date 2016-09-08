@@ -13,6 +13,8 @@ try:
 except ImportError:
   _semantic = None
 
+from google.protobuf import any_pb2
+
 from google.protobuf import descriptor_pb2
 from google.protobuf import text_format
 
@@ -992,7 +994,7 @@ class ProtoDynamicEmbedded(ProtoType):
 class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
   """An embedded dynamic field which that is stored as AnyValue struct."""
 
-  proto_type_name = "AnyValue"
+  proto_type_name = "google.protobuf.Any"
 
   def ConvertFromWireFormat(self, value, container=None):
     """The wire format is an AnyValue message."""
@@ -2031,13 +2033,11 @@ class RDFProtoStruct(RDFStruct):
         field = message_type.field.add()
         field.type = descriptor_pb2.FieldDescriptorProto.TYPE_MESSAGE
 
-        field.type_name = semantic_pb2.AnyValue.DESCRIPTOR.full_name
-        descriptors[field.type_name] = semantic_pb2.AnyValue.DESCRIPTOR
+        field.type_name = any_pb2.Any.DESCRIPTOR.full_name
+        descriptors[field.type_name] = any_pb2.Any.DESCRIPTOR
 
-        if (semantic_pb2.AnyValue.DESCRIPTOR.file.name not in
-            file_descriptor.dependency):
-          file_descriptor.dependency.append(
-              semantic_pb2.AnyValue.DESCRIPTOR.file.name)
+        if any_pb2.Any.DESCRIPTOR.file.name not in file_descriptor.dependency:
+          file_descriptor.dependency.append(any_pb2.Any.DESCRIPTOR.file.name)
 
       elif isinstance(desc, type_info.ProtoList):
         field = message_type.field.add()
@@ -2191,4 +2191,4 @@ class SemanticDescriptor(RDFProtoStruct):
 
 class AnyValue(RDFProtoStruct):
   """Protobuf with arbitrary serialized proto and its type."""
-  protobuf = semantic_pb2.AnyValue
+  protobuf = any_pb2.Any

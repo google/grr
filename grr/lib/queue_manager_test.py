@@ -238,7 +238,10 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     """Test the ability to schedule a task."""
     test_queue = rdfvalue.RDFURN("fooSchedule")
     task = rdf_flows.GrrMessage(
-        queue=test_queue, task_ttl=5, session_id="aff4:/Test")
+        queue=test_queue,
+        task_ttl=5,
+        session_id="aff4:/Test",
+        generate_task_id=True)
     manager = queue_manager.QueueManager(token=self.token)
     manager.Schedule([task])
 
@@ -293,7 +296,10 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
   def testTaskRetransmissionsAreCorrectlyAccounted(self):
     test_queue = rdfvalue.RDFURN("fooSchedule")
     task = rdf_flows.GrrMessage(
-        queue=test_queue, task_ttl=5, session_id="aff4:/Test")
+        queue=test_queue,
+        task_ttl=5,
+        session_id="aff4:/Test",
+        generate_task_id=True)
 
     manager = queue_manager.QueueManager(token=self.token)
     manager.Schedule([task])
@@ -323,7 +329,8 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     """Test that we can delete tasks."""
 
     test_queue = rdfvalue.RDFURN("fooDelete")
-    task = rdf_flows.GrrMessage(queue=test_queue, session_id="aff4:/Test")
+    task = rdf_flows.GrrMessage(
+        queue=test_queue, session_id="aff4:/Test", generate_task_id=True)
 
     manager = queue_manager.QueueManager(token=self.token)
     manager.Schedule([task])
@@ -356,7 +363,10 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     """Test the ability to re-schedule a task."""
     test_queue = rdfvalue.RDFURN("fooReschedule")
     task = rdf_flows.GrrMessage(
-        queue=test_queue, task_ttl=5, session_id="aff4:/Test")
+        queue=test_queue,
+        task_ttl=5,
+        session_id="aff4:/Test",
+        generate_task_id=True)
 
     manager = queue_manager.QueueManager(token=self.token)
     manager.Schedule([task])
@@ -394,7 +404,10 @@ class QueueManagerTest(test_lib.FlowTestsBaseclass):
     tasks = []
     for i in range(10):
       msg = rdf_flows.GrrMessage(
-          session_id="Test%d" % i, priority=i % 3, queue=test_queue)
+          session_id="Test%d" % i,
+          priority=i % 3,
+          queue=test_queue,
+          generate_task_id=True)
 
       tasks.append(msg)
 

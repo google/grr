@@ -953,5 +953,6 @@ class LoadComponentMixin(object):
       self.Log(responses.status.error_message)
       raise flow.FlowError(responses.status.error_message)
 
-    self.Log("Loaded component %s", responses.First().summary.name)
+    self.Log("Loaded component %s %s", responses.First().summary.name,
+             responses.First().summary.version)
     self.CallStateInline(next_state=responses.request_data["next_state"])

@@ -199,6 +199,9 @@ class FrontEndServer(object):
       if well_known_flow not in config_lib.CONFIG["Frontend.well_known_flows"]:
         del self.well_known_flows[well_known_flow]
 
+    self.well_known_flows_blacklist = set(config_lib.CONFIG[
+        "Frontend.DEBUG_well_known_flows_blacklist"])
+
   @stats.Counted("grr_frontendserver_handle_num")
   @stats.Timed("grr_frontendserver_handle_time")
   def HandleMessageBundles(self, request_comms, response_comms):
@@ -382,6 +385,9 @@ class FrontEndServer(object):
 
       # Well known flows:
       flow_name = msg.session_id.FlowName()
+      if flow_name in self.well_known_flows_blacklist:
+        continue
+
       if flow_name in self.well_known_flows:
         # This message should be processed directly on the front end.
         msgs_by_wkf.setdefault(flow_name, []).append(msg)

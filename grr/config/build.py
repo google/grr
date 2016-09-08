@@ -442,7 +442,8 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_string(
     "ClientBuilder.daemon_link",
     default=None,
-    help="ClientBuilder daemon link.")
+    help="The installer package will create a link in the system to the "
+    "installed binary.")
 
 # These options will be used by client.client_build when running buildandrepack
 # and can be used to customize what is built for each client label.

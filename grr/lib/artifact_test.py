@@ -179,8 +179,7 @@ class ArtifactTest(test_lib.FlowTestsBaseclass):
 
     return utils.MultiStubber(
         (client_utils_linux, "GetMountpoints", MockGetMountpoints),
-        (client_utils_osx, "GetMountpoints", MockGetMountpoints),
-        (standard, "HASH_CACHE", utils.FastStore(100)))
+        (client_utils_osx, "GetMountpoints", MockGetMountpoints))
 
   def RunCollectorAndGetCollection(self, artifact_list, client_mock=None, **kw):
     """Helper to handle running the collector flow."""

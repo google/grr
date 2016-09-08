@@ -17,7 +17,6 @@ as an attribute of the AFF4 object. This module defines this abstraction.
 """
 
 
-import fnmatch
 import itertools
 import posixpath
 import re
@@ -231,6 +230,25 @@ class GlobExpression(rdfvalue.RDFString):
     for vector in itertools.product(*components):
       yield u"".join(vector)
 
+  def _ReplaceRegExGrouping(self, grouping):
+    alternatives = grouping.group(1).split(",")
+    return "(" + "|".join(re.escape(s) for s in alternatives) + ")"
+
+  def _ReplaceRegExPart(self, part):
+    if part == "**/":
+      return "(?:.*\\/)?"
+    elif part == "*":
+      return "[^\\/]*"
+    elif part == "?":
+      return "[^\\/]"
+    elif GROUPING_PATTERN.match(part):
+      return GROUPING_PATTERN.sub(self._ReplaceRegExGrouping, part)
+    else:
+      return re.escape(part)
+
+  REGEX_SPLIT_PATTERN = re.compile("(" + "|".join(["{[^}]+,[^}]+}", "\\?",
+                                                   "\\*\\*\\/?", "\\*"]) + ")")
+
   def AsRegEx(self):
     """Return the current glob as a simple regex.
 
@@ -239,5 +257,7 @@ class GlobExpression(rdfvalue.RDFString):
     Returns:
       A RegularExpression() object.
     """
-    return rdf_standard.RegularExpression("(?i)^" + fnmatch.translate(
-        self._value))
+    parts = self.__class__.REGEX_SPLIT_PATTERN.split(self._value)
+    result = "".join(self._ReplaceRegExPart(p) for p in parts)
+
+    return rdf_standard.RegularExpression("(?i)\\A%s\\Z" % result)

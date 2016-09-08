@@ -38,6 +38,14 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
   message_expiry_time = 100
 
+  def InitTestServer(self):
+    prefix = "pool-%s" % self._testMethodName
+    self.server = front_end.FrontEndServer(
+        certificate=config_lib.CONFIG["Frontend.certificate"],
+        private_key=config_lib.CONFIG["PrivateKeys.server_key"],
+        message_expiry_time=self.message_expiry_time,
+        threadpool_prefix=prefix)
+
   def setUp(self):
     """Setup the server."""
     super(GRRFEServerTest, self).setUp()
@@ -50,13 +58,7 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
         "Threadpool.size": 10
     })
     self.config_overrider.Start()
-
-    prefix = "pool-%s" % self._testMethodName
-    self.server = front_end.FrontEndServer(
-        certificate=config_lib.CONFIG["Frontend.certificate"],
-        private_key=config_lib.CONFIG["PrivateKeys.server_key"],
-        message_expiry_time=self.message_expiry_time,
-        threadpool_prefix=prefix)
+    self.InitTestServer()
 
   def tearDown(self):
     super(GRRFEServerTest, self).tearDown()
@@ -158,6 +160,37 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
         [],
         data_store.DB.ResolvePrefix(
             self.client_id, "task:", token=self.token))
+
+  def testWellKnownFlowsBlacklist(self):
+    """Make sure that well known flows can run on the front end."""
+    with test_lib.ConfigOverrider({
+        "Frontend.DEBUG_well_known_flows_blacklist": [utils.SmartStr(
+            test_lib.WellKnownSessionTest.well_known_session_id.FlowName())]
+    }):
+      self.InitTestServer()
+
+      test_lib.WellKnownSessionTest.messages = []
+      session_id = test_lib.WellKnownSessionTest.well_known_session_id
+
+      messages = [rdf_flows.GrrMessage(
+          request_id=0,
+          response_id=0,
+          session_id=session_id,
+          payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)]
+
+      self.server.ReceiveMessages(self.client_id, messages)
+
+      # Wait for async actions to complete
+      self.server.thread_pool.Join()
+
+      # Check that no processing took place.
+      self.assertFalse(test_lib.WellKnownSessionTest.messages)
+
+      # There should be nothing in the client_queue
+      self.assertEqual(
+          [],
+          data_store.DB.ResolvePrefix(
+              self.client_id, "task:", token=self.token))
 
   def testWellKnownFlowsRemote(self):
     """Make sure that flows that do not exist on the front end get scheduled."""

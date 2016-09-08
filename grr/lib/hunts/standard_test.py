@@ -148,18 +148,35 @@ class InfiniteFlow(flow.GRRFlow):
 class StandardHuntTestMixin(object):
   """Mixin with helper methods for hunt tests."""
 
-  def CreateHunt(self, token=None, **kwargs):
-    return hunts.GRRHunt.StartHunt(
-        hunt_name="GenericHunt",
-        flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
-        flow_args=transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
-            path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS)),
-        client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
+  def CreateHunt(self,
+                 flow_runner_args=None,
+                 flow_args=None,
+                 client_rule_set=None,
+                 token=None,
+                 **kwargs):
+    # Only initialize default flow_args value if default flow_runner_args value
+    # is to be used.
+    if not flow_runner_args:
+      flow_args = (flow_args or
+                   transfer.GetFileArgs(pathspec=rdf_paths.PathSpec(
+                       path="/tmp/evil.txt",
+                       pathtype=rdf_paths.PathSpec.PathType.OS)))
+
+    flow_runner_args = (flow_runner_args or
+                        rdf_flows.FlowRunnerArgs(flow_name="GetFile"))
+
+    client_rule_set = (client_rule_set or rdf_foreman.ForemanClientRuleSet(
+        rules=[
             rdf_foreman.ForemanClientRule(
                 rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,
                 regex=rdf_foreman.ForemanRegexClientRule(
                     attribute_name="GRR client", attribute_regex="GRR"))
-        ]),
+        ]))
+    return hunts.GRRHunt.StartHunt(
+        hunt_name="GenericHunt",
+        flow_runner_args=flow_runner_args,
+        flow_args=flow_args,
+        client_rule_set=client_rule_set,
         client_rate=0,
         token=token or self.token,
         **kwargs)
@@ -1057,8 +1074,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
-                path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS),
-        ),
+                path="/tmp/evil.txt",
+                pathtype=rdf_paths.PathSpec.PathType.OS),),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
             rdf_foreman.ForemanClientRule(
                 rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,

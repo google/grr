@@ -1,0 +1,14 @@
+#!/bin/bash
+
+MOREARGS=\("${@:1}"\)
+
+# This nanny will be used by Linux upstart to throttle the respawn rate of the
+# client in case the client exists immediately. It will eventually be replaced
+# with the full C++ nanny code similar to Windows but for now this is just a
+# simple shell script.
+while true
+do
+  "${MOREARGS[@]}"
+  /usr/bin/logger --tag %(Client.binary_name) Daemon exited... Waiting 120 seconds before respawn. || true
+  sleep 120
+done

@@ -334,8 +334,6 @@ ApiService.prototype.downloadFile = function(apiPath, opt_params) {
  */
 ApiService.prototype.sendRequestWithPayload_ = function(
     httpMethod, apiPath, opt_params, opt_stripTypeInfo, opt_files) {
-  opt_params = opt_params || {};
-
   if (opt_stripTypeInfo) {
     opt_params = /** @type {Object<string, string>} */ (stripTypeInfo(
         opt_params));

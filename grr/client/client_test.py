@@ -63,7 +63,8 @@ class BasicContextTests(test_lib.GRRBaseTest):
         session_id=self.session_id,
         auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
         payload=args,
-        request_id=1)
+        request_id=1,
+        generate_task_id=True)
 
     self.context.HandleMessage(message)
 
@@ -84,7 +85,8 @@ class BasicContextTests(test_lib.GRRBaseTest):
         name="RaiseAction",
         session_id=self.session_id,
         auth_state=rdf_flows.GrrMessage.AuthorizationState.AUTHENTICATED,
-        request_id=1)
+        request_id=1,
+        generate_task_id=True)
 
     self.context.HandleMessage(message)
 
@@ -107,7 +109,8 @@ class BasicContextTests(test_lib.GRRBaseTest):
         name="MockAction",
         session_id=self.session_id,
         auth_state=rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED,
-        request_id=1)
+        request_id=1,
+        generate_task_id=True)
 
     self.context.HandleMessage(message)
     # We expect to receive an GrrStatus to indicate an exception was
@@ -131,7 +134,8 @@ class BasicContextTests(test_lib.GRRBaseTest):
           auth_state=rdf_flows.GrrMessage.AuthorizationState.UNAUTHENTICATED,
           request_id=1,
           priority=i % 3,
-          require_fastpoll=i % 2)
+          require_fastpoll=i % 2,
+          generate_task_id=True)
       self.context.HandleMessage(message)
     message_list = self.context.Drain(max_size=1000000).job
     self.assertEqual(len(message_list), 10)

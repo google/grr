@@ -5,7 +5,6 @@ import os
 
 from grr.client import client_utils_linux
 from grr.client import client_utils_osx
-from grr.client.client_actions import standard
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -54,9 +53,6 @@ class TestWebHistory(WebHistoryFlowTest):
     self.orig_osx_mp = client_utils_osx.GetMountpoints
     client_utils_linux.GetMountpoints = MockGetMountpoints
     client_utils_osx.GetMountpoints = MockGetMountpoints
-
-    # We wiped the data_store so we have to retransmit all blobs.
-    standard.HASH_CACHE = utils.FastStore(100)
 
   def tearDown(self):
     super(TestWebHistory, self).tearDown()
@@ -195,8 +191,7 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
 
     return utils.MultiStubber(
         (client_utils_linux, "GetMountpoints", MockGetMountpoints),
-        (client_utils_osx, "GetMountpoints", MockGetMountpoints),
-        (standard, "HASH_CACHE", utils.FastStore(100)))
+        (client_utils_osx, "GetMountpoints", MockGetMountpoints))
 
   def RunCollectorAndGetCollection(self, artifact_list, client_mock=None, **kw):
     """Helper to handle running the collector flow."""

@@ -18,6 +18,7 @@ from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import throttle
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects as aff4_collects
 from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
 from grr.lib.aff4_objects import sequential_collection
@@ -25,6 +26,7 @@ from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
@@ -424,6 +426,35 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = ApiGetFlowFilesArchiveArgs
 
+  def __init__(self, path_globs_blacklist=None, path_globs_whitelist=None):
+    """Constructor.
+
+    Args:
+      path_globs_blacklist: List of paths.GlobExpression values. Blacklist
+          will be applied before the whitelist.
+      path_globs_whitelist: List of paths.GlobExpression values. Whitelist
+          will be applied after the blacklist.
+
+    Raises:
+      ValueError: If path_globs_blacklist/whitelist is passed, but
+          the other blacklist/whitelist argument is not.
+
+    Note that path_globs_blacklist/whitelist arguments can only be passed
+    together. The algorithm of applying the lists is the following:
+    1. If the lists are not set, include the file into the archive. Otherwise:
+    2. If the file matches the blacklist, skip the file. Otherwise:
+    3. If the file does match the whitelist, skip the file.
+    """
+    super(api_call_handler_base.ApiCallHandler, self).__init__()
+
+    if len([x for x in (path_globs_blacklist, path_globs_whitelist)
+            if x is None]) == 1:
+      raise ValueError("path_globs_blacklist/path_globs_whitelist have to "
+                       "set/unset together.")
+
+    self.path_globs_blacklist = path_globs_blacklist
+    self.path_globs_whitelist = path_globs_whitelist
+
   def _WrapContentGenerator(self, generator, collection, args, token=None):
     user = aff4.FACTORY.Create(
         aff4.ROOT_URN.Add("users").Add(token.username),
@@ -448,6 +479,31 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       raise
     finally:
       user.Close()
+
+  def _BuildPredicate(self, client_id, token=None):
+    if self.path_globs_whitelist is None:
+      return None
+
+    client_obj = aff4.FACTORY.Open(
+        client_id, aff4_type=aff4_grr.VFSGRRClient, token=token)
+
+    blacklist_regexes = []
+    for expression in self.path_globs_blacklist:
+      for pattern in expression.Interpolate(client=client_obj):
+        blacklist_regexes.append(rdf_paths.GlobExpression(pattern).AsRegEx())
+
+    whitelist_regexes = []
+    for expression in self.path_globs_whitelist:
+      for pattern in expression.Interpolate(client=client_obj):
+        whitelist_regexes.append(rdf_paths.GlobExpression(pattern).AsRegEx())
+
+    def Predicate(fd):
+      pathspec = fd.Get(fd.Schema.PATHSPEC)
+      path = pathspec.CollapsePath()
+      return (not any(r.Match(path) for r in blacklist_regexes) and
+              any(r.Match(path) for r in whitelist_regexes))
+
+    return Predicate
 
   def Handle(self, args, token=None):
     flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
@@ -481,7 +537,9 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     generator = api_call_handler_utils.CollectionArchiveGenerator(
         prefix=target_file_prefix,
         description=description,
-        archive_format=archive_format)
+        archive_format=archive_format,
+        predicate=self._BuildPredicate(
+            args.client_id, token=token))
     content_generator = self._WrapContentGenerator(
         generator, collection, args, token=token)
     return api_call_handler_base.ApiBinaryStream(

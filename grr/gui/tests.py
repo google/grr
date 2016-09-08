@@ -4,6 +4,7 @@
 # Registering tests so pylint: disable=unused-import
 from grr.gui import api_auth_manager_test
 from grr.gui import api_call_handler_utils_test
+from grr.gui import api_call_robot_router_test
 from grr.gui import api_call_router_test
 from grr.gui import api_call_router_with_approval_checks_test
 from grr.gui import api_call_router_without_checks_test

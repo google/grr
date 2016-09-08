@@ -162,3 +162,67 @@ class GlobExpressionTest(test_base.RDFValueTestCase):
 
     glob_expression = rdf_paths.GlobExpression("/home/**/**")
     self.assertRaises(ValueError, glob_expression.Validate)
+
+  def testRegExIsCorrectForGlobWithoutStars(self):
+    glob_expression = rdf_paths.GlobExpression("/foo/bar/blah.txt")
+    regex = glob_expression.AsRegEx()
+
+    self.assertTrue(regex.Match("/foo/bar/blah.txt"))
+    self.assertFalse(regex.Match("/foo/bar/blah2.txt"))
+    self.assertFalse(regex.Match("/some/foo/bar/blah2.txt"))
+    self.assertFalse(regex.Match("/some/foo/bar/blah2.txt/other"))
+
+  def testRegExIsCorrectForGlobWithQuestion(self):
+    glob_expression = rdf_paths.GlobExpression("/foo/bar/???.txt")
+    regex = glob_expression.AsRegEx()
+
+    self.assertTrue(regex.Match("/foo/bar/bla.txt"))
+    self.assertFalse(regex.Match("/foo/bar/blah.txt"))
+
+  def testRegExIsCorrectForGlobWithGrouping(self):
+    glob_expression = rdf_paths.GlobExpression("/foo/{bar,other}/*{.txt,.exe}")
+    regex = glob_expression.AsRegEx()
+
+    self.assertTrue(regex.Match("/foo/bar/blah.txt"))
+    self.assertTrue(regex.Match("/foo/other/blah2.txt"))
+    self.assertTrue(regex.Match("/foo/bar/blah.exe"))
+    self.assertTrue(regex.Match("/foo/other/blah2.exe"))
+
+    self.assertFalse(regex.Match("/foo/other2/blah.txt"))
+    self.assertFalse(regex.Match("/foo/bar/blah.com"))
+
+  def testRegExIsCorrectForGlobWithSingleStar(self):
+    glob_expression = rdf_paths.GlobExpression("/foo/bar/*.txt")
+    regex = glob_expression.AsRegEx()
+
+    self.assertTrue(regex.Match("/foo/bar/blah.txt"))
+
+    self.assertFalse(regex.Match("/foo/bar/blah.plist"))
+    self.assertFalse(regex.Match("/foo/bar/blah/blah.txt"))
+    self.assertFalse(regex.Match("/foo/blah1/blah2/bar/blah.txt"))
+
+  def testRegExIsCorrectForGlobWithTwoStars(self):
+    glob_expression = rdf_paths.GlobExpression("/foo/**/bar.txt")
+    regex = glob_expression.AsRegEx()
+
+    self.assertTrue(regex.Match("/foo/bar.txt"))
+    self.assertTrue(regex.Match("/foo/blah/bar.txt"))
+    self.assertTrue(regex.Match("/foo/blah1/blah2/bar.txt"))
+
+    self.assertFalse(regex.Match("/foo/bar.plist"))
+    self.assertFalse(regex.Match("/foo/blah/bar.txt/res"))
+    self.assertFalse(regex.Match("/foo/blah1/blah2/bar.txt2"))
+
+  def testRegExIsCorrectForComplexGlob(self):
+    glob_expression = rdf_paths.GlobExpression("/foo/**/bar?/*{.txt,.exe}")
+    regex = glob_expression.AsRegEx()
+
+    self.assertTrue(regex.Match("/foo/bar1/blah.txt"))
+    self.assertTrue(regex.Match("/foo/bar2/blah.exe"))
+    self.assertTrue(regex.Match("/foo/c1/c2/c3/bar1/blah.txt"))
+    self.assertTrue(regex.Match("/foo/c1/c2/c3/bar2/blah.exe"))
+
+    self.assertFalse(regex.Match("/foo/bar/blah.txt"))
+    self.assertFalse(regex.Match("/foo/bar2/blah.com"))
+    self.assertFalse(regex.Match("/foo/c1/c2/c3/bar1/blah.txt/res.txt"))
+    self.assertFalse(regex.Match("/foo/c1/c2/c3/bar2/blah.exe/res.exe"))

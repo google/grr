@@ -64,9 +64,6 @@ class ReadBuffer(actions.ActionPlugin):
         offset=offset, data=data, length=len(data), pathspec=fd.pathspec)
 
 
-HASH_CACHE = utils.FastStore(100)
-
-
 class TransferBuffer(actions.ActionPlugin):
   """Reads a buffer from a file and returns it to the server efficiently."""
   in_rdfvalue = rdf_client.BufferReference

@@ -74,6 +74,11 @@ config_lib.DEFINE_list("Frontend.well_known_flows", ["TransferStore", "Stats"],
                        "Allow these well known flows to run directly on the "
                        "frontend. Other flows are scheduled as normal.")
 
+config_lib.DEFINE_list("Frontend.DEBUG_well_known_flows_blacklist", [],
+                       "Drop these well known flows requests without "
+                       "processing. Useful as an emergency tool to reduce "
+                       "the load on the system.")
+
 config_lib.DEFINE_string(
     "Frontend.static_aff4_prefix", "aff4:/web/static/",
     "The AFF4 URN prefix for all streams served publicly from the frontend.")

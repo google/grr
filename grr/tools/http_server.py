@@ -142,7 +142,8 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     try:
       length = int(self.headers.getheader("content-length"))
 
-      request_comms = rdf_flows.ClientCommunication(self._GetPOSTData(length))
+      request_comms = rdf_flows.ClientCommunication.FromSerializedString(
+          self._GetPOSTData(length))
 
       # If the client did not supply the version in the protobuf we use the get
       # parameter.

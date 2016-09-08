@@ -8,6 +8,7 @@ Google proto implementation, and generate Semantic proto descriptors.
 This file contains interoperability code with the Google protocol buffer
 library.
 """
+
 import logging
 
 from grr.lib import rdfvalue
@@ -149,7 +150,7 @@ def DefineFromProtobuf(cls, protobuf):
                           options.dynamic_type)
 
     elif (field.type == TYPE_MESSAGE and options.dynamic_type and
-          field.message_type.name == "AnyValue"):
+          field.message_type.name == "Any"):
       dynamic_cb = getattr(cls, options.dynamic_type, None)
       if dynamic_cb is not None:
         type_descriptor = type_info.ProtoDynamicAnyValueEmbedded(

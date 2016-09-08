@@ -4,6 +4,8 @@
 
 syntax = "proto2";
 
+import "google/protobuf/any.proto";
+
 import "grr/proto/analysis.proto";
 import "grr/proto/artifact.proto";
 import "grr/proto/flows.proto";
@@ -817,7 +819,7 @@ message ApiDataObjectKeyValuePair {
   optional string key = 1 [(sem_type) = {
       description: "The key."
     }];
-  optional AnyValue value = 2 [(sem_type) = {
+  optional google.protobuf.Any value = 2 [(sem_type) = {
       description: "Flow arguments.",
       dynamic_type: "GetArgsClass"
     }];
@@ -1009,6 +1011,45 @@ message ApiGetStatsStoreMetricArgs {
     }];
 }
 
+message ApiReportDescriptor {
+  enum ReportType {
+    CLIENT = 0 [(description) = "Client"];
+    FILE_STORE = 1 [(description) = "File store"];
+    SERVER = 2 [(description) = "Server"];
+  }
+
+  optional ReportType type = 1 [(sem_type) = {
+      description: "Top-level identifier in the report hierarchy."
+    }];
+
+  optional string name = 2 [(sem_type) = {
+      description: "Second-level identifier in the report hierarchy. "
+        "Also the name of the corresponding class in report_plugins.py. "
+        "Eg 'ClientsActivityReportPlugin'."
+    }];
+
+  optional string title = 3 [(sem_type) = {
+      description: "UI-friendly displayed title."
+    }];
+
+  optional string summary = 4 [(sem_type) = {
+      description: "UI-friendly displayed summary of what the report reports."
+    }];
+
+  optional bool requires_time_range = 5 [(sem_type) = {
+      description: "Indicates whether the report needs a time range."
+    }];
+}
+
+message ApiReport {
+  optional ApiReportDescriptor desc = 1;
+  optional ApiReportData data = 2;
+}
+
+message ApiReportData {
+  //TODO(user): Implement the proto.
+}
+
 message ApiListArtifactsArgs {
   optional int64 offset = 1 [(sem_type) = {
       description: "Starting offset."
@@ -1020,7 +1061,7 @@ message ApiListArtifactsArgs {
 
 message ApiListArtifactsResult {
   repeated ArtifactDescriptor items = 1 [(sem_type) = {
-      description: "The flwo results."
+      description: "The flow results."
     }];
    optional int64 total_count = 2 [(sem_type) = {
       description: "Total count of items."
@@ -1349,7 +1390,7 @@ message ApiConfigOption {
   optional string name = 1;
   optional bool is_redacted = 2;
 
-  optional AnyValue value = 3 [(sem_type) = {
+  optional google.protobuf.Any value = 3 [(sem_type) = {
       description: "Config option value.",
       dynamic_type: "GetValueClass"
     }];
@@ -1384,7 +1425,7 @@ message ApiFlowDescriptor {
   optional string args_type = 5 [(sem_type) = {
       description: "Flow arguments type name."
     }];
-  optional AnyValue default_args = 6 [(sem_type) = {
+  optional google.protobuf.Any default_args = 6 [(sem_type) = {
       description: "Default flow arguments.",
       dynamic_type: "GetDefaultArgsClass"
     }];
@@ -1579,7 +1620,7 @@ message ApiFlow {
   optional string name = 2 [(sem_type) = {
       description: "Flow name.",
     }];
-  optional AnyValue args = 3 [(sem_type) = {
+  optional google.protobuf.Any args = 3 [(sem_type) = {
       description: "Flow arguments.",
       dynamic_type: "GetArgsClass"
     }];
@@ -1620,7 +1661,7 @@ message ApiFlowRequest {
 }
 
 message ApiFlowResult {
-  optional AnyValue payload = 1 [(sem_type) = {
+  optional google.protobuf.Any payload = 1 [(sem_type) = {
       description: "Result payload.",
       dynamic_type: "GetPayloadClass"
     }];
@@ -1653,7 +1694,7 @@ message ApiHunt {
   optional State state = 4 [(sem_type) = {
       description: "Current hunt state."
     }];
-  optional AnyValue hunt_args = 5 [(sem_type) = {
+  optional google.protobuf.Any hunt_args = 5 [(sem_type) = {
       description: "Hunt arguments."
       dynamic_type: "GetArgsClass"
     }];
@@ -1708,7 +1749,7 @@ message ApiHuntResult {
       type: "ClientURN",
       description: "Client id."
     }];
-  optional AnyValue payload = 3 [(sem_type) = {
+  optional google.protobuf.Any payload = 3 [(sem_type) = {
       description: "Result payload.",
       dynamic_type: "GetPayloadClass"
     }];
@@ -1739,7 +1780,7 @@ message ApiCronJob {
   optional string flow_name = 3 [(sem_type) = {
       description: "Cron flow name."
     }];
-  optional AnyValue flow_args = 4 [(sem_type) = {
+  optional google.protobuf.Any flow_args = 4 [(sem_type) = {
       description: "Cron flow arguments.",
       dynamic_type: "GetArgsClass"
     }];
@@ -1781,7 +1822,7 @@ message ApiOutputPlugin {
   optional OutputPluginDescriptor plugin_descriptor = 2 [(sem_type) = {
       description: "Descriptor of the output plugin."
     }];
-  optional AnyValue state = 3 [(sem_type) = {
+  optional google.protobuf.Any state = 3 [(sem_type) = {
       description: "State of the plugin.",
       dynamic_type: "GetStateClass"
     }];
@@ -1884,7 +1925,7 @@ message ApiAff4ObjectAttributeValue {
       type: "RDFDatetime",
       description: "The age of the attribute."
     }];
-  optional AnyValue value = 3 [(sem_type) = {
+  optional google.protobuf.Any value = 3 [(sem_type) = {
       description: "The value of the attributes."
       dynamic_type: "GetValueClass"
     }];
@@ -2399,4 +2440,69 @@ message ApiLabelsRestrictedCallRouterParams {
 
   optional bool allow_flows_access = 3;
   optional bool allow_vfs_access = 4;
+}
+
+message RobotRouterSearchClientsParams {
+  optional bool enabled = 1;
+}
+
+message RobotRouterFileFinderFlowParams {
+  optional bool enabled = 1;
+
+  // If false, using “*” in FileFinder paths is not allowed.
+  optional bool globs_allowed = 2;
+
+  // If false, using interpolations in FileFinder is not allowed.
+  optional bool interpolations_allowed = 3;
+
+  // Name of the flow to use. Must be interface-compatible with FileFinder.
+  optional string file_finder_flow_name = 4;
+}
+
+message RobotRouterArtifactCollectorFlowParams {
+  optional bool enabled = 1;
+
+  // Only artifacts from this whitelist can be collected. Empty list means
+  // no artifacts can be collected.
+  repeated string artifacts_whitelist = 2;
+
+  // Name of the flow to use. Must be interface-compatible with
+  // CollectArtifacts.
+  optional string artifact_collector_flow_name = 3;
+}
+
+message RobotRouterGetFlowParams {
+  optional bool enabled = 1;
+}
+
+message RobotRouterListFlowResultsParams {
+  optional bool enabled = 1;
+}
+
+message RobotRouterGetFlowFilesArchiveParams {
+  optional bool enabled = 1;
+
+  // Only files not matching these globs will be included into the archive.
+  // Blacklist is always applied first. Files not matching the blacklist
+  // should still match the whitelist.
+  repeated string path_globs_blacklist = 2;
+
+  // Only files matching these globs will be included into the archive.
+  // Whitelist is applied after the blacklist.
+  repeated string path_globs_whitelist = 3;
+
+  optional bool skip_glob_checks_for_artifact_collector = 4;
+}
+
+message ApiCallRobotRouterParams {
+  optional RobotRouterSearchClientsParams search_clients = 1;
+
+  optional RobotRouterFileFinderFlowParams file_finder_flow = 2;
+  optional RobotRouterArtifactCollectorFlowParams artifact_collector_flow = 3;
+
+  optional RobotRouterGetFlowParams get_flow = 4;
+  optional RobotRouterListFlowResultsParams list_flow_results = 5;
+  optional RobotRouterGetFlowFilesArchiveParams get_flow_files_archive = 6;
+
+  optional string robot_id = 7;
 }

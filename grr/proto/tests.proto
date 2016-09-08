@@ -3,7 +3,6 @@
 
 syntax = "proto2";
 
-import "grr/proto/api.proto";
 import "grr/proto/export.proto";
 import "grr/proto/jobs.proto";
 import "grr/proto/semantic.proto";

@@ -29,7 +29,12 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
   # for this so there can't be more than 8 different levels of priority.
   max_priority = 7
 
-  def __init__(self, initializer=None, age=None, payload=None, **kwarg):
+  def __init__(self,
+               initializer=None,
+               age=None,
+               payload=None,
+               generate_task_id=False,
+               **kwarg):
     super(GrrMessage, self).__init__(initializer=initializer, age=age, **kwarg)
 
     if payload is not None:
@@ -41,8 +46,8 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
       except AttributeError:
         pass
 
-    if not self.task_id:
-      self.task_id = self.GenerateTaskID()
+    if generate_task_id:
+      self.GenerateTaskID()
 
   def GenerateTaskID(self):
     """Generates a new, unique task_id."""
@@ -67,7 +72,19 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
     task_id = time_base | id_base
     task_id |= priority_prefix << 61
 
+    self.Set("task_id", task_id)
     return task_id
+
+  @property
+  def task_id(self):
+    res = self.Get("task_id")
+    if res:
+      return res
+    raise ValueError("No task id set.")
+
+  @task_id.setter
+  def task_id(self, value):
+    self.Set("task_id", value)
 
   @property
   def args(self):

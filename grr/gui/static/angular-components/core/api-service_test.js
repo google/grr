@@ -387,6 +387,14 @@ describe('API service', function() {
       grrApiService.delete('some/path?foo&bar');
       $httpBackend.flush();
     });
+
+    it('doesn\'t send request body if no payload provided', function() {
+      $httpBackend.expect('DELETE', '/api/some/path', function(data) {
+        return angular.isUndefined(data);
+      }).respond(200);
+      grrApiService.delete('some/path');
+      $httpBackend.flush();
+    });
   });
 
   describe('patch() method', function() {

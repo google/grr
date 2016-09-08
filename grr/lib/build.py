@@ -614,6 +614,11 @@ class LinuxClientRepacker(ClientRepacker):
     utils.EnsureDirExists(
         os.path.join(template_path, "dist/debian/%s/usr/sbin" % package_name))
 
+    # Generate the nanny template.
+    self.GenerateFile(
+        os.path.join(target_binary_dir, "nanny.sh.in"),
+        os.path.join(target_binary_dir, "nanny.sh"))
+
     # Generate the upstart template.
     self.GenerateFile(
         os.path.join(template_path, "dist/debian/upstart.in/grr-client.conf"),

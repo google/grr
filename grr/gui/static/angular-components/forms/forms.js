@@ -10,6 +10,7 @@ goog.require('grrUi.forms.bytesFormDirective.BytesFormDirective');
 goog.require('grrUi.forms.datetimeFormDirective.DatetimeFormDirective');
 goog.require('grrUi.forms.dictFormDirective.DictFormDirective');
 goog.require('grrUi.forms.durationFormDirective.DurationFormDirective');
+goog.require('grrUi.forms.fileFinderArgsFormDirective.FileFinderArgsFormDirective');
 goog.require('grrUi.forms.foremanLabelRuleFormDirective.ForemanLabelRuleFormDirective');
 goog.require('grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective');
 goog.require('grrUi.forms.outputPluginDescriptorFormDirective.OutputPluginDescriptorFormDirective');
@@ -59,6 +60,10 @@ grrUi.forms.module.directive(
 grrUi.forms.module.directive(
     grrUi.forms.durationFormDirective.DurationFormDirective.directive_name,
     grrUi.forms.durationFormDirective.DurationFormDirective);
+grrUi.forms.module.directive(
+    grrUi.forms.fileFinderArgsFormDirective.FileFinderArgsFormDirective
+        .directive_name,
+    grrUi.forms.fileFinderArgsFormDirective.FileFinderArgsFormDirective);
 grrUi.forms.module.directive(
     grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective
         .directive_name,
@@ -135,6 +140,11 @@ grrUi.forms.module.run(function(grrSemanticFormDirectivesRegistryService) {
   registry.registerDirective(
       grrUi.forms.durationFormDirective.DurationFormDirective.semantic_type,
       grrUi.forms.durationFormDirective.DurationFormDirective);
+
+  registry.registerDirective(
+      grrUi.forms.fileFinderArgsFormDirective.FileFinderArgsFormDirective
+          .semantic_type,
+      grrUi.forms.fileFinderArgsFormDirective.FileFinderArgsFormDirective);
 
   registry.registerDirective(
       grrUi.forms.globExpressionFormDirective.GlobExpressionFormDirective

@@ -399,7 +399,8 @@ class OrderedYamlDict(yaml.YAMLObject, collections.OrderedDict):
     value = []
     node = yaml.nodes.MappingNode(cls.yaml_tag, value)
     for key, item in data.iteritems():
-      node_key = dumper.represent_data(key)
+      # Keys are forced to be strings and not unicode.
+      node_key = dumper.represent_data(utils.SmartStr(key))
       node_value = dumper.represent_data(item)
       value.append((node_key, node_value))
 
@@ -441,13 +442,26 @@ class OrderedYamlDict(yaml.YAMLObject, collections.OrderedDict):
   # pylint:enable=g-bad-name
 
 
+  # Ensure Yaml does not emit tags for unicode objects.
+  # http://pyyaml.org/ticket/11
+def UnicodeRepresenter(dumper, value):
+  return dumper.represent_scalar(u"tag:yaml.org,2002:str", value)
+
+
+yaml.add_representer(unicode, UnicodeRepresenter)
+
+
 class YamlParser(GRRConfigParser):
   """A parser for yaml style config files."""
 
   name = "yaml"
 
   def _LoadYamlByName(self, filename):
-    return yaml.safe_load(open(filename, "rb"))
+    # Note that we do not use safe_load because we trust the config file (if an
+    # attacker can write on the config file they can already get code
+    # execution). Using safe_load will break when loading a yaml file written
+    # with dump().
+    return yaml.load(open(filename, "rb"))
 
   def _ParseYaml(self, filename="", fd=None):
     """Recursively parse included configs."""
@@ -455,7 +469,7 @@ class YamlParser(GRRConfigParser):
       raise IOError("Neither filename nor fd specified")
 
     if fd:
-      data = yaml.safe_load(fd) or OrderedYamlDict()
+      data = yaml.load(fd) or OrderedYamlDict()
     elif filename:
       data = self._LoadYamlByName(filename) or OrderedYamlDict()
 

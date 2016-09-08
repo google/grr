@@ -58,12 +58,14 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
   def _GenerateArchive(
       self,
       collection,
-      archive_format=api_call_handler_utils.CollectionArchiveGenerator.ZIP):
+      archive_format=api_call_handler_utils.CollectionArchiveGenerator.ZIP,
+      predicate=None):
 
     self.fd_path = os.path.join(self.temp_dir, "archive")
 
     archive_generator = api_call_handler_utils.CollectionArchiveGenerator(
         archive_format=archive_format,
+        predicate=predicate,
         prefix="test_prefix",
         description="Test description")
     with open(self.fd_path, "wb") as out_fd:
@@ -157,7 +159,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         "description": "Test description",
         "processed_files": 2,
         "archived_files": 2,
-        "skipped_files": 0,
+        "ignored_files": 0,
         "failed_files": 0
     })
 
@@ -189,7 +191,7 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
               "description": "Test description",
               "processed_files": 2,
               "archived_files": 2,
-              "skipped_files": 0,
+              "ignored_files": 0,
               "failed_files": 0
           })
 
@@ -237,9 +239,34 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
         "description": "Test description",
         "processed_files": 2,
         "archived_files": 1,
-        "skipped_files": 0,
+        "ignored_files": 0,
         "failed_files": 1,
         "failed_files_list": [
+            u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
+        ]
+    })
+
+  def testIgnoresFilesNotMatchingPredicate(self):
+    _, fd_path = self._GenerateArchive(
+        self.stat_entries,
+        predicate=lambda fd: fd.urn.Basename().startswith("hello"),
+        archive_format=api_call_handler_utils.CollectionArchiveGenerator.ZIP)
+
+    zip_fd = zipfile.ZipFile(fd_path)
+    names = sorted(zip_fd.namelist())
+
+    # The archive is expected to contain 1 file contents blob, 1 link to this
+    # blob, and a manifest.
+    self.assertEqual(len(names), 3)
+
+    manifest = yaml.safe_load(zip_fd.read("test_prefix/MANIFEST"))
+    self.assertEqual(manifest, {
+        "description": "Test description",
+        "processed_files": 2,
+        "archived_files": 1,
+        "ignored_files": 1,
+        "failed_files": 0,
+        "ignored_files_list": [
             u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
         ]
     })

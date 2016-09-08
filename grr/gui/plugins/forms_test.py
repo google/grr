@@ -77,6 +77,30 @@ class TestForms(test_lib.GRRSeleniumTest):
         ".form-group:has(label:contains('Enum value with default')) select "
         "option:selected(label='OPTION_2 (default)')")
 
+  def testFileFinderFormDisplaysAWarningIfArgsArentValid(self):
+    # Open the "new hunt" form and select the DefaultArgsTestFlow.
+    self.Open("/#main=ManageHunts")
+    self.Click("css=button[name=NewHunt]")
+
+    self.Click("css=#_Filesystem > i.jstree-icon")
+    self.Click("link=File Finder")
+
+    warning = ("The flow won't finish successfully with current arguments, "
+               "because the List FileFinder action doesn't support conditions. "
+               "Either change the action or remove the conditions.")
+
+    self.assertFalse(self.IsTextPresent(warning))
+
+    # Add a condition.
+    self.Click("css=label:contains('Conditions') ~ div.controls button")
+
+    self.assertFalse(self.IsTextPresent(warning))
+
+    # Select the List FileFinder action.
+    self.Select("css=label:contains('Action') ~ div.controls select", "List")
+
+    self.WaitUntil(self.IsTextPresent, warning)
+
 
 def main(argv):
   # Run the full test suite

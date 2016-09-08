@@ -7,18 +7,40 @@ stack with regards to the HTTP API.
 """
 
 import json
+import os
+
 import portpicker
 import requests
 
 import logging
 
+from grr.gui import api_auth_manager
 from grr.gui import runtests
 from grr.gui.api_client import api as grr_api
+from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
+from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
+from grr.lib.rdfvalues import client as rdf_client
+
+
+class ApiE2ETest(test_lib.GRRBaseTest):
+  """Base class for all API E2E tests."""
+
+  def setUp(self):
+    super(ApiE2ETest, self).setUp()
+
+    self.port = HTTPApiEndToEndTestProgram.server_port
+    self.endpoint = "http://localhost:%s" % self.port
+    self.api = grr_api.InitHttp(api_endpoint=self.endpoint)
+
+
+class ApiE2ETestLoader(test_lib.GRRTestLoader):
+  """Load only API E2E test cases."""
+  base_class = ApiE2ETest
 
 
 class HTTPApiEndToEndTestProgram(test_lib.GrrTestProgram):
@@ -37,15 +59,8 @@ class HTTPApiEndToEndTestProgram(test_lib.GrrTestProgram):
     self.trd.StartAndWaitUntilServing()
 
 
-class ApiClientTest(test_lib.GRRBaseTest):
+class ApiClientTest(ApiE2ETest):
   """Tests GRR Python API client library."""
-
-  def setUp(self):
-    super(ApiClientTest, self).setUp()
-
-    port = HTTPApiEndToEndTestProgram.server_port
-    endpoint = "http://localhost:%s" % port
-    self.api = grr_api.InitHttp(api_endpoint=endpoint)
 
   def testSearchWithNoClients(self):
     clients = list(self.api.SearchClients(query="."))
@@ -128,14 +143,13 @@ class ApiClientTest(test_lib.GRRBaseTest):
     self.assertEqual(result_flow_obj.args, args)
 
 
-class CSRFProtectionTest(test_lib.GRRBaseTest):
+class CSRFProtectionTest(ApiE2ETest):
   """Tests GRR's CSRF protection logic for the HTTP API."""
 
   def setUp(self):
     super(CSRFProtectionTest, self).setUp()
 
-    port = HTTPApiEndToEndTestProgram.server_port
-    self.base_url = "http://localhost:%s" % port
+    self.base_url = "http://localhost:%s" % self.port
 
   def testGETRequestWithoutCSRFTokenSucceeds(self):
     response = requests.get(self.base_url + "/api/config")
@@ -277,8 +291,96 @@ class CSRFProtectionTest(test_lib.GRRBaseTest):
     self.assertEquals(response.status_code, 404)
 
 
+class ApiCallRobotRouterE2ETest(ApiE2ETest):
+
+  ROUTER_CONFIG = """
+router: "ApiCallRobotRouter"
+router_params:
+  file_finder_flow:
+    enabled: True
+  get_flow:
+    enabled: True
+  get_flow_files_archive:
+    enabled: True
+    path_globs_whitelist:
+      - "/**/*.plist"
+  robot_id: "TheRobot"
+users:
+  - "test"
+"""
+
+  def setUp(self):
+    super(ApiCallRobotRouterE2ETest, self).setUp()
+
+    router_config_file = os.path.join(self.temp_dir, "api_acls.yaml")
+    with open(router_config_file, "wb") as fd:
+      fd.write(self.__class__.ROUTER_CONFIG)
+
+    self.config_overrider = test_lib.ConfigOverrider({
+        "API.RouterACLConfigFile": router_config_file
+    })
+    self.config_overrider.Start()
+
+    # Force creation of new APIAuthorizationManager, so that configuration
+    # changes are picked up.
+    api_auth_manager.APIACLInit.InitApiAuthManager()
+
+    self.client_id = self.SetupClients(1)[0]
+
+  def tearDown(self):
+    super(ApiCallRobotRouterE2ETest, self).tearDown()
+    self.config_overrider.Stop()
+
+  def testCreatingArbitraryFlowDoesNotWork(self):
+    client_ref = self.api.Client(client_id=self.client_id.Basename())
+    with self.assertRaises(RuntimeError):
+      client_ref.CreateFlow(name=processes.ListProcesses.__name__)
+
+  def testFileFinderWorkflowWorks(self):
+    client_ref = self.api.Client(client_id=self.client_id.Basename())
+
+    args = file_finder.FileFinderArgs(paths=[
+        os.path.join(self.base_path, "test_data", "test.plist"),
+        os.path.join(self.base_path, "test_data", "numbers.txt"),
+        os.path.join(self.base_path, "test_data", "numbers.txt.ver2")
+    ]).AsPrimitiveProto()
+    flow_obj = client_ref.CreateFlow(
+        name=file_finder.FileFinder.__name__, args=args)
+    self.assertEqual(flow_obj.data["state"], "RUNNING")
+
+    # Now run the flow we just started.
+    client_id = rdf_client.ClientURN(flow_obj.client_id)
+    flow_urn = client_id.Add("flows").Add(flow_obj.flow_id)
+    for _ in test_lib.TestFlowHelper(
+        flow_urn,
+        client_id=client_id,
+        client_mock=action_mocks.FileFinderClientMock(),
+        token=self.token):
+      pass
+
+    # Refresh flow.
+    flow_obj = client_ref.Flow(flow_obj.flow_id).Get()
+    self.assertEqual(flow_obj.data["state"], "TERMINATED")
+
+  def testCheckingArbitraryFlowStateDoesNotWork(self):
+    flow_urn = flow.GRRFlow.StartFlow(
+        client_id=self.client_id,
+        flow_name=file_finder.FileFinder.__name__,
+        token=self.token)
+
+    flow_ref = self.api.Client(
+        client_id=self.client_id.Basename()).Flow(flow_urn.Basename())
+    with self.assertRaises(RuntimeError):
+      flow_ref.Get()
+
+
 def main(argv):
-  HTTPApiEndToEndTestProgram(argv=argv)
+  HTTPApiEndToEndTestProgram(argv=argv, testLoader=ApiE2ETestLoader())
+
+
+def DistEntry():
+  """The main entry point for packages."""
+  flags.StartMain(main)
 
 
 if __name__ == "__main__":

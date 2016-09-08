@@ -877,8 +877,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
             request_id=i,
             response_id=1,
             session_id=session_id,
-            payload=rdf_protodict.DataBlob(string="test%s" % i))
-        for i in range(1, 11)
+            payload=rdf_protodict.DataBlob(string="test%s" % i),
+            generate_task_id=True) for i in range(1, 11)
     ]
     status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
     statuses = [
@@ -887,7 +887,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
             response_id=2,
             session_id=session_id,
             payload=status,
-            type=rdf_flows.GrrMessage.Type.STATUS) for i in range(1, 11)
+            type=rdf_flows.GrrMessage.Type.STATUS,
+            generate_task_id=True) for i in range(1, 11)
     ]
 
     frontend_server.ReceiveMessages(self.client_id, messages + statuses)

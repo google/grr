@@ -49,8 +49,7 @@ Global Install Context:
   Config.directory: /etc/grr/
 
 ClientBuilder Context:
-  Client.foreman_check_frequency: 600
-
+  Client.foreman_check_frequency: 1800
   Client.poll_max: 600
 
   Target:Darwin:

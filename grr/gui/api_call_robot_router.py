@@ -3,19 +3,226 @@
 
 
 
+from grr.gui import api_call_handler_base
 from grr.gui import api_call_router
 from grr.gui import api_call_router_without_checks
+
+from grr.gui.api_plugins import client as api_client
+from grr.gui.api_plugins import flow as api_flow
+
+from grr.lib import access_control
+from grr.lib import aff4
+from grr.lib import flow
+from grr.lib import utils
+
+from grr.lib.flows.general import collectors
+from grr.lib.flows.general import file_finder
+
+from grr.lib.rdfvalues import structs as rdf_structs
+
+from grr.proto import api_pb2
+
+
+class RobotRouterSearchClientsParams(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.RobotRouterSearchClientsParams
+
+
+class RobotRouterFileFinderFlowParams(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.RobotRouterFileFinderFlowParams
+
+
+class RobotRouterArtifactCollectorFlowParams(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.RobotRouterArtifactCollectorFlowParams
+
+
+class RobotRouterGetFlowParams(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.RobotRouterGetFlowParams
+
+
+class RobotRouterListFlowResultsParams(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.RobotRouterListFlowResultsParams
+
+
+class RobotRouterGetFlowFilesArchiveParams(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.RobotRouterGetFlowFilesArchiveParams
+
+
+class ApiCallRobotRouterParams(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiCallRobotRouterParams
+
+
+LABEL_NAME_PREFIX = "robotapi-"
+
+
+class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
+  """CreateFlow handler for a robot router.
+
+  This router filters out all the passed parameters, leaving just the essential
+  arguments: client id, flow name and the arguments. It then delegates
+  the call to a standard ApiCreateFlowHandler.
+  """
+
+  args_type = api_flow.ApiCreateFlowArgs
+  result_type = api_flow.ApiFlow
+
+  def __init__(self, robot_id=None):
+    super(ApiRobotCreateFlowHandler, self).__init__()
+
+    if not robot_id:
+      raise ValueError("Robot id can't be empty.")
+    self.robot_id = robot_id
+
+  def Handle(self, args, token=None):
+    if not args.client_id:
+      raise RuntimeError("Client id has to be specified.")
+
+    if not args.flow.name:
+      raise RuntimeError("Flow name is not specified.")
+
+    # Note that runner_args are dropped. From all the arguments We use only
+    # the flow name and the arguments.
+    flow_id = flow.GRRFlow.StartFlow(
+        client_id=args.client_id,
+        flow_name=args.flow.name,
+        token=token,
+        args=args.flow.args)
+
+    with aff4.FACTORY.Open(
+        flow_id, aff4_type=flow.GRRFlow, mode="rw", token=token) as fd:
+      fd.AddLabels(LABEL_NAME_PREFIX + self.robot_id)
+      return api_flow.ApiFlow().InitFromAff4Object(
+          fd, flow_id=flow_id.Basename())
 
 
 class ApiCallRobotRouter(api_call_router.ApiCallRouter):
   """Restricted router to be used by robots."""
 
+  params_type = ApiCallRobotRouterParams
+
   def __init__(self, params=None, delegate=None):
     super(ApiCallRobotRouter, self).__init__(params=params)
+
+    if params is None:
+      raise ValueError("Router params are mandatory for ApiCallRobotRouter.")
+    if not params.robot_id:
+      raise ValueError("robot_id has to be specified in ApiCallRobotRouter "
+                       "parameters.")
+    self.params = params = params or self.__class__.params_type()
 
     if not delegate:
       delegate = api_call_router_without_checks.ApiCallRouterWithoutChecks()
     self.delegate = delegate
+
+  @property
+  def file_finder_flow_name(self):
+    return (self.params.file_finder_flow.file_finder_flow_name or
+            file_finder.FileFinder.__name__)
+
+  @property
+  def artifact_collector_flow_name(self):
+    return (self.params.artifact_collector_flow.artifact_collector_flow_name or
+            collectors.ArtifactCollectorFlow.__name__)
+
+  def SearchClients(self, args, token=None):
+    if not self.params.search_clients.enabled:
+      raise access_control.UnauthorizedAccess(
+          "SearchClients is not allowed by the configuration.")
+
+    return api_client.ApiSearchClientsHandler()
+
+  def _CheckFileFinderArgs(self, flow_args):
+    if not self.params.file_finder_flow.enabled:
+      raise access_control.UnauthorizedAccess(
+          "FileFinder flow is not allowed by the configuration.")
+
+    if not self.params.file_finder_flow.globs_allowed:
+      for path in flow_args.paths:
+        str_path = utils.SmartStr(path)
+        if "*" in str_path:
+          raise access_control.UnauthorizedAccess(
+              "Globs are not allowed by the configuration.")
+
+    if not self.params.file_finder_flow.interpolations_allowed:
+      for path in flow_args.paths:
+        str_path = utils.SmartStr(path)
+        if "%%" in str_path:
+          raise access_control.UnauthorizedAccess(
+              "Interpolations are not allowed by the configuration.")
+
+  def _CheckArtifactCollectorFlowArgs(self, flow_args):
+    if not self.params.artifact_collector_flow.enabled:
+      raise access_control.UnauthorizedAccess(
+          "ArtifactCollectorFlow flow is not allowed by the configuration")
+
+    for name in flow_args.artifact_list:
+      if name not in self.params.artifact_collector_flow.artifacts_whitelist:
+        raise access_control.UnauthorizedAccess(
+            "Artifact %s is not whitelisted." % name)
+
+  def _CheckFlowRobotId(self, client_id, flow_id, token=None):
+    flow_urn = flow_id.ResolveClientFlowURN(client_id, token=token)
+    fd = aff4.FACTORY.Open(flow_urn, aff4_type=flow.GRRFlow, token=token)
+
+    needed_label_name = LABEL_NAME_PREFIX + self.params.robot_id
+    if needed_label_name not in fd.GetLabelsNames():
+      raise access_control.UnauthorizedAccess(
+          "Flow %s (client %s) does not have a proper robot id label set." %
+          (flow_id, client_id))
+
+    return fd
+
+  def CreateFlow(self, args, token=None):
+    # CreateFlow is used for starting both client flows and global flows.
+    # By not allowing client_id to be empty we explicitly forbid starting
+    # global flows through robot router.
+    # TODO(user): introduce separate API call for starting global flows.
+    if not args.client_id:
+      raise ValueError("client_id must be provided")
+
+    if args.flow.name == self.file_finder_flow_name:
+      self._CheckFileFinderArgs(args.flow.args)
+    elif args.flow.name == self.artifact_collector_flow_name:
+      self._CheckArtifactCollectorFlowArgs(args.flow.args)
+    else:
+      raise access_control.UnauthorizedAccess(
+          "Creating arbitrary flows (%s) is not allowed." % args.flow.name)
+
+    return ApiRobotCreateFlowHandler(robot_id=self.params.robot_id)
+
+  def GetFlow(self, args, token=None):
+    if not self.params.get_flow.enabled:
+      raise access_control.UnauthorizedAccess(
+          "GetFlow is not allowed by the configuration.")
+
+    self._CheckFlowRobotId(args.client_id, args.flow_id, token=token)
+
+    return api_flow.ApiGetFlowHandler()
+
+  def ListFlowResults(self, args, token=None):
+    if not self.params.list_flow_results.enabled:
+      raise access_control.UnauthorizedAccess(
+          "ListFlowResults is not allowed by the configuration.")
+
+    self._CheckFlowRobotId(args.client_id, args.flow_id, token=token)
+
+    return api_flow.ApiListFlowResultsHandler()
+
+  def GetFlowFilesArchive(self, args, token=None):
+    if not self.params.get_flow_files_archive.enabled:
+      raise access_control.UnauthorizedAccess(
+          "GetFlowFilesArchive is not allowed by the configuration.")
+
+    fd = self._CheckFlowRobotId(args.client_id, args.flow_id, token=token)
+
+    options = self.params.get_flow_files_archive
+
+    if (options.skip_glob_checks_for_artifact_collector and
+        fd.Name() == self.artifact_collector_flow_name):
+      return api_flow.ApiGetFlowFilesArchiveHandler()
+    else:
+      return api_flow.ApiGetFlowFilesArchiveHandler(
+          path_globs_blacklist=options.path_globs_blacklist,
+          path_globs_whitelist=options.path_globs_whitelist)
 
   # Robot methods (methods that provide limited access to the system and
   # are supposed to be triggered by the scripts).

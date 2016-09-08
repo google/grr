@@ -49,6 +49,9 @@ class LinuxClientBuilder(build.ClientBuilder):
 
   def CopyFiles(self):
     """This sets up the template directory."""
+    # Copy the nanny binary.
+    shutil.copy(config_lib.Resource().Filter(
+        "install_data/debian/dpkg_client/nanny.sh.in"), self.output_dir)
 
     dpkg_dir = config_lib.CONFIG.Get("PyInstaller.dpkg_root",
                                      context=self.context)

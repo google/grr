@@ -95,10 +95,10 @@ config_lib.DEFINE_string("Client.plist_label_prefix", None,
 config_lib.DEFINE_float("Client.poll_min", 0.2,
                         "Minimum time between polls in seconds.")
 
-config_lib.DEFINE_float("Client.poll_max", 5,
+config_lib.DEFINE_float("Client.poll_max", 600,
                         "Maximum time between polls in seconds.")
 
-config_lib.DEFINE_float("Client.error_poll_min", 15,
+config_lib.DEFINE_float("Client.error_poll_min", 60,
                         "Minimum time between polls in seconds if the server "
                         "reported an error.")
 

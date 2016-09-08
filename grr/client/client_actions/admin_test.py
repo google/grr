@@ -69,7 +69,7 @@ class ConfigActionTest(test_lib.EmptyActionTest):
       return StringIO.StringIO()
 
     with utils.Stubber(comms.urllib2, "urlopen", FakeUrlOpen):
-      client_context = comms.GRRHTTPClient(worker=MockClientWorker)
+      client_context = comms.GRRHTTPClient(worker=MockClientWorker())
       client_context.MakeRequest("")
 
     # Since the request is successful we only connect to one location.

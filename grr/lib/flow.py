@@ -1284,7 +1284,8 @@ class WellKnownFlow(GRRFlow):
         name=action_name,
         request_id=0,
         queue=client_id.Queue(),
-        payload=request)
+        payload=request,
+        generate_task_id=True)
 
     queue_manager.QueueManager(token=self.token).Schedule(msg)
 

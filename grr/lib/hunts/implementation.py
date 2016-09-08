@@ -422,7 +422,8 @@ class HuntRunner(object):
         priority=self.runner_args.priority,
         require_fastpoll=self.runner_args.require_fastpoll,
         queue=client_id.Queue(),
-        payload=request)
+        payload=request,
+        generate_task_id=True)
 
     if self.context.remaining_cpu_quota:
       msg.cpu_limit = int(self.context.remaining_cpu_quota)

@@ -37,7 +37,11 @@ class CollectionArchiveGenerator(object):
 
   BATCH_SIZE = 1000
 
-  def __init__(self, archive_format=ZIP, prefix=None, description=None):
+  def __init__(self,
+               archive_format=ZIP,
+               prefix=None,
+               description=None,
+               predicate=None):
     """CollectionArchiveGenerator constructor.
 
     Args:
@@ -48,7 +52,8 @@ class CollectionArchiveGenerator(object):
       description: String describing archive's contents. It will be included
           into the auto-generated MANIFEST file. Defaults to
           'Files archive collection'.
-
+      predicate: If not None, only the files matching the predicate will be
+          archived, all others will be skipped.
     Raises:
       ValueError: if prefix is None.
     """
@@ -70,7 +75,10 @@ class CollectionArchiveGenerator(object):
 
     self.total_files = 0
     self.archived_files = 0
+    self.ignored_files = []
     self.failed_files = []
+
+    self.predicate = predicate or (lambda _: True)
 
   @property
   def output_size(self):
@@ -91,10 +99,11 @@ class CollectionArchiveGenerator(object):
         "description": self.description,
         "processed_files": self.total_files,
         "archived_files": self.archived_files,
-        "skipped_files": (
-            self.total_files - self.archived_files - len(self.failed_files)),
+        "ignored_files": len(self.ignored_files),
         "failed_files": len(self.failed_files)
     }
+    if self.ignored_files:
+      manifest["ignored_files_list"] = self.ignored_files
     if self.failed_files:
       manifest["failed_files_list"] = self.failed_files
 
@@ -131,6 +140,10 @@ class CollectionArchiveGenerator(object):
       fds_to_write = {}
       for fd in aff4.FACTORY.MultiOpen(fd_urn_batch, token=token):
         self.total_files += 1
+
+        if not self.predicate(fd):
+          self.ignored_files.append(utils.SmartUnicode(fd.urn))
+          continue
 
         # Any file-like object with data in AFF4 should inherit AFF4Stream.
         if isinstance(fd, aff4.AFF4Stream):

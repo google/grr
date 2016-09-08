@@ -908,7 +908,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
   waiting on network latency.
   """
 
-  def __init__(self):
+  def __init__(self, start_worker_thread=True):
     super(GRRThreadedWorker, self).__init__()
 
     # This queue should never hit its maximum since the server will throttle
@@ -925,7 +925,8 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     self.daemon = True
 
     # Start our working thread.
-    self.start()
+    if start_worker_thread:
+      self.start()
 
   def Sleep(self, timeout):
     """Sleeps the calling thread with heartbeat."""
@@ -959,7 +960,7 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
     length = 0
 
     for message in self._out_queue.Get():
-      queue.job.Append(rdf_flows.GrrMessage(message))
+      queue.job.Append(rdf_flows.GrrMessage.FromSerializedString(message))
       stats.STATS.IncrementCounter("grr_client_sent_messages")
       length += len(message)
 
@@ -1031,8 +1032,6 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
 
     self.OnStartup()
 
-    # As long as our output queue has some room we can process some
-    # input messages:
     while True:
       message = self._in_queue.get()
 
@@ -1133,7 +1132,7 @@ class GRRHTTPClient(object):
 
     # The client worker does all the real work here.
     if worker:
-      self.client_worker = worker()
+      self.client_worker = worker
     else:
       self.client_worker = GRRThreadedWorker()
 

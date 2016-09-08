@@ -367,7 +367,7 @@ class ApiGetHuntFilesArchiveHandlerTest(test_lib.GRRBaseTest,
     self.assertEqual(manifest["archived_files"], 10)
     self.assertEqual(manifest["failed_files"], 0)
     self.assertEqual(manifest["processed_files"], 10)
-    self.assertEqual(manifest["skipped_files"], 0)
+    self.assertEqual(manifest["ignored_files"], 0)
 
   def testGeneratesTarGzArchive(self):
     result = self.handler.Handle(
@@ -397,7 +397,7 @@ class ApiGetHuntFilesArchiveHandlerTest(test_lib.GRRBaseTest,
         self.assertEqual(manifest["archived_files"], 10)
         self.assertEqual(manifest["failed_files"], 0)
         self.assertEqual(manifest["processed_files"], 10)
-        self.assertEqual(manifest["skipped_files"], 0)
+        self.assertEqual(manifest["ignored_files"], 0)
 
 
 class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,

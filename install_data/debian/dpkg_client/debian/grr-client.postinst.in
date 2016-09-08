@@ -2,12 +2,14 @@
 
 set -e
 
+NANNY="%(ClientBuilder.target_dir)/nanny.sh"
 DAEMON="%(ClientBuilder.target_dir)/%(Client.binary_name)"
 DAEMON_ARGS="--config=%(ClientBuilder.target_dir)/%(ClientBuilder.config_filename)"
 
 # This package is designed to work on systems with init.d, upstart, and systemd.
 case "$1" in
   configure\)
+    /bin/chmod +x "${NANNY}"
     ${DAEMON} ${DAEMON_ARGS} "--install"
 
     if [ -x /sbin/initctl ] && /sbin/initctl version | /bin/grep -q upstart; then

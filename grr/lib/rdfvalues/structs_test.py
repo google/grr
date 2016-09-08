@@ -218,7 +218,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
                      "message DynamicAnyValueTypeTest {\n\n  "
                      "// A string value\n  optional string type = 1;\n\n  "
                      "// A dynamic value based on another field.\n  "
-                     "optional AnyValue dynamic = 2;\n}\n")
+                     "optional google.protobuf.Any dynamic = 2;\n}\n")
 
   def testProtoFileDescriptorIsGeneratedForDynamicType(self):
     test_pb_file_descriptor, deps = DynamicTypeTest.EmitProtoFileDescriptor(

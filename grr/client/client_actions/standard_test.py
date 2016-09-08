@@ -289,7 +289,10 @@ class TestNetworkByteLimits(test_lib.EmptyActionTest):
 
   def testTransferNetworkByteLimitError(self):
     message = rdf_flows.GrrMessage(
-        name="TransferBuffer", payload=self.buffer_ref, network_bytes_limit=300)
+        name="TransferBuffer",
+        payload=self.buffer_ref,
+        network_bytes_limit=300,
+        generate_task_id=True)
 
     # We just get a client alert and a status message back.
     responses = self.transfer_buf.HandleMessage(message)
@@ -305,7 +308,10 @@ class TestNetworkByteLimits(test_lib.EmptyActionTest):
 
   def testTransferNetworkByteLimit(self):
     message = rdf_flows.GrrMessage(
-        name="TransferBuffer", payload=self.buffer_ref, network_bytes_limit=900)
+        name="TransferBuffer",
+        payload=self.buffer_ref,
+        network_bytes_limit=900,
+        generate_task_id=True)
 
     responses = self.transfer_buf.HandleMessage(message)
 

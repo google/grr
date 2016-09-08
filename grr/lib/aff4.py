@@ -17,6 +17,7 @@ import logging
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
+from grr.lib import flags
 from grr.lib import lexer
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -27,6 +28,8 @@ from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
+
+flags.DEFINE_bool("disable_aff4_cache", False, "Disables the aff4 cache.")
 
 # Factor to convert from seconds to microseconds
 MICROSECONDS = 1000000
@@ -276,10 +279,11 @@ class Factory(object):
   """A central factory for AFF4 objects."""
 
   def __init__(self):
-    # This is a relatively short lived cache of objects.
-    self.cache = utils.AgeBasedCache(
-        max_size=config_lib.CONFIG["AFF4.cache_max_size"],
-        max_age=config_lib.CONFIG["AFF4.cache_age"])
+    if not flags.FLAGS.disable_aff4_cache:
+      # This is a relatively short lived cache of objects.
+      self.cache = utils.AgeBasedCache(
+          max_size=config_lib.CONFIG["AFF4.cache_max_size"],
+          max_age=config_lib.CONFIG["AFF4.cache_age"])
     self.intermediate_cache = utils.AgeBasedCache(
         max_size=config_lib.CONFIG["AFF4.intermediate_cache_max_size"],
         max_age=config_lib.CONFIG["AFF4.intermediate_cache_age"])
@@ -317,7 +321,7 @@ class Factory(object):
     """Retrieves all the attributes for all the urns."""
     urns = set([utils.SmartUnicode(u) for u in urns])
     to_read = {}
-    if not ignore_cache:
+    if not ignore_cache and not flags.FLAGS.disable_aff4_cache:
       for subject in urns:
         key = self._MakeCacheInvariant(subject, token, age)
 
@@ -349,7 +353,8 @@ class Factory(object):
         # Ensure the values are sorted.
         values.sort(key=lambda x: x[-1], reverse=True)
 
-        self.cache.Put(to_read[subject], values)
+        if not flags.FLAGS.disable_aff4_cache:
+          self.cache.Put(to_read[subject], values)
 
         yield utils.SmartUnicode(subject), values
 
@@ -363,12 +368,13 @@ class Factory(object):
                     token=None):
     """Sets the attributes in the data store and update the cache."""
     # Force a data_store lookup next.
-    try:
-      # Expire all entries in the cache for this urn (for all tokens, and
-      # timestamps)
-      self.cache.ExpirePrefix(utils.SmartStr(urn) + ":")
-    except KeyError:
-      pass
+    if not flags.FLAGS.disable_aff4_cache:
+      try:
+        # Expire all entries in the cache for this urn (for all tokens, and
+        # timestamps)
+        self.cache.ExpirePrefix(utils.SmartStr(urn) + ":")
+      except KeyError:
+        pass
 
     attributes[AFF4Object.SchemaCls.LAST] = [
         rdfvalue.RDFDatetime.Now().SerializeToDataStore()
@@ -1218,7 +1224,8 @@ class Factory(object):
 
   def Flush(self):
     data_store.DB.Flush()
-    self.cache.Flush()
+    if not flags.FLAGS.disable_aff4_cache:
+      self.cache.Flush()
     self.intermediate_cache.Flush()
 
 
