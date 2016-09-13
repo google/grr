@@ -4,6 +4,7 @@
 
 
 from grr.gui import api_test_lib
+from grr.gui.api_plugins import report_plugins
 
 from grr.lib import aff4
 from grr.lib import flags
@@ -84,6 +85,32 @@ class ApiGetStatsStoreMetricHandlerRegressionTest(
     self.Check("GET", "/api/stats/store/WORKER/metrics/sample_event?"
                "start=42000000&end=3600000000&"
                "distribution_handling_mode=DH_COUNT")
+
+
+class FooReportPlugin(report_plugins.ReportPluginBase):
+  TYPE = report_plugins.ApiReportDescriptor.ReportType.CLIENT
+  TITLE = "Foo"
+  SUMMARY = "Reports all foos."
+
+
+class BarReportPlugin(report_plugins.ReportPluginBase):
+  TYPE = report_plugins.ApiReportDescriptor.ReportType.SERVER
+  TITLE = "Bar Activity"
+  SUMMARY = "Reports bars' activity in the given time range."
+  REQUIRES_TIME_RANGE = True
+
+
+class ApiListReportsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+
+  handler = "ApiListReportsHandler"
+
+  def Run(self):
+    with utils.Stubber(report_plugins.ReportPluginBase, "classes", {
+        "FooReportPlugin": FooReportPlugin,
+        "BarReportPlugin": BarReportPlugin
+    }):
+      self.Check("GET", "/api/stats/reports")
 
 
 def main(argv):

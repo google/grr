@@ -5,6 +5,7 @@ from grr.gui.api_plugins import report_plugins
 
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib import utils
 
 
 class FooReportPlugin(report_plugins.ReportPluginBase):
@@ -25,16 +26,24 @@ class ReportPluginsTest(test_lib.GRRBaseTest):
   def testGetAvailableReportPlugins(self):
     """Ensure GetAvailableReportPlugins lists ReportPluginBase's subclasses."""
 
-    self.assertTrue(
-        FooReportPlugin in report_plugins.GetAvailableReportPlugins())
-    self.assertTrue(
-        BarReportPlugin in report_plugins.GetAvailableReportPlugins())
+    with utils.Stubber(report_plugins.ReportPluginBase, "classes", {
+        "FooReportPlugin": FooReportPlugin,
+        "BarReportPlugin": BarReportPlugin
+    }):
+      self.assertTrue(
+          FooReportPlugin in report_plugins.GetAvailableReportPlugins())
+      self.assertTrue(
+          BarReportPlugin in report_plugins.GetAvailableReportPlugins())
 
   def testGetReportByName(self):
     """Ensure GetReportByName instantiates correct subclasses based on name."""
 
-    report_object = report_plugins.GetReportByName("BarReportPlugin")
-    self.assertTrue(isinstance(report_object, BarReportPlugin))
+    with utils.Stubber(report_plugins.ReportPluginBase, "classes", {
+        "FooReportPlugin": FooReportPlugin,
+        "BarReportPlugin": BarReportPlugin
+    }):
+      report_object = report_plugins.GetReportByName("BarReportPlugin")
+      self.assertTrue(isinstance(report_object, BarReportPlugin))
 
   def testGetReportDescriptor(self):
     """Ensure GetReportDescriptor returns a correctly filled in proto."""

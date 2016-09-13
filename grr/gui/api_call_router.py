@@ -668,6 +668,14 @@ class ApiCallRouter(object):
   def GetStatsStoreMetric(self, args, token=None):
     raise NotImplementedError()
 
+  # TODO(user,user): Change the naming convention from stats to reports
+  # throughout the codebase.
+  @Category("Other")
+  @Http("GET", "/api/stats/reports")
+  @ResultType(api_stats.ApiListReportsResult)
+  def ListReports(self, args, token=None):
+    raise NotImplementedError()
+
   # Approvals methods.
   # =================
   #

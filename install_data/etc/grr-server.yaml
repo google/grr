@@ -321,5 +321,7 @@ Worker Context:
 # package.
 
 DataServer Context:
-# By default use an sqlite backend.
+  Logging.filename: "%(Logging.path)/grr-dataserver.log"
+
+  # By default use an sqlite backend.
   Datastore.implementation: SqliteDataStore

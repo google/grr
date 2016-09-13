@@ -126,4 +126,36 @@ describe('semantic proto union form directive', function() {
         'No directive for type: PrimitiveTypeFoo');
   });
 
+  it('resets entered data when union type is changed', function() {
+    var value = {
+      type: 'Foo',
+      mro: ['Foo'],
+      value: {
+        type: {
+          type: 'PrimitiveType',
+          mro: ['PrimitiveType'],
+          value: 'foo'
+        },
+        foo: {
+          type: 'PrimitiveTypeFoo',
+          mro: ['PrimitiveTypeFoo'],
+        },
+        bar: {
+          type: 'PrimitiveTypeBar',
+          mro: ['PrimitiveTypeBar'],
+        }
+      }
+    };
+    var element = renderTestTemplate(value);
+    $rootScope.$apply();
+
+    value.value.foo.value = 42;
+    $rootScope.$apply();
+    expect(value.value.foo.value).toBe(42);
+
+    value.value.type.value = 'bar';
+    $rootScope.$apply();
+    expect(value.value.foo.value).toEqual({});
+  });
+
 });

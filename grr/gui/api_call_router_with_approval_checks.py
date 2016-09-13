@@ -463,6 +463,11 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.GetStatsStoreMetric(args, token=token)
 
+  def ListReports(self, args, token=None):
+    # Everybody can list the reports.
+
+    return self.delegate.ListReports(args, token=token)
+
   # Approvals methods.
   # =================
   #

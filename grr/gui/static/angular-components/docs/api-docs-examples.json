@@ -6764,6 +6764,113 @@
       "url": "/api/stats/store/WORKER/metrics/sample_event?start=42000000&end=3600000000&distribution_handling_mode=DH_COUNT"
     }
   ],
+  "ApiListReportsHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "reports": [
+          {
+            "age": 0,
+            "type": "ApiReport",
+            "value": {
+              "desc": {
+                "age": 0,
+                "type": "ApiReportDescriptor",
+                "value": {
+                  "name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "BarReportPlugin"
+                  },
+                  "requires_time_range": {
+                    "age": 0,
+                    "type": "RDFBool",
+                    "value": true
+                  },
+                  "summary": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Reports bars' activity in the given time range."
+                  },
+                  "title": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Bar Activity"
+                  },
+                  "type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "SERVER"
+                  }
+                }
+              }
+            }
+          },
+          {
+            "age": 0,
+            "type": "ApiReport",
+            "value": {
+              "desc": {
+                "age": 0,
+                "type": "ApiReportDescriptor",
+                "value": {
+                  "name": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "FooReportPlugin"
+                  },
+                  "requires_time_range": {
+                    "age": 0,
+                    "type": "RDFBool",
+                    "value": false
+                  },
+                  "summary": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Reports all foos."
+                  },
+                  "title": {
+                    "age": 0,
+                    "type": "unicode",
+                    "value": "Foo"
+                  },
+                  "type": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "CLIENT"
+                  }
+                }
+              }
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListReportsHandlerRegressionTest",
+      "type_stripped_response": {
+        "reports": [
+          {
+            "desc": {
+              "name": "BarReportPlugin",
+              "requires_time_range": true,
+              "summary": "Reports bars' activity in the given time range.",
+              "title": "Bar Activity",
+              "type": "SERVER"
+            }
+          },
+          {
+            "desc": {
+              "name": "FooReportPlugin",
+              "requires_time_range": false,
+              "summary": "Reports all foos.",
+              "title": "Foo",
+              "type": "CLIENT"
+            }
+          }
+        ]
+      },
+      "url": "/api/stats/reports"
+    }
+  ],
   "ApiGetVfsTimelineHandler": [
     {
       "method": "GET",

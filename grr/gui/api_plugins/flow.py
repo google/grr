@@ -820,7 +820,9 @@ class ApiStartRobotGetFilesOperationHandler(
         conditions=[size_condition])
 
     # Check our flow throttling limits, will raise if there are problems.
-    throttler = throttle.FlowThrottler()
+    throttler = throttle.FlowThrottler(
+        daily_req_limit=config_lib.CONFIG.Get("API.DailyFlowRequestLimit"),
+        dup_interval=config_lib.CONFIG.Get("API.FlowDuplicateInterval"))
     throttler.EnforceLimits(
         client_urn,
         token.username,

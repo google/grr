@@ -24,7 +24,8 @@ class ApiReportData(rdf_structs.RDFProtoStruct):
 
 def GetAvailableReportPlugins():
   """Lists direct subclasses of ReportPluginBase."""
-  return ReportPluginBase.classes.values()
+  return sorted(
+      ReportPluginBase.classes.itervalues(), key=lambda cls: cls.__name__)
 
 
 def GetReportByName(name):

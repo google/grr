@@ -293,7 +293,7 @@ class CSRFProtectionTest(ApiE2ETest):
 
 class ApiCallRobotRouterE2ETest(ApiE2ETest):
 
-  ROUTER_CONFIG = """
+  FILE_FINDER_ROUTER_CONFIG = """
 router: "ApiCallRobotRouter"
 router_params:
   file_finder_flow:
@@ -309,12 +309,10 @@ users:
   - "test"
 """
 
-  def setUp(self):
-    super(ApiCallRobotRouterE2ETest, self).setUp()
-
+  def InitRouterConfig(self, router_config):
     router_config_file = os.path.join(self.temp_dir, "api_acls.yaml")
     with open(router_config_file, "wb") as fd:
-      fd.write(self.__class__.ROUTER_CONFIG)
+      fd.write(router_config)
 
     self.config_overrider = test_lib.ConfigOverrider({
         "API.RouterACLConfigFile": router_config_file
@@ -325,6 +323,8 @@ users:
     # changes are picked up.
     api_auth_manager.APIACLInit.InitApiAuthManager()
 
+  def setUp(self):
+    super(ApiCallRobotRouterE2ETest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
 
   def tearDown(self):
@@ -332,11 +332,15 @@ users:
     self.config_overrider.Stop()
 
   def testCreatingArbitraryFlowDoesNotWork(self):
+    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG)
+
     client_ref = self.api.Client(client_id=self.client_id.Basename())
     with self.assertRaises(RuntimeError):
       client_ref.CreateFlow(name=processes.ListProcesses.__name__)
 
   def testFileFinderWorkflowWorks(self):
+    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG)
+
     client_ref = self.api.Client(client_id=self.client_id.Basename())
 
     args = file_finder.FileFinderArgs(paths=[
@@ -363,6 +367,8 @@ users:
     self.assertEqual(flow_obj.data["state"], "TERMINATED")
 
   def testCheckingArbitraryFlowStateDoesNotWork(self):
+    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG)
+
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
         flow_name=file_finder.FileFinder.__name__,
@@ -372,6 +378,73 @@ users:
         client_id=self.client_id.Basename()).Flow(flow_urn.Basename())
     with self.assertRaises(RuntimeError):
       flow_ref.Get()
+
+  def testNoThrottlingDoneByDefault(self):
+    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG)
+
+    args = file_finder.FileFinderArgs(
+        action=file_finder.FileFinderAction(action_type="STAT"),
+        paths=["tests.plist"]).AsPrimitiveProto()
+
+    client_ref = self.api.Client(client_id=self.client_id.Basename())
+
+    # Create 60 flows in a row to check that no throttling is applied.
+    for _ in range(20):
+      flow_obj = client_ref.CreateFlow(
+          name=file_finder.FileFinder.__name__, args=args)
+      self.assertEqual(flow_obj.data["state"], "RUNNING")
+
+  FILE_FINDER_THROTTLED_ROUTER_CONFIG = """
+router: "ApiCallRobotRouter"
+router_params:
+  file_finder_flow:
+    enabled: True
+    max_flows_per_client_daily: 2
+    min_interval_between_duplicate_flows: 1h
+  robot_id: "TheRobot"
+users:
+  - "test"
+"""
+
+  def testFileFinderThrottlingByFlowCountWorks(self):
+    self.InitRouterConfig(self.__class__.FILE_FINDER_THROTTLED_ROUTER_CONFIG)
+
+    args = []
+    for p in ["tests.plist", "numbers.txt", "numbers.txt.ver2"]:
+      args.append(
+          file_finder.FileFinderArgs(
+              action=file_finder.FileFinderAction(action_type="STAT"),
+              paths=[p]).AsPrimitiveProto())
+
+    client_ref = self.api.Client(client_id=self.client_id.Basename())
+
+    flow_obj = client_ref.CreateFlow(
+        name=file_finder.FileFinder.__name__, args=args[0])
+    self.assertEqual(flow_obj.data["state"], "RUNNING")
+
+    flow_obj = client_ref.CreateFlow(
+        name=file_finder.FileFinder.__name__, args=args[1])
+    self.assertEqual(flow_obj.data["state"], "RUNNING")
+
+    with self.assertRaisesRegexp(RuntimeError, "2 flows run since"):
+      client_ref.CreateFlow(name=file_finder.FileFinder.__name__, args=args[2])
+
+  def testFileFinderThrottlingByDuplicateIntervalWorks(self):
+    self.InitRouterConfig(self.__class__.FILE_FINDER_THROTTLED_ROUTER_CONFIG)
+
+    args = file_finder.FileFinderArgs(
+        action=file_finder.FileFinderAction(action_type="STAT"),
+        paths=["tests.plist"]).AsPrimitiveProto()
+
+    client_ref = self.api.Client(client_id=self.client_id.Basename())
+
+    flow_obj = client_ref.CreateFlow(
+        name=file_finder.FileFinder.__name__, args=args)
+    self.assertEqual(flow_obj.data["state"], "RUNNING")
+
+    with self.assertRaisesRegexp(RuntimeError,
+                                 "Identical FileFinder already run"):
+      client_ref.CreateFlow(name=file_finder.FileFinder.__name__, args=args)
 
 
 def main(argv):

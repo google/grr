@@ -2,7 +2,6 @@
 """Throttle user calls to flows."""
 
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import rdfvalue
 
@@ -30,15 +29,8 @@ class FlowThrottler(object):
       dup_interval: rdfvalue.Duration time during which duplicate flows will be
         blocked.
     """
-    if dup_interval is None:
-      self.daily_req_limit = config_lib.CONFIG.Get("API.DailyFlowRequestLimit")
-    else:
-      self.daily_req_limit = daily_req_limit
-
-    if dup_interval is None:
-      self.dup_interval = config_lib.CONFIG.Get("API.FlowDuplicateInterval")
-    else:
-      self.dup_interval = dup_interval
+    self.daily_req_limit = daily_req_limit
+    self.dup_interval = dup_interval
 
   def EnforceLimits(self, client_id, user, flow_name, flow_args, token=None):
     """Enforce DailyFlowRequestLimit and FlowDuplicateInterval.
@@ -60,7 +52,7 @@ class FlowThrottler(object):
       ErrorFlowDuplicate: an identical flow was run on this machine by a user
         within the API.FlowDuplicateInterval
     """
-    if self.dup_interval is None and self.daily_req_limit == 0:
+    if not self.dup_interval and not self.daily_req_limit:
       return
 
     flows_dir = aff4.FACTORY.Open(client_id.Add("flows"), token=token)
@@ -78,7 +70,7 @@ class FlowThrottler(object):
       flow_context = flow_obj.context
 
       # If dup_interval is set, check for identical flows run within the
-      # duplicate interval
+      # duplicate interval.
       if self.dup_interval and flow_context.create_time > dup_boundary:
         if flow_obj.runner_args.flow_name == flow_name:
 

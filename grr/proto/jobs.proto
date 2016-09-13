@@ -184,9 +184,9 @@ message SignedMessageList {
 };
 
 message CipherProperties {
-  required string name = 1;
+  optional string name = 1;
 
-  required bytes key = 2 [(sem_type) = {
+  optional bytes key = 2 [(sem_type) = {
       type: "EncryptionKey",
     }];
 
@@ -339,6 +339,12 @@ message GrrNotification {
       type: "RDFDatetime",
       description: "The time the notification was scheduled for.",
     }];
+
+  optional uint32 ttl = 7 [default = 10, (sem_type) = {
+      description: "Time to live - each time a notification is rescheduled, "
+      "this is decremented until the notification expires."
+    }];
+
 }
 
 message ClientCrash {
@@ -518,7 +524,7 @@ message BufferReference {
 // case the status is invalid.
 message RequestState {
   // The number of this request (starts in 1).
-  required uint32 id = 1;
+  optional uint32 id = 1;
 
   // DEPRECATED: This should not be used. The task id is stored in the request
   // message itself (request_state.request.task_id).  The task scheduler ID
@@ -1047,7 +1053,7 @@ message FingerprintTuple {
     SHA1 = 1;
     SHA256 = 2;
   };
-  required Type fp_type = 1;
+  optional Type fp_type = 1;
   repeated HashType hashers = 2;
 };
 

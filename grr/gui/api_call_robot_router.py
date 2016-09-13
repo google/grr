@@ -13,6 +13,7 @@ from grr.gui.api_plugins import flow as api_flow
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import throttle
 from grr.lib import utils
 
 from grr.lib.flows.general import collectors
@@ -130,24 +131,33 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouter):
 
     return api_client.ApiSearchClientsHandler()
 
-  def _CheckFileFinderArgs(self, flow_args):
-    if not self.params.file_finder_flow.enabled:
+  def _CheckFileFinderArgs(self, flow_args, token=None):
+    ffparams = self.params.file_finder_flow
+
+    if not ffparams.enabled:
       raise access_control.UnauthorizedAccess(
           "FileFinder flow is not allowed by the configuration.")
 
-    if not self.params.file_finder_flow.globs_allowed:
+    if not ffparams.globs_allowed:
       for path in flow_args.paths:
         str_path = utils.SmartStr(path)
         if "*" in str_path:
           raise access_control.UnauthorizedAccess(
               "Globs are not allowed by the configuration.")
 
-    if not self.params.file_finder_flow.interpolations_allowed:
+    if not ffparams.interpolations_allowed:
       for path in flow_args.paths:
         str_path = utils.SmartStr(path)
         if "%%" in str_path:
           raise access_control.UnauthorizedAccess(
               "Interpolations are not allowed by the configuration.")
+
+  def _GetFileFinderThrottler(self):
+    ffparams = self.params.file_finder_flow
+
+    return throttle.FlowThrottler(
+        daily_req_limit=ffparams.max_flows_per_client_daily,
+        dup_interval=ffparams.min_interval_between_duplicate_flows)
 
   def _CheckArtifactCollectorFlowArgs(self, flow_args):
     if not self.params.artifact_collector_flow.enabled:
@@ -158,6 +168,13 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouter):
       if name not in self.params.artifact_collector_flow.artifacts_whitelist:
         raise access_control.UnauthorizedAccess(
             "Artifact %s is not whitelisted." % name)
+
+  def _GetArtifactCollectorFlowThrottler(self):
+    acparams = self.params.artifact_collector_flow
+
+    return throttle.FlowThrottler(
+        daily_req_limit=acparams.max_flows_per_client_daily,
+        dup_interval=acparams.min_interval_between_duplicate_flows)
 
   def _CheckFlowRobotId(self, client_id, flow_id, token=None):
     flow_urn = flow_id.ResolveClientFlowURN(client_id, token=token)
@@ -179,13 +196,23 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouter):
     if not args.client_id:
       raise ValueError("client_id must be provided")
 
+    throttler = None
     if args.flow.name == self.file_finder_flow_name:
       self._CheckFileFinderArgs(args.flow.args)
+      throttler = self._GetFileFinderThrottler()
     elif args.flow.name == self.artifact_collector_flow_name:
       self._CheckArtifactCollectorFlowArgs(args.flow.args)
+      throttler = self._GetArtifactCollectorFlowThrottler()
     else:
       raise access_control.UnauthorizedAccess(
           "Creating arbitrary flows (%s) is not allowed." % args.flow.name)
+
+    throttler.EnforceLimits(
+        args.client_id,
+        token.username,
+        args.flow.name,
+        args.flow.args,
+        token=token)
 
     return ApiRobotCreateFlowHandler(robot_id=self.params.robot_id)
 

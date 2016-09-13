@@ -74,6 +74,13 @@ class WorkerSendingWKTestFlow(flow.WellKnownFlow):
     RESULTS.append(message)
 
 
+class RaisingTestFlow(WorkerSendingTestFlow):
+
+  @flow.StateHandler(auth_required=False)
+  def Incoming(self, responses):
+    raise AttributeError("Some Error.")
+
+
 class WorkerStuckableHunt(implementation.GRRHunt):
 
   # Semaphore used by test code to wait until the hunt is being processed.
@@ -232,13 +239,18 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     super(GrrWorkerTest, self).tearDown()
     self.patch_get_notifications.stop()
 
-  def SendResponse(self, session_id, data, client_id=None, well_known=False):
+  def SendResponse(self,
+                   session_id,
+                   data,
+                   client_id=None,
+                   well_known=False,
+                   request_id=None):
     if not isinstance(data, rdfvalue.RDFValue):
       data = rdf_protodict.DataBlob(string=data)
     if well_known:
       request_id, response_id = 0, 12345
     else:
-      request_id, response_id = 1, 1
+      request_id, response_id = request_id or 1, 1
     with queue_manager.QueueManager(token=self.token) as flow_manager:
       flow_manager.QueueResponse(
           session_id,
@@ -261,7 +273,8 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
                 response_id=response_id + 1,
                 type=rdf_flows.GrrMessage.Type.STATUS))
 
-      flow_manager.QueueNotification(session_id=session_id)
+      flow_manager.QueueNotification(
+          session_id=session_id, last_status=request_id)
       timestamp = flow_manager.frozen_timestamp
 
     return timestamp
@@ -329,6 +342,71 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
     self.assertTrue(
         flow_obj.context.state == rdf_flows.FlowContext.State.TERMINATED)
     self.assertEqual(flow_obj.context.current_state, "End")
+
+  def testNoNotificationRescheduling(self):
+    """Test that no notifications are rescheduled when a flow raises."""
+
+    with test_lib.FakeTime(10000):
+      flow_obj = self.FlowSetup("RaisingTestFlow")
+      session_id = flow_obj.session_id
+      flow_obj.Close()
+
+      # Send the flow some messages.
+      self.SendResponse(session_id, "Hello1", request_id=1)
+      self.SendResponse(session_id, "Hello2", request_id=2)
+      self.SendResponse(session_id, "Hello3", request_id=3)
+
+      worker_obj = worker.GRRWorker(token=self.token)
+
+      # Process all messages.
+      worker_obj.RunOnce()
+      worker_obj.thread_pool.Join()
+
+    delay = config_lib.CONFIG["Worker.notification_retry_interval"]
+    with test_lib.FakeTime(10000 + 100 + delay):
+      manager = queue_manager.QueueManager(token=self.token)
+      self.assertFalse(manager.GetNotificationsForAllShards(session_id.Queue()))
+
+  def testNotificationReschedulingTTL(self):
+    """Test that notifications are not rescheduled forever."""
+
+    with test_lib.FakeTime(10000):
+      worker_obj = worker.GRRWorker(token=self.token)
+      flow_obj = self.FlowSetup("RaisingTestFlow")
+      session_id = flow_obj.session_id
+      flow_obj.Close()
+
+      manager = queue_manager.QueueManager(token=self.token)
+      notification = rdf_flows.GrrNotification(
+          session_id=session_id, last_status=1)
+      manager.NotifyQueue(notification)
+
+      notifications = manager.GetNotifications(queues.FLOWS)
+      # Check the notification is there.
+      notifications = [n for n in notifications if n.session_id == session_id]
+      self.assertEqual(len(notifications), 1)
+
+    delay = config_lib.CONFIG["Worker.notification_retry_interval"]
+
+    ttl = notification.ttl
+    for i in xrange(ttl - 1):
+      with test_lib.FakeTime(10000 + 100 + delay * (i + 1)):
+        # Process all messages.
+        worker_obj.RunOnce()
+        worker_obj.thread_pool.Join()
+
+        notifications = manager.GetNotifications(queues.FLOWS)
+        # Check the notification is for the correct session_id.
+        notifications = [n for n in notifications if n.session_id == session_id]
+        self.assertEqual(len(notifications), 1)
+
+    with test_lib.FakeTime(10000 + 100 + delay * ttl):
+      # Process all messages.
+      worker_obj.RunOnce()
+      worker_obj.thread_pool.Join()
+
+      notifications = manager.GetNotifications(queues.FLOWS)
+      self.assertEqual(len(notifications), 0)
 
   def testNoKillNotificationsScheduledForHunts(self):
     worker_obj = worker.GRRWorker(token=self.token)

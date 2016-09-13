@@ -433,7 +433,11 @@ class FlowRunner(object):
           end=self.context.kill_timestamp)
       self.context.kill_timestamp = None
 
-      if (notification.last_status and
+      # If a flow raises in one state, the remaining states will not
+      # be processed. This is indistinguishable from an incomplete
+      # state due to missing responses / status so we need to check
+      # here if the flow is still running before rescheduling.
+      if (self.IsRunning() and notification.last_status and
           (self.context.next_processed_request <= notification.last_status)):
         logging.debug("Had to reschedule a notification: %s", notification)
         # We have received a notification for a specific request but
@@ -441,8 +445,10 @@ class FlowRunner(object):
         # condition in the data store so we reschedule the
         # notification in the future.
         delay = config_lib.CONFIG["Worker.notification_retry_interval"]
-        manager.QueueNotification(
-            notification, timestamp=notification.timestamp + delay)
+        notification.ttl -= 1
+        if notification.ttl:
+          manager.QueueNotification(
+              notification, timestamp=notification.timestamp + delay)
 
   def ProcessCompletedRequests(self, notification, unused_thread_pool=None):
     """Go through the list of requests and process the completed ones.

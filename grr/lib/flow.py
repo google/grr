@@ -870,7 +870,7 @@ class GRRFlow(FlowBase):
           if self.context is None:
             try:
               self.context = state.context
-            except KeyError:
+            except (AttributeError, KeyError):
               pass
 
           if self.runner_args is None:

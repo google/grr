@@ -51,14 +51,28 @@ SemanticProtoUnionFormController.prototype.onDescriptorChange_ = function(
 
 
 /**
- * Handles changes of the union field value.
- *
- * @param {?string} newValue
- * @private
- */
+* Handles changes of the union field value.
+*
+* @param {?string} newValue
+* @param {?string} oldValue
+* @private
+*/
 SemanticProtoUnionFormController.prototype.onUnionFieldValueChange_ = function(
-    newValue) {
+    newValue, oldValue) {
   if (angular.isDefined(newValue)) {
+    if (angular.isDefined(oldValue) &&
+        oldValue !== newValue) {
+      var unionPart = this.scope_['value']['value'][this.unionFieldValue];
+
+      if (angular.isObject(unionPart)) {
+        // We have to make sure that we replace the object at
+        // value.value[controller.unionFieldValue]
+        unionPart['value'] = {};
+        this.scope_['value']['value'][this.unionFieldValue] =
+            angular.copy(unionPart);
+      }
+    }
+
     this.unionFieldValue = newValue.toLowerCase();
   } else {
     this.unionFieldValue = undefined;

@@ -171,7 +171,6 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     # Create 3 foreman rules. Note that "Add" button adds rules
     # to the beginning of a list. So we always use :nth(0) selector.
     self.Click("css=grr-configure-rules-page button[name=Add]")
-
     self.Select("css=grr-configure-rules-page div.well:nth(0) select", "Regex")
     self.Select("css=grr-configure-rules-page div.well:nth(0) "
                 "label:contains('Attribute name') ~ * select", "System")
@@ -841,6 +840,67 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Where to run?")
     self.WaitUntil(self.IsElementPresent, "css=grr-new-hunt-wizard-form "
                    "label:contains('Os darwin') ~ * input:checked")
+
+  def testRuleTypeChangeClearsItsProto(self):
+    # Open up and click on View Hunts.
+    self.Open("/")
+    self.Click("css=a[grrtarget=hunts]")
+
+    # Open up "New Hunt" wizard
+    self.Click("css=button[name=NewHunt]")
+
+    # Click on Filesystem item in flows list
+    self.Click("css=#_Filesystem > i.jstree-icon")
+
+    # Click on the FileFinder item in Filesystem flows list
+    self.Click("link=File Finder")
+
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Output Processing")
+
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Where to run?")
+
+    # Changing the rule type clears the entered data under the hood.
+    self.Click("css=grr-configure-rules-page button[name=Add]")
+    self.Click("css=grr-configure-rules-page div.well:nth(0) "
+               "label:contains('Os windows') ~ * input[type=checkbox]")
+    self.Select("css=grr-configure-rules-page div.well:nth(0) select",
+                "Integer")
+    self.Type("css=grr-new-hunt-wizard-form "
+              "grr-form-proto-repeated-field:has(label:contains('Path')) "
+              "input", "/tmp")
+
+    # Click on "Next" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+    self.WaitUntil(self.IsTextPresent, "Review")
+
+    # Click on "Run" button
+    self.Click("css=grr-new-hunt-wizard-form button.Next")
+
+    self.WaitUntil(self.IsTextPresent, "Created Hunt")
+    # Close the window
+    self.Click("css=button.Next")
+
+    # Check that the hunt object was actually created
+    hunts_root = aff4.FACTORY.Open("aff4:/hunts", token=self.token)
+    hunts_list = list(hunts_root.OpenChildren())
+    self.assertEqual(len(hunts_list), 1)
+
+    hunt = hunts_list[0]
+
+    # Check that the hunt was created with correct rules
+    rules = hunt.runner_args.client_rule_set.rules
+    self.assertEqual(len(rules), 1)
+    rule = rules[0]
+
+    self.assertEqual(rule.rule_type, rdf_foreman.ForemanClientRule.Type.INTEGER)
+    self.assertEqual(rule.integer.path, "/tmp")
+
+    # Assert that the deselected union field is cleared
+    self.assertFalse(rule.os.os_windows)
 
 
 def main(argv):

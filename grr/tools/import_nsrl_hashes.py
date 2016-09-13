@@ -89,7 +89,7 @@ def main(unused_argv):
 
   with aff4.FACTORY.Create(
       filestore.NSRLFileStore.PATH,
-      "NSRLFileStore",
+      filestore.NSRLFileStore,
       mode="rw",
       token=aff4.FACTORY.root_token) as store:
     imported = ImportFile(store, filename, flags.FLAGS.start)

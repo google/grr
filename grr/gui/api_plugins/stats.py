@@ -3,7 +3,7 @@
 
 from grr.gui import api_call_handler_base
 from grr.gui import api_value_renderers
-
+from grr.gui.api_plugins import report_plugins
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import timeseries
@@ -160,3 +160,21 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
 
     result["timeseries"] = ts
     return result
+
+
+class ApiListReportsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListReportsResult
+
+
+class ApiListReportsHandler(api_call_handler_base.ApiCallHandler):
+  """Lists the reports."""
+
+  category = CATEGORY
+  result_type = ApiListReportsResult
+
+  def Handle(self, args, token):
+    return ApiListReportsResult(reports=[
+        report_plugins.ApiReport(
+            desc=report_cls.GetReportDescriptor(), data=None)
+        for report_cls in report_plugins.GetAvailableReportPlugins()
+    ])
