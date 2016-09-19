@@ -319,7 +319,8 @@ class DataStoreService(object):
         MAP_SUBJECT, MAP_VALUE_PREDICATE, token=token)
     if not mapping_str:
       return None
-    mapping = rdf_data_server.DataServerMapping(mapping_str)
+    mapping = rdf_data_server.DataServerMapping.FromSerializedString(
+        mapping_str)
     # Restore pathing information.
     if self._DifferentPathing(list(mapping.pathing)):
       self.pathing = list(mapping.pathing)
