@@ -10,7 +10,7 @@ import zipfile
 
 def main():
   data = urllib2.urlopen(
-      "https://github.com/ForensicArtifacts/artifacts/archive/master.zip").read(
+      "https://github.com/ForensicArtifacts/artifacts/archive/20160713.zip").read(
       )
 
   zip_obj = zipfile.ZipFile(StringIO.StringIO(data))

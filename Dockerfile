@@ -34,7 +34,7 @@ ADD . /usr/src/grr/
 # We require sdists so that the version.ini gets copied over properly.
 RUN . /usr/share/grr-server/bin/activate && \
 cd /usr/src/grr/ && \
-python /usr/src/grr/setup.py sdist --dist-dir="/sdists/core" --no-make-docs --no-sync-artifacts && \
+python /usr/src/grr/setup.py sdist --dist-dir="/sdists/core" --no-make-docs && \
 cd /usr/src/grr/grr/config/grr-response-server/ && \
 python setup.py sdist --dist-dir="/sdists/server" && \
 pip install --find-links=/wheelhouse /sdists/core/*.tar.gz && \
