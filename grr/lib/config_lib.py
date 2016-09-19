@@ -828,7 +828,7 @@ class GrrConfigManager(object):
           os.rename(filename, b)
           logging.warn("Broken writeback (%s) renamed to: %s", we, b)
         except Exception as e:  # pylint: disable=broad-except
-          logging.Error("Unable to rename broken writeback: %s", e)
+          logging.error("Unable to rename broken writeback: %s", e)
       raise we
     logging.info("Configuration writeback is set to %s", filename)
 
