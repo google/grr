@@ -1691,31 +1691,6 @@ message KnowledgeBaseInitializationArgs {
     }, default=true];
 }
 
-// Next field ID: 5
-message ExportCollectionFilesAsArchiveArgs {
-  optional string collection_urn = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The URN of the collection to be exported."
-    }];
-
-  optional string target_file_prefix = 2 [(sem_type) = {
-      description: "Prefix used in generated file name."
-    }];
-
-  optional string notification_message = 3 [(sem_type) = {
-      description: "Message that will be used to notify the user via GRR "
-      "notifications system and as a subject of a notification email."
-    }];
-
-  enum ArchiveFormat {
-    ZIP = 0;
-    TAR_GZ = 1;
-  }
-  optional ArchiveFormat format = 4 [(sem_type) = {
-      description: "Archive format.",
-    }, default=ZIP];
-}
-
 // Next field ID: 2
 message EndToEndTestFlowArgs {
   repeated string test_names = 1 [(sem_type) = {

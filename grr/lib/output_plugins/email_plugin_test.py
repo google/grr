@@ -33,7 +33,7 @@ class EmailOutputPluginTest(test_lib.FlowTestsBaseclass):
                        process_responses_separately=False):
     plugin = email_plugin.EmailOutputPlugin(
         source_urn=self.results_urn, args=plugin_args, token=self.token)
-    plugin.InitializeState(plugin.state)
+    plugin.InitializeState()
 
     messages = []
     for response in responses:

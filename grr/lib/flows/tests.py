@@ -21,7 +21,6 @@ from grr.lib.flows.general import collectors_interactions_test
 from grr.lib.flows.general import collectors_test
 from grr.lib.flows.general import discovery_test
 from grr.lib.flows.general import endtoend_test
-from grr.lib.flows.general import export_test
 from grr.lib.flows.general import file_finder_test
 from grr.lib.flows.general import filesystem_test
 from grr.lib.flows.general import filetypes_test

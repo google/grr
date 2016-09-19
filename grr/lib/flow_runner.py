@@ -256,7 +256,7 @@ class FlowRunner(object):
           output_base_urn=output_base_urn,
           token=self.token)
       try:
-        plugin.InitializeState(plugin.state)
+        plugin.InitializeState()
         # TODO(user): Those do not need to be inside the state, they
         # could be part of the plugin descriptor.
         plugin.state["logs"] = []
@@ -488,7 +488,6 @@ class FlowRunner(object):
 
     # The flow is dead - remove all outstanding requests and responses.
     if not self.IsRunning():
-      self.flow_obj.Log("Flow complete.")
       self.queue_manager.DestroyFlowStates(self.session_id)
       return
 
@@ -566,7 +565,7 @@ class FlowRunner(object):
                         self.session_id, self.flow_obj.Name(),
                         self.runner_args.client_id)
 
-          self.Terminate()
+          self.flow_obj.Terminate()
 
         # We are done here.
         return
@@ -660,6 +659,8 @@ class FlowRunner(object):
       self.context.next_outbound_id += 1
     return my_id
 
+  # TODO(user): Make this take an action class instead of the
+  # action_name as a string.
   def CallClient(self,
                  action_name,
                  request=None,
@@ -964,7 +965,7 @@ class FlowRunner(object):
       if backtrace:
         reply.error_message = backtrace
 
-      self.Terminate(status=reply)
+      self.flow_obj.Terminate(status=reply)
 
       self.context.state = rdf_flows.FlowContext.State.ERROR
 

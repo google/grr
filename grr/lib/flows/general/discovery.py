@@ -300,11 +300,12 @@ class Interrogate(flow.GRRFlow):
       response = responses.First()
       self.client.Set(self.client.Schema.LIBRARY_VERSIONS(response))
 
+  def NotifyAboutEnd(self):
+    self.Notify("Discovery", self.client.urn, "Client Discovery Complete")
+
   @flow.StateHandler()
   def End(self):
     """Finalize client registration."""
-    self.Notify("Discovery", self.client.urn, "Client Discovery Complete")
-
     # Update summary and publish to the Discovery queue.
     summary = self.client.GetSummary()
     self.Publish("Discovery", summary)

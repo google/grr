@@ -75,6 +75,13 @@ class ListVolumeShadowCopies(flow.GRRFlow):
 
       aff4.FACTORY.Flush()
 
+  def NotifyAboutEnd(self):
+    if self.state.shadows:
+      self.Notify("ViewObject", self.state.raw_device,
+                  "Completed listing Volume Shadow Copies.")
+    else:
+      super(ListVolumeShadowCopies, self).NotifyAboutEnd()
+
   @flow.StateHandler()
   def End(self):
     if not self.state.shadows:
@@ -82,6 +89,3 @@ class ListVolumeShadowCopies(flow.GRRFlow):
                            "The volume could have no Volume Shadow Copies "
                            "as Windows versions pre Vista or the Volume "
                            "Shadow Copy Service has been disabled.")
-    else:
-      self.Notify("ViewObject", self.state.raw_device,
-                  "Completed listing Volume Shadow Copies.")

@@ -466,6 +466,14 @@ class FlowBase(aff4.AFF4Volume):
     """Write all the messages queued in the queue manager."""
     self.GetRunner().FlushMessages()
 
+  def NotifyAboutEnd(self):
+    """Send out a final notification about the end of this flow."""
+    self.Notify("FlowStatus", self.urn,
+                "Flow %s completed" % self.__class__.__name__)
+
+  def Terminate(self, status=None):
+    self.NotifyAboutEnd()
+
   @StateHandler()
   def End(self):
     """Final state.
@@ -473,15 +481,13 @@ class FlowBase(aff4.AFF4Volume):
     This method is called prior to destruction of the flow to give
     the flow a chance to clean up.
     """
-    self.Notify("FlowStatus", self.urn,
-                "Flow %s completed" % self.__class__.__name__)
-
     tb = "".join(traceback.format_stack())
     self.state.setdefault("end_tracebacks", []).append(tb)
 
     if len(self.state.end_tracebacks) > 1:
-      logging.warning("End state called multiple times in a single flow."
-                      "Tracebacks of the calls:\n%s",
+      logging.warning("End state called multiple times in a single flow.\n"
+                      "Classname: %s\nTracebacks of the calls:\n%s",
+                      self.__class__.__name__,
                       "\n".join(self.state.end_tracebacks))
 
   @StateHandler()
@@ -957,8 +963,10 @@ class GRRFlow(FlowBase):
   def Error(self, backtrace, client_id=None):
     return self.runner.Error(backtrace, client_id=client_id)
 
-  def Terminate(self):
-    return self.runner.Terminate()
+  def Terminate(self, status=None):
+    super(GRRFlow, self).Terminate(status=status)
+
+    return self.runner.Terminate(status=status)
 
   @property
   def client_id(self):

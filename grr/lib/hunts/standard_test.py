@@ -64,8 +64,8 @@ class FailingInFlushDummyHuntOutputPlugin(output_plugin.OutputPlugin):
 class StatefulDummyHuntOutputPlugin(output_plugin.OutputPlugin):
   data = []
 
-  def InitializeState(self, state):
-    super(StatefulDummyHuntOutputPlugin, self).InitializeState(state)
+  def InitializeState(self):
+    super(StatefulDummyHuntOutputPlugin, self).InitializeState()
     self.state.index = 0
 
   def ProcessResponses(self, unused_responses):
@@ -1074,8 +1074,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),
         flow_args=transfer.GetFileArgs(
             pathspec=rdf_paths.PathSpec(
-                path="/tmp/evil.txt",
-                pathtype=rdf_paths.PathSpec.PathType.OS),),
+                path="/tmp/evil.txt", pathtype=rdf_paths.PathSpec.PathType.OS),
+        ),
         client_rule_set=rdf_foreman.ForemanClientRuleSet(rules=[
             rdf_foreman.ForemanClientRule(
                 rule_type=rdf_foreman.ForemanClientRule.Type.REGEX,

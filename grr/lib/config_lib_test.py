@@ -881,6 +881,16 @@ Client.labels: [Test1]
     conf = config_lib.CONFIG.MakeNewConfig()
     conf.Initialize(parser=config_lib.YamlParser, data=data)
 
+  def testRenameOnWritebackFailure(self):
+    conf = config_lib.CONFIG.MakeNewConfig()
+    writeback_file = os.path.join(self.temp_dir, "writeback.yaml")
+    with open(writeback_file, "w") as f:
+      f.write("This is a bad line of yaml{[(\n")
+      f.close()
+
+    self.assertRaises(AttributeError, conf.SetWriteBack, writeback_file)
+    self.assertTrue(os.path.isfile(writeback_file + ".bak"))
+
 
 def main(argv):
   test_lib.GrrTestProgram(argv=argv)

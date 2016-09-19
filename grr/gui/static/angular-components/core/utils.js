@@ -2,6 +2,7 @@
 
 goog.provide('grrUi.core.utils.CLIENT_ID_RE');
 goog.provide('grrUi.core.utils.camelCaseToDashDelimited');
+goog.provide('grrUi.core.utils.getLastPathComponent');
 goog.provide('grrUi.core.utils.stringToList');
 goog.provide('grrUi.core.utils.stripAff4Prefix');
 
@@ -72,4 +73,17 @@ grrUi.core.utils.stripAff4Prefix = function(input) {
   } else {
     return input;
   }
+};
+
+
+/**
+ * Gets last path component (components are separated by '/') from the
+ * string.
+ *
+ * @param {string} input
+ * @return {string} The last path component of the input.
+ */
+grrUi.core.utils.getLastPathComponent = function(input) {
+  var components = input.split('/');
+  return components[components.length - 1];
 };

@@ -1047,7 +1047,37 @@ message ApiReport {
 }
 
 message ApiReportData {
-  //TODO(user): Implement the proto.
+  option (semantic) = {
+    union_field: "representation_type"
+  };
+
+  enum RepresentationType {
+    STACK_CHART = 0 [(description) = "Stack chart"];
+    //TODO(user): Add the remaining representation types.
+  }
+
+  optional RepresentationType representation_type = 1;
+
+  optional ApiStackChartReportData stack_chart = 2;
+}
+
+message ApiStackChartReportData {
+  repeated ApiReportDataSeries2D data = 1 [(sem_type) = {
+      description: "What the report contains."
+    }];
+}
+
+message ApiReportDataSeries2D {
+  optional string label = 1 [(sem_type) = {
+      description: "The series are labeled with this string."
+    }];
+
+  repeated ApiReportDataPoint2D points = 2;
+}
+
+message ApiReportDataPoint2D {
+  optional float x = 1;
+  optional float y = 2;
 }
 
 message ApiListReportsResult {
@@ -2300,32 +2330,27 @@ message ApiNotificationReference {
 
   enum Type {
     DISCOVERY = 0 [(description) = "Discovery"];
-    FILE_DOWNLOAD_READY = 1 [(description) = "File download ready"];
-    ARCHIVE_GENERATION_FINISHED = 2 [(description) = "Archive generation finished"];
     HUNT = 3 [(description) = "Hunt"];
     CRON = 4 [(description) = "Cron job"];
     FLOW = 5 [(description) = "Flow"];
     VFS = 6 [(description) = "Virtual file system"];
-    FLOW_STATUS = 7 [(description) = "Flow status"];
-    ERROR = 9 [(description) = "Error"];
     CLIENT_APPROVAL = 10 [(description) = "Client approval"];
     HUNT_APPROVAL = 11 [(description) = "Hunt approval"];
     CRON_JOB_APPROVAL = 12 [(description) = "Cron job approval"];
+    UNKNOWN = 13 [(description) = "Unknown"];
   }
 
   optional Type type = 1;
 
   optional ApiNotificationDiscoveryReference discovery = 2;
-  optional ApiNotificationFileDownloadReference file_download_ready = 3;
-  optional ApiNotificationArchiveGenerationFinishedReference archive_generation_finished = 4;
   optional ApiNotificationHuntReference hunt = 5;
   optional ApiNotificationCronReference cron = 6;
   optional ApiNotificationFlowReference flow = 7;
   optional ApiNotificationVfsReference vfs = 8;
-  optional ApiNotificationFlowStatusReference flow_status = 9;
   optional ApiNotificationClientApprovalReference client_approval = 11;
   optional ApiNotificationHuntApprovalReference hunt_approval = 12;
   optional ApiNotificationCronJobApprovalReference cron_job_approval = 13;
+  optional ApiNotificationUnknownReference unknown = 14;
 }
 
 message ApiNotificationDiscoveryReference {
@@ -2339,21 +2364,6 @@ message ApiNotificationFileDownloadReference {
   optional string path = 1 [(sem_type) = {
       type: "RDFURN",
       description: "The download path for the file."
-    }];
-}
-
-message ApiNotificationArchiveGenerationFinishedReference {
-  optional string path = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The download path for the archive."
-    }];
-  optional string hunt_urn = 2 [(sem_type) = {
-      type: "RDFURN",
-      description: "The hunt this notification is about."
-    }];
-  optional string flow_urn = 3 [(sem_type) = {
-      type: "RDFURN",
-      description: "The flow this notification is about."
     }];
 }
 
@@ -2372,29 +2382,18 @@ message ApiNotificationCronReference {
 }
 
 message ApiNotificationFlowReference {
-  optional string flow_urn = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The flow this notification is about."
-    }];
   optional string client_id = 2 [(sem_type) = {
       type: "ClientURN",
       description: "The client this notification is about."
+    }];
+  optional string flow_id = 3 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "The flow this notification is about."
     }];
 }
 
 message ApiNotificationVfsReference {
   optional string vfs_path = 1 [(sem_type) = {
-      type: "RDFURN",
-      description: "The cron job this notification is about."
-    }];
-  optional string client_id = 2 [(sem_type) = {
-      type: "ClientURN",
-      description: "The client this notification is about."
-    }];
-}
-
-message ApiNotificationFlowStatusReference {
-  optional string flow_urn = 1 [(sem_type) = {
       type: "RDFURN",
       description: "The cron job this notification is about."
     }];
@@ -2423,6 +2422,15 @@ message ApiNotificationCronJobApprovalReference {
   optional string approval_id = 2;
   optional string username = 3;
 }
+
+message ApiNotificationUnknownReference {
+  optional string source_urn = 1 [(sem_type) = {
+      type: "RDFURN"
+    }];
+  optional string subject_urn = 2 [(sem_type) = {
+      type: "RDFURN"
+    }];
+};
 
 message ApiListPendingGlobalNotificationsResult {
   repeated GlobalNotification items = 1 [(sem_type) = {

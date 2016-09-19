@@ -361,6 +361,10 @@ class CollectArtifactDependencies(flow.GRRFlow):
                               self.state.knowledge_base.os_minor_version)
       client.Set(client.Schema.OS_VERSION(os_version))
 
+  def NotifyAboutEnd(self):
+    client = aff4.FACTORY.Open(self.client_id, mode="r", token=self.token)
+    self.Notify("ViewObject", client.urn, "Knowledge Base Updated.")
+
   @flow.StateHandler()
   def End(self, unused_responses):
     """Finish up and write the results."""
@@ -369,7 +373,6 @@ class CollectArtifactDependencies(flow.GRRFlow):
     self.CopyUserNamesFromKnowledgeBase(client)
     self.CopyOSReleaseFromKnowledgeBase(client)
     client.Flush()
-    self.Notify("ViewObject", client.urn, "Knowledge Base Updated.")
     self.SendReply(self.state.knowledge_base)
 
 

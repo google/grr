@@ -309,7 +309,6 @@ class Notification(rdf_structs.RDFProtoStruct):
                         "ViewObject",  # Link to any URN
                         "FlowStatus",  # Link to a flow
                         "GrantAccess",  # Link to an access grant page
-                        "DownloadFile",  # Directly download a file.
                         "ArchiveGenerationFinished",
                         "Error"]
 

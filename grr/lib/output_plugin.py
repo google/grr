@@ -97,7 +97,7 @@ class OutputPlugin(object):
       self.state.args = args
       self.state.token = token
 
-      self.InitializeState(self.state)
+      self.InitializeState()
     else:
       self.state = state
 
@@ -106,16 +106,13 @@ class OutputPlugin(object):
 
     self.lock = threading.RLock()
 
-  def InitializeState(self, state):
+  def InitializeState(self):
     """Initializes the state the output plugin can use later.
 
     InitializeState() is called only once per plugin's lifetime. It
     will be called when hunt or flow is created. It should be used to
     register state variables. It's called on the worker, so no
     security checks apply.
-
-    Args:
-      state: The state that will be persisted - a dict.
     """
 
   @abc.abstractmethod
@@ -253,9 +250,9 @@ class OutputPluginWithOutputStreams(OutputPlugin):
     super(OutputPluginWithOutputStreams, self).__init__(*args, **kw)
     self.stream_objects = {}
 
-  def InitializeState(self, state):
-    super(OutputPluginWithOutputStreams, self).InitializeState(state)
-    state["output_streams"] = {}
+  def InitializeState(self):
+    super(OutputPluginWithOutputStreams, self).InitializeState()
+    self.state["output_streams"] = {}
 
   def Flush(self):
     super(OutputPluginWithOutputStreams, self).Flush()

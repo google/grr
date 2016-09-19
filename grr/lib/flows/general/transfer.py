@@ -152,17 +152,24 @@ class GetFile(flow.GRRFlow):
 
         self.state.success = True
 
+  def NotifyAboutEnd(self):
+    super(GetFile, self).NotifyAboutEnd()
+
+    if not self.state.get("success"):
+      self.Notify("ViewObject", self.urn, "File transfer failed.")
+    else:
+      stat_entry = self.state.stat_entry
+      self.Notify("ViewObject", stat_entry.aff4path,
+                  "File transferred successfully.")
+
   @flow.StateHandler()
   def End(self):
     """Finalize reading the file."""
     if not self.state.get("success"):
       self.Log("File transfer failed.")
-      self.Notify("ViewObject", self.client_id, "File transfer failed.")
     else:
       stat_entry = self.state.stat_entry
       self.Log("File %s transferred successfully.", stat_entry.aff4path)
-      self.Notify("ViewObject", stat_entry.aff4path,
-                  "File transferred successfully.")
 
       # Notify any parent flows the file is ready to be used now.
       self.SendReply(stat_entry)

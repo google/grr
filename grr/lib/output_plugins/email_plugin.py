@@ -46,8 +46,8 @@ class EmailOutputPlugin(output_plugin.OutputPlugin):
   too_many_mails_msg = ("<p> This hunt has now produced %d results so the "
                         "sending of emails will be disabled now. </p>")
 
-  def InitializeState(self, state):
-    super(EmailOutputPlugin, self).InitializeState(state)
+  def InitializeState(self):
+    super(EmailOutputPlugin, self).InitializeState()
     self.state.emails_sent = 0
 
   @utils.Synchronized

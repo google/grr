@@ -818,9 +818,18 @@ class GrrConfigManager(object):
         and merged into the raw data from this object.
 
     """
-    self.writeback = self.LoadSecondaryConfig(filename)
-    self.MergeData(self.writeback.RawData(), self.writeback_data)
-
+    try:
+      self.writeback = self.LoadSecondaryConfig(filename)
+      self.MergeData(self.writeback.RawData(), self.writeback_data)
+    except Exception as we:  # pylint: disable=broad-except
+      if os.path.exists(filename):
+        try:
+          b = filename + ".bak"
+          os.rename(filename, b)
+          logging.warn("Broken writeback (%s) renamed to: %s", we, b)
+        except Exception as e:  # pylint: disable=broad-except
+          logging.Error("Unable to rename broken writeback: %s", e)
+      raise we
     logging.info("Configuration writeback is set to %s", filename)
 
   def Validate(self, sections=None, parameters=None):

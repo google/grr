@@ -239,7 +239,7 @@ ApiService.prototype.poll = function(apiPath, opt_params, opt_checkFn) {
  * @param {!angular.$q.Promise} pollPromise Promise returned by poll() call.
  */
 ApiService.prototype.cancelPoll = function(pollPromise) {
-  pollPromise.cancel();
+  pollPromise['cancel']();
 };
 
 /**

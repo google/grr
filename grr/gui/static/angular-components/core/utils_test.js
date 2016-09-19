@@ -1,6 +1,7 @@
 'use strict';
 
 goog.require('grrUi.core.utils.camelCaseToDashDelimited');
+goog.require('grrUi.core.utils.getLastPathComponent');
 goog.require('grrUi.core.utils.stringToList');
 
 describe('core utils', function() {
@@ -54,6 +55,20 @@ describe('core utils', function() {
     it('trims spaces from elements', function() {
       var result = stringToList('a  , b  ,c ');
       expect(result).toEqual(['a', 'b', 'c']);
+    });
+  });
+
+  describe('getLastPathComponent', function() {
+    var getLastPathComponent = grrUi.core.utils.getLastPathComponent;
+
+    it('returns empty string for an empty string', function() {
+      expect(getLastPathComponent('')).toBe('');
+    });
+
+    it('returns correct last component', function() {
+      expect(getLastPathComponent('foo')).toBe('foo');
+      expect(getLastPathComponent('foo/bar')).toBe('bar');
+      expect(getLastPathComponent('foo/bar/blah')).toBe('blah');
     });
   });
 });

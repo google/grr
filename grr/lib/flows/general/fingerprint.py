@@ -117,10 +117,12 @@ class FingerprintFile(FingerprintFileMixin, flow.GRRFlow):
     # Notify any parent flows.
     self.SendReply(FingerprintFileResult(file_urn=urn, hash_entry=hash_obj))
 
+  def NotifyAboutEnd(self):
+    self.Notify("ViewObject", self.state.urn, "Fingerprint retrieved.")
+
   @flow.StateHandler()
   def End(self):
     """Finalize the flow."""
     super(FingerprintFile, self).End()
 
-    self.Notify("ViewObject", self.state.urn, "Fingerprint retrieved.")
     self.Status("Finished fingerprinting %s", self.args.pathspec.path)

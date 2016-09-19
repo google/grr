@@ -864,21 +864,20 @@ class ArtifactCollectorFlow(flow.GRRFlow):
       art_obj = artifact_registry.REGISTRY.GetArtifact(name)
     return art_obj
 
+  def NotifyAboutEnd(self):
+    response_count = self.state.get("response_count", 0)
+    failed_count = self.state.get("failed_count", 0)
+
+    self.Notify("ViewObject", self.urn,
+                "Completed artifact collection of %s. Collected %d. Errors %d."
+                % (self.args.artifact_list, response_count, failed_count))
+
   @flow.StateHandler()
   def End(self):
     # If we got no responses, and user asked for it, we error out.
     if self.args.on_no_results_error and self.state.response_count == 0:
       raise artifact_utils.ArtifactProcessingError(
           "Artifact collector returned 0 responses.")
-    if self.runner.IsWritingResults():
-      urn = self.runner.output_urn
-    else:
-      urn = self.client_id
-
-    self.Notify("ViewObject", urn,
-                "Completed artifact collection of %s. Collected %d. Errors %d."
-                % (self.args.artifact_list, self.state.response_count,
-                   self.state.failed_count))
 
 
 class ArtifactFilesDownloaderFlowArgs(rdf_structs.RDFProtoStruct):

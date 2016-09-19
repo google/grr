@@ -182,7 +182,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # User test logs in as an approver.
     self.Open("/")
 
-    self.WaitUntilEqual("1", self.GetText, "notification_button")
+    self.WaitUntil(lambda: self.GetText("notification_button") != "0")
 
     self.Click("notification_button")
 
@@ -200,7 +200,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.Open("/")
 
     # We should be notified that we have an approval
-    self.WaitUntilEqual("1", self.GetText, "notification_button")
+    self.WaitUntil(lambda: self.GetText("notification_button") != "0")
 
     self.Click("notification_button")
 
@@ -368,7 +368,8 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     self.WaitForNotification("aff4:/users/test")
     self.Open("/")
-    self.WaitUntilEqual("1", self.GetText, "notification_button")
+
+    self.WaitUntil(lambda: self.GetText("notification_button") != "0")
 
     self.Click("notification_button")
     self.Click("css=td:contains('Please grant access to hunt')")
@@ -391,7 +392,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.Open("/")
 
     # We should be notified that we have an approval
-    self.WaitUntilEqual("1", self.GetText, "notification_button")
+    self.WaitUntil(lambda: self.GetText("notification_button") != "0")
     self.Click("notification_button")
     self.WaitUntil(self.GetText,
                    "css=td:contains('has granted you access to hunt')")
@@ -424,7 +425,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.Open("/")
 
     # We should be notified that we have an approval
-    self.WaitUntilEqual("1", self.GetText, "notification_button")
+    self.WaitUntil(lambda: self.GetText("notification_button") != "0")
     self.Click("notification_button")
     self.Click("css=tr:contains('has granted you access') a")
     # Wait for modal backdrop to go away.
@@ -666,7 +667,8 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
     self.Open("/")
-    self.WaitUntilEqual("1", self.GetText, "notification_button")
+
+    self.WaitUntil(lambda: self.GetText("notification_button") != "0")
 
     self.Click("notification_button")
 
@@ -687,7 +689,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.Open("/")
 
     # We should be notified that we have an approval
-    self.WaitUntilEqual("1", self.GetText, "notification_button")
+    self.WaitUntil(lambda: self.GetText("notification_button") != "0")
     self.Click("notification_button")
     self.WaitUntil(self.GetText, "css=td:contains('has granted you access to "
                    "a cron job')")
@@ -720,7 +722,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.Open("/")
 
     # We should be notified that we have an approval
-    self.WaitUntilEqual("1", self.GetText, "notification_button")
+    self.WaitUntil(lambda: self.GetText("notification_button") != "0")
     self.Click("notification_button")
     self.Click("css=tr:contains('has granted you access') a")
     # Wait for modal backdrop to go away.

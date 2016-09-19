@@ -326,15 +326,14 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
     result.hash_entry = file_hash
     self.SendReply(result)
 
+  def NotifyAboutEnd(self):
+    files_found = self.state.get("files_found", 0)
+
+    self.Notify("ViewObject", self.urn,
+                "Found and processed %d files." % files_found)
+
   @flow.StateHandler()
   def End(self, responses):
     super(FileFinder, self).End()
 
     self.Log("Found and processed %d files.", self.state.files_found)
-    if self.runner.IsWritingResults():
-      urn = self.runner.output_urn
-    else:
-      urn = self.client_id
-
-    self.Notify("ViewObject", urn,
-                "Found and processed %d files." % self.state.files_found)

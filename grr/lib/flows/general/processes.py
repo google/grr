@@ -97,9 +97,6 @@ class ListProcesses(flow.GRRFlow):
       self.Log("Download of file %s failed %s", responses.request_data["path"],
                responses.status)
 
-  @flow.StateHandler()
-  def End(self):
-    """Save the results collection and update the notification line."""
+  def NotifyAboutEnd(self):
     if self.runner.IsWritingResults():
-      self.Notify("ViewObject", self.runner.output_urn,
-                  "ListProcesses completed.")
+      self.Notify("ViewObject", self.urn, "ListProcesses completed.")

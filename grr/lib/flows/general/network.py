@@ -35,7 +35,9 @@ class Netstat(flow.GRRFlow):
 
     self.state.conn_count = len(responses)
 
+  def NotifyAboutEnd(self):
+    self.Notify("ViewObject", self.urn, "Listed Connections")
+
   @flow.StateHandler()
   def End(self):
     self.Log("Successfully wrote %d connections.", self.state.conn_count)
-    self.Notify("ViewObject", self.client_id, "Listed Connections")

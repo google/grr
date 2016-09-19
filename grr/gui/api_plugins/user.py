@@ -2,6 +2,7 @@
 """API handlers for user-related data and actions."""
 
 import functools
+import os
 
 from grr.gui import api_call_handler_base
 
@@ -741,6 +742,16 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
 
   protobuf = api_pb2.ApiNotification
 
+  def _GetUrnComponents(self, notification):
+    # Still display if subject doesn't get set, this will appear in the GUI with
+    # a target of "None"
+    urn = "/"
+    if notification.subject is not None:
+      urn = notification.subject
+
+    path = rdfvalue.RDFURN(urn)
+    return path.Path().split("/")[1:]
+
   def InitFromNotification(self, notification, is_pending=False):
     """Initializes this object from an existing notification.
 
@@ -756,102 +767,82 @@ class ApiNotification(rdf_structs.RDFProtoStruct):
     self.message = notification.message
     self.subject = str(notification.subject)
     self.is_pending = is_pending
-    self._DetermineReference(self.reference, notification)
-    return self
-
-  def _DetermineReference(self, reference, notification):
-    """Determine the most appropriate location for this notification."""
 
     reference_type_enum = ApiNotificationReference.Type
 
+    # TODO(user): refactor notifications, so that we send a meaningful
+    # notification from the start, so that we don't have to do the
+    # bridging/conversion/guessing here.
+    components = self._GetUrnComponents(notification)
     if notification.type == "Discovery":
-      components = self._GetUrnComponents(notification)
-      reference.type = reference_type_enum.DISCOVERY
-      reference.discovery = ApiNotificationDiscoveryReference(
+      self.reference.type = reference_type_enum.DISCOVERY
+      self.reference.discovery = ApiNotificationDiscoveryReference(
           client_id=components[0])
-
-    elif notification.type == "DownloadFile":
-      components = self._GetUrnComponents(notification)
-      if len(components) == 2 and components[0] == "hunts":
-        # Return a specific notification reference for hunt results
-        # in a future CL
-        pass
-      else:
-        path = notification.subject
-        reference.type = reference_type_enum.FILE_DOWNLOAD_READY
-        reference.file_download_ready = ApiNotificationFileDownloadReference(
-            path=path)
-
     elif notification.type == "ViewObject":
-      components = self._GetUrnComponents(notification)
-      if len(components) == 2 and components[0] == "hunts":
-        reference.type = reference_type_enum.HUNT
-        reference.hunt = ApiNotificationHuntReference(
-            hunt_urn=notification.subject)
-      elif len(components) == 2 and components[0] == "cron":
-        reference.type = reference_type_enum.CRON
-        reference.cron = ApiNotificationCronReference(
-            cron_job_urn=notification.subject)
-      elif len(components) == 3 and components[1] == "flows":
-        reference.type = reference_type_enum.FLOW
-        reference.flow = ApiNotificationFlowReference(
-            flow_urn=notification.subject, client_id=components[0])
+      if len(components) >= 2 and components[0] == "hunts":
+        self.reference.type = reference_type_enum.HUNT
+        self.reference.hunt.hunt_urn = rdfvalue.RDFURN(
+            os.path.join(*components[:2]))
+      elif len(components) >= 2 and components[0] == "cron":
+        self.reference.type = reference_type_enum.CRON
+        self.reference.cron.cron_job_urn = rdfvalue.RDFURN(
+            os.path.join(*components[:2]))
+      elif len(components) >= 3 and components[1] == "flows":
+        self.reference.type = reference_type_enum.FLOW
+        self.reference.flow.flow_id = components[2]
+        self.reference.flow.client_id = components[0]
       elif len(components) == 1 and rdf_client.ClientURN.Validate(components[
           0]):
-        reference.type = reference_type_enum.DISCOVERY
-        reference.discovery = ApiNotificationDiscoveryReference(
-            client_id=components[0])
+        self.reference.type = reference_type_enum.DISCOVERY
+        self.reference.discovery.client_id = components[0]
       else:
-        reference.type = reference_type_enum.VFS
-        reference.vfs = ApiNotificationVfsReference(
-            vfs_path=notification.subject, client_id=components[0])
+        path = notification.subject.Path()
+        for prefix in aff4_grr.VFSGRRClient.AFF4_PREFIXES.values():
+          part = "/%s%s" % (components[0], prefix)
+          if path.startswith(part):
+            self.reference.type = reference_type_enum.VFS
+            self.reference.vfs.client_id = components[0]
+            self.reference.vfs.vfs_path = prefix + path[len(part):]
+            break
+
+        if self.reference.type != reference_type_enum.VFS:
+          self.reference.type = reference_type_enum.UNKNOWN
+          self.reference.unknown.subject_urn = notification.subject
 
     elif notification.type == "FlowStatus":
-      components = self._GetUrnComponents(notification)
       if not components or not rdf_client.ClientURN.Validate(components[0]):
-        # No reference to flow errors when the client id is missing.
-        return
-
-      reference.type = reference_type_enum.FLOW_STATUS
-      reference.flow_status = ApiNotificationFlowStatusReference(
-          flow_urn=notification.source, client_id=components[0])
+        self.reference.type = reference_type_enum.UNKNOWN
+        self.reference.unknown.subject_urn = notification.subject
+      else:
+        self.reference.type = reference_type_enum.FLOW
+        self.reference.flow.flow_id = notification.source.Basename()
+        self.reference.flow.client_id = components[0]
 
     # TODO(user): refactor GrantAccess notification so that we don't have
     # to infer approval type from the URN.
     elif notification.type == "GrantAccess":
-      components = self._GetUrnComponents(notification)
       if rdf_client.ClientURN.Validate(components[1]):
-        reference.type = reference_type_enum.CLIENT_APPROVAL
-        reference.client_approval.client_id = components[1]
-        reference.client_approval.approval_id = components[-1]
-        reference.client_approval.username = components[-2]
+        self.reference.type = reference_type_enum.CLIENT_APPROVAL
+        self.reference.client_approval.client_id = components[1]
+        self.reference.client_approval.approval_id = components[-1]
+        self.reference.client_approval.username = components[-2]
       elif components[1] == "hunts":
-        reference.type = reference_type_enum.HUNT_APPROVAL
-        reference.hunt_approval.hunt_id = components[2]
-        reference.hunt_approval.approval_id = components[-1]
-        reference.hunt_approval.username = components[-2]
+        self.reference.type = reference_type_enum.HUNT_APPROVAL
+        self.reference.hunt_approval.hunt_id = components[2]
+        self.reference.hunt_approval.approval_id = components[-1]
+        self.reference.hunt_approval.username = components[-2]
       elif components[1] == "cron":
-        reference.type = reference_type_enum.CRON_JOB_APPROVAL
-        reference.cron_job_approval.cron_job_id = components[2]
-        reference.cron_job_approval.approval_id = components[-1]
-        reference.cron_job_approval.username = components[-2]
+        self.reference.type = reference_type_enum.CRON_JOB_APPROVAL
+        self.reference.cron_job_approval.cron_job_id = components[2]
+        self.reference.cron_job_approval.approval_id = components[-1]
+        self.reference.cron_job_approval.username = components[-2]
 
-    elif notification.type == "ArchiveGenerationFinished":
-      reference.type = reference_type_enum.ARCHIVE_GENERATION_FINISHED
-      reference.path = notification.subject
+    else:
+      self.reference.type = reference_type_enum.UNKNOWN
+      self.reference.unknown.subject_urn = notification.subject
+      self.reference.unknown.source_urn = notification.source
 
-    elif notification.type == "Error":
-      reference.type = reference_type_enum.ERROR
-
-  def _GetUrnComponents(self, notification):
-    # Still display if subject doesn't get set, this will appear in the GUI with
-    # a target of "None"
-    urn = "/"
-    if notification.subject is not None:
-      urn = notification.subject
-
-    path = rdfvalue.RDFURN(urn)
-    return path.Path().split("/")[1:]
+    return self
 
 
 class ApiNotificationReference(rdf_structs.RDFProtoStruct):
@@ -860,15 +851,6 @@ class ApiNotificationReference(rdf_structs.RDFProtoStruct):
 
 class ApiNotificationDiscoveryReference(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiNotificationDiscoveryReference
-
-
-class ApiNotificationFileDownloadReference(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiNotificationFileDownloadReference
-
-
-class ApiNotificationArchiveGenerationFinishedReference(
-    rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiNotificationArchiveGenerationFinishedReference
 
 
 class ApiNotificationHuntReference(rdf_structs.RDFProtoStruct):
@@ -887,10 +869,6 @@ class ApiNotificationVfsReference(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiNotificationVfsReference
 
 
-class ApiNotificationFlowStatusReference(rdf_structs.RDFProtoStruct):
-  protobuf = api_pb2.ApiNotificationFlowStatusReference
-
-
 class ApiNotificationClientApprovalReference(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiNotificationClientApprovalReference
 
@@ -901,6 +879,10 @@ class ApiNotificationHuntApprovalReference(rdf_structs.RDFProtoStruct):
 
 class ApiNotificationCronJobApprovalReference(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiNotificationCronJobApprovalReference
+
+
+class ApiNotificationUnknownReference(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiNotificationUnknownReference
 
 
 class ApiListAndResetUserNotificationsHandler(

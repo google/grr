@@ -7,31 +7,19 @@
       <i ng-if="notification.refType === 'FLOW'" class="fa fa-code-fork"></i>
       <i ng-if="notification.refType === 'CRON'" class="fa fa-history"></i>
       <i ng-if="notification.refType === 'VFS'" class="fa fa-hdd-o"></i>
-      <i ng-if="notification.refType === 'FLOW_STATUS'" class="fa fa-bolt"></i>
       <i ng-if="notification.refType === 'CLIENT_APPROVAL'" class="fa fa-unlock"></i>
       <i ng-if="notification.refType === 'HUNT_APPROVAL'" class="fa fa-unlock"></i>
       <i ng-if="notification.refType === 'CRON_JOB_APPROVAL'" class="fa fa-unlock"></i>
     </div>
 
     <div class="notification-content">
-        {$ ::notification.value.message.value $}
-        <grr-timestamp value="::notification.value.timestamp" />
+      <grr-semantic-value value="::notification.value.message"></grr-semantic-value>
+      <grr-timestamp value="::notification.value.timestamp" />
     </div>
 
     <div class="no-link-indicator" ng-if="!notification.link">
-        <i class="fa fa-chain-broken"></i> no link
-    </div>
-
-    <div class="legacy-mac-times-indicator" ng-if="notification.legacyMacTimes">
-        <i class="fa fa-exclamation-triangle"></i>
-        This is a legacy MACTimes flow notification.<br/>
-        It won't work in <strong>canary</strong> mode.
-    </div>
-
-    <div class="legacy-vfs-path-indicator" ng-if="notification.legacyVfsPath">
-        <i class="fa fa-exclamation-triangle"></i>
-        This is a legacy VFS object notification. <br/>It won't work in
-        <strong>canary</strong> mode.
+      <i class="fa fa-chain-broken"></i>
+      This is a LEGACY notification (therefore it's not clickable)
     </div>
   </a>
 
@@ -41,7 +29,7 @@
       <i class="fa fa-download"></i>
     </div>
     <div class="notification-content">
-      {$ ::notification.value.message.value $}
+      <grr-semantic-value value="::notification.value.message"></grr-semantic-value>
       <grr-timestamp value="::notification.value.timestamp" />
     </div>
   </grr-aff4-download-link>

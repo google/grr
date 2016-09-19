@@ -22,6 +22,18 @@ class ApiReportData(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiReportData
 
 
+class ApiStackChartReportData(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiStackChartReportData
+
+
+class ApiReportDataSeries2D(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiReportDataSeries2D
+
+
+class ApiReportDataPoint2D(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiReportDataPoint2D
+
+
 def GetAvailableReportPlugins():
   """Lists direct subclasses of ReportPluginBase."""
   return sorted(

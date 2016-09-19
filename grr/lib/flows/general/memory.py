@@ -12,6 +12,7 @@ import json
 from rekall import constants
 
 import logging
+from grr.client.components.rekall_support import grr_rekall
 from grr.client.components.rekall_support import rekall_pb2
 from grr.client.components.rekall_support import rekall_types
 from grr.lib import aff4
@@ -179,7 +180,9 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     self.state.rekall_request = request
 
     self.CallClient(
-        "RekallAction", self.state.rekall_request, next_state="StoreResults")
+        grr_rekall.RekallAction.__name__,
+        self.state.rekall_request,
+        next_state="StoreResults")
 
   @flow.StateHandler()
   def UpdateProfile(self, responses):
@@ -267,15 +270,17 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     if not responses.success:
       raise flow.FlowError("Could not delete file: %s" % responses.status)
 
+  def NotifyAboutEnd(self):
+    if self.runner.IsWritingResults():
+      self.Notify("ViewObject", self.urn, "Ran analyze client memory")
+    else:
+      super(AnalyzeClientMemory, self).NotifyAboutEnd()
+
   @flow.StateHandler()
   def End(self):
     if self.state.plugin_errors:
       all_errors = u"\n".join([unicode(e) for e in self.state.plugin_errors])
       raise flow.FlowError("Error running plugins: %s" % all_errors)
-
-    if self.runner.IsWritingResults():
-      self.Notify("ViewObject", self.runner.output_urn,
-                  "Ran analyze client memory")
 
   def GetProfileByName(self, name, version):
     """Load the requested profile from the repository."""

@@ -134,8 +134,7 @@ describe('User desktop notifications directive', function() {
     expect(grrApiService.delete).toHaveBeenCalledWith(
         'users/me/notifications/pending/42000000');
 
-    expect($window.location.href).toContain(
-        encodeURIComponent('aff4:/C.1000000000000000'));
+    expect($window.location.href).toBe('#/clients/C.1000000000000000');
   });
 
   it('fetches pending notifications and displays the last two of them as ' +

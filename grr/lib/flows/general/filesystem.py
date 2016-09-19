@@ -110,11 +110,12 @@ class ListDirectory(flow.GRRFlow):
 
     aff4.FACTORY.Flush()
 
-  @flow.StateHandler()
-  def End(self):
+  def NotifyAboutEnd(self):
     if self.state.urn:
       self.Notify("ViewObject", self.state.urn,
                   u"Listed {0}".format(self.args.pathspec))
+    else:
+      super(ListDirectory, self).NotifyAboutEnd()
 
 
 class IteratedListDirectory(ListDirectory):
@@ -182,8 +183,7 @@ class IteratedListDirectory(ListDirectory):
       CreateAFF4Object(st, self.client_id, self.token)
       self.SendReply(st)  # Send Stats to parent flows.
 
-  @flow.StateHandler()
-  def End(self):
+  def NotifyAboutEnd(self):
     self.Notify("ViewObject", self.state.urn,
                 "List of {0} completed.".format(self.args.pathspec))
 
@@ -263,13 +263,22 @@ class RecursiveListDirectory(flow.GRRFlow):
       CreateAFF4Object(st, self.client_id, self.token)
       self.SendReply(st)  # Send Stats to parent flows.
 
+  def NotifyAboutEnd(self):
+    status_text = "Recursive Directory Listing complete %d nodes, %d dirs"
+
+    urn = None
+    try:
+      urn = aff4_grr.VFSGRRClient.PathspecToURN(self.args.pathspec,
+                                                self.client_id)
+    except IndexError:
+      pass
+
+    self.Notify("ViewObject", self.state.first_directory or urn,
+                status_text % (self.state.file_count, self.state.dir_count))
+
   @flow.StateHandler()
   def End(self):
     status_text = "Recursive Directory Listing complete %d nodes, %d dirs"
-    urn = aff4_grr.VFSGRRClient.PathspecToURN(self.args.pathspec,
-                                              self.client_id)
-    self.Notify("ViewObject", self.state.first_directory or urn,
-                status_text % (self.state.file_count, self.state.dir_count))
     self.Status(status_text, self.state.file_count, self.state.dir_count)
 
 
