@@ -81,7 +81,6 @@ def Homepage(request):
       "fileview.js",
       "foreman.js",
       "inspect_view.js",
-      "reports_view.js",
       "semantic.js",
       "statistics.js",
       "usage.js"

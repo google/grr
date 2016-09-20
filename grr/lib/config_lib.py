@@ -821,7 +821,13 @@ class GrrConfigManager(object):
     try:
       self.writeback = self.LoadSecondaryConfig(filename)
       self.MergeData(self.writeback.RawData(), self.writeback_data)
+    except IOError as e:
+      # This means that we probably aren't installed correctly.
+      logging.error("Unable to read writeback file: %s", e)
+      return
     except Exception as we:  # pylint: disable=broad-except
+      # Could be yaml parse error, could be some malformed parameter. Move the
+      # writeback file so that we start in a clean state next run
       if os.path.exists(filename):
         try:
           b = filename + ".bak"

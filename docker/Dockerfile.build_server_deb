@@ -23,6 +23,7 @@ RUN apt-get update && \
   dpkg-dev \
   lib32z1 \
   libc6-i386 \
+  libffi-dev \
   libssl-dev \
   python2.7-dev \
   python-pip \

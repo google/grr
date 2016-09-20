@@ -254,6 +254,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def ListReports(self, args, token=None):
     return api_stats.ApiListReportsHandler()
 
+  def GetReport(self, args, token=None):
+    return api_stats.ApiGetReportHandler()
+
   # Approvals methods.
   # =================
   #

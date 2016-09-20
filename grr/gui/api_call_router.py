@@ -676,6 +676,13 @@ class ApiCallRouter(object):
   def ListReports(self, args, token=None):
     raise NotImplementedError()
 
+  @Category("Other")
+  @Http("GET", "/api/stats/reports/<name>")
+  @ArgsType(api_stats.ApiGetReportArgs)
+  @ResultType(api_stats.report_plugins.ApiReport)
+  def GetReport(self, args, token=None):
+    raise NotImplementedError()
+
   # Approvals methods.
   # =================
   #

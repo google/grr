@@ -20,6 +20,9 @@ class LinuxClientBuilder(build.ClientBuilder):
     self.context.append("Target:Linux")
 
   def StripLibraries(self, directory):
+    # TODO(user): this is essentially "dh_strip --exclude=ffi" for deb
+    # packages, if we can figure out the equivalent for redhat we could get rid
+    # of this code.
     matches = []
     for root, _, filenames in os.walk(directory):
       for filename in fnmatch.filter(filenames, "*.so*"):

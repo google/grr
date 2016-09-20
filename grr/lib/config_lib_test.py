@@ -5,6 +5,7 @@ import __builtin__
 import copy
 import ntpath
 import os
+import stat
 import StringIO
 
 
@@ -890,6 +891,17 @@ Client.labels: [Test1]
 
     self.assertRaises(AttributeError, conf.SetWriteBack, writeback_file)
     self.assertTrue(os.path.isfile(writeback_file + ".bak"))
+
+  def testNoRenameOfReadProtectedFile(self):
+    conf = config_lib.CONFIG.MakeNewConfig()
+    writeback_file = os.path.join(self.temp_dir, "writeback.yaml")
+    with open(writeback_file, "w") as f:
+      f.write("...")
+      f.close()
+    os.chmod(writeback_file, stat.S_IWUSR)
+
+    conf.SetWriteBack(writeback_file)
+    self.assertTrue(os.path.isfile(writeback_file))
 
 
 def main(argv):

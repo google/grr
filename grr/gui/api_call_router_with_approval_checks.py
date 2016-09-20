@@ -468,6 +468,11 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.ListReports(args, token=token)
 
+  def GetReport(self, args, token=None):
+    # Everybody can get report data.
+
+    return self.delegate.GetReport(args, token=token)
+
   # Approvals methods.
   # =================
   #

@@ -178,3 +178,22 @@ class ApiListReportsHandler(api_call_handler_base.ApiCallHandler):
             desc=report_cls.GetReportDescriptor(), data=None)
         for report_cls in report_plugins.GetAvailableReportPlugins()
     ])
+
+
+class ApiGetReportArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetReportArgs
+
+
+class ApiGetReportHandler(api_call_handler_base.ApiCallHandler):
+  """Fetches data for the given report."""
+
+  category = CATEGORY
+  args_type = ApiGetReportArgs
+  result_type = report_plugins.ApiReport
+
+  def Handle(self, args, token):
+    report = report_plugins.GetReportByName(args.name)
+
+    return report_plugins.ApiReport(
+        desc=report.GetReportDescriptor(),
+        data=report.GetReportData(args, token))

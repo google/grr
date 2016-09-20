@@ -1046,6 +1046,30 @@ message ApiReport {
   optional ApiReportData data = 2;
 }
 
+message ApiGetReportArgs {
+  optional string name = 1 [(sem_type) = {
+      description: "Identifier in the report hierarchy. Also the name of the "
+        "corresponding class in report_plugins.py. "
+        "Eg 'ClientsActivityReportPlugin'."
+    }];
+
+  optional uint64 start_time = 2 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Earliest timestamp of data points to consider. "
+        "Ignored by reports with requires_time_range set to false."
+    }];
+
+  optional uint64 duration = 3 [(sem_type) = {
+      type: "Duration",
+      description: "Length of the time range to consider. "
+        "Ignored by reports with requires_time_range set to false."
+    }];
+
+  optional string client_label = 4 [(sem_type) = {
+      description: "Client label used by label-specific reports. Optional."
+    }];
+}
+
 message ApiReportData {
   option (semantic) = {
     union_field: "representation_type"

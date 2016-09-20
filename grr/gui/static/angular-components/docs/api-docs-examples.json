@@ -6871,6 +6871,179 @@
       "url": "/api/stats/reports"
     }
   ],
+  "ApiGetReportHandler": [
+    {
+      "method": "GET",
+      "response": {
+        "data": {
+          "age": 0,
+          "type": "ApiReportData",
+          "value": {
+            "representation_type": {
+              "age": 0,
+              "type": "EnumNamedValue",
+              "value": "STACK_CHART"
+            },
+            "stack_chart": {
+              "age": 0,
+              "type": "ApiStackChartReportData",
+              "value": {
+                "data": [
+                  {
+                    "age": 0,
+                    "type": "ApiReportDataSeries2D",
+                    "value": {
+                      "label": {
+                        "age": 0,
+                        "type": "unicode",
+                        "value": "Bar"
+                      },
+                      "points": [
+                        {
+                          "age": 0,
+                          "type": "ApiReportDataPoint2D",
+                          "value": {
+                            "x": {
+                              "age": 0,
+                              "type": "long",
+                              "value": 5
+                            },
+                            "y": {
+                              "age": 0,
+                              "type": "long",
+                              "value": 3
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "ApiReportDataPoint2D",
+                          "value": {
+                            "x": {
+                              "age": 0,
+                              "type": "long",
+                              "value": 8
+                            },
+                            "y": {
+                              "age": 0,
+                              "type": "long",
+                              "value": 4
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "ApiReportDataPoint2D",
+                          "value": {
+                            "x": {
+                              "age": 0,
+                              "type": "long",
+                              "value": 13
+                            },
+                            "y": {
+                              "age": 0,
+                              "type": "long",
+                              "value": 5
+                            }
+                          }
+                        },
+                        {
+                          "age": 0,
+                          "type": "ApiReportDataPoint2D",
+                          "value": {
+                            "x": {
+                              "age": 0,
+                              "type": "long",
+                              "value": 21
+                            },
+                            "y": {
+                              "age": 0,
+                              "type": "long",
+                              "value": 6
+                            }
+                          }
+                        }
+                      ]
+                    }
+                  }
+                ]
+              }
+            }
+          }
+        },
+        "desc": {
+          "age": 0,
+          "type": "ApiReportDescriptor",
+          "value": {
+            "name": {
+              "age": 0,
+              "type": "unicode",
+              "value": "BarReportPlugin"
+            },
+            "requires_time_range": {
+              "age": 0,
+              "type": "RDFBool",
+              "value": true
+            },
+            "summary": {
+              "age": 0,
+              "type": "unicode",
+              "value": "Reports bars' activity in the given time range."
+            },
+            "title": {
+              "age": 0,
+              "type": "unicode",
+              "value": "Bar Activity"
+            },
+            "type": {
+              "age": 0,
+              "type": "EnumNamedValue",
+              "value": "SERVER"
+            }
+          }
+        }
+      },
+      "test_class": "ApiGetReportRegressionTest",
+      "type_stripped_response": {
+        "data": {
+          "representation_type": "STACK_CHART",
+          "stack_chart": {
+            "data": [
+              {
+                "label": "Bar",
+                "points": [
+                  {
+                    "x": 5,
+                    "y": 3
+                  },
+                  {
+                    "x": 8,
+                    "y": 4
+                  },
+                  {
+                    "x": 13,
+                    "y": 5
+                  },
+                  {
+                    "x": 21,
+                    "y": 6
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "desc": {
+          "name": "BarReportPlugin",
+          "requires_time_range": true,
+          "summary": "Reports bars' activity in the given time range.",
+          "title": "Bar Activity",
+          "type": "SERVER"
+        }
+      },
+      "url": "/api/stats/reports/BarReportPlugin?start_time=1355443200000000&duration=4d"
+    }
+  ],
   "ApiGetVfsTimelineHandler": [
     {
       "method": "GET",

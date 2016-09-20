@@ -56,6 +56,9 @@ override_dh_icons:
 
 override_dh_perl:
 
+override_dh_strip:
+	dh_strip --exclude=ffi
+
 # For pre-release testing put all the files in a directory in the src tree
 # called grr_release_testing and point dh_virtualenv at it like this:
 # --extra-pip-arg '-f' --extra-pip-arg 'file:///usr/src/grr/grr_release_testing'
