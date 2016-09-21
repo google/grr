@@ -97,7 +97,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
 
   ACCESS_CHECKED_METHODS.extend([
       "InterrogateClient",
-      "ListClientCrashes"])  # pyformat: disable
+      "ListClientCrashes",
+      "ListClientActionRequests"])  # pyformat: disable
 
   def testClientMethodsAreAccessChecked(self):
     args = api_client.ApiInterrogateClientArgs(client_id=self.client_id)

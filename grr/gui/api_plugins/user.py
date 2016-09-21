@@ -29,8 +29,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-CATEGORY = "User"
-
 
 class GlobalNotificationNotFoundError(
     api_call_handler_base.ResourceNotFoundError):
@@ -129,12 +127,6 @@ class ApiCronJobApproval(rdf_structs.RDFProtoStruct):
 class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
   """Base class for all Crate*Approval handlers."""
 
-  category = CATEGORY
-
-  # We return a single object and have to preserve type information of all
-  # the fields.
-  strip_json_root_fields_types = False
-
   # AFF4 type of the approval object to be checked. Should be set by a subclass.
   approval_aff4_type = None
 
@@ -168,8 +160,6 @@ class ApiCreateApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
 
 class ApiListApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
   """Renders list of all user approvals."""
-
-  category = CATEGORY
 
   def _GetApprovals(self,
                     approval_type,
@@ -256,12 +246,6 @@ class ApiListApprovalsHandlerBase(api_call_handler_base.ApiCallHandler):
 class ApiGetApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
   """Base class for all Get*Approval handlers."""
 
-  category = CATEGORY
-
-  # We return a single object and have to preserve type information of all
-  # the fields.
-  strip_json_root_fields_types = False
-
   # AFF4 type of the approval object to be checked. Should be set by a subclass.
   approval_aff4_type = None
 
@@ -277,10 +261,6 @@ class ApiGetApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
 
 class ApiGrantApprovalHandlerBase(api_call_handler_base.ApiCallHandler):
   """Base class reused by all client approval handlers."""
-
-  # We return a single object and have to preserve type information of all
-  # the fields.
-  strip_json_root_fields_types = False
 
   # AFF4 type of the approval object to be checked. Should be set by a subclass.
   approval_aff4_type = None
@@ -600,10 +580,7 @@ class ApiListCronJobApprovalsHandler(ApiListApprovalsHandlerBase):
 class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
   """Renders current user settings."""
 
-  category = CATEGORY
-
   result_type = ApiGrrUser
-  strip_json_root_fields_types = False
 
   def __init__(self, interface_traits=None):
     super(ApiGetGrrUserHandler, self).__init__()
@@ -633,8 +610,6 @@ class ApiGetGrrUserHandler(api_call_handler_base.ApiCallHandler):
 class ApiUpdateGrrUserHandler(api_call_handler_base.ApiCallHandler):
   """Sets current user settings."""
 
-  category = CATEGORY
-
   args_type = ApiGrrUser
 
   def Handle(self, args, token=None):
@@ -657,7 +632,6 @@ class ApiGetPendingUserNotificationsCountHandler(
     api_call_handler_base.ApiCallHandler):
   """Returns the number of pending notifications for the current user."""
 
-  category = CATEGORY
   result_type = ApiGetPendingUserNotificationsCountResult
 
   def Handle(self, args, token=None):
@@ -686,7 +660,6 @@ class ApiListPendingUserNotificationsHandler(
     api_call_handler_base.ApiCallHandler):
   """Returns pending notifications for the current user."""
 
-  category = CATEGORY
   args_type = ApiListPendingUserNotificationsArgs
   result_type = ApiListPendingUserNotificationsResult
 
@@ -716,7 +689,6 @@ class ApiDeletePendingUserNotificationHandler(
     api_call_handler_base.ApiCallHandler):
   """Removes the pending notification with the given timestamp."""
 
-  category = CATEGORY
   args_type = ApiDeletePendingUserNotificationArgs
 
   def Handle(self, args, token=None):
@@ -889,7 +861,6 @@ class ApiListAndResetUserNotificationsHandler(
     api_call_handler_base.ApiCallHandler):
   """Returns the number of pending notifications for the current user."""
 
-  category = CATEGORY
   args_type = ApiListAndResetUserNotificationsArgs
   result_type = ApiListAndResetUserNotificationsResult
 
@@ -940,7 +911,6 @@ class ApiListPendingGlobalNotificationsHandler(
     api_call_handler_base.ApiCallHandler):
   """Returns the pending global notifications for the current user."""
 
-  category = CATEGORY
   result_type = ApiListPendingGlobalNotificationsResult
 
   def Handle(self, args, token=None):
@@ -965,7 +935,6 @@ class ApiDeletePendingGlobalNotificationHandler(
     api_call_handler_base.ApiCallHandler):
   """Deletes the global notification from the list of unseen notifications."""
 
-  category = CATEGORY
   args_type = ApiDeletePendingGlobalNotificationArgs
 
   def Handle(self, args, token=None):

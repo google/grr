@@ -3,9 +3,11 @@
 
 
 
-# To load the DumpFlashImage class pylint: disable=unused-import
+from grr.client.client_actions import tempfiles as tempfiles_actions
+
+# The DumpFlashImage class is loaded from here
 from grr.client.components.chipsec_support import grr_chipsec_stub
-# pylint: enable=unused-import
+
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib.aff4_objects import hardware
@@ -47,7 +49,7 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
     """Store hardware information and initiate dumping of the flash image."""
     self.state.hardware_info = responses.First()
     self.CallClient(
-        "DumpFlashImage",
+        grr_chipsec_stub.DumpFlashImage,
         log_level=self.args.log_level,
         chunk_size=self.args.chunk_size,
         notify_syslog=self.args.notify_syslog,
@@ -94,7 +96,7 @@ class DumpFlashImage(transfer.LoadComponentMixin, flow.GRRFlow):
 
     # Clean up the temporary image from the client.
     self.CallClient(
-        "DeleteGRRTempFiles",
+        tempfiles_actions.DeleteGRRTempFiles,
         responses.request_data["image_path"],
         next_state="TemporaryImageRemoved")
 
@@ -139,7 +141,7 @@ class DumpACPITable(transfer.LoadComponentMixin, flow.GRRFlow):
     """Start collecting tables with listed signature."""
     for table_signature in self.args.table_signature_list:
       self.CallClient(
-          "DumpACPITable",
+          grr_chipsec_stub.DumpACPITable,
           logging=self.args.logging,
           table_signature=table_signature,
           next_state="TableReceived")

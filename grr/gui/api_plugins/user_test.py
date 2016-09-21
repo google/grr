@@ -293,7 +293,8 @@ class ApiGetClientApprovalHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiGetClientApprovalHandler."""
 
-  handler = "ApiGetClientApprovalHandler"
+  api_method = "GetClientApproval"
+  handler = user_plugin.ApiGetClientApprovalHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -358,7 +359,8 @@ class ApiGrantClientApprovalHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiGrantClientApprovalHandler."""
 
-  handler = "ApiGrantClientApprovalHandler"
+  api_method = "GrantClientApproval"
+  handler = user_plugin.ApiGrantClientApprovalHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -428,7 +430,8 @@ class ApiCreateClientApprovalHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiCreateClientApprovalHandler."""
 
-  handler = "ApiCreateClientApprovalHandler"
+  api_method = "CreateClientApproval"
+  handler = user_plugin.ApiCreateClientApprovalHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -587,7 +590,8 @@ class ApiListClientApprovalsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiListClientApprovalsHandlerTest."""
 
-  handler = "ApiListClientApprovalsHandler"
+  api_method = "ListClientApprovals"
+  handler = user_plugin.ApiListClientApprovalsHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -653,7 +657,8 @@ class ApiGetHuntApprovalHandlerRegressionTest(
     standard_test.StandardHuntTestMixin):
   """Regression test for ApiGetHuntApprovalHandler."""
 
-  handler = "ApiGetHuntApprovalHandler"
+  api_method = "GetHuntApproval"
+  handler = user_plugin.ApiGetHuntApprovalHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -716,7 +721,8 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
     standard_test.StandardHuntTestMixin):
   """Regression test for ApiGrantHuntApprovalHandler."""
 
-  handler = "ApiGrantHuntApprovalHandler"
+  api_method = "GrantHuntApproval"
+  handler = user_plugin.ApiGrantHuntApprovalHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -776,7 +782,8 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
     standard_test.StandardHuntTestMixin):
   """Regression test for ApiCreateHuntApprovalHandler."""
 
-  handler = "ApiCreateHuntApprovalHandler"
+  api_method = "CreateHuntApproval"
+  handler = user_plugin.ApiCreateHuntApprovalHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -834,7 +841,8 @@ class ApiListHuntApprovalsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiListClientApprovalsHandlerTest."""
 
-  handler = "ApiListHuntApprovalsHandler"
+  api_method = "ListHuntApprovals"
+  handler = user_plugin.ApiListHuntApprovalsHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -865,7 +873,8 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiGetCronJobApprovalHandler."""
 
-  handler = "ApiGetCronJobApprovalHandler"
+  api_method = "GetCronJobApproval"
+  handler = user_plugin.ApiGetCronJobApprovalHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -929,7 +938,8 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiGrantCronJobApprovalHandler."""
 
-  handler = "ApiGrantCronJobApprovalHandler"
+  api_method = "GrantCronJobApproval"
+  handler = user_plugin.ApiGrantCronJobApprovalHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -992,7 +1002,8 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiCreateCronJobApprovalHandler."""
 
-  handler = "ApiCreateCronJobApprovalHandler"
+  api_method = "CreateCronJobApproval"
+  handler = user_plugin.ApiCreateCronJobApprovalHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -1097,7 +1108,8 @@ class ApiGetGrrUserHandlerRegresstionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiGetUserSettingsHandler."""
 
-  handler = "ApiGetGrrUserHandler"
+  api_method = "GetGrrUser"
+  handler = user_plugin.ApiGetGrrUserHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -1150,7 +1162,8 @@ class ApiGetPendingUserNotificationsCountHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiGetPendingUserNotificationsCountHandler."""
 
-  handler = "ApiGetPendingUserNotificationsCountHandler"
+  api_method = "GetPendingUserNotificationsCount"
+  handler = user_plugin.ApiGetPendingUserNotificationsCountHandler
 
   def setUp(self):
     super(ApiGetPendingUserNotificationsCountHandlerRegressionTest,
@@ -1176,7 +1189,8 @@ class ApiListPendingUserNotificationsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiListPendingUserNotificationsHandler."""
 
-  handler = "ApiListPendingUserNotificationsHandler"
+  api_method = "ListPendingUserNotifications"
+  handler = user_plugin.ApiListPendingUserNotificationsHandler
 
   def setUp(self):
     super(ApiListPendingUserNotificationsHandlerRegressionTest, self).setUp()
@@ -1302,7 +1316,8 @@ class ApiListAndResetUserNotificationsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiListAndResetUserNotificationsHandler."""
 
-  handler = "ApiListAndResetUserNotificationsHandler"
+  api_method = "ListAndResetUserNotifications"
+  handler = user_plugin.ApiListAndResetUserNotificationsHandler
 
   def setUp(self):
     super(ApiListAndResetUserNotificationsHandlerRegressionTest, self).setUp()
@@ -1335,7 +1350,8 @@ class ApiListPendingGlobalNotificationsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiListPendingGlobalNotificationsHandler."""
 
-  handler = "ApiListPendingGlobalNotificationsHandler"
+  api_method = "ListPendingGlobalNotifications"
+  handler = user_plugin.ApiListPendingGlobalNotificationsHandler
 
   # Global notifications are only shown in a certain time interval. By default,
   # this is from the moment they are created until two weeks later. Create

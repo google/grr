@@ -195,7 +195,8 @@ class ApiListHuntsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiListHuntsHandler"
+  api_method = "ListHunts"
+  handler = hunt_plugin.ApiListHuntsHandler
 
   def Run(self):
     replace = {}
@@ -215,7 +216,8 @@ class ApiListHuntsHandlerRegressionTest(
 class ApiListHuntResultsRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
 
-  handler = "ApiListHuntResultsHandler"
+  api_method = "ListHuntResults"
+  handler = hunt_plugin.ApiListHuntResultsHandler
 
   def Run(self):
     hunt_urn = rdfvalue.RDFURN("aff4:/hunts/H:123456")
@@ -245,7 +247,8 @@ class ApiListHuntResultsRegressionTest(
 class ApiGetHuntHandlerRegressionTest(api_test_lib.ApiCallHandlerRegressionTest,
                                       standard_test.StandardHuntTestMixin):
 
-  handler = "ApiGetHuntHandler"
+  api_method = "GetHunt"
+  handler = hunt_plugin.ApiGetHuntHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -266,7 +269,8 @@ class ApiListHuntLogsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiListHuntLogsHandler"
+  api_method = "ListHuntLogs"
+  handler = hunt_plugin.ApiListHuntLogsHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -295,7 +299,8 @@ class ApiListHuntErrorsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiListHuntErrorsHandler"
+  api_method = "ListHuntErrors"
+  handler = hunt_plugin.ApiListHuntErrorsHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -578,7 +583,8 @@ class ApiListHuntCrashesHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiListHuntCrashesHandler"
+  api_method = "ListHuntCrashes"
+  handler = hunt_plugin.ApiListHuntCrashesHandler
 
   def Run(self):
     client_ids = self.SetupClients(1)
@@ -618,7 +624,8 @@ class ApiGetHuntClientCompletionStatsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiGetHuntClientCompletionStatsHandler"
+  api_method = "GetHuntClientCompletionStats"
+  handler = hunt_plugin.ApiGetHuntClientCompletionStatsHandler
 
   def Run(self):
     client_ids = self.SetupClients(10)
@@ -647,7 +654,8 @@ class ApiGetHuntResultsExportCommandHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiGetHuntResultsExportCommandHandler"
+  api_method = "GetHuntResultsExportCommand"
+  handler = hunt_plugin.ApiGetHuntResultsExportCommandHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -675,7 +683,8 @@ class ApiListHuntOutputPluginsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiListHuntOutputPluginsHandler"
+  api_method = "ListHuntOutputPlugins"
+  handler = hunt_plugin.ApiListHuntOutputPluginsHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -782,7 +791,8 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiListHuntOutputPluginLogsHandler"
+  api_method = "ListHuntOutputPluginLogs"
+  handler = hunt_plugin.ApiListHuntOutputPluginLogsHandler
 
   def Run(self):
     with test_lib.FakeTime(42, increment=1):
@@ -813,7 +823,8 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiListHuntOutputPluginErrorsHandler"
+  api_method = "ListHuntOutputPluginErrors"
+  handler = hunt_plugin.ApiListHuntOutputPluginErrorsHandler
 
   def Run(self):
     with test_lib.FakeTime(42, increment=1):
@@ -847,7 +858,8 @@ class ApiGetHuntStatsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiGetHuntStatsHandler"
+  api_method = "GetHuntStats"
+  handler = hunt_plugin.ApiGetHuntStatsHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -873,7 +885,8 @@ class ApiListHuntClientsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiListHuntClientsHandler"
+  api_method = "ListHuntClients"
+  handler = hunt_plugin.ApiListHuntClientsHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -1010,7 +1023,8 @@ class ApiModifyHuntHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiModifyHuntHandler"
+  api_method = "ModifyHunt"
+  handler = hunt_plugin.ApiModifyHuntHandler
 
   def Run(self):
     # Check client_limit update.
@@ -1020,14 +1034,15 @@ class ApiModifyHuntHandlerRegressionTest(
     # Create replace dictionary.
     replace = {hunt.urn.Basename(): "H:123456"}
 
-    self.Check(
-        "PATCH",
-        "/api/hunts/%s" % hunt.urn.Basename(), {"client_limit": 142},
-        replace=replace)
-    self.Check(
-        "PATCH",
-        "/api/hunts/%s" % hunt.urn.Basename(), {"state": "STOPPED"},
-        replace=replace)
+    with test_lib.FakeTime(43):
+      self.Check(
+          "PATCH",
+          "/api/hunts/%s" % hunt.urn.Basename(), {"client_limit": 142},
+          replace=replace)
+      self.Check(
+          "PATCH",
+          "/api/hunts/%s" % hunt.urn.Basename(), {"state": "STOPPED"},
+          replace=replace)
 
 
 class ApiDeleteHuntHandlerTest(test_lib.GRRBaseTest,
@@ -1067,7 +1082,8 @@ class ApiDeleteHuntHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiDeleteHuntHandler"
+  api_method = "DeleteHunt"
+  handler = hunt_plugin.ApiDeleteHuntHandler
 
   def Run(self):
     with test_lib.FakeTime(42):

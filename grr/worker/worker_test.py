@@ -37,7 +37,7 @@ class WorkerSendingTestFlow(flow.GRRFlow):
   def Start(self):
     for i in range(10):
       self.CallClient(
-          "Test",
+          test_lib.Test,
           rdf_protodict.DataBlob(string="test%s" % i),
           data=str(i),
           next_state="Incoming")
@@ -59,7 +59,7 @@ class WorkerSendingTestFlow2(WorkerSendingTestFlow):
   def Start(self):
     i = 1
     self.CallClient(
-        "Test",
+        test_lib.Test,
         rdf_protodict.DataBlob(string="test%s" % i),
         data=str(i),
         next_state="Incoming")

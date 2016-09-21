@@ -383,15 +383,27 @@ class RegistryVFSTests(test_lib.EmptyActionTest):
                      [(r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"], [])])
 
     self.assertEqual(walk_tups_1,
-                     [(r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"], [])])
-
-    self.assertEqual(walk_tups_2,
                      [(r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"], []),
                       (r"HKEY_LOCAL_MACHINE", [r"SOFTWARE", r"SYSTEM"], []),
                       (r"HKEY_USERS",
                        [r"S-1-5-20",
                         r"S-1-5-21-2911950750-476812067-1487428992-1001",
                         r"S-1-5-21-702227000-2140022111-3110739999-1990"], [])])
+
+    self.assertEqual(walk_tups_2, [
+        (r"", [r"HKEY_LOCAL_MACHINE", r"HKEY_USERS"], []),
+        (r"HKEY_LOCAL_MACHINE", [r"SOFTWARE", r"SYSTEM"], []),
+        (r"HKEY_LOCAL_MACHINE\SOFTWARE", [r"ListingTest", r"Microsoft"], []),
+        (r"HKEY_LOCAL_MACHINE\SYSTEM", [r"ControlSet001", r"Select"], []),
+        (r"HKEY_USERS", [r"S-1-5-20",
+                         r"S-1-5-21-2911950750-476812067-1487428992-1001",
+                         r"S-1-5-21-702227000-2140022111-3110739999-1990"], []),
+        (r"HKEY_USERS\S-1-5-20", [r"Software"], []),
+        (r"HKEY_USERS\S-1-5-21-2911950750-476812067-1487428992-1001",
+         [r"Software"], []),
+        (r"HKEY_USERS\S-1-5-21-702227000-2140022111-3110739999-1990",
+         [r"Software"], []),
+    ])
 
     self.assertEqual(
         walk_tups_inf,

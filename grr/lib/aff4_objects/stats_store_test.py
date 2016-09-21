@@ -341,7 +341,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
         "str_gauge_with_fields", str, fields=[("task", int)])
 
     # Check that there are no metadata for registered metrics.
-    metadata = self.stats_store.ReadMetadata(process_id=self.process_id)
+    metadata = self.stats_store.ReadMetadata(
+        process_id=self.process_id).AsDict()
     self.assertFalse("counter" in metadata)
     self.assertFalse("counter_with_fields" in metadata)
     self.assertFalse("events" in metadata)
@@ -355,7 +356,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
         process_id=self.process_id, timestamp=42, sync=True)
 
     # Check that metadata were written into the store.
-    metadata = self.stats_store.ReadMetadata(process_id=self.process_id)
+    metadata = self.stats_store.ReadMetadata(
+        process_id=self.process_id).AsDict()
 
     # Field definitions used in assertions below.
     source_field_def = stats.MetricFieldDefinition(
@@ -421,8 +423,8 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     # Check that there are no metadata for registered metrics.
     metadata_by_id = self.stats_store.MultiReadMetadata(
         process_ids=["pid1", "pid2"])
-    self.assertFalse("counter" in metadata_by_id["pid1"])
-    self.assertFalse("counter" in metadata_by_id["pid2"])
+    self.assertFalse("counter" in metadata_by_id["pid1"].AsDict())
+    self.assertFalse("counter" in metadata_by_id["pid2"].AsDict())
 
     # Write stats to the data store. Metadata should be
     # written as well.
@@ -431,16 +433,16 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     # Now metadata should be found only for the pid1.
     metadata_by_id = self.stats_store.MultiReadMetadata(
         process_ids=["pid1", "pid2"])
-    self.assertTrue("counter" in metadata_by_id["pid1"])
-    self.assertFalse("counter" in metadata_by_id["pid2"])
+    self.assertTrue("counter" in metadata_by_id["pid1"].AsDict())
+    self.assertFalse("counter" in metadata_by_id["pid2"].AsDict())
 
     # Write stats for the pid2 and check again.
     self.stats_store.WriteStats(process_id="pid2", timestamp=42, sync=True)
 
     metadata_by_id = self.stats_store.MultiReadMetadata(
         process_ids=["pid1", "pid2"])
-    self.assertTrue("counter" in metadata_by_id["pid1"])
-    self.assertTrue("counter" in metadata_by_id["pid2"])
+    self.assertTrue("counter" in metadata_by_id["pid1"].AsDict())
+    self.assertTrue("counter" in metadata_by_id["pid2"].AsDict())
 
 
 class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):

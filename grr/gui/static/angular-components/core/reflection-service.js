@@ -118,7 +118,11 @@ ReflectionService.prototype.getRDFValueDescriptor = function(
     if (this.requestsQueue_.length === 0) {
       var apiPromise = this.grrApiService_.get('reflection/rdfvalue/all');
       apiPromise.then(function(response) {
-        this.descriptorsCache_ = response['data'];
+        this.descriptorsCache_ = {};
+        angular.forEach(response['data']['items'], function(item) {
+          this.descriptorsCache_[item['name']] = item;
+        }.bind(this));
+
         return this.processRequestsQueue_();
       }.bind(this));
     }

@@ -46,7 +46,7 @@ class FlowResponseSerialization(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self, unused_message=None):
     self.CallClient(
-        "ReturnBlob",
+        actions.ActionPlugin.classes["ReturnBlob"],
         rdf_client.EchoRequest(data="test"),
         next_state="Response1")
 
@@ -55,7 +55,7 @@ class FlowResponseSerialization(flow.GRRFlow):
     """Record the message id for testing."""
     self.state.messages = list(messages)
     self.CallClient(
-        "ReturnBlob",
+        actions.ActionPlugin.classes["ReturnBlob"],
         rdf_client.EchoRequest(data="test"),
         next_state="Response2")
 
@@ -82,7 +82,7 @@ class CallClientChildFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self, unused_message):
-    self.CallClient("GetClientStats", next_state="End")
+    self.CallClient(admin.GetClientStats, next_state="End")
 
 
 class NoRequestParentFlow(flow.GRRFlow):
@@ -207,6 +207,7 @@ class FlowCreationTest(BasicFlowTest):
       def __init__(self):
         # Register us as an action plugin.
         actions.ActionPlugin.classes["ReturnBlob"] = self
+        self.__name__ = "ReturnBlob"
 
       def ReturnBlob(self, unused_args):
         return [rdf_protodict.DataBlob(integer=100)]
@@ -517,7 +518,7 @@ class FlowTest(BasicFlowTest):
     """Check that out of order client messages are reordered."""
     flow_obj = self.FlowSetup("FlowOrderTest")
 
-    # Simultate processing messages arriving in random order
+    # Simulate processing messages arriving in random order
     message_ids = [2, 1, 4, 3, 5]
     self.SendMessages(message_ids, flow_obj.session_id)
 
@@ -553,7 +554,7 @@ class FlowTest(BasicFlowTest):
     cls = flow.GRRFlow.classes["GetClientStatsAuto"]
     flow_obj = cls(cls.well_known_session_id, mode="rw", token=self.token)
 
-    flow_obj.CallClient(self.client_id, "GetClientStats")
+    flow_obj.CallClient(self.client_id, admin.GetClientStats)
 
     # Check that a message went out to the client
     manager = queue_manager.QueueManager(token=self.token)
@@ -567,7 +568,7 @@ class FlowTest(BasicFlowTest):
     devnull = flow.GRRFlow.classes["IgnoreResponses"]
     self.assertEqual(message.session_id, devnull.well_known_session_id)
     self.assertEqual(message.request_id, 0)
-    self.assertEqual(message.name, "GetClientStats")
+    self.assertEqual(message.name, admin.GetClientStats.__name__)
 
     messages = []
 
@@ -591,7 +592,7 @@ class FlowTest(BasicFlowTest):
     """Test that flows refuse to processes unauthenticated messages."""
     flow_obj = self.FlowSetup("FlowOrderTest")
 
-    # Simultate processing messages arriving in random order
+    # Simulate processing messages arriving in random order
     message_ids = [2, 1, 4, 3, 5]
     self.SendMessages(message_ids, flow_obj.session_id, authenticated=False)
 
@@ -619,7 +620,7 @@ class FlowTest(BasicFlowTest):
     """
     flow_obj = self.FlowSetup("FlowOrderTest")
 
-    # Simultate processing messages arriving in random order
+    # Simulate processing messages arriving in random order
     message_ids = [1, 2]
     self.SendMessages(message_ids, flow_obj.session_id, authenticated=True)
 
@@ -1139,6 +1140,7 @@ class PriorityClientMock(object):
     # Register us as an action plugin.
     actions.ActionPlugin.classes["Store"] = self
     self.storage = storage
+    self.__name__ = "Store"
 
   def Store(self, data):
     self.storage.append(self.in_rdfvalue(data).string)
@@ -1156,7 +1158,10 @@ class PriorityFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.CallClient("Store", string=self.args.msg, next_state="Done")
+    self.CallClient(
+        actions.ActionPlugin.classes["Store"],
+        string=self.args.msg,
+        next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -1172,6 +1177,7 @@ class CPULimitClientMock(object):
     # Register us as an action plugin.
     actions.ActionPlugin.classes["Store"] = self
     self.storage = storage
+    self.__name__ = "Store"
 
   def HandleMessage(self, message):
     self.storage.setdefault("cpulimit", []).append(message.cpu_limit)
@@ -1184,15 +1190,22 @@ class CPULimitFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.CallClient("Store", string="Hey!", next_state="State1")
+    self.CallClient(
+        actions.ActionPlugin.classes["Store"],
+        string="Hey!",
+        next_state="State1")
 
   @flow.StateHandler()
   def State1(self):
-    self.CallClient("Store", string="Hey!", next_state="State2")
+    self.CallClient(
+        actions.ActionPlugin.classes["Store"],
+        string="Hey!",
+        next_state="State2")
 
   @flow.StateHandler()
   def State2(self):
-    self.CallClient("Store", string="Hey!", next_state="Done")
+    self.CallClient(
+        actions.ActionPlugin.classes["Store"], string="Hey!", next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -1204,20 +1217,20 @@ class NetworkLimitFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.CallClient("Store", next_state="State1")
+    self.CallClient(actions.ActionPlugin.classes["Store"], next_state="State1")
 
   @flow.StateHandler()
   def State1(self):
     # The mock worker doesn't track usage so we add it here.
-    self.CallClient("Store", next_state="State2")
+    self.CallClient(actions.ActionPlugin.classes["Store"], next_state="State2")
 
   @flow.StateHandler()
   def State2(self):
-    self.CallClient("Store", next_state="State3")
+    self.CallClient(actions.ActionPlugin.classes["Store"], next_state="State3")
 
   @flow.StateHandler()
   def State3(self):
-    self.CallClient("Store", next_state="Done")
+    self.CallClient(actions.ActionPlugin.classes["Store"], next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -1233,6 +1246,7 @@ class ClientMock(object):
   def __init__(self):
     # Register us as an action plugin.
     actions.ActionPlugin.classes["ReturnHello"] = self
+    self.__name__ = "ReturnHello"
 
   def ReturnHello(self, _):
     return [rdfvalue.RDFString("Hello World")]
@@ -1243,7 +1257,8 @@ class ChildFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.CallClient("ReturnHello", next_state="ReceiveHello")
+    self.CallClient(
+        actions.ActionPlugin.classes["ReturnHello"], next_state="ReceiveHello")
 
   @flow.StateHandler()
   def ReceiveHello(self, responses):

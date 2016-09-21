@@ -11,7 +11,6 @@ import logging
 from grr.gui import api_call_router
 from grr.lib import config_lib
 from grr.lib import registry
-from grr.lib import stats
 from grr.lib.authorization import auth_manager
 
 
@@ -154,11 +153,6 @@ class APIACLInit(registry.InitHook):
   def InitApiAuthManager():
     global API_AUTH_MGR
     API_AUTH_MGR = APIAuthorizationManager()
-
-    stats.STATS.RegisterCounterMetric(
-        "grr_api_auth_success", fields=[("handler", str), ("user", str)])
-    stats.STATS.RegisterCounterMetric(
-        "grr_api_auth_fail", fields=[("handler", str), ("user", str)])
 
   def RunOnce(self):
     allowed_contexts = ["AdminUI Context"]

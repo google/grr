@@ -13,6 +13,7 @@ import urlparse
 from grr import gui
 from grr.gui import api_auth_manager
 from grr.gui import api_call_router_without_checks
+from grr.gui import api_value_renderers
 from grr.gui import http_api
 from grr.lib import test_lib
 from grr.lib import utils
@@ -46,11 +47,20 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
 
   __abstract = True  # pylint: disable=g-bad-name
 
-  # Name of the ApiCallHandler that's tested in this class.
+  # Name of the ApiCallRouter's method that's tested in this class.
+  api_method = None
+  # Handler class that's used to handle the requests.
   handler = None
 
   def setUp(self):
     super(ApiCallHandlerRegressionTest, self).setUp()
+
+    if not self.__class__.api_method:
+      raise ValueError("%s.api_method has to be set." % self.__class__.__name__)
+
+    if not self.__class__.handler:
+      raise ValueError("%s.handler has to be set." % self.__class__.__name__)
+
     self.checks = []
 
     self.syscalls_stubber = utils.MultiStubber(
@@ -80,6 +90,9 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
     Raises:
       ValueError: if unsupported method argument is passed. Currently only
                   "GET", "POST", "DELETE" and "PATCH" are supported.
+      RuntimeError: if request was handled by an unexpected API method (
+                  every test is annotated with an "api_method" attribute
+                  that points to the expected API method).
     """
     parsed_url = urlparse.urlparse(url)
     request = utils.DataObject(
@@ -100,6 +113,12 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
 
     with self.NoAuthorizationChecks():
       http_response = http_api.RenderHttpResponse(request)
+
+    api_method = http_response["X-API-Method"]
+    if api_method != self.__class__.api_method:
+      raise RuntimeError("Request was handled by an unexpected method. "
+                         "Expected %s, got %s." % (self.__class__.api_method,
+                                                   api_method))
 
     content = http_response.content
 
@@ -134,7 +153,7 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
     if payload:
       check_result["request_payload"] = payload
 
-    stripped_content = http_api.HttpRequestHandler.StripTypeInfo(parsed_content)
+    stripped_content = api_value_renderers.StripTypeInfo(parsed_content)
     if parsed_content != stripped_content:
       check_result["type_stripped_response"] = stripped_content
 
@@ -155,7 +174,7 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
         "rb") as fd:
       prev_data = json.load(fd)
 
-    checks = prev_data[self.handler]
+    checks = prev_data[self.__class__.handler.__name__]
     relevant_checks = []
     for check in checks:
       if check["test_class"] == self.__class__.__name__:

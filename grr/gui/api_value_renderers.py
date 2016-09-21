@@ -10,6 +10,10 @@ import numbers
 
 import logging
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
+
+from grr.gui.api_plugins import output_plugin as api_output_plugin
+from grr.gui.api_plugins import stats as api_stats
+
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -17,15 +21,53 @@ from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
+from grr.lib.rdfvalues import stats as rdf_stats
 from grr.lib.rdfvalues import structs as rdf_structs
+
+from grr.proto import api_pb2
 
 
 class Error(Exception):
   pass
 
 
-class DefaultValueRenderingError(Error):
+class DefaultValueError(Error):
   pass
+
+
+class ApiRDFAllowedEnumValueDescriptor(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiRDFAllowedEnumValueDescriptor
+
+
+class ApiRDFValueFieldDescriptor(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiRDFValueFieldDescriptor
+
+  def GetDefaultValueClass(self):
+    return rdfvalue.RDFValue.classes.get(self.type)
+
+
+class ApiRDFValueDescriptor(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiRDFValueDescriptor
+
+  def GetDefaultValueClass(self):
+    return rdfvalue.RDFValue.classes.get(self.name)
+
+
+def StripTypeInfo(rendered_data):
+  """Strips type information from rendered data. Useful for debugging."""
+
+  if isinstance(rendered_data, (list, tuple)):
+    return [StripTypeInfo(d) for d in rendered_data]
+  elif isinstance(rendered_data, dict):
+    if "value" in rendered_data and "type" in rendered_data:
+      return StripTypeInfo(rendered_data["value"])
+    else:
+      result = {}
+      for k, v in rendered_data.items():
+        result[k] = StripTypeInfo(v)
+      return result
+  else:
+    return rendered_data
 
 
 class ApiValueRenderer(object):
@@ -100,7 +142,7 @@ class ApiValueRenderer(object):
     """Renders given value into plain old python objects."""
     return self._IncludeTypeInfo(utils.SmartUnicode(value), value)
 
-  def RenderDefaultValue(self, value_cls):
+  def BuildDefaultValue(self, value_cls):
     """Renders default value of a given class.
 
     Args:
@@ -108,19 +150,19 @@ class ApiValueRenderer(object):
                  to be (or to be a subclass of) a self.value_class (i.e.
                  a class that this renderer is capable of rendering).
     Returns:
-      Dictionary with a JSON-rendered value.
+      An initialized default value.
 
     Raises:
-      DefaultValueRenderingError: if something goes wrong.
+      DefaultValueError: if something goes wrong.
     """
     try:
-      return RenderValue(value_cls())
+      return value_cls()
     except Exception as e:  # pylint: disable=broad-except
       logging.exception(e)
-      raise DefaultValueRenderingError("Can't create default for value %s: %s" %
-                                       (value_cls.__name__, e))
+      raise DefaultValueError("Can't create default for value %s: %s" %
+                              (value_cls.__name__, e))
 
-  def RenderMetadata(self, value_cls):
+  def BuildTypeDescriptor(self, value_cls):
     """Renders metadata of a given value class.
 
     Args:
@@ -130,13 +172,13 @@ class ApiValueRenderer(object):
     Returns:
       Dictionary with class metadata.
     """
-    result = dict(
+    result = ApiRDFValueDescriptor(
         name=value_cls.__name__,
-        mro=[klass.__name__ for klass in value_cls.__mro__],
+        parents=[klass.__name__ for klass in value_cls.__mro__],
         doc=value_cls.__doc__ or "",
-        kind="primitive")
+        kind="PRIMITIVE")
 
-    result["default"] = self.RenderDefaultValue(value_cls)
+    result.default = self.BuildDefaultValue(value_cls)
 
     return result
 
@@ -323,13 +365,65 @@ class ApiDataBlobRenderer(ApiValueRenderer):
     return self._PassThrough(value.GetValue())
 
 
-class ApiRDFURNRenderer(ApiValueRenderer):
-  """Renderer for RDFURNs."""
+class ApiStatsStoreMetricDataPointRenderer(ApiValueRenderer):
+  """Renderer for ApiStatsStoreMetricDataPoint."""
 
-  value_class = rdfvalue.RDFURN
+  value_class = api_stats.ApiStatsStoreMetricDataPoint
 
-  def RenderDefaultValue(self, value_cls):
-    return dict(type=value_cls.__name__, value="", age=0)
+  def RenderValue(self, value):
+    if value.timestamp:
+      timestamp = value.timestamp.AsMicroSecondsFromEpoch() / 1000.0
+    else:
+      timestamp = 0
+    return [timestamp, value.value]
+
+
+class SampleFloatRenderer(ApiValueRenderer):
+  """Renderer for SampleFloat."""
+
+  value_class = rdf_stats.SampleFloat
+
+  def RenderValue(self, value):
+    return dict(x_value=value.x_value, y_value=value.y_value)
+
+
+class ApiOutputPluginDescriptorRenderer(ApiValueRenderer):
+  """Renderer for ApiOutputPlugingDescriptor."""
+
+  value_class = api_output_plugin.ApiOutputPluginDescriptor
+
+  def RenderValue(self, value):
+    return StripTypeInfo(ApiRDFProtoStructRenderer().RenderValue(value))
+
+
+class ApiRDFValueDescriptorRenderer(ApiValueRenderer):
+  """Renderer for ApiRDFValueDescriptor."""
+
+  value_class = ApiRDFValueDescriptor
+
+  def RenderValue(self, value):
+    result = dict(
+        name=value.name,
+        mro=list(value.parents),
+        doc=value.doc,
+        kind=value.kind.name.lower())
+
+    if value.fields:
+      result["fields"] = []
+      for field in value.fields:
+        rendered_field = StripTypeInfo(self._PassThrough(field))
+        if field.HasField("default"):
+          rendered_field["default"] = self._PassThrough(field.default)
+
+        result["fields"].append(rendered_field)
+
+    if value.HasField("default"):
+      result["default"] = self._PassThrough(value.default)
+
+    if value.HasField("union_field_name"):
+      result["union_field"] = value.union_field_name
+
+    return result
 
 
 class ApiEmbeddedRDFValueRenderer(ApiValueRenderer):
@@ -347,7 +441,7 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
   value_class = rdf_structs.RDFProtoStruct
 
   value_processors = []
-  metadata_processors = []
+  descriptor_processors = []
 
   def RenderValue(self, value):
     result = value.AsDict()
@@ -361,76 +455,69 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
 
     return result
 
-  def RenderMetadata(self, value_cls):
-    fields = []
+  def BuildTypeDescriptor(self, value_cls):
+    result = ApiRDFValueDescriptor(
+        name=value_cls.__name__,
+        parents=[klass.__name__ for klass in value_cls.__mro__],
+        doc=value_cls.__doc__ or "",
+        kind="STRUCT")
+
     for field_desc in value_cls.type_infos:
       repeated = isinstance(field_desc, type_info.ProtoList)
       if hasattr(field_desc, "delegate"):
         field_desc = field_desc.delegate
 
-      field = {
-          "name": field_desc.name,
-          "index": field_desc.field_number,
-          "repeated": repeated,
-          "dynamic": isinstance(field_desc, type_info.ProtoDynamicEmbedded)
-      }
+      field = ApiRDFValueFieldDescriptor(
+          name=field_desc.name,
+          index=field_desc.field_number,
+          repeated=repeated,
+          dynamic=isinstance(field_desc, type_info.ProtoDynamicEmbedded))
 
       field_type = field_desc.type
       if field_type is not None:
-        field["type"] = field_type.__name__
+        field.type = field_type.__name__
 
         if field_type.context_help_url:
-          field["context_help_url"] = field_type.context_help_url
+          field.context_help_url = field_type.context_help_url
 
       if field_type == rdf_structs.EnumNamedValue:
-        allowed_values = []
         for enum_label in sorted(field_desc.enum, key=field_desc.enum.get):
           enum_value = field_desc.enum[enum_label]
           labels = [rdf_structs.SemanticDescriptor.Labels.reverse_enum[x]
                     for x in enum_value.labels or []]
-          allowed_values.append(
-              dict(
+
+          field.allowed_values.append(
+              ApiRDFAllowedEnumValueDescriptor(
                   name=enum_label,
                   value=int(enum_value),
                   labels=labels,
                   doc=enum_value.description))
-        field["allowed_values"] = allowed_values
 
-      field_default = None
       if (field_desc.default is not None and
           not aff4.issubclass(field_type, rdf_structs.RDFStruct) and
           hasattr(field_desc, "GetDefault")):
-        field_default = field_desc.GetDefault()
-        field["default"] = RenderValue(field_default)
+        field.default = field.GetDefaultValueClass()(field_desc.GetDefault())
 
       if field_desc.description:
-        field["doc"] = field_desc.description
+        field.doc = field_desc.description
 
       if field_desc.friendly_name:
-        field["friendly_name"] = field_desc.friendly_name
+        field.friendly_name = field_desc.friendly_name
 
       if field_desc.labels:
-        field["labels"] = [rdf_structs.SemanticDescriptor.Labels.reverse_enum[x]
-                           for x in field_desc.labels]
+        field.labels = [rdf_structs.SemanticDescriptor.Labels.reverse_enum[x]
+                        for x in field_desc.labels]
 
-      fields.append(field)
+      result.fields.append(field)
 
-    for processor in self.metadata_processors:
-      fields = processor(self, fields)
-
-    result = dict(
-        name=value_cls.__name__,
-        mro=[klass.__name__ for klass in value_cls.__mro__],
-        doc=value_cls.__doc__ or "",
-        fields=fields,
-        kind="struct")
+    for processor in self.descriptor_processors:
+      result.fields = processor(self, result.fields)
 
     if getattr(value_cls, "union_field", None):
-      result["union_field"] = value_cls.union_field
+      result.union_field_name = value_cls.union_field
 
-    struct_default = None
     try:
-      struct_default = value_cls()
+      result.default = value_cls()
     except Exception as e:  # pylint: disable=broad-except
       # TODO(user): Some RDFStruct classes can't be constructed using
       # default constructor (without arguments). Fix the code so that
@@ -439,9 +526,6 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
       # with default constructors.
       logging.debug("Can't create default for struct %s: %s",
                     field_type.__name__, e)
-
-    if struct_default is not None:
-      result["default"] = RenderValue(struct_default)
 
     return result
 
@@ -463,20 +547,20 @@ class ApiGrrMessageRenderer(ApiRDFProtoStructRenderer):
 
     return result
 
-  def RenderPayloadMetadata(self, fields):
+  def AdjustDescriptor(self, fields):
     """Payload-aware metadata processor."""
 
     for f in fields:
-      if f["name"] == "args_rdf_name":
-        f["name"] = "payload_type"
+      if f.name == "args_rdf_name":
+        f.name = "payload_type"
 
-      if f["name"] == "args":
-        f["name"] = "payload"
+      if f.name == "args":
+        f.name = "payload"
 
     return fields
 
   value_processors = [RenderPayload]
-  metadata_processors = [RenderPayloadMetadata]
+  descriptor_processors = [AdjustDescriptor]
 
 
 def RenderValue(value, limit_lists=-1):
@@ -490,7 +574,7 @@ def RenderValue(value, limit_lists=-1):
   return renderer.RenderValue(value)
 
 
-def RenderTypeMetadata(value_cls):
+def BuildTypeDescriptor(value_cls):
   renderer = ApiValueRenderer.GetRendererForValueOrClass(value_cls)
 
-  return renderer.RenderMetadata(value_cls)
+  return renderer.BuildTypeDescriptor(value_cls)

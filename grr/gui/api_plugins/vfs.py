@@ -23,8 +23,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-CATEGORY = "Files"
-
 # Files can only be accessed if their first path component is from this list.
 ROOT_FILES_WHITELIST = ["fs", "registry", "temp"]
 
@@ -225,8 +223,6 @@ class ApiGetFileDetailsResult(rdf_structs.RDFProtoStruct):
 class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the details of a given file."""
 
-  category = CATEGORY
-
   args_type = ApiGetFileDetailsArgs
   result_type = ApiGetFileDetailsResult
 
@@ -255,8 +251,6 @@ class ApiListFilesResult(rdf_structs.RDFProtoStruct):
 
 class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the child files for a given file."""
-
-  category = CATEGORY
 
   args_type = ApiListFilesArgs
   result_type = ApiListFilesResult
@@ -331,8 +325,6 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
                             Aff4FileReaderMixin):
   """Retrieves the text for a given file."""
 
-  category = CATEGORY
-
   args_type = ApiGetFileTextArgs
   result_type = ApiGetFileTextResult
 
@@ -391,8 +383,6 @@ class ApiGetFileBlobArgs(rdf_structs.RDFProtoStruct):
 class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
                             Aff4FileReaderMixin):
   """Retrieves the byte content for a given file."""
-
-  category = CATEGORY
 
   args_type = ApiGetFileBlobArgs
   CHUNK_SIZE = 1024 * 1024 * 4
@@ -454,8 +444,6 @@ class ApiGetFileVersionTimesResult(rdf_structs.RDFProtoStruct):
 class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the list of version times of the given file."""
 
-  category = CATEGORY
-
   args_type = ApiGetFileVersionTimesArgs
   result_type = ApiGetFileVersionTimesResult
 
@@ -485,8 +473,6 @@ class ApiGetFileDownloadCommandResult(rdf_structs.RDFProtoStruct):
 class ApiGetFileDownloadCommandHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the export command for a given file."""
 
-  category = CATEGORY
-
   args_type = ApiGetFileDownloadCommandArgs
   result_type = ApiGetFileDownloadCommandResult
 
@@ -510,8 +496,6 @@ class ApiListKnownEncodingsResult(rdf_structs.RDFProtoStruct):
 
 class ApiListKnownEncodingsHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves available file encodings."""
-
-  category = CATEGORY
 
   result_type = ApiListKnownEncodingsResult
 
@@ -539,7 +523,6 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
   can be monitored by polling the returned URL of the operation.
   """
 
-  category = CATEGORY
   args_type = ApiCreateVfsRefreshOperationArgs
   result_type = ApiCreateVfsRefreshOperationResult
 
@@ -572,10 +555,10 @@ class ApiGetVfsRefreshOperationStateResult(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiGetVfsRefreshOperationStateResult
 
 
-class GetVfsRefreshOperationStateHandler(api_call_handler_base.ApiCallHandler):
+class ApiGetVfsRefreshOperationStateHandler(
+    api_call_handler_base.ApiCallHandler):
   """Retrieves the state of the refresh operation specified."""
 
-  category = CATEGORY
   args_type = ApiGetVfsRefreshOperationStateArgs
   result_type = ApiGetVfsRefreshOperationStateResult
 
@@ -614,7 +597,6 @@ class ApiVfsTimelineItem(rdf_structs.RDFProtoStruct):
 class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the timeline for a given file path."""
 
-  category = CATEGORY
   args_type = ApiGetVfsTimelineArgs
   result_type = ApiGetVfsTimelineResult
 
@@ -684,7 +666,6 @@ class ApiGetVfsTimelineAsCsvArgs(rdf_structs.RDFProtoStruct):
 class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
   """Exports the timeline for a given file path."""
 
-  category = CATEGORY
   args_type = ApiGetVfsTimelineAsCsvArgs
   CHUNK_SIZE = 1000
 
@@ -733,7 +714,6 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
   can be monitored by polling the operation id.
   """
 
-  category = CATEGORY
   args_type = ApiUpdateVfsFileContentArgs
   result_type = ApiUpdateVfsFileContentResult
 
@@ -762,7 +742,6 @@ class ApiGetVfsFileContentUpdateStateHandler(
     api_call_handler_base.ApiCallHandler):
   """Retrieves the state of the update operation specified."""
 
-  category = CATEGORY
   args_type = ApiGetVfsFileContentUpdateStateArgs
   result_type = ApiGetVfsFileContentUpdateStateResult
 

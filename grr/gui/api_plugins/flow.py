@@ -31,8 +31,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-CATEGORY = "Flows"
-
 
 class FlowNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when a flow is not found."""
@@ -238,11 +236,8 @@ class ApiGetFlowHandler(api_call_handler_base.ApiCallHandler):
   seconds since epoch.
   """
 
-  category = CATEGORY
-
   args_type = ApiGetFlowArgs
   result_type = ApiFlow
-  strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
     flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
@@ -264,7 +259,6 @@ class ApiListFlowRequestsResult(rdf_structs.RDFProtoStruct):
 class ApiListFlowRequestsHandler(api_call_handler_base.ApiCallHandler):
   """Renders list of requests of a given flow."""
 
-  category = CATEGORY
   args_type = ApiListFlowRequestsArgs
   result_type = ApiListFlowRequestsResult
 
@@ -313,7 +307,6 @@ class ApiListFlowResultsResult(rdf_structs.RDFProtoStruct):
 class ApiListFlowResultsHandler(api_call_handler_base.ApiCallHandler):
   """Renders results of a given flow."""
 
-  category = CATEGORY
   args_type = ApiListFlowResultsArgs
   result_type = ApiListFlowResultsResult
 
@@ -366,7 +359,6 @@ class ApiListFlowLogsResult(rdf_structs.RDFProtoStruct):
 class ApiListFlowLogsHandler(api_call_handler_base.ApiCallHandler):
   """Returns a list of logs for the current client and flow."""
 
-  category = CATEGORY
   args_type = ApiListFlowLogsArgs
   result_type = ApiListFlowLogsResult
 
@@ -398,7 +390,6 @@ class ApiGetFlowResultsExportCommandHandler(
     api_call_handler_base.ApiCallHandler):
   """Renders GRR export tool command line that exports flow results."""
 
-  category = CATEGORY
   args_type = ApiGetFlowResultsExportCommandArgs
   result_type = ApiGetFlowResultsExportCommandResult
 
@@ -558,8 +549,6 @@ class ApiListFlowOutputPluginsResult(rdf_structs.RDFProtoStruct):
 class ApiListFlowOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   """Renders output plugins descriptors and states for a given flow."""
 
-  category = CATEGORY
-
   args_type = ApiListFlowOutputPluginsArgs
   result_type = ApiListFlowOutputPluginsResult
 
@@ -600,7 +589,6 @@ class ApiListFlowOutputPluginLogsHandlerBase(
   __abstract = True  # pylint: disable=g-bad-name
 
   attribute_name = None
-  category = CATEGORY
 
   def Handle(self, args, token=None):
     if not self.attribute_name:
@@ -689,8 +677,6 @@ class ApiListFlowsResult(rdf_structs.RDFProtoStruct):
 
 class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
   """Lists flows launched on a given client."""
-
-  category = CATEGORY
 
   args_type = ApiListFlowsArgs
   result_type = ApiListFlowsResult
@@ -784,7 +770,6 @@ class ApiStartRobotGetFilesOperationHandler(
     api_call_handler_base.ApiCallHandler):
   """Downloads files from specified machine without requiring approval."""
 
-  category = CATEGORY
   args_type = ApiStartRobotGetFilesOperationArgs
   result_type = ApiStartRobotGetFilesOperationResult
 
@@ -860,7 +845,6 @@ class ApiGetRobotGetFilesOperationStateHandler(
   seconds since epoch.
   """
 
-  category = CATEGORY
   args_type = ApiGetRobotGetFilesOperationStateArgs
   result_type = ApiGetRobotGetFilesOperationStateResult
 
@@ -936,11 +920,8 @@ class ApiCreateFlowArgs(rdf_structs.RDFProtoStruct):
 class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
   """Starts a flow on a given client with given parameters."""
 
-  category = CATEGORY
-
   args_type = ApiCreateFlowArgs
   result_type = ApiFlow
-  strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
     flow_name = args.flow.name
@@ -967,7 +948,6 @@ class ApiCancelFlowArgs(rdf_structs.RDFProtoStruct):
 class ApiCancelFlowHandler(api_call_handler_base.ApiCallHandler):
   """Cancels given flow on a given client."""
 
-  category = CATEGORY
   args_type = ApiCancelFlowArgs
 
   def Handle(self, args, token=None):
@@ -988,7 +968,6 @@ class ApiListFlowDescriptorsResult(rdf_structs.RDFProtoStruct):
 class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
   """Renders all available flows descriptors."""
 
-  category = CATEGORY
   args_type = ApiListFlowDescriptorsArgs
   result_type = ApiListFlowDescriptorsResult
 

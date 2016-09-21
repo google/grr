@@ -559,9 +559,13 @@ class VFSTest(test_lib.GRRBaseTest):
     walk_tups_inf = list(directory.RecursiveListNames(depth=float("inf")))
 
     self.assertEqual(walk_tups_0, [(path, ["b"], [])])
-    self.assertEqual(walk_tups_1, [(path, ["b"], [])])
-    self.assertEqual(walk_tups_2, [
+    self.assertEqual(walk_tups_1, [
         (path, ["b"], []), ("%s/b" % path, ["c", "d"], [])
+    ])
+    self.assertEqual(walk_tups_2, [
+        (path, ["b"], []), ("%s/b" % path, ["c", "d"], []),
+        ("%s/b/c" % path, [], ["helloc.txt"]),
+        ("%s/b/d" % path, [], ["hellod.txt"])
     ])
     self.assertEqual(walk_tups_inf, [
         (path, ["b"], []), ("%s/b" % path, ["c", "d"], []),
@@ -589,14 +593,19 @@ class VFSTest(test_lib.GRRBaseTest):
     self.assertEqual(walk_tups_1, [
         (u"/", [u"Test Directory", u"glob_test", u"home", u"lost+found",
                 u"איןד ןד ש אקדא", u"入乡随俗 海外春节别样过法"], []),
+        (u"/Test Directory", [], [u"numbers.txt"]), (u"/glob_test", [u"a"], []),
+        (u"/home", [u"test"], [u"image2.img"]), (u"/lost+found", [], []),
+        (u"/איןד ןד ש אקדא", [], [u"איןד.txt"]),
+        (u"/入乡随俗 海外春节别样过法", [], [u"入乡随俗.txt"])
     ])
 
     self.assertEqual(walk_tups_2, [
         (u"/", [u"Test Directory", u"glob_test", u"home", u"lost+found",
                 u"איןד ןד ש אקדא", u"入乡随俗 海外春节别样过法"], []),
         (u"/Test Directory", [], [u"numbers.txt"]), (u"/glob_test", [u"a"], []),
-        (u"/home", [u"test"], [u"image2.img"]), (u"/lost+found", [], []),
-        (u"/איןד ןד ש אקדא", [], [u"איןד.txt"]),
+        (u"/glob_test/a", [u"b"], []), (u"/home", [u"test"], [u"image2.img"]),
+        (u"/home/test", [u".config", u".mozilla"], []),
+        (u"/lost+found", [], []), (u"/איןד ןד ש אקדא", [], [u"איןד.txt"]),
         (u"/入乡随俗 海外春节别样过法", [], [u"入乡随俗.txt"])
     ])
 

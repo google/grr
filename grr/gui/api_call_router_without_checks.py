@@ -58,6 +58,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def ListClientCrashes(self, args, token=None):
     return api_client.ApiListClientCrashesHandler()
 
+  def ListClientActionRequests(self, args, token=None):
+    return api_client.ApiListClientActionRequestsHandler()
+
   # Virtual file system methods.
   # ============================
   #
@@ -83,7 +86,7 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
     return api_vfs.ApiCreateVfsRefreshOperationHandler()
 
   def GetVfsRefreshOperationState(self, args, token=None):
-    return api_vfs.GetVfsRefreshOperationStateHandler()
+    return api_vfs.ApiGetVfsRefreshOperationStateHandler()
 
   def GetVfsTimeline(self, args, token=None):
     return api_vfs.ApiGetVfsTimelineHandler()
@@ -344,7 +347,7 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
     return api_flow.ApiListFlowDescriptorsHandler()
 
   def ListAff4AttributeDescriptors(self, args, token=None):
-    return api_reflection.ApiListAff4AttributesDescriptorsHandler()
+    return api_reflection.ApiListAff4AttributeDescriptorsHandler()
 
   def GetRDFValueDescriptor(self, args, token=None):
     return api_reflection.ApiGetRDFValueDescriptorHandler()
@@ -353,7 +356,7 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
     return api_reflection.ApiListRDFValuesDescriptorsHandler()
 
   def ListOutputPluginDescriptors(self, args, token=None):
-    return api_output_plugin.ApiOutputPluginsListHandler()
+    return api_output_plugin.ApiListOutputPluginDescriptorsHandler()
 
   def ListKnownEncodings(self, args, token=None):
     return api_vfs.ApiListKnownEncodingsHandler()
@@ -362,7 +365,7 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   # =====================
   #
   def GetDocs(self, args, token=None):
-    return api_docs.ApiGetDocsHandler()
+    return api_docs.ApiGetDocsHandler(self)
 
   # Robot methods (methods that provide limited access to the system and
   # are supposed to be triggered by the scripts).

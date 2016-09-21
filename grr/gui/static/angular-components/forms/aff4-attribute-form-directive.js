@@ -39,7 +39,11 @@ var Aff4AttributeFormController =
  * @private
  */
 Aff4AttributeFormController.prototype.onGetAttributes_ = function(response) {
-  this.allowedOptions = Object.keys(response['data']['attributes']).sort();
+  this.allowedOptions = [];
+  angular.forEach(response['data']['items'], function(item) {
+    this.allowedOptions.push(item['value']['name']['value']);
+  }.bind(this));
+  this.allowedOptions = this.allowedOptions.sort();
 
   if (this.allowedOptions.length > 0 && !this.scope_['value']['value']) {
     this.scope_['value']['value'] = this.allowedOptions[0];

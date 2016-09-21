@@ -4,6 +4,7 @@
 
 
 from grr.gui import api_test_lib
+from grr.gui.api_plugins import output_plugin as output_plugin_plugin
 from grr.lib import flags
 from grr.lib import output_plugin
 from grr.lib import test_lib
@@ -12,11 +13,12 @@ from grr.lib.output_plugins import csv_plugin
 from grr.lib.output_plugins import email_plugin
 
 
-class ApiOutputPluginsListHandlerRegressionTest(
+class ApiListOutputPluginDescriptorsHandlerTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiOutputPluginsListHandler."""
 
-  handler = "ApiOutputPluginsListHandler"
+  api_method = "ListOutputPluginDescriptors"
+  handler = output_plugin_plugin.ApiListOutputPluginDescriptorsHandler
 
   def Run(self):
     with utils.Stubber(output_plugin.OutputPlugin, "classes", {

@@ -121,7 +121,8 @@ class ApiGetConfigHandlerTest(test_lib.GRRBaseTest):
 class ApiGetConfigHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
 
-  handler = "ApiGetConfigHandler"
+  api_method = "GetConfig"
+  handler = config_plugin.ApiGetConfigHandler
 
   def Run(self):
     config_obj = config_lib.GrrConfigManager()
@@ -184,7 +185,8 @@ class ApiGetConfigOptionHandlerTest(test_lib.GRRBaseTest):
 class ApiGetConfigOptionHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
 
-  handler = "ApiGetConfigOptionHandler"
+  api_method = "GetConfigOption"
+  handler = config_plugin.ApiGetConfigOptionHandler
 
   def Run(self):
     config_obj = config_lib.GrrConfigManager()

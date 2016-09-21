@@ -1,5 +1,7 @@
 #!/usr/bin/env python
 """A collection of compatibility fixes for client."""
+
+from grr.client.client_actions import standard as standard_actions
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import flow
@@ -39,4 +41,5 @@ class ClientCompatibility(flow.EventListener):
       if python_blob is None:
         raise flow.FlowError("Python hack %s not found." % hack_urn)
 
-      self.CallClient(client_id, "ExecutePython", python_code=python_blob)
+      self.CallClient(
+          client_id, standard_actions.ExecutePython, python_code=python_blob)

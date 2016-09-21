@@ -2,7 +2,6 @@
 """API handlers for stats."""
 
 from grr.gui import api_call_handler_base
-from grr.gui import api_value_renderers
 from grr.gui.api_plugins import report_plugins
 from grr.lib import aff4
 from grr.lib import rdfvalue
@@ -13,31 +12,44 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-CATEGORY = "Other"
+
+class ApiStatsStoreMetric(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiStatsStoreMetric
+
+
+class ApiStatsStoreMetricDataPoint(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiStatsStoreMetricDataPoint
 
 
 class ApiListStatsStoreMetricsMetadataArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiListStatsStoreMetricsMetadataArgs
 
 
+class ApiListStatsStoreMetricsMetadataResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListStatsStoreMetricsMetadataResult
+
+
 class ApiListStatsStoreMetricsMetadataHandler(
     api_call_handler_base.ApiCallHandler):
   """Renders available metrics descriptors for a given system component."""
 
-  category = CATEGORY
   args_type = ApiListStatsStoreMetricsMetadataArgs
+  result_type = ApiListStatsStoreMetricsMetadataResult
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     stats_store = aff4.FACTORY.Create(
         None, aff4_type=stats_store_lib.StatsStore, mode="w", token=token)
 
     process_ids = [pid for pid in stats_store.ListUsedProcessIds()
                    if pid.startswith(args.component.name.lower())]
+
+    result = ApiListStatsStoreMetricsMetadataResult()
     if not process_ids:
-      return {}
+      return result
     else:
       metadata = stats_store.ReadMetadata(process_id=process_ids[0])
-      return api_value_renderers.RenderValue(metadata)
+      result.items = sorted(metadata.metrics, key=lambda m: m.varname)
+      return result
 
 
 class ApiGetStatsStoreMetricArgs(rdf_structs.RDFProtoStruct):
@@ -47,10 +59,10 @@ class ApiGetStatsStoreMetricArgs(rdf_structs.RDFProtoStruct):
 class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
   """Renders historical data for a given metric."""
 
-  category = CATEGORY
   args_type = ApiGetStatsStoreMetricArgs
+  result_type = ApiStatsStoreMetric
 
-  def Render(self, args, token):
+  def Handle(self, args, token):
     stats_store = aff4.FACTORY.Create(
         stats_store_lib.StatsStore.DATA_STORE_ROOT,
         aff4_type=stats_store_lib.StatsStore,
@@ -80,11 +92,8 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
     if end_time <= start_time:
       raise ValueError("End time can't be less than start time.")
 
-    result = dict(
-        start=base_start_time.AsMicroSecondsFromEpoch(),
-        end=end_time.AsMicroSecondsFromEpoch(),
-        metric_name=args.metric_name,
-        timeseries=[])
+    result = ApiStatsStoreMetric(
+        start=base_start_time, end=end_time, metric_name=args.metric_name)
 
     data = stats_store.MultiReadStats(
         process_ids=filtered_ids,
@@ -96,7 +105,7 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
 
     pid = data.keys()[0]
     metadata = stats_store.ReadMetadata(process_id=pid)
-    metric_metadata = metadata[args.metric_name]
+    metric_metadata = metadata.AsDict()[args.metric_name]
 
     query = stats_store_lib.StatsStoreDataQuery(data)
     query.In(args.component.name.lower() + ".*").In(args.metric_name)
@@ -153,12 +162,12 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
 
     query.InTimeRange(base_start_time, end_time)
 
-    ts = []
     for value, timestamp in query.ts.data:
       if value is not None:
-        ts.append((timestamp / 1e3, value))
+        result.data_points.append(
+            ApiStatsStoreMetricDataPoint(
+                timestamp=timestamp, value=value))
 
-    result["timeseries"] = ts
     return result
 
 
@@ -169,7 +178,6 @@ class ApiListReportsResult(rdf_structs.RDFProtoStruct):
 class ApiListReportsHandler(api_call_handler_base.ApiCallHandler):
   """Lists the reports."""
 
-  category = CATEGORY
   result_type = ApiListReportsResult
 
   def Handle(self, args, token):
@@ -187,7 +195,6 @@ class ApiGetReportArgs(rdf_structs.RDFProtoStruct):
 class ApiGetReportHandler(api_call_handler_base.ApiCallHandler):
   """Fetches data for the given report."""
 
-  category = CATEGORY
   args_type = ApiGetReportArgs
   result_type = report_plugins.ApiReport
 

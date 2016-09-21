@@ -60,7 +60,6 @@ import traceback
 
 
 import logging
-from grr.client import actions
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -659,10 +658,8 @@ class FlowRunner(object):
       self.context.next_outbound_id += 1
     return my_id
 
-  # TODO(user): Make this take an action class instead of the
-  # action_name as a string.
   def CallClient(self,
-                 action_name,
+                 action_cls,
                  request=None,
                  next_state=None,
                  client_id=None,
@@ -678,7 +675,7 @@ class FlowRunner(object):
     specified state.
 
     Args:
-       action_name: The function to call on the client.
+       action_cls: The function to call on the client.
 
        request: The request to send to the client. If not specified (Or None) we
              create a new RDFValue using the kwargs.
@@ -716,29 +713,19 @@ class FlowRunner(object):
       # Try turning it into a ClientURN
       client_id = rdf_client.ClientURN(client_id)
 
-    # Retrieve the correct rdfvalue to use for this client action.  This code
-    # assumes that windows and OS X implementations of actions with the same
-    # name (e.g. EnumerateInterfaces) accept and return the same rdfvalue types
-    # as their linux counterparts. Non-linux actions are registered in
-    # libs/server_stubs.py
-    try:
-      action = actions.ActionPlugin.classes[action_name]
-    except KeyError:
-      raise RuntimeError("Client action %s not found." % action_name)
-
-    if action.in_rdfvalue is None:
+    if action_cls.in_rdfvalue is None:
       if request:
         raise RuntimeError("Client action %s does not expect args." %
-                           action_name)
+                           action_cls.__name__)
     else:
       if request is None:
         # Create a new rdf request.
-        request = action.in_rdfvalue(**kwargs)
+        request = action_cls.in_rdfvalue(**kwargs)
       else:
         # Verify that the request type matches the client action requirements.
-        if not isinstance(request, action.in_rdfvalue):
+        if not isinstance(request, action_cls.in_rdfvalue):
           raise RuntimeError("Client action expected %s but got %s" %
-                             (action.in_rdfvalue, type(request)))
+                             (action_cls.in_rdfvalue, type(request)))
 
     outbound_id = self.GetNextOutboundId()
 
@@ -755,7 +742,7 @@ class FlowRunner(object):
     # Send the message with the request state
     msg = rdf_flows.GrrMessage(
         session_id=utils.SmartUnicode(self.session_id),
-        name=action_name,
+        name=action_cls.__name__,
         request_id=outbound_id,
         priority=self.runner_args.priority,
         require_fastpoll=self.runner_args.require_fastpoll,

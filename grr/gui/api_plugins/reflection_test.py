@@ -4,7 +4,7 @@
 
 
 from grr.gui import api_test_lib
-from grr.gui.api_plugins import reflection as reflection
+from grr.gui.api_plugins import reflection as reflection_plugin
 
 from grr.lib import flags
 from grr.lib import test_lib
@@ -14,7 +14,8 @@ class ApiGetRDFValueDescriptorHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiGetRDFValueDescriptorHandler."""
 
-  handler = "ApiGetRDFValueDescriptorHandler"
+  api_method = "GetRDFValueDescriptor"
+  handler = reflection_plugin.ApiGetRDFValueDescriptorHandler
 
   def Run(self):
     self.Check("GET", "/api/reflection/rdfvalue/Duration")
@@ -25,8 +26,9 @@ class ApiGetRDFValueDescriptorHandlerTest(test_lib.GRRBaseTest):
   """Test for ApiGetRDFValueDescriptorHandler."""
 
   def testSuccessfullyRendersReflectionDataForAllTypes(self):
-    result = reflection.ApiListRDFValuesDescriptorsHandler().Render(
+    result = reflection_plugin.ApiListRDFValuesDescriptorsHandler().Handle(
         None, token=self.token)
+    # TODO(user): enhance this test.
     self.assertTrue(result)
 
 

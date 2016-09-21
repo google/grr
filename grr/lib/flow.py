@@ -702,13 +702,13 @@ class FlowBase(aff4.AFF4Volume):
   # be called from within the state handling methods (i.e. a runner
   # should already exist by calling GetRunner() method).
   def CallClient(self,
-                 action_name,
+                 action_cls,
                  request=None,
                  next_state=None,
                  request_data=None,
                  **kwargs):
     return self.runner.CallClient(
-        action_name=action_name,
+        action_cls=action_cls,
         request=request,
         next_state=next_state,
         request_data=request_data,
@@ -1252,7 +1252,7 @@ class WellKnownFlow(GRRFlow):
 
   def CallClient(self,
                  client_id,
-                 action_name,
+                 action_cls,
                  request=None,
                  response_session_id=None,
                  **kwargs):
@@ -1263,25 +1263,19 @@ class WellKnownFlow(GRRFlow):
 
     client_id = rdf_client.ClientURN(client_id)
 
-    # Retrieve the correct rdfvalue to use for this client action.
-    try:
-      action = actions.ActionPlugin.classes[action_name]
-    except KeyError:
-      raise RuntimeError("Client action %s not found." % action_name)
-
-    if action.in_rdfvalue is None:
+    if action_cls.in_rdfvalue is None:
       if request:
         raise RuntimeError("Client action %s does not expect args." %
-                           action_name)
+                           action_cls.__name__)
     else:
       if request is None:
         # Create a new rdf request.
-        request = action.in_rdfvalue(**kwargs)
+        request = action_cls.in_rdfvalue(**kwargs)
       else:
         # Verify that the request type matches the client action requirements.
-        if not isinstance(request, action.in_rdfvalue):
+        if not isinstance(request, action_cls.in_rdfvalue):
           raise RuntimeError("Client action expected %s but got %s" %
-                             (action.in_rdfvalue, type(request)))
+                             (action_cls.in_rdfvalue, type(request)))
 
     if response_session_id is None:
       cls = GRRFlow.classes["IgnoreResponses"]
@@ -1289,7 +1283,7 @@ class WellKnownFlow(GRRFlow):
 
     msg = rdf_flows.GrrMessage(
         session_id=utils.SmartUnicode(response_session_id),
-        name=action_name,
+        name=action_cls.__name__,
         request_id=0,
         queue=client_id.Queue(),
         payload=request,

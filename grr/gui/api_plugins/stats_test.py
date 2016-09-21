@@ -5,6 +5,7 @@
 
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import report_plugins
+from grr.gui.api_plugins import stats as stats_plugin
 
 from grr.lib import aff4
 from grr.lib import flags
@@ -21,7 +22,8 @@ from grr.lib.aff4_objects import stats_store as aff4_stats_store
 class ApiListStatsStoreMetricsMetadataHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
 
-  handler = "ApiListStatsStoreMetricsMetadataHandler"
+  api_method = "ListStatsStoreMetricsMetadata"
+  handler = stats_plugin.ApiListStatsStoreMetricsMetadataHandler
 
   def Run(self):
     stats_collector = stats.StatsCollector()
@@ -47,7 +49,8 @@ class ApiListStatsStoreMetricsMetadataHandlerRegressionTest(
 class ApiGetStatsStoreMetricHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
 
-  handler = "ApiGetStatsStoreMetricHandler"
+  api_method = "GetStatsStoreMetric"
+  handler = stats_plugin.ApiGetStatsStoreMetricHandler
 
   def Run(self):
     stats_collector = stats.StatsCollector()
@@ -133,7 +136,8 @@ class BarReportPlugin(report_plugins.ReportPluginBase):
 class ApiListReportsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
 
-  handler = "ApiListReportsHandler"
+  api_method = "ListReports"
+  handler = stats_plugin.ApiListReportsHandler
 
   def Run(self):
     with utils.Stubber(report_plugins.ReportPluginBase, "classes", {
@@ -145,7 +149,8 @@ class ApiListReportsHandlerRegressionTest(
 
 class ApiGetReportRegressionTest(api_test_lib.ApiCallHandlerRegressionTest):
 
-  handler = "ApiGetReportHandler"
+  api_method = "GetReport"
+  handler = stats_plugin.ApiGetReportHandler
 
   def Run(self):
     with utils.Stubber(report_plugins.ReportPluginBase, "classes", {

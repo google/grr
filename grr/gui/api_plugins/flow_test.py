@@ -162,7 +162,8 @@ class ApiGetFlowHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiGetFlowHandler."""
 
-  handler = "ApiGetFlowHandler"
+  api_method = "GetFlow"
+  handler = flow_plugin.ApiGetFlowHandler
 
   def Run(self):
     # Fix the time to avoid regressions.
@@ -191,7 +192,8 @@ class ApiListFlowsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Test client flows list handler."""
 
-  handler = "ApiListFlowsHandler"
+  api_method = "ListFlows"
+  handler = flow_plugin.ApiListFlowsHandler
 
   def Run(self):
     with test_lib.FakeTime(42):
@@ -220,7 +222,8 @@ class ApiListFlowRequestsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiListFlowRequestsHandler."""
 
-  handler = "ApiListFlowRequestsHandler"
+  api_method = "ListFlowRequests"
+  handler = flow_plugin.ApiListFlowRequestsHandler
 
   def setUp(self):
     super(ApiListFlowRequestsHandlerRegressionTest, self).setUp()
@@ -257,7 +260,8 @@ class ApiListFlowResultsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiListFlowResultsHandler."""
 
-  handler = "ApiListFlowResultsHandler"
+  api_method = "ListFlowResults"
+  handler = flow_plugin.ApiListFlowResultsHandler
 
   def setUp(self):
     super(ApiListFlowResultsHandlerRegressionTest, self).setUp()
@@ -296,7 +300,8 @@ class ApiListFlowLogsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiListFlowResultsHandler."""
 
-  handler = "ApiListFlowLogsHandler"
+  api_method = "ListFlowLogs"
+  handler = flow_plugin.ApiListFlowLogsHandler
 
   def setUp(self):
     super(ApiListFlowLogsHandlerRegressionTest, self).setUp()
@@ -328,7 +333,8 @@ class ApiGetFlowResultsExportCommandHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiGetFlowResultsExportCommandHandler."""
 
-  handler = "ApiGetFlowResultsExportCommandHandler"
+  api_method = "GetFlowResultsExportCommand"
+  handler = flow_plugin.ApiGetFlowResultsExportCommandHandler
 
   def setUp(self):
     super(ApiGetFlowResultsExportCommandHandlerRegressionTest, self).setUp()
@@ -352,7 +358,8 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiListFlowOutputPluginsHandler."""
 
-  handler = "ApiListFlowOutputPluginsHandler"
+  api_method = "ListFlowOutputPlugins"
+  handler = flow_plugin.ApiListFlowOutputPluginsHandler
 
   def setUp(self):
     super(ApiListFlowOutputPluginsHandlerRegressionTest, self).setUp()
@@ -394,7 +401,8 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiListFlowOutputPluginLogsHandler."""
 
-  handler = "ApiListFlowOutputPluginLogsHandler"
+  api_method = "ListFlowOutputPluginLogs"
+  handler = flow_plugin.ApiListFlowOutputPluginLogsHandler
 
   def setUp(self):
     super(ApiListFlowOutputPluginLogsHandlerRegressionTest, self).setUp()
@@ -429,7 +437,8 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiListFlowOutputPluginErrorsHandler."""
 
-  handler = "ApiListFlowOutputPluginErrorsHandler"
+  api_method = "ListFlowOutputPluginErrors"
+  handler = flow_plugin.ApiListFlowOutputPluginErrorsHandler
 
   def setUp(self):
     super(ApiListFlowOutputPluginErrorsHandlerRegressionTest, self).setUp()
@@ -462,7 +471,8 @@ class ApiCreateFlowHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiCreateFlowHandler."""
 
-  handler = "ApiCreateFlowHandler"
+  api_method = "CreateFlow"
+  handler = flow_plugin.ApiCreateFlowHandler
 
   def setUp(self):
     super(ApiCreateFlowHandlerRegressionTest, self).setUp()
@@ -498,7 +508,8 @@ class ApiCancelFlowHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiCancelFlowHandler."""
 
-  handler = "ApiCancelFlowHandler"
+  api_method = "CancelFlow"
+  handler = flow_plugin.ApiCancelFlowHandler
 
   def setUp(self):
     super(ApiCancelFlowHandlerRegressionTest, self).setUp()
@@ -522,7 +533,8 @@ class ApiListFlowDescriptorsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiListFlowDescriptorsHandler."""
 
-  handler = "ApiListFlowDescriptorsHandler"
+  api_method = "ListFlowDescriptors"
+  handler = flow_plugin.ApiListFlowDescriptorsHandler
 
   def Run(self):
     with utils.Stubber(flow.GRRFlow, "classes", {
@@ -540,7 +552,9 @@ class ApiListFlowDescriptorsHandlerRegressionTest(
 
 class ApiStartRobotGetFilesOperationHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
-  handler = "ApiStartRobotGetFilesOperationHandler"
+
+  api_method = "StartRobotGetFilesOperation"
+  handler = flow_plugin.ApiStartRobotGetFilesOperationHandler
 
   def setUp(self):
     super(ApiStartRobotGetFilesOperationHandlerRegressionTest, self).setUp()
@@ -659,7 +673,9 @@ class ApiGetRobotGetFilesOperationStateHandlerRegressionTest(
   This handler is disabled by default in the ACLs so we need to do some
   patching to get the proper output and not just "access denied".
   """
-  handler = "ApiGetRobotGetFilesOperationStateHandler"
+
+  api_method = "GetRobotGetFilesOperationState"
+  handler = flow_plugin.ApiGetRobotGetFilesOperationStateHandler
 
   def Run(self):
     # Fix the time to avoid regressions.

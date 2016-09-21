@@ -180,7 +180,7 @@ class TSKFile(vfs.VFSHandler):
     return None
 
   def _Walk(self, depth, top_path, top_tsk_dir):
-    if depth <= 0:
+    if depth < 0:
       return
 
     dirs, files = [], []
@@ -217,7 +217,7 @@ class TSKFile(vfs.VFSHandler):
       for item in self._Walk(depth - 1, path, tsk_dir):
         yield item
 
-  def RecursiveListNames(self, depth=1, unused_cross_devs=None):
+  def RecursiveListNames(self, depth=0, unused_cross_devs=None):
     path = self.pathspec.last.path
 
     try:

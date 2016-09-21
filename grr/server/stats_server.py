@@ -16,20 +16,56 @@ import logging
 from grr.lib import config_lib
 from grr.lib import registry
 from grr.lib import stats
+from grr.lib import utils
+
+
+def _JSONMetricValue(metric_info, value):
+  if metric_info.metric_type == stats.MetricType.EVENT:
+    return dict(
+        sum=value.sum,
+        counter=value.count,
+        bins_heights=collections.OrderedDict(value.bins_heights))
+  else:
+    return value
+
+
+def BuildVarzJsonString():
+  """Builds Varz JSON string from all stats metrics."""
+
+  results = {}
+  for name, metric_info in stats.STATS.GetAllMetricsMetadata().iteritems():
+    info_dict = dict(metric_type=metric_info.metric_type.name)
+    if metric_info.value_type:
+      info_dict["value_type"] = metric_info.value_type.name
+    if metric_info.docstring:
+      info_dict["docstring"] = metric_info.docstring
+    if metric_info.units:
+      info_dict["units"] = metric_info.units.name
+
+    if metric_info.fields_defs:
+      info_dict["fields_defs"] = []
+      for field_def in metric_info.fields_defs:
+        info_dict["fields_defs"].append(
+            (field_def.field_name, utils.SmartStr(field_def.field_type)))
+
+      value = {}
+      all_fields = stats.STATS.GetMetricFields(name)
+      for f in all_fields:
+        joined_fields = ":".join(utils.SmartStr(fname) for fname in f)
+        value[joined_fields] = _JSONMetricValue(
+            metric_info, stats.STATS.GetMetricValue(
+                name, fields=f))
+    else:
+      value = _JSONMetricValue(metric_info, stats.STATS.GetMetricValue(name))
+
+    results[name] = dict(info=info_dict, value=value)
+
+  encoder = json.JSONEncoder()
+  return encoder.encode(results)
 
 
 class StatsServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   """Default stats server implementation."""
-
-  def _JSONMetricValue(self, metric_info, value):
-    if metric_info.metric_type == stats.MetricType.EVENT:
-      return dict(
-          sum=value.sum,
-          counter=value.count,
-          bins=value.bins.wrapped_list,
-          bins_heights=collections.OrderedDict(value.bins_heights))
-    else:
-      return value
 
   def do_GET(self):  # pylint: disable=g-bad-name
     if self.path == "/varz":
@@ -37,32 +73,7 @@ class StatsServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       self.send_header("Content-type", "application/json")
       self.end_headers()
 
-      results = {}
-      for name, metric_info in stats.STATS.GetAllMetricsMetadata().iteritems():
-        info_dict = dict(metric_type=metric_info.metric_type.name)
-        if metric_info.value_type:
-          info_dict["value_type"] = metric_info.value_type.name
-        if metric_info.docstring:
-          info_dict["docstring"] = metric_info.docstring
-        if metric_info.units:
-          info_dict["units"] = metric_info.units.name
-
-        if metric_info.fields_defs:
-          info_dict["fields_defs"] = str(metric_info.fields_defs)
-          value = {}
-          all_fields = stats.STATS.GetMetricFields(name)
-          for f in all_fields:
-            value[f] = self._JSONMetricValue(
-                metric_info, stats.STATS.GetMetricValue(
-                    name, fields=f))
-        else:
-          value = self._JSONMetricValue(metric_info,
-                                        stats.STATS.GetMetricValue(name))
-
-        results[name] = dict(info=info_dict, value=value)
-
-      encoder = json.JSONEncoder()
-      self.wfile.write(encoder.encode(results))
+      self.wfile.write(BuildVarzJsonString())
     else:
       self.send_error(403, "Access forbidden: %s" % self.path)
 

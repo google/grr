@@ -141,7 +141,10 @@ class ClientActionRunner(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.CallClient(self.args.action, next_state="End", **self.action_args)
+    self.CallClient(
+        actions.ActionPlugin.classes[self.args.action],
+        next_state="End",
+        **self.action_args)
 
 
 class FlowWithOneClientRequest(flow.GRRFlow):
@@ -149,7 +152,7 @@ class FlowWithOneClientRequest(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self, unused_message=None):
-    self.CallClient("Test", data="test", next_state="End")
+    self.CallClient(Test, data="test", next_state="End")
 
 
 class FlowOrderTest(flow.GRRFlow):
@@ -161,7 +164,7 @@ class FlowOrderTest(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self, unused_message=None):
-    self.CallClient("Test", data="test", next_state="Incoming")
+    self.CallClient(Test, data="test", next_state="Incoming")
 
   @flow.StateHandler(auth_required=True)
   def Incoming(self, responses):
@@ -189,7 +192,8 @@ class SendingFlow(flow.GRRFlow):
   def Start(self, unused_response=None):
     """Just send a few messages."""
     for unused_i in range(0, self.args.message_count):
-      self.CallClient("ReadBuffer", offset=0, length=100, next_state="Process")
+      self.CallClient(
+          standard.ReadBuffer, offset=0, length=100, next_state="Process")
 
 
 class RaiseOnStart(flow.GRRFlow):
@@ -206,7 +210,7 @@ class BrokenFlow(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self, unused_response=None):
     """Send a message to an incorrect state."""
-    self.CallClient("ReadBuffer", next_state="WrongProcess")
+    self.CallClient(standard.ReadBuffer, next_state="WrongProcess")
 
 
 class DummyLogFlow(flow.GRRFlow):
@@ -503,6 +507,10 @@ class GRRBaseTest(unittest.TestCase):
   def assertStatsCounterDelta(self, delta, varname, fields=None):
     return StatsDeltaAssertionContext(self, delta, varname, fields=fields)
 
+  def DoAfterTestCheck(self):
+    """May be overriden by subclasses to perform checks after every test."""
+    pass
+
   def run(self, result=None):  # pylint: disable=g-bad-name
     """Run the test case.
 
@@ -542,6 +550,8 @@ class GRRBaseTest(unittest.TestCase):
           cProfile.runctx("testMethod()", globals(), locals(), profile_filename)
         else:
           testMethod()
+          # After-test checks are performed only if the test succeeds.
+          self.DoAfterTestCheck()
 
         ok = True
       except self.failureException:
@@ -1171,7 +1181,16 @@ class GRRSeleniumTest(GRRBaseTest):
   def ACLChecksDisabled(self):
     return ACLChecksDisabledContextManager()
 
+  def CheckJavascriptErrors(self):
+    for message in self.driver.get_log("browser"):
+      if (message.get("source", "") == "javascript" and
+          message.get("level", "") == "SEVERE"):
+        self.fail("Javascript error ecountered during test: %s" %
+                  message["message"])
+
   def WaitUntil(self, condition_cb, *args):
+    self.CheckJavascriptErrors()
+
     for _ in xrange(int(self.duration / self.sleep_time)):
       try:
         res = condition_cb(*args)
@@ -1470,6 +1489,10 @@ class GRRSeleniumTest(GRRBaseTest):
   def tearDown(self):
     self.UninstallACLChecks()
     super(GRRSeleniumTest, self).tearDown()
+
+  def DoAfterTestCheck(self):
+    super(GRRSeleniumTest, self).DoAfterTestCheck()
+    self.CheckJavascriptErrors()
 
 
 class AFF4ObjectTest(GRRBaseTest):

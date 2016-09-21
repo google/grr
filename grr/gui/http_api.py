@@ -76,7 +76,7 @@ class RouterMatcher(object):
     # annotation (thus adding additional unforeseen HTTP paths/methods). We
     # don't want the HTTP API to depend on a particular router implementation.
     for _, metadata in router_cls.GetAnnotatedMethods().items():
-      for http_method, path in metadata.http_methods:
+      for http_method, path, unused_options in metadata.http_methods:
         routing_map.add(
             routing.Rule(
                 path, methods=[http_method], endpoint=metadata))
@@ -136,23 +136,6 @@ class HttpRequestHandler(object):
   """Handles HTTP requests."""
 
   @staticmethod
-  def StripTypeInfo(rendered_data):
-    """Strips type information from rendered data. Useful for debugging."""
-
-    if isinstance(rendered_data, (list, tuple)):
-      return [HttpRequestHandler.StripTypeInfo(d) for d in rendered_data]
-    elif isinstance(rendered_data, dict):
-      if "value" in rendered_data:
-        return HttpRequestHandler.StripTypeInfo(rendered_data["value"])
-      else:
-        result = {}
-        for k, v in rendered_data.items():
-          result[k] = HttpRequestHandler.StripTypeInfo(v)
-        return result
-    else:
-      return rendered_data
-
-  @staticmethod
   def BuildToken(request, execution_time):
     """Build an ACLToken from the request."""
 
@@ -186,7 +169,7 @@ class HttpRequestHandler(object):
     return token
 
   @staticmethod
-  def CallApiHandler(handler, args, token=None):
+  def CallApiHandler(handler, args, token=None, strip_root_types=False):
     """Handles API call to a given handler with given args and token."""
 
     try:
@@ -207,7 +190,7 @@ class HttpRequestHandler(object):
     if result is None:
       return dict(status="OK")
     else:
-      if handler.strip_json_root_fields_types:
+      if strip_root_types:
         result_dict = {}
         for field, value in result.ListSetFields():
           if isinstance(field, (rdf_structs.ProtoDynamicEmbedded,
@@ -437,10 +420,17 @@ class HttpRequestHandler(object):
         return self._BuildStreamingResponse(
             binary_stream, method_name=method_metadata.name)
       else:
-        rendered_data = self.CallApiHandler(handler, args, token=token)
+        for http_method, unused_url, options in method_metadata.http_methods:
+          strip_root_types = False
+          if http_method == request.method:
+            strip_root_types = options.get("strip_root_types", False)
+            break
+
+        rendered_data = self.CallApiHandler(
+            handler, args, token=token, strip_root_types=strip_root_types)
 
         if strip_type_info:
-          rendered_data = self.StripTypeInfo(rendered_data)
+          rendered_data = api_value_renderers.StripTypeInfo(rendered_data)
 
         return self._BuildResponse(
             200,

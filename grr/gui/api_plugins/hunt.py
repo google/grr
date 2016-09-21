@@ -36,8 +36,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-CATEGORY = "Hunts"
-
 HUNTS_ROOT_PATH = rdfvalue.RDFURN("aff4:/hunts")
 
 
@@ -156,7 +154,6 @@ class ApiListHuntsResult(rdf_structs.RDFProtoStruct):
 class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
   """Renders list of available hunts."""
 
-  category = CATEGORY
   args_type = ApiListHuntsArgs
   result_type = ApiListHuntsResult
 
@@ -295,10 +292,8 @@ class ApiGetHuntArgs(rdf_structs.RDFProtoStruct):
 class ApiGetHuntHandler(api_call_handler_base.ApiCallHandler):
   """Renders hunt's summary."""
 
-  category = CATEGORY
   args_type = ApiGetHuntArgs
   result_type = ApiHunt
-  strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
     try:
@@ -324,7 +319,6 @@ class ApiListHuntResultsResult(rdf_structs.RDFProtoStruct):
 class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
   """Renders hunt results."""
 
-  category = CATEGORY
   args_type = ApiListHuntResultsArgs
   result_type = ApiListHuntResultsResult
 
@@ -351,7 +345,6 @@ class ApiListHuntCrashesResult(rdf_structs.RDFProtoStruct):
 class ApiListHuntCrashesHandler(api_call_handler_base.ApiCallHandler):
   """Returns a list of client crashes for the given hunt."""
 
-  category = CATEGORY
   args_type = ApiListHuntCrashesArgs
   result_type = ApiListHuntCrashesResult
 
@@ -386,7 +379,6 @@ class ApiGetHuntResultsExportCommandHandler(
     api_call_handler_base.ApiCallHandler):
   """Renders GRR export tool command line that exports hunt results."""
 
-  category = CATEGORY
   args_type = ApiGetHuntResultsExportCommandArgs
   result_type = ApiGetHuntResultsExportCommandResult
 
@@ -420,7 +412,6 @@ class ApiListHuntOutputPluginsResult(rdf_structs.RDFProtoStruct):
 class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
   """Renders hunt's output plugins states."""
 
-  category = CATEGORY
   args_type = ApiListHuntOutputPluginsArgs
   result_type = ApiListHuntOutputPluginsResult
 
@@ -451,7 +442,6 @@ class ApiListHuntOutputPluginLogsHandlerBase(
   __abstract = True  # pylint: disable=g-bad-name
 
   collection_name = None
-  category = CATEGORY
 
   def Handle(self, args, token=None):
     if not self.collection_name:
@@ -541,7 +531,6 @@ class ApiListHuntLogsResult(rdf_structs.RDFProtoStruct):
 class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
   """Returns a list of log elements for the given hunt."""
 
-  category = CATEGORY
   args_type = ApiListHuntLogsArgs
   result_type = ApiListHuntLogsResult
 
@@ -579,7 +568,6 @@ class ApiListHuntErrorsResult(rdf_structs.RDFProtoStruct):
 class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
   """Returns a list of errors for the given hunt."""
 
-  category = CATEGORY
   args_type = ApiListHuntErrorsArgs
   result_type = ApiListHuntErrorsResult
 
@@ -637,7 +625,6 @@ class ApiGetHuntClientCompletionStatsHandler(
     api_call_handler_base.ApiCallHandler):
   """Calculates hunt's client completion stats."""
 
-  category = CATEGORY
   args_type = ApiGetHuntClientCompletionStatsArgs
   result_type = ApiGetHuntClientCompletionStatsResult
 
@@ -818,7 +805,6 @@ class ApiGetHuntFileArgs(rdf_structs.RDFProtoStruct):
 class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
   """Downloads a file referenced in the hunt results."""
 
-  category = CATEGORY
   args_type = ApiGetHuntFileArgs
 
   MAX_RECORDS_TO_CHECK = 100
@@ -905,7 +891,6 @@ class ApiGetHuntStatsResult(rdf_structs.RDFProtoStruct):
 class ApiGetHuntStatsHandler(api_call_handler_base.ApiCallHandler):
   """Handles hunt stats request."""
 
-  category = CATEGORY
   args_type = ApiGetHuntStatsArgs
   result_type = ApiGetHuntStatsResult
 
@@ -938,7 +923,6 @@ class ApiHuntClient(rdf_structs.RDFProtoStruct):
 class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
   """Handles requests for hunt clients."""
 
-  category = CATEGORY
   args_type = ApiListHuntClientsArgs
   result_type = ApiListHuntClientsResult
 
@@ -1069,7 +1053,6 @@ class ApiGetHuntContextResult(rdf_structs.RDFProtoStruct):
 class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
   """Handles requests for hunt contexts."""
 
-  category = CATEGORY
   args_type = ApiGetHuntContextArgs
   result_type = ApiGetHuntContextResult
 
@@ -1104,15 +1087,8 @@ class ApiCreateHuntArgs(rdf_structs.RDFProtoStruct):
 class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
   """Handles hunt creation request."""
 
-  category = CATEGORY
   args_type = ApiCreateHuntArgs
   result_type = ApiHunt
-  strip_json_root_fields_types = False
-
-  # Anyone should be able to create a hunt (permissions are required to
-  # actually start it) so marking this handler as privileged to turn off
-  # ACL checks.
-  privileged = True
 
   def Handle(self, args, token=None):
     """Creates a new hunt."""
@@ -1141,10 +1117,8 @@ class ApiModifyHuntArgs(rdf_structs.RDFProtoStruct):
 class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
   """Handles hunt modifys (this includes starting/stopping the hunt)."""
 
-  category = CATEGORY
   args_type = ApiModifyHuntArgs
   result_type = ApiHunt
-  strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
     hunt_urn = HUNTS_ROOT_PATH.Add(args.hunt_id)
@@ -1223,9 +1197,7 @@ class ApiDeleteHuntArgs(rdf_structs.RDFProtoStruct):
 class ApiDeleteHuntHandler(api_call_handler_base.ApiCallHandler):
   """Handles hunt deletions."""
 
-  category = CATEGORY
   args_type = ApiDeleteHuntArgs
-  strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
     hunt_urn = HUNTS_ROOT_PATH.Add(args.hunt_id)

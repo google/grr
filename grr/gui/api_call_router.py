@@ -6,12 +6,15 @@
 import inspect
 
 
+from grr.gui import api_value_renderers
+
 from grr.gui.api_plugins import artifact as api_artifact
 from grr.gui.api_plugins import client as api_client
 from grr.gui.api_plugins import config as api_config
 from grr.gui.api_plugins import cron as api_cron
 from grr.gui.api_plugins import flow as api_flow
 from grr.gui.api_plugins import hunt as api_hunt
+from grr.gui.api_plugins import output_plugin as api_output_plugin
 from grr.gui.api_plugins import reflection as api_reflection
 from grr.gui.api_plugins import stats as api_stats
 from grr.gui.api_plugins import user as api_user
@@ -23,9 +26,10 @@ from grr.lib import registry
 class Http(object):
   """Decorator that associates URLs with API methods."""
 
-  def __init__(self, method, path):
+  def __init__(self, method, path, strip_root_types=True):
     self.method = method
     self.path = path
+    self.strip_root_types = strip_root_types
 
   def __call__(self, func):
     try:
@@ -34,8 +38,8 @@ class Http(object):
       http_methods = []
       setattr(func, "__http_methods__", http_methods)
 
-    http_methods.append((self.method,
-                         self.path,))
+    http_methods.append((self.method, self.path,
+                         dict(strip_root_types=self.strip_root_types)))
 
     return func
 
@@ -196,7 +200,7 @@ class ApiCallRouter(object):
   @Category("Clients")
   @ArgsType(api_client.ApiGetClientArgs)
   @ResultType(api_client.ApiClient)
-  @Http("GET", "/api/clients/<client_id>")
+  @Http("GET", "/api/clients/<client_id>", strip_root_types=False)
   def GetClient(self, args, token=None):
     raise NotImplementedError()
 
@@ -233,6 +237,13 @@ class ApiCallRouter(object):
   @ResultType(api_client.ApiListClientCrashesResult)
   @Http("GET", "/api/clients/<client_id>/crashes")
   def ListClientCrashes(self, args, token=None):
+    raise NotImplementedError()
+
+  @Category("Clients")
+  @ArgsType(api_client.ApiListClientActionRequestsArgs)
+  @ResultType(api_client.ApiListClientActionRequestsResult)
+  @Http("GET", "/api/clients/<client_id>/action-requests")
+  def ListClientActionRequests(self, args, token=None):
     raise NotImplementedError()
 
   # Virtual file system methods.
@@ -364,7 +375,10 @@ class ApiCallRouter(object):
   @Category("Flows")
   @ArgsType(api_flow.ApiGetFlowArgs)
   @ResultType(api_flow.ApiFlow)
-  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>")
+  @Http(
+      "GET",
+      "/api/clients/<client_id>/flows/<path:flow_id>",
+      strip_root_types=False)
   def GetFlow(self, args, token=None):
     raise NotImplementedError()
 
@@ -373,9 +387,7 @@ class ApiCallRouter(object):
   @Category("Flows")
   @ArgsType(api_flow.ApiCreateFlowArgs)
   @ResultType(api_flow.ApiFlow)
-  @Http("POST", "/api/clients/<client_id>/flows")
-  # TODO(user): deprecate this URL
-  @Http("POST", "/api/clients/<client_id>/flows/start")
+  @Http("POST", "/api/clients/<client_id>/flows", strip_root_types=False)
   def CreateFlow(self, args, token=None):
     raise NotImplementedError()
 
@@ -469,14 +481,14 @@ class ApiCallRouter(object):
   @Category("Cron")
   @ArgsType(api_cron.ApiCronJob)
   @ResultType(api_cron.ApiCronJob)
-  @Http("POST", "/api/cron-jobs")
+  @Http("POST", "/api/cron-jobs", strip_root_types=False)
   def CreateCronJob(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Cron")
   @ArgsType(api_cron.ApiGetCronJobArgs)
   @ResultType(api_cron.ApiCronJob)
-  @Http("GET", "/api/cron-jobs/<cron_job_id>")
+  @Http("GET", "/api/cron-jobs/<cron_job_id>", strip_root_types=False)
   def GetCronJob(self, args, token=None):
     raise NotImplementedError()
 
@@ -489,7 +501,7 @@ class ApiCallRouter(object):
   @Category("Hunts")
   @ArgsType(api_cron.ApiModifyCronJobArgs)
   @ResultType(api_cron.ApiCronJob)
-  @Http("PATCH", "/api/cron-jobs/<cron_job_id>")
+  @Http("PATCH", "/api/cron-jobs/<cron_job_id>", strip_root_types=False)
   def ModifyCronJob(self, args, token=None):
     raise NotImplementedError()
 
@@ -503,7 +515,10 @@ class ApiCallRouter(object):
   @Category("Cron")
   @ArgsType(api_cron.ApiGetCronJobFlowArgs)
   @ResultType(api_flow.ApiFlow)
-  @Http("GET", "/api/cron-jobs/<cron_job_id>/flows/<flow_id>")
+  @Http(
+      "GET",
+      "/api/cron-jobs/<cron_job_id>/flows/<flow_id>",
+      strip_root_types=False)
   def GetCronJobFlow(self, args, token=None):
     raise NotImplementedError()
 
@@ -527,7 +542,7 @@ class ApiCallRouter(object):
   @Category("Hunts")
   @ArgsType(api_hunt.ApiGetHuntArgs)
   @ResultType(api_hunt.ApiHunt)
-  @Http("GET", "/api/hunts/<hunt_id>")
+  @Http("GET", "/api/hunts/<hunt_id>", strip_root_types=False)
   def GetHunt(self, args, token=None):
     raise NotImplementedError()
 
@@ -619,20 +634,20 @@ class ApiCallRouter(object):
   @Category("Hunts")
   @ArgsType(api_hunt.ApiCreateHuntArgs)
   @ResultType(api_hunt.ApiHunt)
-  @Http("POST", "/api/hunts")
+  @Http("POST", "/api/hunts", strip_root_types=False)
   def CreateHunt(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Hunts")
   @ArgsType(api_hunt.ApiModifyHuntArgs)
   @ResultType(api_hunt.ApiHunt)
-  @Http("PATCH", "/api/hunts/<hunt_id>")
+  @Http("PATCH", "/api/hunts/<hunt_id>", strip_root_types=False)
   def ModifyHunt(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Hunts")
   @ArgsType(api_hunt.ApiDeleteHuntArgs)
-  @Http("DELETE", "/api/hunts/<hunt_id>")
+  @Http("DELETE", "/api/hunts/<hunt_id>", strip_root_types=False)
   def DeleteHunt(self, args, token=None):
     raise NotImplementedError()
 
@@ -656,6 +671,7 @@ class ApiCallRouter(object):
   #
   @Category("Other")
   @ArgsType(api_stats.ApiListStatsStoreMetricsMetadataArgs)
+  @ResultType(api_stats.ApiListStatsStoreMetricsMetadataResult)
   @Http("GET", "/api/stats/store/<component>/metadata")
   @NoAuditLogRequired()
   def ListStatsStoreMetricsMetadata(self, args, token=None):
@@ -664,6 +680,7 @@ class ApiCallRouter(object):
   @Category("Other")
   @Http("GET", "/api/stats/store/<component>/metrics/<metric_name>")
   @ArgsType(api_stats.ApiGetStatsStoreMetricArgs)
+  @ResultType(api_stats.ApiStatsStoreMetric)
   @NoAuditLogRequired()
   def GetStatsStoreMetric(self, args, token=None):
     raise NotImplementedError()
@@ -689,7 +706,10 @@ class ApiCallRouter(object):
   @Category("User")
   @ArgsType(api_user.ApiCreateClientApprovalArgs)
   @ResultType(api_user.ApiClientApproval)
-  @Http("POST", "/api/users/me/approvals/client/<client_id>")
+  @Http(
+      "POST",
+      "/api/users/me/approvals/client/<client_id>",
+      strip_root_types=False)
   def CreateClientApproval(self, args, token=None):
     raise NotImplementedError()
 
@@ -697,17 +717,21 @@ class ApiCallRouter(object):
   @ArgsType(api_user.ApiGetClientApprovalArgs)
   @ResultType(api_user.ApiClientApproval)
   @NoAuditLogRequired()
-  @Http("GET",
-        "/api/users/<username>/approvals/client/<client_id>/<approval_id>")
+  @Http(
+      "GET",
+      "/api/users/<username>/approvals/client/<client_id>/<approval_id>",
+      strip_root_types=False)
   def GetClientApproval(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
   @ArgsType(api_user.ApiGrantClientApprovalArgs)
   @ResultType(api_user.ApiClientApproval)
-  @Http("POST",
-        "/api/users/<username>/approvals/client/<client_id>/<approval_id>/"
-        "actions/grant")
+  @Http(
+      "POST",
+      "/api/users/<username>/approvals/client/<client_id>/<approval_id>/"
+      "actions/grant",
+      strip_root_types=False)
   def GrantClientApproval(self, args, token=None):
     raise NotImplementedError()
 
@@ -724,7 +748,8 @@ class ApiCallRouter(object):
   @ArgsType(api_user.ApiCreateHuntApprovalArgs)
   @ResultType(api_user.ApiHuntApproval)
   @NoAuditLogRequired()
-  @Http("POST", "/api/users/me/approvals/hunt/<hunt_id>")
+  @Http(
+      "POST", "/api/users/me/approvals/hunt/<hunt_id>", strip_root_types=False)
   def CreateHuntApproval(self, args, token=None):
     raise NotImplementedError()
 
@@ -732,15 +757,21 @@ class ApiCallRouter(object):
   @ArgsType(api_user.ApiGetHuntApprovalArgs)
   @ResultType(api_user.ApiHuntApproval)
   @NoAuditLogRequired()
-  @Http("GET", "/api/users/<username>/approvals/hunt/<hunt_id>/<approval_id>")
+  @Http(
+      "GET",
+      "/api/users/<username>/approvals/hunt/<hunt_id>/<approval_id>",
+      strip_root_types=False)
   def GetHuntApproval(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
   @ArgsType(api_user.ApiGrantHuntApprovalArgs)
   @ResultType(api_user.ApiHuntApproval)
-  @Http("POST", "/api/users/<username>/approvals/hunt/<hunt_id>/<approval_id>/"
-        "actions/grant")
+  @Http(
+      "POST",
+      "/api/users/<username>/approvals/hunt/<hunt_id>/<approval_id>/"
+      "actions/grant",
+      strip_root_types=False)
   def GrantHuntApproval(self, args, token=None):
     raise NotImplementedError()
 
@@ -755,7 +786,10 @@ class ApiCallRouter(object):
   @Category("User")
   @ArgsType(api_user.ApiCreateCronJobApprovalArgs)
   @ResultType(api_user.ApiCronJobApproval)
-  @Http("POST", "/api/users/me/approvals/cron-job/<cron_job_id>")
+  @Http(
+      "POST",
+      "/api/users/me/approvals/cron-job/<cron_job_id>",
+      strip_root_types=False)
   def CreateCronJobApproval(self, args, token=None):
     raise NotImplementedError()
 
@@ -763,17 +797,21 @@ class ApiCallRouter(object):
   @ArgsType(api_user.ApiGetCronJobApprovalArgs)
   @ResultType(api_user.ApiCronJobApproval)
   @NoAuditLogRequired()
-  @Http("GET",
-        "/api/users/<username>/approvals/cron-job/<cron_job_id>/<approval_id>")
+  @Http(
+      "GET",
+      "/api/users/<username>/approvals/cron-job/<cron_job_id>/<approval_id>",
+      strip_root_types=False)
   def GetCronJobApproval(self, args, token=None):
     raise NotImplementedError()
 
   @Category("User")
   @ArgsType(api_user.ApiGrantCronJobApprovalArgs)
   @ResultType(api_user.ApiCronJobApproval)
-  @Http("POST",
-        "/api/users/<username>/approvals/cron-job/<cron_job_id>/<approval_id>/"
-        "actions/grant")
+  @Http(
+      "POST",
+      "/api/users/<username>/approvals/cron-job/<cron_job_id>/<approval_id>/"
+      "actions/grant",
+      strip_root_types=False)
   def GrantCronJobApproval(self, args, token=None):
     raise NotImplementedError()
 
@@ -820,7 +858,7 @@ class ApiCallRouter(object):
 
   @Category("User")
   @ResultType(api_user.ApiGrrUser)
-  @Http("GET", "/api/users/me")
+  @Http("GET", "/api/users/me", strip_root_types=False)
   @NoAuditLogRequired()
   def GetGrrUser(self, args, token=None):
     raise NotImplementedError()
@@ -883,19 +921,22 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("Reflection")
-  @Http("GET", "/api/reflection/aff4/attributes")
+  @ResultType(api_reflection.ApiListAff4AttributeDescriptorsResult)
+  @Http("GET", "/api/reflection/aff4/attributes", strip_root_types=True)
   @NoAuditLogRequired()
   def ListAff4AttributeDescriptors(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Reflection")
   @ArgsType(api_reflection.ApiGetRDFValueDescriptorArgs)
-  @Http("GET", "/api/reflection/rdfvalue/<type>")
+  @ResultType(api_value_renderers.ApiRDFValueDescriptor)
+  @Http("GET", "/api/reflection/rdfvalue/<type>", strip_root_types=False)
   @NoAuditLogRequired()
   def GetRDFValueDescriptor(self, args, token=None):
     raise NotImplementedError()
 
   @Category("Reflection")
+  @ResultType(api_reflection.ApiListRDFValueDescriptorsResult)
   @Http("GET", "/api/reflection/rdfvalue/all")
   @NoAuditLogRequired()
   def ListRDFValuesDescriptors(self, args, token=None):
@@ -903,6 +944,7 @@ class ApiCallRouter(object):
 
   # Note: fix the name in ApiOutputPluginsListHandler
   @Category("Reflection")
+  @ResultType(api_output_plugin.ApiListOutputPluginDescriptorsResult)
   @Http("GET", "/api/output-plugins/all")
   @NoAuditLogRequired()
   def ListOutputPluginDescriptors(self, args, token=None):

@@ -53,7 +53,7 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
       template: '<grr-user-dashboard />',
       title: 'Home',
     })
-    .state('search', { // TODO(user): split into sub state for FilestoreTable.
+    .state('search', {
       url: '/search?q',
       template: '<grr-clients-list />',
       title: function(params) {

@@ -25,14 +25,16 @@ describe('grr-output-plugin-descriptor-form directive', function() {
     var apiServiceResponse = $q.defer();
     apiServiceResponse.resolve({
       data: {
-        'FooOutputPlugin' : {
-          args_type: 'FooOutputPluginArgs',
-          name: 'FooOutputPlugin'
-        },
-        'BarOutputPlugin': {
-          args_type: 'BarOutputPluginArgs',
-          name: 'BarOutputPlugin'
-        }
+        items: [
+          {
+            args_type: 'FooOutputPluginArgs',
+            name: 'FooOutputPlugin'
+          },
+          {
+            args_type: 'BarOutputPluginArgs',
+            name: 'BarOutputPlugin'
+          }
+        ]
       }
     });
     spyOn(grrApiService, 'get').and.returnValue(apiServiceResponse.promise);

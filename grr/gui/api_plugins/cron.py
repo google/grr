@@ -15,8 +15,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-CATEGORY = "Cron"
-
 
 class CronJobNotFoundError(api_call_handler_base.ResourceNotFoundError):
   """Raised when a cron job could not be found."""
@@ -99,7 +97,6 @@ class ApiListCronJobsResult(rdf_structs.RDFProtoStruct):
 class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
   """Lists flows launched on a given client."""
 
-  category = CATEGORY
   args_type = ApiListCronJobsArgs
   result_type = ApiListCronJobsResult
 
@@ -131,10 +128,8 @@ class ApiGetCronJobArgs(rdf_structs.RDFProtoStruct):
 class ApiGetCronJobHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves a specific cron job."""
 
-  category = CATEGORY
   args_type = ApiGetCronJobArgs
   result_type = ApiCronJob
-  strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
     try:
@@ -156,7 +151,6 @@ class ApiListCronJobFlowsArgs(rdf_structs.RDFProtoStruct):
 class ApiListCronJobFlowsHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the given cron job's flows."""
 
-  category = CATEGORY
   args_type = ApiListCronJobFlowsArgs
   result_type = api_plugins_flow.ApiListFlowsResult
 
@@ -179,10 +173,8 @@ class ApiGetCronJobFlowHandler(api_call_handler_base.ApiCallHandler):
   seconds since epoch.
   """
 
-  category = CATEGORY
   args_type = ApiGetCronJobFlowArgs
   result_type = api_plugins_flow.ApiFlow
-  strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
     flow_urn = args.flow_id.ResolveCronJobFlowURN(args.cron_job_id)
@@ -196,12 +188,8 @@ class ApiGetCronJobFlowHandler(api_call_handler_base.ApiCallHandler):
 class ApiCreateCronJobHandler(api_call_handler_base.ApiCallHandler):
   """Creates a new cron job."""
 
-  category = CATEGORY
   args_type = ApiCronJob
   result_type = ApiCronJob
-  strip_json_root_fields_types = False
-
-  privileged = True
 
   def Handle(self, args, token=None):
     args.flow_args.hunt_runner_args.hunt_name = "GenericHunt"
@@ -240,7 +228,6 @@ class ApiForceRunCronJobArgs(rdf_structs.RDFProtoStruct):
 class ApiForceRunCronJobHandler(api_call_handler_base.ApiCallHandler):
   """Force-runs a given cron job."""
 
-  category = CATEGORY
   args_type = ApiForceRunCronJobArgs
 
   def Handle(self, args, token=None):
@@ -260,10 +247,8 @@ class ApiModifyCronJobArgs(rdf_structs.RDFProtoStruct):
 class ApiModifyCronJobHandler(api_call_handler_base.ApiCallHandler):
   """Modifies given cron job (changes its state to ENABLED/DISABLED)."""
 
-  category = CATEGORY
   args_type = ApiModifyCronJobArgs
   result_type = ApiCronJob
-  strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
     if not args.cron_job_id:
@@ -291,7 +276,6 @@ class ApiDeleteCronJobArgs(rdf_structs.RDFProtoStruct):
 class ApiDeleteCronJobHandler(api_call_handler_base.ApiCallHandler):
   """Deletes a given cron job."""
 
-  category = CATEGORY
   args_type = ApiDeleteCronJobArgs
 
   def Handle(self, args, token=None):

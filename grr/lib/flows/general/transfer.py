@@ -5,6 +5,9 @@
 import zlib
 
 import logging
+from grr.client.client_actions import components as components_actions
+from grr.client.client_actions import file_fingerprint as file_fingerprint_actions
+from grr.client.client_actions import standard as standard_actions
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -68,7 +71,7 @@ class GetFile(flow.GRRFlow):
     self.state.stat_entry = None
 
     self.CallClient(
-        "StatFile",
+        standard_actions.StatFile,
         rdf_client.ListDirRequest(pathspec=self.args.pathspec),
         next_state="Stat")
 
@@ -110,7 +113,8 @@ class GetFile(flow.GRRFlow):
           pathspec=self.args.pathspec,
           offset=next_offset,
           length=self.CHUNK_SIZE)
-      self.CallClient("TransferBuffer", request, next_state="ReadBuffer")
+      self.CallClient(
+          standard_actions.TransferBuffer, request, next_state="ReadBuffer")
       self.state.current_chunk_number += 1
 
   @flow.StateHandler()
@@ -270,7 +274,7 @@ class MultiGetFileMixin(object):
 
     # First state the file, then hash the file.
     self.CallClient(
-        "StatFile",
+        standard_actions.StatFile,
         pathspec=pathspec,
         next_state="StoreStat",
         request_data=dict(index=index))
@@ -284,7 +288,7 @@ class MultiGetFileMixin(object):
                  rdf_client.FingerprintTuple.HashType.SHA256])
 
     self.CallClient(
-        "HashFile",
+        standard_actions.HashFile,
         request,
         next_state="ReceiveFileHash",
         request_data=dict(index=index))
@@ -364,7 +368,7 @@ class MultiGetFileMixin(object):
       logging.debug(
           "HashFile action not available, falling back to FingerprintFile.")
       self.CallClient(
-          "FingerprintFile",
+          file_fingerprint_actions.FingerprintFile,
           responses.request.request.payload,
           next_state="ReceiveFileHash",
           request_data=responses.request_data)
@@ -544,7 +548,7 @@ class MultiGetFileMixin(object):
         else:
           length = self.CHUNK_SIZE
         self.CallClient(
-            "HashBuffer",
+            standard_actions.HashBuffer,
             pathspec=file_tracker["stat_entry"].pathspec,
             offset=i * self.CHUNK_SIZE,
             length=length,
@@ -619,7 +623,7 @@ class MultiGetFileMixin(object):
         else:
           # We dont have this blob - ask the client to transmit it.
           self.CallClient(
-              "TransferBuffer",
+              standard_actions.TransferBuffer,
               hash_response,
               next_state="WriteBuffer",
               request_data=dict(index=index))
@@ -794,7 +798,7 @@ class GetMBR(flow.GRRFlow):
 
     request = rdf_client.BufferReference(
         pathspec=pathspec, offset=0, length=self.args.length)
-    self.CallClient("ReadBuffer", request, next_state="StoreMBR")
+    self.CallClient(standard_actions.ReadBuffer, request, next_state="StoreMBR")
 
   @flow.StateHandler()
   def StoreMBR(self, responses):
@@ -870,7 +874,7 @@ class SendFile(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """This issues the sendfile request."""
-    self.CallClient("SendFile", self.args, next_state="Done")
+    self.CallClient(standard_actions.SendFile, self.args, next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -915,7 +919,7 @@ class LoadComponentMixin(object):
 
       for python_blob in fd:
         self.CallClient(
-            "ExecutePython",
+            standard_actions.ExecutePython,
             python_code=python_blob,
             py_args=dict(
                 name=name, version=version),
@@ -949,7 +953,7 @@ class LoadComponentMixin(object):
                          (name, version))
 
     self.CallClient(
-        "LoadComponent",
+        components_actions.LoadComponent,
         summary=component_summary,
         next_state="ComponentLoaded",
         request_data=dict(next_state=next_state))

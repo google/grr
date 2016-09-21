@@ -69,24 +69,11 @@ SearchBoxController.prototype.onGetLabels_ = function(response) {
  * @export
  */
 SearchBoxController.prototype.submitQuery = function() {
-  if (this.isShaHash_(this.query)) {
-    grr.layout('FilestoreTable', 'main', {q: this.query});
-  } else if (this.isHuntId_(this.query)) {
+  if (this.isHuntId_(this.query)) {
     this.checkHunt_(this.query);
   } else {
     this.grrRoutingService_.go('search', {q: this.query});
   }
-};
-
-/**
- * Checks if the passed string is a SHA hash.
- * @param {string} input A string potentially describing a SHA hash.
- * @return {boolean} True if the string is a SHA hash, false otherwise.
- * @private
- */
-SearchBoxController.prototype.isShaHash_ = function(input) {
-  var sha_regex = /^[A-F0-9]{64}$/i;
-  return sha_regex.test(input);
 };
 
 /**

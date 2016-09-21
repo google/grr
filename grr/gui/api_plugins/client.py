@@ -9,9 +9,11 @@ from grr.gui import api_call_handler_utils
 
 from grr.lib import aff4
 from grr.lib import client_index
+from grr.lib import data_store
 from grr.lib import events
 from grr.lib import flow
 from grr.lib import ip_resolver
+from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import utils
 
@@ -24,11 +26,10 @@ from grr.lib.flows.general import discovery
 
 from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
-
-CATEGORY = "Clients"
 
 
 class InterrogateOperationNotFoundError(
@@ -81,6 +82,10 @@ class ApiClient(rdf_structs.RDFProtoStruct):
     return self
 
 
+class ApiClientActionRequest(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiClientActionRequest
+
+
 class ApiSearchClientsArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiSearchClientsArgs
 
@@ -91,8 +96,6 @@ class ApiSearchClientsResult(rdf_structs.RDFProtoStruct):
 
 class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
   """Renders results of a client search."""
-
-  category = CATEGORY
 
   args_type = ApiSearchClientsArgs
   result_type = ApiSearchClientsResult
@@ -121,8 +124,6 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
 class ApiLabelsRestrictedSearchClientsHandler(
     api_call_handler_base.ApiCallHandler):
   """Renders results of a client search."""
-
-  category = CATEGORY
 
   args_type = ApiSearchClientsArgs
   result_type = ApiSearchClientsResult
@@ -184,11 +185,8 @@ class ApiGetClientArgs(rdf_structs.RDFProtoStruct):
 class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
   """Renders summary of a given client."""
 
-  category = CATEGORY
-
   args_type = ApiGetClientArgs
   result_type = ApiClient
-  strip_json_root_fields_types = False
 
   def Handle(self, args, token=None):
     if not args.timestamp:
@@ -212,8 +210,6 @@ class ApiGetClientVersionTimesResult(rdf_structs.RDFProtoStruct):
 
 class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves a list of versions for the given client."""
-
-  category = CATEGORY
 
   args_type = ApiGetClientVersionTimesArgs
   result_type = ApiGetClientVersionTimesResult
@@ -239,7 +235,6 @@ class ApiInterrogateClientResult(rdf_structs.RDFProtoStruct):
 class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
   """Interrogates the given client."""
 
-  category = CATEGORY
   args_type = ApiInterrogateClientArgs
   result_type = ApiInterrogateClientResult
 
@@ -262,7 +257,6 @@ class ApiGetInterrogateOperationStateHandler(
     api_call_handler_base.ApiCallHandler):
   """Retrieves the state of the interrogate operation."""
 
-  category = CATEGORY
   args_type = ApiGetInterrogateOperationStateArgs
   result_type = ApiGetInterrogateOperationStateResult
 
@@ -296,8 +290,6 @@ class ApiGetLastClientIPAddressResult(rdf_structs.RDFProtoStruct):
 class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
   """Retrieves the last ip a client used for communication with the server."""
 
-  category = CATEGORY
-
   args_type = ApiGetLastClientIPAddressArgs
   result_type = ApiGetLastClientIPAddressResult
 
@@ -321,8 +313,6 @@ class ApiListClientCrashesResult(rdf_structs.RDFProtoStruct):
 
 class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
   """Returns a list of crashes for the given client."""
-
-  category = CATEGORY
 
   args_type = ApiListClientCrashesArgs
   result_type = ApiListClientCrashesResult
@@ -353,9 +343,7 @@ class ApiAddClientsLabelsArgs(rdf_structs.RDFProtoStruct):
 class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   """Adds labels to a given client."""
 
-  category = CATEGORY
   args_type = ApiAddClientsLabelsArgs
-  privileged = True
 
   def Handle(self, args, token=None):
     audit_description = ",".join(
@@ -398,9 +386,7 @@ class ApiRemoveClientsLabelsArgs(rdf_structs.RDFProtoStruct):
 class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   """Remove labels from a given client."""
 
-  category = CATEGORY
   args_type = ApiRemoveClientsLabelsArgs
-  privileged = True
 
   def RemoveClientLabels(self, client, labels_names):
     """Removes labels with given names from a given client object."""
@@ -455,7 +441,6 @@ class ApiListClientsLabelsResult(rdf_structs.RDFProtoStruct):
 class ApiListClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   """Lists all the available clients labels."""
 
-  category = CATEGORY
   result_type = ApiListClientsLabelsResult
 
   def Handle(self, args, token=None):
@@ -478,9 +463,69 @@ class ApiListKbFieldsResult(rdf_structs.RDFProtoStruct):
 class ApiListKbFieldsHandler(api_call_handler_base.ApiCallHandler):
   """Lists all the available clients knowledge base fields."""
 
-  category = CATEGORY
   result_type = ApiListKbFieldsResult
 
   def Handle(self, args, token=None):
     fields = rdf_client.KnowledgeBase().GetKbFieldNames()
     return ApiListKbFieldsResult(items=sorted(fields))
+
+
+class ApiListClientActionRequestsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListClientActionRequestsArgs
+
+
+class ApiListClientActionRequestsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListClientActionRequestsResult
+
+
+class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
+  """Lists pending client action requests."""
+
+  args_type = ApiListClientActionRequestsArgs
+  result_type = ApiListClientActionRequestsResult
+
+  REQUESTS_NUM_LIMIT = 1000
+
+  def _GetRequestResponses(self, manager, client_id, task_id):
+    task_id = "task:%s" % task_id
+
+    request_messages = manager.Query(client_id, task_id=task_id)
+    if not request_messages:
+      return []
+
+    request_message = request_messages[0]
+    state_queue = request_message.session_id.Add("state/request:%08X" %
+                                                 request_message.request_id)
+
+    result = []
+    predicate_pre = (
+        manager.FLOW_RESPONSE_PREFIX + "%08X" % request_message.request_id)
+    # Get all the responses for this request.
+    for _, serialized_message, _ in data_store.DB.ResolvePrefix(
+        state_queue, predicate_pre, token=manager.token):
+      result.append(
+          rdf_flows.GrrMessage.FromSerializedString(serialized_message))
+
+    return result
+
+  def Handle(self, args, token=None):
+    manager = queue_manager.QueueManager(token=token)
+
+    result = ApiListClientActionRequestsResult()
+    # Passing "limit" argument explicitly, as Query returns just 1 request
+    # by default.
+    for task in manager.Query(
+        args.client_id, limit=self.__class__.REQUESTS_NUM_LIMIT):
+      request = ApiClientActionRequest(
+          task_id=task.task_id,
+          task_eta=task.eta,
+          session_id=task.session_id,
+          client_action=task.name)
+
+      if args.fetch_responses:
+        request.responses = self._GetRequestResponses(manager, args.client_id,
+                                                      task.task_id)
+
+      result.items.append(request)
+
+    return result

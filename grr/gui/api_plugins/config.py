@@ -12,8 +12,6 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-CATEGORY = "Settings"
-
 # TODO(user): sensitivity of config options and sections should
 # probably be defined together with the options themselves. Keeping
 # the list of redacted options and settings here may lead to scenario
@@ -75,7 +73,6 @@ class ApiGetConfigResult(rdf_structs.RDFProtoStruct):
 class ApiGetConfigHandler(api_call_handler_base.ApiCallHandler):
   """Renders GRR's server configuration."""
 
-  category = CATEGORY
   result_type = ApiGetConfigResult
 
   def _ListParametersInSection(self, section):
@@ -119,7 +116,6 @@ class ApiGetConfigOptionArgs(rdf_structs.RDFProtoStruct):
 class ApiGetConfigOptionHandler(api_call_handler_base.ApiCallHandler):
   """Renders single option from a GRR server's configuration."""
 
-  category = CATEGORY
   args_type = ApiGetConfigOptionArgs
   result_type = ApiConfigOption
 

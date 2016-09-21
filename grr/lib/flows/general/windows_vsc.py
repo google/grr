@@ -1,7 +1,9 @@
 #!/usr/bin/env python
 """Queries a Windows client for Volume Shadow Copy information."""
+from grr.client.client_actions import standard as standard_actions
 from grr.lib import aff4
 from grr.lib import flow
+from grr.lib import server_stubs
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import client as rdf_client
@@ -21,7 +23,7 @@ class ListVolumeShadowCopies(flow.GRRFlow):
     self.state.raw_device = None
 
     self.CallClient(
-        "WmiQuery",
+        server_stubs.WmiQuery,
         query="SELECT * FROM Win32_ShadowCopy",
         next_state="ListDeviceDirectories")
 
@@ -47,7 +49,7 @@ class ListVolumeShadowCopies(flow.GRRFlow):
 
         self.Log("Listing Volume Shadow Copy device: %s.", device_object)
         self.CallClient(
-            "ListDirectory",
+            standard_actions.ListDirectory,
             pathspec=path_spec,
             next_state="ProcessListDirectory")
 

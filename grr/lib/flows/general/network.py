@@ -2,6 +2,7 @@
 """These are network related flows."""
 
 
+from grr.client.client_actions import network as network_actions
 from grr.lib import flow
 
 
@@ -14,7 +15,7 @@ class Netstat(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Start processing."""
-    self.CallClient("Netstat", next_state="StoreNetstat")
+    self.CallClient(network_actions.Netstat, next_state="StoreNetstat")
 
   @flow.StateHandler()
   def StoreNetstat(self, responses):

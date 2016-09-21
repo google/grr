@@ -9,6 +9,10 @@ import urllib
 
 import logging
 
+from grr.client.client_actions import admin as admin_actions
+from grr.client.client_actions import operating_system as operating_system_actions
+from grr.client.client_actions import standard as standard_actions
+from grr.client.client_actions import tempfiles as tempfiles_actions
 # pylint: disable=unused-import
 from grr.gui import django_lib
 # pylint: enable=unused-import
@@ -109,7 +113,7 @@ class GetClientStats(flow.GRRFlow, GetClientStatsProcessResponseMixin):
 
   @flow.StateHandler()
   def Start(self):
-    self.CallClient("GetClientStats", next_state="StoreResults")
+    self.CallClient(admin_actions.GetClientStats, next_state="StoreResults")
 
   @flow.StateHandler()
   def StoreResults(self, responses):
@@ -157,7 +161,10 @@ class DeleteGRRTempFiles(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Issue a request to delete tempfiles in directory."""
-    self.CallClient("DeleteGRRTempFiles", self.args.pathspec, next_state="Done")
+    self.CallClient(
+        tempfiles_actions.DeleteGRRTempFiles,
+        self.args.pathspec,
+        next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -189,7 +196,7 @@ class Uninstall(flow.GRRFlow):
     system = client.Get(client.Schema.SYSTEM)
 
     if system == "Darwin" or system == "Windows":
-      self.CallClient("Uninstall", next_state="Kill")
+      self.CallClient(operating_system_actions.Uninstall, next_state="Kill")
     else:
       self.Log("Unsupported platform for Uninstall")
 
@@ -199,7 +206,7 @@ class Uninstall(flow.GRRFlow):
     if not responses.success:
       self.Log("Failed to uninstall client.")
     elif self.args.kill:
-      self.CallClient("Kill", next_state="Confirmation")
+      self.CallClient(admin_actions.Kill, next_state="Confirmation")
 
   @flow.StateHandler()
   def Confirmation(self, responses):
@@ -216,7 +223,7 @@ class Kill(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Call the kill function on the client."""
-    self.CallClient("Kill", next_state="Confirmation")
+    self.CallClient(admin_actions.Kill, next_state="Confirmation")
 
   @flow.StateHandler()
   def Confirmation(self, responses):
@@ -243,7 +250,7 @@ class UpdateConfiguration(flow.GRRFlow):
   def Start(self):
     """Call the UpdateConfiguration function on the client."""
     self.CallClient(
-        "UpdateConfiguration",
+        admin_actions.UpdateConfiguration,
         request=self.args.config,
         next_state="Confirmation")
 
@@ -277,7 +284,7 @@ class ExecutePythonHack(flow.GRRFlow):
     # TODO(user): This will break if someone wants to execute lots of Python.
     for python_blob in fd:
       self.CallClient(
-          "ExecutePython",
+          standard_actions.ExecutePython,
           python_code=python_blob,
           py_args=self.args.py_args,
           next_state="Done")
@@ -310,7 +317,7 @@ class ExecuteCommand(flow.GRRFlow):
   def Start(self):
     """Call the execute function on the client."""
     self.CallClient(
-        "ExecuteCommand",
+        standard_actions.ExecuteCommand,
         cmd=self.args.cmd,
         args=shlex.split(self.args.command_line),
         time_limit=self.args.time_limit,
@@ -416,7 +423,7 @@ class OnlineNotification(flow.GRRFlow):
     """Starts processing."""
     if self.args.email is None:
       self.args.email = self.token.username
-    self.CallClient("Echo", data="Ping", next_state="SendMail")
+    self.CallClient(admin_actions.Echo, data="Ping", next_state="SendMail")
 
   @flow.StateHandler()
   def SendMail(self, responses):
@@ -508,7 +515,7 @@ class UpdateClient(flow.GRRFlow):
     write_path = "%d_%s" % (time.time(), aff4_blobs.urn.Basename())
     for i, blob in enumerate(aff4_blobs):
       self.CallClient(
-          "UpdateAgent",
+          operating_system_actions.UpdateAgent,
           executable=blob,
           more_data=i < aff4_blobs.chunks - 1,
           offset=offset,
@@ -830,7 +837,7 @@ class KeepAlive(flow.GRRFlow):
       self.Log(responses.status.error_message)
       raise flow.FlowError(responses.status.error_message)
 
-    self.CallClient("Echo", data="Wake up!", next_state="Sleep")
+    self.CallClient(admin_actions.Echo, data="Wake up!", next_state="Sleep")
 
   @flow.StateHandler()
   def Sleep(self, responses):
@@ -894,7 +901,7 @@ class LaunchBinary(flow.GRRFlow):
     write_path = "%d" % time.time()
     for i, blob in enumerate(fd):
       self.CallClient(
-          "ExecuteBinaryCommand",
+          standard_actions.ExecuteBinaryCommand,
           executable=blob,
           more_data=i < fd.chunks - 1,
           args=shlex.split(self.args.command_line),

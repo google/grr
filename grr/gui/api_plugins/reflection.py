@@ -11,7 +11,18 @@ from grr.lib.rdfvalues import structs as rdf_structs
 
 from grr.proto import api_pb2
 
-CATEGORY = "Other"
+
+def _GetAllTypes():
+  # We have to provide info for python primitive types as well, as sometimes
+  # they may be used within FlowState objects.
+  all_types = rdfvalue.RDFValue.classes.copy()
+  # We shouldn't render base RDFValue class.
+  all_types.pop("RDFValue", None)
+
+  for cls in [bool, int, float, long, str, unicode, list, tuple]:
+    all_types[cls.__name__] = cls
+
+  return all_types
 
 
 class ApiGetRDFValueDescriptorArgs(rdf_structs.RDFProtoStruct):
@@ -21,49 +32,56 @@ class ApiGetRDFValueDescriptorArgs(rdf_structs.RDFProtoStruct):
 class ApiGetRDFValueDescriptorHandler(api_call_handler_base.ApiCallHandler):
   """Renders descriptor of a given RDFValue type."""
 
-  category = CATEGORY
   args_type = ApiGetRDFValueDescriptorArgs
+  result_type = api_value_renderers.ApiRDFValueDescriptor
 
-  def Render(self, args, token=None):
+  def Handle(self, args, token=None):
     _ = token
 
-    # We have to provide info for python primitive types as well, as sometimes
-    # they may be used within FlowState objects.
-    all_types = dict(rdfvalue.RDFValue.classes.items())
-    # We shouldn't render base RDFValue class.
-    all_types.pop("RDFValue", None)
+    rdfvalue_class = _GetAllTypes()[args.type]
+    return api_value_renderers.BuildTypeDescriptor(rdfvalue_class)
 
-    for cls in [bool, int, float, long, str, unicode, list, tuple]:
-      all_types[cls.__name__] = cls
 
-    if self.args_type:
-      rdfvalue_class = all_types[args.type]
-      return api_value_renderers.RenderTypeMetadata(rdfvalue_class)
-    else:
-      results = {}
-      for cls in all_types.values():
-        results[cls.__name__] = api_value_renderers.RenderTypeMetadata(cls)
-
-      return results
+class ApiListRDFValueDescriptorsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListRDFValueDescriptorsResult
 
 
 class ApiListRDFValuesDescriptorsHandler(ApiGetRDFValueDescriptorHandler):
   """Renders descriptors of all available RDFValues."""
 
   args_type = None
+  result_type = ApiListRDFValueDescriptorsResult
+
+  def Handle(self, unused_args, token=None):
+    result = ApiListRDFValueDescriptorsResult()
+
+    all_types = _GetAllTypes()
+    for cls_name in sorted(all_types):
+      cls = all_types[cls_name]
+      result.items.append(api_value_renderers.BuildTypeDescriptor(cls))
+
+    return result
 
 
-class ApiListAff4AttributesDescriptorsHandler(
+class ApiAff4AttributeDescriptor(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiAff4AttributeDescriptor
+
+
+class ApiListAff4AttributeDescriptorsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListAff4AttributeDescriptorsResult
+
+
+class ApiListAff4AttributeDescriptorsHandler(
     api_call_handler_base.ApiCallHandler):
   """Renders available aff4 attributes."""
 
-  category = CATEGORY
+  result_type = ApiListAff4AttributeDescriptorsResult
 
-  def Render(self, unused_args, token=None):
+  def Handle(self, unused_args, token=None):
     _ = token
 
-    attributes = {}
+    result = ApiListAff4AttributeDescriptorsResult()
     for name in sorted(aff4.Attribute.NAMES.keys()):
-      attributes[name] = dict(name=name)
+      result.items.append(ApiAff4AttributeDescriptor(name=name))
 
-    return dict(status="OK", attributes=attributes)
+    return result

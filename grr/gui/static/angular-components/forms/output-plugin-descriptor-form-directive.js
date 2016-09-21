@@ -34,7 +34,12 @@ grrUi.forms.outputPluginDescriptorFormDirective
   this.allowedPluginsNames;
 
   this.grrApiService_.get('/output-plugins/all').then(function(response) {
-    this.outputPluginsDescriptors = response['data'];
+    this.outputPluginsDescriptors = {};
+
+    angular.forEach(response['data']['items'], function(item) {
+      this.outputPluginsDescriptors[item['name']] = item;
+    }.bind(this));
+
     this.allowedPluginsNames = Object.keys(
         /** @type {!Object} */ (this.outputPluginsDescriptors)).sort();
 

@@ -8,6 +8,7 @@ import threading
 
 import logging
 
+from grr.client.client_actions import operating_system as operating_system_actions
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
@@ -16,6 +17,7 @@ from grr.lib import flow
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import registry
+from grr.lib import server_stubs
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
@@ -777,14 +779,14 @@ class StatsHunt(implementation.GRRHunt):
         wmi_query = ("Select * from Win32_NetworkAdapterConfiguration where"
                      " IPEnabled=1")
         self.CallClient(
-            "WmiQuery",
+            server_stubs.WmiQuery,
             query=wmi_query,
             next_state="StoreResults",
             client_id=client.urn,
             start_time=due)
       else:
         self.CallClient(
-            "EnumerateInterfaces",
+            operating_system_actions.EnumerateInterfaces,
             next_state="StoreResults",
             client_id=client.urn,
             start_time=due)

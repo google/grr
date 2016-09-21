@@ -44,7 +44,8 @@ def main(unused_argv):
         test_instance.setUp()
 
         test_instance.Run()
-        sample_data.setdefault(handler, []).extend(test_instance.checks)
+        sample_data.setdefault(handler.__name__,
+                               []).extend(test_instance.checks)
       finally:
         try:
           test_instance.tearDown()

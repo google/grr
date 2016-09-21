@@ -5,6 +5,7 @@
 
 import stat
 
+from grr.client.client_actions import searching as searching_actions
 from grr.lib import flow
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
@@ -212,7 +213,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
         bytes_after=options.bytes_after)
 
     self.CallClient(
-        "Grep",
+        searching_actions.Grep,
         request=grep_spec,
         next_state="ProcessGrep",
         request_data=dict(
@@ -238,7 +239,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
         xor_out_key=options.xor_out_key)
 
     self.CallClient(
-        "Grep",
+        searching_actions.Grep,
         request=grep_spec,
         next_state="ProcessGrep",
         request_data=dict(

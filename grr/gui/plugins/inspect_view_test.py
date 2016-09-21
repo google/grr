@@ -10,6 +10,7 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import queue_manager
 from grr.lib import test_lib
+from grr.lib.flows.general import discovery as flow_discovery
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 
@@ -89,65 +90,27 @@ class TestDebugClientRequestsView(TestInspectViewBase):
   def testInspect(self):
     """Test the inspect UI."""
     with self.ACLChecksDisabled():
-      self.RequestAndGrantClientApproval("C.0000000000000001")
+      client_id = self.SetupClients(1)[0]
 
-    self.Open("/")
+      self.RequestAndGrantClientApproval(client_id)
 
-    self.Type("client_query", "C.0000000000000001")
-    self.Click("client_query_submit")
-
-    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
-                        "css=span[type=subject]")
-
-    # Choose client 1
-    self.Click("css=td:contains('0001')")
-
-    self.Click("css=a[grrtarget='client.launchFlows']")
-    self.Click("css=#_Administrative i")
-
-    self.Click("css=a:contains(Interrogate)")
-
-    self.Click("css=button.Launch")
-
-    # Open the "Advanced" dropdown.
-    self.Click("css=li#HostAdvanced > a")
-    # Click on the "Debug client requests".
-    self.Click("css=a[grrtarget='client.debugRequests']")
-
-    self.WaitUntil(self.IsElementPresent, "css=td:contains(GetPlatformInfo)")
-
-    # Check that the we can see the requests in the table.
-    for request in "GetPlatformInfo GetConfig EnumerateInterfaces".split():
-      self.assertTrue(self.IsElementPresent("css=td:contains(%s)" % request))
-
-    self.Click("css=td:contains(GetPlatformInfo)")
-
-    # Check that the proto is rendered inside the tab.
-    self.WaitUntil(self.IsElementPresent,
-                   "css=.tab-content td.proto_value:contains(GetPlatformInfo)")
-
-    # Check that the request tab is currently selected.
-    self.assertTrue(self.IsElementPresent("css=li.active:contains(Request)"))
-
-    # Here we emulate a mock client with no actions (None) this should produce
-    # an error.
-    with self.ACLChecksDisabled():
-      mock = test_lib.MockClient(
-          rdf_client.ClientURN("C.0000000000000001"), None, token=self.token)
+      flow.GRRFlow.StartFlow(
+          client_id=client_id,
+          flow_name=flow_discovery.Interrogate.__name__,
+          token=self.token)
+      mock = test_lib.MockClient(client_id, None, token=self.token)
       while mock.Next():
         pass
 
-    # Now select the Responses tab:
-    self.Click("css=li a:contains(Responses)")
-    self.WaitUntil(self.IsElementPresent, "css=td:contains('flow:response:')")
+    self.Open("/#/clients/%s/debug-requests" % client_id.Basename())
 
-    self.assertTrue(
-        self.IsElementPresent(
-            "css=.tab-content td.proto_value:contains(GENERIC_ERROR)"))
-
-    self.assertTrue(
-        self.IsElementPresent(
-            "css=.tab-content td.proto_value:contains(STATUS)"))
+    # Check that the we can see both requests and responses.
+    self.WaitUntil(self.IsTextPresent, "GetPlatformInfo")
+    self.WaitUntil(self.IsTextPresent, "GetConfig")
+    self.WaitUntil(self.IsTextPresent, "EnumerateInterfaces")
+    self.WaitUntil(self.IsTextPresent, "GENERIC_ERROR")
+    self.WaitUntil(self.IsTextPresent, "STATUS")
+    self.WaitUntil(self.IsTextPresent, "Task id")
 
 
 def main(argv):

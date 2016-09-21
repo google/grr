@@ -236,7 +236,7 @@ class File(vfs.VFSHandler):
       logging.info("Failed to get device %s. Err: %s", path, e)
       return None
 
-  def RecursiveListNames(self, depth=1, cross_devs=False):
+  def RecursiveListNames(self, depth=0, cross_devs=False):
     path = client_utils.CanonicalPathToLocalPath(self.path)
     path_depth = self._GetDepth(self.path)
 
@@ -251,7 +251,7 @@ class File(vfs.VFSHandler):
 
       if not cross_devs and self._GetDevice(root) != path_dev:
         dirs[:] = []  # We don't need to go deeper (clear the list)
-      elif root_depth - path_depth + 1 >= depth:
+      elif root_depth - path_depth >= depth:
         yield (root, dirs[:], files)  # Shallow copy
         dirs[:] = []
       else:

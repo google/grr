@@ -3,6 +3,7 @@
 """Invoke the fingerprint client action on a file."""
 
 
+from grr.client.client_actions import file_fingerprint as file_fingerprint_actions
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib.aff4_objects import aff4_grr
@@ -41,7 +42,7 @@ class FingerprintFileMixin(object):
                  rdf_client.FingerprintTuple.HashType.SHA256])
 
     self.CallClient(
-        "FingerprintFile",
+        file_fingerprint_actions.FingerprintFile,
         request,
         next_state="ProcessFingerprint",
         request_data=request_data)

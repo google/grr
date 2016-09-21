@@ -44,8 +44,15 @@ class ClientAction(flow.GRRFlow):
     if self.args.save_to:
       if not os.path.isdir(self.args.save_to):
         os.makedirs(self.args.save_to, 0700)
-    self.CallClient(
-        self.args.action, request=self.args.action_args, next_state="Print")
+
+    # Retrieve the correct rdfvalue to use for this client action.
+    action_name = self.args.action
+    try:
+      action = actions.ActionPlugin.classes[action_name]
+    except KeyError:
+      raise RuntimeError("Client action %s not found." % action_name)
+
+    self.CallClient(action, request=self.args.action_args, next_state="Print")
 
   @flow.StateHandler()
   def Print(self, responses):

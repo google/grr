@@ -570,8 +570,15 @@ class NSRLFileStoreHash(rdfvalue.RDFURN):
   """Urns returned from NSRLFileStore.GetClientsForHashes()."""
 
   def __init__(self, initializer=None, hash_value=None, age=None):
-    initializer = NSRLFileStore.PATH.Add(hash_value)
+    # Gracefully handle the case when we're creating a default object.
+    #
+    # TODO(user): split initialization and validation of
+    # NSRLFileStoreHashes.
+    if initializer is None:
+      super(NSRLFileStoreHash, self).__init__(initializer=None, age=age)
+      return
 
+    initializer = NSRLFileStore.PATH.Add(hash_value)
     super(NSRLFileStoreHash, self).__init__(initializer=initializer, age=age)
 
     relative_name = self.RelativeName(NSRLFileStore.PATH)

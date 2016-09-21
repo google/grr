@@ -207,6 +207,14 @@ parser_upload_artifact.add_argument(
     action="store_true",
     help="Overwrite existing artifact.")
 
+parser_delete_artifacts = subparsers.add_parser(
+    "delete_artifacts",
+    parents=[],
+    help="Delete a list of artifacts from the data store.")
+
+parser_delete_artifacts.add_argument(
+    "--artifact", default=[], action="append", help="The artifacts to delete.")
+
 parser_upload_python = subparsers.add_parser(
     "upload_python",
     parents=[parser_upload_args, parser_upload_signed_args],
@@ -885,6 +893,13 @@ def main(unused_argv):
           overwrite=flags.FLAGS.overwrite_artifact)
     except artifact_registry.ArtifactDefinitionError as e:
       print "Error %s. You may need to set --overwrite_artifact." % e
+
+  elif flags.FLAGS.subparser_name == "delete_artifacts":
+    artifact_list = flags.FLAGS.artifact
+    if not artifact_list:
+      raise ValueError("No artifact to delete given.")
+    artifact.DeleteArtifactsFromDatastore(artifact_list, token=token)
+    print "Artifacts %s deleted." % artifact_list
 
   elif flags.FLAGS.subparser_name == "download_missing_rekall_profiles":
     print "Downloading missing Rekall profiles."

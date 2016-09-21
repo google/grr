@@ -51,17 +51,19 @@ describe('AFF4 items provider directive', function() {
     expect(responses.length).toBe(0);
 
     deferred.resolve({
-      'data': {
-        'Duration': {
-          'doc': 'Duration value stored in seconds internally.',
-          'kind': 'primitive',
-          'name': 'Duration'
-        },
-        'RDFDatetime': {
-          'doc': 'Date and time.',
-          'kind': 'primitive',
-          'name': 'RDFDatetime'
-        }
+      data: {
+        items: [
+          {
+            'doc': 'Duration value stored in seconds internally.',
+            'kind': 'primitive',
+            'name': 'Duration'
+          },
+          {
+            'doc': 'Date and time.',
+            'kind': 'primitive',
+            'name': 'RDFDatetime'
+          }
+        ]
       }
     });
     $rootScope.$apply();
@@ -82,20 +84,22 @@ describe('AFF4 items provider directive', function() {
   it('returns data with dependencies if opt_withDeps is true', function() {
     var deferred = $q.defer();
     deferred.resolve({
-      'data': {
-        'Struct': {
-          'doc': 'Sample struct.',
-          'kind': 'struct',
-          'name': 'Struct',
-          'fields': [
-            {'type': 'RDFInteger'}
-          ]
-        },
-        'RDFInteger': {
-          'doc': 'Sample integer.',
-          'kind': 'primitive',
-          'name': 'RDFInteger'
-        }
+      data: {
+        items: [
+          {
+            'doc': 'Sample struct.',
+            'kind': 'struct',
+            'name': 'Struct',
+            'fields': [
+              {'type': 'RDFInteger'}
+            ]
+          },
+          {
+            'doc': 'Sample integer.',
+            'kind': 'primitive',
+            'name': 'RDFInteger'
+          }
+        ]
       }
     });
     spyOn(grrApiServiceMock, 'get').and.returnValue(deferred.promise);

@@ -887,6 +887,18 @@ message ApiGetRDFValueDescriptorArgs {
     }];
 }
 
+message ApiListRDFValueDescriptorsResult {
+  repeated ApiRDFValueDescriptor items = 1;
+};
+
+message ApiAff4AttributeDescriptor {
+  optional string name = 1;
+}
+
+message ApiListAff4AttributeDescriptorsResult {
+  repeated ApiAff4AttributeDescriptor items = 1;
+}
+
 message ApiListStatsStoreMetricsMetadataArgs {
   enum Component {
     WORKER = 0;
@@ -894,6 +906,10 @@ message ApiListStatsStoreMetricsMetadataArgs {
     ADMIN_UI = 2;
   }
   optional Component component = 1;
+}
+
+message ApiListStatsStoreMetricsMetadataResult {
+  repeated MetricMetadata items = 1;
 }
 
 message ApiListCronJobsArgs {
@@ -1009,6 +1025,27 @@ message ApiGetStatsStoreMetricArgs {
       description: "Aggregation method. As metrics are usually collected across "
         "multiple processes, most of the time they have to be aggregated."
     }];
+}
+
+message ApiStatsStoreMetricDataPoint {
+  optional uint64 timestamp = 1 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Timestamp of the data point."
+    }];
+  optional double value = 2 [(sem_type) = {
+      description: "Value corresponding to the timestamp."
+    }];
+}
+
+message ApiStatsStoreMetric {
+  optional string metric_name = 1;
+  optional uint64 start = 2 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  optional uint64 end = 3 [(sem_type) = {
+      type: "RDFDatetime",
+    }];
+  repeated ApiStatsStoreMetricDataPoint data_points = 4;
 }
 
 message ApiReportDescriptor {
@@ -1314,6 +1351,10 @@ message ApiListClientApprovalsResult {
   repeated ApiClientApproval items = 1;
 }
 
+message ApiListOutputPluginDescriptorsResult {
+  repeated ApiOutputPluginDescriptor items = 1;
+}
+
 message ApiStartRobotGetFilesOperationArgs {
   optional string hostname = 1 [(sem_type) = {
       description: "Target host. Can be FQDN or client ID."
@@ -1492,6 +1533,96 @@ message ApiFlowDescriptor {
 
   repeated string behaviours = 7 [(sem_type) = {
       description: "Flow behaviours."
+    }];
+}
+
+
+message ApiRDFAllowedEnumValueDescriptor {
+  optional string name = 1 [(sem_type) = {
+      description: "Enum value name."
+    }];
+  optional uint64 value = 2 [(sem_type) = {
+      description: "Enum value value."
+    }];
+  optional string doc = 3 [(sem_type) = {
+      description: "Documentation string."
+    }];
+  repeated string labels = 4 [(sem_type) = {
+      description: "List of labels applied to this value."
+    }];
+}
+
+message ApiRDFValueFieldDescriptor {
+  optional string name = 1 [(sem_type) = {
+      description: "Field name."
+    }];
+  optional string type = 2 [(sem_type) = {
+      description: "Field type (an RDFValue type name)."
+    }];
+  optional uint32 index = 3 [(sem_type) = {
+      description: "Field index."
+    }];
+  optional bool repeated = 4 [(sem_type) = {
+      description: "If the field is repeated or not."
+    }];
+  optional bool dynamic = 5 [(sem_type) = {
+      description: "If the field has a dynamically changing type or not."
+    }];
+
+  optional string doc = 6 [(sem_type) = {
+      description: "Documentation string."
+    }];
+  optional string friendly_name = 7 [(sem_type) = {
+      description: "Friendly name of the field to be shown in the UI."
+    }];
+  optional string context_help_url = 8 [(sem_type) = {
+      description: "Context help URL to be shown in the UI."
+    }];
+
+  optional google.protobuf.Any default = 9 [(sem_type) = {
+      dynamic_type: "GetDefaultValueClass",
+      description: "Recommended default value."
+    }];
+  repeated string labels = 10 [(sem_type) = {
+      description: "List of labels applied to this field."
+    }];
+
+  repeated ApiRDFAllowedEnumValueDescriptor allowed_values = 11 [(sem_type) = {
+      description: "Allowed enum values. Applicable only to enum fields. If "
+      "this list is not empty, then this descriptor describes an enum field."
+    }];
+}
+
+message ApiRDFValueDescriptor {
+  enum Kind {
+    PRIMITIVE = 0;
+    STRUCT = 1;
+  }
+
+  optional string name = 1 [(sem_type) = {
+      description: "Type name."
+    }];
+  optional string doc = 2 [(sem_type) = {
+      description: "Human-readable description of this type."
+    }];
+  optional Kind kind = 3 [(sem_type) = {
+      description: "Indicates whether the value is a primitive value, or a "
+      "structure."
+    }];
+  optional google.protobuf.Any default = 4 [(sem_type) = {
+      dynamic_type: "GetDefaultValueClass",
+      description: "Recommended default value."
+    }];
+  repeated string parents = 5 [(sem_type) = {
+      description: "Inheritance chain of this type."
+    }];
+  repeated ApiRDFValueFieldDescriptor fields = 6 [(sem_type) = {
+      description: "Descriptors of all the fields of this type. Only "
+      "applicable to types with kind=STRUCT."
+    }];
+  optional string union_field_name = 7 [(sem_type) = {
+      description: "If this structure is a union, union_field identifies the "
+      "field that determines which part of the union is used."
     }];
 }
 
@@ -1872,6 +2003,18 @@ message ApiCronJob {
     }];
   optional bool is_failing = 11 [(sem_type) = {
       description: "Is this cron job constantly failing?"
+    }];
+}
+
+message ApiOutputPluginDescriptor {
+  optional string name = 1 [(sem_type) = {
+      description: "Output plugin's name."
+    }];
+  optional string description = 2 [(sem_type) = {
+      description: "Human readable output plugin's description."
+    }];
+  optional string args_type = 3 [(sem_type) = {
+      description: "RDF type of the arguments that output plugin takes."
     }];
 }
 
@@ -2468,6 +2611,41 @@ message ApiDeletePendingGlobalNotificationArgs {
     }];
 }
 
+message ApiClientActionRequest {
+  optional uint64 task_id = 1;
+
+  optional uint64 task_eta = 2 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "This task's lease expiration time."
+    }];
+
+  optional string session_id = 3 [(sem_type) = {
+      type: "RDFURN"
+      description: "Session id that triggered the request."
+    }];
+
+  optional string client_action = 4 [(sem_type) = {
+      description: "Requested client action name."
+    }];
+
+  repeated GrrMessage responses = 5 [(sem_type) = {
+      description: "Responses queued for this request."
+    }];
+}
+
+message ApiListClientActionRequestsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional bool fetch_responses = 2 [(sem_type) = {
+      description: "If true, fetch all the responses for every request."
+    }];
+}
+
+message ApiListClientActionRequestsResult {
+  repeated ApiClientActionRequest items = 1;
+}
 
 //
 // API call routers parameters.

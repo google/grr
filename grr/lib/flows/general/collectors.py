@@ -2,6 +2,8 @@
 """Flows for handling the collection for artifacts."""
 
 import logging
+from grr.client import actions
+from grr.client.client_actions import standard as standard_actions
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 
 from grr.lib import aff4
@@ -12,6 +14,7 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import parsers
 from grr.lib import rdfvalue
+from grr.lib import server_stubs
 from grr.lib import utils
 from grr.lib.aff4_objects import collects
 from grr.lib.flows.general import file_finder
@@ -368,7 +371,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         pathspec = paths.PathSpec(
             path=new_path, pathtype=paths.PathSpec.PathType.REGISTRY)
         self.CallClient(
-            "StatFile",
+            standard_actions.StatFile,
             pathspec=pathspec,
             request_data={"artifact_name": self.current_artifact_name,
                           "source": source.ToPrimitiveDict()},
@@ -404,7 +407,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
   def RunCommand(self, source):
     """Run a command."""
     self.CallClient(
-        "ExecuteCommand",
+        standard_actions.ExecuteCommand,
         cmd=source.attributes["cmd"],
         args=source.attributes.get("args", []),
         request_data={"artifact_name": self.current_artifact_name,
@@ -421,7 +424,7 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     base_object = source.attributes.get("base_object")
     for query in queries:
       self.CallClient(
-          "WmiQuery",
+          server_stubs.WmiQuery,
           query=query,
           base_object=base_object,
           request_data={"artifact_name": self.current_artifact_name,
@@ -498,8 +501,16 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
   def RunGrrClientAction(self, source):
     """Call a GRR Client Action."""
+
+    # Retrieve the correct rdfvalue to use for this client action.
+    action_name = source.attributes["client_action"]
+    try:
+      action = actions.ActionPlugin.classes[action_name]
+    except KeyError:
+      raise RuntimeError("Client action %s not found." % action_name)
+
     self.CallClient(
-        source.attributes["client_action"],
+        action,
         request_data={"artifact_name": self.current_artifact_name,
                       "source": source.ToPrimitiveDict()},
         next_state="ProcessCollected",

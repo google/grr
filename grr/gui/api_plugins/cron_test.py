@@ -37,7 +37,8 @@ class ApiListCronJobsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest, CronJobsTestMixin):
   """Test cron jobs list handler."""
 
-  handler = "ApiListCronJobsHandler"
+  api_method = "ListCronJobs"
+  handler = cron_plugin.ApiListCronJobsHandler
 
   def Run(self):
     # Add one "normal" cron job...
@@ -82,7 +83,8 @@ class ApiCreateCronJobHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Test handler that creates a new cron job."""
 
-  handler = "ApiCreateCronJobHandler"
+  api_method = "CreateCronJob"
+  handler = cron_plugin.ApiCreateCronJobHandler
 
   def Run(self):
 
@@ -126,7 +128,8 @@ class ApiListCronJobFlowsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Test cron job flows list handler."""
 
-  handler = "ApiListCronJobFlowsHandler"
+  api_method = "ListCronJobFlows"
+  handler = cron_plugin.ApiListCronJobFlowsHandler
 
   flow_name = cron_system.GRRVersionBreakDown.__name__
 
@@ -163,7 +166,8 @@ class ApiGetCronJobFlowHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Test cron job flow getter handler."""
 
-  handler = "ApiGetCronJobFlowHandler"
+  api_method = "GetCronJobFlow"
+  handler = cron_plugin.ApiGetCronJobFlowHandler
 
   def setUp(self):
     super(ApiGetCronJobFlowHandlerRegressionTest, self).setUp()
@@ -200,7 +204,8 @@ class ApiForceRunCronJobRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest, CronJobsTestMixin):
   """Test cron job flow getter handler."""
 
-  handler = "ApiForceRunCronJobHandler"
+  api_method = "ForceRunCronJob"
+  handler = cron_plugin.ApiForceRunCronJobHandler
 
   def Run(self):
     self.CreateCronJob(
@@ -214,7 +219,8 @@ class ApiModifyCronJobRegressionTest(api_test_lib.ApiCallHandlerRegressionTest,
                                      CronJobsTestMixin):
   """Test cron job flow getter handler."""
 
-  handler = "ApiModifyCronJobHandler"
+  api_method = "ModifyCronJob"
+  handler = cron_plugin.ApiModifyCronJobHandler
 
   def Run(self):
     self.CreateCronJob(

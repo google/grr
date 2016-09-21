@@ -530,6 +530,8 @@ def UploadArtifactYamlFile(file_content,
   if not base_urn:
     base_urn = aff4.ROOT_URN.Add("artifact_store")
   registry_obj = artifact_registry.REGISTRY
+  # Make sure all artifacts are loaded so we don't accidentally overwrite one.
+  registry_obj.GetArtifacts(reload_datastore_artifacts=True)
 
   new_artifacts = registry_obj.ArtifactsFromYaml(file_content)
   new_artifact_names = set()
@@ -571,6 +573,63 @@ def UploadArtifactYamlFile(file_content,
     artifact_value.Validate()
 
   return base_urn
+
+
+def DeleteArtifactsFromDatastore(artifact_names, token=None):
+  """Deletes a list of artifacts from the data store."""
+  artifacts = sorted(
+      artifact_registry.REGISTRY.GetArtifacts(reload_datastore_artifacts=True))
+
+  to_delete = set(artifact_names)
+  deps = set()
+  for artifact_obj in artifacts:
+    if artifact_obj.name in to_delete:
+      continue
+
+    if artifact_obj.GetArtifactDependencies() & to_delete:
+      deps.add(str(artifact_obj.name))
+
+  if deps:
+    raise ValueError(
+        "Artifact(s) %s depend(s) on one of the artifacts to delete." %
+        (",".join(deps)))
+
+  with aff4.FACTORY.Create(
+      "aff4:/artifact_store",
+      mode="r",
+      aff4_type=collects.RDFValueCollection,
+      token=token) as store:
+    all_artifacts = list(store)
+
+  filtered_artifacts, found_artifact_names = set(), set()
+  for artifact_value in all_artifacts:
+    if artifact_value.name in to_delete:
+      found_artifact_names.add(artifact_value.name)
+    else:
+      filtered_artifacts.add(artifact_value)
+
+  if len(found_artifact_names) != len(to_delete):
+    not_found = to_delete - found_artifact_names
+    raise ValueError("Artifact(s) to delete (%s) not found." %
+                     ",".join(not_found))
+
+  # TODO(user): this is ugly and error- and race-condition- prone.
+  # We need to store artifacts not in an RDFValueCollection, which is an
+  # append-only object, but in some different way that allows easy
+  # deletion. Possible option - just store each artifact in a separate object
+  # in the same folder.
+  aff4.FACTORY.Delete("aff4:/artifact_store", token=token)
+
+  with aff4.FACTORY.Create(
+      "aff4:/artifact_store",
+      mode="w",
+      aff4_type=collects.RDFValueCollection,
+      token=token) as store:
+    for artifact_value in filtered_artifacts:
+      store.Add(artifact_value)
+
+  for artifact_value in to_delete:
+    artifact_registry.REGISTRY.UnregisterArtifact(artifact_value)
 
 
 class ArtifactFallbackCollectorArgs(rdf_structs.RDFProtoStruct):

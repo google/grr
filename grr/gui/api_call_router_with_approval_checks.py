@@ -122,6 +122,11 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.ListClientCrashes(args, token=token)
 
+  def ListClientActionRequests(self, args, token=None):
+    self.CheckClientAccess(args.client_id, token=token)
+
+    return self.delegate.ListClientActionRequests(args, token=token)
+
   # Virtual file system methods.
   # ============================
   #

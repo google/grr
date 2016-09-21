@@ -12,6 +12,7 @@ import json
 from rekall import constants
 
 import logging
+from grr.client.client_actions import tempfiles as tempfiles_actions
 from grr.client.components.rekall_support import grr_rekall
 from grr.client.components.rekall_support import rekall_pb2
 from grr.client.components.rekall_support import rekall_types
@@ -59,7 +60,8 @@ class MemoryCollector(flow.GRRFlow):
 
     # Should we check if there is enough free space?
     if self.args.check_disk_free_space:
-      self.CallClient("CheckFreeGRRTempSpace", next_state="CheckFreeSpace")
+      self.CallClient(
+          tempfiles_actions.CheckFreeGRRTempSpace, next_state="CheckFreeSpace")
     else:
       self.RunRekallPlugin()
 
@@ -180,7 +182,7 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
     self.state.rekall_request = request
 
     self.CallClient(
-        grr_rekall.RekallAction.__name__,
+        grr_rekall.RekallAction,
         self.state.rekall_request,
         next_state="StoreResults")
 
@@ -204,7 +206,9 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
                                         response.repository_version)
         if profile:
           self.CallClient(
-              "WriteRekallProfile", profile, next_state="UpdateProfile")
+              grr_rekall.WriteRekallProfile,
+              profile,
+              next_state="UpdateProfile")
         else:
           self.Log("Needed profile %s not found! See "
                    "https://github.com/google/grr-doc/blob/master/"
@@ -239,7 +243,9 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
         responses.iterator.state != rdf_client.Iterator.State.FINISHED):
       self.state.rekall_request.iterator = responses.iterator
       self.CallClient(
-          "RekallAction", self.state.rekall_request, next_state="StoreResults")
+          grr_rekall.RekallAction,
+          self.state.rekall_request,
+          next_state="StoreResults")
     else:
       if self.state.output_files:
         self.Log("Getting %i files.", len(self.state.output_files))
@@ -257,7 +263,9 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
 
     for output_file in self.state.output_files:
       self.CallClient(
-          "DeleteGRRTempFiles", output_file, next_state="LogDeleteFiles")
+          tempfiles_actions.DeleteGRRTempFiles,
+          output_file,
+          next_state="LogDeleteFiles")
 
     # Let calling flows know where files ended up in AFF4 space.
     self.SendReply(

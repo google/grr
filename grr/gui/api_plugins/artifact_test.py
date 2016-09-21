@@ -58,9 +58,11 @@ class ApiListArtifactsHandlerTest(test_lib.FlowTestsBaseclass):
     self.assertTrue(fake_artifact.artifact.supported_os)
 
 
-class ArtifactHandlerRegressionTest(api_test_lib.ApiCallHandlerRegressionTest):
+class ApiListArtifacstHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
 
-  handler = "ApiArtifactHandler"
+  api_method = "ListArtifacts"
+  handler = artifact_plugin.ApiListArtifactsHandler
 
   def Run(self):
     artifact_registry.REGISTRY.ClearSources()

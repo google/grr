@@ -2,6 +2,9 @@
 """These are flows designed to discover information about the host."""
 
 
+from grr.client.client_actions import admin as admin_actions
+from grr.client.client_actions import operating_system as operating_system_actions
+from grr.client.client_actions import standard as standard_actions
 from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import config_lib
@@ -65,14 +68,22 @@ class Interrogate(flow.GRRFlow):
         urn, standard.VFSDirectory, mode="w", token=self.token) as fd:
       fd.Set(fd.Schema.PATHSPEC, pathspec)
 
-    self.CallClient("GetPlatformInfo", next_state="Platform")
-    self.CallClient("GetMemorySize", next_state="StoreMemorySize")
-    self.CallClient("GetInstallDate", next_state="InstallDate")
-    self.CallClient("GetClientInfo", next_state="ClientInfo")
-    self.CallClient("GetConfiguration", next_state="ClientConfiguration")
-    self.CallClient("GetLibraryVersions", next_state="ClientLibraries")
-    self.CallClient("EnumerateInterfaces", next_state="EnumerateInterfaces")
-    self.CallClient("EnumerateFilesystems", next_state="EnumerateFilesystems")
+    self.CallClient(admin_actions.GetPlatformInfo, next_state="Platform")
+    self.CallClient(
+        standard_actions.GetMemorySize, next_state="StoreMemorySize")
+    self.CallClient(
+        operating_system_actions.GetInstallDate, next_state="InstallDate")
+    self.CallClient(admin_actions.GetClientInfo, next_state="ClientInfo")
+    self.CallClient(
+        admin_actions.GetConfiguration, next_state="ClientConfiguration")
+    self.CallClient(
+        admin_actions.GetLibraryVersions, next_state="ClientLibraries")
+    self.CallClient(
+        operating_system_actions.EnumerateInterfaces,
+        next_state="EnumerateInterfaces")
+    self.CallClient(
+        operating_system_actions.EnumerateFilesystems,
+        next_state="EnumerateFilesystems")
 
   def Load(self):
     # TODO(user): This is not great. Every time we want to show the

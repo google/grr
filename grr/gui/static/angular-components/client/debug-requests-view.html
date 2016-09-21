@@ -1,8 +1,19 @@
-<grr-check-client-access client-id="controller.clientId">
+<grr-check-client-access client-id="controller.clientId"
+                         ng-if="controller.clientId">
 
-<div ng-if="controller.clientId">
-  <grr-legacy-renderer renderer="DebugClientRequestsView"
-                       query-params="{client_id: controller.clientId}" />
-</div>
+  <div class="horizontally-padded">
+
+    <h3>Client requests for {$ controller.clientId $}</h3>
+
+    <div ng-if="controller.actionRequests === undefined">
+      Loading...
+    </div>
+
+    <div grr-force-refresh refresh-trigger="controller.actionRequests">
+      <grr-semantic-value value="::controller.actionRequests">
+      </grr-semantic-value>
+    </div>
+
+  </div>
 
 </grr-check-client-access>

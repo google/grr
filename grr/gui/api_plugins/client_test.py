@@ -11,7 +11,10 @@ from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import events
 from grr.lib import flags
+from grr.lib import flow
+from grr.lib import queue_manager
 from grr.lib import test_lib
+from grr.lib.flows.general import processes
 from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
 
@@ -154,7 +157,8 @@ class ApiRemoveClientsLabelsHandlerTest(test_lib.GRRBaseTest):
 class ApiSearchClientsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
 
-  handler = "ApiSearchClientsHandler"
+  api_method = "SearchClients"
+  handler = client_plugin.ApiSearchClientsHandler
 
   def Run(self):
     # Fix the time to avoid regressions.
@@ -254,7 +258,8 @@ class ApiLabelsRestrictedSearchClientsHandlerTest(test_lib.GRRBaseTest):
 class ApiGetClientHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
 
-  handler = "ApiGetClientHandler"
+  api_method = "GetClient"
+  handler = client_plugin.ApiGetClientHandler
 
   def Run(self):
     # Fix the time to avoid regressions.
@@ -296,7 +301,8 @@ class ApiInterrogateClientHandlerTest(test_lib.GRRBaseTest):
 class ApiGetLastClientIPAddressHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
 
-  handler = "ApiGetLastClientIPAddressHandler"
+  api_method = "GetLastClientIPAddress"
+  handler = client_plugin.ApiGetLastClientIPAddressHandler
 
   def Run(self):
     # Fix the time to avoid regressions.
@@ -313,7 +319,8 @@ class ApiGetLastClientIPAddressHandlerRegressionTest(
 class ApiListClientsLabelsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
 
-  handler = "ApiListClientsLabelsHandler"
+  api_method = "ListClientsLabels"
+  handler = client_plugin.ApiListClientsLabelsHandler
 
   def Run(self):
     # Fix the time to avoid regressions.
@@ -333,7 +340,8 @@ class ApiListClientsLabelsHandlerRegressionTest(
 
 class ApiListKbFieldsHandlerTest(api_test_lib.ApiCallHandlerRegressionTest):
 
-  handler = "ApiListKbFieldsHandler"
+  api_method = "ListKbFields"
+  handler = client_plugin.ApiListKbFieldsHandler
 
   def Run(self):
     self.Check("GET", "/api/clients/kb-fields")
@@ -343,7 +351,8 @@ class ApiListClientCrashesHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest,
     standard_test.StandardHuntTestMixin):
 
-  handler = "ApiListClientCrashesHandler"
+  api_method = "ListClientCrashes"
+  handler = client_plugin.ApiListClientCrashesHandler
 
   def Run(self):
     client_ids = self.SetupClients(1)
@@ -376,6 +385,49 @@ class ApiListClientCrashesHandlerRegressionTest(
     self.Check(
         "GET",
         ("/api/clients/%s/crashes?offset=1&count=1" % client_id.Basename()),
+        replace=replace)
+
+
+class ApiListClientActionRequestsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest,
+    standard_test.StandardHuntTestMixin):
+
+  api_method = "ListClientActionRequests"
+  handler = client_plugin.ApiListClientActionRequestsHandler
+
+  def Run(self):
+    client_ids = self.SetupClients(1)
+    client_id = client_ids[0]
+
+    replace = {}
+    with test_lib.FakeTime(42):
+      flow_urn = flow.GRRFlow.StartFlow(
+          client_id=client_id,
+          flow_name=processes.ListProcesses.__name__,
+          token=self.token)
+      replace[flow_urn.Basename()] = "F:123456"
+
+      # Here we emulate a mock client with no actions (None) that should produce
+      # an error.
+      mock = test_lib.MockClient(client_id, None, token=self.token)
+      while mock.Next():
+        pass
+
+    manager = queue_manager.QueueManager(token=self.token)
+    requests_responses = manager.FetchRequestsAndResponses(flow_urn)
+    for request, responses in requests_responses:
+      replace[str(request.request.task_id)] = "42"
+      for response in responses:
+        replace[str(response.task_id)] = "43"
+
+    self.Check(
+        "GET",
+        "/api/clients/%s/action-requests" % client_id.Basename(),
+        replace=replace)
+    self.Check(
+        "GET",
+        "/api/clients/%s/action-requests?fetch_responses=1" %
+        client_id.Basename(),
         replace=replace)
 
 

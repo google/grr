@@ -201,7 +201,8 @@ class ApiListFilesHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
 class ApiListFilesHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
 
-  handler = "ApiListFilesHandler"
+  api_method = "ListFiles"
+  handler = vfs_plugin.ApiListFilesHandler
 
   def setUp(self):
     super(ApiListFilesHandlerRegressionTest, self).setUp()
@@ -275,7 +276,8 @@ class ApiGetFileTextHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
 class ApiGetFileTextHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
 
-  handler = "ApiGetFileTextHandler"
+  api_method = "GetFileText"
+  handler = vfs_plugin.ApiGetFileTextHandler
 
   def setUp(self):
     super(ApiGetFileTextHandlerRegressionTest, self).setUp()
@@ -399,7 +401,8 @@ class ApiGetFileVersionTimesHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
 class ApiGetFileVersionTimesHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
 
-  handler = "ApiGetFileVersionTimesHandler"
+  api_method = "GetFileVersionTimes"
+  handler = vfs_plugin.ApiGetFileVersionTimesHandler
 
   def setUp(self):
     super(ApiGetFileVersionTimesHandlerRegressionTest, self).setUp()
@@ -415,7 +418,8 @@ class ApiGetFileVersionTimesHandlerRegressionTest(
 class ApiListKnownEncodingsHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
 
-  handler = "ApiListKnownEncodingsHandler"
+  api_method = "ListKnownEncodings"
+  handler = vfs_plugin.ApiListKnownEncodingsHandler
 
   def Run(self):
     self.Check("GET", "/api/reflection/file-encodings")
@@ -450,7 +454,8 @@ class ApiGetFileDownloadCommandHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
 class ApiGetFileDownloadCommandHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
 
-  handler = "ApiGetFileDownloadCommandHandler"
+  api_method = "GetFileDownloadCommand"
+  handler = vfs_plugin.ApiGetFileDownloadCommandHandler
 
   def Run(self):
     self.client_id = self.SetupClients(1)[0].Basename()
@@ -540,7 +545,8 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiCreateVfsRefreshOperationHandler."""
 
-  handler = "ApiCreateVfsRefreshOperationHandler"
+  api_method = "CreateVfsRefreshOperation"
+  handler = vfs_plugin.ApiCreateVfsRefreshOperationHandler
 
   def setUp(self):
     super(ApiCreateVfsRefreshOperationHandlerRegressionTest, self).setUp()
@@ -566,13 +572,13 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
           replace=ReplaceFlowId)
 
 
-class GetVfsRefreshOperationStateHandlerTest(test_lib.GRRBaseTest,
-                                             VfsTestMixin):
+class ApiGetVfsRefreshOperationStateHandlerTest(test_lib.GRRBaseTest,
+                                                VfsTestMixin):
   """Test for GetVfsRefreshOperationStateHandler."""
 
   def setUp(self):
-    super(GetVfsRefreshOperationStateHandlerTest, self).setUp()
-    self.handler = vfs_plugin.GetVfsRefreshOperationStateHandler()
+    super(ApiGetVfsRefreshOperationStateHandlerTest, self).setUp()
+    self.handler = vfs_plugin.ApiGetVfsRefreshOperationStateHandler()
     self.client_id = self.SetupClients(1)[0]
 
   def testHandlerReturnsCorrectStateForFlow(self):
@@ -618,14 +624,15 @@ class GetVfsRefreshOperationStateHandlerTest(test_lib.GRRBaseTest,
       self.handler.Handle(args, token=self.token)
 
 
-class GetVfsRefreshOperationStateHandlerRegressionTest(
+class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
-  """Regression test for GetVfsRefreshOperationStateHandler."""
+  """Regression test for ApiGetVfsRefreshOperationStateHandler."""
 
-  handler = "GetVfsRefreshOperationStateHandler"
+  api_method = "GetVfsRefreshOperationState"
+  handler = vfs_plugin.ApiGetVfsRefreshOperationStateHandler
 
   def setUp(self):
-    super(GetVfsRefreshOperationStateHandlerRegressionTest, self).setUp()
+    super(ApiGetVfsRefreshOperationStateHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
@@ -716,7 +723,8 @@ class ApiUpdateVfsFileContentHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest):
   """Regression test for ApiUpdateVfsFileContentHandler."""
 
-  handler = "ApiUpdateVfsFileContentHandler"
+  api_method = "UpdateVfsFileContent"
+  handler = vfs_plugin.ApiUpdateVfsFileContentHandler
 
   def setUp(self):
     super(ApiUpdateVfsFileContentHandlerRegressionTest, self).setUp()
@@ -791,14 +799,15 @@ class ApiGetVfsFileContentUpdateStateHandlerTest(test_lib.GRRBaseTest,
       self.handler.Handle(args, token=self.token)
 
 
-class GetVfsFileContentUpdateStateHandlerRegressionTest(
+class ApiGetVfsFileContentUpdateStateHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest, VfsTestMixin):
-  """Regression test for GetVfsFileContentUpdateStateHandler."""
+  """Regression test for ApiGetVfsFileContentUpdateStateHandler."""
 
-  handler = "GetVfsFileContentUpdateStateHandler"
+  api_method = "GetVfsFileContentUpdateState"
+  handler = vfs_plugin.ApiGetVfsFileContentUpdateStateHandler
 
   def setUp(self):
-    super(GetVfsFileContentUpdateStateHandlerRegressionTest, self).setUp()
+    super(ApiGetVfsFileContentUpdateStateHandlerRegressionTest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
 
   def Run(self):
@@ -960,7 +969,8 @@ class ApiGetVfsTimelineHandlerRegressionTest(
     api_test_lib.ApiCallHandlerRegressionTest, VfsTimelineTestMixin):
   """Regression test for ApiGetVfsTimelineHandler."""
 
-  handler = "ApiGetVfsTimelineHandler"
+  api_method = "GetVfsTimeline"
+  handler = vfs_plugin.ApiGetVfsTimelineHandler
 
   def setUp(self):
     super(ApiGetVfsTimelineHandlerRegressionTest, self).setUp()

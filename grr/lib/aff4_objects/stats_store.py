@@ -285,10 +285,10 @@ class StatsStore(aff4.AFF4Volume):
     results = {}
     for subject_data in subjects_data:
       results[subject_data.urn.Basename()] = subject_data.Get(
-          subject_data.Schema.METRICS_METADATA).AsDict()
+          subject_data.Schema.METRICS_METADATA)
 
     for process_id in process_ids:
-      results.setdefault(process_id, {})
+      results.setdefault(process_id, StatsStoreMetricsMetadata())
 
     return results
 
@@ -336,14 +336,15 @@ class StatsStore(aff4.AFF4Volume):
     for subject, subject_results in multi_query_results:
       subject = rdfvalue.RDFURN(subject)
       subject_results = sorted(subject_results, key=lambda x: x[2])
-      subject_metadata = multi_metadata.get(subject.Basename(), {})
+      subject_metadata_map = multi_metadata.get(
+          subject.Basename(), StatsStoreMetricsMetadata()).AsDict()
 
       part_results = {}
       for predicate, value_string, timestamp in subject_results:
         metric_name = predicate[len(StatsStoreProcessData.STATS_STORE_PREFIX):]
 
         try:
-          metadata = subject_metadata[metric_name]
+          metadata = subject_metadata_map[metric_name]
         except KeyError:
           continue
 

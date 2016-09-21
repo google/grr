@@ -4,6 +4,7 @@
 These flows subclass lib.artifact.ArtifactFallbackCollector.
 """
 
+from grr.client.client_actions import standard as standard_actions
 from grr.lib import artifact
 from grr.lib import flow
 # pylint: disable=unused-import
@@ -32,7 +33,9 @@ class SystemRootSystemDriveFallbackFlow(artifact.ArtifactFallbackCollector):
       pathspec = rdf_paths.PathSpec(
           path=drive, pathtype=rdf_paths.PathSpec.PathType.OS)
       self.CallClient(
-          "ListDirectory", pathspec=pathspec, next_state="ProcessFileStats")
+          standard_actions.ListDirectory,
+          pathspec=pathspec,
+          next_state="ProcessFileStats")
 
   @flow.StateHandler()
   def ProcessFileStats(self, responses):
