@@ -56,7 +56,16 @@ class HttpConnector(connector.Connector):
       routing.Rule(
           "/api/clients/<client_id>/flows/<path:flow_id>/results/files-archive",
           methods=["GET"],
-          endpoint="GetFlowFilesArchive")
+          endpoint="GetFlowFilesArchive"),
+      routing.Rule(
+          "/api/users/me/approvals/client/<client_id>",
+          methods=["POST"],
+          endpoint="RequestApproval")
+      routing.Rule(
+          "/api/users/me/approvals/client",
+          methods=["GET"],
+          endpoint="ListApprovals"),
+
   ])
   # pyformat: enable
 
