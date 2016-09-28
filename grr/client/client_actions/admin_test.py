@@ -4,9 +4,9 @@
 
 
 import os
-import StringIO
 
 import psutil
+import requests
 
 from grr.client import comms
 from grr.client.client_actions import admin
@@ -63,12 +63,14 @@ class ConfigActionTest(test_lib.EmptyActionTest):
 
     # Now test that our location was actually updated.
 
-    def FakeUrlOpen(req, timeout=10):
-      _ = timeout
-      self.urls.append(req.get_full_url())
-      return StringIO.StringIO()
+    def FakeUrlOpen(url=None, data=None, **_):
+      self.urls.append(url)
+      response = requests.Response()
+      response.status_code = 200
+      response._content = data
+      return response
 
-    with utils.Stubber(comms.urllib2, "urlopen", FakeUrlOpen):
+    with utils.Stubber(requests, "request", FakeUrlOpen):
       client_context = comms.GRRHTTPClient(worker=MockClientWorker())
       client_context.MakeRequest("")
 

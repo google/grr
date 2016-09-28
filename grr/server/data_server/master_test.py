@@ -3,12 +3,7 @@
 
 
 
-# pylint: disable=g-import-not-at-top
-try:
-  from urllib3 import connectionpool
-except ImportError:
-  # Urllib3 also comes as part of requests, try to fallback.
-  from requests.packages.urllib3 import connectionpool
+from requests.packages.urllib3 import connectionpool
 
 from grr.lib import flags
 from grr.lib import test_lib

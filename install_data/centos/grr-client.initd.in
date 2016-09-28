@@ -15,8 +15,6 @@ NAME="%(Client.binary_name)"
 PGREP_STRING="%(ClientBuilder.target_dir)/%(Client.binary_name)"
 PID_FILE="/var/run/%(Client.binary_name)/%(Client.binary_name).pid"
 
-### No further muckin' about needed!
-
 CUR_USER=`whoami`
 
 killproc\(\) {
@@ -42,6 +40,15 @@ check_proc\(\) {
 }
 
 start_script\(\) {
+
+  # If systemd is present tell the caller to use that instead. We allow this
+  # init script to be used to stop the service, since it's required for
+  # downgrade to older versions.
+  if [ -x /bin/systemctl ]; then
+    log_success_msg "Systemd is present and should be used instead, doing nothing."
+    exit 0
+  fi
+
   if [ "${CUR_USER}" != "root" ] ; then
     log_failure_msg "$NAME can only be started as 'root'."
     exit -1

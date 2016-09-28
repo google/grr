@@ -8,8 +8,8 @@ import readline
 import time
 import urlparse
 
-import urllib3
-from urllib3 import connectionpool
+from requests.packages import urllib3
+from requests.packages.urllib3 import connectionpool
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.client import client_plugins

@@ -27,10 +27,20 @@ except ImportError:
 
 from grr.lib import config_lib
 from grr.lib import rdfvalue
+from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 
 # pylint: enable=g-import-not-at-top
+
+
+class PrivateConfigValidator(object):
+  """Use this class to sanity check private config options at repack time."""
+  __metaclass__ = registry.MetaclassRegistry
+  __abstract = True  # pylint: disable=g-bad-name
+
+  def ValidateEndConfig(self, config, context, errors_fatal=True):
+    raise NotImplementedError()
 
 
 class BuilderBase(object):
@@ -284,6 +294,18 @@ class ClientRepacker(BuilderBase):
 
       if validate:
         self.ValidateEndConfig(new_config)
+
+      private_validator = config_lib.CONFIG.Get(
+          "ClientBuilder.private_config_validator_class", context=context)
+      if private_validator:
+        try:
+          validator = PrivateConfigValidator.classes[private_validator]()
+        except KeyError:
+          logging.error("Couldn't find config validator class %s, "
+                        "you probably need to copy it into lib/local",
+                        private_validator)
+          raise
+        validator.ValidateEndConfig(new_config, self.context)
 
       return open(filename, "rb").read()
 
@@ -800,6 +822,7 @@ class CentosClientRepacker(LinuxClientRepacker):
             os.path.join(target_binary_dir, "grr-client"),
             os.path.join(target_binary_dir, client_binary_name))
 
+      # Generate spec
       spec_filename = os.path.join(rpm_specs_dir, "%s.spec" % client_name)
       self.GenerateFile(
           os.path.join(tmp_dir, "dist/rpmbuild/grr.spec.in"), spec_filename)
@@ -807,10 +830,31 @@ class CentosClientRepacker(LinuxClientRepacker):
       initd_target_filename = os.path.join(rpm_build_dir, "etc/init.d",
                                            client_name)
 
+      # Generate init.d
       utils.EnsureDirExists(os.path.dirname(initd_target_filename))
       self.GenerateFile(
           os.path.join(tmp_dir, "dist/rpmbuild/grr-client.initd.in"),
           initd_target_filename)
+
+      # Generate systemd unit
+      systemd_target_filename = os.path.join(rpm_build_dir,
+                                             "usr/lib/systemd/system/",
+                                             "%s.service" % client_name)
+
+      utils.EnsureDirExists(os.path.dirname(systemd_target_filename))
+      self.GenerateFile(
+          os.path.join(tmp_dir, "dist/rpmbuild/grr-client.service.in"),
+          systemd_target_filename)
+
+      # Generate prelinking blacklist file
+      prelink_target_filename = os.path.join(rpm_build_dir,
+                                             "etc/prelink.conf.d",
+                                             "%s.conf" % client_name)
+
+      utils.EnsureDirExists(os.path.dirname(prelink_target_filename))
+      self.GenerateFile(
+          os.path.join(tmp_dir, "dist/rpmbuild/prelink_blacklist.conf.in"),
+          prelink_target_filename)
 
       # Create a client config.
       client_context = ["Client Context"] + self.context

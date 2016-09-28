@@ -11,16 +11,11 @@ import urlparse
 import uuid
 
 # pylint: disable=unused-import,g-bad-import-order,g-import-not-at-top
-try:
-  import urllib3
-  from urllib3 import connectionpool
-except ImportError:
-  # Urllib3 also comes as part of requests, try to fallback.
-  from requests.packages import urllib3
-  from requests.packages.urllib3 import connectionpool
-
 from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order,g-import-not-at-top
+
+from requests.packages import urllib3
+from requests.packages.urllib3 import connectionpool
 
 import logging
 

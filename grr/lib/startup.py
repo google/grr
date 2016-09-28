@@ -10,6 +10,9 @@ import platform
 
 from grr.lib import config_lib
 from grr.lib import flags
+# pylint: disable=unused-import
+from grr.lib import local
+# pylint: enable=unused-import
 from grr.lib import log
 from grr.lib import registry
 from grr.lib import stats

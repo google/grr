@@ -1,8 +1,8 @@
 #!/usr/bin/env python
 """UI reports handling classes.
 
-Each report is a *direct* subclass of ReportPluginBase. The list of its
-direct subclasses is treated as a list of available reports.
+Each report is a subclass of ReportPluginBase. The list of its subclasses
+is treated as a list of available reports.
 """
 
 from grr.lib import registry
@@ -35,7 +35,7 @@ class ApiReportDataPoint2D(rdf_structs.RDFProtoStruct):
 
 
 def GetAvailableReportPlugins():
-  """Lists direct subclasses of ReportPluginBase."""
+  """Lists subclasses of ReportPluginBase."""
   return sorted(
       ReportPluginBase.classes.itervalues(), key=lambda cls: cls.__name__)
 

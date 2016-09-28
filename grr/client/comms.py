@@ -80,15 +80,14 @@ import os
 import pdb
 import posixpath
 import Queue
-import socket
 import sys
 import threading
 import time
 import traceback
-import urllib2
 
 
 import psutil
+import requests
 
 import logging
 
@@ -193,8 +192,31 @@ class HTTPManager(object):
                          path,
                          verify_cb=lambda x: True,
                          data=None,
-                         request_opts=None):
-    """Search through all the base URLs to connect to one that works."""
+                         params=None,
+                         headers=None,
+                         method="GET",
+                         timeout=None):
+    """Search through all the base URLs to connect to one that works.
+
+    This is a thin wrapper around requests.request() so most parameters are
+    documented there.
+
+    Args:
+      path: The URL path to access in this endpoint.
+
+      verify_cb: A callback which should return True if the response is
+         reasonable. This is used to detect if we are able to talk to the
+         correct endpoint. If not we try a different endpoint/proxy combination.
+
+      data: Parameters to send in POST bodies (See Requests documentation).
+      params: Parameters to send in GET URLs (See Requests documentation).
+      headers: Additional headers (See Requests documentation)
+      method: The HTTP method to use. If not set we select one automatically.
+      timeout: See Requests documentation.
+
+    Returns:
+      an HTTPObject() instance with the correct error code set.
+    """
     tries = 0
     last_error = HTTPObject(code=404)
 
@@ -205,8 +227,11 @@ class HTTPManager(object):
       result = self.OpenURL(
           self._ConcatenateURL(active_base_url, path),
           data=data,
-          verify_cb=verify_cb,
-          request_opts=request_opts)
+          params=params,
+          headers=headers,
+          method=method,
+          timeout=timeout,
+          verify_cb=verify_cb,)
 
       if not result.Success():
         tries += 1
@@ -225,8 +250,14 @@ class HTTPManager(object):
 
     return last_error
 
-  def OpenURL(self, url, verify_cb=lambda x: True, data=None,
-              request_opts=None):
+  def OpenURL(self,
+              url,
+              verify_cb=lambda x: True,
+              data=None,
+              params=None,
+              headers=None,
+              method="GET",
+              timeout=None):
     """Get the requested URL.
 
     Note that we do not have any concept of timing here - we try to connect
@@ -239,11 +270,15 @@ class HTTPManager(object):
         receives the HTTPObject and return True if this seems OK, False
         otherwise. For example, if we are behind a captive portal we might
         receive invalid object even though HTTP status is 200.
-      data: If specified, we POST this data to the server.
-      request_opts: A dict containing optional headers.
+      data: Parameters to send in POST bodies (See Requests documentation).
+      params: Parameters to send in GET URLs (See Requests documentation).
+      headers: Additional headers (See Requests documentation)
+      method: The HTTP method to use. If not set we select one automatically.
+      timeout: See Requests documentation.
 
     Returns:
       An HTTPObject instance or None if a connection could not be made.
+
     """
     # Start checking the proxy from the last value found.
     tries = 0
@@ -258,44 +293,51 @@ class HTTPManager(object):
           proxydict["http"] = proxy
           proxydict["https"] = proxy
 
-        proxy_support = urllib2.ProxyHandler(proxydict)
-        opener = urllib2.build_opener(proxy_support)
-        urllib2.install_opener(opener)
+        headers = (headers or {}).copy()
+        headers["Cache-Control"] = "no-cache"
 
-        request_opts = (request_opts or {}).copy()
-        request_opts["Cache-Control"] = "no-cache"
-        request = urllib2.Request(url, data, request_opts)
+        if data:
+          method = "POST"
 
-        duration, handle = self._RetryRequest(request)
-        data = handle.read()
+        duration, handle = self._RetryRequest(
+            url=url,
+            data=data,
+            params=params,
+            headers=headers,
+            method=method,
+            timeout=timeout,
+            proxies=proxydict,)
+
+        data = handle.content
 
         result = HTTPObject(
             url=url, data=data, proxy=proxy, code=200, duration=duration)
 
         if not verify_cb(result):
-          raise urllib2.HTTPError(
-              url=url, code=500, msg="Data not verified.", hdrs=[], fp=handle)
+          raise IOError("Data not verified.")
 
         # The last connection worked.
         self.consecutive_connection_errors = 0
         return result
 
-      except urllib2.HTTPError as e:
+      except requests.RequestException as e:
         # Especially trap a 406 error message - it means the client needs to
         # enroll.
-        if e.code == 406:
-          # A 406 is not considered an error as the frontend is reachable. If we
-          # considered it as an error the client would be unable to send the
-          # enrollment request since connection errors disable message draining.
+        last_error = e.response.status_code
+        if last_error == 406:
+          # A 406 is not considered an error as the frontend is reachable. If
+          # we considered it as an error the client would be unable to send
+          # the enrollment request since connection errors disable message
+          # draining.
           self.consecutive_connection_errors = 0
           return HTTPObject(code=406)
 
         # Try the next proxy
         self.last_proxy_index = proxy_index + 1
         tries += 1
-        last_error = e.code
 
-      except urllib2.URLError as e:
+      # Catch any exceptions that dont have a code (e.g. socket.error).
+      except IOError:
         # Try the next proxy
         self.last_proxy_index = proxy_index + 1
         tries += 1
@@ -304,7 +346,7 @@ class HTTPManager(object):
     # We failed to connect at all here.
     return HTTPObject(code=last_error)
 
-  def _RetryRequest(self, request):
+  def _RetryRequest(self, timeout=None, **request_args):
     """Retry the request a few times before we determine it failed.
 
     Sometimes the frontend becomes loaded and issues a 500 error to throttle the
@@ -313,7 +355,8 @@ class HTTPManager(object):
     client itself which is controlled by the Timer() class.
 
     Args:
-      request: A urllib2 request object.
+      timeout: Timeout for retry.
+      **request_args: Args to the requests.request call.
 
     Returns:
       a tuple of duration, urllib2.urlopen response.
@@ -322,14 +365,16 @@ class HTTPManager(object):
     while True:
       try:
         now = time.time()
-        result = urllib2.urlopen(
-            request, timeout=config_lib.CONFIG["Client.http_timeout"])
+        if not timeout:
+          timeout = config_lib.CONFIG["Client.http_timeout"]
+
+        result = requests.request(**request_args)
 
         return time.time() - now, result
 
-      except (urllib2.HTTPError, urllib2.URLError, socket.timeout) as e:
+      # Catch any exceptions that dont have a code (e.g. socket.error).
+      except IOError as e:
         self.consecutive_connection_errors += 1
-
         # Request failed. If we connected successfully before we attempt a few
         # connections before we determine that it really failed. This might
         # happen if the front end is loaded and returns a few throttling 500
@@ -337,7 +382,8 @@ class HTTPManager(object):
         if self.active_base_url is not None:
           # Propagate 406 immediately without retrying, as 406 is a valid
           # response that inidicate a need for enrollment.
-          if getattr(e, "code", None) == 406:
+          response = getattr(e, "response", None)
+          if getattr(response, "status_code", None) == 406:
             raise
 
           if self.consecutive_connection_errors >= self.retry_error_limit:
@@ -1208,7 +1254,7 @@ class GRRHTTPClient(object):
         path="control?api=%s" % config_lib.CONFIG["Network.api"],
         verify_cb=self.VerifyServerControlResponse,
         data=data,
-        request_opts={"Content-Type": "binary/octet-stream"})
+        headers={"Content-Type": "binary/octet-stream"})
 
     if response.code == 406:
       self.InitiateEnrolment()

@@ -21,6 +21,9 @@ AutoReqProv: no
 
 %install
 cp -R \%{_builddir}/* \%{buildroot}
+DIR="\%{buildroot}%(ClientBuilder.daemon_link)"
+mkdir -p "$\(dirname ${DIR}\)"
+ln -s %(ClientBuilder.target_dir)/%(Client.binary_name) \%{buildroot}%(ClientBuilder.daemon_link)
 
 %clean
 
@@ -29,7 +32,15 @@ cp -R \%{_builddir}/* \%{buildroot}
 # Here, $1 == 1 means first install of this package. We need to stop the agent
 # from a previous install if this is not an initial install.
 if [ "$1" -ne 1 ]; then
-  if [ -e "/etc/init.d/%(Client.name)" ]; then
+  if [ -x /bin/systemctl ]; then
+    if [ -e "/etc/init.d/%(Client.name)" ]; then
+      # We previously installed init.d on systems with systemd. We need to stop
+      # that version otherwise we end up with both running.
+      /etc/init.d/%(Client.name) stop >/dev/null 2>&1 || true
+      /sbin/chkconfig %(Client.name) off >/dev/null 2>&1 || true
+    fi
+    systemctl stop %(Client.name) >/dev/null 2>&1 || true
+  elif [ -e "/etc/init.d/%(Client.name)" ]; then
     /etc/init.d/%(Client.name) stop
   fi
 fi
@@ -38,12 +49,28 @@ fi
 
 %(ClientBuilder.target_dir)/%(Client.binary_name) --config=%(ClientBuilder.target_dir)/%(ClientBuilder.config_filename) --install
 
-if [ -e "/etc/init.d/%(Client.name)" ]; then
+# Prefer systemd if it exists
+if [ -x /bin/systemctl ]; then
+  systemctl enable %(Client.name) >/dev/null 2>&1 || :
+  systemctl restart %(Client.name) >/dev/null 2>&1 || :
+elif [ -e "/etc/init.d/%(Client.name)" ]; then
   /etc/init.d/%(Client.name) start || exit $?
+  # Make it start on boot.
+  /sbin/chkconfig %(Client.name) on
 fi
 
-# Make it start on boot.
-/sbin/chkconfig %(Client.name) on
+%postun
+
+if [ -x /bin/systemctl ]; then
+  # This is the "%systemd_postun_with_restart %(Client.name)" macro. Our current
+  # Ubunutu build system doesn't have these macros. We should be able to switch
+  # to the macro when we get a newer rpm version and will also need to add a
+  # BuildRequires for systemd.
+  if [ $1 -ge 1 ] ; then
+    # Package upgrade, not uninstall
+    systemctl try-restart %(Client.name) >/dev/null 2>&1 || :
+  fi
+fi
 
 %preun
 
@@ -51,16 +78,22 @@ fi
 # we can stop the service. Otherwise, we'll stop the newly installed agent
 # instead!
 if [ "$1" -eq 0 ]; then
-  if [ -e "/etc/init.d/%(Client.name)" ]; then
+  if [ -x /bin/systemctl ]; then
+    # This is the "%systemd_preun %(Client.name)" macro.
+    systemctl --no-reload disable %(Client.name) > /dev/null 2>&1 || :
+    systemctl stop %(Client.name) > /dev/null 2>&1 || :
+  elif [ -e "/etc/init.d/%(Client.name)" ]; then
     /etc/init.d/%(Client.name) stop
   fi
 fi
 
 
 %files
-\%attr\(755,root,root\)
-%(ClientBuilder.target_dir)/*
+\%attr\(755,root,root\) %(ClientBuilder.target_dir)/*
 \%attr\(755,root,root\) /etc/init.d/%(Client.name)
+\%attr\(755,root,root\) /usr/lib/systemd/system/%(Client.name).service
+\%attr\(755,root,root\) %(ClientBuilder.daemon_link)
+\%attr\(444,root,root\) /etc/prelink.conf.d/%(Client.name).conf
 
 %changelog
 * %(ClientBuilder.rpm_build_time) %(ClientBuilder.maintainer)

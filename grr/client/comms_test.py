@@ -2,10 +2,9 @@
 """Test for client comms."""
 
 
-import StringIO
 import time
-import urllib2
 
+import requests
 
 from grr.client import comms
 from grr.lib import flags
@@ -15,10 +14,12 @@ from grr.lib import utils
 
 def _make_http_exception(code=500, msg="Error"):
   """A helper for creating a HTTPError exception."""
-  return urllib2.HTTPError(url="", code=code, msg=msg, hdrs=[], fp=None)
+  response = requests.Response()
+  response.status_code = code
+  return requests.ConnectionError(msg, response=response)
 
 
-class URLLibInstrumentor(object):
+class RequestsInstrumentor(object):
   """Instrument the urllib2 library."""
 
   def __init__(self):
@@ -30,27 +31,8 @@ class URLLibInstrumentor(object):
     # These are the responses we will do.
     self.responses = []
 
-  def install_opener(self, opener):
-    self.current_opener = opener
-
-  def _extract_proxy(self, opener):
-    """Deduce the proxy location for the urllib opener."""
-    for handler in opener.handlers:
-      if isinstance(handler, urllib2.ProxyHandler):
-        return handler.proxies.get("http")
-
-  def _extract_url(self, request):
-    if isinstance(request, basestring):
-      return request
-    return request.get_full_url()
-
-  def urlopen(self, request, **_):
-    # We only care about how urllib2 will try to connect - the proxy and the
-    # URL.
-    self.actions.append([
-        self.time, self._extract_url(request),
-        self._extract_proxy(self.current_opener)
-    ])
+  def request(self, **request_options):
+    self.actions.append([self.time, request_options])
     if self.responses:
       result = self.responses.pop(0)
     else:
@@ -59,7 +41,10 @@ class URLLibInstrumentor(object):
     if isinstance(result, IOError):
       raise result
 
-    return StringIO.StringIO(result)
+    response = requests.Response()
+    response._content = result
+    response.status_code = 200
+    return response
 
   def sleep(self, timeout):
     self.time += timeout
@@ -71,23 +56,24 @@ class URLLibInstrumentor(object):
        A context manager that when exits restores the mocks.
     """
     self.actions = []
-    return utils.MultiStubber((urllib2, "install_opener", self.install_opener),
-                              (urllib2, "urlopen", self.urlopen),
+    return utils.MultiStubber((requests, "request", self.request),
                               (time, "sleep", self.sleep))
 
 
-class URLFilter(URLLibInstrumentor):
+class URLFilter(RequestsInstrumentor):
   """Emulate only a single server url that works."""
 
-  def urlopen(self, request, **kwargs):
-    url = self._extract_url(request)
+  def request(self, url=None, **kwargs):
     try:
-      return super(URLFilter, self).urlopen(request, **kwargs)
+      return super(URLFilter, self).request(url=url, **kwargs)
     except IOError:
       # If request is from server2 - return a valid response. Assume, server2 is
       # reachable from all proxies.
       if "server2" in url:
-        return StringIO.StringIO("Good")
+        response = requests.Response()
+        response.status_code = 200
+        response._content = "Good"
+        return response
 
       raise
 
@@ -106,32 +92,31 @@ class HTTPManagerTest(test_lib.GRRBaseTest):
   """Tests the HTTP Manager."""
 
   def MakeRequest(self, instrumentor, manager, path, verify_cb=lambda x: True):
-    with utils.MultiStubber(
-        (urllib2, "install_opener", instrumentor.install_opener),
-        (urllib2, "urlopen", instrumentor.urlopen),
-        (time, "sleep", instrumentor.sleep)):
+    with utils.MultiStubber((requests, "request", instrumentor.request),
+                            (time, "sleep", instrumentor.sleep)):
       return manager.OpenServerEndpoint(path, verify_cb=verify_cb)
 
   def testBaseURLConcatenation(self):
-    instrumentor = URLLibInstrumentor()
+    instrumentor = RequestsInstrumentor()
     with instrumentor.instrument():
       manager = MockHTTPManager()
       manager.OpenServerEndpoint("/control")
 
     # Make sure that the URL is concatenated properly (no //).
-    self.assertEqual(instrumentor.actions[0][1], "http://server1/control")
+    self.assertEqual(instrumentor.actions[0][1]["url"],
+                     "http://server1/control")
 
   def testProxySearch(self):
     """Check that all proxies will be searched in order."""
     # Do not specify a response - all requests will return a 404 message.
-    instrumentor = URLLibInstrumentor()
+    instrumentor = RequestsInstrumentor()
     with instrumentor.instrument():
       manager = MockHTTPManager()
       result = manager.OpenURL("http://www.google.com/")
 
     # Three requests are made.
-    self.assertEqual(len(instrumentor.actions), 3)
-    self.assertEqual([x[2] for x in instrumentor.actions], manager.proxies)
+    proxies = [x[1]["proxies"]["https"] for x in instrumentor.actions]
+    self.assertEqual(proxies, manager.proxies)
 
     # Result is an error since no requests succeeded.
     self.assertEqual(result.code, 404)
@@ -145,7 +130,7 @@ class HTTPManagerTest(test_lib.GRRBaseTest):
     def verify_cb(http_object):
       return http_object.data == "Good"
 
-    instrumentor = URLLibInstrumentor()
+    instrumentor = RequestsInstrumentor()
 
     # First request is an exception, next is bad and the last is good.
     instrumentor.responses = [_make_http_exception(code="404"), "Bad", "Good"]
@@ -165,18 +150,22 @@ class HTTPManagerTest(test_lib.GRRBaseTest):
 
     # The result is correct.
     self.assertEqual(result.data, "Good")
-    self.assertEqual(instrumentor.actions,
+
+    queries = [(x[1]["url"], x[1]["proxies"]["http"])
+               for x in instrumentor.actions]
+
+    self.assertEqual(queries,
                      # First search for server1 through all proxies.
-                     [[0, "http://server1/control", "proxy1"],
-                      [0, "http://server1/control", "proxy2"],
-                      [0, "http://server1/control", "proxy3"],
+                     [("http://server1/control", "proxy1"),
+                      ("http://server1/control", "proxy2"),
+                      ("http://server1/control", "proxy3"),
 
                       # Now search for server2 through all proxies.
-                      [0, "http://server2/control", "proxy1"]])
+                      ("http://server2/control", "proxy1")])
 
   def testTemporaryFailure(self):
     """If the front end gives an intermittent 500, we must back off."""
-    instrumentor = URLLibInstrumentor()
+    instrumentor = RequestsInstrumentor()
     # First response good, then a 500 error, then another good response.
     instrumentor.responses = ["Good", _make_http_exception(code=500),
                               "Also Good"]
@@ -212,7 +201,7 @@ class HTTPManagerTest(test_lib.GRRBaseTest):
     and stop searching for proxy/url combinations in order to allow the client
     to commence enrollment workflow.
     """
-    instrumentor = URLLibInstrumentor()
+    instrumentor = RequestsInstrumentor()
     instrumentor.responses = [_make_http_exception(code=406)]
 
     manager = MockHTTPManager()

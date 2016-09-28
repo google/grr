@@ -4,10 +4,10 @@
 
 import array
 import pdb
-import StringIO
 import time
-import urllib2
 
+
+import requests
 
 import logging
 
@@ -30,6 +30,21 @@ from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import flows as rdf_flows
 
 # pylint: mode=test
+
+
+def MakeHTTPException(code=500, msg="Error"):
+  """A helper for creating a HTTPError exception."""
+  response = requests.Response()
+  response.status_code = code
+  return requests.ConnectionError(msg, response=response)
+
+
+def MakeResponse(code=500, data=""):
+  """A helper for creating a HTTPError exception."""
+  response = requests.Response()
+  response.status_code = code
+  response._content = data
+  return response
 
 
 class ClientCommsTest(test_lib.GRRBaseTest):
@@ -348,8 +363,8 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     # And cache it in the server
     self.CreateNewServerCommunicator()
 
-    self.urlopen_stubber = utils.Stubber(urllib2, "urlopen", self.UrlMock)
-    self.urlopen_stubber.Start()
+    self.requests_stubber = utils.Stubber(requests, "request", self.UrlMock)
+    self.requests_stubber.Start()
     self.sleep_stubber = utils.Stubber(time, "sleep", lambda x: None)
     self.sleep_stubber.Start()
 
@@ -370,7 +385,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     self.server_communicator.client_cache.Put(self.client_cn, self.client)
 
   def tearDown(self):
-    self.urlopen_stubber.Stop()
+    self.requests_stubber.Stop()
     self.out_queue_overrider.Stop()
     self.config_stubber.Stop()
     self.sleep_stubber.Stop()
@@ -394,14 +409,16 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     self.client_communicator.http_manager.retry_error_limit = 5
 
-  def UrlMock(self, req, num_messages=10, **kwargs):
+  def UrlMock(self, num_messages=10, url=None, data=None, **kwargs):
     """A mock for url handler processing from the server's POV."""
-    if "server.pem" in req.get_full_url():
-      return StringIO.StringIO(config_lib.CONFIG["Frontend.certificate"])
+    if "server.pem" in url:
+      return MakeResponse(
+          200, utils.SmartStr(config_lib.CONFIG["Frontend.certificate"]))
+
     _ = kwargs
     try:
       comms_cls = rdf_flows.ClientCommunication
-      self.client_communication = comms_cls.FromSerializedString(req.data)
+      self.client_communication = comms_cls.FromSerializedString(data)
 
       # Decrypt incoming messages
       self.messages, source, ts = self.server_communicator.DecodeMessages(
@@ -430,9 +447,9 @@ class HTTPClientTests(test_lib.GRRBaseTest):
           timestamp=ts,
           api_version=self.client_communication.api_version)
 
-      return StringIO.StringIO(response_comms.SerializeToString())
+      return MakeResponse(200, response_comms.SerializeToString())
     except communicator.UnknownClientCert:
-      raise urllib2.HTTPError(url=None, code=406, msg=None, hdrs=None, fp=None)
+      raise MakeHTTPException(406)
     except Exception as e:
       logging.info("Exception in mock urllib2.Open: %s.", e)
       self.last_urlmock_error = e
@@ -440,7 +457,7 @@ class HTTPClientTests(test_lib.GRRBaseTest):
       if flags.FLAGS.debug:
         pdb.post_mortem()
 
-      raise urllib2.HTTPError(url=None, code=500, msg=None, hdrs=None, fp=None)
+      raise MakeHTTPException(500)
 
   def CheckClientQueue(self):
     """Checks that the client context received all server messages."""
@@ -630,15 +647,15 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
     self.corruptor_field = None
 
-    def Corruptor(req, **_):
+    def Corruptor(url="", data=None, **kwargs):
       """Futz with some of the fields."""
       comm_cls = rdf_flows.ClientCommunication
-      if req.data is not None:
-        self.client_communication = comm_cls.FromSerializedString(req.data)
+      if data is not None:
+        self.client_communication = comm_cls.FromSerializedString(data)
       else:
         self.client_communication = comm_cls(None)
 
-      if self.corruptor_field and "server.pem" not in req.get_full_url():
+      if self.corruptor_field and "server.pem" not in url:
         orig_str_repr = self.client_communication.SerializeToString()
         field_data = getattr(self.client_communication, self.corruptor_field)
         if hasattr(field_data, "SerializeToString"):
@@ -660,10 +677,10 @@ class HTTPClientTests(test_lib.GRRBaseTest):
                        if x != y]
         self.assertEqual(len(differences), 1)
 
-      req.data = self.client_communication.SerializeToString()
-      return self.UrlMock(req)
+      data = self.client_communication.SerializeToString()
+      return self.UrlMock(url=url, data=data, **kwargs)
 
-    with utils.Stubber(urllib2, "urlopen", Corruptor):
+    with utils.Stubber(requests, "request", Corruptor):
       self.SendToServer()
       status = self.client_communicator.RunOnce()
       self.assertEqual(status.code, 200)
@@ -696,13 +713,13 @@ class HTTPClientTests(test_lib.GRRBaseTest):
     fail = True
     num_messages = 10
 
-    def FlakyServer(req, timeout=None):  # pylint: disable=unused-argument
-      if not fail or "server.pem" in req.get_full_url():
-        return self.UrlMock(req, num_messages=num_messages)
+    def FlakyServer(url=None, **kwargs):
+      if not fail or "server.pem" in url:
+        return self.UrlMock(num_messages=num_messages, url=url, **kwargs)
 
-      raise urllib2.HTTPError(url=None, code=500, msg=None, hdrs=None, fp=None)
+      raise MakeHTTPException(500)
 
-    with utils.Stubber(urllib2, "urlopen", FlakyServer):
+    with utils.Stubber(requests, "request", FlakyServer):
       self.SendToServer()
       status = self.client_communicator.RunOnce()
       self.assertEqual(status.code, 500)
@@ -829,13 +846,13 @@ class HTTPClientTests(test_lib.GRRBaseTest):
         self.client_communicator.client_worker.CheckStats()
         self.assertEqual(len(runs), 1)
 
-  def RaiseError(self, request, timeout=0):
-    raise urllib2.URLError("Not a real connection.")
+  def RaiseError(self, **_):
+    raise MakeHTTPException(500, "Not a real connection.")
 
   def testClientConnectionErrors(self):
     client_obj = comms.GRRHTTPClient()
     # Make the connection unavailable and skip the retry interval.
-    with utils.Stubber(urllib2, "urlopen", self.RaiseError):
+    with utils.Stubber(requests, "request", self.RaiseError):
       with test_lib.ConfigOverrider({"Client.connection_error_limit": 8}):
         # Simulate a client run. The client will retry the connection limit by
         # itself. The Run() method will quit when connection_error_limit is

@@ -76,7 +76,7 @@ class BasicWebAuthManager(BaseWebAuthManager):
           # The password is ok - update the user
           request.user = user
 
-    except (IndexError, KeyError, IOError):
+    except (IndexError, KeyError, IOError, access_control.UnauthorizedAccess):
       pass
 
     if not authorized:
