@@ -60,17 +60,20 @@ class ClientBase(object):
   def ValidApproval(self, offset=0, count=0):
     """Determine if valid approval exists for this client."""
   
-    args = api_pb2.ApiListUserClientApprovalArgs(
-        offset=offset, count=count, client_id=self.client_id, state=2)
+    args = api_pb2.ApiListClientApprovalsArgs(
+        offset=offset, count=count, client_id=self.client_id, state=1)
   
-    return self._context.SendIteratorRequest("ListApprovals", args).total_count > 0
+    for approval in self._context.SendIteratorRequest("ListApprovals", args):
+      if utils.UrnToClientId(approval[u'subject'][u'urn']) == self.client_id:
+        return True
+    return False
     
   def RequestApproval(self, approvers=None, reason=None):
     """Request approval for this client."""
   
-    approval = api_pb2.ApiUserClientApproval(notified_users=approvers, reason=reason)
+    approval = api_pb2.ApiClientApproval(notified_users=approvers, reason=reason)
   
-    request = api_pb2.ApiCreateUserClientApprovalArgs(
+    request = api_pb2.ApiCreateClientApprovalArgs(
         client_id=self.client_id, approval=approval)
   
     self._context.SendRequest("RequestApproval", request)
