@@ -66,7 +66,7 @@ class ClientRef(ClientBase):
 
     args = api_pb2.ApiGetClientArgs(client_id=self.client_id)
     result = self._context.SendRequest("GetClient", args)
-    return Client(data=result, context=self._context)
+    return Client(data=result["client"], context=self._context)
 
 
 class Client(ClientBase):
