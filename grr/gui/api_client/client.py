@@ -56,27 +56,29 @@ class ClientBase(object):
     return utils.MapItemsIterator(
         lambda data: flow.Flow(data=data, context=self._context),
         items)
- 
+
   def HasValidApproval(self):
     """Determine if valid approval exists for this client."""
-  
+
     args = api_pb2.ApiListClientApprovalsArgs(
-        client_id=self.client_id, 
+        client_id=self.client_id,
         state=api_pb2.ApiListClientApprovalsArgs.VALID)
-  
-    for approval in self._context.SendIteratorRequest("ListClientApprovals", args):
-      if utils.UrnToClientId(approval[u'subject'][u'urn']) == self.client_id:
+
+    for approval in self._context.SendIteratorRequest("ListClientApprovals",
+                                                      args):
+      if utils.UrnToClientId(approval[u"subject"][u"urn"]) == self.client_id:
         return True
     return False
-    
+
   def RequestApproval(self, approvers=None, reason=None):
     """Request approval for this client."""
-  
-    approval = api_pb2.ApiClientApproval(notified_users=approvers, reason=reason)
-  
+
+    approval = api_pb2.ApiClientApproval(
+        notified_users=approvers, reason=reason)
+
     request = api_pb2.ApiCreateClientApprovalArgs(
         client_id=self.client_id, approval=approval)
-  
+
     self._context.SendRequest("CreateClientApproval", request)
 
 
