@@ -60,11 +60,11 @@ class HttpConnector(connector.Connector):
       routing.Rule(
           "/api/users/me/approvals/client/<client_id>",
           methods=["POST"],
-          endpoint="CreateClientApproval")
+          endpoint="CreateClientApproval"),
       routing.Rule(
           "/api/users/me/approvals/client",
           methods=["GET"],
-          endpoint="ListClientApprovals"),
+          endpoint="ListClientApprovals")
 
   ])
   # pyformat: enable
