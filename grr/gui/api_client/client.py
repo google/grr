@@ -57,13 +57,13 @@ class ClientBase(object):
         lambda data: flow.Flow(data=data, context=self._context),
         items)
  
-  def ValidApproval(self, offset=0, count=0):
+  def HasValidApproval(self):
     """Determine if valid approval exists for this client."""
   
     args = api_pb2.ApiListClientApprovalsArgs(
-        offset=offset, count=count, client_id=self.client_id, state=1)
+        offset=0, count=0, client_id=self.client_id, state=api_pb2.VALID)
   
-    for approval in self._context.SendIteratorRequest("ListApprovals", args):
+    for approval in self._context.SendIteratorRequest("ListClientApprovals", args):
       if utils.UrnToClientId(approval[u'subject'][u'urn']) == self.client_id:
         return True
     return False
@@ -76,7 +76,7 @@ class ClientBase(object):
     request = api_pb2.ApiCreateClientApprovalArgs(
         client_id=self.client_id, approval=approval)
   
-    self._context.SendRequest("RequestApproval", request)
+    self._context.SendRequest("CreateClientApproval", request)
 
 
 class ClientRef(ClientBase):
