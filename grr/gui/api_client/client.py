@@ -61,7 +61,8 @@ class ClientBase(object):
     """Determine if valid approval exists for this client."""
   
     args = api_pb2.ApiListClientApprovalsArgs(
-        client_id=self.client_id, state=api_pb2.ApiListClientApprovalsArgs.VALID)
+        client_id=self.client_id, 
+        state=api_pb2.ApiListClientApprovalsArgs.VALID)
   
     for approval in self._context.SendIteratorRequest("ListClientApprovals", args):
       if utils.UrnToClientId(approval[u'subject'][u'urn']) == self.client_id:
