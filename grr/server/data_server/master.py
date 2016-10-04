@@ -7,14 +7,8 @@ import threading
 import urlparse
 
 
-# pylint: disable=g-import-not-at-top
-try:
-  import urllib3
-  from urllib3 import connectionpool
-except ImportError:
-  # Urllib3 also comes as part of requests, try to fallback.
-  from requests.packages import urllib3
-  from requests.packages.urllib3 import connectionpool
+from requests.packages import urllib3
+from requests.packages.urllib3 import connectionpool
 
 import logging
 

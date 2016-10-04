@@ -46,6 +46,12 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_string(
     name="ClientBuilder.package_dir", default=None, help="OSX package name.")
 
+config_lib.DEFINE_string(
+    "ClientBuilder.private_config_validator_class",
+    default=None,
+    help="Set this to a class name that sanity checks your client "
+    "config at repacking time.")
+
 
 class PathTypeInfo(type_info.String):
   """A path to a file or a directory."""

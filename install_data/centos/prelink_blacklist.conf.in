@@ -1,0 +1,2 @@
+# Dear prelinker, you are the worst.
+-b %(ClientBuilder.target_dir)/%(Client.binary_name)

@@ -12,7 +12,7 @@ from grr.gui.api_plugins import flow_test
 from grr.gui.api_plugins import hunt_test
 from grr.gui.api_plugins import output_plugin_test
 from grr.gui.api_plugins import reflection_test
-from grr.gui.api_plugins import report_plugins_test
 from grr.gui.api_plugins import stats_test
 from grr.gui.api_plugins import user_test
 from grr.gui.api_plugins import vfs_test
+from grr.gui.api_plugins.report_plugins import tests

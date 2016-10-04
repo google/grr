@@ -2,7 +2,7 @@
 """API handlers for stats."""
 
 from grr.gui import api_call_handler_base
-from grr.gui.api_plugins import report_plugins
+from grr.gui.api_plugins.report_plugins import report_plugins
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import timeseries
