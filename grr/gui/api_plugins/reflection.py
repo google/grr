@@ -85,3 +85,53 @@ class ApiListAff4AttributeDescriptorsHandler(
       result.items.append(ApiAff4AttributeDescriptor(name=name))
 
     return result
+
+
+class ApiMethod(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiMethod
+
+
+class ApiListApiMethodsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListApiMethodsResult
+
+
+class ApiListApiMethodsHandler(api_call_handler_base.ApiCallHandler):
+  """Renders HTTP API docs sources."""
+
+  TYPE_URL_PATTERN = "type.googleapis.com/grr.%s"
+
+  result_type = ApiListApiMethodsResult
+
+  def __init__(self, router):
+    self.router = router
+
+  def Handle(self, unused_args, token=None):
+    router_methods = self.router.__class__.GetAnnotatedMethods()
+
+    result = ApiListApiMethodsResult()
+    for router_method in router_methods.values():
+      api_method = ApiMethod(
+          name=router_method.name,
+          category=router_method.category,
+          doc=router_method.doc,
+          http_route=router_method.http_methods[-1][1],
+          http_methods=[router_method.http_methods[-1][0]])
+
+      if router_method.args_type:
+        api_method.args_type_descriptor = (
+            api_value_renderers.BuildTypeDescriptor(router_method.args_type))
+
+      if router_method.result_type:
+        if router_method.result_type == router_method.BINARY_STREAM_RESULT_TYPE:
+          api_method.result_kind = api_method.ResultKind.BINARY_STREAM
+        else:
+          api_method.result_kind = api_method.ResultKind.VALUE
+          api_method.result_type_descriptor = (
+              api_value_renderers.BuildTypeDescriptor(router_method.result_type)
+          )
+      else:
+        api_method.result_kind = api_method.ResultKind.NONE
+
+      result.items.append(api_method)
+
+    return result

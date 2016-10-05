@@ -4,6 +4,7 @@
 
 import functools
 import itertools
+import os
 import stat
 
 import logging
@@ -51,7 +52,7 @@ class Find(actions.IteratedAction):
       for name, is_dir in itertools.chain(((name, True) for name in dirs),
                                           ((name, False) for name in files)):
         # pyformat: enable
-        path = ("%s/%s" % (top, name))[len(root) + 1:]
+        path = os.path.join(top, name)[len(root) + 1:]
 
         if self.request.path_regex.Match(path):
           # Generate fake minimal stat entries for compatibility.

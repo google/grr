@@ -134,6 +134,32 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
       stored_message = rdf_flows.GrrMessage.FromSerializedString(stored_message)
       self.assertRDFValuesEqual(stored_message, message)
 
+  def testReceiveUnsolicitedClientMessage(self):
+    flow_obj = self.FlowSetup("FlowOrderTest")
+
+    session_id = flow_obj.session_id
+    status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
+    messages = [
+        # This message has no task_id set...
+        rdf_flows.GrrMessage(
+            request_id=1,
+            response_id=1,
+            session_id=session_id,
+            payload=rdfvalue.RDFInteger(1),
+            task_id=15),
+        rdf_flows.GrrMessage(
+            request_id=1,
+            response_id=2,
+            session_id=session_id,
+            payload=status,
+            type=rdf_flows.GrrMessage.Type.STATUS)
+    ]
+
+    self.server.ReceiveMessages(self.client_id, messages)
+    manager = queue_manager.QueueManager(token=self.token)
+    completed = list(manager.FetchCompletedRequests(session_id))
+    self.assertEqual(len(completed), 1)
+
   def testWellKnownFlows(self):
     """Make sure that well known flows can run on the front end."""
     test_lib.WellKnownSessionTest.messages = []

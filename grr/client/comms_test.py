@@ -12,11 +12,21 @@ from grr.lib import test_lib
 from grr.lib import utils
 
 
-def _make_http_exception(code=500, msg="Error"):
-  """A helper for creating a HTTPError exception."""
+def _make_http_response(code=200):
+  """A helper for creating HTTP responses."""
   response = requests.Response()
   response.status_code = code
-  return requests.ConnectionError(msg, response=response)
+  return response
+
+
+def _make_404():
+  return _make_http_response(404)
+
+
+def _make_200(content):
+  response = _make_http_response(200)
+  response._content = content
+  return response
 
 
 class RequestsInstrumentor(object):
@@ -34,17 +44,12 @@ class RequestsInstrumentor(object):
   def request(self, **request_options):
     self.actions.append([self.time, request_options])
     if self.responses:
-      result = self.responses.pop(0)
+      response = self.responses.pop(0)
+      if isinstance(response, IOError):
+        raise response
+      return response
     else:
-      result = _make_http_exception(404, "404 Not found")
-
-    if isinstance(result, IOError):
-      raise result
-
-    response = requests.Response()
-    response._content = result
-    response.status_code = 200
-    return response
+      return _make_404()
 
   def sleep(self, timeout):
     self.time += timeout
@@ -64,18 +69,12 @@ class URLFilter(RequestsInstrumentor):
   """Emulate only a single server url that works."""
 
   def request(self, url=None, **kwargs):
-    try:
-      return super(URLFilter, self).request(url=url, **kwargs)
-    except IOError:
-      # If request is from server2 - return a valid response. Assume, server2 is
-      # reachable from all proxies.
-      if "server2" in url:
-        response = requests.Response()
-        response.status_code = 200
-        response._content = "Good"
-        return response
-
-      raise
+    # If request is from server2 - return a valid response. Assume, server2 is
+    # reachable from all proxies.
+    response = super(URLFilter, self).request(url=url, **kwargs)
+    if "server2" in url:
+      return _make_200("Good")
+    return response
 
 
 class MockHTTPManager(comms.HTTPManager):
@@ -133,7 +132,7 @@ class HTTPManagerTest(test_lib.GRRBaseTest):
     instrumentor = RequestsInstrumentor()
 
     # First request is an exception, next is bad and the last is good.
-    instrumentor.responses = [_make_http_exception(code="404"), "Bad", "Good"]
+    instrumentor.responses = [_make_404(), _make_200("Bad"), _make_200("Good")]
     with instrumentor.instrument():
       manager = MockHTTPManager()
       result = manager.OpenURL("http://www.google.com/", verify_cb=verify_cb)
@@ -167,8 +166,8 @@ class HTTPManagerTest(test_lib.GRRBaseTest):
     """If the front end gives an intermittent 500, we must back off."""
     instrumentor = RequestsInstrumentor()
     # First response good, then a 500 error, then another good response.
-    instrumentor.responses = ["Good", _make_http_exception(code=500),
-                              "Also Good"]
+    instrumentor.responses = [_make_200("Good"), _make_http_response(code=500),
+                              _make_200("Also Good")]
 
     manager = MockHTTPManager()
     with instrumentor.instrument():
@@ -202,7 +201,7 @@ class HTTPManagerTest(test_lib.GRRBaseTest):
     to commence enrollment workflow.
     """
     instrumentor = RequestsInstrumentor()
-    instrumentor.responses = [_make_http_exception(code=406)]
+    instrumentor.responses = [_make_http_response(code=406)]
 
     manager = MockHTTPManager()
     with instrumentor.instrument():
@@ -216,6 +215,19 @@ class HTTPManagerTest(test_lib.GRRBaseTest):
 
     # A 406 message is not considered an error.
     self.assertEqual(manager.consecutive_connection_errors, 0)
+
+  def testConnectionErrorRecovery(self):
+    instrumentor = RequestsInstrumentor()
+
+    # When we can't connect at all (server not listening), we get a
+    # requests.exceptions.ConnectionError but the response object is None.
+    err_response = requests.ConnectionError("Error", response=None)
+    instrumentor.responses = [err_response, _make_200("Good")]
+    with instrumentor.instrument():
+      manager = MockHTTPManager()
+      result = manager.OpenServerEndpoint("control")
+
+    self.assertEqual(result.data, "Good")
 
 
 def main(argv):

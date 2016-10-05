@@ -1,0 +1,5682 @@
+{
+  "ApiCancelFlowHandler": [
+    {
+      "api_method": "CancelFlow",
+      "method": "POST",
+      "response": {
+        "status": "OK"
+      },
+      "test_class": "ApiCancelFlowHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/actions/cancel"
+    }
+  ],
+  "ApiCreateClientApprovalHandler": [
+    {
+      "api_method": "CreateClientApproval",
+      "method": "POST",
+      "request_payload": {
+        "approval": {
+          "emailCcAddresses": [
+            "test@example.com"
+          ],
+          "notifiedUsers": [
+            "approver1",
+            "approver2"
+          ],
+          "reason": "really important reason!"
+        }
+      },
+      "response": {
+        "approvers": [
+          "test"
+        ],
+        "emailCcAddresses": [
+          "test@example.com"
+        ],
+        "id": "approval:112233",
+        "isValid": false,
+        "isValidMessage": "Requires 2 approvers for access.",
+        "notifiedUsers": [
+          "approver1",
+          "approver2"
+        ],
+        "reason": "really important reason!",
+        "subject": {
+          "agentInfo": {
+            "clientName": "GRR Monitor"
+          },
+          "hardwareInfo": {
+            "biosVersion": "Bios-Version-0",
+            "systemManufacturer": "System-Manufacturer-0"
+          },
+          "knowledgeBase": {
+            "hostname": "Host-0.example.com"
+          },
+          "lastSeenAt": "42000000",
+          "osInfo": {
+            "fqdn": "Host-0.example.com",
+            "node": "Host-0",
+            "version": ""
+          },
+          "urn": "aff4:/C.1000000000000000"
+        }
+      },
+      "test_class": "ApiCreateClientApprovalHandlerRegressionTest",
+      "url": "/api/v2/users/me/approvals/client/C.1000000000000000"
+    }
+  ],
+  "ApiCreateCronJobApprovalHandler": [
+    {
+      "api_method": "CreateCronJobApproval",
+      "method": "POST",
+      "request_payload": {
+        "approval": {
+          "emailCcAddresses": [
+            "test@example.com"
+          ],
+          "notifiedUsers": [
+            "approver1",
+            "approver2"
+          ],
+          "reason": "really important reason!"
+        }
+      },
+      "response": {
+        "approvers": [
+          "test"
+        ],
+        "emailCcAddresses": [
+          "test@example.com"
+        ],
+        "id": "approval:112233",
+        "isValid": false,
+        "isValidMessage": "Requires 2 approvers for access.",
+        "notifiedUsers": [
+          "approver1",
+          "approver2"
+        ],
+        "reason": "really important reason!",
+        "subject": {
+          "allowOverruns": false,
+          "description": "",
+          "flowName": "",
+          "flowRunnerArgs": {},
+          "lifetime": "0",
+          "periodicity": "86400",
+          "state": "ENABLED",
+          "urn": "aff4:/cron/CronJob_123456"
+        }
+      },
+      "test_class": "ApiCreateCronJobApprovalHandlerRegressionTest",
+      "url": "/api/v2/users/me/approvals/cron-job/CronJob_123456"
+    }
+  ],
+  "ApiCreateCronJobHandler": [
+    {
+      "api_method": "CreateCronJob",
+      "method": "POST",
+      "request_payload": {
+        "description": "Foobar!",
+        "flowArgs": {
+          "@type": "type.googleapis.com/grr.CreateGenericHuntFlowArgs",
+          "huntArgs": {
+            "flowArgs": "Ch1jOlx3aW5kb3dzXHN5c3RlbTMyXG5vdGVwYWQuKg==",
+            "flowRunnerArgs": {
+              "flowName": "FileFinder"
+            }
+          },
+          "huntRunnerArgs": {
+            "clientRuleSet": {
+              "rules": [
+                {
+                  "os": {
+                    "osWindows": true
+                  }
+                }
+              ]
+            },
+            "description": "Foobar! (cron)"
+          }
+        },
+        "flowName": "CreateAndRunGenericHuntFlow",
+        "lifetime": "3600",
+        "periodicity": "604800"
+      },
+      "response": {
+        "allowOverruns": false,
+        "description": "Foobar!",
+        "flowArgs": {
+          "@type": "type.googleapis.com/grr.CreateGenericHuntFlowArgs",
+          "huntArgs": {
+            "flowArgs": "Ch1jOlx3aW5kb3dzXHN5c3RlbTMyXG5vdGVwYWQuKg==",
+            "flowRunnerArgs": {
+              "flowName": "FileFinder"
+            }
+          },
+          "huntRunnerArgs": {
+            "clientRuleSet": {
+              "rules": [
+                {
+                  "os": {
+                    "osWindows": true
+                  }
+                }
+              ]
+            },
+            "description": "Foobar! (cron)",
+            "huntName": "GenericHunt"
+          }
+        },
+        "flowName": "CreateAndRunGenericHuntFlow",
+        "flowRunnerArgs": {
+          "flowName": "CreateAndRunGenericHuntFlow"
+        },
+        "isFailing": false,
+        "lifetime": "3600",
+        "periodicity": "604800",
+        "state": "DISABLED",
+        "urn": "aff4:/cron/CreateAndRunGeneicHuntFlow_1234"
+      },
+      "test_class": "ApiCreateCronJobHandlerRegressionTest",
+      "url": "/api/v2/cron-jobs"
+    }
+  ],
+  "ApiCreateFlowHandler": [
+    {
+      "api_method": "CreateFlow",
+      "method": "POST",
+      "request_payload": {
+        "flow": {
+          "args": {
+            "@type": "type.googleapis.com/grr.ListProcessesArgs",
+            "fetchBinaries": true,
+            "filenameRegex": "."
+          },
+          "name": "ListProcesses",
+          "runnerArgs": {
+            "notifyToUser": false,
+            "priority": "HIGH_PRIORITY"
+          }
+        }
+      },
+      "response": {
+        "args": {
+          "@type": "type.googleapis.com/grr.ListProcessesArgs",
+          "fetchBinaries": true,
+          "filenameRegex": "."
+        },
+        "creator": "test",
+        "flowId": "W:ABCDEF",
+        "lastActiveAt": "42000000",
+        "name": "ListProcesses",
+        "runnerArgs": {
+          "clientId": "aff4:/C.1000000000000000",
+          "flowName": "ListProcesses",
+          "notifyToUser": false,
+          "priority": "HIGH_PRIORITY",
+          "token": {
+            "expiry": "102000000",
+            "process": "GRRAdminUI",
+            "reason": "",
+            "username": "test"
+          }
+        },
+        "startedAt": "42000000",
+        "state": "RUNNING",
+        "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+      },
+      "test_class": "ApiCreateFlowHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/flows"
+    }
+  ],
+  "ApiCreateHuntApprovalHandler": [
+    {
+      "api_method": "CreateHuntApproval",
+      "method": "POST",
+      "request_payload": {
+        "approval": {
+          "emailCcAddresses": [
+            "test@example.com"
+          ],
+          "notifiedUsers": [
+            "approver1",
+            "approver2"
+          ],
+          "reason": "really important reason!"
+        }
+      },
+      "response": {
+        "approvers": [
+          "test"
+        ],
+        "emailCcAddresses": [
+          "test@example.com"
+        ],
+        "id": "approval:112233",
+        "isValid": false,
+        "isValidMessage": "Requires 2 approvers for access.",
+        "notifiedUsers": [
+          "approver1",
+          "approver2"
+        ],
+        "reason": "really important reason!",
+        "subject": {
+          "clientLimit": "100",
+          "clientRate": "0",
+          "created": "42000000",
+          "creator": "test",
+          "description": "foo",
+          "expires": "1209642000000",
+          "isRobot": false,
+          "name": "GenericHunt",
+          "state": "PAUSED",
+          "totalCpuUsage": 0.0,
+          "totalNetUsage": "0",
+          "urn": "aff4:/hunts/H:123456"
+        }
+      },
+      "test_class": "ApiCreateHuntApprovalHandlerRegressionTest",
+      "url": "/api/v2/users/me/approvals/hunt/H:123456"
+    }
+  ],
+  "ApiCreateVfsRefreshOperationHandler": [
+    {
+      "api_method": "CreateVfsRefreshOperation",
+      "method": "POST",
+      "request_payload": {
+        "filePath": "fs/os/Users/Shared",
+        "maxDepth": "1"
+      },
+      "response": {
+        "operationId": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+      },
+      "test_class": "ApiCreateVfsRefreshOperationHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations"
+    }
+  ],
+  "ApiDeleteHuntHandler": [
+    {
+      "api_method": "DeleteHunt",
+      "method": "DELETE",
+      "response": {
+        "status": "OK"
+      },
+      "test_class": "ApiDeleteHuntHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456"
+    }
+  ],
+  "ApiForceRunCronJobHandler": [
+    {
+      "api_method": "ForceRunCronJob",
+      "method": "POST",
+      "response": {
+        "status": "OK"
+      },
+      "test_class": "ApiForceRunCronJobRegressionTest",
+      "url": "/api/v2/cron-jobs/OSBreakDown/actions/force-run"
+    }
+  ],
+  "ApiGetClientApprovalHandler": [
+    {
+      "api_method": "GetClientApproval",
+      "method": "GET",
+      "response": {
+        "approvers": [
+          "test"
+        ],
+        "id": "approval:111111",
+        "isValid": false,
+        "isValidMessage": "Requires 2 approvers for access.",
+        "notifiedUsers": [
+          "approver"
+        ],
+        "reason": "foo",
+        "subject": {
+          "agentInfo": {
+            "clientName": "GRR Monitor"
+          },
+          "hardwareInfo": {
+            "biosVersion": "Bios-Version-0",
+            "systemManufacturer": "System-Manufacturer-0"
+          },
+          "knowledgeBase": {
+            "hostname": "Host-0.example.com"
+          },
+          "lastSeenAt": "42000000",
+          "osInfo": {
+            "fqdn": "Host-0.example.com",
+            "node": "Host-0",
+            "version": ""
+          },
+          "urn": "aff4:/C.1000000000000000"
+        }
+      },
+      "test_class": "ApiGetClientApprovalHandlerRegressionTest",
+      "url": "/api/v2/users/test/approvals/client/C.1000000000000000/approval:111111"
+    },
+    {
+      "api_method": "GetClientApproval",
+      "method": "GET",
+      "response": {
+        "approvers": [
+          "approver",
+          "test"
+        ],
+        "id": "approval:222222",
+        "isValid": true,
+        "notifiedUsers": [
+          "approver"
+        ],
+        "reason": "bar",
+        "subject": {
+          "agentInfo": {
+            "clientName": "GRR Monitor"
+          },
+          "hardwareInfo": {
+            "biosVersion": "Bios-Version-1",
+            "systemManufacturer": "System-Manufacturer-1"
+          },
+          "knowledgeBase": {
+            "hostname": "Host-1.example.com"
+          },
+          "lastSeenAt": "42000000",
+          "osInfo": {
+            "fqdn": "Host-1.example.com",
+            "node": "Host-1",
+            "version": ""
+          },
+          "urn": "aff4:/C.1000000000000001"
+        }
+      },
+      "test_class": "ApiGetClientApprovalHandlerRegressionTest",
+      "url": "/api/v2/users/test/approvals/client/C.1000000000000001/approval:222222"
+    }
+  ],
+  "ApiGetClientHandler": [
+    {
+      "api_method": "GetClient",
+      "method": "GET",
+      "response": {
+        "agentInfo": {
+          "clientName": "GRR Monitor"
+        },
+        "hardwareInfo": {
+          "biosVersion": "Bios-Version-0",
+          "systemManufacturer": "System-Manufacturer-0"
+        },
+        "knowledgeBase": {
+          "hostname": "Host-0.example.com"
+        },
+        "lastSeenAt": "42000000",
+        "memorySize": "4294967296",
+        "osInfo": {
+          "fqdn": "Host-0.example.com",
+          "node": "Host-0",
+          "version": ""
+        },
+        "urn": "aff4:/C.1000000000000000"
+      },
+      "test_class": "ApiGetClientHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000"
+    }
+  ],
+  "ApiGetClientLoadStatsHandler": [
+    {
+      "api_method": "GetClientLoadStats",
+      "method": "GET",
+      "response": {
+        "dataPoints": [
+          {
+            "timestamp": "10000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "20000000",
+            "value": 11.0
+          }
+        ]
+      },
+      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/load-stats/cpu_percent?start=10000000&end=21000000"
+    },
+    {
+      "api_method": "GetClientLoadStats",
+      "method": "GET",
+      "response": {
+        "dataPoints": [
+          {
+            "timestamp": "10000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "20000000",
+            "value": 12.0
+          }
+        ]
+      },
+      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/load-stats/io_write_bytes?start=10000000&end=21000000"
+    }
+  ],
+  "ApiGetConfigHandler": [
+    {
+      "api_method": "GetConfig",
+      "method": "GET",
+      "response": {
+        "sections": [
+          {
+            "name": "AdminUI",
+            "options": [
+              {
+                "isInvalid": false,
+                "name": "AdminUI.debug_impersonate_user",
+                "type": "RDFString",
+                "value": {
+                  "@type": "type.googleapis.com/google.protobuf.StringValue",
+                  "value": ""
+                }
+              }
+            ]
+          },
+          {
+            "name": "Config",
+            "options": [
+              {
+                "isInvalid": true,
+                "name": "Config.includes"
+              }
+            ]
+          },
+          {
+            "name": "SectionBar",
+            "options": [
+              {
+                "isInvalid": true,
+                "name": "SectionBar.sample_list_option"
+              },
+              {
+                "isInvalid": false,
+                "name": "SectionBar.sample_string_option",
+                "type": "RDFString",
+                "value": {
+                  "@type": "type.googleapis.com/google.protobuf.StringValue",
+                  "value": "sample"
+                }
+              }
+            ]
+          },
+          {
+            "name": "SectionFoo",
+            "options": [
+              {
+                "isInvalid": false,
+                "name": "SectionFoo.sample_boolean_option",
+                "type": "RDFInteger",
+                "value": {
+                  "@type": "type.googleapis.com/google.protobuf.Int64Value",
+                  "value": "1"
+                }
+              },
+              {
+                "isInvalid": false,
+                "name": "SectionFoo.sample_integer_option",
+                "type": "RDFInteger",
+                "value": {
+                  "@type": "type.googleapis.com/google.protobuf.Int64Value",
+                  "value": "42"
+                }
+              }
+            ]
+          }
+        ]
+      },
+      "test_class": "ApiGetConfigHandlerRegressionTest",
+      "url": "/api/v2/config"
+    }
+  ],
+  "ApiGetConfigOptionHandler": [
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": false,
+        "name": "SectionFoo.sample_string_option",
+        "type": "RDFString",
+        "value": {
+          "@type": "type.googleapis.com/google.protobuf.StringValue",
+          "value": ""
+        }
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest",
+      "url": "/api/v2/config/SectionFoo.sample_string_option"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isRedacted": true,
+        "name": "Mysql.database_password"
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest",
+      "url": "/api/v2/config/Mysql.database_password"
+    },
+    {
+      "api_method": "GetConfigOption",
+      "method": "GET",
+      "response": {
+        "isInvalid": true,
+        "name": "NonExistingOption"
+      },
+      "test_class": "ApiGetConfigOptionHandlerRegressionTest",
+      "url": "/api/v2/config/NonExistingOption"
+    }
+  ],
+  "ApiGetCronJobApprovalHandler": [
+    {
+      "api_method": "GetCronJobApproval",
+      "method": "GET",
+      "response": {
+        "approvers": [
+          "test"
+        ],
+        "id": "approval:111111",
+        "isValid": false,
+        "isValidMessage": "Requires 2 approvers for access.",
+        "notifiedUsers": [
+          "approver"
+        ],
+        "reason": "foo",
+        "subject": {
+          "allowOverruns": false,
+          "description": "",
+          "flowName": "",
+          "flowRunnerArgs": {},
+          "lifetime": "0",
+          "periodicity": "86400",
+          "state": "ENABLED",
+          "urn": "aff4:/cron/CronJob_123456"
+        }
+      },
+      "test_class": "ApiGetCronJobApprovalHandlerRegressionTest",
+      "url": "/api/v2/users/test/approvals/cron-job/CronJob_123456/approval:111111"
+    },
+    {
+      "api_method": "GetCronJobApproval",
+      "method": "GET",
+      "response": {
+        "approvers": [
+          "approver",
+          "test"
+        ],
+        "id": "approval:222222",
+        "isValid": true,
+        "notifiedUsers": [
+          "approver"
+        ],
+        "reason": "bar",
+        "subject": {
+          "allowOverruns": false,
+          "description": "",
+          "flowName": "",
+          "flowRunnerArgs": {},
+          "lifetime": "0",
+          "periodicity": "86400",
+          "state": "ENABLED",
+          "urn": "aff4:/cron/CronJob_567890"
+        }
+      },
+      "test_class": "ApiGetCronJobApprovalHandlerRegressionTest",
+      "url": "/api/v2/users/test/approvals/cron-job/CronJob_567890/approval:222222"
+    }
+  ],
+  "ApiGetCronJobFlowHandler": [
+    {
+      "api_method": "GetCronJobFlow",
+      "method": "GET",
+      "response": {
+        "args": {
+          "@type": "type.googleapis.com/grr.EmptyMessage"
+        },
+        "context": {
+          "createTime": "44000000",
+          "creator": "test",
+          "currentState": "Start",
+          "nextOutboundId": "2",
+          "outstandingRequests": "1",
+          "remainingCpuQuota": "7200",
+          "sessionId": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11",
+          "state": "RUNNING",
+          "userNotified": false
+        },
+        "creator": "test",
+        "lastActiveAt": "44000000",
+        "name": "GRRVersionBreakDown",
+        "runnerArgs": {
+          "baseSessionId": "aff4:/cron/GRRVersionBreakDown",
+          "flowName": "GRRVersionBreakDown",
+          "token": {
+            "reason": "Running tests",
+            "username": "test"
+          }
+        },
+        "startedAt": "44000000",
+        "state": "RUNNING",
+        "urn": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
+      },
+      "test_class": "ApiGetCronJobFlowHandlerRegressionTest",
+      "url": "/api/v2/cron-jobs/GRRVersionBreakDown/flows/F:ABCDEF11"
+    }
+  ],
+  "ApiGetFileDownloadCommandHandler": [
+    {
+      "api_method": "GetFileDownloadCommand",
+      "method": "GET",
+      "response": {
+        "command": "/usr/bin/grr_export --username test file --path aff4:/C.1000000000000000/fs/os/etc --output ."
+      },
+      "test_class": "ApiGetFileDownloadCommandHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-download-command/fs/os/etc"
+    }
+  ],
+  "ApiGetFileTextHandler": [
+    {
+      "api_method": "GetFileText",
+      "method": "GET",
+      "response": {
+        "content": "Goodbye World",
+        "totalSize": "13"
+      },
+      "test_class": "ApiGetFileTextHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt"
+    },
+    {
+      "api_method": "GetFileText",
+      "method": "GET",
+      "response": {
+        "content": "db",
+        "totalSize": "13"
+      },
+      "test_class": "ApiGetFileTextHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt?offset=3&length=2"
+    },
+    {
+      "api_method": "GetFileText",
+      "method": "GET",
+      "response": {
+        "content": "Hello World",
+        "totalSize": "11"
+      },
+      "test_class": "ApiGetFileTextHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt?timestamp=86400000042"
+    }
+  ],
+  "ApiGetFileVersionTimesHandler": [
+    {
+      "api_method": "GetFileVersionTimes",
+      "method": "GET",
+      "response": {
+        "times": [
+          "172800000000",
+          "86400000000"
+        ]
+      },
+      "test_class": "ApiGetFileVersionTimesHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-version-times/fs/os/c/Downloads/a.txt"
+    }
+  ],
+  "ApiGetFlowHandler": [
+    {
+      "api_method": "GetFlow",
+      "method": "GET",
+      "response": {
+        "args": {
+          "@type": "type.googleapis.com/grr.InterrogateArgs"
+        },
+        "context": {
+          "clientResources": {
+            "cpuUsage": {}
+          },
+          "createTime": "42000000",
+          "creator": "test",
+          "currentState": "Start",
+          "nextOutboundId": "9",
+          "outstandingRequests": "8",
+          "remainingCpuQuota": "7200",
+          "sessionId": "aff4:/C.1000000000000000/flows/F:ABCDEF12",
+          "state": "RUNNING",
+          "userNotified": false
+        },
+        "creator": "test",
+        "flowId": "F:ABCDEF12",
+        "lastActiveAt": "42000000",
+        "name": "Interrogate",
+        "runnerArgs": {
+          "clientId": "aff4:/C.1000000000000000",
+          "flowName": "Interrogate",
+          "token": {
+            "reason": "Running tests",
+            "username": "test"
+          }
+        },
+        "startedAt": "42000000",
+        "state": "RUNNING",
+        "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF12"
+      },
+      "test_class": "ApiGetFlowHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/flows/F:ABCDEF12"
+    }
+  ],
+  "ApiGetFlowResultsExportCommandHandler": [
+    {
+      "api_method": "GetFlowResultsExportCommand",
+      "method": "GET",
+      "response": {
+        "command": "/usr/bin/grr_export --username test collection_files --path aff4:/C.1000000000000000/flows/W:ABCDEF/Results --output ."
+      },
+      "test_class": "ApiGetFlowResultsExportCommandHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/results/export-command"
+    }
+  ],
+  "ApiGetGrrUserHandler": [
+    {
+      "api_method": "GetGrrUser",
+      "method": "GET",
+      "response": {
+        "interfaceTraits": {
+          "artifactManagerNavItemEnabled": true,
+          "browseVirtualFileSystemNavItemEnabled": true,
+          "createCronJobActionEnabled": true,
+          "createHuntActionEnabled": true,
+          "cronJobsNavItemEnabled": true,
+          "huntManagerNavItemEnabled": true,
+          "manageBinariesNavItemEnabled": true,
+          "manageClientFlowsNavItemEnabled": true,
+          "modifyClientLabelsActionEnabled": true,
+          "searchClientsActionEnabled": true,
+          "serverLoadNavItemEnabled": true,
+          "settingsNavItemEnabled": true,
+          "showStatisticsNavItemEnabled": true,
+          "startClientFlowNavItemEnabled": true,
+          "startGlobalFlowsNavItemEnabled": true,
+          "uploadArtifactActionEnabled": true,
+          "uploadBinaryActionEnabled": true
+        },
+        "settings": {
+          "canaryMode": true
+        },
+        "username": "test"
+      },
+      "test_class": "ApiGetGrrUserHandlerRegresstionTest",
+      "url": "/api/v2/users/me"
+    }
+  ],
+  "ApiGetHuntApprovalHandler": [
+    {
+      "api_method": "GetHuntApproval",
+      "method": "GET",
+      "response": {
+        "approvers": [
+          "test"
+        ],
+        "id": "approval:111111",
+        "isValid": false,
+        "isValidMessage": "Requires 2 approvers for access.",
+        "notifiedUsers": [
+          "approver"
+        ],
+        "reason": "foo",
+        "subject": {
+          "clientLimit": "100",
+          "clientRate": "0",
+          "created": "42000000",
+          "creator": "test",
+          "description": "hunt1",
+          "expires": "1209642000000",
+          "isRobot": false,
+          "name": "GenericHunt",
+          "state": "PAUSED",
+          "totalCpuUsage": 0.0,
+          "totalNetUsage": "0",
+          "urn": "aff4:/hunts/H:123456"
+        }
+      },
+      "test_class": "ApiGetHuntApprovalHandlerRegressionTest",
+      "url": "/api/v2/users/test/approvals/hunt/H:123456/approval:111111"
+    },
+    {
+      "api_method": "GetHuntApproval",
+      "method": "GET",
+      "response": {
+        "approvers": [
+          "approver",
+          "test"
+        ],
+        "id": "approval:222222",
+        "isValid": true,
+        "notifiedUsers": [
+          "approver"
+        ],
+        "reason": "bar",
+        "subject": {
+          "clientLimit": "100",
+          "clientRate": "0",
+          "created": "42000000",
+          "creator": "test",
+          "description": "hunt2",
+          "expires": "1209642000000",
+          "isRobot": false,
+          "name": "GenericHunt",
+          "state": "PAUSED",
+          "totalCpuUsage": 0.0,
+          "totalNetUsage": "0",
+          "urn": "aff4:/hunts/H:567890"
+        }
+      },
+      "test_class": "ApiGetHuntApprovalHandlerRegressionTest",
+      "url": "/api/v2/users/test/approvals/hunt/H:567890/approval:222222"
+    }
+  ],
+  "ApiGetHuntClientCompletionStatsHandler": [
+    {
+      "api_method": "GetHuntClientCompletionStats",
+      "method": "GET",
+      "response": {
+        "completePoints": [
+          {
+            "xValue": 0.0,
+            "yValue": 0.0
+          },
+          {
+            "xValue": 0.00027777778450399637,
+            "yValue": 1.0
+          },
+          {
+            "xValue": 0.0030555555131286383,
+            "yValue": 2.0
+          },
+          {
+            "xValue": 0.005833333358168602,
+            "yValue": 3.0
+          },
+          {
+            "xValue": 0.008611110970377922,
+            "yValue": 4.0
+          },
+          {
+            "xValue": 0.011388888582587242,
+            "yValue": 5.0
+          },
+          {
+            "xValue": 0.014166667126119137,
+            "yValue": 6.0
+          },
+          {
+            "xValue": 0.016944443807005882,
+            "yValue": 7.0
+          },
+          {
+            "xValue": 0.019722221419215202,
+            "yValue": 8.0
+          },
+          {
+            "xValue": 0.02250000089406967,
+            "yValue": 9.0
+          },
+          {
+            "xValue": 0.02527777850627899,
+            "yValue": 10.0
+          }
+        ],
+        "startPoints": [
+          {
+            "xValue": 0.0,
+            "yValue": 0.0
+          },
+          {
+            "xValue": 0.00027777778450399637,
+            "yValue": 1.0
+          },
+          {
+            "xValue": 0.0030555555131286383,
+            "yValue": 2.0
+          },
+          {
+            "xValue": 0.005833333358168602,
+            "yValue": 3.0
+          },
+          {
+            "xValue": 0.008611110970377922,
+            "yValue": 4.0
+          },
+          {
+            "xValue": 0.011388888582587242,
+            "yValue": 5.0
+          },
+          {
+            "xValue": 0.014166667126119137,
+            "yValue": 6.0
+          },
+          {
+            "xValue": 0.016944443807005882,
+            "yValue": 7.0
+          },
+          {
+            "xValue": 0.019722221419215202,
+            "yValue": 8.0
+          },
+          {
+            "xValue": 0.02250000089406967,
+            "yValue": 9.0
+          },
+          {
+            "xValue": 0.02527777850627899,
+            "yValue": 10.0
+          }
+        ]
+      },
+      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/client-completion-stats?strip_type_info=1"
+    },
+    {
+      "api_method": "GetHuntClientCompletionStats",
+      "method": "GET",
+      "response": {
+        "completePoints": [
+          {
+            "xValue": 0.0,
+            "yValue": 0.0
+          },
+          {
+            "xValue": 0.006319444626569748,
+            "yValue": 3.0
+          },
+          {
+            "xValue": 0.012638889253139496,
+            "yValue": 5.0
+          },
+          {
+            "xValue": 0.018958333879709244,
+            "yValue": 7.0
+          },
+          {
+            "xValue": 0.02527777850627899,
+            "yValue": 10.0
+          }
+        ],
+        "startPoints": [
+          {
+            "xValue": 0.0,
+            "yValue": 0.0
+          },
+          {
+            "xValue": 0.006319444626569748,
+            "yValue": 3.0
+          },
+          {
+            "xValue": 0.012638889253139496,
+            "yValue": 5.0
+          },
+          {
+            "xValue": 0.018958333879709244,
+            "yValue": 7.0
+          },
+          {
+            "xValue": 0.02527777850627899,
+            "yValue": 10.0
+          }
+        ]
+      },
+      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/client-completion-stats?strip_type_info=1&size=4"
+    },
+    {
+      "api_method": "GetHuntClientCompletionStats",
+      "method": "GET",
+      "response": {
+        "completePoints": [
+          {
+            "xValue": 0.0,
+            "yValue": 0.0
+          },
+          {
+            "xValue": 0.00027777778450399637,
+            "yValue": 1.0
+          },
+          {
+            "xValue": 0.0030555555131286383,
+            "yValue": 2.0
+          },
+          {
+            "xValue": 0.005833333358168602,
+            "yValue": 3.0
+          },
+          {
+            "xValue": 0.008611110970377922,
+            "yValue": 4.0
+          },
+          {
+            "xValue": 0.011388888582587242,
+            "yValue": 5.0
+          },
+          {
+            "xValue": 0.014166667126119137,
+            "yValue": 6.0
+          },
+          {
+            "xValue": 0.016944443807005882,
+            "yValue": 7.0
+          },
+          {
+            "xValue": 0.019722221419215202,
+            "yValue": 8.0
+          },
+          {
+            "xValue": 0.02250000089406967,
+            "yValue": 9.0
+          },
+          {
+            "xValue": 0.02527777850627899,
+            "yValue": 10.0
+          }
+        ],
+        "startPoints": [
+          {
+            "xValue": 0.0,
+            "yValue": 0.0
+          },
+          {
+            "xValue": 0.00027777778450399637,
+            "yValue": 1.0
+          },
+          {
+            "xValue": 0.0030555555131286383,
+            "yValue": 2.0
+          },
+          {
+            "xValue": 0.005833333358168602,
+            "yValue": 3.0
+          },
+          {
+            "xValue": 0.008611110970377922,
+            "yValue": 4.0
+          },
+          {
+            "xValue": 0.011388888582587242,
+            "yValue": 5.0
+          },
+          {
+            "xValue": 0.014166667126119137,
+            "yValue": 6.0
+          },
+          {
+            "xValue": 0.016944443807005882,
+            "yValue": 7.0
+          },
+          {
+            "xValue": 0.019722221419215202,
+            "yValue": 8.0
+          },
+          {
+            "xValue": 0.02250000089406967,
+            "yValue": 9.0
+          },
+          {
+            "xValue": 0.02527777850627899,
+            "yValue": 10.0
+          }
+        ]
+      },
+      "test_class": "ApiGetHuntClientCompletionStatsHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/client-completion-stats?strip_type_info=1&size=1000"
+    }
+  ],
+  "ApiGetHuntResultsExportCommandHandler": [
+    {
+      "api_method": "GetHuntResultsExportCommand",
+      "method": "GET",
+      "response": {
+        "command": "/usr/bin/grr_export --username test collection_files --path aff4:/hunts/H:123456/Results --output ."
+      },
+      "test_class": "ApiGetHuntResultsExportCommandHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/results/export-command"
+    }
+  ],
+  "ApiGetHuntStatsHandler": [
+    {
+      "api_method": "GetHuntStats",
+      "method": "GET",
+      "response": {
+        "stats": {
+          "networkBytesSentStats": {
+            "histogram": {
+              "bins": [
+                {
+                  "num": "1",
+                  "rangeMaxValue": 16.0
+                },
+                {
+                  "rangeMaxValue": 32.0
+                },
+                {
+                  "rangeMaxValue": 64.0
+                },
+                {
+                  "rangeMaxValue": 128.0
+                },
+                {
+                  "rangeMaxValue": 256.0
+                },
+                {
+                  "rangeMaxValue": 512.0
+                },
+                {
+                  "rangeMaxValue": 1024.0
+                },
+                {
+                  "rangeMaxValue": 2048.0
+                },
+                {
+                  "rangeMaxValue": 4096.0
+                },
+                {
+                  "rangeMaxValue": 8192.0
+                },
+                {
+                  "rangeMaxValue": 16384.0
+                },
+                {
+                  "rangeMaxValue": 32768.0
+                },
+                {
+                  "rangeMaxValue": 65536.0
+                },
+                {
+                  "rangeMaxValue": 131072.0
+                },
+                {
+                  "rangeMaxValue": 262144.0
+                },
+                {
+                  "rangeMaxValue": 524288.0
+                },
+                {
+                  "rangeMaxValue": 1048576.0
+                },
+                {
+                  "rangeMaxValue": 2097152.0
+                }
+              ]
+            },
+            "num": "1",
+            "sum": 3.0,
+            "sumSq": 9.0
+          },
+          "systemCpuStats": {
+            "histogram": {
+              "bins": [
+                {
+                  "rangeMaxValue": 0.10000000149011612
+                },
+                {
+                  "rangeMaxValue": 0.20000000298023224
+                },
+                {
+                  "rangeMaxValue": 0.30000001192092896
+                },
+                {
+                  "rangeMaxValue": 0.4000000059604645
+                },
+                {
+                  "rangeMaxValue": 0.5
+                },
+                {
+                  "rangeMaxValue": 0.75
+                },
+                {
+                  "rangeMaxValue": 1.0
+                },
+                {
+                  "rangeMaxValue": 1.5
+                },
+                {
+                  "rangeMaxValue": 2.0
+                },
+                {
+                  "num": "1",
+                  "rangeMaxValue": 2.5
+                },
+                {
+                  "rangeMaxValue": 3.0
+                },
+                {
+                  "rangeMaxValue": 4.0
+                },
+                {
+                  "rangeMaxValue": 5.0
+                },
+                {
+                  "rangeMaxValue": 6.0
+                },
+                {
+                  "rangeMaxValue": 7.0
+                },
+                {
+                  "rangeMaxValue": 8.0
+                },
+                {
+                  "rangeMaxValue": 9.0
+                },
+                {
+                  "rangeMaxValue": 10.0
+                },
+                {
+                  "rangeMaxValue": 15.0
+                },
+                {
+                  "rangeMaxValue": 20.0
+                }
+              ]
+            },
+            "num": "1",
+            "sum": 2.0,
+            "sumSq": 4.0
+          },
+          "userCpuStats": {
+            "histogram": {
+              "bins": [
+                {
+                  "rangeMaxValue": 0.10000000149011612
+                },
+                {
+                  "rangeMaxValue": 0.20000000298023224
+                },
+                {
+                  "rangeMaxValue": 0.30000001192092896
+                },
+                {
+                  "rangeMaxValue": 0.4000000059604645
+                },
+                {
+                  "rangeMaxValue": 0.5
+                },
+                {
+                  "rangeMaxValue": 0.75
+                },
+                {
+                  "rangeMaxValue": 1.0
+                },
+                {
+                  "num": "1",
+                  "rangeMaxValue": 1.5
+                },
+                {
+                  "rangeMaxValue": 2.0
+                },
+                {
+                  "rangeMaxValue": 2.5
+                },
+                {
+                  "rangeMaxValue": 3.0
+                },
+                {
+                  "rangeMaxValue": 4.0
+                },
+                {
+                  "rangeMaxValue": 5.0
+                },
+                {
+                  "rangeMaxValue": 6.0
+                },
+                {
+                  "rangeMaxValue": 7.0
+                },
+                {
+                  "rangeMaxValue": 8.0
+                },
+                {
+                  "rangeMaxValue": 9.0
+                },
+                {
+                  "rangeMaxValue": 10.0
+                },
+                {
+                  "rangeMaxValue": 15.0
+                },
+                {
+                  "rangeMaxValue": 20.0
+                }
+              ]
+            },
+            "num": "1",
+            "sum": 1.0,
+            "sumSq": 1.0
+          },
+          "worstPerformers": [
+            {
+              "clientId": "aff4:/C.1000000000000000",
+              "cpuUsage": {
+                "systemCpuTime": 2.0,
+                "userCpuTime": 1.0
+              },
+              "networkBytesSent": "3",
+              "sessionId": "aff4:/hunts/H:123456/C.1000000000000000/<replaced session value>"
+            }
+          ]
+        }
+      },
+      "test_class": "ApiGetHuntStatsHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/stats"
+    }
+  ],
+  "ApiGetLastClientIPAddressHandler": [
+    {
+      "api_method": "GetLastClientIPAddress",
+      "method": "GET",
+      "response": {
+        "info": "Internal IP address.",
+        "ip": "192.168.100.42",
+        "status": "INTERNAL"
+      },
+      "test_class": "ApiGetLastClientIPAddressHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/last-ip"
+    }
+  ],
+  "ApiGetPendingUserNotificationsCountHandler": [
+    {
+      "api_method": "GetPendingUserNotificationsCount",
+      "method": "GET",
+      "response": {
+        "count": "2"
+      },
+      "test_class": "ApiGetPendingUserNotificationsCountHandlerRegressionTest",
+      "url": "/api/v2/users/me/notifications/pending/count"
+    }
+  ],
+  "ApiGetRDFValueDescriptorHandler": [
+    {
+      "api_method": "GetRDFValueDescriptor",
+      "method": "GET",
+      "response": {
+        "default": {
+          "@type": "type.googleapis.com/google.protobuf.UInt64Value",
+          "value": "0"
+        },
+        "doc": "Duration value stored in seconds internally.",
+        "kind": "PRIMITIVE",
+        "name": "Duration",
+        "parents": [
+          "Duration",
+          "RDFInteger",
+          "RDFValue",
+          "object"
+        ]
+      },
+      "test_class": "ApiGetRDFValueDescriptorHandlerRegressionTest",
+      "url": "/api/v2/reflection/rdfvalue/Duration"
+    },
+    {
+      "api_method": "GetRDFValueDescriptor",
+      "method": "GET",
+      "response": {
+        "default": {
+          "@type": "type.googleapis.com/grr.ApiFlow"
+        },
+        "doc": "ApiFlow is used when rendering responses.\n\n  ApiFlow is meant to be more lightweight than automatically generated AFF4\n  representation. It's also meant to contain only the information needed by\n  the UI and and to not expose implementation defails.\n  ",
+        "fields": [
+          {
+            "doc": "Flow URN.",
+            "dynamic": false,
+            "friendlyName": "Urn",
+            "index": 1,
+            "name": "urn",
+            "repeated": false,
+            "type": "SessionID"
+          },
+          {
+            "doc": "Flow id.",
+            "dynamic": false,
+            "friendlyName": "Flow id",
+            "index": 12,
+            "name": "flow_id",
+            "repeated": false,
+            "type": "ApiFlowId"
+          },
+          {
+            "default": {
+              "@type": "type.googleapis.com/google.protobuf.StringValue",
+              "value": ""
+            },
+            "doc": "Flow name.",
+            "dynamic": false,
+            "friendlyName": "Name",
+            "index": 2,
+            "name": "name",
+            "repeated": false,
+            "type": "RDFString"
+          },
+          {
+            "doc": "Flow arguments.",
+            "dynamic": true,
+            "friendlyName": "Args",
+            "index": 3,
+            "name": "args",
+            "repeated": false
+          },
+          {
+            "doc": "Flow runner arguments.",
+            "dynamic": false,
+            "friendlyName": "Runner args",
+            "index": 4,
+            "name": "runner_args",
+            "repeated": false,
+            "type": "FlowRunnerArgs"
+          },
+          {
+            "allowedValues": [
+              {
+                "doc": "",
+                "name": "RUNNING",
+                "value": "0"
+              },
+              {
+                "doc": "",
+                "name": "TERMINATED",
+                "value": "1"
+              },
+              {
+                "doc": "",
+                "name": "ERROR",
+                "value": "3"
+              },
+              {
+                "doc": "",
+                "name": "CLIENT_CRASHED",
+                "value": "4"
+              }
+            ],
+            "default": {
+              "@type": "type.googleapis.com/google.protobuf.Int64Value",
+              "value": "0"
+            },
+            "doc": "Current flow state.",
+            "dynamic": false,
+            "friendlyName": "State",
+            "index": 5,
+            "name": "state",
+            "repeated": false,
+            "type": "EnumNamedValue"
+          },
+          {
+            "doc": "When flow was created.",
+            "dynamic": false,
+            "friendlyName": "Started at",
+            "index": 6,
+            "name": "started_at",
+            "repeated": false,
+            "type": "RDFDatetime"
+          },
+          {
+            "doc": "When flow was last active.",
+            "dynamic": false,
+            "friendlyName": "Last active at",
+            "index": 7,
+            "name": "last_active_at",
+            "repeated": false,
+            "type": "RDFDatetime"
+          },
+          {
+            "default": {
+              "@type": "type.googleapis.com/google.protobuf.StringValue",
+              "value": ""
+            },
+            "doc": "Who started the flow.",
+            "dynamic": false,
+            "friendlyName": "Creator",
+            "index": 8,
+            "name": "creator",
+            "repeated": false,
+            "type": "RDFString"
+          },
+          {
+            "doc": "Current flow state data.",
+            "dynamic": false,
+            "friendlyName": "State data",
+            "index": 10,
+            "name": "state_data",
+            "repeated": false,
+            "type": "ApiDataObject"
+          },
+          {
+            "doc": "Current flow context.",
+            "dynamic": false,
+            "friendlyName": "Context",
+            "index": 11,
+            "name": "context",
+            "repeated": false,
+            "type": "FlowContext"
+          },
+          {
+            "doc": "Nested flows started by this flow.",
+            "dynamic": false,
+            "friendlyName": "Nested flows",
+            "index": 9,
+            "name": "nested_flows",
+            "repeated": true,
+            "type": "ApiFlow"
+          }
+        ],
+        "kind": "STRUCT",
+        "name": "ApiFlow",
+        "parents": [
+          "ApiFlow",
+          "RDFProtoStruct",
+          "RDFStruct",
+          "RDFValue",
+          "object"
+        ]
+      },
+      "test_class": "ApiGetRDFValueDescriptorHandlerRegressionTest",
+      "url": "/api/v2/reflection/rdfvalue/ApiFlow"
+    }
+  ],
+  "ApiGetReportHandler": [
+    {
+      "api_method": "GetReport",
+      "method": "GET",
+      "response": {
+        "data": {
+          "representationType": "STACK_CHART",
+          "stackChart": {
+            "data": [
+              {
+                "label": "Bar",
+                "points": [
+                  {
+                    "x": 5.0,
+                    "y": 3.0
+                  },
+                  {
+                    "x": 8.0,
+                    "y": 4.0
+                  },
+                  {
+                    "x": 13.0,
+                    "y": 5.0
+                  },
+                  {
+                    "x": 21.0,
+                    "y": 6.0
+                  }
+                ]
+              }
+            ]
+          }
+        },
+        "desc": {
+          "name": "BarReportPlugin",
+          "requiresTimeRange": true,
+          "summary": "Reports bars' activity in the given time range.",
+          "title": "Bar Activity",
+          "type": "SERVER"
+        }
+      },
+      "test_class": "ApiGetReportRegressionTest",
+      "url": "/api/v2/stats/reports/BarReportPlugin?start_time=1355443200000000&duration=4d"
+    }
+  ],
+  "ApiGetRobotGetFilesOperationStateHandler": [
+    {
+      "api_method": "GetRobotGetFilesOperationState",
+      "method": "GET",
+      "response": {
+        "resultCount": "1",
+        "state": "RUNNING"
+      },
+      "test_class": "ApiGetRobotGetFilesOperationStateHandlerRegressionTest",
+      "url": "/api/v2/robot-actions/get-files/aff4:/C.1000000000000000/flows/F:ABCDEF12"
+    }
+  ],
+  "ApiGetStatsStoreMetricHandler": [
+    {
+      "api_method": "GetStatsStoreMetric",
+      "method": "GET",
+      "response": {
+        "dataPoints": [
+          {
+            "timestamp": "42000000",
+            "value": 1.0
+          },
+          {
+            "timestamp": "72000000",
+            "value": 1.0
+          },
+          {
+            "timestamp": "102000000",
+            "value": 2.0
+          },
+          {
+            "timestamp": "132000000",
+            "value": 2.0
+          },
+          {
+            "timestamp": "162000000",
+            "value": 3.0
+          },
+          {
+            "timestamp": "192000000",
+            "value": 3.0
+          },
+          {
+            "timestamp": "222000000",
+            "value": 4.0
+          },
+          {
+            "timestamp": "252000000",
+            "value": 4.0
+          },
+          {
+            "timestamp": "282000000",
+            "value": 5.0
+          },
+          {
+            "timestamp": "312000000",
+            "value": 5.0
+          },
+          {
+            "timestamp": "342000000",
+            "value": 6.0
+          },
+          {
+            "timestamp": "372000000",
+            "value": 6.0
+          },
+          {
+            "timestamp": "402000000",
+            "value": 7.0
+          },
+          {
+            "timestamp": "432000000",
+            "value": 7.0
+          },
+          {
+            "timestamp": "462000000",
+            "value": 8.0
+          },
+          {
+            "timestamp": "492000000",
+            "value": 8.0
+          },
+          {
+            "timestamp": "522000000",
+            "value": 9.0
+          },
+          {
+            "timestamp": "552000000",
+            "value": 9.0
+          },
+          {
+            "timestamp": "582000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "612000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "642000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "672000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "702000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "732000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "762000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "792000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "822000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "852000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "882000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "912000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "942000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "972000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1002000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1032000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1062000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1092000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1122000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1152000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1182000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1212000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1242000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1272000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1302000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1332000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1362000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1392000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1422000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1452000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1482000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1512000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1542000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1572000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1602000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1632000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1662000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1692000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1722000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1752000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1782000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1812000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1842000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1872000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1902000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1932000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1962000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1992000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2022000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2052000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2082000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2112000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2142000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2172000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2202000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2232000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2262000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2292000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2322000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2352000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2382000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2412000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2442000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2472000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2502000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2532000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2562000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2592000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2622000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2652000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2682000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2712000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2742000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2772000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2802000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2832000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2862000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2892000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2922000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2952000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2982000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3012000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3042000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3072000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3102000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3132000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3162000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3192000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3222000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3252000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3282000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3312000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3342000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3372000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3402000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3432000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3462000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3492000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3522000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3552000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3582000000",
+            "value": 10.0
+          }
+        ],
+        "end": "3600000000",
+        "metricName": "sample_counter",
+        "start": "42000000"
+      },
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
+      "url": "/api/v2/stats/store/WORKER/metrics/sample_counter?start=42000000&end=3600000000"
+    },
+    {
+      "api_method": "GetStatsStoreMetric",
+      "method": "GET",
+      "response": {
+        "dataPoints": [
+          {
+            "timestamp": "42000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "72000000",
+            "value": 0.03333333333333333
+          },
+          {
+            "timestamp": "102000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "132000000",
+            "value": 0.03333333333333333
+          },
+          {
+            "timestamp": "162000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "192000000",
+            "value": 0.03333333333333333
+          },
+          {
+            "timestamp": "222000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "252000000",
+            "value": 0.03333333333333333
+          },
+          {
+            "timestamp": "282000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "312000000",
+            "value": 0.03333333333333333
+          },
+          {
+            "timestamp": "342000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "372000000",
+            "value": 0.03333333333333333
+          },
+          {
+            "timestamp": "402000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "432000000",
+            "value": 0.03333333333333333
+          },
+          {
+            "timestamp": "462000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "492000000",
+            "value": 0.03333333333333333
+          },
+          {
+            "timestamp": "522000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "552000000",
+            "value": 0.03333333333333333
+          },
+          {
+            "timestamp": "582000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "612000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "642000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "672000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "702000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "732000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "762000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "792000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "822000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "852000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "882000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "912000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "942000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "972000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1002000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1032000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1062000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1092000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1122000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1152000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1182000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1212000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1242000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1272000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1302000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1332000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1362000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1392000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1422000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1452000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1482000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1512000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1542000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1572000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1602000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1632000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1662000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1692000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1722000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1752000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1782000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1812000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1842000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1872000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1902000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1932000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1962000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "1992000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2022000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2052000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2082000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2112000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2142000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2172000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2202000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2232000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2262000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2292000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2322000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2352000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2382000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2412000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2442000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2472000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2502000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2532000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2562000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2592000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2622000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2652000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2682000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2712000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2742000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2772000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2802000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2832000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2862000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2892000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2922000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2952000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "2982000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3012000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3042000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3072000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3102000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3132000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3162000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3192000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3222000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3252000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3282000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3312000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3342000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3372000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3402000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3432000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3462000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3492000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3522000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "3552000000",
+            "value": 0.0
+          }
+        ],
+        "end": "3600000000",
+        "metricName": "sample_counter",
+        "start": "42000000"
+      },
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
+      "url": "/api/v2/stats/store/WORKER/metrics/sample_counter?start=42000000&end=3600000000&rate=1m"
+    },
+    {
+      "api_method": "GetStatsStoreMetric",
+      "method": "GET",
+      "response": {
+        "dataPoints": [
+          {
+            "timestamp": "42000000",
+            "value": 0.0
+          },
+          {
+            "timestamp": "102000000",
+            "value": 0.5
+          },
+          {
+            "timestamp": "162000000",
+            "value": 1.0
+          },
+          {
+            "timestamp": "222000000",
+            "value": 1.5
+          },
+          {
+            "timestamp": "282000000",
+            "value": 2.0
+          },
+          {
+            "timestamp": "342000000",
+            "value": 2.5
+          },
+          {
+            "timestamp": "402000000",
+            "value": 3.0
+          },
+          {
+            "timestamp": "462000000",
+            "value": 3.5
+          },
+          {
+            "timestamp": "522000000",
+            "value": 4.0
+          },
+          {
+            "timestamp": "582000000",
+            "value": 4.5
+          }
+        ],
+        "end": "3600000000",
+        "metricName": "sample_gauge_value",
+        "start": "42000000"
+      },
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
+      "url": "/api/v2/stats/store/WORKER/metrics/sample_gauge_value?start=42000000&end=3600000000"
+    },
+    {
+      "api_method": "GetStatsStoreMetric",
+      "method": "GET",
+      "response": {
+        "dataPoints": [
+          {
+            "timestamp": "42000000",
+            "value": 0.41999998688697815
+          },
+          {
+            "timestamp": "72000000",
+            "value": 0.41999998688697815
+          },
+          {
+            "timestamp": "102000000",
+            "value": 1.340000033378601
+          },
+          {
+            "timestamp": "132000000",
+            "value": 1.340000033378601
+          },
+          {
+            "timestamp": "162000000",
+            "value": 2.759999990463257
+          },
+          {
+            "timestamp": "192000000",
+            "value": 2.759999990463257
+          },
+          {
+            "timestamp": "222000000",
+            "value": 4.679999828338623
+          },
+          {
+            "timestamp": "252000000",
+            "value": 4.679999828338623
+          },
+          {
+            "timestamp": "282000000",
+            "value": 7.099999904632568
+          },
+          {
+            "timestamp": "312000000",
+            "value": 7.099999904632568
+          },
+          {
+            "timestamp": "342000000",
+            "value": 10.020000457763672
+          },
+          {
+            "timestamp": "372000000",
+            "value": 10.020000457763672
+          },
+          {
+            "timestamp": "402000000",
+            "value": 13.4399995803833
+          },
+          {
+            "timestamp": "432000000",
+            "value": 13.4399995803833
+          },
+          {
+            "timestamp": "462000000",
+            "value": 17.360000610351562
+          },
+          {
+            "timestamp": "492000000",
+            "value": 17.360000610351562
+          },
+          {
+            "timestamp": "522000000",
+            "value": 21.780000686645508
+          },
+          {
+            "timestamp": "552000000",
+            "value": 21.780000686645508
+          },
+          {
+            "timestamp": "582000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "612000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "642000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "672000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "702000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "732000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "762000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "792000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "822000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "852000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "882000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "912000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "942000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "972000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1002000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1032000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1062000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1092000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1122000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1152000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1182000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1212000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1242000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1272000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1302000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1332000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1362000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1392000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1422000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1452000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1482000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1512000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1542000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1572000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1602000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1632000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1662000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1692000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1722000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1752000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1782000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1812000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1842000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1872000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1902000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1932000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1962000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "1992000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2022000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2052000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2082000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2112000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2142000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2172000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2202000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2232000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2262000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2292000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2322000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2352000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2382000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2412000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2442000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2472000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2502000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2532000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2562000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2592000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2622000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2652000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2682000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2712000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2742000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2772000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2802000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2832000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2862000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2892000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2922000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2952000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "2982000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3012000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3042000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3072000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3102000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3132000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3162000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3192000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3222000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3252000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3282000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3312000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3342000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3372000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3402000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3432000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3462000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3492000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3522000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3552000000",
+            "value": 26.700000762939453
+          },
+          {
+            "timestamp": "3582000000",
+            "value": 26.700000762939453
+          }
+        ],
+        "end": "3600000000",
+        "metricName": "sample_event",
+        "start": "42000000"
+      },
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
+      "url": "/api/v2/stats/store/WORKER/metrics/sample_event?start=42000000&end=3600000000"
+    },
+    {
+      "api_method": "GetStatsStoreMetric",
+      "method": "GET",
+      "response": {
+        "dataPoints": [
+          {
+            "timestamp": "42000000",
+            "value": 1.0
+          },
+          {
+            "timestamp": "72000000",
+            "value": 1.0
+          },
+          {
+            "timestamp": "102000000",
+            "value": 2.0
+          },
+          {
+            "timestamp": "132000000",
+            "value": 2.0
+          },
+          {
+            "timestamp": "162000000",
+            "value": 3.0
+          },
+          {
+            "timestamp": "192000000",
+            "value": 3.0
+          },
+          {
+            "timestamp": "222000000",
+            "value": 4.0
+          },
+          {
+            "timestamp": "252000000",
+            "value": 4.0
+          },
+          {
+            "timestamp": "282000000",
+            "value": 5.0
+          },
+          {
+            "timestamp": "312000000",
+            "value": 5.0
+          },
+          {
+            "timestamp": "342000000",
+            "value": 6.0
+          },
+          {
+            "timestamp": "372000000",
+            "value": 6.0
+          },
+          {
+            "timestamp": "402000000",
+            "value": 7.0
+          },
+          {
+            "timestamp": "432000000",
+            "value": 7.0
+          },
+          {
+            "timestamp": "462000000",
+            "value": 8.0
+          },
+          {
+            "timestamp": "492000000",
+            "value": 8.0
+          },
+          {
+            "timestamp": "522000000",
+            "value": 9.0
+          },
+          {
+            "timestamp": "552000000",
+            "value": 9.0
+          },
+          {
+            "timestamp": "582000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "612000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "642000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "672000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "702000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "732000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "762000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "792000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "822000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "852000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "882000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "912000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "942000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "972000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1002000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1032000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1062000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1092000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1122000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1152000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1182000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1212000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1242000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1272000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1302000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1332000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1362000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1392000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1422000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1452000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1482000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1512000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1542000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1572000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1602000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1632000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1662000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1692000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1722000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1752000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1782000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1812000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1842000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1872000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1902000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1932000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1962000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "1992000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2022000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2052000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2082000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2112000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2142000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2172000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2202000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2232000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2262000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2292000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2322000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2352000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2382000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2412000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2442000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2472000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2502000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2532000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2562000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2592000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2622000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2652000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2682000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2712000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2742000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2772000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2802000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2832000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2862000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2892000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2922000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2952000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "2982000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3012000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3042000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3072000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3102000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3132000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3162000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3192000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3222000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3252000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3282000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3312000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3342000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3372000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3402000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3432000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3462000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3492000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3522000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3552000000",
+            "value": 10.0
+          },
+          {
+            "timestamp": "3582000000",
+            "value": 10.0
+          }
+        ],
+        "end": "3600000000",
+        "metricName": "sample_event",
+        "start": "42000000"
+      },
+      "test_class": "ApiGetStatsStoreMetricHandlerRegressionTest",
+      "url": "/api/v2/stats/store/WORKER/metrics/sample_event?start=42000000&end=3600000000&distribution_handling_mode=DH_COUNT"
+    }
+  ],
+  "ApiGetVfsFileContentUpdateStateHandler": [
+    {
+      "api_method": "GetVfsFileContentUpdateState",
+      "method": "GET",
+      "response": {
+        "state": "RUNNING"
+      },
+      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
+    },
+    {
+      "api_method": "GetVfsFileContentUpdateState",
+      "method": "GET",
+      "response": {
+        "state": "FINISHED"
+      },
+      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
+    },
+    {
+      "api_method": "GetVfsFileContentUpdateState",
+      "method": "GET",
+      "response": {
+        "message": "Operation with id aff4:/C.1000000000000000/flows/W:ABCDEF not found"
+      },
+      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
+    },
+    {
+      "api_method": "GetVfsFileContentUpdateState",
+      "method": "GET",
+      "response": {
+        "message": "Operation with id W:ABCDEF not found"
+      },
+      "test_class": "ApiGetVfsFileContentUpdateStateHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-update/W:ABCDEF"
+    }
+  ],
+  "ApiGetVfsRefreshOperationStateHandler": [
+    {
+      "api_method": "GetVfsRefreshOperationState",
+      "method": "GET",
+      "response": {
+        "state": "RUNNING"
+      },
+      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
+    },
+    {
+      "api_method": "GetVfsRefreshOperationState",
+      "method": "GET",
+      "response": {
+        "state": "FINISHED"
+      },
+      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
+    },
+    {
+      "api_method": "GetVfsRefreshOperationState",
+      "method": "GET",
+      "response": {
+        "message": "Operation with id aff4:/C.1000000000000000/flows/W:ABCDEF not found"
+      },
+      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
+    },
+    {
+      "api_method": "GetVfsRefreshOperationState",
+      "method": "GET",
+      "response": {
+        "message": "Operation with id W:ABCDEF not found"
+      },
+      "test_class": "ApiGetVfsRefreshOperationStateHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-refresh-operations/W:ABCDEF"
+    }
+  ],
+  "ApiGetVfsTimelineHandler": [
+    {
+      "api_method": "GetVfsTimeline",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "action": "MODIFICATION",
+            "filePath": "fs/os/Users/Shared/a.txt",
+            "timestamp": "4000000"
+          },
+          {
+            "action": "MODIFICATION",
+            "filePath": "fs/os/Users/Shared/a.txt",
+            "timestamp": "3000000"
+          },
+          {
+            "action": "MODIFICATION",
+            "filePath": "fs/os/Users/Shared/a.txt",
+            "timestamp": "2000000"
+          },
+          {
+            "action": "MODIFICATION",
+            "filePath": "fs/os/Users/Shared/a.txt",
+            "timestamp": "1000000"
+          },
+          {
+            "action": "MODIFICATION",
+            "filePath": "fs/os/Users/Shared/a.txt",
+            "timestamp": "0"
+          }
+        ]
+      },
+      "test_class": "ApiGetVfsTimelineHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-timeline/fs/os/Users/Shared"
+    }
+  ],
+  "ApiGrantClientApprovalHandler": [
+    {
+      "api_method": "GrantClientApproval",
+      "method": "POST",
+      "response": {
+        "approvers": [
+          "requestor",
+          "test"
+        ],
+        "id": "approval:111111",
+        "isValid": true,
+        "notifiedUsers": [
+          "test"
+        ],
+        "reason": "foo",
+        "subject": {
+          "agentInfo": {
+            "clientName": "GRR Monitor"
+          },
+          "hardwareInfo": {
+            "biosVersion": "Bios-Version-0",
+            "systemManufacturer": "System-Manufacturer-0"
+          },
+          "knowledgeBase": {
+            "hostname": "Host-0.example.com"
+          },
+          "lastSeenAt": "42000000",
+          "osInfo": {
+            "fqdn": "Host-0.example.com",
+            "node": "Host-0",
+            "version": ""
+          },
+          "urn": "aff4:/C.1000000000000000"
+        }
+      },
+      "test_class": "ApiGrantClientApprovalHandlerRegressionTest",
+      "url": "/api/v2/users/requestor/approvals/client/C.1000000000000000/approval:111111/actions/grant"
+    }
+  ],
+  "ApiGrantCronJobApprovalHandler": [
+    {
+      "api_method": "GrantCronJobApproval",
+      "method": "POST",
+      "response": {
+        "approvers": [
+          "requestor",
+          "test"
+        ],
+        "id": "approval:111111",
+        "isValid": true,
+        "notifiedUsers": [
+          "test"
+        ],
+        "reason": "foo",
+        "subject": {
+          "allowOverruns": false,
+          "description": "",
+          "flowName": "",
+          "flowRunnerArgs": {},
+          "lifetime": "0",
+          "periodicity": "86400",
+          "state": "ENABLED",
+          "urn": "aff4:/cron/CronJob_123456"
+        }
+      },
+      "test_class": "ApiGrantCronJobApprovalHandlerRegressionTest",
+      "url": "/api/v2/users/requestor/approvals/cron-job/CronJob_123456/approval:111111/actions/grant"
+    }
+  ],
+  "ApiGrantHuntApprovalHandler": [
+    {
+      "api_method": "GrantHuntApproval",
+      "method": "POST",
+      "response": {
+        "approvers": [
+          "requestor",
+          "test"
+        ],
+        "id": "approval:111111",
+        "isValid": true,
+        "notifiedUsers": [
+          "test"
+        ],
+        "reason": "foo",
+        "subject": {
+          "clientLimit": "100",
+          "clientRate": "0",
+          "created": "42000000",
+          "creator": "test",
+          "description": "a hunt",
+          "expires": "1209642000000",
+          "isRobot": false,
+          "name": "GenericHunt",
+          "state": "PAUSED",
+          "totalCpuUsage": 0.0,
+          "totalNetUsage": "0",
+          "urn": "aff4:/hunts/H:123456"
+        }
+      },
+      "test_class": "ApiGrantHuntApprovalHandlerRegressionTest",
+      "url": "/api/v2/users/requestor/approvals/hunt/H:123456/approval:111111/actions/grant"
+    }
+  ],
+  "ApiListAndResetUserNotificationsHandler": [
+    {
+      "api_method": "ListAndResetUserNotifications",
+      "method": "POST",
+      "response": {
+        "items": [
+          {
+            "isPending": true,
+            "message": "Host-0: <some other message>",
+            "reference": {
+              "discovery": {
+                "clientId": "aff4:/C.1000000000000000"
+              },
+              "type": "DISCOVERY"
+            },
+            "timestamp": "44000000"
+          },
+          {
+            "isPending": true,
+            "message": "Host-0: <some message>",
+            "reference": {
+              "discovery": {
+                "clientId": "aff4:/C.1000000000000000"
+              },
+              "type": "DISCOVERY"
+            },
+            "timestamp": "42000000"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest",
+      "url": "/api/v2/users/me/notifications"
+    },
+    {
+      "api_method": "ListAndResetUserNotifications",
+      "method": "POST",
+      "response": {
+        "items": [
+          {
+            "isPending": false,
+            "message": "Host-0: <some other message>",
+            "reference": {
+              "discovery": {
+                "clientId": "aff4:/C.1000000000000000"
+              },
+              "type": "DISCOVERY"
+            },
+            "timestamp": "44000000"
+          },
+          {
+            "isPending": false,
+            "message": "Host-0: <some message>",
+            "reference": {
+              "discovery": {
+                "clientId": "aff4:/C.1000000000000000"
+              },
+              "type": "DISCOVERY"
+            },
+            "timestamp": "42000000"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest",
+      "url": "/api/v2/users/me/notifications?offset=1&count=1"
+    },
+    {
+      "api_method": "ListAndResetUserNotifications",
+      "method": "POST",
+      "response": {
+        "items": [
+          {
+            "isPending": false,
+            "message": "Host-0: <some other message>",
+            "reference": {
+              "discovery": {
+                "clientId": "aff4:/C.1000000000000000"
+              },
+              "type": "DISCOVERY"
+            },
+            "timestamp": "44000000"
+          },
+          {
+            "isPending": false,
+            "message": "Host-0: <some message>",
+            "reference": {
+              "discovery": {
+                "clientId": "aff4:/C.1000000000000000"
+              },
+              "type": "DISCOVERY"
+            },
+            "timestamp": "42000000"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListAndResetUserNotificationsHandlerRegressionTest",
+      "url": "/api/v2/users/me/notifications?filter=other"
+    }
+  ],
+  "ApiListArtifactsHandler": [
+    {
+      "api_method": "ListArtifacts",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "artifact": {
+              "conditions": [
+                "os_major_version >= 6"
+              ],
+              "doc": "Extract the installed drivers on Windows via WMI.",
+              "labels": [
+                "Software"
+              ],
+              "name": "TestDrivers",
+              "sources": [
+                {
+                  "attributes": {
+                    "dat": [
+                      {
+                        "k": {
+                          "data": "cXVlcnk="
+                        },
+                        "v": {
+                          "data": "U0VMRUNUICogZnJvbSBXaW4zMl9TeXN0ZW1Ecml2ZXI="
+                        }
+                      }
+                    ]
+                  },
+                  "type": "WMI"
+                }
+              ],
+              "supportedOs": [
+                "Windows"
+              ],
+              "urls": [
+                "http://www.example.com"
+              ]
+            },
+            "artifactSource": "{ \"conditions\": [ \"os_major_version >= 6\" ],\n  \"dependencies\": [],\n  \"doc\": \"Extract the installed drivers on Windows via WMI.\",\n  \"labels\": [ \"Software\" ],\n  \"name\": \"TestDrivers\",\n  \"provides\": [],\n  \"sources\": [\n    { \"attributes\": { \"query\": \"SELECT * from Win32_SystemDriver\"\n      },\n      \"conditions\": [],\n      \"returned_types\": [],\n      \"type\": \"WMI\"\n    }\n  ],\n  \"supported_os\": [ \"Windows\" ],\n  \"urls\": [ \"http://www.example.com\" ]\n}",
+            "errorMessage": "",
+            "isCustom": false
+          }
+        ],
+        "totalCount": "1"
+      },
+      "test_class": "ApiListArtifacstHandlerRegressionTest",
+      "url": "/api/v2/artifacts"
+    }
+  ],
+  "ApiListClientActionRequestsHandler": [
+    {
+      "api_method": "ListClientActionRequests",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientAction": "ListProcesses",
+            "sessionId": "aff4:/C.1000000000000000/flows/F:123456",
+            "taskEta": "10042000000",
+            "taskId": "43"
+          }
+        ]
+      },
+      "test_class": "ApiListClientActionRequestsHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/action-requests"
+    },
+    {
+      "api_method": "ListClientActionRequests",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientAction": "ListProcesses",
+            "responses": [
+              {
+                "args": "CAo=",
+                "argsRdfName": "GrrStatus",
+                "authState": "AUTHENTICATED",
+                "cpuLimit": 7200.0,
+                "eta": "42000000",
+                "lastLease": "test@test.host:42",
+                "name": "ListProcesses",
+                "priority": "MEDIUM_PRIORITY",
+                "queue": "aff4:/C.1000000000000000/tasks",
+                "requestId": "1",
+                "requireFastpoll": true,
+                "responseId": "1",
+                "sessionId": "aff4:/C.1000000000000000/flows/F:123456",
+                "taskId": "43",
+                "taskTtl": 6,
+                "type": "STATUS"
+              }
+            ],
+            "sessionId": "aff4:/C.1000000000000000/flows/F:123456",
+            "taskEta": "10042000000",
+            "taskId": "43"
+          }
+        ]
+      },
+      "test_class": "ApiListClientActionRequestsHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/action-requests?fetch_responses=1"
+    }
+  ],
+  "ApiListClientApprovalsHandler": [
+    {
+      "api_method": "ListClientApprovals",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "approvers": [
+              "approver",
+              "test"
+            ],
+            "id": "approval:222222",
+            "isValid": true,
+            "notifiedUsers": [
+              "approver"
+            ],
+            "reason": "Running tests",
+            "subject": {
+              "agentInfo": {
+                "clientName": "GRR Monitor"
+              },
+              "hardwareInfo": {
+                "biosVersion": "Bios-Version-1",
+                "systemManufacturer": "System-Manufacturer-1"
+              },
+              "knowledgeBase": {
+                "hostname": "Host-1.example.com"
+              },
+              "lastSeenAt": "42000000",
+              "osInfo": {
+                "fqdn": "Host-1.example.com",
+                "node": "Host-1",
+                "version": ""
+              },
+              "urn": "aff4:/C.1000000000000001"
+            }
+          },
+          {
+            "approvers": [
+              "test"
+            ],
+            "id": "approval:111111",
+            "isValid": false,
+            "isValidMessage": "Requires 2 approvers for access.",
+            "notifiedUsers": [
+              "approver"
+            ],
+            "reason": "Running tests",
+            "subject": {
+              "agentInfo": {
+                "clientName": "GRR Monitor"
+              },
+              "hardwareInfo": {
+                "biosVersion": "Bios-Version-0",
+                "systemManufacturer": "System-Manufacturer-0"
+              },
+              "knowledgeBase": {
+                "hostname": "Host-0.example.com"
+              },
+              "lastSeenAt": "42000000",
+              "osInfo": {
+                "fqdn": "Host-0.example.com",
+                "node": "Host-0",
+                "version": ""
+              },
+              "urn": "aff4:/C.1000000000000000"
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListClientApprovalsHandlerRegressionTest",
+      "url": "/api/v2/users/me/approvals/client"
+    },
+    {
+      "api_method": "ListClientApprovals",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "approvers": [
+              "test"
+            ],
+            "id": "approval:111111",
+            "isValid": false,
+            "isValidMessage": "Requires 2 approvers for access.",
+            "notifiedUsers": [
+              "approver"
+            ],
+            "reason": "Running tests",
+            "subject": {
+              "agentInfo": {
+                "clientName": "GRR Monitor"
+              },
+              "hardwareInfo": {
+                "biosVersion": "Bios-Version-0",
+                "systemManufacturer": "System-Manufacturer-0"
+              },
+              "knowledgeBase": {
+                "hostname": "Host-0.example.com"
+              },
+              "lastSeenAt": "42000000",
+              "osInfo": {
+                "fqdn": "Host-0.example.com",
+                "node": "Host-0",
+                "version": ""
+              },
+              "urn": "aff4:/C.1000000000000000"
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListClientApprovalsHandlerRegressionTest",
+      "url": "/api/v2/users/me/approvals/client/C.1000000000000000"
+    }
+  ],
+  "ApiListClientCrashesHandler": [
+    {
+      "api_method": "ListClientCrashes",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientId": "aff4:/C.1000000000000000",
+            "clientInfo": {
+              "clientName": "GRR Monitor"
+            },
+            "crashMessage": "Client killed during transaction",
+            "crashType": "aff4:/flows/F:CrashHandler",
+            "sessionId": "aff4:/hunts/H:123456/C.1000000000000000/H:11223344",
+            "timestamp": "45000000"
+          }
+        ],
+        "totalCount": "1"
+      },
+      "test_class": "ApiListClientCrashesHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/crashes"
+    },
+    {
+      "api_method": "ListClientCrashes",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientId": "aff4:/C.1000000000000000",
+            "clientInfo": {
+              "clientName": "GRR Monitor"
+            },
+            "crashMessage": "Client killed during transaction",
+            "crashType": "aff4:/flows/F:CrashHandler",
+            "sessionId": "aff4:/hunts/H:123456/C.1000000000000000/H:11223344",
+            "timestamp": "45000000"
+          }
+        ],
+        "totalCount": "1"
+      },
+      "test_class": "ApiListClientCrashesHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/crashes?count=1"
+    },
+    {
+      "api_method": "ListClientCrashes",
+      "method": "GET",
+      "response": {
+        "totalCount": "1"
+      },
+      "test_class": "ApiListClientCrashesHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/crashes?offset=1&count=1"
+    }
+  ],
+  "ApiListClientsLabelsHandler": [
+    {
+      "api_method": "ListClientsLabels",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "name": "bar"
+          },
+          {
+            "name": "foo"
+          }
+        ]
+      },
+      "test_class": "ApiListClientsLabelsHandlerRegressionTest",
+      "url": "/api/v2/clients/labels"
+    }
+  ],
+  "ApiListCronJobFlowsHandler": [
+    {
+      "api_method": "ListCronJobFlows",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "args": {
+              "@type": "type.googleapis.com/grr.EmptyMessage"
+            },
+            "creator": "test",
+            "flowId": "F:ABCDEF11",
+            "lastActiveAt": "44000000",
+            "name": "GRRVersionBreakDown",
+            "runnerArgs": {
+              "baseSessionId": "aff4:/cron/GRRVersionBreakDown",
+              "flowName": "GRRVersionBreakDown",
+              "token": {
+                "reason": "Running tests",
+                "username": "test"
+              }
+            },
+            "startedAt": "44000000",
+            "state": "RUNNING",
+            "urn": "aff4:/cron/GRRVersionBreakDown/F:ABCDEF11"
+          }
+        ]
+      },
+      "test_class": "ApiListCronJobFlowsHandlerRegressionTest",
+      "url": "/api/v2/cron-jobs/GRRVersionBreakDown/flows"
+    }
+  ],
+  "ApiListCronJobsHandler": [
+    {
+      "api_method": "ListCronJobs",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "allowOverruns": false,
+            "description": "foo",
+            "flowArgs": {
+              "@type": "type.googleapis.com/grr.EmptyMessage"
+            },
+            "flowName": "GRRVersionBreakDown",
+            "flowRunnerArgs": {
+              "flowName": "GRRVersionBreakDown"
+            },
+            "isFailing": false,
+            "lifetime": "7200",
+            "periodicity": "86400",
+            "state": "DISABLED",
+            "urn": "aff4:/cron/GRRVersionBreakDown"
+          },
+          {
+            "allowOverruns": false,
+            "description": "",
+            "flowArgs": {
+              "@type": "type.googleapis.com/grr.EmptyMessage"
+            },
+            "flowName": "LastAccessStats",
+            "flowRunnerArgs": {
+              "flowName": "LastAccessStats"
+            },
+            "isFailing": true,
+            "lastRunTime": "230000000",
+            "lifetime": "86400",
+            "periodicity": "604800",
+            "state": "ENABLED",
+            "urn": "aff4:/cron/LastAccessStats"
+          },
+          {
+            "allowOverruns": false,
+            "description": "bar",
+            "flowArgs": {
+              "@type": "type.googleapis.com/grr.EmptyMessage"
+            },
+            "flowName": "OSBreakDown",
+            "flowRunnerArgs": {
+              "flowName": "OSBreakDown"
+            },
+            "isFailing": false,
+            "lifetime": "86400",
+            "periodicity": "604800",
+            "state": "ENABLED",
+            "urn": "aff4:/cron/OSBreakDown"
+          }
+        ],
+        "totalCount": "3"
+      },
+      "test_class": "ApiListCronJobsHandlerRegressionTest",
+      "url": "/api/v2/cron-jobs"
+    }
+  ],
+  "ApiListFilesHandler": [
+    {
+      "api_method": "ListFiles",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "isDirectory": false,
+            "name": "bash",
+            "path": "fs/tsk/c/bin/bash",
+            "type": "VFSMemoryFile"
+          },
+          {
+            "isDirectory": false,
+            "name": "rbash",
+            "path": "fs/tsk/c/bin/rbash",
+            "type": "VFSMemoryFile"
+          }
+        ]
+      },
+      "test_class": "ApiListFilesHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-index/fs/tsk/c/bin"
+    }
+  ],
+  "ApiListFlowDescriptorsHandler": [
+    {
+      "api_method": "ListFlowDescriptors",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "argsType": "FileFinderArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Client Flow"
+            ],
+            "category": "Filesystem",
+            "defaultArgs": {
+              "@type": "type.googleapis.com/grr.FileFinderArgs",
+              "paths": [
+                "c:\\windows\\system32\\notepad.*"
+              ]
+            },
+            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, file_size=file_size, conditions=conditions, action=action, no_file_type_check=no_file_type_check)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    file_size\n      description: Maximum number of bytes to download in each file.\n      type: ByteSize\n      default: 1000000000\n\n    no_file_type_check\n      description: Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n",
+            "friendlyName": "File Finder",
+            "name": "FileFinder"
+          },
+          {
+            "argsType": "ListProcessesArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Client Flow"
+            ],
+            "category": "Processes",
+            "defaultArgs": {
+              "@type": "type.googleapis.com/grr.ListProcessesArgs"
+            },
+            "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries, connection_states=connection_states)\n\n  Args:\n    connection_states\n      description: Network connection states to match. If a process has any network connections in any status listed here, it will be considered a match\n      type: \n      default: None\n\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n",
+            "name": "ListProcesses"
+          },
+          {
+            "argsType": "RunReportFlowArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Global Flow"
+            ],
+            "category": "Reporting",
+            "defaultArgs": {
+              "@type": "type.googleapis.com/grr.RunReportFlowArgs"
+            },
+            "doc": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n",
+            "name": "RunReport"
+          }
+        ]
+      },
+      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest",
+      "url": "/api/v2/flows/descriptors"
+    },
+    {
+      "api_method": "ListFlowDescriptors",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "argsType": "FileFinderArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Client Flow"
+            ],
+            "category": "Filesystem",
+            "defaultArgs": {
+              "@type": "type.googleapis.com/grr.FileFinderArgs",
+              "paths": [
+                "c:\\windows\\system32\\notepad.*"
+              ]
+            },
+            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, file_size=file_size, conditions=conditions, action=action, no_file_type_check=no_file_type_check)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    file_size\n      description: Maximum number of bytes to download in each file.\n      type: ByteSize\n      default: 1000000000\n\n    no_file_type_check\n      description: Work with all kinds of files - not only with regular ones.NOTE: This is very dangerous and should be used with care, see MemoryCollector as an example.\n      type: RDFBool\n      default: 0\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n",
+            "friendlyName": "File Finder",
+            "name": "FileFinder"
+          },
+          {
+            "argsType": "ListProcessesArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Client Flow"
+            ],
+            "category": "Processes",
+            "defaultArgs": {
+              "@type": "type.googleapis.com/grr.ListProcessesArgs"
+            },
+            "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries, connection_states=connection_states)\n\n  Args:\n    connection_states\n      description: Network connection states to match. If a process has any network connections in any status listed here, it will be considered a match\n      type: \n      default: None\n\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n",
+            "name": "ListProcesses"
+          }
+        ]
+      },
+      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest",
+      "url": "/api/v2/flows/descriptors?flow_type=client"
+    },
+    {
+      "api_method": "ListFlowDescriptors",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "argsType": "RunReportFlowArgs",
+            "behaviours": [
+              "ADVANCED",
+              "BASIC",
+              "Global Flow"
+            ],
+            "category": "Reporting",
+            "defaultArgs": {
+              "@type": "type.googleapis.com/grr.RunReportFlowArgs"
+            },
+            "doc": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n",
+            "name": "RunReport"
+          }
+        ]
+      },
+      "test_class": "ApiListFlowDescriptorsHandlerRegressionTest",
+      "url": "/api/v2/flows/descriptors?flow_type=global"
+    }
+  ],
+  "ApiListFlowLogsHandler": [
+    {
+      "api_method": "ListFlowLogs",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientId": "aff4:/C.1000000000000000",
+            "flowName": "ListProcesses",
+            "logMessage": "Sample message: foo.",
+            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+          },
+          {
+            "clientId": "aff4:/C.1000000000000000",
+            "flowName": "ListProcesses",
+            "logMessage": "Sample message: bar.",
+            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListFlowLogsHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/log"
+    },
+    {
+      "api_method": "ListFlowLogs",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientId": "aff4:/C.1000000000000000",
+            "flowName": "ListProcesses",
+            "logMessage": "Sample message: foo.",
+            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListFlowLogsHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/log?count=1"
+    },
+    {
+      "api_method": "ListFlowLogs",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientId": "aff4:/C.1000000000000000",
+            "flowName": "ListProcesses",
+            "logMessage": "Sample message: bar.",
+            "urn": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListFlowLogsHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/log?count=1&offset=1"
+    }
+  ],
+  "ApiListFlowRequestsHandler": [
+    {
+      "api_method": "ListFlowRequests",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "requestId": "flow:request:00000001",
+            "requestState": {
+              "clientId": "aff4:/C.1000000000000000",
+              "id": 1,
+              "nextState": "IterateProcesses",
+              "request": {
+                "cpuLimit": 7200.0,
+                "name": "ListProcesses",
+                "priority": "MEDIUM_PRIORITY",
+                "queue": "aff4:/C.1000000000000000/tasks",
+                "requestId": "1",
+                "requireFastpoll": true,
+                "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF",
+                "taskId": "42"
+              },
+              "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+            },
+            "responses": [
+              {
+                "args": "CAo=",
+                "argsRdfName": "GrrStatus",
+                "authState": "AUTHENTICATED",
+                "cpuLimit": 7200.0,
+                "eta": "42000000",
+                "lastLease": "test@test.host:42",
+                "name": "ListProcesses",
+                "priority": "MEDIUM_PRIORITY",
+                "queue": "aff4:/C.1000000000000000/tasks",
+                "requestId": "1",
+                "requireFastpoll": true,
+                "responseId": "1",
+                "sessionId": "aff4:/C.1000000000000000/flows/W:ABCDEF",
+                "taskId": "42",
+                "taskTtl": 6,
+                "type": "STATUS"
+              }
+            ]
+          }
+        ]
+      },
+      "test_class": "ApiListFlowRequestsHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/requests"
+    }
+  ],
+  "ApiListFlowResultsHandler": [
+    {
+      "api_method": "ListFlowResults",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "payload": {
+              "@type": "type.googleapis.com/grr.StatEntry",
+              "aff4path": "aff4:/C.1000000000000000/fs/os/tmp/evil.txt",
+              "pathspec": {
+                "path": "/tmp/evil.txt",
+                "pathtype": "OS"
+              },
+              "stAtime": "1336469177",
+              "stCtime": "1336129892",
+              "stDev": 64512,
+              "stGid": 5000,
+              "stIno": 1063090,
+              "stMode": "33184",
+              "stMtime": "1336129892",
+              "stNlink": 1,
+              "stSize": "12",
+              "stUid": 139592
+            },
+            "payloadType": "StatEntry",
+            "timestamp": "42000000"
+          }
+        ],
+        "totalCount": "1"
+      },
+      "test_class": "ApiListFlowResultsHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/results"
+    }
+  ],
+  "ApiListFlowsHandler": [
+    {
+      "api_method": "ListFlows",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "args": {
+              "@type": "type.googleapis.com/grr.ListProcessesArgs"
+            },
+            "creator": "test",
+            "flowId": "F:ABCDEF11",
+            "lastActiveAt": "44000000",
+            "name": "ListProcesses",
+            "runnerArgs": {
+              "clientId": "aff4:/C.1000000000000000",
+              "flowName": "ListProcesses",
+              "token": {
+                "reason": "Running tests",
+                "username": "test"
+              }
+            },
+            "startedAt": "44000000",
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF11"
+          },
+          {
+            "args": {
+              "@type": "type.googleapis.com/grr.InterrogateArgs"
+            },
+            "creator": "test",
+            "flowId": "F:ABCDEF10",
+            "lastActiveAt": "43000000",
+            "name": "Interrogate",
+            "runnerArgs": {
+              "clientId": "aff4:/C.1000000000000000",
+              "flowName": "Interrogate",
+              "token": {
+                "reason": "Running tests",
+                "username": "test"
+              }
+            },
+            "startedAt": "43000000",
+            "state": "RUNNING",
+            "urn": "aff4:/C.1000000000000000/flows/F:ABCDEF10"
+          }
+        ]
+      },
+      "test_class": "ApiListFlowsHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/flows"
+    }
+  ],
+  "ApiListHuntApprovalsHandler": [
+    {
+      "api_method": "ListHuntApprovals",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "approvers": [
+              "test"
+            ],
+            "id": "approval:112233",
+            "isValid": false,
+            "isValidMessage": "Requires 2 approvers for access.",
+            "notifiedUsers": [
+              "approver"
+            ],
+            "reason": "Running tests",
+            "subject": {
+              "clientLimit": "100",
+              "clientRate": "20",
+              "created": "42000000",
+              "creator": "test",
+              "description": "",
+              "expires": "1209642000000",
+              "isRobot": false,
+              "name": "GenericHunt",
+              "state": "PAUSED",
+              "totalCpuUsage": 0.0,
+              "totalNetUsage": "0",
+              "urn": "aff4:/hunts/H:123456"
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListHuntApprovalsHandlerRegressionTest",
+      "url": "/api/v2/users/me/approvals/hunt"
+    }
+  ],
+  "ApiListHuntClientsHandler": [
+    {
+      "api_method": "ListHuntClients",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientId": "aff4:/C.1000000000000000",
+            "cpuUsage": {
+              "systemCpuTime": 0.0,
+              "userCpuTime": 0.0
+            },
+            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
+            "networkBytesSent": "0",
+            "pendingRequests": [
+              {
+                "availableClientRequestsCount": "1",
+                "availableResponsesCount": "0",
+                "expectedArgs": "ListDirRequest",
+                "expectedResponses": "Unknown",
+                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
+                "incompleteRequestId": "2",
+                "isStatusAvailable": false,
+                "nextState": "Stat"
+              }
+            ]
+          },
+          {
+            "clientId": "aff4:/C.1000000000000001",
+            "cpuUsage": {
+              "systemCpuTime": 0.0,
+              "userCpuTime": 0.0
+            },
+            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
+            "networkBytesSent": "0",
+            "pendingRequests": [
+              {
+                "availableClientRequestsCount": "1",
+                "availableResponsesCount": "0",
+                "expectedArgs": "ListDirRequest",
+                "expectedResponses": "Unknown",
+                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
+                "incompleteRequestId": "2",
+                "isStatusAvailable": false,
+                "nextState": "Stat"
+              }
+            ]
+          },
+          {
+            "clientId": "aff4:/C.1000000000000002",
+            "cpuUsage": {
+              "systemCpuTime": 0.0,
+              "userCpuTime": 0.0
+            },
+            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
+            "networkBytesSent": "0",
+            "pendingRequests": [
+              {
+                "availableClientRequestsCount": "1",
+                "availableResponsesCount": "0",
+                "expectedArgs": "ListDirRequest",
+                "expectedResponses": "Unknown",
+                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
+                "incompleteRequestId": "2",
+                "isStatusAvailable": false,
+                "nextState": "Stat"
+              }
+            ]
+          },
+          {
+            "clientId": "aff4:/C.1000000000000003",
+            "cpuUsage": {
+              "systemCpuTime": 0.0,
+              "userCpuTime": 0.0
+            },
+            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456",
+            "networkBytesSent": "0",
+            "pendingRequests": [
+              {
+                "availableClientRequestsCount": "1",
+                "availableResponsesCount": "0",
+                "expectedArgs": "ListDirRequest",
+                "expectedResponses": "Unknown",
+                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456",
+                "incompleteRequestId": "2",
+                "isStatusAvailable": false,
+                "nextState": "Stat"
+              }
+            ]
+          },
+          {
+            "clientId": "aff4:/C.1000000000000004",
+            "cpuUsage": {
+              "systemCpuTime": 2.0,
+              "userCpuTime": 1.0
+            },
+            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000004/W:123456",
+            "networkBytesSent": "3"
+          }
+        ],
+        "totalCount": "5"
+      },
+      "test_class": "ApiListHuntClientsHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/clients/started"
+    },
+    {
+      "api_method": "ListHuntClients",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientId": "aff4:/C.1000000000000000",
+            "cpuUsage": {
+              "systemCpuTime": 0.0,
+              "userCpuTime": 0.0
+            },
+            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
+            "networkBytesSent": "0",
+            "pendingRequests": [
+              {
+                "availableClientRequestsCount": "1",
+                "availableResponsesCount": "0",
+                "expectedArgs": "ListDirRequest",
+                "expectedResponses": "Unknown",
+                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000000/W:123456",
+                "incompleteRequestId": "2",
+                "isStatusAvailable": false,
+                "nextState": "Stat"
+              }
+            ]
+          },
+          {
+            "clientId": "aff4:/C.1000000000000001",
+            "cpuUsage": {
+              "systemCpuTime": 0.0,
+              "userCpuTime": 0.0
+            },
+            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
+            "networkBytesSent": "0",
+            "pendingRequests": [
+              {
+                "availableClientRequestsCount": "1",
+                "availableResponsesCount": "0",
+                "expectedArgs": "ListDirRequest",
+                "expectedResponses": "Unknown",
+                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000001/W:123456",
+                "incompleteRequestId": "2",
+                "isStatusAvailable": false,
+                "nextState": "Stat"
+              }
+            ]
+          },
+          {
+            "clientId": "aff4:/C.1000000000000002",
+            "cpuUsage": {
+              "systemCpuTime": 0.0,
+              "userCpuTime": 0.0
+            },
+            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
+            "networkBytesSent": "0",
+            "pendingRequests": [
+              {
+                "availableClientRequestsCount": "1",
+                "availableResponsesCount": "0",
+                "expectedArgs": "ListDirRequest",
+                "expectedResponses": "Unknown",
+                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000002/W:123456",
+                "incompleteRequestId": "2",
+                "isStatusAvailable": false,
+                "nextState": "Stat"
+              }
+            ]
+          },
+          {
+            "clientId": "aff4:/C.1000000000000003",
+            "cpuUsage": {
+              "systemCpuTime": 0.0,
+              "userCpuTime": 0.0
+            },
+            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456",
+            "networkBytesSent": "0",
+            "pendingRequests": [
+              {
+                "availableClientRequestsCount": "1",
+                "availableResponsesCount": "0",
+                "expectedArgs": "ListDirRequest",
+                "expectedResponses": "Unknown",
+                "flowUrn": "aff4:/hunts/H:123456/C.1000000000000003/W:123456",
+                "incompleteRequestId": "2",
+                "isStatusAvailable": false,
+                "nextState": "Stat"
+              }
+            ]
+          }
+        ],
+        "totalCount": "4"
+      },
+      "test_class": "ApiListHuntClientsHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/clients/outstanding"
+    },
+    {
+      "api_method": "ListHuntClients",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientId": "aff4:/C.1000000000000004",
+            "cpuUsage": {
+              "systemCpuTime": 2.0,
+              "userCpuTime": 1.0
+            },
+            "flowUrn": "aff4:/hunts/H:123456/C.1000000000000004/W:123456",
+            "networkBytesSent": "3"
+          }
+        ],
+        "totalCount": "1"
+      },
+      "test_class": "ApiListHuntClientsHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/clients/completed"
+    }
+  ],
+  "ApiListHuntCrashesHandler": [
+    {
+      "api_method": "ListHuntCrashes",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientId": "aff4:/C.1000000000000000",
+            "clientInfo": {
+              "clientName": "GRR Monitor"
+            },
+            "crashMessage": "Client killed during transaction",
+            "crashType": "aff4:/flows/F:CrashHandler",
+            "sessionId": "aff4:/hunts/H:123456/C.1000000000000000/H:11223344",
+            "timestamp": "45000000"
+          }
+        ],
+        "totalCount": "1"
+      },
+      "test_class": "ApiListHuntCrashesHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/crashes"
+    },
+    {
+      "api_method": "ListHuntCrashes",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientId": "aff4:/C.1000000000000000",
+            "clientInfo": {
+              "clientName": "GRR Monitor"
+            },
+            "crashMessage": "Client killed during transaction",
+            "crashType": "aff4:/flows/F:CrashHandler",
+            "sessionId": "aff4:/hunts/H:123456/C.1000000000000000/H:11223344",
+            "timestamp": "45000000"
+          }
+        ],
+        "totalCount": "1"
+      },
+      "test_class": "ApiListHuntCrashesHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/crashes?count=1"
+    },
+    {
+      "api_method": "ListHuntCrashes",
+      "method": "GET",
+      "response": {
+        "totalCount": "1"
+      },
+      "test_class": "ApiListHuntCrashesHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/crashes?offset=1&count=1"
+    }
+  ],
+  "ApiListHuntErrorsHandler": [
+    {
+      "api_method": "ListHuntErrors",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientId": "aff4:/C.0000111122223333",
+            "logMessage": "Error foo."
+          },
+          {
+            "backtrace": "<some backtrace>",
+            "clientId": "aff4:/C.1111222233334444",
+            "logMessage": "Error bar."
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntErrorsHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/errors"
+    },
+    {
+      "api_method": "ListHuntErrors",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientId": "aff4:/C.0000111122223333",
+            "logMessage": "Error foo."
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntErrorsHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/errors?count=1"
+    },
+    {
+      "api_method": "ListHuntErrors",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "backtrace": "<some backtrace>",
+            "clientId": "aff4:/C.1111222233334444",
+            "logMessage": "Error bar."
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntErrorsHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/errors?offset=1&count=1"
+    }
+  ],
+  "ApiListHuntLogsHandler": [
+    {
+      "api_method": "ListHuntLogs",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "flowName": "GenericHunt",
+            "logMessage": "Sample message: foo.",
+            "urn": "aff4:/hunts/H:123456"
+          },
+          {
+            "flowName": "GenericHunt",
+            "logMessage": "Sample message: bar.",
+            "urn": "aff4:/hunts/H:123456"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntLogsHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/log"
+    },
+    {
+      "api_method": "ListHuntLogs",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "flowName": "GenericHunt",
+            "logMessage": "Sample message: foo.",
+            "urn": "aff4:/hunts/H:123456"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntLogsHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/log?count=1"
+    },
+    {
+      "api_method": "ListHuntLogs",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "flowName": "GenericHunt",
+            "logMessage": "Sample message: bar.",
+            "urn": "aff4:/hunts/H:123456"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntLogsHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456/log?offset=1&count=1"
+    }
+  ],
+  "ApiListHuntResultsHandler": [
+    {
+      "api_method": "ListHuntResults",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "payload": {
+              "@type": "type.googleapis.com/google.protobuf.StringValue",
+              "value": "blah1"
+            },
+            "payloadType": "RDFString",
+            "timestamp": "2000000"
+          },
+          {
+            "payload": {
+              "@type": "type.googleapis.com/google.protobuf.StringValue",
+              "value": "blah2-foo"
+            },
+            "payloadType": "RDFString",
+            "timestamp": "43000000"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntResultsRegressionTest",
+      "url": "/api/v2/hunts/H:123456/results"
+    },
+    {
+      "api_method": "ListHuntResults",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "payload": {
+              "@type": "type.googleapis.com/google.protobuf.StringValue",
+              "value": "blah1"
+            },
+            "payloadType": "RDFString",
+            "timestamp": "2000000"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntResultsRegressionTest",
+      "url": "/api/v2/hunts/H:123456/results?count=1"
+    },
+    {
+      "api_method": "ListHuntResults",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "payload": {
+              "@type": "type.googleapis.com/google.protobuf.StringValue",
+              "value": "blah2-foo"
+            },
+            "payloadType": "RDFString",
+            "timestamp": "43000000"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntResultsRegressionTest",
+      "url": "/api/v2/hunts/H:123456/results?offset=1&count=1"
+    },
+    {
+      "api_method": "ListHuntResults",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "payload": {
+              "@type": "type.googleapis.com/google.protobuf.StringValue",
+              "value": "blah2-foo"
+            },
+            "payloadType": "RDFString",
+            "timestamp": "43000000"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntResultsRegressionTest",
+      "url": "/api/v2/hunts/H:123456/results?filter=foo"
+    }
+  ],
+  "ApiListHuntsHandler": [
+    {
+      "api_method": "ListHunts",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientLimit": "100",
+            "clientRate": "0",
+            "created": "2000000000",
+            "creator": "test",
+            "description": "hunt_1",
+            "expires": "1211600000000",
+            "isRobot": false,
+            "name": "GenericHunt",
+            "state": "STOPPED",
+            "totalCpuUsage": 0.0,
+            "totalNetUsage": "0",
+            "urn": "aff4:/hunts/H:000001"
+          },
+          {
+            "clientLimit": "100",
+            "clientRate": "0",
+            "created": "1000000000",
+            "creator": "test",
+            "description": "hunt_0",
+            "expires": "1210600000000",
+            "isRobot": false,
+            "name": "GenericHunt",
+            "state": "PAUSED",
+            "totalCpuUsage": 0.0,
+            "totalNetUsage": "0",
+            "urn": "aff4:/hunts/H:000000"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntsHandlerRegressionTest",
+      "url": "/api/v2/hunts"
+    },
+    {
+      "api_method": "ListHunts",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientLimit": "100",
+            "clientRate": "0",
+            "created": "2000000000",
+            "creator": "test",
+            "description": "hunt_1",
+            "expires": "1211600000000",
+            "isRobot": false,
+            "name": "GenericHunt",
+            "state": "STOPPED",
+            "totalCpuUsage": 0.0,
+            "totalNetUsage": "0",
+            "urn": "aff4:/hunts/H:000001"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntsHandlerRegressionTest",
+      "url": "/api/v2/hunts?count=1"
+    },
+    {
+      "api_method": "ListHunts",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "clientLimit": "100",
+            "clientRate": "0",
+            "created": "1000000000",
+            "creator": "test",
+            "description": "hunt_0",
+            "expires": "1210600000000",
+            "isRobot": false,
+            "name": "GenericHunt",
+            "state": "PAUSED",
+            "totalCpuUsage": 0.0,
+            "totalNetUsage": "0",
+            "urn": "aff4:/hunts/H:000000"
+          }
+        ],
+        "totalCount": "2"
+      },
+      "test_class": "ApiListHuntsHandlerRegressionTest",
+      "url": "/api/v2/hunts?offset=1&count=1"
+    }
+  ],
+  "ApiListKbFieldsHandler": [
+    {
+      "api_method": "ListKbFields",
+      "method": "GET",
+      "response": {
+        "items": [
+          "code_page",
+          "current_control_set",
+          "domain",
+          "environ_allusersappdata",
+          "environ_allusersprofile",
+          "environ_path",
+          "environ_programfiles",
+          "environ_programfilesx86",
+          "environ_systemdrive",
+          "environ_systemroot",
+          "environ_temp",
+          "environ_windir",
+          "hostname",
+          "os",
+          "os_major_version",
+          "os_minor_version",
+          "os_release",
+          "time_zone",
+          "users.appdata",
+          "users.cookies",
+          "users.desktop",
+          "users.full_name",
+          "users.gid",
+          "users.gids",
+          "users.homedir",
+          "users.internet_cache",
+          "users.last_logon",
+          "users.localappdata",
+          "users.localappdata_low",
+          "users.personal",
+          "users.pw_entry",
+          "users.recent",
+          "users.shell",
+          "users.sid",
+          "users.startup",
+          "users.temp",
+          "users.uid",
+          "users.userdomain",
+          "users.username",
+          "users.userprofile"
+        ]
+      },
+      "test_class": "ApiListKbFieldsHandlerTest",
+      "url": "/api/v2/clients/kb-fields"
+    }
+  ],
+  "ApiListKnownEncodingsHandler": [
+    {
+      "api_method": "ListKnownEncodings",
+      "method": "GET",
+      "response": {
+        "encodings": [
+          "BASE64_CODEC",
+          "BIG5",
+          "BIG5HKSCS",
+          "CP037",
+          "CP1006",
+          "CP1026",
+          "CP1140",
+          "CP1250",
+          "CP1251",
+          "CP1252",
+          "CP1253",
+          "CP1254",
+          "CP1255",
+          "CP1256",
+          "CP1257",
+          "CP1258",
+          "CP424",
+          "CP437",
+          "CP500",
+          "CP737",
+          "CP775",
+          "CP850",
+          "CP852",
+          "CP855",
+          "CP856",
+          "CP857",
+          "CP860",
+          "CP861",
+          "CP862",
+          "CP863",
+          "CP864",
+          "CP865",
+          "CP866",
+          "CP869",
+          "CP874",
+          "CP875",
+          "CP932",
+          "CP949",
+          "CP950",
+          "IDNA",
+          "ROT_13",
+          "UTF_16",
+          "UTF_16_BE",
+          "UTF_16_LE",
+          "UTF_32",
+          "UTF_32_BE",
+          "UTF_32_LE",
+          "UTF_7",
+          "UTF_8",
+          "UTF_8_SIG",
+          "UU_CODEC",
+          "ZLIB_CODEC"
+        ]
+      },
+      "test_class": "ApiListKnownEncodingsHandlerRegressionTest",
+      "url": "/api/v2/reflection/file-encodings"
+    }
+  ],
+  "ApiListOutputPluginDescriptorsHandler": [
+    {
+      "api_method": "ListOutputPluginDescriptors",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "argsType": "CSVOutputPluginArgs",
+            "description": "Output ZIP archive with CSV files.",
+            "name": "CSVOutputPlugin"
+          },
+          {
+            "argsType": "EmailOutputPluginArgs",
+            "description": "Send an email for each result.",
+            "name": "EmailOutputPlugin"
+          }
+        ]
+      },
+      "test_class": "ApiListOutputPluginDescriptorsHandlerTest",
+      "url": "/api/v2/output-plugins/all"
+    }
+  ],
+  "ApiListPendingGlobalNotificationsHandler": [
+    {
+      "api_method": "ListPendingGlobalNotifications",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "duration": "1209600",
+            "header": "Nothing to worry about!",
+            "link": "http://www.google.com",
+            "showFrom": "0",
+            "type": "INFO"
+          },
+          {
+            "content": "Houston, Houston, we have a prob...",
+            "duration": "1209600",
+            "header": "Oh no, we're doomed!",
+            "link": "http://www.google.com",
+            "showFrom": "0",
+            "type": "ERROR"
+          }
+        ]
+      },
+      "test_class": "ApiListPendingGlobalNotificationsHandlerRegressionTest",
+      "url": "/api/v2/users/me/notifications/pending/global"
+    }
+  ],
+  "ApiListPendingUserNotificationsHandler": [
+    {
+      "api_method": "ListPendingUserNotifications",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "isPending": true,
+            "message": "Host-0: <some message>",
+            "reference": {
+              "discovery": {
+                "clientId": "aff4:/C.1000000000000000"
+              },
+              "type": "DISCOVERY"
+            },
+            "timestamp": "42000000"
+          },
+          {
+            "isPending": true,
+            "message": "Host-0: <some other message>",
+            "reference": {
+              "discovery": {
+                "clientId": "aff4:/C.1000000000000000"
+              },
+              "type": "DISCOVERY"
+            },
+            "timestamp": "44000000"
+          }
+        ]
+      },
+      "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest",
+      "url": "/api/v2/users/me/notifications/pending"
+    },
+    {
+      "api_method": "ListPendingUserNotifications",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "isPending": true,
+            "message": "Host-0: <some other message>",
+            "reference": {
+              "discovery": {
+                "clientId": "aff4:/C.1000000000000000"
+              },
+              "type": "DISCOVERY"
+            },
+            "timestamp": "44000000"
+          }
+        ]
+      },
+      "test_class": "ApiListPendingUserNotificationsHandlerRegressionTest",
+      "url": "/api/v2/users/me/notifications/pending?timestamp=43000000"
+    }
+  ],
+  "ApiListReportsHandler": [
+    {
+      "api_method": "ListReports",
+      "method": "GET",
+      "response": {
+        "reports": [
+          {
+            "desc": {
+              "name": "BarReportPlugin",
+              "requiresTimeRange": true,
+              "summary": "Reports bars' activity in the given time range.",
+              "title": "Bar Activity",
+              "type": "SERVER"
+            }
+          },
+          {
+            "desc": {
+              "name": "FooReportPlugin",
+              "requiresTimeRange": false,
+              "summary": "Reports all foos.",
+              "title": "Foo",
+              "type": "CLIENT"
+            }
+          }
+        ]
+      },
+      "test_class": "ApiListReportsHandlerRegressionTest",
+      "url": "/api/v2/stats/reports"
+    }
+  ],
+  "ApiListStatsStoreMetricsMetadataHandler": [
+    {
+      "api_method": "ListStatsStoreMetricsMetadata",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "docstring": "Sample counter metric.",
+            "metricType": "COUNTER",
+            "valueType": "INT",
+            "varname": "sample_counter"
+          },
+          {
+            "docstring": "Sample event metric.",
+            "metricType": "EVENT",
+            "valueType": "DISTRIBUTION",
+            "varname": "sample_event"
+          },
+          {
+            "docstring": "Sample gauge metric.",
+            "metricType": "GAUGE",
+            "valueType": "STR",
+            "varname": "sample_gauge_value"
+          }
+        ]
+      },
+      "test_class": "ApiListStatsStoreMetricsMetadataHandlerRegressionTest",
+      "url": "/api/v2/stats/store/WORKER/metadata"
+    }
+  ],
+  "ApiModifyCronJobHandler": [
+    {
+      "api_method": "ModifyCronJob",
+      "method": "PATCH",
+      "request_payload": {
+        "state": "ENABLED"
+      },
+      "response": {
+        "allowOverruns": false,
+        "description": "",
+        "flowArgs": {
+          "@type": "type.googleapis.com/grr.EmptyMessage"
+        },
+        "flowName": "OSBreakDown",
+        "flowRunnerArgs": {
+          "flowName": "OSBreakDown"
+        },
+        "lifetime": "604800",
+        "periodicity": "86400",
+        "state": "ENABLED",
+        "urn": "aff4:/cron/OSBreakDown"
+      },
+      "test_class": "ApiModifyCronJobRegressionTest",
+      "url": "/api/v2/cron-jobs/OSBreakDown"
+    },
+    {
+      "api_method": "ModifyCronJob",
+      "method": "PATCH",
+      "request_payload": {
+        "state": "DISABLED"
+      },
+      "response": {
+        "allowOverruns": false,
+        "description": "",
+        "flowArgs": {
+          "@type": "type.googleapis.com/grr.EmptyMessage"
+        },
+        "flowName": "GRRVersionBreakDown",
+        "flowRunnerArgs": {
+          "flowName": "GRRVersionBreakDown"
+        },
+        "lifetime": "604800",
+        "periodicity": "86400",
+        "state": "DISABLED",
+        "urn": "aff4:/cron/GRRVersionBreakDown"
+      },
+      "test_class": "ApiModifyCronJobRegressionTest",
+      "url": "/api/v2/cron-jobs/GRRVersionBreakDown"
+    }
+  ],
+  "ApiSearchClientsHandler": [
+    {
+      "api_method": "SearchClients",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "agentInfo": {
+              "clientName": "GRR Monitor"
+            },
+            "hardwareInfo": {
+              "biosVersion": "Bios-Version-0",
+              "systemManufacturer": "System-Manufacturer-0"
+            },
+            "knowledgeBase": {
+              "hostname": "Host-0.example.com"
+            },
+            "lastSeenAt": "42000000",
+            "osInfo": {
+              "fqdn": "Host-0.example.com",
+              "node": "Host-0",
+              "version": ""
+            },
+            "urn": "aff4:/C.1000000000000000"
+          }
+        ]
+      },
+      "test_class": "ApiSearchClientsHandlerRegressionTest",
+      "url": "/api/v2/clients?query=C.1000000000000000"
+    }
+  ],
+  "ApiStartRobotGetFilesOperationHandler": [
+    {
+      "api_method": "StartRobotGetFilesOperation",
+      "method": "POST",
+      "request_payload": {
+        "hostname": "C.1000000000000000",
+        "paths": [
+          "/tmp/test"
+        ]
+      },
+      "response": {
+        "operationId": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+      },
+      "test_class": "ApiStartRobotGetFilesOperationHandlerRegressionTest",
+      "url": "/api/v2/robot-actions/get-files"
+    }
+  ],
+  "ApiUpdateVfsFileContentHandler": [
+    {
+      "api_method": "UpdateVfsFileContent",
+      "method": "POST",
+      "request_payload": {
+        "filePath": "fs/os/c/bin/bash"
+      },
+      "response": {
+        "operationId": "aff4:/C.1000000000000000/flows/W:ABCDEF"
+      },
+      "test_class": "ApiUpdateVfsFileContentHandlerRegressionTest",
+      "url": "/api/v2/clients/C.1000000000000000/vfs-update"
+    }
+  ]
+}

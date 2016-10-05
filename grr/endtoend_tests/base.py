@@ -225,6 +225,39 @@ class ClientTestBase(unittest.TestCase):
                                  (collection_urn, self.RESULTS_SLA_SECONDS))
     return coll_list
 
+  def OpenFDWithRetry(self, file_urn, token):
+    """Try to open a aff4 path, retry if it is AFF4Volume."""
+    fd = aff4.FACTORY.Open(file_urn, ignore_cache=True, mode="r", token=token)
+
+    # All types are instances of AFF4Volume so we can't use isinstance.
+    if fd.__class__ is aff4.AFF4Volume:
+      for _ in range(self.RESULTS_SLA_SECONDS):
+        time.sleep(1)
+        fd = aff4.FACTORY.Open(
+            file_urn, ignore_cache=True, mode="r", token=token)
+        if fd.__class__ is not aff4.AFF4Volume:
+          return fd
+      self.fail(("No results were written to the data store. Maybe the GRR "
+                 "client is not running with root privileges?"))
+    return fd
+
+  def GetURNFromGlobPathWithRetry(self, path):
+    pos = path.find("*")
+    if pos > 0:
+      base_urn = self.client_id.Add(path[:pos])
+      for _ in range(self.RESULTS_SLA_SECONDS):
+        for file_urn in RecursiveListChildren(
+            prefix=base_urn, token=self.token):
+          if re.search(path + "$", str(file_urn)):
+            self.delete_urns.add(file_urn)
+            return file_urn
+        time.sleep(1)
+      self.fail(("Output file %s not found. Maybe the GRR client "
+                 "is not running with root privileges?" % path))
+    else:
+      self.delete_urns.add(self.client_id.Add(path))
+      return self.client_id.Add(path)
+
 
 class AutomatedTest(ClientTestBase):
   """All tests that are safe to run in prod should inherit from this class."""
@@ -237,67 +270,21 @@ class AutomatedTest(ClientTestBase):
 class TestVFSPathExists(AutomatedTest):
   """Test that checks expected VFS files were created."""
   result_type = aff4_grr.VFSFile
-  output_path = None
-  file_to_find = None
 
   def CheckFlow(self):
     """Verify VFS paths were created."""
-    pos = self.output_path.find("*")
-    urn = None
-    if pos > 0:
-      base_urn = self.client_id.Add(self.output_path[:pos])
-      for urn in RecursiveListChildren(prefix=base_urn, token=self.token):
-        if re.search(self.output_path + "$", str(urn)):
-          self.delete_urns.add(urn.Add(self.file_to_find))
-          self.delete_urns.add(urn)
-          break
-      self.assertNotEqual(urn, None, "Could not locate Directory.")
-    else:
-      urn = self.client_id.Add(self.output_path)
-
-    fd = aff4.FACTORY.Open(
-        urn.Add(self.file_to_find), mode="r", token=self.token)
-
-    # All types are instances of AFF4Volume so we can't use isinstance.
-    # pylint: disable=unidiomatic-typecheck
-    if type(fd) == aff4.AFF4Volume:
-      self.fail(("No results were written to the data store. Maybe the GRR "
-                 "client is not running with root privileges?"))
-    # pylint: enable=unidiomatic-typecheck
+    urn = self.GetURNFromGlobPathWithRetry(self.test_output_path)
+    fd = self.OpenFDWithRetry(urn, token=self.token)
     self.assertEqual(type(fd), self.result_type)
-
-  def tearDown(self):
-    if not self.delete_urns:
-      self.delete_urns.add(
-          self.client_id.Add(self.output_path).Add(self.file_to_find))
-    super(TestVFSPathExists, self).tearDown()
 
 
 class VFSPathContentExists(AutomatedTest):
   test_output_path = None
 
   def CheckFlow(self):
-    pos = self.test_output_path.find("*")
-    if pos > 0:
-      prefix = self.client_id.Add(self.test_output_path[:pos])
-      for urn in RecursiveListChildren(prefix=prefix, token=self.token):
-        if re.search(self.test_output_path + "$", str(urn)):
-          self.delete_urns.add(urn)
-          return self.CheckFile(aff4.FACTORY.Open(urn, token=self.token))
-
-      self.fail(
-          ("Output file %s not found. Maybe the GRR client "
-           "is not running with root privileges?" % self.test_output_path))
-
-    else:
-      urn = self.client_id.Add(self.test_output_path)
-      fd = aff4.FACTORY.Open(urn, token=self.token)
-      # All types are instances of AFF4Volume so we can't use isinstance.
-      # pylint: disable=unidiomatic-typecheck
-      if type(fd) != aff4.AFF4Volume:
-        return self.CheckFile(fd)
-      # pylint: enable=unidiomatic-typecheck
-      self.fail("Output file %s not found." % urn)
+    urn = self.GetURNFromGlobPathWithRetry(self.test_output_path)
+    fd = self.OpenFDWithRetry(urn, token=self.token)
+    return self.CheckFile(fd)
 
   def CheckFile(self, fd):
     data = fd.Read(10)

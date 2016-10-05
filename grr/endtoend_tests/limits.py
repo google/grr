@@ -2,6 +2,8 @@
 """End to end tests for client resource limits."""
 
 
+from grr.client.client_actions import admin
+from grr.client.client_actions import standard
 from grr.endtoend_tests import base
 from grr.lib import aff4
 from grr.lib import flow
@@ -22,14 +24,15 @@ class NetworkLimitTestFlow(flow.GRRFlow):
         path="/dev/urandom",
         file_size_override=2 * 1024 * 1024,
         pathtype=rdf_paths.PathSpec.PathType.OS)
-    self.CallClient("CopyPathToFile",
-                    offset=0,
-                    length=2 * 1024 * 1024,  # 4 default sized blobs
-                    src_path=urandom,
-                    dest_dir="",
-                    gzip_output=False,
-                    lifetime=600,
-                    next_state="MultiGetFile")
+    self.CallClient(
+        standard.CopyPathToFile,
+        offset=0,
+        length=2 * 1024 * 1024,  # 4 default sized blobs
+        src_path=urandom,
+        dest_dir="",
+        gzip_output=False,
+        lifetime=600,
+        next_state="MultiGetFile")
 
   @flow.StateHandler()
   def MultiGetFile(self, responses):
@@ -50,13 +53,13 @@ class CPULimitTestFlow(flow.GRRFlow):
 
   @flow.StateHandler()
   def Start(self):
-    self.CallClient("BusyHang", integer=5, next_state="State1")
+    self.CallClient(admin.BusyHang, integer=5, next_state="State1")
 
   @flow.StateHandler()
   def State1(self, responses):
     if not responses.success:
       raise flow.FlowError(responses.status)
-    self.CallClient("BusyHang", integer=5, next_state="Done")
+    self.CallClient(admin.BusyHang, integer=5, next_state="Done")
 
   @flow.StateHandler()
   def Done(self, responses):
@@ -89,9 +92,11 @@ class TestNetworkFlowLimit(base.AutomatedTest):
   platforms = ["Linux", "Darwin"]
   flow = "GetFile"
   args = {
-      "pathspec": rdf_paths.PathSpec(
-          path="/bin/bash", pathtype=rdf_paths.PathSpec.PathType.OS),
-      "network_bytes_limit": 500 * 1024
+      "pathspec":
+          rdf_paths.PathSpec(
+              path="/bin/bash", pathtype=rdf_paths.PathSpec.PathType.OS),
+      "network_bytes_limit":
+          500 * 1024
   }
 
   test_output_path = "/fs/os/bin/bash"

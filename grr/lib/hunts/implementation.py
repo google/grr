@@ -219,7 +219,7 @@ class HuntRunner(object):
             if request.transmission_count < 5:
               stats.STATS.IncrementCounter("grr_request_retransmission_count")
               request.transmission_count += 1
-              self.ReQueueRequest(request)
+              self.QueueRequest(request)
             break
 
           # If we get here its all good - run the hunt.
@@ -319,121 +319,6 @@ class HuntRunner(object):
       my_id = self.context.next_outbound_id
       self.context.next_outbound_id += 1
     return my_id
-
-  # TODO(user): There is a lot of complexity in the hunt runner to
-  # support the use case of hunts calling clients directly. This
-  # functionality is only used in a single hunt (StatsHunt). If we
-  # found a way to collect that information differently, the hunt
-  # runner could be made *a lot* simpler.
-  def CallClient(self,
-                 action_cls,
-                 request=None,
-                 next_state=None,
-                 client_id=None,
-                 request_data=None,
-                 start_time=None,
-                 **kwargs):
-    """Calls the client asynchronously.
-
-    This sends a message to the client to invoke an Action. The run
-    action may send back many responses. These will be queued by the
-    framework until a status message is sent by the client. The status
-    message will cause the entire transaction to be committed to the
-    specified state.
-
-    Args:
-       action_cls: The function to call on the client.
-
-       request: The request to send to the client. If not specified (Or None) we
-             create a new RDFValue using the kwargs.
-
-       next_state: The state in this hunt, that responses to this
-             message should go to.
-
-       client_id: rdf_client.ClientURN to send the request to.
-
-       request_data: A dict which will be available in the RequestState
-             protobuf. The Responses object maintains a reference to this
-             protobuf for use in the execution of the state method. (so you can
-             access this data by responses.request). Valid values are
-             strings, unicode and protobufs.
-
-       start_time: Call the client at this time. This Delays the client request
-         for into the future.
-
-       **kwargs: These args will be used to construct the client action semantic
-         protobuf.
-
-    Raises:
-       FlowRunnerError: If next_state is not one of the allowed next states.
-       RuntimeError: The request passed to the client does not have the correct
-                     type.
-    """
-    if client_id is None:
-      raise flow_runner.FlowRunnerError(
-          "CallClient() is used on a hunt without giving a client_id.")
-
-    if not isinstance(client_id, rdf_client.ClientURN):
-      # Try turning it into a ClientURN
-      client_id = rdf_client.ClientURN(client_id)
-
-    if action_cls.in_rdfvalue is None:
-      if request:
-        raise RuntimeError("Client action %s does not expect args." %
-                           action_cls.__name__)
-    else:
-      if request is None:
-        # Create a new rdf request.
-        request = action_cls.in_rdfvalue(**kwargs)
-      else:
-        # Verify that the request type matches the client action requirements.
-        if not isinstance(request, action_cls.in_rdfvalue):
-          raise RuntimeError("Client action expected %s but got %s" %
-                             (action_cls.in_rdfvalue, type(request)))
-
-    outbound_id = self.GetNextOutboundId()
-
-    # Create a new request state
-    state = rdf_flows.RequestState(
-        id=outbound_id,
-        session_id=self.session_id,
-        next_state=next_state,
-        client_id=client_id)
-
-    if request_data is not None:
-      state.data = rdf_protodict.Dict(request_data)
-
-    # Send the message with the request state
-    msg = rdf_flows.GrrMessage(
-        session_id=utils.SmartUnicode(self.session_id),
-        name=action_cls.__name__,
-        request_id=outbound_id,
-        priority=self.runner_args.priority,
-        require_fastpoll=self.runner_args.require_fastpoll,
-        queue=client_id.Queue(),
-        payload=request,
-        generate_task_id=True)
-
-    if self.context.remaining_cpu_quota:
-      msg.cpu_limit = int(self.context.remaining_cpu_quota)
-
-    cpu_usage = self.context.client_resources.cpu_usage
-    if self.runner_args.cpu_limit:
-      msg.cpu_limit = max(self.runner_args.cpu_limit - cpu_usage.user_cpu_time -
-                          cpu_usage.system_cpu_time, 0)
-
-      if msg.cpu_limit == 0:
-        raise flow_runner.FlowRunnerError("CPU limit exceeded.")
-
-    if self.runner_args.network_bytes_limit:
-      msg.network_bytes_limit = max(self.runner_args.network_bytes_limit -
-                                    self.context.network_bytes_sent, 0)
-      if msg.network_bytes_limit == 0:
-        raise flow_runner.FlowRunnerError("Network limit exceeded.")
-
-    state.request = msg
-
-    self.QueueRequest(state, timestamp=start_time)
 
   def Publish(self, event_name, msg, delay=0):
     """Sends the message to event listeners."""
@@ -600,9 +485,6 @@ class HuntRunner(object):
 
   def QueueRequest(self, request, timestamp=None):
     # Remember the new request for later
-    self._QueueRequest(request, timestamp=timestamp)
-
-  def ReQueueRequest(self, request, timestamp=None):
     self._QueueRequest(request, timestamp=timestamp)
 
   def QueueResponse(self, response, timestamp=None):
@@ -1530,9 +1412,11 @@ class GRRHunt(flow.FlowBase):
         self._GetCollectionItems(self.completed_clients_collection_urn))
     outstanding = started - completed
 
-    return {"STARTED": started,
-            "COMPLETED": completed,
-            "OUTSTANDING": outstanding}
+    return {
+        "STARTED": started,
+        "COMPLETED": completed,
+        "OUTSTANDING": outstanding
+    }
 
   def GetClientStates(self, client_list, client_chunk=50):
     """Take in a client list and return dicts with their age and hostname."""

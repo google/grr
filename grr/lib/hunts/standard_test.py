@@ -12,9 +12,7 @@ import mock
 import logging
 
 from grr.lib import access_control
-from grr.lib import action_mocks
 from grr.lib import aff4
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
 from grr.lib import flow
@@ -882,89 +880,6 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     # on a second client.
     self.assertEqual(finished, 3)
     self.assertEqual(errors, 0)
-
-  def testStatsHunt(self):
-    interval = rdfvalue.Duration(config_lib.CONFIG[
-        "StatsHunt.CollectionInterval"])
-    batch_size = 3
-    with test_lib.ConfigOverrider({"StatsHunt.ClientBatchSize": batch_size}):
-      # Make one of the clients windows
-      with aff4.FACTORY.Open(
-          self.client_ids[3], mode="rw", token=self.token) as win_client:
-        win_client.Set(win_client.Schema.SYSTEM("Windows"))
-
-      with test_lib.FakeTime(0, increment=1e-6):
-        with hunts.GRRHunt.StartHunt(
-            hunt_name="StatsHunt",
-            client_rate=0,
-            token=self.token,
-            output_plugins=[
-                output_plugin.OutputPluginDescriptor(
-                    plugin_name="DummyHuntOutputPlugin")
-            ]) as hunt:
-          hunt.Run()
-
-        hunt_urn = hunt.urn
-        # Run the hunt.
-        self.AssignTasksToClients()
-
-        client_mock = action_mocks.InterrogatedClient()
-        client_mock.InitializeClient()
-        test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
-
-        # At this time the clients should not receive any messages since
-        # messages are posted in the future.
-        self.assertEqual(client_mock.response_count, 0)
-
-      # Lets advance the time and re-run the hunt. The clients should now
-      # receive their messages.
-      with test_lib.FakeTime(10 + interval.seconds, increment=1e-6):
-        test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
-
-        self.assertEqual(client_mock.response_count, len(self.client_ids))
-
-        # Make sure the last message was of LOW_PRIORITY (all messages should be
-        # LOW_PRIORITY but we only check the last one).
-        self.assertEqual(client_mock.recorded_messages[-1].priority,
-                         "LOW_PRIORITY")
-
-        # Check fastpoll was false for all messages
-        self.assertFalse(
-            any([x.require_fastpoll for x in client_mock.recorded_messages]))
-
-        # Pause the hunt
-        with aff4.FACTORY.OpenWithLock(hunt.urn, token=self.token) as hunt:
-          hunt.GetRunner().Pause()
-
-      # Advance time and re-run. We get the results back from last time, but
-      # don't schedule any new ones because the hunt is now paused.
-      with test_lib.FakeTime(20 + (interval.seconds * 2), increment=0.01):
-        test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
-
-        self.assertEqual(client_mock.response_count, len(self.client_ids) * 2)
-
-      # Advance time and re-run. We should have the same number of responses
-      # still.
-      with test_lib.FakeTime(30 + (interval.seconds * 3), increment=0.01):
-        test_lib.TestHuntHelper(client_mock, self.client_ids, False, self.token)
-
-        # All clients were called.
-        self.assertEqual(client_mock.response_count, len(self.client_ids) * 2)
-
-      # Check the results got written to the collection
-      result_collection = aff4.FACTORY.Open(
-          hunt_urn.Add("Results"), token=self.token)
-
-      # The +1 is here because we write 2 responses for the single windows
-      # machine (dnsconfig and interface)
-      self.assertEqual(len(result_collection), (len(self.client_ids) + 1) * 2)
-
-  def testStatsHuntFilterLocalhost(self):
-    statshunt = aff4.FACTORY.Create("aff4:/temp", standard.StatsHunt)
-    self.assertTrue(
-        statshunt.ProcessInterface(rdf_client.Interface(mac_address="123")))
-    self.assertFalse(
-        statshunt.ProcessInterface(rdf_client.Interface(ifname="lo")))
 
   def testHuntTermination(self):
     """This tests that hunts with a client limit terminate correctly."""

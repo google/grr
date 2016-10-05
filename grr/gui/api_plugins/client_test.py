@@ -14,6 +14,8 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import queue_manager
 from grr.lib import test_lib
+
+from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.flows.general import processes
 from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
@@ -365,8 +367,9 @@ class ApiListClientCrashesHandlerRegressionTest(
 
     with test_lib.FakeTime(45):
       self.AssignTasksToClients(client_ids)
-      test_lib.TestHuntHelperWithMultipleMocks({client_id: client_mock}, False,
-                                               self.token)
+      test_lib.TestHuntHelperWithMultipleMocks({
+          client_id: client_mock
+      }, False, self.token)
 
     crashes = aff4.FACTORY.Open(
         client_id.Add("crashes"), mode="r", token=self.token)
@@ -429,6 +432,51 @@ class ApiListClientActionRequestsHandlerRegressionTest(
         "/api/clients/%s/action-requests?fetch_responses=1" %
         client_id.Basename(),
         replace=replace)
+
+
+class ApiGetClientLoadStatsHandlerRegressionTest(
+    api_test_lib.ApiCallHandlerRegressionTest):
+
+  api_method = "GetClientLoadStats"
+  handler = client_plugin.ApiGetClientLoadStatsHandler
+
+  def FillClientStats(self, client_id):
+    with aff4.FACTORY.Create(
+        client_id.Add("stats"),
+        aff4_type=aff4_stats.ClientStats,
+        token=self.token,
+        mode="rw") as stats_fd:
+
+      for i in range(6):
+        with test_lib.FakeTime((i + 1) * 10):
+          timestamp = int((i + 1) * 10 * 1e6)
+          st = rdf_client.ClientStats()
+
+          sample = rdf_client.CpuSample(
+              timestamp=timestamp,
+              user_cpu_time=10 + i,
+              system_cpu_time=20 + i,
+              cpu_percent=10 + i)
+          st.cpu_samples.Append(sample)
+
+          sample = rdf_client.IOSample(
+              timestamp=timestamp, read_bytes=10 + i, write_bytes=10 + i * 2)
+          st.io_samples.Append(sample)
+
+          stats_fd.AddAttribute(stats_fd.Schema.STATS(st))
+
+  def Run(self):
+    client_id = self.SetupClients(1)[0]
+    self.FillClientStats(client_id)
+
+    self.Check(
+        "GET",
+        "/api/clients/%s/load-stats/cpu_percent?start=10000000&end=21000000" %
+        client_id.Basename())
+    self.Check(
+        "GET",
+        "/api/clients/%s/load-stats/io_write_bytes?start=10000000&end=21000000"
+        % client_id.Basename())
 
 
 def main(argv):

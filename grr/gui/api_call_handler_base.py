@@ -56,8 +56,7 @@ class ApiCallHandler(object):
   args_type = None
 
   # RDFValue type returned by the handler. This is only used by new handlers
-  # that implement Handle() method. Legacy handlers don't have Handle()
-  # implemented and return arbitrary data structures from Render() method.
+  # that implement Handle() method.
   result_type = None
 
   # This is a maximum time in seconds the renderer is allowed to run. Renderers
@@ -68,13 +67,6 @@ class ApiCallHandler(object):
   # If True, when converting response to JSON, strip type information from root
   # fields of the resulting proto.
   strip_json_root_fields_types = True
-
-  # NOTE: Render() is deprecated in favor of Handle(). Main difference of
-  # Render() and Handle() is that Handle() returns an RDFValue, while Render()
-  # return arbitrary data structures.
-  def Render(self, args, token=None):
-    """Renders response as a plain python object."""
-    raise NotImplementedError()
 
   def Handle(self, args, token=None):
     """Handles request and returns an RDFValue of result_type."""

@@ -173,27 +173,30 @@ class ClientBuilder(BuilderBase):
     """Write build spec to fd."""
     output = {
         "Client.build_environment":
-            str(rdf_client.Uname.FromCurrentSystem().signature()),
-        "Client.build_time": str(rdfvalue.RDFDatetime.Now()),
-        "Template.build_type": str(
+            rdf_client.Uname.FromCurrentSystem().signature(),
+        "Client.build_time":
+            rdfvalue.RDFDatetime.Now(),
+        "Template.build_type":
             config_lib.CONFIG.Get("ClientBuilder.build_type",
-                                  context=self.context)),
-        "Template.build_context": self.context,
-        "Template.version_major": str(
-            config_lib.CONFIG.Get("Source.version_major", context=self.context)
-        ),
-        "Template.version_minor": str(
-            config_lib.CONFIG.Get("Source.version_minor", context=self.context)
-        ),
-        "Template.version_revision": str(
+                                  context=self.context),
+        "Template.version_major":
+            config_lib.CONFIG.Get("Source.version_major", context=self.context),
+        "Template.version_minor":
+            config_lib.CONFIG.Get("Source.version_minor", context=self.context),
+        "Template.version_revision":
             config_lib.CONFIG.Get("Source.version_revision",
-                                  context=self.context)),
-        "Template.version_release": str(
+                                  context=self.context),
+        "Template.version_release":
             config_lib.CONFIG.Get("Source.version_release",
-                                  context=self.context)),
+                                  context=self.context),
         "Template.arch":
-            str(config_lib.CONFIG.Get("Client.arch", context=self.context))
+            config_lib.CONFIG.Get("Client.arch", context=self.context)
     }
+
+    for key, value in output.iteritems():
+      output[key] = str(value)
+
+    output["Template.build_context"] = self.context
 
     if set(output.keys()) != self.REQUIRED_BUILD_YAML_KEYS:
       raise RuntimeError("Bad build.yaml: expected %s, got %s" %
@@ -247,7 +250,8 @@ class ClientRepacker(BuilderBase):
   Note that this should be runnable on all operating systems.
   """
 
-  CONFIG_SECTIONS = ["CA", "Client", "Logging", "Config", "Nanny", "Installer"]
+  CONFIG_SECTIONS = ["CA", "Client", "ClientRepacker", "Logging", "Config",
+                     "Nanny", "Installer", "Template"]
 
   # Config options that should never make it to a deployable binary.
   SKIP_OPTION_LIST = ["Client.private_key"]
@@ -636,10 +640,12 @@ class LinuxClientRepacker(ClientRepacker):
     utils.EnsureDirExists(
         os.path.join(template_path, "dist/debian/%s/usr/sbin" % package_name))
 
-    # Generate the nanny template.
-    self.GenerateFile(
-        os.path.join(target_binary_dir, "nanny.sh.in"),
-        os.path.join(target_binary_dir, "nanny.sh"))
+    # Generate the nanny template. This only exists from client version 3.1.2.5
+    # onwards.
+    if config_lib.CONFIG["Template.version_numeric"] >= 3125:
+      self.GenerateFile(
+          os.path.join(target_binary_dir, "nanny.sh.in"),
+          os.path.join(target_binary_dir, "nanny.sh"))
 
     # Generate the upstart template.
     self.GenerateFile(

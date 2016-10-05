@@ -1,6 +1,7 @@
 {
   "ApiCancelFlowHandler": [
     {
+      "api_method": "CancelFlow",
       "method": "POST",
       "response": {
         "status": "OK"
@@ -11,6 +12,7 @@
   ],
   "ApiCreateClientApprovalHandler": [
     {
+      "api_method": "CreateClientApproval",
       "method": "POST",
       "request_payload": {
         "approval": {
@@ -198,6 +200,7 @@
   ],
   "ApiCreateCronJobApprovalHandler": [
     {
+      "api_method": "CreateCronJobApproval",
       "method": "POST",
       "request_payload": {
         "approval": {
@@ -341,6 +344,7 @@
   ],
   "ApiCreateCronJobHandler": [
     {
+      "api_method": "CreateCronJob",
       "method": "POST",
       "request_payload": {
         "description": "Foobar!",
@@ -550,6 +554,7 @@
   ],
   "ApiCreateFlowHandler": [
     {
+      "api_method": "CreateFlow",
       "method": "POST",
       "request_payload": {
         "flow": {
@@ -705,6 +710,7 @@
   ],
   "ApiCreateHuntApprovalHandler": [
     {
+      "api_method": "CreateHuntApproval",
       "method": "POST",
       "request_payload": {
         "approval": {
@@ -872,6 +878,7 @@
   ],
   "ApiCreateVfsRefreshOperationHandler": [
     {
+      "api_method": "CreateVfsRefreshOperation",
       "method": "POST",
       "request_payload": {
         "file_path": "fs/os/Users/Shared",
@@ -886,6 +893,7 @@
   ],
   "ApiDeleteHuntHandler": [
     {
+      "api_method": "DeleteHunt",
       "method": "DELETE",
       "response": {
         "status": "OK"
@@ -896,6 +904,7 @@
   ],
   "ApiForceRunCronJobHandler": [
     {
+      "api_method": "ForceRunCronJob",
       "method": "POST",
       "response": {
         "status": "OK"
@@ -906,6 +915,7 @@
   ],
   "ApiGetClientApprovalHandler": [
     {
+      "api_method": "GetClientApproval",
       "method": "GET",
       "response": {
         "age": 0,
@@ -1065,6 +1075,7 @@
       "url": "/api/users/test/approvals/client/C.1000000000000000/approval:111111"
     },
     {
+      "api_method": "GetClientApproval",
       "method": "GET",
       "response": {
         "age": 0,
@@ -1226,6 +1237,7 @@
   ],
   "ApiGetClientHandler": [
     {
+      "api_method": "GetClient",
       "method": "GET",
       "response": {
         "age": 42000000,
@@ -1337,8 +1349,47 @@
       "url": "/api/clients/C.1000000000000000"
     }
   ],
+  "ApiGetClientLoadStatsHandler": [
+    {
+      "api_method": "GetClientLoadStats",
+      "method": "GET",
+      "response": {
+        "data_points": [
+          [
+            10000.0,
+            10.0
+          ],
+          [
+            20000.0,
+            11.0
+          ]
+        ]
+      },
+      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest",
+      "url": "/api/clients/C.1000000000000000/load-stats/cpu_percent?start=10000000&end=21000000"
+    },
+    {
+      "api_method": "GetClientLoadStats",
+      "method": "GET",
+      "response": {
+        "data_points": [
+          [
+            10000.0,
+            10
+          ],
+          [
+            20000.0,
+            12
+          ]
+        ]
+      },
+      "test_class": "ApiGetClientLoadStatsHandlerRegressionTest",
+      "url": "/api/clients/C.1000000000000000/load-stats/io_write_bytes?start=10000000&end=21000000"
+    }
+  ],
   "ApiGetConfigHandler": [
     {
+      "api_method": "GetConfig",
       "method": "GET",
       "response": {
         "sections": [
@@ -1574,6 +1625,7 @@
   ],
   "ApiGetConfigOptionHandler": [
     {
+      "api_method": "GetConfigOption",
       "method": "GET",
       "response": {
         "is_invalid": false,
@@ -1590,6 +1642,7 @@
       "url": "/api/config/SectionFoo.sample_string_option"
     },
     {
+      "api_method": "GetConfigOption",
       "method": "GET",
       "response": {
         "is_redacted": true,
@@ -1599,6 +1652,7 @@
       "url": "/api/config/Mysql.database_password"
     },
     {
+      "api_method": "GetConfigOption",
       "method": "GET",
       "response": {
         "is_invalid": true,
@@ -1610,6 +1664,7 @@
   ],
   "ApiGetCronJobApprovalHandler": [
     {
+      "api_method": "GetCronJobApproval",
       "method": "GET",
       "response": {
         "age": 0,
@@ -1725,6 +1780,7 @@
       "url": "/api/users/test/approvals/cron-job/CronJob_123456/approval:111111"
     },
     {
+      "api_method": "GetCronJobApproval",
       "method": "GET",
       "response": {
         "age": 0,
@@ -1842,6 +1898,7 @@
   ],
   "ApiGetCronJobFlowHandler": [
     {
+      "api_method": "GetCronJobFlow",
       "method": "GET",
       "response": {
         "age": 0,
@@ -2001,6 +2058,7 @@
   ],
   "ApiGetFileDownloadCommandHandler": [
     {
+      "api_method": "GetFileDownloadCommand",
       "method": "GET",
       "response": {
         "command": "/usr/bin/grr_export --username test file --path aff4:/C.1000000000000000/fs/os/etc --output ."
@@ -2011,6 +2069,7 @@
   ],
   "ApiGetFileTextHandler": [
     {
+      "api_method": "GetFileText",
       "method": "GET",
       "response": {
         "content": "Goodbye World",
@@ -2020,6 +2079,7 @@
       "url": "/api/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt"
     },
     {
+      "api_method": "GetFileText",
       "method": "GET",
       "response": {
         "content": "db",
@@ -2029,6 +2089,7 @@
       "url": "/api/clients/C.1000000000000000/vfs-text/fs/os/c/Downloads/a.txt?offset=3&length=2"
     },
     {
+      "api_method": "GetFileText",
       "method": "GET",
       "response": {
         "content": "Hello World",
@@ -2040,6 +2101,7 @@
   ],
   "ApiGetFileVersionTimesHandler": [
     {
+      "api_method": "GetFileVersionTimes",
       "method": "GET",
       "response": {
         "times": [
@@ -2067,6 +2129,7 @@
   ],
   "ApiGetFlowHandler": [
     {
+      "api_method": "GetFlow",
       "method": "GET",
       "response": {
         "age": 0,
@@ -2246,6 +2309,7 @@
   ],
   "ApiGetFlowResultsExportCommandHandler": [
     {
+      "api_method": "GetFlowResultsExportCommand",
       "method": "GET",
       "response": {
         "command": "/usr/bin/grr_export --username test collection_files --path aff4:/C.1000000000000000/flows/W:ABCDEF/Results --output ."
@@ -2256,6 +2320,7 @@
   ],
   "ApiGetGrrUserHandler": [
     {
+      "api_method": "GetGrrUser",
       "method": "GET",
       "response": {
         "age": 0,
@@ -2401,6 +2466,7 @@
   ],
   "ApiGetHuntApprovalHandler": [
     {
+      "api_method": "GetHuntApproval",
       "method": "GET",
       "response": {
         "age": 0,
@@ -2540,6 +2606,7 @@
       "url": "/api/users/test/approvals/hunt/H:123456/approval:111111"
     },
     {
+      "api_method": "GetHuntApproval",
       "method": "GET",
       "response": {
         "age": 0,
@@ -2681,6 +2748,7 @@
   ],
   "ApiGetHuntClientCompletionStatsHandler": [
     {
+      "api_method": "GetHuntClientCompletionStats",
       "method": "GET",
       "response": {
         "complete_points": [
@@ -2780,6 +2848,7 @@
       "url": "/api/hunts/H:123456/client-completion-stats?strip_type_info=1"
     },
     {
+      "api_method": "GetHuntClientCompletionStats",
       "method": "GET",
       "response": {
         "complete_points": [
@@ -2831,6 +2900,7 @@
       "url": "/api/hunts/H:123456/client-completion-stats?strip_type_info=1&size=4"
     },
     {
+      "api_method": "GetHuntClientCompletionStats",
       "method": "GET",
       "response": {
         "complete_points": [
@@ -2932,6 +3002,7 @@
   ],
   "ApiGetHuntHandler": [
     {
+      "api_method": "GetHunt",
       "method": "GET",
       "response": {
         "age": 0,
@@ -3225,6 +3296,7 @@
   ],
   "ApiGetHuntResultsExportCommandHandler": [
     {
+      "api_method": "GetHuntResultsExportCommand",
       "method": "GET",
       "response": {
         "command": "/usr/bin/grr_export --username test collection_files --path aff4:/hunts/H:123456/Results --output ."
@@ -3235,6 +3307,7 @@
   ],
   "ApiGetHuntStatsHandler": [
     {
+      "api_method": "GetHuntStats",
       "method": "GET",
       "response": {
         "stats": {
@@ -4248,6 +4321,7 @@
   ],
   "ApiGetLastClientIPAddressHandler": [
     {
+      "api_method": "GetLastClientIPAddress",
       "method": "GET",
       "response": {
         "info": "Internal IP address.",
@@ -4260,6 +4334,7 @@
   ],
   "ApiGetPendingUserNotificationsCountHandler": [
     {
+      "api_method": "GetPendingUserNotificationsCount",
       "method": "GET",
       "response": {
         "count": 2
@@ -4270,6 +4345,7 @@
   ],
   "ApiGetRDFValueDescriptorHandler": [
     {
+      "api_method": "GetRDFValueDescriptor",
       "method": "GET",
       "response": {
         "default": {
@@ -4303,6 +4379,7 @@
       "url": "/api/reflection/rdfvalue/Duration"
     },
     {
+      "api_method": "GetRDFValueDescriptor",
       "method": "GET",
       "response": {
         "default": {
@@ -4628,6 +4705,7 @@
   ],
   "ApiGetReportHandler": [
     {
+      "api_method": "GetReport",
       "method": "GET",
       "response": {
         "data": {
@@ -4801,6 +4879,7 @@
   ],
   "ApiGetRobotGetFilesOperationStateHandler": [
     {
+      "api_method": "GetRobotGetFilesOperationState",
       "method": "GET",
       "response": {
         "result_count": 1,
@@ -4812,6 +4891,7 @@
   ],
   "ApiGetStatsStoreMetricHandler": [
     {
+      "api_method": "GetStatsStoreMetric",
       "method": "GET",
       "response": {
         "data_points": [
@@ -5300,6 +5380,7 @@
       "url": "/api/stats/store/WORKER/metrics/sample_counter?start=42000000&end=3600000000"
     },
     {
+      "api_method": "GetStatsStoreMetric",
       "method": "GET",
       "response": {
         "data_points": [
@@ -5784,6 +5865,7 @@
       "url": "/api/stats/store/WORKER/metrics/sample_counter?start=42000000&end=3600000000&rate=1m"
     },
     {
+      "api_method": "GetStatsStoreMetric",
       "method": "GET",
       "response": {
         "data_points": [
@@ -5836,6 +5918,7 @@
       "url": "/api/stats/store/WORKER/metrics/sample_gauge_value?start=42000000&end=3600000000"
     },
     {
+      "api_method": "GetStatsStoreMetric",
       "method": "GET",
       "response": {
         "data_points": [
@@ -6324,6 +6407,7 @@
       "url": "/api/stats/store/WORKER/metrics/sample_event?start=42000000&end=3600000000"
     },
     {
+      "api_method": "GetStatsStoreMetric",
       "method": "GET",
       "response": {
         "data_points": [
@@ -6814,6 +6898,7 @@
   ],
   "ApiGetVfsFileContentUpdateStateHandler": [
     {
+      "api_method": "GetVfsFileContentUpdateState",
       "method": "GET",
       "response": {
         "state": "RUNNING"
@@ -6822,6 +6907,7 @@
       "url": "/api/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
+      "api_method": "GetVfsFileContentUpdateState",
       "method": "GET",
       "response": {
         "state": "FINISHED"
@@ -6830,6 +6916,7 @@
       "url": "/api/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
+      "api_method": "GetVfsFileContentUpdateState",
       "method": "GET",
       "response": {
         "message": "Operation with id aff4:/C.1000000000000000/flows/W:ABCDEF not found"
@@ -6838,6 +6925,7 @@
       "url": "/api/clients/C.1000000000000000/vfs-update/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
+      "api_method": "GetVfsFileContentUpdateState",
       "method": "GET",
       "response": {
         "message": "Operation with id W:ABCDEF not found"
@@ -6848,6 +6936,7 @@
   ],
   "ApiGetVfsRefreshOperationStateHandler": [
     {
+      "api_method": "GetVfsRefreshOperationState",
       "method": "GET",
       "response": {
         "state": "RUNNING"
@@ -6856,6 +6945,7 @@
       "url": "/api/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
+      "api_method": "GetVfsRefreshOperationState",
       "method": "GET",
       "response": {
         "state": "FINISHED"
@@ -6864,6 +6954,7 @@
       "url": "/api/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
+      "api_method": "GetVfsRefreshOperationState",
       "method": "GET",
       "response": {
         "message": "Operation with id aff4:/C.1000000000000000/flows/W:ABCDEF not found"
@@ -6872,6 +6963,7 @@
       "url": "/api/clients/C.1000000000000000/vfs-refresh-operations/aff4:/C.1000000000000000/flows/W:ABCDEF"
     },
     {
+      "api_method": "GetVfsRefreshOperationState",
       "method": "GET",
       "response": {
         "message": "Operation with id W:ABCDEF not found"
@@ -6882,6 +6974,7 @@
   ],
   "ApiGetVfsTimelineHandler": [
     {
+      "api_method": "GetVfsTimeline",
       "method": "GET",
       "response": {
         "items": [
@@ -7027,6 +7120,7 @@
   ],
   "ApiGrantClientApprovalHandler": [
     {
+      "api_method": "GrantClientApproval",
       "method": "POST",
       "response": {
         "age": 0,
@@ -7188,6 +7282,7 @@
   ],
   "ApiGrantCronJobApprovalHandler": [
     {
+      "api_method": "GrantCronJobApproval",
       "method": "POST",
       "response": {
         "age": 0,
@@ -7305,6 +7400,7 @@
   ],
   "ApiGrantHuntApprovalHandler": [
     {
+      "api_method": "GrantHuntApproval",
       "method": "POST",
       "response": {
         "age": 0,
@@ -7446,6 +7542,7 @@
   ],
   "ApiListAndResetUserNotificationsHandler": [
     {
+      "api_method": "ListAndResetUserNotifications",
       "method": "POST",
       "response": {
         "items": [
@@ -7569,6 +7666,7 @@
       "url": "/api/users/me/notifications"
     },
     {
+      "api_method": "ListAndResetUserNotifications",
       "method": "POST",
       "response": {
         "items": [
@@ -7692,6 +7790,7 @@
       "url": "/api/users/me/notifications?offset=1&count=1"
     },
     {
+      "api_method": "ListAndResetUserNotifications",
       "method": "POST",
       "response": {
         "items": [
@@ -7817,6 +7916,7 @@
   ],
   "ApiListArtifactsHandler": [
     {
+      "api_method": "ListArtifacts",
       "method": "GET",
       "response": {
         "items": [
@@ -7962,6 +8062,7 @@
   ],
   "ApiListClientActionRequestsHandler": [
     {
+      "api_method": "ListClientActionRequests",
       "method": "GET",
       "response": {
         "items": [
@@ -8007,6 +8108,7 @@
       "url": "/api/clients/C.1000000000000000/action-requests"
     },
     {
+      "api_method": "ListClientActionRequests",
       "method": "GET",
       "response": {
         "items": [
@@ -8170,6 +8272,7 @@
   ],
   "ApiListClientApprovalsHandler": [
     {
+      "api_method": "ListClientApprovals",
       "method": "GET",
       "response": {
         "items": [
@@ -8491,6 +8594,7 @@
       "url": "/api/users/me/approvals/client"
     },
     {
+      "api_method": "ListClientApprovals",
       "method": "GET",
       "response": {
         "items": [
@@ -8660,6 +8764,7 @@
   ],
   "ApiListClientCrashesHandler": [
     {
+      "api_method": "ListClientCrashes",
       "method": "GET",
       "response": {
         "items": [
@@ -8727,6 +8832,7 @@
       "url": "/api/clients/C.1000000000000000/crashes"
     },
     {
+      "api_method": "ListClientCrashes",
       "method": "GET",
       "response": {
         "items": [
@@ -8794,6 +8900,7 @@
       "url": "/api/clients/C.1000000000000000/crashes?count=1"
     },
     {
+      "api_method": "ListClientCrashes",
       "method": "GET",
       "response": {
         "items": [],
@@ -8805,6 +8912,7 @@
   ],
   "ApiListClientsLabelsHandler": [
     {
+      "api_method": "ListClientsLabels",
       "method": "GET",
       "response": {
         "items": [
@@ -8848,6 +8956,7 @@
   ],
   "ApiListCronJobFlowsHandler": [
     {
+      "api_method": "ListCronJobFlows",
       "method": "GET",
       "response": {
         "items": [
@@ -8961,6 +9070,7 @@
   ],
   "ApiListCronJobsHandler": [
     {
+      "api_method": "ListCronJobs",
       "method": "GET",
       "response": {
         "items": [
@@ -9212,6 +9322,7 @@
   ],
   "ApiListFilesHandler": [
     {
+      "api_method": "ListFiles",
       "method": "GET",
       "response": {
         "items": [
@@ -9291,6 +9402,7 @@
   ],
   "ApiListFlowDescriptorsHandler": [
     {
+      "api_method": "ListFlowDescriptors",
       "method": "GET",
       "response": {
         "items": [
@@ -9502,6 +9614,7 @@
       "url": "/api/flows/descriptors"
     },
     {
+      "api_method": "ListFlowDescriptors",
       "method": "GET",
       "response": {
         "items": [
@@ -9653,6 +9766,7 @@
       "url": "/api/flows/descriptors?flow_type=client"
     },
     {
+      "api_method": "ListFlowDescriptors",
       "method": "GET",
       "response": {
         "items": [
@@ -9728,6 +9842,7 @@
   ],
   "ApiListFlowLogsHandler": [
     {
+      "api_method": "ListFlowLogs",
       "method": "GET",
       "response": {
         "items": [
@@ -9807,6 +9922,7 @@
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/log"
     },
     {
+      "api_method": "ListFlowLogs",
       "method": "GET",
       "response": {
         "items": [
@@ -9854,6 +9970,7 @@
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/log?count=1"
     },
     {
+      "api_method": "ListFlowLogs",
       "method": "GET",
       "response": {
         "items": [
@@ -9903,6 +10020,7 @@
   ],
   "ApiListFlowOutputPluginErrorsHandler": [
     {
+      "api_method": "ListFlowOutputPluginErrors",
       "method": "GET",
       "response": {
         "items": [
@@ -9960,6 +10078,7 @@
   ],
   "ApiListFlowOutputPluginLogsHandler": [
     {
+      "api_method": "ListFlowOutputPluginLogs",
       "method": "GET",
       "response": {
         "items": [
@@ -10031,6 +10150,7 @@
   ],
   "ApiListFlowOutputPluginsHandler": [
     {
+      "api_method": "ListFlowOutputPlugins",
       "method": "GET",
       "response": {
         "items": [
@@ -10170,6 +10290,7 @@
   ],
   "ApiListFlowRequestsHandler": [
     {
+      "api_method": "ListFlowRequests",
       "method": "GET",
       "response": {
         "items": [
@@ -10403,6 +10524,7 @@
   ],
   "ApiListFlowResultsHandler": [
     {
+      "api_method": "ListFlowResults",
       "method": "GET",
       "response": {
         "items": [
@@ -10534,6 +10656,7 @@
   ],
   "ApiListFlowsHandler": [
     {
+      "api_method": "ListFlows",
       "method": "GET",
       "response": {
         "items": [
@@ -10745,6 +10868,7 @@
   ],
   "ApiListHuntApprovalsHandler": [
     {
+      "api_method": "ListHuntApprovals",
       "method": "GET",
       "response": {
         "items": [
@@ -10894,6 +11018,7 @@
   ],
   "ApiListHuntClientsHandler": [
     {
+      "api_method": "ListHuntClients",
       "method": "GET",
       "response": {
         "items": [
@@ -11379,6 +11504,7 @@
       "url": "/api/hunts/H:123456/clients/started"
     },
     {
+      "api_method": "ListHuntClients",
       "method": "GET",
       "response": {
         "items": [
@@ -11818,6 +11944,7 @@
       "url": "/api/hunts/H:123456/clients/outstanding"
     },
     {
+      "api_method": "ListHuntClients",
       "method": "GET",
       "response": {
         "items": [
@@ -11881,6 +12008,7 @@
   ],
   "ApiListHuntCrashesHandler": [
     {
+      "api_method": "ListHuntCrashes",
       "method": "GET",
       "response": {
         "items": [
@@ -11948,6 +12076,7 @@
       "url": "/api/hunts/H:123456/crashes"
     },
     {
+      "api_method": "ListHuntCrashes",
       "method": "GET",
       "response": {
         "items": [
@@ -12015,6 +12144,7 @@
       "url": "/api/hunts/H:123456/crashes?count=1"
     },
     {
+      "api_method": "ListHuntCrashes",
       "method": "GET",
       "response": {
         "items": [],
@@ -12026,6 +12156,7 @@
   ],
   "ApiListHuntErrorsHandler": [
     {
+      "api_method": "ListHuntErrors",
       "method": "GET",
       "response": {
         "items": [
@@ -12087,6 +12218,7 @@
       "url": "/api/hunts/H:123456/errors"
     },
     {
+      "api_method": "ListHuntErrors",
       "method": "GET",
       "response": {
         "items": [
@@ -12122,6 +12254,7 @@
       "url": "/api/hunts/H:123456/errors?count=1"
     },
     {
+      "api_method": "ListHuntErrors",
       "method": "GET",
       "response": {
         "items": [
@@ -12165,6 +12298,7 @@
   ],
   "ApiListHuntLogsHandler": [
     {
+      "api_method": "ListHuntLogs",
       "method": "GET",
       "response": {
         "items": [
@@ -12232,6 +12366,7 @@
       "url": "/api/hunts/H:123456/log"
     },
     {
+      "api_method": "ListHuntLogs",
       "method": "GET",
       "response": {
         "items": [
@@ -12273,6 +12408,7 @@
       "url": "/api/hunts/H:123456/log?count=1"
     },
     {
+      "api_method": "ListHuntLogs",
       "method": "GET",
       "response": {
         "items": [
@@ -12316,6 +12452,7 @@
   ],
   "ApiListHuntOutputPluginErrorsHandler": [
     {
+      "api_method": "ListHuntOutputPluginErrors",
       "method": "GET",
       "response": {
         "items": [
@@ -12413,6 +12550,7 @@
   ],
   "ApiListHuntOutputPluginLogsHandler": [
     {
+      "api_method": "ListHuntOutputPluginLogs",
       "method": "GET",
       "response": {
         "items": [
@@ -12538,6 +12676,7 @@
   ],
   "ApiListHuntOutputPluginsHandler": [
     {
+      "api_method": "ListHuntOutputPlugins",
       "method": "GET",
       "response": {
         "items": [
@@ -12663,6 +12802,7 @@
   ],
   "ApiListHuntResultsHandler": [
     {
+      "api_method": "ListHuntResults",
       "method": "GET",
       "response": {
         "items": [
@@ -12730,6 +12870,7 @@
       "url": "/api/hunts/H:123456/results"
     },
     {
+      "api_method": "ListHuntResults",
       "method": "GET",
       "response": {
         "items": [
@@ -12771,6 +12912,7 @@
       "url": "/api/hunts/H:123456/results?count=1"
     },
     {
+      "api_method": "ListHuntResults",
       "method": "GET",
       "response": {
         "items": [
@@ -12812,6 +12954,7 @@
       "url": "/api/hunts/H:123456/results?offset=1&count=1"
     },
     {
+      "api_method": "ListHuntResults",
       "method": "GET",
       "response": {
         "items": [
@@ -12855,6 +12998,7 @@
   ],
   "ApiListHuntsHandler": [
     {
+      "api_method": "ListHunts",
       "method": "GET",
       "response": {
         "items": [
@@ -13030,6 +13174,7 @@
       "url": "/api/hunts"
     },
     {
+      "api_method": "ListHunts",
       "method": "GET",
       "response": {
         "items": [
@@ -13125,6 +13270,7 @@
       "url": "/api/hunts?count=1"
     },
     {
+      "api_method": "ListHunts",
       "method": "GET",
       "response": {
         "items": [
@@ -13222,6 +13368,7 @@
   ],
   "ApiListKbFieldsHandler": [
     {
+      "api_method": "ListKbFields",
       "method": "GET",
       "response": {
         "items": [
@@ -13477,6 +13624,7 @@
   ],
   "ApiListKnownEncodingsHandler": [
     {
+      "api_method": "ListKnownEncodings",
       "method": "GET",
       "response": {
         "encodings": [
@@ -13804,6 +13952,7 @@
   ],
   "ApiListOutputPluginDescriptorsHandler": [
     {
+      "api_method": "ListOutputPluginDescriptors",
       "method": "GET",
       "response": {
         "items": [
@@ -13825,6 +13974,7 @@
   ],
   "ApiListPendingGlobalNotificationsHandler": [
     {
+      "api_method": "ListPendingGlobalNotifications",
       "method": "GET",
       "response": {
         "items": [
@@ -13922,6 +14072,7 @@
   ],
   "ApiListPendingUserNotificationsHandler": [
     {
+      "api_method": "ListPendingUserNotifications",
       "method": "GET",
       "response": {
         "items": [
@@ -14043,6 +14194,7 @@
       "url": "/api/users/me/notifications/pending"
     },
     {
+      "api_method": "ListPendingUserNotifications",
       "method": "GET",
       "response": {
         "items": [
@@ -14112,6 +14264,7 @@
   ],
   "ApiListReportsHandler": [
     {
+      "api_method": "ListReports",
       "method": "GET",
       "response": {
         "reports": [
@@ -14219,6 +14372,7 @@
   ],
   "ApiListStatsStoreMetricsMetadataHandler": [
     {
+      "api_method": "ListStatsStoreMetricsMetadata",
       "method": "GET",
       "response": {
         "items": [
@@ -14330,6 +14484,7 @@
   ],
   "ApiModifyCronJobHandler": [
     {
+      "api_method": "ModifyCronJob",
       "method": "PATCH",
       "request_payload": {
         "state": "ENABLED"
@@ -14408,6 +14563,7 @@
       "url": "/api/cron-jobs/OSBreakDown"
     },
     {
+      "api_method": "ModifyCronJob",
       "method": "PATCH",
       "request_payload": {
         "state": "DISABLED"
@@ -14488,6 +14644,7 @@
   ],
   "ApiModifyHuntHandler": [
     {
+      "api_method": "ModifyHunt",
       "method": "PATCH",
       "request_payload": {
         "client_limit": 142
@@ -14788,6 +14945,7 @@
       "url": "/api/hunts/H:123456"
     },
     {
+      "api_method": "ModifyHunt",
       "method": "PATCH",
       "request_payload": {
         "state": "STOPPED"
@@ -15090,6 +15248,7 @@
   ],
   "ApiSearchClientsHandler": [
     {
+      "api_method": "SearchClients",
       "method": "GET",
       "response": {
         "items": [
@@ -15205,6 +15364,7 @@
   ],
   "ApiStartRobotGetFilesOperationHandler": [
     {
+      "api_method": "StartRobotGetFilesOperation",
       "method": "POST",
       "request_payload": {
         "hostname": "C.1000000000000000",
@@ -15221,6 +15381,7 @@
   ],
   "ApiUpdateVfsFileContentHandler": [
     {
+      "api_method": "UpdateVfsFileContent",
       "method": "POST",
       "request_payload": {
         "file_path": "fs/os/c/bin/bash"

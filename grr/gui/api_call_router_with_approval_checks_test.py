@@ -98,7 +98,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
   ACCESS_CHECKED_METHODS.extend([
       "InterrogateClient",
       "ListClientCrashes",
-      "ListClientActionRequests"])  # pyformat: disable
+      "ListClientActionRequests",
+      "GetClientLoadStats"])  # pyformat: disable
 
   def testClientMethodsAreAccessChecked(self):
     args = api_client.ApiInterrogateClientArgs(client_id=self.client_id)
@@ -108,6 +109,10 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     args = api_client.ApiListClientCrashesArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
         self.router.ListClientCrashes, "CheckClientAccess", args=args)
+
+    args = api_client.ApiGetClientLoadStatsArgs(client_id=self.client_id)
+    self.CheckMethodIsAccessChecked(
+        self.router.GetClientLoadStats, "CheckClientAccess", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
       "CreateVfsRefreshOperation",

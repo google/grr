@@ -43,9 +43,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
       "ListRDFValuesDescriptors",
       "ListOutputPluginDescriptors",
       "ListKnownEncodings",
-
-      # Documentation methods.
-      "GetDocs"
+      "ListApiMethods"
   ]
 
   def CheckMethod(self, method, **kwargs):
@@ -196,9 +194,7 @@ class ApiLabelsRestrictedCallRouterTest(test_lib.GRRBaseTest):
     self.CheckMethod(c.ListRDFValuesDescriptors)
     self.CheckMethod(c.ListOutputPluginDescriptors)
     self.CheckMethod(c.ListKnownEncodings)
-
-    # Documentation methods.
-    self.CheckMethod(c.GetDocs)
+    self.CheckMethod(c.ListApiMethods)
 
     # Robot methods.
     self.CheckMethod(c.StartRobotGetFilesOperation)

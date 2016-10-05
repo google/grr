@@ -184,12 +184,6 @@ config_lib.DEFINE_string("Rekall.profile_server", "GRRRekallProfileServer",
                          "Which Rekall profile server to use.")
 
 config_lib.DEFINE_string(
-    "StatsHunt.CollectionInterval", "10m",
-    "How often to collect the StatsHunt information from each client. The "
-    "minimum bound here is effectively 2 * Client.poll_max, since a new request"
-    " is only scheduled after results are received in the previous poll.")
-
-config_lib.DEFINE_string(
     "Server.username", None,
     "System account for services to run as after initialization. Note that "
     "GRR must be running as root first before being able to switch to another "
@@ -227,20 +221,6 @@ config_lib.DEFINE_list(
     "Strings matching these regexes in approval reasons will be turned into "
     " HTML links in approval emails. Note you have to use single quoted strings"
     " when setting this variable to prevent escaping.")
-
-config_lib.DEFINE_integer(
-    "StatsHunt.ClientBatchSize", "200",
-    "Batch size for client scheduling. This should be large enough that it "
-    "alleviates the performance impact of database roundtrips to open the "
-    "clients, but small enough that the threshold will be continuously reached "
-    "to keep the hunt running.")
-
-config_lib.DEFINE_integer(
-    "StatsHunt.ClientLimit", "0",
-    "The number of clients to run the StatsHunt on. This is purely to "
-    "allow for testing when the cronjob is enabled, since it can be a "
-    "significant amount of traffic. This should be set to 0 once you know"
-    " that the server can handle it.")
 
 config_lib.DEFINE_string(
     "StatsStore.process_id",

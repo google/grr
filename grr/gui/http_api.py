@@ -17,6 +17,9 @@ from django import http
 from werkzeug import exceptions as werkzeug_exceptions
 from werkzeug import routing
 
+from google.protobuf import json_format
+from google.protobuf import symbol_database
+
 import logging
 
 from grr.gui import api_auth_manager
@@ -32,6 +35,8 @@ from grr.lib import stats
 from grr.lib import utils
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.rdfvalues import structs as rdf_structs
+
+from grr.proto import api_pb2
 
 
 class Error(Exception):
@@ -80,6 +85,13 @@ class RouterMatcher(object):
         routing_map.add(
             routing.Rule(
                 path, methods=[http_method], endpoint=metadata))
+        # This adds support for the next version of the API that uses
+        # standartized JSON protobuf serialization.
+        routing_map.add(
+            routing.Rule(
+                path.replace("/api/", "/api/v2/"),
+                methods=[http_method],
+                endpoint=metadata))
 
     return routing_map
 
@@ -94,6 +106,69 @@ class RouterMatcher(object):
 
     return routing_map
 
+  def _SetField(self, args, type_info, value):
+    """Sets fields on the arg rdfvalue object."""
+    if hasattr(type_info, "enum"):
+      try:
+        coerced_obj = type_info.enum[value.upper()]
+      except KeyError:
+        # A bool is an enum but serializes to "1" / "0" which are both not in
+        # enum or reverse_enum.
+        coerced_obj = type_info.type.FromSerializedString(value)
+    else:
+      coerced_obj = type_info.type.FromSerializedString(value)
+    args.Set(type_info.name, coerced_obj)
+
+  def _GetArgsFromRequest(self, request, method_metadata, route_args):
+    """Builds args struct out of HTTP request."""
+    format_mode = GetRequestFormatMode(request, method_metadata)
+
+    if request.method in ["GET", "HEAD"]:
+      if method_metadata.args_type:
+        unprocessed_request = request.GET
+        if hasattr(unprocessed_request, "dict"):
+          unprocessed_request = unprocessed_request.dict()
+
+        args = method_metadata.args_type()
+        for type_info in args.type_infos:
+          if type_info.name in route_args:
+            self._SetField(args, type_info, route_args[type_info.name])
+          elif type_info.name in unprocessed_request:
+            self._SetField(args, type_info, unprocessed_request[type_info.name])
+
+      else:
+        args = None
+    elif request.method in ["POST", "DELETE", "PATCH"]:
+      try:
+        args = method_metadata.args_type()
+        for type_info in args.type_infos:
+          if type_info.name in route_args:
+            self._SetField(args, type_info, route_args[type_info.name])
+
+        if request.META["CONTENT_TYPE"].startswith("multipart/form-data;"):
+          payload = json.loads(request.POST["_params_"])
+          args.FromDict(payload)
+
+          for name, fd in request.FILES.items():
+            args.Set(name, fd.read())
+        elif format_mode == JsonMode.PROTO3_JSON_MODE:
+          # NOTE: Arguments rdfvalue has to be a protobuf-based RDFValue.
+          args_proto = args.protobuf()
+          json_format.Parse(request.body or "{}", args_proto)
+          args.ParseFromString(args_proto.SerializeToString())
+        else:
+          payload = json.loads(request.body or "{}")
+          if payload:
+            args.FromDict(payload)
+      except Exception as e:  # pylint: disable=broad-except
+        logging.exception("Error while parsing POST request %s (%s): %s",
+                          request.path, request.method, e)
+        raise PostRequestParsingError(e)
+    else:
+      raise UnsupportedHttpMethod("Unsupported method: %s." % request.method)
+
+    return args
+
   def MatchRouter(self, request):
     """Returns a router for a given HTTP request."""
     router = api_auth_manager.API_AUTH_MGR.GetRouterForUser(request.user)
@@ -107,8 +182,10 @@ class RouterMatcher(object):
       raise ApiCallRouterNotFoundError("No API router was found for (%s) %s" %
                                        (request.path, request.method))
 
-    router_method_metadata, route_args = match
-    return (router, router_method_metadata, route_args)
+    router_method_metadata, route_args_dict = match
+    return (router, router_method_metadata,
+            self._GetArgsFromRequest(request, router_method_metadata,
+                                     route_args_dict))
 
 
 class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
@@ -130,6 +207,30 @@ class JSONEncoderWithRDFPrimitivesSupport(json.JSONEncoder):
       return obj.SerializeToDataStore()
 
     return json.JSONEncoder.default(self, obj)
+
+
+class JsonMode(object):
+  """Enum class for various JSON encoding modes."""
+  PROTO3_JSON_MODE = 0
+  GRR_JSON_MODE = 1
+  GRR_ROOT_TYPES_STRIPPED_JSON_MODE = 2
+  GRR_TYPE_STRIPPED_JSON_MODE = 3
+
+
+def GetRequestFormatMode(request, method_metadata):
+  """Returns JSON format mode corresponding to a given request and method."""
+  if request.path.startswith("/api/v2/"):
+    return JsonMode.PROTO3_JSON_MODE
+
+  if hasattr(request, "GET") and request.GET.get("strip_type_info", ""):
+    return JsonMode.GRR_TYPE_STRIPPED_JSON_MODE
+
+  for http_method, unused_url, options in method_metadata.http_methods:
+    if (http_method == request.method and
+        options.get("strip_root_types", False)):
+      return JsonMode.GRR_ROOT_TYPES_STRIPPED_JSON_MODE
+
+  return JsonMode.GRR_JSON_MODE
 
 
 class HttpRequestHandler(object):
@@ -168,15 +269,36 @@ class HttpRequestHandler(object):
         token.source_ips.append(remote_addr)
     return token
 
+  def _FormatResultAsJson(self, result, format_mode=None):
+    if result is None:
+      return dict(status="OK")
+
+    if format_mode == JsonMode.PROTO3_JSON_MODE:
+      return json.loads(json_format.MessageToJson(result.AsPrimitiveProto()))
+    elif format_mode == JsonMode.GRR_ROOT_TYPES_STRIPPED_JSON_MODE:
+      result_dict = {}
+      for field, value in result.ListSetFields():
+        if isinstance(field, (rdf_structs.ProtoDynamicEmbedded,
+                              rdf_structs.ProtoEmbedded,
+                              rdf_structs.ProtoList)):
+          result_dict[field.name] = api_value_renderers.RenderValue(value)
+        else:
+          result_dict[field.name] = api_value_renderers.RenderValue(value)[
+              "value"]
+      return result_dict
+    elif format_mode == JsonMode.GRR_TYPE_STRIPPED_JSON_MODE:
+      rendered_data = api_value_renderers.RenderValue(result)
+      return api_value_renderers.StripTypeInfo(rendered_data)
+    elif format_mode == JsonMode.GRR_JSON_MODE:
+      return api_value_renderers.RenderValue(result)
+    else:
+      raise ValueError("Invalid format_mode: %s", format_mode)
+
   @staticmethod
-  def CallApiHandler(handler, args, token=None, strip_root_types=False):
+  def CallApiHandler(handler, args, token=None):
     """Handles API call to a given handler with given args and token."""
 
-    try:
-      result = handler.Handle(args, token=token)
-    except NotImplementedError:
-      # Fall back to legacy Render() method if Handle() is not implemented.
-      return handler.Render(args, token=token)
+    result = handler.Handle(args, token=token)
 
     expected_type = handler.result_type
     if expected_type is None:
@@ -187,23 +309,7 @@ class HttpRequestHandler(object):
                                       (expected_type.__name__,
                                        result.__class__.__name__))
 
-    if result is None:
-      return dict(status="OK")
-    else:
-      if strip_root_types:
-        result_dict = {}
-        for field, value in result.ListSetFields():
-          if isinstance(field, (rdf_structs.ProtoDynamicEmbedded,
-                                rdf_structs.ProtoEmbedded,
-                                rdf_structs.ProtoList)):
-            result_dict[field.name] = api_value_renderers.RenderValue(value)
-          else:
-            result_dict[field.name] = api_value_renderers.RenderValue(value)[
-                "value"]
-      else:
-        result_dict = api_value_renderers.RenderValue(result)
-
-      return result_dict
+    return result
 
   def __init__(self, router_matcher=None):
     self._router_matcher = router_matcher or RouterMatcher()
@@ -261,63 +367,6 @@ class HttpRequestHandler(object):
 
     return response
 
-  def _SetField(self, args, type_info, value):
-    """Sets fields on the arg rdfvalue object."""
-    if hasattr(type_info, "enum"):
-      try:
-        coerced_obj = type_info.enum[value.upper()]
-      except KeyError:
-        # A bool is an enum but serializes to "1" / "0" which are both not in
-        # enum or reverse_enum.
-        coerced_obj = type_info.type.FromSerializedString(value)
-    else:
-      coerced_obj = type_info.type.FromSerializedString(value)
-    args.Set(type_info.name, coerced_obj)
-
-  def _GetArgsFromRequest(self, request, method_metadata, route_args):
-    """Builds args struct out of HTTP request."""
-
-    if request.method in ["GET", "HEAD"]:
-      if method_metadata.args_type:
-        unprocessed_request = request.GET
-        if hasattr(unprocessed_request, "dict"):
-          unprocessed_request = unprocessed_request.dict()
-
-        args = method_metadata.args_type()
-        for type_info in args.type_infos:
-          if type_info.name in route_args:
-            self._SetField(args, type_info, route_args[type_info.name])
-          elif type_info.name in unprocessed_request:
-            self._SetField(args, type_info, unprocessed_request[type_info.name])
-
-      else:
-        args = None
-    elif request.method in ["POST", "DELETE", "PATCH"]:
-      try:
-        args = method_metadata.args_type()
-        for type_info in args.type_infos:
-          if type_info.name in route_args:
-            self._SetField(args, type_info, route_args[type_info.name])
-
-        if request.META["CONTENT_TYPE"].startswith("multipart/form-data;"):
-          payload = json.loads(request.POST["_params_"])
-          args.FromDict(payload)
-
-          for name, fd in request.FILES.items():
-            args.Set(name, fd.read())
-        else:
-          payload = json.loads(request.body or "{}")
-          if payload:
-            args.FromDict(payload)
-      except Exception as e:  # pylint: disable=broad-except
-        logging.exception("Error while parsing POST request %s (%s): %s",
-                          request.path, request.method, e)
-        raise PostRequestParsingError(e)
-    else:
-      raise UnsupportedHttpMethod("Unsupported method: %s." % request.method)
-
-    return args
-
   def HandleRequest(self, request):
     """Handles given HTTP request."""
     impersonated_username = config_lib.CONFIG["AdminUI.debug_impersonate_user"]
@@ -329,14 +378,8 @@ class HttpRequestHandler(object):
       return self._BuildResponse(
           403, dict(message="Invalid username: %s" % request.user))
 
-    strip_type_info = False
-    if hasattr(request, "GET") and request.GET.get("strip_type_info", ""):
-      strip_type_info = True
-
     try:
-      router, method_metadata, route_args = self._router_matcher.MatchRouter(
-          request)
-      args = self._GetArgsFromRequest(request, method_metadata, route_args)
+      router, method_metadata, args = self._router_matcher.MatchRouter(request)
     except access_control.UnauthorizedAccess as e:
       logging.exception("Access denied to %s (%s): %s", request.path,
                         request.method, e)
@@ -402,14 +445,18 @@ class HttpRequestHandler(object):
           if binary_stream.content_length:
             headers = {"Content-Length": binary_stream.content_length}
           return self._BuildResponse(
-              200, {"status": "OK"},
+              200, {
+                  "status": "OK"
+              },
               method_name=method_metadata.name,
               headers=headers,
               no_audit_log=method_metadata.no_audit_log_required,
               token=token)
         else:
           return self._BuildResponse(
-              200, {"status": "OK"},
+              200, {
+                  "status": "OK"
+              },
               method_name=method_metadata.name,
               no_audit_log=method_metadata.no_audit_log_required,
               token=token)
@@ -420,17 +467,10 @@ class HttpRequestHandler(object):
         return self._BuildStreamingResponse(
             binary_stream, method_name=method_metadata.name)
       else:
-        for http_method, unused_url, options in method_metadata.http_methods:
-          strip_root_types = False
-          if http_method == request.method:
-            strip_root_types = options.get("strip_root_types", False)
-            break
-
-        rendered_data = self.CallApiHandler(
-            handler, args, token=token, strip_root_types=strip_root_types)
-
-        if strip_type_info:
-          rendered_data = api_value_renderers.StripTypeInfo(rendered_data)
+        format_mode = GetRequestFormatMode(request, method_metadata)
+        result = self.CallApiHandler(handler, args, token=token)
+        rendered_data = self._FormatResultAsJson(
+            result, format_mode=format_mode)
 
         return self._BuildResponse(
             200,
@@ -523,6 +563,11 @@ class HttpApiInitHook(registry.InitHook):
   def RunOnce(self):
     global HTTP_REQUEST_HANDLER
     HTTP_REQUEST_HANDLER = HttpRequestHandler()
+
+    db = symbol_database.Default()
+    # Register api_pb2.DESCRIPTOR in the database, so that all API-related
+    # protos are recognized when Any messages are unpacked.
+    db.RegisterFileDescriptor(api_pb2.DESCRIPTOR)
 
     stats.STATS.RegisterEventMetric(
         "api_method_latency",

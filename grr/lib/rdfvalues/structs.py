@@ -14,6 +14,7 @@ except ImportError:
   _semantic = None
 
 from google.protobuf import any_pb2
+from google.protobuf import wrappers_pb2
 
 from google.protobuf import descriptor_pb2
 from google.protobuf import text_format
@@ -212,8 +213,9 @@ def ReadIntoObject(buff, index, value_obj, length=0):
 
   # Split the buffer into tags and wire_format representations, then collect
   # these into the raw data cache.
-  for (encoded_tag, encoded_length, encoded_field) in SplitBuffer(
-      buff, index=index, length=length):
+  for (encoded_tag,
+       encoded_length, encoded_field) in SplitBuffer(
+           buff, index=index, length=length):
 
     type_info_obj = value_obj.type_infos_by_encoded_tag.get(encoded_tag)
 
@@ -996,20 +998,57 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
 
   proto_type_name = "google.protobuf.Any"
 
+  WRAPPER_BY_TYPE = {
+      "bytes": wrappers_pb2.BytesValue,
+      "string": wrappers_pb2.StringValue,
+      "integer": wrappers_pb2.Int64Value,
+      "unsigned_integer": wrappers_pb2.UInt64Value,
+  }
+
   def ConvertFromWireFormat(self, value, container=None):
     """The wire format is an AnyValue message."""
     result = AnyValue()
     ReadIntoObject(value[2], 0, result)
 
-    # TODO(user): Type stored in type_url is currently ignored when value is
-    # decoded. We should use it to deserialize the value and then check
-    # that value type and dynamic type are compatible.
-    return self._type(container).FromSerializedString(result.value)
+    converted_value = self._type(container)
+    # If one of the protobuf library wrapper classes is used, unwrap the value.
+    if result.type_url.startswith("type.googleapis.com/google.protobuf."):
+      wrapper_cls = self.__class__.WRAPPER_BY_TYPE[
+          converted_value.data_store_type]
+      wrapper_value = wrapper_cls()
+      wrapper_value.ParseFromString(result.value)
+      return converted_value.FromDatastoreValue(wrapper_value.value)
+    else:
+      # TODO(user): Type stored in type_url is currently ignored when value
+      # is decoded. We should use it to deserialize the value and then check
+      # that value type and dynamic type are compatible.
+      return converted_value.FromSerializedString(result.value)
 
   def ConvertToWireFormat(self, value):
     """Encode the nested protobuf into wire format."""
-    data = value.SerializeToString()
-    any_value = AnyValue(type_url=value.__class__.__name__, value=data)
+    # Is it a protobuf-based value?
+    if hasattr(value.__class__, "protobuf"):
+      if value.__class__.protobuf:
+        type_name = ("type.googleapis.com/grr.%s" %
+                     value.__class__.protobuf.__name__)
+      else:
+        type_name = value.__class__.__name__
+      data = value.SerializeToString()
+    # Is it a primitive value?
+    elif hasattr(value.__class__, "data_store_type"):
+      wrapper_cls = self.__class__.WRAPPER_BY_TYPE[
+          value.__class__.data_store_type]
+      wrapped_data = wrapper_cls()
+      wrapped_data.value = value.SerializeToDataStore()
+
+      type_name = ("type.googleapis.com/google.protobuf.%s" %
+                   wrapper_cls.__name__)
+      data = wrapped_data.SerializeToString()
+    else:
+      raise ValueError("Can't convert value %s to an protobuf.Any value." %
+                       value)
+
+    any_value = AnyValue(type_url=type_name, value=data)
     output = SerializeEntries(any_value.GetRawData().itervalues())
 
     return (self.encoded_tag, VarintEncode(len(output)), output)
@@ -1679,8 +1718,8 @@ class RDFStruct(rdfvalue.RDFValue):
     """Format a message in a human readable way."""
     yield "message %s {" % self.__class__.__name__
 
-    for k, (python_format, wire_format,
-            type_descriptor) in sorted(self.GetRawData().items()):
+    for k, (python_format,
+            wire_format, type_descriptor) in sorted(self.GetRawData().items()):
       if python_format is None:
         python_format = type_descriptor.ConvertFromWireFormat(
             wire_format, container=self)

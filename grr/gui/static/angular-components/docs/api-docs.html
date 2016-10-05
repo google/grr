@@ -54,20 +54,20 @@
 
         <div class="panel-body" grr-on-scroll-into-view="controller.visibleCategory = category">
           <div class="doc-item"
-               ng-repeat="apiCallHandler in ::controller.apiCallHandlersByCategory[category]">
+               ng-repeat="apiMethod in ::controller.apiMethodsByCategory[category]">
             <p class="lead">
-              {$ ::apiCallHandler.methods.join(', ') $}
-              <grr-api-route value="::apiCallHandler.route"></grr-api-route>
+              {$ ::apiMethod.http_methods.join(', ') $}
+              <grr-api-route value="::apiMethod.http_route"></grr-api-route>
             </p>
 
-            <grr-api-description value="::apiCallHandler.doc"></grr-api-description>
-            <grr-api-query-spec args-type="::apiCallHandler.args_type"></grr-api-query-spec>
+            <grr-api-description value="::apiMethod.doc"></grr-api-description>
+            <grr-api-query-spec args-type="::apiMethod.args_type_descriptor.name"></grr-api-query-spec>
 
-            <div ng-if="controller.examplesByHandler[apiCallHandler.handler].length > 0">
+            <div ng-if="controller.examplesByMethod[apiMethod.name].length > 0">
               <h4>Examples:</h4>
 
               <table class="example table table-condensed"
-                     ng-repeat="example in ::controller.examplesByHandler[apiCallHandler.handler]">
+                     ng-repeat="example in ::controller.examplesByMethod[apiMethod.name]">
                 <thead>
                   <th>
                     <grr-api-route value="::example.url"></grr-api-route>
@@ -79,7 +79,7 @@
                     </div>
 
                     <div class="request-payload" ng-if="example.request_payload">
-                      <span class="method-label">{$ ::apiCallHandler.methods.join(', ') $} body:</span>
+                      <span class="method-label">{$ ::apiMethod.http_methods.join(', ') $} body:</span>
                       <div class="json pre-scrollable">{$ ::example.request_payload | json:2 $}</div>
                     </div>
                   </th>

@@ -95,6 +95,12 @@ message SampleGetHandlerArgs {
   optional string foo = 2;
 }
 
+message SampleGetHandlerResult {
+  optional string method = 1;
+  optional string path = 2;
+  optional string foo = 3;
+}
+
 message ApiRDFProtoStructRendererSample {
   optional uint64 index = 1 [(sem_type) = {
       description: "Sample index."
@@ -108,8 +114,18 @@ message SampleDeleteHandlerArgs {
   optional string resource_id = 1;
 }
 
+message SampleDeleteHandlerResult {
+  optional string method = 1;
+  optional string resource = 2;
+}
+
 message SamplePatchHandlerArgs {
   optional string resource_id = 1;
+}
+
+message SamplePatchHandlerResult {
+  optional string method = 1;
+  optional string resource = 2;
 }
 
 // For api_auth_manager_test.py

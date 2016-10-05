@@ -84,6 +84,7 @@ FileTreeController.prototype.initTree_ = function() {
   var controller = this;
   this.treeElement_.jstree({
     'core' : {
+      'multiple': false,
       'data' : function (node, cb) {
         if (node.id === '#') {
           controller.getChildFiles_('').then(cb);

@@ -59,7 +59,7 @@ ClientBuilder Context:
       - build.yaml
 
     Client.install_path: |
-      /usr/local/lib/%(Client.name)/%(ClientBuilder.output_basename)
+      /usr/local/lib/%(Client.name)/%(ClientRepacker.output_basename)
 
     Client.rekall_profile_cache_path: |
       %(Client.install_path)/rekall_profiles
@@ -68,7 +68,7 @@ ClientBuilder Context:
 
     ClientBuilder.build_root_dir: /Users/%(USER|env)/mac-build
 
-    ClientBuilder.install_dir: "/usr/local/lib/%(Client.name)/%(ClientBuilder.output_basename)"
+    ClientBuilder.install_dir: "/usr/local/lib/%(Client.name)/%(ClientRepacker.output_basename)"
 
     # Needed for package maker. Do not touch.
     ClientBuilder.mangled_output_basename: |
@@ -102,7 +102,7 @@ ClientBuilder Context:
     Client.binary_name: grrd
 
     Client.install_path: |
-      /usr/lib/%(Client.name)/%(ClientBuilder.output_basename)
+      /usr/lib/%(Client.name)/%(ClientRepacker.output_basename)
 
     Config.writeback: /etc/%(Client.name).local.yaml
 
@@ -117,7 +117,7 @@ ClientBuilder Context:
     ClientBuilder.output_extension: .deb
 
     ClientBuilder.target_dir: |
-      /usr/lib/%(Client.name)/%(ClientBuilder.output_basename)
+      /usr/lib/%(Client.name)/%(ClientRepacker.output_basename)
 
     ClientBuilder.template_extension: .deb.zip
 
@@ -137,12 +137,12 @@ ClientBuilder Context:
       ClientBuilder.output_extension: .rpm
 
       ClientBuilder.target_dir: |
-        /usr/lib64/%(Client.name)/%(ClientBuilder.output_basename)
+        /usr/lib64/%(Client.name)/%(ClientRepacker.output_basename)
 
       ClientBuilder.template_extension: .rpm.zip
 
       Client.install_path: |
-        /usr/lib64/%(Client.name)/%(ClientBuilder.output_basename)
+        /usr/lib64/%(Client.name)/%(ClientRepacker.output_basename)
 
       Client.rekall_profile_cache_path: |
         %(Client.install_path)/rekall_profiles

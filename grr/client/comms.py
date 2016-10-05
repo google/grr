@@ -323,14 +323,15 @@ class HTTPManager(object):
       except requests.RequestException as e:
         # Especially trap a 406 error message - it means the client needs to
         # enroll.
-        last_error = e.response.status_code
-        if last_error == 406:
-          # A 406 is not considered an error as the frontend is reachable. If
-          # we considered it as an error the client would be unable to send
-          # the enrollment request since connection errors disable message
-          # draining.
-          self.consecutive_connection_errors = 0
-          return HTTPObject(code=406)
+        if e.response is not None:
+          last_error = e.response.status_code
+          if last_error == 406:
+            # A 406 is not considered an error as the frontend is reachable. If
+            # we considered it as an error the client would be unable to send
+            # the enrollment request since connection errors disable message
+            # draining.
+            self.consecutive_connection_errors = 0
+            return HTTPObject(code=406)
 
         # Try the next proxy
         self.last_proxy_index = proxy_index + 1
@@ -369,6 +370,8 @@ class HTTPManager(object):
           timeout = config_lib.CONFIG["Client.http_timeout"]
 
         result = requests.request(**request_args)
+        # By default requests doesn't raise on HTTP error codes.
+        result.raise_for_status()
 
         return time.time() - now, result
 
@@ -381,7 +384,7 @@ class HTTPManager(object):
         # messages.
         if self.active_base_url is not None:
           # Propagate 406 immediately without retrying, as 406 is a valid
-          # response that inidicate a need for enrollment.
+          # response that indicates a need for enrollment.
           response = getattr(e, "response", None)
           if getattr(response, "status_code", None) == 406:
             raise
@@ -1254,7 +1257,9 @@ class GRRHTTPClient(object):
         path="control?api=%s" % config_lib.CONFIG["Network.api"],
         verify_cb=self.VerifyServerControlResponse,
         data=data,
-        headers={"Content-Type": "binary/octet-stream"})
+        headers={
+            "Content-Type": "binary/octet-stream"
+        })
 
     if response.code == 406:
       self.InitiateEnrolment()

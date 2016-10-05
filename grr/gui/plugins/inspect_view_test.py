@@ -12,7 +12,6 @@ from grr.lib import queue_manager
 from grr.lib import test_lib
 from grr.lib.flows.general import discovery as flow_discovery
 from grr.lib.rdfvalues import client as rdf_client
-from grr.lib.rdfvalues import flows as rdf_flows
 
 
 class TestInspectViewBase(test_lib.GRRSeleniumTest):
@@ -30,30 +29,6 @@ class TestClientLoadView(TestInspectViewBase):
         client_id=client_id, flow_name="ListProcesses", token=token)
     with queue_manager.QueueManager(token=token) as manager:
       manager.QueryAndOwn(client_id.Queue(), limit=1, lease_seconds=10000)
-
-  @staticmethod
-  def FillClientStats(client_id=rdf_client.ClientURN("C.0000000000000001"),
-                      token=None):
-    for minute in range(6):
-      stats = rdf_client.ClientStats()
-      for i in range(minute * 60, (minute + 1) * 60):
-        sample = rdf_client.CpuSample(
-            timestamp=int(i * 10 * 1e6),
-            user_cpu_time=10 + i,
-            system_cpu_time=20 + i,
-            cpu_percent=10 + i)
-        stats.cpu_samples.Append(sample)
-
-        sample = rdf_client.IOSample(
-            timestamp=int(i * 10 * 1e6),
-            read_bytes=10 + i,
-            write_bytes=10 + i * 2)
-        stats.io_samples.Append(sample)
-
-      message = rdf_flows.GrrMessage(
-          source=client_id, args=stats.SerializeToString())
-      flow.WellKnownFlow.GetAllWellKnownFlows(
-          token=token)["Stats"].ProcessMessage(message)
 
   def testNoClientActionIsDisplayed(self):
     with self.ACLChecksDisabled():

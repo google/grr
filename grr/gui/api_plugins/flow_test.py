@@ -185,7 +185,9 @@ class ApiGetFlowHandlerRegressionTest(
           "GET",
           "/api/clients/%s/flows/%s" % (client_urn.Basename(),
                                         flow_id.Basename()),
-          replace={flow_id.Basename(): "F:ABCDEF12"})
+          replace={
+              flow_id.Basename(): "F:ABCDEF12"
+          })
 
 
 class ApiListFlowsHandlerRegressionTest(
@@ -214,8 +216,10 @@ class ApiListFlowsHandlerRegressionTest(
     self.Check(
         "GET",
         "/api/clients/%s/flows" % client_urn.Basename(),
-        replace={flow_id_1.Basename(): "F:ABCDEF10",
-                 flow_id_2.Basename(): "F:ABCDEF11"})
+        replace={
+            flow_id_1.Basename(): "F:ABCDEF10",
+            flow_id_2.Basename(): "F:ABCDEF11"
+        })
 
 
 class ApiListFlowRequestsHandlerRegressionTest(
@@ -293,7 +297,9 @@ class ApiListFlowResultsHandlerRegressionTest(
         "GET",
         "/api/clients/%s/flows/%s/results" % (self.client_id.Basename(),
                                               flow_urn.Basename()),
-        replace={flow_urn.Basename(): "W:ABCDEF"})
+        replace={
+            flow_urn.Basename(): "W:ABCDEF"
+        })
 
 
 class ApiListFlowLogsHandlerRegressionTest(
@@ -351,7 +357,9 @@ class ApiGetFlowResultsExportCommandHandlerRegressionTest(
         "GET",
         "/api/clients/%s/flows/%s/results/export-command" %
         (self.client_id.Basename(), flow_urn.Basename()),
-        replace={flow_urn.Basename(): "W:ABCDEF"})
+        replace={
+            flow_urn.Basename(): "W:ABCDEF"
+        })
 
 
 class ApiListFlowOutputPluginsHandlerRegressionTest(
@@ -360,6 +368,12 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
 
   api_method = "ListFlowOutputPlugins"
   handler = flow_plugin.ApiListFlowOutputPluginsHandler
+
+  # ApiOutputPlugin's state is an AttributedDict containing URNs that
+  # are always random. Given that currently their JSON representation
+  # is proto-serialized and then base64-encoded, there's no way
+  # we can replace these URNs with something stable.
+  skip_v2_tests = True
 
   def setUp(self):
     super(ApiListFlowOutputPluginsHandlerRegressionTest, self).setUp()
@@ -382,7 +396,9 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
         "GET",
         "/api/clients/%s/flows/%s/output-plugins" %
         (self.client_id.Basename(), flow_urn.Basename()),
-        replace={flow_urn.Basename(): "W:ABCDEF"})
+        replace={
+            flow_urn.Basename(): "W:ABCDEF"
+        })
 
 
 class DummyFlowWithSingleReply(flow.GRRFlow):
@@ -403,6 +419,12 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
 
   api_method = "ListFlowOutputPluginLogs"
   handler = flow_plugin.ApiListFlowOutputPluginLogsHandler
+
+  # ApiOutputPlugin's state is an AttributedDict containing URNs that
+  # are always random. Given that currently their JSON representation
+  # is proto-serialized and then base64-encoded, there's no way
+  # we can replace these URNs with something stable.
+  skip_v2_tests = True
 
   def setUp(self):
     super(ApiListFlowOutputPluginLogsHandlerRegressionTest, self).setUp()
@@ -430,7 +452,9 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
         "/api/clients/%s/flows/%s/output-plugins/"
         "EmailOutputPlugin_0/logs" % (self.client_id.Basename(),
                                       flow_urn.Basename()),
-        replace={flow_urn.Basename(): "W:ABCDEF"})
+        replace={
+            flow_urn.Basename(): "W:ABCDEF"
+        })
 
 
 class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
@@ -439,6 +463,12 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
 
   api_method = "ListFlowOutputPluginErrors"
   handler = flow_plugin.ApiListFlowOutputPluginErrorsHandler
+
+  # ApiOutputPlugin's state is an AttributedDict containing URNs that
+  # are always random. Given that currently their JSON representation
+  # is proto-serialized and then base64-encoded, there's no way
+  # we can replace these URNs with something stable.
+  skip_v2_tests = True
 
   def setUp(self):
     super(ApiListFlowOutputPluginErrorsHandlerRegressionTest, self).setUp()
@@ -464,7 +494,9 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
         "/api/clients/%s/flows/%s/output-plugins/"
         "FailingDummyHuntOutputPlugin_0/errors" %
         (self.client_id.Basename(), flow_urn.Basename()),
-        replace={flow_urn.Basename(): "W:ABCDEF"})
+        replace={
+            flow_urn.Basename(): "W:ABCDEF"
+        })
 
 
 class ApiCreateFlowHandlerRegressionTest(
@@ -489,18 +521,21 @@ class ApiCreateFlowHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.Check(
           "POST",
-          "/api/clients/%s/flows" % self.client_id.Basename(), {"flow": {
-              "name": processes.ListProcesses.__name__,
-              "args": {
-                  "filename_regex": ".",
-                  "fetch_binaries": True
-              },
-              "runner_args": {
-                  "output_plugins": [],
-                  "priority": "HIGH_PRIORITY",
-                  "notify_to_user": False,
-              },
-          }},
+          "/api/clients/%s/flows" % self.client_id.Basename(), {
+              "flow": {
+                  "name":
+                      processes.ListProcesses.__name__,
+                  "args": {
+                      "filename_regex": ".",
+                      "fetch_binaries": True
+                  },
+                  "runner_args": {
+                      "output_plugins": [],
+                      "priority": "HIGH_PRIORITY",
+                      "notify_to_user": False,
+                  },
+              }
+          },
           replace=ReplaceFlowId)
 
 
@@ -526,7 +561,9 @@ class ApiCancelFlowHandlerRegressionTest(
         "POST",
         "/api/clients/%s/flows/%s/actions/cancel" %
         (self.client_id.Basename(), flow_urn.Basename()),
-        replace={flow_urn.Basename(): "W:ABCDEF"})
+        replace={
+            flow_urn.Basename(): "W:ABCDEF"
+        })
 
 
 class ApiListFlowDescriptorsHandlerRegressionTest(
@@ -571,9 +608,10 @@ class ApiStartRobotGetFilesOperationHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.Check(
           "POST",
-          "/api/robot-actions/get-files",
-          {"hostname": self.client_id.Basename(),
-           "paths": ["/tmp/test"]},
+          "/api/robot-actions/get-files", {
+              "hostname": self.client_id.Basename(),
+              "paths": ["/tmp/test"]
+          },
           replace=ReplaceFlowId)
 
 
@@ -704,7 +742,9 @@ class ApiGetRobotGetFilesOperationStateHandlerRegressionTest(
       self.Check(
           "GET",
           "/api/robot-actions/get-files/%s" % start_result.operation_id,
-          replace={flow_urn.Basename(): "F:ABCDEF12"})
+          replace={
+              flow_urn.Basename(): "F:ABCDEF12"
+          })
 
 
 class ApiGetFlowFilesArchiveHandlerTest(test_lib.GRRBaseTest):

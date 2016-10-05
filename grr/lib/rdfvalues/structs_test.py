@@ -220,6 +220,21 @@ class RDFStructsTest(test_base.RDFValueTestCase):
                      "// A dynamic value based on another field.\n  "
                      "optional google.protobuf.Any dynamic = 2;\n}\n")
 
+  def testDynamicAnyValueTypeWithPrimitiveValues(self):
+    test_pb = DynamicAnyValueTypeTest(type="RDFString")
+    # We can not assign arbitrary values to the dynamic field.
+    self.assertRaises(ValueError, setattr, test_pb, "dynamic", 42)
+
+    # Can assign a nested field.
+    test_pb.dynamic = rdfvalue.RDFString("Hello")
+    self.assertTrue(isinstance(test_pb.dynamic, rdfvalue.RDFString))
+
+    # Test serialization/deserialization.
+    serialized = test_pb.SerializeToString()
+    unserialized = DynamicAnyValueTypeTest.FromSerializedString(serialized)
+    self.assertEqual(unserialized, test_pb)
+    self.assertEqual(unserialized.dynamic, "Hello")
+
   def testProtoFileDescriptorIsGeneratedForDynamicType(self):
     test_pb_file_descriptor, deps = DynamicTypeTest.EmitProtoFileDescriptor(
         "grr_export")

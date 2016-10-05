@@ -7,6 +7,8 @@ import sys
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_handler_utils
 
+from grr.gui.api_plugins import stats as api_stats
+
 from grr.lib import aff4
 from grr.lib import client_index
 from grr.lib import data_store
@@ -15,11 +17,13 @@ from grr.lib import flow
 from grr.lib import ip_resolver
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
+from grr.lib import timeseries
 from grr.lib import utils
 
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import standard
+from grr.lib.aff4_objects import stats as aff4_stats
 
 from grr.lib.flows.general import audit
 from grr.lib.flows.general import discovery
@@ -52,8 +56,8 @@ class ApiClient(rdf_structs.RDFProtoStruct):
         # TODO(user): Check if ProtoString.Validate should be fixed
         # to do an isinstance() check on a value. Is simple type
         # equality check used there for performance reasons?
-        version=utils.SmartStr(client_obj.Get(client_obj.Schema.OS_VERSION,
-                                              "")),
+        version=utils.SmartStr(
+            client_obj.Get(client_obj.Schema.OS_VERSION, "")),
         kernel=client_obj.Get(client_obj.Schema.KERNEL),
         machine=client_obj.Get(client_obj.Schema.ARCH),
         fqdn=client_obj.Get(client_obj.Schema.FQDN),
@@ -376,7 +380,9 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
                 description=audit_description))
     finally:
       events.Events.PublishMultipleEvents(
-          {audit.AUDIT_EVENT: audit_events}, token=token)
+          {
+              audit.AUDIT_EVENT: audit_events
+          }, token=token)
 
 
 class ApiRemoveClientsLabelsArgs(rdf_structs.RDFProtoStruct):
@@ -431,7 +437,9 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
                 description=audit_description))
     finally:
       events.Events.PublishMultipleEvents(
-          {audit.AUDIT_EVENT: audit_events}, token=token)
+          {
+              audit.AUDIT_EVENT: audit_events
+          }, token=token)
 
 
 class ApiListClientsLabelsResult(rdf_structs.RDFProtoStruct):
@@ -527,5 +535,113 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
                                                       task.task_id)
 
       result.items.append(request)
+
+    return result
+
+
+class ApiGetClientLoadStatsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetClientLoadStatsArgs
+
+
+class ApiGetClientLoadStatsResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetClientLoadStatsResult
+
+
+class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
+  """Returns client load stats data."""
+
+  args_type = ApiGetClientLoadStatsArgs
+  result_type = ApiGetClientLoadStatsResult
+
+  # pyformat: disable
+  GAUGE_METRICS = [
+      ApiGetClientLoadStatsArgs.Metric.CPU_PERCENT,
+      ApiGetClientLoadStatsArgs.Metric.MEMORY_PERCENT,
+      ApiGetClientLoadStatsArgs.Metric.MEMORY_RSS_SIZE,
+      ApiGetClientLoadStatsArgs.Metric.MEMORY_VMS_SIZE
+  ]
+  # pyformat: enable
+  MAX_SAMPLES = 100
+
+  def Handle(self, args, token=None):
+    start_time = args.start
+    end_time = args.end
+
+    if not end_time:
+      end_time = rdfvalue.RDFDatetime.Now()
+
+    if not start_time:
+      start_time = end_time - rdfvalue.Duration("30m")
+
+    fd = aff4.FACTORY.Create(
+        args.client_id.Add("stats"),
+        aff4_type=aff4_stats.ClientStats,
+        mode="r",
+        token=token,
+        age=(start_time, end_time))
+
+    stat_values = list(fd.GetValuesForAttribute(fd.Schema.STATS))
+    points = []
+    for stat_value in reversed(stat_values):
+      if args.metric == args.Metric.CPU_PERCENT:
+        points.extend((s.cpu_percent, s.timestamp)
+                      for s in stat_value.cpu_samples)
+      elif args.metric == args.Metric.CPU_SYSTEM:
+        points.extend((s.system_cpu_time, s.timestamp)
+                      for s in stat_value.cpu_samples)
+      elif args.metric == args.Metric.CPU_USER:
+        points.extend((s.user_cpu_time, s.timestamp)
+                      for s in stat_value.cpu_samples)
+      elif args.metric == args.Metric.IO_READ_BYTES:
+        points.extend((s.read_bytes, s.timestamp)
+                      for s in stat_value.io_samples)
+      elif args.metric == args.Metric.IO_WRITE_BYTES:
+        points.extend((s.write_bytes, s.timestamp)
+                      for s in stat_value.io_samples)
+      elif args.metric == args.Metric.IO_READ_OPS:
+        points.extend((s.read_count, s.timestamp)
+                      for s in stat_value.io_samples)
+      elif args.metric == args.Metric.IO_WRITE_OPS:
+        points.extend((s.write_count, s.timestamp)
+                      for s in stat_value.io_samples)
+      elif args.metric == args.Metric.NETWORK_BYTES_RECEIVED:
+        points.append((stat_value.bytes_received, stat_value.age))
+      elif args.metric == args.Metric.NETWORK_BYTES_SENT:
+        points.append((stat_value.bytes_sent, stat_value.age))
+      elif args.metric == args.Metric.MEMORY_PERCENT:
+        points.append((stat_value.memory_percent, stat_value.age))
+      elif args.metric == args.Metric.MEMORY_RSS_SIZE:
+        points.append((stat_value.RSS_size, stat_value.age))
+      elif args.metric == args.Metric.MEMORY_VMS_SIZE:
+        points.append((stat_value.VMS_size, stat_value.age))
+      else:
+        raise ValueError("Unknown metric.")
+
+    # Points collected from "cpu_samples" and "io_samples" may not be correctly
+    # sorted in some cases (as overlaps between different stat_values are
+    # possible).
+    points.sort(key=lambda x: x[1])
+
+    ts = timeseries.Timeseries()
+    ts.MultiAppend(points)
+
+    if args.metric not in self.GAUGE_METRICS:
+      ts.MakeIncreasing()
+
+    if len(stat_values) > self.MAX_SAMPLES:
+      sampling_interval = rdfvalue.Duration.FromSeconds((
+          (end_time - start_time).seconds / self.MAX_SAMPLES) or 1)
+      if args.metric in self.GAUGE_METRICS:
+        mode = timeseries.NORMALIZE_MODE_GAUGE
+      else:
+        mode = timeseries.NORMALIZE_MODE_COUNTER
+
+      ts.Normalize(sampling_interval, start_time, end_time, mode=mode)
+
+    result = ApiGetClientLoadStatsResult()
+    for value, timestamp in ts.data:
+      dp = api_stats.ApiStatsStoreMetricDataPoint(
+          timestamp=timestamp, value=value)
+      result.data_points.append(dp)
 
     return result

@@ -1,4 +1,8 @@
-<div>
+<!-- "title" attribute here is needed to override the "title" attribute that
+     will be set in grr-confirmation-dialog (that will be one level above)
+     and that will contain an Angular template expression. "title"
+     attribute is used by nested DOM elements when showing tooltips. -->
+<div ng-attr-title="{$ title $}">
 
   <div class="modal-header">
     <button type="button" class="close" ng-click="controller.dismiss()">
@@ -23,6 +27,7 @@
   <div class="modal-footer" ng-if="!controller.success && !controller.error">
     <button class="btn btn-default"
             ng-click="controller.dismiss()"
+            ng-attr-title="{$ cancelName || 'Cancel' $}"
             name="Cancel">
       {$ cancelName || 'Cancel' $}
     </button>
@@ -30,6 +35,7 @@
     <button class="btn {$ proceedClass || 'btn-primary' $}"
             ng-click="controller.proceed()"
             ng-disabled="canProceed && !canProceed()"
+            ng-attr-title="{$ proceedName || 'Proceed' $}"
             name="Proceed">
       {$ proceedName || 'Proceed' $}
     </button>
@@ -38,6 +44,7 @@
   <div class="modal-footer" ng-if="controller.success || controller.error">
     <button class="btn btn-default"
             ng-click="controller.close()"
+            ng-attr-title="{$ closeName || 'Close' $}"
             name="Close">
       {$ closeName || 'Close' $}
     </button>

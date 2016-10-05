@@ -154,7 +154,9 @@ class CollectArtifactDependencies(flow.GRRFlow):
           knowledge_base=self.state.knowledge_base,
           store_results_in_aff4=False,
           next_state="ProcessBase",
-          request_data={"artifact_name": artifact_name})
+          request_data={
+              "artifact_name": artifact_name
+          })
 
   def GetFirstFlowsForCollection(self):
     """Initialize dependencies and calculate first round of flows.
@@ -215,7 +217,9 @@ class CollectArtifactDependencies(flow.GRRFlow):
             artifact_list=[artifact_name],
             store_results_in_aff4=False,
             next_state="ProcessBase",
-            request_data={"artifact_name": artifact_name},
+            request_data={
+                "artifact_name": artifact_name
+            },
             knowledge_base=self.state.knowledge_base)
 
     # If we're not done but not collecting anything, start accepting the partial
@@ -272,7 +276,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
                                (self.state.awaiting_deps_artifacts,
                                 missing_deps))
         else:
-          self.Log("Storing incomplete KnowledgeBase. The following artifacts"
+          self.Log("Storing incomplete KnowledgeBase. The following artifacts "
                    "had dependencies that could not be fulfilled %s. "
                    "Missing: %s. Completed: %s" %
                    (self.state.awaiting_deps_artifacts, missing_deps,

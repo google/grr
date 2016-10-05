@@ -295,50 +295,6 @@ class InterrogateClientsCronFlow(cronjobs.SystemCronFlow):
       runner.Start()
 
 
-class StatsHuntCronFlow(cronjobs.SystemCronFlow):
-  """A cron job which runs a continuous stats hunt on all clients.
-
-  This hunt is designed to collect lightweight information from all clients with
-  very high resolution (similar to poll period). We roll over to a new hunt to
-  move to a new collection, and pick up any clients that might have fallen out
-  of the collection loop due to a worker dying or some other problem.
-  """
-  frequency = rdfvalue.Duration("1d")
-  # This just starts a hunt, which should be essentially instantantaneous
-  lifetime = rdfvalue.Duration("30m")
-
-  # TODO(user): Need to evaluate if this is still wanted, and impact is
-  # reasonable.
-  disabled = True
-
-  def GetOutputPlugins(self):
-    """Returns list of OutputPluginDescriptor objects to be used in the hunt.
-
-    This method can be overridden in a subclass in the server/local directory to
-    apply plugins specific to the local installation.
-
-    Returns:
-      list of output_plugin.OutputPluginDescriptor objects
-    """
-    return []
-
-  @flow.StateHandler()
-  def Start(self):
-    with hunts.GRRHunt.StartHunt(
-        hunt_name="StatsHunt",
-        client_limit=0,
-        output_plugins=self.GetOutputPlugins(),
-        token=self.token) as hunt:
-
-      runner = hunt.GetRunner()
-      runner.runner_args.client_rate = 0
-      runner.runner_args.client_limit = config_lib.CONFIG.Get(
-          "StatsHunt.ClientLimit")
-      runner.runner_args.expiry_time = self.frequency
-      runner.runner_args.description = "Stats hunt for high-res client info."
-      runner.Start()
-
-
 class PurgeClientStats(cronjobs.SystemCronFlow):
   """Deletes outdated client statistics."""
 

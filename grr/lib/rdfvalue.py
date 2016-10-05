@@ -462,9 +462,11 @@ class RDFInteger(RDFValue):
     return filter_implementation.GetFilter("PredicateNumericEqualFilter")(
         attribute, long(value))
 
-  operators = {"<": (1, "LessThan"),
-               ">": (1, "GreaterThan"),
-               "=": (1, "Equal")}
+  operators = {
+      "<": (1, "LessThan"),
+      ">": (1, "GreaterThan"),
+      "=": (1, "Equal")
+  }
 
 
 class RDFBool(RDFInteger):
@@ -635,10 +637,12 @@ class RDFDatetime(RDFInteger):
         attribute, cls._ParseFromHumanReadable(
             value, eoy=True))
 
-  operators = {"<": (1, "LessThan"),
-               ">": (1, "GreaterThan"),
-               "<=": (1, "LessThanEq"),
-               ">=": (1, "GreaterThanEq")}
+  operators = {
+      "<": (1, "LessThan"),
+      ">": (1, "GreaterThan"),
+      "<=": (1, "LessThanEq"),
+      ">=": (1, "GreaterThanEq")
+  }
 
 
 class RDFDatetimeSeconds(RDFDatetime):
@@ -669,6 +673,10 @@ class Duration(RDFInteger):
     else:
       raise InitializeError("Unknown initializer for Duration: %s." %
                             type(initializer))
+
+  @classmethod
+  def FromSeconds(cls, seconds):
+    return cls(seconds)
 
   def Validate(self, value, **_):
     self.ParseFromString(value)

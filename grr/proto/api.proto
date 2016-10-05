@@ -2647,6 +2647,72 @@ message ApiListClientActionRequestsResult {
   repeated ApiClientActionRequest items = 1;
 }
 
+message ApiGetClientLoadStatsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+
+  optional uint64 start = 2 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Fetch client load stats data starting from this "
+      "timestamp. If not set, will default to 30 minutes ago."
+    }];
+  optional uint64 end = 3 [(sem_type) = {
+      type: "RDFDatetime",
+      description: "Fetch client load stats data from the interval "
+      "ending with this timestamp. If not set, will default to the current "
+      "time."
+    }];
+
+  enum Metric {
+    CPU_PERCENT = 0;
+    CPU_SYSTEM = 1;
+    CPU_USER = 2;
+
+    IO_READ_BYTES = 3;
+    IO_WRITE_BYTES = 4;
+    IO_READ_OPS = 5;
+    IO_WRITE_OPS = 6;
+
+    NETWORK_BYTES_RECEIVED = 7;
+    NETWORK_BYTES_SENT = 8;
+
+    MEMORY_PERCENT = 9;
+    MEMORY_RSS_SIZE = 10;
+    MEMORY_VMS_SIZE = 11;
+  }
+  optional Metric metric = 5;
+}
+
+message ApiGetClientLoadStatsResult {
+  repeated ApiStatsStoreMetricDataPoint data_points = 1;
+}
+
+message ApiMethod {
+  optional string name = 1;
+  optional string category = 2;
+  optional string doc = 3;
+
+  optional string http_route = 4;
+  repeated string http_methods = 5;
+
+  optional ApiRDFValueDescriptor args_type_descriptor = 6;
+
+  enum ResultKind {
+    NONE = 0;
+    VALUE = 1;
+    BINARY_STREAM = 2;
+  }
+  optional ResultKind result_kind = 7;
+  optional ApiRDFValueDescriptor result_type_descriptor = 8;
+}
+
+message ApiListApiMethodsResult {
+  repeated ApiMethod items = 1;
+}
+
+
 //
 // API call routers parameters.
 //

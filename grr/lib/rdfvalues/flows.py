@@ -86,6 +86,9 @@ class GrrMessage(rdf_structs.RDFProtoStruct):
   def task_id(self, value):
     self.Set("task_id", value)
 
+  def HasTaskID(self):
+    return bool(self.Get("task_id"))
+
   @property
   def args(self):
     raise RuntimeError("Direct access to serialized args is not permitted! "

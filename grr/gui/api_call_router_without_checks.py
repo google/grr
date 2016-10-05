@@ -9,7 +9,6 @@ from grr.gui.api_plugins import artifact as api_artifact
 from grr.gui.api_plugins import client as api_client
 from grr.gui.api_plugins import config as api_config
 from grr.gui.api_plugins import cron as api_cron
-from grr.gui.api_plugins import docs as api_docs
 from grr.gui.api_plugins import flow as api_flow
 from grr.gui.api_plugins import hunt as api_hunt
 from grr.gui.api_plugins import output_plugin as api_output_plugin
@@ -60,6 +59,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
 
   def ListClientActionRequests(self, args, token=None):
     return api_client.ApiListClientActionRequestsHandler()
+
+  def GetClientLoadStats(self, args, token=None):
+    return api_client.ApiGetClientLoadStatsHandler()
 
   # Virtual file system methods.
   # ============================
@@ -361,11 +363,8 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def ListKnownEncodings(self, args, token=None):
     return api_vfs.ApiListKnownEncodingsHandler()
 
-  # Documentation methods.
-  # =====================
-  #
-  def GetDocs(self, args, token=None):
-    return api_docs.ApiGetDocsHandler(self)
+  def ListApiMethods(self, args, token=None):
+    return api_reflection.ApiListApiMethodsHandler(self)
 
   # Robot methods (methods that provide limited access to the system and
   # are supposed to be triggered by the scripts).

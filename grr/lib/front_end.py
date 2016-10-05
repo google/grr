@@ -122,8 +122,8 @@ class ServerCommunicator(communicator.Communicator):
       # only trigger on messages that are more than one hour old.
 
       if client_time < long(remote_time - rdfvalue.Duration("1h")):
-        logging.warning("Message desynchronized for %s: %s >= %s", client_id,
-                        long(remote_time), int(client_time))
+        logging.warning("Message desynchronized for %s: %s >= %s",
+                        client_id, long(remote_time), int(client_time))
         # This is likely an old message
         return rdf_flows.GrrMessage.AuthorizationState.DESYNCHRONIZED
 
@@ -138,8 +138,8 @@ class ServerCommunicator(communicator.Communicator):
           stats.STATS.IncrementCounter(
               "client_pings_by_label", fields=[label.name])
       else:
-        logging.warning("Out of order message for %s: %s >= %s", client_id,
-                        long(remote_time), int(client_time))
+        logging.warning("Out of order message for %s: %s >= %s",
+                        client_id, long(remote_time), int(client_time))
 
       client.Flush(sync=False)
 
@@ -357,8 +357,12 @@ class FrontEndServer(object):
           elif msg.type == rdf_flows.GrrMessage.Type.STATUS:
             # If we receive a status message from the client it means the client
             # has finished processing this request. We therefore can de-queue it
-            # from the client queue.
-            manager.DeQueueClientRequest(client_id, msg.task_id)
+            # from the client queue. msg.task_id will raise if the task id is
+            # not set (message originated at the client, there was no request on
+            # the server) so we have to use .Get() instead.
+            if msg.HasTaskID():
+              manager.DeQueueClientRequest(client_id, msg.task_id)
+
             manager.QueueNotification(
                 session_id=msg.session_id,
                 priority=msg.priority,

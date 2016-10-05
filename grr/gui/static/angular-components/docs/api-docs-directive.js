@@ -5,26 +5,12 @@ goog.provide('grrUi.docs.apiDocsDirective.ApiDocsController');
 goog.provide('grrUi.docs.apiDocsDirective.ApiDocsDirective');
 goog.provide('grrUi.docs.apiDocsDirective.ApiObjectRendererDescriptor');
 
+goog.require('grrUi.core.apiService.stripTypeInfo');
+
 goog.scope(function() {
 
 
-/** @typedef {{
- *             route:string,
- *             methods:Array.<string>,
- *             doc:string,
- *             query_spec:Object.<string, Object>
- *           }}
- */
-grrUi.docs.apiDocsDirective.ApiCallHandlerDescriptor;
-
-
-/** @typedef {{
- *             doc:string,
- *             query_spec:Object.<string, Object>
- *           }}
- */
-grrUi.docs.apiDocsDirective.ApiObjectRendererDescriptor;
-
+var stripTypeInfo = grrUi.core.apiService.stripTypeInfo;
 
 
 /**
@@ -47,18 +33,11 @@ grrUi.docs.apiDocsDirective.ApiDocsController = function($element, $http,
   /** @private {!grrUi.core.apiService.ApiService} */
   this.grrApiService_ = grrApiService;
 
-  /** @export {!Object<string,
-    *     Array<grrUi.docs.apiDocsDirective.ApiCallHandlerDescriptor>>}
-    */
-  this.apiCallHandlersByCategory;
-
-  /** @export {Object.<string,
-    *     grrUi.docs.apiDocsDirective.ApiObjectRendererDescriptor>}
-    */
-  this.apiObjectRenderers;
+  /** @export {!Object<string, Array<Object>>} */
+  this.apiMethodsByCategory;
 
   /** @export {Object<string, *>} */
-  this.examplesByHandler;
+  this.examplesByMethod;
 
   /** @export {Array<string>} */
   this.categories;
@@ -66,7 +45,8 @@ grrUi.docs.apiDocsDirective.ApiDocsController = function($element, $http,
   /** @export {string} */
   this.visibleCategory;
 
-  this.grrApiService_.get('docs').then(this.onDocsFetched_.bind(this));
+  this.grrApiService_.get('reflection/api-methods').then(
+      this.onApiMethodsListFetched_.bind(this));
   this.http_.get('/static/angular-components/docs/api-docs-examples.json').then(
       this.onExamplesFetched_.bind(this));
 };
@@ -80,11 +60,11 @@ var ApiDocsController = grrUi.docs.apiDocsDirective.ApiDocsController;
  * @param {!Object} response
  * @private
  */
-ApiDocsController.prototype.onDocsFetched_ = function(response) {
-  var apiCallHandlers = response.data['api_call_handlers'];
+ApiDocsController.prototype.onApiMethodsListFetched_ = function(response) {
   var categoriesDict = {};
-  angular.forEach(apiCallHandlers, function(handler) {
-    var category = handler['category'];
+  var items = stripTypeInfo(response['data']['items']);
+  angular.forEach(/** @type {Array<Object>} */ (items), function(descriptor) {
+    var category = descriptor['category'];
     if (!category) {
       category = 'Other';
     }
@@ -92,13 +72,13 @@ ApiDocsController.prototype.onDocsFetched_ = function(response) {
     if (categoriesDict[category] === undefined) {
       categoriesDict[category] = [];
     }
-    categoriesDict[category].push(handler);
+    categoriesDict[category].push(descriptor);
   }.bind(this));
 
-  angular.forEach(categoriesDict, function(handlers) {
-    handlers.sort(function(a, b) {
-      var astr = a['method'] + '_' + a['route'];
-      var bstr = b['method'] + '_' + b['route'];
+  angular.forEach(categoriesDict, function(descriptors) {
+    descriptors.sort(function(a, b) {
+      var astr = a['name'] + '_' + a['http_route'];
+      var bstr = b['name'] + '_' + b['http_route'];
       if (astr > bstr) {
         return 1;
       } else if (astr < bstr) {
@@ -108,11 +88,9 @@ ApiDocsController.prototype.onDocsFetched_ = function(response) {
       }
     });
   }.bind(this));
-  this.apiCallHandlersByCategory = categoriesDict;
+  this.apiMethodsByCategory = categoriesDict;
   this.categories = Object.keys(categoriesDict).sort();
   this.visibleCategory = this.categories[0];
-
-  this.apiObjectRenderers = response.data['api_object_renderers'];
 };
 
 
@@ -123,7 +101,16 @@ ApiDocsController.prototype.onDocsFetched_ = function(response) {
  * @private
  */
 ApiDocsController.prototype.onExamplesFetched_ = function(response) {
-  this.examplesByHandler = response.data;
+  this.examplesByMethod = {};
+  angular.forEach(response.data, function(handlerExamples) {
+    angular.forEach(handlerExamples, function(example) {
+      var apiMethod = example['api_method'];
+      if (!this.examplesByMethod[apiMethod]) {
+        this.examplesByMethod[apiMethod] = [];
+      }
+      this.examplesByMethod[apiMethod].push(example);
+    }.bind(this));
+  }.bind(this));
 };
 
 

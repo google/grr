@@ -3,6 +3,7 @@
 
 
 import os
+import platform
 import socket
 import time
 import traceback
@@ -18,6 +19,7 @@ import pytsk3
 import logging
 
 from grr.client import actions
+from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
 from grr.lib import queues
 from grr.lib import rdfvalue
@@ -195,35 +197,72 @@ class UpdateConfiguration(actions.ActionPlugin):
   """Updates configuration parameters on the client."""
   in_rdfvalue = rdf_protodict.Dict
 
-  UPDATEABLE_FIELDS = ["Client.compression",
-                       "Client.foreman_check_frequency",
-                       "Client.server_urls",
-                       "Client.max_post_size",
-                       "Client.max_out_queue",
-                       "Client.poll_min",
-                       "Client.poll_max",
-                       "Client.poll_slew",
-                       "Client.rss_max"]  # pyformat: disable
+  UPDATABLE_FIELDS = {"Client.compression",
+                      "Client.foreman_check_frequency",
+                      "Client.server_urls",
+                      "Client.max_post_size",
+                      "Client.max_out_queue",
+                      "Client.poll_min",
+                      "Client.poll_max",
+                      "Client.poll_slew",
+                      "Client.rss_max"}  # pyformat: disable
+
+  def _UpdateConfig(self, filtered_arg, config):
+    for field, value in filtered_arg.items():
+      config.Set(field, value)
+
+    try:
+      config.Write()
+    except (IOError, OSError):
+      pass
 
   def Run(self, arg):
     """Does the actual work."""
-    disallowed_fields = []
+    smart_arg = {utils.SmartStr(field): value for field, value in arg.items()}
 
-    for field, value in arg.items():
-      if field in self.UPDATEABLE_FIELDS:
-        config_lib.CONFIG.Set(field, value)
-
-      else:
-        disallowed_fields.append(field)
+    disallowed_fields = [
+        field for field in smart_arg.keys()
+        if field not in UpdateConfiguration.UPDATABLE_FIELDS
+    ]
 
     if disallowed_fields:
       logging.warning("Received an update request for restricted field(s) %s.",
                       ",".join(disallowed_fields))
 
-    try:
-      config_lib.CONFIG.Write()
-    except (IOError, OSError):
-      pass
+    filtered_arg = {
+        field: value
+        for field, value in smart_arg.items()
+        if field in UpdateConfiguration.UPDATABLE_FIELDS
+    }
+
+    if platform.system() != "Windows":
+      # Check config validity before really applying the changes. This isn't
+      # implemented for our Windows clients though, whose configs are stored in
+      # the registry, as opposed to in the filesystem.
+
+      canary_config = config_lib.CONFIG.CopyConfig()
+
+      # Prepare a temporary file we'll write changes to.
+      with tempfiles.CreateGRRTempFile(mode="w+") as temp_fd:
+        temp_filename = temp_fd.name
+
+      # Write canary_config changes to temp_filename.
+      canary_config.SetWriteBack(temp_filename)
+      self._UpdateConfig(filtered_arg, canary_config)
+
+      try:
+        # Assert temp_filename is usable by loading it.
+        canary_config.SetWriteBack(temp_filename)
+      # Wide exception handling passed here from config_lib.py...
+      except Exception:  # pylint: disable=broad-except
+        logging.warning("Updated config file %s is not usable.", temp_filename)
+        raise
+
+      # If temp_filename works, remove it (if not, it's useful for debugging).
+      os.unlink(temp_filename)
+
+    # The changes seem to work, so push them to the real config.
+    self._UpdateConfig(filtered_arg, config_lib.CONFIG)
 
 
 def GetClientInformation():

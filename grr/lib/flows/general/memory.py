@@ -82,6 +82,7 @@ class MemoryCollector(flow.GRRFlow):
 
   def RunRekallPlugin(self):
     plugin = rekall_types.PluginRequest(plugin="aff4acquire")
+    plugin.args["destination"] = "file:GRR"
     request = rekall_types.RekallRequest(plugins=[plugin])
 
     # Note that this will actually also retrieve the memory image.

@@ -54,8 +54,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
         token.RealUID(), flow_name, with_client_id=False)
 
   def __init__(self, params=None, legacy_manager=None, delegate=None):
-    super(ApiCallRouterWithApprovalChecksWithoutRobotAccess, self).__init__(
-        params=params)
+    super(ApiCallRouterWithApprovalChecksWithoutRobotAccess,
+          self).__init__(params=params)
 
     if not legacy_manager:
       legacy_manager = self._GetFullAccessControlManager()
@@ -126,6 +126,11 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     self.CheckClientAccess(args.client_id, token=token)
 
     return self.delegate.ListClientActionRequests(args, token=token)
+
+  def GetClientLoadStats(self, args, token=None):
+    self.CheckClientAccess(args.client_id, token=token)
+
+    return self.delegate.GetClientLoadStats(args, token=token)
 
   # Virtual file system methods.
   # ============================
@@ -662,13 +667,10 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.ListKnownEncodings(args, token=token)
 
-  # Documentation methods.
-  # =====================
-  #
-  def GetDocs(self, args, token=None):
+  def ListApiMethods(self, args, token=None):
     # Everybody can get the docs.
 
-    return self.delegate.GetDocs(args, token=token)
+    return self.delegate.ListApiMethods(args, token=token)
 
   # Robot methods (methods that provide limited access to the system and
   # are supposed to be triggered by the scripts).

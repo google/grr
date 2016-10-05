@@ -45,7 +45,7 @@ config_lib.DEFINE_integer("Client.rsa_key_length", 2048,
 
 config_lib.DEFINE_string(
     name="Client.install_path",
-    default=r"%(SystemRoot|env)\\System32\\%(name)\\%(Source.version_string)",
+    default=r"%(SystemRoot|env)\\System32\\%(name)\\%(Template.version_string)",
     help="Where the client binaries are installed.")
 
 config_lib.DEFINE_string(

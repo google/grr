@@ -351,10 +351,7 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
 
     return self.delegate.ListKnownEncodings(args, token=token)
 
-  # Documentation methods.
-  # =====================
-  #
-  def GetDocs(self, args, token=None):
-    # Everybody can get the docs.
+  def ListApiMethods(self, args, token=None):
+    # Everybody can list available API methods.
 
-    return self.delegate.GetDocs(args, token=token)
+    return self.delegate.ListApiMethods(args, token=token)

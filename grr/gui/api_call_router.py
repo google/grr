@@ -100,12 +100,14 @@ class RouterMethodMetadata(object):
 
   def __init__(self,
                name,
+               doc=None,
                args_type=None,
                result_type=None,
                category=None,
                http_methods=None,
                no_audit_log_required=False):
     self.name = name
+    self.doc = doc
     self.args_type = args_type
     self.result_type = result_type
     self.category = category
@@ -153,6 +155,7 @@ class ApiCallRouter(object):
 
         result[name] = RouterMethodMetadata(
             name=name,
+            doc=cls_method.__doc__,
             args_type=getattr(cls_method, "__args_type__", None),
             result_type=getattr(cls_method, "__result_type__", None),
             category=getattr(cls_method, "__category__", None),
@@ -171,6 +174,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/artifacts")
   @NoAuditLogRequired()
   def ListArtifacts(self, args, token=None):
+    """List available artifacts definitions."""
+
     raise NotImplementedError()
 
   @Category("Artifacts")
@@ -178,6 +183,8 @@ class ApiCallRouter(object):
   @Http("POST", "/api/artifacts")
   @NoAuditLogRequired()
   def UploadArtifact(self, args, token=None):
+    """Upload new artifact definition."""
+
     raise NotImplementedError()
 
   @Category("Artifacts")
@@ -185,6 +192,8 @@ class ApiCallRouter(object):
   @Http("DELETE", "/api/artifacts")
   @NoAuditLogRequired()
   def DeleteArtifacts(self, args, token=None):
+    """Delete one of previously uploaded artifacts."""
+
     raise NotImplementedError()
 
   # Clients methods.
@@ -195,6 +204,8 @@ class ApiCallRouter(object):
   @ResultType(api_client.ApiSearchClientsResult)
   @Http("GET", "/api/clients")
   def SearchClients(self, args, token=None):
+    """Search for clients using a search query."""
+
     raise NotImplementedError()
 
   @Category("Clients")
@@ -202,6 +213,8 @@ class ApiCallRouter(object):
   @ResultType(api_client.ApiClient)
   @Http("GET", "/api/clients/<client_id>", strip_root_types=False)
   def GetClient(self, args, token=None):
+    """Get client with a given client id."""
+
     raise NotImplementedError()
 
   @Category("Clients")
@@ -209,6 +222,8 @@ class ApiCallRouter(object):
   @ResultType(api_client.ApiGetClientVersionTimesResult)
   @Http("GET", "/api/clients/<client_id>/version-times")
   def GetClientVersionTimes(self, args, token=None):
+    """List available version-times of a client object with a given id."""
+
     raise NotImplementedError()
 
   @Category("Clients")
@@ -216,6 +231,8 @@ class ApiCallRouter(object):
   @ResultType(api_client.ApiInterrogateClientResult)
   @Http("POST", "/api/clients/<client_id>/actions/interrogate")
   def InterrogateClient(self, args, token=None):
+    """Inititate client interrogation."""
+
     raise NotImplementedError()
 
   @Category("Clients")
@@ -224,12 +241,16 @@ class ApiCallRouter(object):
   @Http("GET",
         "/api/clients/<client_id>/actions/interrogate/<path:operation_id>")
   def GetInterrogateOperationState(self, args, token=None):
+    """Get state of a previously started interrogation."""
+
     raise NotImplementedError()
 
   @ArgsType(api_client.ApiGetLastClientIPAddressArgs)
   @ResultType(api_client.ApiGetLastClientIPAddressResult)
   @Http("GET", "/api/clients/<client_id>/last-ip")
   def GetLastClientIPAddress(self, args, token=None):
+    """Get last known client IP address."""
+
     raise NotImplementedError()
 
   @Category("Clients")
@@ -237,6 +258,8 @@ class ApiCallRouter(object):
   @ResultType(api_client.ApiListClientCrashesResult)
   @Http("GET", "/api/clients/<client_id>/crashes")
   def ListClientCrashes(self, args, token=None):
+    """List crashes of a given client."""
+
     raise NotImplementedError()
 
   @Category("Clients")
@@ -244,6 +267,17 @@ class ApiCallRouter(object):
   @ResultType(api_client.ApiListClientActionRequestsResult)
   @Http("GET", "/api/clients/<client_id>/action-requests")
   def ListClientActionRequests(self, args, token=None):
+    """List pending action requests for a given client."""
+
+    raise NotImplementedError()
+
+  @Category("Clients")
+  @ArgsType(api_client.ApiGetClientLoadStatsArgs)
+  @ResultType(api_client.ApiGetClientLoadStatsResult)
+  @Http("GET", "/api/clients/<client_id>/load-stats/<metric>")
+  def GetClientLoadStats(self, args, token=None):
+    """Get client load statistics (CPI and IO)."""
+
     raise NotImplementedError()
 
   # Virtual file system methods.
@@ -255,6 +289,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/clients/<client_id>/vfs-index/")
   @Http("GET", "/api/clients/<client_id>/vfs-index/<path:file_path>")
   def ListFiles(self, args, token=None):
+    """List files in a given VFS directory of a given client."""
+
     # This method can be called with or without file_path argument and returns
     # the root files for the given client in the latter case.
     # To allow optional url arguments, two url patterns need to be specified.
@@ -265,6 +301,8 @@ class ApiCallRouter(object):
   @ResultType(api_vfs.ApiGetFileDetailsResult)
   @Http("GET", "/api/clients/<client_id>/vfs-details/<path:file_path>")
   def GetFileDetails(self, args, token=None):
+    """Get details of a VFS file on a given client."""
+
     raise NotImplementedError()
 
   @Category("Vfs")
@@ -272,6 +310,8 @@ class ApiCallRouter(object):
   @ResultType(api_vfs.ApiGetFileTextResult)
   @Http("GET", "/api/clients/<client_id>/vfs-text/<path:file_path>")
   def GetFileText(self, args, token=None):
+    """Get text file contents of a VFS file on a given client."""
+
     raise NotImplementedError()
 
   @Category("Vfs")
@@ -279,6 +319,8 @@ class ApiCallRouter(object):
   @ResultBinaryStream()
   @Http("GET", "/api/clients/<client_id>/vfs-blob/<path:file_path>")
   def GetFileBlob(self, args, token=None):
+    """Get byte contents of a VFS file on a given client."""
+
     raise NotImplementedError()
 
   @Category("Vfs")
@@ -286,6 +328,8 @@ class ApiCallRouter(object):
   @ResultType(api_vfs.ApiGetFileVersionTimesResult)
   @Http("GET", "/api/clients/<client_id>/vfs-version-times/<path:file_path>")
   def GetFileVersionTimes(self, args, token=None):
+    """Get available version times of a VFS file on a given client."""
+
     raise NotImplementedError()
 
   @Category("Vfs")
@@ -293,6 +337,8 @@ class ApiCallRouter(object):
   @ResultType(api_vfs.ApiGetFileDownloadCommandResult)
   @Http("GET", "/api/clients/<client_id>/vfs-download-command/<path:file_path>")
   def GetFileDownloadCommand(self, args, token=None):
+    """Get a command line that downloads given VFS file."""
+
     raise NotImplementedError()
 
   @Category("Vfs")
@@ -300,6 +346,8 @@ class ApiCallRouter(object):
   @ResultType(api_vfs.ApiCreateVfsRefreshOperationResult)
   @Http("POST", "/api/clients/<client_id>/vfs-refresh-operations")
   def CreateVfsRefreshOperation(self, args, token=None):
+    """Start VFS refresh operation (refreshes a given VFS folder)."""
+
     raise NotImplementedError()
 
   @Category("Vfs")
@@ -308,6 +356,8 @@ class ApiCallRouter(object):
   @Http("GET",
         "/api/clients/<client_id>/vfs-refresh-operations/<path:operation_id>")
   def GetVfsRefreshOperationState(self, args, token=None):
+    """Get state of a previously started VFS refresh operation."""
+
     raise NotImplementedError()
 
   @Category("Vfs")
@@ -315,6 +365,8 @@ class ApiCallRouter(object):
   @ResultType(api_vfs.ApiGetVfsTimelineResult)
   @Http("GET", "/api/clients/<client_id>/vfs-timeline/<path:file_path>")
   def GetVfsTimeline(self, args, token=None):
+    """Get event timeline of VFS events for a given VFS path."""
+
     raise NotImplementedError()
 
   @Category("Vfs")
@@ -322,6 +374,8 @@ class ApiCallRouter(object):
   @ResultBinaryStream()
   @Http("GET", "/api/clients/<client_id>/vfs-timeline-csv/<path:file_path>")
   def GetVfsTimelineAsCsv(self, args, token=None):
+    """Get event timeline of VFS evetns for a given VFS path in CSV format."""
+
     raise NotImplementedError()
 
   @Category("Vfs")
@@ -329,6 +383,8 @@ class ApiCallRouter(object):
   @ResultType(api_vfs.ApiUpdateVfsFileContentResult)
   @Http("POST", "/api/clients/<client_id>/vfs-update")
   def UpdateVfsFileContent(self, args, token=None):
+    """Create request for a new snapshot of the file."""
+
     raise NotImplementedError()
 
   @Category("Vfs")
@@ -336,6 +392,8 @@ class ApiCallRouter(object):
   @ResultType(api_vfs.ApiGetVfsFileContentUpdateStateResult)
   @Http("GET", "/api/clients/<client_id>/vfs-update/<path:operation_id>")
   def GetVfsFileContentUpdateState(self, args, token=None):
+    """Get state of a previously started content update operation."""
+
     raise NotImplementedError()
 
   # Clients labels methods.
@@ -346,6 +404,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/clients/labels")
   @NoAuditLogRequired()
   def ListClientsLabels(self, args, token=None):
+    """List all available clients labels."""
+
     raise NotImplementedError()
 
   @Category("Clients")
@@ -353,6 +413,8 @@ class ApiCallRouter(object):
   @Http("POST", "/api/clients/labels/add")
   @NoAuditLogRequired()
   def AddClientsLabels(self, args, token=None):
+    """Labels given clients with given labels."""
+
     raise NotImplementedError()
 
   @Category("Clients")
@@ -360,6 +422,8 @@ class ApiCallRouter(object):
   @Http("POST", "/api/clients/labels/remove")
   @NoAuditLogRequired()
   def RemoveClientsLabels(self, args, token=None):
+    """Remove given labels from given clients."""
+
     raise NotImplementedError()
 
   # Clients flows methods.
@@ -370,6 +434,8 @@ class ApiCallRouter(object):
   @ResultType(api_flow.ApiListFlowsResult)
   @Http("GET", "/api/clients/<client_id>/flows")
   def ListFlows(self, args, token=None):
+    """List flows on a given client."""
+
     raise NotImplementedError()
 
   @Category("Flows")
@@ -380,6 +446,8 @@ class ApiCallRouter(object):
       "/api/clients/<client_id>/flows/<path:flow_id>",
       strip_root_types=False)
   def GetFlow(self, args, token=None):
+    """Get flow details."""
+
     raise NotImplementedError()
 
   # Note: handles both client and globals flows. It's cleaner to have
@@ -389,12 +457,16 @@ class ApiCallRouter(object):
   @ResultType(api_flow.ApiFlow)
   @Http("POST", "/api/clients/<client_id>/flows", strip_root_types=False)
   def CreateFlow(self, args, token=None):
+    """Start a new flow on a given client."""
+
     raise NotImplementedError()
 
   @Category("Flows")
   @ArgsType(api_flow.ApiCancelFlowArgs)
   @Http("POST", "/api/clients/<client_id>/flows/<path:flow_id>/actions/cancel")
   def CancelFlow(self, args, token=None):
+    """Stop given flow on a given client."""
+
     raise NotImplementedError()
 
   @Category("Flows")
@@ -402,6 +474,8 @@ class ApiCallRouter(object):
   @ResultType(api_flow.ApiListFlowRequestsResult)
   @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/requests")
   def ListFlowRequests(self, args, token=None):
+    """List pending action requests of a given flow on a given client."""
+
     raise NotImplementedError()
 
   @Category("Flows")
@@ -409,6 +483,8 @@ class ApiCallRouter(object):
   @ResultType(api_flow.ApiListFlowResultsResult)
   @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/results")
   def ListFlowResults(self, args, token=None):
+    """List results of a given flow on a given client."""
+
     raise NotImplementedError()
 
   @Category("Flows")
@@ -417,6 +493,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/results/"
         "export-command")
   def GetFlowResultsExportCommand(self, args, token=None):
+    """Get export tool command to export flow results."""
+
     raise NotImplementedError()
 
   @Category("Flows")
@@ -425,6 +503,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/results/"
         "files-archive")
   def GetFlowFilesArchive(self, args, token=None):
+    """Get ZIP or TAR.GZ archive with files downloaded by the flow."""
+
     raise NotImplementedError()
 
   @Category("Flows")
@@ -432,6 +512,8 @@ class ApiCallRouter(object):
   @ResultType(api_flow.ApiListFlowOutputPluginsResult)
   @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/output-plugins")
   def ListFlowOutputPlugins(self, args, token=None):
+    """List output plugins used by the flow."""
+
     raise NotImplementedError()
 
   @Category("Flows")
@@ -440,6 +522,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/"
         "output-plugins/<plugin_id>/logs")
   def ListFlowOutputPluginLogs(self, args, token=None):
+    """List output plugin logs of the flow."""
+
     raise NotImplementedError()
 
   @Category("Flows")
@@ -448,6 +532,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/"
         "output-plugins/<plugin_id>/errors")
   def ListFlowOutputPluginErrors(self, args, token=None):
+    """List output plugin errors of the flow."""
+
     raise NotImplementedError()
 
   @Category("Flows")
@@ -455,6 +541,8 @@ class ApiCallRouter(object):
   @ResultType(api_flow.ApiListFlowLogsResult)
   @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/log")
   def ListFlowLogs(self, args, token=None):
+    """List logs of the flow."""
+
     raise NotImplementedError()
 
   # Global flows methods.
@@ -465,6 +553,8 @@ class ApiCallRouter(object):
   @ResultType(api_flow.ApiFlow)
   @Http("POST", "/api/flows")
   def CreateGlobalFlow(self, args, token=None):
+    """Start a global flow."""
+
     raise NotImplementedError()
 
   # Cron jobs methods.
@@ -476,6 +566,8 @@ class ApiCallRouter(object):
   @NoAuditLogRequired()
   @Http("GET", "/api/cron-jobs")
   def ListCronJobs(self, args, token=None):
+    """List available cron jobs."""
+
     raise NotImplementedError()
 
   @Category("Cron")
@@ -483,6 +575,8 @@ class ApiCallRouter(object):
   @ResultType(api_cron.ApiCronJob)
   @Http("POST", "/api/cron-jobs", strip_root_types=False)
   def CreateCronJob(self, args, token=None):
+    """Create new cron job."""
+
     raise NotImplementedError()
 
   @Category("Cron")
@@ -490,12 +584,16 @@ class ApiCallRouter(object):
   @ResultType(api_cron.ApiCronJob)
   @Http("GET", "/api/cron-jobs/<cron_job_id>", strip_root_types=False)
   def GetCronJob(self, args, token=None):
+    """Get details of a given cron job."""
+
     raise NotImplementedError()
 
   @Category("Cron")
   @ArgsType(api_cron.ApiForceRunCronJobArgs)
   @Http("POST", "/api/cron-jobs/<cron_job_id>/actions/force-run")
   def ForceRunCronJob(self, args, token=None):
+    """Force an out-of-schedule run of a given cron job."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -503,6 +601,8 @@ class ApiCallRouter(object):
   @ResultType(api_cron.ApiCronJob)
   @Http("PATCH", "/api/cron-jobs/<cron_job_id>", strip_root_types=False)
   def ModifyCronJob(self, args, token=None):
+    """Modify cron job (includes enabling/disabling)."""
+
     raise NotImplementedError()
 
   @Category("Cron")
@@ -510,6 +610,8 @@ class ApiCallRouter(object):
   @ResultType(api_flow.ApiListFlowsResult)
   @Http("GET", "/api/cron-jobs/<cron_job_id>/flows")
   def ListCronJobFlows(self, args, token=None):
+    """List flows initiated by the given cron job."""
+
     raise NotImplementedError()
 
   @Category("Cron")
@@ -520,12 +622,16 @@ class ApiCallRouter(object):
       "/api/cron-jobs/<cron_job_id>/flows/<flow_id>",
       strip_root_types=False)
   def GetCronJobFlow(self, args, token=None):
+    """Get details of a flow started by a cron job."""
+
     raise NotImplementedError()
 
   @Category("Cron")
   @ArgsType(api_cron.ApiDeleteCronJobArgs)
   @Http("DELETE", "/api/cron-jobs/<cron_job_id>")
   def DeleteCronJob(self, args, token=None):
+    """Delete given cron job and all its flows."""
+
     raise NotImplementedError()
 
   # Hunts methods.
@@ -537,6 +643,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/hunts")
   @NoAuditLogRequired()
   def ListHunts(self, args, token=None):
+    """List hunts."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -544,6 +652,8 @@ class ApiCallRouter(object):
   @ResultType(api_hunt.ApiHunt)
   @Http("GET", "/api/hunts/<hunt_id>", strip_root_types=False)
   def GetHunt(self, args, token=None):
+    """Get details of a hunt with a given id."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -551,6 +661,8 @@ class ApiCallRouter(object):
   @ResultType(api_hunt.ApiListHuntErrorsResult)
   @Http("GET", "/api/hunts/<hunt_id>/errors")
   def ListHuntErrors(self, args, token=None):
+    """List hunt errors."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -559,6 +671,8 @@ class ApiCallRouter(object):
   # TODO(user): change "log" to "logs"
   @Http("GET", "/api/hunts/<hunt_id>/log")
   def ListHuntLogs(self, args, token=None):
+    """List hunt logs."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -566,6 +680,8 @@ class ApiCallRouter(object):
   @ResultType(api_hunt.ApiListHuntResultsResult)
   @Http("GET", "/api/hunts/<hunt_id>/results")
   def ListHuntResults(self, args, token=None):
+    """List hunt results."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -573,6 +689,8 @@ class ApiCallRouter(object):
   @ResultType(api_hunt.ApiGetHuntResultsExportCommandResult)
   @Http("GET", "/api/hunts/<hunt_id>/results/export-command")
   def GetHuntResultsExportCommand(self, args, token=None):
+    """Get export command that exports hunt results."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -580,6 +698,8 @@ class ApiCallRouter(object):
   @ResultType(api_hunt.ApiListHuntOutputPluginsResult)
   @Http("GET", "/api/hunts/<hunt_id>/output-plugins")
   def ListHuntOutputPlugins(self, args, token=None):
+    """List output plugins used by the hunt."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -587,6 +707,8 @@ class ApiCallRouter(object):
   @ResultType(api_hunt.ApiListHuntOutputPluginLogsResult)
   @Http("GET", "/api/hunts/<hunt_id>/output-plugins/<plugin_id>/logs")
   def ListHuntOutputPluginLogs(self, args, token=None):
+    """List hunt output plugins logs."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -594,6 +716,8 @@ class ApiCallRouter(object):
   @ResultType(api_hunt.ApiListHuntOutputPluginErrorsResult)
   @Http("GET", "/api/hunts/<hunt_id>/output-plugins/<plugin_id>/errors")
   def ListHuntOutputPluginErrors(self, args, token=None):
+    """List hunt output plugins errors."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -601,6 +725,8 @@ class ApiCallRouter(object):
   @ResultType(api_hunt.ApiListHuntCrashesResult)
   @Http("GET", "/api/hunts/<hunt_id>/crashes")
   def ListHuntCrashes(self, args, token=None):
+    """List all crashes caused by the hunt."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -608,6 +734,8 @@ class ApiCallRouter(object):
   @ResultType(api_hunt.ApiGetHuntClientCompletionStatsResult)
   @Http("GET", "/api/hunts/<hunt_id>/client-completion-stats")
   def GetHuntClientCompletionStats(self, args, token=None):
+    """Get hunt completion stats."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -615,6 +743,8 @@ class ApiCallRouter(object):
   @ResultType(api_hunt.ApiGetHuntStatsResult)
   @Http("GET", "/api/hunts/<hunt_id>/stats")
   def GetHuntStats(self, args, token=None):
+    """Get general hunt stats."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -622,6 +752,8 @@ class ApiCallRouter(object):
   @ResultType(api_hunt.ApiListHuntClientsResult)
   @Http("GET", "/api/hunts/<hunt_id>/clients/<client_status>")
   def ListHuntClients(self, args, token=None):
+    """List clients involved into the hunt."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -629,6 +761,8 @@ class ApiCallRouter(object):
   @ResultType(api_hunt.ApiGetHuntContextResult)
   @Http("GET", "/api/hunts/<hunt_id>/context")
   def GetHuntContext(self, args, token=None):
+    """Get a low-level hunt context (useful for debugging)."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -636,6 +770,8 @@ class ApiCallRouter(object):
   @ResultType(api_hunt.ApiHunt)
   @Http("POST", "/api/hunts", strip_root_types=False)
   def CreateHunt(self, args, token=None):
+    """Create a new hunt."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -643,12 +779,16 @@ class ApiCallRouter(object):
   @ResultType(api_hunt.ApiHunt)
   @Http("PATCH", "/api/hunts/<hunt_id>", strip_root_types=False)
   def ModifyHunt(self, args, token=None):
+    """Modify hunt (includes stopping/starting)."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
   @ArgsType(api_hunt.ApiDeleteHuntArgs)
   @Http("DELETE", "/api/hunts/<hunt_id>", strip_root_types=False)
   def DeleteHunt(self, args, token=None):
+    """Delete a hunt with all its data."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -656,6 +796,8 @@ class ApiCallRouter(object):
   @ResultBinaryStream()
   @Http("GET", "/api/hunts/<hunt_id>/results/files-archive")
   def GetHuntFilesArchive(self, args, token=None):
+    """Get ZIP or TAR.GZ archive with all the files downloaded by the hunt."""
+
     raise NotImplementedError()
 
   @Category("Hunts")
@@ -664,6 +806,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/hunts/<hunt_id>/results/clients/<client_id>/vfs-blob"
         "/<path:vfs_path>")
   def GetHuntFile(self, args, token=None):
+    """Get a file referenced by one of the hunt results."""
+
     raise NotImplementedError()
 
   # Stats metrics methods.
@@ -675,6 +819,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/stats/store/<component>/metadata")
   @NoAuditLogRequired()
   def ListStatsStoreMetricsMetadata(self, args, token=None):
+    """List metadata of available stats metrics."""
+
     raise NotImplementedError()
 
   @Category("Other")
@@ -683,6 +829,8 @@ class ApiCallRouter(object):
   @ResultType(api_stats.ApiStatsStoreMetric)
   @NoAuditLogRequired()
   def GetStatsStoreMetric(self, args, token=None):
+    """Get data corresponding to a given stats metric."""
+
     raise NotImplementedError()
 
   # TODO(user,user): Change the naming convention from stats to reports
@@ -691,6 +839,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/stats/reports")
   @ResultType(api_stats.ApiListReportsResult)
   def ListReports(self, args, token=None):
+    """List available stats reports."""
+
     raise NotImplementedError()
 
   @Category("Other")
@@ -698,6 +848,8 @@ class ApiCallRouter(object):
   @ArgsType(api_stats.ApiGetReportArgs)
   @ResultType(api_stats.report_plugins.ApiReport)
   def GetReport(self, args, token=None):
+    """Get data of a given report."""
+
     raise NotImplementedError()
 
   # Approvals methods.
@@ -711,6 +863,8 @@ class ApiCallRouter(object):
       "/api/users/me/approvals/client/<client_id>",
       strip_root_types=False)
   def CreateClientApproval(self, args, token=None):
+    """Create new client approval."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -722,6 +876,7 @@ class ApiCallRouter(object):
       "/api/users/<username>/approvals/client/<client_id>/<approval_id>",
       strip_root_types=False)
   def GetClientApproval(self, args, token=None):
+    """Get client approval identified by approval id, client id and username."""
     raise NotImplementedError()
 
   @Category("User")
@@ -733,6 +888,8 @@ class ApiCallRouter(object):
       "actions/grant",
       strip_root_types=False)
   def GrantClientApproval(self, args, token=None):
+    """Grant client approval."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -742,6 +899,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/users/me/approvals/client")
   @Http("GET", "/api/users/me/approvals/client/<client_id>")
   def ListClientApprovals(self, args, token=None):
+    """List client approvals of a current user."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -751,6 +910,8 @@ class ApiCallRouter(object):
   @Http(
       "POST", "/api/users/me/approvals/hunt/<hunt_id>", strip_root_types=False)
   def CreateHuntApproval(self, args, token=None):
+    """Create new hunt approval."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -762,6 +923,7 @@ class ApiCallRouter(object):
       "/api/users/<username>/approvals/hunt/<hunt_id>/<approval_id>",
       strip_root_types=False)
   def GetHuntApproval(self, args, token=None):
+    """Get hunt approval identified by approval id, hunt id and username."""
     raise NotImplementedError()
 
   @Category("User")
@@ -773,6 +935,8 @@ class ApiCallRouter(object):
       "actions/grant",
       strip_root_types=False)
   def GrantHuntApproval(self, args, token=None):
+    """Grant hunt approval."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -781,6 +945,8 @@ class ApiCallRouter(object):
   @NoAuditLogRequired()
   @Http("GET", "/api/users/me/approvals/hunt")
   def ListHuntApprovals(self, args, token=None):
+    """List hunt approvals of a current user."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -791,6 +957,8 @@ class ApiCallRouter(object):
       "/api/users/me/approvals/cron-job/<cron_job_id>",
       strip_root_types=False)
   def CreateCronJobApproval(self, args, token=None):
+    """Create new cron job approval."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -802,6 +970,8 @@ class ApiCallRouter(object):
       "/api/users/<username>/approvals/cron-job/<cron_job_id>/<approval_id>",
       strip_root_types=False)
   def GetCronJobApproval(self, args, token=None):
+    """Get cron job approval identified by approval id, cron id and username."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -813,6 +983,8 @@ class ApiCallRouter(object):
       "actions/grant",
       strip_root_types=False)
   def GrantCronJobApproval(self, args, token=None):
+    """Grant cron job approval."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -821,6 +993,8 @@ class ApiCallRouter(object):
   @NoAuditLogRequired()
   @Http("GET", "/api/users/me/approvals/cron-job")
   def ListCronJobApprovals(self, args, token=None):
+    """List cron job approvals of a current user."""
+
     raise NotImplementedError()
 
   # User settings methods.
@@ -831,6 +1005,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/users/me/notifications/pending/count")
   @NoAuditLogRequired()
   def GetPendingUserNotificationsCount(self, args, token=None):
+    """Get number of pending user notifications."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -839,6 +1015,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/users/me/notifications/pending")
   @NoAuditLogRequired()
   def ListPendingUserNotifications(self, args, token=None):
+    """List pending user notifications."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -846,6 +1024,8 @@ class ApiCallRouter(object):
   @Http("DELETE", "/api/users/me/notifications/pending/<timestamp>")
   @NoAuditLogRequired()
   def DeletePendingUserNotification(self, args, token=None):
+    """Delete pending user notifications."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -854,6 +1034,8 @@ class ApiCallRouter(object):
   @Http("POST", "/api/users/me/notifications")
   @NoAuditLogRequired()
   def ListAndResetUserNotifications(self, args, token=None):
+    """List user notifications and mark them all as 'seen'."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -861,6 +1043,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/users/me", strip_root_types=False)
   @NoAuditLogRequired()
   def GetGrrUser(self, args, token=None):
+    """Get current user settings."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -868,6 +1052,8 @@ class ApiCallRouter(object):
   @Http("POST", "/api/users/me")
   @NoAuditLogRequired()
   def UpdateGrrUser(self, args, token=None):
+    """Update current user settings."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -875,6 +1061,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/users/me/notifications/pending/global")
   @NoAuditLogRequired()
   def ListPendingGlobalNotifications(self, args, token=None):
+    """List pending global notifications."""
+
     raise NotImplementedError()
 
   @Category("User")
@@ -882,6 +1070,8 @@ class ApiCallRouter(object):
   @Http("DELETE", "/api/users/me/notifications/pending/global/<type>")
   @NoAuditLogRequired()
   def DeletePendingGlobalNotification(self, args, token=None):
+    """Delete pending global notification (affects current user only)."""
+
     raise NotImplementedError()
 
   # Config methods.
@@ -892,6 +1082,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/config")
   @NoAuditLogRequired()
   def GetConfig(self, args, token=None):
+    """Get current AdminUI configuration."""
+
     raise NotImplementedError()
 
   @Category("Settings")
@@ -900,6 +1092,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/config/<name>")
   @NoAuditLogRequired()
   def GetConfigOption(self, args, token=None):
+    """Get a single AdminUI configuration option."""
+
     raise NotImplementedError()
 
   # Reflection methods.
@@ -910,6 +1104,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/clients/kb-fields")
   @NoAuditLogRequired()
   def ListKbFields(self, args, token=None):
+    """List all available KnowledgeBase fields."""
+
     raise NotImplementedError()
 
   @Category("Reflection")
@@ -918,6 +1114,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/flows/descriptors")
   @NoAuditLogRequired()
   def ListFlowDescriptors(self, args, token=None):
+    """List descriptors of all the flows."""
+
     raise NotImplementedError()
 
   @Category("Reflection")
@@ -925,6 +1123,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/reflection/aff4/attributes", strip_root_types=True)
   @NoAuditLogRequired()
   def ListAff4AttributeDescriptors(self, args, token=None):
+    """List descriptors of all AFF4 attributes."""
+
     raise NotImplementedError()
 
   @Category("Reflection")
@@ -933,6 +1133,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/reflection/rdfvalue/<type>", strip_root_types=False)
   @NoAuditLogRequired()
   def GetRDFValueDescriptor(self, args, token=None):
+    """Get RDFValue descriptor for a given RDF type."""
+
     raise NotImplementedError()
 
   @Category("Reflection")
@@ -940,6 +1142,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/reflection/rdfvalue/all")
   @NoAuditLogRequired()
   def ListRDFValuesDescriptors(self, args, token=None):
+    """List all known RDF types descriptors."""
+
     raise NotImplementedError()
 
   # Note: fix the name in ApiOutputPluginsListHandler
@@ -948,6 +1152,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/output-plugins/all")
   @NoAuditLogRequired()
   def ListOutputPluginDescriptors(self, args, token=None):
+    """List all known output plugins descriptors."""
+
     raise NotImplementedError()
 
   @Category("Reflection")
@@ -955,15 +1161,17 @@ class ApiCallRouter(object):
   @Http("GET", "/api/reflection/file-encodings")
   @NoAuditLogRequired()
   def ListKnownEncodings(self, args, token=None):
+    """List all known encodings names."""
+
     raise NotImplementedError()
 
-  # Documentation methods.
-  # =====================
-  #
-  @Category("Other")
-  @Http("GET", "/api/docs")
+  @Category("Reflection")
+  @ResultType(api_reflection.ApiListApiMethodsResult)
+  @Http("GET", "/api/reflection/api-methods")
   @NoAuditLogRequired()
-  def GetDocs(self, args, token=None):
+  def ListApiMethods(self, args, token=None):
+    """List all available API methods."""
+
     raise NotImplementedError()
 
   # Robot methods (methods that provide limited access to the system and
@@ -976,6 +1184,8 @@ class ApiCallRouter(object):
   @Http("POST", "/api/robot-actions/get-files")
   @NoAuditLogRequired()
   def StartRobotGetFilesOperation(self, args, token=None):
+    """Start designed-for-robots GetFiles operation."""
+
     raise NotImplementedError()
 
   @Category("Flows")
@@ -984,6 +1194,8 @@ class ApiCallRouter(object):
   @Http("GET", "/api/robot-actions/get-files/<path:operation_id>")
   @NoAuditLogRequired()
   def GetRobotGetFilesOperationState(self, args, token=None):
+    """Get a state of a previously started GetFiles operation."""
+
     raise NotImplementedError()
 
 

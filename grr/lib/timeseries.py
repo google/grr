@@ -56,6 +56,15 @@ class Timeseries(object):
       raise RuntimeError("Next timestamp must be larger.")
     self.data.append([value, timestamp])
 
+  def MultiAppend(self, value_timestamp_pairs):
+    """Adds multiple value<->timestamp pairs.
+
+    Args:
+      value_timestamp_pairs: Tuples of (value, timestamp).
+    """
+    for value, timestamp in value_timestamp_pairs:
+      self.Append(value, timestamp)
+
   def FilterRange(self, start_time=None, stop_time=None):
     """Filter the series to lie between start_time and stop_time.
 

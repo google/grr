@@ -24,12 +24,17 @@ class SampleGetHandlerArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.SampleGetHandlerArgs
 
 
+class SampleGetHandlerResult(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.SampleGetHandlerResult
+
+
 class SampleGetHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = SampleGetHandlerArgs
+  result_type = SampleGetHandlerResult
 
-  def Render(self, args, token=None):
-    return {"method": "GET", "path": args.path, "foo": args.foo}
+  def Handle(self, args, token=None):
+    return SampleGetHandlerResult(method="GET", path=args.path, foo=args.foo)
 
 
 class SampleStreamingHandler(api_call_handler_base.ApiCallHandler):
@@ -48,24 +53,34 @@ class SampleDeleteHandlerArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.SampleDeleteHandlerArgs
 
 
+class SampleDeleteHandlerResult(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.SampleDeleteHandlerResult
+
+
 class SampleDeleteHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = SampleDeleteHandlerArgs
+  result_type = SampleDeleteHandlerResult
 
-  def Render(self, args, token=None):
-    return {"method": "DELETE", "resource": args.resource_id}
+  def Handle(self, args, token=None):
+    return SampleDeleteHandlerResult(method="DELETE", resource=args.resource_id)
 
 
 class SamplePatchHandlerArgs(rdf_structs.RDFProtoStruct):
   protobuf = tests_pb2.SamplePatchHandlerArgs
 
 
+class SamplePatchHandlerResult(rdf_structs.RDFProtoStruct):
+  protobuf = tests_pb2.SamplePatchHandlerResult
+
+
 class SamplePatchHandler(api_call_handler_base.ApiCallHandler):
 
   args_type = SamplePatchHandlerArgs
+  result_type = SamplePatchHandlerResult
 
-  def Render(self, args, token=None):
-    return {"method": "PATCH", "resource": args.resource_id}
+  def Handle(self, args, token=None):
+    return SamplePatchHandlerResult(method="PATCH", resource=args.resource_id)
 
 
 class TestHttpApiRouter(api_call_router.ApiCallRouter):
@@ -73,11 +88,13 @@ class TestHttpApiRouter(api_call_router.ApiCallRouter):
 
   @api_call_router.Http("GET", "/test_sample/<path:path>")
   @api_call_router.ArgsType(SampleGetHandlerArgs)
+  @api_call_router.ResultType(SampleGetHandlerResult)
   def SampleGet(self, args, token=None):
     return SampleGetHandler()
 
   @api_call_router.Http("GET", "/test_sample/raising/<path:path>")
   @api_call_router.ArgsType(SampleGetHandlerArgs)
+  @api_call_router.ResultType(SampleGetHandlerResult)
   def SampleRaisingGet(self, args, token=None):
     raise access_control.UnauthorizedAccess("oh no", subject="aff4:/foo/bar")
 
@@ -88,11 +105,13 @@ class TestHttpApiRouter(api_call_router.ApiCallRouter):
 
   @api_call_router.Http("DELETE", "/test_resource/<resource_id>")
   @api_call_router.ArgsType(SampleDeleteHandlerArgs)
+  @api_call_router.ResultType(SampleDeleteHandlerResult)
   def SampleDelete(self, args, token=None):
     return SampleDeleteHandler()
 
   @api_call_router.Http("PATCH", "/test_resource/<resource_id>")
   @api_call_router.ArgsType(SamplePatchHandlerArgs)
+  @api_call_router.ResultType(SamplePatchHandlerResult)
   def SamplePatch(self, args, token=None):
     return SamplePatchHandler()
 
@@ -134,8 +153,9 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(RouterMatcherTest, self).setUp()
-    self.config_overrider = test_lib.ConfigOverrider(
-        {"API.DefaultRouter": TestHttpApiRouter.__name__})
+    self.config_overrider = test_lib.ConfigOverrider({
+        "API.DefaultRouter": TestHttpApiRouter.__name__
+    })
     self.config_overrider.Start()
     # Make sure ApiAuthManager is initialized with this configuration setting.
     api_auth_manager.APIACLInit.InitApiAuthManager()
@@ -159,7 +179,7 @@ class RouterMatcherTest(test_lib.GRRBaseTest):
         self._CreateRequest("GET", "/test_sample/some/path"))
     _ = router
     _ = method_metadata
-    self.assertEqual(router_args, {"path": "some/path"})
+    self.assertEqual(router_args, SampleGetHandlerArgs(path="some/path"))
 
   def testRaisesIfNoHandlerMatchesUrl(self):
     self.assertRaises(http_api.ApiCallRouterNotFoundError,
@@ -200,8 +220,9 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
   def setUp(self):
     super(HttpRequestHandlerTest, self).setUp()
 
-    self.config_overrider = test_lib.ConfigOverrider(
-        {"API.DefaultRouter": TestHttpApiRouter.__name__})
+    self.config_overrider = test_lib.ConfigOverrider({
+        "API.DefaultRouter": TestHttpApiRouter.__name__
+    })
     self.config_overrider.Start()
     # Make sure ApiAuthManager is initialized with this configuration setting.
     api_auth_manager.APIACLInit.InitApiAuthManager()
@@ -229,9 +250,11 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
         self._CreateRequest("GET", "/test_sample/some/path"))
 
     self.assertEqual(
-        json.loads(response.content), {"method": "GET",
-                                       "path": "some/path",
-                                       "foo": ""})
+        json.loads(response.content), {
+            "method": "GET",
+            "path": "some/path",
+            "foo": ""
+        })
     self.assertEqual(response.status_code, 200)
 
   def testHeadRequestHasStubAsABodyOnSuccess(self):
@@ -246,8 +269,10 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
         self._CreateRequest("HEAD", "/test_sample/raising/some/path"))
 
     self.assertEqual(
-        json.loads(response.content), {"message": "Access denied by ACL: oh no",
-                                       "subject": "aff4:/foo/bar"})
+        json.loads(response.content), {
+            "message": "Access denied by ACL: oh no",
+            "subject": "aff4:/foo/bar"
+        })
     self.assertEqual(response.status_code, 403)
 
   def testHeadResponsePutsDataIntoHeadersOnUnauthorizedAccess(self):
@@ -277,30 +302,40 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
   def testQueryParamsArePassedIntoHandlerArgs(self):
     response = self._RenderResponse(
         self._CreateRequest(
-            "GET", "/test_sample/some/path", query_parameters={"foo": "bar"}))
+            "GET", "/test_sample/some/path", query_parameters={
+                "foo": "bar"
+            }))
     self.assertEqual(
-        json.loads(response.content), {"method": "GET",
-                                       "path": "some/path",
-                                       "foo": "bar"})
+        json.loads(response.content), {
+            "method": "GET",
+            "path": "some/path",
+            "foo": "bar"
+        })
 
   def testRouteArgumentTakesPrecedenceOverQueryParams(self):
     response = self._RenderResponse(
         self._CreateRequest(
             "GET",
             "/test_sample/some/path",
-            query_parameters={"path": "foobar"}))
+            query_parameters={
+                "path": "foobar"
+            }))
     self.assertEqual(
-        json.loads(response.content), {"method": "GET",
-                                       "path": "some/path",
-                                       "foo": ""})
+        json.loads(response.content), {
+            "method": "GET",
+            "path": "some/path",
+            "foo": ""
+        })
 
   def testRendersDeleteHandlerCorrectly(self):
     response = self._RenderResponse(
         self._CreateRequest("DELETE", "/test_resource/R:123456"))
 
     self.assertEqual(
-        json.loads(response.content), {"method": "DELETE",
-                                       "resource": "R:123456"})
+        json.loads(response.content), {
+            "method": "DELETE",
+            "resource": "R:123456"
+        })
     self.assertEqual(response.status_code, 200)
 
   def testRendersPatchHandlerCorrectly(self):
@@ -308,8 +343,10 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
         self._CreateRequest("PATCH", "/test_resource/R:123456"))
 
     self.assertEqual(
-        json.loads(response.content), {"method": "PATCH",
-                                       "resource": "R:123456"})
+        json.loads(response.content), {
+            "method": "PATCH",
+            "resource": "R:123456"
+        })
     self.assertEqual(response.status_code, 200)
 
   def testStatsAreCorrectlyUpdatedOnHeadRequests(self):

@@ -16,6 +16,11 @@ from grr.gui import http_api
 from grr.lib import flags
 from grr.lib import startup
 
+flags.DEFINE_integer("api_version", 1,
+                     "API version to use when generating tests. "
+                     "Version 1 uses custom JSON format, while version 2 "
+                     "relies on Protobuf3-compatible JSON format.")
+
 
 def GroupRegressionTestsByHandler():
   result = {}
@@ -36,12 +41,22 @@ def main(unused_argv):
       if flags.FLAGS.tests and test_class.__name__ not in flags.FLAGS.tests:
         continue
 
+      if flags.FLAGS.api_version == 2 and test_class.skip_v2_tests:
+        continue
+
       test_instance = test_class()
 
       # Recreate a new data store each time.
       startup.TestInit()
       try:
         test_instance.setUp()
+
+        if flags.FLAGS.api_version == 1:
+          test_instance.use_api_v2 = False
+        elif flags.FLAGS.api_version == 2:
+          test_instance.use_api_v2 = True
+        else:
+          raise ValueError("API version can only be 1 or 2.")
 
         test_instance.Run()
         sample_data.setdefault(handler.__name__,
