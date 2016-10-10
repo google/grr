@@ -79,7 +79,7 @@ class ApiListApiMethodsHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(method.args_type_descriptor.name, "SampleGetHandlerArgs")
     self.assertEqual(
         method.args_type_descriptor.AsPrimitiveProto().default.type_url,
-        "type.googleapis.com/grr.SampleGetHandlerArgs")
+        "type.googleapis.com/SampleGetHandlerArgs")
 
     self.assertEqual(method.result_kind, "NONE")
     self.assertFalse(method.HasField("result_type"))
@@ -97,7 +97,7 @@ class ApiListApiMethodsHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(method.result_type_descriptor.name, "SampleGetHandlerArgs")
     self.assertEqual(
         method.result_type_descriptor.AsPrimitiveProto().default.type_url,
-        "type.googleapis.com/grr.SampleGetHandlerArgs")
+        "type.googleapis.com/SampleGetHandlerArgs")
 
   def testRendersMethodWithArgsTypeAndResultTypeCorrectly(self):
     result = self.handler.Handle(None, token=self.token)
@@ -109,13 +109,13 @@ class ApiListApiMethodsHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(method.args_type_descriptor.name, "SampleGetHandlerArgs")
     self.assertEqual(
         method.args_type_descriptor.AsPrimitiveProto().default.type_url,
-        "type.googleapis.com/grr.SampleGetHandlerArgs")
+        "type.googleapis.com/SampleGetHandlerArgs")
 
     self.assertEqual(method.result_kind, "VALUE")
     self.assertEqual(method.result_type_descriptor.name, "SampleGetHandlerArgs")
     self.assertEqual(
         method.result_type_descriptor.AsPrimitiveProto().default.type_url,
-        "type.googleapis.com/grr.SampleGetHandlerArgs")
+        "type.googleapis.com/SampleGetHandlerArgs")
 
 
 def main(argv):
