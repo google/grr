@@ -361,6 +361,9 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
       "GetFlow",
       "ListFlowResults",
       "GetFlowFilesArchive",
+      # This single reflection method is needed for API libraries to work
+      # correctly.
+      "ListApiMethods",
       # TODO(user): Remove methods below as soon as they are deprecated
       # in favor of the methods above.
       "StartRobotGetFilesOperation",

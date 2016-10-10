@@ -19,11 +19,54 @@ class ItemsIterator(object):
     for i in self.items:
       yield i
 
+  def next(self):
+    return self.items.next()
+
 
 def MapItemsIterator(function, items):
   """Maps ItemsIterator via given function."""
   return ItemsIterator(
       items=itertools.imap(function, items), total_count=items.total_count)
+
+
+class BinaryChunkIterator(object):
+  """Iterator object for binary streams."""
+
+  def __init__(self, chunks=None, total_size=None, on_close=None):
+    super(BinaryChunkIterator, self).__init__()
+
+    self.chunks = chunks
+    self.total_size = total_size
+    self.on_close = on_close
+
+  def Close(self):
+    if self.on_close:
+      self.on_close()
+      self.on_close = None
+
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    self.Close()
+
+  def __iter__(self):
+    for c in self.chunks:
+      yield c
+    self.Close()
+
+  def next(self):
+    try:
+      return self.chunks.next()
+    except StopIteration:
+      self.Close()
+      raise
+
+  def WriteToStream(self, out):
+    for c in self.chunks:
+      out.write(c)
+    self.Close()
+
+  def WriteToFile(self, file_name):
+    with open(file_name, "wb") as fd:
+      self.WriteToStream(fd)
 
 
 AFF4_PREFIX = "aff4:/"
@@ -62,3 +105,15 @@ def TypeUrlToMessage(type_url):
 
   full_name = type_url[len(TYPE_URL_PREFIX):]
   return symbol_database.Default().GetSymbol(full_name)()
+
+
+def CopyProto(proto):
+  new_proto = proto.__class__()
+  new_proto.ParseFromString(proto.SerializeToString())
+  return new_proto
+
+
+def UnpackAny(proto_any):
+  proto = TypeUrlToMessage(proto_any.type_url)
+  proto_any.Unpack(proto)
+  return proto

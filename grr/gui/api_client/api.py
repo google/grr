@@ -18,8 +18,7 @@ class GrrApi(object):
     return client.ClientRef(client_id=client_id, context=self.context)
 
   def SearchClients(self, query=None):
-    for c in client.SearchClients(query, context=self.context):
-      yield c
+    return client.SearchClients(query, context=self.context)
 
 
 def InitHttp(api_endpoint=None, page_size=None, auth=None):

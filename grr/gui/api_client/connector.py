@@ -9,3 +9,6 @@ class Connector(object):
 
   def SendIteratorRequest(self, handler_name, args):
     raise NotImplementedError()
+
+  def SendStreamingRequest(self, handler_name, args):
+    raise NotImplementedError()

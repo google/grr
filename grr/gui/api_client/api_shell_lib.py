@@ -15,7 +15,7 @@ def IPShell(argv=None, user_ns=None, banner=None):
     cfg = Config()
     cfg.InteractiveShellEmbed.autocall = 2
 
-    shell = InteractiveShellEmbed(config=cfg, user_ns=user_ns, banner2=banner)
+    shell = InteractiveShellEmbed(config=cfg, user_ns=user_ns)
     shell(local_ns=user_ns)
   except ImportError:
     # pylint: disable=g-import-not-at-top

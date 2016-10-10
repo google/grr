@@ -1541,7 +1541,7 @@ message ApiRDFAllowedEnumValueDescriptor {
   optional string name = 1 [(sem_type) = {
       description: "Enum value name."
     }];
-  optional uint64 value = 2 [(sem_type) = {
+  optional int64 value = 2 [(sem_type) = {
       description: "Enum value value."
     }];
   optional string doc = 3 [(sem_type) = {

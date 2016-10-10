@@ -6,6 +6,73 @@ from grr.gui.api_client import utils
 from grr.proto import api_pb2
 
 
+class ClientApprovalBase(object):
+  """Base class for ClientApproval and ClientApprovalRef."""
+
+  def __init__(self,
+               client_id=None,
+               approval_id=None,
+               username=None,
+               context=None):
+    super(ClientApprovalBase, self).__init__()
+
+    if not client_id:
+      raise ValueError("client_id can't be empty.")
+
+    if not approval_id:
+      raise ValueError("approval_id can't be empty.")
+
+    if not username:
+      raise ValueError("username can't be empty.")
+
+    self.client_id = client_id
+    self.approval_id = approval_id
+    self.username = username
+
+    self._context = context
+
+  def Grant(self):
+    args = api_pb2.ApiGrantClientApprovalArgs(
+        client_id=self.client_id,
+        username=self.username,
+        approval_id=self.approval_id)
+    data = self._context.SendRequest("GrantClientApproval", args)
+    return ClientApproval(
+        data=data, username=self.username, context=self._context)
+
+
+class ClientApprovalRef(ClientApprovalBase):
+  """Ref to the client approval."""
+
+  def Get(self):
+    """Fetch and return a proper ClientApproval object."""
+
+    args = api_pb2.ApiGetClientApprovalArgs(
+        client_id=self.client_id,
+        approval_id=self.approval_id,
+        username=self.username)
+    result = self._context.SendRequest("GetClientApproval", args)
+    return ClientApproval(
+        data=result, username=self._context.username, context=self._context)
+
+
+class ClientApproval(ClientApprovalBase):
+  """Client approval object with fetched data."""
+
+  def __init__(self, data=None, username=None, context=None):
+
+    if data is None:
+      raise ValueError("data can't be None")
+
+    super(ClientApproval, self).__init__(
+        client_id=utils.UrnToClientId(data.subject.urn),
+        approval_id=data.id,
+        username=username,
+        context=context)
+
+    self.data = data
+
+
 class ClientBase(object):
   """Base class for Client and ClientRef."""
 
@@ -46,16 +113,61 @@ class ClientBase(object):
     data = self._context.SendRequest("CreateFlow", request)
     return flow.Flow(data=data, context=self._context)
 
-  def ListFlows(self, offset=0, count=0):
+  def ListFlows(self):
     """List flows that ran on this client."""
 
-    args = api_pb2.ApiListFlowsArgs(
-        client_id=self.client_id, offset=offset, count=count)
+    args = api_pb2.ApiListFlowsArgs(client_id=self.client_id)
 
     items = self._context.SendIteratorRequest("ListFlows", args)
     return utils.MapItemsIterator(
         lambda data: flow.Flow(data=data, context=self._context),
         items)
+
+  def Approval(self, username, approval_id):
+    """Returns a reference to an approval."""
+
+    return ClientApprovalRef(
+        client_id=self.client_id,
+        username=username,
+        approval_id=approval_id,
+        context=self._context)
+
+  def CreateApproval(self,
+                     reason=None,
+                     notified_users=None,
+                     email_cc_addresses=None,
+                     keep_client_alive=False):
+    """Create a new approval for the current user to access this client."""
+
+    if not reason:
+      raise ValueError("reason can't be empty")
+
+    if not notified_users:
+      raise ValueError("notified_users list can't be empty.")
+
+    approval = api_pb2.ApiClientApproval(
+        reason=reason,
+        notified_users=notified_users,
+        email_cc_addresses=email_cc_addresses or [])
+    args = api_pb2.ApiCreateClientApprovalArgs(
+        client_id=self.client_id,
+        approval=approval,
+        keep_client_alive=keep_client_alive)
+
+    data = self._context.SendRequest("CreateClientApproval", args)
+    return ClientApproval(
+        data=data, username=self._context.username, context=self._context)
+
+  def ListApprovals(self, state=api_pb2.ApiListClientApprovalsArgs.ANY):
+    args = api_pb2.ApiListClientApprovalsArgs(
+        client_id=self.client_id, state=state)
+    items = self._context.SendIteratorRequest("ListClientApprovals", args)
+
+    def MapClientApproval(data):
+      return ClientApproval(
+          data=data, username=self._context.username, context=self._context)
+
+    return utils.MapItemsIterator(MapClientApproval, items)
 
 
 class ClientRef(ClientBase):
@@ -76,9 +188,9 @@ class Client(ClientBase):
 
     if data is None:
       raise ValueError("data can't be None")
-    client_id = utils.UrnToClientId(context.GetDataAttribute(data, "urn"))
 
-    super(Client, self).__init__(client_id=client_id, context=context)
+    super(Client, self).__init__(
+        client_id=utils.UrnToClientId(data.urn), context=context)
 
     self.data = data
 

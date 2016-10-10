@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """HTTP API connector implementation."""
 
+import itertools
 import json
 import urlparse
 
@@ -8,82 +9,50 @@ import requests
 
 from werkzeug import routing
 
-from google.protobuf import any_pb2
+from google.protobuf import wrappers_pb2
 
-from google.protobuf import message
+from google.protobuf import json_format
+from google.protobuf import symbol_database
 
 import logging
 
 from grr.gui.api_client import connector
+from grr.gui.api_client import errors
 from grr.gui.api_client import utils
 
+from grr.proto import api_pb2
+from grr.proto import flows_pb2
+from grr.proto import jobs_pb2
+
 logger = logging.getLogger(__name__)
+
+
+class Error(Exception):
+  """Base error class for HTTP connector."""
 
 
 class HttpConnector(connector.Connector):
   """API connector implementation that works through HTTP API."""
 
-  class ResponseFormat(object):
-    JSON = 0
-    TYPED_JSON = 1
-
-  # pyformat: disable
-  HANDLERS_MAP = routing.Map([
-      routing.Rule(
-          "/api/clients",
-          methods=["GET"],
-          endpoint="SearchClients"),
-      routing.Rule(
-          "/api/clients/<client_id>",
-          methods=["GET"],
-          endpoint="GetClient"),
-      routing.Rule(
-          "/api/clients/<client_id>/flows",
-          methods=["GET"],
-          endpoint="ListFlows"),
-      routing.Rule(
-          "/api/clients/<client_id>/flows",
-          methods=["POST"],
-          endpoint="CreateFlow"),
-      routing.Rule(
-          "/api/clients/<client_id>/flows/<path:flow_id>",
-          methods=["GET"],
-          endpoint="GetFlow"),
-      routing.Rule(
-          "/api/clients/<client_id>/flows/<path:flow_id>/results",
-          methods=["GET"],
-          endpoint="ListFlowResults"),
-      routing.Rule(
-          "/api/clients/<client_id>/flows/<path:flow_id>/results/files-archive",
-          methods=["GET"],
-          endpoint="GetFlowFilesArchive")
-  ])
-  # pyformat: enable
-
   JSON_PREFIX = ")]}\'\n"
   DEFAULT_PAGE_SIZE = 50
+  DEFAULT_BINARY_CHUNK_SIZE = 66560
 
-  def __init__(self,
-               api_endpoint=None,
-               auth=None,
-               response_format=ResponseFormat.JSON,
-               page_size=None):
+  def __init__(self, api_endpoint=None, auth=None, page_size=None):
     super(HttpConnector, self).__init__()
 
     self.api_endpoint = api_endpoint
     self.auth = auth
-    self.response_format = response_format
     self.page_size = page_size or self.DEFAULT_PAGE_SIZE
 
     self.csrf_token = None
-
-    parsed_url = urlparse.urlparse(api_endpoint)
-    self.urls = self.HANDLERS_MAP.bind(parsed_url.netloc, "/")
 
   def _GetCSRFToken(self):
     logger.debug("Fetching CSRF token from %s...", self.api_endpoint)
 
     index_response = requests.get(self.api_endpoint, auth=self.auth)
+    self._CheckResponseStatus(index_response)
+
     csrf_token = index_response.cookies.get("csrftoken")
 
     if not csrf_token:
@@ -93,115 +62,221 @@ class HttpConnector(connector.Connector):
 
     return csrf_token
 
-  def _GetMethodUrlAndQueryParams(self, handler_name, args):
-    path_params = {}
-    query_params = {}
-    for field, value in args.ListFields():
-      if self.HANDLERS_MAP.is_endpoint_expecting(handler_name, field.name):
-        path_params[field.name] = value
-      else:
-        query_params[field.name] = value
-
-    url = self.urls.build(handler_name, path_params, force_external=True)
-
-    method = None
-    for rule in self.HANDLERS_MAP.iter_rules():
-      if rule.endpoint == handler_name:
-        method = [m for m in rule.methods if m != "HEAD"][0]
-
-    if not method:
-      raise RuntimeError("Can't find method for %s" % handler_name)
-
-    return method, url, query_params
-
-  def _QueryParamsToBody(self, query_params):
-    result = {}
-    for k, v in query_params.items():
-      result[k] = self._ToJSON(v)
-
-    return result
-
-  def _ToJSON(self, value):
-    if isinstance(value, any_pb2.Any):
-      proto = utils.TypeUrlToMessage(value.type_url)
-      proto.ParseFromString(value.value)
-      return self._ToJSON(proto)
-    elif isinstance(value, message.Message):
-      result = {}
-      for descriptor, value in value.ListFields():
-        result[descriptor.name] = self._ToJSON(value)
-      return result
-    elif hasattr(value, "extend"):
-      return list(value)
-    else:
-      return value
-
-  def SendRequest(self, handler_name, args):
-    if not self.csrf_token:
-      self.csrf_token = self._GetCSRFToken()
-
+  def _FetchRoutingMap(self):
     headers = {
         "x-csrftoken": self.csrf_token,
         "x-requested-with": "XMLHttpRequest"
     }
     cookies = {"csrftoken": self.csrf_token}
 
-    method, url, query_params = self._GetMethodUrlAndQueryParams(handler_name,
-                                                                 args)
+    url = "%s/%s" % (self.api_endpoint.strip("/"),
+                     "api/v2/reflection/api-methods")
+    response = requests.get(url,
+                            headers=headers,
+                            cookies=cookies,
+                            auth=self.auth)
+    self._CheckResponseStatus(response)
 
-    body = None
-    if method != "GET":
-      body = self._QueryParamsToBody(query_params)
+    json_str = response.content[len(self.JSON_PREFIX):]
+
+    db = symbol_database.Default()
+    # Register descriptors in the database, so that all API-related
+    # protos are recognized when Any messages are unpacked.
+    db.RegisterFileDescriptor(api_pb2.DESCRIPTOR)
+    db.RegisterFileDescriptor(flows_pb2.DESCRIPTOR)
+    db.RegisterFileDescriptor(jobs_pb2.DESCRIPTOR)
+    db.RegisterFileDescriptor(wrappers_pb2.DESCRIPTOR)
+
+    proto = api_pb2.ApiListApiMethodsResult()
+    json_format.Parse(json_str, proto)
+
+    routing_rules = []
+
+    self.api_methods = {}
+    for method in proto.items:
+      if not method.http_route.startswith("/api/v2/"):
+        method.http_route = method.http_route.replace("/api/", "/api/v2/")
+
+      self.api_methods[method.name] = method
+      routing_rules.append(
+          routing.Rule(
+              method.http_route,
+              methods=method.http_methods,
+              endpoint=method.name))
+
+    self.handlers_map = routing.Map(routing_rules)
+
+    parsed_endpoint_url = urlparse.urlparse(self.api_endpoint)
+    self.urls = self.handlers_map.bind(parsed_endpoint_url.netloc, "/")
+
+  def _InitializeIfNeeded(self):
+    if not self.csrf_token:
+      self.csrf_token = self._GetCSRFToken()
+      self._FetchRoutingMap()
+
+  def _GetMethodUrlAndPathParamsNames(self, handler_name, args):
+    path_params = {}
+    if args:
+      for field, value in args.ListFields():
+        if self.handlers_map.is_endpoint_expecting(handler_name, field.name):
+          path_params[field.name] = value
+
+    url = self.urls.build(handler_name, path_params, force_external=True)
+
+    method = None
+    for rule in self.handlers_map.iter_rules():
+      if rule.endpoint == handler_name:
+        method = [m for m in rule.methods if m != "HEAD"][0]
+
+    if not method:
+      raise RuntimeError("Can't find method for %s" % handler_name)
+
+    return method, url, path_params.keys()
+
+  def _ArgsToQueryParams(self, args, exclude_names):
+    if not args:
+      return {}
+
+    result = {}
+    for field, value in args.ListFields():
+      if field not in exclude_names:
+        result[field.name] = value
+
+    return result
+
+  def _ArgsToBody(self, args, exclude_names):
+    if not args:
+      return None
+
+    args_copy = utils.CopyProto(args)
+
+    for name in exclude_names:
+      args_copy.ClearField(name)
+
+    return json_format.MessageToJson(args_copy)
+
+  def _CheckResponseStatus(self, response):
+    if response.status_code == 200:
+      return
+
+    content = response.content
+    json_str = content[len(self.JSON_PREFIX):]
+
+    try:
+      parsed_json = json.loads(json_str)
+      message = parsed_json["message"]
+    except (ValueError, KeyError):
+      message = content
+
+    if response.status_code == 403:
+      raise errors.AccessForbiddenError(message)
+    elif response.status_code == 404:
+      raise errors.ResourceNotFoundError(message)
+    elif response.status_code == 501:
+      raise errors.ApiNotImplementedError(message)
+    else:
+      raise errors.UnknownError(message)
+
+  def BuildRequest(self, method_descriptor, args):
+    method, url, path_params_names = self._GetMethodUrlAndPathParamsNames(
+        method_descriptor.name, args)
+
+    if method == "GET":
+      body = None
+      query_params = self._ArgsToQueryParams(args, path_params_names)
+    else:
+      body = self._ArgsToBody(args, path_params_names)
       query_params = {}
 
-    if self.response_format == self.ResponseFormat.JSON:
-      query_params["strip_type_info"] = "1"
-
+    headers = {
+        "x-csrftoken": self.csrf_token,
+        "x-requested-with": "XMLHttpRequest"
+    }
+    cookies = {"csrftoken": self.csrf_token}
     logger.debug("%s request: %s (query: %s, body: %s, headers %s)", method,
                  url, query_params, body, headers)
-    request = requests.Request(
+    return requests.Request(
         method,
         url,
-        json=body,
+        data=body,
         params=query_params,
         headers=headers,
         cookies=cookies,
         auth=self.auth)
+
+  def SendRequest(self, handler_name, args):
+    self._InitializeIfNeeded()
+    method_descriptor = self.api_methods[handler_name]
+
+    request = self.BuildRequest(method_descriptor, args)
     prepped_request = request.prepare()
 
     session = requests.Session()
     response = session.send(prepped_request)
+    self._CheckResponseStatus(response)
+
     content = response.content
-
-    logger.debug("%s response (%s, %d):\n%s", method, url, response.status_code,
-                 content)
-    if content[:len(self.JSON_PREFIX)] != self.JSON_PREFIX:
-      raise RuntimeError("JSON prefix %s is not in response:\n%s" %
-                         (self.JSON_PREFIX, content))
-
     json_str = content[len(self.JSON_PREFIX):]
-    parsed_json = json.loads(json_str)
 
-    if response.status_code == 200:
-      return parsed_json
-    else:
-      raise RuntimeError("Server error: " + parsed_json["message"])
+    logger.debug("%s response (%s, %d):\n%s", request.method, request.url,
+                 response.status_code, content)
+
+    if method_descriptor.result_type_descriptor.name:
+      default_value = method_descriptor.result_type_descriptor.default
+      result = utils.TypeUrlToMessage(default_value.type_url)
+      json_format.Parse(json_str, result)
+      return result
+
+  def _GeneratePages(self, handler_name, args):
+    offset = args.offset
+
+    while True:
+      args_copy = utils.CopyProto(args)
+      args_copy.offset = offset
+      args_copy.count = self.page_size
+      result = self.SendRequest(handler_name, args_copy)
+
+      yield result
+
+      if not result.items:
+        break
+
+      offset += self.page_size
 
   def SendIteratorRequest(self, handler_name, args):
-    response = self.SendRequest(handler_name, args)
-
-    total_count = None
-    try:
-      total_count = response["total_count"]
-    except KeyError:
-      pass
-
-    return utils.ItemsIterator(items=response["items"], total_count=total_count)
-
-  def GetDataAttribute(self, data, attribute_name):
-    if self.response_format == self.ResponseFormat.JSON:
-      return data[attribute_name]
-    elif self.response_format == self.ResponseFormat.TYPED_JSON:
-      return data[attribute_name]["value"]
+    if not args or not hasattr(args, "count"):
+      result = self.SendRequest(handler_name, args)
+      total_count = getattr(result, "total_count", None)
+      return utils.ItemsIterator(items=result.items, total_count=total_count)
     else:
-      raise RuntimeError("Unexpected response_format: %d", self.response_format)
+      pages = self._GeneratePages(handler_name, args)
+
+      first_page = pages.next()
+      total_count = getattr(first_page, "total_count", None)
+
+      next_pages_items = itertools.chain.from_iterable(
+          itertools.imap(lambda p: p.items, pages))
+      all_items = itertools.chain(first_page.items, next_pages_items)
+
+      if args.count:
+        all_items = itertools.islice(all_items, args.count)
+
+      return utils.ItemsIterator(items=all_items, total_count=total_count)
+
+  def SendStreamingRequest(self, handler_name, args):
+    self._InitializeIfNeeded()
+    method_descriptor = self.api_methods[handler_name]
+
+    request = self.BuildRequest(method_descriptor, args)
+    prepped_request = request.prepare()
+
+    session = requests.Session()
+    response = session.send(prepped_request, stream=True)
+    self._CheckResponseStatus(response)
+
+    def GenerateChunks():
+      for chunk in response.iter_content(self.DEFAULT_BINARY_CHUNK_SIZE):
+        yield chunk
+
+    return utils.BinaryChunkIterator(
+        chunks=GenerateChunks(), on_close=response.close)

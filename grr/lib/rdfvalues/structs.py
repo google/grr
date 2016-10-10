@@ -1029,7 +1029,7 @@ class ProtoDynamicAnyValueEmbedded(ProtoDynamicEmbedded):
     # Is it a protobuf-based value?
     if hasattr(value.__class__, "protobuf"):
       if value.__class__.protobuf:
-        type_name = ("type.googleapis.com/grr.%s" %
+        type_name = ("type.googleapis.com/%s" %
                      value.__class__.protobuf.__name__)
       else:
         type_name = value.__class__.__name__

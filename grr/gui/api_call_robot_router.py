@@ -9,6 +9,7 @@ from grr.gui import api_call_router_without_checks
 
 from grr.gui.api_plugins import client as api_client
 from grr.gui.api_plugins import flow as api_flow
+from grr.gui.api_plugins import reflection as api_reflection
 
 from grr.lib import access_control
 from grr.lib import aff4
@@ -250,6 +251,14 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouter):
       return api_flow.ApiGetFlowFilesArchiveHandler(
           path_globs_blacklist=options.path_globs_blacklist,
           path_globs_whitelist=options.path_globs_whitelist)
+
+  # Reflection methods.
+  # ==================
+  #
+  # NOTE: Only the ListApiMethods is enabled as it may be used by client
+  # API libraries.
+  def ListApiMethods(self, args, token=None):
+    return api_reflection.ApiListApiMethodsHandler(self)
 
   # Robot methods (methods that provide limited access to the system and
   # are supposed to be triggered by the scripts).

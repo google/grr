@@ -118,7 +118,7 @@
       "request_payload": {
         "description": "Foobar!",
         "flowArgs": {
-          "@type": "type.googleapis.com/grr.CreateGenericHuntFlowArgs",
+          "@type": "type.googleapis.com/CreateGenericHuntFlowArgs",
           "huntArgs": {
             "flowArgs": "Ch1jOlx3aW5kb3dzXHN5c3RlbTMyXG5vdGVwYWQuKg==",
             "flowRunnerArgs": {
@@ -146,7 +146,7 @@
         "allowOverruns": false,
         "description": "Foobar!",
         "flowArgs": {
-          "@type": "type.googleapis.com/grr.CreateGenericHuntFlowArgs",
+          "@type": "type.googleapis.com/CreateGenericHuntFlowArgs",
           "huntArgs": {
             "flowArgs": "Ch1jOlx3aW5kb3dzXHN5c3RlbTMyXG5vdGVwYWQuKg==",
             "flowRunnerArgs": {
@@ -188,7 +188,7 @@
       "request_payload": {
         "flow": {
           "args": {
-            "@type": "type.googleapis.com/grr.ListProcessesArgs",
+            "@type": "type.googleapis.com/ListProcessesArgs",
             "fetchBinaries": true,
             "filenameRegex": "."
           },
@@ -201,7 +201,7 @@
       },
       "response": {
         "args": {
-          "@type": "type.googleapis.com/grr.ListProcessesArgs",
+          "@type": "type.googleapis.com/ListProcessesArgs",
           "fetchBinaries": true,
           "filenameRegex": "."
         },
@@ -635,7 +635,7 @@
       "method": "GET",
       "response": {
         "args": {
-          "@type": "type.googleapis.com/grr.EmptyMessage"
+          "@type": "type.googleapis.com/EmptyMessage"
         },
         "context": {
           "createTime": "44000000",
@@ -730,7 +730,7 @@
       "method": "GET",
       "response": {
         "args": {
-          "@type": "type.googleapis.com/grr.InterrogateArgs"
+          "@type": "type.googleapis.com/InterrogateArgs"
         },
         "context": {
           "clientResources": {
@@ -1419,7 +1419,7 @@
       "method": "GET",
       "response": {
         "default": {
-          "@type": "type.googleapis.com/grr.ApiFlow"
+          "@type": "type.googleapis.com/ApiFlow"
         },
         "doc": "ApiFlow is used when rendering responses.\n\n  ApiFlow is meant to be more lightweight than automatically generated AFF4\n  representation. It's also meant to contain only the information needed by\n  the UI and and to not expose implementation defails.\n  ",
         "fields": [
@@ -4259,7 +4259,7 @@
         "items": [
           {
             "args": {
-              "@type": "type.googleapis.com/grr.EmptyMessage"
+              "@type": "type.googleapis.com/EmptyMessage"
             },
             "creator": "test",
             "flowId": "F:ABCDEF11",
@@ -4293,7 +4293,7 @@
             "allowOverruns": false,
             "description": "foo",
             "flowArgs": {
-              "@type": "type.googleapis.com/grr.EmptyMessage"
+              "@type": "type.googleapis.com/EmptyMessage"
             },
             "flowName": "GRRVersionBreakDown",
             "flowRunnerArgs": {
@@ -4309,7 +4309,7 @@
             "allowOverruns": false,
             "description": "",
             "flowArgs": {
-              "@type": "type.googleapis.com/grr.EmptyMessage"
+              "@type": "type.googleapis.com/EmptyMessage"
             },
             "flowName": "LastAccessStats",
             "flowRunnerArgs": {
@@ -4326,7 +4326,7 @@
             "allowOverruns": false,
             "description": "bar",
             "flowArgs": {
-              "@type": "type.googleapis.com/grr.EmptyMessage"
+              "@type": "type.googleapis.com/EmptyMessage"
             },
             "flowName": "OSBreakDown",
             "flowRunnerArgs": {
@@ -4384,7 +4384,7 @@
             ],
             "category": "Filesystem",
             "defaultArgs": {
-              "@type": "type.googleapis.com/grr.FileFinderArgs",
+              "@type": "type.googleapis.com/FileFinderArgs",
               "paths": [
                 "c:\\windows\\system32\\notepad.*"
               ]
@@ -4402,7 +4402,7 @@
             ],
             "category": "Processes",
             "defaultArgs": {
-              "@type": "type.googleapis.com/grr.ListProcessesArgs"
+              "@type": "type.googleapis.com/ListProcessesArgs"
             },
             "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries, connection_states=connection_states)\n\n  Args:\n    connection_states\n      description: Network connection states to match. If a process has any network connections in any status listed here, it will be considered a match\n      type: \n      default: None\n\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n",
             "name": "ListProcesses"
@@ -4416,7 +4416,7 @@
             ],
             "category": "Reporting",
             "defaultArgs": {
-              "@type": "type.googleapis.com/grr.RunReportFlowArgs"
+              "@type": "type.googleapis.com/RunReportFlowArgs"
             },
             "doc": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n",
             "name": "RunReport"
@@ -4440,7 +4440,7 @@
             ],
             "category": "Filesystem",
             "defaultArgs": {
-              "@type": "type.googleapis.com/grr.FileFinderArgs",
+              "@type": "type.googleapis.com/FileFinderArgs",
               "paths": [
                 "c:\\windows\\system32\\notepad.*"
               ]
@@ -4458,7 +4458,7 @@
             ],
             "category": "Processes",
             "defaultArgs": {
-              "@type": "type.googleapis.com/grr.ListProcessesArgs"
+              "@type": "type.googleapis.com/ListProcessesArgs"
             },
             "doc": "List running processes on a system.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"ListProcesses\", filename_regex=filename_regex, fetch_binaries=fetch_binaries, connection_states=connection_states)\n\n  Args:\n    connection_states\n      description: Network connection states to match. If a process has any network connections in any status listed here, it will be considered a match\n      type: \n      default: None\n\n    fetch_binaries\n      description: \n      type: RDFBool\n      default: 0\n\n    filename_regex\n      description: Regex used to filter the list of processes.\n      type: RegularExpression\n      default: .\n",
             "name": "ListProcesses"
@@ -4482,7 +4482,7 @@
             ],
             "category": "Reporting",
             "defaultArgs": {
-              "@type": "type.googleapis.com/grr.RunReportFlowArgs"
+              "@type": "type.googleapis.com/RunReportFlowArgs"
             },
             "doc": "Run a report and send the result via email.\n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"RunReport\", report_name=report_name, email=email)\n\n  Args:\n    email\n      description: The email address that messages will be sent to.\n      type: DomainEmailAddress\n      default: None\n\n    report_name\n      description: The name of the report to run.\n      type: ReportName\n      default: None\n",
             "name": "RunReport"
@@ -4611,7 +4611,7 @@
         "items": [
           {
             "payload": {
-              "@type": "type.googleapis.com/grr.StatEntry",
+              "@type": "type.googleapis.com/StatEntry",
               "aff4path": "aff4:/C.1000000000000000/fs/os/tmp/evil.txt",
               "pathspec": {
                 "path": "/tmp/evil.txt",
@@ -4646,7 +4646,7 @@
         "items": [
           {
             "args": {
-              "@type": "type.googleapis.com/grr.ListProcessesArgs"
+              "@type": "type.googleapis.com/ListProcessesArgs"
             },
             "creator": "test",
             "flowId": "F:ABCDEF11",
@@ -4666,7 +4666,7 @@
           },
           {
             "args": {
-              "@type": "type.googleapis.com/grr.InterrogateArgs"
+              "@type": "type.googleapis.com/InterrogateArgs"
             },
             "creator": "test",
             "flowId": "F:ABCDEF10",
@@ -5578,7 +5578,7 @@
         "allowOverruns": false,
         "description": "",
         "flowArgs": {
-          "@type": "type.googleapis.com/grr.EmptyMessage"
+          "@type": "type.googleapis.com/EmptyMessage"
         },
         "flowName": "OSBreakDown",
         "flowRunnerArgs": {
@@ -5602,7 +5602,7 @@
         "allowOverruns": false,
         "description": "",
         "flowArgs": {
-          "@type": "type.googleapis.com/grr.EmptyMessage"
+          "@type": "type.googleapis.com/EmptyMessage"
         },
         "flowName": "GRRVersionBreakDown",
         "flowRunnerArgs": {

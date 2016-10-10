@@ -75,7 +75,7 @@ class ApiClientTest(ApiE2ETest):
 
     for i in range(2):
       self.assertEqual(clients[i].client_id, client_urns[i].Basename())
-      self.assertEqual(clients[i].data["urn"], client_urns[i])
+      self.assertEqual(clients[i].data.urn, client_urns[i])
 
   def testListFlowsFromClientRef(self):
     client_urn = self.SetupClients(1)[0]
@@ -89,7 +89,7 @@ class ApiClientTest(ApiE2ETest):
     self.assertEqual(len(flows), 1)
     self.assertEqual(flows[0].client_id, client_urn.Basename())
     self.assertEqual(flows[0].flow_id, flow_urn.Basename())
-    self.assertEqual(flows[0].data["urn"], flow_urn)
+    self.assertEqual(flows[0].data.urn, flow_urn)
 
   def testListFlowsFromClientObject(self):
     client_urn = self.SetupClients(1)[0]
@@ -104,7 +104,7 @@ class ApiClientTest(ApiE2ETest):
     self.assertEqual(len(flows), 1)
     self.assertEqual(flows[0].client_id, client_urn.Basename())
     self.assertEqual(flows[0].flow_id, flow_urn.Basename())
-    self.assertEqual(flows[0].data["urn"], flow_urn)
+    self.assertEqual(flows[0].data.urn, flow_urn)
 
   def testCreateFlowFromClientRef(self):
     client_urn = self.SetupClients(1)[0]
@@ -120,8 +120,7 @@ class ApiClientTest(ApiE2ETest):
 
     children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
     self.assertEqual(len(list(children)), 1)
-    result_flow_obj = aff4.FACTORY.Open(
-        result_flow.data["urn"], token=self.token)
+    result_flow_obj = aff4.FACTORY.Open(result_flow.data.urn, token=self.token)
     self.assertEqual(result_flow_obj.args, args)
 
   def testCreateFlowFromClientObject(self):
@@ -138,8 +137,7 @@ class ApiClientTest(ApiE2ETest):
 
     children = aff4.FACTORY.Open(client_urn, token=self.token).ListChildren()
     self.assertEqual(len(list(children)), 1)
-    result_flow_obj = aff4.FACTORY.Open(
-        result_flow.data["urn"], token=self.token)
+    result_flow_obj = aff4.FACTORY.Open(result_flow.data.urn, token=self.token)
     self.assertEqual(result_flow_obj.args, args)
 
 
@@ -350,7 +348,7 @@ users:
     ]).AsPrimitiveProto()
     flow_obj = client_ref.CreateFlow(
         name=file_finder.FileFinder.__name__, args=args)
-    self.assertEqual(flow_obj.data["state"], "RUNNING")
+    self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
     # Now run the flow we just started.
     client_id = rdf_client.ClientURN(flow_obj.client_id)
@@ -364,7 +362,7 @@ users:
 
     # Refresh flow.
     flow_obj = client_ref.Flow(flow_obj.flow_id).Get()
-    self.assertEqual(flow_obj.data["state"], "TERMINATED")
+    self.assertEqual(flow_obj.data.state, flow_obj.data.TERMINATED)
 
   def testCheckingArbitraryFlowStateDoesNotWork(self):
     self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG)
@@ -392,7 +390,7 @@ users:
     for _ in range(20):
       flow_obj = client_ref.CreateFlow(
           name=file_finder.FileFinder.__name__, args=args)
-      self.assertEqual(flow_obj.data["state"], "RUNNING")
+      self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
   FILE_FINDER_THROTTLED_ROUTER_CONFIG = """
 router: "ApiCallRobotRouter"
@@ -420,11 +418,11 @@ users:
 
     flow_obj = client_ref.CreateFlow(
         name=file_finder.FileFinder.__name__, args=args[0])
-    self.assertEqual(flow_obj.data["state"], "RUNNING")
+    self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
     flow_obj = client_ref.CreateFlow(
         name=file_finder.FileFinder.__name__, args=args[1])
-    self.assertEqual(flow_obj.data["state"], "RUNNING")
+    self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
     with self.assertRaisesRegexp(RuntimeError, "2 flows run since"):
       client_ref.CreateFlow(name=file_finder.FileFinder.__name__, args=args[2])
@@ -440,7 +438,7 @@ users:
 
     flow_obj = client_ref.CreateFlow(
         name=file_finder.FileFinder.__name__, args=args)
-    self.assertEqual(flow_obj.data["state"], "RUNNING")
+    self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
 
     with self.assertRaisesRegexp(RuntimeError,
                                  "Identical FileFinder already run"):

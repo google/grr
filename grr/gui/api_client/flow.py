@@ -5,6 +5,17 @@ from grr.gui.api_client import utils
 from grr.proto import api_pb2
 
 
+class FlowResult(object):
+  """Wrapper class for flow results."""
+
+  def __init__(self, data=None):
+    super(FlowResult, self).__init__()
+    self.data = data
+
+    self.timestamp = data.timestamp
+    self.payload = utils.UnpackAny(data.payload)
+
+
 class FlowBase(object):
   """Base class for FlowRef and Flow."""
 
@@ -25,7 +36,20 @@ class FlowBase(object):
     self._context = context
 
   def Cancel(self):
-    self._context.SendRequest("CancelFlow")
+    args = api_pb2.ApiCancelFlowArgs(
+        client_id=self.client_id, flow_id=self.flow_id)
+    self._context.SendRequest("CancelFlow", args)
+
+  def ListResults(self):
+    args = api_pb2.ApiListFlowResultsArgs(
+        client_id=self.client_id, flow_id=self.flow_id)
+    items = self._context.SendIteratorRequest("ListFlowResults", args)
+    return utils.MapItemsIterator(lambda data: FlowResult(data=data), items)
+
+  def GetFilesArchive(self):
+    args = api_pb2.ApiGetFlowFilesArchiveArgs(
+        client_id=self.client_id, flow_id=self.flow_id)
+    return self._context.SendStreamingRequest("GetFlowFilesArchive", args)
 
 
 class FlowRef(FlowBase):
@@ -47,9 +71,8 @@ class Flow(FlowBase):
     if data is None:
       raise ValueError("data can't be None")
 
-    urn = context.GetDataAttribute(data, "urn")
-    client_id = utils.UrnToClientId(urn)
-    flow_id = utils.UrnToFlowId(urn)
+    client_id = utils.UrnToClientId(data.urn)
+    flow_id = data.flow_id
 
     super(Flow, self).__init__(
         client_id=client_id, flow_id=flow_id, context=context)
