@@ -26,6 +26,18 @@ class FlowBase(object):
 
   def Cancel(self):
     self._context.SendRequest("CancelFlow")
+    
+  def ListFlowResults(self):
+    args = api_pb2.ApiListFlowResultsArgs(
+        client_id=self.client_id, flow_id=self.flow_id)
+
+    return self._context.SendIteratorRequest("ListFlowResults", args)
+
+  def ListFlowResults(self):
+    args = api_pb2.ApiListFlowResultsArgs(
+        client_id=self.client_id, flow_id=self.flow_id)
+
+    return self._context.SendIteratorRequest("ListFlowResults", args)
 
 
 class FlowRef(FlowBase):
