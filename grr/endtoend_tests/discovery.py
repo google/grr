@@ -14,32 +14,35 @@ class TestClientInterrogateEndToEnd(base.AutomatedTest):
   platforms = ["Windows", "Linux", "Darwin"]
   flow = "Interrogate"
 
-  attributes = [aff4_grr.VFSGRRClient.SchemaCls.CLIENT_INFO,
-                aff4_grr.VFSGRRClient.SchemaCls.GRR_CONFIGURATION,
-                aff4_grr.VFSGRRClient.SchemaCls.HOSTNAME,
-                aff4_grr.VFSGRRClient.SchemaCls.INSTALL_DATE,
-                aff4_grr.VFSGRRClient.SchemaCls.MAC_ADDRESS,
-                aff4_grr.VFSGRRClient.SchemaCls.OS_RELEASE,
-                aff4_grr.VFSGRRClient.SchemaCls.OS_VERSION,
-                aff4_grr.VFSGRRClient.SchemaCls.SYSTEM,
-                aff4_grr.VFSGRRClient.SchemaCls.USERNAMES]
+  attributes = [
+      aff4_grr.VFSGRRClient.SchemaCls.CLIENT_INFO,
+      aff4_grr.VFSGRRClient.SchemaCls.GRR_CONFIGURATION,
+      aff4_grr.VFSGRRClient.SchemaCls.HOSTNAME,
+      aff4_grr.VFSGRRClient.SchemaCls.INSTALL_DATE,
+      aff4_grr.VFSGRRClient.SchemaCls.MAC_ADDRESS,
+      aff4_grr.VFSGRRClient.SchemaCls.OS_RELEASE,
+      aff4_grr.VFSGRRClient.SchemaCls.OS_VERSION,
+      aff4_grr.VFSGRRClient.SchemaCls.SYSTEM,
+      aff4_grr.VFSGRRClient.SchemaCls.USERNAMES
+  ]
 
   kb_attributes = ["hostname", "os", "os_major_version", "os_minor_version"]
 
   # TODO(user): time_zone, environ_path, and environ_temp are currently only
   # implemented for Windows, move to kb_attributes once available on other OSes.
-  kb_win_attributes = ["time_zone", "environ_path", "environ_temp",
-                       "environ_systemroot", "environ_windir",
-                       "environ_programfiles", "environ_programfilesx86",
-                       "environ_systemdrive", "environ_allusersprofile",
-                       "environ_allusersappdata", "current_control_set",
-                       "code_page"]
+  kb_win_attributes = [
+      "time_zone", "environ_path", "environ_temp", "environ_systemroot",
+      "environ_windir", "environ_programfiles", "environ_programfilesx86",
+      "environ_systemdrive", "environ_allusersprofile",
+      "environ_allusersappdata", "current_control_set", "code_page"
+  ]
 
   # Intentionally excluded:
   # userdomain: too slow to collect, not in lightweight interrogate
-  user_win_kb_attributes = ["sid", "userprofile", "appdata", "localappdata",
-                            "internet_cache", "cookies", "recent", "personal",
-                            "startup", "localappdata_low"]
+  user_win_kb_attributes = [
+      "sid", "userprofile", "appdata", "localappdata", "internet_cache",
+      "cookies", "recent", "personal", "startup", "localappdata_low"
+  ]
 
   # When run on Windows this flow has 20 sub flows, so it takes some time to
   # complete.

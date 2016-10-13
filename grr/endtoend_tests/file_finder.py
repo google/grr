@@ -31,9 +31,11 @@ class TestFileFinderOSWindows(base.VFSPathContentIsPE):
       action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
       download=download)
 
-  args = {"paths": ["%%environ_systemroot%%\\System32\\notepad.*"],
-          "conditions": filecondition,
-          "action": action}
+  args = {
+      "paths": ["%%environ_systemroot%%\\System32\\notepad.*"],
+      "conditions": filecondition,
+      "action": action
+  }
 
 
 class TestFileFinderTSKWindows(base.VFSPathContentIsPE):
@@ -47,9 +49,11 @@ class TestFileFinderTSKWindows(base.VFSPathContentIsPE):
       action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
       download=download)
 
-  args = {"paths": ["%%environ_systemroot%%\\System32\\notepad.*"],
-          "action": action,
-          "pathtype": "TSK"}
+  args = {
+      "paths": ["%%environ_systemroot%%\\System32\\notepad.*"],
+      "action": action,
+      "pathtype": "TSK"
+  }
 
 
 class TestFileFinderOSLinux(base.VFSPathContentIsELF):
@@ -68,9 +72,11 @@ class TestFileFinderOSLinux(base.VFSPathContentIsELF):
       action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
       download=download)
 
-  args = {"paths": ["/bin/ps"],
-          "conditions": filecondition,
-          "action": action}
+  args = {
+      "paths": ["/bin/ps"],
+      "conditions": filecondition,
+      "action": action
+  }
 
 
 class TestFileFinderOSLinuxProc(base.VFSPathContentExists):
@@ -90,9 +96,11 @@ class TestFileFinderOSLinuxProc(base.VFSPathContentExists):
       action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
       download=download)
 
-  args = {"paths": ["/proc/sys/net/ipv4/ip_forward"],
-          "conditions": filecondition,
-          "action": action}
+  args = {
+      "paths": ["/proc/sys/net/ipv4/ip_forward"],
+      "conditions": filecondition,
+      "action": action
+  }
 
 
 class TestFileFinderOSDarwin(base.VFSPathContentIsMachO):
@@ -115,9 +123,11 @@ class TestFileFinderOSHomedir(base.AutomatedTest):
   flow = "FileFinder"
   action = file_finder.FileFinderAction(
       action_type=file_finder.FileFinderAction.Action.STAT)
-  args = {"paths": ["%%users.homedir%%/*"],
-          "action": action,
-          "runner_args": rdf_flows.FlowRunnerArgs()}
+  args = {
+      "paths": ["%%users.homedir%%/*"],
+      "action": action,
+      "runner_args": rdf_flows.FlowRunnerArgs()
+  }
 
   def CheckFlow(self):
     self.CheckCollectionNotEmptyWithRetry(

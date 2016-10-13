@@ -92,8 +92,8 @@ class ApiDeleteArtifactsHandlerTest(test_lib.GRRBaseTest):
         artifact_registry.REGISTRY.GetArtifacts(
             reload_datastore_artifacts=True))
 
-    args = self.handler.args_type(names=["TestFilesArtifact",
-                                         "WMIActiveScriptEventConsumer"])
+    args = self.handler.args_type(
+        names=["TestFilesArtifact", "WMIActiveScriptEventConsumer"])
     self.handler.Handle(args, token=self.token)
 
     new_count = len(artifact_registry.REGISTRY.GetArtifacts())

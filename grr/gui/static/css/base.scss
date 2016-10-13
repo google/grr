@@ -21,6 +21,7 @@
 @import 'grr/gui/static/angular-components/client/virtual-file-system/file-text-view';
 @import 'grr/gui/static/angular-components/client/virtual-file-system/file-table';
 @import 'grr/gui/static/angular-components/client/virtual-file-system/file-timeline';
+@import 'grr/gui/static/angular-components/config/binaries-list';
 @import 'grr/gui/static/angular-components/core/download-collection-files';
 @import 'grr/gui/static/angular-components/core/global-notifications';
 @import 'grr/gui/static/angular-components/core/version-dropdown';
@@ -31,7 +32,7 @@
 @import 'grr/gui/static/angular-components/semantic/rekall/rekall';
 @import 'grr/gui/static/angular-components/sidebar/client-summary';
 @import 'grr/gui/static/angular-components/sidebar/navigator';
-@import 'grr/gui/static/angular-components/stats/server-load-graph';
+@import 'grr/gui/static/angular-components/stats/timeseries-graph';
 @import 'grr/gui/static/angular-components/user/user-notification-item';
 @import 'grr/gui/static/angular-components/user/user-settings-button';
 

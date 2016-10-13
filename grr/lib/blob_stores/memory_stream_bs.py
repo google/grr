@@ -19,8 +19,11 @@ class MemoryStreamBlobstore(blob_store.Blobstore):
   def StoreBlobs(self, contents, token=None):
     """Creates or overwrites blobs."""
 
-    contents_by_digest = {hashlib.sha256(content).hexdigest(): content
-                          for content in contents}
+    contents_by_digest = {
+        hashlib.sha256(content).hexdigest():
+            content
+        for content in contents
+    }
 
     urns = {self._BlobUrn(digest): digest for digest in contents_by_digest}
 

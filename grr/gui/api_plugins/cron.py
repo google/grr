@@ -114,8 +114,9 @@ class ApiListCronJobsHandler(api_call_handler_base.ApiCallHandler):
         token=token,
         age=aff4.ALL_TIMES)
 
-    items = [ApiCronJob().InitFromAff4Object(cron_job)
-             for cron_job in cron_jobs]
+    items = [
+        ApiCronJob().InitFromAff4Object(cron_job) for cron_job in cron_jobs
+    ]
     items.sort(key=lambda item: item.urn)
 
     return ApiListCronJobsResult(items=items, total_count=len(all_jobs_urns))

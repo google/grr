@@ -71,8 +71,10 @@ class GraphDistribution(stats_lib.Distribution):
 class FileSizeHistogram(GraphDistribution):
   """Graph filesize."""
 
-  _bins = [0, 2, 50, 100, 1e3, 10e3, 100e3, 500e3, 1e6, 5e6, 10e6, 50e6, 100e6,
-           500e6, 1e9, 5e9, 10e9]
+  _bins = [
+      0, 2, 50, 100, 1e3, 10e3, 100e3, 500e3, 1e6, 5e6, 10e6, 50e6, 100e6,
+      500e6, 1e9, 5e9, 10e9
+  ]
 
   def ProcessFile(self, fd):
     self.Record(fd.Get(fd.Schema.SIZE))
@@ -103,17 +105,17 @@ class FilestoreStatsCronFlow(cronjobs.SystemCronFlow):
   OPEN_FILES_LIMIT = 500
 
   def _CreateConsumers(self):
-    self.consumers = [ClassCounter(self.stats.Schema.FILESTORE_FILETYPES,
-                                   "Number of files in the filestore by type"),
-                      ClassFileSizeCounter(
-                          self.stats.Schema.FILESTORE_FILETYPES_SIZE,
-                          "Total filesize (GB) files in the filestore by type"),
-                      FileSizeHistogram(
-                          self.stats.Schema.FILESTORE_FILESIZE_HISTOGRAM,
+    self.consumers = [
+        ClassCounter(self.stats.Schema.FILESTORE_FILETYPES,
+                     "Number of files in the filestore by type"),
+        ClassFileSizeCounter(
+            self.stats.Schema.FILESTORE_FILETYPES_SIZE,
+            "Total filesize (GB) files in the filestore by type"),
+        FileSizeHistogram(self.stats.Schema.FILESTORE_FILESIZE_HISTOGRAM,
                           "Filesize distribution in bytes"),
-                      ClientCountHistogram(
-                          self.stats.Schema.FILESTORE_CLIENTCOUNT_HISTOGRAM,
-                          "Number of files found on X clients")]
+        ClientCountHistogram(self.stats.Schema.FILESTORE_CLIENTCOUNT_HISTOGRAM,
+                             "Number of files found on X clients")
+    ]
 
   @flow.StateHandler()
   def Start(self):

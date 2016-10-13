@@ -70,8 +70,10 @@ class RegistryFinder(flow.GRRFlow):
   @classmethod
   def GetDefaultArgs(cls, token=None):
     _ = token
-    return cls.args_type(keys_paths=["HKEY_USERS/%%users.sid%%/Software/"
-                                     "Microsoft/Windows/CurrentVersion/Run/*"])
+    return cls.args_type(keys_paths=[
+        "HKEY_USERS/%%users.sid%%/Software/"
+        "Microsoft/Windows/CurrentVersion/Run/*"
+    ])
 
   @flow.StateHandler()
   def Start(self):

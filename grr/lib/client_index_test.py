@@ -142,18 +142,18 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
         len(index.LookupClients([".", "start_date:2014-10-21"])), 0)
     self.assertEqual(
         len(
-            index.LookupClients([".", "start_date:2013-10-20",
-                                 "end_date:2014-10-19"])), 0)
+            index.LookupClients(
+                [".", "start_date:2013-10-20", "end_date:2014-10-19"])), 0)
     self.assertEqual(
         len(
-            index.LookupClients([".", "start_date:2013-10-20",
-                                 "end_date:2014-10-20"])), 5)
+            index.LookupClients(
+                [".", "start_date:2013-10-20", "end_date:2014-10-20"])), 5)
 
     # Ignore the keyword if the date is not readable.
     self.assertEqual(
         len(
-            index.LookupClients([".", "start_date:2013-10-20", "end_date:XXXX"
-                                ])), 5)
+            index.LookupClients(
+                [".", "start_date:2013-10-20", "end_date:XXXX"])), 5)
 
   def testUnversionedKeywords(self):
     index = aff4.FACTORY.Create(
@@ -221,9 +221,11 @@ class ClientIndexTest(test_lib.AFF4ObjectTest):
 
   def _HostsHaveLabel(self, hosts, label, index):
     urns = index.LookupClients(["+label:%s" % label])
-    result = [utils.SmartStr(c.Get("Host")).lower()
-              for c in aff4.FACTORY.MultiOpen(
-                  urns, token=self.token)]
+    result = [
+        utils.SmartStr(c.Get("Host")).lower()
+        for c in aff4.FACTORY.MultiOpen(
+            urns, token=self.token)
+    ]
     self.assertItemsEqual(hosts, result)
 
   def testBulkLabelClients(self):

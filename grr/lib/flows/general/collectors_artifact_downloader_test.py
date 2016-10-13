@@ -115,8 +115,10 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
     self.assertFalse(self.start_file_fetch_args)
 
   def testDoesNotIssueDownloadRequestsIfNoPathIsGuessed(self):
-    self.collector_replies = [self.MakeRegistryStatEntry(
-        u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo", u"blah-blah")]
+    self.collector_replies = [
+        self.MakeRegistryStatEntry(u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo",
+                                   u"blah-blah")
+    ]
     self.RunFlow()
     self.assertFalse(self.start_file_fetch_args)
 
@@ -131,8 +133,10 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
                       self.collector_replies[0].pathspec)
 
   def testSendsReplyEvenIfNoPathsAreGuessed(self):
-    self.collector_replies = [self.MakeRegistryStatEntry(
-        u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo", u"blah-blah")]
+    self.collector_replies = [
+        self.MakeRegistryStatEntry(u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo",
+                                   u"blah-blah")
+    ]
 
     results = self.RunFlow()
 
@@ -142,10 +146,14 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
     self.assertFalse(results[0].HasField("downloaded_file"))
 
   def testIncludesGuessedPathspecIfFileFetchFailsIntoReply(self):
-    self.collector_replies = [self.MakeRegistryStatEntry(
-        u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo", u"C:\\Windows\\bar.exe")]
-    self.failed_files = [rdf_paths.PathSpec(
-        path="C:\\Windows\\bar.exe", pathtype="OS")]
+    self.collector_replies = [
+        self.MakeRegistryStatEntry(u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo",
+                                   u"C:\\Windows\\bar.exe")
+    ]
+    self.failed_files = [
+        rdf_paths.PathSpec(
+            path="C:\\Windows\\bar.exe", pathtype="OS")
+    ]
 
     results = self.RunFlow()
 
@@ -157,8 +165,10 @@ class ArtifactFilesDownloaderFlowTest(test_lib.FlowTestsBaseclass):
     self.assertFalse(results[0].HasField("downloaded_file"))
 
   def testIncludesDownloadedFilesIntoReplyIfFetchSucceeds(self):
-    self.collector_replies = [self.MakeRegistryStatEntry(
-        u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo", u"C:\\Windows\\bar.exe")]
+    self.collector_replies = [
+        self.MakeRegistryStatEntry(u"HKEY_LOCAL_MACHINE\\SOFTWARE\\foo",
+                                   u"C:\\Windows\\bar.exe")
+    ]
     self.received_files = [self.MakeFileStatEntry("C:\\Windows\\bar.exe")]
 
     results = self.RunFlow()

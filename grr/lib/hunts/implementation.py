@@ -1067,8 +1067,9 @@ class GRRHunt(flow.FlowBase):
         # Ignore children that are not valid clients ids.
         continue
 
-    symlinks_urns = [self._ClientSymlinkUrn(client_id)
-                     for client_id in clients_ids]
+    symlinks_urns = [
+        self._ClientSymlinkUrn(client_id) for client_id in clients_ids
+    ]
     deletion_pool.MultiMarkForDeletion(symlinks_urns)
 
   @flow.StateHandler()
@@ -1204,8 +1205,10 @@ class GRRHunt(flow.FlowBase):
       with self.lock:
         self.processed_responses = True
 
-        msgs = [rdf_flows.GrrMessage(
-            payload=response, source=client_id) for response in responses]
+        msgs = [
+            rdf_flows.GrrMessage(
+                payload=response, source=client_id) for response in responses
+        ]
 
         for msg in msgs:
           hunts_results.HuntResultCollection.StaticAdd(
@@ -1375,8 +1378,11 @@ class GRRHunt(flow.FlowBase):
 
   def GetClientsCounts(self):
     collections = aff4.FACTORY.MultiOpen(
-        [self.all_clients_collection_urn, self.completed_clients_collection_urn,
-         self.clients_errors_collection_urn],
+        [
+            self.all_clients_collection_urn,
+            self.completed_clients_collection_urn,
+            self.clients_errors_collection_urn
+        ],
         mode="r",
         token=self.token)
 

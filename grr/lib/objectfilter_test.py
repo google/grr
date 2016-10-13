@@ -56,8 +56,10 @@ class DummyFile(object):
 
   def __init__(self):
     self.non_callable = HashObject(hash1)
-    self.non_callable_repeated = [DummyObject("desmond", ["brotha", "brotha"]),
-                                  DummyObject("desmond", ["brotha", "sista"])]
+    self.non_callable_repeated = [
+        DummyObject("desmond", ["brotha", "brotha"]),
+        DummyObject("desmond", ["brotha", "sista"])
+    ]
     self.imported_dll1 = Dll("a.dll", ["FindWindow", "CreateFileA"])
     self.imported_dll2 = Dll("b.dll", ["RegQueryValueEx"])
 
@@ -75,10 +77,14 @@ class DummyFile(object):
 
   @property
   def mapping(self):
-    return {"hashes": [HashObject(hash1), HashObject(hash2)],
-            "nested": {"attrs": [attr1, attr2]},
-            "string": "mate",
-            "float": 42.0}
+    return {
+        "hashes": [HashObject(hash1), HashObject(hash2)],
+        "nested": {
+            "attrs": [attr1, attr2]
+        },
+        "string": "mate",
+        "float": 42.0
+    }
 
   @property
   def size(self):
@@ -204,8 +210,10 @@ class ObjectFilterTest(unittest.TestCase):
       for test_unit in test_data:
         print("Testing %s with %s and %s" % (operator, test_unit[0],
                                              test_unit[1]))
-        kwargs = {"arguments": test_unit[1],
-                  "value_expander": self.value_expander}
+        kwargs = {
+            "arguments": test_unit[1],
+            "value_expander": self.value_expander
+        }
         self.assertEqual(test_unit[0], operator(**kwargs).Matches(self.file))
 
   def testExpand(self):
@@ -308,11 +316,13 @@ class ObjectFilterTest(unittest.TestCase):
     self.assertRaises(
         objectfilter.InvalidNumberOfOperands,
         objectfilter.Context,
-        arguments=["context", objectfilter.Equals(
-            arguments=["path", "value"], value_expander=self.value_expander),
-                   objectfilter.Equals(
-                       arguments=["another_path", "value"],
-                       value_expander=self.value_expander)],
+        arguments=[
+            "context", objectfilter.Equals(
+                arguments=["path", "value"],
+                value_expander=self.value_expander), objectfilter.Equals(
+                    arguments=["another_path", "value"],
+                    value_expander=self.value_expander)
+        ],
         value_expander=self.value_expander)
     # "One imported_dll imports 2 functions AND one imported_dll imports
     # function RegQueryValueEx"

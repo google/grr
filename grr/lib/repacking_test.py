@@ -36,9 +36,10 @@ class RepackingTests(test_lib.GRRBaseTest):
                        "windows/templates/unzipsfx/unzipsfx-amd64.exe"),
           new_dir)
 
-      with test_lib.ConfigOverrider(
-          {"ClientBuilder.executables_dir": new_dir,
-           "ClientBuilder.unzipsfx_stub_dir": new_dir}):
+      with test_lib.ConfigOverrider({
+          "ClientBuilder.executables_dir": new_dir,
+          "ClientBuilder.unzipsfx_stub_dir": new_dir
+      }):
         repacking.TemplateRepacker().RepackAllTemplates()
 
       self.assertEqual(

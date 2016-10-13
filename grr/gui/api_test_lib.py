@@ -111,10 +111,8 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
         method=method,
         scheme="http",
         path=parsed_url.path,
-        environ={
-            "SERVER_NAME": "foo.bar",
-            "SERVER_PORT": 1234
-        },
+        environ={"SERVER_NAME": "foo.bar",
+                 "SERVER_PORT": 1234},
         user="test",
         body="")
     request.META = {"CONTENT_TYPE": "application/json"}
@@ -152,7 +150,12 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
                          "Expected %s, got %s." % (self.__class__.api_method,
                                                    api_method))
 
-    content = http_response.content
+    if hasattr(http_response, "streaming_content"):
+      # We don't know the nature of response content, but we force it to be
+      # unicode. It's a strategy that's good enough for testing purposes.
+      content = utils.SmartUnicode("".join(http_response.streaming_content))
+    else:
+      content = http_response.content
 
     xssi_token = ")]}'\n"
     if content.startswith(xssi_token):
@@ -167,7 +170,12 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
       if hasattr(replace, "__call__"):
         replace = replace()
 
-      for substr, repl in replace.items():
+      # We reverse sort replacements by length to avoid cases when
+      # replacements include each other and therefore order
+      # of replacements affects the result.
+      for substr in sorted(replace, key=len, reverse=True):
+        repl = replace[substr]
+
         if hasattr(substr, "sub"):  # regex
           content = substr.sub(repl, content)
           url = substr.sub(repl, url)
@@ -175,7 +183,13 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
           content = content.replace(substr, repl)
           url = url.replace(substr, repl)
 
-    parsed_content = json.loads(content)
+    # We treat streaming content purely as strings and don't expect it to
+    # contain JSON data.
+    if hasattr(http_response, "streaming_content"):
+      parsed_content = content
+    else:
+      parsed_content = json.loads(content)
+
     check_result = dict(
         api_method=api_method,
         method=method,

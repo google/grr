@@ -60,9 +60,11 @@ def GetMockHTTPConnectionPoolClass(responses_class_value):
     # pylint: disable=invalid-name
     def urlopen(self, method, url, body=None, headers=None):
       _ = method, url, headers
-      self.__class__.requests.append({"method": method,
-                                      "url": url,
-                                      "body": body})
+      self.__class__.requests.append({
+          "method": method,
+          "url": url,
+          "body": body
+      })
 
       return self.responses.pop(0)
     # pylint: enable=invalid-name
@@ -140,12 +142,11 @@ class MasterTest(test_lib.GRRBaseTest):
     self.assertTrue(m.AllRegistered())
 
     for port in self.ports:
-      for response_sequence in [[constants.RESPONSE_OK,
-                                 constants.RESPONSE_SERVER_NOT_AUTHORIZED],
-                                [constants.RESPONSE_OK,
-                                 constants.RESPONSE_SERVER_NOT_ALLOWED],
-                                [constants.RESPONSE_OK,
-                                 constants.RESPONSE_NOT_MASTER_SERVER]]:
+      for response_sequence in [
+          [constants.RESPONSE_OK, constants.RESPONSE_SERVER_NOT_AUTHORIZED],
+          [constants.RESPONSE_OK, constants.RESPONSE_SERVER_NOT_ALLOWED],
+          [constants.RESPONSE_OK, constants.RESPONSE_NOT_MASTER_SERVER]
+      ]:
 
         response_mocks = []
         for response_status in response_sequence:

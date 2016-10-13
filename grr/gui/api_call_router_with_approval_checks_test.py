@@ -13,6 +13,7 @@ from grr.gui.api_plugins import client as api_client
 from grr.gui.api_plugins import cron as api_cron
 from grr.gui.api_plugins import flow as api_flow
 from grr.gui.api_plugins import hunt as api_hunt
+from grr.gui.api_plugins import user as api_user
 from grr.gui.api_plugins import vfs as api_vfs
 
 from grr.lib import access_control
@@ -304,6 +305,40 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     args = api_hunt.ApiGetHuntFileArgs(hunt_id="H:123456")
     self.CheckMethodIsAccessChecked(
         self.router.GetHuntFilesArchive, "CheckHuntAccess", args=args)
+
+  ACCESS_CHECKED_METHODS.extend([
+      "ListGrrBinaries",
+      "GetGrrBinary"])  # pyformat: disable
+
+  def testListGrrBinariesIsAccessChecked(self):
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      self.router.ListGrrBinaries(None, token=self.token)
+
+    self.CreateAdminUser(self.token.username)
+    self.router.ListGrrBinaries(None, token=self.token)
+
+  def testGetGrrBinaryIsAccessChecked(self):
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      self.router.GetGrrBinary(None, token=self.token)
+
+    self.CreateAdminUser(self.token.username)
+    self.router.GetGrrBinary(None, token=self.token)
+
+  ACCESS_CHECKED_METHODS.extend([
+      "GetGrrUser"])  # pyformat: disable
+
+  def testGetGrrUserReturnsFullTraitsForAdminUser(self):
+    self.CreateAdminUser(self.token.username)
+    handler = self.router.GetGrrUser(None, token=self.token)
+
+    self.assertEqual(handler.interface_traits,
+                     api_user.ApiGrrUserInterfaceTraits().EnableAll())
+
+  def testGetGrrUserReturnsRestrictedTraitsForNonAdminUser(self):
+    handler = self.router.GetGrrUser(None, token=self.token)
+
+    self.assertNotEqual(handler.interface_traits,
+                        api_user.ApiGrrUserInterfaceTraits().EnableAll())
 
   ACCESS_CHECKED_METHODS.extend([
       "StartRobotGetFilesOperation",

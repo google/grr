@@ -79,8 +79,10 @@ class EnvVarsPostProcessorTest(test_lib.GRRBaseTest):
 
   def testReplacesTwoVariables(self):
     """Test it correctly replaces two variables."""
-    processor = windows.EnvVarsPostProcessor({"foo": "bar",
-                                              "blah": "blahblah"})
+    processor = windows.EnvVarsPostProcessor({
+        "foo": "bar",
+        "blah": "blahblah"
+    })
     self.assertEqual(
         processor.Process(r"C:\WINDOWS\%foo%\%blah%\something"),
         [r"C:\WINDOWS\bar\blahblah\something"])
@@ -104,19 +106,24 @@ class EnvVarsPostProcessorTest(test_lib.GRRBaseTest):
     processor = windows.EnvVarsPostProcessor({"foo": ["bar", "blah"]})
     self.assertEqual(
         set(processor.Process(r"C:\WINDOWS\%foo%\%foo%\something")),
-        set([r"C:\WINDOWS\bar\bar\something",
-             r"C:\WINDOWS\blah\blah\something"]))
+        set([
+            r"C:\WINDOWS\bar\bar\something", r"C:\WINDOWS\blah\blah\something"
+        ]))
 
   def testGeneratesProductIfTwoReplacementsHaveMultipleValues(self):
     """Test it generates a product if two replacements have multiple values."""
-    processor = windows.EnvVarsPostProcessor({"foo": ["bar1", "bar2"],
-                                              "blah": ["blah1", "blah2"]})
+    processor = windows.EnvVarsPostProcessor({
+        "foo": ["bar1", "bar2"],
+        "blah": ["blah1", "blah2"]
+    })
     self.assertEqual(
         set(processor.Process(r"C:\WINDOWS\%foo%\%blah%\something")),
-        set([r"C:\WINDOWS\bar1\blah1\something",
-             r"C:\WINDOWS\bar1\blah2\something",
-             r"C:\WINDOWS\bar2\blah1\something",
-             r"C:\WINDOWS\bar2\blah2\something"]))
+        set([
+            r"C:\WINDOWS\bar1\blah1\something",
+            r"C:\WINDOWS\bar1\blah2\something",
+            r"C:\WINDOWS\bar2\blah1\something",
+            r"C:\WINDOWS\bar2\blah2\something"
+        ]))
 
   def testReplacesSystemRootPrefixWithSystemRootVariable(self):
     """Test it replaces system root prefix with a system root variable."""
@@ -177,16 +184,18 @@ class WindowsRegistryExecutablePathsDetectorTest(test_lib.GRRBaseTest):
   def testReplacesEnvironmentVariablesWithMultipleMappings(self):
     """Test it replaces environment variables with multiple mappings."""
     mapping = {
-        "appdata": [r"C:\Users\foo\Application Data",
-                    r"C:\Users\bar\Application Data"]
+        "appdata": [
+            r"C:\Users\foo\Application Data", r"C:\Users\bar\Application Data"
+        ]
     }
 
-    fixture = [(r"%AppData%\Realtek\Audio\blah.exe -s",
-                [r"C:\Users\foo\Application Data\Realtek\Audio\blah.exe",
-                 r"C:\Users\bar\Application Data\Realtek\Audio\blah.exe"]),
-               (r"'%AppData%\Realtek\Audio\blah.exe' -s",
-                [r"C:\Users\foo\Application Data\Realtek\Audio\blah.exe",
-                 r"C:\Users\bar\Application Data\Realtek\Audio\blah.exe"])]
+    fixture = [(r"%AppData%\Realtek\Audio\blah.exe -s", [
+        r"C:\Users\foo\Application Data\Realtek\Audio\blah.exe",
+        r"C:\Users\bar\Application Data\Realtek\Audio\blah.exe"
+    ]), (r"'%AppData%\Realtek\Audio\blah.exe' -s", [
+        r"C:\Users\foo\Application Data\Realtek\Audio\blah.exe",
+        r"C:\Users\bar\Application Data\Realtek\Audio\blah.exe"
+    ])]
 
     for in_str, result in fixture:
       self.assertEqual(

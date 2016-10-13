@@ -97,8 +97,9 @@ class SysVInitStateTests(checks_test_lib.HostCheckTest):
 
   def RunSysVChecks(self):
     host_data = self.SetKnowledgeBase()
-    links = ["/etc/rc2.d/S50xinetd", "/etc/rc2.d/S60wu-ftpd",
-             "/etc/rc2.d/S10ufw"]
+    links = [
+        "/etc/rc2.d/S50xinetd", "/etc/rc2.d/S60wu-ftpd", "/etc/rc2.d/S10ufw"
+    ]
     stats, files = linux_service_parser_test.GenTestData(
         links, [""] * len(links), st_mode=41471)
     parsed = list(self.parser(stats, files, None))
@@ -175,8 +176,10 @@ class ListeningServiceTests(checks_test_lib.HostCheckTest):
         pid=10554,
         ppid=1,
         exe="/usr/bin/python",
-        cmdline=["/usr/bin/python", "-E", "/usr/sbin/foo_agent",
-                 "/etc/foo/conf.d/rsyslogd.conf", "/etc/foo/foobar.conf"])
+        cmdline=[
+            "/usr/bin/python", "-E", "/usr/sbin/foo_agent",
+            "/etc/foo/conf.d/rsyslogd.conf", "/etc/foo/foobar.conf"
+        ])
     host_data["ListProcessesGrr"][context].append(proc1)
     results = self.RunChecks(host_data)
     self.assertCheckDetectedAnom(chk_id, results, sym, found)

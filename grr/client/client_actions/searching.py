@@ -22,11 +22,6 @@ class Find(actions.IteratedAction):
   in_rdfvalue = rdf_client.FindSpec
   out_rdfvalues = [rdf_client.FindSpec]
 
-  # If this is true we cross filesystem boundaries.
-  # This defaults to true so you can see mountpoints with ListDirectory.
-  # It defaults to false in the actual find flow, and the find proto.
-  cross_devs = True
-
   # The filesystem we are limiting ourselves to, if cross_devs is false.
   filesystem_id = None
 

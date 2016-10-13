@@ -777,8 +777,8 @@ class QueueManager(object):
         session_ids, lambda session_id: session_id.Queue()).iteritems():
       queue_shards = self.GetAllNotificationShards(queue)
       self.data_store.MultiDeleteAttributes(
-          queue_shards, [self.NOTIFY_PREDICATE_TEMPLATE % session_id
-                         for session_id in ids],
+          queue_shards,
+          [self.NOTIFY_PREDICATE_TEMPLATE % session_id for session_id in ids],
           token=self.token,
           start=start,
           end=end,

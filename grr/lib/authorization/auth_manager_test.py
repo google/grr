@@ -41,8 +41,8 @@ users:
         dict(
             router="ApiCallRobotRouter", users=["foo", "bar"]))
     self.assertEqual(
-        self.auth_reader.GetAuthorizationForSubject(
-            "ApiCallDisabledRouter").data,
+        self.auth_reader.GetAuthorizationForSubject("ApiCallDisabledRouter")
+        .data,
         dict(
             router="ApiCallDisabledRouter", users=["blah"]))
 

@@ -24,8 +24,10 @@ MODULE_PATTERNS = [
 # We copy these files manually because pyinstaller destroys them to the point
 # where they can't be signed. They don't ever seem to be loaded but they are
 # part of the VC90 manifest.
-FILES_FROM_VIRTUALENV = [r"Lib\site-packages\pythonwin\mfc90.dll",
-                         r"Lib\site-packages\pythonwin\mfc90u.dll"]
+FILES_FROM_VIRTUALENV = [
+    r"Lib\site-packages\pythonwin\mfc90.dll",
+    r"Lib\site-packages\pythonwin\mfc90u.dll"
+]
 
 PROCESS_QUERY_INFORMATION = 0x400
 PROCESS_VM_READ = 0x10

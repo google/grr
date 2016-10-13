@@ -85,9 +85,11 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     self.client_ids = self.SetupClients(10)
 
     if values is None:
-      values = [rdfvalue.RDFURN("aff4:/sample/1"),
-                rdfvalue.RDFURN("aff4:/C.0000000000000001/fs/os/c/bin/bash"),
-                rdfvalue.RDFURN("aff4:/sample/3")]
+      values = [
+          rdfvalue.RDFURN("aff4:/sample/1"),
+          rdfvalue.RDFURN("aff4:/C.0000000000000001/fs/os/c/bin/bash"),
+          rdfvalue.RDFURN("aff4:/sample/3")
+      ]
 
     client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
         rdf_foreman.ForemanClientRule(
@@ -605,8 +607,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
     with self.ACLChecksDisabled():
       client_id = self.SetupClients(1)[0]
     stat_entry = rdf_client.StatEntry(aff4path=client_id.Add("fs/os/foo/bar"))
-    values = [collectors.ArtifactFilesDownloaderResult(
-        downloaded_file=stat_entry)]
+    values = [
+        collectors.ArtifactFilesDownloaderResult(downloaded_file=stat_entry)
+    ]
 
     with self.ACLChecksDisabled():
       self.CreateGenericHuntWithCollection(values=values)
@@ -721,8 +724,9 @@ class TestHuntView(test_lib.GRRSeleniumTest):
 
   def testShowsGenerateArchiveButtonForArtifactDownloaderHunt(self):
     stat_entry = rdf_client.StatEntry(aff4path="aff4:/foo/bar")
-    values = [collectors.ArtifactFilesDownloaderResult(
-        downloaded_file=stat_entry)]
+    values = [
+        collectors.ArtifactFilesDownloaderResult(downloaded_file=stat_entry)
+    ]
 
     with self.ACLChecksDisabled():
       self.CreateGenericHuntWithCollection(values=values)

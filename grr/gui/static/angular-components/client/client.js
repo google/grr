@@ -5,6 +5,7 @@ goog.require('grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialo
 goog.require('grrUi.client.checkClientAccessDirective.CheckClientAccessDirective');
 goog.require('grrUi.client.clientCrashesDirective.ClientCrashesDirective');
 goog.require('grrUi.client.clientDialogService.ClientDialogService');
+goog.require('grrUi.client.clientLoadGraphSerieDirective.ClientLoadGraphSerieDirective');
 goog.require('grrUi.client.clientLoadViewDirective.ClientLoadViewDirective');
 goog.require('grrUi.client.clientStatsViewDirective.ClientStatsViewDirective');
 goog.require('grrUi.client.clientStatusIconsDirective.ClientStatusIconsDirective');
@@ -16,6 +17,7 @@ goog.require('grrUi.client.removeClientsLabelsDialogDirective.RemoveClientsLabel
 goog.require('grrUi.client.virtualFileSystem.module');
 goog.require('grrUi.core.module');
 goog.require('grrUi.semantic.module');
+goog.require('grrUi.stats.module');
 
 
 /**
@@ -24,7 +26,9 @@ goog.require('grrUi.semantic.module');
 grrUi.client.module = angular.module('grrUi.client',
                                      [grrUi.client.virtualFileSystem.module.name,
                                       grrUi.core.module.name,
-                                      grrUi.semantic.module.name]);
+                                      grrUi.semantic.module.name,
+                                      grrUi.stats.module.name
+                                     ]);
 
 grrUi.client.module.directive(
     grrUi.client.addClientsLabelsDialogDirective.AddClientsLabelsDialogDirective
@@ -40,6 +44,10 @@ grrUi.client.module.directive(
 grrUi.client.module.directive(
     grrUi.client.clientsListDirective.ClientsListDirective.directive_name,
     grrUi.client.clientsListDirective.ClientsListDirective);
+grrUi.client.module.directive(
+    grrUi.client.clientLoadGraphSerieDirective.ClientLoadGraphSerieDirective
+        .directive_name,
+    grrUi.client.clientLoadGraphSerieDirective.ClientLoadGraphSerieDirective);
 grrUi.client.module.directive(
     grrUi.client.clientLoadViewDirective.ClientLoadViewDirective.directive_name,
     grrUi.client.clientLoadViewDirective.ClientLoadViewDirective);

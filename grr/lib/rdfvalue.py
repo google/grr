@@ -796,13 +796,14 @@ class ByteSize(RDFInteger):
   """
   data_store_type = "unsigned_integer"
 
-  DIVIDERS = dict((("", 1),
-                   ("k", 1000),
-                   ("m", 1000**2),
-                   ("g", 1000**3),
-                   ("ki", 1024),
-                   ("mi", 1024**2),
-                   ("gi", 1024**3),))
+  DIVIDERS = dict((
+      ("", 1),
+      ("k", 1000),
+      ("m", 1000**2),
+      ("g", 1000**3),
+      ("ki", 1024),
+      ("mi", 1024**2),
+      ("gi", 1024**3),))
 
   REGEX = re.compile("^([0-9.]+)([kmgi]*)b?$")
 

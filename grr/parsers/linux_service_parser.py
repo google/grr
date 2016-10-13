@@ -86,17 +86,26 @@ def GetRunlevelsNonLSB(states):
   if not states:
     return set()
   convert_table = {
-      "0": "0",
-      "1": "1",
-      "2": "2",
-      "3": "3",
-      "4": "4",
-      "5": "5",
-      "6": "6",
+      "0":
+          "0",
+      "1":
+          "1",
+      "2":
+          "2",
+      "3":
+          "3",
+      "4":
+          "4",
+      "5":
+          "5",
+      "6":
+          "6",
       # SysV, Gentoo, Solaris, HP-UX all allow an alpha variant
       # for single user. https://en.wikipedia.org/wiki/Runlevel
-      "S": "1",
-      "s": "1"
+      "S":
+          "1",
+      "s":
+          "1"
   }
   _LogInvalidRunLevels(states, convert_table)
   return set([convert_table[s] for s in states.split() if s in convert_table])

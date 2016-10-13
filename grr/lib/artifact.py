@@ -154,9 +154,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
           knowledge_base=self.state.knowledge_base,
           store_results_in_aff4=False,
           next_state="ProcessBase",
-          request_data={
-              "artifact_name": artifact_name
-          })
+          request_data={"artifact_name": artifact_name})
 
   def GetFirstFlowsForCollection(self):
     """Initialize dependencies and calculate first round of flows.
@@ -217,9 +215,7 @@ class CollectArtifactDependencies(flow.GRRFlow):
             artifact_list=[artifact_name],
             store_results_in_aff4=False,
             next_state="ProcessBase",
-            request_data={
-                "artifact_name": artifact_name
-            },
+            request_data={"artifact_name": artifact_name},
             knowledge_base=self.state.knowledge_base)
 
     # If we're not done but not collecting anything, start accepting the partial
@@ -501,8 +497,10 @@ def ApplyParserToResponses(processor_obj, responses, source, flow_obj, token):
 
     elif isinstance(processor_obj, parsers.FileParser):
       if processor_obj.process_together:
-        file_objects = [aff4.FACTORY.Open(
-            r.aff4path, token=token) for r in responses]
+        file_objects = [
+            aff4.FACTORY.Open(
+                r.aff4path, token=token) for r in responses
+        ]
         result_iterator = parse_method(responses, file_objects,
                                        state.knowledge_base)
       else:
@@ -551,8 +549,9 @@ def UploadArtifactYamlFile(file_content,
     current_artifacts = list(artifact_coll)
 
   # We need to remove artifacts we are overwriting.
-  filtered_artifacts = [art for art in current_artifacts
-                        if art.name not in new_artifact_names]
+  filtered_artifacts = [
+      art for art in current_artifacts if art.name not in new_artifact_names
+  ]
 
   with aff4.FACTORY.Create(
       base_urn, aff4_type=collects.RDFValueCollection, token=token,

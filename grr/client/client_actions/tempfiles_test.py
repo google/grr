@@ -160,8 +160,8 @@ class DeleteGRRTempFiles(test_lib.EmptyActionTest):
     self.assertTrue(os.path.exists(file2))
     self.assertTrue(os.path.exists(not_a_grr_file1))
     self.assertTrue(os.path.exists(not_a_grr_file2))
-    return ([temproot1, temproot2, temproot3], [tempdir1, tempdir2], [tempdir3],
-            [file1, file2], [not_a_grr_file1, not_a_grr_file1])
+    return ([temproot1, temproot2, temproot3], [tempdir1, tempdir2],
+            [tempdir3], [file1, file2], [not_a_grr_file1, not_a_grr_file1])
 
   def testDeleteMultipleRoots(self):
     temp_dir = "grr_temp"

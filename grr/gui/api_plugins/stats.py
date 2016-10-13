@@ -40,8 +40,10 @@ class ApiListStatsStoreMetricsMetadataHandler(
     stats_store = aff4.FACTORY.Create(
         None, aff4_type=stats_store_lib.StatsStore, mode="w", token=token)
 
-    process_ids = [pid for pid in stats_store.ListUsedProcessIds()
-                   if pid.startswith(args.component.name.lower())]
+    process_ids = [
+        pid for pid in stats_store.ListUsedProcessIds()
+        if pid.startswith(args.component.name.lower())
+    ]
 
     result = ApiListStatsStoreMetricsMetadataResult()
     if not process_ids:
@@ -70,8 +72,10 @@ class ApiGetStatsStoreMetricHandler(api_call_handler_base.ApiCallHandler):
         token=token)
 
     process_ids = stats_store.ListUsedProcessIds()
-    filtered_ids = [pid for pid in process_ids
-                    if pid.startswith(args.component.name.lower())]
+    filtered_ids = [
+        pid for pid in process_ids
+        if pid.startswith(args.component.name.lower())
+    ]
 
     start_time = args.start
     end_time = args.end

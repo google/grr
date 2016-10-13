@@ -80,8 +80,8 @@ class WMIEventConsumerParser(parsers.WMIQueryParser):
     wmi_dict = result.ToDict()
 
     try:
-      wmi_dict["CreatorSID"] = BinarySIDtoStringSID("".join([chr(
-          i) for i in wmi_dict["CreatorSID"]]))
+      wmi_dict["CreatorSID"] = BinarySIDtoStringSID("".join(
+          [chr(i) for i in wmi_dict["CreatorSID"]]))
     except (ValueError, TypeError) as e:
       # We recover from corrupt SIDs by outputting it raw as a string
       wmi_dict["CreatorSID"] = str(wmi_dict["CreatorSID"])
@@ -181,8 +181,9 @@ class WMIUserParser(parsers.WMIQueryParser):
   """Parser for WMI Win32_UserAccount and Win32_UserProfile output."""
 
   output_types = [rdf_client.User.__name__]
-  supported_artifacts = ["WMIProfileUsersHomeDir", "WMIAccountUsersDomain",
-                         "WMIUsers"]
+  supported_artifacts = [
+      "WMIProfileUsersHomeDir", "WMIAccountUsersDomain", "WMIUsers"
+  ]
 
   account_mapping = {
       # Win32_UserAccount
@@ -269,8 +270,9 @@ class WMIComputerSystemProductParser(parsers.WMIQueryParser):
 class WMIInterfacesParser(parsers.WMIQueryParser):
   """Parser for WMI output. Yields SoftwarePackage rdfvalues."""
 
-  output_types = [rdf_client.Interface.__name__,
-                  rdf_client.DNSClientConfiguration.__name__]
+  output_types = [
+      rdf_client.Interface.__name__, rdf_client.DNSClientConfiguration.__name__
+  ]
   supported_artifacts = []
 
   def WMITimeStrToRDFDatetime(self, timestr):

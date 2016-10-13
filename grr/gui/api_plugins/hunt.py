@@ -188,8 +188,8 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
 
     if args.created_by:
       filters.append(
-          functools.partial(self._CreatedByFilter, self._Username(
-              args.created_by, token)))
+          functools.partial(self._CreatedByFilter,
+                            self._Username(args.created_by, token)))
 
     if args.description_contains:
       filters.append(
@@ -476,8 +476,9 @@ class ApiListHuntOutputPluginLogsHandlerBase(
               logs_collection.GenerateItems(offset=args.offset),
               args.count or None))
     else:
-      all_logs_for_plugin = [x for x in logs_collection
-                             if x.plugin_descriptor == plugin_descriptor]
+      all_logs_for_plugin = [
+          x for x in logs_collection if x.plugin_descriptor == plugin_descriptor
+      ]
       total_count = len(all_logs_for_plugin)
       logs = all_logs_for_plugin[args.offset:]
       if args.count:

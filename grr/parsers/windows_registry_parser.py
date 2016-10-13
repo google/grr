@@ -19,8 +19,9 @@ class CurrentControlSetKBParser(parsers.RegistryValueParser):
   """Parser for CurrentControlSet value."""
 
   output_types = ["RDFString"]
-  supported_artifacts = ["CurrentControlSet",
-                         "WindowsRegistryCurrentControlSet"]
+  supported_artifacts = [
+      "CurrentControlSet", "WindowsRegistryCurrentControlSet"
+  ]
 
   def Parse(self, stat, unused_knowledge_base):
     """Parse the key currentcontrolset output."""
@@ -37,14 +38,13 @@ class WinEnvironmentParser(parsers.RegistryValueParser):
   """Parser for registry retrieved environment variables."""
 
   output_types = ["RDFString"]
-  supported_artifacts = ["WinPathEnvironmentVariable",
-                         "WindowsEnvironmentVariablePath",
-                         "WinDirEnvironmentVariable",
-                         "WindowsEnvironmentVariableWinDir",
-                         "TempEnvironmentVariable",
-                         "WindowsEnvironmentVariableTemp",
-                         "AllUsersAppDataEnvironmentVariable",
-                         "WindowsEnvironmentVariableAllUsersAppData"]
+  supported_artifacts = [
+      "WinPathEnvironmentVariable", "WindowsEnvironmentVariablePath",
+      "WinDirEnvironmentVariable", "WindowsEnvironmentVariableWinDir",
+      "TempEnvironmentVariable", "WindowsEnvironmentVariableTemp",
+      "AllUsersAppDataEnvironmentVariable",
+      "WindowsEnvironmentVariableAllUsersAppData"
+  ]
   # Required for environment variable expansion
   knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot"]
 
@@ -63,8 +63,9 @@ class WinSystemDriveParser(parsers.RegistryValueParser):
   """Parser for SystemDrive environment variable."""
 
   output_types = ["RDFString"]
-  supported_artifacts = ["SystemDriveEnvironmentVariable",
-                         "WindowsEnvironmentVariableSystemDrive"]
+  supported_artifacts = [
+      "SystemDriveEnvironmentVariable", "WindowsEnvironmentVariableSystemDrive"
+  ]
 
   def Parse(self, stat, _):
     """Parse the key currentcontrolset output."""
@@ -118,8 +119,10 @@ class AllUsersProfileEnvironmentVariable(parsers.RegistryParser):
   if one or the registry values doesn't exist.
   """
   output_types = ["RDFString"]
-  supported_artifacts = ["AllUsersProfileEnvironmentVariable",
-                         "WindowsEnvironmentVariableAllUsersProfile"]
+  supported_artifacts = [
+      "AllUsersProfileEnvironmentVariable",
+      "WindowsEnvironmentVariableAllUsersProfile"
+  ]
   # Required for environment variable expansion
   knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot"]
   process_together = True
@@ -191,8 +194,9 @@ class WinUserSpecialDirs(parsers.RegistryParser):
   supported_artifacts = ["UserShellFolders", "WindowsUserShellFolders"]
   process_together = True
   # Required for environment variable expansion
-  knowledgebase_dependencies = ["environ_systemdrive", "environ_systemroot",
-                                "users.userprofile"]
+  knowledgebase_dependencies = [
+      "environ_systemdrive", "environ_systemroot", "users.userprofile"
+  ]
 
   key_var_mapping = {
       "Shell Folders": {
@@ -274,16 +278,18 @@ class WinServicesParser(parsers.RegistryValueParser):
     """Parse Service registry keys and return WindowsServiceInformation."""
     _ = knowledge_base
     services = {}
-    field_map = {"Description": "description",
-                 "DisplayName": "display_name",
-                 "Group": "group_name",
-                 "DriverPackageId": "driver_package_id",
-                 "ErrorControl": "error_control",
-                 "ImagePath": "image_path",
-                 "ObjectName": "object_name",
-                 "Start": "startup_type",
-                 "Type": "service_type",
-                 "Parameters/ServiceDLL": "service_dll"}
+    field_map = {
+        "Description": "description",
+        "DisplayName": "display_name",
+        "Group": "group_name",
+        "DriverPackageId": "driver_package_id",
+        "ErrorControl": "error_control",
+        "ImagePath": "image_path",
+        "ObjectName": "object_name",
+        "Start": "startup_type",
+        "Type": "service_type",
+        "Parameters/ServiceDLL": "service_dll"
+    }
 
     # Field map key should be converted to lowercase because key aquired through
     # self._GetKeyName could have some  characters in different case than the
@@ -320,8 +326,9 @@ class WinServicesParser(parsers.RegistryValueParser):
             # TODO(user): change this to yield a ParserAnomaly object.
             dest_type = type(services[service_name].Get(field_map[key]))
             logging.debug("Wrong type set for %s:%s, expected %s, got %s",
-                          stat.pathspec.path, stat.registry_data.GetValue(),
-                          dest_type, type(stat.registry_data.GetValue()))
+                          stat.pathspec.path,
+                          stat.registry_data.GetValue(), dest_type,
+                          type(stat.registry_data.GetValue()))
 
     return services.itervalues()
 

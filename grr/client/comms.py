@@ -1257,9 +1257,7 @@ class GRRHTTPClient(object):
         path="control?api=%s" % config_lib.CONFIG["Network.api"],
         verify_cb=self.VerifyServerControlResponse,
         data=data,
-        headers={
-            "Content-Type": "binary/octet-stream"
-        })
+        headers={"Content-Type": "binary/octet-stream"})
 
     if response.code == 406:
       self.InitiateEnrolment()
@@ -1372,7 +1370,9 @@ class GRRHTTPClient(object):
 
     cn = self.communicator.common_name
     logging.info("%s: Sending %s(%s), Received %s messages in %s sec. "
-                 "Sleeping for %s", cn, len(message_list), len(payload_data),
+                 "Sleeping for %s", cn,
+                 len(message_list),
+                 len(payload_data),
                  len(response.messages), response.duration,
                  self.timer.sleep_time)
 

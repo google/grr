@@ -27,9 +27,10 @@ class TestCronView(test_lib.GRRSeleniumTest):
     super(TestCronView, self).setUp()
 
     with self.ACLChecksDisabled():
-      for flow_name in [cron_system.GRRVersionBreakDown.__name__,
-                        cron_system.OSBreakDown.__name__,
-                        cron_system.LastAccessStats.__name__]:
+      for flow_name in [
+          cron_system.GRRVersionBreakDown.__name__,
+          cron_system.OSBreakDown.__name__, cron_system.LastAccessStats.__name__
+      ]:
         cron_args = cronjobs.CreateCronJobFlowArgs(
             periodicity="7d", lifetime="1d")
         cron_args.flow_runner_args.flow_name = flow_name

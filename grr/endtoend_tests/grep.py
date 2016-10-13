@@ -11,9 +11,11 @@ class TestSearchFilesGrep(base.AutomatedTest):
   """Test SearchFileContent with grep."""
   platforms = ["Linux"]
   flow = "SearchFileContent"
-  args = {"paths": ["/bin/ls*"],
-          "grep": rdf_client.BareGrepSpec(literal="ELF"),
-          "also_download": True}
+  args = {
+      "paths": ["/bin/ls*"],
+      "grep": rdf_client.BareGrepSpec(literal="ELF"),
+      "also_download": True
+  }
 
   def CheckFlow(self):
     results = self.CheckCollectionNotEmptyWithRetry(

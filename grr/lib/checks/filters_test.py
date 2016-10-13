@@ -183,11 +183,15 @@ class StatFilterTests(test_lib.GRRBaseTest):
   bad_mode = ["mode 755", "mode:755", "mode:0999", "mode:0777,0775"]
   bad_mask = ["mask 755", "mask:755", "mask:0999", "mask:0777,0775"]
   bad_path = ["path_re:[[["]
-  bad_type = ["file_type: ", "file_type foo", "file_type:foo",
-              "file_type:directory,regular"]
+  bad_type = [
+      "file_type: ", "file_type foo", "file_type:foo",
+      "file_type:directory,regular"
+  ]
   bad_uids = ["uid: ", "uid 0", "uid:0", "uid:=", "uid:gid:"]
-  badness = [bad_null, bad_file, bad_gids, bad_mask, bad_mode, bad_path,
-             bad_type, bad_uids]
+  badness = [
+      bad_null, bad_file, bad_gids, bad_mask, bad_mode, bad_path, bad_type,
+      bad_uids
+  ]
 
   ok_file = ["file_re:/etc/passwd"]
   ok_gids = ["gid:=0", "gid:=1,>1,<1,>=1,<=1,!1"]
@@ -237,13 +241,15 @@ class StatFilterTests(test_lib.GRRBaseTest):
 
   def testFileTypeParse(self):
     """FileType filters restrict results to specified file types."""
-    all_types = {"BLOCK": self._GenStat(st_mode=24992),  # 0060640
-                 "Character": self._GenStat(st_mode=8608),  # 0020640
-                 "directory": self._GenStat(st_mode=16873),  # 0040751
-                 "fiFO": self._GenStat(st_mode=4534),  # 0010666
-                 "REGULAR": self._GenStat(st_mode=33204),  # 0100664
-                 "socket": self._GenStat(st_mode=49568),  # 0140640
-                 "SymLink": self._GenStat(st_mode=41471)}  # 0120777
+    all_types = {
+        "BLOCK": self._GenStat(st_mode=24992),  # 0060640
+        "Character": self._GenStat(st_mode=8608),  # 0020640
+        "directory": self._GenStat(st_mode=16873),  # 0040751
+        "fiFO": self._GenStat(st_mode=4534),  # 0010666
+        "REGULAR": self._GenStat(st_mode=33204),  # 0100664
+        "socket": self._GenStat(st_mode=49568),  # 0140640
+        "SymLink": self._GenStat(st_mode=41471)
+    }  # 0120777
     filt = filters.StatFilter()
     for file_type, expected in all_types.iteritems():
       filt._Flush()
@@ -346,10 +352,12 @@ class StatFilterTests(test_lib.GRRBaseTest):
         path="/etc/shadow", st_uid=1000, st_gid=1000, st_mode=0100640)
     writable = self._GenStat(
         path="/etc/shadow", st_uid=0, st_gid=0, st_mode=0100666)
-    cfg = {"path": "/etc/shadow",
-           "st_uid": 0,
-           "st_gid": 0,
-           "st_mode": 0100640}
+    cfg = {
+        "path": "/etc/shadow",
+        "st_uid": 0,
+        "st_gid": 0,
+        "st_mode": 0100640
+    }
     invalid = rdf_protodict.AttributedDict(**cfg)
     objs = [ok, link, user, writable, invalid]
     results = filt.Parse(objs, "uid:>=0 gid:>=0")

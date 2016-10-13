@@ -128,38 +128,6 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     self.assertEqual("BASIC (default)",
                      self.GetSelectedLabel(mode_selector).strip())
 
-  def testServerErrorShowsErrorButton(self):
-
-    # This is ugly :( Django gets confused when you import in the wrong order
-    # though and fileview imports the Django http module so we have to delay
-    # import until the Django server is properly set up.
-    # pylint: disable=g-import-not-at-top
-    from grr.gui.plugins.configuration_view import ConfigFileTableToolbar
-
-    # pylint: enable=g-import-not-at-top
-
-    # pylint: disable=unused-argument
-    def MockLayout(self, request, response):
-      """Fake layout method to force an exception."""
-      raise RuntimeError("This is a forced exception")
-
-    # By mocking out Layout, we can force an exception.
-    with self.ACLChecksDisabled():
-      with utils.Stubber(ConfigFileTableToolbar, "Layout", MockLayout):
-        self.Open("/")
-
-        #  Go to Manage Binaries, which throws an exception (see _FakeLayout).
-        self.Click("css=a:contains('Manage Binaries')")
-
-        # Open server error dialog.
-        self.Click("css=button#show_backtrace")
-
-        # Check if message and traceback are shown.
-        self.WaitUntilContains("This is a forced exception", self.GetText,
-                               "css=div[name=ServerErrorDialog]")
-        self.WaitUntilContains("Traceback (most recent call last):",
-                               self.GetText, "css=div[name=ServerErrorDialog]")
-
   def testServerErrorInApiShowsErrorButton(self):
 
     # pylint: disable=unused-argument

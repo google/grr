@@ -655,9 +655,11 @@ class TableRenderer(TemplateRenderer):
       HTML to insert into the DOM.
     """
     self.table_options = copy.deepcopy(self.table_options)
-    self.table_options.setdefault("aoColumnDefs", []).append(
-        {"bSortable": False,
-         "aTargets": [i for i, c in enumerate(self.columns) if not c.sortable]})
+    self.table_options.setdefault("aoColumnDefs", []).append({
+        "bSortable":
+            False,
+        "aTargets": [i for i, c in enumerate(self.columns) if not c.sortable]
+    })
 
     self.table_options["sTableId"] = GetNextId()
 
@@ -781,8 +783,8 @@ class TableRenderer(TemplateRenderer):
           yield fd.getvalue()
           fd.truncate(size=0)
 
-        writer.writerow([RemoveTags(c.RenderRow(i, request))
-                         for c in self.columns])
+        writer.writerow(
+            [RemoveTags(c.RenderRow(i, request)) for c in self.columns])
 
       # The last chunk
       yield fd.getvalue()
@@ -1087,8 +1089,10 @@ def DeriveIDFromPath(path):
   invalid_chars = re.compile("[^a-zA-Z0-9]")
 
   components = path.split("/")
-  return "_" + "-".join([invalid_chars.sub(lambda x: "_%02X" % ord(x.group(0)),
-                                           x) for x in components if x])
+  return "_" + "-".join([
+      invalid_chars.sub(lambda x: "_%02X" % ord(x.group(0)), x)
+      for x in components if x
+  ])
 
 
 class ErrorRenderer(TemplateRenderer):

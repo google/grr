@@ -173,10 +173,8 @@ class GrrRekallSession(session.Session):
 
     # Just hard code the initial repository manager. Note this can be
     # overwritten later if needed.
-    self._repository_managers = [
-        (None, RekallCachingIOManager(
-            initial_profiles=initial_profiles, session=self))
-    ]
+    self._repository_managers = [(None, RekallCachingIOManager(
+        initial_profiles=initial_profiles, session=self))]
 
     # Apply default configuration options to the session state, unless
     # explicitly overridden by the session_args.

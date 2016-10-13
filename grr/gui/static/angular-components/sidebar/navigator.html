@@ -46,15 +46,10 @@
               disabled="!controller.hasClientAccess">
             Debug Client Requests
           </li>
-          <li grr-nav-link state="client.load"
+          <li grr-nav-link state="client.loadStats"
               params="{clientId: controller.clientId}"
               disabled="!controller.hasClientAccess">
-            Current Client Load
-          </li>
-          <li grr-nav-link state="client.stats"
-              params="{clientId: controller.clientId}"
-              disabled="!controller.hasClientAccess">
-            Client Performance Stats
+            Client Load Stats
           </li>
         </ul>
       </li>

@@ -212,8 +212,10 @@ class OutputPluginVerifier(object):
         errors.append((hunt.urn, e))
 
     if errors:
-      error_messages = ["Error validating hunt %s: %s" % (hunt_urn, e)
-                        for hunt_urn, e in errors]
+      error_messages = [
+          "Error validating hunt %s: %s" % (hunt_urn, e)
+          for hunt_urn, e in errors
+      ]
       raise MultiVerifyHuntOutputError(
           "\n".join(error_messages), errors=[e for _, e in errors])
 
@@ -280,8 +282,11 @@ class OutputPluginWithOutputStreams(OutputPlugin):
     Returns:
       Dictionary with "stream name" -> "stream object" key-value pairs.
     """
-    urn_to_names = {self.state.output_base_urn.Add(name): name
-                    for name in self.stream_objects}
+    urn_to_names = {
+        self.state.output_base_urn.Add(name):
+            name
+        for name in self.stream_objects
+    }
     streams = aff4.FACTORY.MultiOpen(
         urn_to_names.keys(),
         aff4_type=aff4.AFF4UnversionedImage,

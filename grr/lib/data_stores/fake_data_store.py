@@ -144,8 +144,8 @@ class FakeDataStore(data_store.DataStore):
     if replace or attribute not in self.subjects[subject]:
       self.subjects[subject][attribute] = []
 
-    self.subjects[subject][attribute].append([self._Encode(value),
-                                              int(timestamp)])
+    self.subjects[subject][attribute].append(
+        [self._Encode(value), int(timestamp)])
     self.subjects[subject][attribute].sort(key=lambda x: x[1])
 
   @utils.Synchronized

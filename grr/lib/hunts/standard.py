@@ -602,8 +602,8 @@ class GenericHunt(implementation.GRRHunt):
       result = outstanding_clients
 
     # Now get the flows for all these clients.
-    flows = aff4.FACTORY.MultiListChildren([self.urn.Add(x.Basename())
-                                            for x in result])
+    flows = aff4.FACTORY.MultiListChildren(
+        [self.urn.Add(x.Basename()) for x in result])
 
     return [x[0] for _, x in flows]
 

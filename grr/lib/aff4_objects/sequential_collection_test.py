@@ -67,8 +67,8 @@ class SequentialCollectionTest(test_lib.AFF4ObjectTest):
       for i in range(100):
         timestamps.append(collection.Add(rdfvalue.RDFInteger(i)))
 
-      even_results = sorted([r
-                             for r in collection.MultiResolve(timestamps[::2])])
+      even_results = sorted(
+          [r for r in collection.MultiResolve(timestamps[::2])])
       self.assertEqual(len(even_results), 50)
       self.assertEqual(even_results[0], 0)
       self.assertEqual(even_results[49], 98)
@@ -167,8 +167,8 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
 
         self.assertEqual(collection.CalculateLength(), 10 * 1024)
         self.assertEqual(
-            sorted(collection._index.keys()), [0, 1024, 2048, 3072, 4096, 5120,
-                                               6144, 7168, 8192, 9216])
+            sorted(collection._index.keys()),
+            [0, 1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192, 9216])
 
     # Now check that the index was persisted to aff4 by re-opening and checking
     # that a read from head does load full index (optimistic load):
@@ -180,8 +180,8 @@ class IndexedSequentialCollectionTest(test_lib.AFF4ObjectTest):
       self.assertEqual(collection._index, None)
       _ = collection[0]
       self.assertEqual(
-          sorted(collection._index.keys()), [0, 1024, 2048, 3072, 4096, 5120,
-                                             6144, 7168, 8192, 9216])
+          sorted(collection._index.keys()),
+          [0, 1024, 2048, 3072, 4096, 5120, 6144, 7168, 8192, 9216])
 
   def testIndexedReads(self):
     with aff4.FACTORY.Create(

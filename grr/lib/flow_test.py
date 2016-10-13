@@ -425,9 +425,11 @@ class FlowCreationTest(BasicFlowTest):
         aff4_type=multi_type_collection.MultiTypeCollection,
         token=self.token)
     self.assertEqual(
-        set(c.ListStoredTypes()), set([rdfvalue.RDFInteger.__name__,
-                                       rdfvalue.RDFString.__name__,
-                                       rdfvalue.RDFURN.__name__]))
+        set(c.ListStoredTypes()),
+        set([
+            rdfvalue.RDFInteger.__name__, rdfvalue.RDFString.__name__,
+            rdfvalue.RDFURN.__name__
+        ]))
     self.assertEqual(c.LengthByType(rdfvalue.RDFInteger.__name__), 1)
     self.assertEqual(c.LengthByType(rdfvalue.RDFString.__name__), 2)
     self.assertEqual(c.LengthByType(rdfvalue.RDFURN.__name__), 3)
@@ -439,9 +441,10 @@ class FlowCreationTest(BasicFlowTest):
         [v.payload for _, v in c.ScanByType(rdfvalue.RDFString.__name__)],
         [rdfvalue.RDFString("foo bar"), rdfvalue.RDFString("foo1 bar1")])
     self.assertListEqual(
-        [v.payload for _, v in c.ScanByType(rdfvalue.RDFURN.__name__)],
-        [rdfvalue.RDFURN("foo/bar"), rdfvalue.RDFURN("foo1/bar1"),
-         rdfvalue.RDFURN("foo2/bar2")])
+        [v.payload for _, v in c.ScanByType(rdfvalue.RDFURN.__name__)], [
+            rdfvalue.RDFURN("foo/bar"), rdfvalue.RDFURN("foo1/bar1"),
+            rdfvalue.RDFURN("foo2/bar2")
+        ])
 
 
 class FlowTest(BasicFlowTest):

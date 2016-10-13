@@ -230,7 +230,8 @@ class UpdateConfiguration(actions.ActionPlugin):
                       ",".join(disallowed_fields))
 
     filtered_arg = {
-        field: value
+        field:
+            value
         for field, value in smart_arg.items()
         if field in UpdateConfiguration.UPDATABLE_FIELDS
     }

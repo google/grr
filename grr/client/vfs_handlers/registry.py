@@ -87,13 +87,17 @@ def OpenKey(key, sub_key):
   """This calls the Windows OpenKeyEx function in a Unicode safe way."""
   regopenkeyex = advapi32["RegOpenKeyExW"]
   regopenkeyex.restype = ctypes.c_long
-  regopenkeyex.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_ulong,
-                           ctypes.c_ulong, ctypes.POINTER(ctypes.c_void_p)]
+  regopenkeyex.argtypes = [
+      ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_ulong, ctypes.c_ulong,
+      ctypes.POINTER(ctypes.c_void_p)
+  ]
 
   new_key = KeyHandle()
   # Don't use KEY_WOW64_64KEY (0x100) since it breaks on Windows 2000
-  rc = regopenkeyex(key.handle, sub_key, 0, KEY_READ, ctypes.cast(
-      ctypes.byref(new_key.handle), ctypes.POINTER(ctypes.c_void_p)))
+  rc = regopenkeyex(key.handle, sub_key, 0, KEY_READ,
+                    ctypes.cast(
+                        ctypes.byref(new_key.handle),
+                        ctypes.POINTER(ctypes.c_void_p)))
   if rc != ERROR_SUCCESS:
     raise ctypes.WinError(2)
 
@@ -122,16 +126,17 @@ def QueryInfoKey(key):
   # https://github.com/DanielStutzbach/winreg_unicode
   regqueryinfokey = advapi32["RegQueryInfoKeyW"]
   regqueryinfokey.restype = ctypes.c_long
-  regqueryinfokey.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD,
-                              LPDWORD, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
-                              LPDWORD, LPDWORD, LPDWORD,
-                              ctypes.POINTER(FileTime)]
+  regqueryinfokey.argtypes = [
+      ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
+      LPDWORD, LPDWORD, LPDWORD, LPDWORD, LPDWORD, ctypes.POINTER(FileTime)
+  ]
 
   null = LPDWORD()
   num_sub_keys = ctypes.wintypes.DWORD()
   num_values = ctypes.wintypes.DWORD()
   ft = FileTime()
-  rc = regqueryinfokey(key.handle, ctypes.c_wchar_p(), null, null,
+  rc = regqueryinfokey(key.handle,
+                       ctypes.c_wchar_p(), null, null,
                        ctypes.byref(num_sub_keys), null, null,
                        ctypes.byref(num_values), null, null, null,
                        ctypes.byref(ft))
@@ -148,17 +153,19 @@ def QueryValueEx(key, value_name):
   """This calls the Windows QueryValueEx function in a Unicode safe way."""
   regqueryvalueex = advapi32["RegQueryValueExW"]
   regqueryvalueex.restype = ctypes.c_long
-  regqueryvalueex.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD,
-                              LPDWORD, LPBYTE, LPDWORD]
+  regqueryvalueex.argtypes = [
+      ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD, LPBYTE, LPDWORD
+  ]
 
   size = 256
   data_type = ctypes.wintypes.DWORD()
   while True:
     tmp_size = ctypes.wintypes.DWORD(size)
     buf = ctypes.create_string_buffer(size)
-    rc = regqueryvalueex(key.handle, value_name, LPDWORD(),
-                         ctypes.byref(data_type), ctypes.cast(buf, LPBYTE),
-                         ctypes.byref(tmp_size))
+    rc = regqueryvalueex(key.handle, value_name,
+                         LPDWORD(),
+                         ctypes.byref(data_type),
+                         ctypes.cast(buf, LPBYTE), ctypes.byref(tmp_size))
     if rc != ERROR_MORE_DATA:
       break
 
@@ -178,15 +185,18 @@ def EnumKey(key, index):
   """This calls the Windows RegEnumKeyEx function in a Unicode safe way."""
   regenumkeyex = advapi32["RegEnumKeyExW"]
   regenumkeyex.restype = ctypes.c_long
-  regenumkeyex.argtypes = [ctypes.c_void_p, ctypes.wintypes.DWORD,
-                           ctypes.c_wchar_p, LPDWORD, LPDWORD, ctypes.c_wchar_p,
-                           LPDWORD, ctypes.POINTER(FileTime)]
+  regenumkeyex.argtypes = [
+      ctypes.c_void_p, ctypes.wintypes.DWORD, ctypes.c_wchar_p, LPDWORD,
+      LPDWORD, ctypes.c_wchar_p, LPDWORD, ctypes.POINTER(FileTime)
+  ]
 
   buf = ctypes.create_unicode_buffer(257)
   length = ctypes.wintypes.DWORD(257)
-  rc = regenumkeyex(key.handle, index, ctypes.cast(buf, ctypes.c_wchar_p),
-                    ctypes.byref(length), LPDWORD(), ctypes.c_wchar_p(),
-                    LPDWORD(), ctypes.POINTER(FileTime)())
+  rc = regenumkeyex(key.handle, index,
+                    ctypes.cast(buf, ctypes.c_wchar_p),
+                    ctypes.byref(length),
+                    LPDWORD(),
+                    ctypes.c_wchar_p(), LPDWORD(), ctypes.POINTER(FileTime)())
   if rc != 0:
     raise ctypes.WinError(2)
 
@@ -197,23 +207,25 @@ def EnumValue(key, index):
   """This calls the Windows RegEnumValue function in a Unicode safe way."""
   regenumvalue = advapi32["RegEnumValueW"]
   regenumvalue.restype = ctypes.c_long
-  regenumvalue.argtypes = [ctypes.c_void_p, ctypes.wintypes.DWORD,
-                           ctypes.c_wchar_p, LPDWORD, LPDWORD, LPDWORD, LPBYTE,
-                           LPDWORD]
+  regenumvalue.argtypes = [
+      ctypes.c_void_p, ctypes.wintypes.DWORD, ctypes.c_wchar_p, LPDWORD,
+      LPDWORD, LPDWORD, LPBYTE, LPDWORD
+  ]
 
   regqueryinfokey = advapi32["RegQueryInfoKeyW"]
   regqueryinfokey.restype = ctypes.c_long
-  regqueryinfokey.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD,
-                              LPDWORD, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
-                              LPDWORD, LPDWORD, LPDWORD,
-                              ctypes.POINTER(FileTime)]
+  regqueryinfokey.argtypes = [
+      ctypes.c_void_p, ctypes.c_wchar_p, LPDWORD, LPDWORD, LPDWORD, LPDWORD,
+      LPDWORD, LPDWORD, LPDWORD, LPDWORD, LPDWORD, ctypes.POINTER(FileTime)
+  ]
 
   null = ctypes.POINTER(ctypes.wintypes.DWORD)()
   value_size = ctypes.wintypes.DWORD()
   data_size = ctypes.wintypes.DWORD()
 
-  rc = regqueryinfokey(key.handle, ctypes.c_wchar_p(), null, null, null, null,
-                       null, null, ctypes.byref(value_size),
+  rc = regqueryinfokey(key.handle,
+                       ctypes.c_wchar_p(), null, null, null, null, null, null,
+                       ctypes.byref(value_size),
                        ctypes.byref(data_size), null,
                        ctypes.POINTER(FileTime)())
   if rc != ERROR_SUCCESS:
@@ -230,10 +242,11 @@ def EnumValue(key, index):
     tmp_value_size = ctypes.wintypes.DWORD(value_size.value)
     tmp_data_size = ctypes.wintypes.DWORD(data_size.value)
     data_type = ctypes.wintypes.DWORD()
-    rc = regenumvalue(key.handle, index, ctypes.cast(value, ctypes.c_wchar_p),
+    rc = regenumvalue(key.handle, index,
+                      ctypes.cast(value, ctypes.c_wchar_p),
                       ctypes.byref(tmp_value_size), null,
-                      ctypes.byref(data_type), ctypes.cast(data, LPBYTE),
-                      ctypes.byref(tmp_data_size))
+                      ctypes.byref(data_type),
+                      ctypes.cast(data, LPBYTE), ctypes.byref(tmp_data_size))
 
     if rc != ERROR_MORE_DATA:
       break
@@ -278,17 +291,24 @@ class RegistryFile(vfs.VFSHandler):
 
   # Maps the registry types to protobuf enums
   registry_map = {
-      _winreg.REG_NONE: rdf_client.StatEntry.RegistryType.REG_NONE,
-      _winreg.REG_SZ: rdf_client.StatEntry.RegistryType.REG_SZ,
-      _winreg.REG_EXPAND_SZ: rdf_client.StatEntry.RegistryType.REG_EXPAND_SZ,
-      _winreg.REG_BINARY: rdf_client.StatEntry.RegistryType.REG_BINARY,
-      _winreg.REG_DWORD: rdf_client.StatEntry.RegistryType.REG_DWORD,
+      _winreg.REG_NONE:
+          rdf_client.StatEntry.RegistryType.REG_NONE,
+      _winreg.REG_SZ:
+          rdf_client.StatEntry.RegistryType.REG_SZ,
+      _winreg.REG_EXPAND_SZ:
+          rdf_client.StatEntry.RegistryType.REG_EXPAND_SZ,
+      _winreg.REG_BINARY:
+          rdf_client.StatEntry.RegistryType.REG_BINARY,
+      _winreg.REG_DWORD:
+          rdf_client.StatEntry.RegistryType.REG_DWORD,
       _winreg.REG_DWORD_LITTLE_ENDIAN: (
           rdf_client.StatEntry.RegistryType.REG_DWORD_LITTLE_ENDIAN),
       _winreg.REG_DWORD_BIG_ENDIAN: (
           rdf_client.StatEntry.RegistryType.REG_DWORD_BIG_ENDIAN),
-      _winreg.REG_LINK: rdf_client.StatEntry.RegistryType.REG_LINK,
-      _winreg.REG_MULTI_SZ: rdf_client.StatEntry.RegistryType.REG_MULTI_SZ,
+      _winreg.REG_LINK:
+          rdf_client.StatEntry.RegistryType.REG_LINK,
+      _winreg.REG_MULTI_SZ:
+          rdf_client.StatEntry.RegistryType.REG_MULTI_SZ,
   }
 
   def __init__(self,

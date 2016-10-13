@@ -854,8 +854,8 @@ class PRNG(object):
         return cls.random_list.pop()
       except IndexError:
         PRNG.random_list = list(
-            struct.unpack("=" + "L" * 1000, os.urandom(
-                struct.calcsize("=L") * 1000)))
+            struct.unpack("=" + "L" * 1000,
+                          os.urandom(struct.calcsize("=L") * 1000)))
 
 
 def FormatNumberAsString(num):
@@ -1005,13 +1005,14 @@ class StreamingZipGenerator(object):
     zinfo.CRC = 0x08074b50  # Predefined CRC for archives using data
     # descriptors.
     # This fills an empty Info-ZIP Unix extra field.
-    zinfo.extra = struct.pack("<HHIIHH",
-                              0x5855,
-                              12,
-                              0,  # time of last access (UTC/GMT)
-                              0,  # time of last modification (UTC/GMT)
-                              0,  # user ID
-                              0)  # group ID
+    zinfo.extra = struct.pack(
+        "<HHIIHH",
+        0x5855,
+        12,
+        0,  # time of last access (UTC/GMT)
+        0,  # time of last modification (UTC/GMT)
+        0,  # user ID
+        0)  # group ID
     return zinfo
 
   def WriteSymlink(self, src_arcname, dst_arcname):
@@ -1034,15 +1035,16 @@ class StreamingZipGenerator(object):
 
     # This fills the ASi UNIX extra field, see:
     # http://www.opensource.apple.com/source/zip/zip-6/unzip/unzip/proginfo/extra.fld
-    zinfo.extra = struct.pack("<HHIHIHHs",
-                              0x756e,
-                              len(src_arcname) + 14,
-                              0,  # CRC-32 of the remaining data
-                              0120000,  # file permissions
-                              0,  # target file size
-                              0,  # user ID
-                              0,  # group ID
-                              src_arcname)
+    zinfo.extra = struct.pack(
+        "<HHIHIHHs",
+        0x756e,
+        len(src_arcname) + 14,
+        0,  # CRC-32 of the remaining data
+        0120000,  # file permissions
+        0,  # target file size
+        0,  # user ID
+        0,  # group ID
+        src_arcname)
 
     self._zip_fd.writestr(zinfo, src_arcname)
 

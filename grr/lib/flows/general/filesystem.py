@@ -765,8 +765,9 @@ class GlobMixin(object):
 
     # The Find client action does not return a StatEntry but a
     # FindSpec. Normalize to a StatEntry.
-    stat_responses = [r.hit if isinstance(r, rdf_client.FindSpec) else r
-                      for r in responses]
+    stat_responses = [
+        r.hit if isinstance(r, rdf_client.FindSpec) else r for r in responses
+    ]
 
     # If this was a pure path matching call without any regex / recursion, we
     # know exactly which node in the component tree we have to process next and

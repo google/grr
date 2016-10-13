@@ -202,8 +202,9 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(len(results), 4)
     self.assertEqual([str(v) for v in results if isinstance(v, DummyRDFValue)],
                      ["some1A", "some2A"])
-    self.assertEqual([str(v) for v in results if isinstance(v, DummyRDFValue2)],
-                     ["some1B", "some2B"])
+    self.assertEqual(
+        [str(v) for v in results if isinstance(v, DummyRDFValue2)],
+        ["some1B", "some2B"])
 
   def testConvertsRDFValueCollectionWithValuesWithMultipleConverters(self):
     self._ConvertsCollectionWithMultipleConverters(collects.RDFValueCollection)
@@ -384,9 +385,11 @@ class ExportTest(test_lib.GRRBaseTest):
             export.ExportedMetadata(), stat, token=self.token))
 
     self.assertEqual(len(results), 1)
-    self.assertEqual(results[0].urn, rdfvalue.RDFURN(
-        "aff4:/C.0000000000000000/registry/HKEY_USERS/S-1-5-20/Software/"
-        "Microsoft/Windows/CurrentVersion/Run/Sidebar"))
+    self.assertEqual(
+        results[0].urn,
+        rdfvalue.RDFURN(
+            "aff4:/C.0000000000000000/registry/HKEY_USERS/S-1-5-20/Software/"
+            "Microsoft/Windows/CurrentVersion/Run/Sidebar"))
     self.assertEqual(results[0].last_modified,
                      rdfvalue.RDFDatetimeSeconds(1247546054))
     self.assertEqual(results[0].type,
@@ -431,9 +434,11 @@ class ExportTest(test_lib.GRRBaseTest):
             export.ExportedMetadata(), stat, token=self.token))
 
     self.assertEqual(len(results), 1)
-    self.assertEqual(results[0].urn, rdfvalue.RDFURN(
-        "aff4:/C.0000000000000000/registry/HKEY_USERS/S-1-5-20/Software/"
-        "Microsoft/Windows/CurrentVersion/Run/Sidebar"))
+    self.assertEqual(
+        results[0].urn,
+        rdfvalue.RDFURN(
+            "aff4:/C.0000000000000000/registry/HKEY_USERS/S-1-5-20/Software/"
+            "Microsoft/Windows/CurrentVersion/Run/Sidebar"))
     self.assertEqual(results[0].last_modified,
                      rdfvalue.RDFDatetimeSeconds(1247546054))
     self.assertEqual(results[0].data, "")
@@ -559,8 +564,9 @@ class ExportTest(test_lib.GRRBaseTest):
 
     self.assertTrue(len(results))
 
-    exported_files = [r for r in results
-                      if r.__class__.__name__ == "ExportedFile"]
+    exported_files = [
+        r for r in results if r.__class__.__name__ == "ExportedFile"
+    ]
     self.assertEqual(len(exported_files), 1)
     exported_file = exported_files[0]
 
@@ -568,21 +574,23 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertEqual(exported_file.urn, urn)
 
   def testClientSummaryToExportedNetworkInterfaceConverter(self):
-    client_summary = rdf_client.ClientSummary(interfaces=[rdf_client.Interface(
-        mac_address="123456",
-        ifname="eth0",
-        addresses=[
-            rdf_client.NetworkAddress(
-                address_type=rdf_client.NetworkAddress.Family.INET,
-                packed_bytes=socket.inet_pton(socket.AF_INET, "127.0.0.1"),),
-            rdf_client.NetworkAddress(
-                address_type=rdf_client.NetworkAddress.Family.INET,
-                packed_bytes=socket.inet_pton(socket.AF_INET, "10.0.0.1"),),
-            rdf_client.NetworkAddress(
-                address_type=rdf_client.NetworkAddress.Family.INET6,
-                packed_bytes=socket.inet_pton(socket.AF_INET6,
-                                              "2001:720:1500:1::a100"),)
-        ])])
+    client_summary = rdf_client.ClientSummary(interfaces=[
+        rdf_client.Interface(
+            mac_address="123456",
+            ifname="eth0",
+            addresses=[
+                rdf_client.NetworkAddress(
+                    address_type=rdf_client.NetworkAddress.Family.INET,
+                    packed_bytes=socket.inet_pton(socket.AF_INET, "127.0.0.1"),
+                ), rdf_client.NetworkAddress(
+                    address_type=rdf_client.NetworkAddress.Family.INET,
+                    packed_bytes=socket.inet_pton(socket.AF_INET, "10.0.0.1"),),
+                rdf_client.NetworkAddress(
+                    address_type=rdf_client.NetworkAddress.Family.INET6,
+                    packed_bytes=socket.inet_pton(socket.AF_INET6,
+                                                  "2001:720:1500:1::a100"),)
+            ])
+    ])
 
     converter = export.ClientSummaryToExportedNetworkInterfaceConverter()
     results = list(
@@ -749,8 +757,9 @@ class ExportTest(test_lib.GRRBaseTest):
             metadata, file_finder_result, token=self.token))
 
     # We expect 1 ExportedFile instance in the results
-    exported_files = [result for result in results
-                      if isinstance(result, export.ExportedFile)]
+    exported_files = [
+        result for result in results if isinstance(result, export.ExportedFile)
+    ]
     self.assertEqual(len(exported_files), 1)
 
     self.assertEqual(exported_files[0].basename, "path")
@@ -769,8 +778,9 @@ class ExportTest(test_lib.GRRBaseTest):
     self.assertFalse(exported_files[0].HasField("hash_sha256"))
 
     # We expect 2 ExportedMatch instances in the results
-    exported_matches = [result for result in results
-                        if isinstance(result, export.ExportedMatch)]
+    exported_matches = [
+        result for result in results if isinstance(result, export.ExportedMatch)
+    ]
     exported_matches = sorted(exported_matches, key=lambda x: x.offset)
     self.assertEqual(len(exported_matches), 2)
 
@@ -864,8 +874,9 @@ class ExportTest(test_lib.GRRBaseTest):
             [(metadata, file_finder_result), (metadata, file_finder_result2)],
             token=self.token))
 
-    exported_files = [result for result in results
-                      if isinstance(result, export.ExportedFile)]
+    exported_files = [
+        result for result in results if isinstance(result, export.ExportedFile)
+    ]
     self.assertEqual(len(exported_files), 2)
     self.assertItemsEqual([x.basename for x in exported_files],
                           ["path", "path2"])
@@ -920,8 +931,9 @@ class ExportTest(test_lib.GRRBaseTest):
 
     self.assertTrue(len(results))
 
-    exported_files = [r for r in results
-                      if r.__class__.__name__ == "ExportedFile"]
+    exported_files = [
+        r for r in results if r.__class__.__name__ == "ExportedFile"
+    ]
     self.assertEqual(len(exported_files), 1)
     exported_file = exported_files[0]
 
@@ -939,8 +951,9 @@ class ExportTest(test_lib.GRRBaseTest):
 
     self.assertTrue(len(results))
 
-    exported_bytes = [r for r in results
-                      if r.__class__.__name__ == "ExportedBytes"]
+    exported_bytes = [
+        r for r in results if r.__class__.__name__ == "ExportedBytes"
+    ]
     self.assertEqual(len(exported_bytes), 1)
 
     self.assertEqual(exported_bytes[0].data, data)
@@ -1024,8 +1037,9 @@ class ExportTest(test_lib.GRRBaseTest):
 
     self.assertEqual(len(results), 3)
     # RDFValue3 gets converted to RDFValue2 and RDFValue, RDFValue5 stays at 5.
-    self.assertItemsEqual(["DummyRDFValue2", "DummyRDFValue", "DummyRDFValue5"],
-                          [x.__class__.__name__ for x in results])
+    self.assertItemsEqual(
+        ["DummyRDFValue2", "DummyRDFValue", "DummyRDFValue5"],
+        [x.__class__.__name__ for x in results])
 
   def testDNSClientConfigurationToExportedDNSClientConfiguration(self):
     dns_servers = ["192.168.1.1", "8.8.8.8"]
@@ -1214,16 +1228,16 @@ class DataAgnosticExportConverterTest(test_lib.GRRBaseTest):
     converted_value = self.ConvertOriginalValue(original_value)
 
     # No 'metadata' field in the original value.
-    self.assertItemsEqual([t.name for t in original_value.type_infos],
-                          ["string_value", "int_value", "bool_value",
-                           "repeated_string_value", "message_value",
-                           "enum_value", "another_enum_value", "urn_value",
-                           "datetime_value"])
+    self.assertItemsEqual([t.name for t in original_value.type_infos], [
+        "string_value", "int_value", "bool_value", "repeated_string_value",
+        "message_value", "enum_value", "another_enum_value", "urn_value",
+        "datetime_value"
+    ])
     # But there's one in the converted value.
-    self.assertItemsEqual([t.name for t in converted_value.type_infos],
-                          ["metadata", "string_value", "int_value",
-                           "bool_value", "enum_value", "another_enum_value",
-                           "urn_value", "datetime_value"])
+    self.assertItemsEqual([t.name for t in converted_value.type_infos], [
+        "metadata", "string_value", "int_value", "bool_value", "enum_value",
+        "another_enum_value", "urn_value", "datetime_value"
+    ])
 
     # Metadata value is correctly initialized from user-supplied metadata.
     self.assertEqual(converted_value.metadata.source_urn,
@@ -1425,42 +1439,95 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.assertEqual(converted_values[1].section_name, "some other section")
 
   def testObjectRenderersAreAppliedCorrectly(self):
-    messages = [
-        ["t", [{"cname": "Address"}, {"cname": "Pointer"},
-               {"cname": "PaddedAddress"}, {"cname": "AddressSpace"},
-               {"cname": "Enumeration"}, {"cname": "Literal"},
-               {"cname": "NativeType"}, {"cname": "NoneObject"},
-               {"cname": "BaseObject"}, {"cname": "Struct"},
-               {"cname": "UnixTimeStamp"}, {"cname": "_EPROCESS"},
-               {"cname": "int"}, {"cname": "str"}], {}],
-        ["r", {"Address": {"mro": ["Address"],
-                           "value": 42},
-               "Pointer": {"mro": ["Pointer"],
-                           "target": 43},
-               "PaddedAddress": {"mro": ["PaddedAddress"],
-                                 "value": 44},
-               "AddressSpace": {"mro": ["AddressSpace"],
-                                "name": "some_address_space"},
-               "Enumeration": {"mro": ["Enumeration"],
-                               "enum": "ENUM",
-                               "value": 42},
-               "Literal": {"mro": ["Literal"],
-                           "value": "some literal"},
-               "NativeType": {"mro": ["NativeType"],
-                              "value": "some"},
-               "NoneObject": {"mro": ["NoneObject"]},
-               "BaseObject": {"mro": ["BaseObject"],
-                              "offset": 42},
-               "Struct": {"mro": ["Struct"],
-                          "offset": 42},
-               "UnixTimeStamp": {"mro": ["UnixTimeStamp"],
-                                 "epoch": 42},
-               "_EPROCESS": {"mro": ["_EPROCESS"],
-                             "Cybox": {"PID": 4,
-                                       "Name": "System"}},
-               "int": 42,
-               "str": "some string"}]
-    ]
+    messages = [[
+        "t", [{
+            "cname": "Address"
+        }, {
+            "cname": "Pointer"
+        }, {
+            "cname": "PaddedAddress"
+        }, {
+            "cname": "AddressSpace"
+        }, {
+            "cname": "Enumeration"
+        }, {
+            "cname": "Literal"
+        }, {
+            "cname": "NativeType"
+        }, {
+            "cname": "NoneObject"
+        }, {
+            "cname": "BaseObject"
+        }, {
+            "cname": "Struct"
+        }, {
+            "cname": "UnixTimeStamp"
+        }, {
+            "cname": "_EPROCESS"
+        }, {
+            "cname": "int"
+        }, {
+            "cname": "str"
+        }], {}
+    ], [
+        "r", {
+            "Address": {
+                "mro": ["Address"],
+                "value": 42
+            },
+            "Pointer": {
+                "mro": ["Pointer"],
+                "target": 43
+            },
+            "PaddedAddress": {
+                "mro": ["PaddedAddress"],
+                "value": 44
+            },
+            "AddressSpace": {
+                "mro": ["AddressSpace"],
+                "name": "some_address_space"
+            },
+            "Enumeration": {
+                "mro": ["Enumeration"],
+                "enum": "ENUM",
+                "value": 42
+            },
+            "Literal": {
+                "mro": ["Literal"],
+                "value": "some literal"
+            },
+            "NativeType": {
+                "mro": ["NativeType"],
+                "value": "some"
+            },
+            "NoneObject": {
+                "mro": ["NoneObject"]
+            },
+            "BaseObject": {
+                "mro": ["BaseObject"],
+                "offset": 42
+            },
+            "Struct": {
+                "mro": ["Struct"],
+                "offset": 42
+            },
+            "UnixTimeStamp": {
+                "mro": ["UnixTimeStamp"],
+                "epoch": 42
+            },
+            "_EPROCESS": {
+                "mro": ["_EPROCESS"],
+                "Cybox": {
+                    "PID": 4,
+                    "Name": "System"
+                }
+            },
+            "int":
+                42,
+            "str":
+                "some string"
+        }
+    ]]
 
     rekall_response = rdf_rekall_types.RekallResponse(
         plugin="object_renderer_sample",
@@ -1543,17 +1610,24 @@ class RekallResponseToExportedRekallProcessConverterTest(test_lib.GRRBaseTest):
                         "epoch": 1281506799,
                     },
                     "Image_Info": {
-                        "Command_Line": "\"C:\\Program Files\\VMware\\VMware "
-                                        "Tools\\TPAutoConnSvc.exe\"",
-                        "Path": "C:\\Program Files\\VMware\\VMware "
-                                "Tools\\TPAutoConnSvc.exe",
-                        "TrustedPath": "C:\\Program Files\\VMware\\VMware "
-                                       "Tools\\Trusted\\TPAutoConnSvc.exe",
-                        "type": "ProcessObj:ImageInfoType"
+                        "Command_Line":
+                            "\"C:\\Program Files\\VMware\\VMware "
+                            "Tools\\TPAutoConnSvc.exe\"",
+                        "Path":
+                            "C:\\Program Files\\VMware\\VMware "
+                            "Tools\\TPAutoConnSvc.exe",
+                        "TrustedPath":
+                            "C:\\Program Files\\VMware\\VMware "
+                            "Tools\\Trusted\\TPAutoConnSvc.exe",
+                        "type":
+                            "ProcessObj:ImageInfoType"
                     },
-                    "Name": "TPAutoConnSvc.e",
-                    "PID": 1968,
-                    "Parent_PID": 676,
+                    "Name":
+                        "TPAutoConnSvc.e",
+                    "PID":
+                        1968,
+                    "Parent_PID":
+                        676,
                 },
             },
         }
@@ -1614,31 +1688,47 @@ class RekallResponseToExportedRekallWindowsLoadedModuleConverterTest(
                         "epoch": 1281506799,
                     },
                     "Image_Info": {
-                        "Command_Line": "C:\\WINDOWS\\System32\\alg.exe",
-                        "File_Name": "\\Device\\HarddiskVolume1\\WINDOWS\\"
-                                     "system32\\alg.exe",
-                        "Path": "C:\\WINDOWS\\System32\\alg.exe",
-                        "TrustedPath": "C:\\WINDOWS\\system32\\alg.exe",
-                        "type": "ProcessObj:ImageInfoType"
+                        "Command_Line":
+                            "C:\\WINDOWS\\System32\\alg.exe",
+                        "File_Name":
+                            "\\Device\\HarddiskVolume1\\WINDOWS\\"
+                            "system32\\alg.exe",
+                        "Path":
+                            "C:\\WINDOWS\\System32\\alg.exe",
+                        "TrustedPath":
+                            "C:\\WINDOWS\\system32\\alg.exe",
+                        "type":
+                            "ProcessObj:ImageInfoType"
                     },
-                    "Name": "alg.exe",
-                    "PID": 216,
-                    "Parent_PID": 676,
-                    "type": "ProcessObj:ProcessObjectType"
+                    "Name":
+                        "alg.exe",
+                    "PID":
+                        216,
+                    "Parent_PID":
+                        676,
+                    "type":
+                        "ProcessObj:ProcessObjectType"
                 },
             },
-            "base_address": 1991507968,
-            "in_init": True,
-            "in_init_path": "C:\\WINDOWS\\System32\\WINMM.dll",
-            "in_load": True,
-            "in_load_path": "C:\\WINDOWS\\System32\\WINMM.dll",
-            "in_mem": True,
+            "base_address":
+                1991507968,
+            "in_init":
+                True,
+            "in_init_path":
+                "C:\\WINDOWS\\System32\\WINMM.dll",
+            "in_load":
+                True,
+            "in_load_path":
+                "C:\\WINDOWS\\System32\\WINMM.dll",
+            "in_mem":
+                True,
             "in_mem_path": {
                 "id": 25042,
                 "mro": "NoneObject:object",
                 "reason": "None Object"
             },
-            "mapped_filename": "\\WINDOWS\\system32\\winmm.dll"
+            "mapped_filename":
+                "\\WINDOWS\\system32\\winmm.dll"
         }
     ]]
 
@@ -1694,28 +1784,45 @@ class ExportedLinuxSyscallTableEntryConverterTest(test_lib.GRRBaseTest):
     messages = [[
         "r", {
             u"address": {
-                u"id": 9062,
-                u"mro": u"Pointer:NativeType:NumericProxyMixIn:"
-                        "BaseObject:object",
-                u"name": u"Array[198] ",
-                u"offset": 281472854434512,
-                u"target": 281472847827136,
+                u"id":
+                    9062,
+                u"mro":
+                    u"Pointer:NativeType:NumericProxyMixIn:"
+                    "BaseObject:object",
+                u"name":
+                    u"Array[198] ",
+                u"offset":
+                    281472854434512,
+                u"target":
+                    281472847827136,
                 u"target_obj": {
-                    u"id": 9069,
-                    u"mro": u"Function:BaseAddressComparisonMixIn:"
-                            "BaseObject:object",
-                    u"name": u"Array[198] ",
-                    u"offset": 281472847827136,
-                    u"type_name": u"Function",
-                    u"vm": u"AMD64PagedMemory"
+                    u"id":
+                        9069,
+                    u"mro":
+                        u"Function:BaseAddressComparisonMixIn:"
+                        "BaseObject:object",
+                    u"name":
+                        u"Array[198] ",
+                    u"offset":
+                        281472847827136,
+                    u"type_name":
+                        u"Function",
+                    u"vm":
+                        u"AMD64PagedMemory"
                 },
-                u"type_name": u"Pointer",
-                u"vm": u"AMD64PagedMemory"
+                u"type_name":
+                    u"Pointer",
+                u"vm":
+                    u"AMD64PagedMemory"
             },
-            u"highlight": None,
-            u"index": 198,
-            u"symbol": u"linux!SyS_lchown",
-            u"table": u"ia32_sys_call_table"
+            u"highlight":
+                None,
+            u"index":
+                198,
+            u"symbol":
+                u"linux!SyS_lchown",
+            u"table":
+                u"ia32_sys_call_table"
         }
     ]]
 
@@ -1740,28 +1847,44 @@ class ExportedLinuxSyscallTableEntryConverterTest(test_lib.GRRBaseTest):
     messages = [[
         "r", {
             u"address": {
-                u"id": 33509,
-                u"mro": u"Pointer:NativeType:NumericProxyMixIn:"
-                        "BaseObject:object",
-                u"name": u"Array[354] ",
-                u"offset": 281472854435760,
-                u"target": 281472847114896,
+                u"id":
+                    33509,
+                u"mro":
+                    u"Pointer:NativeType:NumericProxyMixIn:"
+                    "BaseObject:object",
+                u"name":
+                    u"Array[354] ",
+                u"offset":
+                    281472854435760,
+                u"target":
+                    281472847114896,
                 u"target_obj": {
-                    u"id": 33516,
-                    u"mro": u"Function:BaseAddressComparisonMixIn:"
-                            "BaseObject:object",
-                    u"name": u"Array[354] ",
-                    u"offset": 281472847114896,
-                    u"type_name": u"Function",
-                    u"vm": u"AMD64PagedMemory"
+                    u"id":
+                        33516,
+                    u"mro":
+                        u"Function:BaseAddressComparisonMixIn:"
+                        "BaseObject:object",
+                    u"name":
+                        u"Array[354] ",
+                    u"offset":
+                        281472847114896,
+                    u"type_name":
+                        u"Function",
+                    u"vm":
+                        u"AMD64PagedMemory"
                 },
-                u"type_name": u"Pointer",
-                u"vm": u"AMD64PagedMemory"
+                u"type_name":
+                    u"Pointer",
+                u"vm":
+                    u"AMD64PagedMemory"
             },
-            u"highlight": None,
-            u"index": 354,
+            u"highlight":
+                None,
+            u"index":
+                354,
             u"symbol": [u"linux!SyS_seccomp", u"linux!sys_seccomp"],
-            u"table": u"ia32_sys_call_table"
+            u"table":
+                u"ia32_sys_call_table"
         }
     ]]
 
@@ -1810,21 +1933,31 @@ class RekallResponseToExportedRekallLinuxTaskOpConverterTest(
 
   def testConvertsCompatibleMessage(self):
     messages = [[
-        "r",
-        {
+        "r", {
             u"address": {
-                u"id": 12331,
+                u"id":
+                    12331,
                 u"mro":
                     u"Function:BaseAddressComparisonMixIn:BaseObject:object",
-                u"name": u"write",
-                u"offset": 281472847829584,
-                u"type_name": u"Function",
-                u"vm": u"AMD64PagedMemory"},
-            u"comm": u"init",
-            u"highlight": None,
-            u"member": u"write",
-            u"module": u"linux",
-            u"pid": 1
+                u"name":
+                    u"write",
+                u"offset":
+                    281472847829584,
+                u"type_name":
+                    u"Function",
+                u"vm":
+                    u"AMD64PagedMemory"
+            },
+            u"comm":
+                u"init",
+            u"highlight":
+                None,
+            u"member":
+                u"write",
+            u"module":
+                u"linux",
+            u"pid":
+                1
         }
     ]]
 
@@ -1868,28 +2001,44 @@ class RekallResponseToExportedRekallLinuxProcOpConverterTest(
 
   def testConvertsCompatibleMessage(self):
     messages = [[
-        "r",
-        {
+        "r", {
             u"address": {
-                u"id": 11447,
+                u"id":
+                    11447,
                 u"mro":
                     u"Function:BaseAddressComparisonMixIn:BaseObject:object",
-                u"name": u"read",
-                u"offset": 281472847976656,
-                u"type_name": u"Function",
-                u"vm": u"AMD64PagedMemory"},
-            u"highlight": None,
-            u"member": u"read",
-            u"module": u"linux",
-            u"path": u"/proc/fb",
+                u"name":
+                    u"read",
+                u"offset":
+                    281472847976656,
+                u"type_name":
+                    u"Function",
+                u"vm":
+                    u"AMD64PagedMemory"
+            },
+            u"highlight":
+                None,
+            u"member":
+                u"read",
+            u"module":
+                u"linux",
+            u"path":
+                u"/proc/fb",
             u"proc_dir_entry": {
-                u"id": 11343,
-                u"mro": u"proc_dir_entry:Struct:BaseAddressComparisonMixIn:"
-                        "BaseObject:object",
-                u"name": u"next",
-                u"offset": 149567999345408,
-                u"type_name": u"proc_dir_entry",
-                u"vm": u"AMD64PagedMemory"}
+                u"id":
+                    11343,
+                u"mro":
+                    u"proc_dir_entry:Struct:BaseAddressComparisonMixIn:"
+                    "BaseObject:object",
+                u"name":
+                    u"next",
+                u"offset":
+                    149567999345408,
+                u"type_name":
+                    u"proc_dir_entry",
+                u"vm":
+                    u"AMD64PagedMemory"
+            }
         }
     ]]
 

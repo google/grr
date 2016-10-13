@@ -267,9 +267,7 @@ class ApiGetHuntHandlerRegressionTest(api_test_lib.ApiCallHandlerRegressionTest,
     self.Check(
         "GET",
         "/api/hunts/" + hunt_urn.Basename(),
-        replace={
-            hunt_urn.Basename(): "H:123456"
-        })
+        replace={hunt_urn.Basename(): "H:123456"})
 
 
 class ApiListHuntLogsHandlerRegressionTest(
@@ -292,20 +290,14 @@ class ApiListHuntLogsHandlerRegressionTest(
     self.Check(
         "GET",
         "/api/hunts/%s/log" % hunt_obj.urn.Basename(),
-        replace={
-            hunt_obj.urn.Basename(): "H:123456"
-        })
+        replace={hunt_obj.urn.Basename(): "H:123456"})
     self.Check(
         "GET",
         "/api/hunts/%s/log?count=1" % hunt_obj.urn.Basename(),
-        replace={
-            hunt_obj.urn.Basename(): "H:123456"
-        })
+        replace={hunt_obj.urn.Basename(): "H:123456"})
     self.Check(
         "GET", ("/api/hunts/%s/log?offset=1&count=1" % hunt_obj.urn.Basename()),
-        replace={
-            hunt_obj.urn.Basename(): "H:123456"
-        })
+        replace={hunt_obj.urn.Basename(): "H:123456"})
 
 
 class ApiListHuntErrorsHandlerRegressionTest(
@@ -331,21 +323,15 @@ class ApiListHuntErrorsHandlerRegressionTest(
     self.Check(
         "GET",
         "/api/hunts/%s/errors" % hunt_obj.urn.Basename(),
-        replace={
-            hunt_obj.urn.Basename(): "H:123456"
-        })
+        replace={hunt_obj.urn.Basename(): "H:123456"})
     self.Check(
         "GET",
         "/api/hunts/%s/errors?count=1" % hunt_obj.urn.Basename(),
-        replace={
-            hunt_obj.urn.Basename(): "H:123456"
-        })
+        replace={hunt_obj.urn.Basename(): "H:123456"})
     self.Check(
         "GET",
         ("/api/hunts/%s/errors?offset=1&count=1" % hunt_obj.urn.Basename()),
-        replace={
-            hunt_obj.urn.Basename(): "H:123456"
-        })
+        replace={hunt_obj.urn.Basename(): "H:123456"})
 
 
 class ApiGetHuntFilesArchiveHandlerTest(test_lib.GRRBaseTest,
@@ -684,9 +670,7 @@ class ApiGetHuntResultsExportCommandHandlerRegressionTest(
     self.Check(
         "GET",
         "/api/hunts/%s/results/export-command" % hunt_obj.urn.Basename(),
-        replace={
-            hunt_obj.urn.Basename(): "H:123456"
-        })
+        replace={hunt_obj.urn.Basename(): "H:123456"})
 
 
 class DummyHuntTestOutputPlugin(output_plugin.OutputPlugin):
@@ -728,9 +712,7 @@ class ApiListHuntOutputPluginsHandlerRegressionTest(
     self.Check(
         "GET",
         "/api/hunts/%s/output-plugins" % hunt_obj.urn.Basename(),
-        replace={
-            hunt_obj.urn.Basename(): "H:123456"
-        })
+        replace={hunt_obj.urn.Basename(): "H:123456"})
 
 
 class ApiListHuntOutputPluginLogsHandlerTest(
@@ -851,9 +833,7 @@ class ApiListHuntOutputPluginLogsHandlerRegressionTest(
         "GET",
         "/api/hunts/%s/output-plugins/"
         "DummyHuntTestOutputPlugin_0/logs" % hunt_urn.Basename(),
-        replace={
-            hunt_urn.Basename(): "H:123456"
-        })
+        replace={hunt_urn.Basename(): "H:123456"})
 
 
 class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
@@ -894,9 +874,7 @@ class ApiListHuntOutputPluginErrorsHandlerRegressionTest(
         "GET",
         "/api/hunts/%s/output-plugins/"
         "FailingDummyHuntOutputPlugin_0/errors" % hunt_urn.Basename(),
-        replace={
-            hunt_urn.Basename(): "H:123456"
-        })
+        replace={hunt_urn.Basename(): "H:123456"})
 
 
 class ApiGetHuntStatsHandlerRegressionTest(
@@ -1087,15 +1065,11 @@ class ApiModifyHuntHandlerRegressionTest(
     with test_lib.FakeTime(43):
       self.Check(
           "PATCH",
-          "/api/hunts/%s" % hunt.urn.Basename(), {
-              "client_limit": 142
-          },
+          "/api/hunts/%s" % hunt.urn.Basename(), {"client_limit": 142},
           replace=replace)
       self.Check(
           "PATCH",
-          "/api/hunts/%s" % hunt.urn.Basename(), {
-              "state": "STOPPED"
-          },
+          "/api/hunts/%s" % hunt.urn.Basename(), {"state": "STOPPED"},
           replace=replace)
 
 

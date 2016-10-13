@@ -287,12 +287,14 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     self.WaitUntilEqual(2, self.GetCssCount, "css=grr-request-approval-dialog "
                         "select[name=acl_recent_reasons] option")
-    self.assertEqual("Enter New Reason...", self.GetText(
-        "css=grr-request-approval-dialog "
-        "select[name=acl_recent_reasons] option:nth(0)"))
-    self.assertEqual(test_reason, self.GetText(
-        "css=grr-request-approval-dialog "
-        "select[name=acl_recent_reasons] option:nth(1)"))
+    self.assertEqual("Enter New Reason...",
+                     self.GetText(
+                         "css=grr-request-approval-dialog "
+                         "select[name=acl_recent_reasons] option:nth(0)"))
+    self.assertEqual(test_reason,
+                     self.GetText(
+                         "css=grr-request-approval-dialog "
+                         "select[name=acl_recent_reasons] option:nth(1)"))
 
     # The reason text box should be there and enabled.
     element = self.GetElement(

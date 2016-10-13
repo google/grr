@@ -29,9 +29,10 @@ from grr.lib.rdfvalues import protodict as rdf_protodict
 
 # Properties to remove from results sent to the server.
 # These properties are included with nearly every WMI object and use space.
-IGNORE_PROPS = ["CSCreationClassName", "CreationClassName", "OSName",
-                "OSCreationClassName", "WindowsVersion", "CSName",
-                "__NAMESPACE", "__SERVER", "__PATH"]
+IGNORE_PROPS = [
+    "CSCreationClassName", "CreationClassName", "OSName", "OSCreationClassName",
+    "WindowsVersion", "CSName", "__NAMESPACE", "__SERVER", "__PATH"
+]
 
 
 def UnicodeFromCodePage(string):

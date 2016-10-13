@@ -74,9 +74,11 @@ def MakeStatResponse(st, pathspec):
     pass
   else:
     # Now fill in the stat value
-    for attr in ["st_mode", "st_ino", "st_dev", "st_nlink", "st_uid", "st_gid",
-                 "st_size", "st_atime", "st_mtime", "st_ctime", "st_blocks",
-                 "st_blksize", "st_rdev"]:
+    for attr in [
+        "st_mode", "st_ino", "st_dev", "st_nlink", "st_uid", "st_gid",
+        "st_size", "st_atime", "st_mtime", "st_ctime", "st_blocks",
+        "st_blksize", "st_rdev"
+    ]:
       try:
         value = long(getattr(st, attr))
         if value < 0:
@@ -143,8 +145,9 @@ class File(vfs.VFSHandler):
       if not self.files:
         # Note that the encoding of local path is system specific
         local_path = client_utils.CanonicalPathToLocalPath(self.path + "/")
-        self.files = [utils.SmartUnicode(entry)
-                      for entry in os.listdir(local_path)]
+        self.files = [
+            utils.SmartUnicode(entry) for entry in os.listdir(local_path)
+        ]
     # Some filesystems do not support unicode properly
     except UnicodeEncodeError as e:
       raise IOError(str(e))

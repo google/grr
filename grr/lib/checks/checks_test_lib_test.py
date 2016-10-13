@@ -16,9 +16,11 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
 
   def testAssertCheckUndetected(self):
     """Tests for the asertCheckUndetected() method."""
-    anomaly = {"finding": ["Adware 2.1.1 is installed"],
-               "symptom": "Found: Malicious software.",
-               "type": "ANALYSIS_ANOMALY"}
+    anomaly = {
+        "finding": ["Adware 2.1.1 is installed"],
+        "symptom": "Found: Malicious software.",
+        "type": "ANALYSIS_ANOMALY"
+    }
 
     # Simple no anomaly case.
     no_anomaly = {"SW-CHECK": checks.CheckResult(check_id="SW-CHECK")}
@@ -27,15 +29,20 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     # The case were there is an anomaly in the results, just not the check
     # we are looking for.
     other_anomaly = {
-        "SW-CHECK": checks.CheckResult(check_id="SW-CHECK"),
-        "OTHER": checks.CheckResult(
-            check_id="OTHER", anomaly=rdf_anomaly.Anomaly(**anomaly))
+        "SW-CHECK":
+            checks.CheckResult(check_id="SW-CHECK"),
+        "OTHER":
+            checks.CheckResult(
+                check_id="OTHER", anomaly=rdf_anomaly.Anomaly(**anomaly))
     }
     self.assertCheckUndetected("SW-CHECK", other_anomaly)
 
     # Check the simple failure case works.
-    has_anomaly = {"SW-CHECK": checks.CheckResult(
-        check_id="SW-CHECK", anomaly=rdf_anomaly.Anomaly(**anomaly))}
+    has_anomaly = {
+        "SW-CHECK":
+            checks.CheckResult(
+                check_id="SW-CHECK", anomaly=rdf_anomaly.Anomaly(**anomaly))
+    }
     self.assertRaises(AssertionError, self.assertCheckUndetected, "SW-CHECK",
                       has_anomaly)
 
@@ -90,11 +97,16 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
         findings=None)
 
     # On to a 'successful' cases.
-    anomaly = {"finding": ["Finding"],
-               "symptom": "Found: An issue.",
-               "type": "ANALYSIS_ANOMALY"}
-    failing_checks = {"EXISTS": checks.CheckResult(
-        check_id="EXISTS", anomaly=rdf_anomaly.Anomaly(**anomaly))}
+    anomaly = {
+        "finding": ["Finding"],
+        "symptom": "Found: An issue.",
+        "type": "ANALYSIS_ANOMALY"
+    }
+    failing_checks = {
+        "EXISTS":
+            checks.CheckResult(
+                check_id="EXISTS", anomaly=rdf_anomaly.Anomaly(**anomaly))
+    }
 
     # Check we pass when our check produces an anomaly and we don't care
     # about the details.
@@ -165,8 +177,9 @@ class CheckHelperTests(checks_test_lib.HostCheckTest):
     self.assertTrue("EMPTY" in result)
     self.assertDictEqual(self.SetArtifactData(), result["EMPTY"])
     # Now with data.
-    result = self.GenFileData("FILES", {"/tmp/foo": """blah""",
-                                        "/tmp/bar": """meh"""}, parser)
+    result = self.GenFileData(
+        "FILES", {"/tmp/foo": """blah""",
+                  "/tmp/bar": """meh"""}, parser)
     self.assertTrue("FILES" in result)
     # No parser information should be generated.
     self.assertEquals([], result["FILES"]["PARSER"])

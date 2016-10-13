@@ -151,9 +151,9 @@ class GlobExpressionTest(test_base.RDFValueTestCase):
     self.assertItemsEqual(interpolated, [u"/home/*. deb", u"/home/*.sh"])
     interpolated = glob_expression.InterpolateGrouping(
         "HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}")
-    self.assertItemsEqual(interpolated, [
-        u"HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}"
-    ])
+    self.assertItemsEqual(
+        interpolated,
+        [u"HKEY_CLASSES_ROOT/CLSID/{16d12736-7a9e-4765-bec6-f301d679caaa}"])
 
   def testValidation(self):
     glob_expression = rdf_paths.GlobExpression(

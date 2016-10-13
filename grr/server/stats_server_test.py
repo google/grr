@@ -36,11 +36,14 @@ class StatsServerTest(test_lib.GRRBaseTest):
         "api_method_latency", 15, fields=["Foo", "http", "SUCCESS"])
 
     varz_json = json.loads(stats_server.BuildVarzJsonString())
-    self.assertEqual(varz_json["api_method_latency"]["info"],
-                     {"metric_type": "EVENT",
-                      "value_type": "DISTRIBUTION",
-                      "fields_defs": [["method_name", "STR"],
-                                      ["protocol", "STR"], ["status", "STR"]]})
+    self.assertEqual(varz_json["api_method_latency"]["info"], {
+        "metric_type":
+            "EVENT",
+        "value_type":
+            "DISTRIBUTION",
+        "fields_defs": [["method_name", "STR"], ["protocol", "STR"],
+                        ["status", "STR"]]
+    })
     self.assertEqual(varz_json["api_method_latency"]["value"].keys(),
                      ["Foo:http:SUCCESS"])
     self.assertEqual(

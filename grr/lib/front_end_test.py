@@ -52,10 +52,13 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
 
     self.config_overrider = test_lib.ConfigOverrider({
         # Whitelist test flow.
-        "Frontend.well_known_flows": [utils.SmartStr(
-            test_lib.WellKnownSessionTest.well_known_session_id.FlowName())],
+        "Frontend.well_known_flows": [
+            utils.SmartStr(
+                test_lib.WellKnownSessionTest.well_known_session_id.FlowName())
+        ],
         # For tests, small pools are ok.
-        "Threadpool.size": 10
+        "Threadpool.size":
+            10
     })
     self.config_overrider.Start()
     self.InitTestServer()
@@ -69,11 +72,13 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     flow_obj = self.FlowSetup("FlowOrderTest")
 
     session_id = flow_obj.session_id
-    messages = [rdf_flows.GrrMessage(
-        request_id=1,
-        response_id=i,
-        session_id=session_id,
-        payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)]
+    messages = [
+        rdf_flows.GrrMessage(
+            request_id=1,
+            response_id=i,
+            session_id=session_id,
+            payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
+    ]
 
     self.server.ReceiveMessages(self.client_id, messages)
 
@@ -99,12 +104,14 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     flow_obj = self.FlowSetup("FlowOrderTest")
 
     session_id = flow_obj.session_id
-    messages = [rdf_flows.GrrMessage(
-        request_id=1,
-        response_id=i,
-        session_id=session_id,
-        payload=rdfvalue.RDFInteger(i),
-        task_id=15) for i in range(1, 10)]
+    messages = [
+        rdf_flows.GrrMessage(
+            request_id=1,
+            response_id=i,
+            session_id=session_id,
+            payload=rdfvalue.RDFInteger(i),
+            task_id=15) for i in range(1, 10)
+    ]
 
     # Now add the status message
     status = rdf_flows.GrrStatus(status=rdf_flows.GrrStatus.ReturnedStatus.OK)
@@ -165,11 +172,13 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     test_lib.WellKnownSessionTest.messages = []
     session_id = test_lib.WellKnownSessionTest.well_known_session_id
 
-    messages = [rdf_flows.GrrMessage(
-        request_id=0,
-        response_id=0,
-        session_id=session_id,
-        payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)]
+    messages = [
+        rdf_flows.GrrMessage(
+            request_id=0,
+            response_id=0,
+            session_id=session_id,
+            payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
+    ]
 
     self.server.ReceiveMessages(self.client_id, messages)
 
@@ -190,19 +199,23 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
   def testWellKnownFlowsBlacklist(self):
     """Make sure that well known flows can run on the front end."""
     with test_lib.ConfigOverrider({
-        "Frontend.DEBUG_well_known_flows_blacklist": [utils.SmartStr(
-            test_lib.WellKnownSessionTest.well_known_session_id.FlowName())]
+        "Frontend.DEBUG_well_known_flows_blacklist": [
+            utils.SmartStr(
+                test_lib.WellKnownSessionTest.well_known_session_id.FlowName())
+        ]
     }):
       self.InitTestServer()
 
       test_lib.WellKnownSessionTest.messages = []
       session_id = test_lib.WellKnownSessionTest.well_known_session_id
 
-      messages = [rdf_flows.GrrMessage(
-          request_id=0,
-          response_id=0,
-          session_id=session_id,
-          payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)]
+      messages = [
+          rdf_flows.GrrMessage(
+              request_id=0,
+              response_id=0,
+              session_id=session_id,
+              payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
+      ]
 
       self.server.ReceiveMessages(self.client_id, messages)
 
@@ -223,11 +236,13 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     test_lib.WellKnownSessionTest.messages = []
     session_id = test_lib.WellKnownSessionTest.well_known_session_id
 
-    messages = [rdf_flows.GrrMessage(
-        request_id=0,
-        response_id=0,
-        session_id=session_id,
-        payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)]
+    messages = [
+        rdf_flows.GrrMessage(
+            request_id=0,
+            response_id=0,
+            session_id=session_id,
+            payload=rdfvalue.RDFInteger(i)) for i in range(1, 10)
+    ]
 
     # Delete the local well known flow cache is empty.
     self.server.well_known_flows = {}
@@ -298,14 +313,15 @@ class GRRFEServerTest(test_lib.FlowTestsBaseclass):
     responses = list(manager.FetchRequestsAndResponses(session_id1))
     self.assertEqual(responses, [])
     # And also no notifications.
-    self.assertNotIn(session_id1, [notification.session_id
-                                   for notification in notifications])
+    self.assertNotIn(
+        session_id1,
+        [notification.session_id for notification in notifications])
 
     # But for Flow 2 there should be some responses + a notification.
     responses = list(manager.FetchRequestsAndResponses(session_id2))
     self.assertEqual(len(responses), 4)
-    self.assertIn(session_id2, [notification.session_id
-                                for notification in notifications])
+    self.assertIn(session_id2,
+                  [notification.session_id for notification in notifications])
 
   def testDrainUpdateSessionRequestStates(self):
     """Draining the flow requests and preparing messages."""

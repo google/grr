@@ -42,10 +42,12 @@ from grr.lib.rdfvalues import flows as rdf_flows
 class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
   """GRR HTTP handler for receiving client posts."""
 
-  statustext = {200: "200 OK",
-                404: "404 Not Found",
-                406: "406 Not Acceptable",
-                500: "500 Internal Server Error"}
+  statustext = {
+      200: "200 OK",
+      404: "404 Not Found",
+      406: "406 Not Acceptable",
+      500: "500 Internal Server Error"
+  }
 
   active_counter_lock = threading.Lock()
   active_counter = 0
@@ -169,8 +171,9 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
 
       logging.info(
           "HTTP request from %s (%s) @ %s, %d bytes - %d messages received,"
-          " %d messages sent.", source, utils.SmartStr(source_ip),
-          request_start_time, length, nr_messages, responses_comms.num_messages)
+          " %d messages sent.", source,
+          utils.SmartStr(source_ip), request_start_time, length, nr_messages,
+          responses_comms.num_messages)
 
       self.Send(responses_comms.SerializeToString())
 

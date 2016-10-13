@@ -40,13 +40,15 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
 
     found = ["Expected state was not found"]
     bad = [("foo", 233, ["/usr/local/foo", "-flags"])]
-    good = [("ntpd", 42, ["/usr/sbin/ntpd", "-p", "/var/run/ntpd.pid", "-g",
-                          "-u", "117:125"])]
+    good = [(
+        "ntpd", 42,
+        ["/usr/sbin/ntpd", "-p", "/var/run/ntpd.pid", "-g", "-u", "117:125"])]
 
     # Check for when it is not running.
 
     self.assertCheckDetectedAnom(
-        "TIME-SYNC-RUNNING", self.RunChecks(self.GenProcessData(bad)),
+        "TIME-SYNC-RUNNING",
+        self.RunChecks(self.GenProcessData(bad)),
         "Missing attribute: A time synchronization service is not running.",
         found)
     # Now check for when it is.
@@ -59,12 +61,18 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
 
     check_id = "TIME-NTP-NO-OPEN-QUERIES"
     artifact_id = "NtpConfFile"
-    good_config = {"/etc/ntp.conf": """
+    good_config = {
+        "/etc/ntp.conf":
+            """
         restrict default nomodify noquery nopeer
-        """}
-    bad_config = {"/etc/ntp.conf": """
+        """
+    }
+    bad_config = {
+        "/etc/ntp.conf":
+            """
         restrict default nomodify nopeer
-        """}
+        """
+    }
     bad_default_config = {"/etc/ntp.conf": """
         """}
 
@@ -96,21 +104,27 @@ class TimeSyncTests(checks_test_lib.HostCheckTest):
     good_config = {"/etc/ntp.conf": """
         disable monitor
         """}
-    good_tricky_config = {"/etc/ntp.conf": """
+    good_tricky_config = {
+        "/etc/ntp.conf":
+            """
         disable monitor auth
         enable kernel monitor auth
         disable kernel monitor
-        """}
+        """
+    }
     bad_config = {"/etc/ntp.conf": """
         enable monitor
         """}
     bad_default_config = {"/etc/ntp.conf": """
         """}
-    bad_tricky_config = {"/etc/ntp.conf": """
+    bad_tricky_config = {
+        "/etc/ntp.conf":
+            """
         enable kernel monitor auth
         disable monitor auth
         enable kernel monitor
-        """}
+        """
+    }
     found = ["ntpd.conf has monitor flag set to True."]
     sym = ("Found: ntpd.conf is configured to allow monlist NTP reflection "
            "attacks.")

@@ -32,17 +32,21 @@ class TestFindWindowsRegistry(base.ClientTestBase):
 
   def runTest(self):
     """Launch our flows."""
-    for flow, args in [
-        ("ListDirectory", {"pathspec": rdf_paths.PathSpec(
-            pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
-            path=self.reg_path)}),
-        ("FindFiles", {"findspec": rdf_client.FindSpec(
-            pathspec=rdf_paths.PathSpec(
-                path=self.reg_path,
-                pathtype=rdf_paths.PathSpec.PathType.REGISTRY),
-            path_regex="ProfileImagePath"),
-                       "output": self.output_path})
-    ]:
+    for flow, args in [("ListDirectory", {
+        "pathspec":
+            rdf_paths.PathSpec(
+                pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
+                path=self.reg_path)
+    }), ("FindFiles", {
+        "findspec":
+            rdf_client.FindSpec(
+                pathspec=rdf_paths.PathSpec(
+                    path=self.reg_path,
+                    pathtype=rdf_paths.PathSpec.PathType.REGISTRY),
+                path_regex="ProfileImagePath"),
+        "output":
+            self.output_path
+    })]:
 
       if self.local_worker:
         self.session_id = debugging.StartFlowAndWorker(self.client_id, flow,
@@ -58,8 +62,9 @@ class TestFindWindowsRegistry(base.ClientTestBase):
     urn = self.client_id.Add("registry").Add(self.reg_path)
     fd = aff4.FACTORY.Open(urn, mode="r", token=self.token)
 
-    user_accounts = sorted([x.urn for x in fd.OpenChildren()
-                            if x.urn.Basename().startswith("S-")])
+    user_accounts = sorted([
+        x.urn for x in fd.OpenChildren() if x.urn.Basename().startswith("S-")
+    ])
 
     urn = self.client_id.Add(self.output_path)
     fd = aff4.FACTORY.Open(urn, token=self.token)
@@ -77,16 +82,21 @@ class TestClientRegistry(base.AutomatedTest):
   platforms = ["Windows"]
   flow = "ListDirectory"
 
-  args = {"pathspec": rdf_paths.PathSpec(
-      path="HKEY_LOCAL_MACHINE", pathtype=rdf_paths.PathSpec.PathType.REGISTRY)}
+  args = {
+      "pathspec":
+          rdf_paths.PathSpec(
+              path="HKEY_LOCAL_MACHINE",
+              pathtype=rdf_paths.PathSpec.PathType.REGISTRY)
+  }
   output_path = "/registry/HKEY_LOCAL_MACHINE"
 
   def CheckFlow(self):
     urn = self.client_id.Add(self.output_path)
     fd = aff4.FACTORY.Open(urn, mode="r", token=self.token)
     children = list(fd.OpenChildren())
-    self.assertTrue("SYSTEM" in [os.path.basename(utils.SmartUnicode(child.urn))
-                                 for child in children])
+    self.assertTrue("SYSTEM" in [
+        os.path.basename(utils.SmartUnicode(child.urn)) for child in children
+    ])
 
   def tearDown(self):
     urn = self.client_id.Add(self.output_path)

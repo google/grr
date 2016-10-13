@@ -760,16 +760,16 @@ class Uname(structs.RDFProtoStruct):
       # For example: windows_7_amd64
       pep425tag = "%s_%s_%s" % (system, release, architecture)
 
-    return cls(system=system,
-               architecture=architecture,
-               node=uname[1],
-               release=release,
-               version=version,
-               machine=uname[4],              # x86, x86_64
-               kernel=kernel,
-               fqdn=fqdn,
-               pep425tag=pep425tag,
-              )
+    return cls(
+        system=system,
+        architecture=architecture,
+        node=uname[1],
+        release=release,
+        version=version,
+        machine=uname[4],  # x86, x86_64
+        kernel=kernel,
+        fqdn=fqdn,
+        pep425tag=pep425tag,)
 
 
 class StartupInfo(structs.RDFProtoStruct):

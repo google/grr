@@ -183,9 +183,10 @@ def SplitBuffer(buff, index=0, length=None):
     elif tag_type == WIRETYPE_LENGTH_DELIMITED:
       # Start index of the string.
       length, start = VarintReader(buff, data_index)
-      yield (encoded_tag,
-             buff[data_index:start],  # Encoded length.
-             buff[start:start + length])  # Raw data of element.
+      yield (
+          encoded_tag,
+          buff[data_index:start],  # Encoded length.
+          buff[start:start + length])  # Raw data of element.
       index = start + length
 
     else:
@@ -213,9 +214,8 @@ def ReadIntoObject(buff, index, value_obj, length=0):
 
   # Split the buffer into tags and wire_format representations, then collect
   # these into the raw data cache.
-  for (encoded_tag,
-       encoded_length, encoded_field) in SplitBuffer(
-           buff, index=index, length=length):
+  for (encoded_tag, encoded_length, encoded_field) in SplitBuffer(
+      buff, index=index, length=length):
 
     type_info_obj = value_obj.type_infos_by_encoded_tag.get(encoded_tag)
 
@@ -1718,8 +1718,8 @@ class RDFStruct(rdfvalue.RDFValue):
     """Format a message in a human readable way."""
     yield "message %s {" % self.__class__.__name__
 
-    for k, (python_format,
-            wire_format, type_descriptor) in sorted(self.GetRawData().items()):
+    for k, (python_format, wire_format,
+            type_descriptor) in sorted(self.GetRawData().items()):
       if python_format is None:
         python_format = type_descriptor.ConvertFromWireFormat(
             wire_format, container=self)

@@ -36,9 +36,11 @@ class OSXQuarantineEvents(sqlite_file.SQLiteFile):
     for data in self.Query(self.EVENTS_QUERY):
       (timestamp, agent_bundle_identifier, agent_name, url, sender,
        sender_address, type_number, title, referrer, referrer_alias) = data
-      yield [timestamp, "OSX_QUARANTINE", url, referrer, title, agent_name,
-             agent_bundle_identifier, sender, sender_address, type_number,
-             referrer_alias]
+      yield [
+          timestamp, "OSX_QUARANTINE", url, referrer, title, agent_name,
+          agent_bundle_identifier, sender, sender_address, type_number,
+          referrer_alias
+      ]
 
 
 def main(argv):

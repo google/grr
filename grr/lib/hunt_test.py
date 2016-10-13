@@ -145,10 +145,12 @@ class HuntTest(test_lib.FlowTestsBaseclass):
     now = rdfvalue.RDFDatetime.Now()
     expires = rdfvalue.Duration("1h").Expiry()
     # Add some rules.
-    rules = [rdf_foreman.ForemanRule(
-        created=now, expires=expires, description="Test rule1"),
-             rdf_foreman.ForemanRule(
-                 created=now, expires=expires, description="Test rule2")]
+    rules = [
+        rdf_foreman.ForemanRule(
+            created=now, expires=expires, description="Test rule1"),
+        rdf_foreman.ForemanRule(
+            created=now, expires=expires, description="Test rule2")
+    ]
     self.AddForemanRules(rules)
 
     client_rule_set = rdf_foreman.ForemanClientRuleSet(rules=[
@@ -176,10 +178,12 @@ class HuntTest(test_lib.FlowTestsBaseclass):
       runner.Start()
 
       # Add some more rules.
-      rules = [rdf_foreman.ForemanRule(
-          created=now, expires=expires, description="Test rule3"),
-               rdf_foreman.ForemanRule(
-                   created=now, expires=expires, description="Test rule4")]
+      rules = [
+          rdf_foreman.ForemanRule(
+              created=now, expires=expires, description="Test rule3"),
+          rdf_foreman.ForemanRule(
+              created=now, expires=expires, description="Test rule4")
+      ]
       self.AddForemanRules(rules)
 
       foreman = aff4.FACTORY.Open("aff4:/foreman", mode="rw", token=self.token)

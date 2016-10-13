@@ -516,7 +516,9 @@ class MultiShardedQueueManagerTest(QueueManagerTest):
   def setUp(self):
     super(MultiShardedQueueManagerTest, self).setUp()
 
-    self.config_overrider = test_lib.ConfigOverrider({"Worker.queue_shards": 2})
+    self.config_overrider = test_lib.ConfigOverrider({
+        "Worker.queue_shards": 2
+    })
     self.config_overrider.Start()
 
   def tearDown(self):

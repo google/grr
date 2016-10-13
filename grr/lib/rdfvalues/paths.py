@@ -246,8 +246,8 @@ class GlobExpression(rdfvalue.RDFString):
     else:
       return re.escape(part)
 
-  REGEX_SPLIT_PATTERN = re.compile("(" + "|".join(["{[^}]+,[^}]+}", "\\?",
-                                                   "\\*\\*\\/?", "\\*"]) + ")")
+  REGEX_SPLIT_PATTERN = re.compile("(" + "|".join(
+      ["{[^}]+,[^}]+}", "\\?", "\\*\\*\\/?", "\\*"]) + ")")
 
   def AsRegEx(self):
     """Return the current glob as a simple regex.

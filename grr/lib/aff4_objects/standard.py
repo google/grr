@@ -282,6 +282,23 @@ class BlobImage(aff4.AFF4ImageBase):
     if length < self.chunksize:
       self.finalized = True
 
+  def GetContentAge(self):
+    content_age = super(BlobImage, self).GetContentAge()
+    if content_age:
+      return content_age
+
+    # CONTENT_LAST attribute should contain the timestamp corresponding to
+    # to the last time the file was downloaded from the client. But
+    # unfortunately it is not always set. Therefore we use presense of HASHES
+    # attribute as an indicator. HASHES is set for all BlobImages and
+    # FileStoreImages.
+    # TODO(user): make CONTENT_LAST reliable and remove HASHES workaround.
+    if self.Get(self.Schema.HASHES):
+      return (self.Get(self.Schema.HASHES).age or
+              self.Get(self.Schema.STAT).age)
+
+    return None
+
   class SchemaCls(aff4.AFF4Image.SchemaCls):
     """The schema for Blob Images."""
     STAT = VFSDirectory.SchemaCls.STAT
@@ -430,8 +447,11 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
     return self._ChunkNrsToHashes([chunk_nr])[chunk_nr]
 
   def _ChunkNrsToHashes(self, chunk_nrs):
-    chunk_names = {self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_nr): chunk_nr
-                   for chunk_nr in chunk_nrs}
+    chunk_names = {
+        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_nr):
+            chunk_nr
+        for chunk_nr in chunk_nrs
+    }
     res = {}
     for obj in aff4.FACTORY.MultiOpen(chunk_names, mode="r", token=self.token):
       if isinstance(obj, aff4.AFF4Stream):
@@ -587,7 +607,8 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
   def ChunksExist(self, chunk_numbers):
     """Do we have this chunk in the index?"""
     index_urns = {
-        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number): chunk_number
+        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number):
+            chunk_number
         for chunk_number in chunk_numbers
     }
 
@@ -600,7 +621,8 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
 
   def ChunksMetadata(self, chunk_numbers):
     index_urns = {
-        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number): chunk_number
+        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number):
+            chunk_number
         for chunk_number in chunk_numbers
     }
 

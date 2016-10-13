@@ -283,9 +283,11 @@ class MultiGetFileMixin(object):
         pathspec=pathspec, max_filesize=self.state.file_size)
     request.AddRequest(
         fp_type=rdf_client.FingerprintTuple.Type.FPT_GENERIC,
-        hashers=[rdf_client.FingerprintTuple.HashType.MD5,
-                 rdf_client.FingerprintTuple.HashType.SHA1,
-                 rdf_client.FingerprintTuple.HashType.SHA256])
+        hashers=[
+            rdf_client.FingerprintTuple.HashType.MD5,
+            rdf_client.FingerprintTuple.HashType.SHA1,
+            rdf_client.FingerprintTuple.HashType.SHA256
+        ])
 
     self.CallClient(
         standard_actions.HashFile,
@@ -796,9 +798,26 @@ class GetMBR(flow.GRRFlow):
         pathtype=rdf_paths.PathSpec.PathType.OS,
         path_options=rdf_paths.PathSpec.Options.CASE_LITERAL)
 
-    request = rdf_client.BufferReference(
-        pathspec=pathspec, offset=0, length=self.args.length)
-    self.CallClient(standard_actions.ReadBuffer, request, next_state="StoreMBR")
+    self.state.bytes_downloaded = 0
+    # An array to collect buffers. This is not very efficient, MBR
+    # data should be kept short though so this is not a big deal.
+    self.state.buffers = []
+
+    buffer_size = standard_actions.MAX_BUFFER_SIZE
+    buffers_we_need = self.args.length / buffer_size
+    if self.args.length % buffer_size:
+      buffers_we_need += 1
+
+    bytes_we_need = self.args.length
+
+    for i in xrange(buffers_we_need):
+      request = rdf_client.BufferReference(
+          pathspec=pathspec,
+          offset=i * buffer_size,
+          length=min(bytes_we_need, buffer_size))
+      self.CallClient(
+          standard_actions.ReadBuffer, request, next_state="StoreMBR")
+      bytes_we_need -= buffer_size
 
   @flow.StateHandler()
   def StoreMBR(self, responses):
@@ -811,12 +830,22 @@ class GetMBR(flow.GRRFlow):
 
     response = responses.First()
 
-    mbr = aff4.FACTORY.Create(
-        self.client_id.Add("mbr"), aff4_grr.VFSFile, mode="w", token=self.token)
-    mbr.write(response.data)
-    mbr.Close()
-    self.Log("Successfully stored the MBR (%d bytes)." % len(response.data))
-    self.SendReply(rdfvalue.RDFBytes(response.data))
+    self.state.buffers.append(response.data)
+    self.state.bytes_downloaded += len(response.data)
+
+    if self.state.bytes_downloaded >= self.args.length:
+      mbr_data = "".join(self.state.buffers)
+      self.state.buffers = None
+
+      mbr = aff4.FACTORY.Create(
+          self.client_id.Add("mbr"),
+          aff4_grr.VFSFile,
+          mode="w",
+          token=self.token)
+      mbr.write(mbr_data)
+      mbr.Close()
+      self.Log("Successfully stored the MBR (%d bytes)." % len(mbr_data))
+      self.SendReply(rdfvalue.RDFBytes(mbr_data))
 
 
 class TransferStore(flow.WellKnownFlow):
@@ -964,6 +993,6 @@ class LoadComponentMixin(object):
       self.Log(responses.status.error_message)
       raise flow.FlowError(responses.status.error_message)
 
-    self.Log("Loaded component %s %s", responses.First().summary.name,
-             responses.First().summary.version)
+    self.Log("Loaded component %s %s",
+             responses.First().summary.name, responses.First().summary.version)
     self.CallStateInline(next_state=responses.request_data["next_state"])

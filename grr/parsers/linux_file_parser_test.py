@@ -25,10 +25,12 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
     """Ensure we can extract PCI devices info."""
 
     # Test when there's data for one PCI device only.
-    test_data1 = {"/sys/bus/pci/devices/0000:00:01.0/vendor": "0x0e00\n",
-                  "/sys/bus/pci/devices/0000:00:01.0/class": "0x060400\n",
-                  "/sys/bus/pci/devices/0000:00:01.0/device": "0x0e02\n",
-                  "/sys/bus/pci/devices/0000:00:01.0/config": "0200"}
+    test_data1 = {
+        "/sys/bus/pci/devices/0000:00:01.0/vendor": "0x0e00\n",
+        "/sys/bus/pci/devices/0000:00:01.0/class": "0x060400\n",
+        "/sys/bus/pci/devices/0000:00:01.0/device": "0x0e02\n",
+        "/sys/bus/pci/devices/0000:00:01.0/config": "0200"
+    }
     device_1 = rdf_client.PCIDevice(
         domain=0,
         bus=0,
@@ -43,10 +45,12 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
 
     # Use raw bytes to test PCI device config works as expected.
     bytes2 = bytearray([234, 232, 231, 188, 122, 132, 145])
-    test_data2 = {"/sys/bus/pci/devices/0000:00:00.0/vendor": "0x8086\n",
-                  "/sys/bus/pci/devices/0000:00:00.0/class": "0x060000\n",
-                  "/sys/bus/pci/devices/0000:00:00.0/device": "0x0e00\n",
-                  "/sys/bus/pci/devices/0000:00:00.0/config": bytes2}
+    test_data2 = {
+        "/sys/bus/pci/devices/0000:00:00.0/vendor": "0x8086\n",
+        "/sys/bus/pci/devices/0000:00:00.0/class": "0x060000\n",
+        "/sys/bus/pci/devices/0000:00:00.0/device": "0x0e00\n",
+        "/sys/bus/pci/devices/0000:00:00.0/config": bytes2
+    }
     device_2 = rdf_client.PCIDevice(
         domain=0,
         bus=0,
@@ -60,21 +64,25 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
     self._MatchPCIDeviceResultToExpected(parsed_results, [device_2])
 
     # Test for when there's missing data.
-    test_data3 = {"/sys/bus/pci/devices/0000:00:03.0/vendor": "0x0e00\n",
-                  "/sys/bus/pci/devices/0000:00:03.0/config": "0030"}
+    test_data3 = {
+        "/sys/bus/pci/devices/0000:00:03.0/vendor": "0x0e00\n",
+        "/sys/bus/pci/devices/0000:00:03.0/config": "0030"
+    }
     device_3 = rdf_client.PCIDevice(
         domain=0, bus=0, device=3, function=0, vendor="0x0e00", config="0030")
     parsed_results = self._ParsePCIDeviceTestData(test_data3)
     self._MatchPCIDeviceResultToExpected(parsed_results, [device_3])
 
     # Test when data contains non-valid B/D/F folders/files.
-    test_data4 = {"/sys/bus/pci/devices/0000:00:05.0/vendor": "0x0e00\n",
-                  "/sys/bus/pci/devices/0000:00:05.0/class": "0x060400\n",
-                  "/sys/bus/pci/devices/0000:00:05.0/device": "0x0e02\n",
-                  "/sys/bus/pci/devices/0000:00:05.0/config": "0200",
-                  "/sys/bus/pci/devices/crazyrandomfile/test1": "test1",
-                  "/sys/bus/pci/devices/::./test2": "test2",
-                  "/sys/bus/pci/devices/00:5.0/test3": "test3"}
+    test_data4 = {
+        "/sys/bus/pci/devices/0000:00:05.0/vendor": "0x0e00\n",
+        "/sys/bus/pci/devices/0000:00:05.0/class": "0x060400\n",
+        "/sys/bus/pci/devices/0000:00:05.0/device": "0x0e02\n",
+        "/sys/bus/pci/devices/0000:00:05.0/config": "0200",
+        "/sys/bus/pci/devices/crazyrandomfile/test1": "test1",
+        "/sys/bus/pci/devices/::./test2": "test2",
+        "/sys/bus/pci/devices/00:5.0/test3": "test3"
+    }
     device_4 = rdf_client.PCIDevice(
         domain=0,
         bus=0,
@@ -93,8 +101,8 @@ class LinuxFileParserTest(test_lib.GRRBaseTest):
     combined_data.update(test_data4)
     combined_data.update(test_data2)
     parsed_results = self._ParsePCIDeviceTestData(combined_data)
-    self._MatchPCIDeviceResultToExpected(parsed_results, [device_1, device_4,
-                                                          device_2, device_3])
+    self._MatchPCIDeviceResultToExpected(
+        parsed_results, [device_1, device_4, device_2, device_3])
 
   def _ParsePCIDeviceTestData(self, test_data):
     """Given test_data dictionary, parse it using PCIDevicesInfoParser."""
@@ -243,21 +251,24 @@ super_group2 (-,user7,) super_group
       out = list(parser.Parse(None, wtmp_fd, None))
 
     self.assertEqual(len(out), 3)
-    self.assertItemsEqual(["%s:%d" % (x.username, x.last_logon) for x in out],
-                          ["user1:1296552099000000", "user2:1296552102000000",
-                           "user3:1296569997000000"])
+    self.assertItemsEqual(["%s:%d" % (x.username, x.last_logon) for x in out], [
+        "user1:1296552099000000", "user2:1296552102000000",
+        "user3:1296569997000000"
+    ])
 
 
 class LinuxShadowParserTest(test_lib.GRRBaseTest):
   """Test parsing of linux shadow files."""
 
-  crypt = {"DES": "A.root/o0tr.o",
-           "MD5": "$1$roo/root/o07r.0tROOTro",
-           "SHA256": "$5$sal/s.lt5a17${0}".format("r" * 43),
-           "SHA512": "$6$sa./sa1T${0}".format("r" * 86),
-           "UNSET": "*",
-           "DISABLED": "!$1$roo/rootroootROOO0oooTroooooooo",
-           "EMPTY": ""}
+  crypt = {
+      "DES": "A.root/o0tr.o",
+      "MD5": "$1$roo/root/o07r.0tROOTro",
+      "SHA256": "$5$sal/s.lt5a17${0}".format("r" * 43),
+      "SHA512": "$6$sa./sa1T${0}".format("r" * 86),
+      "UNSET": "*",
+      "DISABLED": "!$1$roo/rootroootROOO0oooTroooooooo",
+      "EMPTY": ""
+  }
 
   def _GenFiles(self, passwd, shadow, group, gshadow):
     stats = []
@@ -273,10 +284,13 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
     return stats, files
 
   def testNoAnomaliesWhenEverythingIsFine(self):
-    passwd = ["ok_1:x:1000:1000::/home/ok_1:/bin/bash",
-              "ok_2:x:1001:1001::/home/ok_2:/bin/bash"]
-    shadow = ["ok_1:{SHA256}:16000:0:99999:7:::",
-              "ok_2:{SHA512}:16000:0:99999:7:::"]
+    passwd = [
+        "ok_1:x:1000:1000::/home/ok_1:/bin/bash",
+        "ok_2:x:1001:1001::/home/ok_2:/bin/bash"
+    ]
+    shadow = [
+        "ok_1:{SHA256}:16000:0:99999:7:::", "ok_2:{SHA512}:16000:0:99999:7:::"
+    ]
     group = ["ok_1:x:1000:ok_1", "ok_2:x:1001:ok_2"]
     gshadow = ["ok_1:::ok_1", "ok_2:::ok_2"]
     stats, files = self._GenFiles(passwd, shadow, group, gshadow)
@@ -287,19 +301,29 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
 
   def testSystemGroupParserAnomaly(self):
     """Detect anomalies in group/gshadow files."""
-    group = ["root:x:0:root,usr1", "adm:x:1:syslog,usr1",
-             "users:x:1000:usr1,usr2,usr3,usr4"]
+    group = [
+        "root:x:0:root,usr1", "adm:x:1:syslog,usr1",
+        "users:x:1000:usr1,usr2,usr3,usr4"
+    ]
     gshadow = ["root::usr4:root", "users:{DES}:usr1:usr2,usr3,usr4"]
     stats, files = self._GenFiles(None, None, group, gshadow)
 
     # Set up expected anomalies.
-    member = {"symptom": "Group/gshadow members differ in group: root",
-              "finding": ["Present in group, missing in gshadow: usr1",
-                          "Present in gshadow, missing in group: usr4"],
-              "type": "PARSER_ANOMALY"}
-    group = {"symptom": "Mismatched group and gshadow files.",
-             "finding": ["Present in group, missing in gshadow: adm"],
-             "type": "PARSER_ANOMALY"}
+    member = {
+        "symptom":
+            "Group/gshadow members differ in group: root",
+        "finding": [
+            "Present in group, missing in gshadow: usr1",
+            "Present in gshadow, missing in group: usr4"
+        ],
+        "type":
+            "PARSER_ANOMALY"
+    }
+    group = {
+        "symptom": "Mismatched group and gshadow files.",
+        "finding": ["Present in group, missing in gshadow: adm"],
+        "type": "PARSER_ANOMALY"
+    }
     expected = [rdf_anomaly.Anomaly(**member), rdf_anomaly.Anomaly(**group)]
 
     parser = linux_file_parser.LinuxSystemGroupParser()
@@ -311,33 +335,52 @@ class LinuxShadowParserTest(test_lib.GRRBaseTest):
       self.assertRDFValuesEqual(expect, result)
 
   def testSystemAccountAnomaly(self):
-    passwd = ["root:x:0:0::/root:/bin/sash",
-              "miss:x:1000:100:Missing:/home/miss:/bin/bash",
-              "bad1:x:0:1001:Bad 1:/home/bad1:/bin/bash",
-              "bad2:x:1002:0:Bad 2:/home/bad2:/bin/bash"]
-    shadow = ["root:{UNSET}:16000:0:99999:7:::",
-              "ok:{SHA512}:16000:0:99999:7:::", "bad1::16333:0:99999:7:::",
-              "bad2:{DES}:16333:0:99999:7:::"]
-    group = ["root:x:0:root", "miss:x:1000:miss", "bad1:x:1001:bad1",
-             "bad2:x:1002:bad2"]
+    passwd = [
+        "root:x:0:0::/root:/bin/sash",
+        "miss:x:1000:100:Missing:/home/miss:/bin/bash",
+        "bad1:x:0:1001:Bad 1:/home/bad1:/bin/bash",
+        "bad2:x:1002:0:Bad 2:/home/bad2:/bin/bash"
+    ]
+    shadow = [
+        "root:{UNSET}:16000:0:99999:7:::", "ok:{SHA512}:16000:0:99999:7:::",
+        "bad1::16333:0:99999:7:::", "bad2:{DES}:16333:0:99999:7:::"
+    ]
+    group = [
+        "root:x:0:root", "miss:x:1000:miss", "bad1:x:1001:bad1",
+        "bad2:x:1002:bad2"
+    ]
     gshadow = ["root:::root", "miss:::miss", "bad1:::bad1", "bad2:::bad2"]
     stats, files = self._GenFiles(passwd, shadow, group, gshadow)
 
-    no_grp = {"symptom": "Accounts with invalid gid.",
-              "finding": ["gid 100 assigned without /etc/groups entry: miss"],
-              "type": "PARSER_ANOMALY"}
-    uid = {"symptom": "Accounts with shared uid.",
-           "finding": ["uid 0 assigned to multiple accounts: bad1,root"],
-           "type": "PARSER_ANOMALY"}
-    gid = {"symptom": "Privileged group with unusual members.",
-           "finding": ["Accounts in 'root' group: bad2"],
-           "type": "PARSER_ANOMALY"}
-    no_match = {"symptom": "Mismatched passwd and shadow files.",
-                "finding": ["Present in passwd, missing in shadow: miss",
-                            "Present in shadow, missing in passwd: ok"],
-                "type": "PARSER_ANOMALY"}
-    expected = [rdf_anomaly.Anomaly(**no_grp), rdf_anomaly.Anomaly(**uid),
-                rdf_anomaly.Anomaly(**gid), rdf_anomaly.Anomaly(**no_match)]
+    no_grp = {
+        "symptom": "Accounts with invalid gid.",
+        "finding": ["gid 100 assigned without /etc/groups entry: miss"],
+        "type": "PARSER_ANOMALY"
+    }
+    uid = {
+        "symptom": "Accounts with shared uid.",
+        "finding": ["uid 0 assigned to multiple accounts: bad1,root"],
+        "type": "PARSER_ANOMALY"
+    }
+    gid = {
+        "symptom": "Privileged group with unusual members.",
+        "finding": ["Accounts in 'root' group: bad2"],
+        "type": "PARSER_ANOMALY"
+    }
+    no_match = {
+        "symptom":
+            "Mismatched passwd and shadow files.",
+        "finding": [
+            "Present in passwd, missing in shadow: miss",
+            "Present in shadow, missing in passwd: ok"
+        ],
+        "type":
+            "PARSER_ANOMALY"
+    }
+    expected = [
+        rdf_anomaly.Anomaly(**no_grp), rdf_anomaly.Anomaly(**uid),
+        rdf_anomaly.Anomaly(**gid), rdf_anomaly.Anomaly(**no_match)
+    ]
 
     parser = linux_file_parser.LinuxSystemPasswdParser()
     rdfs = parser.ParseMultiple(stats, files, None)
@@ -449,15 +492,22 @@ class LinuxDotFileParserTest(test_lib.GRRBaseTest):
         path="/home/user1/.bashrc", pathtype="OS"))
     cshrc_stat = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
         path="/home/user1/.cshrc", pathtype="OS"))
-    bashrc = {r.name: r.vals
-              for r in parser.Parse(bashrc_stat, bashrc_data, None)}
-    cshrc = {r.name: r.vals
-             for r in parser.Parse(cshrc_stat, cshrc_data, None)}
-    expected = {"PATH": [".", "${HOME}/bin", "$PATH"],
-                "PYTHONPATH": [".", "${HOME}/bin", "$PATH", "/path1", "/path2"],
-                "LD_LIBRARY_PATH": ["foo", "bar", "$LD_LIBRARY_PATH"],
-                "CLASSPATH": [],
-                "PERL5LIB": [".", "shouldntbeignored"]}
+    bashrc = {
+        r.name:
+            r.vals
+        for r in parser.Parse(bashrc_stat, bashrc_data, None)
+    }
+    cshrc = {
+        r.name: r.vals
+        for r in parser.Parse(cshrc_stat, cshrc_data, None)
+    }
+    expected = {
+        "PATH": [".", "${HOME}/bin", "$PATH"],
+        "PYTHONPATH": [".", "${HOME}/bin", "$PATH", "/path1", "/path2"],
+        "LD_LIBRARY_PATH": ["foo", "bar", "$LD_LIBRARY_PATH"],
+        "CLASSPATH": [],
+        "PERL5LIB": [".", "shouldntbeignored"]
+    }
     # Got the same environment variables for bash and cshrc files.
     self.assertItemsEqual(expected, bashrc)
     self.assertItemsEqual(expected, cshrc)

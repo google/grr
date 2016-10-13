@@ -270,8 +270,8 @@ class AnalyzeClientMemory(transfer.LoadComponentMixin, flow.GRRFlow):
 
     # Let calling flows know where files ended up in AFF4 space.
     self.SendReply(
-        rekall_types.RekallResponse(downloaded_files=[x.aff4path
-                                                      for x in responses]))
+        rekall_types.RekallResponse(
+            downloaded_files=[x.aff4path for x in responses]))
 
   @flow.StateHandler()
   def LogDeleteFiles(self, responses):

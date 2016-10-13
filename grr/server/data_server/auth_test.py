@@ -18,8 +18,10 @@ class AuthTest(test_lib.GRRBaseTest):
   def setUp(self):
     super(AuthTest, self).setUp()
     self.config_overrider = test_lib.ConfigOverrider({
-        "Dataserver.server_username": "rootuser1",
-        "Dataserver.server_password": "somelongpasswordaabb",
+        "Dataserver.server_username":
+            "rootuser1",
+        "Dataserver.server_password":
+            "somelongpasswordaabb",
         "Dataserver.client_credentials": ["rootuser1:somelongpasswordaabb:rw"]
     })
     self.config_overrider.Start()

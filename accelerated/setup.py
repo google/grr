@@ -26,7 +26,6 @@ setup(
     long_description="Semantic protobufs are smart protocol buffers.",
     license="Apache 2.0",
     author="Michael Cohen",
-    ext_modules=[
-        Extension("_semantic",
-                  SOURCES,)
-    ],)
+    ext_modules=[Extension(
+        "_semantic",
+        SOURCES,)],)

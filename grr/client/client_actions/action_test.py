@@ -127,8 +127,10 @@ class ActionTest(test_lib.EmptyActionTest):
         if isinstance(response, rdf_client.Iterator):
           request.iterator = response
 
-    filenames = [os.path.basename(r.pathspec.path) for r in results
-                 if isinstance(r, rdf_client.StatEntry)]
+    filenames = [
+        os.path.basename(r.pathspec.path) for r in results
+        if isinstance(r, rdf_client.StatEntry)
+    ]
 
     self.assertItemsEqual(filenames, os.listdir(self.base_path))
 
@@ -315,8 +317,9 @@ class ActionTest(test_lib.EmptyActionTest):
     fake_worker = mock.MagicMock()
     actionplugin = actions.ActionPlugin(grr_worker=fake_worker)
     actionplugin.message = mock.MagicMock()
-    actionplugin.out_rdfvalues = [rdf_client.BufferReference,
-                                  rdf_client.Process]
+    actionplugin.out_rdfvalues = [
+        rdf_client.BufferReference, rdf_client.Process
+    ]
 
     actionplugin.SendReply(data="blah")
     self.assertTrue(

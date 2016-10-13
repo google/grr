@@ -101,8 +101,10 @@ class PamConfigTests(checks_test_lib.HostCheckTest):
     pam_bad = {"/etc/pam.d/ssh": bad_contents}
     # Check the detection case.
     sym = "Found: PAM ssh service allows unix null password accounts to login."
-    found = ["In service 'ssh': password requisite /lib/security/pam_unix.so "
-             "nullok"]
+    found = [
+        "In service 'ssh': password requisite /lib/security/pam_unix.so "
+        "nullok"
+    ]
     results = self.RunChecks(
         self.GenFileData(
             "PamConfig", pam_bad, parser=self.parser))
@@ -130,8 +132,10 @@ class PamConfigTests(checks_test_lib.HostCheckTest):
     # Check the detection case.
     sym = ("Found: PAM 'other'(the default) config should only be "
            "used for denying/logging access.")
-    found = ["In service 'other': auth required pam_permit.so",
-             "In service 'other': password done pam_foobar.so test args"]
+    found = [
+        "In service 'other': auth required pam_permit.so",
+        "In service 'other': password done pam_foobar.so test args"
+    ]
     results = self.RunChecks(
         self.GenFileData(
             "PamConfig", pam_bad, parser=self.parser))
@@ -144,14 +148,20 @@ class PamConfigTests(checks_test_lib.HostCheckTest):
 
   def testPamExternalConfigs(self):
     """Test we detect when PAM ssh service doesn't deny auth by default."""
-    pam_good = {"/etc/pam.d/ssh": "auth include other",
-                "/etc/pam.d/other": ""}
-    pam_bad = {"/etc/pam.d/ssh": "auth include non-existant",
-               "/etc/pam.d/other": "password include /tmp/non-existant"}
+    pam_good = {
+        "/etc/pam.d/ssh": "auth include other",
+        "/etc/pam.d/other": ""
+    }
+    pam_bad = {
+        "/etc/pam.d/ssh": "auth include non-existant",
+        "/etc/pam.d/other": "password include /tmp/non-existant"
+    }
     # Check the detection case.
     sym = "Found: PAM configuration refers to files outside of /etc/pam.d."
-    found = ["/etc/pam.d/ssh -> /etc/pam.d/non-existant",
-             "/etc/pam.d/other -> /tmp/non-existant"]
+    found = [
+        "/etc/pam.d/ssh -> /etc/pam.d/non-existant",
+        "/etc/pam.d/other -> /tmp/non-existant"
+    ]
     results = self.RunChecks(
         self.GenFileData(
             "PamConfig", pam_bad, parser=self.parser))
@@ -165,20 +175,24 @@ class PamConfigTests(checks_test_lib.HostCheckTest):
   def testPamConfigPermissions(self):
     """Ensure check detects Pam config files that non-root users can edit."""
 
-    data = [self.CreateStat("/etc/pam.d/hit-123", 50, 0, 0o0100640),
-            self.CreateStat("/etc/pam.d/hit-234", 0, 60, 0o0040777),
-            self.CreateStat("/etc/pam.d/no-hit-123", 0, 6000, 0o0100440),
-            self.CreateStat("/etc/pam.d/no-hit-234", 0, 0, 0o0100640),
-            self.CreateStat("/etc/pam.d/hit-345", 70, 0, 0o0100660)]
+    data = [
+        self.CreateStat("/etc/pam.d/hit-123", 50, 0, 0o0100640),
+        self.CreateStat("/etc/pam.d/hit-234", 0, 60, 0o0040777),
+        self.CreateStat("/etc/pam.d/no-hit-123", 0, 6000, 0o0100440),
+        self.CreateStat("/etc/pam.d/no-hit-234", 0, 0, 0o0100640),
+        self.CreateStat("/etc/pam.d/hit-345", 70, 0, 0o0100660)
+    ]
 
     results = self.GenResults(["LinuxPamConfigs"], [data])
 
     check_id = "PAM-CONFIG-FILES-WRITABLE-BY-NON-ROOT-USER"
     sym = ("Found: Files or folders in Pam configuration can be modified by "
            "non-privileged users.")
-    found = ["/etc/pam.d/hit-123 user: 50, group: 0, mode: -rw-r-----",
-             "/etc/pam.d/hit-234 user: 0, group: 60, mode: drwxrwxrwx",
-             "/etc/pam.d/hit-345 user: 70, group: 0, mode: -rw-rw----",]
+    found = [
+        "/etc/pam.d/hit-123 user: 50, group: 0, mode: -rw-r-----",
+        "/etc/pam.d/hit-234 user: 0, group: 60, mode: drwxrwxrwx",
+        "/etc/pam.d/hit-345 user: 70, group: 0, mode: -rw-rw----",
+    ]
 
     self.assertCheckDetectedAnom(check_id, results, sym, found)
 

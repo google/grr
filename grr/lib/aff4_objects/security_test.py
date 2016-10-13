@@ -140,16 +140,15 @@ class ApprovalWithReasonTest(test_lib.GRRBaseTest):
     with test_lib.ConfigOverrider({
         "Email.link_regex_list": [r"%{(?P<link>(incident|ir|jira)\/\d+)}"]
     }):
-      test_pairs = [
-          ("Investigating jira/1234 (incident/1234)...incident/bug",
-           "Investigating <a href=\"jira/1234\">jira/1234</a> "
-           "(<a href=\"incident/1234\">incident/1234</a>)...incident/bug"),
-          ("\"jira/1234\" == (incident/1234)",
-           "\"<a href=\"jira/1234\">jira/1234</a>\" == "
-           "(<a href=\"incident/1234\">incident/1234</a>)"),
-          ("Checking /var/lib/i/123/blah file",
-           "Checking /var/lib/i/123/blah file")
-      ]
+      test_pairs = [(
+          "Investigating jira/1234 (incident/1234)...incident/bug",
+          "Investigating <a href=\"jira/1234\">jira/1234</a> "
+          "(<a href=\"incident/1234\">incident/1234</a>)...incident/bug"),
+                    ("\"jira/1234\" == (incident/1234)",
+                     "\"<a href=\"jira/1234\">jira/1234</a>\" == "
+                     "(<a href=\"incident/1234\">incident/1234</a>)"),
+                    ("Checking /var/lib/i/123/blah file",
+                     "Checking /var/lib/i/123/blah file")]
 
       for reason, result in test_pairs:
         self._CreateReason(reason, result)

@@ -561,8 +561,8 @@ class FlowRunner(object):
           stats.STATS.IncrementCounter(
               "flow_completions", fields=[self.flow_obj.Name()])
           logging.debug("Destroying session %s(%s) for client %s",
-                        self.session_id, self.flow_obj.Name(),
-                        self.runner_args.client_id)
+                        self.session_id,
+                        self.flow_obj.Name(), self.runner_args.client_id)
 
           self.flow_obj.Terminate()
 

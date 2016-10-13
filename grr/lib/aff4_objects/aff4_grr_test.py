@@ -51,8 +51,10 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
             path="/windows", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
     urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, "C.1234567812345678")
-    self.assertEqual(urn, rdfvalue.RDFURN(
-        r"aff4:/C.1234567812345678/fs/tsk/\\.\Volume{1234}\/windows"))
+    self.assertEqual(
+        urn,
+        rdfvalue.RDFURN(
+            r"aff4:/C.1234567812345678/fs/tsk/\\.\Volume{1234}\/windows"))
 
     # Test an ADS
     pathspec = rdf_paths.PathSpec(
@@ -66,9 +68,10 @@ class AFF4GRRTest(test_lib.AFF4ObjectTest):
             ntfs_id=2)
 
     urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, "C.1234567812345678")
-    self.assertEqual(urn, rdfvalue.RDFURN(
-        r"aff4:/C.1234567812345678/fs/tsk/\\.\Volume{1234}\/"
-        "Test Directory/notes.txt:ads"))
+    self.assertEqual(urn,
+                     rdfvalue.RDFURN(
+                         r"aff4:/C.1234567812345678/fs/tsk/\\.\Volume{1234}\/"
+                         "Test Directory/notes.txt:ads"))
 
   def testClientSubfieldGet(self):
     """Test we can get subfields of the client."""

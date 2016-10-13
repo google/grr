@@ -5,6 +5,8 @@ import csv
 import re
 import StringIO
 
+import logging
+
 from grr.gui import api_call_handler_base
 
 from grr.lib import aff4
@@ -80,10 +82,17 @@ class ApiFile(rdf_structs.RDFProtoStruct):
     if stat:
       self.stat = stat
 
-    content_last = file_obj.Get(file_obj.Schema.CONTENT_LAST)
-    if content_last:
-      self.last_downloaded = content_last
-      self.last_downloaded_size = file_obj.Get(file_obj.Schema.SIZE)
+    if not self.is_directory:
+      try:
+        self.last_downloaded = file_obj.GetContentAge()
+      except AttributeError:
+        # Defensive approach - in case file-like object doesn't have
+        # GetContentAge defined.
+        logging.debug("File-like object %s doesn't have GetContentAge defined.",
+                      file_obj.__class__.__name__)
+
+      if self.last_downloaded:
+        self.last_downloaded_size = file_obj.Get(file_obj.Schema.SIZE)
 
     type_obj = file_obj.Get(file_obj.Schema.TYPE)
     if type_obj is not None:
@@ -270,15 +279,17 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
         token=token).Upgrade(aff4_standard.VFSDirectory)
 
     if args.directories_only:
-      children = [ch for ch in directory.OpenChildren()
-                  if "Container" in ch.behaviours]
+      children = [
+          ch for ch in directory.OpenChildren() if "Container" in ch.behaviours
+      ]
     else:
       children = [ch for ch in directory.OpenChildren()]
 
     # If we are reading the root file content, a whitelist applies.
     if path == "/":
-      children = [ch for ch in children
-                  if ch.urn.Basename() in ROOT_FILES_WHITELIST]
+      children = [
+          ch for ch in children if ch.urn.Basename() in ROOT_FILES_WHITELIST
+      ]
 
     # Apply the filter.
     if args.filter:
@@ -295,8 +306,8 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
     else:
       children = children[args.offset:]
 
-    return ApiListFilesResult(items=[ApiFile().InitFromAff4Object(c)
-                                     for c in children])
+    return ApiListFilesResult(
+        items=[ApiFile().InitFromAff4Object(c) for c in children])
 
 
 class ApiGetFileTextArgs(rdf_structs.RDFProtoStruct):
@@ -344,7 +355,7 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
           age=age,
           token=token)
 
-      file_content_missing = (not file_obj.GetContentAge())
+      file_content_missing = not file_obj.GetContentAge()
     except aff4.InstantiationError:
       file_content_missing = True
 
@@ -408,7 +419,7 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
           age=age,
           token=token)
 
-      file_content_missing = (not file_obj.GetContentAge())
+      file_content_missing = not file_obj.GetContentAge()
     except aff4.InstantiationError:
       file_content_missing = True
 
@@ -679,8 +690,10 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
 
     for start in range(0, len(items), self.CHUNK_SIZE):
       for item in items[start:start + self.CHUNK_SIZE]:
-        writer.writerow([item.timestamp.AsMicroSecondsFromEpoch(),
-                         item.timestamp, item.file_path, item.action])
+        writer.writerow([
+            item.timestamp.AsMicroSecondsFromEpoch(), item.timestamp,
+            item.file_path, item.action
+        ])
 
       yield fd.getvalue()
       fd.truncate(size=0)

@@ -154,8 +154,9 @@ class RDFX509Cert(rdfvalue.RDFValue):
     serial = int(common_name.split(".")[1], 16)
     builder = builder.serial_number(serial)
     builder = builder.subject_name(
-        x509.Name([x509.NameAttribute(oid.NameOID.COMMON_NAME, unicode(
-            common_name))]))
+        x509.Name([
+            x509.NameAttribute(oid.NameOID.COMMON_NAME, unicode(common_name))
+        ]))
 
     now = rdfvalue.RDFDatetime.Now()
     now_plus_year = now + rdfvalue.Duration("52w")
@@ -192,11 +193,13 @@ class CertificateSigningRequest(rdfvalue.RDFValue):
         self.ParseFromString(initializer)
       elif common_name and private_key:
         self._value = x509.CertificateSigningRequestBuilder().subject_name(
-            x509.Name([x509.NameAttribute(oid.NameOID.COMMON_NAME, unicode(
-                common_name))])).sign(
-                    private_key.GetRawPrivateKey(),
-                    hashes.SHA256(),
-                    backend=openssl.backend)
+            x509.Name([
+                x509.NameAttribute(oid.NameOID.COMMON_NAME,
+                                   unicode(common_name))
+            ])).sign(
+                private_key.GetRawPrivateKey(),
+                hashes.SHA256(),
+                backend=openssl.backend)
       elif initializer is not None:
         raise rdfvalue.InitializeError("Cannot initialize %s from %s." %
                                        (self.__class__, initializer))
@@ -477,8 +480,9 @@ class SignedBlob(rdf_structs.RDFProtoStruct):
     """
     if self.digest_type != self.HashType.SHA256:
       raise rdfvalue.DecodeError("Unsupported digest.")
-    if self.signature_type not in [self.SignatureType.RSA_PKCS1v15,
-                                   self.SignatureType.RSA_PSS]:
+    if self.signature_type not in [
+        self.SignatureType.RSA_PKCS1v15, self.SignatureType.RSA_PSS
+    ]:
       raise rdfvalue.DecodeError("Unsupported signature type.")
 
     try:

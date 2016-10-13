@@ -129,8 +129,10 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.GlobClientMock()
 
     # This glob selects all files which start with the username on this system.
-    paths = [os.path.join(self.base_path, "%%Users.username%%*"),
-             os.path.join(self.base_path, "VFSFixture/var/*/wtmp")]
+    paths = [
+        os.path.join(self.base_path, "%%Users.username%%*"),
+        os.path.join(self.base_path, "VFSFixture/var/*/wtmp")
+    ]
 
     # Set iterator really low to force iteration.
     with utils.Stubber(filesystem.Glob, "FILE_MAX_PER_DIR", 2):
@@ -155,8 +157,10 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
       if filename != "VFSFixture":
         children.append(filename)
 
-    expected = [filename for filename in os.listdir(self.base_path)
-                if filename.startswith("test") or filename.startswith("syslog")]
+    expected = [
+        filename for filename in os.listdir(self.base_path)
+        if filename.startswith("test") or filename.startswith("syslog")
+    ]
     self.assertTrue([x for x in expected if x.startswith("test")],
                     "Need a file starting with 'test'"
                     " in test_data for this test!")
@@ -259,14 +263,17 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     paths = [os.path.join(self.temp_dir, "1/**/foo*")]
 
     # Handle filesystem case insensitivity
-    results = ["1/2/3/4/foo4", "/1/2/3/foo3", "1/2/foo2",
-               "1/2 space/foo something"]
+    results = [
+        "1/2/3/4/foo4", "/1/2/3/foo3", "1/2/foo2", "1/2 space/foo something"
+    ]
     if platform.system() == "Linux":
-      results = ["1/2/3/4/fOo4", "1/2/3/4/foo4", "/1/2/3/fOo3", "/1/2/3/foo3",
-                 "1/2/fOo2", "1/2/foo2", "1/2 space/foo something"]
+      results = [
+          "1/2/3/4/fOo4", "1/2/3/4/foo4", "/1/2/3/fOo3", "/1/2/3/foo3",
+          "1/2/fOo2", "1/2/foo2", "1/2 space/foo something"
+      ]
     self._RunGlob(paths)
-    self.assertItemsEqual(self.flow_replies, [utils.JoinPath(self.temp_dir, x)
-                                              for x in results])
+    self.assertItemsEqual(self.flow_replies,
+                          [utils.JoinPath(self.temp_dir, x) for x in results])
 
     # Get the files 2 levels down only.
     paths = [os.path.join(self.temp_dir, "1/", "**2/foo*")]
@@ -274,18 +281,20 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     # Handle filesystem case insensitivity
     results = ["1/2/3/foo3", "/1/2/foo2", "1/2 space/foo something"]
     if platform.system() == "Linux":
-      results = ["1/2/3/foo3", "1/2/3/fOo3", "/1/2/fOo2", "/1/2/foo2",
-                 "1/2 space/foo something"]
+      results = [
+          "1/2/3/foo3", "1/2/3/fOo3", "/1/2/fOo2", "/1/2/foo2",
+          "1/2 space/foo something"
+      ]
     self._RunGlob(paths)
-    self.assertItemsEqual(self.flow_replies, [utils.JoinPath(self.temp_dir, x)
-                                              for x in results])
+    self.assertItemsEqual(self.flow_replies,
+                          [utils.JoinPath(self.temp_dir, x) for x in results])
 
     # Get all of the bars.
     paths = [os.path.join(self.temp_dir, "**10bar*")]
     results = ["bar", "1/bar1", "/1/2/bar2", "/1/2/3/bar3", "/1/2/3/4/bar4"]
     self._RunGlob(paths)
-    self.assertItemsEqual(self.flow_replies, [utils.JoinPath(self.temp_dir, x)
-                                              for x in results])
+    self.assertItemsEqual(self.flow_replies,
+                          [utils.JoinPath(self.temp_dir, x) for x in results])
 
   def testGlobWithTwoStars(self):
     self._MakeTestDirs()
@@ -295,23 +304,26 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
     if platform.system() == "Linux":
       results = ["1/2/3/foo3", "1/2/3/fOo3"]
     self._RunGlob(paths)
-    self.assertItemsEqual(self.flow_replies, [utils.JoinPath(self.temp_dir, x)
-                                              for x in results])
+    self.assertItemsEqual(self.flow_replies,
+                          [utils.JoinPath(self.temp_dir, x) for x in results])
 
   def testGlobWithMultiplePaths(self):
     self._MakeTestDirs()
-    paths = [os.path.join(self.temp_dir, "*/*/foo*"),
-             os.path.join(self.temp_dir, "notthere"),
-             os.path.join(self.temp_dir, "*/notthere"),
-             os.path.join(self.temp_dir, "*/foo*")]
+    paths = [
+        os.path.join(self.temp_dir, "*/*/foo*"),
+        os.path.join(self.temp_dir, "notthere"),
+        os.path.join(self.temp_dir, "*/notthere"),
+        os.path.join(self.temp_dir, "*/foo*")
+    ]
 
     # Handle filesystem case sensitivity
     expected_results = ["1/foo1", "/1/2/foo2"]
     if platform.system() == "Linux":
       expected_results = ["1/foo1", "1/fOo1", "/1/2/fOo2", "/1/2/foo2"]
     self._RunGlob(paths)
-    self.assertItemsEqual(self.flow_replies, [utils.JoinPath(self.temp_dir, x)
-                                              for x in expected_results])
+    self.assertItemsEqual(
+        self.flow_replies,
+        [utils.JoinPath(self.temp_dir, x) for x in expected_results])
 
   def testGlobWithInvalidStarStar(self):
     client_mock = action_mocks.GlobClientMock()

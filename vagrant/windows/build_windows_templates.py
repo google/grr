@@ -104,32 +104,38 @@ class WindowsTemplateBuilder(object):
 
   def MakeCoreSdist(self):
     os.chdir(args.grr_src)
-    subprocess.check_call([self.PYTHON_BIN64, "setup.py", "sdist",
-                           "--dist-dir=%s" % self.BUILDDIR, "--no-make-docs",
-                           "--no-make-ui-files", "--no-sync-artifacts"])
+    subprocess.check_call([
+        self.PYTHON_BIN64, "setup.py", "sdist", "--dist-dir=%s" % self.BUILDDIR,
+        "--no-make-docs", "--no-make-ui-files", "--no-sync-artifacts"
+    ])
     return glob.glob(os.path.join(self.BUILDDIR,
                                   "grr-response-core-*.zip")).pop()
 
   def MakeClientSdist(self):
     os.chdir(os.path.join(args.grr_src, "grr/config/grr-response-client/"))
-    subprocess.check_call([self.PYTHON_BIN64, "setup.py", "sdist",
-                           "--dist-dir=%s" % self.BUILDDIR])
+    subprocess.check_call([
+        self.PYTHON_BIN64, "setup.py", "sdist", "--dist-dir=%s" % self.BUILDDIR
+    ])
     return glob.glob(os.path.join(self.BUILDDIR,
                                   "grr-response-client-*.zip")).pop()
 
   def CopySdistsFromCloudStorage(self):
     """Use gsutil to copy sdists from cloud storage."""
-    subprocess.check_call([args.gsutil, "cp",
-                           "gs://%s/grr-response-core-*.zip" %
-                           args.cloud_storage_sdist_bucket, self.BUILDDIR])
+    subprocess.check_call([
+        args.gsutil, "cp",
+        "gs://%s/grr-response-core-*.zip" % args.cloud_storage_sdist_bucket,
+        self.BUILDDIR
+    ])
     core = glob.glob(os.path.join(self.BUILDDIR,
                                   "grr-response-core-*.zip")).pop()
 
-    subprocess.check_call([args.gsutil, "cp",
-                           "gs://%s/grr-response-client-*.zip" %
-                           args.cloud_storage_sdist_bucket, self.BUILDDIR])
-    client = glob.glob(os.path.join(self.BUILDDIR,
-                                    "grr-response-client-*.zip")).pop()
+    subprocess.check_call([
+        args.gsutil, "cp",
+        "gs://%s/grr-response-client-*.zip" % args.cloud_storage_sdist_bucket,
+        self.BUILDDIR
+    ])
+    client = glob.glob(
+        os.path.join(self.BUILDDIR, "grr-response-client-*.zip")).pop()
     return core, client
 
   def InstallGRR(self, path):
@@ -142,16 +148,24 @@ class WindowsTemplateBuilder(object):
     We dont need to run special compilers so just enter the virtualenv and
     build. Python will already find its own MSVC for python compilers.
     """
-    subprocess.check_call([self.GRR_CLIENT_BUILD64, "--verbose", "build",
-                           "--output", args.output_dir])
-    subprocess.check_call([self.GRR_CLIENT_BUILD32, "--verbose", "build",
-                           "--output", args.output_dir])
+    subprocess.check_call([
+        self.GRR_CLIENT_BUILD64, "--verbose", "build", "--output",
+        args.output_dir
+    ])
+    subprocess.check_call([
+        self.GRR_CLIENT_BUILD32, "--verbose", "build", "--output",
+        args.output_dir
+    ])
 
   def BuildComponents(self):
-    subprocess.check_call([self.GRR_CLIENT_BUILD64, "--verbose",
-                           "build_components", "--output", args.output_dir])
-    subprocess.check_call([self.GRR_CLIENT_BUILD32, "--verbose",
-                           "build_components", "--output", args.output_dir])
+    subprocess.check_call([
+        self.GRR_CLIENT_BUILD64, "--verbose", "build_components", "--output",
+        args.output_dir
+    ])
+    subprocess.check_call([
+        self.GRR_CLIENT_BUILD32, "--verbose", "build_components", "--output",
+        args.output_dir
+    ])
 
   def _RepackTemplates(self):
     """Repack templates with a dummy config."""
@@ -164,22 +178,26 @@ class WindowsTemplateBuilder(object):
 
     # We put the installers in the output dir so they get stored as build
     # artifacts and we can test the 32bit build manually.
-    subprocess.check_call([self.GRR_CLIENT_BUILD64, "--verbose",
-                           "--secondary_configs", dummy_config, "repack",
-                           "--template", template_amd64, "--output_dir",
-                           args.output_dir])
-    subprocess.check_call([self.GRR_CLIENT_BUILD64, "--verbose", "--context",
-                           "DebugClientBuild Context", "--secondary_configs",
-                           dummy_config, "repack", "--template", template_amd64,
-                           "--output_dir", args.output_dir])
-    subprocess.check_call([self.GRR_CLIENT_BUILD32, "--verbose",
-                           "--secondary_configs", dummy_config, "repack",
-                           "--template", template_i386, "--output_dir",
-                           args.output_dir])
-    subprocess.check_call([self.GRR_CLIENT_BUILD32, "--verbose", "--context",
-                           "DebugClientBuild Context", "--secondary_configs",
-                           dummy_config, "repack", "--template", template_i386,
-                           "--output_dir", args.output_dir])
+    subprocess.check_call([
+        self.GRR_CLIENT_BUILD64, "--verbose", "--secondary_configs",
+        dummy_config, "repack", "--template", template_amd64, "--output_dir",
+        args.output_dir
+    ])
+    subprocess.check_call([
+        self.GRR_CLIENT_BUILD64, "--verbose", "--context",
+        "DebugClientBuild Context", "--secondary_configs", dummy_config,
+        "repack", "--template", template_amd64, "--output_dir", args.output_dir
+    ])
+    subprocess.check_call([
+        self.GRR_CLIENT_BUILD32, "--verbose", "--secondary_configs",
+        dummy_config, "repack", "--template", template_i386, "--output_dir",
+        args.output_dir
+    ])
+    subprocess.check_call([
+        self.GRR_CLIENT_BUILD32, "--verbose", "--context",
+        "DebugClientBuild Context", "--secondary_configs", dummy_config,
+        "repack", "--template", template_i386, "--output_dir", args.output_dir
+    ])
 
   def _CleanupInstall(self):
     """Cleanup from any previous installer enough for _CheckInstallSuccess."""
@@ -214,9 +232,8 @@ class WindowsTemplateBuilder(object):
 
   def CopyResultsToCloudStorage(self):
     paths = glob.glob("%s\\*" % args.output_dir)
-    subprocess.check_call([args.gsutil, "-m", "cp"] + paths + [
-        "gs://%s/" % args.cloud_storage_output_bucket
-    ])
+    subprocess.check_call([args.gsutil, "-m", "cp"] + paths +
+                          ["gs://%s/" % args.cloud_storage_output_bucket])
 
   def Build(self):
     """Build templates and components."""

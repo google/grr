@@ -274,8 +274,10 @@ parser_list_components = subparsers.add_parser(
 def ImportConfig(filename, config):
   """Reads an old config file and imports keys and user accounts."""
   sections_to_import = ["PrivateKeys"]
-  entries_to_import = ["Client.executable_signing_public_key", "CA.certificate",
-                       "Frontend.certificate"]
+  entries_to_import = [
+      "Client.executable_signing_public_key", "CA.certificate",
+      "Frontend.certificate"
+  ]
   options_imported = 0
   old_config = config_lib.CONFIG.MakeNewConfig()
   old_config.Initialize(filename)
@@ -615,10 +617,11 @@ def InstallTemplatePackage():
       pkg_resources.get_distribution("grr-response-core").version.split(".")[0:
                                                                              2])
   # Note that this version spec requires a recent version of pip
-  subprocess.check_call(
-      [sys.executable, pip, "install", "--upgrade", "-f",
-       "https://storage.googleapis.com/releases.grr-response.com/index.html",
-       "grr-response-templates==%s.*" % major_minor_version])
+  subprocess.check_call([
+      sys.executable, pip, "install", "--upgrade", "-f",
+      "https://storage.googleapis.com/releases.grr-response.com/index.html",
+      "grr-response-templates==%s.*" % major_minor_version
+  ])
 
 
 def ManageBinaries(config=None, token=None):
@@ -720,9 +723,9 @@ def InitializeNoPrompt(config=None, token=None):
   GenerateKeys(config)
   config_dict["Datastore.implementation"] = "SqliteDataStore"
   hostname = flags.FLAGS.external_hostname
-  config_dict["Client.server_urls"] = ["http://%s:%s/" %
-                                       (hostname,
-                                        config.Get("Frontend.bind_port"))]
+  config_dict["Client.server_urls"] = [
+      "http://%s:%s/" % (hostname, config.Get("Frontend.bind_port"))
+  ]
 
   config_dict["AdminUI.url"] = "http://%s:%s" % (hostname,
                                                  config.Get("AdminUI.port"))

@@ -127,8 +127,8 @@ class Queue(aff4.AFF4Object):
 
     after_urn = None
     if start_time:
-      after_urn = self._MakeURN(self.urn, start_time.AsMicroSecondsFromEpoch(),
-                                0)
+      after_urn = self._MakeURN(self.urn,
+                                start_time.AsMicroSecondsFromEpoch(), 0)
     results = []
 
     filtered_count = 0

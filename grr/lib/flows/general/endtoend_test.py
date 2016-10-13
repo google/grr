@@ -18,8 +18,11 @@ from grr.lib.rdfvalues import paths as rdf_paths
 class MockEndToEndTest(base.AutomatedTest):
   platforms = ["Linux", "Darwin"]
   flow = "ListDirectory"
-  args = {"pathspec": rdf_paths.PathSpec(
-      path="/bin", pathtype=rdf_paths.PathSpec.PathType.OS)}
+  args = {
+      "pathspec":
+          rdf_paths.PathSpec(
+              path="/bin", pathtype=rdf_paths.PathSpec.PathType.OS)
+  }
 
   output_path = "/fs/os/bin"
   file_to_find = "ls"
@@ -87,9 +90,10 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     self.client_mock = action_mocks.ListDirectoryClientMock()
 
   def testRunSuccess(self):
-    args = endtoend.EndToEndTestFlowArgs(
-        test_names=["TestListDirectoryOSLinuxDarwin", "MockEndToEndTest",
-                    "TestListDirectoryOSLinuxDarwin"])
+    args = endtoend.EndToEndTestFlowArgs(test_names=[
+        "TestListDirectoryOSLinuxDarwin", "MockEndToEndTest",
+        "TestListDirectoryOSLinuxDarwin"
+    ])
 
     with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
       for _ in test_lib.TestFlowHelper(
@@ -105,9 +109,9 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
         if isinstance(reply, endtoend.EndToEndTestResult):
           results.append(reply)
           self.assertTrue(reply.success)
-          self.assertTrue(reply.test_class_name in [
-              "TestListDirectoryOSLinuxDarwin", "MockEndToEndTest"
-          ])
+          self.assertTrue(
+              reply.test_class_name in
+              ["TestListDirectoryOSLinuxDarwin", "MockEndToEndTest"])
           self.assertFalse(reply.log)
 
       # We only expect 2 results because we dedup test names
@@ -140,9 +144,10 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
     self.client.Set(self.client.Schema.INTERFACES([interface]))
     self.client.Flush()
 
-    args = endtoend.EndToEndTestFlowArgs(
-        test_names=["TestListDirectoryOSLinuxDarwin", "MockEndToEndTest",
-                    "TestListDirectoryOSLinuxDarwin"])
+    args = endtoend.EndToEndTestFlowArgs(test_names=[
+        "TestListDirectoryOSLinuxDarwin", "MockEndToEndTest",
+        "TestListDirectoryOSLinuxDarwin"
+    ])
 
     self.assertRaises(
         flow.FlowError,
@@ -157,9 +162,10 @@ class TestEndToEndTestFlow(test_lib.FlowTestsBaseclass):
   def testRunSuccessAndFail(self):
     args = endtoend.EndToEndTestFlowArgs()
 
-    with utils.Stubber(base.AutomatedTest, "classes",
-                       {"MockEndToEndTest": MockEndToEndTest,
-                        "TestFailure": TestFailure}):
+    with utils.Stubber(
+        base.AutomatedTest, "classes",
+        {"MockEndToEndTest": MockEndToEndTest,
+         "TestFailure": TestFailure}):
       with test_lib.Instrument(flow.GRRFlow, "SendReply") as send_reply:
         for _ in test_lib.TestFlowHelper(
             "EndToEndTestFlow",

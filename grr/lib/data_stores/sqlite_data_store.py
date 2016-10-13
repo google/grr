@@ -66,12 +66,16 @@ class SqliteConnectionCache(utils.FastStore):
               subject %(subject)s NOT NULL,
               predicate TEXT NOT NULL,
               timestamp BIG INTEGER NOT NULL,
-              value BLOB)""" % {"subject": SQLITE_SUBJECT_SPEC}
+              value BLOB)""" % {
+        "subject": SQLITE_SUBJECT_SPEC
+    }
     cursor.execute(query)
     query = """CREATE TABLE IF NOT EXISTS lock (
                subject %(subject)s PRIMARY KEY NOT NULL,
                expires BIG INTEGER NOT NULL,
-               token BIG INTEGER NOT NULL)""" % {"subject": SQLITE_SUBJECT_SPEC}
+               token BIG INTEGER NOT NULL)""" % {
+        "subject": SQLITE_SUBJECT_SPEC
+    }
     cursor.execute(query)
     query = """CREATE TABLE IF NOT EXISTS statistics (
                name TEXT PRIMARY KEY NOT NULL,

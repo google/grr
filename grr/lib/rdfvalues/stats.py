@@ -68,11 +68,14 @@ class ClientResourcesStats(rdf_structs.RDFProtoStruct):
   """RDF value representing clients' resources usage statistics for hunts."""
   protobuf = jobs_pb2.ClientResourcesStats
 
-  CPU_STATS_BINS = [0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 6,
-                    7, 8, 9, 10, 15, 20]
-  NETWORK_STATS_BINS = [16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192,
-                        16384, 32768, 65536, 131072, 262144, 524288, 1048576,
-                        2097152]
+  CPU_STATS_BINS = [
+      0.1, 0.2, 0.3, 0.4, 0.5, 0.75, 1, 1.5, 2, 2.5, 3, 4, 5, 6, 7, 8, 9, 10,
+      15, 20
+  ]
+  NETWORK_STATS_BINS = [
+      16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 65536,
+      131072, 262144, 524288, 1048576, 2097152
+  ]
   NUM_WORST_PERFORMERS = 10
 
   def __init__(self, initializer=None, **kwargs):

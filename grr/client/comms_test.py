@@ -153,21 +153,25 @@ class HTTPManagerTest(test_lib.GRRBaseTest):
     queries = [(x[1]["url"], x[1]["proxies"]["http"])
                for x in instrumentor.actions]
 
-    self.assertEqual(queries,
-                     # First search for server1 through all proxies.
-                     [("http://server1/control", "proxy1"),
-                      ("http://server1/control", "proxy2"),
-                      ("http://server1/control", "proxy3"),
+    self.assertEqual(
+        queries,
+        # First search for server1 through all proxies.
+        [
+            ("http://server1/control", "proxy1"),
+            ("http://server1/control", "proxy2"),
+            ("http://server1/control", "proxy3"),
 
-                      # Now search for server2 through all proxies.
-                      ("http://server2/control", "proxy1")])
+            # Now search for server2 through all proxies.
+            ("http://server2/control", "proxy1")
+        ])
 
   def testTemporaryFailure(self):
     """If the front end gives an intermittent 500, we must back off."""
     instrumentor = RequestsInstrumentor()
     # First response good, then a 500 error, then another good response.
-    instrumentor.responses = [_make_200("Good"), _make_http_response(code=500),
-                              _make_200("Also Good")]
+    instrumentor.responses = [
+        _make_200("Good"), _make_http_response(code=500), _make_200("Also Good")
+    ]
 
     manager = MockHTTPManager()
     with instrumentor.instrument():

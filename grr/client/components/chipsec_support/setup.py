@@ -22,12 +22,8 @@ setup_args = dict(
         "Operating System :: OS Independent",
         "Programming Language :: Python",
     ],
-    packages=[
-        "actions"
-    ],
-    install_requires=[
-        "chipsec == 1.2.4",
-    ],
+    packages=["actions"],
+    install_requires=["chipsec == 1.2.4",],
     zip_safe=False)
 
 # Currently this is only enabled in Linux.

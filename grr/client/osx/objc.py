@@ -343,8 +343,8 @@ class CFArray(CFType):
     if not isinstance(index, int):
       raise TypeError('index must be an integer')
     if (index < 0) or (index >= len(self)):
-      raise IndexError('index must be between {0} and {1}'.format(0, len(self) -
-                                                                  1))
+      raise IndexError('index must be between {0} and {1}'.format(
+          0, len(self) - 1))
     obj = self.dll.CFArrayGetValueAtIndex(self.ref, index)
     return self.WrapCFTypeInPython(obj)
 
@@ -490,7 +490,7 @@ class KextManager(Foundation):
     try:
       subprocess.check_call(['/sbin/kextunload', '-b', bundle_identifier])
     except subprocess.CalledProcessError as cpe:
-      logging.debug('failed to unload {0}:{1}'.format(bundle_identifier, str(
-          cpe)))
+      logging.debug('failed to unload {0}:{1}'.format(bundle_identifier,
+                                                      str(cpe)))
       error_code = -1
     return error_code

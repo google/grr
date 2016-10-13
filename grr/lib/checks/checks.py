@@ -403,11 +403,13 @@ class Matcher(object):
   """Performs comparisons between baseline and result data."""
 
   def __init__(self, matches, hint):
-    method_map = {"NONE": self.GotNone,
-                  "ONE": self.GotSingle,
-                  "SOME": self.GotMultiple,
-                  "ANY": self.GotAny,
-                  "ALL": self.GotAll}
+    method_map = {
+        "NONE": self.GotNone,
+        "ONE": self.GotSingle,
+        "SOME": self.GotMultiple,
+        "ANY": self.GotAny,
+        "ALL": self.GotAll
+    }
     try:
       self.detectors = [method_map.get(str(match)) for match in matches]
     except KeyError:

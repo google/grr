@@ -23,18 +23,19 @@ class MockVFSHandlerFind(vfs.VFSHandler):
   """
   supported_pathtype = rdf_paths.PathSpec.PathType.OS
 
-  filesystem = {"/": ["mock2"],
-                "/mock2": ["directory1", "directory3"],
-                "/mock2/directory1": ["file1.txt", "file2.txt", "directory2"],
-                "/mock2/directory1/file1.txt": "Secret 1",
-                "/mock2/directory1/file2.txt": "Another file",
-                "/mock2/directory1/directory2": ["file.jpg", "file.mp3"],
-                "/mock2/directory1/directory2/file.jpg": "JPEG",
-                "/mock2/directory1/directory2/file.mp3": "MP3 movie",
-                "/mock2/directory3": ["file1.txt", "long_file.text"],
-                "/mock2/directory3/file1.txt": "A text file",
-                "/mock2/directory3/long_file.text": (
-                    "space " * 100000 + "A Secret")}
+  filesystem = {
+      "/": ["mock2"],
+      "/mock2": ["directory1", "directory3"],
+      "/mock2/directory1": ["file1.txt", "file2.txt", "directory2"],
+      "/mock2/directory1/file1.txt": "Secret 1",
+      "/mock2/directory1/file2.txt": "Another file",
+      "/mock2/directory1/directory2": ["file.jpg", "file.mp3"],
+      "/mock2/directory1/directory2/file.jpg": "JPEG",
+      "/mock2/directory1/directory2/file.mp3": "MP3 movie",
+      "/mock2/directory3": ["file1.txt", "long_file.text"],
+      "/mock2/directory3/file1.txt": "A text file",
+      "/mock2/directory3/long_file.text": ("space " * 100000 + "A Secret")
+  }
 
   def __init__(self,
                base_fd,
@@ -480,9 +481,10 @@ class GrepTest(test_lib.EmptyActionTest):
 
     result = self.RunAction(searching.Grep, request)
     hits = [x.offset for x in result]
-    self.assertEqual(hits, [18, 288, 292, 296, 300, 304, 308, 312, 316, 320,
-                            324, 329, 729, 1129, 1529, 1929, 2329, 2729, 3129,
-                            3529, 3888])
+    self.assertEqual(hits, [
+        18, 288, 292, 296, 300, 304, 308, 312, 316, 320, 324, 329, 729, 1129,
+        1529, 1929, 2329, 2729, 3129, 3529, 3888
+    ])
     for x in result:
       self.assertTrue("10" in utils.Xor(x.data, self.XOR_OUT_KEY))
       self.assertEqual(request.target.path, x.pathspec.path)
@@ -501,9 +503,10 @@ class GrepTest(test_lib.EmptyActionTest):
 
     result = self.RunAction(searching.Grep, request)
     hits = [x.offset for x in result]
-    self.assertEqual(hits, [18, 288, 292, 296, 300, 304, 308, 312, 316, 320,
-                            324, 329, 729, 1129, 1529, 1929, 2329, 2729, 3129,
-                            3529, 3888])
+    self.assertEqual(hits, [
+        18, 288, 292, 296, 300, 304, 308, 312, 316, 320, 324, 329, 729, 1129,
+        1529, 1929, 2329, 2729, 3129, 3529, 3888
+    ])
     for x in result:
       self.assertTrue("10" in utils.Xor(x.data, self.XOR_OUT_KEY))
 

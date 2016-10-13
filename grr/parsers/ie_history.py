@@ -125,17 +125,18 @@ class IEParser(object):
       mtime = mtime / 10 - WIN_UNIX_DIFF_MSECS
     if ctime:
       ctime = ctime / 10 - WIN_UNIX_DIFF_MSECS
-    return {"header": header,  # the header
-            "blocks": blocks,  # number of blocks
-            "urloffset": url_offset,  # offset of URL in file
-            "data_offset": data_offset,  # offset for start of data
-            "data_size": data_size,  # size of data
-            "data": data,  # actual data
-            "mtime": mtime,  # modified time
-            "ctime": ctime,  # created time
-            "ftime": ftime,  # file time
-            "url": url  # the url visited
-           }
+    return {
+        "header": header,  # the header
+        "blocks": blocks,  # number of blocks
+        "urloffset": url_offset,  # offset of URL in file
+        "data_offset": data_offset,  # offset for start of data
+        "data_size": data_size,  # size of data
+        "data": data,  # actual data
+        "mtime": mtime,  # modified time
+        "ctime": ctime,  # created time
+        "ftime": ftime,  # file time
+        "url": url  # the url visited
+    }
 
   def _DoParse(self):
     """Parse a file for history records yielding dicts.

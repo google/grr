@@ -157,10 +157,9 @@ setup_args = dict(
     packages=find_packages(),
     zip_safe=False,
     include_package_data=True,
-    ext_modules=[
-        Extension("grr._semantic",
-                  ["accelerated/accelerated.c"],)
-    ],
+    ext_modules=[Extension(
+        "grr._semantic",
+        ["accelerated/accelerated.c"],)],
     cmdclass={
         "develop": Develop,
         "install": Install,

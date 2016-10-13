@@ -4,10 +4,8 @@
 # pylint: disable=unused-import
 # TODO(user): automate the generation of this file
 from grr.gui.plugins import acl_manager
-from grr.gui.plugins import configuration_view
 from grr.gui.plugins import fileview
 from grr.gui.plugins import foreman
-from grr.gui.plugins import inspect_view
 from grr.gui.plugins import searchclient
 from grr.gui.plugins import semantic
 from grr.gui.plugins import statistics

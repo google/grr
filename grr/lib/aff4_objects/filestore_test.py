@@ -302,8 +302,10 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
                 hash_type="md5",
                 hash_value="bb0a15eefe63fd41f8dc9dee01c5cf9a"),
             token=self.token))
-    self.assertListEqual(hits, [self.client_id.Add("fs/tsk").Add(self.base_path)
-                                .Add("winexec_img.dd/Ext2IFS_1_10b.exe")])
+    self.assertListEqual(hits, [
+        self.client_id.Add("fs/tsk").Add(self.base_path)
+        .Add("winexec_img.dd/Ext2IFS_1_10b.exe")
+    ])
 
   def testGetClientsForHashWithAge(self):
     with utils.Stubber(time, "time", lambda: 42):
@@ -356,10 +358,14 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
         filestore.HashFileStore.GetClientsForHashes(
             [hash1, hash2], token=self.token))
     self.assertEqual(len(hits), 2)
-    self.assertListEqual(hits[hash1], [self.client_id.Add("fs/tsk").Add(
-        self.base_path).Add("winexec_img.dd/Ext2IFS_1_10b.exe")])
-    self.assertListEqual(hits[hash2], [self.client_id.Add("fs/tsk").Add(
-        self.base_path).Add("winexec_img.dd/idea.dll")])
+    self.assertListEqual(hits[hash1], [
+        self.client_id.Add("fs/tsk").Add(self.base_path).Add(
+            "winexec_img.dd/Ext2IFS_1_10b.exe")
+    ])
+    self.assertListEqual(hits[hash2], [
+        self.client_id.Add("fs/tsk").Add(self.base_path).Add(
+            "winexec_img.dd/idea.dll")
+    ])
 
   def testGetClientsForHashesWithAge(self):
     with utils.Stubber(time, "time", lambda: 42):

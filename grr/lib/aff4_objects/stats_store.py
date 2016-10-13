@@ -277,8 +277,9 @@ class StatsStore(aff4.AFF4Volume):
     if not process_ids:
       process_ids = self.ListUsedProcessIds()
 
-    subjects = [self.DATA_STORE_ROOT.Add(process_id)
-                for process_id in process_ids]
+    subjects = [
+        self.DATA_STORE_ROOT.Add(process_id) for process_id in process_ids
+    ]
     subjects_data = aff4.FACTORY.MultiOpen(
         subjects, mode="r", token=self.token, aff4_type=StatsStoreProcessData)
 
@@ -322,8 +323,9 @@ class StatsStore(aff4.AFF4Volume):
 
     multi_metadata = self.MultiReadMetadata(process_ids=process_ids)
 
-    subjects = [self.DATA_STORE_ROOT.Add(process_id)
-                for process_id in process_ids]
+    subjects = [
+        self.DATA_STORE_ROOT.Add(process_id) for process_id in process_ids
+    ]
 
     multi_query_results = data_store.DB.MultiResolvePrefix(
         subjects,

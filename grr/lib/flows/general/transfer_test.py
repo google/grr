@@ -7,10 +7,12 @@ import os
 import platform
 import unittest
 
+from grr.client.client_actions import standard as standard_actions
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import test_lib
+from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
@@ -19,9 +21,23 @@ from grr.lib.rdfvalues import paths as rdf_paths
 # pylint:mode=test
 
 
+class ClientMock(object):
+
+  def __init__(self, mbr_data):
+    self.mbr = mbr_data
+
+  def ReadBuffer(self, args):
+    return_data = self.mbr[args.offset:args.offset + args.length]
+    return [
+        rdf_client.BufferReference(
+            data=return_data, offset=args.offset, length=len(return_data))
+    ]
+
+
 class TestTransfer(test_lib.FlowTestsBaseclass):
   """Test the transfer mechanism."""
   maxDiff = 65 * 1024
+  mbr = ("123456789" * 1000)[:4096]
 
   def setUp(self):
     super(TestTransfer, self).setUp()
@@ -41,20 +57,40 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
   def testGetMBR(self):
     """Test that the GetMBR flow works."""
 
-    mbr = ("123456789" * 1000)[:4096]
-
-    class ClientMock(object):
-
-      def ReadBuffer(self, args):
-        _ = args
-        return [rdf_client.BufferReference(data=mbr, offset=0, length=len(mbr))]
-
     for _ in test_lib.TestFlowHelper(
-        "GetMBR", ClientMock(), token=self.token, client_id=self.client_id):
+        "GetMBR",
+        ClientMock(self.mbr),
+        token=self.token,
+        client_id=self.client_id):
       pass
 
     fd = aff4.FACTORY.Open(self.client_id.Add("mbr"), token=self.token)
-    self.assertEqual(fd.Read(4096), mbr)
+    self.assertEqual(fd.Read(4096), self.mbr)
+
+  def _RunAndCheck(self, chunk_size, download_length):
+
+    with utils.Stubber(standard_actions, "MAX_BUFFER_SIZE", chunk_size):
+      for _ in test_lib.TestFlowHelper(
+          "GetMBR",
+          ClientMock(self.mbr),
+          token=self.token,
+          client_id=self.client_id,
+          length=download_length):
+        pass
+
+      fd = aff4.FACTORY.Open(self.client_id.Add("mbr"), token=self.token)
+      self.assertEqual(fd.Read(download_length), self.mbr[:download_length])
+      aff4.FACTORY.Delete(fd.urn, token=self.token)
+
+  def testGetMBRChunked(self):
+
+    chunk_size = 100
+    download_length = 15 * chunk_size
+    self._RunAndCheck(chunk_size, download_length)
+
+    # Not a multiple of the chunk size.
+    download_length = 15 * chunk_size + chunk_size / 2
+    self._RunAndCheck(chunk_size, download_length)
 
   def testGetFile(self):
     """Test that the GetFile flow works."""

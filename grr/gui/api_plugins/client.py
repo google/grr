@@ -350,9 +350,9 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiAddClientsLabelsArgs
 
   def Handle(self, args, token=None):
-    audit_description = ",".join(
-        [token.username + u"." + utils.SmartUnicode(name)
-         for name in args.labels])
+    audit_description = ",".join([
+        token.username + u"." + utils.SmartUnicode(name) for name in args.labels
+    ])
     audit_events = []
 
     try:
@@ -406,9 +406,9 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
       client.RemoveLabels(*labels_names, owner=owner)
 
   def Handle(self, args, token=None):
-    audit_description = ",".join(
-        [token.username + u"." + utils.SmartUnicode(name)
-         for name in args.labels])
+    audit_description = ",".join([
+        token.username + u"." + utils.SmartUnicode(name) for name in args.labels
+    ])
     audit_events = []
 
     try:

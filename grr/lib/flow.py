@@ -387,17 +387,24 @@ class FlowBehaviour(Behaviour):
                 "for simpler use."),
       "ADVANCED": ("Include in advanced UI. This flow takes "
                    "more experience to use."),
-      "DANGEROUS": "This flow may be dangerous. Only available for Admins",
-      "DEBUG": "This flow only appears in debug mode.",
+      "DANGEROUS":
+          "This flow may be dangerous. Only available for Admins",
+      "DEBUG":
+          "This flow only appears in debug mode.",
 
       # Is this a global flow or a client specific flow?
-      "Client Flow": "This flow works on a client.",
-      "Global Flow": "This flow works without a client.",
+      "Client Flow":
+          "This flow works on a client.",
+      "Global Flow":
+          "This flow works without a client.",
 
       # OS Support.
-      "OSX": "This flow works on OSX operating systems.",
-      "Windows": "This flow works on Windows operating systems.",
-      "Linux": "This flow works on Linux operating systems.",
+      "OSX":
+          "This flow works on OSX operating systems.",
+      "Windows":
+          "This flow works on Windows operating systems.",
+      "Linux":
+          "This flow works on Linux operating systems.",
   }
 
 
@@ -516,8 +523,13 @@ class FlowBase(aff4.AFF4Volume):
     """
 
   @classmethod
-  def StartFlow(cls, args=None, runner_args=None,  # pylint: disable=g-bad-name
-                parent_flow=None, sync=True, **kwargs):
+  def StartFlow(
+      cls,
+      args=None,
+      runner_args=None,  # pylint: disable=g-bad-name
+      parent_flow=None,
+      sync=True,
+      **kwargs):
     """The main factory function for Creating and executing a new flow.
 
     Args:
@@ -672,8 +684,8 @@ class FlowBase(aff4.AFF4Volume):
        priority: Controls the priority of this message.
     """
     result = message
-    logging.debug("Publishing %s to %s", utils.SmartUnicode(message)[:100],
-                  event_name)
+    logging.debug("Publishing %s to %s",
+                  utils.SmartUnicode(message)[:100], event_name)
 
     # Wrap message in a GrrMessage so it can be queued.
     if not isinstance(message, rdf_flows.GrrMessage):

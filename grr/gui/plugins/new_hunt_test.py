@@ -128,13 +128,18 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=grr-new-hunt-wizard-form label:contains('Paths')")
 
-    self.assertEqual("/tmp", self.GetValue(
-        "css=grr-new-hunt-wizard-form "
-        "grr-form-proto-repeated-field:has(label:contains('Paths')) input"))
+    self.assertEqual(
+        "/tmp",
+        self.GetValue(
+            "css=grr-new-hunt-wizard-form "
+            "grr-form-proto-repeated-field:has(label:contains('Paths')) input"))
 
-    self.assertEqual("TSK", self.GetSelectedLabel(
-        "css=grr-new-hunt-wizard-form "
-        "grr-form-proto-single-field:has(label:contains('Pathtype')) select"))
+    self.assertEqual(
+        "TSK",
+        self.GetSelectedLabel(
+            "css=grr-new-hunt-wizard-form "
+            "grr-form-proto-single-field:has(label:contains('Pathtype')) select"
+        ))
 
     # Click on "Next" button
     self.Click("css=grr-new-hunt-wizard-form button.Next")
@@ -382,7 +387,8 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
   def testDefaultOutputPluginIsCorrectlyAddedToThePluginsList(self):
     with test_lib.ConfigOverrider({
-        "AdminUI.new_hunt_wizard.default_output_plugin": "DummyOutputPlugin"
+        "AdminUI.new_hunt_wizard.default_output_plugin":
+            "DummyOutputPlugin"
     }):
       self.Open("/#main=ManageHunts")
       self.Click("css=button[name=NewHunt]")

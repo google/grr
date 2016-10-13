@@ -51,8 +51,9 @@ class CleanHuntsTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(hunts_urns), 10)
 
   def testDeletesHuntsWithExpirationDateOlderThanGivenAge(self):
-    with test_lib.ConfigOverrider(
-        {"DataRetention.hunts_ttl": rdfvalue.Duration("150s")}):
+    with test_lib.ConfigOverrider({
+        "DataRetention.hunts_ttl": rdfvalue.Duration("150s")
+    }):
       with test_lib.FakeTime(40 + 60 * self.NUM_HUNTS):
         flow.GRRFlow.StartFlow(
             flow_name=data_retention.CleanHunts.__name__,
@@ -74,8 +75,9 @@ class CleanHuntsTest(test_lib.FlowTestsBaseclass):
                                 latest_timestamp - rdfvalue.Duration("150s"))
 
   def testNoTraceOfDeletedHuntIsLeftInTheDataStore(self):
-    with test_lib.ConfigOverrider(
-        {"DataRetention.hunts_ttl": rdfvalue.Duration("1s")}):
+    with test_lib.ConfigOverrider({
+        "DataRetention.hunts_ttl": rdfvalue.Duration("1s")
+    }):
       with test_lib.FakeTime(40 + 60 * self.NUM_HUNTS):
         flow.GRRFlow.StartFlow(
             flow_name=data_retention.CleanHunts.__name__,
@@ -108,8 +110,9 @@ class CleanHuntsTest(test_lib.FlowTestsBaseclass):
       with aff4.FACTORY.Open(hunt_urn, mode="rw", token=self.token) as fd:
         fd.AddLabels(exception_label_name)
 
-    with test_lib.ConfigOverrider(
-        {"DataRetention.hunts_ttl": rdfvalue.Duration("10s")}):
+    with test_lib.ConfigOverrider({
+        "DataRetention.hunts_ttl": rdfvalue.Duration("10s")
+    }):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_HUNTS):
         flow.GRRFlow.StartFlow(
@@ -184,8 +187,9 @@ class CleanCronJobsTest(test_lib.FlowTestsBaseclass):
       children = list(fd.ListChildren())
       all_children.extend(children)
 
-    with test_lib.ConfigOverrider(
-        {"DataRetention.cron_jobs_flows_ttl": rdfvalue.Duration("150s")}):
+    with test_lib.ConfigOverrider({
+        "DataRetention.cron_jobs_flows_ttl": rdfvalue.Duration("150s")
+    }):
 
       # Only two iterations are supposed to survive, as they were running
       # every minute.
@@ -249,8 +253,9 @@ class CleanTempTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(tmp_urns), 10)
 
   def testDeletesTempWithAgeOlderThanGivenAge(self):
-    with test_lib.ConfigOverrider(
-        {"DataRetention.tmp_ttl": rdfvalue.Duration("300s")}):
+    with test_lib.ConfigOverrider({
+        "DataRetention.tmp_ttl": rdfvalue.Duration("300s")
+    }):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_TMP):
         flow.GRRFlow.StartFlow(
@@ -277,8 +282,9 @@ class CleanTempTest(test_lib.FlowTestsBaseclass):
       with aff4.FACTORY.Open(tmp_urn, mode="rw", token=self.token) as fd:
         fd.AddLabels(exception_label_name)
 
-    with test_lib.ConfigOverrider(
-        {"DataRetention.tmp_ttl": rdfvalue.Duration("10s")}):
+    with test_lib.ConfigOverrider({
+        "DataRetention.tmp_ttl": rdfvalue.Duration("10s")
+    }):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_TMP):
         flow.GRRFlow.StartFlow(
@@ -322,8 +328,9 @@ class CleanInactiveClientsTest(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(client_urns), 10)
 
   def testDeletesInactiveClientsWithAgeOlderThanGivenAge(self):
-    with test_lib.ConfigOverrider(
-        {"DataRetention.inactive_client_ttl": rdfvalue.Duration("300s")}):
+    with test_lib.ConfigOverrider({
+        "DataRetention.inactive_client_ttl": rdfvalue.Duration("300s")
+    }):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_CLIENT):
         flow.GRRFlow.StartFlow(
@@ -334,8 +341,9 @@ class CleanInactiveClientsTest(test_lib.FlowTestsBaseclass):
 
       aff4_root = aff4.FACTORY.Open("aff4:/", mode="r", token=self.token)
       aff4_urns = list(aff4_root.ListChildren())
-      client_urns = [x for x in aff4_urns
-                     if re.match(self.client_regex, str(x))]
+      client_urns = [
+          x for x in aff4_urns if re.match(self.client_regex, str(x))
+      ]
 
       self.assertEqual(len(client_urns), 5)
 
@@ -354,8 +362,9 @@ class CleanInactiveClientsTest(test_lib.FlowTestsBaseclass):
       with aff4.FACTORY.Open(client_urn, mode="rw", token=self.token) as fd:
         fd.AddLabels(exception_label_name)
 
-    with test_lib.ConfigOverrider(
-        {"DataRetention.inactive_client_ttl": rdfvalue.Duration("10s")}):
+    with test_lib.ConfigOverrider({
+        "DataRetention.inactive_client_ttl": rdfvalue.Duration("10s")
+    }):
 
       with test_lib.FakeTime(40 + 60 * self.NUM_CLIENT):
         flow.GRRFlow.StartFlow(
@@ -365,8 +374,9 @@ class CleanInactiveClientsTest(test_lib.FlowTestsBaseclass):
 
       aff4_root = aff4.FACTORY.Open("aff4:/", mode="r", token=self.token)
       aff4_urns = list(aff4_root.ListChildren())
-      client_urns = [x for x in aff4_urns
-                     if re.match(self.client_regex, str(x))]
+      client_urns = [
+          x for x in aff4_urns if re.match(self.client_regex, str(x))
+      ]
 
       self.assertEqual(len(client_urns), 3)
 

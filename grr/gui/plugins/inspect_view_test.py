@@ -34,14 +34,14 @@ class TestClientLoadView(TestInspectViewBase):
     with self.ACLChecksDisabled():
       self.RequestAndGrantClientApproval("C.0000000000000001")
 
-    self.Open("/#c=C.0000000000000001&main=ClientLoadView")
+    self.Open("/#/clients/C.0000000000000001/load-stats")
     self.WaitUntil(self.IsTextPresent, "No actions currently in progress.")
 
   def testNoClientActionIsDisplayedWhenFlowIsStarted(self):
     with self.ACLChecksDisabled():
       self.RequestAndGrantClientApproval("C.0000000000000001")
 
-    self.Open("/#c=C.0000000000000001&main=ClientLoadView")
+    self.Open("/#/clients/C.0000000000000001/load-stats")
     self.WaitUntil(self.IsTextPresent, "No actions currently in progress.")
 
     flow.GRRFlow.StartFlow(
@@ -54,9 +54,10 @@ class TestClientLoadView(TestInspectViewBase):
       self.RequestAndGrantClientApproval("C.0000000000000001")
       self.CreateLeasedClientRequest(token=self.token)
 
-    self.Open("/#c=C.0000000000000001&main=ClientLoadView")
+    self.Open("/#/clients/C.0000000000000001/load-stats")
     self.WaitUntil(self.IsTextPresent, "ListProcesses")
-    self.WaitUntil(self.IsTextPresent, "MEDIUM_PRIORITY")
+    self.WaitUntil(self.IsTextPresent, "Task id")
+    self.WaitUntil(self.IsTextPresent, "Task eta")
 
 
 class TestDebugClientRequestsView(TestInspectViewBase):

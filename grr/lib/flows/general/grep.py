@@ -67,8 +67,9 @@ class SearchFileContent(flow.GRRFlow):
     if responses.success:
       # Grep not specified - just list all hits.
       if not self.args.grep:
-        msgs = [rdf_client.BufferReference(pathspec=r.pathspec)
-                for r in responses]
+        msgs = [
+            rdf_client.BufferReference(pathspec=r.pathspec) for r in responses
+        ]
         self.CallStateInline(messages=msgs, next_state="WriteHits")
       else:
         # Grep specification given, ask the client to grep the files.

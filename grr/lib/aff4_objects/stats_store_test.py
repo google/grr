@@ -51,8 +51,10 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     row = data_store.DB.ResolvePrefix(
         "aff4:/stats_store/some_pid", "", token=self.token)
     # Check that no plain counter is written.
-    values = [stats_store.StatsStoreValue.FromSerializedString(x[1])
-              for x in row if x[0] == "aff4:stats_store/counter"]
+    values = [
+        stats_store.StatsStoreValue.FromSerializedString(x[1]) for x in row
+        if x[0] == "aff4:stats_store/counter"
+    ]
     self.assertEqual(len(values), 2)
 
     http_field_value = stats_store.StatsStoreFieldValue(
@@ -84,8 +86,10 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
 
     row = data_store.DB.ResolvePrefix(
         "aff4:/stats_store/some_pid", "", token=self.token)
-    values = [stats_store.StatsStoreValue.FromSerializedString(x[1])
-              for x in row if x[0] == "aff4:stats_store/foo_event"]
+    values = [
+        stats_store.StatsStoreValue.FromSerializedString(x[1]) for x in row
+        if x[0] == "aff4:stats_store/foo_event"
+    ]
     self.assertEqual(len(values), 1)
 
     stored_value = values[0]
@@ -105,8 +109,10 @@ class StatsStoreTest(test_lib.AFF4ObjectTest):
     row = data_store.DB.ResolvePrefix(
         "aff4:/stats_store/some_pid", "", token=self.token)
 
-    values = [stats_store.StatsStoreValue.FromSerializedString(x[1])
-              for x in row if x[0] == "aff4:stats_store/foo_event"]
+    values = [
+        stats_store.StatsStoreValue.FromSerializedString(x[1]) for x in row
+        if x[0] == "aff4:stats_store/foo_event"
+    ]
     self.assertEqual(len(values), 2)
 
     http_field_value = stats_store.StatsStoreFieldValue(
@@ -548,7 +554,8 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
   def testInTimeRangeRaisesIfAppliedBeforeTakeMethod(self):
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
     query = stats_store.StatsStoreDataQuery(stats_data)
-    self.assertRaises(RuntimeError, query.In("counter").InTimeRange,
+    self.assertRaises(RuntimeError,
+                      query.In("counter").InTimeRange,
                       rdfvalue.RDFDatetime().FromSecondsFromEpoch(80),
                       rdfvalue.RDFDatetime().FromSecondsFromEpoch(120))
 
@@ -720,8 +727,9 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     ts = query.In("counter").TakeValue().Normalize(
         rdfvalue.Duration("30s"), 0, rdfvalue.Duration("130s")).ts
 
-    self.assertListEqual(ts.data, [[1.0, 0], [None, 30 * 1e6], [None, 60 * 1e6],
-                                   [None, 90 * 1e6], [2.0, 120 * 1e6]])
+    self.assertListEqual(ts.data, [[1.0, 0], [None, 30 * 1e6],
+                                   [None, 60 * 1e6], [None, 90 * 1e6],
+                                   [2.0, 120 * 1e6]])
 
   def testNormalizeRaisesIfAppliedBeforeTakeMethod(self):
     stats_data = self.stats_store.ReadStats(process_id=self.process_id)
@@ -902,8 +910,8 @@ class StatsStoreDataQueryTest(test_lib.AFF4ObjectTest):
     # 1970-01-01 00:00:30    0.3
     # 1970-01-01 00:00:40    0.4
     self.assertListEqual(ts.data, [[0.1, 0], [0.2, 10 * 1e6],
-                                   [0.30000000000000004, 20 * 1e6], [0.4,
-                                                                     30 * 1e6]])
+                                   [0.30000000000000004, 20 * 1e6],
+                                   [0.4, 30 * 1e6]])
 
   def testScaleAppliesScaleFunctionToSingleTimeSerie(self):
     # Initialize and write test data.

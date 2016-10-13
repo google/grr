@@ -328,13 +328,14 @@ class ExecuteCommand(flow.GRRFlow):
     """Confirmation."""
     if responses.success:
       response = responses.First()
-      self.Log(("Execution of %s %s (return value %d, "
-                "ran for %f seconds):"),
-               response.request.cmd,
-               " ".join(response.request.command_line),
-               response.exit_status,
-               # time_used is returned in microseconds.
-               response.time_used / 1e6)
+      self.Log(
+          ("Execution of %s %s (return value %d, "
+           "ran for %f seconds):"),
+          response.request.cmd,
+          " ".join(response.request.command_line),
+          response.exit_status,
+          # time_used is returned in microseconds.
+          response.time_used / 1e6)
       try:
         # We don't want to overflow the log so we just save 100 bytes each.
         logout = response.stdout[:100]

@@ -58,8 +58,8 @@ class ListProcesses(flow.GRRFlow):
           paths_to_fetch.add(p.exe)
       paths_to_fetch = sorted(paths_to_fetch)
 
-      self.Log("Got %d processes, fetching binaries for %d...", len(responses),
-               len(paths_to_fetch))
+      self.Log("Got %d processes, fetching binaries for %d...",
+               len(responses), len(paths_to_fetch))
 
       self.CallFlow(
           "FileFinder",

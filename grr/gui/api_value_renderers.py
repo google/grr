@@ -483,8 +483,10 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
       if field_type == rdf_structs.EnumNamedValue:
         for enum_label in sorted(field_desc.enum, key=field_desc.enum.get):
           enum_value = field_desc.enum[enum_label]
-          labels = [rdf_structs.SemanticDescriptor.Labels.reverse_enum[x]
-                    for x in enum_value.labels or []]
+          labels = [
+              rdf_structs.SemanticDescriptor.Labels.reverse_enum[x]
+              for x in enum_value.labels or []
+          ]
 
           field.allowed_values.append(
               ApiRDFAllowedEnumValueDescriptor(
@@ -505,8 +507,10 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
         field.friendly_name = field_desc.friendly_name
 
       if field_desc.labels:
-        field.labels = [rdf_structs.SemanticDescriptor.Labels.reverse_enum[x]
-                        for x in field_desc.labels]
+        field.labels = [
+            rdf_structs.SemanticDescriptor.Labels.reverse_enum[x]
+            for x in field_desc.labels
+        ]
 
       result.fields.append(field)
 

@@ -74,8 +74,8 @@ class BigQueryClientTest(test_lib.GRRBaseTest):
     multiplier = config_lib.CONFIG["BigQuery.retry_multiplier"]
 
     self.assertEqual(job.execute.call_count, max_calls)
-    mock_sleep.assert_has_calls([mock.call(retry_interval),
-                                 mock.call(retry_interval * multiplier)])
+    mock_sleep.assert_has_calls(
+        [mock.call(retry_interval), mock.call(retry_interval * multiplier)])
 
 
 def main(argv):

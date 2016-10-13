@@ -60,7 +60,8 @@ class ReportUtilsTest(test_lib.GRRBaseTest):
     AddFakeAuditLog("Fake audit description bar.", token=self.token)
 
     audit_events = {
-        ev.description: ev
+        ev.description:
+            ev
         for fd in report_utils.GetAuditLogFiles(
             rdfvalue.Duration("1d"),
             rdfvalue.RDFDatetime.Now(),
@@ -74,21 +75,21 @@ class ReportUtilsTest(test_lib.GRRBaseTest):
 class ServerReportPluginsTest(test_lib.GRRBaseTest):
 
   def testClientsActivityReportPlugin(self):
-    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromHumanReadable(
-        "2012/12/14")):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
       AddFakeAuditLog(
           "Fake audit description 14 Dec.", "C.123", token=self.token)
 
-    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromHumanReadable(
-        "2012/12/22")):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
       for _ in xrange(10):
         AddFakeAuditLog(
             "Fake audit description 22 Dec.", "C.123", token=self.token)
       AddFakeAuditLog(
           "Fake audit description 22 Dec.", "C.456", token=self.token)
 
-    with test_lib.FakeTime(rdfvalue.RDFDatetime.FromHumanReadable(
-        "2012/12/31")):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/31")):
       report = server_report_plugins.ClientsActivityReportPlugin()
       api_report_data = report.GetReportData(
           stats_api.ApiGetReportArgs(name=report.__class__.__name__),

@@ -27,9 +27,11 @@ class WindowsPersistenceMechanismsParserTest(test_lib.FlowTestsBaseclass):
         registry_data=rdf_protodict.DataBlob(string=reg_data))
 
     persistence = [stat]
-    image_paths = ["system32\\drivers\\ACPI.sys",
-                   "%systemroot%\\system32\\svchost.exe -k netsvcs",
-                   "\\SystemRoot\\system32\\drivers\\acpipmi.sys"]
+    image_paths = [
+        "system32\\drivers\\ACPI.sys",
+        "%systemroot%\\system32\\svchost.exe -k netsvcs",
+        "\\SystemRoot\\system32\\drivers\\acpipmi.sys"
+    ]
     reg_key = rdfvalue.RDFURN("aff4:/C.1000000000000000/registry"
                               "/HKEY_LOCAL_MACHINE/SYSTEM/ControlSet001"
                               "/services/AcpiPmi")
@@ -44,10 +46,11 @@ class WindowsPersistenceMechanismsParserTest(test_lib.FlowTestsBaseclass):
     knowledge_base = rdf_client.KnowledgeBase()
     knowledge_base.environ_systemroot = "C:\\Windows"
 
-    expected = ["C:\\blah\\some.exe",
-                "C:\\Windows\\system32\\drivers\\ACPI.sys",
-                "C:\\Windows\\system32\\svchost.exe",
-                "C:\\Windows\\system32\\drivers\\acpipmi.sys"]
+    expected = [
+        "C:\\blah\\some.exe", "C:\\Windows\\system32\\drivers\\ACPI.sys",
+        "C:\\Windows\\system32\\svchost.exe",
+        "C:\\Windows\\system32\\drivers\\acpipmi.sys"
+    ]
 
     for index, item in enumerate(persistence):
       results = list(

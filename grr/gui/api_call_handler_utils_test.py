@@ -236,14 +236,18 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
     manifest = yaml.safe_load(zip_fd.read(manifest_name))
     self.assertEqual(manifest, {
-        "description": "Test description",
-        "processed_files": 2,
-        "archived_files": 1,
-        "ignored_files": 0,
-        "failed_files": 1,
-        "failed_files_list": [
-            u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
-        ]
+        "description":
+            "Test description",
+        "processed_files":
+            2,
+        "archived_files":
+            1,
+        "ignored_files":
+            0,
+        "failed_files":
+            1,
+        "failed_files_list":
+            [u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"]
     })
 
   def testIgnoresFilesNotMatchingPredicate(self):
@@ -261,14 +265,18 @@ class CollectionArchiveGeneratorTest(test_lib.GRRBaseTest):
 
     manifest = yaml.safe_load(zip_fd.read("test_prefix/MANIFEST"))
     self.assertEqual(manifest, {
-        "description": "Test description",
-        "processed_files": 2,
-        "archived_files": 1,
-        "ignored_files": 1,
-        "failed_files": 0,
-        "ignored_files_list": [
-            u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"
-        ]
+        "description":
+            "Test description",
+        "processed_files":
+            2,
+        "archived_files":
+            1,
+        "ignored_files":
+            1,
+        "failed_files":
+            0,
+        "ignored_files_list":
+            [u"aff4:/C.0000000000000000/fs/os/foo/bar/中国新闻网新闻中.txt"]
     })
 
 

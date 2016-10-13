@@ -63,8 +63,8 @@ class Sdist(sdist):
     major_minor = ".".join(version.split(".")[0:2])
     templates = glob.glob(
         os.path.join(base_dir, "templates/*%s*.zip" % major_minor))
-    required_templates = set([x.replace("maj.minor", major_minor)
-                              for x in self.REQUIRED_TEMPLATES])
+    required_templates = set(
+        [x.replace("maj.minor", major_minor) for x in self.REQUIRED_TEMPLATES])
 
     # Client templates have an extra version digit, e.g. 3.1.0.0
     templates_present = set([
@@ -78,9 +78,10 @@ class Sdist(sdist):
 
   def CheckComponents(self, base_dir):
     """Verify we have components for each supported system."""
-    components = [os.path.basename(x)
-                  for x in glob.glob(os.path.join(base_dir, "components/*.bin"))
-                 ]
+    components = [
+        os.path.basename(x)
+        for x in glob.glob(os.path.join(base_dir, "components/*.bin"))
+    ]
     missing = set()
     for requirement in self.REQUIRED_COMPONENTS:
       for component in components:
@@ -140,8 +141,6 @@ setup_args = dict(
     data_files=(find_data_files(
         "components", prefix="grr-response-templates") + find_data_files(
             "templates", prefix="grr-response-templates") + ["version.ini"]),
-    cmdclass={
-        "sdist": Sdist,
-    })
+    cmdclass={"sdist": Sdist,})
 
 setup(**setup_args)

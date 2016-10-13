@@ -80,10 +80,10 @@ class FieldParserTests(test_lib.GRRBaseTest):
     this  should be     another entry "with this quoted text as one field"
     'an entry'with" only two" fields ;; and not this comment.
     """
-    expected = [["each", "of", "these", "words", "should", "be", "fields"],
-                ["this", "should", "be", "another", "entry",
-                 "with this quoted text as one field"],
-                ["an entrywith only two", "fields"]]
+    expected = [["each", "of", "these", "words", "should", "be", "fields"], [
+        "this", "should", "be", "another", "entry",
+        "with this quoted text as one field"
+    ], ["an entrywith only two", "fields"]]
     cfg = config_file.FieldParser(
         sep=["[ \t\f\v]+", ":", ";"], comments=["#", ";;"])
     results = cfg.ParseEntries(test_data)
@@ -123,9 +123,13 @@ class KeyValueParserTests(test_lib.GRRBaseTest):
     = # Bad line
     'a key'with" no" value field ;; and not this comment.
     """
-    expected = [{"key1": ["a", "list", "of", "fields"]},
-                {"key 2": ["another", "entry"]},
-                {"a keywith no value field": []}]
+    expected = [{
+        "key1": ["a", "list", "of", "fields"]
+    }, {
+        "key 2": ["another", "entry"]
+    }, {
+        "a keywith no value field": []
+    }]
     cfg = config_file.KeyValueParser(kv_sep=["=", ":"], comments=["#", ";;"])
     results = cfg.ParseEntries(test_data)
     for i, expect in enumerate(expected):
@@ -320,8 +324,9 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     parser = config_file.APTPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
-    result = [d for d in results
-              if isinstance(d, rdf_protodict.AttributedDict)][0]
+    result = [
+        d for d in results if isinstance(d, rdf_protodict.AttributedDict)
+    ][0]
 
     self.assertEqual("/etc/apt/sources.list", result.filename)
     self.assertEqual(5, len(result.uris))
@@ -366,8 +371,9 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     parser = config_file.APTPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
-    result = [d for d in results
-              if isinstance(d, rdf_protodict.AttributedDict)][0]
+    result = [
+        d for d in results if isinstance(d, rdf_protodict.AttributedDict)
+    ][0]
 
     self.assertEqual("/etc/apt/sources.list.d/test.list", result.filename)
     self.assertEqual(0, len(result.uris))
@@ -416,8 +422,9 @@ class APTPackageSourceParserTests(test_lib.GRRBaseTest):
     parser = config_file.APTPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
-    result = [d for d in results
-              if isinstance(d, rdf_protodict.AttributedDict)][0]
+    result = [
+        d for d in results if isinstance(d, rdf_protodict.AttributedDict)
+    ][0]
 
     self.assertEqual("/etc/apt/sources.list.d/rfc822.list", result.filename)
     self.assertEqual(11, len(result.uris))
@@ -497,8 +504,9 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
     parser = config_file.YumPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
-    result = [d for d in results
-              if isinstance(d, rdf_protodict.AttributedDict)][0]
+    result = [
+        d for d in results if isinstance(d, rdf_protodict.AttributedDict)
+    ][0]
 
     self.assertEqual("/etc/yum.repos.d/test1.repo", result.filename)
     self.assertEqual(4, len(result.uris))
@@ -535,8 +543,9 @@ class YumPackageSourceParserTests(test_lib.GRRBaseTest):
     parser = config_file.YumPackageSourceParser()
     results = list(parser.Parse(stat, file_obj, None))
 
-    result = [d for d in results
-              if isinstance(d, rdf_protodict.AttributedDict)][0]
+    result = [
+        d for d in results if isinstance(d, rdf_protodict.AttributedDict)
+    ][0]
 
     self.assertEqual("/etc/yum.repos.d/emptytest.repo", result.filename)
     self.assertEqual(0, len(result.uris))
@@ -560,8 +569,9 @@ class CronAtAllowDenyParserTests(test_lib.GRRBaseTest):
     parser = config_file.CronAtAllowDenyParser()
     results = list(parser.Parse(stat, file_obj, None))
 
-    result = [d for d in results
-              if isinstance(d, rdf_protodict.AttributedDict)][0]
+    result = [
+        d for d in results if isinstance(d, rdf_protodict.AttributedDict)
+    ][0]
     filename = result.filename
     users = result.users
     self.assertEqual("/etc/at.allow", filename)
@@ -629,8 +639,9 @@ class NtpParserTests(test_lib.GRRBaseTest):
     self.assertFalse(results.trap)
 
     # Check we got all the "servers".
-    servers = ["1.2.3.4", "4.5.6.7", "8.9.10.11", "pool.ntp.org",
-               "2001:1234:1234:2::f"]
+    servers = [
+        "1.2.3.4", "4.5.6.7", "8.9.10.11", "pool.ntp.org", "2001:1234:1234:2::f"
+    ]
     self.assertItemsEqual(servers, [r.address for r in results.server])
     # In our test data, they all have "iburst" as an arg. Check that is found.
     for r in results.server:
@@ -704,8 +715,10 @@ class SudoersParserTest(test_lib.GRRBaseTest):
                 "users": ["d", "e", "f"],
             },
             {
-                "name": "complex",
-                "type": "USER",
+                "name":
+                    "complex",
+                "type":
+                    "USER",
                 "users": ["#1000", "%group", "%#1001", "%:nonunix", "%:#1002"],
             },
         ],

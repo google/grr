@@ -53,7 +53,8 @@ class LoggedACL(object):
                       utils.SmartUnicode(token and token.username),
                       utils.SmartUnicode(token and token.supervisor and
                                          " (supervisor)" or ""),
-                      utils.SmartUnicode(args), utils.SmartUnicode(kwargs),
+                      utils.SmartUnicode(args),
+                      utils.SmartUnicode(kwargs),
                       utils.SmartUnicode(token and token.reason))
 
         return result
@@ -64,7 +65,8 @@ class LoggedACL(object):
                       utils.SmartUnicode(token and token.username),
                       utils.SmartUnicode(token and token.supervisor and
                                          " (supervisor)" or ""),
-                      utils.SmartUnicode(args), utils.SmartUnicode(kwargs),
+                      utils.SmartUnicode(args),
+                      utils.SmartUnicode(kwargs),
                       utils.SmartUnicode(token and token.reason))
 
         raise

@@ -436,21 +436,23 @@ class Context(Operator):
     return False
 
 
-OP2FN = {"equals": Equals,
-         "is": Equals,
-         "==": Equals,
-         "notequals": NotEquals,
-         "isnot": NotEquals,
-         "!=": NotEquals,
-         "contains": Contains,
-         "notcontains": NotContains,
-         ">": Greater,
-         ">=": GreaterEqual,
-         "<": Less,
-         "<=": LessEqual,
-         "inset": InSet,
-         "notinset": NotInSet,
-         "regexp": Regexp}
+OP2FN = {
+    "equals": Equals,
+    "is": Equals,
+    "==": Equals,
+    "notequals": NotEquals,
+    "isnot": NotEquals,
+    "!=": NotEquals,
+    "contains": Contains,
+    "notcontains": NotContains,
+    ">": Greater,
+    ">=": GreaterEqual,
+    "<": Less,
+    "<=": LessEqual,
+    "inset": InSet,
+    "notinset": NotInSet,
+    "regexp": Regexp
+}
 
 
 class ValueExpander(object):
@@ -848,11 +850,13 @@ class BaseFilterImplementation(object):
   """
 
   OPS = OP2FN
-  FILTERS = {"ValueExpander": AttributeValueExpander,
-             "AndFilter": AndFilter,
-             "OrFilter": OrFilter,
-             "IdentityFilter": IdentityFilter,
-             "Context": Context}
+  FILTERS = {
+      "ValueExpander": AttributeValueExpander,
+      "AndFilter": AndFilter,
+      "OrFilter": OrFilter,
+      "IdentityFilter": IdentityFilter,
+      "Context": Context
+  }
 
 
 class LowercaseAttributeFilterImplementation(BaseFilterImplementation):

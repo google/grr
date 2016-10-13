@@ -174,8 +174,10 @@ def LogInit():
 
   # The root logger.
   logger = logging.getLogger()
-  memory_handlers = [m for m in logger.handlers
-                     if m.__class__.__name__ == "PreLoggingMemoryHandler"]
+  memory_handlers = [
+      m for m in logger.handlers
+      if m.__class__.__name__ == "PreLoggingMemoryHandler"
+  ]
 
   # Clear all handers.
   logger.handlers = list(GetLogHandlers())

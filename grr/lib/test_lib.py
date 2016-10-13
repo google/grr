@@ -452,7 +452,8 @@ class GRRBaseTest(unittest.TestCase):
     self.mail_stubber.Start()
 
     self.nanny_stubber = utils.Stubber(
-        client_utils_linux.NannyController, "StartNanny",
+        client_utils_linux.NannyController,
+        "StartNanny",
         lambda unresponsive_kill_period=None, nanny_logfile=None: True)
     self.nanny_stubber.Start()
 
@@ -1524,8 +1525,9 @@ class MicroBenchmarks(GRRBaseTest):
     self.scratchpad_fmt = " ".join([("{%d:%s}" % (ind, x))
                                     for ind, x in enumerate(initial_fmt)])
     # We use this to store temporary benchmark results.
-    self.scratchpad = [scratchpad_fields, ["-" * len(x)
-                                           for x in scratchpad_fields]]
+    self.scratchpad = [
+        scratchpad_fields, ["-" * len(x) for x in scratchpad_fields]
+    ]
 
   def tearDown(self):
     super(MicroBenchmarks, self).tearDown()
@@ -2711,6 +2713,7 @@ class OSSpecificClientTests(EmptyActionTest):
 
 def WriteComponent(name="grr-rekall",
                    version="0.4",
+                   build_system=None,
                    modules=None,
                    token=None,
                    raw_data=""):
@@ -2723,14 +2726,18 @@ def WriteComponent(name="grr-rekall",
     modules = [components_base + "grr_rekall"]
   result = rdf_client.ClientComponent(raw_data=raw_data)
 
-  # libc_ver is broken so we need to work around it. It assumes that
-  # there is always a sys.executable and just raises if there
-  # isn't. For some environments this assumption is not true at all so
-  # we just make it return a "sane" value in tests. In the end, this
-  # function scans the interpreter binary for some magic regex so it
-  # would be best not to use it at all.
-  with utils.Stubber(platform, "libc_ver", lambda: ("glibc", "2.3")):
-    result.build_system = result.build_system.FromCurrentSystem()
+  if build_system:
+    result.build_system = build_system
+  else:
+    # libc_ver is broken so we need to work around it. It assumes that
+    # there is always a sys.executable and just raises if there
+    # isn't. For some environments this assumption is not true at all so
+    # we just make it return a "sane" value in tests. In the end, this
+    # function scans the interpreter binary for some magic regex so it
+    # would be best not to use it at all.
+    with utils.Stubber(platform, "libc_ver", lambda: ("glibc", "2.3")):
+      result.build_system = result.build_system.FromCurrentSystem()
+
   result.summary.modules = modules
   result.summary.name = name
   result.summary.version = version

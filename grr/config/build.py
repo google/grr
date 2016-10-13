@@ -456,9 +456,11 @@ config_lib.DEFINE_string(
 config_lib.DEFINE_multichoice(
     name="ClientBuilder.target_platforms",
     default=[],
-    choices=["darwin_amd64_dmg", "linux_amd64_deb", "linux_i386_deb",
-             "linux_amd64_rpm", "linux_i386_rpm", "windows_amd64_exe",
-             "windows_i386_exe"],
+    choices=[
+        "darwin_amd64_dmg", "linux_amd64_deb", "linux_i386_deb",
+        "linux_amd64_rpm", "linux_i386_rpm", "windows_amd64_exe",
+        "windows_i386_exe"
+    ],
     help="Platforms that will be built by client_build buildandrepack")
 
 config_lib.DEFINE_list(

@@ -50,10 +50,15 @@ DebugRequestsViewController.prototype.onClientIdChange_ = function(clientId) {
 
   if (angular.isDefined(this.clientId)) {
     var url = 'clients/' + this.clientId + '/action-requests';
-    this.grrApiService_.get(url, {'fetch_responses': 1}).then(
-        function(response) {
-          this.actionRequests = response['data']['items'];
-        }.bind(this));
+    var fetchResponses = 1;
+    if (angular.isDefined(this.scope_['fetchResponses'])) {
+      fetchResponses = this.scope_['fetchResponses'];
+    }
+    this.grrApiService_.get(
+        url, {'fetch_responses': fetchResponses}).then(
+            function(response) {
+              this.actionRequests = response['data']['items'] || [];
+            }.bind(this));
   }
 };
 
@@ -64,7 +69,9 @@ DebugRequestsViewController.prototype.onClientIdChange_ = function(clientId) {
  */
 grrUi.client.debugRequestsViewDirective.DebugRequestsViewDirective = function() {
   return {
-    scope: {},
+    scope: {
+      fetchResponses: '='
+    },
     restrict: 'E',
     templateUrl: '/static/angular-components/client/debug-requests-view.html',
     controller: DebugRequestsViewController,

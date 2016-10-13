@@ -421,8 +421,9 @@ class ApiCreateClientApprovalHandlerTest(test_lib.GRRBaseTest,
     self.handler.Handle(self.args, self.token)
     flows = aff4.FACTORY.Open(
         self.subject_urn.Add("flows"), token=self.token).OpenChildren()
-    keep_alive_flow = [f for f in flows
-                       if f.__class__ == administrative.KeepAlive]
+    keep_alive_flow = [
+        f for f in flows if f.__class__ == administrative.KeepAlive
+    ]
     self.assertEqual(len(keep_alive_flow), 1)
 
 
@@ -457,12 +458,13 @@ class ApiCreateClientApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "POST",
-          "/api/users/me/approvals/client/%s" % client_id.Basename(),
-          {"approval": {
-              "reason": "really important reason!",
-              "notified_users": ["approver1", "approver2"],
-              "email_cc_addresses": ["test@example.com"]
-          }},
+          "/api/users/me/approvals/client/%s" % client_id.Basename(), {
+              "approval": {
+                  "reason": "really important reason!",
+                  "notified_users": ["approver1", "approver2"],
+                  "email_cc_addresses": ["test@example.com"]
+              }
+          },
           replace=ReplaceApprovalId)
 
 
@@ -643,13 +645,17 @@ class ApiListClientApprovalsHandlerRegressionTest(
       self.Check(
           "GET",
           "/api/users/me/approvals/client",
-          replace={approval1_id: "approval:111111",
-                   approval2_id: "approval:222222"})
+          replace={
+              approval1_id: "approval:111111",
+              approval2_id: "approval:222222"
+          })
       self.Check(
           "GET",
           "/api/users/me/approvals/client/%s" % (clients[0].Basename()),
-          replace={approval1_id: "approval:111111",
-                   approval2_id: "approval:222222"})
+          replace={
+              approval1_id: "approval:111111",
+              approval2_id: "approval:222222"
+          })
 
 
 class ApiGetHuntApprovalHandlerRegressionTest(
@@ -804,11 +810,13 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "POST",
-          "/api/users/me/approvals/hunt/%s" % hunt_id, {"approval": {
-              "reason": "really important reason!",
-              "notified_users": ["approver1", "approver2"],
-              "email_cc_addresses": ["test@example.com"]
-          }},
+          "/api/users/me/approvals/hunt/%s" % hunt_id, {
+              "approval": {
+                  "reason": "really important reason!",
+                  "notified_users": ["approver1", "approver2"],
+                  "email_cc_addresses": ["test@example.com"]
+              }
+          },
           replace=ReplaceHuntAndApprovalIds)
 
 
@@ -865,8 +873,10 @@ class ApiListHuntApprovalsHandlerRegressionTest(
       self.Check(
           "GET",
           "/api/users/me/approvals/hunt",
-          replace={hunt.urn.Basename(): "H:123456",
-                   approval_id: "approval:112233"})
+          replace={
+              hunt.urn.Basename(): "H:123456",
+              approval_id: "approval:112233"
+          })
 
 
 class ApiGetCronJobApprovalHandlerRegressionTest(
@@ -924,14 +934,18 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
           "GET",
           "/api/users/test/approvals/cron-job/%s/%s" %
           (cron1_urn.Basename(), approval1_id),
-          replace={cron1_urn.Basename(): "CronJob_123456",
-                   approval1_id: "approval:111111"})
+          replace={
+              cron1_urn.Basename(): "CronJob_123456",
+              approval1_id: "approval:111111"
+          })
       self.Check(
           "GET",
           "/api/users/test/approvals/cron-job/%s/%s" %
           (cron2_urn.Basename(), approval2_id),
-          replace={cron2_urn.Basename(): "CronJob_567890",
-                   approval2_id: "approval:222222"})
+          replace={
+              cron2_urn.Basename(): "CronJob_567890",
+              approval2_id: "approval:222222"
+          })
 
 
 class ApiGrantCronJobApprovalHandlerRegressionTest(
@@ -968,8 +982,10 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
           "POST",
           "/api/users/requestor/approvals/cron-job/%s/%s/actions/grant" %
           (cron_urn.Basename(), approval_id),
-          replace={cron_urn.Basename(): "CronJob_123456",
-                   approval_id: "approval:111111"})
+          replace={
+              cron_urn.Basename(): "CronJob_123456",
+              approval_id: "approval:111111"
+          })
 
 
 class ApiCreateCronJobApprovalHandlerTest(test_lib.GRRBaseTest,
@@ -1022,17 +1038,21 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
                   self.token.username),
               token=self.token))
 
-      return {approvals[0].Basename(): "approval:112233",
-              cron_id: "CronJob_123456"}
+      return {
+          approvals[0].Basename(): "approval:112233",
+          cron_id: "CronJob_123456"
+      }
 
     with test_lib.FakeTime(126):
       self.Check(
           "POST",
-          "/api/users/me/approvals/cron-job/%s" % cron_id, {"approval": {
-              "reason": "really important reason!",
-              "notified_users": ["approver1", "approver2"],
-              "email_cc_addresses": ["test@example.com"]
-          }},
+          "/api/users/me/approvals/cron-job/%s" % cron_id, {
+              "approval": {
+                  "reason": "really important reason!",
+                  "notified_users": ["approver1", "approver2"],
+                  "email_cc_addresses": ["test@example.com"]
+              }
+          },
           replace=ReplaceCronAndApprovalIds)
 
 
@@ -1392,8 +1412,10 @@ class ApiListPendingGlobalNotificationsHandlerRegressionTest(
               link="http://www.google.com",
               show_from=self.TIME_TOO_EARLY))
 
-    replace = {("%d" % self.TIME_0.AsMicroSecondsFromEpoch()): "0",
-               ("%d" % self.TIME_1.AsMicroSecondsFromEpoch()): "0"}
+    replace = {
+        ("%d" % self.TIME_0.AsMicroSecondsFromEpoch()): "0",
+        ("%d" % self.TIME_1.AsMicroSecondsFromEpoch()): "0"
+    }
 
     self.Check(
         "GET", "/api/users/me/notifications/pending/global", replace=replace)

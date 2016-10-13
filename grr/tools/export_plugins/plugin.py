@@ -119,8 +119,8 @@ class OutputPluginBasedExportPlugin(ExportPlugin):
     args = dict()
     for type_descriptor in value_class.type_infos:
       if (not type_descriptor.hidden and type_descriptor.name in parsed_args and
-          type_descriptor.proto_type_name in ["string", "bool", "uint64",
-                                              "float"]):
+          type_descriptor.proto_type_name in
+          ["string", "bool", "uint64", "float"]):
         args[type_descriptor.name] = getattr(parsed_args, type_descriptor.name)
     return value_class(**args)
 

@@ -166,9 +166,11 @@ class TestExports(test_lib.FlowTestsBaseclass):
       symlinks = os.listdir(os.path.join(tmpdir, "files"))
       self.assertEqual(len(symlinks), 3)
       self.assertListEqual(
-          sorted(symlinks), ["C.1000000000000000_fs_os_testfile1",
-                             "C.1000000000000000_fs_os_testfile2",
-                             "C.1000000000000000_fs_os_testfile5"])
+          sorted(symlinks), [
+              "C.1000000000000000_fs_os_testfile1",
+              "C.1000000000000000_fs_os_testfile2",
+              "C.1000000000000000_fs_os_testfile5"
+          ])
       self.assertEqual(
           os.readlink(
               os.path.join(tmpdir, "files",

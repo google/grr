@@ -186,8 +186,9 @@ class MultiTypeCollection(aff4.AFF4Object):
         **kwargs)
 
   def __iter__(self):
-    sub_collection_urns = [self.urn.Add(stored_type)
-                           for stored_type in self.ListStoredTypes()]
+    sub_collection_urns = [
+        self.urn.Add(stored_type) for stored_type in self.ListStoredTypes()
+    ]
     for sub_collection_urn in sub_collection_urns:
       sub_collection = aff4.FACTORY.Create(
           sub_collection_urn,
@@ -198,8 +199,9 @@ class MultiTypeCollection(aff4.AFF4Object):
 
   def __len__(self):
     l = 0
-    sub_collection_urns = [self.urn.Add(stored_type)
-                           for stored_type in self.ListStoredTypes()]
+    sub_collection_urns = [
+        self.urn.Add(stored_type) for stored_type in self.ListStoredTypes()
+    ]
     for sub_collection_urn in sub_collection_urns:
       sub_collection = aff4.FACTORY.Create(
           sub_collection_urn,

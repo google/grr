@@ -137,10 +137,11 @@ class WindowsInstaller(installer.Installer):
   pre = ["CopyToSystemDir", "UpdateClients"]
 
   # These options will be copied to the registry to configure the nanny service.
-  nanny_options = ("Nanny.child_binary",
-                   "Nanny.child_command_line",
-                   "Nanny.service_name",
-                   "Nanny.service_description",)
+  nanny_options = (
+      "Nanny.child_binary",
+      "Nanny.child_command_line",
+      "Nanny.service_name",
+      "Nanny.service_description",)
 
   def InstallNanny(self):
     """Install the nanny program."""
@@ -154,8 +155,10 @@ class WindowsInstaller(installer.Installer):
 
     new_config.Write()
 
-    args = [config_lib.CONFIG["Nanny.binary"], "--service_key",
-            config_lib.CONFIG["Nanny.service_key"], "install"]
+    args = [
+        config_lib.CONFIG["Nanny.binary"], "--service_key",
+        config_lib.CONFIG["Nanny.service_key"], "install"
+    ]
 
     logging.debug("Calling %s", (args,))
     output = subprocess.check_output(

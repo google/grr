@@ -72,8 +72,10 @@ class ApiListApiMethodsHandlerTest(test_lib.GRRBaseTest):
   def testRendersMethodWithArgsCorrectly(self):
     result = self.handler.Handle(None, token=self.token)
 
-    method = [item for item in result.items
-              if item.name == "SomeRandomMethodWithArgsType"][0]
+    method = [
+        item for item in result.items
+        if item.name == "SomeRandomMethodWithArgsType"
+    ][0]
     self.assertEqual(method.doc, "Doc 1.")
 
     self.assertEqual(method.args_type_descriptor.name, "SampleGetHandlerArgs")
@@ -87,8 +89,10 @@ class ApiListApiMethodsHandlerTest(test_lib.GRRBaseTest):
   def testRendersMethodWithResultTypeCorrectly(self):
     result = self.handler.Handle(None, token=self.token)
 
-    method = [item for item in result.items
-              if item.name == "SomeRandomMethodWithResultType"][0]
+    method = [
+        item for item in result.items
+        if item.name == "SomeRandomMethodWithResultType"
+    ][0]
     self.assertEqual(method.doc, "Doc 2.")
 
     self.assertFalse(method.HasField("args_type"))
@@ -102,8 +106,10 @@ class ApiListApiMethodsHandlerTest(test_lib.GRRBaseTest):
   def testRendersMethodWithArgsTypeAndResultTypeCorrectly(self):
     result = self.handler.Handle(None, token=self.token)
 
-    method = [item for item in result.items
-              if item.name == "SomeRandomMethodWithArgsTypeAndResultType"][0]
+    method = [
+        item for item in result.items
+        if item.name == "SomeRandomMethodWithArgsTypeAndResultType"
+    ][0]
     self.assertEqual(method.doc, "Doc 3.")
 
     self.assertEqual(method.args_type_descriptor.name, "SampleGetHandlerArgs")

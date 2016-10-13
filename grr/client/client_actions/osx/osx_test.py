@@ -24,12 +24,15 @@ class OSXClientTests(test_lib.OSSpecificClientTests):
     modules = {
         # Necessary to stop the import of client.osx.installers registering the
         # actions.ActionPlugin.classes
-        "grr.client.osx": mock.MagicMock(),
-        "grr.client.osx.objc": mock.MagicMock(),
+        "grr.client.osx":
+            mock.MagicMock(),
+        "grr.client.osx.objc":
+            mock.MagicMock(),
         # Necessary to stop the import of client_actions.standard re-populating
         # actions.ActionPlugin.classes
         ("grr.client.client_actions"
-         ".standard"): mock.MagicMock(),
+         ".standard"):
+             mock.MagicMock(),
     }
 
     self.module_patcher = mock.patch.dict("sys.modules", modules)

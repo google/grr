@@ -71,20 +71,20 @@ class OSXLaunchdPlistParser(parsers.FileParser):
     kwargs = {}
     kwargs["aff4path"] = statentry.aff4path
 
-    direct_copy_items = ["Label", "Disabled", "UserName", "GroupName",
-                         "Program", "StandardInPath", "StandardOutPath",
-                         "StandardErrorPath", "LimitLoadToSessionType",
-                         "EnableGlobbing", "EnableTransactions", "OnDemand",
-                         "RunAtLoad", "RootDirectory", "WorkingDirectory",
-                         "Umask", "TimeOut", "ExitTimeOut", "ThrottleInterval",
-                         "InitGroups", "StartOnMount", "StartInterval", "Debug",
-                         "WaitForDebugger", "Nice", "ProcessType",
-                         "AbandonProcessGroup", "LowPriorityIO",
-                         "LaunchOnlyOnce"]
+    direct_copy_items = [
+        "Label", "Disabled", "UserName", "GroupName", "Program",
+        "StandardInPath", "StandardOutPath", "StandardErrorPath",
+        "LimitLoadToSessionType", "EnableGlobbing", "EnableTransactions",
+        "OnDemand", "RunAtLoad", "RootDirectory", "WorkingDirectory", "Umask",
+        "TimeOut", "ExitTimeOut", "ThrottleInterval", "InitGroups",
+        "StartOnMount", "StartInterval", "Debug", "WaitForDebugger", "Nice",
+        "ProcessType", "AbandonProcessGroup", "LowPriorityIO", "LaunchOnlyOnce"
+    ]
 
-    string_array_items = ["LimitLoadToHosts", "LimitLoadFromHosts",
-                          "LimitLoadToSessionType", "ProgramArguments",
-                          "WatchPaths", "QueueDirectories"]
+    string_array_items = [
+        "LimitLoadToHosts", "LimitLoadFromHosts", "LimitLoadToSessionType",
+        "ProgramArguments", "WatchPaths", "QueueDirectories"
+    ]
 
     flag_only_items = ["SoftResourceLimits", "HardResourceLimits", "Sockets"]
 

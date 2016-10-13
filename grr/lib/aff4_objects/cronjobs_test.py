@@ -265,8 +265,9 @@ class CronTest(test_lib.AFF4ObjectTest):
     with test_lib.FakeTime(100):
       now = rdfvalue.RDFDatetime.Now()
       cronjobs.ScheduleSystemCronFlows(
-          names=[DummySystemCronJob.__name__,
-                 DummySystemCronJobStartNow.__name__],
+          names=[
+              DummySystemCronJob.__name__, DummySystemCronJobStartNow.__name__
+          ],
           token=self.token)
       random_time = "aff4:/cron/DummySystemCronJob"
       no_random_time = "aff4:/cron/DummySystemCronJobStartNow"
@@ -670,8 +671,9 @@ class CronTest(test_lib.AFF4ObjectTest):
         names=[DummyDisabledSystemCronJob.__name__], token=self.token)
 
     jobs = cronjobs.CRON_MANAGER.ListJobs(token=self.token)
-    dummy_jobs = [j for j in jobs
-                  if j.Basename() == "DummyDisabledSystemCronJob"]
+    dummy_jobs = [
+        j for j in jobs if j.Basename() == "DummyDisabledSystemCronJob"
+    ]
     self.assertTrue(dummy_jobs)
 
     # System cron job should be enabled by default.

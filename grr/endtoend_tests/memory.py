@@ -110,8 +110,9 @@ class TestAnalyzeClientMemoryMac(AbstractTestAnalyzeClientMemory,
     binary_name = config_lib.CONFIG.Get(
         "Client.binary_name", context=["Client Context", "Platform:Darwin"])
     self.assertTrue(
-        any([binary_name in response.json_messages for response in
-             self.responses]))
+        any([
+            binary_name in response.json_messages for response in self.responses
+        ]))
 
 
 class TestAnalyzeClientMemoryLinux(AbstractTestAnalyzeClientMemory):
@@ -227,8 +228,10 @@ class TestSigScan(AbstractTestAnalyzeClientMemoryWindows):
   def CheckFlow(self):
     super(TestSigScan, self).CheckFlow()
     self.assertTrue(
-        any(["Hit in kernel AS:" in response.json_messages
-             for response in self.responses]))
+        any([
+            "Hit in kernel AS:" in response.json_messages
+            for response in self.responses
+        ]))
 
 
 class TestYarascanExists(AbstractTestAnalyzeClientMemory):

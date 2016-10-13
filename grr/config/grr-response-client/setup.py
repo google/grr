@@ -79,8 +79,7 @@ setup_args = dict(
     # Once there is a new release of pyinstaller we can get rid of this.
     install_requires=[
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
-    ] + (["pyinstaller==3.2"] if (platform.system() != "Windows") else [
-        "pyinstaller==3.1.1"
-    ]),)
+    ] + (["pyinstaller==3.2"] if
+         (platform.system() != "Windows") else ["pyinstaller==3.1.1"]),)
 
 setup(**setup_args)

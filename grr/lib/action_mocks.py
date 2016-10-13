@@ -186,13 +186,15 @@ class InterrogatedClient(ActionMock):
 
   def GetPlatformInfo(self, _):
     self.response_count += 1
-    return [rdf_client.Uname(
-        system=self.system,
-        node="test_node",
-        release="5",
-        version=self.version,
-        kernel=self.kernel,
-        machine="i386")]
+    return [
+        rdf_client.Uname(
+            system=self.system,
+            node="test_node",
+            release="5",
+            version=self.version,
+            kernel=self.kernel,
+            machine="i386")
+    ]
 
   def GetInstallDate(self, _):
     self.response_count += 1
@@ -200,14 +202,17 @@ class InterrogatedClient(ActionMock):
 
   def EnumerateInterfaces(self, _):
     self.response_count += 1
-    return [rdf_client.Interface(
-        mac_address="123456",
-        addresses=[
-            rdf_client.NetworkAddress(
-                address_type=rdf_client.NetworkAddress.Family.INET,
-                human_readable="100.100.100.1",
-                packed_bytes=socket.inet_pton(socket.AF_INET, "100.100.100.1"),)
-        ])]
+    return [
+        rdf_client.Interface(
+            mac_address="123456",
+            addresses=[
+                rdf_client.NetworkAddress(
+                    address_type=rdf_client.NetworkAddress.Family.INET,
+                    human_readable="100.100.100.1",
+                    packed_bytes=socket.inet_pton(socket.AF_INET,
+                                                  "100.100.100.1"),)
+            ])
+    ]
 
   def EnumerateFilesystems(self, _):
     self.response_count += 1
@@ -215,11 +220,13 @@ class InterrogatedClient(ActionMock):
 
   def GetClientInfo(self, _):
     self.response_count += 1
-    return [rdf_client.ClientInformation(
-        client_name=config_lib.CONFIG["Client.name"],
-        client_version=int(config_lib.CONFIG["Source.version_numeric"]),
-        build_time=config_lib.CONFIG["Client.build_time"],
-        labels=["GRRLabel1", "Label2"],)]
+    return [
+        rdf_client.ClientInformation(
+            client_name=config_lib.CONFIG["Client.name"],
+            client_version=int(config_lib.CONFIG["Source.version_numeric"]),
+            build_time=config_lib.CONFIG["Client.build_time"],
+            labels=["GRRLabel1", "Label2"],)
+    ]
 
   def GetUserInfo(self, user):
     self.response_count += 1
@@ -229,10 +236,12 @@ class InterrogatedClient(ActionMock):
 
   def GetConfiguration(self, _):
     self.response_count += 1
-    return [rdf_protodict.Dict({
-        "Client.server_urls": ["http://localhost:8001/"],
-        "Client.poll_min": 1.0
-    })]
+    return [
+        rdf_protodict.Dict({
+            "Client.server_urls": ["http://localhost:8001/"],
+            "Client.poll_min": 1.0
+        })
+    ]
 
   def WmiQuery(self, query):
     if query.query == u"SELECT * FROM Win32_LogicalDisk":

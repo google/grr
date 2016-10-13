@@ -23,9 +23,8 @@ def MakeCASignedCert(common_name,
 
   builder = builder.issuer_name(ca_cert.GetIssuer())
 
-  subject = x509.Name([
-      x509.NameAttribute(oid.NameOID.COMMON_NAME, common_name)
-  ])
+  subject = x509.Name(
+      [x509.NameAttribute(oid.NameOID.COMMON_NAME, common_name)])
   builder = builder.subject_name(subject)
 
   valid_from = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("1d")
@@ -69,9 +68,8 @@ def MakeCACert(private_key,
       x509.NameAttribute(oid.NameOID.COMMON_NAME, issuer_cn),
       x509.NameAttribute(oid.NameOID.COUNTRY_NAME, issuer_c)
   ])
-  subject = x509.Name([
-      x509.NameAttribute(oid.NameOID.COMMON_NAME, common_name)
-  ])
+  subject = x509.Name(
+      [x509.NameAttribute(oid.NameOID.COMMON_NAME, common_name)])
   builder = builder.subject_name(subject)
   builder = builder.issuer_name(issuer)
 

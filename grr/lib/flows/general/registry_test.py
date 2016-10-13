@@ -39,13 +39,16 @@ class TestRegistryFinderFlow(RegistryFlowTest):
 
   def RunFlow(self, keys_paths=None, conditions=None):
     if keys_paths is None:
-      keys_paths = ["HKEY_USERS/S-1-5-20/Software/Microsoft/"
-                    "Windows/CurrentVersion/Run/*"]
+      keys_paths = [
+          "HKEY_USERS/S-1-5-20/Software/Microsoft/"
+          "Windows/CurrentVersion/Run/*"
+      ]
     if conditions is None:
       conditions = []
 
-    client_mock = action_mocks.ActionMock(searching.Find,
-                                          searching.Grep,)
+    client_mock = action_mocks.ActionMock(
+        searching.Find,
+        searching.Grep,)
 
     for s in test_lib.TestFlowHelper(
         "RegistryFinder",
@@ -73,37 +76,43 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     return list(fd)
 
   def testFindsNothingIfNothingMatchesTheGlob(self):
-    session_id = self.RunFlow(["HKEY_USERS/S-1-5-20/Software/Microsoft/"
-                               "Windows/CurrentVersion/Run/NonMatch*"])
+    session_id = self.RunFlow([
+        "HKEY_USERS/S-1-5-20/Software/Microsoft/"
+        "Windows/CurrentVersion/Run/NonMatch*"
+    ])
     self.AssertNoResults(session_id)
 
   def testFindsKeysWithSingleGlobWithoutConditions(self):
-    session_id = self.RunFlow(["HKEY_USERS/S-1-5-20/Software/Microsoft/"
-                               "Windows/CurrentVersion/Run/*"])
+    session_id = self.RunFlow([
+        "HKEY_USERS/S-1-5-20/Software/Microsoft/"
+        "Windows/CurrentVersion/Run/*"
+    ])
 
     results = self.GetResults(session_id)
     self.assertEqual(len(results), 2)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
-    self.assertTrue([r for r in results
-                     if r.stat_entry.aff4path.Basename() == "Sidebar"])
-    self.assertTrue([r for r in results
-                     if r.stat_entry.aff4path.Basename() == "MctAdmin"])
+    self.assertTrue(
+        [r for r in results if r.stat_entry.aff4path.Basename() == "Sidebar"])
+    self.assertTrue(
+        [r for r in results if r.stat_entry.aff4path.Basename() == "MctAdmin"])
 
   def testFindsKeysWithTwoGlobsWithoutConditions(self):
-    session_id = self.RunFlow(["HKEY_USERS/S-1-5-20/Software/Microsoft/"
-                               "Windows/CurrentVersion/Run/Side*",
-                               "HKEY_USERS/S-1-5-20/Software/Microsoft/"
-                               "Windows/CurrentVersion/Run/Mct*"])
+    session_id = self.RunFlow([
+        "HKEY_USERS/S-1-5-20/Software/Microsoft/"
+        "Windows/CurrentVersion/Run/Side*",
+        "HKEY_USERS/S-1-5-20/Software/Microsoft/"
+        "Windows/CurrentVersion/Run/Mct*"
+    ])
 
     results = self.GetResults(session_id)
     self.assertEqual(len(results), 2)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
-    self.assertTrue([r for r in results
-                     if r.stat_entry.aff4path.Basename() == "Sidebar"])
-    self.assertTrue([r for r in results
-                     if r.stat_entry.aff4path.Basename() == "MctAdmin"])
+    self.assertTrue(
+        [r for r in results if r.stat_entry.aff4path.Basename() == "Sidebar"])
+    self.assertTrue(
+        [r for r in results if r.stat_entry.aff4path.Basename() == "MctAdmin"])
 
   def testFindsKeyWithInterpolatedGlobWithoutConditions(self):
     # Initialize client's knowledge base in order for the interpolation
@@ -115,9 +124,10 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         self.client_id, mode="rw", token=self.token) as client:
       client.Set(client.Schema.KNOWLEDGE_BASE, kb)
 
-    session_id = self.RunFlow(
-        ["HKEY_USERS/%%users.sid%%/Software/Microsoft/Windows/"
-         "CurrentVersion/*"])
+    session_id = self.RunFlow([
+        "HKEY_USERS/%%users.sid%%/Software/Microsoft/Windows/"
+        "CurrentVersion/*"
+    ])
 
     results = self.GetResults(session_id)
     self.assertEqual(len(results), 1)
@@ -136,11 +146,14 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         bytes_before=10, bytes_after=10, literal="CanNotFindMe")
 
     session_id = self.RunFlow(
-        ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            VALUE_LITERAL_MATCH,
-            value_literal_match=value_literal_match)])
+        [
+            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
+        ], [
+            registry.RegistryFinderCondition(
+                condition_type=registry.RegistryFinderCondition.Type.
+                VALUE_LITERAL_MATCH,
+                value_literal_match=value_literal_match)
+        ])
     self.AssertNoResults(session_id)
 
   def testFindsKeyIfItMatchesLiteralMatchCondition(self):
@@ -148,11 +161,14 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         bytes_before=10, bytes_after=10, literal="Windows Sidebar\\Sidebar.exe")
 
     session_id = self.RunFlow(
-        ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            VALUE_LITERAL_MATCH,
-            value_literal_match=value_literal_match)])
+        [
+            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
+        ], [
+            registry.RegistryFinderCondition(
+                condition_type=registry.RegistryFinderCondition.Type.
+                VALUE_LITERAL_MATCH,
+                value_literal_match=value_literal_match)
+        ])
 
     results = self.GetResults(session_id)
     self.assertEqual(len(results), 1)
@@ -176,11 +192,14 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         bytes_before=10, bytes_after=10, regex=".*CanNotFindMe.*")
 
     session_id = self.RunFlow(
-        ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            VALUE_REGEX_MATCH,
-            value_regex_match=value_regex_match)])
+        [
+            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
+        ], [
+            registry.RegistryFinderCondition(
+                condition_type=registry.RegistryFinderCondition.Type.
+                VALUE_REGEX_MATCH,
+                value_regex_match=value_regex_match)
+        ])
     self.AssertNoResults(session_id)
 
   def testFindsKeyIfItMatchesRegexMatchCondition(self):
@@ -188,11 +207,14 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         bytes_before=10, bytes_after=10, regex="Windows.+\\.exe")
 
     session_id = self.RunFlow(
-        ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            VALUE_REGEX_MATCH,
-            value_regex_match=value_regex_match)])
+        [
+            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
+        ], [
+            registry.RegistryFinderCondition(
+                condition_type=registry.RegistryFinderCondition.Type.
+                VALUE_REGEX_MATCH,
+                value_regex_match=value_regex_match)
+        ])
 
     results = self.GetResults(session_id)
     self.assertEqual(len(results), 1)
@@ -217,11 +239,14 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         max_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
 
     session_id = self.RunFlow(
-        ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            MODIFICATION_TIME,
-            modification_time=modification_time)])
+        [
+            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
+        ], [
+            registry.RegistryFinderCondition(
+                condition_type=registry.RegistryFinderCondition.Type.
+                MODIFICATION_TIME,
+                modification_time=modification_time)
+        ])
     self.AssertNoResults(session_id)
 
   def testFindsKeysIfModificationTimeConditionMatches(self):
@@ -232,20 +257,23 @@ class TestRegistryFinderFlow(RegistryFlowTest):
             1247546054 + 1))
 
     session_id = self.RunFlow(
-        ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            MODIFICATION_TIME,
-            modification_time=modification_time)])
+        [
+            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
+        ], [
+            registry.RegistryFinderCondition(
+                condition_type=registry.RegistryFinderCondition.Type.
+                MODIFICATION_TIME,
+                modification_time=modification_time)
+        ])
 
     results = self.GetResults(session_id)
     self.assertEqual(len(results), 2)
     # We expect Sidebar and MctAdmin keys here (see
     # test_data/client_fixture.py).
-    self.assertTrue([r for r in results
-                     if r.stat_entry.aff4path.Basename() == "Sidebar"])
-    self.assertTrue([r for r in results
-                     if r.stat_entry.aff4path.Basename() == "MctAdmin"])
+    self.assertTrue(
+        [r for r in results if r.stat_entry.aff4path.Basename() == "Sidebar"])
+    self.assertTrue(
+        [r for r in results if r.stat_entry.aff4path.Basename() == "MctAdmin"])
 
   def testFindsKeyWithLiteralAndModificationTimeConditions(self):
     modification_time = file_finder.FileFinderModificationTimeCondition(
@@ -258,15 +286,18 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         bytes_before=10, bytes_after=10, literal="Windows Sidebar\\Sidebar.exe")
 
     session_id = self.RunFlow(
-        ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.
-            MODIFICATION_TIME,
-            modification_time=modification_time),
-         registry.RegistryFinderCondition(
-             condition_type=registry.RegistryFinderCondition.Type.
-             VALUE_LITERAL_MATCH,
-             value_literal_match=value_literal_match)])
+        [
+            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
+        ], [
+            registry.RegistryFinderCondition(
+                condition_type=registry.RegistryFinderCondition.Type.
+                MODIFICATION_TIME,
+                modification_time=modification_time),
+            registry.RegistryFinderCondition(
+                condition_type=registry.RegistryFinderCondition.Type.
+                VALUE_LITERAL_MATCH,
+                value_literal_match=value_literal_match)
+        ])
 
     results = self.GetResults(session_id)
     self.assertEqual(len(results), 1)
@@ -279,10 +310,13 @@ class TestRegistryFinderFlow(RegistryFlowTest):
   def testSizeCondition(self):
     # There are two values, one is 20 bytes, the other 53.
     session_id = self.RunFlow(
-        ["HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"],
-        [registry.RegistryFinderCondition(
-            condition_type=registry.RegistryFinderCondition.Type.SIZE,
-            size=file_finder.FileFinderSizeCondition(min_file_size=50))])
+        [
+            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
+        ], [
+            registry.RegistryFinderCondition(
+                condition_type=registry.RegistryFinderCondition.Type.SIZE,
+                size=file_finder.FileFinderSizeCondition(min_file_size=50))
+        ])
     results = self.GetResults(session_id)
     self.assertEqual(len(results), 1)
     self.assertGreater(results[0].stat_entry.st_size, 50)
@@ -339,9 +373,10 @@ class TestRegistryFlows(RegistryFlowTest):
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                test_lib.FakeFullVFSHandler):
 
-      client_mock = action_mocks.ActionMock(file_fingerprint.FingerprintFile,
-                                            searching.Find,
-                                            standard.StatFile,)
+      client_mock = action_mocks.ActionMock(
+          file_fingerprint.FingerprintFile,
+          searching.Find,
+          standard.StatFile,)
 
       # Get KB initialized
       for _ in test_lib.TestFlowHelper(

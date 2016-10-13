@@ -19,21 +19,28 @@ class BuildTests(test_lib.GRRBaseTest):
 
   def testWriteBuildYaml(self):
     """Test build.yaml is output correctly."""
-    context = ["Target:LinuxDeb", "Platform:Linux", "Target:Linux",
-               "Arch:amd64"]
-    expected = {"Client.build_environment": "cp27-cp27mu-linux_x86_64",
-                "Client.build_time": "2016-05-24 20:04:25",
-                "Template.build_type": "Release",
-                "Template.build_context": ["ClientBuilder Context"] + context,
-                "Template.version_major":
-                    str(config_lib.CONFIG.Get("Source.version_major")),
-                "Template.version_minor":
-                    str(config_lib.CONFIG.Get("Source.version_minor")),
-                "Template.version_revision":
-                    str(config_lib.CONFIG.Get("Source.version_revision")),
-                "Template.version_release":
-                    str(config_lib.CONFIG.Get("Source.version_release")),
-                "Template.arch": u"amd64"}
+    context = [
+        "Target:LinuxDeb", "Platform:Linux", "Target:Linux", "Arch:amd64"
+    ]
+    expected = {
+        "Client.build_environment":
+            "cp27-cp27mu-linux_x86_64",
+        "Client.build_time":
+            "2016-05-24 20:04:25",
+        "Template.build_type":
+            "Release",
+        "Template.build_context": ["ClientBuilder Context"] + context,
+        "Template.version_major":
+            str(config_lib.CONFIG.Get("Source.version_major")),
+        "Template.version_minor":
+            str(config_lib.CONFIG.Get("Source.version_minor")),
+        "Template.version_revision":
+            str(config_lib.CONFIG.Get("Source.version_revision")),
+        "Template.version_release":
+            str(config_lib.CONFIG.Get("Source.version_release")),
+        "Template.arch":
+            u"amd64"
+    }
 
     fd = StringIO.StringIO()
     builder = build.ClientBuilder(context=context)

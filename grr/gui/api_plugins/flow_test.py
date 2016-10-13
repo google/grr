@@ -185,9 +185,7 @@ class ApiGetFlowHandlerRegressionTest(
           "GET",
           "/api/clients/%s/flows/%s" % (client_urn.Basename(),
                                         flow_id.Basename()),
-          replace={
-              flow_id.Basename(): "F:ABCDEF12"
-          })
+          replace={flow_id.Basename(): "F:ABCDEF12"})
 
 
 class ApiListFlowsHandlerRegressionTest(
@@ -297,9 +295,7 @@ class ApiListFlowResultsHandlerRegressionTest(
         "GET",
         "/api/clients/%s/flows/%s/results" % (self.client_id.Basename(),
                                               flow_urn.Basename()),
-        replace={
-            flow_urn.Basename(): "W:ABCDEF"
-        })
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiListFlowLogsHandlerRegressionTest(
@@ -357,9 +353,7 @@ class ApiGetFlowResultsExportCommandHandlerRegressionTest(
         "GET",
         "/api/clients/%s/flows/%s/results/export-command" %
         (self.client_id.Basename(), flow_urn.Basename()),
-        replace={
-            flow_urn.Basename(): "W:ABCDEF"
-        })
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiListFlowOutputPluginsHandlerRegressionTest(
@@ -396,9 +390,7 @@ class ApiListFlowOutputPluginsHandlerRegressionTest(
         "GET",
         "/api/clients/%s/flows/%s/output-plugins" %
         (self.client_id.Basename(), flow_urn.Basename()),
-        replace={
-            flow_urn.Basename(): "W:ABCDEF"
-        })
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class DummyFlowWithSingleReply(flow.GRRFlow):
@@ -452,9 +444,7 @@ class ApiListFlowOutputPluginLogsHandlerRegressionTest(
         "/api/clients/%s/flows/%s/output-plugins/"
         "EmailOutputPlugin_0/logs" % (self.client_id.Basename(),
                                       flow_urn.Basename()),
-        replace={
-            flow_urn.Basename(): "W:ABCDEF"
-        })
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
@@ -494,9 +484,7 @@ class ApiListFlowOutputPluginErrorsHandlerRegressionTest(
         "/api/clients/%s/flows/%s/output-plugins/"
         "FailingDummyHuntOutputPlugin_0/errors" %
         (self.client_id.Basename(), flow_urn.Basename()),
-        replace={
-            flow_urn.Basename(): "W:ABCDEF"
-        })
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiCreateFlowHandlerRegressionTest(
@@ -561,9 +549,7 @@ class ApiCancelFlowHandlerRegressionTest(
         "POST",
         "/api/clients/%s/flows/%s/actions/cancel" %
         (self.client_id.Basename(), flow_urn.Basename()),
-        replace={
-            flow_urn.Basename(): "W:ABCDEF"
-        })
+        replace={flow_urn.Basename(): "W:ABCDEF"})
 
 
 class ApiListFlowDescriptorsHandlerRegressionTest(
@@ -608,10 +594,9 @@ class ApiStartRobotGetFilesOperationHandlerRegressionTest(
     with test_lib.FakeTime(42):
       self.Check(
           "POST",
-          "/api/robot-actions/get-files", {
-              "hostname": self.client_id.Basename(),
-              "paths": ["/tmp/test"]
-          },
+          "/api/robot-actions/get-files",
+          {"hostname": self.client_id.Basename(),
+           "paths": ["/tmp/test"]},
           replace=ReplaceFlowId)
 
 
@@ -742,9 +727,7 @@ class ApiGetRobotGetFilesOperationStateHandlerRegressionTest(
       self.Check(
           "GET",
           "/api/robot-actions/get-files/%s" % start_result.operation_id,
-          replace={
-              flow_urn.Basename(): "F:ABCDEF12"
-          })
+          replace={flow_urn.Basename(): "F:ABCDEF12"})
 
 
 class ApiGetFlowFilesArchiveHandlerTest(test_lib.GRRBaseTest):

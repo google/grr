@@ -122,8 +122,8 @@ class ServerCommunicator(communicator.Communicator):
       # only trigger on messages that are more than one hour old.
 
       if client_time < long(remote_time - rdfvalue.Duration("1h")):
-        logging.warning("Message desynchronized for %s: %s >= %s",
-                        client_id, long(remote_time), int(client_time))
+        logging.warning("Message desynchronized for %s: %s >= %s", client_id,
+                        long(remote_time), int(client_time))
         # This is likely an old message
         return rdf_flows.GrrMessage.AuthorizationState.DESYNCHRONIZED
 
@@ -138,8 +138,8 @@ class ServerCommunicator(communicator.Communicator):
           stats.STATS.IncrementCounter(
               "client_pings_by_label", fields=[label.name])
       else:
-        logging.warning("Out of order message for %s: %s >= %s",
-                        client_id, long(remote_time), int(client_time))
+        logging.warning("Out of order message for %s: %s >= %s", client_id,
+                        long(remote_time), int(client_time))
 
       client.Flush(sync=False)
 
@@ -311,8 +311,8 @@ class FrontEndServer(object):
 
     stats.STATS.IncrementCounter("grr_messages_sent", len(result))
     if result:
-      logging.debug("Drained %d messages for %s in %s seconds.", len(result),
-                    client, time.time() - start_time)
+      logging.debug("Drained %d messages for %s in %s seconds.",
+                    len(result), client, time.time() - start_time)
 
     return result
 
@@ -374,8 +374,8 @@ class FrontEndServer(object):
               events.Events.PublishEvent(
                   "ClientCrash", rdf_flows.GrrMessage(msg), token=self.token)
 
-    logging.debug("Received %s messages in %s sec", len(messages),
-                  time.time() - now)
+    logging.debug("Received %s messages in %s sec",
+                  len(messages), time.time() - now)
 
   def HandleWellKnownFlows(self, messages):
     """Hands off messages to well known flows."""

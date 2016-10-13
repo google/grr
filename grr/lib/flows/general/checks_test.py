@@ -71,8 +71,11 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
           token=self.token):
         pass
     session = aff4.FACTORY.Open(session_id, token=self.token)
-    results = {r.check_id: r
-               for _, r in send_reply.args if isinstance(r, checks.CheckResult)}
+    results = {
+        r.check_id:
+            r
+        for _, r in send_reply.args if isinstance(r, checks.CheckResult)
+    }
     return session, results
 
   def LoadChecks(self):
@@ -114,8 +117,9 @@ class TestCheckFlows(test_lib.FlowTestsBaseclass,
     self.assertCheckDetectedAnom("SSHD-PERMS", results, exp, found)
     # Detected by result_context: ANOMALY
     exp = "Found: Unix system account anomalies."
-    found = ["Accounts with invalid gid.",
-             "Mismatched passwd and shadow files."]
+    found = [
+        "Accounts with invalid gid.", "Mismatched passwd and shadow files."
+    ]
     self.assertCheckDetectedAnom("ODD-PASSWD", results, exp, found)
     # No findings.
     self.assertCheckUndetected("SHADOW-HASH", results)

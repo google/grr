@@ -1,0 +1,29 @@
+<table class="table table-condensed table-hover table-striped"
+       ng-if="controller.binaries.length > 0">
+  <tbody>
+    <tr ng-repeat="binary in ::controller.binaries"
+        ng-click="controller.onBinaryClicked(binary)">
+      <td>
+        <span ng-if="::binary.dirName.length > 0" class="path">
+          <strong>{$ ::binary.dirName $}</strong> / {$ ::binary.baseName $}
+        </span>
+        <span ng-if="::binary.dirName.length === 0" class="path">
+          {$ ::binary.baseName $}
+        </span>
+        <span class="timestamp pull-right">
+          <grr-semantic-value value="::binary.value.timestamp">
+          </grr-semantic-value>
+        </span>
+        <span ng-if="::binary.value.size !== undefined"
+              class="size pull-right">
+          <grr-semantic-value value="::binary.value.size">
+          </grr-semantic-value>
+        </span>
+      </td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="padded" ng-if="controller.binaries.length === 0">
+None.
+</div>

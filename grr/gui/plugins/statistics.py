@@ -10,7 +10,6 @@ from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import stats as aff4_stats
-from grr.lib.rdfvalues import client as rdf_client
 
 
 class ShowStatistics(renderers.Splitter2WayVertical):
@@ -338,139 +337,6 @@ class StatData(object):
     return self.__dict__
 
 
-class AFF4ClientStats(Report):
-  """A renderer for client stats graphs."""
-
-  # This renderer will render ClientStats AFF4 objects.
-  aff4_type = aff4_stats.ClientStats
-
-  layout_template = renderers.Template("""
-<div class="padded">
-{% if this.graphs %}
-
-{% for graph in this.graphs %}
-  <a id="{{unique|escape}}_{{graph.id|escape}}_a"
-     onClick='selectTab("{{graph.id|escape}}");'>{{graph.name|escape}}</a> |
-{% endfor %}
-<br><br>
-<div id="{{unique|escape}}_click"><br></div><br>
-<div id="{{unique|escape}}_graphs" style="height:100%;">
-{% for graph in this.graphs %}
-  <div id="{{unique|escape}}_{{graph.id|escape}}" class="grr_graph"></div>
-{% endfor %}
-</div>
-{% else %}
-  <h3>No data Available</h3>
-{% endif %}
-</div>
-""")
-
-  def __init__(self, fd=None, **kwargs):
-    if fd:
-      self.fd = fd
-    super(AFF4ClientStats, self).__init__(**kwargs)
-
-  def Layout(self, request, response):
-    """This renders graphs for the various client statistics."""
-
-    self.client_id = rdf_client.ClientURN(request.REQ.get("client_id"))
-
-    self.start_time, self.end_time = GetAgeTupleFromRequest(request, 90)
-    fd = aff4.FACTORY.Open(
-        self.client_id.Add("stats"),
-        token=request.token,
-        age=(self.start_time, self.end_time))
-
-    self.graphs = []
-
-    stats = list(fd.GetValuesForAttribute(fd.Schema.STATS))
-
-    # Work out a downsample ratio. Max samples controls samples per graph.
-    max_samples = 500
-
-    if not stats:
-      return super(AFF4ClientStats, self).Layout(request, response)
-
-    # CPU usage graph.
-    series = dict()
-    for stat_entry in stats:
-      for s in stat_entry.cpu_samples:
-        series[int(s.timestamp / 1e3)] = s.cpu_percent
-    graph = StatGraph(
-        name="CPU Usage",
-        graph_id="cpu",
-        click_text="CPU usage on %date: %value")
-    graph.AddSeries(series, "CPU Usage in %", max_samples)
-    self.graphs.append(graph)
-
-    # IO graphs.
-    series = dict()
-    for stat_entry in stats:
-      for s in stat_entry.io_samples:
-        series[int(s.timestamp / 1e3)] = int(s.read_bytes / 1024 / 1024)
-    graph = StatGraph(
-        name="IO Bytes Read",
-        graph_id="io_read",
-        click_text="Number of bytes received (IO) until %date: %value")
-    graph.AddSeries(series, "IO Bytes Read in MB", max_samples)
-    self.graphs.append(graph)
-
-    series = dict()
-    for stat_entry in stats:
-      for s in stat_entry.io_samples:
-        series[int(s.timestamp / 1e3)] = int(s.write_bytes / 1024 / 1024)
-    graph = StatGraph(
-        name="IO Bytes Written",
-        graph_id="io_write",
-        click_text="Number of bytes written (IO) until %date: %value")
-    graph.AddSeries(series, "IO Bytes Written in MB", max_samples)
-    self.graphs.append(graph)
-
-    # Memory usage graph.
-    graph = StatGraph(
-        name="Memory Usage",
-        graph_id="memory",
-        click_text="Memory usage on %date: %value")
-    series = dict()
-    for stat_entry in stats:
-      series[int(stat_entry.age / 1e3)] = int(stat_entry.RSS_size / 1024 / 1024)
-    graph.AddSeries(series, "RSS size in MB", max_samples)
-    series = dict()
-    for stat_entry in stats:
-      series[int(stat_entry.age / 1e3)] = int(stat_entry.VMS_size / 1024 / 1024)
-    graph.AddSeries(series, "VMS size in MB", max_samples)
-    self.graphs.append(graph)
-
-    # Network traffic graphs.
-    graph = StatGraph(
-        name="Network Bytes Received",
-        graph_id="nw_received",
-        click_text="Network bytes received until %date: %value")
-    series = dict()
-    for stat_entry in stats:
-      series[int(stat_entry.age / 1e3)] = int(stat_entry.bytes_received / 1024 /
-                                              1024)
-    graph.AddSeries(series, "Network Bytes Received in MB", max_samples)
-    self.graphs.append(graph)
-
-    graph = StatGraph(
-        name="Network Bytes Sent",
-        graph_id="nw_sent",
-        click_text="Network bytes sent until %date: %value")
-    series = dict()
-    for stat_entry in stats:
-      series[int(stat_entry.age / 1e3)] = int(stat_entry.bytes_sent / 1024 /
-                                              1024)
-    graph.AddSeries(series, "Network Bytes Sent in MB", max_samples)
-    self.graphs.append(graph)
-
-    response = super(AFF4ClientStats, self).Layout(request, response)
-    return self.CallJavascript(
-        response,
-        "AFF4ClientStats.Layout",
-        graphs=[g.ToDict() for g in self.graphs])
-
-
 def GetAgeTupleFromRequest(request, default_days=90):
   """Check the request for start/end times and return aff4 age tuple."""
   now = int(time.time() * 1e6)
@@ -478,12 +344,6 @@ def GetAgeTupleFromRequest(request, default_days=90):
   start_time = int(request.REQ.get("start_time", default_start))
   end_time = int(request.REQ.get("end_time", now))
   return (start_time, end_time)
-
-
-class ClientStatsView(AFF4ClientStats):
-  description = "Client Performance Stats"
-  behaviours = frozenset(["HostAdvanced"])
-  order = 60
 
 
 class CustomXAxisChart(Report):
@@ -503,8 +363,8 @@ class CustomXAxisChart(Report):
       if self.graph:
         for point in self.graph.data:
           self.data.append([[point.x_value, point.y_value]])
-          self.xaxis_ticks.append([point.x_value,
-                                   self.FormatLabel(point.x_value)])
+          self.xaxis_ticks.append(
+              [point.x_value, self.FormatLabel(point.x_value)])
 
     except (IOError, TypeError):
       pass

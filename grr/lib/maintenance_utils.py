@@ -7,6 +7,7 @@ import getpass
 import hashlib
 import os
 import StringIO
+import sys
 import time
 import zipfile
 
@@ -39,6 +40,10 @@ class Error(Exception):
 
 class UserError(Error):
   pass
+
+
+def EPrint(message):
+  sys.stderr.write("%s\n" % message)
 
 
 def UploadSignedConfigBlob(content,
@@ -117,9 +122,10 @@ def CreateBinaryConfigPaths(token=None):
       required_urns.add("aff4:/config/executables/%s/agentupdates" % platform)
       required_urns.add("aff4:/config/executables/%s/installers" % platform)
 
-    existing_urns = [x["urn"]
-                     for x in aff4.FACTORY.Stat(
-                         list(required_urns), token=token)]
+    existing_urns = [
+        x["urn"] for x in aff4.FACTORY.Stat(
+            list(required_urns), token=token)
+    ]
 
     missing_urns = required_urns - set(existing_urns)
 
@@ -187,7 +193,7 @@ def SignComponentContent(component_filename, output_filename):
     RuntimeError: If called for any other OS than windows.
   """
   component = rdf_client.ClientComponent(open(component_filename, "rb").read())
-  print "Opened component %s." % component.summary.name
+  EPrint("Opened component %s." % component.summary.name)
 
   if component.build_system.system == "Windows":
     _SignWindowsComponent(component, output_filename)
@@ -200,14 +206,16 @@ def SignComponentContent(component_filename, output_filename):
 def SignComponent(component_filename, overwrite=False, token=None):
   """Sign and upload the component to the data store."""
 
-  print "Signing and uploading component %s" % component_filename
+  EPrint("Signing and uploading component %s" % component_filename)
   serialized_component = open(component_filename, "rb").read()
   component = rdf_client.ClientComponent.FromSerializedString(
       serialized_component)
-  print "Opened component %s." % component.summary.name
+  EPrint("Opened component %s." % component.summary.name)
 
-  client_context = ["Platform:%s" % component.build_system.system.title(),
-                    "Arch:%s" % component.build_system.arch]
+  client_context = [
+      "Platform:%s" % component.build_system.system.title(),
+      "Arch:%s" % component.build_system.arch
+  ]
 
   sig_key = config_lib.CONFIG.Get("PrivateKeys.executable_signing_private_key",
                                   context=client_context)
@@ -227,7 +235,7 @@ def SignComponent(component_filename, overwrite=False, token=None):
 
   component_summary = component_fd.Get(component_fd.Schema.COMPONENT)
   if overwrite or component_summary is None:
-    print "Storing component summary at %s" % component_urn
+    EPrint("Storing component summary at %s" % component_urn)
 
     component_summary = component.summary
     component_summary.seed = "%x%x" % (time.time(), utils.PRNG.GetULong())
@@ -239,7 +247,7 @@ def SignComponent(component_filename, overwrite=False, token=None):
     component_fd.Close()
 
   else:
-    print "Using seed from stored component summary at %s" % component_urn
+    EPrint("Using seed from stored component summary at %s" % component_urn)
     component.summary.url = component_summary.url
     component.summary.seed = component_summary.seed
 
@@ -251,7 +259,7 @@ def SignComponent(component_filename, overwrite=False, token=None):
       "Client.component_aff4_stem", context=client_context).Add(
           component.summary.seed).Add(component.build_system.signature())
 
-  print "Storing signed component at %s" % aff4_urn
+  EPrint("Storing signed component at %s" % aff4_urn)
   with aff4.FACTORY.Create(aff4_urn, aff4.AFF4MemoryStream, token=token) as fd:
     fd.Write(
         component_summary.cipher.Encrypt(signed_component.SerializeToString()))
@@ -271,7 +279,7 @@ def SignAllComponents(overwrite=False, token=None):
       try:
         SignComponent(component_filename, overwrite=overwrite, token=token)
       except Exception as e:  # pylint: disable=broad-except
-        print "Could not sign component %s: %s" % (component_filename, e)
+        EPrint("Could not sign component %s: %s" % (component_filename, e))
 
 
 def ListComponents(token=None):
@@ -285,7 +293,7 @@ def ListComponents(token=None):
     if not desc:
       continue
 
-    print "* Component %s (version %s)" % (desc.name, desc.version)
+    EPrint("* Component %s (version %s)" % (desc.name, desc.version))
 
     versions = []
     base_urn = "aff4:/web%s" % desc.url
@@ -294,11 +302,11 @@ def ListComponents(token=None):
       versions.append(urn.split("/")[-1])
 
     if not versions:
-      print "No platform signatures available."
+      EPrint("No platform signatures available.")
     else:
-      print "Available platform signatures:"
+      EPrint("Available platform signatures:")
       for v in sorted(versions):
-        print "-", v
+        EPrint("- %s" % v)
 
 
 def ShowUser(username, token=None):
@@ -307,13 +315,13 @@ def ShowUser(username, token=None):
     fd = aff4.FACTORY.Open("aff4:/users", token=token)
     for user in fd.OpenChildren():
       if isinstance(user, users.GRRUser):
-        print user.Describe()
+        EPrint(user.Describe())
   else:
     user = aff4.FACTORY.Open("aff4:/users/%s" % username, token=token)
     if isinstance(user, users.GRRUser):
-      print user.Describe()
+      EPrint(user.Describe())
     else:
-      print "User %s not found" % username
+      EPrint("User %s not found" % username)
 
 
 def AddUser(username, password=None, labels=None, token=None):
@@ -338,7 +346,7 @@ def AddUser(username, password=None, labels=None, token=None):
 
   fd.Close()
 
-  print "Added user %s." % username
+  EPrint("Added user %s." % username)
 
   events.Events.PublishEvent(
       "Audit",
@@ -409,7 +417,7 @@ def UpdateUser(username,
 
   fd.Close()
 
-  print "Updated user %s" % username
+  EPrint("Updated user %s" % username)
 
   ShowUser(username, token=token)
 
@@ -427,11 +435,11 @@ def DeleteUser(username, token=None):
   try:
     aff4.FACTORY.Open(user_urn, users.GRRUser, token=token)
   except aff4.InstantiationError:
-    print "User %s not found." % username
+    EPrint("User %s not found." % username)
     return
 
   aff4.FACTORY.Delete(user_urn, token=token)
-  print "User %s has been deleted." % username
+  EPrint("User %s has been deleted." % username)
 
   events.Events.PublishEvent(
       "Audit",

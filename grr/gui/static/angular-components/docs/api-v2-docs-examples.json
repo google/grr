@@ -777,6 +777,29 @@
       "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/results/export-command"
     }
   ],
+  "ApiGetGrrBinaryHandler": [
+    {
+      "api_method": "GetGrrBinary",
+      "method": "GET",
+      "response": "I'm a python hack",
+      "test_class": "ApiGetGrrBinaryHandlerRegressionTest",
+      "url": "/api/v2/config/binaries/python_hack/test"
+    },
+    {
+      "api_method": "GetGrrBinary",
+      "method": "GET",
+      "response": "I am a binary file",
+      "test_class": "ApiGetGrrBinaryHandlerRegressionTest",
+      "url": "/api/v2/config/binaries/executable/windows/test.exe"
+    },
+    {
+      "api_method": "GetGrrBinary",
+      "method": "GET",
+      "response": "<serialized component>",
+      "test_class": "ApiGetGrrBinaryHandlerRegressionTest",
+      "url": "/api/v2/config/binaries/component/grr-awesome-component_1.2.3.4/abcdef/Linux_debian_64bit"
+    }
+  ],
   "ApiGetGrrUserHandler": [
     {
       "api_method": "GetGrrUser",
@@ -4353,12 +4376,16 @@
         "items": [
           {
             "isDirectory": false,
+            "lastDownloaded": "42000000",
+            "lastDownloadedSize": "11",
             "name": "bash",
             "path": "fs/tsk/c/bin/bash",
             "type": "VFSMemoryFile"
           },
           {
             "isDirectory": false,
+            "lastDownloaded": "42000000",
+            "lastDownloadedSize": "11",
             "name": "rbash",
             "path": "fs/tsk/c/bin/rbash",
             "type": "VFSMemoryFile"
@@ -4688,6 +4715,36 @@
       },
       "test_class": "ApiListFlowsHandlerRegressionTest",
       "url": "/api/v2/clients/C.1000000000000000/flows"
+    }
+  ],
+  "ApiListGrrBinariesHandler": [
+    {
+      "api_method": "ListGrrBinaries",
+      "method": "GET",
+      "response": {
+        "items": [
+          {
+            "path": "windows/test.exe",
+            "size": "18",
+            "timestamp": "42000000",
+            "type": "EXECUTABLE"
+          },
+          {
+            "path": "test",
+            "size": "17",
+            "timestamp": "43000000",
+            "type": "PYTHON_HACK"
+          },
+          {
+            "path": "grr-awesome-component_1.2.3.4/abcdef/Linux_debian_64bit",
+            "size": "42",
+            "timestamp": "44000000",
+            "type": "COMPONENT"
+          }
+        ]
+      },
+      "test_class": "ApiListGrrBinariesHandlerRegressionTest",
+      "url": "/api/v2/config/binaries"
     }
   ],
   "ApiListHuntApprovalsHandler": [

@@ -57,14 +57,14 @@ describe('server load indicator service', function() {
           {
             data: {
               metric_name: 'metric1',
-              timeseries: []
+              data_points: []
             }
           },
           'FRONTEND/metrics/metric2',
           {
             data: {
               metric_name: 'metric2',
-              timeseries: []
+              data_points: []
             }
           });
 
@@ -88,7 +88,7 @@ describe('server load indicator service', function() {
               metric_name: 'metric1',
               // First value in evey time series itme is a timestamp,
               // second is the metric value.
-              timeseries: [[0, 1]]
+              data_points: [[0, 1]]
             }
           },
           'FRONTEND/metrics/metric2',
@@ -97,7 +97,7 @@ describe('server load indicator service', function() {
               metric_name: 'metric2',
               // First value in evey time series itme is a timestamp,
               // second is the metric value.
-              timeseries: [[0, 0]]
+              data_points: [[0, 0]]
             }
           });
 
@@ -121,7 +121,7 @@ describe('server load indicator service', function() {
               metric_name: 'metric1',
               // First value in evey time series itme is a timestamp,
               // second is the metric value.
-              timeseries: [[0, 4]]
+              data_points: [[0, 4]]
             }
           },
           'FRONTEND/metrics/metric2',
@@ -130,7 +130,7 @@ describe('server load indicator service', function() {
               // First value in evey time series itme is a timestamp,
               // second is the metric value.
               metric_name: 'metric2',
-              timeseries: [[0, 2]]
+              data_points: [[0, 2]]
             }
           });
 
@@ -154,7 +154,7 @@ describe('server load indicator service', function() {
               metric_name: 'metric1',
               // First value in evey time series itme is a timestamp,
               // second is the metric value.
-              timeseries: [[0, 3], [10, 5]]
+              data_points: [[0, 3], [10, 5]]
             }
           },
           'FRONTEND/metrics/metric2',
@@ -163,7 +163,7 @@ describe('server load indicator service', function() {
               metric_name: 'metric2',
               // First value in evey time series itme is a timestamp,
               // second is the metric value.
-              timeseries: [[0, 1], [10, 3]]
+              data_points: [[0, 1], [10, 3]]
             }
           });
 
@@ -187,7 +187,7 @@ describe('server load indicator service', function() {
               metric_name: 'metric1',
               // First value in evey time series itme is a timestamp,
               // second is the metric value.
-              timeseries: [[0, 7]]
+              data_points: [[0, 7]]
             }
           },
           'FRONTEND/metrics/metric2',
@@ -196,7 +196,7 @@ describe('server load indicator service', function() {
               metric_name: 'metric2',
               // First value in evey time series itme is a timestamp,
               // second is the metric value.
-              timeseries: [[0, 2]]
+              data_points: [[0, 2]]
             }
           });
 
@@ -220,7 +220,7 @@ describe('server load indicator service', function() {
               metric_name: 'metric1',
               // First value in evey time series itme is a timestamp,
               // second is the metric value.
-              timeseries: [[0, 2]]
+              data_points: [[0, 2]]
             }
           },
           'FRONTEND/metrics/metric2',
@@ -229,7 +229,7 @@ describe('server load indicator service', function() {
               metric_name: 'metric2',
               // First value in evey time series itme is a timestamp,
               // second is the metric value.
-              timeseries: [[0, 2]]
+              data_points: [[0, 2]]
             }
           });
 

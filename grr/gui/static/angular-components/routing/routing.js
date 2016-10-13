@@ -165,7 +165,7 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
 
     .state('manageBinaries', {
       url: '/manage-binaries',
-      template: '<grr-legacy-renderer renderer="BinaryConfigurationView" />',
+      template: '<grr-config-binaries-view />',
       title: 'Manage Binaries'
     })
     .state('config', {
@@ -232,10 +232,10 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
       template: '<grr-debug-requests-view />',
       title: 'Debug Requests'
     })
-    .state('client.load', {
-      url: '/load',
+    .state('client.loadStats', {
+      url: '/load-stats',
       template: '<grr-client-load-view />',
-      title: 'Current Load'
+      title: 'Load Stats'
     })
     .state('client.stats', {
       url: '/stats',

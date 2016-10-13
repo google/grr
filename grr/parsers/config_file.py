@@ -373,24 +373,26 @@ class SshdConfigParser(parsers.FileParser):
                "x11forwarding",
                "x11uselocalhost"]  # pyformat: disable
   # Valid ways that parameters can repeat
-  _repeated = {"acceptenv": r"[\n\s]+",
-               "allowgroups": r"[\s]+",
-               "allowusers": r"[\s]+",
-               "authenticationmethods": r"[\s]+",
-               "authorizedkeysfile": r"[\s]+",
-               "ciphers": r"[,]+",
-               "denygroups": r"[\s]+",
-               "denyusers": r"[\s]+",
-               "forcecommand": r"[\n]+",
-               "hostkey": r"[\n]+",
-               "kexalgorithms": r"[,]+",
-               "listenaddress": r"[\n]+",
-               "macs": r"[,]+",
-               "permitopen": r"[\s]+",
-               "port": r"[,\n]+",
-               "protocol": r"[,]+",
-               "pubkeyacceptedkeytypes": r"[,]+",
-               "subsystem": r"[\n]+"}
+  _repeated = {
+      "acceptenv": r"[\n\s]+",
+      "allowgroups": r"[\s]+",
+      "allowusers": r"[\s]+",
+      "authenticationmethods": r"[\s]+",
+      "authorizedkeysfile": r"[\s]+",
+      "ciphers": r"[,]+",
+      "denygroups": r"[\s]+",
+      "denyusers": r"[\s]+",
+      "forcecommand": r"[\n]+",
+      "hostkey": r"[\n]+",
+      "kexalgorithms": r"[,]+",
+      "listenaddress": r"[\n]+",
+      "macs": r"[,]+",
+      "permitopen": r"[\s]+",
+      "port": r"[,\n]+",
+      "protocol": r"[,]+",
+      "pubkeyacceptedkeytypes": r"[,]+",
+      "subsystem": r"[\n]+"
+  }
   _true = ["yes", "true", "1"]
   _aliases = {"dsaauthentication": "pubkeyauthentication"}
   _match_keywords = [
@@ -817,14 +819,16 @@ class NtpdParser(parsers.FileParser, FieldParser):
       "requestkey", "trustedkey", "crypto", "control", "statsdir", "filegen"
   ])
 
-  _defaults = {"auth": True,
-               "bclient": False,
-               "calibrate": False,
-               "kernel": False,
-               "monitor": True,
-               "ntp": True,
-               "pps": False,
-               "stats": False}
+  _defaults = {
+      "auth": True,
+      "bclient": False,
+      "calibrate": False,
+      "kernel": False,
+      "monitor": True,
+      "ntp": True,
+      "pps": False,
+      "stats": False
+  }
 
   def ParseLine(self, entries):
     """Extracts keyword/value settings from the ntpd config.
@@ -876,8 +880,10 @@ class NtpdParser(parsers.FileParser, FieldParser):
         existing_keyword_config = self.keyed.setdefault(keyword, [])
         # Create a dict which stores the server name and the options.
         # Flatten the remaining options into a single string.
-        existing_keyword_config.append({"address": address,
-                                        "options": " ".join(values)})
+        existing_keyword_config.append({
+            "address": address,
+            "options": " ".join(values)
+        })
 
       # Are we toggling an option?
       elif keyword in self._boolean:
@@ -936,14 +942,18 @@ class SudoersParser(parsers.FileParser, FieldParser):
   # TODO(user): this should be rewritten as a proper lexer
   COMMENTS_RE = re.compile(r"(#(?!include(?:dir)?\s+)\D+?$)", re.MULTILINE)
 
-  ALIAS_TYPES = {"User_Alias": rdf_config_file.SudoersAlias.Type.USER,
-                 "Runas_Alias": rdf_config_file.SudoersAlias.Type.RUNAS,
-                 "Host_Alias": rdf_config_file.SudoersAlias.Type.HOST,
-                 "Cmnd_Alias": rdf_config_file.SudoersAlias.Type.CMD}
-  ALIAS_FIELDS = {"User_Alias": "users",
-                  "Runas_Alias": "runas",
-                  "Host_Alias": "hosts",
-                  "Cmnd_Alias": "cmds"}
+  ALIAS_TYPES = {
+      "User_Alias": rdf_config_file.SudoersAlias.Type.USER,
+      "Runas_Alias": rdf_config_file.SudoersAlias.Type.RUNAS,
+      "Host_Alias": rdf_config_file.SudoersAlias.Type.HOST,
+      "Cmnd_Alias": rdf_config_file.SudoersAlias.Type.CMD
+  }
+  ALIAS_FIELDS = {
+      "User_Alias": "users",
+      "Runas_Alias": "runas",
+      "Host_Alias": "hosts",
+      "Cmnd_Alias": "cmds"
+  }
   DEFAULTS_KEY = "Defaults"
   INCLUDE_KEYS = ["#include", "#includedir"]
 

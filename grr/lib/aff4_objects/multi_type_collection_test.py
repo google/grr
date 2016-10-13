@@ -43,8 +43,10 @@ class MultiTypeCollectionTest(test_lib.AFF4ObjectTest):
         rdf_flows.GrrMessage(payload=rdfvalue.RDFURN("aff4:/foo/bar")))
 
     self.assertEqual(
-        set([rdfvalue.RDFInteger.__name__, rdfvalue.RDFString.__name__,
-             rdfvalue.RDFURN.__name__]), set(self.collection.ListStoredTypes()))
+        set([
+            rdfvalue.RDFInteger.__name__, rdfvalue.RDFString.__name__,
+            rdfvalue.RDFURN.__name__
+        ]), set(self.collection.ListStoredTypes()))
 
   def testStoresEmptyGrrMessage(self):
     self.collection.Add(rdf_flows.GrrMessage())

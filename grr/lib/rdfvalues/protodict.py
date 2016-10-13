@@ -43,12 +43,16 @@ class DataBlob(rdf_structs.RDFProtoStruct):
       self.rdf_value.name = value.__class__.__name__
 
     elif isinstance(value, (list, tuple)):
-      self.list.content.Extend([DataBlob().SetValue(
-          v, raise_on_error=raise_on_error) for v in value])
+      self.list.content.Extend([
+          DataBlob().SetValue(
+              v, raise_on_error=raise_on_error) for v in value
+      ])
 
     elif isinstance(value, set):
-      self.set.content.Extend([DataBlob().SetValue(
-          v, raise_on_error=raise_on_error) for v in value])
+      self.set.content.Extend([
+          DataBlob().SetValue(
+              v, raise_on_error=raise_on_error) for v in value
+      ])
 
     elif isinstance(value, dict):
       self.dict.FromDict(value, raise_on_error=raise_on_error)
@@ -73,8 +77,10 @@ class DataBlob(rdf_structs.RDFProtoStruct):
     if self.HasField("none"):
       return None
 
-    field_names = ["integer", "string", "data", "boolean", "list", "dict",
-                   "rdf_value", "float", "set"]
+    field_names = [
+        "integer", "string", "data", "boolean", "list", "dict", "rdf_value",
+        "float", "set"
+    ]
 
     values = [getattr(self, x) for x in field_names if self.HasField(x)]
 

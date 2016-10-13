@@ -32,37 +32,38 @@ class TestSearchFileContentWithFixture(GrepTests):
     # Delete the fixture cache so this will be included.
     self.FlushVFSCache()
 
-    test_lib.client_fixture.VFS.append(
-        (filename,
-         (aff4_grr.VFSFile,
-          {"aff4:stat": ("\n"
-                                   "st_mode: 33261\n"
-                                   "st_ino: 1026267\n"
-                                   "st_dev: 51713\n"
-                                   "st_nlink: 1\n"
-                                   "st_uid: 0\n"
-                                   "st_gid: 0\n"
-                                   "st_size: 60064\n"
-                                   "st_atime: 1308964274\n"
-                                   "st_mtime: 1285093975\n"
-                                   "st_ctime: 1299502221\n"
-                                   "st_blocks: 128\n"
-                                   "st_blksize: 4096\n"
-                                   "st_rdev: 0\n"
-                                   "pathspec {\n"
-                                   "  pathtype: OS\n"
-                                   "  path: '%s'\n"
-                                   "}\n"
-                                   "resident: '%s'\n" % (filename, data)),
-           "aff4:size": len(data)})))
+    test_lib.client_fixture.VFS.append((filename, (aff4_grr.VFSFile, {
+        "aff4:stat": ("\n"
+                                "st_mode: 33261\n"
+                                "st_ino: 1026267\n"
+                                "st_dev: 51713\n"
+                                "st_nlink: 1\n"
+                                "st_uid: 0\n"
+                                "st_gid: 0\n"
+                                "st_size: 60064\n"
+                                "st_atime: 1308964274\n"
+                                "st_mtime: 1285093975\n"
+                                "st_ctime: 1299502221\n"
+                                "st_blocks: 128\n"
+                                "st_blksize: 4096\n"
+                                "st_rdev: 0\n"
+                                "pathspec {\n"
+                                "  pathtype: OS\n"
+                                "  path: '%s'\n"
+                                "}\n"
+                                "resident: '%s'\n" % (filename, data)),
+        "aff4:size":
+            len(data)
+    })))
 
   def DeleteFile(self, filename):
 
     # Delete the fixture cache so this will be included.
     self.FlushVFSCache()
 
-    test_lib.client_fixture.VFS = [path for path in test_lib.client_fixture.VFS
-                                   if path[0] != filename]
+    test_lib.client_fixture.VFS = [
+        path for path in test_lib.client_fixture.VFS if path[0] != filename
+    ]
 
   def setUp(self):
     super(TestSearchFileContentWithFixture, self).setUp()

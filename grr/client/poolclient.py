@@ -108,8 +108,8 @@ def CreateClientPool(n):
           break
 
         else:
-          logging.info("%s: Enrolled %d/%d clients.", int(time.time()),
-                       enrolled, n)
+          logging.info("%s: Enrolled %d/%d clients.",
+                       int(time.time()), enrolled, n)
     else:
       try:
         while True:

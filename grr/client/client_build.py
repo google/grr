@@ -282,9 +282,11 @@ class MultiTemplateRepacker(object):
         if config:
           repack_args.extend(["--config", config])
 
-        repack_args.extend(["--secondary_configs", repack_config, "repack",
-                            "--template", template, "--output_dir",
-                            self.GetOutputDir(output_dir, repack_config)])
+        repack_args.extend([
+            "--secondary_configs", repack_config, "repack", "--template",
+            template, "--output_dir",
+            self.GetOutputDir(output_dir, repack_config)
+        ])
 
         # We only sign exes and rpms at the moment. The others will raise if we
         # try to ask for signing.

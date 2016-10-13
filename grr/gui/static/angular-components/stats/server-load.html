@@ -48,37 +48,37 @@
           </span>
         </p>
         <h4>Frontend QPS</h4>
-        <grr-server-load-graph start-time="controller.startTime"
-                               end-time="controller.endTime">
+        <grr-timeseries-graph start-time="controller.startTime"
+                              end-time="controller.endTime">
           <grr-server-load-graph-serie component="frontend"
                                        metric="frontend_request_latency"
                                        rate="10m"
                                        distribution-handling="DH_COUNT"
                                        label="Requests">
           </grr-server-load-graph-serie>
-        </grr-server-load-graph>
+        </grr-timeseries-graph>
 
         <h4>Frontend request latency rate</h4>
-        <grr-server-load-graph start-time="controller.startTime"
-                               end-time="controller.endTime">
+        <grr-timeseries-graph start-time="controller.startTime"
+                              end-time="controller.endTime">
           <grr-server-load-graph-serie component="frontend"
                                        metric="frontend_request_latency"
                                        rate="10m"
                                        distribution-handling="DH_SUM"
                                        label="Latency">
           </grr-server-load-graph-serie>
-        </grr-server-load-graph>
+        </grr-timeseries-graph>
 
 
         <h4>Frontend active tasks count</h4>
-        <grr-server-load-graph start-time="controller.startTime"
-                               end-time="controller.endTime">
+        <grr-timeseries-graph start-time="controller.startTime"
+                              end-time="controller.endTime">
           <grr-server-load-graph-serie component="frontend"
                                        metric="frontend_active_count"
                                        rate="10m"
                                        label="Active tasks">
           </grr-server-load-graph-serie>
-        </grr-server-load-graph>
+        </grr-timeseries-graph>
       </div>
     </tab>
 
@@ -92,8 +92,8 @@
         </p>
 
         <h4>Worker successful vs failed flows rate</h4>
-        <grr-server-load-graph start-time="controller.startTime"
-                               end-time="controller.endTime">
+        <grr-timeseries-graph start-time="controller.startTime"
+                              end-time="controller.endTime">
           <grr-server-load-graph-serie component="worker"
                                        metric="grr_flow_completed_count"
                                        rate="10m"
@@ -104,11 +104,11 @@
                                        rate="10m"
                                        label="Failures">
           </grr-server-load-graph-serie>
-        </grr-server-load-graph>
+        </grr-timeseries-graph>
 
         <h4>Worker threadpool latency vs queuing time rate</h4>
-        <grr-server-load-graph start-time="controller.startTime"
-                               end-time="controller.endTime">
+        <grr-timeseries-graph start-time="controller.startTime"
+                              end-time="controller.endTime">
           <grr-server-load-graph-serie component="worker"
                                        metric="grr_threadpool_working_time"
                                        rate="10m"
@@ -121,11 +121,11 @@
                                        distribution-handling="DH_SUM"
                                        label="Queueing time">
           </grr-server-load-graph-serie>
-        </grr-server-load-graph>
+        </grr-timeseries-graph>
 
         <h4>Worker outstanding tasks vs number of threads</h4>
-        <grr-server-load-graph start-time="controller.startTime"
-                               end-time="controller.endTime">
+        <grr-timeseries-graph start-time="controller.startTime"
+                              end-time="controller.endTime">
           <grr-server-load-graph-serie component="worker"
                                        metric="grr_threadpool_outstanding_tasks"
                                        rate="10m"
@@ -138,17 +138,17 @@
                                        aggregation="AGG_MEAN"
                                        label="Threads">
           </grr-server-load-graph-serie>
-        </grr-server-load-graph>
+        </grr-timeseries-graph>
 
         <h4>Client crashes rate</h4>
-        <grr-server-load-graph start-time="controller.startTime"
-                               end-time="controller.endTime">
+        <grr-timeseries-graph start-time="controller.startTime"
+                              end-time="controller.endTime">
           <grr-server-load-graph-serie component="worker"
                                        metric="grr_client_crashes"
                                        rate="10m"
                                        label="Crashes">
           </grr-server-load-graph-serie>
-        </grr-server-load-graph>
+        </grr-timeseries-graph>
 
       </div>
     </tab>

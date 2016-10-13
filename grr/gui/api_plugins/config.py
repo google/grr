@@ -1,12 +1,17 @@
 #!/usr/bin/env python
 """API handlers for accessing config."""
 
+import itertools
+
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_handler_utils
 
+from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import rdfvalue
 from grr.lib import type_info
+
+from grr.lib.aff4_objects import collects as aff4_collects
 
 from grr.lib.rdfvalues import structs as rdf_structs
 
@@ -16,8 +21,10 @@ from grr.proto import api_pb2
 # probably be defined together with the options themselves. Keeping
 # the list of redacted options and settings here may lead to scenario
 # when new sensitive option is added, but these lists are not updated.
-REDACTED_OPTIONS = ["AdminUI.django_secret_key", "Mysql.database_password",
-                    "Worker.smtp_password"]
+REDACTED_OPTIONS = [
+    "AdminUI.django_secret_key", "Mysql.database_password",
+    "Worker.smtp_password"
+]
 REDACTED_SECTIONS = ["PrivateKeys", "Users"]
 
 
@@ -126,3 +133,169 @@ class ApiGetConfigOptionHandler(api_call_handler_base.ApiCallHandler):
       raise ValueError("Name not specified.")
 
     return ApiConfigOption().InitFromConfigOption(args.name)
+
+
+class ApiGrrBinary(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGrrBinary
+
+
+class ApiListGrrBinariesResult(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiListGrrBinariesResult
+
+
+def _GetSignedBlobsRoots():
+  config_root = config_lib.CONFIG.Get("Config.aff4_root")
+  return {
+      ApiGrrBinary.Type.PYTHON_HACK:
+          config_lib.CONFIG.Get("Config.python_hack_root"),
+      ApiGrrBinary.Type.EXECUTABLE:
+          config_root.Add("executables")
+  }
+
+
+def _GetComponentSummariesRoot():
+  return config_lib.CONFIG.Get("Config.aff4_root").Add("components")
+
+
+def _GetComponentBlobsRoot():
+  return config_lib.CONFIG.Get("Client.component_aff4_stem")
+
+
+class ApiListGrrBinariesHandler(api_call_handler_base.ApiCallHandler):
+  """Renders a list of available GRR binaries."""
+
+  result_type = ApiListGrrBinariesResult
+
+  def _GetBinarySize(self, fd, components_blobs_map):
+    if isinstance(fd, aff4_collects.ComponentObject):
+      try:
+        blob_fd = components_blobs_map[fd.blob_urn]
+      except KeyError:
+        return 0
+      return blob_fd.size
+    else:
+      return fd.size
+
+  def _ListSignedBlobs(self, token=None):
+    roots = _GetSignedBlobsRoots()
+
+    binary_urns = []
+    for _, children in aff4.FACTORY.RecursiveMultiListChildren(
+        roots.values(), token=token):
+      binary_urns.extend(children)
+
+    binary_fds = list(
+        aff4.FACTORY.MultiOpen(
+            binary_urns,
+            aff4_type=aff4_collects.GRRSignedBlob,
+            mode="r",
+            token=token))
+
+    items = []
+    for fd in sorted(binary_fds, key=lambda f: f.urn):
+      for binary_type, root in roots.items():
+        rel_name = fd.urn.RelativeName(root)
+        if rel_name:
+          api_binary = ApiGrrBinary(
+              path=rel_name,
+              type=binary_type,
+              size=fd.size,
+              timestamp=fd.Get(fd.Schema.TYPE).age)
+          items.append(api_binary)
+
+    return items
+
+  def _ListComponents(self, token=None):
+    components_urns = aff4.FACTORY.ListChildren(
+        _GetComponentSummariesRoot(), token=token)
+
+    blobs_root_urns = []
+    components_fds = aff4.FACTORY.MultiOpen(
+        components_urns, aff4_type=aff4_collects.ComponentObject, token=token)
+    components_by_seed = {}
+    for fd in components_fds:
+      desc = fd.Get(fd.Schema.COMPONENT)
+      if not desc:
+        continue
+
+      components_by_seed[desc.seed] = fd
+      blobs_root_urns.append(_GetComponentBlobsRoot().Add(desc.seed))
+
+    blobs_urns = []
+    for _, children in aff4.FACTORY.MultiListChildren(
+        blobs_root_urns, token=token):
+      blobs_urns.extend(children)
+    blobs_fds = aff4.FACTORY.MultiOpen(
+        blobs_urns, aff4_type=aff4.AFF4Stream, token=token)
+
+    items = []
+    for fd in sorted(blobs_fds, key=lambda f: f.urn):
+      seed = fd.urn.Split()[-2]
+      component_fd = components_by_seed[seed]
+
+      items.append(
+          ApiGrrBinary(
+              path="%s/%s" % (component_fd.urn.Basename(), fd.urn.RelativeName(
+                  _GetComponentBlobsRoot())),
+              type=ApiGrrBinary.Type.COMPONENT,
+              size=fd.size,
+              timestamp=fd.Get(fd.Schema.TYPE).age))
+
+    return items
+
+  def Handle(self, unused_args, token=None):
+    return ApiListGrrBinariesResult(items=itertools.chain(
+        self._ListSignedBlobs(token=token), self._ListComponents(token=token)))
+
+
+class ApiGetGrrBinaryArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetGrrBinaryArgs
+
+
+class ApiGetGrrBinaryHandler(api_call_handler_base.ApiCallHandler):
+  """Streams a given GRR binary."""
+
+  args_type = ApiGetGrrBinaryArgs
+
+  CHUNK_SIZE = 1024 * 1024 * 4
+
+  def _GenerateStreamContent(self, aff4_stream, cipher=None):
+    while True:
+      chunk = aff4_stream.Read(self.CHUNK_SIZE)
+      if not chunk:
+        break
+      if not cipher:
+        yield chunk
+      else:
+        yield cipher.Decrypt(chunk)
+
+  def Handle(self, args, token=None):
+    if args.type == ApiGrrBinary.Type.COMPONENT:
+      # First path component of the identifies the component summary, the
+      # rest identifies the data blob.
+      path_components = args.path.split("/")
+      binary_urn = _GetComponentBlobsRoot().Add("/".join(path_components[1:]))
+
+      component_fd = aff4.FACTORY.Open(
+          _GetComponentSummariesRoot().Add(path_components[0]),
+          aff4_type=aff4_collects.ComponentObject,
+          token=token)
+      summary = component_fd.Get(component_fd.Schema.COMPONENT)
+
+      file_obj = aff4.FACTORY.Open(
+          binary_urn, aff4_type=aff4.AFF4Stream, token=token)
+
+      return api_call_handler_base.ApiBinaryStream(
+          filename=component_fd.urn.Basename(),
+          content_generator=self._GenerateStreamContent(
+              file_obj, cipher=summary.cipher))
+    else:
+      root_urn = _GetSignedBlobsRoots()[args.type]
+      binary_urn = root_urn.Add(args.path)
+
+      file_obj = aff4.FACTORY.Open(
+          binary_urn, aff4_type=aff4.AFF4Stream, token=token)
+      return api_call_handler_base.ApiBinaryStream(
+          filename=file_obj.urn.Basename(),
+          content_generator=self._GenerateStreamContent(file_obj),
+          content_length=file_obj.size)

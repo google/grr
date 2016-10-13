@@ -37,8 +37,9 @@ class HashFileStoreExportPlugin(plugin.OutputPluginBasedExportPlugin):
         help="Flush the results every time after processing "
         "this number of values.")
 
-    super(HashFileStoreExportPlugin,
-          self,).ConfigureArgParser(parser)
+    super(
+        HashFileStoreExportPlugin,
+        self,).ConfigureArgParser(parser)
 
   def GetValuesSourceURN(self, unused_args):
     return rdfvalue.RDFURN("aff4:/files/hash")

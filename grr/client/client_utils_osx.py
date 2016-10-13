@@ -218,8 +218,9 @@ def OSXGetRawDevice(path):
   while mount_point:
     try:
       result.path, fs_type = device_map[mount_point]
-      if fs_type in ["ext2", "ext3", "ext4", "vfat", "ntfs", "Apple_HFS", "hfs",
-                     "msdos"]:
+      if fs_type in [
+          "ext2", "ext3", "ext4", "vfat", "ntfs", "Apple_HFS", "hfs", "msdos"
+      ]:
         # These are read filesystems
         result.pathtype = rdf_paths.PathSpec.PathType.OS
       else:

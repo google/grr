@@ -43,8 +43,9 @@ class CollectionExportPlugin(plugin.OutputPluginBasedExportPlugin):
         help="Flush the results every time after processing "
         "this number of values.")
 
-    super(CollectionExportPlugin,
-          self,).ConfigureArgParser(parser)
+    super(
+        CollectionExportPlugin,
+        self,).ConfigureArgParser(parser)
 
   def GetValuesSourceURN(self, args):
     return args.path

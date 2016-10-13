@@ -73,8 +73,10 @@ def _StartServers():
   temp_dir_2 = TMP_DIR + "/2"
   os.mkdir(temp_dir_1)
   os.mkdir(temp_dir_2)
-  HTTP_DB = [sqlite_data_store.SqliteDataStore(temp_dir_1),
-             sqlite_data_store.SqliteDataStore(temp_dir_2)]
+  HTTP_DB = [
+      sqlite_data_store.SqliteDataStore(temp_dir_1),
+      sqlite_data_store.SqliteDataStore(temp_dir_2)
+  ]
   STARTED_SERVER = [
       threading.Thread(
           target=data_server.Start,
@@ -91,14 +93,19 @@ def _StartServers():
 def _SetConfig():
   global CONFIG_OVERRIDER
   CONFIG_OVERRIDER = test_lib.ConfigOverrider({
-      "Dataserver.server_list": ["http://127.0.0.1:%d" % PORT[0],
-                                 "http://127.0.0.1:%d" % PORT[1]],
-      "Dataserver.server_username": "root",
-      "Dataserver.server_password": "root",
+      "Dataserver.server_list":
+          ["http://127.0.0.1:%d" % PORT[0], "http://127.0.0.1:%d" % PORT[1]],
+      "Dataserver.server_username":
+          "root",
+      "Dataserver.server_password":
+          "root",
       "Dataserver.client_credentials": ["user:user:rw"],
-      "HTTPDataStore.username": "user",
-      "HTTPDataStore.password": "user",
-      "Datastore.location": TMP_DIR
+      "HTTPDataStore.username":
+          "user",
+      "HTTPDataStore.password":
+          "user",
+      "Datastore.location":
+          TMP_DIR
   })
   CONFIG_OVERRIDER.Start()
 

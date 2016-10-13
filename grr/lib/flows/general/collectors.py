@@ -250,8 +250,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         pathtype=path_type,
         action=action,
         file_size=max_size,
-        request_data={"artifact_name": self.current_artifact_name,
-                      "source": source.ToPrimitiveDict()},
+        request_data={
+            "artifact_name": self.current_artifact_name,
+            "source": source.ToPrimitiveDict()
+        },
         next_state="ProcessFileFinderResults")
 
   @flow.StateHandler()
@@ -271,8 +273,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         "Glob",
         paths=self.InterpolateList(source.attributes.get("paths", [])),
         pathtype=pathtype,
-        request_data={"artifact_name": self.current_artifact_name,
-                      "source": source.ToPrimitiveDict()},
+        request_data={
+            "artifact_name": self.current_artifact_name,
+            "source": source.ToPrimitiveDict()
+        },
         next_state="ProcessCollected")
 
   def _CombineRegex(self, regex_list):
@@ -318,8 +322,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         conditions=[file_finder_condition],
         action=file_finder.FileFinderAction(),
         pathtype=pathtype,
-        request_data={"artifact_name": self.current_artifact_name,
-                      "source": source.ToPrimitiveDict()},
+        request_data={
+            "artifact_name": self.current_artifact_name,
+            "source": source.ToPrimitiveDict()
+        },
         next_state="ProcessCollected")
 
   def GetRegistryKey(self, source):
@@ -327,8 +333,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         "Glob",
         paths=self.InterpolateList(source.attributes.get("keys", [])),
         pathtype=paths.PathSpec.PathType.REGISTRY,
-        request_data={"artifact_name": self.current_artifact_name,
-                      "source": source.ToPrimitiveDict()},
+        request_data={
+            "artifact_name": self.current_artifact_name,
+            "source": source.ToPrimitiveDict()
+        },
         next_state="ProcessCollected")
 
   def GetRegistryValue(self, source):
@@ -360,8 +368,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           "Glob",
           paths=new_paths,
           pathtype=paths.PathSpec.PathType.REGISTRY,
-          request_data={"artifact_name": self.current_artifact_name,
-                        "source": source.ToPrimitiveDict()},
+          request_data={
+              "artifact_name": self.current_artifact_name,
+              "source": source.ToPrimitiveDict()
+          },
           next_state="ProcessCollected")
     else:
       # We call statfile directly for keys that don't include globs because it
@@ -373,8 +383,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         self.CallClient(
             standard_actions.StatFile,
             pathspec=pathspec,
-            request_data={"artifact_name": self.current_artifact_name,
-                          "source": source.ToPrimitiveDict()},
+            request_data={
+                "artifact_name": self.current_artifact_name,
+                "source": source.ToPrimitiveDict()
+            },
             next_state="ProcessCollectedRegistryStatEntry")
 
   def _StartSubArtifactCollector(self, artifact_list, source, next_state):
@@ -387,8 +399,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         ignore_interpolation_errors=self.args.ignore_interpolation_errors,
         dependencies=self.args.dependencies,
         store_results_in_aff4=False,
-        request_data={"artifact_name": self.current_artifact_name,
-                      "source": source.ToPrimitiveDict()},
+        request_data={
+            "artifact_name": self.current_artifact_name,
+            "source": source.ToPrimitiveDict()
+        },
         next_state=next_state)
 
   def CollectArtifacts(self, source):
@@ -410,8 +424,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         standard_actions.ExecuteCommand,
         cmd=source.attributes["cmd"],
         args=source.attributes.get("args", []),
-        request_data={"artifact_name": self.current_artifact_name,
-                      "source": source.ToPrimitiveDict()},
+        request_data={
+            "artifact_name": self.current_artifact_name,
+            "source": source.ToPrimitiveDict()
+        },
         next_state="ProcessCollected")
 
   def WMIQuery(self, source):
@@ -427,8 +443,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
           server_stubs.WmiQuery,
           query=query,
           base_object=base_object,
-          request_data={"artifact_name": self.current_artifact_name,
-                        "source": source.ToPrimitiveDict()},
+          request_data={
+              "artifact_name": self.current_artifact_name,
+              "source": source.ToPrimitiveDict()
+          },
           next_state="ProcessCollected")
 
   def RekallPlugin(self, source):
@@ -443,9 +461,11 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     self.CallFlow(
         "AnalyzeClientMemory",
         request=request,
-        request_data={"artifact_name": self.current_artifact_name,
-                      "rekall_plugin": source.attributes["plugin"],
-                      "source": source.ToPrimitiveDict()},
+        request_data={
+            "artifact_name": self.current_artifact_name,
+            "rekall_plugin": source.attributes["plugin"],
+            "source": source.ToPrimitiveDict()
+        },
         next_state="ProcessCollected")
 
   def _GetSingleExpansion(self, value):
@@ -511,8 +531,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
 
     self.CallClient(
         action,
-        request_data={"artifact_name": self.current_artifact_name,
-                      "source": source.ToPrimitiveDict()},
+        request_data={
+            "artifact_name": self.current_artifact_name,
+            "source": source.ToPrimitiveDict()
+        },
         next_state="ProcessCollected",
         **self.InterpolateDict(source.attributes.get("action_args", {})))
 
@@ -915,8 +937,8 @@ class ArtifactFilesDownloaderFlow(transfer.MultiGetFileMixin, flow.GRRFlow):
     # return it's pathspec - there's nothing to parse
     # and guess.
     if (isinstance(response, rdf_client.StatEntry) and
-        response.pathspec.pathtype in [paths.PathSpec.PathType.TSK,
-                                       paths.PathSpec.PathType.OS]):
+        response.pathspec.pathtype in
+        [paths.PathSpec.PathType.TSK, paths.PathSpec.PathType.OS]):
       return [response.pathspec]
 
     client = aff4.FACTORY.Open(self.client_id, token=self.token)

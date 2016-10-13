@@ -31,8 +31,9 @@ class OutputPluginVerifierTest(test_lib.GRRBaseTest):
   """Tests for OutputPluginVerifier."""
 
   def _CreateHunt(self, description):
-    output_plugins = [output_plugin.OutputPluginDescriptor(
-        plugin_name="TestOutputPlugin")]
+    output_plugins = [
+        output_plugin.OutputPluginDescriptor(plugin_name="TestOutputPlugin")
+    ]
     with hunts.GRRHunt.StartHunt(
         hunt_name=standard.GenericHunt.__name__,
         flow_runner_args=rdf_flows.FlowRunnerArgs(flow_name="GetFile"),

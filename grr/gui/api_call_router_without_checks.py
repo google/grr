@@ -338,6 +338,12 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def GetConfigOption(self, args, token=None):
     return api_config.ApiGetConfigOptionHandler()
 
+  def ListGrrBinaries(self, args, token=None):
+    return api_config.ApiListGrrBinariesHandler()
+
+  def GetGrrBinary(self, args, token=None):
+    return api_config.ApiGetGrrBinaryHandler()
+
   # Reflection methods.
   # ==================
   #

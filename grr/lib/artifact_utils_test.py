@@ -70,9 +70,7 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     results = artifact_registry.REGISTRY.GetArtifacts(
         os_name="Windows",
-        name_list=[
-            "TestAggregationArtifact", "TestFileArtifact"
-        ])
+        name_list=["TestAggregationArtifact", "TestFileArtifact"])
 
     # TestFileArtifact doesn't match the OS criteria
     self.assertItemsEqual([x.name for x in results],
@@ -139,14 +137,16 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
     # This list contains all artifacts that can provide the dependency, e.g.
     # DepsHomedir and DepsHomedir2 both provide
     # users.homedir.
-    self.assertItemsEqual(names, [u"DepsHomedir", u"DepsHomedir2",
-                                  u"DepsDesktop", u"DepsParent", u"DepsWindir",
-                                  u"DepsWindirRegex", u"DepsControlSet",
-                                  u"TestAggregationArtifactDeps"])
+    self.assertItemsEqual(names, [
+        u"DepsHomedir", u"DepsHomedir2", u"DepsDesktop", u"DepsParent",
+        u"DepsWindir", u"DepsWindirRegex", u"DepsControlSet",
+        u"TestAggregationArtifactDeps"
+    ])
 
-    self.assertItemsEqual(expansions, ["current_control_set", "users.homedir",
-                                       "users.desktop", "environ_windir",
-                                       "users.username"])
+    self.assertItemsEqual(expansions, [
+        "current_control_set", "users.homedir", "users.desktop",
+        "environ_windir", "users.username"
+    ])
 
     # None of these match the OS, so we should get an empty list.
     names, expansions = artifact_registry.REGISTRY.SearchDependencies(
@@ -171,8 +171,8 @@ class ArtifactHandlingTest(test_lib.GRRBaseTest):
 
     deps = art_obj.GetArtifactDependencies(recursive=True)
     self.assertItemsEqual(
-        list(deps), ["TestOSAgnostic", "TestCmdArtifact",
-                     "TestAggregationArtifact"])
+        list(deps),
+        ["TestOSAgnostic", "TestCmdArtifact", "TestAggregationArtifact"])
 
     # Test recursive loop.
     # Make sure we use the registry registered version of the class.
@@ -286,8 +286,8 @@ class UserMergeTest(test_lib.GRRBaseTest):
         rdf_client.User(
             username="test2", sid="12345", temp="/blah"))
     self.assertEqual(len(kb.users), 3)
-    self.assertItemsEqual(new_attrs, ["users.username", "users.temp",
-                                      "users.sid"])
+    self.assertItemsEqual(new_attrs,
+                          ["users.username", "users.temp", "users.sid"])
     self.assertEqual(conflicts, [])
 
   def testUserMergeLinux(self):
@@ -337,20 +337,29 @@ class ArtifactTests(rdf_test_base.RDFValueTestCase):
     return result
 
   def testGetArtifactPathDependencies(self):
-    sources = [
-        {"type": artifact_registry.ArtifactSource.SourceType.REGISTRY_KEY,
-         "attributes": {
-             "keys": [r"%%current_control_set%%\Control\Session "
-                      r"Manager\Environment\Path"]
-         }}, {"type": artifact_registry.ArtifactSource.SourceType.WMI,
-              "attributes": {
-                  "query": "SELECT * FROM Win32_UserProfile "
-                           "WHERE SID='%%users.sid%%'"
-              }}, {"type": artifact_registry.ArtifactSource.SourceType.GREP,
-                   "attributes": {
-                       "content_regex_list": ["^%%users.username%%:"]
-                   }}
-    ]
+    sources = [{
+        "type":
+            artifact_registry.ArtifactSource.SourceType.REGISTRY_KEY,
+        "attributes": {
+            "keys": [
+                r"%%current_control_set%%\Control\Session "
+                r"Manager\Environment\Path"
+            ]
+        }
+    }, {
+        "type":
+            artifact_registry.ArtifactSource.SourceType.WMI,
+        "attributes": {
+            "query":
+                "SELECT * FROM Win32_UserProfile "
+                "WHERE SID='%%users.sid%%'"
+        }
+    }, {
+        "type": artifact_registry.ArtifactSource.SourceType.GREP,
+        "attributes": {
+            "content_regex_list": ["^%%users.username%%:"]
+        }
+    }]
 
     artifact = artifact_registry.Artifact(
         name="artifact",
@@ -376,21 +385,27 @@ class ArtifactTests(rdf_test_base.RDFValueTestCase):
 
     with utils.Stubber(parsers.Parser, "GetClassesByArtifact",
                        MockGetClassesByArtifact):
-      self.assertItemsEqual(artifact.GetArtifactPathDependencies(),
-                            ["appdata", "sid", "desktop", "current_control_set",
-                             "users.sid", "users.username"])
+      self.assertItemsEqual(artifact.GetArtifactPathDependencies(), [
+          "appdata", "sid", "desktop", "current_control_set", "users.sid",
+          "users.username"
+      ])
 
   def testValidateSyntax(self):
-    sources = [
-        {"type": artifact_registry.ArtifactSource.SourceType.REGISTRY_KEY,
-         "attributes": {
-             "keys": [r"%%current_control_set%%\Control\Session "
-                      r"Manager\Environment\Path"]
-         }}, {"type": artifact_registry.ArtifactSource.SourceType.FILE,
-              "attributes": {
-                  "paths": [r"%%environ_systemdrive%%\Temp"]
-              }}
-    ]
+    sources = [{
+        "type":
+            artifact_registry.ArtifactSource.SourceType.REGISTRY_KEY,
+        "attributes": {
+            "keys": [
+                r"%%current_control_set%%\Control\Session "
+                r"Manager\Environment\Path"
+            ]
+        }
+    }, {
+        "type": artifact_registry.ArtifactSource.SourceType.FILE,
+        "attributes": {
+            "paths": [r"%%environ_systemdrive%%\Temp"]
+        }
+    }]
 
     artifact = artifact_registry.Artifact(
         name="good",
@@ -402,12 +417,12 @@ class ArtifactTests(rdf_test_base.RDFValueTestCase):
     artifact.ValidateSyntax()
 
   def testValidateSyntaxBadProvides(self):
-    sources = [
-        {"type": artifact_registry.ArtifactSource.SourceType.FILE,
-         "attributes": {
-             "paths": [r"%%environ_systemdrive%%\Temp"]
-         }}
-    ]
+    sources = [{
+        "type": artifact_registry.ArtifactSource.SourceType.FILE,
+        "attributes": {
+            "paths": [r"%%environ_systemdrive%%\Temp"]
+        }
+    }]
 
     artifact = artifact_registry.Artifact(
         name="bad",
@@ -420,12 +435,12 @@ class ArtifactTests(rdf_test_base.RDFValueTestCase):
       artifact.ValidateSyntax()
 
   def testValidateSyntaxBadPathDependency(self):
-    sources = [
-        {"type": artifact_registry.ArtifactSource.SourceType.FILE,
-         "attributes": {
-             "paths": [r"%%systemdrive%%\Temp"]
-         }}
-    ]
+    sources = [{
+        "type": artifact_registry.ArtifactSource.SourceType.FILE,
+        "attributes": {
+            "paths": [r"%%systemdrive%%\Temp"]
+        }
+    }]
 
     artifact = artifact_registry.Artifact(
         name="bad",

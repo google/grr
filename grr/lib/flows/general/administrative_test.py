@@ -69,9 +69,11 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
                                           admin.UpdateConfiguration)
 
     loc = "http://www.example.com"
-    new_config = rdf_protodict.Dict({"Client.server_urls": [loc],
-                                     "Client.foreman_check_frequency": 3600,
-                                     "Client.poll_min": 1})
+    new_config = rdf_protodict.Dict({
+        "Client.server_urls": [loc],
+        "Client.foreman_check_frequency": 3600,
+        "Client.poll_min": 1
+    })
 
     # Setting config options is disallowed in tests so we need to temporarily
     # revert this.

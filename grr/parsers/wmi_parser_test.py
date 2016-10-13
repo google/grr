@@ -37,10 +37,11 @@ class WMIParserTest(test_lib.FlowTestsBaseclass):
       if isinstance(result, rdf_client.Interface):
         self.assertEqual(len(result.addresses), 4)
         self.assertItemsEqual(
-            [x.human_readable_address for x in result.addresses],
-            ["192.168.1.20", "ffff::ffff:aaaa:1111:aaaa",
-             "dddd:0:8888:6666:bbbb:aaaa:eeee:bbbb",
-             "dddd:0:8888:6666:bbbb:aaaa:ffff:bbbb"])
+            [x.human_readable_address for x in result.addresses], [
+                "192.168.1.20", "ffff::ffff:aaaa:1111:aaaa",
+                "dddd:0:8888:6666:bbbb:aaaa:eeee:bbbb",
+                "dddd:0:8888:6666:bbbb:aaaa:ffff:bbbb"
+            ])
 
         self.assertItemsEqual(
             [x.human_readable_address for x in result.dhcp_server_list],
@@ -52,19 +53,22 @@ class WMIParserTest(test_lib.FlowTestsBaseclass):
                          1408994579123456)
 
       elif isinstance(result, rdf_client.DNSClientConfiguration):
-        self.assertItemsEqual(result.dns_server, ["192.168.1.1",
-                                                  "192.168.255.81",
-                                                  "192.168.128.88"])
+        self.assertItemsEqual(
+            result.dns_server,
+            ["192.168.1.1", "192.168.255.81", "192.168.128.88"])
 
-        self.assertItemsEqual(result.dns_suffix,
-                              ["blah.example.com", "ad.example.com",
-                               "internal.example.com", "example.com"])
+        self.assertItemsEqual(result.dns_suffix, [
+            "blah.example.com", "ad.example.com", "internal.example.com",
+            "example.com"
+        ])
 
   def testWMIActiveScriptEventConsumerParser(self):
     parser = wmi_parser.WMIActiveScriptEventConsumerParser()
     rdf_dict = rdf_protodict.Dict()
-    rdf_dict["CreatorSID"] = [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 152, 18, 57,
-                              8, 206, 29, 80, 44, 70, 38, 82, 8, 244, 1, 0, 0]
+    rdf_dict["CreatorSID"] = [
+        1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 152, 18, 57, 8, 206, 29, 80, 44,
+        70, 38, 82, 8, 244, 1, 0, 0
+    ]
     rdf_dict["KillTimeout"] = 0
     rdf_dict["MachineName"] = None
     rdf_dict["MaximumQueueSize"] = None
@@ -95,7 +99,9 @@ objFile.Close"""
         [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0],
         "(1, 2, 3)",  # Older clients (3.0.0.3) return a the SID like this
         1,
-        {1: 2},
+        {
+            1: 2
+        },
         (1, 2)
     ]
 
@@ -138,9 +144,10 @@ objFile.Close"""
     rdf_dict["CreateNewProcessGroup"] = False
     rdf_dict["CreateSeparateWowVdm"] = False
     rdf_dict["CreateSharedWowVdm"] = False
-    rdf_dict["CreatorSID"] = [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116,
-                              119, 185, 124, 13, 122, 150, 111, 189, 41, 154,
-                              244, 1, 0, 0]
+    rdf_dict["CreatorSID"] = [
+        1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116, 119, 185, 124, 13, 122,
+        150, 111, 189, 41, 154, 244, 1, 0, 0
+    ]
     rdf_dict["DesktopName"] = None
     rdf_dict["ExecutablePath"] = None
     rdf_dict["FillAttribute"] = None
@@ -194,12 +201,19 @@ class BinarySIDToStringSIDTest(test_lib.GRRBaseTest):
         # All subauthorities truncated
         ["S-1-5", [1, 5, 0, 0, 0, 0, 0, 5]],
         # 5 subauthorities
-        ["S-1-5-21-3111613573-2524581244-2586426735-500",
-         [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116, 119, 185, 124, 13, 122,
-          150, 111, 189, 41, 154, 244, 1, 0, 0]],
+        [
+            "S-1-5-21-3111613573-2524581244-2586426735-500", [
+                1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116, 119, 185, 124,
+                13, 122, 150, 111, 189, 41, 154, 244, 1, 0, 0
+            ]
+        ],
         # Last subauthority truncated
-        [None, [1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116, 119, 185, 124,
-                13, 122, 150, 111, 189, 41, 154, 244]],
+        [
+            None, [
+                1, 5, 0, 0, 0, 0, 0, 5, 21, 0, 0, 0, 133, 116, 119, 185, 124,
+                13, 122, 150, 111, 189, 41, 154, 244
+            ]
+        ],
     ]
 
   def testConversion(self):

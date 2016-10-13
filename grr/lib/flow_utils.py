@@ -24,8 +24,9 @@ def GetUserInfo(client, user):
   kb = client.Get(client.Schema.KNOWLEDGE_BASE)
   if "\\" in user:
     domain, user = user.split("\\", 1)
-    users = [u for u in kb.users
-             if u.username == user and u.userdomain == domain]
+    users = [
+        u for u in kb.users if u.username == user and u.userdomain == domain
+    ]
   else:
     users = [u for u in kb.users if u.username == user]
 
@@ -163,7 +164,8 @@ def InterpolatePath(path, client, users=None, path_args=None, depth=0):
       # TODO(user): Collect this during discovery from the registry.
       # HKEY_LOCAL_MACHINE\SOFTWARE\Microsoft\Windows NT\CurrentVersion\
       # Value: SystemRoot
-      "systemroot": "c:\\Windows"
+      "systemroot":
+          "c:\\Windows"
   }
 
   # Override any system formatters with path_args.

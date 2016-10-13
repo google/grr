@@ -316,13 +316,15 @@ class StatFilter(Filter):
   _KEYS = {"path_re", "file_re", "file_type", "uid", "gid", "mode", "mask"}
   _UID_GID_RE = re.compile(r"\A(!|>|>=|<=|<|=)([0-9]+)\Z")
   _PERM_RE = re.compile(r"\A[0-7]{4}\Z")
-  _TYPES = {"BLOCK": stat.S_ISBLK,
-            "CHARACTER": stat.S_ISCHR,
-            "DIRECTORY": stat.S_ISDIR,
-            "FIFO": stat.S_ISFIFO,
-            "REGULAR": stat.S_ISREG,
-            "SOCKET": stat.S_ISSOCK,
-            "SYMLINK": stat.S_ISLNK}
+  _TYPES = {
+      "BLOCK": stat.S_ISBLK,
+      "CHARACTER": stat.S_ISCHR,
+      "DIRECTORY": stat.S_ISDIR,
+      "FIFO": stat.S_ISFIFO,
+      "REGULAR": stat.S_ISREG,
+      "SOCKET": stat.S_ISSOCK,
+      "SYMLINK": stat.S_ISLNK
+  }
 
   def _MatchFile(self, stat_entry):
     filename = os.path.basename(stat_entry.pathspec.path)

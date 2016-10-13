@@ -246,20 +246,26 @@ class FirefoxHistory(flow.GRRFlow):
 BROWSER_PATHS = {
     "Linux": {
         "Firefox": ["/home/{username}/.mozilla/firefox/"],
-        "Chrome": ["{homedir}/.config/google-chrome/",
-                   "{homedir}/.config/chromium/"]
+        "Chrome": [
+            "{homedir}/.config/google-chrome/", "{homedir}/.config/chromium/"
+        ]
     },
     "Windows": {
-        "Chrome": ["{local_app_data}\\Google\\Chrome\\User Data\\",
-                   "{local_app_data}\\Chromium\\User Data\\"],
+        "Chrome": [
+            "{local_app_data}\\Google\\Chrome\\User Data\\",
+            "{local_app_data}\\Chromium\\User Data\\"
+        ],
         "Firefox": ["{local_app_data}\\Mozilla\\Firefox\\Profiles\\"],
-        "IE": ["{cache}\\", "{cache}\\Low\\",
-               "{app_data}\\Microsoft\\Windows\\"]
+        "IE": [
+            "{cache}\\", "{cache}\\Low\\", "{app_data}\\Microsoft\\Windows\\"
+        ]
     },
     "Darwin": {
         "Firefox": ["{homedir}/Library/Application Support/Firefox/Profiles/"],
-        "Chrome": ["{homedir}/Library/Application Support/Google/Chrome/",
-                   "{homedir}/Library/Application Support/Chromium/"]
+        "Chrome": [
+            "{homedir}/Library/Application Support/Google/Chrome/",
+            "{homedir}/Library/Application Support/Chromium/"
+        ]
     }
 }
 

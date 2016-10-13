@@ -60,9 +60,7 @@ class MultiGetFileTestFlow(flow.GRRFlow):
           "FingerprintFile",
           next_state="MultiGetFile",
           pathspec=response.dest_path,
-          request_data={
-              "pathspec": response.dest_path
-          })
+          request_data={"pathspec": response.dest_path})
 
   @flow.StateHandler()
   def MultiGetFile(self, responses):
@@ -141,8 +139,10 @@ class TestMultiGetFileTSKLinux(base.VFSPathContentIsELF):
   platforms = ["Linux"]
   flow = "MultiGetFile"
   args = {
-      "pathspecs": [rdf_paths.PathSpec(
-          path="/usr/bin/diff", pathtype=rdf_paths.PathSpec.PathType.TSK)]
+      "pathspecs": [
+          rdf_paths.PathSpec(
+              path="/usr/bin/diff", pathtype=rdf_paths.PathSpec.PathType.TSK)
+      ]
   }
   test_output_path = "/fs/tsk/.*/usr/bin/diff"
 
@@ -164,8 +164,10 @@ class TestMultiGetFileOSLinux(base.VFSPathContentIsELF):
   platforms = ["Linux"]
   flow = "MultiGetFile"
   args = {
-      "pathspecs": [rdf_paths.PathSpec(
-          path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.OS)]
+      "pathspecs": [
+          rdf_paths.PathSpec(
+              path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.OS)
+      ]
   }
   test_output_path = "/fs/os/bin/ls"
 
@@ -255,8 +257,10 @@ class TestMultiGetFileOSMac(base.VFSPathContentIsMachO):
   platforms = ["Darwin"]
   flow = "MultiGetFile"
   args = {
-      "pathspecs": [rdf_paths.PathSpec(
-          path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.OS)]
+      "pathspecs": [
+          rdf_paths.PathSpec(
+              path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.OS)
+      ]
   }
   test_output_path = "/fs/os/bin/ls"
 
@@ -283,9 +287,11 @@ class TestMultiGetFileOSWindows(base.VFSPathContentIsPE):
   platforms = ["Windows"]
   flow = "MultiGetFile"
   args = {
-      "pathspecs": [rdf_paths.PathSpec(
-          path="C:\\Windows\\regedit.exe",
-          pathtype=rdf_paths.PathSpec.PathType.OS)]
+      "pathspecs": [
+          rdf_paths.PathSpec(
+              path="C:\\Windows\\regedit.exe",
+              pathtype=rdf_paths.PathSpec.PathType.OS)
+      ]
   }
   test_output_path = "/fs/os/C:/Windows/regedit.exe"
 
@@ -308,8 +314,10 @@ class TestMultiGetFileTSKWindows(base.VFSPathContentIsPE):
   platforms = ["Windows"]
   flow = "MultiGetFile"
   args = {
-      "pathspecs": [rdf_paths.PathSpec(
-          path="C:\\Windows\\regedit.exe",
-          pathtype=rdf_paths.PathSpec.PathType.TSK)]
+      "pathspecs": [
+          rdf_paths.PathSpec(
+              path="C:\\Windows\\regedit.exe",
+              pathtype=rdf_paths.PathSpec.PathType.TSK)
+      ]
   }
   test_output_path = "/fs/tsk/.*/Windows/regedit.exe"

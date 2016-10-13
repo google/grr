@@ -30,16 +30,20 @@ class FingerprintFileMixin(object):
     # Generic hash.
     request.AddRequest(
         fp_type=rdf_client.FingerprintTuple.Type.FPT_GENERIC,
-        hashers=[rdf_client.FingerprintTuple.HashType.MD5,
-                 rdf_client.FingerprintTuple.HashType.SHA1,
-                 rdf_client.FingerprintTuple.HashType.SHA256])
+        hashers=[
+            rdf_client.FingerprintTuple.HashType.MD5,
+            rdf_client.FingerprintTuple.HashType.SHA1,
+            rdf_client.FingerprintTuple.HashType.SHA256
+        ])
 
     # Authenticode hash.
     request.AddRequest(
         fp_type=rdf_client.FingerprintTuple.Type.FPT_PE_COFF,
-        hashers=[rdf_client.FingerprintTuple.HashType.MD5,
-                 rdf_client.FingerprintTuple.HashType.SHA1,
-                 rdf_client.FingerprintTuple.HashType.SHA256])
+        hashers=[
+            rdf_client.FingerprintTuple.HashType.MD5,
+            rdf_client.FingerprintTuple.HashType.SHA1,
+            rdf_client.FingerprintTuple.HashType.SHA256
+        ])
 
     self.CallClient(
         file_fingerprint_actions.FingerprintFile,

@@ -19,8 +19,10 @@ class ReportsTest(test_lib.AFF4ObjectTest):
         client_ids[0], token=self.token, mode="rw") as client:
       interfaces = client.Schema.INTERFACES()
       interfaces.Append(
-          addresses=[rdf_client.NetworkAddress(
-              human_readable="1.1.1.1", address_type="INET")],
+          addresses=[
+              rdf_client.NetworkAddress(
+                  human_readable="1.1.1.1", address_type="INET")
+          ],
           mac_address="11:11:11:11:11:11",
           ifname="eth0")
       client.Set(interfaces)

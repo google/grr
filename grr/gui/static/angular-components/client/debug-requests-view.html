@@ -9,6 +9,10 @@
       Loading...
     </div>
 
+    <div ng-if="controller.actionRequests.length === 0">
+      No actions currently in progress.
+    </div>
+
     <div grr-force-refresh refresh-trigger="controller.actionRequests">
       <grr-semantic-value value="::controller.actionRequests">
       </grr-semantic-value>

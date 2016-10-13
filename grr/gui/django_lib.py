@@ -26,19 +26,26 @@ class DjangoInit(registry.InitHook):
     base_app_path = os.path.normpath(os.path.dirname(__file__))
     # Note that Django settings are immutable once set.
     django_settings = {
-        "DEBUG": config_lib.CONFIG["AdminUI.django_debug"],
-        "TEMPLATE_DEBUG": config_lib.CONFIG["AdminUI.django_debug"],
-        "SECRET_KEY": config_lib.CONFIG["AdminUI.django_secret_key"],
+        "DEBUG":
+            config_lib.CONFIG["AdminUI.django_debug"],
+        "TEMPLATE_DEBUG":
+            config_lib.CONFIG["AdminUI.django_debug"],
+        "SECRET_KEY":
+            config_lib.CONFIG["AdminUI.django_secret_key"],
 
         # Set to default as we don't supply an HTTPS server.
         # "CSRF_COOKIE_SECURE": not FLAGS.django_debug,  # Only send over HTTPS.
         # Where to find url mappings.
-        "ROOT_URLCONF": "grr.gui.urls",
+        "ROOT_URLCONF":
+            "grr.gui.urls",
         "TEMPLATE_DIRS": ("%s/templates" % base_app_path,),
         # Don't use the database for sessions, use a file.
-        "SESSION_ENGINE": "django.contrib.sessions.backends.file",
-        "ALLOWED_HOSTS": config_lib.CONFIG["AdminUI.django_allowed_hosts"],
-        "USE_I18N": False,
+        "SESSION_ENGINE":
+            "django.contrib.sessions.backends.file",
+        "ALLOWED_HOSTS":
+            config_lib.CONFIG["AdminUI.django_allowed_hosts"],
+        "USE_I18N":
+            False,
     }
 
     # The below will use conf/global_settings/py from Django, we need to

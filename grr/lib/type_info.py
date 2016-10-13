@@ -186,8 +186,8 @@ class TypeDescriptorSet(object):
     return iter(self.descriptors)
 
   def __str__(self):
-    result = "\n ".join(["%s: %s" % (x.name, x.description)
-                         for x in self.descriptors])
+    result = "\n ".join(
+        ["%s: %s" % (x.name, x.description) for x in self.descriptors])
 
     return "<TypeDescriptorSet for %s>\n %s\n</TypeDescriptorSet>\n" % (
         self.__class__.__name__, result)
@@ -227,8 +227,9 @@ class TypeDescriptorSet(object):
     for name in descriptor_names:
       new_descriptor_map.pop(name, None)
 
-    new_descriptors = [desc for desc in self.descriptors
-                       if desc in new_descriptor_map.values()]
+    new_descriptors = [
+        desc for desc in self.descriptors if desc in new_descriptor_map.values()
+    ]
     return TypeDescriptorSet(*new_descriptors)
 
   def ParseArgs(self, args):

@@ -175,7 +175,9 @@ class DarwinClientBuilder(build.ClientBuilder):
     shutil.copyfile(output_pkg_path, output_file)
 
     # Change the owner, group and permissions of the binaries back.
-    command = ["sudo", "/usr/sbin/chown", "-R", "%s:staff" % getpass.getuser(),
-               self.build_dir]
+    command = [
+        "sudo", "/usr/sbin/chown", "-R", "%s:staff" % getpass.getuser(),
+        self.build_dir
+    ]
     print "Running: %s" % " ".join(command)
     subprocess.call(command)

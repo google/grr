@@ -64,9 +64,8 @@ class CollectionFilesExportPluginTest(test_lib.GRRBaseTest):
 
     with utils.TempDirectory() as tmpdir:
       plugin.Run(
-          parser.parse_args(args=[
-              "--path", str(collection_path), "--output", tmpdir
-          ]))
+          parser.parse_args(
+              args=["--path", str(collection_path), "--output", tmpdir]))
 
       expected_outdir = os.path.join(tmpdir, self.out.Path()[1:])
       self.assertTrue("testfile1" in os.listdir(expected_outdir))

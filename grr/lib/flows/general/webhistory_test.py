@@ -106,9 +106,9 @@ class TestWebHistory(WebHistoryFlowTest):
     # Now check that the right files were downloaded.
     fs_path = "/home/test/.mozilla/firefox/adts404t.default/places.sqlite"
     # Check if the History file is created.
-    output_path = self.client_id.Add("fs/tsk").Add("/".join(
-        [self.base_path.replace("\\", "/"), "test_img.dd"])).Add(
-            fs_path.replace("\\", "/"))
+    output_path = self.client_id.Add("fs/tsk").Add("/".join([
+        self.base_path.replace("\\", "/"), "test_img.dd"
+    ])).Add(fs_path.replace("\\", "/"))
     fd = aff4.FACTORY.Open(output_path, token=self.token)
     self.assertTrue(fd.size > 20000)
     self.assertEqual(fd.read(15), "SQLite format 3")
@@ -225,8 +225,8 @@ class TestWebHistoryWithArtifacts(WebHistoryFlowTest):
           knowledge_base=self.kb)
 
     self.assertEqual(len(fd), 71)
-    self.assertTrue("/home/john/Downloads/funcats_scr.exe" in [d.download_path
-                                                               for d in fd])
+    self.assertTrue("/home/john/Downloads/funcats_scr.exe" in
+                    [d.download_path for d in fd])
     self.assertTrue("http://www.java.com/" in [d.url for d in fd])
     self.assertTrue(fd[0].source_urn.Path().endswith(
         "/home/test/.config/google-chrome/Default/History"))

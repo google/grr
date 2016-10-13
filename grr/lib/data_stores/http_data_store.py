@@ -125,8 +125,8 @@ class DataServerConnection(object):
       self.sock.sendall(request_body)
       return True
     except (socket.error, socket.timeout):
-      logging.warning("Could not send request to server %s:%d", self.Address(),
-                      self.Port())
+      logging.warning("Could not send request to server %s:%d",
+                      self.Address(), self.Port())
       return False
 
   def _Reconnect(self):
@@ -153,8 +153,8 @@ class DataServerConnection(object):
       self.conn.request("POST", "/client/handshake", "", {})
       response = self.conn.getresponse()
       if response.status != constants.RESPONSE_OK:
-        logging.warning("Could not handshake the server %s:%d", self.Address(),
-                        self.Port())
+        logging.warning("Could not handshake the server %s:%d",
+                        self.Address(), self.Port())
         return False
       # Generate the authentication token.
       size_nonce = int(response.getheader("Content-Length"))
@@ -173,8 +173,8 @@ class DataServerConnection(object):
         raise HTTPDataStoreError("Invalid data server username/password.")
       if ack != "OK\n":
         return False
-      logging.info("Connected to data server %s:%d", self.Address(),
-                   self.Port())
+      logging.info("Connected to data server %s:%d",
+                   self.Address(), self.Port())
       return True
     except httplib.HTTPException as e:
       logging.warning("Httplib problem when connecting to %s:%d: %s",
@@ -222,8 +222,8 @@ class DataServerConnection(object):
                                  (self.Address(), self.Port()))
 
   def _RedoConnection(self):
-    logging.warning("Attempt to reconnect with %s:%d", self.Address(),
-                    self.Port())
+    logging.warning("Attempt to reconnect with %s:%d",
+                    self.Address(), self.Port())
     self._DoConnection()
 
   @utils.Synchronized
@@ -328,8 +328,8 @@ class DataServer(object):
         return None
       return res.read()
     except httplib.HTTPException:
-      logging.warning("Could not connect server %s:%d", self.Address(),
-                      self.Port())
+      logging.warning("Could not connect server %s:%d",
+                      self.Address(), self.Port())
       return None
 
   def LoadMapping(self):

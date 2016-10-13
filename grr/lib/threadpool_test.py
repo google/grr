@@ -47,8 +47,9 @@ class ThreadPoolTest(test_lib.GRRBaseTest):
     raise RuntimeError("Timeout exceeded. Condition not true")
 
   def Count(self, thread_name):
-    worker_threads = [thread for thread in threading.enumerate()
-                      if thread_name in thread.name]
+    worker_threads = [
+        thread for thread in threading.enumerate() if thread_name in thread.name
+    ]
     return len(worker_threads)
 
   def testThreadCreation(self):

@@ -60,8 +60,10 @@ class SshdCheckTests(checks_test_lib.HostCheckTest):
   def testAuthorizedKeysCommandFail(self):
     chk_id = "SSH-AUTHORIZED-KEYS"
 
-    test_data = {"/etc/ssh/sshd_config":
-        "AuthorizedKeysCommand \"/bin/pubkey-helper -s %u\""}
+    test_data = {
+        "/etc/ssh/sshd_config":
+            "AuthorizedKeysCommand \"/bin/pubkey-helper -s %u\""
+    }
     host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
     results = self.RunChecks(host_data)
     sym = "Found: Sshd configuration sets an authorized key command."
@@ -79,8 +81,9 @@ class SshdCheckTests(checks_test_lib.HostCheckTest):
   def testAuthorizedKeysFileFail(self):
     chk_id = "SSH-AUTHORIZED-KEYS"
 
-    test_data = {"/etc/ssh/sshd_config": "AuthorizedKeysFile none /etc/ssh_keys"
-                }
+    test_data = {
+        "/etc/ssh/sshd_config": "AuthorizedKeysFile none /etc/ssh_keys"
+    }
     host_data = self.GenFileData("SshdConfigFile", test_data, self.parser)
     results = self.RunChecks(host_data)
     sym = "Found: Sshd configuration sets an authorized key file."

@@ -24,8 +24,19 @@ grrUi.client.clientLoadViewDirective.ClientLoadViewController = function(
   /** @type {string} */
   this.cliendId;
 
+  /** @export {number} Queries start time. */
+  this.startTime;
+
+  /** @export {number} Queries end time. */
+  this.endTime;
+
+  /** @export {number} Max duration of graphs to show (in minutes). */
+  this.duration = 60;
+
   this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'clientId',
-      this.onClientIdChange_.bind(this));
+                                            this.onClientIdChange_.bind(this));
+
+  this.scope_.$watch('controller.duration', this.onDurationChange.bind(this));
 };
 var ClientLoadViewController =
     grrUi.client.clientLoadViewDirective.ClientLoadViewController;
@@ -40,6 +51,18 @@ var ClientLoadViewController =
 ClientLoadViewController.prototype.onClientIdChange_ = function(clientId) {
   this.clientId = clientId;
 };
+
+/**
+ * Handles changes of 'controller.duration' value.
+ *
+ * @param {number} newValue New duration value.
+ * @export
+ */
+ClientLoadViewController.prototype.onDurationChange = function(newValue) {
+  this.endTime = Math.round(new Date().getTime() * 1000);
+  this.startTime = this.endTime - this.duration * 60 * 1000000;
+};
+
 
 /**
  * ClientLoadViewDirective definition.

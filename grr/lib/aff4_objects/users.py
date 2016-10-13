@@ -62,8 +62,10 @@ class GlobalNotificationSet(rdf_structs.RDFProtoStruct):
     Args:
       new_notification: New notification to add.
     """
-    current_list = [notification for notification in self.notifications
-                    if notification.type != new_notification.type]
+    current_list = [
+        notification for notification in self.notifications
+        if notification.type != new_notification.type
+    ]
     current_list.append(new_notification)
     current_list = sorted(current_list, key=lambda x: x.type)
     self.notifications = current_list
@@ -148,9 +150,10 @@ class GUISettings(rdf_structs.RDFProtoStruct):
 class GRRUser(aff4.AFF4Object):
   """An AFF4 object modeling a GRR User."""
 
-  SYSTEM_USERS = set(["GRRWorker", "GRRCron", "GRRSystem", "GRRFrontEnd",
-                      "GRRConsole", "GRRArtifactRegistry", "GRRStatsStore",
-                      "GRREndToEndTest", "GRR"])
+  SYSTEM_USERS = set([
+      "GRRWorker", "GRRCron", "GRRSystem", "GRRFrontEnd", "GRRConsole",
+      "GRRArtifactRegistry", "GRRStatsStore", "GRREndToEndTest", "GRR"
+  ])
 
   _SYSTEM_USERS_LOWERCASE = set(username.lower() for username in SYSTEM_USERS)
 

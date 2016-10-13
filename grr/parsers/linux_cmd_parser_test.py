@@ -66,18 +66,23 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     """
     stderr = "error: rpmdbNextIterator: skipping h#"
     out = list(parser.Parse("/bin/rpm", ["-qa"], content, stderr, 0, 5, None))
-    software = {o.name: o.version
-                for o in out if isinstance(o, rdf_client.SoftwarePackage)}
+    software = {
+        o.name:
+            o.version
+        for o in out if isinstance(o, rdf_client.SoftwarePackage)
+    }
     anomaly = [o for o in out if isinstance(o, rdf_anomaly.Anomaly)]
     self.assertEqual(7, len(software))
     self.assertEqual(1, len(anomaly))
-    expected = {"glib2": "2.12.3-4.el5_3.1",
-                "elfutils-libelf": "0.137-3.el5",
-                "libgpg-error": "1.4-2",
-                "keyutils-libs": "1.2-1.el5",
-                "less": "436-9.el5",
-                "libstdc++-devel": "4.1.2-55.el5",
-                "gcc-c++": "4.1.2-55.el5"}
+    expected = {
+        "glib2": "2.12.3-4.el5_3.1",
+        "elfutils-libelf": "0.137-3.el5",
+        "libgpg-error": "1.4-2",
+        "keyutils-libs": "1.2-1.el5",
+        "less": "436-9.el5",
+        "libstdc++-devel": "4.1.2-55.el5",
+        "gcc-c++": "4.1.2-55.el5"
+    }
     self.assertItemsEqual(expected, software)
     self.assertEqual("Broken rpm database.", anomaly[0].symptom)
 
@@ -131,9 +136,11 @@ class LinuxCmdParserTest(test_lib.GRRBaseTest):
     parser = linux_cmd_parser.PsCmdParser()
     # Check the detailed 'ps' output. i.e. lots of args.
     content = open(os.path.join(self.base_path, "pscmd.out"), "rb").read()
-    args = ["h", "-ewwo",
-            "pid,ppid,comm,ruid,uid,suid,rgid,gid,sgid,user,tty,stat,nice,"
-            "thcount,pcpu,rss,vsz,pmem,cmd"]
+    args = [
+        "h", "-ewwo",
+        "pid,ppid,comm,ruid,uid,suid,rgid,gid,sgid,user,tty,stat,nice,"
+        "thcount,pcpu,rss,vsz,pmem,cmd"
+    ]
     processes = list(parser.Parse("/bin/ps", args, content, "", 0, 5, None))
     # Confirm we parsed all the appropriate lines.
     self.assertEqual(5, len(processes))

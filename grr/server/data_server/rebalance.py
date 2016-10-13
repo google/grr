@@ -316,8 +316,9 @@ def MoveFiles(rebalance, is_master):
   remove_file = _FileWithRemoveList(loc, rebalance)
   to_remove = []
   if os.path.exists(remove_file):
-    to_remove = [line.decode("utf8").rstrip("\n")
-                 for line in open(remove_file, "rb")]
+    to_remove = [
+        line.decode("utf8").rstrip("\n") for line in open(remove_file, "rb")
+    ]
   for fname in to_remove:
     if not fname.startswith(loc):
       logging.warning("Wrong file to remove: %s", fname)

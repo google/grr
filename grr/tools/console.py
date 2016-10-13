@@ -105,16 +105,23 @@ def main(unused_argv):
       username=getpass.getuser(), reason=flags.FLAGS.reason)
 
   locals_vars = {
-      "__name__": "GRR Console",
-      "l": Lister,
-      "lc": GetChildrenList,
-      "o": aff4.FACTORY.Open,
+      "__name__":
+          "GRR Console",
+      "l":
+          Lister,
+      "lc":
+          GetChildrenList,
+      "o":
+          aff4.FACTORY.Open,
 
       # Bring some symbols from other modules into the console's
       # namespace.
-      "StartFlowAndWait": flow_utils.StartFlowAndWait,
-      "StartFlowAndWorker": debugging.StartFlowAndWorker,
-      "RunEndToEndTests": end_to_end_tests.RunEndToEndTests,
+      "StartFlowAndWait":
+          flow_utils.StartFlowAndWait,
+      "StartFlowAndWorker":
+          debugging.StartFlowAndWorker,
+      "RunEndToEndTests":
+          end_to_end_tests.RunEndToEndTests,
   }
 
   locals_vars.update(globals())  # add global variables to console

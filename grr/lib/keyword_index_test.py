@@ -40,8 +40,8 @@ class KeywordIndexTest(test_lib.AFF4ObjectTest):
     self.assertEqual(len(results), 25)
 
     # A keyword with no subjects does lead to no results returned.
-    results = index.Lookup(["popular_keyword1", "popular_keyword2",
-                            "unknown_keyword"])
+    results = index.Lookup(
+        ["popular_keyword1", "popular_keyword2", "unknown_keyword"])
     self.assertEqual(len(results), 0)
 
   def testKeywordIndexTimestamps(self):

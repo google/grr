@@ -268,9 +268,11 @@ class StatsTests(test_lib.GRRBaseTest):
     self.assertEqual(metrics["test_int_gauge"].metric_type,
                      stats.MetricType.GAUGE)
     self.assertEqual(
-        metrics["test_int_gauge"].fields_defs, [stats.MetricFieldDefinition(
-            field_name="dimension",
-            field_type=stats.MetricFieldDefinition.FieldType.STR)])
+        metrics["test_int_gauge"].fields_defs, [
+            stats.MetricFieldDefinition(
+                field_name="dimension",
+                field_type=stats.MetricFieldDefinition.FieldType.STR)
+        ])
 
     self.assertEqual(metrics["test_event_metric"].metric_type,
                      stats.MetricType.EVENT)

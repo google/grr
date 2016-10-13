@@ -33,12 +33,14 @@ class ListProcessesTest(test_lib.FlowTestsBaseclass):
   def testProcessListingOnly(self):
     """Test that the ListProcesses flow works."""
 
-    client_mock = ListProcessesMock([rdf_client.Process(
-        pid=2,
-        ppid=1,
-        cmdline=["cmd.exe"],
-        exe="c:\\windows\\cmd.exe",
-        ctime=long(1333718907.167083 * 1e6))])
+    client_mock = ListProcessesMock([
+        rdf_client.Process(
+            pid=2,
+            ppid=1,
+            cmdline=["cmd.exe"],
+            exe="c:\\windows\\cmd.exe",
+            ctime=long(1333718907.167083 * 1e6))
+    ])
 
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=self.client_id, flow_name="ListProcesses", token=self.token)

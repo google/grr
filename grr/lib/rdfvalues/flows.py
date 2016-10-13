@@ -308,12 +308,14 @@ class Notification(rdf_structs.RDFProtoStruct):
   """
   protobuf = jobs_pb2.Notification
 
-  notification_types = ["Discovery",  # Link to the client object
-                        "ViewObject",  # Link to any URN
-                        "FlowStatus",  # Link to a flow
-                        "GrantAccess",  # Link to an access grant page
-                        "ArchiveGenerationFinished",
-                        "Error"]
+  notification_types = [
+      "Discovery",  # Link to the client object
+      "ViewObject",  # Link to any URN
+      "FlowStatus",  # Link to a flow
+      "GrantAccess",  # Link to an access grant page
+      "ArchiveGenerationFinished",
+      "Error"
+  ]
 
 
 class FlowNotification(rdf_structs.RDFProtoStruct):

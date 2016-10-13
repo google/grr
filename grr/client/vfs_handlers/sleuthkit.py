@@ -73,8 +73,9 @@ class TSKFile(vfs.VFSHandler):
   }
 
   # Files we won't return in directories.
-  BLACKLIST_FILES = ["$OrphanFiles"  # Special TSK dir that invokes processing.
-                    ]
+  BLACKLIST_FILES = [
+      "$OrphanFiles"  # Special TSK dir that invokes processing.
+  ]
 
   # The file like object we read our image from
   tsk_raw_device = None
@@ -260,8 +261,10 @@ class TSKFile(vfs.VFSHandler):
     meta = info.meta
     if meta:
       response.st_ino = meta.addr
-      for attribute in ["mode", "nlink", "uid", "gid", "size", "atime", "mtime",
-                        "ctime", "crtime"]:
+      for attribute in [
+          "mode", "nlink", "uid", "gid", "size", "atime", "mtime", "ctime",
+          "crtime"
+      ]:
         try:
           value = int(getattr(meta, attribute))
           if value < 0:
@@ -353,8 +356,10 @@ class TSKFile(vfs.VFSHandler):
 
           # Now send back additional named attributes for the ADS.
           for attribute in f:
-            if attribute.info.type in [pytsk3.TSK_FS_ATTR_TYPE_NTFS_DATA,
-                                       pytsk3.TSK_FS_ATTR_TYPE_DEFAULT]:
+            if attribute.info.type in [
+                pytsk3.TSK_FS_ATTR_TYPE_NTFS_DATA,
+                pytsk3.TSK_FS_ATTR_TYPE_DEFAULT
+            ]:
               if attribute.info.name:
                 yield self.MakeStatResponse(
                     f, append_name=name, tsk_attribute=attribute)

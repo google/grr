@@ -87,13 +87,12 @@ class ClientBuilder(BuilderBase):
   implementations. Note that client builders typically run on the target
   operating system.
   """
-  REQUIRED_BUILD_YAML_KEYS = set(["Client.build_environment",
-                                  "Client.build_time", "Template.build_type",
-                                  "Template.build_context",
-                                  "Template.version_major",
-                                  "Template.version_minor",
-                                  "Template.version_revision",
-                                  "Template.version_release", "Template.arch"])
+  REQUIRED_BUILD_YAML_KEYS = set([
+      "Client.build_environment", "Client.build_time", "Template.build_type",
+      "Template.build_context", "Template.version_major",
+      "Template.version_minor", "Template.version_revision",
+      "Template.version_release", "Template.arch"
+  ])
 
   def MakeBuildDirectory(self):
     """Prepares the build directory."""
@@ -139,12 +138,14 @@ class ClientBuilder(BuilderBase):
         "grr-client")
 
     # Pyinstaller doesn't handle unicode strings.
-    args = ["--distpath", str(
-        config_lib.CONFIG.Get("PyInstaller.distpath", context=self.context)),
-            "--workpath", str(
-                config_lib.CONFIG.Get("PyInstaller.workpath_dir",
-                                      context=self.context)),
-            str(self.spec_file)]
+    args = [
+        "--distpath", str(
+            config_lib.CONFIG.Get("PyInstaller.distpath",
+                                  context=self.context)), "--workpath",
+        str(
+            config_lib.CONFIG.Get("PyInstaller.workpath_dir",
+                                  context=self.context)), str(self.spec_file)
+    ]
     logging.info("Running pyinstaller: %s", args)
     PyInstallerMain.run(pyi_args=[utils.SmartStr(x) for x in args])
 
@@ -250,8 +251,10 @@ class ClientRepacker(BuilderBase):
   Note that this should be runnable on all operating systems.
   """
 
-  CONFIG_SECTIONS = ["CA", "Client", "ClientRepacker", "Logging", "Config",
-                     "Nanny", "Installer", "Template"]
+  CONFIG_SECTIONS = [
+      "CA", "Client", "ClientRepacker", "Logging", "Config", "Nanny",
+      "Installer", "Template"
+  ]
 
   # Config options that should never make it to a deployable binary.
   SKIP_OPTION_LIST = ["Client.private_key"]
@@ -449,9 +452,10 @@ class WindowsClientRepacker(ClientRepacker):
         console=config_lib.CONFIG.Get("ClientBuilder.console", context=context))
 
     # Interpolate resource strings.
-    for parameter in ["Client.company_name", "Client.description",
-                      "Client.name", "Template.version_string",
-                      "ClientBuilder.package_name"]:
+    for parameter in [
+        "Client.company_name", "Client.description", "Client.name",
+        "Template.version_string", "ClientBuilder.package_name"
+    ]:
       self.InterpolateVariableInBinary(bin_dat, parameter)
 
     output_zip.writestr(client_bin_name, self.Sign(bin_dat.getvalue()))
@@ -753,9 +757,10 @@ class LinuxClientRepacker(ClientRepacker):
 
       utils.EnsureDirExists(os.path.dirname(output_path))
 
-      for extension in [".changes",
-                        config_lib.CONFIG.Get("ClientBuilder.output_extension",
-                                              context=self.context)]:
+      for extension in [
+          ".changes", config_lib.CONFIG.Get("ClientBuilder.output_extension",
+                                            context=self.context)
+      ]:
         input_name = "%s%s" % (filename_base, extension)
         output_name = "%s%s" % (output_base, extension)
 
@@ -843,24 +848,25 @@ class CentosClientRepacker(LinuxClientRepacker):
           initd_target_filename)
 
       # Generate systemd unit
-      systemd_target_filename = os.path.join(rpm_build_dir,
-                                             "usr/lib/systemd/system/",
-                                             "%s.service" % client_name)
+      if config_lib.CONFIG["Template.version_numeric"] >= 3125:
+        systemd_target_filename = os.path.join(rpm_build_dir,
+                                               "usr/lib/systemd/system/",
+                                               "%s.service" % client_name)
 
-      utils.EnsureDirExists(os.path.dirname(systemd_target_filename))
-      self.GenerateFile(
-          os.path.join(tmp_dir, "dist/rpmbuild/grr-client.service.in"),
-          systemd_target_filename)
+        utils.EnsureDirExists(os.path.dirname(systemd_target_filename))
+        self.GenerateFile(
+            os.path.join(tmp_dir, "dist/rpmbuild/grr-client.service.in"),
+            systemd_target_filename)
 
-      # Generate prelinking blacklist file
-      prelink_target_filename = os.path.join(rpm_build_dir,
-                                             "etc/prelink.conf.d",
-                                             "%s.conf" % client_name)
+        # Generate prelinking blacklist file
+        prelink_target_filename = os.path.join(rpm_build_dir,
+                                               "etc/prelink.conf.d",
+                                               "%s.conf" % client_name)
 
-      utils.EnsureDirExists(os.path.dirname(prelink_target_filename))
-      self.GenerateFile(
-          os.path.join(tmp_dir, "dist/rpmbuild/prelink_blacklist.conf.in"),
-          prelink_target_filename)
+        utils.EnsureDirExists(os.path.dirname(prelink_target_filename))
+        self.GenerateFile(
+            os.path.join(tmp_dir, "dist/rpmbuild/prelink_blacklist.conf.in"),
+            prelink_target_filename)
 
       # Create a client config.
       client_context = ["Client Context"] + self.context

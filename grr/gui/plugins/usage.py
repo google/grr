@@ -194,9 +194,11 @@ class SystemFlows(statistics.Report, renderers.TableRenderer):
             reverse=True)[0:3]
         topusers = ", ".join("%s (%s)" % (user, count)
                              for user, count in topusercounts)
-        self.AddRow({"Flow Name": flow,
-                     "Run Count": total_count,
-                     "Most Run By": topusers})
+        self.AddRow({
+            "Flow Name": flow,
+            "Run Count": total_count,
+            "Most Run By": topusers
+        })
     except IOError:
       pass
 
@@ -274,13 +276,15 @@ class AuditTable(statistics.Report, renderers.TableRenderer):
 </div>
 """) + renderers.TableRenderer.layout_template
   time_offset = rdfvalue.Duration("7d")
-  column_map = {"Timestamp": "timestamp",
-                "Action": "action",
-                "User": "user",
-                "Client": "client",
-                "Flow Name": "flow_name",
-                "URN": "urn",
-                "Description": "description"}
+  column_map = {
+      "Timestamp": "timestamp",
+      "Action": "action",
+      "User": "user",
+      "Client": "client",
+      "Flow Name": "flow_name",
+      "URN": "urn",
+      "Description": "description"
+  }
 
   # To be set by subclass
   TYPES = []
@@ -312,14 +316,18 @@ class ClientApprovals(AuditTable):
   """Last week's client approvals."""
   category = "/Server/Approvals/Clients/  7 days"
   title = "Client approval requests and grants for the last 7 days"
-  column_map = {"Timestamp": "timestamp",
-                "Approval Type": "action",
-                "User": "user",
-                "Client": "client",
-                "Reason": "description"}
-  TYPES = [events.AuditEvent.Action.CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
-           events.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
-           events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST]
+  column_map = {
+      "Timestamp": "timestamp",
+      "Approval Type": "action",
+      "User": "user",
+      "Client": "client",
+      "Reason": "description"
+  }
+  TYPES = [
+      events.AuditEvent.Action.CLIENT_APPROVAL_BREAK_GLASS_REQUEST,
+      events.AuditEvent.Action.CLIENT_APPROVAL_GRANT,
+      events.AuditEvent.Action.CLIENT_APPROVAL_REQUEST
+  ]
 
 
 class ClientApprovals30(ClientApprovals):
@@ -333,13 +341,17 @@ class HuntApprovals(AuditTable):
   """Last week's hunt approvals."""
   category = "/Server/Approvals/Hunts/  7 days"
   title = "Hunt approval requests and grants for the last 7 days"
-  column_map = {"Timestamp": "timestamp",
-                "Approval Type": "action",
-                "User": "user",
-                "URN": "urn",
-                "Reason": "description"}
-  TYPES = [events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
-           events.AuditEvent.Action.HUNT_APPROVAL_REQUEST]
+  column_map = {
+      "Timestamp": "timestamp",
+      "Approval Type": "action",
+      "User": "user",
+      "URN": "urn",
+      "Reason": "description"
+  }
+  TYPES = [
+      events.AuditEvent.Action.HUNT_APPROVAL_GRANT,
+      events.AuditEvent.Action.HUNT_APPROVAL_REQUEST
+  ]
 
 
 class HuntApprovals30(HuntApprovals):
@@ -353,8 +365,10 @@ class CronJobApprovals(HuntApprovals):
   """Last week's cron approvals."""
   category = "/Server/Approvals/Crons/  7 days"
   title = "Cron approval requests and grants for the last 7 days"
-  TYPES = [events.AuditEvent.Action.CRON_APPROVAL_GRANT,
-           events.AuditEvent.Action.CRON_APPROVAL_REQUEST]
+  TYPES = [
+      events.AuditEvent.Action.CRON_APPROVAL_GRANT,
+      events.AuditEvent.Action.CRON_APPROVAL_REQUEST
+  ]
 
 
 class CronJobApprovals30(CronJobApprovals):
@@ -368,18 +382,22 @@ class HuntActions(AuditTable):
   """Last week's hunt actions."""
   category = "/Server/Hunts/  7 days"
   title = "Hunt management actions for the last 7 days"
-  column_map = {"Timestamp": "timestamp",
-                "Action": "action",
-                "User": "user",
-                "Flow Name": "flow_name",
-                "URN": "urn",
-                "Description": "description"}
+  column_map = {
+      "Timestamp": "timestamp",
+      "Action": "action",
+      "User": "user",
+      "Flow Name": "flow_name",
+      "URN": "urn",
+      "Description": "description"
+  }
 
-  TYPES = [events.AuditEvent.Action.HUNT_CREATED,
-           events.AuditEvent.Action.HUNT_MODIFIED,
-           events.AuditEvent.Action.HUNT_PAUSED,
-           events.AuditEvent.Action.HUNT_STARTED,
-           events.AuditEvent.Action.HUNT_STOPPED]
+  TYPES = [
+      events.AuditEvent.Action.HUNT_CREATED,
+      events.AuditEvent.Action.HUNT_MODIFIED,
+      events.AuditEvent.Action.HUNT_PAUSED,
+      events.AuditEvent.Action.HUNT_STARTED,
+      events.AuditEvent.Action.HUNT_STOPPED
+  ]
 
 
 class HuntActions30(HuntActions):

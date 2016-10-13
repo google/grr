@@ -76,9 +76,11 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     collect_flow.args = artifact_utils.ArtifactCollectorFlowArgs()
 
     test_rdf = rdf_client.KnowledgeBase()
-    action_args = {"usernames": ["%%users.username%%", "%%users.username%%"],
-                   "nointerp": "asdfsdf",
-                   "notastring": test_rdf}
+    action_args = {
+        "usernames": ["%%users.username%%", "%%users.username%%"],
+        "nointerp": "asdfsdf",
+        "notastring": test_rdf
+    }
 
     kwargs = collect_flow.InterpolateDict(action_args)
     self.assertItemsEqual(kwargs["usernames"],
@@ -91,23 +93,23 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
     self.assertRaises(ValueError, collect_flow.InterpolateDict,
                       {"bad": "%%users.username%%"})
 
-    list_args = collect_flow.InterpolateList(["%%users.username%%",
-                                              r"%%users.username%%\aa"])
-    self.assertItemsEqual(list_args, ["test1", "test2", r"test1\aa",
-                                      r"test2\aa"])
+    list_args = collect_flow.InterpolateList(
+        ["%%users.username%%", r"%%users.username%%\aa"])
+    self.assertItemsEqual(list_args,
+                          ["test1", "test2", r"test1\aa", r"test2\aa"])
 
     list_args = collect_flow.InterpolateList(["one"])
     self.assertEqual(list_args, ["one"])
 
     # Ignore the failure in users.desktop, report the others.
     collect_flow.args.ignore_interpolation_errors = True
-    list_args = collect_flow.InterpolateList(["%%users.desktop%%",
-                                              r"%%users.username%%\aa"])
+    list_args = collect_flow.InterpolateList(
+        ["%%users.desktop%%", r"%%users.username%%\aa"])
     self.assertItemsEqual(list_args, [r"test1\aa", r"test2\aa"])
 
     # Both fail.
-    list_args = collect_flow.InterpolateList([r"%%users.desktop%%\aa",
-                                              r"%%users.sid%%\aa"])
+    list_args = collect_flow.InterpolateList(
+        [r"%%users.desktop%%\aa", r"%%users.sid%%\aa"])
     self.assertItemsEqual(list_args, [])
 
   def testGrepRegexCombination(self):
@@ -142,8 +144,10 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
 
       collector = artifact_registry.ArtifactSource(
           type=artifact_registry.ArtifactSource.SourceType.GREP,
-          attributes={"paths": ["/etc/passwd"],
-                      "content_regex_list": [r"^a%%users.username%%b$"]})
+          attributes={
+              "paths": ["/etc/passwd"],
+              "content_regex_list": [r"^a%%users.username%%b$"]
+          })
       collect_flow.Grep(collector, rdf_paths.PathSpec.PathType.TSK)
 
     conditions = mock_call_flow.kwargs["conditions"]
@@ -316,11 +320,14 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
         client_mock = action_mocks.ActionMock(standard.StatFile)
         coll1 = artifact_registry.ArtifactSource(
             type=artifact_registry.ArtifactSource.SourceType.REGISTRY_VALUE,
-            attributes={"key_value_pairs": [{
-                "key": (r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet"
-                        r"\Control\Session Manager"),
-                "value": "BootExecute"
-            }]})
+            attributes={
+                "key_value_pairs": [{
+                    "key": (r"HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet"
+                            r"\Control\Session Manager"),
+                    "value":
+                        "BootExecute"
+                }]
+            })
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
         for s in test_lib.TestFlowHelper(
@@ -346,10 +353,12 @@ class TestArtifactCollectors(test_lib.FlowTestsBaseclass):
         client_mock = action_mocks.ActionMock(standard.StatFile)
         coll1 = artifact_registry.ArtifactSource(
             type=artifact_registry.ArtifactSource.SourceType.REGISTRY_VALUE,
-            attributes={"key_value_pairs": [{
-                "key": (r"HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest"),
-                "value": ""
-            }]})
+            attributes={
+                "key_value_pairs": [{
+                    "key": (r"HKEY_LOCAL_MACHINE/SOFTWARE/ListingTest"),
+                    "value": ""
+                }]
+            })
         self.fakeartifact.sources.append(coll1)
         artifact_list = ["FakeArtifact"]
         for s in test_lib.TestFlowHelper(

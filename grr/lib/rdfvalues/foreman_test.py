@@ -36,8 +36,9 @@ class ForemanClientRuleSetTest(test_base.RDFValueTestCase):
       ret.match_mode = rdf_foreman.ForemanClientRuleSet.MatchMode.MATCH_ANY
 
     # Generate a sequence of rules using all other bits
-    ret.rules = [ForemanClientRuleTest.GenerateSample(n)
-                 for n in xrange(number / 2)]
+    ret.rules = [
+        ForemanClientRuleTest.GenerateSample(n) for n in xrange(number / 2)
+    ]
 
     return ret
 

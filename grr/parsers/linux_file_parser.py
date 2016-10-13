@@ -272,8 +272,8 @@ class NetgroupBufferParser(parsers.GrepParser):
 
   def Parse(self, filefinderresult, knowledge_base):
     _ = knowledge_base
-    return NetgroupParser.ParseLines([x.data.strip()
-                                      for x in filefinderresult.matches])
+    return NetgroupParser.ParseLines(
+        [x.data.strip() for x in filefinderresult.matches])
 
 
 class LinuxBaseShadowParser(parsers.FileParser):
@@ -702,8 +702,9 @@ class PathParser(parsers.FileParser):
   output_types = ["AttributedDict"]
   # TODO(user): Modify once a decision is made on contextual selection of
   # parsed results for artifact data.
-  supported_artifacts = ["GlobalShellConfigs", "RootUserShellConfigs",
-                         "UsersShellConfigs"]
+  supported_artifacts = [
+      "GlobalShellConfigs", "RootUserShellConfigs", "UsersShellConfigs"
+  ]
 
   # https://cwe.mitre.org/data/definitions/426.html
   _TARGETS = ("CLASSPATH", "LD_AOUT_LIBRARY_PATH", "LD_AOUT_PRELOAD",

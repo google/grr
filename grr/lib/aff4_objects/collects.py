@@ -390,9 +390,17 @@ class GRRSignedBlob(aff4.AFF4Stream):
   def _EnsureInitialized(self):
     if self.collection is None:
       if self.mode == "r":
-        self.collection = aff4.FACTORY.Open(
-            self.urn.Add("collection"), mode="r", token=self.token)
         self.fd = cStringIO.StringIO()
+        try:
+          self.collection = aff4.FACTORY.Open(
+              self.urn.Add("collection"),
+              aff4_type=GRRSignedBlobCollection,
+              mode="r",
+              token=self.token)
+        except aff4.InstantiationError:
+          self._size = 0
+          return
+
         for x in self.collection:
           self.fd.write(x.data)
 
@@ -547,7 +555,8 @@ class PackedVersionedCollection(RDFValueCollection):
         rdf_value.age = rdfvalue.RDFDatetime.Now()
 
       data_attrs.append(
-          cls.SchemaCls.DATA(rdf_protodict.EmbeddedRDFValue(payload=rdf_value)))
+          cls.SchemaCls.DATA(
+              rdf_protodict.EmbeddedRDFValue(payload=rdf_value)))
 
     attrs_to_set = {cls.SchemaCls.DATA: data_attrs}
     if cls.IsJournalingEnabled():

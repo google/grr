@@ -109,8 +109,9 @@ class QueueTest(test_lib.AFF4ObjectTest):
     with aff4.FACTORY.OpenWithLock(
         queue_urn, lease_time=200, token=self.token) as queue:
       results = queue.ClaimRecords()
-      odd_ids = [record_id for (record_id, value) in results
-                 if int(value) % 2 == 1]
+      odd_ids = [
+          record_id for (record_id, value) in results if int(value) % 2 == 1
+      ]
       queue.ReleaseRecord(odd_ids[0])
       queue.ReleaseRecords(odd_ids[1:])
 

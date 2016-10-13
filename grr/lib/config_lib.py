@@ -619,12 +619,14 @@ class StringInterpolator(lexer.Lexer):
       lexer.Token(None, r".", "AppendArg", None),
   ]
 
-  STRING_ESCAPES = {"\\\\": "\\",
-                    "\\(": "(",
-                    "\\)": ")",
-                    "\\{": "{",
-                    "\\}": "}",
-                    "\\%": "%"}
+  STRING_ESCAPES = {
+      "\\\\": "\\",
+      "\\(": "(",
+      "\\)": ")",
+      "\\{": "{",
+      "\\}": "}",
+      "\\%": "%"
+  }
 
   def __init__(self,
                data,
@@ -1286,7 +1288,8 @@ class GrrConfigManager(object):
     try:
       return_value = self.InterpolateValue(
           return_value,
-          default_section=name.split(".")[0], type_info_obj=type_info_obj,
+          default_section=name.split(".")[0],
+          type_info_obj=type_info_obj,
           context=calc_context)
     except (lexer.ParseError, ValueError) as e:
       # We failed to parse the value, but a default was specified, so we just
@@ -1432,8 +1435,11 @@ class GrrConfigManager(object):
 
     # ... and lists of strings.
     if isinstance(value, list):
-      value = [self.InterpolateValue(
-          v, default_section=default_section, context=context) for v in value]
+      value = [
+          self.InterpolateValue(
+              v, default_section=default_section, context=context)
+          for v in value
+      ]
 
     return value
 

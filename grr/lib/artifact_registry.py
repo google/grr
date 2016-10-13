@@ -401,37 +401,65 @@ class ArtifactSource(structs.RDFProtoStruct):
   OUTPUT_UNDEFINED = "Undefined"
 
   TYPE_MAP = {
-      "GRR_CLIENT_ACTION": {"required_attributes": ["client_action"],
-                            "output_type": OUTPUT_UNDEFINED},
-      "FILE": {"required_attributes": ["paths"],
-               "output_type": "StatEntry"},
-      "GREP": {"required_attributes": ["paths", "content_regex_list"],
-               "output_type": "BufferReference"},
-      "DIRECTORY": {"required_attributes": ["paths"],
-                    "output_type": "StatEntry"},
-      "LIST_FILES": {"required_attributes": ["paths"],
-                     "output_type": "StatEntry"},
-      "PATH": {"required_attributes": ["paths"],
-               "output_type": "StatEntry"},
-      "REGISTRY_KEY": {"required_attributes": ["keys"],
-                       "output_type": "StatEntry"},
-      "REGISTRY_VALUE": {"required_attributes": ["key_value_pairs"],
-                         "output_type": "RDFString"},
-      "WMI": {"required_attributes": ["query"],
-              "output_type": "Dict"},
-      "COMMAND": {"required_attributes": ["cmd", "args"],
-                  "output_type": "ExecuteResponse"},
-      "REKALL_PLUGIN": {"required_attributes": ["plugin"],
-                        "output_type": "RekallResponse"},
+      "GRR_CLIENT_ACTION": {
+          "required_attributes": ["client_action"],
+          "output_type": OUTPUT_UNDEFINED
+      },
+      "FILE": {
+          "required_attributes": ["paths"],
+          "output_type": "StatEntry"
+      },
+      "GREP": {
+          "required_attributes": ["paths", "content_regex_list"],
+          "output_type": "BufferReference"
+      },
+      "DIRECTORY": {
+          "required_attributes": ["paths"],
+          "output_type": "StatEntry"
+      },
+      "LIST_FILES": {
+          "required_attributes": ["paths"],
+          "output_type": "StatEntry"
+      },
+      "PATH": {
+          "required_attributes": ["paths"],
+          "output_type": "StatEntry"
+      },
+      "REGISTRY_KEY": {
+          "required_attributes": ["keys"],
+          "output_type": "StatEntry"
+      },
+      "REGISTRY_VALUE": {
+          "required_attributes": ["key_value_pairs"],
+          "output_type": "RDFString"
+      },
+      "WMI": {
+          "required_attributes": ["query"],
+          "output_type": "Dict"
+      },
+      "COMMAND": {
+          "required_attributes": ["cmd", "args"],
+          "output_type": "ExecuteResponse"
+      },
+      "REKALL_PLUGIN": {
+          "required_attributes": ["plugin"],
+          "output_type": "RekallResponse"
+      },
       # ARTIFACT is the legacy name for ARTIFACT_GROUP
       # per: https://github.com/ForensicArtifacts/artifacts/pull/143
       # TODO(user): remove legacy support after migration.
-      "ARTIFACT": {"required_attributes": ["names"],
-                   "output_type": OUTPUT_UNDEFINED},
-      "ARTIFACT_FILES": {"required_attributes": ["artifact_list"],
-                         "output_type": "StatEntry"},
-      "ARTIFACT_GROUP": {"required_attributes": ["names"],
-                         "output_type": OUTPUT_UNDEFINED}
+      "ARTIFACT": {
+          "required_attributes": ["names"],
+          "output_type": OUTPUT_UNDEFINED
+      },
+      "ARTIFACT_FILES": {
+          "required_attributes": ["artifact_list"],
+          "output_type": "StatEntry"
+      },
+      "ARTIFACT_GROUP": {
+          "required_attributes": ["names"],
+          "output_type": OUTPUT_UNDEFINED
+      }
   }
 
   def __init__(self, initializer=None, age=None, **kwarg):
@@ -517,29 +545,50 @@ class Artifact(structs.RDFProtoStruct):
   # Labels are used to logicaly group Artifacts for ease of use.
 
   ARTIFACT_LABELS = {
-      "Antivirus": "Antivirus related artifacts, e.g. quarantine files.",
-      "Authentication": "Authentication artifacts.",
-      "Browser": "Web Browser artifacts.",
-      "Cloud": "Cloud applications artifacts.",
-      "Cloud Storage": "Cloud Storage artifacts.",
-      "Configuration Files": "Configuration files artifacts.",
-      "Execution": "Contain execution events.",
+      "Antivirus":
+          "Antivirus related artifacts, e.g. quarantine files.",
+      "Authentication":
+          "Authentication artifacts.",
+      "Browser":
+          "Web Browser artifacts.",
+      "Cloud":
+          "Cloud applications artifacts.",
+      "Cloud Storage":
+          "Cloud Storage artifacts.",
+      "Configuration Files":
+          "Configuration files artifacts.",
+      "Execution":
+          "Contain execution events.",
       "ExternalAccount": ("Information about any users\' account, e.g."
                           " username, account ID, etc."),
-      "External Media": "Contain external media data / events e.g. USB drives.",
-      "History Files": "History files artifacts e.g. .bash_history.",
-      "IM": "Instant Messaging / Chat applications artifacts.",
-      "iOS": "Artifacts related to iOS devices connected to the system.",
-      "KnowledgeBase": "Artifacts used in knowledgebase generation.",
-      "Logs": "Contain log files.",
-      "Mail": "Mail client applications artifacts.",
-      "Memory": "Artifacts retrieved from Memory.",
-      "Network": "Describe networking state.",
-      "Processes": "Describe running processes.",
-      "Software": "Installed software.",
-      "System": "Core system artifacts.",
-      "Users": "Information about users.",
-      "Rekall": "Artifacts using the Rekall memory forensics framework.",
+      "External Media":
+          "Contain external media data / events e.g. USB drives.",
+      "History Files":
+          "History files artifacts e.g. .bash_history.",
+      "IM":
+          "Instant Messaging / Chat applications artifacts.",
+      "iOS":
+          "Artifacts related to iOS devices connected to the system.",
+      "KnowledgeBase":
+          "Artifacts used in knowledgebase generation.",
+      "Logs":
+          "Contain log files.",
+      "Mail":
+          "Mail client applications artifacts.",
+      "Memory":
+          "Artifacts retrieved from Memory.",
+      "Network":
+          "Describe networking state.",
+      "Processes":
+          "Describe running processes.",
+      "Software":
+          "Installed software.",
+      "System":
+          "Core system artifacts.",
+      "Users":
+          "Information about users.",
+      "Rekall":
+          "Artifacts using the Rekall memory forensics framework.",
   }
 
   SUPPORTED_OS_LIST = ["Windows", "Linux", "Darwin"]

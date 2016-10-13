@@ -45,8 +45,9 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
     self.assertItemsEqual(self.fd.Get(self.fd.Schema.USERNAMES), all_users)
 
     # Check kb users
-    kbusers = [x.username
-               for x in self.fd.Get(self.fd.Schema.KNOWLEDGE_BASE).users]
+    kbusers = [
+        x.username for x in self.fd.Get(self.fd.Schema.KNOWLEDGE_BASE).users
+    ]
     self.assertItemsEqual(kbusers, all_users)
 
   def _CheckAFF4Object(self, hostname, system, install_date):
@@ -215,11 +216,12 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                test_lib.FakeTestDataVFSHandler):
-      with test_lib.ConfigOverrider(
-          {"Artifacts.knowledge_base": ["LinuxWtmp", "NetgroupConfiguration",
-                                        "LinuxRelease"],
-           "Artifacts.interrogate_store_in_aff4": [],
-           "Artifacts.netgroup_filter_regexes": [r"^login$"]}):
+      with test_lib.ConfigOverrider({
+          "Artifacts.knowledge_base":
+              ["LinuxWtmp", "NetgroupConfiguration", "LinuxRelease"],
+          "Artifacts.interrogate_store_in_aff4": [],
+          "Artifacts.netgroup_filter_regexes": [r"^login$"]
+      }):
         client_mock = action_mocks.InterrogatedClient()
         client_mock.InitializeClient()
 

@@ -976,8 +976,9 @@ class GrrWorkerTest(test_lib.FlowTestsBaseclass):
           rdfvalue.RDFURN("aff4:/F"))
       medium_priority = rdf_flows.GrrNotification.Priority.MEDIUM_PRIORITY
       medium_notifications = all_notifications[medium_priority]
-      my_notifications = [n for n in medium_notifications
-                          if n.session_id == session_id]
+      my_notifications = [
+          n for n in medium_notifications if n.session_id == session_id
+      ]
       # There must not be more than one notification.
       self.assertEqual(len(my_notifications), 1)
       notification = my_notifications[0]

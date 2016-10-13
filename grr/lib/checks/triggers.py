@@ -173,8 +173,9 @@ class Triggers(object):
     Returns:
       A list of conditions that match.
     """
-    return [c for c in self.conditions
-            if c.Match(artifact, os_name, cpe, label)]
+    return [
+        c for c in self.conditions if c.Match(artifact, os_name, cpe, label)
+    ]
 
   def Search(self, artifact=None, os_name=None, cpe=None, label=None):
     """Find the host attributes that trigger data collection.
@@ -188,8 +189,9 @@ class Triggers(object):
     Returns:
       A list of conditions that contain the specified attributes.
     """
-    return [c for c in self.conditions
-            if c.Search(artifact, os_name, cpe, label)]
+    return [
+        c for c in self.conditions if c.Search(artifact, os_name, cpe, label)
+    ]
 
   def Artifacts(self, os_name=None, cpe=None, label=None):
     """Find the artifacts that correspond with other trigger conditions.
@@ -202,8 +204,9 @@ class Triggers(object):
     Returns:
       A list of artifacts to be processed.
     """
-    return [c.artifact for c in self.conditions
-            if c.Artifacts(os_name, cpe, label)]
+    return [
+        c.artifact for c in self.conditions if c.Artifacts(os_name, cpe, label)
+    ]
 
   def Calls(self, conditions=None):
     """Find the methods that evaluate data that meets this condition.

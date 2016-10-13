@@ -7,6 +7,8 @@ from grr.gui import api_call_handler_base
 from grr.gui import api_call_router
 from grr.gui import api_call_router_without_checks
 
+from grr.gui.api_plugins import user as api_user
+
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import rdfvalue
@@ -52,6 +54,9 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
   def CheckIfCanStartGlobalFlow(self, flow_name, token=None):
     self.legacy_manager.CheckIfCanStartFlow(
         token.RealUID(), flow_name, with_client_id=False)
+
+  def CheckIfUserIsAdmin(self, token=None):
+    user_managers.CheckUserForLabels(token.username, ["admin"], token=token)
 
   def __init__(self, params=None, legacy_manager=None, delegate=None):
     super(ApiCallRouterWithApprovalChecksWithoutRobotAccess,
@@ -599,7 +604,13 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
   def GetGrrUser(self, args, token=None):
     # Everybody can get their own user settings.
 
-    return self.delegate.GetGrrUser(args, token=token)
+    interface_traits = api_user.ApiGrrUserInterfaceTraits().EnableAll()
+    try:
+      self.CheckIfUserIsAdmin(token=token)
+    except access_control.UnauthorizedAccess:
+      interface_traits.manage_binaries_nav_item_enabled = False
+
+    return api_user.ApiGetGrrUserHandler(interface_traits=interface_traits)
 
   def UpdateGrrUser(self, args, token=None):
     # Everybody can update their own user settings.
@@ -628,6 +639,16 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     # Everybody can read selected config options.
 
     return self.delegate.GetConfigOption(args, token=token)
+
+  def ListGrrBinaries(self, args, token=None):
+    self.CheckIfUserIsAdmin(token=token)
+
+    return self.delegate.ListGrrBinaries(args, token=token)
+
+  def GetGrrBinary(self, args, token=None):
+    self.CheckIfUserIsAdmin(token=token)
+
+    return self.delegate.GetGrrBinary(args, token=token)
 
   # Reflection methods.
   # ==================

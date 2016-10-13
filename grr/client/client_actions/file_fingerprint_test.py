@@ -35,8 +35,10 @@ class FilehashTest(test_lib.EmptyActionTest):
                      hashlib.sha256(open(path, "rb").read()).digest())
 
     # Make sure all fingers are listed in types and vice versa.
-    t_map = {rdf_client.FingerprintTuple.Type.FPT_GENERIC: "generic",
-             rdf_client.FingerprintTuple.Type.FPT_PE_COFF: "pecoff"}
+    t_map = {
+        rdf_client.FingerprintTuple.Type.FPT_GENERIC: "generic",
+        rdf_client.FingerprintTuple.Type.FPT_PE_COFF: "pecoff"
+    }
     ti_map = dict((v, k) for k, v in t_map.iteritems())
     for t in types:
       self.assertTrue(t_map[t] in fingers)

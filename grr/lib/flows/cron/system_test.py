@@ -127,14 +127,27 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
       pass
 
     histogram = aff4_stats.ClientFleetStats.SchemaCls.OS_HISTOGRAM
-    self._CheckOSStats("All", histogram, [0, 0, {"Linux": 10,
-                                                 "Windows": 10},
-                                          {"Linux": 10,
-                                           "Windows": 10}])
+    self._CheckOSStats(
+        "All", histogram,
+        [0, 0, {
+            "Linux": 10,
+            "Windows": 10
+        }, {
+            "Linux": 10,
+            "Windows": 10
+        }])
     self._CheckOSStats("Label1", histogram,
-                       [0, 0, {"Windows": 10}, {"Windows": 10}])
+                       [0, 0, {
+                           "Windows": 10
+                       }, {
+                           "Windows": 10
+                       }])
     self._CheckOSStats("Label2", histogram,
-                       [0, 0, {"Windows": 10}, {"Windows": 10}])
+                       [0, 0, {
+                           "Windows": 10
+                       }, {
+                           "Windows": 10
+                       }])
 
   def _CheckAccessStats(self, label, count):
     fd = aff4.FACTORY.Open(
@@ -144,11 +157,10 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
     data = [(x.x_value, x.y_value) for x in histogram]
 
-    self.assertEqual(data, [
-        (86400000000L, 0L), (172800000000L, 0L), (259200000000L, 0L),
-        (604800000000L, 0L), (1209600000000L, count), (2592000000000L, count),
-        (5184000000000L, count)
-    ])
+    self.assertEqual(data, [(86400000000L, 0L), (172800000000L, 0L),
+                            (259200000000L, 0L), (604800000000L, 0L),
+                            (1209600000000L, count), (2592000000000L, count),
+                            (5184000000000L, count)])
 
   def testLastAccessStats(self):
     """Check that all client stats cron jobs are run."""
@@ -209,8 +221,10 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
   def testEndToEndTests(self):
 
-    self.client_ids = ["aff4:/C.6000000000000000", "aff4:/C.6000000000000001",
-                       "aff4:/C.6000000000000002"]
+    self.client_ids = [
+        "aff4:/C.6000000000000000", "aff4:/C.6000000000000001",
+        "aff4:/C.6000000000000002"
+    ]
     for clientid in self.client_ids:
       self._SetSummaries(clientid)
 
@@ -219,10 +233,9 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     with test_lib.ConfigOverrider({
         "Test.end_to_end_client_ids": self.client_ids
     }):
-      with utils.MultiStubber(
-          (base.AutomatedTest, "classes",
-           {"MockEndToEndTest": endtoend_test.MockEndToEndTest}),
-          (system.EndToEndTests, "lifetime", 0)):
+      with utils.MultiStubber((base.AutomatedTest, "classes", {
+          "MockEndToEndTest": endtoend_test.MockEndToEndTest
+      }), (system.EndToEndTests, "lifetime", 0)):
 
         # The test harness doesn't understand the callstate at a later time that
         # this flow is doing, so we need to disable check_flow_errors.
@@ -254,8 +267,10 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
   def testEndToEndTestsResultChecking(self):
 
-    self.client_ids = ["aff4:/C.6000000000000000", "aff4:/C.6000000000000001",
-                       "aff4:/C.6000000000000002"]
+    self.client_ids = [
+        "aff4:/C.6000000000000000", "aff4:/C.6000000000000001",
+        "aff4:/C.6000000000000002"
+    ]
     for clientid in self.client_ids:
       self._SetSummaries(clientid)
 
@@ -279,20 +294,20 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
     # All clients succeeded
     endtoend.state.client_ids_failures = set()
     endtoend.state.client_ids_result_reported = set()
-    endtoend._CheckForSuccess([self._CreateResult(True,
-                                                  "aff4:/C.6000000000000000"),
-                               self._CreateResult(True,
-                                                  "aff4:/C.6000000000000001"),
-                               self._CreateResult(True,
-                                                  "aff4:/C.6000000000000002")])
+    endtoend._CheckForSuccess([
+        self._CreateResult(True, "aff4:/C.6000000000000000"),
+        self._CreateResult(True, "aff4:/C.6000000000000001"),
+        self._CreateResult(True, "aff4:/C.6000000000000002")
+    ])
 
     # All clients complete, but some failures
     endtoend.state.client_ids_failures = set()
     endtoend.state.client_ids_result_reported = set()
-    self.assertRaises(flow.FlowError, endtoend._CheckForSuccess,
-                      [self._CreateResult(True, "aff4:/C.6000000000000000"),
-                       self._CreateResult(False, "aff4:/C.6000000000000001"),
-                       self._CreateResult(False, "aff4:/C.6000000000000002")])
+    self.assertRaises(flow.FlowError, endtoend._CheckForSuccess, [
+        self._CreateResult(True, "aff4:/C.6000000000000000"),
+        self._CreateResult(False, "aff4:/C.6000000000000001"),
+        self._CreateResult(False, "aff4:/C.6000000000000002")
+    ])
 
 
 def main(argv):

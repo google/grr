@@ -860,8 +860,8 @@ def main(unused_argv):
 
   # We avoid starting some hooks because they add unneeded things
   # to the data store.
-  do_not_start = set(["ConfigurationViewInitHook", "FileStoreInit",
-                      "GRRAFF4Init"])
+  do_not_start = set(
+      ["ConfigurationViewInitHook", "FileStoreInit", "GRRAFF4Init"])
   registry.Init(skip_set=do_not_start)
 
   Start(data_store.DB, port=flags.FLAGS.port, is_master=flags.FLAGS.master)

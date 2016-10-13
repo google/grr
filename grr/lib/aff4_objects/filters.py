@@ -48,8 +48,8 @@ class AndFilter(aff4.AFF4Filter):
     return result
 
   def Compile(self, filter_cls):
-    return getattr(filter_cls, self.__class__.__name__)(*[x.Compile(filter_cls)
-                                                          for x in self.args])
+    return getattr(filter_cls, self.__class__.__name__)(
+        *[x.Compile(filter_cls) for x in self.args])
 
 
 class OrFilter(AndFilter):

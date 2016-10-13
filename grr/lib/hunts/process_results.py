@@ -131,8 +131,8 @@ class ProcessHuntResultCollectionsCronFlow(cronjobs.SystemCronFlow):
             start_time=self.args.start_processing_time,
             token=self.token,
             lease_time=self.lifetime))
-    logging.debug("Found %d results for hunt %s", len(results),
-                  hunt_results_urn)
+    logging.debug("Found %d results for hunt %s",
+                  len(results), hunt_results_urn)
     if not results:
       return 0
 

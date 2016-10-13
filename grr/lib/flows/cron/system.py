@@ -175,8 +175,10 @@ class GRRVersionBreakDown(AbstractClientStatsCronFlow):
     c_info = client.Get(client.Schema.CLIENT_INFO)
 
     if c_info and ping:
-      category = " ".join([c_info.client_description or c_info.client_name,
-                           str(c_info.client_version)])
+      category = " ".join([
+          c_info.client_description or c_info.client_name,
+          str(c_info.client_version)
+      ])
 
       for label in self.GetClientLabelsList(client):
         self.counter.Add(category, label, ping)

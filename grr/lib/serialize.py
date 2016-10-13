@@ -19,8 +19,9 @@ def YamlDumper(aff4object):
       # real data here.
       value = value.ToRDFValue()
 
-      result[attribute.predicate].append(
-          [value.__class__.__name__, value.SerializeToString(), str(value.age)])
+      result[attribute.predicate].append([
+          value.__class__.__name__, value.SerializeToString(), str(value.age)
+      ])
 
   return yaml.dump(
       dict(

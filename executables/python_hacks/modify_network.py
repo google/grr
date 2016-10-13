@@ -22,8 +22,10 @@ def NetshStaticIp(interface,
   Returns:
     A tuple of stdout, stderr, exit_status.
   """
-  args = ['/c', 'netsh', 'interface', 'ip', 'set', 'address', interface,
-          'static', ip, subnet, gw, '1']
+  args = [
+      '/c', 'netsh', 'interface', 'ip', 'set', 'address', interface, 'static',
+      ip, subnet, gw, '1'
+  ]
   # pylint: disable=undefined-variable
   res = client_utils_common.Execute(
       'cmd', args, time_limit=-1, bypass_whitelist=True)

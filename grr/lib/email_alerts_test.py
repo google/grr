@@ -70,9 +70,11 @@ class SendEmailTests(test_lib.GRRBaseTest):
         self.assertTrue("CC: testcc@%s" % testdomain in message)
 
         # Multiple unqualified to addresses as DomainEmailAddress, one cc
-        to_address = [rdf_standard.DomainEmailAddress("testto@%s" % testdomain),
-                      rdf_standard.DomainEmailAddress("abc@%s" % testdomain),
-                      rdf_standard.DomainEmailAddress("def@%s" % testdomain)]
+        to_address = [
+            rdf_standard.DomainEmailAddress("testto@%s" % testdomain),
+            rdf_standard.DomainEmailAddress("abc@%s" % testdomain),
+            rdf_standard.DomainEmailAddress("def@%s" % testdomain)
+        ]
         to_address_expected = [
             x + testdomain for x in ["testto@", "abc@", "def@", "testcc@"]
         ]
@@ -108,12 +110,15 @@ class SendEmailTests(test_lib.GRRBaseTest):
 
       # Multiple address types, two cc, no default domain
       with test_lib.ConfigOverrider({"Logging.domain": None}):
-        to_address = ["testto@localhost", "hij",
-                      rdf_standard.DomainEmailAddress("klm@localhost")]
+        to_address = [
+            "testto@localhost", "hij",
+            rdf_standard.DomainEmailAddress("klm@localhost")
+        ]
         cc_address = "testcc,testcc2@localhost"
-        to_address_expected = ["testto@localhost", "hij@localhost",
-                               "klm@localhost", "testcc@localhost",
-                               "testcc2@localhost"]
+        to_address_expected = [
+            "testto@localhost", "hij@localhost", "klm@localhost",
+            "testcc@localhost", "testcc2@localhost"
+        ]
         email_alerts.EMAIL_ALERTER.SendEmail(
             to_address, from_address, subject, message, cc_addresses=cc_address)
         c_from, c_to, message = smtp_conn.sendmail.call_args[0]

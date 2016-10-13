@@ -104,10 +104,10 @@ ServerLoadIndicatorService.prototype.fetchRatioIndicator = function(
   var responseHandler = function(response) {
     if (response.data['metric_name'] == numeratorMetric) {
       metricsCache.numerator = this.calculateMean_(
-          response.data['timeseries']);
+          response.data['data_points']);
     } else if (response.data['metric_name'] == denominatorMetric) {
       metricsCache.denominator = this.calculateMean_(
-          response.data['timeseries']);
+          response.data['data_points']);
     } else {
       throw new Error('Unexpected metric name: ' +
           response.data['metric_name']);

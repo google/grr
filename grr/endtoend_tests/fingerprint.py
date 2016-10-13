@@ -11,8 +11,11 @@ class TestFingerprintFileOSLinux(base.AutomatedTest):
   """Tests if Fingerprinting works on Linux."""
   platforms = ["Linux"]
   flow = "FingerprintFile"
-  args = {"pathspec": rdf_paths.PathSpec(
-      path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.OS)}
+  args = {
+      "pathspec":
+          rdf_paths.PathSpec(
+              path="/bin/ls", pathtype=rdf_paths.PathSpec.PathType.OS)
+  }
   test_output_path = "/fs/os/bin/ls"
 
   def CheckFlow(self):
@@ -29,6 +32,10 @@ class TestFingerprintFileOSLinux(base.AutomatedTest):
 class TestFingerprintFileOSWindows(TestFingerprintFileOSLinux):
   """Tests if Fingerprinting works on Windows."""
   platforms = ["Windows"]
-  args = {"pathspec": rdf_paths.PathSpec(
-      path="C:\\Windows\\regedit.exe", pathtype=rdf_paths.PathSpec.PathType.OS)}
+  args = {
+      "pathspec":
+          rdf_paths.PathSpec(
+              path="C:\\Windows\\regedit.exe",
+              pathtype=rdf_paths.PathSpec.PathType.OS)
+  }
   test_output_path = "/fs/os/C:/Windows/regedit.exe"

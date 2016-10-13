@@ -32,8 +32,10 @@ class StopOldService(installer.Installer):
     try:
       win32serviceutil.StopService(service_name)
     except pywintypes.error as e:
-      if e[0] not in [winerror.ERROR_SERVICE_NOT_ACTIVE,
-                      winerror.ERROR_SERVICE_DOES_NOT_EXIST]:
+      if e[0] not in [
+          winerror.ERROR_SERVICE_NOT_ACTIVE,
+          winerror.ERROR_SERVICE_DOES_NOT_EXIST
+      ]:
         raise OSError("Could not stop service: {0}".format(e))
 
     try:

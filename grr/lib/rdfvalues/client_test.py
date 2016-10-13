@@ -129,8 +129,10 @@ class ClientURNTests(test_base.RDFValueTestCase):
 
   def testURNValidation(self):
     # These should all come out the same: C.00aaeccbb45f33a3
-    test_set = ["C.00aaeccbb45f33a3", "C.00aaeccbb45f33a3".upper(),
-                "c.00aaeccbb45f33a3", "C.00aaeccbb45f33a3 "]
+    test_set = [
+        "C.00aaeccbb45f33a3", "C.00aaeccbb45f33a3".upper(),
+        "c.00aaeccbb45f33a3", "C.00aaeccbb45f33a3 "
+    ]
     results = []
     for urnstr in test_set:
       results.append(rdf_client.ClientURN(urnstr))
@@ -144,8 +146,9 @@ class ClientURNTests(test_base.RDFValueTestCase):
     # Check we can handle URN as well as string
     rdf_client.ClientURN(rdf_client.ClientURN(test_set[0]))
 
-    error_set = ["B.00aaeccbb45f33a3", "c.00accbb45f33a3",
-                 "aff5:/C.00aaeccbb45f33a3"]
+    error_set = [
+        "B.00aaeccbb45f33a3", "c.00accbb45f33a3", "aff5:/C.00aaeccbb45f33a3"
+    ]
 
     for badurn in error_set:
       self.assertRaises(type_info.TypeValueError, rdf_client.ClientURN, badurn)

@@ -62,7 +62,9 @@ class BigQueryClient(object):
 
   def GetSchema(self, table_id, project_id, schema):
     return {
-        "schema": {"fields": schema},
+        "schema": {
+            "fields": schema
+        },
         "tableReference": {
             "tableId": table_id,
             "projectId": project_id,
@@ -169,13 +171,16 @@ class BigQueryClient(object):
       API response object on success, None on failure
     """
     configuration = {
-        "schema": {"fields": schema},
+        "schema": {
+            "fields": schema
+        },
         "destinationTable": {
             "projectId": self.project_id,
             "tableId": table_id,
             "datasetId": self.dataset_id
         },
-        "sourceFormat": "NEWLINE_DELIMITED_JSON",
+        "sourceFormat":
+            "NEWLINE_DELIMITED_JSON",
     }
 
     body = {

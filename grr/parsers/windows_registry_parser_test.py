@@ -92,8 +92,8 @@ class WindowsRegistryParserTest(test_lib.FlowTestsBaseclass):
         self.assertEqual(result.driver_package_id,
                          "acpi.inf_amd64_neutral_99aaaaabcccccccc")
         names.append(result.display_name)
-    self.assertItemsEqual(names, [u"中国日报", "[u'AcpiPmi']",
-                                  "Microsoft ACPI Driver"])
+    self.assertItemsEqual(names,
+                          [u"中国日报", "[u'AcpiPmi']", "Microsoft ACPI Driver"])
 
   def testWinUserSpecialDirs(self):
     reg_str = rdf_client.StatEntry.RegistryType.REG_SZ

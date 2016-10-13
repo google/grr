@@ -72,10 +72,12 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
   description = "Send output to bigquery."
   args_type = BigQueryOutputPluginArgs
   GZIP_COMPRESSION_LEVEL = 9
-  RDF_BIGQUERY_TYPE_MAP = {"bool": "BOOLEAN",
-                           "float": "FLOAT",
-                           "uint32": "INTEGER",
-                           "uint64": "INTEGER"}
+  RDF_BIGQUERY_TYPE_MAP = {
+      "bool": "BOOLEAN",
+      "float": "FLOAT",
+      "uint32": "INTEGER",
+      "uint64": "INTEGER"
+  }
 
   def __init__(self, *args, **kwargs):
     super(BigQueryOutputPlugin, self).__init__(*args, **kwargs)
@@ -120,8 +122,8 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
 
   def _WriteJSONValue(self, output_file, value, delimiter=None):
     if delimiter:
-      output_file.write("{0}{1}".format(delimiter, json.dumps(
-          self._GetNestedDict(value))))
+      output_file.write("{0}{1}".format(delimiter,
+                                        json.dumps(self._GetNestedDict(value))))
     else:
       output_file.write(json.dumps(self._GetNestedDict(value)))
 
@@ -234,10 +236,14 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
       # Nested structures are indicated by setting type "RECORD"
       if type_info.__class__.__name__ == "ProtoEmbedded":
         fields_array.append({
-            "name": type_info.name,
-            "type": "RECORD",
-            "description": type_info.description,
-            "fields": self.RDFValueToBigQuerySchema(value.Get(type_info.name))
+            "name":
+                type_info.name,
+            "type":
+                "RECORD",
+            "description":
+                type_info.description,
+            "fields":
+                self.RDFValueToBigQuerySchema(value.Get(type_info.name))
         })
       else:
         # If we don't have a specific map use string.
@@ -258,9 +264,11 @@ class BigQueryOutputPlugin(output_plugin.OutputPluginWithOutputStreams):
             # INTEGER
             bq_type = "STRING"
 
-        fields_array.append({"name": type_info.name,
-                             "type": bq_type,
-                             "description": type_info.description})
+        fields_array.append({
+            "name": type_info.name,
+            "type": bq_type,
+            "description": type_info.description
+        })
     return fields_array
 
   @utils.Synchronized

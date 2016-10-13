@@ -62,12 +62,13 @@ class DictTest(test_base.RDFProtoTestCase):
 
   def testSerialization(self):
     test_dict = dict(
-        key1=1,                # Integer.
-        key2="foo",            # String.
+        key1=1,  # Integer.
+        key2="foo",  # String.
         key3=u"\u4f60\u597d",  # Unicode.
         key5=rdfvalue.RDFDatetime.FromHumanReadable("2012/12/11"),  # RDFValue.
-        key6=None,             # Support None Encoding.
-        key7=structs.EnumNamedValue(5, name="Test"),  # Enums.
+        key6=None,  # Support None Encoding.
+        key7=structs.EnumNamedValue(
+            5, name="Test"),  # Enums.
     )
 
     # Initialize through keywords.
@@ -91,7 +92,9 @@ class DictTest(test_base.RDFProtoTestCase):
   def testNestedDicts(self):
     test_dict = dict(
         key1={"A": 1},
-        key2=rdf_protodict.Dict({"A": 1}),)
+        key2=rdf_protodict.Dict({
+            "A": 1
+        }),)
 
     sample = rdf_protodict.Dict(**test_dict)
     self.CheckTestDict(test_dict, sample)
@@ -100,7 +103,9 @@ class DictTest(test_base.RDFProtoTestCase):
   def testNestedDictsMultipleTypes(self):
     test_dict = dict(
         key1={"A": 1},
-        key2=rdf_protodict.Dict({"A": 1}),
+        key2=rdf_protodict.Dict({
+            "A": 1
+        }),
         key3=[1, 2, 3, [1, 2, [3]]],
         key4=[[], None, ["abc"]],
         key5=set([1, 2, 3]))
@@ -118,7 +123,9 @@ class DictTest(test_base.RDFProtoTestCase):
 
     test_dict = dict(
         key1={"A": 1},
-        key2=rdf_protodict.Dict({"A": 1}),
+        key2=rdf_protodict.Dict({
+            "A": 1
+        }),
         key3=[1, UnSerializable(), 3, [1, 2, [3]]],
         key4=[[], None, ["abc"]],
         key5=UnSerializable(),
@@ -220,13 +227,14 @@ class RDFValueArrayTest(test_base.RDFProtoTestCase):
     self.assertIsInstance(sample_list[1], rdfvalue.RDFString)
 
     # Test initialization from a list of variable types.
-    test_list = [1,
-                 2,  # Integers.
-                 None,  # None.
-                 rdfvalue.RDFDatetime.Now(),  # An RDFValue instance.
-                 [1, 2],  # A nested list.
-                 u"升级程序",  # Unicode.
-                ]
+    test_list = [
+        1,
+        2,  # Integers.
+        None,  # None.
+        rdfvalue.RDFDatetime.Now(),  # An RDFValue instance.
+        [1, 2],  # A nested list.
+        u"升级程序",  # Unicode.
+    ]
     sample = rdf_protodict.RDFValueArray(test_list)
 
     for x, y in zip(sample, test_list):

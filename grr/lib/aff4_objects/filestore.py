@@ -267,8 +267,10 @@ class HashFileStore(FileStore):
   PATH = rdfvalue.RDFURN("aff4:/files/hash")
   PRIORITY = 2
   EXTERNAL = False
-  HASH_TYPES = {"generic": ["md5", "sha1", "sha256", "SignedData"],
-                "pecoff": ["md5", "sha1"]}
+  HASH_TYPES = {
+      "generic": ["md5", "sha1", "sha256", "SignedData"],
+      "pecoff": ["md5", "sha1"]
+  }
   FILE_HASH_TYPE = FileStoreHash
 
   def CheckHashes(self, hashes):
@@ -294,8 +296,10 @@ class HashFileStore(FileStore):
       yield metadata["urn"], hash_map[metadata["urn"]]
 
   def _GetHashers(self, hash_types):
-    return [getattr(hashlib, hash_type) for hash_type in hash_types
-            if hasattr(hashlib, hash_type)]
+    return [
+        getattr(hashlib, hash_type) for hash_type in hash_types
+        if hasattr(hashlib, hash_type)
+    ]
 
   def _HashFile(self, fd):
     """Look for the required hashes in the file."""
@@ -470,9 +474,10 @@ class HashFileStore(FileStore):
 
       urns_to_check.append(file_store_urn)
 
-    return [data["urn"]
-            for data in aff4.FACTORY.Stat(
-                urns_to_check, token=self.token)]
+    return [
+        data["urn"] for data in aff4.FACTORY.Stat(
+            urns_to_check, token=self.token)
+    ]
 
   @staticmethod
   def ListHashes(token=None, age=aff4.NEWEST_TIME):
@@ -562,8 +567,8 @@ class HashFileStore(FileStore):
 
     for hash_obj, client_files in data_store.DB.MultiResolvePrefix(
         hashes, "index:target:", token=token, timestamp=timestamp):
-      yield (cls.FILE_HASH_TYPE(hash_obj), [file_urn
-                                            for _, file_urn, _ in client_files])
+      yield (cls.FILE_HASH_TYPE(hash_obj),
+             [file_urn for _, file_urn, _ in client_files])
 
 
 class NSRLFileStoreHash(rdfvalue.RDFURN):
@@ -630,9 +635,11 @@ class NSRLFileStore(HashFileStore):
   EXTERNAL = False
   FILE_HASH_TYPE = NSRLFileStoreHash
 
-  FILE_TYPES = {"M": rdf_nsrl.NSRLInformation.FileType.MALICIOUS_FILE,
-                "S": rdf_nsrl.NSRLInformation.FileType.SPECIAL_FILE,
-                "": rdf_nsrl.NSRLInformation.FileType.NORMAL_FILE}
+  FILE_TYPES = {
+      "M": rdf_nsrl.NSRLInformation.FileType.MALICIOUS_FILE,
+      "S": rdf_nsrl.NSRLInformation.FileType.SPECIAL_FILE,
+      "": rdf_nsrl.NSRLInformation.FileType.NORMAL_FILE
+  }
 
   def GetChildrenByPriority(self, allow_external=True):
     return
@@ -687,7 +694,7 @@ class NSRLFileStore(HashFileStore):
     special_code = self.FILE_TYPES.get(special_code, self.FILE_TYPES[""])
 
     with aff4.FACTORY.Create(
-        file_store_urn, "NSRLFile", mode="w", token=self.token) as fd:
+        file_store_urn, NSRLFile, mode="w", token=self.token) as fd:
       fd.Set(
           fd.Schema.NSRL(
               sha1=sha1.decode("hex"),
@@ -747,7 +754,7 @@ class NSRLFileStore(HashFileStore):
     # Open file and add 'fd' to the index.
     try:
       with aff4.FACTORY.Open(
-          hash_urn, "NSRLFile", mode="w", token=self.token) as hash_fd:
+          hash_urn, NSRLFile, mode="w", token=self.token) as hash_fd:
         hash_fd.AddIndex(fd.urn)
         return hash_urn
     except aff4.InstantiationError:

@@ -107,8 +107,10 @@ class MultiProvideParser(parsers.RegistryValueParser):
 
   def Parse(self, stat, knowledge_base):
     _ = stat, knowledge_base
-    test_dict = {"environ_temp": rdfvalue.RDFString("tempvalue"),
-                 "environ_path": rdfvalue.RDFString("pathvalue")}
+    test_dict = {
+        "environ_temp": rdfvalue.RDFString("tempvalue"),
+        "environ_path": rdfvalue.RDFString("pathvalue")
+    }
     yield rdf_protodict.Dict(test_dict)
 
 
@@ -141,15 +143,16 @@ class ArtifactTest(test_lib.FlowTestsBaseclass):
     """Make sure things are initialized."""
     super(ArtifactTest, self).setUp()
     # Common group of mocks used by lots of tests.
-    self.client_mock = action_mocks.ActionMock(file_fingerprint.FingerprintFile,
-                                               searching.Find,
-                                               searching.Grep,
-                                               server_stubs.WmiQuery,
-                                               standard.HashBuffer,
-                                               standard.HashFile,
-                                               standard.ListDirectory,
-                                               standard.StatFile,
-                                               standard.TransferBuffer,)
+    self.client_mock = action_mocks.ActionMock(
+        file_fingerprint.FingerprintFile,
+        searching.Find,
+        searching.Grep,
+        server_stubs.WmiQuery,
+        standard.HashBuffer,
+        standard.HashFile,
+        standard.ListDirectory,
+        standard.StatFile,
+        standard.TransferBuffer,)
 
   def LoadTestArtifacts(self):
     """Add the test artifacts in on top of whatever is in the registry."""
@@ -324,7 +327,8 @@ class ArtifactFlowLinuxTest(ArtifactTest):
     super(ArtifactFlowLinuxTest, self).setUp()
     with aff4.FACTORY.Open(
         self.SetupClients(
-            1, system="Linux", os_version="12.04")[0], mode="rw",
+            1, system="Linux", os_version="12.04")[0],
+        mode="rw",
         token=self.token) as fd:
 
       # Add some users
@@ -378,8 +382,8 @@ class ArtifactFlowLinuxTest(ArtifactTest):
           ["LinuxPasswdHomedirs"], client_mock=self.client_mock)
 
       self.assertEqual(len(fd), 3)
-      self.assertItemsEqual([x.username for x in fd], [u"exomemory", u"gevulot",
-                                                       u"gogol"])
+      self.assertItemsEqual([x.username for x in fd],
+                            [u"exomemory", u"gevulot", u"gogol"])
       for user in fd:
         if user.username == u"exomemory":
           self.assertEqual(user.full_name, u"Never Forget (admin)")
@@ -437,8 +441,9 @@ class ArtifactFlowWindowsTest(ArtifactTest):
         token=self.token,
         version=memory.AnalyzeClientMemoryArgs().component_version)
 
-    fd = self.RunCollectorAndGetCollection(["RekallPsList"], RekallMock(
-        self.client_id, "rekall_pslist_result.dat.gz"))
+    fd = self.RunCollectorAndGetCollection(
+        ["RekallPsList"],
+        RekallMock(self.client_id, "rekall_pslist_result.dat.gz"))
 
     self.assertEqual(len(fd), 35)
     self.assertEqual(fd[0].exe, "System")
@@ -455,8 +460,9 @@ class ArtifactFlowWindowsTest(ArtifactTest):
     with aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token) as fd:
       fd.Set(fd.Schema.KNOWLEDGE_BASE(os="Windows", environ_systemdrive=r"c:"))
 
-    fd = self.RunCollectorAndGetCollection(["FullVADBinaryList"], RekallMock(
-        self.client_id, "rekall_vad_result.dat.gz"))
+    fd = self.RunCollectorAndGetCollection(
+        ["FullVADBinaryList"],
+        RekallMock(self.client_id, "rekall_vad_result.dat.gz"))
 
     self.assertEqual(len(fd), 1705)
     self.assertEqual(fd[0].path, u"c:\\Windows\\System32\\ntdll.dll")
@@ -532,8 +538,9 @@ class GrrKbWindowsTest(GrrKbTest):
     self.ClearKB()
     # Replace some artifacts with test one that will run the MultiProvideParser.
     self.LoadTestArtifacts()
-    with test_lib.ConfigOverrider(
-        {"Artifacts.knowledge_base": ["DepsProvidesMultiple"]}):
+    with test_lib.ConfigOverrider({
+        "Artifacts.knowledge_base": ["DepsProvidesMultiple"]
+    }):
       for _ in test_lib.TestFlowHelper(
           "KnowledgeBaseInitializationFlow",
           self.client_mock,
@@ -549,10 +556,12 @@ class GrrKbWindowsTest(GrrKbTest):
 
   def testGlobRegistry(self):
     """Test that glob works on registry."""
-    paths = ["HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT"
-             "\\CurrentVersion\\ProfileList\\ProfilesDirectory",
-             "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT"
-             "\\CurrentVersion\\ProfileList\\AllUsersProfile"]
+    paths = [
+        "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT"
+        "\\CurrentVersion\\ProfileList\\ProfilesDirectory",
+        "HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows NT"
+        "\\CurrentVersion\\ProfileList\\AllUsersProfile"
+    ]
 
     for _ in test_lib.TestFlowHelper(
         "Glob",
@@ -602,9 +611,9 @@ class GrrKbWindowsTest(GrrKbTest):
       no_deps = collect_obj.GetFirstFlowsForCollection()
 
       self.assertItemsEqual(no_deps, ["DepsControlSet"])
-      self.assertItemsEqual(collect_obj.state.all_deps, ["environ_windir",
-                                                         "users.username",
-                                                         "current_control_set"])
+      self.assertItemsEqual(
+          collect_obj.state.all_deps,
+          ["environ_windir", "users.username", "current_control_set"])
       self.assertItemsEqual(collect_obj.state.awaiting_deps_artifacts,
                             ["DepsWindir", "DepsWindirRegex"])
     finally:
@@ -619,10 +628,10 @@ class GrrKbWindowsTest(GrrKbTest):
       artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
       with test_lib.ConfigOverrider({
-          "Artifacts.knowledge_base": ["DepsParent", "DepsDesktop",
-                                       "DepsHomedir", "DepsWindir",
-                                       "DepsWindirRegex", "DepsControlSet",
-                                       "FakeArtifact"],
+          "Artifacts.knowledge_base": [
+              "DepsParent", "DepsDesktop", "DepsHomedir", "DepsWindir",
+              "DepsWindirRegex", "DepsControlSet", "FakeArtifact"
+          ],
           "Artifacts.knowledge_base_additions": ["DepsHomedir2"],
           "Artifacts.knowledge_base_skip": ["DepsWindir"],
           "Artifacts.knowledge_base_heavyweight": ["FakeArtifact"]
@@ -637,13 +646,13 @@ class GrrKbWindowsTest(GrrKbTest):
         no_deps = kb_init.GetFirstFlowsForCollection()
 
         self.assertItemsEqual(no_deps, ["DepsControlSet", "DepsHomedir2"])
-        self.assertItemsEqual(kb_init.state.all_deps,
-                              ["users.homedir", "users.desktop",
-                               "users.username", "environ_windir",
-                               "current_control_set"])
-        self.assertItemsEqual(kb_init.state.awaiting_deps_artifacts,
-                              ["DepsParent", "DepsDesktop", "DepsHomedir",
-                               "DepsWindirRegex"])
+        self.assertItemsEqual(kb_init.state.all_deps, [
+            "users.homedir", "users.desktop", "users.username",
+            "environ_windir", "current_control_set"
+        ])
+        self.assertItemsEqual(
+            kb_init.state.awaiting_deps_artifacts,
+            ["DepsParent", "DepsDesktop", "DepsHomedir", "DepsWindirRegex"])
     finally:
       artifact.ArtifactLoader().RunOnce()
 
@@ -658,8 +667,10 @@ class GrrKbLinuxTest(GrrKbTest):
     """Check we can retrieve a Linux kb."""
     self.ClearKB()
     with test_lib.ConfigOverrider({
-        "Artifacts.knowledge_base": ["LinuxWtmp", "NetgroupConfiguration",
-                                     "LinuxPasswdHomedirs", "LinuxRelease"],
+        "Artifacts.knowledge_base": [
+            "LinuxWtmp", "NetgroupConfiguration", "LinuxPasswdHomedirs",
+            "LinuxRelease"
+        ],
         "Artifacts.netgroup_filter_regexes": ["^login$"],
         "Artifacts.netgroup_user_blacklist": ["isaac"]
     }):
@@ -689,8 +700,8 @@ class GrrKbLinuxTest(GrrKbTest):
     with test_lib.VFSOverrider(rdf_paths.PathSpec.PathType.OS,
                                test_lib.FakeTestDataVFSHandler):
       with test_lib.ConfigOverrider({
-          "Artifacts.knowledge_base": ["LinuxWtmp", "LinuxPasswdHomedirs",
-                                       "LinuxRelease"],
+          "Artifacts.knowledge_base":
+              ["LinuxWtmp", "LinuxPasswdHomedirs", "LinuxRelease"],
           "Artifacts.knowledge_base_additions": [],
           "Artifacts.knowledge_base_skip": []
       }):
@@ -723,9 +734,10 @@ class GrrKbLinuxTest(GrrKbTest):
     """Cause a users.username dependency failure."""
     self.ClearKB()
     with test_lib.ConfigOverrider({
-        "Artifacts.knowledge_base": ["NetgroupConfiguration",
-                                     "NssCacheLinuxPasswdHomedirs",
-                                     "LinuxRelease"],
+        "Artifacts.knowledge_base": [
+            "NetgroupConfiguration", "NssCacheLinuxPasswdHomedirs",
+            "LinuxRelease"
+        ],
         "Artifacts.netgroup_filter_regexes": ["^doesntexist$"]
     }):
 

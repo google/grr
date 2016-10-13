@@ -261,8 +261,10 @@ class PsCmdParser(parsers.CommandParser):
         output_format.extend(arg.split(","))
     if not output_format:
       # Assume a default format for the "-f" style formating.
-      output_format = ["user", "pid", "ppid", "pcpu", "not_implemented", "tty",
-                       "not_implemented", "cmd"]
+      output_format = [
+          "user", "pid", "ppid", "pcpu", "not_implemented", "tty",
+          "not_implemented", "cmd"
+      ]
     # Do some sanity checking for the cmd/cmdline if present.
     for option in ["cmd", "command", "args"]:
       if option in output_format:
@@ -332,45 +334,47 @@ class PsCmdParser(parsers.CommandParser):
       # We have nothing to process so bug out. (Handles a input of None.)
       return
 
-    rdf_convert_table = {"pid": ("pid", int),
-                         "tgid": ("pid", int),
-                         "ppid": ("ppid", int),
-                         "comm": ("name", str),
-                         "ucomm": ("name", str),
-                         "ruid": ("real_uid", int),
-                         "uid": ("effective_uid", int),
-                         "euid": ("effective_uid", int),
-                         "suid": ("saved_uid", int),
-                         "svuid": ("saved_uid", int),
-                         "user": ("username", str),
-                         "euser": ("username", str),
-                         "uname": ("username", str),
-                         "rgid": ("real_gid", int),
-                         "gid": ("effective_gid", int),
-                         "egid": ("effective_gid", int),
-                         "sgid": ("saved_gid", int),
-                         "svgid": ("saved_gid", int),
-                         "tty": ("terminal", str),
-                         "tt": ("terminal", str),
-                         "tname": ("terminal", str),
-                         "stat": ("status", str),
-                         "nice": ("nice", int),
-                         "ni": ("nice", int),
-                         "thcount": ("num_threads", int),
-                         "nlwp": ("num_threads", int),
-                         "pcpu": ("cpu_percent", float),
-                         "%cpu": ("cpu_percent", float),
-                         "c": ("cpu_percent", float),
-                         "rss": ("RSS_size", long),
-                         "rssize": ("RSS_size", long),
-                         "rsz": ("RSS_size", long),
-                         "vsz": ("VMS_size", long),
-                         "vsize": ("VMS_size", long),
-                         "pmem": ("memory_percent", float),
-                         "%mem": ("memory_percent", float),
-                         "args": ("cmdline", self._SplitCmd),
-                         "command": ("cmdline", self._SplitCmd),
-                         "cmd": ("cmdline", self._SplitCmd)}
+    rdf_convert_table = {
+        "pid": ("pid", int),
+        "tgid": ("pid", int),
+        "ppid": ("ppid", int),
+        "comm": ("name", str),
+        "ucomm": ("name", str),
+        "ruid": ("real_uid", int),
+        "uid": ("effective_uid", int),
+        "euid": ("effective_uid", int),
+        "suid": ("saved_uid", int),
+        "svuid": ("saved_uid", int),
+        "user": ("username", str),
+        "euser": ("username", str),
+        "uname": ("username", str),
+        "rgid": ("real_gid", int),
+        "gid": ("effective_gid", int),
+        "egid": ("effective_gid", int),
+        "sgid": ("saved_gid", int),
+        "svgid": ("saved_gid", int),
+        "tty": ("terminal", str),
+        "tt": ("terminal", str),
+        "tname": ("terminal", str),
+        "stat": ("status", str),
+        "nice": ("nice", int),
+        "ni": ("nice", int),
+        "thcount": ("num_threads", int),
+        "nlwp": ("num_threads", int),
+        "pcpu": ("cpu_percent", float),
+        "%cpu": ("cpu_percent", float),
+        "c": ("cpu_percent", float),
+        "rss": ("RSS_size", long),
+        "rssize": ("RSS_size", long),
+        "rsz": ("RSS_size", long),
+        "vsz": ("VMS_size", long),
+        "vsize": ("VMS_size", long),
+        "pmem": ("memory_percent", float),
+        "%mem": ("memory_percent", float),
+        "args": ("cmdline", self._SplitCmd),
+        "command": ("cmdline", self._SplitCmd),
+        "cmd": ("cmdline", self._SplitCmd)
+    }
 
     expected_fields = self._FindPsOutputFormat(cmd, args)
 

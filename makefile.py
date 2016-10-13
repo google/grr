@@ -76,16 +76,18 @@ def MakeProto():
       # The protoc compiler is too dumb to deal with full paths - it expects a
       # relative path from the current working directory.
       subprocess.check_call(
-          [protoc,
-           # Write the python files next to the .proto files.
-           "--python_out=.",
-           # Standard include paths.
-           # We just bring google/proto/descriptor.proto with us to make it
-           # easier to install.
-           "--proto_path=.",
-           "--proto_path=grr",
-           "--proto_path=grr/proto",
-           os.path.relpath(proto, cwd)],
+          [
+              protoc,
+              # Write the python files next to the .proto files.
+              "--python_out=.",
+              # Standard include paths.
+              # We just bring google/proto/descriptor.proto with us to make it
+              # easier to install.
+              "--proto_path=.",
+              "--proto_path=grr",
+              "--proto_path=grr/proto",
+              os.path.relpath(proto, cwd)
+          ],
           cwd=cwd)
 
 

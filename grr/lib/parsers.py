@@ -51,8 +51,10 @@ class Parser(object):
   @classmethod
   def GetClassesByArtifact(cls, artifact_name):
     """Get the classes that support parsing a given artifact."""
-    return [cls.classes[c] for c in cls.classes
-            if artifact_name in cls.classes[c].supported_artifacts]
+    return [
+        cls.classes[c] for c in cls.classes
+        if artifact_name in cls.classes[c].supported_artifacts
+    ]
 
   @classmethod
   def GetDescription(cls):

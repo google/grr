@@ -80,8 +80,8 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
         set([rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN("aff4:/a/b")]))
 
   def testMultiMarkForDeletionAddsMultipleObjectsToDeletionSet(self):
-    self.pool.MultiMarkForDeletion([rdfvalue.RDFURN("aff4:/a"),
-                                    rdfvalue.RDFURN("aff4:/b")])
+    self.pool.MultiMarkForDeletion(
+        [rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN("aff4:/b")])
 
     self.assertEqual(
         self.pool.urns_for_deletion,
@@ -94,15 +94,17 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
     self._CreateObject("aff4:/c/d", aff4.AFF4MemoryStream)
     self._CreateObject("aff4:/c/e", aff4.AFF4MemoryStream)
 
-    self.pool.MultiMarkForDeletion([rdfvalue.RDFURN("aff4:/a"),
-                                    rdfvalue.RDFURN("aff4:/c")])
+    self.pool.MultiMarkForDeletion(
+        [rdfvalue.RDFURN("aff4:/a"), rdfvalue.RDFURN("aff4:/c")])
 
     self.assertEqual(self.pool.urns_for_deletion,
-                     set([rdfvalue.RDFURN("aff4:/a"),
-                          rdfvalue.RDFURN("aff4:/a/b"),
-                          rdfvalue.RDFURN("aff4:/c"),
-                          rdfvalue.RDFURN("aff4:/c/d"),
-                          rdfvalue.RDFURN("aff4:/c/e")]))
+                     set([
+                         rdfvalue.RDFURN("aff4:/a"),
+                         rdfvalue.RDFURN("aff4:/a/b"),
+                         rdfvalue.RDFURN("aff4:/c"),
+                         rdfvalue.RDFURN("aff4:/c/d"),
+                         rdfvalue.RDFURN("aff4:/c/e")
+                     ]))
 
   def testReturnsEmptyListOfRootsWhenNoUrnsMarked(self):
     self.assertEqual(self.pool.root_urns_for_deletion, set())
@@ -271,8 +273,10 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
 
     # Check that cached children lists are not refetched.
     result = self.pool.MultiListChildren(["aff4:/a", "aff4:/b"])
-    self.assertEqual(result, {"aff4:/a": ["aff4:/a/b"],
-                              "aff4:/b": ["aff4:/b/bar", "aff4:/b/c"]})
+    self.assertEqual(
+        result,
+        {"aff4:/a": ["aff4:/a/b"],
+         "aff4:/b": ["aff4:/b/bar", "aff4:/b/c"]})
 
   def testRecursiveMultiListChildrenResultsAreCached(self):
     result = self.pool.RecursiveMultiListChildren(["aff4:/a", "aff4:/b"])
@@ -301,10 +305,12 @@ class DeletionPoolTest(test_lib.AFF4ObjectTest):
     # results because children of aff4:/a/b/c weren't queried and cached.
     result = self.pool.RecursiveMultiListChildren(["aff4:/a"])
 
-    self.assertEqual(result, {"aff4:/a": ["aff4:/a/b"],
-                              "aff4:/a/b": ["aff4:/a/b/c"],
-                              "aff4:/a/b/c": ["aff4:/a/b/c/d"],
-                              "aff4:/a/b/c/d": []})
+    self.assertEqual(result, {
+        "aff4:/a": ["aff4:/a/b"],
+        "aff4:/a/b": ["aff4:/a/b/c"],
+        "aff4:/a/b/c": ["aff4:/a/b/c/d"],
+        "aff4:/a/b/c/d": []
+    })
 
 
 @mock.patch.object(aff4.AFF4Stream, "MULTI_STREAM_CHUNK_SIZE", 10)
@@ -847,9 +853,11 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     self.assertEqual(fd.Read(100), "hello")
 
     # Make sure that we have intermediate objects created.
-    for path in ["aff4:/C.0123456789abcdef", "aff4:/C.0123456789abcdef/foo",
-                 "aff4:/C.0123456789abcdef/foo/bar",
-                 "aff4:/C.0123456789abcdef/foo/bar/hello.txt"]:
+    for path in [
+        "aff4:/C.0123456789abcdef", "aff4:/C.0123456789abcdef/foo",
+        "aff4:/C.0123456789abcdef/foo/bar",
+        "aff4:/C.0123456789abcdef/foo/bar/hello.txt"
+    ]:
       fd = aff4.FACTORY.Open(path, token=self.token)
       last = fd.Get(fd.Schema.LAST)
       self.assertGreater(int(last), 1330354592221974)
@@ -946,9 +954,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
   def testRecursiveDelete(self):
     """Checks that recusrive deletion of objects works."""
 
-    paths_to_delete = ["aff4:/tmp/dir1/hello1.txt",
-                       "aff4:/tmp/dir1/foo/hello2.txt",
-                       "aff4:/tmp/dir1/foo/bar/hello3.txt"]
+    paths_to_delete = [
+        "aff4:/tmp/dir1/hello1.txt", "aff4:/tmp/dir1/foo/hello2.txt",
+        "aff4:/tmp/dir1/foo/bar/hello3.txt"
+    ]
     safe_paths = ["aff4:/tmp/dir2/hello4.txt"]
 
     for path in paths_to_delete + safe_paths:
@@ -1613,8 +1622,10 @@ class AFF4Tests(test_lib.AFF4ObjectTest):
     client.Set(client.Schema.HOSTNAME("client1"))
     client.Close()
 
-    t_state = {"parallel_thread_got_lock": False,
-               "parallel_thread_raised": False}
+    t_state = {
+        "parallel_thread_got_lock": False,
+        "parallel_thread_raised": False
+    }
 
     def ParallelThread():
       try:

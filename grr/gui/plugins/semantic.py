@@ -390,8 +390,8 @@ class RDFValueArrayRenderer(RDFValueRenderer):
         try:
           self.data.append(renderer.RawHTML(request))
         except Exception as e:  # pylint: disable=broad-except
-          logging.error("Unable to render %s with %s: %s", type(element),
-                        renderer, e)
+          logging.error("Unable to render %s with %s: %s",
+                        type(element), renderer, e)
 
     response = super(RDFValueArrayRenderer, self).Layout(request, response)
     if self.next_start:

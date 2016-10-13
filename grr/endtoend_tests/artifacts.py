@@ -45,8 +45,10 @@ class TestParserDependency(base.AutomatedTest):
   """Test Artifacts complete when KB is empty."""
   platforms = ["Windows"]
   flow = "ArtifactCollectorFlow"
-  args = {"artifact_list": ["WinPathEnvironmentVariable"], "dependencies":
-          "FETCH_NOW"}
+  args = {
+      "artifact_list": ["WinPathEnvironmentVariable"],
+      "dependencies": "FETCH_NOW"
+  }
 
   def setUp(self):
     # We need to store the KB so we can put it back after the test.
@@ -83,13 +85,17 @@ class TestParserDependency(base.AutomatedTest):
 
 
 class TestParserDependencyWinDir(TestParserDependency):
-  args = {"artifact_list": ["WinDirEnvironmentVariable"], "dependencies":
-          "FETCH_NOW"}
+  args = {
+      "artifact_list": ["WinDirEnvironmentVariable"],
+      "dependencies": "FETCH_NOW"
+  }
 
 
 class TestParserDependencyTemp(TestParserDependency):
-  args = {"artifact_list": ["TempEnvironmentVariable"], "dependencies":
-          "FETCH_NOW"}
+  args = {
+      "artifact_list": ["TempEnvironmentVariable"],
+      "dependencies": "FETCH_NOW"
+  }
 
 
 class TestParserDependencyUserShellFolders(TestParserDependency):

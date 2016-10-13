@@ -81,9 +81,10 @@ class LinuxLSBInitParserTest(test_lib.GRRBaseTest):
     self.assertEqual("INIT", result.start_mode)
     self.assertItemsEqual([2, 3, 4, 5], result.start_on)
     self.assertItemsEqual([1], result.stop_on)
-    self.assertItemsEqual(["umountfs", "umountnfs", "sendsigs", "rsyslog",
-                           "sysklogd", "syslog-ng", "dsyslog",
-                           "inetutils-syslogd"], result.start_after)
+    self.assertItemsEqual([
+        "umountfs", "umountnfs", "sendsigs", "rsyslog", "sysklogd", "syslog-ng",
+        "dsyslog", "inetutils-syslogd"
+    ], result.start_after)
     self.assertItemsEqual(
         ["rsyslog", "sysklogd", "syslog-ng", "dsyslog", "inetutils-syslogd"],
         result.stop_after)
@@ -144,9 +145,11 @@ class LinuxSysVInitParserTest(test_lib.GRRBaseTest):
       d_stat, d_files = GenTestData(dirs, [""] * len(dirs), st_mode=16877)
       files = ["/etc/rc.local", "/etc/ignoreme", "/etc/rc2.d/S20ssh"]
       f_stat, f_files = GenTestData(files, [""] * len(files))
-      links = ["/etc/rc1.d/S90single", "/etc/rc1.d/K20ssh", "/etc/rc1.d/ignore",
-               "/etc/rc2.d/S20ntp", "/etc/rc2.d/S30ufw", "/etc/rc6.d/K20ssh",
-               "/etc/rcS.d/S20firewall"]
+      links = [
+          "/etc/rc1.d/S90single", "/etc/rc1.d/K20ssh", "/etc/rc1.d/ignore",
+          "/etc/rc2.d/S20ntp", "/etc/rc2.d/S30ufw", "/etc/rc6.d/K20ssh",
+          "/etc/rcS.d/S20firewall"
+      ]
       l_stat, l_files = GenTestData(links, [""] * len(links), st_mode=41471)
       stats = d_stat + f_stat + l_stat
       files = d_files + f_files + l_files
@@ -156,9 +159,12 @@ class LinuxSysVInitParserTest(test_lib.GRRBaseTest):
 
   def testParseServices(self):
     """SysV init links return accurate LinuxServiceInformation values."""
-    services = {s.name: s
-                for s in self.results
-                if isinstance(s, rdf_client.LinuxServiceInformation)}
+    services = {
+        s.name:
+            s
+        for s in self.results
+        if isinstance(s, rdf_client.LinuxServiceInformation)
+    }
     self.assertEqual(5, len(services))
     self.assertItemsEqual(["single", "ssh", "ntp", "ufw", "firewall"], services)
     self.assertItemsEqual([2], services["ssh"].start_on)

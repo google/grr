@@ -98,8 +98,8 @@ class DetectorTest(test_lib.GRRBaseTest):
 
   def testReturnsCombinedResultsFromTwoExtractors(self):
     """Test it returns combined results from two extractors."""
-    detector = core.Detector(extractors=[TestExtractor(multiplier=2),
-                                         TestExtractor(multiplier=3)])
+    detector = core.Detector(
+        extractors=[TestExtractor(multiplier=2), TestExtractor(multiplier=3)])
     self.assertEqual(detector.Detect("a b"), set(["b_0", "b_1", "b_2"]))
 
   def testAppliesPostProcessorToExtractedPaths(self):

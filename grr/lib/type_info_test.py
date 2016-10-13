@@ -46,9 +46,8 @@ class TypeInfoTest(test_lib.GRRBaseTest):
     self.assertRaises(type_info.TypeValueError, a.Validate, "test")
     self.assertRaises(type_info.TypeValueError, a.Validate, None)
     self.assertRaises(type_info.TypeValueError, a.Validate, ["test"])
-    self.assertRaises(type_info.TypeValueError, a.Validate, [
-        rdf_paths.PathSpec()
-    ])
+    self.assertRaises(type_info.TypeValueError, a.Validate,
+                      [rdf_paths.PathSpec()])
     a.Validate([1, 2, 3])
 
   def testTypeInfoMultiChoiceObjects(self):
@@ -86,9 +85,10 @@ class TypeInfoTest(test_lib.GRRBaseTest):
             default=""),
     ]
 
-    info = type_info.TypeDescriptorSet(type_infos[0],
-                                       type_infos[1],
-                                       type_infos[2],)
+    info = type_info.TypeDescriptorSet(
+        type_infos[0],
+        type_infos[1],
+        type_infos[2],)
 
     new_info = type_info.TypeDescriptorSet(type_infos[0],)
 

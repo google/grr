@@ -145,21 +145,35 @@ class GRRFuseDatastoreOnlyTest(GRRFuseTestBase):
 
   def testExistingFileStat(self):
     bash_stat = {
-        "st_ctime": rdfvalue.RDFDatetimeSeconds(1299502221),
-        "st_rdev": 0,
-        "st_mtime": rdfvalue.RDFDatetimeSeconds(1284154642),
-        "st_blocks": 16,
-        "st_nlink": 1,
-        "st_gid": 0,
-        "st_blksize": 4096,
-        "pathspec": rdf_paths.PathSpec(
-            path="/bin/bash", pathtype="OS", path_options="CASE_LITERAL"),
-        "st_dev": 51713,
-        "st_size": 4874,
-        "st_ino": 1026148,
-        "st_uid": 0,
-        "st_mode": rdf_client.StatMode(33261),
-        "st_atime": rdfvalue.RDFDatetimeSeconds(1299502220)
+        "st_ctime":
+            rdfvalue.RDFDatetimeSeconds(1299502221),
+        "st_rdev":
+            0,
+        "st_mtime":
+            rdfvalue.RDFDatetimeSeconds(1284154642),
+        "st_blocks":
+            16,
+        "st_nlink":
+            1,
+        "st_gid":
+            0,
+        "st_blksize":
+            4096,
+        "pathspec":
+            rdf_paths.PathSpec(
+                path="/bin/bash", pathtype="OS", path_options="CASE_LITERAL"),
+        "st_dev":
+            51713,
+        "st_size":
+            4874,
+        "st_ino":
+            1026148,
+        "st_uid":
+            0,
+        "st_mode":
+            rdf_client.StatMode(33261),
+        "st_atime":
+            rdfvalue.RDFDatetimeSeconds(1299502220)
     }
 
     bash_path = os.path.join("/", self.client_name, "fs/os/c/bin/bash")
@@ -199,19 +213,20 @@ class GRRFuseTest(GRRFuseTestBase):
     self.grr_fuse = fuse_mount.GRRFuse(
         root="/", token=self.token, ignore_cache=True)
 
-    self.action_mock = action_mocks.ActionMock(admin.GetClientInfo,
-                                               admin.GetConfiguration,
-                                               admin.GetPlatformInfo,
-                                               file_fingerprint.FingerprintFile,
-                                               linux.EnumerateFilesystems,
-                                               linux.EnumerateInterfaces,
-                                               linux.EnumerateUsers,
-                                               linux.GetInstallDate,
-                                               searching.Find,
-                                               standard.HashBuffer,
-                                               standard.ListDirectory,
-                                               standard.StatFile,
-                                               standard.TransferBuffer,)
+    self.action_mock = action_mocks.ActionMock(
+        admin.GetClientInfo,
+        admin.GetConfiguration,
+        admin.GetPlatformInfo,
+        file_fingerprint.FingerprintFile,
+        linux.EnumerateFilesystems,
+        linux.EnumerateInterfaces,
+        linux.EnumerateUsers,
+        linux.GetInstallDate,
+        searching.Find,
+        standard.HashBuffer,
+        standard.ListDirectory,
+        standard.StatFile,
+        standard.TransferBuffer,)
 
     self.client_mock = test_lib.MockClient(
         self.client_id, self.action_mock, token=self.token)

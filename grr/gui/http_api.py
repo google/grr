@@ -445,18 +445,14 @@ class HttpRequestHandler(object):
           if binary_stream.content_length:
             headers = {"Content-Length": binary_stream.content_length}
           return self._BuildResponse(
-              200, {
-                  "status": "OK"
-              },
+              200, {"status": "OK"},
               method_name=method_metadata.name,
               headers=headers,
               no_audit_log=method_metadata.no_audit_log_required,
               token=token)
         else:
           return self._BuildResponse(
-              200, {
-                  "status": "OK"
-              },
+              200, {"status": "OK"},
               method_name=method_metadata.name,
               no_audit_log=method_metadata.no_audit_log_required,
               token=token)

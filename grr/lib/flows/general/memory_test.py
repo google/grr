@@ -86,11 +86,13 @@ class MemoryCollectorClientMock(action_mocks.MemoryClientMock):
     self.rekall_request = request
 
     # Pretend Rekall returned the memory file.
-    return [rdf_rekall_types.RekallResponse(
-        json_messages="""
+    return [
+        rdf_rekall_types.RekallResponse(
+            json_messages="""
         [["file",{"path": "%s", "pathtype": "TMPFILE"}]]
         """ % self.memory_file,
-        plugin="aff4acquire"), rdf_client.Iterator(state="FINISHED")]
+            plugin="aff4acquire"), rdf_client.Iterator(state="FINISHED")
+    ]
 
 
 class TestMemoryCollector(MemoryTest):

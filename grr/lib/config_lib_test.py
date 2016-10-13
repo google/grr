@@ -492,10 +492,11 @@ Section1.test: 2
 
   def testUnbalancedParenthesis(self):
     conf = config_lib.GrrConfigManager()
-    name_list = ["Section1.foobar", "Section1.foo", "Section1.foo1",
-                 "Section1.foo2", "Section1.foo3", "Section1.foo4",
-                 "Section1.foo5", "Section1.foo6", "Section1.interpolation1",
-                 "Section1.interpolation2", "Section1.literal"]
+    name_list = [
+        "Section1.foobar", "Section1.foo", "Section1.foo1", "Section1.foo2",
+        "Section1.foo3", "Section1.foo4", "Section1.foo5", "Section1.foo6",
+        "Section1.interpolation1", "Section1.interpolation2", "Section1.literal"
+    ]
     for name in name_list:
       self._DefineStringName(conf, name)
 

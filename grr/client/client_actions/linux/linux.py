@@ -267,8 +267,10 @@ class EnumerateFilesystems(actions.ActionPlugin):
   Filesystems picked from:
     https://www.kernel.org/doc/Documentation/filesystems/
   """
-  acceptable_filesystems = set(["ext2", "ext3", "ext4", "vfat", "ntfs", "btrfs",
-                                "Reiserfs", "XFS", "JFS", "squashfs"])
+  acceptable_filesystems = set([
+      "ext2", "ext3", "ext4", "vfat", "ntfs", "btrfs", "Reiserfs", "XFS", "JFS",
+      "squashfs"
+  ])
   out_rdfvalues = [rdf_client.Filesystem]
 
   def CheckMounts(self, filename):

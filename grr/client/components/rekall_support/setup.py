@@ -24,9 +24,7 @@ setup_args = dict(
         "rekall_types",
         "rekall_pb2",
     ],
-    install_requires=[
-        "rekall-core == 1.5.3.post1",
-    ],
+    install_requires=["rekall-core == 1.5.3.post1",],
     zip_safe=False,)
 
 if __name__ == "__main__":

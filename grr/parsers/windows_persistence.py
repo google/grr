@@ -27,8 +27,10 @@ class WindowsPersistenceMechanismsParser(parsers.ArtifactFilesParser):
       # TODO(user): yield a ParserAnomaly object
       return []
 
-    return [rdf_paths.PathSpec(
-        path=path, pathtype=pathtype) for path in path_guesses]
+    return [
+        rdf_paths.PathSpec(
+            path=path, pathtype=pathtype) for path in path_guesses
+    ]
 
   def Parse(self, persistence, knowledge_base, download_pathtype):
     """Convert persistence collector output to downloadable rdfvalues."""

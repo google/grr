@@ -15,20 +15,26 @@ class HintsTests(test_lib.GRRBaseTest):
   def testCheckOverlay(self):
     """Overlay(hint1, hint2) should populate hint2 with the values of hint1."""
     # Fully populated hint.
-    full = {"problem": "Terminator needs trousers.\n",
-            "fix": "Give me your clothes.\n",
-            "format": "{mission}, {target}\n",
-            "summary": "I'll be back."}
+    full = {
+        "problem": "Terminator needs trousers.\n",
+        "fix": "Give me your clothes.\n",
+        "format": "{mission}, {target}\n",
+        "summary": "I'll be back."
+    }
     # Partial hint
-    partial = {"problem": "Terminator needs to go shopping.",
-               "fix": "Phased plasma rifle in the 40-watt range.",
-               "format": "",
-               "summary": ""}
+    partial = {
+        "problem": "Terminator needs to go shopping.",
+        "fix": "Phased plasma rifle in the 40-watt range.",
+        "format": "",
+        "summary": ""
+    }
     # Partial overlaid with full.
-    overlay = {"problem": "Terminator needs to go shopping.",
-               "fix": "Phased plasma rifle in the 40-watt range.",
-               "format": "{mission}, {target}",
-               "summary": "I'll be back."}
+    overlay = {
+        "problem": "Terminator needs to go shopping.",
+        "fix": "Phased plasma rifle in the 40-watt range.",
+        "format": "{mission}, {target}",
+        "summary": "I'll be back."
+    }
     # Empty hint.
     empty = {"problem": "", "fix": "", "format": "", "summary": ""}
 
@@ -60,8 +66,10 @@ class HintsTests(test_lib.GRRBaseTest):
     # Users (repeated)
     rdf.users = [rdf_client.User(username=u) for u in ("root", "jconnor")]
     # Interface (nested, repeated)
-    addresses = [rdf_client.NetworkAddress(human_readable=a)
-                 for a in ("1.1.1.1", "2.2.2.2", "3.3.3.3")]
+    addresses = [
+        rdf_client.NetworkAddress(human_readable=a)
+        for a in ("1.1.1.1", "2.2.2.2", "3.3.3.3")
+    ]
     eth0 = rdf_client.Interface(ifname="eth0", addresses=addresses[:2])
     ppp0 = rdf_client.Interface(ifname="ppp0", addresses=addresses[2])
     rdf.interfaces = [eth0, ppp0]
@@ -99,8 +107,12 @@ class HintsTests(test_lib.GRRBaseTest):
     user2 = rdf_client.User(username="joy")
     rdf["cataclysm"] = "GreyGoo"
     rdf["thinkers"] = [user1, user2]
-    rdf["reference"] = {"ecophage": ["bots", ["nanobots", ["picobots"]]],
-                        "doomsday": {"books": ["cats cradle", "prey"]}}
+    rdf["reference"] = {
+        "ecophage": ["bots", ["nanobots", ["picobots"]]],
+        "doomsday": {
+            "books": ["cats cradle", "prey"]
+        }
+    }
     template = ("{cataclysm}; {thinkers.username}; {reference.ecophage}; "
                 "{reference.doomsday}\n")
     hinter = hints.Hinter(template=template)

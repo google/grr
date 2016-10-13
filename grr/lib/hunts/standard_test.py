@@ -395,8 +395,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.ProcessHuntOutputPlugins()
 
   def testOutputPluginsProcessOnlyNewResultsOnEveryRun(self):
-    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
-        plugin_name="DummyHuntOutputPlugin")])
+    self.StartHunt(output_plugins=[
+        output_plugin.OutputPluginDescriptor(
+            plugin_name="DummyHuntOutputPlugin")
+    ])
 
     # Process hunt results.
     self.ProcessHuntOutputPlugins()
@@ -499,9 +501,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         plugin_name="FailingDummyHuntOutputPlugin")
     plugin_descriptor = output_plugin.OutputPluginDescriptor(
         plugin_name="DummyHuntOutputPlugin")
-    hunt_urn = self.StartHunt(output_plugins=[
-        failing_plugin_descriptor, plugin_descriptor
-    ])
+    hunt_urn = self.StartHunt(
+        output_plugins=[failing_plugin_descriptor, plugin_descriptor])
 
     # Run the hunt and process output plugins.
     self.AssignTasksToClients(self.client_ids)
@@ -610,9 +611,8 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         plugin_name="FailingDummyHuntOutputPlugin")
     plugin_descriptor = output_plugin.OutputPluginDescriptor(
         plugin_name="DummyHuntOutputPlugin")
-    hunt_urn = self.StartHunt(output_plugins=[
-        failing_plugin_descriptor, plugin_descriptor
-    ])
+    hunt_urn = self.StartHunt(
+        output_plugins=[failing_plugin_descriptor, plugin_descriptor])
 
     # Process hunt results.
     self.ProcessHuntOutputPlugins()
@@ -718,8 +718,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
     self.assertEqual(errors_count - prev_errors_count, 1)
 
   def testOutputPluginsMaintainState(self):
-    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
-        plugin_name="StatefulDummyHuntOutputPlugin")])
+    self.StartHunt(output_plugins=[
+        output_plugin.OutputPluginDescriptor(
+            plugin_name="StatefulDummyHuntOutputPlugin")
+    ])
 
     self.assertListEqual(StatefulDummyHuntOutputPlugin.data, [])
 
@@ -739,10 +741,14 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
                          [0, 1, 2, 3, 4, 5, 6, 7, 8, 9])
 
   def testMultipleHuntsOutputIsProcessedCorrectly(self):
-    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
-        plugin_name="DummyHuntOutputPlugin")])
-    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
-        plugin_name="StatefulDummyHuntOutputPlugin")])
+    self.StartHunt(output_plugins=[
+        output_plugin.OutputPluginDescriptor(
+            plugin_name="DummyHuntOutputPlugin")
+    ])
+    self.StartHunt(output_plugins=[
+        output_plugin.OutputPluginDescriptor(
+            plugin_name="StatefulDummyHuntOutputPlugin")
+    ])
 
     self.AssignTasksToClients()
     self.RunHunt(failrate=-1)
@@ -762,8 +768,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       return test[0]
 
     with utils.Stubber(time, "time", TimeStub):
-      self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
-          plugin_name="LongRunningDummyHuntOutputPlugin")])
+      self.StartHunt(output_plugins=[
+          output_plugin.OutputPluginDescriptor(
+              plugin_name="LongRunningDummyHuntOutputPlugin")
+      ])
       self.AssignTasksToClients()
       self.RunHunt(failrate=-1)
 
@@ -789,8 +797,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       return test[0]
 
     with utils.Stubber(time, "time", TimeStub):
-      self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
-          plugin_name="LongRunningDummyHuntOutputPlugin")])
+      self.StartHunt(output_plugins=[
+          output_plugin.OutputPluginDescriptor(
+              plugin_name="LongRunningDummyHuntOutputPlugin")
+      ])
       self.AssignTasksToClients()
       self.RunHunt(failrate=-1)
 
@@ -803,8 +813,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       self.assertEqual(LongRunningDummyHuntOutputPlugin.num_calls, 10)
 
   def testHuntResultsArrivingWhileOldResultsAreProcessedAreHandled(self):
-    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
-        plugin_name="DummyHuntOutputPlugin")])
+    self.StartHunt(output_plugins=[
+        output_plugin.OutputPluginDescriptor(
+            plugin_name="DummyHuntOutputPlugin")
+    ])
 
     # Process hunt results.
     self.ProcessHuntOutputPlugins()
@@ -1140,9 +1152,10 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
       for log in hunt_logs:
         if log.client_id:
           self.assertTrue(log.client_id in self.client_ids)
-          self.assertTrue(
-              log.log_message in ["First", "Second", "Third", "Fourth", "Uno",
-                                  "Dos", "Tres", "Cuatro"])
+          self.assertTrue(log.log_message in [
+              "First", "Second", "Third", "Fourth", "Uno", "Dos", "Tres",
+              "Cuatro"
+          ])
           self.assertTrue(
               log.flow_name in ["DummyLogFlow", "DummyLogFlowChild"])
           self.assertTrue(str(hunt_urn) in str(log.urn))
@@ -1318,8 +1331,10 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.assertEqual(count - prev_count, 0)
 
   def testReturnsNAStatusForGenericHuntWithUnverifiableOutputPlugins(self):
-    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
-        plugin_name=DummyHuntOutputPlugin.__name__)])
+    self.StartHunt(output_plugins=[
+        output_plugin.OutputPluginDescriptor(
+            plugin_name=DummyHuntOutputPlugin.__name__)
+    ])
     self.AssignTasksToClients()
     self.RunHunt()
 
@@ -1331,9 +1346,10 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.assertEqual(results["N_A"] - prev_results.get("N_A", 0), 1)
 
   def testWritesStatusToHuntResultsMetadata(self):
-    hunt_urn = self.StartHunt(
-        output_plugins=[output_plugin.OutputPluginDescriptor(
-            plugin_name=DummyHuntOutputPlugin.__name__)])
+    hunt_urn = self.StartHunt(output_plugins=[
+        output_plugin.OutputPluginDescriptor(
+            plugin_name=DummyHuntOutputPlugin.__name__)
+    ])
     self.AssignTasksToClients()
     self.RunHunt()
 
@@ -1348,8 +1364,10 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.assertEqual(verification_results_list.results[0].status, "N_A")
 
   def testRunsCorrespondingVerifierIfThereIsOne(self):
-    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
-        plugin_name=VerifiableDummyHuntOutputPlugin.__name__)])
+    self.StartHunt(output_plugins=[
+        output_plugin.OutputPluginDescriptor(
+            plugin_name=VerifiableDummyHuntOutputPlugin.__name__)
+    ])
     self.AssignTasksToClients()
     self.RunHunt()
 
@@ -1361,8 +1379,10 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.assertEqual(results["SUCCESS"] - prev_results.get("SUCCESS", 0), 1)
 
   def testRaisesIfVerifierRaises(self):
-    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
-        plugin_name=DummyHuntOutputPluginWithRaisingVerifier.__name__)])
+    self.StartHunt(output_plugins=[
+        output_plugin.OutputPluginDescriptor(
+            plugin_name=DummyHuntOutputPluginWithRaisingVerifier.__name__)
+    ])
     self.AssignTasksToClients()
     self.RunHunt()
     prev_count, _ = self.GetVerificationsStats()
@@ -1375,8 +1395,10 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.assertEqual(count - prev_count, 0)
 
   def testUpdatesStatsCounterOnException(self):
-    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
-        plugin_name=DummyHuntOutputPluginWithRaisingVerifier.__name__)])
+    self.StartHunt(output_plugins=[
+        output_plugin.OutputPluginDescriptor(
+            plugin_name=DummyHuntOutputPluginWithRaisingVerifier.__name__)
+    ])
     self.AssignTasksToClients()
     self.RunHunt()
 
@@ -1391,10 +1413,14 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
     self.assertEqual(count - prev_count, 1)
 
   def testChecksAllHuntsEvenIfOneRaises(self):
-    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
-        plugin_name=DummyHuntOutputPluginWithRaisingVerifier.__name__)])
-    self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
-        plugin_name=VerifiableDummyHuntOutputPlugin.__name__)])
+    self.StartHunt(output_plugins=[
+        output_plugin.OutputPluginDescriptor(
+            plugin_name=DummyHuntOutputPluginWithRaisingVerifier.__name__)
+    ])
+    self.StartHunt(output_plugins=[
+        output_plugin.OutputPluginDescriptor(
+            plugin_name=VerifiableDummyHuntOutputPlugin.__name__)
+    ])
     self.AssignTasksToClients()
     self.RunHunt()
 
@@ -1410,8 +1436,10 @@ class VerifyHuntOutputPluginsCronFlowTest(test_lib.FlowTestsBaseclass,
   def testDoesNotCheckHuntsOutsideOfCheckRange(self):
     now = rdfvalue.RDFDatetime.Now()
     with test_lib.FakeTime(now - rdfvalue.Duration("61m"), increment=1e-6):
-      self.StartHunt(output_plugins=[output_plugin.OutputPluginDescriptor(
-          plugin_name=VerifiableDummyHuntOutputPlugin.__name__)])
+      self.StartHunt(output_plugins=[
+          output_plugin.OutputPluginDescriptor(
+              plugin_name=VerifiableDummyHuntOutputPlugin.__name__)
+      ])
       self.AssignTasksToClients()
       self.RunHunt()
 

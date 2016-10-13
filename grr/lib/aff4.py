@@ -467,9 +467,10 @@ class Factory(object):
 
       pool.DeleteAttributes(dirname,
                             ["index:dir/%s" % utils.SmartStr(basename)])
-      to_set = {AFF4Object.SchemaCls.LAST: [
-          rdfvalue.RDFDatetime.Now().SerializeToDataStore()
-      ]}
+      to_set = {
+          AFF4Object.SchemaCls.LAST:
+              [rdfvalue.RDFDatetime.Now().SerializeToDataStore()]
+      }
       pool.MultiSet(dirname, to_set, replace=True)
       if mutation_pool is None:
         pool.Flush()
@@ -1084,7 +1085,8 @@ class Factory(object):
                   len(marked_urns), utils.SmartUnicode(urns))
 
     logging.debug(u"Removing %d root objects when removing %s: %s",
-                  len(marked_root_urns), utils.SmartUnicode(urns),
+                  len(marked_root_urns),
+                  utils.SmartUnicode(urns),
                   utils.SmartUnicode(marked_root_urns))
 
     pool = data_store.DB.GetMutationPool(token=token)
@@ -1786,7 +1788,8 @@ class AFF4Object(object):
       # Get the Attribute object from our schema.
       attribute = Attribute.PREDICATES[attribute_name]
       cls = attribute.attribute_type
-      self._AddAttributeToCache(attribute, LazyDecoder(cls, value, ts),
+      self._AddAttributeToCache(attribute,
+                                LazyDecoder(cls, value, ts),
                                 self.synced_attributes)
     except KeyError:
       pass
@@ -1924,10 +1927,9 @@ class AFF4Object(object):
       # object version. The type of an object is versioned and represents a
       # version point in the life of the object.
       if self._new_version:
-        to_set[self.Schema.TYPE] = [
-            (utils.SmartUnicode(self.__class__.__name__),
-             rdfvalue.RDFDatetime.Now())
-        ]
+        to_set[self.Schema.TYPE] = [(
+            utils.SmartUnicode(self.__class__.__name__),
+            rdfvalue.RDFDatetime.Now())]
 
       # We only update indexes if the schema does not forbid it and we are not
       # sure that the object already exists.
@@ -1957,8 +1959,10 @@ class AFF4Object(object):
       if not attribute.versioned or self.age_policy == NEWEST_TIME:
         # Store the latest version if there are multiple unsynced versions.
         value = value_array[-1]
-        self.synced_attributes[attribute] = [LazyDecoder(
-            decoded=value, age=value.age)]
+        self.synced_attributes[attribute] = [
+            LazyDecoder(
+                decoded=value, age=value.age)
+        ]
 
       else:
         synced_value_array = self.synced_attributes.setdefault(attribute, [])
@@ -2939,8 +2943,11 @@ class AFF4ImageBase(AFF4Stream):
     return self.chunk_cache.Get(chunk)
 
   def _ReadChunks(self, chunks):
-    chunk_names = {self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk): chunk
-                   for chunk in chunks}
+    chunk_names = {
+        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk):
+            chunk
+        for chunk in chunks
+    }
     for child in FACTORY.MultiOpen(
         chunk_names, mode="rw", token=self.token, age=self.age_policy):
       if isinstance(child, AFF4Stream):
@@ -3094,6 +3101,9 @@ class AFF4ImageBase(AFF4Stream):
     self.Flush(sync=sync)
 
   def GetContentAge(self):
+    # TODO(user): make CONTENT_LAST reliable. For some reason, sometimes
+    # CONTENT_LAST gets set even though file's data is not downloaded from the
+    # client.
     return self.content_last
 
   def __getstate__(self):

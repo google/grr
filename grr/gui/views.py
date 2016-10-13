@@ -77,23 +77,22 @@ def Homepage(request):
   # grr.gui.plugins.acl_manager, we expect a js files called acl_manager.js.
   renderers_js_files = set([
       "acl_manager.js",
-      "configuration_view.js",
       "fileview.js",
       "foreman.js",
-      "inspect_view.js",
       "semantic.js",
       "statistics.js",
       "usage.js"
   ])  # pyformat: disable
 
   create_time = psutil.Process(os.getpid()).create_time()
-  context = {"heading": config_lib.CONFIG["AdminUI.heading"],
-             "report_url": config_lib.CONFIG["AdminUI.report_url"],
-             "help_url": config_lib.CONFIG["AdminUI.help_url"],
-             "use_precompiled_js":
-                 config_lib.CONFIG["AdminUI.use_precompiled_js"],
-             "renderers_js": renderers_js_files,
-             "timestamp": create_time}
+  context = {
+      "heading": config_lib.CONFIG["AdminUI.heading"],
+      "report_url": config_lib.CONFIG["AdminUI.report_url"],
+      "help_url": config_lib.CONFIG["AdminUI.help_url"],
+      "use_precompiled_js": config_lib.CONFIG["AdminUI.use_precompiled_js"],
+      "renderers_js": renderers_js_files,
+      "timestamp": create_time
+  }
   response = shortcuts.render_to_response(
       "base.html", context, context_instance=template.RequestContext(request))
 

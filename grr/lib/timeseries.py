@@ -77,9 +77,11 @@ class Timeseries(object):
 
     start_time = self._NormalizeTime(start_time)
     stop_time = self._NormalizeTime(stop_time)
-    self.data = [p for p in self.data
-                 if (start_time is None or p[1] >= start_time
-                    ) and (stop_time is None or p[1] < stop_time)]
+    self.data = [
+        p for p in self.data
+        if (start_time is None or p[1] >= start_time
+           ) and (stop_time is None or p[1] < stop_time)
+    ]
 
   def Normalize(self, period, start_time, stop_time, mode=NORMALIZE_MODE_GAUGE):
     """Normalize the series to have a fixed period over a fixed time range.

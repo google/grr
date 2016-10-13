@@ -167,8 +167,10 @@ def BuildComponent(setup_path, output_dir=None):
     subprocess.check_call(
         ["virtualenv", tmp_dirname], env=GetCleanEnvironment())
 
-    subprocess.check_call([GetVirtualEnvBinary(tmp_dirname, "pip"), "install",
-                           "--upgrade", "setuptools", "wheel"])
+    subprocess.check_call([
+        GetVirtualEnvBinary(tmp_dirname, "pip"), "install", "--upgrade",
+        "setuptools", "wheel"
+    ])
 
     # Pip installs data files dependencies in the root of the virtualenv. We
     # need to find them and move them into the component.

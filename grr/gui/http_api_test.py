@@ -250,11 +250,10 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
         self._CreateRequest("GET", "/test_sample/some/path"))
 
     self.assertEqual(
-        json.loads(response.content), {
-            "method": "GET",
-            "path": "some/path",
-            "foo": ""
-        })
+        json.loads(response.content),
+        {"method": "GET",
+         "path": "some/path",
+         "foo": ""})
     self.assertEqual(response.status_code, 200)
 
   def testHeadRequestHasStubAsABodyOnSuccess(self):
@@ -302,40 +301,33 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
   def testQueryParamsArePassedIntoHandlerArgs(self):
     response = self._RenderResponse(
         self._CreateRequest(
-            "GET", "/test_sample/some/path", query_parameters={
-                "foo": "bar"
-            }))
+            "GET", "/test_sample/some/path", query_parameters={"foo": "bar"}))
     self.assertEqual(
-        json.loads(response.content), {
-            "method": "GET",
-            "path": "some/path",
-            "foo": "bar"
-        })
+        json.loads(response.content),
+        {"method": "GET",
+         "path": "some/path",
+         "foo": "bar"})
 
   def testRouteArgumentTakesPrecedenceOverQueryParams(self):
     response = self._RenderResponse(
         self._CreateRequest(
             "GET",
             "/test_sample/some/path",
-            query_parameters={
-                "path": "foobar"
-            }))
+            query_parameters={"path": "foobar"}))
     self.assertEqual(
-        json.loads(response.content), {
-            "method": "GET",
-            "path": "some/path",
-            "foo": ""
-        })
+        json.loads(response.content),
+        {"method": "GET",
+         "path": "some/path",
+         "foo": ""})
 
   def testRendersDeleteHandlerCorrectly(self):
     response = self._RenderResponse(
         self._CreateRequest("DELETE", "/test_resource/R:123456"))
 
     self.assertEqual(
-        json.loads(response.content), {
-            "method": "DELETE",
-            "resource": "R:123456"
-        })
+        json.loads(response.content),
+        {"method": "DELETE",
+         "resource": "R:123456"})
     self.assertEqual(response.status_code, 200)
 
   def testRendersPatchHandlerCorrectly(self):
@@ -343,10 +335,9 @@ class HttpRequestHandlerTest(test_lib.GRRBaseTest):
         self._CreateRequest("PATCH", "/test_resource/R:123456"))
 
     self.assertEqual(
-        json.loads(response.content), {
-            "method": "PATCH",
-            "resource": "R:123456"
-        })
+        json.loads(response.content),
+        {"method": "PATCH",
+         "resource": "R:123456"})
     self.assertEqual(response.status_code, 200)
 
   def testStatsAreCorrectlyUpdatedOnHeadRequests(self):

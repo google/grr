@@ -67,8 +67,9 @@ class RekallTestSuite(test_lib.EmptyActionTest):
     # For this test we force the client to write the profile cache in the temp
     # directory. This forces the profiles to always be downloaded from the
     # server (since each test run gets a new temp directory).
-    with test_lib.ConfigOverrider(
-        {"Client.rekall_profile_cache_path": self.temp_dir}):
+    with test_lib.ConfigOverrider({
+        "Client.rekall_profile_cache_path": self.temp_dir
+    }):
       image_path = os.path.join(self.base_path, "win7_trial_64bit.raw")
       request.device.path = image_path
 

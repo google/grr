@@ -279,8 +279,8 @@ class BinaryExpression(Expression):
     super(BinaryExpression, self).__init__()
 
   def __str__(self):
-    return "Binary Expression: %s %s" % (self.operator, [str(x)
-                                                         for x in self.args])
+    return "Binary Expression: %s %s" % (self.operator,
+                                         [str(x) for x in self.args])
 
   def AddOperands(self, lhs, rhs):
     if isinstance(lhs, Expression) and isinstance(rhs, Expression):

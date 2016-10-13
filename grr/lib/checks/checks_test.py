@@ -152,16 +152,20 @@ class CheckLoaderTests(test_lib.GRRBaseTest):
     result_method = result_check["method"][0]
     self.assertEqual({"os": ["Linux", "Darwin"]}, result_method["target"])
     self.assertEqual(["ANY"], result_method["match"])
-    expect_hint = {"problem": "Sshd allows protocol 1.",
-                   "format": "Configured protocols: {config.protocol}"}
+    expect_hint = {
+        "problem": "Sshd allows protocol 1.",
+        "format": "Configured protocols: {config.protocol}"
+    }
     self.assertDictEqual(expect_hint, result_method["hint"])
     # Now dive into the probe.
     result_probe = result_method["probe"][0]
     self.assertEqual("SshdConfigFile", result_probe["artifact"])
     self.assertEqual(["ANY"], result_probe["match"])
     # Now dive into the filters.
-    expect_filters = {"type": "ObjectFilter",
-                      "expression": "config.protocol contains 1"}
+    expect_filters = {
+        "type": "ObjectFilter",
+        "expression": "config.protocol contains 1"
+    }
     result_filters = result_probe["filters"][0]
     self.assertDictEqual(expect_filters, result_filters)
     # Make sure any specified probe context is set.
@@ -203,10 +207,12 @@ class CheckRegistryTests(test_lib.GRRBaseTest):
           check=self.sshd_perms, source="sshd_config", overwrite_if_exists=True)
     self.kb = rdf_client.KnowledgeBase()
     self.kb.hostname = "test.example.com"
-    self.host_data = {"KnowledgeBase": self.kb,
-                      "WMIInstalledSoftware": GetWMIData(),
-                      "DebianPackagesStatus": GetDPKGData(),
-                      "SshdConfigFile": GetSSHDConfig()}
+    self.host_data = {
+        "KnowledgeBase": self.kb,
+        "WMIInstalledSoftware": GetWMIData(),
+        "DebianPackagesStatus": GetDPKGData(),
+        "SshdConfigFile": GetSSHDConfig()
+    }
 
   def testRegisterChecks(self):
     """Defined checks are present in the check registry."""
@@ -524,14 +530,18 @@ class CheckResultsTest(ChecksTestBase):
   """Test 'CheckResult' operations."""
 
   def testExtendAnomalies(self):
-    anomaly1 = {"finding": ["Adware 2.1.1 is installed"],
-                "symptom": "Found: Malicious software.",
-                "explanation": "Remove software.",
-                "type": "ANALYSIS_ANOMALY"}
-    anomaly2 = {"finding": ["Java 6.0.240 is installed"],
-                "symptom": "Found: Old Java installation.",
-                "explanation": "Update Java.",
-                "type": "ANALYSIS_ANOMALY"}
+    anomaly1 = {
+        "finding": ["Adware 2.1.1 is installed"],
+        "symptom": "Found: Malicious software.",
+        "explanation": "Remove software.",
+        "type": "ANALYSIS_ANOMALY"
+    }
+    anomaly2 = {
+        "finding": ["Java 6.0.240 is installed"],
+        "symptom": "Found: Old Java installation.",
+        "explanation": "Update Java.",
+        "type": "ANALYSIS_ANOMALY"
+    }
     result = checks.CheckResult(
         check_id="SW-CHECK", anomaly=rdf_anomaly.Anomaly(**anomaly1))
     other = checks.CheckResult(

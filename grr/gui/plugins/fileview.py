@@ -57,8 +57,9 @@ As downloaded on {{ this.age|escape }}.<br>
   <p><em>{{this.error_message|escape}}</em></p>
 </div>
 """)
-  bad_extensions = [".bat", ".cmd", ".exe", ".com", ".pif", ".py", ".pl",
-                    ".scr", ".vbs"]
+  bad_extensions = [
+      ".bat", ".cmd", ".exe", ".com", ".pif", ".py", ".pl", ".scr", ".vbs"
+  ]
 
   def Layout(self, request, response):
     """Present a download form."""
@@ -621,8 +622,9 @@ class AbstractFileTable(renderers.TableRenderer):
 
         # Filter the children according to types.
         if self.visible_types:
-          children = [x for x in children
-                      if x.__class__.__name__ in self.visible_types]
+          children = [
+              x for x in children if x.__class__.__name__ in self.visible_types
+          ]
 
         self.content_cache.Put(key, children)
 
@@ -760,8 +762,10 @@ class FileSystemTree(renderers.TreeRenderer):
       directory = aff4.FACTORY.Open(
           urn, token=request.token).Upgrade(aff4_standard.VFSDirectory)
 
-      children = [ch for ch in directory.OpenChildren(limit=100000)
-                  if "Container" in ch.behaviours]
+      children = [
+          ch for ch in directory.OpenChildren(limit=100000)
+          if "Container" in ch.behaviours
+      ]
 
       try:
         self.message = "Directory %s Last retrieved %s" % (

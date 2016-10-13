@@ -57,7 +57,8 @@ class DataServer(object):
     else:
       # Handle hostnames and IPs.
       # TODO(user): Make this work for non IPv4.
-      myip = socket.getaddrinfo(self.Address(), self.Port(), socket.AF_INET, 0,
+      myip = socket.getaddrinfo(self.Address(),
+                                self.Port(), socket.AF_INET, 0,
                                 socket.IPPROTO_TCP)[0][4][0]
       other_ip = socket.getaddrinfo(addr, port, socket.AF_INET, 0,
                                     socket.IPPROTO_TCP)[0][4][0]
@@ -308,8 +309,8 @@ class DataMaster(object):
       for serv, pool in pools:
         res = pool.urlopen("POST", "/servers/sync", headers=headers, body=body)
         if res.status != constants.RESPONSE_OK:
-          logging.warning("Could not sync with server %s:%d", serv.Address(),
-                          serv.Port())
+          logging.warning("Could not sync with server %s:%d",
+                          serv.Address(), serv.Port())
           return False
         state = rdf_data_server.DataServerState()
         state.ParseFromString(res.data)

@@ -791,9 +791,11 @@ class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):
 
   def BuildApprovalSymlinksUrns(self, approval_id):
     """Builds list of symlinks URNs for the approval object."""
-    return [self.ApprovalSymlinkUrnBuilder("client",
-                                           self.subject_urn.Basename(),
-                                           self.token.username, approval_id)]
+    return [
+        self.ApprovalSymlinkUrnBuilder("client",
+                                       self.subject_urn.Basename(),
+                                       self.token.username, approval_id)
+    ]
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
@@ -802,8 +804,10 @@ class RequestClientApprovalFlow(RequestApprovalWithReasonFlow):
     return u"GRR client %s (%s)" % (self.subject_urn.Basename(), hostname)
 
   def BuildApprovalReviewUrlPath(self, approval_id):
-    return "/".join(["users", self.token.username, "approvals", "client",
-                     self.subject_urn.Basename(), approval_id])
+    return "/".join([
+        "users", self.token.username, "approvals", "client",
+        self.subject_urn.Basename(), approval_id
+    ])
 
 
 class GrantClientApprovalFlow(GrantApprovalWithReasonFlow):
@@ -893,17 +897,21 @@ class RequestHuntApprovalFlow(RequestApprovalWithReasonFlow):
 
   def BuildApprovalSymlinksUrns(self, approval_id):
     """Builds list of symlinks URNs for the approval object."""
-    return [self.ApprovalSymlinkUrnBuilder("hunt",
-                                           self.args.subject_urn.Basename(),
-                                           self.token.username, approval_id)]
+    return [
+        self.ApprovalSymlinkUrnBuilder("hunt",
+                                       self.args.subject_urn.Basename(),
+                                       self.token.username, approval_id)
+    ]
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
     return u"hunt %s" % self.args.subject_urn.Basename()
 
   def BuildApprovalReviewUrlPath(self, approval_id):
-    return "/".join(["users", self.token.username, "approvals", "hunt",
-                     self.args.subject_urn.Basename(), approval_id])
+    return "/".join([
+        "users", self.token.username, "approvals", "hunt",
+        self.args.subject_urn.Basename(), approval_id
+    ])
 
 
 class GrantHuntApprovalFlow(GrantApprovalWithReasonFlow):
@@ -962,17 +970,21 @@ class RequestCronJobApprovalFlow(RequestApprovalWithReasonFlow):
 
   def BuildApprovalSymlinksUrns(self, approval_id):
     """Builds list of symlinks URNs for the approval object."""
-    return [self.ApprovalSymlinkUrnBuilder("cron",
-                                           self.args.subject_urn.Basename(),
-                                           self.token.username, approval_id)]
+    return [
+        self.ApprovalSymlinkUrnBuilder("cron",
+                                       self.args.subject_urn.Basename(),
+                                       self.token.username, approval_id)
+    ]
 
   def BuildSubjectTitle(self):
     """Returns the string with subject's title."""
     return u"a cron job"
 
   def BuildApprovalReviewUrlPath(self, approval_id):
-    return "/".join(["users", self.token.username, "approvals", "cron-job",
-                     self.args.subject_urn.Basename(), approval_id])
+    return "/".join([
+        "users", self.token.username, "approvals", "cron-job",
+        self.args.subject_urn.Basename(), approval_id
+    ])
 
 
 class GrantCronJobApprovalFlow(GrantApprovalWithReasonFlow):

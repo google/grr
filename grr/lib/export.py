@@ -206,8 +206,10 @@ class ExportConverter(object):
     try:
       return ExportConverter.converters_cache[value.__class__.__name__]
     except KeyError:
-      results = [cls for cls in ExportConverter.classes.itervalues()
-                 if cls.input_rdf_type == value.__class__.__name__]
+      results = [
+          cls for cls in ExportConverter.classes.itervalues()
+          if cls.input_rdf_type == value.__class__.__name__
+      ]
       if not results:
         results = [DataAgnosticExportConverter]
 
@@ -956,8 +958,10 @@ class GrrMessageConverter(ExportConverter):
     if metadata_to_fetch:
       client_fds = aff4.FACTORY.MultiOpen(
           metadata_to_fetch, mode="r", token=token)
-      fetched_metadata = [GetMetadata(
-          client_fd, token=token) for client_fd in client_fds]
+      fetched_metadata = [
+          GetMetadata(
+              client_fd, token=token) for client_fd in client_fds
+      ]
       for metadata in fetched_metadata:
         self.cached_metadata[metadata.client_urn] = metadata
       metadata_objects.extend(fetched_metadata)
@@ -980,7 +984,8 @@ class GrrMessageConverter(ExportConverter):
             converters_classes = ExportConverter.GetConvertersByValue(
                 message.payload)
             data_by_type[cls_name] = {
-                "converters": [cls(self.options) for cls in converters_classes],
+                "converters":
+                    [cls(self.options) for cls in converters_classes],
                 "batch_data": [(new_metadata, message.payload)]
             }
           else:
@@ -1381,8 +1386,8 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
     return output_class
 
   def _GetOutputClass(self, plugin_name, metadata, tables):
-    source_name = "_".join([re.sub("[^0-9a-zA-Z]", "_", x)
-                            for x in metadata.source_urn.Split()])
+    source_name = "_".join(
+        [re.sub("[^0-9a-zA-Z]", "_", x) for x in metadata.source_urn.Split()])
     output_class_name = "RekallExport_" + source_name + "_" + plugin_name
 
     try:
@@ -1562,7 +1567,8 @@ class ExportedLinuxSyscallTableEntryConverter(RekallResponseConverter):
             metadata=metadata,
             table=row["table"],
             index=row["index"],
-            handler_address=row["address"]["target"], symbol=symbol)
+            handler_address=row["address"]["target"],
+            symbol=symbol)
         yield result
       except KeyError:
         pass
@@ -1612,7 +1618,8 @@ class RekallResponseToExportedRekallLinuxTaskOpConverter(
       result = ExportedRekallLinuxTaskOp(
           metadata=metadata,
           operation=row["member"],
-          handler_address=row["address"]["offset"], module=row["module"])
+          handler_address=row["address"]["offset"],
+          module=row["module"])
     except KeyError:
       return
 
@@ -1646,7 +1653,8 @@ class RekallResponseToExportedRekallLinuxProcOpConverter(
           metadata=metadata,
           fullpath=row["path"],
           operation=row["member"],
-          handler_address=row["address"]["offset"], module=row["module"],
+          handler_address=row["address"]["offset"],
+          module=row["module"],
           symbol=row.get("symbol"))
     except KeyError:
       return

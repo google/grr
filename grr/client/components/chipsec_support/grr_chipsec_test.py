@@ -57,9 +57,11 @@ class GRRChipsecTest(test_lib.EmptyActionTest):
     self.chipsec_mock.helper.oshelper.OsHelperError = MockOsHelperError
     self.chipsec_mock.logger = mock.MagicMock()
 
-    mock_modules = {"chipsec": self.chipsec_mock,
-                    "chipsec.hal": self.chipsec_mock.hal,
-                    "chipsec.helper": self.chipsec_mock.helper}
+    mock_modules = {
+        "chipsec": self.chipsec_mock,
+        "chipsec.hal": self.chipsec_mock.hal,
+        "chipsec.helper": self.chipsec_mock.helper
+    }
 
     self.chipsec_patch = mock.patch.dict(sys.modules, mock_modules)
     self.chipsec_patch.start()

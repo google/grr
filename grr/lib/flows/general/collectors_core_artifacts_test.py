@@ -44,9 +44,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
     for s in test_lib.TestFlowHelper(
         "ArtifactCollectorFlow",
         client_mock,
-        artifact_list=[
-            "SystemDriveEnvironmentVariable"
-        ],
+        artifact_list=["SystemDriveEnvironmentVariable"],
         token=self.token,
         client_id=self.client_id):
       session_id = s
@@ -86,9 +84,7 @@ class TestArtifactCollectorsRealArtifacts(test_lib.FlowTestsBaseclass):
       for _ in test_lib.TestFlowHelper(
           "ArtifactCollectorFlow",
           BrokenClientMock(),
-          artifact_list=[
-              "SystemDriveEnvironmentVariable"
-          ],
+          artifact_list=["SystemDriveEnvironmentVariable"],
           token=self.token,
           client_id=self.client_id):
         pass

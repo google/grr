@@ -50,8 +50,10 @@ class NfsExportsTests(checks_test_lib.HostCheckTest):
   def testNfsAuthCheck(self):
     check_id = "CCE-5669-7"
     sym = "Found: NFS shares use no/weak authentication methods."
-    found = ["/path/to/foo: defaults:rw,sync,no_root_squash options:ro,sec=sys",
-             "/path/to/bad: defaults:sec=none options:rw"]
+    found = [
+        "/path/to/foo: defaults:rw,sync,no_root_squash options:ro,sec=sys",
+        "/path/to/bad: defaults:sec=none options:rw"
+    ]
     self.assertCheckDetectedAnom(check_id, self.results, sym, found)
 
 

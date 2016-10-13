@@ -81,19 +81,20 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
   def testBigQueryPluginWithValuesOfSameType(self):
     responses = []
     for i in range(10):
-      responses.append(rdf_client.StatEntry(
-          aff4path=self.client_id.Add("/fs/os/foo/bar").Add(str(i)),
-          pathspec=rdf_paths.PathSpec(path="/foo/bar"),
-          st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
-          st_ino=1063090,
-          st_dev=64512L,
-          st_nlink=1 + i,
-          st_uid=139592,
-          st_gid=5000,
-          st_size=0,
-          st_atime=1336469177,
-          st_mtime=1336129892,
-          st_ctime=1336129892))
+      responses.append(
+          rdf_client.StatEntry(
+              aff4path=self.client_id.Add("/fs/os/foo/bar").Add(str(i)),
+              pathspec=rdf_paths.PathSpec(path="/foo/bar"),
+              st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
+              st_ino=1063090,
+              st_dev=64512L,
+              st_nlink=1 + i,
+              st_uid=139592,
+              st_gid=5000,
+              st_size=0,
+              st_atime=1336469177,
+              st_mtime=1336129892,
+              st_ctime=1336129892))
 
     output = self.ProcessResponses(
         plugin_args=bigquery_plugin.BigQueryOutputPluginArgs(),
@@ -174,19 +175,20 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
   def testBigQueryPluginWithEarlyFlush(self):
     responses = []
     for i in range(10):
-      responses.append(rdf_client.StatEntry(
-          aff4path=self.client_id.Add("/fs/os/foo/bar").Add(str(i)),
-          pathspec=rdf_paths.PathSpec(path="/foo/bar"),
-          st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
-          st_ino=1063090,
-          st_dev=64512L,
-          st_nlink=1 + i,
-          st_uid=139592,
-          st_gid=5000,
-          st_size=0,
-          st_atime=1336469177,
-          st_mtime=1336129892,
-          st_ctime=1336129892))
+      responses.append(
+          rdf_client.StatEntry(
+              aff4path=self.client_id.Add("/fs/os/foo/bar").Add(str(i)),
+              pathspec=rdf_paths.PathSpec(path="/foo/bar"),
+              st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
+              st_ino=1063090,
+              st_dev=64512L,
+              st_nlink=1 + i,
+              st_uid=139592,
+              st_gid=5000,
+              st_size=0,
+              st_atime=1336469177,
+              st_mtime=1336129892,
+              st_ctime=1336129892))
 
     # Force an early flush. This max file size value has been chosen to force a
     # flush at least once, but not for all 10 records.
@@ -242,9 +244,8 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
 
     with test_lib.FakeTime(1445995873):
       with mock.patch.object(bigquery, "GetBigQueryClient") as mock_bigquery:
-        mock_bigquery.return_value.configure_mock(**{
-            "InsertData.side_effect": bigquery.BigQueryJobUploadError()
-        })
+        mock_bigquery.return_value.configure_mock(
+            **{"InsertData.side_effect": bigquery.BigQueryJobUploadError()})
         with test_lib.ConfigOverrider({"BigQuery.max_upload_failures": 2}):
           for message in messages:
             plugin.ProcessResponses([message])
@@ -255,8 +256,9 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
           self.assertEqual(mock_bigquery.return_value.InsertData.call_count, 2)
 
     # We should have written a data file and a schema file for each type.
-    for output_name in ["ExportedFile", "ExportedProcess",
-                        "AutoExportedSoftwarePackage"]:
+    for output_name in [
+        "ExportedFile", "ExportedProcess", "AutoExportedSoftwarePackage"
+    ]:
       schema_fd = aff4.FACTORY.Open(
           self.base_urn.Add("C-1000000000000000_Results_%s_1445995873.schema" %
                             output_name),
@@ -283,9 +285,8 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
     # Process the same messages to make sure we're re-using the filehandles.
     with test_lib.FakeTime(1445995878):
       with mock.patch.object(bigquery, "GetBigQueryClient") as mock_bigquery:
-        mock_bigquery.return_value.configure_mock(**{
-            "InsertData.side_effect": bigquery.BigQueryJobUploadError()
-        })
+        mock_bigquery.return_value.configure_mock(
+            **{"InsertData.side_effect": bigquery.BigQueryJobUploadError()})
         with test_lib.ConfigOverrider({"BigQuery.max_upload_failures": 2}):
           for message in messages:
             plugin.ProcessResponses([message])
@@ -295,11 +296,14 @@ class BigQueryOutputPluginTest(test_lib.FlowTestsBaseclass):
           # failures already
           self.assertEqual(mock_bigquery.return_value.InsertData.call_count, 0)
 
-    expected_line_counts = {"ExportedFile": 2,
-                            "ExportedProcess": 4,
-                            "AutoExportedSoftwarePackage": 2}
-    for output_name in ["ExportedFile", "ExportedProcess",
-                        "AutoExportedSoftwarePackage"]:
+    expected_line_counts = {
+        "ExportedFile": 2,
+        "ExportedProcess": 4,
+        "AutoExportedSoftwarePackage": 2
+    }
+    for output_name in [
+        "ExportedFile", "ExportedProcess", "AutoExportedSoftwarePackage"
+    ]:
       data_fd = aff4.FACTORY.Open(
           self.base_urn.Add("C-1000000000000000_Results_%s_1445995873.data" %
                             output_name),

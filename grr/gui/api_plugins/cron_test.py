@@ -94,33 +94,37 @@ class ApiCreateCronJobHandlerRegressionTest(
 
     self.Check(
         "POST",
-        "/api/cron-jobs",
-        {"flow_name": "CreateAndRunGenericHuntFlow",
-         "periodicity": 604800,
-         "lifetime": 3600,
-         "flow_args": {
-             "hunt_args": {
-                 "flow_runner_args": {
-                     "flow_name": "FileFinder"
-                 },
-                 "flow_args": {
-                     "paths": ["c:\\windows\\system32\\notepad.*"]
-                 },
-             },
-             "hunt_runner_args": {
-                 "client_rule_set": {
-                     "rules": [
-                         {
-                             "os": {
-                                 "os_windows": True
-                             }
-                         }
-                     ]
-                 },
-                 "description": "Foobar! (cron)"
-             }
-         },
-         "description": "Foobar!"},
+        "/api/cron-jobs", {
+            "flow_name":
+                "CreateAndRunGenericHuntFlow",
+            "periodicity":
+                604800,
+            "lifetime":
+                3600,
+            "flow_args": {
+                "hunt_args": {
+                    "flow_runner_args": {
+                        "flow_name": "FileFinder"
+                    },
+                    "flow_args": {
+                        "paths": ["c:\\windows\\system32\\notepad.*"]
+                    },
+                },
+                "hunt_runner_args": {
+                    "client_rule_set": {
+                        "rules": [{
+                            "os": {
+                                "os_windows": True
+                            }
+                        }]
+                    },
+                    "description":
+                        "Foobar! (cron)"
+                }
+            },
+            "description":
+                "Foobar!"
+        },
         replace=ReplaceCronJobUrn)
 
 

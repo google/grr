@@ -221,11 +221,13 @@ class VFSGRRClient(standard.VFSDirectory):
 
       return flow_id
 
-  AFF4_PREFIXES = {rdf_paths.PathSpec.PathType.OS: "/fs/os",
-                   rdf_paths.PathSpec.PathType.TSK: "/fs/tsk",
-                   rdf_paths.PathSpec.PathType.REGISTRY: "/registry",
-                   rdf_paths.PathSpec.PathType.MEMORY: "/devices/memory",
-                   rdf_paths.PathSpec.PathType.TMPFILE: "/temp"}
+  AFF4_PREFIXES = {
+      rdf_paths.PathSpec.PathType.OS: "/fs/os",
+      rdf_paths.PathSpec.PathType.TSK: "/fs/tsk",
+      rdf_paths.PathSpec.PathType.REGISTRY: "/registry",
+      rdf_paths.PathSpec.PathType.MEMORY: "/devices/memory",
+      rdf_paths.PathSpec.PathType.TMPFILE: "/temp"
+  }
 
   @staticmethod
   def ClientURNFromURN(urn):
@@ -269,8 +271,9 @@ class VFSGRRClient(standard.VFSDirectory):
     if (len(pathspec) > 1 and
         pathspec[0].pathtype == rdf_paths.PathSpec.PathType.OS and
         pathspec[1].pathtype == rdf_paths.PathSpec.PathType.TSK):
-      result = [VFSGRRClient.AFF4_PREFIXES[rdf_paths.PathSpec.PathType.TSK],
-                dev]
+      result = [
+          VFSGRRClient.AFF4_PREFIXES[rdf_paths.PathSpec.PathType.TSK], dev
+      ]
 
       # Skip the top level pathspec.
       pathspec = pathspec[1]
@@ -497,8 +500,10 @@ class GRRForeman(aff4.AFF4Object):
     if expired_session_ids:
       # Notify the worker to mark this hunt as terminated.
       manager = queue_manager.QueueManager(token=self.token)
-      manager.MultiNotifyQueue([rdf_flows.GrrNotification(session_id=session_id)
-                                for session_id in expired_session_ids])
+      manager.MultiNotifyQueue([
+          rdf_flows.GrrNotification(session_id=session_id)
+          for session_id in expired_session_ids
+      ])
 
     if len(new_rules) < len(rules):
       self.Set(self.Schema.RULES, new_rules)

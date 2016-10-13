@@ -31,12 +31,13 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
     check_id = "CIS-CRON-PERMISSIONS"
 
     artifact_crontab = "AllLinuxScheduleFiles"
-    data_crontab = [self.CreateStat("/etc/cron.d", 0, 0, 0o0040640),
-                    self.CreateStat("/etc/cron.daily/test1", 0, 60, 0o0100660),
-                    self.CreateStat("/etc/cron.daily/test2", 50, 0, 0o0100444),
-                    self.CreateStat("/var/spool/cron/cronfile", 0, 0,
-                                    0o0100640),
-                    self.CreateStat("/etc/cron.d/cronfile2", 0, 0, 0o0100664)]
+    data_crontab = [
+        self.CreateStat("/etc/cron.d", 0, 0, 0o0040640),
+        self.CreateStat("/etc/cron.daily/test1", 0, 60, 0o0100660),
+        self.CreateStat("/etc/cron.daily/test2", 50, 0, 0o0100444),
+        self.CreateStat("/var/spool/cron/cronfile", 0, 0, 0o0100640),
+        self.CreateStat("/etc/cron.d/cronfile2", 0, 0, 0o0100664)
+    ]
 
     sym_crontab = ("Found: System crontabs can be modified by non-privileged "
                    "users.")
@@ -46,15 +47,19 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
                       "mode: -r--r--r--")]
 
     artifact_allow_deny = "CronAtAllowDenyFiles"
-    data_allow_deny = [self.CreateStat("/etc/cron.allow", 5, 0, 0o0100640),
-                       self.CreateStat("/etc/cron.deny", 0, 60, 0o0100640),
-                       self.CreateStat("/etc/at.allow", 0, 0, 0o0100440),
-                       self.CreateStat("/etc/at.deny", 0, 0, 0o0100666)]
+    data_allow_deny = [
+        self.CreateStat("/etc/cron.allow", 5, 0, 0o0100640),
+        self.CreateStat("/etc/cron.deny", 0, 60, 0o0100640),
+        self.CreateStat("/etc/at.allow", 0, 0, 0o0100440),
+        self.CreateStat("/etc/at.deny", 0, 0, 0o0100666)
+    ]
 
     sym_allow_deny = ("Found: System cron or at allow/deny files can be "
                       "modified by non-privileged users.")
-    found_allow_deny = ["/etc/cron.allow user: 5, group: 0, mode: -rw-r-----",
-                        "/etc/at.deny user: 0, group: 0, mode: -rw-rw-rw-"]
+    found_allow_deny = [
+        "/etc/cron.allow user: 5, group: 0, mode: -rw-r-----",
+        "/etc/at.deny user: 0, group: 0, mode: -rw-rw-rw-"
+    ]
 
     # Run checks only with results from only one artifact each
     results = self.GenResults([artifact_crontab], [data_crontab])
@@ -77,23 +82,29 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
 
     artifact = "CronAtAllowDenyFiles"
     # both files exist in this data
-    data1 = [self.CreateStat("/etc/cron.allow", 0, 0, 0o0100640),
-             self.CreateStat("/etc/crondallow", 200, 60, 0o0100640),
-             self.CreateStat("/etc/at.allow", 0, 0, 0o0100640),
-             self.CreateStat("/etc/mo/cron.allow", 300, 70, 0o0100640),
-             self.CreateStat("/root/at.allow", 400, 70, 0o0100640)]
+    data1 = [
+        self.CreateStat("/etc/cron.allow", 0, 0, 0o0100640),
+        self.CreateStat("/etc/crondallow", 200, 60, 0o0100640),
+        self.CreateStat("/etc/at.allow", 0, 0, 0o0100640),
+        self.CreateStat("/etc/mo/cron.allow", 300, 70, 0o0100640),
+        self.CreateStat("/root/at.allow", 400, 70, 0o0100640)
+    ]
 
     # only one file exists in this data
-    data2 = [self.CreateStat("/etc/at.allow", 0, 0, 0o0100640),
-             self.CreateStat("/etc/cronMallow", 200, 60, 0o0100640),
-             self.CreateStat("/etc/cron/cron.allow", 300, 70, 0o0100640),
-             self.CreateStat("/home/user1/at.allow", 400, 70, 0o0100640)]
+    data2 = [
+        self.CreateStat("/etc/at.allow", 0, 0, 0o0100640),
+        self.CreateStat("/etc/cronMallow", 200, 60, 0o0100640),
+        self.CreateStat("/etc/cron/cron.allow", 300, 70, 0o0100640),
+        self.CreateStat("/home/user1/at.allow", 400, 70, 0o0100640)
+    ]
 
     # neither file exists in this data
-    data3 = [self.CreateStat("/etc/random/at.allow", 0, 0, 0o0100640),
-             self.CreateStat("/etc/cronZallow", 200, 60, 0o0100640),
-             self.CreateStat("/etc/cron/cron.allow", 300, 70, 0o0100640),
-             self.CreateStat("/home/user1/at.allow", 400, 70, 0o0100640)]
+    data3 = [
+        self.CreateStat("/etc/random/at.allow", 0, 0, 0o0100640),
+        self.CreateStat("/etc/cronZallow", 200, 60, 0o0100640),
+        self.CreateStat("/etc/cron/cron.allow", 300, 70, 0o0100640),
+        self.CreateStat("/home/user1/at.allow", 400, 70, 0o0100640)
+    ]
 
     sym_cron_allow = ("Missing attribute: /etc/cron.allow does not exist "
                       "on the system.")
@@ -128,23 +139,29 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
 
     artifact = "CronAtAllowDenyFiles"
     # both files exist in this data
-    data1 = [self.CreateStat("/etc/cron.deny", 0, 0, 0o0100640),
-             self.CreateStat("/etc/cronTdeny", 200, 60, 0o0100640),
-             self.CreateStat("/etc/at.deny", 0, 0, 0o0100640),
-             self.CreateStat("/etc/hi/cron.deny", 300, 70, 0o0100640),
-             self.CreateStat("/root/at.deny", 400, 70, 0o0100640)]
+    data1 = [
+        self.CreateStat("/etc/cron.deny", 0, 0, 0o0100640),
+        self.CreateStat("/etc/cronTdeny", 200, 60, 0o0100640),
+        self.CreateStat("/etc/at.deny", 0, 0, 0o0100640),
+        self.CreateStat("/etc/hi/cron.deny", 300, 70, 0o0100640),
+        self.CreateStat("/root/at.deny", 400, 70, 0o0100640)
+    ]
 
     # only one file exists in this data
-    data2 = [self.CreateStat("/etc/at.deny", 0, 0, 0o0100640),
-             self.CreateStat("/etc/cronDdeny", 200, 60, 0o0100640),
-             self.CreateStat("/etc/cron/cron.deny", 300, 70, 0o0100640),
-             self.CreateStat("/home/user1/at.deny", 400, 70, 0o0100640)]
+    data2 = [
+        self.CreateStat("/etc/at.deny", 0, 0, 0o0100640),
+        self.CreateStat("/etc/cronDdeny", 200, 60, 0o0100640),
+        self.CreateStat("/etc/cron/cron.deny", 300, 70, 0o0100640),
+        self.CreateStat("/home/user1/at.deny", 400, 70, 0o0100640)
+    ]
 
     # neither file exists in this data
-    data3 = [self.CreateStat("/etc/random/at.deny", 0, 0, 0o0100640),
-             self.CreateStat("/etc/cronDdeny", 200, 60, 0o0100640),
-             self.CreateStat("/etc/cron/cron.deny", 300, 70, 0o0100640),
-             self.CreateStat("/home/user1/at.deny", 400, 70, 0o0100640)]
+    data3 = [
+        self.CreateStat("/etc/random/at.deny", 0, 0, 0o0100640),
+        self.CreateStat("/etc/cronDdeny", 200, 60, 0o0100640),
+        self.CreateStat("/etc/cron/cron.deny", 300, 70, 0o0100640),
+        self.CreateStat("/home/user1/at.deny", 400, 70, 0o0100640)
+    ]
 
     sym_cron_deny = "Found: /etc/cron.deny exists on the system."
     sym_at_deny = "Found: /etc/at.deny exists on the system."
@@ -174,9 +191,11 @@ class CronCheckTests(checks_test_lib.HostCheckTest):
            "not contain root.")
     parser = config_file.CronAtAllowDenyParser()
 
-    data = {"/etc/at.allow": "root",
-            "/etc/cron.allow": "user1",
-            "/etc/at.deny": "blah\nblah blah"}
+    data = {
+        "/etc/at.allow": "root",
+        "/etc/cron.allow": "user1",
+        "/etc/at.deny": "blah\nblah blah"
+    }
     found = ["/etc/cron.allow: user1"]
 
     results = self.GenResults([artifact], [data], [parser])

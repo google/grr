@@ -1,0 +1,19 @@
+grr-binaries-list {
+  tr {
+    cursor: pointer;
+  }
+
+  td {
+    padding-left: 1em !important;
+  }
+
+  span.size {
+    font-style: italic;
+  }
+
+  span.timestamp {
+    padding-left: 3em;
+    padding-right: 1em;
+    font-size: 90%;
+  }
+}

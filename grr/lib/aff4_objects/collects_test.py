@@ -248,8 +248,9 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
         collects.PackedVersionedCollection,
         mode="w",
         token=self.token) as fd:
-      fd.AddAll([rdf_flows.GrrMessage(request_id=1),
-                 rdf_flows.GrrMessage(request_id=1)])
+      fd.AddAll([
+          rdf_flows.GrrMessage(request_id=1), rdf_flows.GrrMessage(request_id=1)
+      ])
 
     # Check that items are stored in the versions.
     items = list(
@@ -277,8 +278,10 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       pass
 
     collects.PackedVersionedCollection.AddToCollection(
-        self.collection_urn, [rdf_flows.GrrMessage(request_id=1),
-                              rdf_flows.GrrMessage(request_id=2)],
+        self.collection_urn, [
+            rdf_flows.GrrMessage(request_id=1),
+            rdf_flows.GrrMessage(request_id=2)
+        ],
         token=self.token)
 
     # Check that items are stored in the versions.
@@ -978,12 +981,16 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
           mode="w",
           token=self.token) as fd:
         fd.Add(rdf_flows.GrrMessage(request_id=42))
-        fd.AddAll([rdf_flows.GrrMessage(request_id=43),
-                   rdf_flows.GrrMessage(request_id=44)])
+        fd.AddAll([
+            rdf_flows.GrrMessage(request_id=43),
+            rdf_flows.GrrMessage(request_id=44)
+        ])
 
       collects.PackedVersionedCollection.AddToCollection(
-          self.collection_urn, [rdf_flows.GrrMessage(request_id=1),
-                                rdf_flows.GrrMessage(request_id=2)],
+          self.collection_urn, [
+              rdf_flows.GrrMessage(request_id=1),
+              rdf_flows.GrrMessage(request_id=2)
+          ],
           token=self.token)
 
       with aff4.FACTORY.OpenWithLock(
@@ -1148,8 +1155,10 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       pass
 
     collects.PackedVersionedCollection.AddToCollection(
-        self.collection_urn, [rdf_flows.GrrMessage(request_id=1),
-                              rdf_flows.GrrMessage(request_id=2)],
+        self.collection_urn, [
+            rdf_flows.GrrMessage(request_id=1),
+            rdf_flows.GrrMessage(request_id=2)
+        ],
         token=self.token)
     fd = aff4.FACTORY.Open(
         self.collection_urn, age=aff4.ALL_TIMES, token=self.token)
@@ -1169,8 +1178,10 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
       pass
 
     collects.PackedVersionedCollection.AddToCollection(
-        self.collection_urn, [rdf_flows.GrrMessage(request_id=1),
-                              rdf_flows.GrrMessage(request_id=2)],
+        self.collection_urn, [
+            rdf_flows.GrrMessage(request_id=1),
+            rdf_flows.GrrMessage(request_id=2)
+        ],
         token=self.token)
     collects.PackedVersionedCollection.AddToCollection(
         self.collection_urn, [rdf_flows.GrrMessage(request_id=3)],
@@ -1193,8 +1204,10 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
         collects.PackedVersionedCollection,
         mode="w",
         token=self.token) as fd:
-      fd.AddAll([rdf_flows.GrrMessage(request_id=42),
-                 rdf_flows.GrrMessage(request_id=42)])
+      fd.AddAll([
+          rdf_flows.GrrMessage(request_id=42),
+          rdf_flows.GrrMessage(request_id=42)
+      ])
 
     with aff4.FACTORY.OpenWithLock(self.collection_urn, token=self.token) as fd:
       fd.Compact()
@@ -1214,8 +1227,10 @@ class TestPackedVersionedCollection(test_lib.AFF4ObjectTest):
         collects.PackedVersionedCollection,
         mode="w",
         token=self.token) as fd:
-      fd.AddAll([rdf_flows.GrrMessage(request_id=42),
-                 rdf_flows.GrrMessage(request_id=42)])
+      fd.AddAll([
+          rdf_flows.GrrMessage(request_id=42),
+          rdf_flows.GrrMessage(request_id=42)
+      ])
 
     with aff4.FACTORY.OpenWithLock(self.collection_urn, token=self.token) as fd:
       fd.Compact()

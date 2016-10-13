@@ -673,8 +673,9 @@ class HTTPClientTests(test_lib.GRRBaseTest):
 
         mod_str_repr = self.client_communication.SerializeToString()
         self.assertEqual(len(orig_str_repr), len(mod_str_repr))
-        differences = [True for x, y in zip(orig_str_repr, mod_str_repr)
-                       if x != y]
+        differences = [
+            True for x, y in zip(orig_str_repr, mod_str_repr) if x != y
+        ]
         self.assertEqual(len(differences), 1)
 
       data = self.client_communication.SerializeToString()

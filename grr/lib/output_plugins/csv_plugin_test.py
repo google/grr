@@ -53,19 +53,20 @@ class CSVOutputPluginTest(test_lib.FlowTestsBaseclass):
   def testCSVPluginWithValuesOfSameType(self):
     responses = []
     for i in range(10):
-      responses.append(rdf_client.StatEntry(
-          aff4path=self.client_id.Add("/fs/os/foo/bar").Add(str(i)),
-          pathspec=rdf_paths.PathSpec(path="/foo/bar"),
-          st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
-          st_ino=1063090,
-          st_dev=64512L,
-          st_nlink=1 + i,
-          st_uid=139592,
-          st_gid=5000,
-          st_size=0,
-          st_atime=1336469177,
-          st_mtime=1336129892,
-          st_ctime=1336129892))
+      responses.append(
+          rdf_client.StatEntry(
+              aff4path=self.client_id.Add("/fs/os/foo/bar").Add(str(i)),
+              pathspec=rdf_paths.PathSpec(path="/foo/bar"),
+              st_mode=33184,  # octal = 100640 => u=rw,g=r,o= => -rw-r-----
+              st_ino=1063090,
+              st_dev=64512L,
+              st_nlink=1 + i,
+              st_uid=139592,
+              st_gid=5000,
+              st_size=0,
+              st_atime=1336469177,
+              st_mtime=1336129892,
+              st_ctime=1336129892))
 
     streams = self.ProcessResponses(
         plugin_args=csv_plugin.CSVOutputPluginArgs(), responses=responses)

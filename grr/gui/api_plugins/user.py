@@ -674,9 +674,11 @@ class ApiListPendingUserNotificationsHandler(
 
     notifications = user_record.Get(user_record.Schema.PENDING_NOTIFICATIONS)
 
-    result = [ApiNotification().InitFromNotification(
-        n, is_pending=True) for n in notifications
-              if n.timestamp > args.timestamp]
+    result = [
+        ApiNotification().InitFromNotification(
+            n, is_pending=True) for n in notifications
+        if n.timestamp > args.timestamp
+    ]
 
     return ApiListPendingUserNotificationsResult(items=result)
 
@@ -886,8 +888,9 @@ class ApiListAndResetUserNotificationsHandler(
     total_count = len(notifications)
 
     if args.filter:
-      notifications = [n for n in notifications
-                       if args.filter.lower() in n.message.lower()]
+      notifications = [
+          n for n in notifications if args.filter.lower() in n.message.lower()
+      ]
 
     if not args.count:
       args.count = 50

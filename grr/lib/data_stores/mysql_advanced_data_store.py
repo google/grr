@@ -536,10 +536,11 @@ class MySQLAdvancedDataStore(data_store.DataStore):
                                      (len(subjects_q["args"]) / 2))
     attributes_q["query"] += ", ".join(["(unhex(md5(%s)), %s)"] *
                                        (len(attributes_q["args"]) / 2))
-    aff4_q["query"] += ", ".join(
-        ["(unhex(md5(%s)), unhex(md5(%s)), "
-         "if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s), "
-         "unhex(%s))"] * (len(aff4_q["args"]) / 5))
+    aff4_q["query"] += ", ".join([
+        "(unhex(md5(%s)), unhex(md5(%s)), "
+        "if(%s is NULL,floor(unix_timestamp(now(6))*1000000),%s), "
+        "unhex(%s))"
+    ] * (len(aff4_q["args"]) / 5))
 
     return [aff4_q, attributes_q, subjects_q]
 
@@ -724,10 +725,11 @@ class MySQLAdvancedDataStore(data_store.DataStore):
         aff4_q["args"].append(int(timestamp[1]))
 
       attributes_q = {
-          "query": "DELETE attributes FROM attributes LEFT JOIN aff4 ON "
-                   "aff4.attribute_hash=attributes.hash "
-                   "WHERE attributes.hash=unhex(md5(%s)) "
-                   "AND aff4.attribute_hash IS NULL",
+          "query":
+              "DELETE attributes FROM attributes LEFT JOIN aff4 ON "
+              "aff4.attribute_hash=attributes.hash "
+              "WHERE attributes.hash=unhex(md5(%s)) "
+              "AND aff4.attribute_hash IS NULL",
           "args": [attribute]
       }
       # If only attribute is being deleted we will not check to clean up

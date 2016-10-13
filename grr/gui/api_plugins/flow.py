@@ -438,8 +438,9 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     """
     super(api_call_handler_base.ApiCallHandler, self).__init__()
 
-    if len([x for x in (path_globs_blacklist, path_globs_whitelist)
-            if x is None]) == 1:
+    if len(
+        [x for x in (path_globs_blacklist, path_globs_whitelist)
+         if x is None]) == 1:
       raise ValueError("path_globs_blacklist/path_globs_whitelist have to "
                        "set/unset together.")
 

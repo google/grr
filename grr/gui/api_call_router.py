@@ -1096,6 +1096,25 @@ class ApiCallRouter(object):
 
     raise NotImplementedError()
 
+  @Category("Settings")
+  @ResultType(api_config.ApiListGrrBinariesResult)
+  @Http("GET", "/api/config/binaries")
+  @NoAuditLogRequired()
+  def ListGrrBinaries(self, args, token=None):
+    """List available GRR binaries (uploaded with grr_config_updater)."""
+
+    raise NotImplementedError()
+
+  @Category("Settings")
+  @ArgsType(api_config.ApiGetGrrBinaryArgs)
+  @ResultBinaryStream()
+  @Http("GET", "/api/config/binaries/<type>/<path:path>")
+  @NoAuditLogRequired()
+  def GetGrrBinary(self, args, token=None):
+    """Get contents of a GRR binary (uploaded with grr_config_updater)."""
+
+    raise NotImplementedError()
+
   # Reflection methods.
   # ==================
   #

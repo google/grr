@@ -208,8 +208,10 @@ def DeleteGRRTempFile(path):
     raise ErrorBadPath("Path must be absolute")
 
   prefix = config_lib.CONFIG["Client.tempfile_prefix"]
-  directories = [GetTempDirForRoot(root)
-                 for root in config_lib.CONFIG["Client.tempdir_roots"]]
+  directories = [
+      GetTempDirForRoot(root)
+      for root in config_lib.CONFIG["Client.tempdir_roots"]
+  ]
   if not _CheckIfPathIsValidForDeletion(
       path, prefix=prefix, directories=directories):
     msg = ("Can't delete temp file %s. Filename must start with %s "
@@ -246,14 +248,17 @@ class DeleteGRRTempFiles(actions.ActionPlugin):
       ErrorBadPath: if path doesn't exist or is not a regular file or directory
     """
 
-    allowed_temp_dirs = [GetTempDirForRoot(root)
-                         for root in config_lib.CONFIG["Client.tempdir_roots"]]
+    allowed_temp_dirs = [
+        GetTempDirForRoot(root)
+        for root in config_lib.CONFIG["Client.tempdir_roots"]
+    ]
 
     if args.path:
       # Normalize the path, so DeleteGRRTempFile can correctly check if
       # it is within Client.tempdir.
       paths = [
-          client_utils.CanonicalPathToLocalPath(utils.NormalizePath(args.path))
+          client_utils.CanonicalPathToLocalPath(
+              utils.NormalizePath(args.path))
       ]
     else:
       paths = allowed_temp_dirs

@@ -190,8 +190,10 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
     self.CheckFilesInCollection(expected_files)
 
-    if action in [file_finder.FileFinderAction.Action.STAT,
-                  file_finder.FileFinderAction.Action.LIST]:
+    if action in [
+        file_finder.FileFinderAction.Action.STAT,
+        file_finder.FileFinderAction.Action.LIST
+    ]:
       self.CheckFilesNotDownloaded(expected_files + non_expected_files)
       self.CheckFilesNotHashed(expected_files + non_expected_files)
     elif action == file_finder.FileFinderAction.Action.DOWNLOAD:
@@ -471,8 +473,10 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     expected_files = ["dpkg.log", "dpkg_false.log"]
     non_expected_files = ["auth.log"]
 
-    sizes = [os.stat(os.path.join(self.fixture_path, f)).st_size
-             for f in expected_files]
+    sizes = [
+        os.stat(os.path.join(self.fixture_path, f)).st_size
+        for f in expected_files
+    ]
 
     size_condition = file_finder.FileFinderCondition(
         condition_type=file_finder.FileFinderCondition.Type.SIZE,
@@ -489,8 +493,10 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     expected_files = ["dpkg.log", "dpkg_false.log"]
     non_expected_files = ["auth.log"]
 
-    sizes = [os.stat(os.path.join(self.fixture_path, f)).st_size
-             for f in expected_files]
+    sizes = [
+        os.stat(os.path.join(self.fixture_path, f)).st_size
+        for f in expected_files
+    ]
 
     action = file_finder.FileFinderAction(
         action_type=file_finder.FileFinderAction.Action.DOWNLOAD)
@@ -518,8 +524,10 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     expected_files = []
     non_expected_files = files_over_size_limit + filtered_files
 
-    sizes = [os.stat(os.path.join(self.fixture_path, f)).st_size
-             for f in files_over_size_limit]
+    sizes = [
+        os.stat(os.path.join(self.fixture_path, f)).st_size
+        for f in files_over_size_limit
+    ]
 
     size_condition = file_finder.FileFinderCondition(
         condition_type=file_finder.FileFinderCondition.Type.SIZE,
@@ -606,8 +614,10 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     # No need to setup VFS handlers as we're not actually looking at the files,
     # as there's no condition/action specified.
 
-    paths = [os.path.join(os.path.dirname(self.fixture_path), "*.log"),
-             os.path.join(os.path.dirname(self.fixture_path), "auth.log")]
+    paths = [
+        os.path.join(os.path.dirname(self.fixture_path), "*.log"),
+        os.path.join(os.path.dirname(self.fixture_path), "auth.log")
+    ]
 
     for s in test_lib.TestFlowHelper(
         "FileFinder",
@@ -676,8 +686,9 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     with utils.Stubber(
         vfs,
         "VFS_VIRTUALROOTS", {
-            rdf_paths.PathSpec.PathType.TSK: rdf_paths.PathSpec(
-                path=image_path, pathtype="OS", offset=63 * 512)
+            rdf_paths.PathSpec.PathType.TSK:
+                rdf_paths.PathSpec(
+                    path=image_path, pathtype="OS", offset=63 * 512)
         }):
 
       action = file_finder.FileFinderAction.Action.DOWNLOAD
