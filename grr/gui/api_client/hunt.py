@@ -80,7 +80,8 @@ class HuntResult(object):
     super(HuntResult, self).__init__()
     self.data = data
 
-    self.client = client.ClientRef(client_id=data.client_id, context=context)
+    self.client = client.ClientRef(
+        client_id=utils.UrnStringToClientId(data.client_id), context=context)
     self.timestamp = data.timestamp
     self.payload = utils.UnpackAny(data.payload)
 
@@ -158,8 +159,7 @@ class HuntBase(object):
     return Hunt(data=data, context=self._context)
 
   def ListResults(self):
-    args = api_pb2.ApiListHuntResultsArgs(
-        client_id=self.client_id, hunt_id=self.hunt_id)
+    args = api_pb2.ApiListHuntResultsArgs(hunt_id=self.hunt_id)
     items = self._context.SendIteratorRequest("ListHuntResults", args)
     return utils.MapItemsIterator(
         lambda data: HuntResult(data=data, context=self._context), items)

@@ -666,12 +666,11 @@ class SqliteDataStore(data_store.DataStore):
     if timestamp is None or timestamp == self.NEWEST_TIMESTAMP:
       timestamp = time.time() * 1000000
 
-    if to_delete is None:
-      to_delete = []
+    to_delete = set(to_delete or [])
 
     with self.cache.Get(subject) as sqlite_connection:
       if replace:
-        to_delete.extend(values.keys())
+        to_delete.update(values.keys())
 
       # Delete attribute if needed.
       if to_delete:
