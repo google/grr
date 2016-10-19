@@ -2,7 +2,6 @@
 """Tests for config_lib classes."""
 
 import __builtin__
-import copy
 import ntpath
 import os
 import stat
@@ -820,29 +819,12 @@ Test3 Context:
     conf.DEFINE_context("Test2 Context")
     conf.DEFINE_context("Test3 Context")
     conf.Initialize(parser=config_lib.YamlParser, data=context)
-    orig_context = copy.deepcopy(conf.context)
-    config_orig = conf.ExportState()
     conf.AddContext("Test1 Context")
     result_map = [(("linux", "amd64", "deb"), True), (
         ("linux", "i386", "deb"), True), (("windows", "amd64", "exe"), True), (
             ("windows", "i386", "exe"), False)]
     for result in result_map:
       self.assertEqual(conf.MatchBuildContext(*result[0]), result[1])
-
-    conf = config_lib.ImportConfigManger(config_orig)
-    self.assertItemsEqual(conf.context, orig_context)
-    self.assertFalse("Test1 Context" in conf.context)
-    conf.AddContext("Test3 Context")
-    result_map = [(("linux", "amd64", "deb"), True), (
-        ("linux", "i386", "deb"), False), (("windows", "amd64", "exe"), False),
-                  (("windows", "i386", "exe"), True)]
-    for result in result_map:
-      self.assertEqual(conf.MatchBuildContext(*result[0]), result[1])
-
-    conf = config_lib.ImportConfigManger(config_orig)
-    self.assertItemsEqual(conf.context, orig_context)
-    self.assertFalse("Test1 Context" in conf.context)
-    self.assertFalse("Test3 Context" in conf.context)
 
   def testMatchBuildContextError(self):
     """Raise because the same target was listed twice."""
@@ -894,14 +876,18 @@ Client.labels: [Test1]
     self.assertTrue(os.path.isfile(writeback_file + ".bak"))
 
   def testNoRenameOfReadProtectedFile(self):
+    """Don't rename config files we don't have permission to read."""
     conf = config_lib.CONFIG.MakeNewConfig()
     writeback_file = os.path.join(self.temp_dir, "writeback.yaml")
     with open(writeback_file, "w") as f:
       f.write("...")
       f.close()
-    os.chmod(writeback_file, stat.S_IWUSR)
 
+    # Remove all permissions except user write.
+    os.chmod(writeback_file, stat.S_IWUSR)
     conf.SetWriteBack(writeback_file)
+
+    # File is still in the same place
     self.assertTrue(os.path.isfile(writeback_file))
 
 

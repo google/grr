@@ -249,6 +249,7 @@ def ReadIntoObject(buff, index, value_obj, length=0):
       # Set the python_format as None so it gets converted lazily on access.
       raw_data[type_info_obj.name] = (None, wire_format, type_info_obj)
 
+
 # pylint: disable=invalid-name
 if _semantic:
   VarintEncode = _semantic.varint_encode
@@ -673,16 +674,6 @@ class EnumNamedValue(rdfvalue.RDFInteger):
     self.name = name or str(initializer)
     self.description = description
     self.labels = labels
-
-  # TODO(user): EnumNamedValue loses some information when serialized.
-  # Currently this only matters when it's pickled (usually - as part of
-  # FlowState). Find a proper way to Serialize/Deserialize it without losing
-  # name/description.
-  def __getstate__(self):
-    return self.__dict__
-
-  def __setstate__(self, data):
-    self.__dict__ = data
 
   def __eq__(self, other):
     return int(self) == other or self.name == other
@@ -1864,15 +1855,6 @@ class RDFStruct(rdfvalue.RDFValue):
     cls.type_infos_by_field_number[field_desc.field_number] = field_desc
     cls.type_infos.Append(field_desc)
 
-  def __getstate__(self):
-    """Support the pickle protocol."""
-    return dict(data=self.SerializeToString())
-
-  def __setstate__(self, data):
-    """Support the pickle protocol."""
-    self._data = {}
-    self.ParseFromString(data["data"])
-
 
 class EnumContainer(object):
   """A data class to hold enum objects."""
@@ -2036,8 +2018,7 @@ class RDFProtoStruct(RDFStruct):
     for number, desc in sorted(cls.type_infos_by_field_number.items()):
       # Name 'metadata' is reserved to store ExportedMetadata value.
       field = None
-      if (isinstance(desc, type_info.ProtoEnum) and
-          not isinstance(desc, type_info.ProtoBoolean)):
+      if isinstance(desc, ProtoEnum) and not isinstance(desc, ProtoBoolean):
         field = message_type.field.add()
         field.type = descriptor_pb2.FieldDescriptorProto.TYPE_ENUM
         field.type_name = desc.enum_name
@@ -2050,7 +2031,7 @@ class RDFProtoStruct(RDFStruct):
             enum_type_value.name = key
             enum_type_value.number = int(value)
 
-      elif isinstance(desc, type_info.ProtoEmbedded):
+      elif isinstance(desc, ProtoEmbedded):
         field = message_type.field.add()
         field.type = descriptor_pb2.FieldDescriptorProto.TYPE_MESSAGE
 
@@ -2068,7 +2049,7 @@ class RDFProtoStruct(RDFStruct):
           raise NotImplementedError("Can't emit proto descriptor for values "
                                     "with nested non-protobuf-based values.")
 
-      elif isinstance(desc, type_info.ProtoDynamicAnyValueEmbedded):
+      elif isinstance(desc, ProtoDynamicAnyValueEmbedded):
         field = message_type.field.add()
         field.type = descriptor_pb2.FieldDescriptorProto.TYPE_MESSAGE
 
@@ -2078,7 +2059,7 @@ class RDFProtoStruct(RDFStruct):
         if any_pb2.Any.DESCRIPTOR.file.name not in file_descriptor.dependency:
           file_descriptor.dependency.append(any_pb2.Any.DESCRIPTOR.file.name)
 
-      elif isinstance(desc, type_info.ProtoList):
+      elif isinstance(desc, ProtoList):
         field = message_type.field.add()
         field.type = descriptor_pb2.FieldDescriptorProto.TYPE_MESSAGE
 

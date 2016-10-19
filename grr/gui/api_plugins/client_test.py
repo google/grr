@@ -21,7 +21,7 @@ from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
 
 
-class ApiAddClientsLabelsHandlerTest(test_lib.GRRBaseTest):
+class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiAddClientsLabelsHandler."""
 
   def setUp(self):
@@ -100,10 +100,12 @@ class ApiAddClientsLabelsHandlerTest(test_lib.GRRBaseTest):
       self.assertFalse(found_event is None)
 
       self.assertEqual(found_event.user, self.token.username)
-      self.assertEqual(found_event.description, "test.drei,test.ein,test.zwei")
+      self.assertEqual(
+          found_event.description, "%s.drei,%s.ein,%s.zwei" %
+          (self.token.username, self.token.username, self.token.username))
 
 
-class ApiRemoveClientsLabelsHandlerTest(test_lib.GRRBaseTest):
+class ApiRemoveClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiRemoveClientsLabelsHandler."""
 
   def setUp(self):
@@ -176,7 +178,8 @@ class ApiSearchClientsHandlerRegressionTest(
       self.Check("GET", "/api/clients?query=%s" % client_ids[0].Basename())
 
 
-class ApiLabelsRestrictedSearchClientsHandlerTest(test_lib.GRRBaseTest):
+class ApiLabelsRestrictedSearchClientsHandlerTest(
+    api_test_lib.ApiCallHandlerTest):
   """Test for ApiLabelsRestrictedSearchClientsHandler."""
 
   def setUp(self):
@@ -278,7 +281,7 @@ class ApiGetClientHandlerRegressionTest(
     self.Check("GET", "/api/clients/%s" % client_ids[0].Basename())
 
 
-class ApiInterrogateClientHandlerTest(test_lib.GRRBaseTest):
+class ApiInterrogateClientHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiInterrogateClientHandler."""
 
   def setUp(self):

@@ -47,27 +47,29 @@ class LoggedACL(object):
             token.username in aff4_users.GRRUser.SYSTEM_USERS):
           # Logging internal system database access is noisy and useless.
           return result
-        logging.debug(u"%s GRANTED by %s to %s%s (%s, %s) with reason: %s",
-                      utils.SmartUnicode(self.access_type),
-                      utils.SmartUnicode(this.__class__.__name__),
-                      utils.SmartUnicode(token and token.username),
-                      utils.SmartUnicode(token and token.supervisor and
-                                         " (supervisor)" or ""),
-                      utils.SmartUnicode(args),
-                      utils.SmartUnicode(kwargs),
-                      utils.SmartUnicode(token and token.reason))
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+          logging.debug(u"%s GRANTED by %s to %s%s (%s, %s) with reason: %s",
+                        utils.SmartUnicode(self.access_type),
+                        utils.SmartUnicode(this.__class__.__name__),
+                        utils.SmartUnicode(token and token.username),
+                        utils.SmartUnicode(token and token.supervisor and
+                                           " (supervisor)" or ""),
+                        utils.SmartUnicode(args),
+                        utils.SmartUnicode(kwargs),
+                        utils.SmartUnicode(token and token.reason))
 
         return result
       except access_control.UnauthorizedAccess:
-        logging.debug(u"%s REJECTED by %s to %s%s (%s, %s) with reason: %s",
-                      utils.SmartUnicode(self.access_type),
-                      utils.SmartUnicode(this.__class__.__name__),
-                      utils.SmartUnicode(token and token.username),
-                      utils.SmartUnicode(token and token.supervisor and
-                                         " (supervisor)" or ""),
-                      utils.SmartUnicode(args),
-                      utils.SmartUnicode(kwargs),
-                      utils.SmartUnicode(token and token.reason))
+        if logging.getLogger().isEnabledFor(logging.DEBUG):
+          logging.debug(u"%s REJECTED by %s to %s%s (%s, %s) with reason: %s",
+                        utils.SmartUnicode(self.access_type),
+                        utils.SmartUnicode(this.__class__.__name__),
+                        utils.SmartUnicode(token and token.username),
+                        utils.SmartUnicode(token and token.supervisor and
+                                           " (supervisor)" or ""),
+                        utils.SmartUnicode(args),
+                        utils.SmartUnicode(kwargs),
+                        utils.SmartUnicode(token and token.reason))
 
         raise
 

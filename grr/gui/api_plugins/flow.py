@@ -187,22 +187,15 @@ class ApiFlow(rdf_structs.RDFProtoStruct):
       try:
         self.context = flow_obj.context
       except ValueError:
-        # TODO(user): remove after old-style flows are not important
-        # anymore (EOY2016).
         pass
 
       flow_state_dict = flow_obj.Get(flow_obj.Schema.FLOW_STATE_DICT)
       if flow_state_dict is not None:
         flow_state_data = flow_state_dict.ToDict()
-      else:
-        # We're dealing with old-style flow.
-        # TODO(user): remove after old-style flows are not important
-        # anymore (EOY2016).
-        flow_state_data = flow_obj.Get(flow_obj.Schema.FLOW_STATE)
 
-      if flow_state_data:
-        self.state_data = (api_call_handler_utils.ApiDataObject()
-                           .InitFromDataObject(flow_state_data))
+        if flow_state_data:
+          self.state_data = (api_call_handler_utils.ApiDataObject()
+                             .InitFromDataObject(flow_state_data))
 
     return self
 

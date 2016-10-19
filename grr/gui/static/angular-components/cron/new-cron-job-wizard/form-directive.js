@@ -177,22 +177,6 @@ FormController.prototype.onCronJobChange_ = function(newValue) {
     huntArgs['flow_runner_args']['value']['flow_name'] =
         angular.copy(this.descriptors_['RDFString']['default']);
   }
-  // If CreateGenericHuntFlowArgs.hunt_args.flow_runner_args.output_plugins is
-  // not initialized, initialize it to default output plugins list (if any).
-  if (angular.isUndefined(huntArgs['output_plugins'])) {
-    if (this.defaultOutputPluginName) {
-      var defaultPluginDescriptor = angular.copy(
-          this.descriptors_['OutputPluginDescriptor']['default']);
-      defaultPluginDescriptor['value']['plugin_name'] = angular.copy(
-          this.descriptors_['RDFString']['default']);
-      defaultPluginDescriptor['value']['plugin_name']['value'] =
-          this.defaultOutputPluginName;
-
-      huntArgs['output_plugins'] = [defaultPluginDescriptor];
-    } else {
-      huntArgs['output_plugins'] = [];
-    }
-  }
 
   // If CreateGenericHuntFlowArgs.hunt_runner_args is not initialized,
   // initialize it to HuntRunnerArgs default.
@@ -206,6 +190,23 @@ FormController.prototype.onCronJobChange_ = function(newValue) {
   if (angular.isUndefined(huntRunnerArgs['client_rule_set'])) {
     huntRunnerArgs['client_rule_set'] = angular.copy(
         this.descriptors_['ForemanClientRuleSet']['default']);
+  }
+
+  // If CreateGenericHuntFlowArgs.hunt_runner_args.output_plugins is
+  // not initialized, initialize it to default output plugins list (if any).
+  if (angular.isUndefined(huntRunnerArgs['output_plugins'])) {
+    if (this.defaultOutputPluginName) {
+      var defaultPluginDescriptor = angular.copy(
+          this.descriptors_['OutputPluginDescriptor']['default']);
+      defaultPluginDescriptor['value']['plugin_name'] = angular.copy(
+          this.descriptors_['RDFString']['default']);
+      defaultPluginDescriptor['value']['plugin_name']['value'] =
+          this.defaultOutputPluginName;
+
+      huntRunnerArgs['output_plugins'] = [defaultPluginDescriptor];
+    } else {
+      huntRunnerArgs['output_plugins'] = [];
+    }
   }
 };
 

@@ -28,7 +28,7 @@
       },
       "response": {
         "approvers": [
-          "test"
+          "api_test_user"
         ],
         "emailCcAddresses": [
           "test@example.com"
@@ -83,7 +83,7 @@
       },
       "response": {
         "approvers": [
-          "test"
+          "api_test_user"
         ],
         "emailCcAddresses": [
           "test@example.com"
@@ -205,7 +205,7 @@
           "fetchBinaries": true,
           "filenameRegex": "."
         },
-        "creator": "test",
+        "creator": "api_test_user",
         "flowId": "W:ABCDEF",
         "lastActiveAt": "42000000",
         "name": "ListProcesses",
@@ -218,7 +218,7 @@
             "expiry": "102000000",
             "process": "GRRAdminUI",
             "reason": "",
-            "username": "test"
+            "username": "api_test_user"
           }
         },
         "startedAt": "42000000",
@@ -247,7 +247,7 @@
       },
       "response": {
         "approvers": [
-          "test"
+          "api_test_user"
         ],
         "emailCcAddresses": [
           "test@example.com"
@@ -264,7 +264,7 @@
           "clientLimit": "100",
           "clientRate": "0",
           "created": "42000000",
-          "creator": "test",
+          "creator": "api_test_user",
           "description": "foo",
           "expires": "1209642000000",
           "isRobot": false,
@@ -322,7 +322,7 @@
       "method": "GET",
       "response": {
         "approvers": [
-          "test"
+          "api_test_user"
         ],
         "id": "approval:111111",
         "isValid": false,
@@ -352,15 +352,15 @@
         }
       },
       "test_class": "ApiGetClientApprovalHandlerRegressionTest",
-      "url": "/api/v2/users/test/approvals/client/C.1000000000000000/approval:111111"
+      "url": "/api/v2/users/api_test_user/approvals/client/C.1000000000000000/approval:111111"
     },
     {
       "api_method": "GetClientApproval",
       "method": "GET",
       "response": {
         "approvers": [
-          "approver",
-          "test"
+          "api_test_user",
+          "approver"
         ],
         "id": "approval:222222",
         "isValid": true,
@@ -389,7 +389,7 @@
         }
       },
       "test_class": "ApiGetClientApprovalHandlerRegressionTest",
-      "url": "/api/v2/users/test/approvals/client/C.1000000000000001/approval:222222"
+      "url": "/api/v2/users/api_test_user/approvals/client/C.1000000000000001/approval:222222"
     }
   ],
   "ApiGetClientHandler": [
@@ -577,7 +577,7 @@
       "method": "GET",
       "response": {
         "approvers": [
-          "test"
+          "api_test_user"
         ],
         "id": "approval:111111",
         "isValid": false,
@@ -598,15 +598,15 @@
         }
       },
       "test_class": "ApiGetCronJobApprovalHandlerRegressionTest",
-      "url": "/api/v2/users/test/approvals/cron-job/CronJob_123456/approval:111111"
+      "url": "/api/v2/users/api_test_user/approvals/cron-job/CronJob_123456/approval:111111"
     },
     {
       "api_method": "GetCronJobApproval",
       "method": "GET",
       "response": {
         "approvers": [
-          "approver",
-          "test"
+          "api_test_user",
+          "approver"
         ],
         "id": "approval:222222",
         "isValid": true,
@@ -626,7 +626,7 @@
         }
       },
       "test_class": "ApiGetCronJobApprovalHandlerRegressionTest",
-      "url": "/api/v2/users/test/approvals/cron-job/CronJob_567890/approval:222222"
+      "url": "/api/v2/users/api_test_user/approvals/cron-job/CronJob_567890/approval:222222"
     }
   ],
   "ApiGetCronJobFlowHandler": [
@@ -639,7 +639,7 @@
         },
         "context": {
           "createTime": "44000000",
-          "creator": "test",
+          "creator": "api_test_user",
           "currentState": "Start",
           "nextOutboundId": "2",
           "outstandingRequests": "1",
@@ -648,7 +648,7 @@
           "state": "RUNNING",
           "userNotified": false
         },
-        "creator": "test",
+        "creator": "api_test_user",
         "lastActiveAt": "44000000",
         "name": "GRRVersionBreakDown",
         "runnerArgs": {
@@ -656,7 +656,7 @@
           "flowName": "GRRVersionBreakDown",
           "token": {
             "reason": "Running tests",
-            "username": "test"
+            "username": "api_test_user"
           }
         },
         "startedAt": "44000000",
@@ -672,7 +672,7 @@
       "api_method": "GetFileDownloadCommand",
       "method": "GET",
       "response": {
-        "command": "/usr/bin/grr_export --username test file --path aff4:/C.1000000000000000/fs/os/etc --output ."
+        "command": "/usr/bin/grr_export --username api_test_user file --path aff4:/C.1000000000000000/fs/os/etc --output ."
       },
       "test_class": "ApiGetFileDownloadCommandHandlerRegressionTest",
       "url": "/api/v2/clients/C.1000000000000000/vfs-download-command/fs/os/etc"
@@ -737,7 +737,7 @@
             "cpuUsage": {}
           },
           "createTime": "42000000",
-          "creator": "test",
+          "creator": "api_test_user",
           "currentState": "Start",
           "nextOutboundId": "9",
           "outstandingRequests": "8",
@@ -746,7 +746,7 @@
           "state": "RUNNING",
           "userNotified": false
         },
-        "creator": "test",
+        "creator": "api_test_user",
         "flowId": "F:ABCDEF12",
         "lastActiveAt": "42000000",
         "name": "Interrogate",
@@ -755,7 +755,7 @@
           "flowName": "Interrogate",
           "token": {
             "reason": "Running tests",
-            "username": "test"
+            "username": "api_test_user"
           }
         },
         "startedAt": "42000000",
@@ -771,7 +771,7 @@
       "api_method": "GetFlowResultsExportCommand",
       "method": "GET",
       "response": {
-        "command": "/usr/bin/grr_export --username test collection_files --path aff4:/C.1000000000000000/flows/W:ABCDEF/Results --output ."
+        "command": "/usr/bin/grr_export --username api_test_user collection_files --path aff4:/C.1000000000000000/flows/W:ABCDEF/Results --output ."
       },
       "test_class": "ApiGetFlowResultsExportCommandHandlerRegressionTest",
       "url": "/api/v2/clients/C.1000000000000000/flows/W:ABCDEF/results/export-command"
@@ -827,7 +827,7 @@
         "settings": {
           "canaryMode": true
         },
-        "username": "test"
+        "username": "api_test_user"
       },
       "test_class": "ApiGetGrrUserHandlerRegresstionTest",
       "url": "/api/v2/users/me"
@@ -839,7 +839,7 @@
       "method": "GET",
       "response": {
         "approvers": [
-          "test"
+          "api_test_user"
         ],
         "id": "approval:111111",
         "isValid": false,
@@ -852,7 +852,7 @@
           "clientLimit": "100",
           "clientRate": "0",
           "created": "42000000",
-          "creator": "test",
+          "creator": "api_test_user",
           "description": "hunt1",
           "expires": "1209642000000",
           "isRobot": false,
@@ -864,15 +864,15 @@
         }
       },
       "test_class": "ApiGetHuntApprovalHandlerRegressionTest",
-      "url": "/api/v2/users/test/approvals/hunt/H:123456/approval:111111"
+      "url": "/api/v2/users/api_test_user/approvals/hunt/H:123456/approval:111111"
     },
     {
       "api_method": "GetHuntApproval",
       "method": "GET",
       "response": {
         "approvers": [
-          "approver",
-          "test"
+          "api_test_user",
+          "approver"
         ],
         "id": "approval:222222",
         "isValid": true,
@@ -884,7 +884,7 @@
           "clientLimit": "100",
           "clientRate": "0",
           "created": "42000000",
-          "creator": "test",
+          "creator": "api_test_user",
           "description": "hunt2",
           "expires": "1209642000000",
           "isRobot": false,
@@ -896,7 +896,7 @@
         }
       },
       "test_class": "ApiGetHuntApprovalHandlerRegressionTest",
-      "url": "/api/v2/users/test/approvals/hunt/H:567890/approval:222222"
+      "url": "/api/v2/users/api_test_user/approvals/hunt/H:567890/approval:222222"
     }
   ],
   "ApiGetHuntClientCompletionStatsHandler": [
@@ -1153,12 +1153,76 @@
       "url": "/api/v2/hunts/H:123456/client-completion-stats?strip_type_info=1&size=1000"
     }
   ],
+  "ApiGetHuntHandler": [
+    {
+      "api_method": "GetHunt",
+      "method": "GET",
+      "response": {
+        "allClientsCount": "0",
+        "clientLimit": "100",
+        "clientRate": "0",
+        "clientRuleSet": {
+          "rules": [
+            {
+              "regex": {
+                "attributeName": "GRR client",
+                "attributeRegex": "GRR"
+              },
+              "ruleType": "REGEX"
+            }
+          ]
+        },
+        "completedClientsCount": "0",
+        "created": "42000000",
+        "creator": "api_test_user",
+        "description": "the hunt",
+        "expires": "1209642000000",
+        "flowArgs": {
+          "@type": "type.googleapis.com/GetFileArgs",
+          "pathspec": {
+            "path": "/tmp/evil.txt",
+            "pathtype": "OS"
+          }
+        },
+        "flowName": "GetFile",
+        "huntRunnerArgs": {
+          "clientRate": 0.0,
+          "clientRuleSet": {
+            "rules": [
+              {
+                "regex": {
+                  "attributeName": "GRR client",
+                  "attributeRegex": "GRR"
+                },
+                "ruleType": "REGEX"
+              }
+            ]
+          },
+          "description": "the hunt",
+          "huntName": "GenericHunt",
+          "token": {
+            "reason": "Running tests",
+            "username": "api_test_user"
+          }
+        },
+        "isRobot": false,
+        "name": "GenericHunt",
+        "remainingClientsCount": "0",
+        "state": "PAUSED",
+        "totalCpuUsage": 5000.0,
+        "totalNetUsage": "1000000",
+        "urn": "aff4:/hunts/H:123456"
+      },
+      "test_class": "ApiGetHuntHandlerRegressionTest",
+      "url": "/api/v2/hunts/H:123456"
+    }
+  ],
   "ApiGetHuntResultsExportCommandHandler": [
     {
       "api_method": "GetHuntResultsExportCommand",
       "method": "GET",
       "response": {
-        "command": "/usr/bin/grr_export --username test collection_files --path aff4:/hunts/H:123456/Results --output ."
+        "command": "/usr/bin/grr_export --username api_test_user collection_files --path aff4:/hunts/H:123456/Results --output ."
       },
       "test_class": "ApiGetHuntResultsExportCommandHandlerRegressionTest",
       "url": "/api/v2/hunts/H:123456/results/export-command"
@@ -3785,13 +3849,13 @@
       "method": "POST",
       "response": {
         "approvers": [
-          "requestor",
-          "test"
+          "api_test_user",
+          "requestor"
         ],
         "id": "approval:111111",
         "isValid": true,
         "notifiedUsers": [
-          "test"
+          "api_test_user"
         ],
         "reason": "foo",
         "subject": {
@@ -3824,13 +3888,13 @@
       "method": "POST",
       "response": {
         "approvers": [
-          "requestor",
-          "test"
+          "api_test_user",
+          "requestor"
         ],
         "id": "approval:111111",
         "isValid": true,
         "notifiedUsers": [
-          "test"
+          "api_test_user"
         ],
         "reason": "foo",
         "subject": {
@@ -3854,20 +3918,20 @@
       "method": "POST",
       "response": {
         "approvers": [
-          "requestor",
-          "test"
+          "api_test_user",
+          "requestor"
         ],
         "id": "approval:111111",
         "isValid": true,
         "notifiedUsers": [
-          "test"
+          "api_test_user"
         ],
         "reason": "foo",
         "subject": {
           "clientLimit": "100",
           "clientRate": "0",
           "created": "42000000",
-          "creator": "test",
+          "creator": "api_test_user",
           "description": "a hunt",
           "expires": "1209642000000",
           "isRobot": false,
@@ -4065,7 +4129,7 @@
                 "authState": "AUTHENTICATED",
                 "cpuLimit": 7200.0,
                 "eta": "42000000",
-                "lastLease": "test@test.host:42",
+                "lastLease": "api_test_user@test.host:42",
                 "name": "ListProcesses",
                 "priority": "MEDIUM_PRIORITY",
                 "queue": "aff4:/C.1000000000000000/tasks",
@@ -4096,8 +4160,8 @@
         "items": [
           {
             "approvers": [
-              "approver",
-              "test"
+              "api_test_user",
+              "approver"
             ],
             "id": "approval:222222",
             "isValid": true,
@@ -4127,7 +4191,7 @@
           },
           {
             "approvers": [
-              "test"
+              "api_test_user"
             ],
             "id": "approval:111111",
             "isValid": false,
@@ -4168,7 +4232,7 @@
         "items": [
           {
             "approvers": [
-              "test"
+              "api_test_user"
             ],
             "id": "approval:111111",
             "isValid": false,
@@ -4284,7 +4348,7 @@
             "args": {
               "@type": "type.googleapis.com/EmptyMessage"
             },
-            "creator": "test",
+            "creator": "api_test_user",
             "flowId": "F:ABCDEF11",
             "lastActiveAt": "44000000",
             "name": "GRRVersionBreakDown",
@@ -4293,7 +4357,7 @@
               "flowName": "GRRVersionBreakDown",
               "token": {
                 "reason": "Running tests",
-                "username": "test"
+                "username": "api_test_user"
               }
             },
             "startedAt": "44000000",
@@ -4610,7 +4674,7 @@
                 "authState": "AUTHENTICATED",
                 "cpuLimit": 7200.0,
                 "eta": "42000000",
-                "lastLease": "test@test.host:42",
+                "lastLease": "api_test_user@test.host:42",
                 "name": "ListProcesses",
                 "priority": "MEDIUM_PRIORITY",
                 "queue": "aff4:/C.1000000000000000/tasks",
@@ -4675,7 +4739,7 @@
             "args": {
               "@type": "type.googleapis.com/ListProcessesArgs"
             },
-            "creator": "test",
+            "creator": "api_test_user",
             "flowId": "F:ABCDEF11",
             "lastActiveAt": "44000000",
             "name": "ListProcesses",
@@ -4684,7 +4748,7 @@
               "flowName": "ListProcesses",
               "token": {
                 "reason": "Running tests",
-                "username": "test"
+                "username": "api_test_user"
               }
             },
             "startedAt": "44000000",
@@ -4695,7 +4759,7 @@
             "args": {
               "@type": "type.googleapis.com/InterrogateArgs"
             },
-            "creator": "test",
+            "creator": "api_test_user",
             "flowId": "F:ABCDEF10",
             "lastActiveAt": "43000000",
             "name": "Interrogate",
@@ -4704,7 +4768,7 @@
               "flowName": "Interrogate",
               "token": {
                 "reason": "Running tests",
-                "username": "test"
+                "username": "api_test_user"
               }
             },
             "startedAt": "43000000",
@@ -4755,7 +4819,7 @@
         "items": [
           {
             "approvers": [
-              "test"
+              "api_test_user"
             ],
             "id": "approval:112233",
             "isValid": false,
@@ -4768,7 +4832,7 @@
               "clientLimit": "100",
               "clientRate": "20",
               "created": "42000000",
-              "creator": "test",
+              "creator": "api_test_user",
               "description": "",
               "expires": "1209642000000",
               "isRobot": false,
@@ -5263,7 +5327,7 @@
             "clientLimit": "100",
             "clientRate": "0",
             "created": "2000000000",
-            "creator": "test",
+            "creator": "api_test_user",
             "description": "hunt_1",
             "expires": "1211600000000",
             "isRobot": false,
@@ -5277,7 +5341,7 @@
             "clientLimit": "100",
             "clientRate": "0",
             "created": "1000000000",
-            "creator": "test",
+            "creator": "api_test_user",
             "description": "hunt_0",
             "expires": "1210600000000",
             "isRobot": false,
@@ -5302,7 +5366,7 @@
             "clientLimit": "100",
             "clientRate": "0",
             "created": "2000000000",
-            "creator": "test",
+            "creator": "api_test_user",
             "description": "hunt_1",
             "expires": "1211600000000",
             "isRobot": false,
@@ -5327,7 +5391,7 @@
             "clientLimit": "100",
             "clientRate": "0",
             "created": "1000000000",
-            "creator": "test",
+            "creator": "api_test_user",
             "description": "hunt_0",
             "expires": "1210600000000",
             "isRobot": false,

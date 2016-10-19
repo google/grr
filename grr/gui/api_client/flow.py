@@ -71,7 +71,7 @@ class Flow(FlowBase):
     if data is None:
       raise ValueError("data can't be None")
 
-    client_id = utils.UrnToClientId(data.urn)
+    client_id = utils.UrnStringToClientId(data.urn)
     flow_id = data.flow_id
 
     super(Flow, self).__init__(

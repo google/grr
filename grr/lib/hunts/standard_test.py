@@ -371,8 +371,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
         "aff4:/foreman",
         mode="r",
         token=self.token,
-        aff4_type=aff4_grr.GRRForeman,
-        ignore_cache=True) as foreman:
+        aff4_type=aff4_grr.GRRForeman) as foreman:
       foreman_rules = foreman.Get(foreman.Schema.RULES,
                                   default=foreman.Schema.RULES())
       self.assertFalse(foreman_rules)
@@ -1031,10 +1030,7 @@ class StandardHuntTest(test_lib.FlowTestsBaseclass, StandardHuntTestMixin):
 
     # Re-open the hunt to get fresh data.
     hunt_obj = aff4.FACTORY.Open(
-        hunt_session_id,
-        age=aff4.ALL_TIMES,
-        ignore_cache=True,
-        token=self.token)
+        hunt_session_id, age=aff4.ALL_TIMES, token=self.token)
 
     # There should be only one client, due to the limit
     started, _, _ = hunt_obj.GetClientsCounts()

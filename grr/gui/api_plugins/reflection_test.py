@@ -27,7 +27,7 @@ class ApiGetRDFValueDescriptorHandlerRegressionTest(
     self.Check("GET", "/api/reflection/rdfvalue/ApiFlow")
 
 
-class ApiGetRDFValueDescriptorHandlerTest(test_lib.GRRBaseTest):
+class ApiGetRDFValueDescriptorHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetRDFValueDescriptorHandler."""
 
   def testSuccessfullyRendersReflectionDataForAllTypes(self):
@@ -61,7 +61,7 @@ class DummyApiCallRouter(api_call_router.ApiCallRouter):
     """Doc 3."""
 
 
-class ApiListApiMethodsHandlerTest(test_lib.GRRBaseTest):
+class ApiListApiMethodsHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiListApiMethodsHandler."""
 
   def setUp(self):

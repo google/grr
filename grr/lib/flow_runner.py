@@ -18,7 +18,7 @@ stores. The goal is to prevent child flows from sending messages to the data
 store before their parent's messages since this will create a race condition
 (for example a child's client requests may be answered before the parent). We
 also need to ensure that client messages for child flows do not get queued until
-the child flow itself has finished running and is pickled into the data store.
+the child flow itself has finished running and is stored into the data store.
 
 The following is a summary of the CallFlow() sequence:
 
@@ -35,7 +35,7 @@ The following is a summary of the CallFlow() sequence:
    parent runner's message queues.
 
 5. The child flow completes execution of its Start() method, and its state gets
-   pickled and stored in the data store.
+   stored in the data store.
 
 6. Execution returns to the parent flow, which may also complete, and serialize
    its state to the data store.
@@ -86,6 +86,7 @@ class FlowRunnerError(Exception):
 
 class FlowLogCollection(sequential_collection.IndexedSequentialCollection):
   RDF_TYPE = rdf_flows.FlowLog
+
 
 # TODO(user): Another pickling issue. Remove this asap, this will
 # break displaying old flows though so we will have to keep this

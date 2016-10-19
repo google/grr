@@ -35,7 +35,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 
 
-class ApiListHuntsHandlerTest(test_lib.GRRBaseTest,
+class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
                               standard_test.StandardHuntTestMixin):
   """Test for ApiAff4Handler."""
 
@@ -250,11 +250,6 @@ class ApiGetHuntHandlerRegressionTest(api_test_lib.ApiCallHandlerRegressionTest,
   api_method = "GetHunt"
   handler = hunt_plugin.ApiGetHuntHandler
 
-  # ApiHunt.hunt_args.flow_args JSON representation is proto-serialized and
-  # then base64-encoded. Unfortunately flow arguments are not proto-serialized
-  # in a stable fashion, thus making regression tests very flaky.
-  skip_v2_tests = True
-
   def Run(self):
     with test_lib.FakeTime(42):
       with self.CreateHunt(description="the hunt") as hunt_obj:
@@ -334,7 +329,7 @@ class ApiListHuntErrorsHandlerRegressionTest(
         replace={hunt_obj.urn.Basename(): "H:123456"})
 
 
-class ApiGetHuntFilesArchiveHandlerTest(test_lib.GRRBaseTest,
+class ApiGetHuntFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
                                         standard_test.StandardHuntTestMixin):
 
   def setUp(self):
@@ -410,7 +405,7 @@ class ApiGetHuntFilesArchiveHandlerTest(test_lib.GRRBaseTest,
         self.assertEqual(manifest["ignored_files"], 0)
 
 
-class ApiGetHuntFileHandlerTest(test_lib.GRRBaseTest,
+class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
                                 standard_test.StandardHuntTestMixin):
 
   def setUp(self):
@@ -716,7 +711,7 @@ class ApiListHuntOutputPluginsHandlerRegressionTest(
 
 
 class ApiListHuntOutputPluginLogsHandlerTest(
-    test_lib.GRRBaseTest, standard_test.StandardHuntTestMixin):
+    api_test_lib.ApiCallHandlerTest, standard_test.StandardHuntTestMixin):
   """Test for ApiListHuntOutputPluginLogsHandler."""
 
   def setUp(self):
@@ -946,7 +941,7 @@ class ApiListHuntClientsHandlerRegressionTest(
         replace=replace)
 
 
-class ApiModifyHuntHandlerTest(test_lib.GRRBaseTest,
+class ApiModifyHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
                                standard_test.StandardHuntTestMixin):
   """Test for ApiModifyHuntHandler."""
 
@@ -1073,7 +1068,7 @@ class ApiModifyHuntHandlerRegressionTest(
           replace=replace)
 
 
-class ApiDeleteHuntHandlerTest(test_lib.GRRBaseTest,
+class ApiDeleteHuntHandlerTest(api_test_lib.ApiCallHandlerTest,
                                standard_test.StandardHuntTestMixin):
   """Test for ApiDeleteHuntHandler."""
 

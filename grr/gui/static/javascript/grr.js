@@ -45,7 +45,6 @@ grr.installXssiProtection = true;
 grr.init = function() {
   /**
    * This is the grr publisher/subscriber queue.
-   * @type {Object.<function(Object)>}
    */
   if (!grr.queue_) {
     grr.queue_ = {};
@@ -64,6 +63,32 @@ grr.init = function() {
     if (grr.angularInjector) {
       var $rootScope = grr.angularInjector.get('$rootScope');
       $rootScope.$broadcast('ServerError', serverError);
+    }
+  }, 'body');
+
+  // TODO(user): get rid of GRR publish/subscribe queue.
+  grr.subscribe('unauthorized', function(subject, message) {
+    if (subject) {
+      var grrAclDialogService =
+          grr.angularInjector.get('grrAclDialogService');
+
+      // TODO(user): get rid of this code as soon as we stop passing
+      // information about objects by passing URNs and guessing the
+      // object type.
+      subject = subject.replace(/^aff4:\//, '');
+      var components = subject.split('/');
+      if (/^C\.[0-9a-fA-F]{16}$/.test(components[0])) {
+        grrAclDialogService.openRequestClientApprovalDialog(
+            components[0], message);
+      } else if (components[0] == 'hunts') {
+        grrAclDialogService.openRequestHuntApprovalDialog(
+            components[1], message);
+      } else if (components[0] == 'cron') {
+        grrAclDialogService.openRequestCronJobApprovalDialog(
+            components[1], message);
+      } else {
+        throw new Error('Can\'t determine type of resources.');
+      }
     }
   }, 'body');
 
@@ -154,7 +179,7 @@ grr.init = function() {
  * @param {Object=} opt_state An optional state object to pass to the
  *     server. DEFAULT: global state.
  * @param {Function=} opt_success_cb an optional function to handle ajax stream.
- * @return {Object=} jQuery-wrapped tree.
+ * @return {Object} jQuery-wrapped tree.
  */
 grr.grrTree = function(renderer, unique_id, opt_publishEvent, opt_state,
                        opt_success_cb) {
@@ -269,7 +294,7 @@ grr.openTree = function(tree, nodeId) {
     if (node.length) {
       // There are more nodes to go, proceed recursively.
       if (parts[i + 1]) {
-        tree.jstree('open_node', node, function() { cb(i + 1, node) },
+        tree.jstree('open_node', node, function() { cb(i + 1, node); },
             'no_hash');
       } else {
         // Ultimate node, when its done we want to select it
@@ -428,59 +453,6 @@ grr.table.colorTable = function(jtable) {
 };
 
 /**
- * Create a dialog for allowing the table to be sorted and filtered.
- *
- * @this is the icon which takes the click event. This icon must be inside the
- *       relevant th element.
- */
-grr.table.sortableDialog = function() {
-  var header = $(this).parent();
-  var node = $('<div class="sort-dialog">' +
-               '<div class="asc">Sort A &rarr; Z</div>' +
-               '<div class="desc">Sort Z &rarr; A</div>' +
-               '<div class="filter">' +
-               '<form>Filter <input type=text><input type=submit ' +
-               'style="display: none;">' +
-               '</form></div>');
-
-  node.find('input[type=text]').val(header.attr('filter') || '');
-
-  var refresh = function() {
-    var tbody = header.parents('table').find('tbody');
-    var filter = header.attr('filter');
-
-    tbody.html('<tr><td id="' + tbody.attr('id') + '_loading"' +
-        ' class="table_loading">Loading...</td></tr>');
-    tbody.scroll();
-    if (filter != null) {
-      header.attr('title', 'Filter: ' + filter);
-    }
-
-    node.dialog('close');
-    $('.sort-dialog').remove();
-  };
-
-  node.find('.asc').click(function() {
-    header.attr('sort', 'asc');
-    refresh();
-  });
-
-  node.find('.desc').click(function() {
-    header.attr('sort', 'desc');
-    refresh();
-  });
-
-  node.find('form').submit(function(event) {
-    header.attr('filter', $(this).find('input').val());
-    refresh();
-    event.stopPropagation();
-    return false;
-  });
-
-  node.dialog();
-};
-
-/**
  * An event handler for scrolling.
  *
  * If we notice an uncovered "Loading ..." element appear within the view port,
@@ -563,59 +535,6 @@ grr.table.scrollHandler = function(renderer, tbody, opt_state) {
   });
 };
 
-/**
- * Hides or shows the table rows below the current row which have a depth
- * attribute greater than this one.
- *
- * @param {Object} node is a dom node somewhere inside the parent row.
- *
- * @param {Object} data is a parameter to be passed to the table renderer
- * representing the value of the current row (usually a serialized RDFValue
- * instance). This is used to calculate the children of this row.
- */
-grr.table.toggleChildRows = function(node, data) {
-  var item = $(node);
-  var row = item.parents('tr');
-  var row_id = parseInt(row.attr('row_id')) || 0;
-  var depth = parseInt(item.attr('depth')) || 0;
-  var end = false;
-
-  // If the tree is not closed, we close it.
-  if (!item.hasClass('tree_closed')) {
-    // Find all the children of this element and hide them.
-    row.parents('tbody').find('tr').each(function() {
-      var row = $(this);
-      var our_row_id = row.attr('row_id');
-      var our_depth = row.find('span').attr('depth');
-
-      if (our_row_id > row_id) {
-        if (our_depth > depth && !end) {
-          row.remove();
-        } else {
-          end = true;
-        }
-      }
-    });
-
-    item.addClass('tree_closed');
-    item.removeClass('tree_opened');
-  } else {
-    var tbody = item.parents('table').find('tbody');
-    var dom = $("<td id='" + tbody.attr('id') + '_loading' +
-        "' class='table_loading' colspan=200>Loading ...</td>");
-    dom.attr('data', data);
-    dom.attr('depth', depth + 1);
-
-    // Add a new row after this one.
-    item.parents('tr:first').after($('<tr>').append(dom));
-
-    item.addClass('tree_opened');
-    item.removeClass('tree_closed');
-
-    tbody.scroll();
-  }
-};
-
 
 /**
  * Create a new table on the specified domId.
@@ -687,64 +606,6 @@ grr.table.newTable = function(renderer, domId, unique, opt_state) {
   grr.subscribe('timer', function() {
     grr.table.scrollHandler(renderer, me, opt_state);
   }, unique);
-};
-
-/**
- * Creates a periodic polling clock for updating certain elements on
- * the page.
- * @param {string} renderer - The rernderer name to call via ajax.
- * @param {string} domId - This callback will be called as long as domId exists.
- * @param {Function} callback will be called each time with the data returned.
- * @param {number} timeout number of milliseconds between polls.
- * @param {Object} state the state to pass to the server.
- * @param {string=} opt_datatype Expected data type "html" (default),
- *          "json", "xml".
- * @param {Function} on_error will be called when there was an error.
-*/
-grr.poll = function(renderer, domId, callback, timeout, state, opt_datatype,
-                    on_error) {
-  /* Enforce a minimum timeout */
-  if (!timeout || timeout < 1000) {
-    timeout = 1000;
-  }
-
-  state.reason = state.reason || grr.state.reason;
-  state.client_id = state.client_id || grr.state.client_id;
-
-  /** We deliberately not call window.setInterval to avoid overrunning
-     the server if its too slow.
-   */
-  function update() {
-    var xhr = $.ajax({
-      url: 'render/RenderAjax/' + renderer,
-      data: state,
-      type: grr.ajax_method,
-      dataType: opt_datatype || 'html',
-      success: function(data) {
-        grr.RemoveFromAjaxQueue('#' + domId);
-        // Load the new table DOM
-        var result = callback(data);
-
-        // Schedule another update
-        if (result && $('#' + domId).html()) {
-          window.setTimeout(update, timeout);
-        }
-      },
-
-      // In case of error just keep trying
-      error: function(jqXHR, textStatus, errorThrown) {
-        grr.RemoveFromAjaxQueue('#' + domId);
-        if (on_error) {
-          on_error(jqXHR, textStatus, errorThrown);
-        }
-        window.setTimeout(update, timeout);
-      }
-    });
-    grr.PushToAjaxQueue('#' + domId, xhr);
-  };
-
-  // First one to kick off
-  update();
 };
 
 /**
@@ -977,21 +838,6 @@ grr.submit = function(renderer, formId, resultId, opt_state,
   return false;
 };
 
-/**
- * Updates the form from an object.
- *
- * @param {string} formId The form to update.
- * @param {Object=} state Optional state to merge with the form (default
- *     grr.state).
- */
-grr.update_form = function(formId, state) {
-  $('#' + formId + ' input, select').each(function() {
-    if (state[this.name]) {
-      // Make sure the change event is fired after the value changed.
-      $(this).val(state[this.name]).change();
-    }
-  });
-};
 
 /**
  * Parses the location bar's #hash value into an object.
@@ -1023,28 +869,6 @@ grr.parseHashState = function(hash) {
 };
 
 /**
- * Install the navigation actions on all items in the navigator.
- */
-grr.installNavigationActions = function() {
-  $('#navigator li a[grrtarget]').each(function() {
-  var renderer = $(this).attr('grrtarget');
-
-  $(this).click(function() {
-    grr.layout(renderer, 'main');
-    grr.publish('hash_state', 'main', renderer);
-
-    // Clear all the other selected links
-    $('#navigator li').removeClass('active');
-
-    // Make this element selected
-    $(this).parent().addClass('active');
-
-    return false;
-  });
- });
-};
-
-/**
  * Load the main content pane from the hash provided.
  *
  * @param {string=} opt_hash to load from. If null, use the current window hash.
@@ -1053,367 +877,6 @@ grr.loadFromHash = function(opt_hash) {
   if (opt_hash) {
     window.location.hash = opt_hash;
   }
-};
-
-/**
- * Store the state of the foreman form.
- *
- * @param {Object} state of the foreman form.
- *
- */
-grr.foreman = {regex_rules: 0, action_rules: 0};
-
-/**
- * Adds another condition stanza to the Foreman rule form.
- *
- * @param {Object} defaults value filled in from the server filling in the js
- *  template.
- */
-grr.foreman.add_condition = function(defaults) {
-  defaults.rule_number = grr.foreman.regex_rules;
-  $('#addRuleTemplate').tmpl(defaults).appendTo('#ForemanFormRuleBody');
-  grr.foreman.regex_rules += 1;
-};
-
-/**
- * Adds another action stansa to the Foreman rule form.
- *
- * @param {Object} defaults value filled in from the server filling in the js
- *  template.
- */
-grr.foreman.add_action = function(defaults) {
-  defaults.rule_number = grr.foreman.action_rules;
-  $('#addActionTemplate').tmpl(defaults).appendTo('#ForemanFormActionBody');
-  grr.foreman.action_rules += 1;
-};
-
-/**
- * This is the hexview object.
- */
-grr.hexview = {};
-
-/**
- * Builds the hexview HTML inside the dom.
- *
- * @param {string} domId the id of the node to build this inside.
- * @param {number} width The number of columns to have in the hexview.
- * @param {number} height The number of rows to have in the hexview.
- *
- */
-grr.hexview.BuildTable = function(domId, width, height) {
-  var table = $($('#HexTableTemplate').html());
-
-  // Insert the offset headers
-  var layout = '';
-  for (var i = 0; i < width; i++) {
-    layout += ('<th class="monospace column' + i % 4 + '">' +
-        grr.hexview.ZeroPad(i.toString(16), 2) + '</th>');
-  }
-
-  $(layout).insertAfter(table.find('#offset'));
-
-  // Insert the offset column
-  var layout = '';
-  for (var i = 0; i < height; i++) {
-    layout += ('<tr><td id="offset_value_' + i + '" class="offset monospace">' +
-      '0x00000000</td></tr>');
-  }
-
-  $(layout).appendTo(table.find('#offset_area table'));
-
-  // Insert the cells
-  var layout = '';
-  var count = 0;
-  for (var i = 0; i < height; i++) {
-    layout += '<tr>';
-    for (var j = 0; j < width; j++) {
-      layout += ('<td class="monospace column' + j % 4 + '" id="cell_' +
-          count + '">&nbsp;&nbsp;</td>');
-      count += 1;
-    }
-    layout += '/<tr>';
-  }
-
-  table.find('#hex_area').attr('colspan', width);
-  $(layout).insertAfter(table.find('#hex_area table'));
-
-  // Insert printable data
-  var layout = '';
-  var count = 0;
-  for (var i = 0; i < height; i++) {
-    layout += '<tr>';
-    for (var j = 0; j < width; j++) {
-      layout += ('<td class="monospace" id="data_value_' +
-          count + '">&nbsp;</td>');
-      count += 1;
-    }
-    layout += '/<tr>';
-  }
-
-  $(layout).insertAfter(table.find('#data_area table'));
-
-  $('#' + domId).html(table);
-};
-
-/**
- * A utility function to zero pad strings.
- * @param {string} string_value the string to interpolate.
- * @param {number} limit is the total width of the string.
- * @return {string} An interporlated string.
- */
-grr.hexview.ZeroPad = function(string_value, limit) {
-  while (string_value.length < limit) {
-    string_value = '0' + string_value;
-  }
-  return string_value;
-};
-
-/**
- * Populate the hexviewer table with data.
- * @param {number} offset is the initial offset of the array.
- * @param {number} width is the number of cells in each row.
- * @param {Array} values is an array of values to go into each cell of the view.
- */
-grr.hexview._Populate = function(offset, width, values) {
-  // Update the offsets.
-  $('[id^=offset_value_]').each(function(index, element) {
-    var string_value = (offset + index * width).toString(16);
-    $(element).text('0x' + grr.hexview.ZeroPad(string_value, 8));
-  });
-
-  // Clear cells
-  $('[id^=cell_]').html('&nbsp;&nbsp;');
-
-  // Update the cells
-  for (var i = 0; i < values.length; i++) {
-    var value = parseInt(values[i]);
-    var string_value = value.toString(16);
-
-    $('#cell_' + i).text(grr.hexview.ZeroPad(string_value, 2));
-  }
-
-  // Clear data
-  $('[id^=data_value_]').html('&nbsp;');
-
-  // Update the data
-  for (var i = 0; i < values.length; i++) {
-    var value = parseInt(values[i]);
-    var string_value = '.';
-
-    if (value > 31 && value < 128) {
-      string_value = String.fromCharCode(value);
-    }
-
-    $('#data_value_' + i).text(string_value);
-  }
-
-};
-
-/**
- * A helper function to create the slider.
- * @param {string} renderer The renderer which will be used to interact with the
- * hexview.
- * @param {string} domId will receive the new widget.
- * @param {number} total_size is the total size of the file (for maximum
- * slider).
- * @param {number} width is the number of bytes in each row. (The height is
- * auto detected).
- * @param {number} height The total number of rows in this hex viewer.
- * @param {Object} state The state that will be passed to our renderer.
- */
-grr.hexview._makeSlider = function(renderer, domId, total_size, width, height,
-                            state) {
-  // Make the slider
-  var slider = $('#slider');
-
-  // Round the total size to the next row
-  var total_size = Math.floor(total_size / width + 1) * width;
-
-  slider.parent('td').attr('rowspan', height);
-  slider.slider({
-    orientation: 'vertical',
-    min: 0,
-    step: width,
-    value: total_size,
-    max: total_size,
-    change: function(event, ui) {
-      state.offset = total_size - ui.value;
-      state.hex_row_count = height;
-
-      grr.update(renderer, domId, state, function(data) {
-        // Fill in the table with the data that came back.
-        grr.hexview._Populate(data.offset, width, data.values);
-      });
-    }
-  }).slider('option', 'value', total_size);
-
-  // Make the slider take up the full height.
-  slider.height(slider.parent('td').height());
-
-  // Bind the mouse wheel on the actual table.
-  $('#hex_area').bind('mousewheel DOMMouseScroll', function(e) {
-    var delta = 0;
-    var element = $('#slider');
-    var value;
-
-    value = element.slider('option', 'value');
-    step = total_size / 100;
-
-    if (e.wheelDelta) {
-      delta = -e.wheelDelta;
-    }
-    if (e.detail) {
-      delta = e.detail * 40;
-    }
-
-    value -= delta / 8 * step;
-    if (value > total_size) {
-      value = total_size;
-    }
-    if (value < 0) {
-      value = 0;
-    }
-
-    element.slider('option', 'value', value);
-
-    return false;
-  });
-};
-
-
-/**
- * Builds a hex viewer widget inside the specified domId.
- * @param {string} renderer The renderer which will be used to interact with the
- * hexview.
- * @param {string} domId will receive the new widget.
- * @param {number} width is the number of bytes in each row. (The height is
- *    auto detected).
- * @param {Object} state is the state we use for send to our renderer.
- */
-grr.hexview.HexViewer = function(renderer, domId, width, state) {
-  var header_height = $('#hex_header').outerHeight();
-
-  if (!header_height) {
-    // First build a small table to see how many rows we can fit.
-    grr.hexview.BuildTable(domId, width, 0);
-    header_height = $('#hex_header').outerHeight();
-  }
-
-  var view_port_height = $('#' + domId).height();
-
-  // Ensure a minimum of 2 rows.
-  var height = Math.max(Math.floor(view_port_height / header_height),
-    2);
-
-  state.hex_row_count = height;
-
-  // Ask for these many rows from the server.
-  grr.update(renderer, domId, state, function(data) {
-    // Now fill as many rows as we can in the view port.
-    grr.hexview.BuildTable(domId, width, state.hex_row_count);
-
-    //Fill in the table with the data that came back.
-    grr.hexview._Populate(data.offset, width, data.values);
-
-    grr.hexview._makeSlider(renderer, domId, data.total_size, width, height,
-      state);
-  });
-};
-
-
-/**
- * This is the textview object.
- */
-grr.textview = {};
-
-/**
- * A helper function to create the slider.
- * @param {string} renderer The renderer which will be used to interact with the
- * textview.
- * @param {string} domId will receive the new widget.
- * @param {number} total_size is the total size of the file (for maximum
- *    slider).
- * @param {Object} state is the state we use for send to our renderer.
- */
-grr.textview._makeSlider = function(renderer, domId, total_size, state) {
-  // Make the slider
-  var slider = $('#text_viewer_slider');
-  slider.slider({
-    orientation: 'horizontal',
-    min: 0,
-    range: true,
-    max: total_size,
-    change: function(event, ui) {
-      grr.textview.Update(renderer, domId, state);
-    },
-    slide: function(event, ui) {
-      var offset = $(this).slider('values', 0);
-      var size = $(this).slider('values', 1) - offset;
-      $('#text_viewer_offset').val(offset);
-      $('#text_viewer_data_size').val(size);
-    }
-  }).slider('option', 'values', [0, 20000]);
-};
-
-
-/**
- * Issue a request to update content based on current state.
- * @param {string} renderer The renderer which will be used to interact with the
- * textview.
- * @param {string} domId will receive the new widget.
- * @param {Object} state is the state we use for send to our renderer.
- */
-grr.textview.Update = function(renderer, domId, state) {
-  var state = $.extend({
-                offset: $('#text_viewer_offset').val(),
-                text_encoding: $('#text_encoding').val(),
-                data_size: $('#text_viewer_data_size').val()
-                       }, state);
-
-  grr.update(renderer, domId, state, function(data) {
-    $('#text_viewer_data').html(data);
-    total_size = parseInt($('#text_viewer_data_content').attr('total_size'));
-    $('#text_viewer_slider').slider('option', 'max', total_size);
-  });
-};
-
-/**
- * Builds a text viewer widget inside the specified domId.
- * @param {string} renderer The renderer which will be used to interact with the
- * textview.
- * @param {string} domId will receive the new widget.
- * @param {string} default_codec codec to set as default for the widget.
- * @param {Object} state is the state we use for send to our renderer.
- */
-grr.textview.TextViewer = function(renderer, domId, default_codec, state) {
-  // Create a slider, we don't know how big it should be yet.
-  var default_size = 20000;
-  $('#text_viewer_data_size').val(default_size);
-  $('#text_viewer_offset').val(0);
-  $('#text_encoding option[value=' + default_codec + ']').attr(
-      'selected', 'selected');
-  grr.update(renderer, domId, state, function(data) {
-    $('#text_viewer_data').html(data);
-    var total_size = $('#text_viewer_data_content').attr('total_size');
-    total_size = parseInt(total_size);
-    grr.textview._makeSlider(renderer, domId, total_size, state);
-    var new_size = Math.min(default_size, total_size);
-    $('#text_viewer_data_size').val(new_size);
-
-    // Add handlers for if someone updates the values manually.
-    $('#text_encoding').change(function() {
-      grr.textview.Update(renderer, domId, state);
-    });
-    $('#text_viewer_offset').change(function() {
-      $('#text_viewer_slider').slider('values', 0, $(this).val());
-    });
-    $('#text_viewer_data_size').change(function() {
-      var offset = $('#text_viewer_slider').slider('values', 0);
-      $('#text_viewer_slider').slider('values', 1, $(this).val() + offset);
-    });
-
-   $('#text_viewer_slider').slider('values', 1, new_size);
-  });
 };
 
 
@@ -1429,8 +892,8 @@ grr.inFlightQueue = {}; //TODO(user): kept for compatibility with legacy JS code
 
 /**
  * Broadcasts an event on the Angular rootScope.
- * @param eventName {string} The event name
- * @param data {Object} The event data
+ * @param {string} eventName The event name
+ * @param {Object} data The event data
  */
 grr.broadcastAngularEvent = function(eventName, data){
   if (grr.angularInjector) {
@@ -1471,118 +934,6 @@ grr.GetFromAjaxQueue = function(element) {
   return grr.inFlightQueue[element];
 };
 
-/**
- * Add onclick and onchange handlers to an input form field to handle the None
- * or Auto automatic value. This is used in the Start new flows UI.
- * @param {Object} node The node to apply the handlers to.
- */
-grr.formNoneHandler = function(node) {
-
-  // If its the auto value we disable the input.
-  var disabled_color = 'rgb(200, 200, 200)';
-  var value = node.val();
-  if (value.toLowerCase() == 'none' || value == 'Auto' || value == '') {
-    node.css('color', disabled_color);
-    node.val('Auto');
-  }
-  node.focusin(function() {
-    if ($(this).css('color') == disabled_color) {
-      node.css('color', '');
-      $(this).val('');
-    }
-  });
-
-  node.focusout(function() {
-    var value = $(this).val();
-    if (value.toLowerCase() == 'none' || value == 'Auto' || value == '') {
-      node.css('color', disabled_color);
-      $(this).val('Auto');
-    }
-  });
-};
-
-
-/**
- * Take a file upload form and send the file to the server.
- * @param {string} renderer Path to the Ajax server handler.
- * @param {string} formId The input form with the file parameter.
- * @param {string} progressId Div to write progress to.
- * @param {function} successHandler Function to call on success.
- * @param {function} errorHandler Function to call on error.
- * @param {Object} state is the state we use for send to our renderer.
- */
-grr.uploadHandler = function(renderer, formId, progressId, successHandler,
-                             errorHandler, state) {
-  var formData = new FormData($('#' + formId)[0]);
-
-  // Include our state in the form post.
-  $.each(state, function(key, val) {
-    formData.append(key, val);
-  });
-  $('#' + progressId).progressbar();
-  var progressHandlingFunction = function(e) {
-    if (e.lengthComputable) {
-      $('#' + progressId).progressbar('value', (e.loaded / e.total) * 100);
-    }
-  };
-
-  $.ajax({
-    url: 'render/RenderAjax/' + renderer,
-    type: 'POST',
-    xhr: function() {
-      var myXhr = $.ajaxSettings.xhr();
-      if (myXhr.upload) {  // Special html5 handler for upload progress.
-        myXhr.upload.addEventListener('progress', progressHandlingFunction,
-                                      false);
-      }
-      return myXhr;
-    },
-    success: successHandler,
-    error: errorHandler,
-    data: formData,
-    //Tell JQuery not to process data or worry about content-type.
-    cache: false,
-    contentType: false,
-    processData: false
-  });
-};
-
-
-/**
- * Attach a download file handler to the click of a node.
- * @param {string} clickNode DomID that we will attach the handler to.
- * @param {Object} state is the state we use for send to our renderer.
- * @param {boolean} safe_extension should the downloaded file have .noexec
- *     added.
- * @param {string} url URL to post to.
- * @param {string} target The target for the form, defaults to "_blank".
- */
-grr.downloadHandler = function(clickNode, state, safe_extension, url, target) {
-  // Create a temporary form to post to the download page with.
-  clickNode.find('form').remove();   // remove any previous hidden forms.
-  if (target == null) {
-    target = '_blank';
-  }
-  var tmpform = $('<form class="hide" target="' +
-    target + '" />').appendTo(clickNode);
-  tmpform.attr({action: url, method: 'post'});
-  $.each(state, function(key, val) {
-    $('<input type=hidden />').attr({name: key, value: val}).appendTo(tmpform);
-  });
-  var csrf = grr.getCookie('csrftoken');
-  $('<input type=hidden name=csrfmiddlewaretoken>').val(csrf).appendTo(tmpform);
-  if (safe_extension) {
-    var safe_ext = $('<input type=hidden name=safe_extension>');
-    safe_ext.val(safe_extension).appendTo(tmpform);
-  }
-  clickNode.unbind('click').click(function() {
-    tmpform.submit();
-  });
-  clickNode.bind('download', function() {
-    tmpform.submit();
-  });
-};
-
 
 /**
   * Determine if a method is safe to add CSRF token to.
@@ -1618,25 +969,6 @@ grr.getCookie = function(name) {
   return cookieValue;
 };
 
-
-/**
- * Set a tooltip on the search box.
- * @param {string} clickNode DomID that we will attach the tooltip to.
- */
-grr.enableSearchHelp = function(clickNode) {
-  var help_content = 'Search by hostname, username, id or MAC<br/>' +
-      'Limit scope using mac: host: label: fqdn: ip: or user:<br/>e.g.' +
-      ' user:sham<br/>Regex is supported<br/> e.g. test1[2-5].*\.' +
-      'example.com$';
-  var popover_opts = {'placement': 'bottom',
-                      'title': help_content,
-                      'container': 'body',
-                      'trigger': 'hover',
-                      'html': true
-                     };
-  $(clickNode).tooltip(popover_opts).click(function(e) { e.preventDefault(); });
-
-};
 
 /**
  * Pushes the state from the Javascript state dict to html tags.

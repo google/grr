@@ -73,6 +73,10 @@ def DefineFromProtobuf(cls, protobuf):
   message_options = protobuf.DESCRIPTOR.GetOptions()
   semantic_options = message_options.Extensions[semantic_pb2.semantic]
 
+  # Hack to avoid dependency loop.
+  # TODO(user): remove this hack
+  classes_dict = type_info.TypeInfoObject.classes
+
   # Support message descriptions
   if semantic_options.description and not cls.__doc__:
     cls.__doc__ = semantic_options.description
@@ -112,7 +116,8 @@ def DefineFromProtobuf(cls, protobuf):
                "%s: Should be %s") % (cls.__name__, field.name,
                                       rdf_type.data_store_type))
 
-      type_descriptor = type_info.ProtoRDFValue(rdf_type=options.type, **kwargs)
+      type_descriptor = classes_dict["ProtoRDFValue"](rdf_type=options.type,
+                                                      **kwargs)
 
     # A semantic protobuf is already a semantic value so it is an error to
     # specify it in two places.
@@ -124,26 +129,26 @@ def DefineFromProtobuf(cls, protobuf):
 
     # Try to figure out what this field actually is from the descriptor.
     elif field.type == TYPE_DOUBLE:
-      type_descriptor = type_info.ProtoDouble(**kwargs)
+      type_descriptor = classes_dict["ProtoDouble"](**kwargs)
 
     elif field.type == TYPE_FLOAT:
-      type_descriptor = type_info.ProtoFloat(**kwargs)
+      type_descriptor = classes_dict["ProtoFloat"](**kwargs)
 
     elif field.type == TYPE_BOOL:
-      type_descriptor = type_info.ProtoBoolean(**kwargs)
+      type_descriptor = classes_dict["ProtoBoolean"](**kwargs)
 
     elif field.type == TYPE_STRING:
-      type_descriptor = type_info.ProtoString(**kwargs)
+      type_descriptor = classes_dict["ProtoString"](**kwargs)
 
     elif field.type == TYPE_BYTES:
-      type_descriptor = type_info.ProtoBinary(**kwargs)
+      type_descriptor = classes_dict["ProtoBinary"](**kwargs)
       if options.dynamic_type:
         # This may be a dynamic type. In this case the dynamic_type option
         # names a method (which must exist) which should return the class of
         # the embedded semantic value.
         dynamic_cb = getattr(cls, options.dynamic_type, None)
         if dynamic_cb is not None:
-          type_descriptor = type_info.ProtoDynamicEmbedded(
+          type_descriptor = classes_dict["ProtoDynamicEmbedded"](
               dynamic_cb=dynamic_cb, **kwargs)
         else:
           logging.warning("Dynamic type specifies a non existant callback %s",
@@ -153,17 +158,17 @@ def DefineFromProtobuf(cls, protobuf):
           field.message_type.name == "Any"):
       dynamic_cb = getattr(cls, options.dynamic_type, None)
       if dynamic_cb is not None:
-        type_descriptor = type_info.ProtoDynamicAnyValueEmbedded(
+        type_descriptor = classes_dict["ProtoDynamicAnyValueEmbedded"](
             dynamic_cb=dynamic_cb, **kwargs)
       else:
         logging.warning("Dynamic type specifies a non existant AnyValue "
                         "callback %s", options.dynamic_type)
 
     elif field.type == TYPE_INT64 or field.type == TYPE_INT32:
-      type_descriptor = type_info.ProtoSignedInteger(**kwargs)
+      type_descriptor = classes_dict["ProtoSignedInteger"](**kwargs)
 
     elif field.type == TYPE_UINT32 or field.type == TYPE_UINT64:
-      type_descriptor = type_info.ProtoUnsignedInteger(**kwargs)
+      type_descriptor = classes_dict["ProtoUnsignedInteger"](**kwargs)
 
     # An embedded protocol buffer.
     elif field.type == TYPE_MESSAGE and field.message_type:
@@ -171,7 +176,7 @@ def DefineFromProtobuf(cls, protobuf):
       # known at this time. It will be resolved using the late binding algorithm
       # when it is known. Therefore this can actually also refer to this current
       # protobuf (i.e. nested proto).
-      type_descriptor = type_info.ProtoEmbedded(
+      type_descriptor = classes_dict["ProtoEmbedded"](
           nested=field.message_type.name, **kwargs)
 
       # TODO(user): support late binding here.
@@ -227,7 +232,7 @@ def DefineFromProtobuf(cls, protobuf):
 
       enum_dict = dict((x.name, x.number) for x in enum_desc.values)
 
-      type_descriptor = type_info.ProtoEnum(
+      type_descriptor = classes_dict["ProtoEnum"](
           enum_name=enum_desc.name,
           enum=enum_dict,
           enum_descriptions=enum_descriptions,
@@ -242,8 +247,8 @@ def DefineFromProtobuf(cls, protobuf):
       # If the field is repeated, wrap it in a ProtoList.
       if field.label == LABEL_REPEATED:
         options = field.GetOptions().Extensions[semantic_pb2.sem_type]
-        type_descriptor = type_info.ProtoList(
-            type_descriptor, labels=list(options.label))
+        type_descriptor = classes_dict["ProtoList"](type_descriptor,
+                                                    labels=list(options.label))
 
       try:
         cls.AddDescriptor(type_descriptor)

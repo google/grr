@@ -20,17 +20,17 @@ import thread
 import threading
 import time
 
+import mock
 
 from grr.lib import access_control
 from grr.lib import aff4
+from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
-from grr.lib import stats
 from grr.lib import test_lib
 from grr.lib import threadpool
-from grr.lib import utils
 from grr.lib import worker
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
@@ -60,15 +60,15 @@ def DeletionTest(f):
   return Decorator
 
 
-def TransactionTest(f):
-  """This indicates a test that uses transactions."""
+def DBSubjectLockTest(f):
+  """This indicates a test that uses locks."""
 
   @functools.wraps(f)
   def Decorator(testinstance):
-    if testinstance.TEST_TRANSACTIONS:
+    if testinstance.TEST_DBSUBJECTLOCKS:
       return f(testinstance)
     else:
-      return testinstance.skipTest("Tests that use transactions are disabled "
+      return testinstance.skipTest("Tests that use locks are disabled "
                                    "for this data store.")
 
   return Decorator
@@ -81,8 +81,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
   # This flag controls if tests can also delete data. Some data stores don't
   # support deletion so those tests will fail for them.
   TEST_DELETION = True
-  # The same applies to transactions.
-  TEST_TRANSACTIONS = True
+  # The same applies to locks.
+  TEST_DBSUBJECTLOCKS = True
 
   def setUp(self):
     super(_DataStoreTest, self).setUp()
@@ -1011,198 +1011,199 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       expected_timestamps = [100, 101, 105, 107, 108, 109]
       self._CheckResultTimestamps(result, expected_timestamps)
 
-  @TransactionTest
-  def testTransactions(self):
-    """Test transactions raise."""
+  @DBSubjectLockTest
+  def testDBSubjectLocks(self):
+    """Test lock locking."""
     predicate = u"metadata:predicateÎñţér"
     subject = u"aff4:/metadata:rowÎñţér"
-    subject2 = u"aff4:/metadata:rowÎñţér2"
 
-    # t1 is holding a transaction on this row.
-    t1 = data_store.DB.Transaction(subject, token=self.token)
-    t1.Resolve(predicate)
+    # t1 is holding a lock on this row.
+    with data_store.DB.DBSubjectLock(subject, token=self.token):
+      # This means that modification of this row will fail using a different
+      # lock.
+      self.assertRaises(
+          data_store.DBSubjectLockError,
+          data_store.DB.DBSubjectLock,
+          subject,
+          token=self.token)
 
-    # This means that modification of this row will fail using a different
-    # transaction.
-    self.assertRaises(
-        data_store.TransactionError,
-        data_store.DB.Transaction,
-        subject,
-        token=self.token)
-
-    # We should still be able to modify using the first transaction:
-    t1.Set(predicate, "1")
-    t1.Commit()
-    self.assertEqual(t1.Resolve(predicate)[0], "1")
-    t1.Commit()
-
+      data_store.DB.Set(subject, predicate, "1", token=self.token)
     self.assertEqual(
         data_store.DB.Resolve(
             subject, predicate, token=self.token)[0], "1")
 
-    t2 = data_store.DB.Transaction(subject, token=self.token)
-    t2.Set(predicate, "2")
-    t2.Commit()
-
-    self.assertEqual(
-        data_store.DB.Resolve(
-            subject, predicate, token=self.token)[0], "2")
-
-    # Check that ResolvePrefix works correctly.
-    predicate1 = u"metadata:attribute10"
-    predicate1prefix = "metadata:attribute1"
-    predicate2 = u"metadata:attribute20"
-
-    t3 = data_store.DB.Transaction(subject, token=self.token)
-    t3.Set(predicate1, "10")
-    t3.Set(predicate2, "20")
-    t3.Commit()
-    self.assertEqual(t3.ResolvePrefix(predicate1prefix)[0][1], "10")
-    self.assertEqual(
-        t3.ResolvePrefix(
-            predicate1prefix, timestamp=data_store.DB.NEWEST_TIMESTAMP)[0][1],
-        "10")
-    t3.Commit()
-
-    self.assertEqual(t3.Resolve(predicate1)[0], "10")
-    self.assertEqual(t3.Resolve(predicate2)[0], "20")
-    self.assertEqual(t3.ResolvePrefix(predicate1prefix)[0][1], "10")
-    self.assertEqual(
-        t3.ResolvePrefix(
-            predicate1prefix, timestamp=data_store.DB.NEWEST_TIMESTAMP)[0][1],
-        "10")
-
-    t4 = data_store.DB.Transaction(subject, token=self.token)
-
-    t4.DeleteAttribute(predicate1)
-    t4.Commit()
-
-    self.assertEqual(t4.Resolve(predicate1), (None, 0))
-    self.assertEqual(len(t4.ResolvePrefix(predicate1prefix)), 0)
-    self.assertEqual(t4.Resolve(predicate2)[0], "20")
-    t4.Commit()
-
-    self.assertEqual(t4.Resolve(predicate1), (None, 0))
-    self.assertEqual(len(t4.ResolvePrefix(predicate1prefix)), 0)
-
-    # Check that locks don't influence each other.
-
-    # t1 is holding a transaction on this row.
-    t1 = data_store.DB.Transaction(subject, token=self.token)
-    t1.Resolve(predicate)
-
-    # This means that modification of this row will fail using a different
-    # transaction.
+    t2 = data_store.DB.DBSubjectLock(subject, token=self.token)
     self.assertRaises(
-        data_store.TransactionError,
-        data_store.DB.Transaction,
+        data_store.DBSubjectLockError,
+        data_store.DB.DBSubjectLock,
+        subject,
+        token=self.token)
+    t2.Release()
+
+    t3 = data_store.DB.DBSubjectLock(subject, token=self.token)
+    self.assertTrue(t3.CheckLease())
+    t3.Release()
+
+  @DBSubjectLockTest
+  def testDBSubjectLockIndependence(self):
+    """Check that locks don't influence each other."""
+    subject = u"aff4:/metadata:rowÎñţér"
+    subject2 = u"aff4:/metadata:rowÎñţér2"
+
+    t1 = data_store.DB.DBSubjectLock(subject, token=self.token)
+
+    # Check it's locked.
+    self.assertRaises(
+        data_store.DBSubjectLockError,
+        data_store.DB.DBSubjectLock,
         subject,
         token=self.token)
 
-    # t2 is holding a transaction on this row.
-    t2 = data_store.DB.Transaction(subject2, token=self.token)
-    t2.Resolve(predicate)
+    # t2 is holding a lock on this row.
+    t2 = data_store.DB.DBSubjectLock(subject2, token=self.token)
 
     # This means that modification of this row will fail using a different
-    # transaction.
+    # lock.
     self.assertRaises(
-        data_store.TransactionError,
-        data_store.DB.Transaction,
+        data_store.DBSubjectLockError,
+        data_store.DB.DBSubjectLock,
         subject2,
         token=self.token)
-    t2.Commit()
+    t2.Release()
 
     # Subject 1 should still be locked.
     self.assertRaises(
-        data_store.TransactionError,
-        data_store.DB.Transaction,
+        data_store.DBSubjectLockError,
+        data_store.DB.DBSubjectLock,
         subject,
         token=self.token)
 
-    t1.Commit()
+    t1.Release()
 
-  @TransactionTest
-  def testTransactionLease(self):
+  @DBSubjectLockTest
+  def testDBSubjectLockLease(self):
     subject = u"aff4:/leasetest"
-    predicate = "metadata:pred"
+    default_lease = config_lib.CONFIG["Datastore.transaction_timeout"]
+    now = 1476142966
+    with test_lib.FakeTime(now):
+      with data_store.DB.DBSubjectLock(subject, token=self.token) as lock:
+        self.assertEqual(lock.CheckLease(), default_lease)
+        self.assertTrue(lock.locked)
 
-    t = data_store.DB.Transaction(subject, token=self.token)
-    t.Resolve(predicate)
-    t.Set(predicate, "1")
-    t.UpdateLease(100)
-    res = t.Resolve(predicate)
-    t.Set(predicate, "2")
-    t.Commit()
-    self.assertEqual(res[0], "1")
-    t = data_store.DB.Transaction(subject, token=self.token)
-    self.assertEqual(t.Resolve(predicate)[0], "2")
+        # Set our expiry time to now + 2*default_lease
+        lock.UpdateLease(2 * default_lease)
+        self.assertEqual(lock.CheckLease(), 2 * default_lease)
 
-  @TransactionTest
-  def testAbortTransaction(self):
-    predicate = u"metadata:predicate_Îñţér"
-    row = u"metadata:row1Îñţér"
-    data_store.DB.DeleteSubject(row, token=self.token)
+        # Deliberately call release twice, __exit__ will also call
+        lock.Release()
 
-    t1 = data_store.DB.Transaction(row, token=self.token)
-    # Now this should not raise since t1 and t2 are on different subjects
-    t1.Set(predicate, "1")
-    t1.Abort()
+    # Check setting a custom lease time
+    with test_lib.FakeTime(now):
+      with data_store.DB.DBSubjectLock(
+          subject, token=self.token, lease_time=5000) as lock:
+        self.assertEqual(lock.CheckLease(), 5000)
 
-    t2 = data_store.DB.Transaction(row, token=self.token)
-    self.assertIsNone(t2.Resolve(predicate)[0])
-    t2.Set(predicate, "2")
+  @DBSubjectLockTest
+  def testDBSubjectLockLeaseExpiryWithExtension(self):
+    subject = u"aff4:/leaseexpiretest"
+    now = 1476142966
+    default_lease = config_lib.CONFIG["Datastore.transaction_timeout"]
+    with test_lib.FakeTime(now):
+      lock = data_store.DB.DBSubjectLock(subject, token=self.token)
+      self.assertEqual(lock.expires, int(now + default_lease) * 1e6)
+      lock.UpdateLease(2 * default_lease)
+      self.assertEqual(lock.expires, int(now + (2 * default_lease)) * 1e6)
 
-    t2.Commit()
+    # Lock should still be active
+    with test_lib.FakeTime(now + default_lease + 1):
+      self.assertRaises(
+          data_store.DBSubjectLockError,
+          data_store.DB.DBSubjectLock,
+          subject,
+          token=self.token)
 
-    self.assertEqual(t2.Resolve(predicate)[0], "2")
+    # Now it is expired
+    with test_lib.FakeTime(now + (2 * default_lease) + 1):
+      data_store.DB.DBSubjectLock(subject, token=self.token)
 
-  @TransactionTest
-  def testTransactions2(self):
-    """Test that transactions on different rows do not interfere."""
-    predicate = u"metadata:predicate_Îñţér"
-    t1 = data_store.DB.Transaction(
-        u"metadata:row1Îñţér", lease_time=100, token=self.token)
+  @DBSubjectLockTest
+  def testDBSubjectLockLeaseExpiry(self):
+    subject = u"aff4:/leaseexpiretest"
+    now = 1476142966
+    default_lease = config_lib.CONFIG["Datastore.transaction_timeout"]
+    with test_lib.FakeTime(now):
+      lock = data_store.DB.DBSubjectLock(subject, token=self.token)
+      self.assertEqual(lock.CheckLease(), default_lease)
 
-    # Our lease should be between 0 and 100 seconds.
-    self.assertLess(t1.CheckLease(), 100)
-    self.assertGreater(t1.CheckLease(), 0)
+      self.assertRaises(
+          data_store.DBSubjectLockError,
+          data_store.DB.DBSubjectLock,
+          subject,
+          token=self.token)
 
-    t2 = data_store.DB.Transaction(u"metadata:row2Îñţér", token=self.token)
+    # Almost expired
+    with test_lib.FakeTime(now + default_lease - 1):
+      self.assertRaises(
+          data_store.DBSubjectLockError,
+          data_store.DB.DBSubjectLock,
+          subject,
+          token=self.token)
 
-    # This grabs read locks on these transactions
-    t1.Resolve(predicate)
-    t2.Resolve(predicate)
+    # Expired
+    after_expiry = now + default_lease + 1
+    with test_lib.FakeTime(after_expiry):
+      lock = data_store.DB.DBSubjectLock(subject, token=self.token)
+      self.assertEqual(lock.CheckLease(), default_lease)
+      self.assertEqual(lock.expires, int((after_expiry + default_lease) * 1e6))
 
-    # Now this should not raise since t1 and t2 are on different subjects
-    t1.Set(predicate, "1")
-    t1.Commit()
-    t2.Set(predicate, "2")
-    t2.Commit()
+  @DBSubjectLockTest
+  def testLockRetryWrapperTemporaryFailure(self):
+    """Two failed attempts to get the lock, then a succcess."""
+    lock = mock.MagicMock()
+    with mock.patch.object(time, "sleep", return_value=None) as mock_time:
+      with mock.patch.object(
+          data_store.DB,
+          "DBSubjectLock",
+          side_effect=[
+              data_store.DBSubjectLockError("1"),
+              data_store.DBSubjectLockError("2"), lock
+          ]):
+        lock = data_store.DB.LockRetryWrapper(
+            "aff4:/something", token=self.token)
 
-  @TransactionTest
-  def testRetryWrapper(self):
+        # We slept and retried twice
+        self.assertEqual(mock_time.call_count, 2)
+
+        lock.Release()
+
+  @DBSubjectLockTest
+  def testLockRetryWrapperNoBlock(self):
+    subject = "aff4:/noblocklock"
+    lock = data_store.DB.DBSubjectLock(subject, token=self.token)
+    with mock.patch.object(time, "sleep", return_value=None) as mock_time:
+      with self.assertRaises(data_store.DBSubjectLockError):
+        data_store.DB.LockRetryWrapper(
+            subject, token=self.token, blocking=False)
+        self.assertEqual(mock_time.call_count, 0)
+    lock.Release()
+
+  @DBSubjectLockTest
+  def testLockRetryWrapperCompleteFailure(self):
     subject = "aff4:/subject"
-    data_store.DB.DeleteSubject(subject, token=self.token)
-
-    call_count = stats.STATS.GetMetricValue("datastore_retries")
-
-    def MockSleep(_):
-      pass
-
-    def Callback(unused_transaction):
-      # Now that we have a transaction, lets try to get another one on the same
-      # subject. Since it is locked this should retry.
-      try:
-        data_store.DB.RetryWrapper(subject, lambda _: None, token=self.token)
-        self.fail("Transaction error not raised.")
-      except data_store.TransactionError as e:
-        self.assertEqual("Retry number exceeded.", str(e))
-        self.assertEqual(
-            stats.STATS.GetMetricValue("datastore_retries") - call_count, 10)
+    # We need to sync this delete or it happens after we take the lock and
+    # messes up the test.
+    data_store.DB.DeleteSubject(subject, token=self.token, sync=True)
+    lock = data_store.DB.DBSubjectLock(subject, token=self.token)
 
     # By mocking out sleep we can ensure all retries are exhausted.
-    with utils.Stubber(time, "sleep", MockSleep):
-      data_store.DB.RetryWrapper(subject, Callback, token=self.token)
+    with mock.patch.object(time, "sleep", return_value=None) as mock_time:
+      with self.assertRaises(data_store.DBSubjectLockError):
+        data_store.DB.LockRetryWrapper(subject, token=self.token)
+      # We slept and retried ten times before giving up
+      self.assertEqual(mock_time.call_count, 10)
+
+    # We never called the callback
+    lock.Release()
 
   def testTimestamps(self):
     """Check that timestamps are reasonable."""
@@ -1479,7 +1480,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
   OPEN_WITH_LOCK_SYNC_LOCK_SLEEP = 0.2
 
   @test_lib.SetLabel("large")
-  @TransactionTest
+  @DBSubjectLockTest
   def testAFF4OpenWithLock(self):
     self.opened = False
     self.client_urn = "aff4:/C.0000000000000001"
@@ -1766,7 +1767,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         "DeleteAttributes", "MultiDeleteAttributes", "DeleteSubject",
         "DeleteSubjects", "MultiResolvePrefix", "MultiSet", "Resolve",
         "ResolveMulti", "ResolvePrefix", "ScanAttribute", "ScanAttributes",
-        "Set", "Transaction"
+        "Set", "DBSubjectLock"
     ]
 
     implementation = data_store.DB

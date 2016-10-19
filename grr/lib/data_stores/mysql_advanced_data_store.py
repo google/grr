@@ -173,8 +173,9 @@ class MySQLAdvancedDataStore(data_store.DataStore):
   def DropTables(self):
     """Drop all existing tables."""
 
-    rows = self.ExecuteQuery("SELECT table_name FROM information_schema.tables "
-                             "WHERE table_schema='%s'" % self.database_name)
+    rows, _ = self.ExecuteQuery(
+        "SELECT table_name FROM information_schema.tables "
+        "WHERE table_schema='%s'" % self.database_name)
     for row in rows:
       self.ExecuteQuery("DROP TABLE `%s`" % row["table_name"])
 
@@ -184,8 +185,8 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     self._CreateTables()
 
-  def Transaction(self, subject, lease_time=None, token=None):
-    return MySQLTransaction(self, subject, lease_time=lease_time, token=token)
+  def DBSubjectLock(self, subject, lease_time=None, token=None):
+    return MySQLDBSubjectLock(self, subject, lease_time=lease_time, token=token)
 
   def Size(self):
     query = ("SELECT table_schema, Sum(data_length + index_length) `size` "
@@ -193,7 +194,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
              "WHERE table_schema = \"%s\" GROUP by table_schema" %
              self.database_name)
 
-    result = self.ExecuteQuery(query, [])
+    result, _ = self.ExecuteQuery(query, [])
     if len(result) != 1:
       return -1
     return int(result[0]["size"])
@@ -240,7 +241,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
 
     for attribute in attributes:
       query, args = self._BuildQuery(subject, attribute, timestamp, limit)
-      result = self.ExecuteQuery(query, args)
+      result, _ = self.ExecuteQuery(query, args)
 
       for row in result:
         value = self._Decode(attribute, row["value"])
@@ -298,7 +299,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     for prefix in attribute_prefix:
       query, args = self._BuildQuery(
           subject, prefix, timestamp, limit, is_prefix=True)
-      rows = self.ExecuteQuery(query, args)
+      rows, _ = self.ExecuteQuery(query, args)
 
       for row in rows:
         attribute = row["attribute"]
@@ -342,7 +343,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       query += " LIMIT %s"
       args.append(limit)
 
-    results = self.ExecuteQuery(query, args)
+    results, _ = self.ExecuteQuery(query, args)
     return results
 
   def ScanAttributes(self,
@@ -453,7 +454,7 @@ class MySQLAdvancedDataStore(data_store.DataStore):
              "WHERE subject_hash=unhex(md5(%s)) "
              "AND attribute_hash=unhex(md5(%s))")
     args = [subject, attribute]
-    result = self.ExecuteQuery(query, args)
+    result, _ = self.ExecuteQuery(query, args)
     return int(result[0]["total"])
 
   @utils.Synchronized
@@ -554,9 +555,10 @@ class MySQLAdvancedDataStore(data_store.DataStore):
       connection = self.pool.GetConnection()
       try:
         connection.cursor.execute(query, args)
+        rowcount = connection.cursor.rowcount
         results = connection.cursor.fetchall()
         self.pool.PutConnection(connection)
-        return results
+        return results, rowcount
       except MySQLdb.Error as e:
         # If there was an error attempt to clean up this connection and let it
         # drop
@@ -800,93 +802,62 @@ class MySQLAdvancedDataStore(data_store.DataStore):
     """)
 
 
-class MySQLTransaction(data_store.CommonTransaction):
-  """The Mysql data store transaction object.
+class MySQLDBSubjectLock(data_store.DBSubjectLock):
+  """The Mysql data store lock object.
 
   This object does not aim to ensure ACID like consistently. We only ensure that
   two simultaneous locks can not be held on the same AFF4 subject.
 
   This means that the first thread which grabs the lock is considered the owner
-  of the transaction. Any subsequent transactions on the same subject will fail
-  immediately with data_store.TransactionError.
+  of the lock. Any subsequent locks on the same subject will fail
+  immediately with data_store.DBSubjectLockError.
 
   A lock is considered expired after a certain time.
   """
 
-  def __init__(self, store, subject, lease_time=None, token=None):
-    """Ensure we can take a lock on this subject."""
-    super(MySQLTransaction, self).__init__(
-        store, subject, lease_time=lease_time, token=token)
-    if lease_time is None:
-      lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
-
+  def _Acquire(self, lease_time):
     self.lock_token = thread.get_ident()
-    self.lock_time = lease_time
-    self.expires_lock = int((time.time() + self.lock_time) * 1e6)
+    self.expires = int((time.time() + lease_time) * 1e6)
 
-    # This will take over the lock if the lock is too old.
-    query = ("UPDATE locks SET lock_expiration=%s, lock_owner=%s "
-             "WHERE subject_hash=unhex(md5(%s)) "
-             "AND (lock_expiration < %s)")
-    args = [self.expires_lock, self.lock_token, subject, time.time() * 1e6]
-    self.store.ExecuteQuery(query, args)
+    # This single query will create a new entry if one doesn't exist, and update
+    # the lock value if there is a lock but it's expired.  The SELECT 1
+    # statement checks if there is a current lock. The select from dual is
+    # essentially a way to get the numbers into the query conditional on there
+    # not being an existing lock.
+    query = (
+        "REPLACE INTO locks(lock_expiration, lock_owner, subject_hash) "
+        "SELECT %s, %s, unhex(md5(%s)) FROM dual WHERE NOT EXISTS (SELECT 1 "
+        "FROM locks WHERE subject_hash=unhex(md5(%s)) AND (lock_expiration > "
+        "%s))")
+    args = [
+        self.expires, self.lock_token, self.subject, self.subject,
+        time.time() * 1e6
+    ]
+    unused_results, rowcount = self.store.ExecuteQuery(query, args)
 
-    self._CheckForLock()
+    # New row rowcount == 1, updating expired lock rowcount == 2.
+    if rowcount == 0:
+      raise data_store.DBSubjectLockError("Subject %s is locked" % self.subject)
+    self.locked = True
 
   def UpdateLease(self, lease_time):
-    self.expires_lock = int((time.time() + lease_time) * 1e6)
-
-    # This will take over the lock if the lock is too old.
+    self.expires = int((time.time() + lease_time) * 1e6)
     query = ("UPDATE locks SET lock_expiration=%s, lock_owner=%s "
              "WHERE subject_hash=unhex(md5(%s))")
-    args = [self.expires_lock, self.lock_token, self.subject]
+    args = [self.expires, self.lock_token, self.subject]
     self.store.ExecuteQuery(query, args)
 
-  def CheckLease(self):
-    return max(0, self.expires_lock / 1e6 - time.time())
+  def Release(self):
+    """Remove the lock.
 
-  def Abort(self):
-    self._RemoveLock()
-
-  def Commit(self):
-    super(MySQLTransaction, self).Commit()
-    self._RemoveLock()
-
-  def _CheckForLock(self):
-    """Checks that the lock has stuck."""
-
-    query = ("SELECT lock_expiration, lock_owner FROM locks "
-             "WHERE subject_hash=unhex(md5(%s))")
-    args = [self.subject]
-    rows = self.store.ExecuteQuery(query, args)
-    for row in rows:
-
-      # We own this lock now.
-      if (row["lock_expiration"] == self.expires_lock and
-          row["lock_owner"] == self.lock_token):
-        return
-
-      else:
-        # Someone else owns this lock.
-        raise data_store.TransactionError("Subject %s is locked" % self.subject)
-
-    # If we get here the row does not exist:
-    query = ("INSERT IGNORE INTO locks "
-             "SET lock_expiration=%s, lock_owner=%s, "
-             "subject_hash=unhex(md5(%s))")
-    args = [self.expires_lock, self.lock_token, self.subject]
-    self.store.ExecuteQuery(query, args)
-
-    self._CheckForLock()
-
-  def _RemoveLock(self):
-    # Remove the lock on the document. Note that this only resets the lock if
-    # We actually hold it since lock_expiration == self.expires_lock and
-    # lock_owner = self.lock_token.
-
-    query = ("UPDATE locks SET lock_expiration=0, lock_owner=0 "
-             "WHERE lock_expiration=%s "
-             "AND lock_owner=%s "
-             "AND subject_hash=unhex(md5(%s))")
-    args = [self.expires_lock, self.lock_token, self.subject]
-    self.store.ExecuteQuery(query, args)
+    Note that this only resets the lock if we actually hold it since
+    lock_expiration == self.expires and lock_owner = self.lock_token.
+    """
+    if self.locked:
+      query = ("UPDATE locks SET lock_expiration=0, lock_owner=0 "
+               "WHERE lock_expiration=%s "
+               "AND lock_owner=%s "
+               "AND subject_hash=unhex(md5(%s))")
+      args = [self.expires, self.lock_token, self.subject]
+      self.store.ExecuteQuery(query, args)
+      self.locked = False

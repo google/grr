@@ -18,7 +18,6 @@ import logging
 
 from grr.lib import registry
 from grr.lib import utils
-from grr.lib.aff4_objects import user_managers
 
 # Global counter for ids
 COUNTER = 1
@@ -282,25 +281,6 @@ class Renderer(object):
   def javascript_path(self):
     return "static/javascript/%s.js" % (
         self.classes[self.renderer].__module__.split(".")[-1])
-
-# This will register all classes into this modules's namespace regardless of
-# where they are defined. This allows us to decouple the place of definition of
-# a class (which might be in a plugin) from its use which will reference this
-# module.
-Renderer.classes = globals()
-
-
-class UserLabelCheckMixin(object):
-  """Checks the user has a label or deny access to this renderer."""
-
-  # This should be overridden in the mixed class.
-  AUTHORIZED_LABELS = []
-
-  @classmethod
-  def CheckAccess(cls, request):
-    """If the user is not in the AUTHORIZED_LABELS, reject this renderer."""
-    user_managers.CheckUserForLabels(
-        request.token.username, cls.AUTHORIZED_LABELS, token=request.token)
 
 
 class ErrorHandler(Renderer):
@@ -882,58 +862,6 @@ class TreeRenderer(TemplateRenderer):
     """
 
 
-class TabLayout(TemplateRenderer):
-  """This renderer creates a set of tabs containing other renderers."""
-  # The hash component that will be used to remember which tab we have open.
-  # If set to None, currently selected tab name won't be preserved.
-  tab_hash = "tab"
-
-  # The name of the delegated renderer that will be used by default (None is the
-  # first one).
-  selected = None
-
-  names = []
-  delegated_renderers = []
-
-  # Note that we do not use jquery-ui tabs here because there is no way to hook
-  # a post rendering function so we can resize the canvas. We implement our own
-  # tabs here from scratch.
-  layout_template = Template("""
-<div class="fill-parent">
-  <ul id="{{unique|escape}}" class="nav nav-tabs">
-    {% for child, name in this.indexes %}
-    <li renderer="{{ child|escape }}">
-      <a id="{{name|escape}}" renderer="{{ child|escape }}">{{name|escape}}</a>
-    </li>
-    {% endfor %}
-  </ul>
-  <div id="tab_contents_{{unique|escape}}" class="tab-content"></div>
-</div>
-""") + TemplateRenderer.help_template
-
-  def __init__(self, *args, **kwargs):
-    super(TabLayout, self).__init__(*args, **kwargs)
-    # This can be overriden by child classes.
-    self.disabled = []
-
-  def Layout(self, request, response, apply_template=None):
-    """Render the content of the tab or the container tabset."""
-    if not self.selected:
-      self.selected = self.delegated_renderers[0]
-
-    self.indexes = [(self.delegated_renderers[i], self.names[i])
-                    for i in range(len(self.names))]
-
-    response = super(TabLayout, self).Layout(request, response, apply_template)
-    return self.CallJavascript(
-        response,
-        "TabLayout.Layout",
-        disabled=self.disabled,
-        tab_layout_state=self.state,
-        tab_hash=self.tab_hash,
-        selected_tab=self.selected)
-
-
 class Splitter(TemplateRenderer):
   """A renderer to achieve a three paned view with a splitter.
 
@@ -1107,94 +1035,6 @@ class EmptyRenderer(TemplateRenderer):
   """A do nothing renderer."""
 
   layout_template = Template("")
-
-
-class ConfirmationDialogRenderer(TemplateRenderer):
-  """Renderer used to render confirmation dialogs."""
-
-  # If this is True, the container div won't have "modal-dialog" class. This is
-  # useful when we want to render the dialog inside existing modal dialog,
-  # because having 2 nested divs both having "modal-dialog" class confuses
-  # Bootstrap.
-  inner_dialog_only = False
-
-  header = None
-  cancel_button_title = "Close"
-  proceed_button_title = "Proceed"
-
-  # If check_access_subject is not None, ConfirmationDialogRenderer will first
-  # do an Ajax call to a CheckAccess renderer to obtain proper token and only
-  # then will do an update.
-  check_access_subject = None
-
-  # This is supplied by subclasses. Contents of this template are rendered
-  # between <form></form> tags and when 'Proceed' button is pressed,
-  # contents of the form get sent with the AJAX request and therefore
-  # can be accessed through request.REQ from RenderAjax method.
-  content_template = Template("")
-
-  layout_template = Template("""
-<div class="FormData {% if not this.inner_dialog_only %}modal-dialog{% endif %}">
-  <div class="modal-content">
-    {% if this.header %}
-    <div class="modal-header">
-      <button type="button" class="close" data-dismiss="modal"
-        aria-hidden="true" ng-click="$dismiss()">
-        x
-      </button>
-      <h3>{{this.header|escape}}</h3>
-    </div>
-    {% endif %}
-
-    <div class="modal-body">
-      <form id="form_{{unique|escape}}" class="form-horizontal">
-        {{this.rendered_content|safe}}
-      </form>
-      <div id="results_{{unique|escape}}"></div>
-      <div id="check_access_results_{{unique|escape}}" class="hide"></div>
-    </div>
-    <div class="modal-footer">
-      <ul class="nav pull-left">
-        <div class="navbar-text" id="footer_message_{{unique}}"></div>
-      </ul>
-
-      <button class="btn btn-default" data-dismiss="modal" name="Cancel"
-        aria-hidden="true" ng-click="$dismiss()">
-        {{this.cancel_button_title|escape}}</button>
-      <button id="proceed_{{unique|escape}}" name="Proceed"
-        class="btn btn-primary">
-        {{this.proceed_button_title|escape}}</button>
-    </div>
-  </div>
-</div>
-""")
-
-  @property
-  def rendered_content(self):
-    return self.FormatFromTemplate(self.content_template, unique=self.unique)
-
-  def Layout(self, request, response):
-    super(ConfirmationDialogRenderer, self).Layout(request, response)
-    return self.CallJavascript(
-        response,
-        "ConfirmationDialogRenderer.Layout",
-        check_access_subject=utils.SmartStr(self.check_access_subject or ""))
-
-
-class ImageDownloadRenderer(TemplateRenderer):
-  """Baseclass for renderers which simply transfer an image graphic."""
-  content_type = "image/png"
-
-  def Content(self, request, response):
-    _ = request, response
-    return ""
-
-  def Download(self, request, response):
-
-    response = http.HttpResponse(
-        content=self.Content(request, response), content_type=self.content_type)
-
-    return response
 
 
 def JsonDumpForScriptContext(dump_object):

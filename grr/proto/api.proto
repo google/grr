@@ -847,12 +847,17 @@ message ApiGetHuntContextResult {
     }];
 };
 
+// Next id: 6
 message ApiCreateHuntArgs {
+  optional string flow_name = 3 [(sem_type) = {
+      description: "Cron flow name."
+    }];
+  optional google.protobuf.Any flow_args = 4 [(sem_type) = {
+      description: "Cron flow arguments.",
+      dynamic_type: "GetFlowArgsClass"
+    }];
   optional HuntRunnerArgs hunt_runner_args = 1 [(sem_type) = {
       description: "Hunt runner arguments."
-    }];
-  optional GenericHuntArgs hunt_args = 2 [(sem_type) = {
-      description: "Hunt arguments."
     }];
 };
 
@@ -1866,6 +1871,7 @@ message ApiFlowResult {
     }];
 }
 
+// Next id: 22
 message ApiHunt {
   // Enum values here correspond to Hunt.State values.
   enum State {
@@ -1885,13 +1891,18 @@ message ApiHunt {
   optional State state = 4 [(sem_type) = {
       description: "Current hunt state."
     }];
-  optional google.protobuf.Any hunt_args = 5 [(sem_type) = {
-      description: "Hunt arguments."
-      dynamic_type: "GetArgsClass"
+
+  optional string flow_name = 20 [(sem_type) = {
+      description: "Cron flow name."
+    }];
+  optional google.protobuf.Any flow_args = 21 [(sem_type) = {
+      description: "Cron flow arguments.",
+      dynamic_type: "GetFlowArgsClass"
     }];
   optional HuntRunnerArgs hunt_runner_args = 6 [(sem_type) = {
       description: "Hunt runner arguments."
     }];
+
   optional int64 all_clients_count = 7 [(sem_type) = {
       description: "Count of all clients.",
     }];

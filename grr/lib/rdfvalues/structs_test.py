@@ -24,29 +24,29 @@ class TestStruct(structs.RDFProtoStruct):
   """A test struct object."""
 
   type_description = type_info.TypeDescriptorSet(
-      type_info.ProtoString(
+      structs.ProtoString(
           name="foobar",
           field_number=1,
           default="string",
           description="A string value"),
-      type_info.ProtoUnsignedInteger(
+      structs.ProtoUnsignedInteger(
           name="int", field_number=2, default=5,
           description="An integer value"),
-      type_info.ProtoList(
-          type_info.ProtoString(
+      structs.ProtoList(
+          structs.ProtoString(
               name="repeated",
               field_number=3,
               description="A repeated string value")),
 
       # We can serialize an arbitrary RDFValue. This will be serialized into a
       # binary string and parsed on demand.
-      type_info.ProtoRDFValue(
+      structs.ProtoRDFValue(
           name="urn",
           field_number=6,
           default=rdfvalue.RDFURN("www.google.com"),
           rdf_type="RDFURN",
           description="An arbitrary RDFValue field."),
-      type_info.ProtoEnum(
+      structs.ProtoEnum(
           name="type",
           field_number=7,
           enum_name="Type",
@@ -54,28 +54,29 @@ class TestStruct(structs.RDFProtoStruct):
               FIRST=1, SECOND=2, THIRD=3),
           default=3,
           description="An enum field"),
-      type_info.ProtoFloat(
+      structs.ProtoFloat(
           name="float",
           field_number=8,
           description="A float number",
           default=1.1),)
 
+
 # In order to define a recursive structure we must add it manually after the
 # class definition.
 TestStruct.AddDescriptor(
-    type_info.ProtoEmbedded(
+    structs.ProtoEmbedded(
         name="nested", field_number=4, nested=TestStruct),)
 
 TestStruct.AddDescriptor(
-    type_info.ProtoList(
-        type_info.ProtoEmbedded(
+    structs.ProtoList(
+        structs.ProtoEmbedded(
             name="repeat_nested", field_number=5, nested=TestStruct)),)
 
 
 class PartialTest1(structs.RDFProtoStruct):
   """This is a protobuf with fewer fields than TestStruct."""
   type_description = type_info.TypeDescriptorSet(
-      type_info.ProtoUnsignedInteger(
+      structs.ProtoUnsignedInteger(
           name="int", field_number=2),)
 
 
@@ -83,19 +84,19 @@ class DynamicTypeTest(structs.RDFProtoStruct):
   """A protobuf with dynamic types."""
 
   type_description = type_info.TypeDescriptorSet(
-      type_info.ProtoString(
+      structs.ProtoString(
           name="type",
           field_number=1,
           # By default return the TestStruct proto.
           default="TestStruct",
           description="A string value"),
-      type_info.ProtoDynamicEmbedded(
+      structs.ProtoDynamicEmbedded(
           name="dynamic",
           # The callback here returns the type specified by the type member.
           dynamic_cb=lambda x: structs.RDFProtoStruct.classes.get(x.type),
           field_number=2,
           description="A dynamic value based on another field."),
-      type_info.ProtoEmbedded(
+      structs.ProtoEmbedded(
           name="nested", field_number=3, nested=rdf_client.User))
 
 
@@ -103,12 +104,12 @@ class DynamicAnyValueTypeTest(structs.RDFProtoStruct):
   """A protobuf with dynamic types stored in AnyValue messages."""
 
   type_description = type_info.TypeDescriptorSet(
-      type_info.ProtoString(
+      structs.ProtoString(
           name="type",
           field_number=1,
           # By default return the TestStruct proto.
           description="A string value"),
-      type_info.ProtoDynamicAnyValueEmbedded(
+      structs.ProtoDynamicAnyValueEmbedded(
           name="dynamic",
           # The callback here returns the type specified by the type member.
           dynamic_cb=lambda x: structs.RDFProtoStruct.classes.get(x.type),
@@ -119,17 +120,17 @@ class DynamicAnyValueTypeTest(structs.RDFProtoStruct):
 class LateBindingTest(structs.RDFProtoStruct):
   type_description = type_info.TypeDescriptorSet(
       # A nested protobuf referring to an undefined type.
-      type_info.ProtoEmbedded(
+      structs.ProtoEmbedded(
           name="nested", field_number=1, nested="UndefinedYet"),
-      type_info.ProtoRDFValue(
+      structs.ProtoRDFValue(
           name="rdfvalue",
           field_number=6,
           rdf_type="UndefinedRDFValue",
           description="An undefined RDFValue field."),
 
       # A repeated late bound field.
-      type_info.ProtoList(
-          type_info.ProtoRDFValue(
+      structs.ProtoList(
+          structs.ProtoRDFValue(
               name="repeated",
               field_number=7,
               rdf_type="UndefinedRDFValue2",
@@ -140,7 +141,7 @@ class UnionTest(structs.RDFProtoStruct):
   union_field = "struct_flavor"
 
   type_description = type_info.TypeDescriptorSet(
-      type_info.ProtoEnum(
+      structs.ProtoEnum(
           name="struct_flavor",
           field_number=1,
           enum_name="Type",
@@ -148,17 +149,17 @@ class UnionTest(structs.RDFProtoStruct):
               FIRST=1, SECOND=2, THIRD=3),
           default=3,
           description="An union enum field"),
-      type_info.ProtoFloat(
+      structs.ProtoFloat(
           name="first",
           field_number=2,
           description="A float number",
           default=1.1),
-      type_info.ProtoString(
+      structs.ProtoString(
           name="second",
           field_number=3,
           default="string",
           description="A string value"),
-      type_info.ProtoUnsignedInteger(
+      structs.ProtoUnsignedInteger(
           name="third",
           field_number=4,
           default=5,
@@ -294,13 +295,13 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     """Ensure that errors in struct definitions are raised."""
     # A descriptor without a field number should raise.
     self.assertRaises(
-        type_info.TypeValueError, type_info.ProtoEmbedded, name="name")
+        type_info.TypeValueError, structs.ProtoEmbedded, name="name")
 
     # Adding a duplicate field number should raise.
     self.assertRaises(
         type_info.TypeValueError,
         TestStruct.AddDescriptor,
-        type_info.ProtoUnsignedInteger(
+        structs.ProtoUnsignedInteger(
             name="int", field_number=2))
 
     # Adding a descriptor which is not a Proto* descriptor is not allowed for
@@ -496,7 +497,7 @@ class RDFStructsTest(test_base.RDFValueTestCase):
     # them to their owner protobufs.
     class UndefinedYet(structs.RDFProtoStruct):
       type_description = type_info.TypeDescriptorSet(
-          type_info.ProtoString(
+          structs.ProtoString(
               name="foobar", field_number=1, description="A string value"),)
 
     # The field is now resolved.

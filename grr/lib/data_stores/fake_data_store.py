@@ -6,56 +6,28 @@ import sys
 import threading
 import time
 
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import utils
 
 
-class FakeTransaction(data_store.CommonTransaction):
+class FakeDBSubjectLock(data_store.DBSubjectLock):
   """A fake transaction object for testing."""
 
-  def __init__(self, store, subject, lease_time=None, token=None):
-    subject = utils.SmartUnicode(subject)
-    super(FakeTransaction, self).__init__(
-        store, subject, lease_time=lease_time, token=token)
-    self.locked = False
-    if lease_time is None:
-      lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
-
-    self.expires = time.time() + lease_time
-
+  def _Acquire(self, lease_time):
+    self.expires = int((time.time() + lease_time) * 1e6)
     with self.store.lock:
-      expires = store.transactions.get(subject)
-      if expires and time.time() < expires:
-        raise data_store.TransactionError("Subject is locked")
-
-      # Check expiry time.
-      store.transactions[subject] = self.expires
-
+      expires = self.store.transactions.get(self.subject)
+      if expires and (time.time() * 1e6) < expires:
+        raise data_store.DBSubjectLockError("Subject is locked")
+      self.store.transactions[self.subject] = self.expires
       self.locked = True
 
-  def CheckLease(self):
-    return max(0, self.expires - time.time())
-
   def UpdateLease(self, duration):
-    self.expires = time.time() + duration
+    self.expires = int((time.time() + duration) * 1e6)
     self.store.transactions[self.subject] = self.expires
 
-  def Abort(self):
-    self.Unlock()
-
-  def Commit(self):
-    # Locking here ensures that datastore reads in the middle of the
-    # transaction are not possible. This prevents nasty race conditions
-    # in Selenium tests where 2 threads (test thread and AdminUI server thread)
-    # may access the datastore at the same time.
-    with self.store.lock:
-      super(FakeTransaction, self).Commit()
-
-    self.Unlock()
-
-  def Unlock(self):
+  def Release(self):
     with self.store.lock:
       if self.locked:
         self.store.transactions.pop(self.subject, None)
@@ -115,8 +87,8 @@ class FakeDataStore(data_store.DataStore):
   def Clear(self):
     self.subjects = {}
 
-  def Transaction(self, subject, lease_time=None, token=None):
-    return FakeTransaction(self, subject, lease_time=lease_time, token=token)
+  def DBSubjectLock(self, subject, lease_time=None, token=None):
+    return FakeDBSubjectLock(self, subject, lease_time=lease_time, token=token)
 
   @utils.Synchronized
   def Set(self,

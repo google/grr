@@ -411,7 +411,7 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(FullAccessControlManagerIntegrationTest, self).setUp()
-    data_store.DB.security_manager = access_control.FullAccessControlManager()
+    data_store.DB.security_manager = user_managers.FullAccessControlManager()
 
   def ACLChecksDisabled(self):
     return test_lib.ACLChecksDisabledContextManager()
@@ -457,8 +457,8 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     # These should raise for a lack of token
     for urn, mode in [("aff4:/ACL", "r"), ("aff4:/config/drivers", "r"),
                       ("aff4:/", "rw"), (client_urn, "r")]:
-      self.assertRaises(
-          access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn, mode=mode)
+      with self.assertRaises(access_control.UnauthorizedAccess):
+        aff4.FACTORY.Open(urn, mode=mode)
 
     # These should raise for trying to get write access.
     for urn, mode in [("aff4:/ACL", "rw"), (client_urn, "rw")]:
@@ -470,16 +470,12 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     # These should raise for access without a token:
     for urn, mode in [(client_urn.Add("flows").Add("W:1234"), "r"),
                       (client_urn.Add("/fs"), "r")]:
-      self.assertRaises(
-          access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn, mode=mode)
+      with self.assertRaises(access_control.UnauthorizedAccess):
+        aff4.FACTORY.Open(urn, mode=mode)
 
       # Even if a token is provided - it is not authorized.
-      self.assertRaises(
-          access_control.UnauthorizedAccess,
-          aff4.FACTORY.Open,
-          urn,
-          mode=mode,
-          token=self.token)
+      with self.assertRaises(access_control.UnauthorizedAccess):
+        aff4.FACTORY.Open(urn, mode=mode, token=self.token)
 
   def testSupervisorToken(self):
     """Tests that the supervisor token overrides the approvals."""
@@ -509,12 +505,8 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(200):
 
       # Should be expired now.
-      self.assertRaises(
-          access_control.ExpiryError,
-          aff4.FACTORY.Open,
-          urn,
-          token=super_token,
-          mode="rw")
+      with self.assertRaises(access_control.ExpiryError):
+        aff4.FACTORY.Open(urn, token=super_token, mode="rw")
 
   def testApprovalExpiry(self):
     """Tests that approvals expire after the correct time."""
@@ -522,8 +514,8 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     client_id = "C.%016X" % 0
     urn = rdf_client.ClientURN(client_id).Add("/fs/os/c")
     token = access_control.ACLToken(username="test", reason="For testing")
-    self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open, urn,
-                      None, "rw", token)
+    with self.assertRaises(access_control.UnauthorizedAccess):
+      aff4.FACTORY.Open(urn, mode="rw", token=token)
 
     with test_lib.FakeTime(100.0, increment=1e-3):
       self.RequestAndGrantClientApproval(client_id, token)
@@ -534,13 +526,15 @@ class FullAccessControlManagerIntegrationTest(test_lib.GRRBaseTest):
     token_expiry = config_lib.CONFIG["ACL.token_expiry"]
 
     # This is close to expiry but should still work.
+    data_store.DB.security_manager.acl_cache.Flush()
     with test_lib.FakeTime(100.0 + token_expiry - 100.0):
       aff4.FACTORY.Open(urn, mode="rw", token=token)
 
     # Past expiry, should fail.
+    data_store.DB.security_manager.acl_cache.Flush()
     with test_lib.FakeTime(100.0 + token_expiry + 100.0):
-      self.assertRaises(access_control.UnauthorizedAccess, aff4.FACTORY.Open,
-                        urn, None, "rw", token)
+      with self.assertRaises(access_control.UnauthorizedAccess):
+        aff4.FACTORY.Open(urn, mode="rw", token=token)
 
   def testClientApproval(self):
     """Tests that we can create an approval object to access clients."""
@@ -875,7 +869,7 @@ class ClientApprovalByLabelTests(test_lib.GRRBaseTest):
 
     self.db_manager_stubber = utils.Stubber(
         data_store.DB, "security_manager",
-        access_control.FullAccessControlManager())
+        user_managers.FullAccessControlManager())
     self.db_manager_stubber.Start()
 
     self.approver = test_lib.ConfigOverrider({

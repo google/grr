@@ -52,55 +52,6 @@ grr.ExecuteRenderer = function(objMethod, state) {
 };
 
 
-grr.Renderer('ConfirmationDialogRenderer', {
-  Layout: function(state) {
-    var unique = state.unique;
-
-    // Present system messages in the dialog box for easy viewing.
-    grr.subscribe('grr_messages', function(notification) {
-      if (notification && notification.message) {
-        $('#footer_message_' + unique).text(
-            notification.message).show().delay(5000).fadeOut('fast');
-      }
-    }, 'footer_message_' + unique);
-
-    $('#proceed_' + unique).click(function() {
-      var jthis = $(this);
-      var data = $.extend({}, grr.state, state,
-                          jthis.closest('.FormData').data());
-
-      var submit_function = function() {
-        grr.update(
-          state.renderer, 'results_' + unique, data,
-          function(result) {
-            $('#results_' + unique).html(result);
-            jthis.hide();
-          }, null, function(data) {
-            jthis.attr('disabled', false);
-            grr.publish('grr_messages', { message: data.message });
-            });
-      };
-
-      jthis.attr('disabled', true);
-
-      if (state.check_access_subject) {
-        // We execute CheckAccess renderer with silent=true. Therefore it
-        // searches for an approval and sets correct reason if approval is
-        // found. When CheckAccess completes, we execute specified renderer,
-        // which. If the approval wasn't found on CheckAccess stage, it will
-        // fail due to unauthorized access and proper ACLDialog will be
-        // displayed.
-        grr.layout('CheckAccess', 'check_access_results_' + unique, {
-            silent: true,
-            subject: state.check_access_subject
-          }, submit_function);
-      } else {
-        submit_function();
-      }
-    });
-  }
-});
-
 /**
  *  Stores last error reported by ErrorHandler renderer.
  */
@@ -156,78 +107,6 @@ grr.Renderer('TreeRenderer', {
     var tree_state = state.tree_state;
 
     grr.grrTree(renderer, unique, publish_select_queue, tree_state);
-  }
-});
-
-
-grr.Renderer('TabLayout', {
-  Layout: function(state) {
-    var unique = state.unique;
-    var disabled = state.disabled;
-    var tab_layout_state = state.tab_layout_state;
-    var tab_hash = state.tab_hash;
-    var selected_tab = state.selected_tab;
-
-    // Disable the tabs which need to be disabled.
-    $('li').removeClass('disabled');
-    $('li a').removeClass('disabled');
-
-    for (var i = 0; i < disabled.length; ++i) {
-      $('li[renderer=' + disabled[i] + ']').addClass('disabled');
-      $('li a[renderer=' + disabled[i] + ']').addClass('disabled');
-    }
-
-    // Store the state of this widget.
-    $('#' + unique).data().state = tab_layout_state;
-
-    grr.pushState(unique, tab_layout_state);
-
-    // Add click handlers to switch tabs.
-    $('#' + unique + ' li a').click(function(e) {
-      e.preventDefault();
-      if ($(this).hasClass('disabled')) return false;
-
-      var renderer = this.attributes['renderer'].value;
-
-      // Make a new div to accept the content of the tab rather than drawing
-      // directly on the content area. This prevents spurious drawings due to
-      // latent ajax calls.
-      content_area = $('#tab_contents_' + unique);
-      content_area.html('<div id="' + renderer + '_' + unique + '">');
-      update_area = $('#' + renderer + '_' + unique);
-
-      // We append the state of this widget which is stored on the unique
-      // element.
-      grr.layout(renderer, renderer + '_' + unique,
-                 $('#' + unique).data().state);
-
-      // Clear previously selected tab.
-      $('#' + unique).find('li').removeClass('active');
-
-      // Select the new one.
-      $(this).parent().addClass('active');
-    });
-
-    // Find first enabled tab (the default selection).
-    var enabledTabs = $.map(
-        $('#' + unique + ' > li:not(.disabled)'),
-        function(val) {
-          return $(val).attr('renderer');
-        });
-
-    // Select the first tab at first.
-    if (tab_hash) {
-      var selected = grr.hash[tab_hash] || selected_tab;
-    } else {
-      var selected = selected_tab;
-    }
-
-    if (enabledTabs.indexOf(selected) == -1) {
-      selected = enabledTabs.length > 0 ? enabledTabs[0] : null;
-    }
-    if (selected) {
-      $($('#' + unique + " li a[renderer='" + selected + "']")).click();
-    }
   }
 });
 

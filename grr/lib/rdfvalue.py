@@ -168,22 +168,6 @@ class RDFValue(object):
   def SerializeToString(self):
     """Serialize into a string which can be parsed using ParseFromString."""
 
-  def __getstate__(self):
-    """Support the pickle protocol."""
-    # __pickled_rdfvalue is used to mark RDFValues pickled via the new way.
-    return dict(
-        __pickled_rdfvalue=True,
-        age=int(self.age),
-        data=self.SerializeToString())
-
-  def __setstate__(self, data):
-    """Support the pickle protocol."""
-    if "__pickled_rdfvalue" in data:
-      self.ParseFromString(data["data"])
-      self.age = RDFDatetime(data["age"])
-    else:
-      self.__dict__ = data
-
   def __iter__(self):
     """This allows every RDFValue to be iterated over."""
     yield self
@@ -603,12 +587,14 @@ class RDFDatetime(RDFInteger):
       The parsed timestamp.
     """
     # By default assume the time is given in UTC.
+    # pylint: disable=g-tzinfo-datetime
     if eoy:
       default = datetime.datetime(
           time.gmtime().tm_year, 12, 31, 23, 59, tzinfo=dateutil.tz.tzutc())
     else:
       default = datetime.datetime(
           time.gmtime().tm_year, 1, 1, 0, 0, tzinfo=dateutil.tz.tzutc())
+    # pylint: enable=g-tzinfo-datetime
 
     timestamp = parser.parse(string, default=default)
 
@@ -920,15 +906,6 @@ class RDFURN(RDFValue):
 
   def SerializeToDataStore(self):
     return unicode(self)
-
-  def __setstate__(self, data):
-    """Support the pickle protocol."""
-    RDFValue.__setstate__(self, data)
-    # NOTE: This is done for backwards compatibility with
-    # old pickled RDFURNs that got pickled via default pickling mechanism and
-    # have 'aff4:/' pickled as part of _string_urn as a result.
-    if self._string_urn.startswith("aff4:/"):
-      self._string_urn = self._string_urn[5:]
 
   def Dirname(self):
     return posixpath.dirname(self._string_urn)

@@ -72,7 +72,8 @@ class VfsTestMixin(object):
         token=token)
 
 
-class ApiGetFileDetailsHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
+class ApiGetFileDetailsHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                   VfsTestMixin):
   """Test for ApiGetFileDetailsHandler."""
 
   def setUp(self):
@@ -147,7 +148,7 @@ class ApiGetFileDetailsHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
       self.assertTrue(set(attrs).issubset(all_attrs))
 
 
-class ApiListFilesHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
+class ApiListFilesHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiListFilesHandler."""
 
   def setUp(self):
@@ -214,7 +215,7 @@ class ApiListFilesHandlerRegressionTest(
                (self.client_id.Basename()))
 
 
-class ApiGetFileTextHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
+class ApiGetFileTextHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiGetFileTextHandler."""
 
   def setUp(self):
@@ -295,7 +296,7 @@ class ApiGetFileTextHandlerRegressionTest(
         base_url + "?timestamp=" + str(self.time_1.AsMicroSecondsFromEpoch()))
 
 
-class ApiGetFileBlobHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
+class ApiGetFileBlobHandlerTest(api_test_lib.ApiCallHandlerTest, VfsTestMixin):
 
   def setUp(self):
     super(ApiGetFileBlobHandlerTest, self).setUp()
@@ -372,7 +373,8 @@ class ApiGetFileBlobHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
       self.assertEqual(chunk, char * self.handler.CHUNK_SIZE)
 
 
-class ApiGetFileVersionTimesHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
+class ApiGetFileVersionTimesHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                        VfsTestMixin):
 
   def setUp(self):
     super(ApiGetFileVersionTimesHandlerTest, self).setUp()
@@ -425,7 +427,8 @@ class ApiListKnownEncodingsHandlerRegressionTest(
     self.Check("GET", "/api/reflection/file-encodings")
 
 
-class ApiGetFileDownloadCommandHandlerTest(test_lib.GRRBaseTest, VfsTestMixin):
+class ApiGetFileDownloadCommandHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                           VfsTestMixin):
 
   def setUp(self):
     super(ApiGetFileDownloadCommandHandlerTest, self).setUp()
@@ -465,7 +468,7 @@ class ApiGetFileDownloadCommandHandlerRegressionTest(
                                                             self.file_path))
 
 
-class ApiCreateVfsRefreshOperationHandlerTest(test_lib.GRRBaseTest):
+class ApiCreateVfsRefreshOperationHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiCreateVfsRefreshOperationHandler."""
 
   def setUp(self):
@@ -572,7 +575,7 @@ class ApiCreateVfsRefreshOperationHandlerRegressionTest(
           replace=ReplaceFlowId)
 
 
-class ApiGetVfsRefreshOperationStateHandlerTest(test_lib.GRRBaseTest,
+class ApiGetVfsRefreshOperationStateHandlerTest(api_test_lib.ApiCallHandlerTest,
                                                 VfsTestMixin):
   """Test for GetVfsRefreshOperationStateHandler."""
 
@@ -680,7 +683,7 @@ class ApiGetVfsRefreshOperationStateHandlerRegressionTest(
         replace={self.unknown_flow_id: "W:ABCDEF"})
 
 
-class ApiUpdateVfsFileContentHandlerTest(test_lib.GRRBaseTest):
+class ApiUpdateVfsFileContentHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiUpdateVfsFileContentHandler."""
 
   def setUp(self):
@@ -746,8 +749,8 @@ class ApiUpdateVfsFileContentHandlerRegressionTest(
           "POST", url, {"file_path": self.file_path}, replace=ReplaceFlowId)
 
 
-class ApiGetVfsFileContentUpdateStateHandlerTest(test_lib.GRRBaseTest,
-                                                 VfsTestMixin):
+class ApiGetVfsFileContentUpdateStateHandlerTest(
+    api_test_lib.ApiCallHandlerTest, VfsTestMixin):
   """Test for ApiGetVfsFileContentUpdateStateHandler."""
 
   def setUp(self):
@@ -878,7 +881,7 @@ class VfsTimelineTestMixin(object):
           fd.Set(fd.Schema.STAT, stats)
 
 
-class ApiGetVfsTimelineAsCsvHandlerTest(test_lib.GRRBaseTest,
+class ApiGetVfsTimelineAsCsvHandlerTest(api_test_lib.ApiCallHandlerTest,
                                         VfsTimelineTestMixin):
 
   def setUp(self):
@@ -939,7 +942,8 @@ class ApiGetVfsTimelineAsCsvHandlerTest(test_lib.GRRBaseTest,
       next(result.GenerateContent())
 
 
-class ApiGetVfsTimelineHandlerTest(test_lib.GRRBaseTest, VfsTimelineTestMixin):
+class ApiGetVfsTimelineHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                   VfsTimelineTestMixin):
 
   def setUp(self):
     super(ApiGetVfsTimelineHandlerTest, self).setUp()

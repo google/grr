@@ -600,7 +600,8 @@ class ApiStartRobotGetFilesOperationHandlerRegressionTest(
           replace=ReplaceFlowId)
 
 
-class ApiStartRobotGetFilesOperationHandlerTest(test_lib.GRRBaseTest):
+class ApiStartRobotGetFilesOperationHandlerTest(
+    api_test_lib.ApiCallHandlerTest):
   """Test for ApiStartRobotGetFilesOperationHandler."""
 
   def setUp(self):
@@ -626,7 +627,8 @@ class ApiStartRobotGetFilesOperationHandlerTest(test_lib.GRRBaseTest):
       self.handler.Handle(args, token=self.token)
 
 
-class ApiGetRobotGetFilesOperationStateHandlerTest(test_lib.GRRBaseTest):
+class ApiGetRobotGetFilesOperationStateHandlerTest(
+    api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetRobotGetFilesOperationStateHandler."""
 
   def setUp(self):
@@ -730,7 +732,7 @@ class ApiGetRobotGetFilesOperationStateHandlerRegressionTest(
           replace={flow_urn.Basename(): "F:ABCDEF12"})
 
 
-class ApiGetFlowFilesArchiveHandlerTest(test_lib.GRRBaseTest):
+class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Tests for ApiGetFlowFilesArchiveHandler."""
 
   def setUp(self):

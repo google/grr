@@ -6,12 +6,12 @@
 from grr.gui import runtests_test
 from grr.gui.api_plugins.client import ApiSearchClientsHandler
 
-from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import test_lib
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import discovery
 
 
@@ -19,23 +19,27 @@ class TestNotifications(test_lib.GRRSeleniumTest):
   """Test the fileview interface."""
 
   @classmethod
-  def GenerateNotifications(cls):
+  def GenerateNotifications(cls, client_id, token):
     """Generates fake notifications of different notification types."""
-    token = access_control.ACLToken(username="test", reason="test fixture")
     session_id = flow.GRRFlow.StartFlow(
-        client_id="aff4:/C.0000000000000001",
+        client_id=client_id,
         flow_name=discovery.Interrogate.__name__,
         token=token)
 
     with aff4.FACTORY.Open(session_id, mode="rw", token=token) as flow_obj:
       # Discovery
-      flow_obj.Notify("Discovery", "aff4:/C.0000000000000001",
-                      "Fake discovery message")
+      flow_obj.Notify("Discovery", client_id, "Fake discovery message")
 
       # ViewObject: VirtualFileSystem
-      flow_obj.Notify("ViewObject",
-                      "aff4:/C.0000000000000001/fs/os/proc/10/exe",
+      flow_obj.Notify("ViewObject", "%s/fs/os/proc/10/exe" % client_id,
                       "File fetch completed")
+
+      with aff4.FACTORY.Create(
+          client_id.Add("fs/os/proc/10/exe"),
+          aff4_grr.VFSFile,
+          mode="w",
+          token=token):
+        pass
 
       # ViewObject: Flow
       flow_obj.Notify("ViewObject", flow_obj.urn, "Fake view flow message")
@@ -50,8 +54,9 @@ class TestNotifications(test_lib.GRRSeleniumTest):
 
     # Have something for us to look at.
     with self.ACLChecksDisabled():
-      self.session_id = self.GenerateNotifications()
-      self.RequestAndGrantClientApproval("C.0000000000000001")
+      self.client_id = self.SetupClients(1)[0]
+      self.session_id = self.GenerateNotifications(self.client_id, self.token)
+      self.RequestAndGrantClientApproval(self.client_id)
 
   def testNotifications(self):
     """Test the notifications interface."""
@@ -88,8 +93,7 @@ class TestNotifications(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent, "css=li[id=_fs-os-proc-10]")
 
     # The stats pane shows the target file
-    self.WaitUntil(self.IsTextPresent,
-                   "aff4:/C.0000000000000001/fs/os/proc/10/exe")
+    self.WaitUntil(self.IsTextPresent, "%s/fs/os/proc/10/exe" % self.client_id)
 
     # Now select a FlowStatus notification,
     # should navigate to the broken flow.
@@ -130,8 +134,7 @@ class TestNotifications(test_lib.GRRSeleniumTest):
 
   def testServerErrorInApiShowsErrorButton(self):
 
-    # pylint: disable=unused-argument
-    def MockRender(self, args, token):
+    def MockRender(self, args, token):  # pylint: disable=unused-argument
       """Fake render method to force an exception."""
       raise RuntimeError("This is a another forced exception")
 

@@ -123,11 +123,11 @@ class TestUserDashboard(test_lib.GRRSeleniumTest):
       self.RequestAndGrantClientApproval(
           client_id,
           token=access_control.ACLToken(
-              username="test", reason="foo-reason"))
+              username=self.token.username, reason="foo-reason"))
       self.RequestAndGrantClientApproval(
           client_id,
           token=access_control.ACLToken(
-              username="test", reason="bar-reason"))
+              username=self.token.username, reason="bar-reason"))
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "css=grr-user-dashboard "
@@ -560,7 +560,7 @@ class TestContentView(SearchClientTestBase):
 
   def testGlobalNotificationIsSetViaGlobalFlow(self):
     with self.ACLChecksDisabled():
-      self.CreateAdminUser("test")
+      self.CreateAdminUser(self.token.username)
 
     self.Open("/")
     self.WaitUntil(self.IsElementPresent, "client_query")
@@ -581,40 +581,6 @@ class TestContentView(SearchClientTestBase):
     self.WaitUntil(self.IsTextPresent, "Oh no, we're doomed!")
     self.WaitUntil(self.IsTextPresent, "Houston, Houston, we have a prob...")
 
-  def testRendererShowsCanaryContentWhenInCanaryMode(self):
-    with self.ACLChecksDisabled():
-      with aff4.FACTORY.Create(
-          "aff4:/users/test", aff4_users.GRRUser, token=self.token) as user:
-        user.Set(user.Schema.GUI_SETTINGS(canary_mode=True))
-
-    self.Open("/#main=CanaryTestRenderer")
-    self.WaitUntil(self.IsTextPresent, "CANARY MODE IS ON")
-
-  def testRendererDoesNotShowCanaryContentWhenNotInCanaryMode(self):
-    self.Open("/#main=CanaryTestRenderer")
-    self.WaitUntil(self.IsTextPresent, "CANARY MODE IS OFF")
-
-  def testCanaryModeIsAppliedImmediately(self):
-    # Canary mode is off by default.
-    self.Open("/#main=CanaryTestRenderer")
-    self.WaitUntil(self.IsTextPresent, "CANARY MODE IS OFF")
-
-    # Go to the user settings and turn canary mode on.
-    self.Click("css=grr-user-settings-button")
-    self.Click("css=.form-group:has(label:contains('Canary mode')) input")
-    self.Click("css=button[name=Proceed]")
-
-    # Page should get updated and now canary mode should be on.
-    self.WaitUntil(self.IsTextPresent, "CANARY MODE IS ON")
-
-    # Go to the user settings and turn canary mode off.
-    self.Click("css=grr-user-settings-button")
-    self.Click("css=.form-group:has(label:contains('Canary mode')) input")
-    self.Click("css=button[name=Proceed]")
-
-    # Page should get updated and now canary mode should be off.
-    self.WaitUntil(self.IsTextPresent, "CANARY MODE IS OFF")
-
 
 class TestHostTable(SearchClientTestBase):
   """Tests the main content view."""
@@ -623,7 +589,7 @@ class TestHostTable(SearchClientTestBase):
     with self.ACLChecksDisabled():
       with aff4.FACTORY.Open(
           "C.0000000000000001", mode="rw", token=self.token) as client:
-        client.AddLabels("foo", owner="test")
+        client.AddLabels("foo", owner=self.token.username)
 
     self.Open("/#main=HostTable")
 
@@ -1078,7 +1044,8 @@ class TestDefaultGUISettings(test_lib.GRRSeleniumTest):
 
   def testDefaultGUISettingsWork(self):
     with self.ACLChecksDisabled():  # Use the default GUI settings.
-      aff4.FACTORY.Delete(aff4.ROOT_URN.Add("users/test"), token=self.token)
+      aff4.FACTORY.Delete(
+          aff4.ROOT_URN.Add("users/%s" % self.token.username), token=self.token)
 
     self.Open("/")  # Django displays an error here if the settings are invalid.
 

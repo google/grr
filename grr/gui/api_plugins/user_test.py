@@ -26,7 +26,7 @@ from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
 
 
-class ApiNotificationTest(test_lib.GRRBaseTest):
+class ApiNotificationTest(api_test_lib.ApiCallHandlerTest):
   """Tests for ApiNotification class."""
 
   def setUp(self):
@@ -203,10 +203,11 @@ class ApiCreateApprovalHandlerTestMixin(object):
       self.handler.Handle(self.args, token=self.token)
 
     self.assertEqual(len(addresses), 1)
-    self.assertEqual(addresses[0], ("approver", "test", "test@example.com"))
+    self.assertEqual(addresses[0],
+                     ("approver", self.token.username, "test@example.com"))
 
 
-class ApiGetClientApprovalHandlerTest(test_lib.GRRBaseTest):
+class ApiGetClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetClientApprovalHandler."""
 
   def setUp(self):
@@ -345,13 +346,13 @@ class ApiGetClientApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "GET",
-          "/api/users/test/approvals/client/%s/%s" %
-          (clients[0].Basename(), approval1_id),
+          "/api/users/%s/approvals/client/%s/%s" %
+          (self.token.username, clients[0].Basename(), approval1_id),
           replace={approval1_id: "approval:111111"})
       self.Check(
           "GET",
-          "/api/users/test/approvals/client/%s/%s" %
-          (clients[1].Basename(), approval2_id),
+          "/api/users/%s/approvals/client/%s/%s" %
+          (self.token.username, clients[1].Basename(), approval2_id),
           replace={approval2_id: "approval:222222"})
 
 
@@ -395,7 +396,7 @@ class ApiGrantClientApprovalHandlerRegressionTest(
           replace={approval_id: "approval:111111"})
 
 
-class ApiCreateClientApprovalHandlerTest(test_lib.GRRBaseTest,
+class ApiCreateClientApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
                                          ApiCreateApprovalHandlerTestMixin):
   """Test for ApiCreateClientApprovalHandler."""
 
@@ -468,7 +469,7 @@ class ApiCreateClientApprovalHandlerRegressionTest(
           replace=ReplaceApprovalId)
 
 
-class ApiListClientApprovalsHandlerTest(test_lib.GRRBaseTest):
+class ApiListClientApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiListApprovalsHandler."""
 
   CLIENT_COUNT = 5
@@ -712,12 +713,14 @@ class ApiGetHuntApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "GET",
-          "/api/users/test/approvals/hunt/%s/%s" % (hunt1_id, approval1_id),
+          "/api/users/%s/approvals/hunt/%s/%s" %
+          (self.token.username, hunt1_id, approval1_id),
           replace={hunt1_id: "H:123456",
                    approval1_id: "approval:111111"})
       self.Check(
           "GET",
-          "/api/users/test/approvals/hunt/%s/%s" % (hunt2_id, approval2_id),
+          "/api/users/%s/approvals/hunt/%s/%s" %
+          (self.token.username, hunt2_id, approval2_id),
           replace={hunt2_id: "H:567890",
                    approval2_id: "approval:222222"})
 
@@ -759,7 +762,7 @@ class ApiGrantHuntApprovalHandlerRegressionTest(
                    approval_id: "approval:111111"})
 
 
-class ApiCreateHuntApprovalHandlerTest(test_lib.GRRBaseTest,
+class ApiCreateHuntApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
                                        ApiCreateApprovalHandlerTestMixin,
                                        standard_test.StandardHuntTestMixin):
   """Test for ApiCreateHuntApprovalHandler."""
@@ -820,7 +823,7 @@ class ApiCreateHuntApprovalHandlerRegressionTest(
           replace=ReplaceHuntAndApprovalIds)
 
 
-class ApiListHuntApprovalsHandlerTest(test_lib.GRRBaseTest):
+class ApiListHuntApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiListHuntApprovalsHandler."""
 
   def setUp(self):
@@ -932,16 +935,16 @@ class ApiGetCronJobApprovalHandlerRegressionTest(
     with test_lib.FakeTime(126):
       self.Check(
           "GET",
-          "/api/users/test/approvals/cron-job/%s/%s" %
-          (cron1_urn.Basename(), approval1_id),
+          "/api/users/%s/approvals/cron-job/%s/%s" %
+          (self.token.username, cron1_urn.Basename(), approval1_id),
           replace={
               cron1_urn.Basename(): "CronJob_123456",
               approval1_id: "approval:111111"
           })
       self.Check(
           "GET",
-          "/api/users/test/approvals/cron-job/%s/%s" %
-          (cron2_urn.Basename(), approval2_id),
+          "/api/users/%s/approvals/cron-job/%s/%s" %
+          (self.token.username, cron2_urn.Basename(), approval2_id),
           replace={
               cron2_urn.Basename(): "CronJob_567890",
               approval2_id: "approval:222222"
@@ -988,7 +991,7 @@ class ApiGrantCronJobApprovalHandlerRegressionTest(
           })
 
 
-class ApiCreateCronJobApprovalHandlerTest(test_lib.GRRBaseTest,
+class ApiCreateCronJobApprovalHandlerTest(api_test_lib.ApiCallHandlerTest,
                                           ApiCreateApprovalHandlerTestMixin):
   """Test for ApiCreateCronJobApprovalHandler."""
 
@@ -1056,7 +1059,7 @@ class ApiCreateCronJobApprovalHandlerRegressionTest(
           replace=ReplaceCronAndApprovalIds)
 
 
-class ApiListCronJobApprovalsHandlerTest(test_lib.GRRBaseTest):
+class ApiListCronJobApprovalsHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiListCronJobApprovalsHandler."""
 
   def setUp(self):
@@ -1083,7 +1086,7 @@ class ApiListCronJobApprovalsHandlerTest(test_lib.GRRBaseTest):
     self.assertEqual(len(result.items), 1)
 
 
-class ApiGetGrrUserHandlerTest(test_lib.GRRBaseTest):
+class ApiGetGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetUserSettingsHandler."""
 
   def setUp(self):
@@ -1144,7 +1147,7 @@ class ApiGetGrrUserHandlerRegresstionTest(
     self.Check("GET", "/api/users/me")
 
 
-class ApiUpdateGrrUserHandlerTest(test_lib.GRRBaseTest):
+class ApiUpdateGrrUserHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Tests for ApiUpdateUserSettingsHandler."""
 
   def setUp(self):
@@ -1236,7 +1239,8 @@ class ApiListPendingUserNotificationsHandlerRegressionTest(
     self.Check("GET", base_url + "?timestamp=43000000")
 
 
-class ApiDeletePendingUserNotificationHandlerTest(test_lib.GRRBaseTest):
+class ApiDeletePendingUserNotificationHandlerTest(
+    api_test_lib.ApiCallHandlerTest):
   """Test for ApiDeletePendingUserNotificationHandler."""
 
   TIME_0 = rdfvalue.RDFDatetime(42 * rdfvalue.MICROSECONDS)
@@ -1421,7 +1425,8 @@ class ApiListPendingGlobalNotificationsHandlerRegressionTest(
         "GET", "/api/users/me/notifications/pending/global", replace=replace)
 
 
-class ApiDeletePendingGlobalNotificationHandlerTest(test_lib.GRRBaseTest):
+class ApiDeletePendingGlobalNotificationHandlerTest(
+    api_test_lib.ApiCallHandlerTest):
   """Test for ApiDeletePendingGlobalNotificationHandler."""
 
   def setUp(self):

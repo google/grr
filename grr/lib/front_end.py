@@ -39,17 +39,18 @@ class ServerCommunicator(communicator.Communicator):
   def _GetRemotePublicKey(self, common_name):
     try:
       # See if we have this client already cached.
-      return self.pub_key_cache.Get(str(common_name))
+      remote_key = self.pub_key_cache.Get(str(common_name))
+      stats.STATS.IncrementCounter("grr_pub_key_cache", fields=["hits"])
+      return remote_key
     except KeyError:
-      pass
+      stats.STATS.IncrementCounter("grr_pub_key_cache", fields=["misses"])
 
     # Fetch the client's cert and extract the key.
     client = aff4.FACTORY.Create(
         common_name,
         aff4.AFF4Object.classes["VFSGRRClient"],
         mode="rw",
-        token=self.token,
-        ignore_cache=True)
+        token=self.token)
     cert = client.Get(client.Schema.CERT)
     if not cert:
       stats.STATS.IncrementCounter("grr_unique_clients")
@@ -447,3 +448,6 @@ class FrontendInit(registry.InitHook):
     stats.STATS.RegisterCounterMetric("grr_frontendserver_handle_num")
     stats.STATS.RegisterGaugeMetric("grr_frontendserver_client_cache_size", int)
     stats.STATS.RegisterCounterMetric("grr_messages_sent")
+
+    stats.STATS.RegisterCounterMetric(
+        "grr_pub_key_cache", fields=[("type", str)])

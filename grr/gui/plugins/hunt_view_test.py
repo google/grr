@@ -1059,7 +1059,7 @@ class TestHuntView(test_lib.GRRSeleniumTest):
         "css=table > tbody td.proto_key:contains(\"Session id\") "
         "~ td.proto_value")
     self.WaitUntilContains(
-        "test", self.GetText,
+        self.token.username, self.GetText,
         "css=table > tbody td.proto_key:contains(\"Creator\") "
         "~ td.proto_value")
 

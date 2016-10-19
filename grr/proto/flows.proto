@@ -264,7 +264,7 @@ message FlowRunnerArgs {
     }];
 }
 
-// Next field ID: 22
+// Next field ID: 23
 message HuntRunnerArgs {
   optional string hunt_name = 1 [(sem_type) = {
       description: "The name of the class implementing the hunt to run.",
@@ -360,6 +360,12 @@ message HuntRunnerArgs {
       label: ADVANCED
     }];
 
+  repeated OutputPluginDescriptor output_plugins = 22 [(sem_type) = {
+      description: "Output plugins used for this hunt. These plugins will be "
+                   "applied to hunt results."
+      friendly_name: "Output Plugins",
+      label: HIDDEN,
+    }];
 };
 
 
@@ -395,6 +401,8 @@ message VariableGenericHuntArgs {
       description: "A list of requests for starting flows on certain clients.",
     }];
 
+  // DEPRECATED: keeping it here so that existing cron jobs don't break.
+  // TODO(user): Remove.
   repeated OutputPluginDescriptor output_plugins = 2 [(sem_type) = {
       description: "The output plugins to use for this hunt.",
     }];
@@ -413,10 +421,11 @@ message GenericHuntArgs {
       description: "The runner args for launching each flow."
     }];
 
+  // DEPRECATED: keeping it here so that existing cron jobs don't break.
+  // TODO(user): Remove.
   repeated OutputPluginDescriptor output_plugins = 4 [(sem_type) = {
       description: "The output plugins to use for this hunt.",
     }];
-
 }
 
 

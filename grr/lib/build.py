@@ -241,9 +241,6 @@ class ClientBuilder(BuilderBase):
     shutil.make_archive(
         basename, "zip", base_dir=".", root_dir=input_dir, verbose=True)
 
-# Register builders into this module's namespace.
-ClientBuilder.classes = globals()
-
 
 class ClientRepacker(BuilderBase):
   """Takes the binary template and producing an installer.

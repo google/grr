@@ -69,9 +69,10 @@ class TimeoutError(Exception):
   pass
 
 
-class TransactionError(Error):
-  """Raised when a transaction fails to commit."""
+class DBSubjectLockError(Error):
+  """Raised when a lock fails to commit."""
   counter = "grr_commit_failure"
+
 
 # This token will be used by default if no token was provided.
 default_token = None
@@ -196,7 +197,7 @@ class DataStore(object):
   monitor_thread = None
 
   def __init__(self):
-    security_manager = access_control.BasicAccessControlManager.GetPlugin(
+    security_manager = access_control.AccessControlManager.GetPlugin(
         config_lib.CONFIG["Datastore.security_manager"])()
     self.security_manager = security_manager
     logging.info("Using security manager %s", security_manager)
@@ -307,87 +308,64 @@ class DataStore(object):
         replace=replace,
         sync=sync)
 
-  def RetryWrapper(self,
-                   subject,
-                   callback,
-                   retrywrap_timeout=1,
-                   token=None,
-                   retrywrap_max_timeout=10,
-                   **kw):
-    """Retry a Transaction until it succeeds.
+  def LockRetryWrapper(self,
+                       subject,
+                       retrywrap_timeout=1,
+                       token=None,
+                       retrywrap_max_timeout=10,
+                       blocking=True,
+                       lease_time=None):
+    """Retry a DBSubjectLock until it succeeds.
 
     Args:
-      subject: The subject which the transaction applies to.
-      callback: A callback which will receive the transaction
-         object. The callback will be called repeatedly until success.
-      retrywrap_timeout: How long to wait before retrying the transaction.
+      subject: The subject which the lock applies to.
+      retrywrap_timeout: How long to wait before retrying the lock.
       token: An ACL token.
       retrywrap_max_timeout: The maximum time to wait for a retry until we
          raise.
-      **kw: Args passed to the callback.
+      blocking: If False, raise on first lock failure.
+      lease_time: lock lease time in seconds.
 
     Returns:
-      The result from the callback.
+      The DBSubjectLock object
 
     Raises:
-      TransactionError: If the maximum retry count has been reached.
+      DBSubjectLockError: If the maximum retry count has been reached.
     """
-
-    def Retry():
-      """Retry transaction."""
-      transaction = self.Transaction(subject, token=token)
-      try:
-        result = callback(transaction, **kw)
-      finally:
-        # Make sure the transaction is committed.
-        transaction.Commit()
-
-      return result
-
     timeout = 0
     while timeout < retrywrap_max_timeout:
       try:
-        result = Retry()
-        if timeout > 1:
-          logging.debug("Transaction took %s tries.", timeout)
-        return result
-      except TransactionError:
+        return self.DBSubjectLock(subject, token=token, lease_time=lease_time)
+      except DBSubjectLockError:
+        if not blocking:
+          raise
         stats.STATS.IncrementCounter("datastore_retries")
         time.sleep(retrywrap_timeout)
         timeout += retrywrap_timeout
 
-    raise TransactionError("Retry number exceeded.")
+    raise DBSubjectLockError("Retry number exceeded.")
 
   @abc.abstractmethod
-  def Transaction(self, subject, lease_time=None, token=None):
-    """Returns a Transaction object for a subject.
+  def DBSubjectLock(self, subject, lease_time=None, token=None):
+    """Returns a DBSubjectLock object for a subject.
 
     This opens a read/write lock to the subject. Any read access to the subject
     will have a consistent view between threads. Any attempts to write to the
-    subject must be followed by a commit. Transactions may fail and raise the
-    TransactionError() exception. A transaction may fail due to failure of the
-    underlying system or another thread holding a transaction on this object at
-    the same time.
+    subject must be performed under lock. DBSubjectLocks may fail and raise the
+    DBSubjectLockError() exception.
 
-    Note that concurrent writes in and out of the transaction are allowed. If
-    you want to guarantee that the object is not modified during the
-    transaction, it must always be accessed with a transaction. Non
-    transactioned writes will be visible to transactions. This makes it possible
-    to update attributes both under transaction and without a transaction, if
-    these attributes are independent.
-
-    Users should almost always call RetryWrapper() to rety the transaction if it
-    fails to commit.
+    Users should almost always call LockRetryWrapper() to retry if the lock
+    isn't obtained on the first try.
 
     Args:
-        subject: The subject which the transaction applies to. Only a
-          single subject may be locked in a transaction.
-        lease_time: The minimum amount of time the transaction should remain
+        subject: The subject which the lock applies to. Only a
+          single subject may be locked in a lock.
+        lease_time: The minimum amount of time the lock should remain
           alive.
         token: An ACL token.
 
     Returns:
-        A transaction object.
+        A lock object.
     """
 
   @abc.abstractmethod
@@ -660,225 +638,71 @@ class DataStore(object):
     return self.mutation_pool_cls(token=token)
 
 
-class Transaction(object):
-  """This abstracts operations on a subject which is locked.
-
-  If another writer obtains this subject at the same time our commit
-  will raise.
+class DBSubjectLock(object):
+  """Provide a simple subject lock using the database.
 
   This class should not be used directly. Its only safe to use via the
-  DataStore.RetryWrapper() above which implements correct backoff and
-  retry behavior for the transaction.
+  DataStore.LockRetryWrapper() above which implements correct backoff and
+  retry behavior.
   """
 
   __metaclass__ = registry.MetaclassRegistry
 
-  @abc.abstractmethod
-  def __init__(self, table, subject, lease_time=None, token=None):
-    """Constructor.
+  def __init__(self, data_store, subject, lease_time=None, token=None):
+    """Obtain the subject lock for lease_time seconds.
 
     This is never called directly but produced from the
     DataStore.LockedSubject() factory.
 
     Args:
-      table: A data_store handler.
+      data_store: A data_store handler.
       subject: The name of a subject to lock.
-      lease_time: The minimum length of time the transaction will remain valid.
-      token: An ACL token which applies to all methods in this transaction.
+      lease_time: The minimum length of time the lock will remain valid in
+        seconds. Note this will be converted to usec for storage.
+      token: An ACL token which applies to all methods in this lock.
     """
+    self.subject = utils.SmartStr(subject)
+    self.store = data_store
+    self.token = token
+    # expires should be stored as usec
+    self.expires = None
+    self.locked = False
+    if lease_time is None:
+      lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
+    self._Acquire(lease_time)
 
-  @abc.abstractmethod
-  def DeleteAttribute(self, attribute):
-    """Remove an attribute.
+  def __enter__(self):
+    return self
 
-    Args:
-      attribute: The attribute to delete.
-    """
+  def __exit__(self, unused_type, unused_value, unused_traceback):
+    self.Release()
 
-  @abc.abstractmethod
-  def Resolve(self, attribute):
-    """Retrieve a value set for this subject's attribute.
+  def _Acquire(self, lease_time):
+    raise NotImplementedError
 
-    Args:
-      attribute: The attribute to retrieve.
-
-    Returns:
-       A (string, timestamp), or (None, 0).
-
-    Raises:
-      AccessError: if anything goes wrong.
-    """
-
-  @abc.abstractmethod
-  def ResolvePrefix(self, attribute_prefix, timestamp=None):
-    """Retrieve a set of values matching for this subject's attribute.
-
-    Args:
-      attribute_prefix: The attribute prefix.
-
-      timestamp: A range of times for consideration (In
-          microseconds). Can be a constant such as ALL_TIMESTAMPS or
-          NEWEST_TIMESTAMP or a tuple of ints (start, end).
-
-    Yields:
-       Tuples of the form (attribute, value string, timestamp).
-
-    Raises:
-      AccessError: if anything goes wrong.
-    """
-    pass
+  def Release(self):
+    raise NotImplementedError
 
   def UpdateLease(self, duration):
-    """Update the transaction lease by at least the number of seconds.
+    """Update the lock lease time by at least the number of seconds.
 
-    Note that not all data stores implement timed transactions. This method is
-    only useful for data stores which expire a transaction after some time.
+    Note that not all data stores implement timed locks. This method is
+    only useful for data stores which expire a lock after some time.
 
     Args:
-      duration: The number of seconds to extend the transaction lease.
+      duration: The number of seconds to extend the lock lease.
     """
     raise NotImplementedError
 
   def CheckLease(self):
-    """Checks if this transaction is still valid."""
-    return True
-
-  @abc.abstractmethod
-  def Set(self, attribute, value, timestamp=None, replace=True):
-    """Set a new value for this subject's attribute.
-
-    Note that the value will only be set when this transaction is
-    committed.
-
-    Args:
-      attribute: The attribute to be set.
-      value:  The value to be set (Can be a protobuf).
-      timestamp: (In microseconds). If specified it overrides the update
-                 time of this attribute.
-      replace: Bool whether or not to overwrite current records.
-    """
-
-  @abc.abstractmethod
-  def Commit(self):
-    """Commits this transaction.
-
-    If the transaction fails we raise TransactionError.
-    """
-
-  @abc.abstractmethod
-  def Abort(self):
-    """Aborts the transaction."""
-
-
-class CommonTransaction(Transaction):
-  """A common transaction that saves set/delete data before commiting."""
-
-  def __init__(self, table, subject, lease_time=None, token=None):
-    super(CommonTransaction, self).__init__(
-        table, subject, lease_time=lease_time, token=token)
-    self.to_set = {}
-    self.to_delete = set()
-    self.subject = subject
-    self.store = table
-    self.token = token
-    self.expires = None
-
-  def CheckLease(self):
+    """Return the time remaining on the lock in seconds."""
     if not self.expires:
       return 0
-    return max(0, self.expires - time.time())
-
-  def DeleteAttribute(self, attribute):
-    self.to_delete.add(attribute)
-
-  def ResolvePrefix(self, prefix, timestamp=None):
-    # Break up the timestamp argument.
-    if isinstance(timestamp, (list, tuple)):
-      start, end = timestamp  # pylint: disable=unpacking-non-sequence
-    elif isinstance(timestamp, int):
-      start = timestamp
-      end = timestamp
-    elif timestamp == DataStore.ALL_TIMESTAMPS or timestamp is None:
-      start, end = 0, (2**63) - 1
-      timestamp = (start, end)
-    elif timestamp == DataStore.NEWEST_TIMESTAMP:
-      start, end = 0, (2**63) - 1
-      # Do not change 'timestamp' since we will use it later.
-    else:
-      raise ValueError("Value %s is not a valid timestamp" %
-                       utils.SmartStr(timestamp))
-
-    start = int(start)
-    end = int(end)
-
-    # Get all results from to_set.
-    results = []
-    if self.to_set:
-      for attribute, values in self.to_set.items():
-        if utils.SmartStr(attribute).startswith(prefix):
-          results.extend([(attribute, value, ts) for value, ts in values
-                          if start <= ts <= end])
-
-    # And also the results from the database.
-    ds_results = self.store.ResolvePrefix(
-        self.subject, prefix, timestamp=timestamp, token=self.token)
-
-    # Must filter 'to_delete' from 'ds_results'.
-    if self.to_delete:
-      for val in ds_results:
-        attribute, value, ts = val
-        if attribute not in self.to_delete:
-          results.append(val)
-    else:
-      results.extend(ds_results)
-
-    if timestamp == DataStore.NEWEST_TIMESTAMP:
-      # For each attribute, select the value with the newest timestamp.
-      newest_results = {}
-      for attribute, value, ts in results:
-        current = newest_results.get(attribute, None)
-        if current:
-          _, _, current_ts = current
-          if ts > current_ts:
-            newest_results[attribute] = (attribute, value, ts)
-        else:
-          newest_results[attribute] = (attribute, value, ts)
-
-      results = newest_results.values()
-
-    return sorted(results, key=lambda (a, val, ts): (a, ts, val))
-
-  def Set(self, attribute, value, timestamp=None, replace=True):
-    if replace:
-      self.to_delete.add(attribute)
-
-    if timestamp is None:
-      timestamp = int(time.time() * 1e6)
-
-    self.to_set.setdefault(attribute, []).append((value, int(timestamp)))
-
-  def Resolve(self, attribute):
-    if attribute in self.to_set:
-      return max(self.to_set[attribute], key=lambda vt: vt[1])
-    if attribute in self.to_delete:
-      return (None, 0)
-
-    return self.store.Resolve(self.subject, attribute, token=self.token)
-
-  def Commit(self):
-    if not self.CheckLease():
-      raise TransactionError("Lease is no longer valid.")
-
-    self.store.DeleteAttributes(
-        self.subject, self.to_delete, sync=True, token=self.token)
-
-    self.store.MultiSet(self.subject, self.to_set, token=self.token)
-    self.to_set = {}
-    self.to_delete = set()
+    return max(0, self.expires / 1e6 - time.time())
 
   def __del__(self):
     try:
-      self.Abort()
+      self.Release()
     except Exception:  # This can raise on cleanup pylint: disable=broad-except
       pass
 

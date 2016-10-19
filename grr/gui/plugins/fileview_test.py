@@ -11,7 +11,6 @@ from grr.gui import api_call_router_with_approval_checks
 from grr.gui import runtests_test
 from grr.gui.api_plugins import vfs as api_vfs
 
-from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
@@ -47,6 +46,8 @@ class TestFileView(FileViewTestBase):
     super(TestFileView, self).setUp()
     # Prepare our fixture.
     with self.ACLChecksDisabled():
+      self.client_id = rdf_client.ClientURN("C.0000000000000001")
+      test_lib.ClientFixture(self.client_id, self.token)
       self._CreateFileVersions()
       self.RequestAndGrantClientApproval("C.0000000000000001")
 
@@ -460,10 +461,10 @@ class TestFileView(FileViewTestBase):
     self.Click("css=li[heading=Download]")
 
     # Check that export tool download hint is displayed.
-    self.WaitUntil(
-        self.IsTextPresent, "/usr/bin/grr_export "
-        "--username test file --path "
-        "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt --output .")
+    self.WaitUntil(self.IsTextPresent, "/usr/bin/grr_export "
+                   "--username %s file --path "
+                   "aff4:/C.0000000000000001/fs/os/c/Downloads/a.txt --output ."
+                   % self.token.username)
 
   def _RunUpdateFlow(self, client_id):
     # Get the flows that should have been started and finish them.
@@ -793,16 +794,16 @@ class TestTimeline(FileViewTestBase):
     super(TestTimeline, self).setUp()
     # Prepare our fixture.
     with self.ACLChecksDisabled():
+      test_lib.ClientFixture("C.0000000000000001", token=self.token)
       self.CreateFileWithTimeline(
-          "aff4:/C.0000000000000001/fs/os/c/proc/changed.txt")
+          "aff4:/C.0000000000000001/fs/os/c/proc/changed.txt", self.token)
       self.CreateFileWithTimeline(
-          "aff4:/C.0000000000000001/fs/os/c/proc/other.txt")
+          "aff4:/C.0000000000000001/fs/os/c/proc/other.txt", self.token)
       self.RequestAndGrantClientApproval("C.0000000000000001")
 
   @staticmethod
-  def CreateFileWithTimeline(file_path):
+  def CreateFileWithTimeline(file_path, token):
     """Add a file with timeline."""
-    token = access_control.ACLToken(username="test")
 
     # Add a version of the file at TIME_0. Since we write all MAC times,
     # this will result in three timeline items.
@@ -958,7 +959,8 @@ class TestTimeline(FileViewTestBase):
     # Add a new file with several versions.
     with self.ACLChecksDisabled():
       self.CreateFileWithTimeline(
-          "aff4:/C.0000000000000001/fs/os/c/proc/newly_added.txt")
+          "aff4:/C.0000000000000001/fs/os/c/proc/newly_added.txt",
+          token=self.token)
 
     # Click on tree again.
     self.Click("link=proc")
@@ -993,6 +995,7 @@ class TestHostInformation(FileViewTestBase):
     self.client_id = "C.0000000000000001"
 
     with self.ACLChecksDisabled():
+      test_lib.ClientFixture(self.client_id, token=self.token)
       self.RequestAndGrantClientApproval(self.client_id)
 
       with test_lib.FakeTime(TIME_0):

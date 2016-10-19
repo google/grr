@@ -2,11 +2,11 @@
 
   <!-- Configure flow -->
   <grr-wizard-form-page title="What to run?"
-                        is-valid="genericHuntArgs.value.flow_runner_args.value.flow_name.value">
+                        is-valid="createHuntArgs.value.flow_name.value">
 
-    <grr-configure-flow-page flow-name="genericHuntArgs.value.flow_runner_args.value.flow_name.value"
-                             flow-arguments="genericHuntArgs.value.flow_args"
-                             hunt-runner-args="huntRunnerArgs">
+    <grr-configure-flow-page flow-name="createHuntArgs.value.flow_name.value"
+                             flow-arguments="createHuntArgs.value.flow_args"
+                             hunt-runner-args="createHuntArgs.value.hunt_runner_args">
     </grr-configure-flow-page>
 
   </grr-wizard-form-page>
@@ -14,7 +14,8 @@
   <!-- Configure output plugins -->
   <grr-wizard-form-page title="Define Output Processing">
 
-    <grr-configure-output-plugins-page output-plugins="genericHuntArgs.value.output_plugins">
+    <grr-configure-output-plugins-page
+      output-plugins="createHuntArgs.value.hunt_runner_args.value.output_plugins">
     </grr-configure-output-plugins-page>
 
   </grr-wizard-form-page>
@@ -23,7 +24,7 @@
   <grr-wizard-form-page title="Where to run?">
 
     <grr-configure-rules-page
-        client-rule-set="huntRunnerArgs.value.client_rule_set">
+        client-rule-set="createHuntArgs.value.hunt_runner_args.value.client_rule_set">
     </grr-configure-rules-page>
 
   </grr-wizard-form-page>
@@ -32,8 +33,7 @@
   <grr-wizard-form-page title="Review"
                         next-button-label="Create Hunt">
 
-    <grr-new-hunt-review-page generic-hunt-args="genericHuntArgs"
-                              hunt-runner-args="huntRunnerArgs">
+    <grr-new-hunt-review-page create-hunt-args="createHuntArgs">
     </grr-new-hunt-review-page>
 
   </grr-wizard-form-page>

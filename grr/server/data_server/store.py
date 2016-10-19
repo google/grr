@@ -215,7 +215,7 @@ class DataStoreService(object):
 
   def _NewTransaction(self, subject, duration, response):
     transid = utils.SmartStr(uuid.uuid4())
-    now = time.time()
+    now = time.time() * 1e6
     self.transactions[subject] = (transid, now + duration)
     self._AddTransactionId(response, subject, transid)
 
@@ -235,7 +235,7 @@ class DataStoreService(object):
       # Check if there is a transaction.
       try:
         _, lease = self.transactions[subject]
-        if time.time() > lease:
+        if (time.time() * 1e6) > lease:
           self._NewTransaction(subject, duration, response)
         else:
           # Failed to get transaction.
@@ -262,7 +262,7 @@ class DataStoreService(object):
         if transid != current:
           # Invalid transaction ID.
           return
-        self.transactions[subject] = (transid, time.time() + duration)
+        self.transactions[subject] = (transid, (time.time() * 1e6) + duration)
         # Add return value to response.
         self._AddTransactionId(response, subject, transid)
       except KeyError:

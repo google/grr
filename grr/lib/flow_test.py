@@ -184,7 +184,7 @@ class FlowCreationTest(BasicFlowTest):
     self.assertEqual(len(types), 1)
 
   def testFlowSerialization(self):
-    """Check that we can unpickle flows."""
+    """Check that we can serialize flows."""
     session_id = flow.GRRFlow.StartFlow(
         client_id=self.client_id, flow_name="FlowOrderTest", token=self.token)
 
@@ -197,7 +197,7 @@ class FlowCreationTest(BasicFlowTest):
     self.assertEqual(flow_obj.__class__, test_lib.FlowOrderTest)
 
   def testFlowSerialization2(self):
-    """Check that we can unpickle flows."""
+    """Check that we can serialize flows."""
 
     class TestClientMock(object):
 
@@ -286,6 +286,9 @@ class FlowCreationTest(BasicFlowTest):
     self.assertTrue("Parent flow terminated." in runner.context.status)
 
   def testNotification(self):
+    # No notifications for system users.
+    self.token.username = "notification_test"
+
     session_id = flow.GRRFlow.StartFlow(
         client_id=self.client_id, flow_name="FlowOrderTest", token=self.token)
     with aff4.FACTORY.Open(

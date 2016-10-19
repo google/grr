@@ -29,6 +29,7 @@ from grr.lib.flows.general import export
 
 from grr.lib.hunts import implementation
 from grr.lib.hunts import results as hunts_results
+from grr.lib.hunts import standard
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import hunts as rdf_hunts
 from grr.lib.rdfvalues import stats as stats_rdf
@@ -80,19 +81,15 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
   """
   protobuf = api_pb2.ApiHunt
 
-  def GetArgsClass(self):
-    hunt_name = self.name
-    if not hunt_name:
-      hunt_name = self.hunt_runner_args.hunt_name
-
-    if hunt_name:
-      hunt_cls = hunts.GRRHunt.classes.get(hunt_name)
-      if hunt_cls is None:
-        raise ValueError("Hunt %s not known by this implementation." %
-                         hunt_name)
+  def GetFlowArgsClass(self):
+    if self.flow_name:
+      flow_cls = flow.GRRFlow.classes.get(self.flow_name)
+      if flow_cls is None:
+        raise ValueError("Flow %s not known by this implementation." %
+                         self.flow_name)
 
       # The required protobuf for this class is in args_type.
-      return hunt_cls.args_type
+      return flow_cls.args_type
 
   def InitFromAff4Object(self, hunt, with_full_summary=False):
     runner = hunt.GetRunner()
@@ -121,9 +118,17 @@ class ApiHunt(rdf_structs.RDFProtoStruct):
       self.remaining_clients_count = (
           all_clients_count - completed_clients_count)
 
-      self.hunt_args = hunt.args
       self.hunt_runner_args = hunt.runner_args
       self.client_rule_set = runner.runner_args.client_rule_set
+
+      # We assume we deal here with a GenericHunt and hence hunt.args is a
+      # GenericHuntArgs instance. But if we have another kind of hunt
+      # (VariableGenericHunt is the only other kind of hunt at the
+      # moment), then we shouldn't raise.
+      if hunt.args.HasField("flow_runner_args"):
+        self.flow_name = hunt.args.flow_runner_args.flow_name
+      if self.flow_name and hunt.args.HasField("flow_args"):
+        self.flow_args = hunt.args.flow_args
 
     return self
 
@@ -1084,6 +1089,16 @@ class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
 class ApiCreateHuntArgs(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiCreateHuntArgs
 
+  def GetFlowArgsClass(self):
+    if self.flow_name:
+      flow_cls = flow.GRRFlow.classes.get(self.flow_name)
+      if flow_cls is None:
+        raise ValueError("Flow %s not known by this implementation." %
+                         self.flow_name)
+
+      # The required protobuf for this class is in args_type.
+      return flow_cls.args_type
+
 
 class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
   """Handles hunt creation request."""
@@ -1095,12 +1110,16 @@ class ApiCreateHuntHandler(api_call_handler_base.ApiCallHandler):
     """Creates a new hunt."""
 
     # We only create generic hunts with /hunts/create requests.
-    args.hunt_runner_args.hunt_name = "GenericHunt"
+    generic_hunt_args = standard.GenericHuntArgs()
+    generic_hunt_args.flow_runner_args.flow_name = args.flow_name
+    generic_hunt_args.flow_args = args.flow_args
+
+    args.hunt_runner_args.hunt_name = standard.GenericHunt.__name__
 
     # Anyone can create the hunt but it will be created in the paused
     # state. Permissions are required to actually start it.
     with implementation.GRRHunt.StartHunt(
-        runner_args=args.hunt_runner_args, args=args.hunt_args,
+        runner_args=args.hunt_runner_args, args=generic_hunt_args,
         token=token) as hunt:
 
       # Nothing really to do here - hunts are always created in the paused

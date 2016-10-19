@@ -104,8 +104,7 @@ class ApprovalTest(test_lib.GRRBaseTest):
 
     username = "doesnotexist"
 
-    user = aff4.FACTORY.Open(
-        "aff4:/users/%s" % username, ignore_cache=True, token=self.token)
+    user = aff4.FACTORY.Open("aff4:/users/%s" % username, token=self.token)
     self.assertFalse(isinstance(user, users.GRRUser))
 
     flow.GRRFlow.StartFlow(
@@ -116,8 +115,7 @@ class ApprovalTest(test_lib.GRRBaseTest):
         approver=username,
         token=self.token)
 
-    user = aff4.FACTORY.Open(
-        "aff4:/users/%s" % username, ignore_cache=True, token=self.token)
+    user = aff4.FACTORY.Open("aff4:/users/%s" % username, token=self.token)
     self.assertFalse(isinstance(user, users.GRRUser))
 
 

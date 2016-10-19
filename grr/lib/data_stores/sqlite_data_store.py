@@ -62,6 +62,8 @@ class SqliteConnectionCache(utils.FastStore):
     # Make sure the database is fully written to disk.
     cursor.execute("PRAGMA synchronous = ON")
     cursor.execute("PRAGMA page_size = %d" % SQLITE_PAGE_SIZE)
+    # The linter and pyformat can't agree on how to format this
+    # pylint: disable=bad-continuation
     query = """CREATE TABLE IF NOT EXISTS tbl (
               subject %(subject)s NOT NULL,
               predicate TEXT NOT NULL,
@@ -83,6 +85,7 @@ class SqliteConnectionCache(utils.FastStore):
     cursor.execute(query)
     query = """CREATE INDEX IF NOT EXISTS tbl_index
               ON tbl (subject, predicate, timestamp)"""
+    # pylint: enable=bad-continuation
     cursor.execute(query)
     conn.commit()
     cursor.close()
@@ -958,11 +961,12 @@ class SqliteDataStore(data_store.DataStore):
   def ChangeLocation(self, location):
     self.cache.ChangePath(location)
 
-  def Transaction(self, subject, lease_time=None, token=None):
-    return SqliteTransaction(self, subject, lease_time=lease_time, token=token)
+  def DBSubjectLock(self, subject, lease_time=None, token=None):
+    return SqliteDBSubjectLock(
+        self, subject, lease_time=lease_time, token=token)
 
 
-class SqliteTransaction(data_store.CommonTransaction):
+class SqliteDBSubjectLock(data_store.DBSubjectLock):
   """The SQLite data store transaction object.
 
   We only ensure that two simultaneous locks can not be held on the
@@ -970,65 +974,50 @@ class SqliteTransaction(data_store.CommonTransaction):
 
   This means that the first thread which grabs the lock is considered the owner
   of the transaction. Any subsequent transactions on the same subject will fail
-  immediately with data_store.TransactionError. NOTE that it is still possible
+  immediately with data_store.DBSubjectLockError. NOTE that it is still possible
   to manipulate the row without a transaction - this is a design feature!
 
   A lock is considered expired after a certain time.
   """
-
-  lock_creation_lock = threading.Lock()
-
   locked = False
 
-  def __init__(self, store, subject, lease_time=None, token=None):
-    """Ensure we can take a lock on this subject."""
-    super(SqliteTransaction, self).__init__(
-        store, utils.SmartUnicode(subject), lease_time=lease_time, token=token)
-
-    if lease_time is None:
-      lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
-
+  def _Acquire(self, lease_time):
     self.lock_token = thread.get_ident()
-    sqlite_connection = store.cache.Get(self.subject)
+    sqlite_connection = self.store.cache.Get(self.subject)
 
     # We first check if there is a lock on the subject.
     # Next we set our lease time and lock_token as identification.
     with sqlite_connection:
-      locked_until, stored_token = sqlite_connection.GetLock(subject)
+      locked_until, stored_token = sqlite_connection.GetLock(self.subject)
 
       # This is currently locked by another thread.
-      if locked_until and time.time() < float(locked_until):
-        raise data_store.TransactionError("Subject %s is locked" % subject)
+      if locked_until and (time.time() * 1e6) < float(locked_until):
+        raise data_store.DBSubjectLockError("Subject %s is locked" %
+                                            self.subject)
 
       # Subject is not locked, we take a lease on it.
-      self.expires = time.time() + lease_time
-      sqlite_connection.SetLock(subject, self.expires, self.lock_token)
+      self.expires = int((time.time() + lease_time) * 1e6)
+      sqlite_connection.SetLock(self.subject, self.expires, self.lock_token)
 
+    # TODO(user): This shouldn't really be necessary, and seems fragile. We
+    # should be able to use an UPDATE WHERE lock_expiration < now inside a
+    # transaction and check that we changed one row.
     # Check if the lock stuck. If the stored token is not ours
     # then probably someone was able to grab it before us.
-    locked_until, stored_token = sqlite_connection.GetLock(subject)
+    locked_until, stored_token = sqlite_connection.GetLock(self.subject)
     if stored_token != self.lock_token:
-      raise data_store.TransactionError("Unable to lock subject %s" % subject)
+      raise data_store.DBSubjectLockError("Unable to lock subject %s" %
+                                          self.subject)
 
     self.locked = True
 
   def UpdateLease(self, duration):
-    self.expires = time.time() + duration
     with self.store.cache.Get(self.subject) as sqlite_connection:
-      self.expires = time.time() + duration
+      self.expires = int((time.time() + duration) * 1e6)
       sqlite_connection.SetLock(self.subject, self.expires, self.lock_token)
 
-  def Abort(self):
+  def Release(self):
     if self.locked:
-      self._RemoveLock()
-
-  def Commit(self):
-    if self.locked:
-      super(SqliteTransaction, self).Commit()
-      self._RemoveLock()
-
-  def _RemoveLock(self):
-    with self.store.cache.Get(self.subject) as sqlite_connection:
-      sqlite_connection.RemoveLock(self.subject)
-
-    self.locked = False
+      with self.store.cache.Get(self.subject) as sqlite_connection:
+        sqlite_connection.RemoveLock(self.subject)
+        self.locked = False

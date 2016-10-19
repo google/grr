@@ -104,10 +104,7 @@ class TestMultiGetFile(base.AutomatedTest):
     # where the flow has just been terminated but we get the cached object back
     # from the factory and it looks like it's still running.
     flow_obj = aff4.FACTORY.Open(
-        self.session_id,
-        token=self.token,
-        aff4_type=MultiGetFileTestFlow,
-        ignore_cache=True)
+        self.session_id, token=self.token, aff4_type=MultiGetFileTestFlow)
 
     # Check flow completed normally, checking is done inside the flow
     runner = flow_obj.GetRunner()

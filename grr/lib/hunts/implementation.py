@@ -710,8 +710,7 @@ class HuntRunner(object):
         "aff4:/foreman",
         mode="rw",
         token=self.token,
-        aff4_type=aff4_grr.GRRForeman,
-        ignore_cache=True) as foreman:
+        aff4_type=aff4_grr.GRRForeman) as foreman:
       foreman_rules = foreman.Get(foreman.Schema.RULES,
                                   default=foreman.Schema.RULES())
       foreman_rules.Append(foreman_rule)
@@ -719,8 +718,7 @@ class HuntRunner(object):
 
   def _RemoveForemanRule(self):
     with aff4.FACTORY.Open(
-        "aff4:/foreman", mode="rw", token=self.token,
-        ignore_cache=True) as foreman:
+        "aff4:/foreman", mode="rw", token=self.token) as foreman:
       aff4_rules = foreman.Get(foreman.Schema.RULES)
       aff4_rules = foreman.Schema.RULES(
           # Remove those rules which fire off this hunt id.
@@ -952,18 +950,6 @@ class GRRHunt(flow.FlowBase):
         self.args = args.payload
       else:
         self.args = None
-
-      # TODO(user): Backwards compatibility hack. Remove this once
-      # there are no legacy hunts left we still need to display in the UI.
-      if self.context is None and self.runner_args is None:
-        state_attr = "aff4:flow_state"
-        serialized_state = self.synced_attributes[state_attr][0].serialized
-        state = rdf_flows.FlowState.FromSerializedString(serialized_state)
-        if state is not None:
-          self.context = state.context
-          self.runner_args = self.context.args
-          self.mode = "r"
-          self.args = state.args
 
       self.Load()
 
@@ -1288,10 +1274,15 @@ class GRRHunt(flow.FlowBase):
 
   def _SetupOutputPluginState(self):
     state = rdf_protodict.AttributedDict()
-    try:
+
+    # GenericHunt.output_plugins is deprecated, but we have to support
+    # pre-created cron jobs, hence we check in both places.
+    # TODO(user): Remove GenericHuntArgs.output_plugins and
+    # VariableGenericHuntArgs.output_plugins.
+    if self.args.HasField("output_plugins"):
       plugins_descriptors = self.args.output_plugins
-    except AttributeError:
-      plugins_descriptors = []
+    else:
+      plugins_descriptors = self.runner_args.output_plugins
 
     for index, plugin_descriptor in enumerate(plugins_descriptors):
       output_base_urn = self.output_plugins_base_urn.Add(

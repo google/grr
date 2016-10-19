@@ -65,18 +65,6 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
       template: '<grr-api-docs />',
       title: 'API Docs'
     })
-    .state('canaryTest', {
-      url: '/canary-test',
-      template: '<grr-legacy-renderer renderer="CanaryTestRenderer" />'
-    })
-    .state('rdfCollection', {
-      url: '/rdf-collection?path',
-      template: function(stateParams) {
-        var path = stateParams['path'];
-        return '<grr-legacy-renderer renderer="RDFValueCollectionRenderer" query-params="{' +
-          'aff4_path: \'' + path + '\'}" />';
-      }
-    })
 
     //
     // Approvals states.

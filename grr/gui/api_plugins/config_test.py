@@ -74,7 +74,7 @@ def GetConfigMockClass(sections=None):
   return {"Get": Get, "GetRaw": GetRaw, "type_infos": type_infos}
 
 
-class ApiGetConfigHandlerTest(test_lib.GRRBaseTest):
+class ApiGetConfigHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetConfigHandlerTest."""
 
   def setUp(self):
@@ -170,7 +170,7 @@ SectionBar.sample_string_option: "%(sAmPlE|lower)"
       self.Check("GET", "/api/config")
 
 
-class ApiGetConfigOptionHandlerTest(test_lib.GRRBaseTest):
+class ApiGetConfigOptionHandlerTest(api_test_lib.ApiCallHandlerTest):
   """Test for ApiGetConfigOptionHandler."""
 
   def setUp(self):

@@ -30,6 +30,11 @@ class CommunicatorInit(registry.InitHook):
     stats.STATS.RegisterCounterMetric("grr_unauthenticated_messages")
     stats.STATS.RegisterCounterMetric("grr_rsa_operations")
 
+    stats.STATS.RegisterCounterMetric(
+        "grr_encrypted_cipher_cache", fields=[("type", str)])
+    stats.STATS.RegisterCounterMetric(
+        "grr_cipher_cache", fields=[("type", str)])
+
 
 class Error(stats.CountingExceptionMixin, Exception):
   """Base class for all exceptions in this module."""
@@ -284,9 +289,6 @@ class Communicator(object):
     # A cache for encrypted ciphers
     self.encrypted_cipher_cache = utils.FastStore(max_size=50000)
 
-    # A cache of public keys
-    self.pub_key_cache = utils.FastStore(max_size=50000)
-
   def EncodeMessageList(self, message_list, signed_message_list):
     """Encode the MessageList into the signed_message_list rdfvalue."""
     # By default uncompress
@@ -347,8 +349,9 @@ class Communicator(object):
     # Do we have a cached cipher to talk to this destination?
     try:
       cipher = self.cipher_cache.Get(destination)
-
+      stats.STATS.IncrementCounter("grr_cipher_cache", fields=["hits"])
     except KeyError:
+      stats.STATS.IncrementCounter("grr_cipher_cache", fields=["misses"])
       # Make a new one
       remote_public_key = self._GetRemotePublicKey(destination)
       cipher = Cipher(self.common_name, self.private_key, remote_public_key)
@@ -452,6 +455,9 @@ class Communicator(object):
     cipher_verified = False
     try:
       cipher = self.encrypted_cipher_cache.Get(response_comms.encrypted_cipher)
+      stats.STATS.IncrementCounter(
+          "grr_encrypted_cipher_cache", fields=["hits"])
+
       # Even though we have seen this encrypted cipher already, we should still
       # make sure that all the other fields are sane and verify the HMAC.
       cipher.VerifyReceivedHMAC(response_comms)
@@ -462,6 +468,8 @@ class Communicator(object):
       source = cipher.GetSource()
       remote_public_key = self._GetRemotePublicKey(source)
     except KeyError:
+      stats.STATS.IncrementCounter(
+          "grr_encrypted_cipher_cache", fields=["misses"])
       cipher = ReceivedCipher(response_comms, self.private_key)
 
       source = cipher.GetSource()

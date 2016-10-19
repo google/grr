@@ -599,8 +599,8 @@ class FlowBase(aff4.AFF4Volume):
     token = runner_args.token.SetUID()
 
     # Extend the expiry time of this token indefinitely. Python on Windows only
-    # supports dates up to the year 3000, this number corresponds to July, 2997.
-    token.expiry = 32427003069 * rdfvalue.RDFDatetime.converter
+    # supports dates up to the year 3000.
+    token.expiry = rdfvalue.RDFDatetime.FromHumanReadable("2997-01-01")
 
     # We create an anonymous AFF4 object first, The runner will then generate
     # the appropriate URN.
@@ -784,15 +784,6 @@ class GRRFlow(FlowBase):
   class SchemaCls(aff4.AFF4Volume.SchemaCls):
     """Attributes specific to GRRFlow."""
 
-    # TODO(user): DEPRECATED, do not use.
-    FLOW_STATE = aff4.Attribute(
-        "aff4:flow_state",
-        rdf_flows.FlowState,
-        "The current state of this flow.",
-        "FlowState",
-        versioned=False,
-        creates_new_object_version=False)
-
     FLOW_STATE_DICT = aff4.Attribute(
         "aff4:flow_state_dict",
         rdf_protodict.AttributedDict,
@@ -877,33 +868,7 @@ class GRRFlow(FlowBase):
       if state:
         self.state = AttributedDict(state.ToDict())
       else:
-        # This might be an old style flow.
-        state = self.Get(self.Schema.FLOW_STATE)
-        # TODO(user): Backwards compatibility hack. Remove this once
-        # there are no legacy flows left we still need to display in the UI.
-        if state:
-          # Old style flows are read only.
-          self.mode = "r"
-          self.state = state
-          if self.context is None:
-            try:
-              self.context = state.context
-            except (AttributeError, KeyError):
-              pass
-
-          if self.runner_args is None:
-            try:
-              self.runner_args = self.context.args
-            except KeyError:
-              pass
-
-          if self.args is None:
-            try:
-              self.args = state.args
-            except KeyError:
-              pass
-        else:
-          self.state = AttributedDict()
+        self.state = AttributedDict()
 
       self.Load()
 

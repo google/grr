@@ -227,14 +227,13 @@ class ClientTestBase(unittest.TestCase):
 
   def OpenFDWithRetry(self, file_urn, token):
     """Try to open a aff4 path, retry if it is AFF4Volume."""
-    fd = aff4.FACTORY.Open(file_urn, ignore_cache=True, mode="r", token=token)
+    fd = aff4.FACTORY.Open(file_urn, mode="r", token=token)
 
     # All types are instances of AFF4Volume so we can't use isinstance.
     if fd.__class__ is aff4.AFF4Volume:
       for _ in range(self.RESULTS_SLA_SECONDS):
         time.sleep(1)
-        fd = aff4.FACTORY.Open(
-            file_urn, ignore_cache=True, mode="r", token=token)
+        fd = aff4.FACTORY.Open(file_urn, mode="r", token=token)
         if fd.__class__ is not aff4.AFF4Volume:
           return fd
       self.fail(("No results were written to the data store. Maybe the GRR "

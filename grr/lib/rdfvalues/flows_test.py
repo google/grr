@@ -4,31 +4,7 @@
 
 
 from grr.lib import rdfvalue
-from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import test_base
-
-
-class FlowStateTest(test_base.RDFValueTestCase):
-
-  rdfvalue_class = rdf_flows.FlowState
-
-  def GenerateSample(self, number=0):
-    res = rdf_flows.FlowState()
-    res.Register("number", number)
-    return res
-
-  # Pickling has been deprecated so some tests won't work.
-  def testComparisons(self):
-    pass
-
-  def testInitialization(self):
-    pass
-
-  def testHashability(self):
-    pass
-
-  def testSerialization(self):
-    pass
 
 
 class SessionIDTest(test_base.RDFValueTestCase):

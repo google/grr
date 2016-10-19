@@ -8,6 +8,7 @@ from grr.gui import api_call_handler_utils
 from grr.gui import runtests_test
 
 from grr.lib import action_mocks
+from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import hunts
@@ -98,6 +99,9 @@ class TestFlowManagement(test_lib.GRRSeleniumTest,
 
     with self.ACLChecksDisabled():
       self.client_id = rdf_client.ClientURN("C.0000000000000001")
+      with aff4.FACTORY.Open(
+          self.client_id, mode="rw", token=self.token) as client:
+        client.Set(client.Schema.HOSTNAME("HostC.0000000000000001"))
       self.RequestAndGrantClientApproval(self.client_id)
       self.action_mock = action_mocks.FileFinderClientMock()
 
@@ -386,8 +390,8 @@ class TestFlowManagement(test_lib.GRRSeleniumTest,
     self.Click("css=li[heading=Results]")
     self.Click("link=Show GRR export tool command")
 
-    self.WaitUntil(self.IsTextPresent, "--username test collection_files "
-                   "--path %s/Results" % session_id)
+    self.WaitUntil(self.IsTextPresent, "--username %s collection_files "
+                   "--path %s/Results" % (self.token.username, session_id))
 
   def testHashesAreDisplayedCorrectly(self):
     with self.ACLChecksDisabled():
@@ -472,7 +476,7 @@ class TestFlowManagement(test_lib.GRRSeleniumTest,
   def testGlobalFlowManagement(self):
     """Test that scheduling flows works."""
     with self.ACLChecksDisabled():
-      self.CreateAdminUser("test")
+      self.CreateAdminUser(self.token.username)
 
     self.Open("/")
 

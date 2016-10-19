@@ -16,7 +16,6 @@ import logging
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import filestore
@@ -266,14 +265,14 @@ class DataAgnosticExportConverter(ExportConverter):
 
       # Copy descriptors for primivie values as-is, just make sure their
       # field number is correct.
-      if isinstance(desc, (type_info.ProtoBinary, type_info.ProtoString,
-                           type_info.ProtoUnsignedInteger,
-                           type_info.ProtoRDFValue, type_info.ProtoEnum)):
+      if isinstance(desc, (rdf_structs.ProtoBinary, rdf_structs.ProtoString,
+                           rdf_structs.ProtoUnsignedInteger,
+                           rdf_structs.ProtoRDFValue, rdf_structs.ProtoEnum)):
         # Incrementing field number by 1, as 1 is always occuppied by metadata.
         output_class.AddDescriptor(desc.Copy(field_number=number + 1))
 
-      if (isinstance(desc, type_info.ProtoEnum) and
-          not isinstance(desc, type_info.ProtoBoolean)):
+      if (isinstance(desc, rdf_structs.ProtoEnum) and
+          not isinstance(desc, rdf_structs.ProtoBoolean)):
         # Attach the enum container to the class for easy reference:
         setattr(output_class, desc.enum_name, desc.enum_container)
 

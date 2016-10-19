@@ -137,7 +137,7 @@ class TestAdministrativeFlows(AdministrativeFlowTests):
     self.assertTrue(str(self.client_id) in email_message["title"])
 
     # Make sure the flow state is included in the email message.
-    for s in ["Flow name", "FlowWithOneClientRequest", "Current state"]:
+    for s in ["flow_name", "FlowWithOneClientRequest", "current_state"]:
       self.assertTrue(s in email_message["message"])
 
     flow_obj = aff4.FACTORY.Open(

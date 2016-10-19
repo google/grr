@@ -34,7 +34,7 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "api_test_user"
             }
           ],
           "email_cc_addresses": [
@@ -159,7 +159,7 @@
       "test_class": "ApiCreateClientApprovalHandlerRegressionTest",
       "type_stripped_response": {
         "approvers": [
-          "test"
+          "api_test_user"
         ],
         "email_cc_addresses": [
           "test@example.com"
@@ -222,7 +222,7 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "api_test_user"
             }
           ],
           "email_cc_addresses": [
@@ -315,7 +315,7 @@
       "test_class": "ApiCreateCronJobApprovalHandlerRegressionTest",
       "type_stripped_response": {
         "approvers": [
-          "test"
+          "api_test_user"
         ],
         "email_cc_addresses": [
           "test@example.com"
@@ -593,7 +593,7 @@
           "creator": {
             "age": 0,
             "type": "unicode",
-            "value": "test"
+            "value": "api_test_user"
           },
           "flow_id": {
             "age": 0,
@@ -656,7 +656,7 @@
                   "username": {
                     "age": 0,
                     "type": "unicode",
-                    "value": "test"
+                    "value": "api_test_user"
                   }
                 }
               }
@@ -685,7 +685,7 @@
           "fetch_binaries": true,
           "filename_regex": "."
         },
-        "creator": "test",
+        "creator": "api_test_user",
         "flow_id": "W:ABCDEF",
         "last_active_at": 42000000,
         "name": "ListProcesses",
@@ -698,7 +698,7 @@
             "expiry": 102000000,
             "process": "GRRAdminUI",
             "reason": "",
-            "username": "test"
+            "username": "api_test_user"
           }
         },
         "started_at": 42000000,
@@ -732,7 +732,7 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "api_test_user"
             }
           ],
           "email_cc_addresses": [
@@ -796,7 +796,7 @@
               "creator": {
                 "age": 0,
                 "type": "unicode",
-                "value": "test"
+                "value": "api_test_user"
               },
               "description": {
                 "age": 0,
@@ -845,7 +845,7 @@
       "test_class": "ApiCreateHuntApprovalHandlerRegressionTest",
       "type_stripped_response": {
         "approvers": [
-          "test"
+          "api_test_user"
         ],
         "email_cc_addresses": [
           "test@example.com"
@@ -862,7 +862,7 @@
           "client_limit": 100,
           "client_rate": 0,
           "created": 42000000,
-          "creator": "test",
+          "creator": "api_test_user",
           "description": "foo",
           "expires": 1209642000000,
           "is_robot": false,
@@ -925,7 +925,7 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "api_test_user"
             }
           ],
           "email_cc_addresses": [],
@@ -1039,7 +1039,7 @@
       "test_class": "ApiGetClientApprovalHandlerRegressionTest",
       "type_stripped_response": {
         "approvers": [
-          "test"
+          "api_test_user"
         ],
         "email_cc_addresses": [],
         "id": "approval:111111",
@@ -1072,7 +1072,7 @@
           "users": []
         }
       },
-      "url": "/api/users/test/approvals/client/C.1000000000000000/approval:111111"
+      "url": "/api/users/api_test_user/approvals/client/C.1000000000000000/approval:111111"
     },
     {
       "api_method": "GetClientApproval",
@@ -1085,12 +1085,12 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "approver"
+              "value": "api_test_user"
             },
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "approver"
             }
           ],
           "email_cc_addresses": [],
@@ -1199,8 +1199,8 @@
       "test_class": "ApiGetClientApprovalHandlerRegressionTest",
       "type_stripped_response": {
         "approvers": [
-          "approver",
-          "test"
+          "api_test_user",
+          "approver"
         ],
         "email_cc_addresses": [],
         "id": "approval:222222",
@@ -1232,7 +1232,7 @@
           "users": []
         }
       },
-      "url": "/api/users/test/approvals/client/C.1000000000000001/approval:222222"
+      "url": "/api/users/api_test_user/approvals/client/C.1000000000000001/approval:222222"
     }
   ],
   "ApiGetClientHandler": [
@@ -1674,7 +1674,7 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "api_test_user"
             }
           ],
           "email_cc_addresses": [],
@@ -1756,7 +1756,7 @@
       "test_class": "ApiGetCronJobApprovalHandlerRegressionTest",
       "type_stripped_response": {
         "approvers": [
-          "test"
+          "api_test_user"
         ],
         "email_cc_addresses": [],
         "id": "approval:111111",
@@ -1777,7 +1777,7 @@
           "urn": "aff4:/cron/CronJob_123456"
         }
       },
-      "url": "/api/users/test/approvals/cron-job/CronJob_123456/approval:111111"
+      "url": "/api/users/api_test_user/approvals/cron-job/CronJob_123456/approval:111111"
     },
     {
       "api_method": "GetCronJobApproval",
@@ -1790,12 +1790,12 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "approver"
+              "value": "api_test_user"
             },
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "approver"
             }
           ],
           "email_cc_addresses": [],
@@ -1872,8 +1872,8 @@
       "test_class": "ApiGetCronJobApprovalHandlerRegressionTest",
       "type_stripped_response": {
         "approvers": [
-          "approver",
-          "test"
+          "api_test_user",
+          "approver"
         ],
         "email_cc_addresses": [],
         "id": "approval:222222",
@@ -1893,7 +1893,7 @@
           "urn": "aff4:/cron/CronJob_567890"
         }
       },
-      "url": "/api/users/test/approvals/cron-job/CronJob_567890/approval:222222"
+      "url": "/api/users/api_test_user/approvals/cron-job/CronJob_567890/approval:222222"
     }
   ],
   "ApiGetCronJobFlowHandler": [
@@ -1921,7 +1921,7 @@
               "creator": {
                 "age": 0,
                 "type": "unicode",
-                "value": "test"
+                "value": "api_test_user"
               },
               "current_state": {
                 "age": 0,
@@ -1963,7 +1963,7 @@
           "creator": {
             "age": 0,
             "type": "unicode",
-            "value": "test"
+            "value": "api_test_user"
           },
           "last_active_at": {
             "age": 44000000,
@@ -2001,7 +2001,7 @@
                   "username": {
                     "age": 0,
                     "type": "unicode",
-                    "value": "test"
+                    "value": "api_test_user"
                   }
                 }
               }
@@ -2029,7 +2029,7 @@
         "args": {},
         "context": {
           "create_time": 44000000,
-          "creator": "test",
+          "creator": "api_test_user",
           "current_state": "Start",
           "next_outbound_id": 2,
           "outstanding_requests": 1,
@@ -2038,7 +2038,7 @@
           "state": "RUNNING",
           "user_notified": false
         },
-        "creator": "test",
+        "creator": "api_test_user",
         "last_active_at": 44000000,
         "name": "GRRVersionBreakDown",
         "runner_args": {
@@ -2046,7 +2046,7 @@
           "flow_name": "GRRVersionBreakDown",
           "token": {
             "reason": "Running tests",
-            "username": "test"
+            "username": "api_test_user"
           }
         },
         "started_at": 44000000,
@@ -2061,7 +2061,7 @@
       "api_method": "GetFileDownloadCommand",
       "method": "GET",
       "response": {
-        "command": "/usr/bin/grr_export --username test file --path aff4:/C.1000000000000000/fs/os/etc --output ."
+        "command": "/usr/bin/grr_export --username api_test_user file --path aff4:/C.1000000000000000/fs/os/etc --output ."
       },
       "test_class": "ApiGetFileDownloadCommandHandlerRegressionTest",
       "url": "/api/clients/C.1000000000000000/vfs-download-command/fs/os/etc"
@@ -2163,7 +2163,7 @@
               "creator": {
                 "age": 0,
                 "type": "unicode",
-                "value": "test"
+                "value": "api_test_user"
               },
               "current_state": {
                 "age": 0,
@@ -2205,7 +2205,7 @@
           "creator": {
             "age": 0,
             "type": "unicode",
-            "value": "test"
+            "value": "api_test_user"
           },
           "flow_id": {
             "age": 0,
@@ -2248,7 +2248,7 @@
                   "username": {
                     "age": 0,
                     "type": "unicode",
-                    "value": "test"
+                    "value": "api_test_user"
                   }
                 }
               }
@@ -2279,7 +2279,7 @@
             "cpu_usage": {}
           },
           "create_time": 42000000,
-          "creator": "test",
+          "creator": "api_test_user",
           "current_state": "Start",
           "next_outbound_id": 9,
           "outstanding_requests": 8,
@@ -2288,7 +2288,7 @@
           "state": "RUNNING",
           "user_notified": false
         },
-        "creator": "test",
+        "creator": "api_test_user",
         "flow_id": "F:ABCDEF12",
         "last_active_at": 42000000,
         "name": "Interrogate",
@@ -2297,7 +2297,7 @@
           "flow_name": "Interrogate",
           "token": {
             "reason": "Running tests",
-            "username": "test"
+            "username": "api_test_user"
           }
         },
         "started_at": 42000000,
@@ -2312,7 +2312,7 @@
       "api_method": "GetFlowResultsExportCommand",
       "method": "GET",
       "response": {
-        "command": "/usr/bin/grr_export --username test collection_files --path aff4:/C.1000000000000000/flows/W:ABCDEF/Results --output ."
+        "command": "/usr/bin/grr_export --username api_test_user collection_files --path aff4:/C.1000000000000000/flows/W:ABCDEF/Results --output ."
       },
       "test_class": "ApiGetFlowResultsExportCommandHandlerRegressionTest",
       "url": "/api/clients/C.1000000000000000/flows/W:ABCDEF/results/export-command"
@@ -2454,7 +2454,7 @@
           "username": {
             "age": 0,
             "type": "unicode",
-            "value": "test"
+            "value": "api_test_user"
           }
         }
       },
@@ -2482,7 +2482,7 @@
         "settings": {
           "canary_mode": true
         },
-        "username": "test"
+        "username": "api_test_user"
       },
       "url": "/api/users/me"
     }
@@ -2499,7 +2499,7 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "api_test_user"
             }
           ],
           "email_cc_addresses": [],
@@ -2552,7 +2552,7 @@
               "creator": {
                 "age": 0,
                 "type": "unicode",
-                "value": "test"
+                "value": "api_test_user"
               },
               "description": {
                 "age": 0,
@@ -2601,7 +2601,7 @@
       "test_class": "ApiGetHuntApprovalHandlerRegressionTest",
       "type_stripped_response": {
         "approvers": [
-          "test"
+          "api_test_user"
         ],
         "email_cc_addresses": [],
         "id": "approval:111111",
@@ -2615,7 +2615,7 @@
           "client_limit": 100,
           "client_rate": 0,
           "created": 42000000,
-          "creator": "test",
+          "creator": "api_test_user",
           "description": "hunt1",
           "expires": 1209642000000,
           "is_robot": false,
@@ -2626,7 +2626,7 @@
           "urn": "aff4:/hunts/H:123456"
         }
       },
-      "url": "/api/users/test/approvals/hunt/H:123456/approval:111111"
+      "url": "/api/users/api_test_user/approvals/hunt/H:123456/approval:111111"
     },
     {
       "api_method": "GetHuntApproval",
@@ -2639,12 +2639,12 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "approver"
+              "value": "api_test_user"
             },
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "approver"
             }
           ],
           "email_cc_addresses": [],
@@ -2692,7 +2692,7 @@
               "creator": {
                 "age": 0,
                 "type": "unicode",
-                "value": "test"
+                "value": "api_test_user"
               },
               "description": {
                 "age": 0,
@@ -2741,8 +2741,8 @@
       "test_class": "ApiGetHuntApprovalHandlerRegressionTest",
       "type_stripped_response": {
         "approvers": [
-          "approver",
-          "test"
+          "api_test_user",
+          "approver"
         ],
         "email_cc_addresses": [],
         "id": "approval:222222",
@@ -2755,7 +2755,7 @@
           "client_limit": 100,
           "client_rate": 0,
           "created": 42000000,
-          "creator": "test",
+          "creator": "api_test_user",
           "description": "hunt2",
           "expires": 1209642000000,
           "is_robot": false,
@@ -2766,7 +2766,7 @@
           "urn": "aff4:/hunts/H:567890"
         }
       },
-      "url": "/api/users/test/approvals/hunt/H:567890/approval:222222"
+      "url": "/api/users/api_test_user/approvals/hunt/H:567890/approval:222222"
     }
   ],
   "ApiGetHuntClientCompletionStatsHandler": [
@@ -3094,7 +3094,7 @@
           "creator": {
             "age": 0,
             "type": "unicode",
-            "value": "test"
+            "value": "api_test_user"
           },
           "description": {
             "age": 0,
@@ -3106,44 +3106,32 @@
             "type": "RDFDatetime",
             "value": 1209642000000
           },
-          "hunt_args": {
+          "flow_args": {
             "age": 0,
-            "type": "GenericHuntArgs",
+            "type": "GetFileArgs",
             "value": {
-              "flow_args": {
+              "pathspec": {
                 "age": 0,
-                "type": "GetFileArgs",
+                "type": "PathSpec",
                 "value": {
-                  "pathspec": {
-                    "age": 0,
-                    "type": "PathSpec",
-                    "value": {
-                      "path": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "/tmp/evil.txt"
-                      },
-                      "pathtype": {
-                        "age": 0,
-                        "type": "EnumNamedValue",
-                        "value": "OS"
-                      }
-                    }
-                  }
-                }
-              },
-              "flow_runner_args": {
-                "age": 0,
-                "type": "FlowRunnerArgs",
-                "value": {
-                  "flow_name": {
+                  "path": {
                     "age": 0,
                     "type": "unicode",
-                    "value": "GetFile"
+                    "value": "/tmp/evil.txt"
+                  },
+                  "pathtype": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "OS"
                   }
                 }
               }
             }
+          },
+          "flow_name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "GetFile"
           },
           "hunt_runner_args": {
             "age": 0,
@@ -3211,7 +3199,7 @@
                   "username": {
                     "age": 0,
                     "type": "unicode",
-                    "value": "test"
+                    "value": "api_test_user"
                   }
                 }
               }
@@ -3272,20 +3260,16 @@
         },
         "completed_clients_count": 0,
         "created": 42000000,
-        "creator": "test",
+        "creator": "api_test_user",
         "description": "the hunt",
         "expires": 1209642000000,
-        "hunt_args": {
-          "flow_args": {
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
-          },
-          "flow_runner_args": {
-            "flow_name": "GetFile"
+        "flow_args": {
+          "pathspec": {
+            "path": "/tmp/evil.txt",
+            "pathtype": "OS"
           }
         },
+        "flow_name": "GetFile",
         "hunt_runner_args": {
           "client_rate": 0.0,
           "client_rule_set": {
@@ -3303,7 +3287,7 @@
           "hunt_name": "GenericHunt",
           "token": {
             "reason": "Running tests",
-            "username": "test"
+            "username": "api_test_user"
           }
         },
         "is_robot": false,
@@ -3322,7 +3306,7 @@
       "api_method": "GetHuntResultsExportCommand",
       "method": "GET",
       "response": {
-        "command": "/usr/bin/grr_export --username test collection_files --path aff4:/hunts/H:123456/Results --output ."
+        "command": "/usr/bin/grr_export --username api_test_user collection_files --path aff4:/hunts/H:123456/Results --output ."
       },
       "test_class": "ApiGetHuntResultsExportCommandHandlerRegressionTest",
       "url": "/api/hunts/H:123456/results/export-command"
@@ -7153,12 +7137,12 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "requestor"
+              "value": "api_test_user"
             },
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "requestor"
             }
           ],
           "email_cc_addresses": [],
@@ -7176,7 +7160,7 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "api_test_user"
             }
           ],
           "reason": {
@@ -7267,14 +7251,14 @@
       "test_class": "ApiGrantClientApprovalHandlerRegressionTest",
       "type_stripped_response": {
         "approvers": [
-          "requestor",
-          "test"
+          "api_test_user",
+          "requestor"
         ],
         "email_cc_addresses": [],
         "id": "approval:111111",
         "is_valid": true,
         "notified_users": [
-          "test"
+          "api_test_user"
         ],
         "reason": "foo",
         "subject": {
@@ -7315,12 +7299,12 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "requestor"
+              "value": "api_test_user"
             },
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "requestor"
             }
           ],
           "email_cc_addresses": [],
@@ -7338,7 +7322,7 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "api_test_user"
             }
           ],
           "reason": {
@@ -7397,14 +7381,14 @@
       "test_class": "ApiGrantCronJobApprovalHandlerRegressionTest",
       "type_stripped_response": {
         "approvers": [
-          "requestor",
-          "test"
+          "api_test_user",
+          "requestor"
         ],
         "email_cc_addresses": [],
         "id": "approval:111111",
         "is_valid": true,
         "notified_users": [
-          "test"
+          "api_test_user"
         ],
         "reason": "foo",
         "subject": {
@@ -7433,12 +7417,12 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "requestor"
+              "value": "api_test_user"
             },
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "requestor"
             }
           ],
           "email_cc_addresses": [],
@@ -7456,7 +7440,7 @@
             {
               "age": 0,
               "type": "unicode",
-              "value": "test"
+              "value": "api_test_user"
             }
           ],
           "reason": {
@@ -7486,7 +7470,7 @@
               "creator": {
                 "age": 0,
                 "type": "unicode",
-                "value": "test"
+                "value": "api_test_user"
               },
               "description": {
                 "age": 0,
@@ -7535,21 +7519,21 @@
       "test_class": "ApiGrantHuntApprovalHandlerRegressionTest",
       "type_stripped_response": {
         "approvers": [
-          "requestor",
-          "test"
+          "api_test_user",
+          "requestor"
         ],
         "email_cc_addresses": [],
         "id": "approval:111111",
         "is_valid": true,
         "notified_users": [
-          "test"
+          "api_test_user"
         ],
         "reason": "foo",
         "subject": {
           "client_limit": 100,
           "client_rate": 0,
           "created": 42000000,
-          "creator": "test",
+          "creator": "api_test_user",
           "description": "a hunt",
           "expires": 1209642000000,
           "is_robot": false,
@@ -8167,7 +8151,7 @@
                     "last_lease": {
                       "age": 0,
                       "type": "unicode",
-                      "value": "test@test.host:42"
+                      "value": "api_test_user@test.host:42"
                     },
                     "name": {
                       "age": 0,
@@ -8267,7 +8251,7 @@
                 "auth_state": "AUTHENTICATED",
                 "cpu_limit": 7200.0,
                 "eta": 42000000,
-                "last_lease": "test@test.host:42",
+                "last_lease": "api_test_user@test.host:42",
                 "name": "ListProcesses",
                 "payload": {
                   "status": "GENERIC_ERROR"
@@ -8307,12 +8291,12 @@
                 {
                   "age": 0,
                   "type": "unicode",
-                  "value": "approver"
+                  "value": "api_test_user"
                 },
                 {
                   "age": 0,
                   "type": "unicode",
-                  "value": "test"
+                  "value": "approver"
                 }
               ],
               "email_cc_addresses": [],
@@ -8426,7 +8410,7 @@
                 {
                   "age": 0,
                   "type": "unicode",
-                  "value": "test"
+                  "value": "api_test_user"
                 }
               ],
               "email_cc_addresses": [],
@@ -8544,8 +8528,8 @@
         "items": [
           {
             "approvers": [
-              "approver",
-              "test"
+              "api_test_user",
+              "approver"
             ],
             "email_cc_addresses": [],
             "id": "approval:222222",
@@ -8579,7 +8563,7 @@
           },
           {
             "approvers": [
-              "test"
+              "api_test_user"
             ],
             "email_cc_addresses": [],
             "id": "approval:111111",
@@ -8629,7 +8613,7 @@
                 {
                   "age": 0,
                   "type": "unicode",
-                  "value": "test"
+                  "value": "api_test_user"
                 }
               ],
               "email_cc_addresses": [],
@@ -8747,7 +8731,7 @@
         "items": [
           {
             "approvers": [
-              "test"
+              "api_test_user"
             ],
             "email_cc_addresses": [],
             "id": "approval:111111",
@@ -8995,7 +8979,7 @@
               "creator": {
                 "age": 0,
                 "type": "unicode",
-                "value": "test"
+                "value": "api_test_user"
               },
               "flow_id": {
                 "age": 0,
@@ -9039,7 +9023,7 @@
                       "username": {
                         "age": 0,
                         "type": "unicode",
-                        "value": "test"
+                        "value": "api_test_user"
                       }
                     }
                   }
@@ -9069,7 +9053,7 @@
         "items": [
           {
             "args": {},
-            "creator": "test",
+            "creator": "api_test_user",
             "flow_id": "F:ABCDEF11",
             "last_active_at": 44000000,
             "name": "GRRVersionBreakDown",
@@ -9079,7 +9063,7 @@
               "flow_name": "GRRVersionBreakDown",
               "token": {
                 "reason": "Running tests",
-                "username": "test"
+                "username": "api_test_user"
               }
             },
             "started_at": 44000000,
@@ -10281,7 +10265,7 @@
                       "expiry": {
                         "age": 0,
                         "type": "RDFDatetime",
-                        "value": 32427003069000000
+                        "value": 32409072000000000
                       },
                       "reason": {
                         "age": 0,
@@ -10291,7 +10275,7 @@
                       "username": {
                         "age": 0,
                         "type": "unicode",
-                        "value": "test"
+                        "value": "api_test_user"
                       }
                     }
                   }
@@ -10324,9 +10308,9 @@
               "output_base_urn": "aff4:/C.1000000000000000/flows/W:ABCDEF/PluginOutput",
               "source_urn": "aff4:/C.1000000000000000/flows/W:ABCDEF/Results",
               "token": {
-                "expiry": 32427003069000000,
+                "expiry": 32409072000000000,
                 "reason": "Running tests",
-                "username": "test"
+                "username": "api_test_user"
               }
             }
           }
@@ -10445,7 +10429,7 @@
                     "last_lease": {
                       "age": 0,
                       "type": "unicode",
-                      "value": "test@test.host:42"
+                      "value": "api_test_user@test.host:42"
                     },
                     "name": {
                       "age": 0,
@@ -10546,7 +10530,7 @@
                 "auth_state": "AUTHENTICATED",
                 "cpu_limit": 7200.0,
                 "eta": 42000000,
-                "last_lease": "test@test.host:42",
+                "last_lease": "api_test_user@test.host:42",
                 "name": "ListProcesses",
                 "payload": {
                   "status": "GENERIC_ERROR"
@@ -10719,7 +10703,7 @@
               "creator": {
                 "age": 0,
                 "type": "unicode",
-                "value": "test"
+                "value": "api_test_user"
               },
               "flow_id": {
                 "age": 0,
@@ -10763,7 +10747,7 @@
                       "username": {
                         "age": 0,
                         "type": "unicode",
-                        "value": "test"
+                        "value": "api_test_user"
                       }
                     }
                   }
@@ -10798,7 +10782,7 @@
               "creator": {
                 "age": 0,
                 "type": "unicode",
-                "value": "test"
+                "value": "api_test_user"
               },
               "flow_id": {
                 "age": 0,
@@ -10842,7 +10826,7 @@
                       "username": {
                         "age": 0,
                         "type": "unicode",
-                        "value": "test"
+                        "value": "api_test_user"
                       }
                     }
                   }
@@ -10872,7 +10856,7 @@
         "items": [
           {
             "args": {},
-            "creator": "test",
+            "creator": "api_test_user",
             "flow_id": "F:ABCDEF11",
             "last_active_at": 44000000,
             "name": "ListProcesses",
@@ -10882,7 +10866,7 @@
               "flow_name": "ListProcesses",
               "token": {
                 "reason": "Running tests",
-                "username": "test"
+                "username": "api_test_user"
               }
             },
             "started_at": 44000000,
@@ -10891,7 +10875,7 @@
           },
           {
             "args": {},
-            "creator": "test",
+            "creator": "api_test_user",
             "flow_id": "F:ABCDEF10",
             "last_active_at": 43000000,
             "name": "Interrogate",
@@ -10901,7 +10885,7 @@
               "flow_name": "Interrogate",
               "token": {
                 "reason": "Running tests",
-                "username": "test"
+                "username": "api_test_user"
               }
             },
             "started_at": 43000000,
@@ -11039,7 +11023,7 @@
                 {
                   "age": 0,
                   "type": "unicode",
-                  "value": "test"
+                  "value": "api_test_user"
                 }
               ],
               "email_cc_addresses": [],
@@ -11092,7 +11076,7 @@
                   "creator": {
                     "age": 0,
                     "type": "unicode",
-                    "value": "test"
+                    "value": "api_test_user"
                   },
                   "description": {
                     "age": 0,
@@ -11145,7 +11129,7 @@
         "items": [
           {
             "approvers": [
-              "test"
+              "api_test_user"
             ],
             "email_cc_addresses": [],
             "id": "approval:112233",
@@ -11159,7 +11143,7 @@
               "client_limit": 100,
               "client_rate": 20,
               "created": 42000000,
-              "creator": "test",
+              "creator": "api_test_user",
               "description": "",
               "expires": 1209642000000,
               "is_robot": false,
@@ -12917,7 +12901,7 @@
                       "username": {
                         "age": 0,
                         "type": "unicode",
-                        "value": "test"
+                        "value": "api_test_user"
                       }
                     }
                   }
@@ -12949,7 +12933,7 @@
               "source_urn": "aff4:/hunts/H:123456/Results",
               "token": {
                 "reason": "Running tests",
-                "username": "test"
+                "username": "api_test_user"
               }
             }
           }
@@ -13183,7 +13167,7 @@
               "creator": {
                 "age": 0,
                 "type": "unicode",
-                "value": "test"
+                "value": "api_test_user"
               },
               "description": {
                 "age": 0,
@@ -13249,7 +13233,7 @@
               "creator": {
                 "age": 0,
                 "type": "unicode",
-                "value": "test"
+                "value": "api_test_user"
               },
               "description": {
                 "age": 0,
@@ -13303,7 +13287,7 @@
             "client_limit": 100,
             "client_rate": 0,
             "created": 2000000000,
-            "creator": "test",
+            "creator": "api_test_user",
             "description": "hunt_1",
             "expires": 1211600000000,
             "is_robot": false,
@@ -13317,7 +13301,7 @@
             "client_limit": 100,
             "client_rate": 0,
             "created": 1000000000,
-            "creator": "test",
+            "creator": "api_test_user",
             "description": "hunt_0",
             "expires": 1210600000000,
             "is_robot": false,
@@ -13359,7 +13343,7 @@
               "creator": {
                 "age": 0,
                 "type": "unicode",
-                "value": "test"
+                "value": "api_test_user"
               },
               "description": {
                 "age": 0,
@@ -13413,7 +13397,7 @@
             "client_limit": 100,
             "client_rate": 0,
             "created": 2000000000,
-            "creator": "test",
+            "creator": "api_test_user",
             "description": "hunt_1",
             "expires": 1211600000000,
             "is_robot": false,
@@ -13455,7 +13439,7 @@
               "creator": {
                 "age": 0,
                 "type": "unicode",
-                "value": "test"
+                "value": "api_test_user"
               },
               "description": {
                 "age": 0,
@@ -13509,7 +13493,7 @@
             "client_limit": 100,
             "client_rate": 0,
             "created": 1000000000,
-            "creator": "test",
+            "creator": "api_test_user",
             "description": "hunt_0",
             "expires": 1210600000000,
             "is_robot": false,
@@ -14875,7 +14859,7 @@
           "creator": {
             "age": 0,
             "type": "unicode",
-            "value": "test"
+            "value": "api_test_user"
           },
           "description": {
             "age": 0,
@@ -14887,44 +14871,32 @@
             "type": "RDFDatetime",
             "value": 1209642000000
           },
-          "hunt_args": {
+          "flow_args": {
             "age": 0,
-            "type": "GenericHuntArgs",
+            "type": "GetFileArgs",
             "value": {
-              "flow_args": {
+              "pathspec": {
                 "age": 0,
-                "type": "GetFileArgs",
+                "type": "PathSpec",
                 "value": {
-                  "pathspec": {
-                    "age": 0,
-                    "type": "PathSpec",
-                    "value": {
-                      "path": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "/tmp/evil.txt"
-                      },
-                      "pathtype": {
-                        "age": 0,
-                        "type": "EnumNamedValue",
-                        "value": "OS"
-                      }
-                    }
-                  }
-                }
-              },
-              "flow_runner_args": {
-                "age": 0,
-                "type": "FlowRunnerArgs",
-                "value": {
-                  "flow_name": {
+                  "path": {
                     "age": 0,
                     "type": "unicode",
-                    "value": "GetFile"
+                    "value": "/tmp/evil.txt"
+                  },
+                  "pathtype": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "OS"
                   }
                 }
               }
             }
+          },
+          "flow_name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "GetFile"
           },
           "hunt_runner_args": {
             "age": 0,
@@ -14997,7 +14969,7 @@
                   "username": {
                     "age": 0,
                     "type": "unicode",
-                    "value": "test"
+                    "value": "api_test_user"
                   }
                 }
               }
@@ -15058,20 +15030,16 @@
         },
         "completed_clients_count": 0,
         "created": 42000000,
-        "creator": "test",
+        "creator": "api_test_user",
         "description": "the hunt",
         "expires": 1209642000000,
-        "hunt_args": {
-          "flow_args": {
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
-          },
-          "flow_runner_args": {
-            "flow_name": "GetFile"
+        "flow_args": {
+          "pathspec": {
+            "path": "/tmp/evil.txt",
+            "pathtype": "OS"
           }
         },
+        "flow_name": "GetFile",
         "hunt_runner_args": {
           "client_limit": 142,
           "client_rate": 0.0,
@@ -15090,7 +15058,7 @@
           "hunt_name": "GenericHunt",
           "token": {
             "reason": "Running tests",
-            "username": "test"
+            "username": "api_test_user"
           }
         },
         "is_robot": false,
@@ -15176,7 +15144,7 @@
           "creator": {
             "age": 0,
             "type": "unicode",
-            "value": "test"
+            "value": "api_test_user"
           },
           "description": {
             "age": 0,
@@ -15188,44 +15156,32 @@
             "type": "RDFDatetime",
             "value": 1209642000000
           },
-          "hunt_args": {
+          "flow_args": {
             "age": 0,
-            "type": "GenericHuntArgs",
+            "type": "GetFileArgs",
             "value": {
-              "flow_args": {
+              "pathspec": {
                 "age": 0,
-                "type": "GetFileArgs",
+                "type": "PathSpec",
                 "value": {
-                  "pathspec": {
-                    "age": 0,
-                    "type": "PathSpec",
-                    "value": {
-                      "path": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "/tmp/evil.txt"
-                      },
-                      "pathtype": {
-                        "age": 0,
-                        "type": "EnumNamedValue",
-                        "value": "OS"
-                      }
-                    }
-                  }
-                }
-              },
-              "flow_runner_args": {
-                "age": 0,
-                "type": "FlowRunnerArgs",
-                "value": {
-                  "flow_name": {
+                  "path": {
                     "age": 0,
                     "type": "unicode",
-                    "value": "GetFile"
+                    "value": "/tmp/evil.txt"
+                  },
+                  "pathtype": {
+                    "age": 0,
+                    "type": "EnumNamedValue",
+                    "value": "OS"
                   }
                 }
               }
             }
+          },
+          "flow_name": {
+            "age": 0,
+            "type": "unicode",
+            "value": "GetFile"
           },
           "hunt_runner_args": {
             "age": 0,
@@ -15298,7 +15254,7 @@
                   "username": {
                     "age": 0,
                     "type": "unicode",
-                    "value": "test"
+                    "value": "api_test_user"
                   }
                 }
               }
@@ -15359,20 +15315,16 @@
         },
         "completed_clients_count": 0,
         "created": 42000000,
-        "creator": "test",
+        "creator": "api_test_user",
         "description": "the hunt",
         "expires": 1209642000000,
-        "hunt_args": {
-          "flow_args": {
-            "pathspec": {
-              "path": "/tmp/evil.txt",
-              "pathtype": "OS"
-            }
-          },
-          "flow_runner_args": {
-            "flow_name": "GetFile"
+        "flow_args": {
+          "pathspec": {
+            "path": "/tmp/evil.txt",
+            "pathtype": "OS"
           }
         },
+        "flow_name": "GetFile",
         "hunt_runner_args": {
           "client_limit": 142,
           "client_rate": 0.0,
@@ -15391,7 +15343,7 @@
           "hunt_name": "GenericHunt",
           "token": {
             "reason": "Running tests",
-            "username": "test"
+            "username": "api_test_user"
           }
         },
         "is_robot": false,

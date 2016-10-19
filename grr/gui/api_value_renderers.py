@@ -17,7 +17,6 @@ from grr.gui.api_plugins import stats as api_stats
 from grr.lib import aff4
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import type_info
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -347,15 +346,6 @@ class ApiRDFIntegerRenderer(ApiValueRenderer):
     return self._IncludeTypeInfo(result, value)
 
 
-class ApiFlowStateRenderer(ApiValueRenderer):
-  """Renderer for FlowState."""
-
-  value_class = rdf_flows.FlowState
-
-  def RenderValue(self, value):
-    return self._PassThrough(value.data)
-
-
 class ApiDataBlobRenderer(ApiValueRenderer):
   """Renderer for DataBlob."""
 
@@ -463,7 +453,7 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
         kind="STRUCT")
 
     for field_desc in value_cls.type_infos:
-      repeated = isinstance(field_desc, type_info.ProtoList)
+      repeated = isinstance(field_desc, rdf_structs.ProtoList)
       if hasattr(field_desc, "delegate"):
         field_desc = field_desc.delegate
 
@@ -471,7 +461,7 @@ class ApiRDFProtoStructRenderer(ApiValueRenderer):
           name=field_desc.name,
           index=field_desc.field_number,
           repeated=repeated,
-          dynamic=isinstance(field_desc, type_info.ProtoDynamicEmbedded))
+          dynamic=isinstance(field_desc, rdf_structs.ProtoDynamicEmbedded))
 
       field_type = field_desc.type
       if field_type is not None:

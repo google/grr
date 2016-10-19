@@ -64,20 +64,14 @@ class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
 
     def ReadAFF4Object():
       fd = aff4.FACTORY.Open(
-          "C.1234567812345678",
-          token=self.token,
-          ignore_cache=True,
-          age=aff4.ALL_TIMES)
+          "C.1234567812345678", token=self.token, age=aff4.ALL_TIMES)
       self.assertEqual(fd.Get(fd.Schema.HOSTNAME), "Foobar")
 
     self.TimeIt(ReadAFF4Object, name="Read attribute from AFF4Object")
 
     def ReadVersionedAFF4Attribute():
       fd = aff4.FACTORY.Open(
-          "C.1234567812345678",
-          token=self.token,
-          ignore_cache=True,
-          age=aff4.ALL_TIMES)
+          "C.1234567812345678", token=self.token, age=aff4.ALL_TIMES)
       for x in fd.GetValuesForAttribute(fd.Schema.CLIENT_INFO):
         self.assertEqual(x.client_name, "GRR")
 
@@ -86,10 +80,7 @@ class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
 
     def ReadSomeVersionedAFF4Attribute():
       fd = aff4.FACTORY.Open(
-          "C.1234567812345678",
-          token=self.token,
-          ignore_cache=True,
-          age=aff4.ALL_TIMES)
+          "C.1234567812345678", token=self.token, age=aff4.ALL_TIMES)
 
       # Only read the top 5 attributes.
       for i, x in enumerate(fd.GetValuesForAttribute(fd.Schema.CLIENT_INFO)):
@@ -103,10 +94,7 @@ class AFF4Benchmark(test_lib.AverageMicroBenchmarks):
     # Using Get() on a multi versioned object should only parse one value.
     def ReadAVersionedAFF4Attribute():
       fd = aff4.FACTORY.Open(
-          "C.1234567812345678",
-          token=self.token,
-          ignore_cache=True,
-          age=aff4.ALL_TIMES)
+          "C.1234567812345678", token=self.token, age=aff4.ALL_TIMES)
 
       x = fd.Get(fd.Schema.CLIENT_INFO)
       self.assertEqual(x.client_name, "GRR")

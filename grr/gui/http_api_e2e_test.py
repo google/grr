@@ -16,6 +16,7 @@ import logging
 
 from grr.gui import api_auth_manager
 from grr.gui import runtests
+from grr.gui import webauth
 from grr.gui.api_client import api as grr_api
 from grr.lib import action_mocks
 from grr.lib import aff4
@@ -304,7 +305,7 @@ router_params:
       - "/**/*.plist"
   robot_id: "TheRobot"
 users:
-  - "test"
+  - "%s"
 """
 
   def InitRouterConfig(self, router_config):
@@ -324,20 +325,24 @@ users:
   def setUp(self):
     super(ApiCallRobotRouterE2ETest, self).setUp()
     self.client_id = self.SetupClients(1)[0]
+    self.token.username = "api_test_robot_user"
+    webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
 
   def tearDown(self):
     super(ApiCallRobotRouterE2ETest, self).tearDown()
     self.config_overrider.Stop()
 
   def testCreatingArbitraryFlowDoesNotWork(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG)
+    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
+                          self.token.username)
 
     client_ref = self.api.Client(client_id=self.client_id.Basename())
     with self.assertRaises(RuntimeError):
       client_ref.CreateFlow(name=processes.ListProcesses.__name__)
 
   def testFileFinderWorkflowWorks(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG)
+    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
+                          self.token.username)
 
     client_ref = self.api.Client(client_id=self.client_id.Basename())
 
@@ -365,8 +370,8 @@ users:
     self.assertEqual(flow_obj.data.state, flow_obj.data.TERMINATED)
 
   def testCheckingArbitraryFlowStateDoesNotWork(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG)
-
+    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
+                          self.token.username)
     flow_urn = flow.GRRFlow.StartFlow(
         client_id=self.client_id,
         flow_name=file_finder.FileFinder.__name__,
@@ -378,7 +383,8 @@ users:
       flow_ref.Get()
 
   def testNoThrottlingDoneByDefault(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG)
+    self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
+                          self.token.username)
 
     args = file_finder.FileFinderArgs(
         action=file_finder.FileFinderAction(action_type="STAT"),
@@ -401,11 +407,12 @@ router_params:
     min_interval_between_duplicate_flows: 1h
   robot_id: "TheRobot"
 users:
-  - "test"
+  - "%s"
 """
 
   def testFileFinderThrottlingByFlowCountWorks(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_THROTTLED_ROUTER_CONFIG)
+    self.InitRouterConfig(self.__class__.FILE_FINDER_THROTTLED_ROUTER_CONFIG %
+                          self.token.username)
 
     args = []
     for p in ["tests.plist", "numbers.txt", "numbers.txt.ver2"]:
@@ -428,7 +435,8 @@ users:
       client_ref.CreateFlow(name=file_finder.FileFinder.__name__, args=args[2])
 
   def testFileFinderThrottlingByDuplicateIntervalWorks(self):
-    self.InitRouterConfig(self.__class__.FILE_FINDER_THROTTLED_ROUTER_CONFIG)
+    self.InitRouterConfig(self.__class__.FILE_FINDER_THROTTLED_ROUTER_CONFIG %
+                          self.token.username)
 
     args = file_finder.FileFinderArgs(
         action=file_finder.FileFinderAction(action_type="STAT"),

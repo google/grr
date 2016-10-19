@@ -53,8 +53,8 @@ class MysqlAdvancedDataStoreTest(MysqlAdvancedTestMixin,
   """Test the mysql data store abstraction."""
 
   def testMultiSet(self):
-    cursor = data_store.DB.ExecuteQuery("select @@version")
-    version = cursor[0]["@@version"]
+    results, _ = data_store.DB.ExecuteQuery("select @@version")
+    version = results[0]["@@version"]
     # Extract ["5", "5", "..."] for "5.5.46-0ubuntu0.14.04.2".
     version_major, version_minor = version.split(".", 2)[:2]
     if (int(version_major) < 5 or

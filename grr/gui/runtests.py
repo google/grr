@@ -1,7 +1,6 @@
 #!/usr/bin/env python
 """This is a selenium test harness used interactively with Selenium IDE."""
 
-import copy
 import socket
 import threading
 from wsgiref import simple_server
@@ -14,6 +13,8 @@ from grr.gui import django_lib
 # pylint: enable=g-bad-import-order
 
 from grr.lib import access_control
+from grr.lib import aff4
+from grr.lib import client_index
 from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flags
@@ -21,6 +22,8 @@ from grr.lib import ipshell
 from grr.lib import registry
 from grr.lib import startup
 from grr.lib import test_lib
+from grr.lib.aff4_objects import aff4_grr
+from grr.lib.rdfvalues import client as rdf_client
 
 
 class DjangoThread(threading.Thread):
@@ -75,34 +78,22 @@ class RunTestsInit(registry.InitHook):
     # mode.
     data_store.DB.security_manager = test_lib.MockSecurityManager()
     self.token = access_control.ACLToken(
-        username="Test", reason="Make fixtures.")
+        username="test", reason="Make fixtures.")
     self.token = self.token.SetUID()
 
-    if data_store.DB.__class__.__name__ == "FakeDataStore":
-      self.RestoreFixtureFromCache()
-    else:
-      self.BuildFixture()
+    self.BuildFixture()
 
   def BuildFixture(self):
-    logging.info("Making fixtures")
-
-    # Make 10 clients
-    for i in range(0, 10):
-      test_lib.ClientFixture("C.%016X" % i, token=self.token)
-
-  def RestoreFixtureFromCache(self):
-    """Restores test fixture (by building it or using a cached version)."""
-    if RunTestsInit.fixture_cache is None:
-      # Make a data store snapshot.
-      db = data_store.DB.subjects
-      data_store.DB.subjects = {}
-
-      self.BuildFixture()
-      (RunTestsInit.fixture_cache,
-       data_store.DB.subjects) = (data_store.DB.subjects, db)
-
-    # Restore the fixture from the cache
-    data_store.DB.subjects.update(copy.deepcopy(RunTestsInit.fixture_cache))
+    for i in range(10):
+      client_id = rdf_client.ClientURN("C.%016X" % i)
+      with aff4.FACTORY.Create(
+          client_id, aff4_grr.VFSGRRClient, mode="rw",
+          token=self.token) as client_obj:
+        aff4.FACTORY.Create(
+            client_index.MAIN_INDEX,
+            aff4_type=client_index.ClientIndex,
+            mode="rw",
+            token=self.token).AddClient(client_obj)
 
 
 class TestPluginInit(registry.InitHook):
@@ -111,7 +102,6 @@ class TestPluginInit(registry.InitHook):
 
   def RunOnce(self):
     # pylint: disable=unused-variable,g-import-not-at-top
-    from grr.gui import gui_testonly_plugins
     from grr.gui.plugins import tests
     # pylint: enable=unused-variable,g-import-not-at-top
 

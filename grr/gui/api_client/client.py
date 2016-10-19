@@ -65,7 +65,7 @@ class ClientApproval(ClientApprovalBase):
       raise ValueError("data can't be None")
 
     super(ClientApproval, self).__init__(
-        client_id=utils.UrnToClientId(data.subject.urn),
+        client_id=utils.UrnStringToClientId(data.subject.urn),
         approval_id=data.id,
         username=username,
         context=context)
@@ -190,7 +190,7 @@ class Client(ClientBase):
       raise ValueError("data can't be None")
 
     super(Client, self).__init__(
-        client_id=utils.UrnToClientId(data.urn), context=context)
+        client_id=utils.UrnStringToClientId(data.urn), context=context)
 
     self.data = data
 

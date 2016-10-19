@@ -15,29 +15,29 @@ class StructGrrMessage(rdf_structs.RDFProtoStruct):
   """A serialization agnostic GrrMessage."""
 
   type_description = type_info.TypeDescriptorSet(
-      type_info.ProtoString(
+      rdf_structs.ProtoString(
           name="session_id",
           field_number=1,
           description="Every Flow has a unique session id."),
-      type_info.ProtoUnsignedInteger(
+      rdf_structs.ProtoUnsignedInteger(
           name="request_id",
           field_number=2,
           description="This message is in response to this request number"),
-      type_info.ProtoUnsignedInteger(
+      rdf_structs.ProtoUnsignedInteger(
           name="response_id",
           field_number=3,
           description="Responses for each request."),
-      type_info.ProtoString(
+      rdf_structs.ProtoString(
           name="name",
           field_number=4,
           description=("This is the name of the client action that will be "
                        "executed. It is set by the flow and is executed by "
                        "the client.")),
-      type_info.ProtoBinary(
+      rdf_structs.ProtoBinary(
           name="args",
           field_number=5,
           description="This field contains an encoded rdfvalue."),
-      type_info.ProtoString(
+      rdf_structs.ProtoString(
           name="source",
           field_number=6,
           description=("Client name where the message came from (This is "
@@ -48,8 +48,8 @@ class FastGrrMessageList(rdf_structs.RDFProtoStruct):
   """A Faster implementation of GrrMessageList."""
 
   type_description = type_info.TypeDescriptorSet(
-      type_info.ProtoList(
-          type_info.ProtoEmbedded(
+      rdf_structs.ProtoList(
+          rdf_structs.ProtoEmbedded(
               name="job", field_number=1, nested=StructGrrMessage)))
 
 

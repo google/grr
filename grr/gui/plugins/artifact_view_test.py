@@ -36,22 +36,27 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
                                        "artifacts", "test_artifacts.json")
     artifact_registry.REGISTRY.AddFileSource(test_artifacts_file)
 
+  def setUp(self):
+    super(TestArtifactRender, self).setUp()
+    with self.ACLChecksDisabled():
+      self.client_id = self.SetupClients(1, system="linux")[0]
+      self.RequestAndGrantClientApproval(self.client_id)
+
   def testArtifactRendering(self):
     with self.ACLChecksDisabled():
       self._LoadSystemArtifacts()
-      self.RequestAndGrantClientApproval("C.0000000000000001")
 
     self.Open("/")
-    self.Type("client_query", "C.0000000000000001")
+
+    self.Type("client_query", self.client_id.Basename())
     self.Click("client_query_submit")
 
-    self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
-                        "css=span[type=subject]")
+    self.WaitUntilEqual(self.client_id, self.GetText, "css=span[type=subject]")
     # Choose client 1
-    self.Click("css=td:contains('0001')")
+    self.Click("css=td:contains('%s')" % self.client_id.Basename())
 
     # First screen should be the Host Information already.
-    self.WaitUntil(self.IsTextPresent, "HostC.0000000000000001")
+    self.WaitUntil(self.IsTextPresent, "Host-0")
     self.Click("css=a[grrtarget='client.launchFlows']")
     self.Click("css=#_Collectors")
 
@@ -86,9 +91,8 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
   def testSystemArtifactsAreNotMarkedInStartFlowForm(self):
     with self.ACLChecksDisabled():
       self._LoadSystemArtifacts()
-      self.RequestAndGrantClientApproval("C.0000000000000001")
 
-    self.Open("/#/clients/C.0000000000000001/launch-flow")
+    self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
     self.Click("css=#_Collectors")
     self.Click("link=ArtifactCollectorFlow")
 
@@ -99,9 +103,8 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
   def testCustomArtifactsAreMarkedInStartFlowForm(self):
     with self.ACLChecksDisabled():
       self._UploadCustomArtifacts()
-      self.RequestAndGrantClientApproval("C.0000000000000001")
 
-    self.Open("/#/clients/C.0000000000000001/launch-flow")
+    self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
     self.Click("css=#_Collectors")
     self.Click("link=ArtifactCollectorFlow")
 
@@ -111,9 +114,8 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
   def testSystemArtifactsAreNotMarkedInFlowArguments(self):
     with self.ACLChecksDisabled():
       self._UploadCustomArtifacts()
-      self.RequestAndGrantClientApproval("C.0000000000000001")
 
-    self.Open("/#/clients/C.0000000000000001/launch-flow")
+    self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
     self.Click("css=#_Collectors")
     self.Click("link=ArtifactCollectorFlow")
 
@@ -128,9 +130,8 @@ class TestArtifactRender(test_lib.GRRSeleniumTest):
   def testCustomArtifactsAreMarkedInFlowArguments(self):
     with self.ACLChecksDisabled():
       self._UploadCustomArtifacts()
-      self.RequestAndGrantClientApproval("C.0000000000000001")
 
-    self.Open("/#/clients/C.0000000000000001/launch-flow")
+    self.Open("/#/clients/%s/launch-flow" % self.client_id.Basename())
     self.Click("css=#_Collectors")
     self.Click("link=ArtifactCollectorFlow")
 

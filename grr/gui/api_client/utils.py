@@ -72,7 +72,7 @@ class BinaryChunkIterator(object):
 AFF4_PREFIX = "aff4:/"
 
 
-def UrnToClientId(urn):
+def UrnStringToClientId(urn):
   """Converts given URN string to a client id string."""
   if urn.startswith(AFF4_PREFIX):
     urn = urn[len(AFF4_PREFIX):]
@@ -81,9 +81,15 @@ def UrnToClientId(urn):
   return components[0]
 
 
-def UrnToFlowId(urn):
+def UrnStringToHuntId(urn):
   """Converts given URN string to a flow id string."""
+  if urn.startswith(AFF4_PREFIX):
+    urn = urn[len(AFF4_PREFIX):]
+
   components = urn.split("/")
+  if len(components) != 2 or components[0] != "hunts":
+    raise ValueError("Invalid hunt URN: %s", urn)
+
   return components[-1]
 
 

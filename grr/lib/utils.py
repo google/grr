@@ -336,15 +336,6 @@ class FastStore(object):
 
     self._hash = dict()
 
-  @Synchronized
-  def __getstate__(self):
-    """When pickled the cache is flushed."""
-    self.Flush()
-    return dict(max_size=self._limit)
-
-  def __setstate__(self, state):
-    self.__init__(max_size=state.get("max_size", 10))
-
   def __len__(self):
     return len(self._hash)
 
@@ -417,19 +408,9 @@ class TimeBasedCache(FastStore):
   def Put(self, key, obj):
     super(TimeBasedCache, self).Put(key, [time.time(), obj])
 
-  @Synchronized
-  def __getstate__(self):
-    """When pickled the cache is flushed."""
-    self.Flush()
-    return dict(max_size=self._limit, max_age=self.max_age)
-
-  def __setstate__(self, state):
-    self.__init__(max_size=state["max_size"], max_age=state["max_age"])
-
 
 class Memoize(object):
-  """A decorator to produce a memoizing version of a method.
-  """
+  """A decorator to produce a memoizing version of a method."""
 
   def __init__(self, deep_copy=False):
     """Constructor.
@@ -514,27 +495,6 @@ class MemoizeFunction(object):
         return f.memo_pad[key]
 
     return Wrapped
-
-
-class PickleableLock(object):
-  """A lock which is safe to pickle."""
-
-  lock = None
-
-  def __init__(self):
-    self.lock = threading.RLock()
-
-  def __getstate__(self):
-    return True
-
-  def __setstate__(self, _):
-    self.lock = threading.RLock()
-
-  def __enter__(self):
-    return self.lock.__enter__()
-
-  def __exit__(self, exc_type, exc_value, traceback):
-    return self.lock.__exit__(exc_type, exc_value, traceback)
 
 
 class AgeBasedCache(TimeBasedCache):
@@ -803,6 +763,7 @@ def EncodeReasonString(reason):
 
 def DecodeReasonString(reason):
   return SmartUnicode(base64.urlsafe_b64decode(SmartStr(reason)))
+
 
 # Regex chars that should not be in a regex
 disallowed_chars = re.compile(r"[[\](){}+*?.$^\\]")
@@ -1526,16 +1487,3 @@ def EnsureDirExists(path):
       pass
     else:
       raise
-
-
-# TODO(user): This is obviously terrible but necessary for
-# now. Remove once we don't have to pickle anymore.
-class SlotPickleMixin(object):
-
-  def __getstate__(self):
-    return dict((slot, getattr(self, slot)) for slot in self.__slots__
-                if hasattr(self, slot))
-
-  def __setstate__(self, state):
-    for slot, value in state.items():
-      setattr(self, slot, value)

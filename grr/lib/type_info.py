@@ -105,14 +105,6 @@ class TypeInfoObject(object):
     """Returns a helpful string describing this type info."""
     return "%s = %s\n   %s" % (self.name, self.GetDefault(), self.description)
 
-# TODO(user): We should get rid of this.
-
-# This will register all classes into this modules's namespace regardless of
-# where they are defined. This allows us to decouple the place of definition of
-# a class (which might be in a plugin) from its use which will reference this
-# module.
-TypeInfoObject.classes = globals()
-
 
 class RDFValueType(TypeInfoObject):
   """An arg which must be an RDFValue."""

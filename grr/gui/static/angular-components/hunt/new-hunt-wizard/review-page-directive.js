@@ -14,8 +14,7 @@ goog.scope(function() {
 grrUi.hunt.newHuntWizard.reviewPageDirective.ReviewPageDirective = function() {
   return {
     scope: {
-      genericHuntArgs: '=',
-      huntRunnerArgs: '='
+      createHuntArgs: '='
     },
     restrict: 'E',
     templateUrl: '/static/angular-components/hunt/new-hunt-wizard/' +

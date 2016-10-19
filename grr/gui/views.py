@@ -76,10 +76,6 @@ def Homepage(request):
   # renderers modules names. I.e. if there's a renderers package called
   # grr.gui.plugins.acl_manager, we expect a js files called acl_manager.js.
   renderers_js_files = set([
-      "acl_manager.js",
-      "fileview.js",
-      "foreman.js",
-      "semantic.js",
       "statistics.js",
       "usage.js"
   ])  # pyformat: disable

@@ -190,8 +190,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
 
         stats_fd.Close()
 
-    stat_obj = aff4.FACTORY.Open(
-        urn, age=aff4.ALL_TIMES, token=self.token, ignore_cache=True)
+    stat_obj = aff4.FACTORY.Open(urn, age=aff4.ALL_TIMES, token=self.token)
     stat_entries = list(stat_obj.GetValuesForAttribute(stat_obj.Schema.STATS))
     self.assertEqual(len(stat_entries), 3)
     self.assertTrue(max_age in [e.RSS_size for e in stat_entries])
@@ -201,8 +200,7 @@ class SystemCronFlowTest(test_lib.FlowTestsBaseclass):
           "PurgeClientStats", None, client_id=self.client_id, token=self.token):
         pass
 
-    stat_obj = aff4.FACTORY.Open(
-        urn, age=aff4.ALL_TIMES, token=self.token, ignore_cache=True)
+    stat_obj = aff4.FACTORY.Open(urn, age=aff4.ALL_TIMES, token=self.token)
     stat_entries = list(stat_obj.GetValuesForAttribute(stat_obj.Schema.STATS))
     self.assertEqual(len(stat_entries), 1)
     self.assertTrue(max_age not in [e.RSS_size for e in stat_entries])

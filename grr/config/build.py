@@ -71,6 +71,7 @@ class PathTypeInfo(type_info.String):
   def FromString(self, string):
     return os.path.normpath(string)
 
+
 # PyInstaller build configuration.
 config_lib.DEFINE_option(
     PathTypeInfo(
@@ -213,14 +214,14 @@ config_lib.DEFINE_bool(
     "This aids debugging in windows.")
 
 config_lib.DEFINE_option(
-    type_info.PathTypeInfo(
+    PathTypeInfo(
         name="ClientBuilder.nanny_source_dir",
         must_exist=True,
         default="%(grr.client|module_path)/nanny/",
         help="Path to the windows nanny VS solution file."))
 
 config_lib.DEFINE_option(
-    type_info.PathTypeInfo(
+    PathTypeInfo(
         name="ClientBuilder.nanny_prebuilt_binaries",
         must_exist=False,
         default="%(ClientBuilder.executables_dir)/%(Client.platform)/",
@@ -250,7 +251,7 @@ config_lib.DEFINE_string(
     help="The template file name of the output package.")
 
 config_lib.DEFINE_option(
-    type_info.PathTypeInfo(
+    PathTypeInfo(
         name="ClientBuilder.template_dir",
         must_exist=False,
         default=("%(grr-response-templates@grr-response-templates|resource)/"
@@ -258,7 +259,7 @@ config_lib.DEFINE_option(
         help="The directory holding executable template files."))
 
 config_lib.DEFINE_option(
-    type_info.PathTypeInfo(
+    PathTypeInfo(
         name="ClientBuilder.template_path",
         must_exist=False,
         default=(
@@ -266,14 +267,14 @@ config_lib.DEFINE_option(
         help="The full path to the executable template files for building."))
 
 config_lib.DEFINE_option(
-    type_info.PathTypeInfo(
+    PathTypeInfo(
         name="ClientBuilder.executables_dir",
         must_exist=False,
         default="%(executables|resource)",
         help="The path to the grr executables directory."))
 
 config_lib.DEFINE_option(
-    type_info.PathTypeInfo(
+    PathTypeInfo(
         name="ClientBuilder.unzipsfx_stub_dir",
         must_exist=False,
         default=("%(ClientBuilder.executables_dir)/%(Client.platform)"
@@ -281,7 +282,7 @@ config_lib.DEFINE_option(
         help="The directory that contains the zip self extracting stub."))
 
 config_lib.DEFINE_option(
-    type_info.PathTypeInfo(
+    PathTypeInfo(
         name="ClientBuilder.unzipsfx_stub",
         must_exist=False,
         default=(
@@ -371,13 +372,13 @@ config_lib.DEFINE_string(
     help="The debian package name.")
 
 config_lib.DEFINE_option(
-    type_info.PathTypeInfo(
+    PathTypeInfo(
         name="ClientBuilder.components_source_dir",
         default="%(grr.client.components|module_path)",
         help="The directory that contains the component source."))
 
 config_lib.DEFINE_option(
-    type_info.PathTypeInfo(
+    PathTypeInfo(
         name="ClientBuilder.components_dir",
         must_exist=False,
         default=("%(grr-response-templates@grr-response-templates|resource)"
@@ -503,7 +504,7 @@ config_lib.DEFINE_string(
     help="The base name of the output package.")
 
 config_lib.DEFINE_option(
-    type_info.PathTypeInfo(
+    PathTypeInfo(
         name="ClientRepacker.output_filename",
         must_exist=False,
         default=(
@@ -512,7 +513,7 @@ config_lib.DEFINE_option(
         help="The filename of the generated installer file."))
 
 config_lib.DEFINE_option(
-    type_info.PathTypeInfo(
+    PathTypeInfo(
         name="ClientRepacker.output_path",
         must_exist=False,
         default=("%(ClientBuilder.executables_dir)"

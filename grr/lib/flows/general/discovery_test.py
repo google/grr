@@ -80,7 +80,8 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
     self.assertEqual(len(index.LookupClients(keywords)), expected_count)
 
   def _CheckNotificationsCreated(self):
-    user_fd = aff4.FACTORY.Open("aff4:/users/test", token=self.token)
+    user_fd = aff4.FACTORY.Open(
+        "aff4:/users/%s" % self.token.username, token=self.token)
     notifications = user_fd.Get(user_fd.Schema.PENDING_NOTIFICATIONS)
 
     self.assertEqual(len(notifications), 1)
@@ -208,6 +209,11 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
   def _CheckMemory(self):
     client = aff4.FACTORY.Open(self.client_id, token=self.token)
     self.assertTrue(client.Get(client.Schema.MEMORY_SIZE))
+
+  def setUp(self):
+    super(TestClientInterrogate, self).setUp()
+    # This test checks for notifications so we can't use a system user.
+    self.token.username = "discovery_test_user"
 
   def testInterrogateLinuxWithWtmp(self):
     """Test the Interrogate flow."""

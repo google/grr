@@ -26,7 +26,7 @@ grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective.CreateHuntFromFlowFormC
   this.grrReflectionService_ = grrReflectionService;
 
   /** @type {Object} */
-  this.genericHuntArgs;
+  this.createHuntArgs;
 
   /** @private {Object} */
   this.flow_;
@@ -35,7 +35,7 @@ grrUi.hunt.newHuntWizard.createHuntFromFlowFormDirective.CreateHuntFromFlowFormC
   this.descriptors_ = {};
 
   this.grrReflectionService_.getRDFValueDescriptor(
-      'GenericHuntArgs', true).then(function(descriptors) {
+      'ApiCreateHuntArgs', true).then(function(descriptors) {
     angular.extend(this.descriptors_, descriptors);
 
     this.scope_.$watchGroup(['flowId', 'clientId'],
@@ -72,17 +72,12 @@ CreateHuntFromFlowFormController.prototype.onFlowIdClientIdChange_ = function(
  * @private
  */
 CreateHuntFromFlowFormController.prototype.onFlowDataFetched_ = function() {
-  var huntArgs = angular.copy(this.descriptors_['GenericHuntArgs']['default']);
+  var huntArgs = angular.copy(this.descriptors_['ApiCreateHuntArgs']['default']);
+  huntArgs['value']['flow_name'] = angular.copy(
+      this.flow_['value']['name']);
   huntArgs['value']['flow_args'] = angular.copy(this.flow_['value']['args']);
 
-  var flowRunnerArgs = angular.copy(this.descriptors_['FlowRunnerArgs']['default']);
-  huntArgs['value']['flow_runner_args'] = flowRunnerArgs;
-
-  var flowName = angular.copy(this.descriptors_['RDFString']['default']);
-  flowName['value'] = this.flow_['value']['name']['value'];
-  flowRunnerArgs['value']['flow_name'] = flowName;
-
-  this.genericHuntArgs = huntArgs;
+  this.createHuntArgs = huntArgs;
 };
 
 

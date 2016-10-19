@@ -73,7 +73,7 @@ class ApiListArtifacstHandlerRegressionTest(
     self.Check("GET", "/api/artifacts")
 
 
-class ApiDeleteArtifactsHandlerTest(test_lib.GRRBaseTest):
+class ApiDeleteArtifactsHandlerTest(api_test_lib.ApiCallHandlerTest):
 
   def setUp(self):
     super(ApiDeleteArtifactsHandlerTest, self).setUp()

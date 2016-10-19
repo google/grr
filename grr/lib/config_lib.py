@@ -11,7 +11,6 @@ import errno
 import importlib
 import inspect
 import os
-import pickle
 import platform
 import re
 import StringIO
@@ -439,6 +438,7 @@ class OrderedYamlDict(yaml.YAMLObject, collections.OrderedDict):
       result[k] = v
 
     return result
+
   # pylint:enable=g-bad-name
 
 
@@ -924,9 +924,6 @@ class GrrConfigManager(object):
       self.context_descriptions.pop(context_string)
 
     self.FlushCache()
-
-  def ExportState(self):
-    return pickle.dumps(self)
 
   def SetRaw(self, name, value):
     """Set the raw string without verification or escaping."""
@@ -1543,14 +1540,6 @@ class GrrConfigManager(object):
 CONFIG = GrrConfigManager()
 
 
-def ImportConfigManger(pickled_manager):
-  """Import a config manager exported with GrrConfigManager.ExportState()."""
-  global CONFIG
-  CONFIG = pickle.loads(pickled_manager)
-  CONFIG.FlushCache()
-  return CONFIG
-
-
 # pylint: disable=g-bad-name,redefined-builtin
 def DEFINE_bool(name, default, help):
   """A helper for defining boolean options."""
@@ -1640,6 +1629,7 @@ def DEFINE_constant_string(name, default, help):
       type_info.String(
           name=name, default=default or "", description=help),
       constant=True)
+
 
 # pylint: enable=g-bad-name
 

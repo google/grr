@@ -239,7 +239,8 @@ class ApiModifyCronJobRegressionTest(api_test_lib.ApiCallHandlerRegressionTest,
                {"state": "DISABLED"})
 
 
-class ApiDeleteCronJobHandlerTest(test_lib.GRRBaseTest, CronJobsTestMixin):
+class ApiDeleteCronJobHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                  CronJobsTestMixin):
   """Test delete cron job handler."""
 
   def setUp(self):

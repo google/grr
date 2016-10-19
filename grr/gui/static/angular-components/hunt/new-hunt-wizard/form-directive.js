@@ -47,25 +47,12 @@ grrUi.hunt.newHuntWizard.formDirective.FormController =
     }
 
     return this.grrReflectionService_.getRDFValueDescriptor(
-        'GenericHuntArgs', true);
+        'ApiCreateHuntArgs', true);
   }.bind(this)).then(function(descriptors) {
     angular.extend(this.descriptors_, descriptors);
 
-    return this.grrReflectionService_.getRDFValueDescriptor(
-        'OutputPluginDescriptor', true);
-  }.bind(this)).then(function(descriptors) {
-    angular.extend(this.descriptors_, descriptors);
-
-    return this.grrReflectionService_.getRDFValueDescriptor(
-        'HuntRunnerArgs', true);
-  }.bind(this)).then(function(descriptors) {
-    angular.extend(this.descriptors_, descriptors);
-
-    this.scope_.$watch('genericHuntArgs',
-                       this.onGenericHuntArgsChange_.bind(this));
-    this.scope_.$watch('huntRunnerArgs',
-                       this.onHuntRunnerArgsChange_.bind(this),
-                       true);
+    this.scope_.$watch('createHuntArgs',
+                       this.onCreateHuntArgsChange_.bind(this));
   }.bind(this));
 };
 var FormController =
@@ -77,24 +64,24 @@ var FormController =
  * @param {Object} newValue New binding value.
  * @private
  */
-FormController.prototype.onGenericHuntArgsChange_ = function(newValue) {
+FormController.prototype.onCreateHuntArgsChange_ = function(newValue) {
   if (angular.isUndefined(newValue)) {
-    newValue = this.scope_['genericHuntArgs'] =
-        angular.copy(this.descriptors_['GenericHuntArgs']['default']);
+    newValue = this.scope_['createHuntArgs'] =
+        angular.copy(this.descriptors_['ApiCreateHuntArgs']['default']);
   }
 
-  if (angular.isUndefined(newValue['value']['flow_runner_args'])) {
-    newValue['value']['flow_runner_args'] =
-        angular.copy(this.descriptors_['FlowRunnerArgs']['default']);
-  }
-
-  if (angular.isUndefined(
-      newValue['value']['flow_runner_args']['value']['flow_name'])) {
-    newValue['value']['flow_runner_args']['value']['flow_name'] =
+  if (angular.isUndefined(newValue['value']['flow_name'])) {
+    newValue['value']['flow_name'] =
         angular.copy(this.descriptors_['RDFString']['default']);
   }
 
-  if (angular.isUndefined(newValue['value']['output_plugins'])) {
+  var hra = newValue['value']['hunt_runner_args'];
+  if (angular.isUndefined(hra)) {
+    hra = newValue['value']['hunt_runner_args'] =
+        angular.copy(this.descriptors_['HuntRunnerArgs']['default']);
+  }
+
+  if (angular.isUndefined(hra['value']['output_plugins'])) {
     if (this.defaultOutputPluginName) {
       var defaultPluginDescriptor = angular.copy(
           this.descriptors_['OutputPluginDescriptor']['default']);
@@ -103,33 +90,17 @@ FormController.prototype.onGenericHuntArgsChange_ = function(newValue) {
       defaultPluginDescriptor['value']['plugin_name']['value'] =
           this.defaultOutputPluginName;
 
-      newValue['value']['output_plugins'] = [defaultPluginDescriptor];
+      hra['value']['output_plugins'] = [defaultPluginDescriptor];
     } else if (angular.isUndefined(newValue['value']['output_plugins'])) {
-      newValue['value']['output_plugins'] = [];
+      hra['value']['output_plugins'] = [];
     }
   }
-};
 
-/**
- * Called when 'huntRunnerArgs' binding changes.
- *
- * @param {Object} newValue New binding value.
- * @private
- */
-FormController.prototype.onHuntRunnerArgsChange_ = function(newValue) {
-  if (angular.isUndefined(newValue)) {
-    this.scope_['huntRunnerArgs'] = angular.copy(
-        this.descriptors_['HuntRunnerArgs']['default']);
-  }
-
-  var huntRunnerArgs = this.scope_['huntRunnerArgs']['value'];
-
-  if (angular.isUndefined(huntRunnerArgs['client_rule_set'])) {
-    huntRunnerArgs['client_rule_set'] = angular.copy(
+  if (angular.isUndefined(hra['value']['client_rule_set'])) {
+    hra['value']['client_rule_set'] = angular.copy(
         this.descriptors_['ForemanClientRuleSet']['default']);
   }
 };
-
 
 /**
  * Sends hunt creation request to the server.
@@ -137,10 +108,10 @@ FormController.prototype.onHuntRunnerArgsChange_ = function(newValue) {
  * @export
  */
 FormController.prototype.sendRequest = function() {
-  this.grrApiService_.post('/hunts', {
-    hunt_runner_args: stripTypeInfo(this.scope_['huntRunnerArgs']),
-    hunt_args: stripTypeInfo(this.scope_['genericHuntArgs'])
-  }).then(function resolve(response) {
+  this.grrApiService_.post(
+      '/hunts',
+      /** @type {Object} */ (stripTypeInfo(this.scope_['createHuntArgs'])))
+  .then(function resolve(response) {
     this.serverResponse = response;
   }.bind(this), function reject(response) {
     this.serverResponse = response;
@@ -175,8 +146,7 @@ FormController.prototype.resolve = function() {
 grrUi.hunt.newHuntWizard.formDirective.FormDirective = function() {
   return {
     scope: {
-      genericHuntArgs: '=?',
-      huntRunnerArgs: '=?',
+      createHuntArgs: '=?',
       onResolve: '&',
       onReject: '&'
     },

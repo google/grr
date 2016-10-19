@@ -14,6 +14,12 @@
     <dt>Hunt URN</dt>
     <dd>{$ controller.hunt.value.urn.value $}</dd>
 
+    <dt>Flow Name</dt>
+    <dd><grr-semantic-value value="controller.hunt.value.flow_name" /></dd>
+
+    <dt>Flow Arguments</dt>
+    <dd><grr-semantic-value value="controller.hunt.value.flow_args" /></dd>
+
     <dt>Creator</dt>
     <dd><grr-semantic-value value="controller.hunt.value.creator" /></dd>
 
@@ -60,8 +66,13 @@
       </dd>
     </span>
 
-    <dt>Arguments</dt>
-    <dd><grr-semantic-value value="controller.hunt.value.hunt_args" /></dd>
+    <span ng-if="controller.hunt.value.hunt_runner_args.value.output_plugins">
+      <dt>Output plugins</dt>
+      <dd>
+        <grr-semantic-value value="controller.hunt.value.hunt_runner_args.value.output_plugins" />
+      </dd>
+    </span>
+
   </dl>
 
 </div>

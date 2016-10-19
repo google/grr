@@ -237,7 +237,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
     # Check that correct details are displayed in hunt details tab.
     self.WaitUntil(self.IsTextPresent, "GenericHunt")
-    self.WaitUntil(self.IsTextPresent, "Flow args")
+    self.WaitUntil(self.IsTextPresent, "Flow Arguments")
 
     self.assertTrue(self.IsTextPresent("Paths"))
     self.assertTrue(self.IsTextPresent("/tmp"))
@@ -265,7 +265,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
     self.assertEqual(hunt.args.flow_args.pathtype,
                      rdf_paths.PathSpec.PathType.TSK)
     # self.assertEqual(hunt.args.flow_args.ignore_errors, True)
-    self.assertTrue(hunt.args.output_plugins[0].plugin_name,
+    self.assertTrue(hunt.runner_args.output_plugins[0].plugin_name,
                     "DummyOutputPlugin")
 
     # Check that hunt was not started
@@ -727,20 +727,23 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
       self.assertEqual(last_hunt.args.flow_args.pathspec.pathtype, "OS")
       self.assertEqual(last_hunt.args.flow_runner_args.flow_name, "GetFile")
 
-      self.assertEqual(len(last_hunt.args.output_plugins), 2)
-      self.assertEqual(last_hunt.args.output_plugins[0].plugin_name,
+      self.assertEqual(len(last_hunt.runner_args.output_plugins), 2)
+      self.assertEqual(last_hunt.runner_args.output_plugins[0].plugin_name,
                        "DummyOutputPlugin")
       self.assertEqual(
-          last_hunt.args.output_plugins[0].plugin_args.filename_regex,
+          last_hunt.runner_args.output_plugins[0].plugin_args.filename_regex,
           "foobar!")
       self.assertEqual(
-          last_hunt.args.output_plugins[0].plugin_args.fetch_binaries, False)
-      self.assertEqual(last_hunt.args.output_plugins[1].plugin_name,
+          last_hunt.runner_args.output_plugins[0].plugin_args.fetch_binaries,
+          False)
+      self.assertEqual(last_hunt.runner_args.output_plugins[1].plugin_name,
                        "DummyOutputPlugin")
       self.assertEqual(
-          last_hunt.args.output_plugins[1].plugin_args.filename_regex, "blah!")
+          last_hunt.runner_args.output_plugins[1].plugin_args.filename_regex,
+          "blah!")
       self.assertEqual(
-          last_hunt.args.output_plugins[1].plugin_args.fetch_binaries, True)
+          last_hunt.runner_args.output_plugins[1].plugin_args.fetch_binaries,
+          True)
 
       runner_args = last_hunt.runner_args
       self.assertAlmostEqual(runner_args.client_rate, 42)

@@ -30,6 +30,14 @@ class NullAPIAuthorizationManager(object):
     return api_call_router_without_checks.ApiCallRouterWithoutChecks()
 
 
+class ApiCallHandlerTest(test_lib.GRRBaseTest):
+
+  def setUp(self):
+    super(ApiCallHandlerTest, self).setUp()
+    # The user we use for API tests.
+    self.token.username = "api_test_user"
+
+
 class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
   """Base class for API handlers regression tests.
 
@@ -77,6 +85,8 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
 
     self.use_api_v2 = False
 
+    self.token.username = "api_test_user"
+
   def tearDown(self):
     super(ApiCallHandlerRegressionTest, self).tearDown()
     self.syscalls_stubber.Stop()
@@ -113,7 +123,7 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
         path=parsed_url.path,
         environ={"SERVER_NAME": "foo.bar",
                  "SERVER_PORT": 1234},
-        user="test",
+        user=self.token.username,
         body="")
     request.META = {"CONTENT_TYPE": "application/json"}
 

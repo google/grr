@@ -276,8 +276,8 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
     client_mock = action_mocks.MultiGetFileClientMock()
 
     pathspecs = []
-    # Make 100 files to download.
-    for i in xrange(100):
+    # Make 30 files to download.
+    for i in xrange(30):
       path = os.path.join(self.temp_dir, "test_%s.txt" % i)
       with open(path, "wb") as fd:
         fd.write("Hello")
@@ -298,7 +298,7 @@ class TestTransfer(test_lib.FlowTestsBaseclass):
       flow_obj = aff4.FACTORY.Open(session_id, mode="r", token=self.token)
       flow_state = flow_obj.state
       # All the pathspecs should be in this list.
-      self.assertEqual(len(flow_state.indexed_pathspecs), 100)
+      self.assertEqual(len(flow_state.indexed_pathspecs), 30)
 
       # At any one time, there should not be more than 10 files or hashes
       # pending.

@@ -111,11 +111,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     for _ in xrange(iterations):
       try:
         fd = aff4.FACTORY.Open(
-            user,
-            aff4_users.GRRUser,
-            mode="r",
-            ignore_cache=True,
-            token=self.token)
+            user, aff4_users.GRRUser, mode="r", token=self.token)
         pending_notifications = fd.Get(fd.Schema.PENDING_NOTIFICATIONS)
         if pending_notifications:
           return
@@ -172,13 +168,13 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # This asks the user "test" (which is us) to approve the request.
     self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
-              "test")
+              self.token.username)
     self.Type("css=grr-request-approval-dialog input[name=acl_reason]",
               self.reason)
     self.Click(
         "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
 
-    self.WaitForNotification("aff4:/users/test")
+    self.WaitForNotification("aff4:/users/%s" % self.token.username)
     # User test logs in as an approver.
     self.Open("/")
 
@@ -190,13 +186,14 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     self.WaitUntilContains("Grant access", self.GetText,
                            "css=h2:contains('Grant')")
-    self.WaitUntil(self.IsTextPresent, "The user test has requested")
+    self.WaitUntil(self.IsTextPresent,
+                   "The user %s has requested" % self.token.username)
 
     self.Click("css=button:contains('Approve')")
 
     self.WaitUntil(self.IsTextPresent, "Approval granted.")
 
-    self.WaitForNotification("aff4:/users/test")
+    self.WaitForNotification("aff4:/users/%s" % self.token.username)
     self.Open("/")
 
     # We should be notified that we have an approval
@@ -216,7 +213,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
         client_id="C.0000000000000001",
         flow_name="GrantClientApprovalFlow",
         reason=self.reason,
-        delegate="test",
+        delegate=self.token.username,
         subject_urn=rdf_client.ClientURN("C.0000000000000001"),
         token=token)
 
@@ -248,7 +245,8 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     test_reason = u"ástæða"
     self.Open("/")
     with self.ACLChecksDisabled():
-      token = access_control.ACLToken(username="test", reason=test_reason)
+      token = access_control.ACLToken(
+          username=self.token.username, reason=test_reason)
       self.RequestAndGrantClientApproval("C.0000000000000006", token=token)
 
     self.Type("client_query", "C.0000000000000006")
@@ -312,7 +310,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     # Ok now submit this.
     self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
-              "test")
+              self.token.username)
     self.Click(
         "css=grr-request-approval-dialog button[name=Proceed]:not([disabled])")
 
@@ -322,7 +320,8 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # And make sure the approval was created...
     def GetApprovals():
       fd = aff4.FACTORY.Open(
-          "aff4:/ACL/C.0000000000000001/test", token=self.token)
+          "aff4:/ACL/C.0000000000000001/%s" % self.token.username,
+          token=self.token)
       return list(fd.ListChildren())
 
     self.WaitUntilEqual(1, lambda: len(GetApprovals()))
@@ -357,9 +356,9 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=h3:contains('Create a new approval')")
 
-    # This asks the user "test" (which is us) to approve the request.
+    # This asks our user to approve the request.
     self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
-              "test")
+              self.token.username)
     self.Type("css=grr-request-approval-dialog input[name=acl_reason]",
               self.reason)
     self.Click(
@@ -368,7 +367,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # "Request Approval" dialog should go away
     self.WaitUntilNot(self.IsVisible, "css=.modal-backdrop")
 
-    self.WaitForNotification("aff4:/users/test")
+    self.WaitForNotification("aff4:/users/%s" % self.token.username)
     self.Open("/")
 
     self.WaitUntil(lambda: self.GetText("notification_button") != "0")
@@ -378,19 +377,19 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     self.WaitUntilContains("Grant access", self.GetText,
                            "css=h2:contains('Grant')")
-    self.WaitUntil(self.IsTextPresent, "The user test has requested")
+    self.WaitUntil(self.IsTextPresent,
+                   "The user %s has requested" % self.token.username)
 
     # Hunt overview should be visible
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
     self.WaitUntil(self.IsTextPresent, "Hunt ID")
     self.WaitUntil(self.IsTextPresent, "Hunt URN")
     self.WaitUntil(self.IsTextPresent, "Clients Scheduled")
-    self.WaitUntil(self.IsTextPresent, "TestFilename")
 
     self.Click("css=button:contains('Approve')")
     self.WaitUntil(self.IsTextPresent, "Approval granted.")
 
-    self.WaitForNotification("aff4:/users/test")
+    self.WaitForNotification("aff4:/users/%s" % self.token.username)
     self.Open("/")
 
     # We should be notified that we have an approval
@@ -420,10 +419,10 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
         flow_name="GrantHuntApprovalFlow",
         subject_urn=hunt_id,
         reason=self.reason,
-        delegate="test",
+        delegate=self.token.username,
         token=token)
 
-    self.WaitForNotification("aff4:/users/test")
+    self.WaitForNotification("aff4:/users/%s" % self.token.username)
     self.Open("/")
 
     # We should be notified that we have an approval
@@ -480,13 +479,13 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsTextPresent, "Hunt started successfully!")
 
   def Create2HuntsForDifferentUsers(self):
-    # Create 2 hunts. Hunt1 by "otheruser" and hunt2 by "test".
+    # Create 2 hunts. Hunt1 by "otheruser" and hunt2 by us.
     # Both hunts will be approved by user "approver".
     with self.ACLChecksDisabled():
       hunt1_id = self.CreateSampleHunt(
           token=access_control.ACLToken(username="otheruser"))
       hunt2_id = self.CreateSampleHunt(
-          token=access_control.ACLToken(username="test"))
+          token=access_control.ACLToken(username=self.token.username))
       self.CreateAdminUser("approver")
 
     token = access_control.ACLToken(username="otheruser")
@@ -496,7 +495,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
         reason=self.reason,
         approver="approver",
         token=token)
-    token = access_control.ACLToken(username="test")
+    token = access_control.ACLToken(username=self.token.username)
     flow.GRRFlow.StartFlow(
         flow_name="RequestHuntApprovalFlow",
         subject_urn=hunt2_id,
@@ -516,7 +515,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
         flow_name="GrantHuntApprovalFlow",
         subject_urn=hunt2_id,
         reason=self.reason,
-        delegate="test",
+        delegate=self.token.username,
         token=token)
 
   def testHuntApprovalsArePerHunt(self):
@@ -576,7 +575,8 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     #
     # Check that test user can start/stop/modify hunt2.
     #
-    self.Click("css=tr:contains('SampleHunt') td:contains('test')")
+    self.Click("css=tr:contains('SampleHunt') td:contains('%s')" %
+               self.token.username)
 
     # Modify hunt
 
@@ -657,9 +657,9 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     self.WaitUntil(self.IsElementPresent,
                    "css=h3:contains('Create a new approval')")
 
-    # This asks the user "test" (which is us) to approve the request.
+    # This asks the our user to approve the request.
     self.Type("css=grr-request-approval-dialog input[name=acl_approver]",
-              "test")
+              self.token.username)
     self.Type("css=grr-request-approval-dialog input[name=acl_reason]",
               self.reason)
     self.Click(
@@ -678,7 +678,8 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
 
     self.WaitUntilContains("Grant access", self.GetText,
                            "css=h2:contains('Grant')")
-    self.WaitUntil(self.IsTextPresent, "The user test has requested")
+    self.WaitUntil(self.IsTextPresent,
+                   "The user %s has requested" % self.token.username)
 
     # Cron job overview should be visible
     self.WaitUntil(self.IsTextPresent, "OSBreakDown")
@@ -717,7 +718,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
         flow_name="GrantCronJobApprovalFlow",
         subject_urn=rdfvalue.RDFURN("aff4:/cron/OSBreakDown"),
         reason=self.reason,
-        delegate="test",
+        delegate=self.token.username,
         token=token)
 
     # Now test starts up
@@ -783,7 +784,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
           flow_name="RequestClientApprovalFlow",
           reason="Please please let me",
           subject_urn=client_id,
-          approver="test",
+          approver=self.token.username,
           token=access_control.ACLToken(
               username="iwantapproval", reason="test"))
     self.assertEqual(len(messages_sent), 1)
@@ -816,7 +817,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
           flow_name="RequestHuntApprovalFlow",
           reason="Please please let me",
           subject_urn=hunt_id,
-          approver="test",
+          approver=self.token.username,
           token=access_control.ACLToken(
               username="iwantapproval", reason="test"))
     self.assertEqual(len(messages_sent), 1)
@@ -832,7 +833,6 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
     # Check that host information is displayed.
     self.WaitUntil(self.IsTextPresent, str(hunt_id))
     self.WaitUntil(self.IsTextPresent, "SampleHunt")
-    self.WaitUntil(self.IsTextPresent, "TestFilename")
 
   def testEmailCronJobApprovalRequestLinkLeadsToACorrectPage(self):
     with self.ACLChecksDisabled():
@@ -853,7 +853,7 @@ class TestACLWorkflow(test_lib.GRRSeleniumTest):
           flow_name="RequestCronJobApprovalFlow",
           reason="Please please let me",
           subject_urn="aff4:/cron/OSBreakDown",
-          approver="test",
+          approver=self.token.username,
           token=access_control.ACLToken(
               username="iwantapproval", reason="test"))
     self.assertEqual(len(messages_sent), 1)

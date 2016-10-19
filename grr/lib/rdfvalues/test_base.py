@@ -10,6 +10,7 @@ from grr.lib import type_info
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
+from grr.lib.rdfvalues import structs as rdf_structs
 
 # pylint:mode=test
 
@@ -51,7 +52,7 @@ class GenericRDFProtoTest(RDFValueBaseTest):
   def testSimpleTypeAssignment(self):
     sample = rdf_client.StatEntry()
     sample.AddDescriptor(
-        type_info.ProtoRDFValue(
+        rdf_structs.ProtoRDFValue(
             name="test",
             field_number=45,
             default=rdfvalue.RDFInteger(0),

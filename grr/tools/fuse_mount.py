@@ -280,8 +280,7 @@ class GRRFuseDatastoreOnly(object):
     if self._IsDir(path):
       raise fuse.FuseOSError(errno.EISDIR)
 
-    fd = aff4.FACTORY.Open(
-        self.root.Add(path), token=self.token, ignore_cache=True)
+    fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token)
 
     # If the object has Read() and Seek() methods, let's use them.
     if all((hasattr(fd, "Read"), hasattr(fd, "Seek"), callable(fd.Read),
@@ -416,8 +415,7 @@ class GRRFuse(GRRFuseDatastoreOnly):
         raise type_info.TypeValueError("Either 'path' or 'last' must"
                                        " be supplied as an argument.")
       else:
-        fd = aff4.FACTORY.Open(
-            self.root.Add(path), token=self.token, ignore_cache=True)
+        fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token)
         # We really care about the last time the stat was updated, so we use
         # this instead of the LAST attribute, which is the last time anything
         # was updated about the object.
@@ -509,8 +507,7 @@ class GRRFuse(GRRFuseDatastoreOnly):
         chunks_to_fetch=missing_chunks)
 
   def Read(self, path, length=None, offset=0, fh=None):
-    fd = aff4.FACTORY.Open(
-        self.root.Add(path), token=self.token, ignore_cache=True)
+    fd = aff4.FACTORY.Open(self.root.Add(path), token=self.token)
     last = fd.Get(fd.Schema.CONTENT_LAST)
     client_id = rdf_client.GetClientURNFromPath(path)
 

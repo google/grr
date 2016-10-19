@@ -843,16 +843,10 @@ class QueueManager(object):
       user = self.token.username
     # Do the real work in a transaction
     try:
-      res = self.data_store.RetryWrapper(
-          queue,
-          self._QueryAndOwn,
-          lease_seconds=lease_seconds,
-          limit=limit,
-          token=self.token,
-          user=user)
-
-      return res
-    except data_store.TransactionError:
+      lock = self.data_store.LockRetryWrapper(queue, token=self.token)
+      return self._QueryAndOwn(
+          lock.subject, lease_seconds=lease_seconds, limit=limit, user=user)
+    except data_store.DBSubjectLockError:
       # This exception just means that we could not obtain the lock on the queue
       # so we just return an empty list, let the worker sleep and come back to
       # fetch more tasks.
@@ -861,18 +855,20 @@ class QueueManager(object):
       logging.warning("Datastore exception: %s", e)
       return []
 
-  def _QueryAndOwn(self, transaction, lease_seconds=100, limit=1, user=""):
+  def _QueryAndOwn(self, subject, lease_seconds=100, limit=1, user=""):
     """Does the real work of self.QueryAndOwn()."""
     tasks = []
 
     lease = long(lease_seconds * 1e6)
 
-    ttl_exceeded_count = 0
-
     # Only grab attributes with timestamps in the past.
-    for predicate, task, timestamp in transaction.ResolvePrefix(
+    delete_attrs = set()
+    serialized_tasks_dict = {}
+    for predicate, task, timestamp in data_store.DB.ResolvePrefix(
+        subject,
         self.TASK_PREDICATE_PREFIX,
-        timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now())):
+        timestamp=(0, self.frozen_timestamp or rdfvalue.RDFDatetime.Now()),
+        token=self.token):
       task = rdf_flows.GrrMessage.FromSerializedString(task)
       task.eta = timestamp
       task.last_lease = "%s@%s:%d" % (user, socket.gethostname(), os.getpid())
@@ -880,25 +876,33 @@ class QueueManager(object):
       task.task_ttl -= 1
       if task.task_ttl <= 0:
         # Remove the task if ttl is exhausted.
-        transaction.DeleteAttribute(predicate)
-        ttl_exceeded_count += 1
+        delete_attrs.add(predicate)
         stats.STATS.IncrementCounter("grr_task_ttl_expired_count")
       else:
         if task.task_ttl != rdf_flows.GrrMessage.max_ttl - 1:
           stats.STATS.IncrementCounter("grr_task_retransmission_count")
 
-        # Update the timestamp on the value to be in the future
-        transaction.Set(predicate,
-                        task.SerializeToString(),
-                        replace=True,
-                        timestamp=long(time.time() * 1e6) + lease)
+        serialized_tasks_dict.setdefault(predicate,
+                                         []).append(task.SerializeToString())
         tasks.append(task)
         if len(tasks) >= limit:
           break
 
-    if ttl_exceeded_count:
+    if delete_attrs or serialized_tasks_dict:
+      # Update the timestamp on claimed tasks to be in the future and decrement
+      # their TTLs, delete tasks with expired ttls.
+      data_store.DB.MultiSet(
+          subject,
+          serialized_tasks_dict,
+          replace=True,
+          timestamp=long(time.time() * 1e6) + lease,
+          sync=True,
+          to_delete=delete_attrs,
+          token=self.token)
+
+    if delete_attrs:
       logging.info("TTL exceeded for %d messages on queue %s",
-                   ttl_exceeded_count, transaction.subject)
+                   len(delete_attrs), subject)
     return tasks
 
 

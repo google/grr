@@ -144,8 +144,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(now):
       self.ClientServerCommunicate(timestamp=client_now)
 
-      client_obj = aff4.FACTORY.Open(
-          new_client.urn, ignore_cache=True, token=self.token)
+      client_obj = aff4.FACTORY.Open(new_client.urn, token=self.token)
       self.assertEqual(
           now.AsSecondsFromEpoch(),
           client_obj.Get(client_obj.Schema.PING).AsSecondsFromEpoch())
@@ -158,8 +157,7 @@ class ClientCommsTest(test_lib.GRRBaseTest):
     with test_lib.FakeTime(now):
       self.ClientServerCommunicate(timestamp=client_now)
 
-      client_obj = aff4.FACTORY.Open(
-          new_client.urn, ignore_cache=True, token=self.token)
+      client_obj = aff4.FACTORY.Open(new_client.urn, token=self.token)
       self.assertEqual(
           now.AsSecondsFromEpoch(),
           client_obj.Get(client_obj.Schema.PING).AsSecondsFromEpoch())

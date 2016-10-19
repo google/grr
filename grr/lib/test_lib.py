@@ -50,6 +50,7 @@ from grr.client.vfs_handlers import files
 
 from grr.gui import api_auth_manager
 from grr.gui import api_call_router_with_approval_checks
+from grr.gui import webauth
 
 from grr.lib import access_control
 from grr.lib import action_mocks
@@ -378,6 +379,7 @@ class MockWindowsProcess(object):
         dic[name] = None
     return dic
 
+
 # pylint: enable=g-bad-name
 
 
@@ -403,8 +405,10 @@ class GRRBaseTest(unittest.TestCase):
     """
     super(GRRBaseTest, self).__init__(methodName=methodName or "__init__")
     self.base_path = utils.NormalizePath(config_lib.CONFIG["Test.data_dir"])
+    test_user = "test"
+    users.GRRUser.SYSTEM_USERS.add(test_user)
     self.token = access_control.ACLToken(
-        username="test", reason="Running tests")
+        username=test_user, reason="Running tests")
 
   def setUp(self):
     super(GRRBaseTest, self).setUp()
@@ -996,7 +1000,7 @@ class ACLChecksEnabledContextManager(object):
 
   def Start(self):
     self.old_security_manager = data_store.DB.security_manager
-    data_store.DB.security_manager = access_control.FullAccessControlManager()
+    data_store.DB.security_manager = user_managers.FullAccessControlManager()
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     self.Stop()
@@ -1054,6 +1058,9 @@ class FakeDateTimeUTC(object):
         self.time = time_val
         self.increment = increment
         self.orig_datetime = orig_datetime
+
+      def __call__(self, *args, **kw):
+        return self.orig_datetime(*args, **kw)
 
       def __getattribute__(self, name):
         try:
@@ -1469,9 +1476,12 @@ class GRRSeleniumTest(GRRBaseTest):
     self.prev_download_count = stats.STATS.GetMetricValue(
         "ui_renderer_latency", fields=["DownloadView"]).count
 
+    self.token.username = "gui_user"
+    webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
+
     # Make the user use the advanced gui so we can test it.
     with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users/test"),
+        aff4.ROOT_URN.Add("users/%s" % self.token.username),
         aff4_type=users.GRRUser,
         mode="w",
         token=self.token) as user_fd:
@@ -1845,7 +1855,7 @@ class MockWorker(worker.GRRWorker):
         # Run all the flows until they are finished
 
         # Only sample one session at the time to force serialization of flows
-        # after each state run - this helps to catch unpickleable objects.
+        # after each state run.
         for notification in notifications_available[:1]:
           session_id = notification.session_id
           manager.DeleteNotification(session_id, end=notification.timestamp)
@@ -2162,6 +2172,7 @@ def TestHuntHelper(client_mock,
       check_flow_errors=check_flow_errors,
       iteration_limit=iteration_limit,
       token=token)
+
 
 # Make the fixture appear to be 1 week old.
 FIXTURE_TIME = rdfvalue.RDFDatetime.Now() - rdfvalue.Duration("8d")
@@ -2602,10 +2613,6 @@ class GrrTestProgram(unittest.TestProgram):
     # We don't want to send actual email in our tests
     self.smtp_patcher = mock.patch("smtplib.SMTP")
     self.mock_smtp = self.smtp_patcher.start()
-
-    # "test" must not be a system user or notifications will not be delivered.
-    if "test" in users.GRRUser.SYSTEM_USERS:
-      users.GRRUser.SYSTEM_USERS.remove("test")
 
     def DisabledSet(*unused_args, **unused_kw):
       raise NotImplementedError(

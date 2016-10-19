@@ -8,6 +8,7 @@ import __builtin__
 import abc
 import itertools
 import StringIO
+import threading
 import time
 import zlib
 
@@ -17,7 +18,6 @@ import logging
 from grr.lib import access_control
 from grr.lib import config_lib
 from grr.lib import data_store
-from grr.lib import flags
 from grr.lib import lexer
 from grr.lib import rdfvalue
 from grr.lib import registry
@@ -28,8 +28,6 @@ from grr.lib.rdfvalues import aff4_rdfvalues
 from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
-
-flags.DEFINE_bool("disable_aff4_cache", False, "Disables the aff4 cache.")
 
 # Factor to convert from seconds to microseconds
 MICROSECONDS = 1000000
@@ -279,11 +277,6 @@ class Factory(object):
   """A central factory for AFF4 objects."""
 
   def __init__(self):
-    if not flags.FLAGS.disable_aff4_cache:
-      # This is a relatively short lived cache of objects.
-      self.cache = utils.AgeBasedCache(
-          max_size=config_lib.CONFIG["AFF4.cache_max_size"],
-          max_age=config_lib.CONFIG["AFF4.cache_age"])
     self.intermediate_cache = utils.AgeBasedCache(
         max_size=config_lib.CONFIG["AFF4.intermediate_cache_max_size"],
         max_age=config_lib.CONFIG["AFF4.intermediate_cache_age"])
@@ -316,30 +309,10 @@ class Factory(object):
 
     raise RuntimeError("Unknown age specification: %s" % age)
 
-  def GetAttributes(self, urns, ignore_cache=False, token=None,
-                    age=NEWEST_TIME):
+  def GetAttributes(self, urns, token=None, age=NEWEST_TIME):
     """Retrieves all the attributes for all the urns."""
     urns = set([utils.SmartUnicode(u) for u in urns])
-    to_read = {}
-    if not ignore_cache and not flags.FLAGS.disable_aff4_cache:
-      for subject in urns:
-        key = self._MakeCacheInvariant(subject, token, age)
-
-        try:
-          yield subject, self.cache.Get(key)
-          try:
-            stats.STATS.IncrementCounter("aff4_cache_hits")
-          except KeyError:
-            pass
-
-        except KeyError:
-          try:
-            stats.STATS.IncrementCounter("aff4_cache_misses")
-          except KeyError:
-            pass
-          to_read[subject] = key
-    else:
-      to_read = {urn: self._MakeCacheInvariant(urn, token, age) for urn in urns}
+    to_read = {urn: self._MakeCacheInvariant(urn, token, age) for urn in urns}
 
     # Urns not present in the cache we need to get from the database.
     if to_read:
@@ -353,9 +326,6 @@ class Factory(object):
         # Ensure the values are sorted.
         values.sort(key=lambda x: x[-1], reverse=True)
 
-        if not flags.FLAGS.disable_aff4_cache:
-          self.cache.Put(to_read[subject], values)
-
         yield utils.SmartUnicode(subject), values
 
   def SetAttributes(self,
@@ -366,15 +336,7 @@ class Factory(object):
                     mutation_pool=None,
                     sync=False,
                     token=None):
-    """Sets the attributes in the data store and update the cache."""
-    # Force a data_store lookup next.
-    if not flags.FLAGS.disable_aff4_cache:
-      try:
-        # Expire all entries in the cache for this urn (for all tokens, and
-        # timestamps)
-        self.cache.ExpirePrefix(utils.SmartStr(urn) + ":")
-      except KeyError:
-        pass
+    """Sets the attributes in the data store."""
 
     attributes[AFF4Object.SchemaCls.LAST] = [
         rdfvalue.RDFDatetime.Now().SerializeToDataStore()
@@ -502,7 +464,6 @@ class Factory(object):
                      aff4_type,
                      token=None,
                      age=NEWEST_TIME,
-                     ignore_cache=False,
                      force_new_version=True,
                      blocking=True,
                      blocking_lock_timeout=10,
@@ -520,7 +481,6 @@ class Factory(object):
       token: The Security Token to use for opening this item.
       age: The age policy used to build this object. Only makes sense when mode
            has "r".
-      ignore_cache: Bypass the aff4 cache.
       force_new_version: Forces the creation of a new object in the data_store.
       blocking: When True, wait and repeatedly try to grab the lock.
       blocking_lock_timeout: Maximum wait time when sync is True.
@@ -550,7 +510,6 @@ class Factory(object):
         urn,
         aff4_type,
         mode="rw",
-        ignore_cache=ignore_cache,
         token=token,
         age=age,
         force_new_version=force_new_version,
@@ -612,7 +571,6 @@ class Factory(object):
         urn,
         aff4_type=aff4_type,
         mode="rw",
-        ignore_cache=True,
         token=token,
         age=age,
         follow_symlinks=False,
@@ -626,8 +584,6 @@ class Factory(object):
                    lease_time=None,
                    blocking_sleep_interval=None):
     """This actually acquires the lock for a given URN."""
-    timestamp = time.time()
-
     if token is None:
       token = data_store.default_token
 
@@ -636,21 +592,16 @@ class Factory(object):
 
     urn = rdfvalue.RDFURN(urn)
 
-    # Try to get a transaction object on this subject. Note that if another
-    # transaction object exists, this will raise TransactionError, and we will
-    # keep retrying until we can get the lock.
-    while True:
-      try:
-        transaction = data_store.DB.Transaction(
-            urn, lease_time=lease_time, token=token)
-        break
-      except data_store.TransactionError as e:
-        if not blocking or time.time() - timestamp > blocking_lock_timeout:
-          raise LockError(e)
-        else:
-          time.sleep(blocking_sleep_interval)
-
-    return transaction
+    try:
+      return data_store.DB.LockRetryWrapper(
+          urn,
+          retrywrap_timeout=blocking_sleep_interval,
+          retrywrap_max_timeout=blocking_lock_timeout,
+          blocking=blocking,
+          lease_time=lease_time,
+          token=token)
+    except data_store.DBSubjectLockError as e:
+      raise LockError(e)
 
   def Copy(self,
            old_urn,
@@ -684,7 +635,6 @@ class Factory(object):
            urn,
            aff4_type=None,
            mode="r",
-           ignore_cache=False,
            token=None,
            local_cache=None,
            age=NEWEST_TIME,
@@ -713,7 +663,6 @@ class Factory(object):
           mandatory.
 
       mode: The mode to open the file with.
-      ignore_cache: Forces a data store read.
       token: The Security Token to use for opening this item.
       local_cache: A dict containing a cache as returned by GetAttributes. If
                    set, this bypasses the factory cache.
@@ -723,7 +672,7 @@ class Factory(object):
          microseconds since Jan 1st, 1970.
 
       follow_symlinks: If object opened is a symlink, follow it.
-      transaction: A transaction in case this object is opened under lock.
+      transaction: A lock in case this object is opened under lock.
 
     Returns:
       An AFF4Object instance.
@@ -746,7 +695,6 @@ class Factory(object):
           mode=mode,
           token=token,
           age=age,
-          ignore_cache=ignore_cache,
           force_new_version=False,
           transaction=transaction)
 
@@ -756,9 +704,7 @@ class Factory(object):
       token = data_store.default_token
 
     if "r" in mode and (local_cache is None or urn not in local_cache):
-      local_cache = dict(
-          self.GetAttributes(
-              [urn], age=age, ignore_cache=ignore_cache, token=token))
+      local_cache = dict(self.GetAttributes([urn], age=age, token=token))
 
     # Read the row from the table. We know the object already exists if there is
     # some data in the local_cache already for this object.
@@ -795,7 +741,6 @@ class Factory(object):
   def MultiOpen(self,
                 urns,
                 mode="rw",
-                ignore_cache=False,
                 token=None,
                 aff4_type=None,
                 age=NEWEST_TIME,
@@ -817,7 +762,6 @@ class Factory(object):
         obj = self.Open(
             urn,
             mode=mode,
-            ignore_cache=ignore_cache,
             token=token,
             local_cache={urn: values},
             age=age,
@@ -842,19 +786,13 @@ class Factory(object):
 
     if symlinks:
       for obj in self.MultiOpen(
-          symlinks,
-          mode=mode,
-          ignore_cache=ignore_cache,
-          token=token,
-          aff4_type=aff4_type,
-          age=age):
+          symlinks, mode=mode, token=token, aff4_type=aff4_type, age=age):
         obj.symlink_urn = symlinks[obj.urn]
         yield obj
 
   def OpenDiscreteVersions(self,
                            urn,
                            mode="r",
-                           ignore_cache=False,
                            token=None,
                            local_cache=None,
                            age=ALL_TIMES,
@@ -864,7 +802,6 @@ class Factory(object):
     Args:
       urn: The urn to open.
       mode: The mode to open the file with.
-      ignore_cache: Forces a data store read.
       token: The Security Token to use for opening this item.
       local_cache: A dict containing a cache as returned by GetAttributes. If
                    set, this bypasses the factory cache.
@@ -897,7 +834,6 @@ class Factory(object):
     aff4object = FACTORY.Open(
         urn,
         mode=mode,
-        ignore_cache=ignore_cache,
         token=token,
         local_cache=local_cache,
         age=age,
@@ -970,7 +906,6 @@ class Factory(object):
              mode="w",
              token=None,
              age=NEWEST_TIME,
-             ignore_cache=False,
              force_new_version=True,
              object_exists=False,
              mutation_pool=None,
@@ -987,13 +922,12 @@ class Factory(object):
       token: The Security Token to use for opening this item.
       age: The age policy used to build this object. Only makes sense when mode
            has "r".
-      ignore_cache: Bypass the aff4 cache.
       force_new_version: Forces the creation of a new object in the data_store.
       object_exists: If we know the object already exists we can skip index
                      creation.
       mutation_pool: An optional MutationPool object to write to. If not given,
                      the data_store is used directly.
-      transaction: For locked objects, a transaction is passed to the object.
+      transaction: For locked objects, a lock is passed to the object.
 
     Returns:
       An AFF4 object of the desired type and mode.
@@ -1016,12 +950,7 @@ class Factory(object):
       # Check to see if an object already exists.
       try:
         existing = self.Open(
-            urn,
-            mode=mode,
-            token=token,
-            age=age,
-            ignore_cache=ignore_cache,
-            transaction=transaction)
+            urn, mode=mode, token=token, age=age, transaction=transaction)
 
         result = existing.Upgrade(aff4_type)
 
@@ -1226,8 +1155,6 @@ class Factory(object):
 
   def Flush(self):
     data_store.DB.Flush()
-    if not flags.FLAGS.disable_aff4_cache:
-      self.cache.Flush()
     self.intermediate_cache.Flush()
 
 
@@ -1696,7 +1623,7 @@ class AFF4Object(object):
     self.token = token
     self.age_policy = age
     self.follow_symlinks = follow_symlinks
-    self.lock = utils.PickleableLock()
+    self.lock = threading.RLock()
     self.mutation_pool = mutation_pool
     self.transaction = transaction
 
@@ -1868,15 +1795,15 @@ class AFF4Object(object):
     if self.locked and self.CheckLease() == 0:
       raise LockError("Can not update lease that has already expired.")
 
-    # Always sync when in a transaction.
+    # Always sync when in a lock.
     if self.locked:
       sync = True
 
     self._WriteAttributes(sync=sync)
 
-    # Committing this transaction allows another thread to own it.
+    # Releasing this lock allows another thread to own it.
     if self.locked:
-      self.transaction.Commit()
+      self.transaction.Release()
 
     if self.parent:
       self.parent.Close(sync=sync)
@@ -2261,10 +2188,10 @@ class AFF4Object(object):
     try:
       self.Close()
     except Exception:  # pylint: disable=broad-except
-      # If anything bad happens here, we must abort the transaction or the
+      # If anything bad happens here, we must abort the lock or the
       # object will stay locked.
       if self.transaction:
-        self.transaction.Abort()
+        self.transaction.Release()
 
       raise
 
@@ -2892,7 +2819,7 @@ class AFF4ImageBase(AFF4Stream):
     """Build a cache for our chunks."""
     super(AFF4ImageBase, self).Initialize()
     self.offset = 0
-    # A cache for segments - When we get pickled we want to discard them.
+    # A cache for segments.
     self.chunk_cache = ChunkCache(self._WriteChunk, 100)
 
     if "r" in self.mode:
@@ -2944,8 +2871,7 @@ class AFF4ImageBase(AFF4Stream):
 
   def _ReadChunks(self, chunks):
     chunk_names = {
-        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk):
-            chunk
+        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk): chunk
         for chunk in chunks
     }
     for child in FACTORY.MultiOpen(
@@ -3175,6 +3101,7 @@ class AFF4Filter(object):
   @classmethod
   def GetFilter(cls, filter_name):
     return cls.classes[filter_name]
+
 
 # A global registry of all AFF4 classes
 FACTORY = None

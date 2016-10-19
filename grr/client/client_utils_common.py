@@ -13,7 +13,6 @@ import time
 import logging
 
 from grr.lib import config_lib
-from grr.lib import utils
 
 
 def HandleAlarm(process):
@@ -179,27 +178,3 @@ def IsExecutionWhitelisted(cmd, args):
       return True
 
   return False
-
-
-LOG_THROTTLE_CACHE = utils.TimeBasedCache(max_size=10, max_age=60 * 60)
-
-
-def ErrorOnceAnHour(msg, *args, **kwargs):
-  """Logging helper function mirroring logging but reduces spam. Read notes.
-
-  Args:
-    msg: The message.
-    *args: Passthrough to logging function.
-    **kwargs: Passthrough to logging function.
-
-  Note:
-    The same msg will only be logged once per hour. Note that args will be
-    ignored so the following will only output one line.
-      ThrottledLog(logging.WARN, "oh no %s", "joe")
-      ThrottledLog(logging.WARN, "oh no %s", "bob")
-  """
-  try:
-    LOG_THROTTLE_CACHE.Get(msg)
-  except KeyError:
-    logging.error(msg, *args, **kwargs)
-    LOG_THROTTLE_CACHE.Put(msg, msg)

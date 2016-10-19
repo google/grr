@@ -767,9 +767,9 @@ class HTTPDataStore(data_store.DataStore):
 
     return result
 
-  def Transaction(self, subject, lease_time=None, token=None):
-    """We do not support transactions directly."""
-    return HTTPTransaction(self, subject, lease_time=lease_time, token=token)
+  def DBSubjectLock(self, subject, lease_time=None, token=None):
+    """We do not support locks directly."""
+    return HTTPDBSubjectLock(self, subject, lease_time=lease_time, token=token)
 
   def LockSubject(self, subject, lease_time, token):
     """Locks a specific subject."""
@@ -819,7 +819,7 @@ class HTTPDataStore(data_store.DataStore):
     return transid if transid == value else None
 
   def UnlockSubject(self, subject, transid, token):
-    """Unlocks subject using transaction id."""
+    """Unlocks subject using lock id."""
     self.security_manager.CheckDataStoreAccess(token, [subject], "w")
 
     request = rdf_data_store.DataStoreRequest(subject=[subject])
@@ -860,58 +860,39 @@ class HTTPDataStore(data_store.DataStore):
     return self.last_size
 
 
-class HTTPTransaction(data_store.CommonTransaction):
-  """The opensource remote data store transaction object.
+class HTTPDBSubjectLock(data_store.DBSubjectLock):
+  """The opensource remote data store subject lock.
 
   We only ensure that two simultaneous locks can not be held on the
   same subject.
 
   This means that the first thread which grabs the lock is considered the owner
-  of the transaction. Any subsequent transactions on the same subject will fail
-  immediately with data_store.TransactionError. NOTE that it is still possible
+  of the lock. Any subsequent locks on the same subject will fail
+  immediately with data_store.DBSubjectLockError. NOTE that it is still possible
   to manipulate the row without a transaction - this is a design feature!
 
   A lock is considered expired after a certain time.
   """
-
-  lock_creation_lock = threading.Lock()
-
   locked = False
 
-  def __init__(self, store, subject, lease_time=None, token=None):
-    """Ensure we can take a lock on this subject."""
-    super(HTTPTransaction, self).__init__(
-        store, utils.SmartUnicode(subject), lease_time=lease_time, token=token)
-
-    if lease_time is None:
-      lease_time = config_lib.CONFIG["Datastore.transaction_timeout"]
-
-    now = time.time()
-    self.transid = store.LockSubject(self.subject, lease_time, self.token)
+  def _Acquire(self, lease_time):
+    self.transid = self.store.LockSubject(self.subject, lease_time * 1e6,
+                                          self.token)
     if not self.transid:
-      raise data_store.TransactionError("Unable to lock subject %s" % subject)
-    self.expires = now + lease_time
+      raise data_store.DBSubjectLockError("Unable to lock subject %s" %
+                                          self.subject)
+    self.expires = int((time.time() + lease_time) * 1e6)
     self.locked = True
 
   def UpdateLease(self, duration):
-    now = time.time()
-    ret = self.store.ExtendSubjectLock(self.subject, self.transid, duration,
-                                       self.token)
+    ret = self.store.ExtendSubjectLock(self.subject, self.transid,
+                                       duration * 1e6, self.token)
     if ret != self.transid:
-      raise data_store.TransactionError("Unable to update the lease on %s" %
-                                        self.subject)
-    self.expires = now + duration
+      raise data_store.DBSubjectLockError("Unable to update the lease on %s" %
+                                          self.subject)
+    self.expires = int((time.time() + duration) * 1e6)
 
-  def Abort(self):
-    if self.locked:
-      self._RemoveLock()
-
-  def Commit(self):
-    if self.locked:
-      super(HTTPTransaction, self).Commit()
-      self._RemoveLock()
-
-  def _RemoveLock(self):
+  def Release(self):
     if self.locked:
       self.store.UnlockSubject(self.subject, self.transid, self.token)
       self.locked = False
