@@ -1899,8 +1899,8 @@ class MockWorker(worker.GRRWorker):
 class Popen(object):
   """A mock object for subprocess.Popen."""
 
-  def __init__(self, run, stdout, stderr, stdin, env=None):
-    _ = env
+  def __init__(self, run, stdout, stderr, stdin, env=None, cwd=None):
+    del env, cwd  # Unused.
     Popen.running_args = run
     Popen.stdout = stdout
     Popen.stderr = stderr

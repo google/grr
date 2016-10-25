@@ -135,6 +135,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
   def ListFlowResults(self, args, token=None):
     return api_flow.ApiListFlowResultsHandler()
 
+  def GetExportedFlowResults(self, args, token=None):
+    return api_flow.ApiGetExportedFlowResultsHandler()
+
   def GetFlowResultsExportCommand(self, args, token=None):
     return api_flow.ApiGetFlowResultsExportCommandHandler()
 
@@ -204,6 +207,9 @@ class ApiCallRouterWithoutChecks(api_call_router.ApiCallRouter):
 
   def ListHuntResults(self, args, token=None):
     return api_hunt.ApiListHuntResultsHandler()
+
+  def GetExportedHuntResults(self, args, token=None):
+    return api_hunt.ApiGetExportedHuntResultsHandler()
 
   def GetHuntResultsExportCommand(self, args, token=None):
     return api_hunt.ApiGetHuntResultsExportCommandHandler()

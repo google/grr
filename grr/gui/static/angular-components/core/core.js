@@ -9,6 +9,7 @@ goog.require('grrUi.core.apiService.ApiService');
 goog.require('grrUi.core.basenameFilter.BasenameFilter');
 goog.require('grrUi.core.bindKeyDirective.BindKeyDirective');
 goog.require('grrUi.core.bytesToHexFilter.BytesToHexFilter');
+goog.require('grrUi.core.canaryOnlyDirective.CanaryOnlyDirective');
 goog.require('grrUi.core.clockDirective.ClockDirective');
 goog.require('grrUi.core.confirmationDialogDirective.ConfirmationDialogDirective');
 goog.require('grrUi.core.dialogService.DialogService');
@@ -135,6 +136,14 @@ grrUi.core.module.directive(
 grrUi.core.module.directive(
     grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective.directive_name,
     grrUi.core.disableIfNoTraitDirective.DisableIfNoTraitDirective);
+
+grrUi.core.module.directive(
+    grrUi.core.canaryOnlyDirective.CanaryOnlyDirective.directive_name,
+    grrUi.core.canaryOnlyDirective.CanaryOnlyDirective);
+grrUi.core.module.directive(
+    grrUi.core.canaryOnlyDirective.NonCanaryOnlyDirective.directive_name,
+    grrUi.core.canaryOnlyDirective.NonCanaryOnlyDirective);
+
 grrUi.core.module.directive(
     grrUi.core.searchBoxDirective.SearchBoxDirective.directive_name,
     grrUi.core.searchBoxDirective.SearchBoxDirective);

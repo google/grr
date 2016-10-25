@@ -14,6 +14,7 @@ from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import flow_runner
+from grr.lib import instant_output_plugin
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
 from grr.lib import throttle
@@ -21,6 +22,7 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects as aff4_collects
 from grr.lib.aff4_objects import cronjobs as aff4_cronjobs
+from grr.lib.aff4_objects import multi_type_collection
 from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import file_finder
@@ -1023,3 +1025,33 @@ class ApiListFlowDescriptorsHandler(api_call_handler_base.ApiCallHandler):
       result.append(ApiFlowDescriptor().InitFromFlowClass(cls, token=token))
 
     return ApiListFlowDescriptorsResult(items=result)
+
+
+class ApiGetExportedFlowResultsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetExportedFlowResultsArgs
+
+
+class ApiGetExportedFlowResultsHandler(api_call_handler_base.ApiCallHandler):
+  """Exports results of a given flow with an instant output plugin."""
+
+  args_type = ApiGetExportedFlowResultsArgs
+
+  def Handle(self, args, token=None):
+    iop_cls = instant_output_plugin.InstantOutputPlugin
+    plugin_cls = iop_cls.GetPluginClassByPluginName(args.plugin_name)
+
+    flow_urn = args.flow_id.ResolveClientFlowURN(args.client_id, token=token)
+    flow_fd = aff4.FACTORY.Open(
+        flow_urn, aff4_type=flow.GRRFlow, mode="r", token=token)
+
+    output_urn = flow_fd.GetRunner().multi_type_output_urn
+    output_collection = aff4.FACTORY.Open(
+        output_urn,
+        aff4_type=multi_type_collection.MultiTypeCollection,
+        token=token)
+
+    plugin = plugin_cls(source_urn=flow_urn, token=token)
+    return api_call_handler_base.ApiBinaryStream(
+        plugin.output_file_name,
+        content_generator=instant_output_plugin.
+        ApplyPluginToMultiTypeCollection(plugin, output_collection))

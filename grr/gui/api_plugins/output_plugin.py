@@ -1,8 +1,11 @@
 #!/usr/bin/env python
 """API handlers for dealing with output_plugins."""
 
+import itertools
+
 from grr.gui import api_call_handler_base
 
+from grr.lib import instant_output_plugin
 from grr.lib import output_plugin
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -25,7 +28,17 @@ class ApiOutputPluginDescriptor(rdf_structs.RDFProtoStruct):
   def InitFromOutputPluginClass(self, plugin_class):
     self.name = plugin_class.__name__
     self.description = plugin_class.description
-    self.args_type = plugin_class.args_type.__name__
+
+    if issubclass(plugin_class, output_plugin.OutputPlugin):
+      self.plugin_type = self.PluginType.LEGACY
+      self.args_type = plugin_class.args_type.__name__
+    elif issubclass(plugin_class, instant_output_plugin.InstantOutputPlugin):
+      self.plugin_type = self.PluginType.INSTANT
+      self.plugin_name = plugin_class.plugin_name
+      self.friendly_name = plugin_class.friendly_name
+    else:
+      raise ValueError("Unknown plugin type: %s", plugin_class)
+
     return self
 
 
@@ -39,12 +52,18 @@ class ApiListOutputPluginDescriptorsHandler(
 
   result_type = ApiListOutputPluginDescriptorsResult
 
+  def _GetPlugins(self, base_class):
+    items = []
+    for name in sorted(base_class.classes.keys()):
+      cls = base_class.classes[name]
+      if cls.description:
+        items.append(ApiOutputPluginDescriptor().InitFromOutputPluginClass(cls))
+
+    return items
+
   def Handle(self, unused_args, token=None):
     result = ApiListOutputPluginDescriptorsResult()
-    for name in sorted(output_plugin.OutputPlugin.classes.keys()):
-      cls = output_plugin.OutputPlugin.classes[name]
-      if cls.description:
-        result.items.append(ApiOutputPluginDescriptor()
-                            .InitFromOutputPluginClass(cls))
-
+    result.items = itertools.chain(
+        self._GetPlugins(output_plugin.OutputPlugin),
+        self._GetPlugins(instant_output_plugin.InstantOutputPlugin))
     return result

@@ -123,8 +123,6 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
     self.state.sorted_conditions = sorted(
         self.args.conditions, key=self._ConditionWeight)
 
-    self.state.file_size = self.args.file_size
-
     if self.args.pathtype in (rdf_paths.PathSpec.PathType.MEMORY,
                               rdf_paths.PathSpec.PathType.REGISTRY):
       # Memory and Registry StatEntries won't pass the file type check.

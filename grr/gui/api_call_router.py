@@ -488,6 +488,16 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("Flows")
+  @ArgsType(api_flow.ApiGetExportedFlowResultsArgs)
+  @ResultBinaryStream()
+  @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/"
+        "exported-results/<plugin_name>")
+  def GetExportedFlowResults(self, args, token=None):
+    """Stream flow results using one of the instant output plugins."""
+
+    raise NotImplementedError()
+
+  @Category("Flows")
   @ArgsType(api_flow.ApiGetFlowResultsExportCommandArgs)
   @ResultType(api_flow.ApiGetFlowResultsExportCommandResult)
   @Http("GET", "/api/clients/<client_id>/flows/<path:flow_id>/results/"
@@ -681,6 +691,15 @@ class ApiCallRouter(object):
   @Http("GET", "/api/hunts/<hunt_id>/results")
   def ListHuntResults(self, args, token=None):
     """List hunt results."""
+
+    raise NotImplementedError()
+
+  @Category("Hunts")
+  @ArgsType(api_hunt.ApiGetExportedHuntResultsArgs)
+  @ResultBinaryStream()
+  @Http("GET", "/api/hunts/<hunt_id>/exported-results/<plugin_name>")
+  def GetExportedHuntResults(self, args, token=None):
+    """Stream hunt results using one of the instant output plugins."""
 
     raise NotImplementedError()
 

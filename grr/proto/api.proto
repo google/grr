@@ -2017,9 +2017,21 @@ message ApiCronJob {
     }];
 }
 
+// Next id: 6
 message ApiOutputPluginDescriptor {
+  enum PluginType {
+    LEGACY = 0;
+    INSTANT = 1;
+    LIVE = 2;
+  }
+
+  optional PluginType plugin_type = 4;
+
   optional string name = 1 [(sem_type) = {
       description: "Output plugin's name."
+    }];
+  optional string friendly_name = 5 [(sem_type) = {
+      description: "Human readable output plugin's description."
     }];
   optional string description = 2 [(sem_type) = {
       description: "Human readable output plugin's description."
@@ -2756,6 +2768,29 @@ message ApiGetGrrBinaryArgs {
     }];
   optional string path = 2 [(sem_type) = {
       description: "Binary path."
+    }];
+}
+
+message ApiGetExportedFlowResultsArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string flow_id = 2 [(sem_type) = {
+      type: "ApiFlowId",
+      description: "Flow id."
+    }];
+  optional string plugin_name = 3 [(sem_type) = {
+      description: "Instant output plugin name."
+    }];
+}
+
+message ApiGetExportedHuntResultsArgs {
+  optional string hunt_id = 1 [(sem_type) = {
+      description: "Hunt id."
+    }];
+  optional string plugin_name = 2 [(sem_type) = {
+      description: "Instant output plugin name."
     }];
 }
 

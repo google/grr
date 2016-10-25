@@ -249,7 +249,6 @@ class ArtifactCollectorFlow(flow.GRRFlow):
         paths=new_path_list,
         pathtype=path_type,
         action=action,
-        file_size=max_size,
         request_data={
             "artifact_name": self.current_artifact_name,
             "source": source.ToPrimitiveDict()

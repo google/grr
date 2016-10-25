@@ -19,6 +19,7 @@ from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import hunts
+from grr.lib import instant_output_plugin_test
 from grr.lib import output_plugin
 from grr.lib import queue_manager
 from grr.lib import rdfvalue
@@ -866,6 +867,44 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
         self.assertEqual(manifest["failed_files"], 0)
         self.assertEqual(manifest["processed_files"], 1)
         self.assertEqual(manifest["ignored_files"], 0)
+
+
+class ApiGetExportedFlowResultsHandlerTest(test_lib.GRRBaseTest):
+  """Tests for ApiGetExportedFlowResultsHandler."""
+
+  def setUp(self):
+    super(ApiGetExportedFlowResultsHandlerTest, self).setUp()
+
+    self.handler = flow_plugin.ApiGetExportedFlowResultsHandler()
+    self.client_id = self.SetupClients(1)[0]
+
+  def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
+    with test_lib.FakeTime(42):
+      flow_urn = flow.GRRFlow.StartFlow(
+          flow_name=DummyFlowWithSingleReply.__name__,
+          client_id=self.client_id,
+          token=self.token)
+
+      for _ in test_lib.TestFlowHelper(flow_urn, token=self.token):
+        pass
+
+    result = self.handler.Handle(
+        flow_plugin.ApiGetExportedFlowResultsArgs(
+            client_id=self.client_id,
+            flow_id=flow_urn.Basename(),
+            plugin_name=instant_output_plugin_test.TestInstantOutputPlugin.
+            plugin_name),
+        token=self.token)
+
+    chunks = list(result.GenerateContent())
+
+    self.assertListEqual(
+        chunks,
+        ["Start: %s" % utils.SmartStr(flow_urn),
+         "Values of type: RDFString",
+         "First pass: oh",
+         "Second pass: oh",
+         "Finish: %s" % utils.SmartStr(flow_urn)])  # pyformat: disable
 
 
 def main(argv):

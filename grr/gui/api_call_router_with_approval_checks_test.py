@@ -177,6 +177,7 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
       "CancelFlow",
       "ListFlowRequests",
       "ListFlowResults",
+      "GetExportedFlowResults",
       "GetFlowResultsExportCommand",
       "GetFlowFilesArchive",
       "ListFlowOutputPlugins",
@@ -211,6 +212,10 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     args = api_flow.ApiListFlowResultsArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
         self.router.ListFlowResults, "CheckClientAccess", args=args)
+
+    args = api_flow.ApiGetExportedFlowResultsArgs(client_id=self.client_id)
+    self.CheckMethodIsAccessChecked(
+        self.router.GetExportedFlowResults, "CheckClientAccess", args=args)
 
     args = api_flow.ApiGetFlowResultsExportCommandArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(

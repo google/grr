@@ -53,7 +53,10 @@ describe('clients list', function() {
 
   var mockApiService = function(value) {
     if (value) {
-      spyOn(grrApiService, 'get').and.returnValue($q.when({ data: value }));
+      // Be able to handle 2 requests: second request will be made if less
+      // then 1 page of items is returned.
+      spyOn(grrApiService, 'get').and.returnValues($q.when({ data: value }),
+                                                   $q.defer().promise);
     } else {
       spyOn(grrApiService, 'get').and.returnValue($q.defer().promise);
     }

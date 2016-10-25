@@ -28,11 +28,18 @@ describe('grr-output-plugin-descriptor-form directive', function() {
         items: [
           {
             args_type: 'FooOutputPluginArgs',
-            name: 'FooOutputPlugin'
+            name: 'FooOutputPlugin',
+            plugin_type: 'LEGACY'
           },
           {
             args_type: 'BarOutputPluginArgs',
-            name: 'BarOutputPlugin'
+            name: 'BarOutputPlugin',
+            plugin_type: 'LEGACY'
+          },
+          {
+            name: 'foo-bar',
+            friendly_name: 'FooBar plugin',
+            plugin_type: 'INSTANT'
           }
         ]
       }

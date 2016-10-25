@@ -1581,11 +1581,12 @@ message FileFinderArgs {
       description: "Path type to glob in.",
     }, default=OS];
 
-  optional uint64 file_size = 3 [(sem_type) = {
-      type: "ByteSize",
-      description: "Maximum number of bytes to download in each file.",
-      label: ADVANCED
-    }, default=1000000000]; // 1GB
+  // DEPRECATED, this limit is part of the download action.
+  // optional uint64 file_size = 3 [(sem_type) = {
+  //     type: "ByteSize",
+  //     description: "Maximum number of bytes to download in each file.",
+  //     label: ADVANCED
+  //   }, default=1000000000]; // 1GB
 
   repeated FileFinderCondition conditions = 5 [(sem_type) = {
       description: "These conditions will be applied to all files that match"

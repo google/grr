@@ -31,7 +31,8 @@ def Execute(cmd,
             time_limit=-1,
             bypass_whitelist=False,
             daemon=False,
-            use_client_context=False):
+            use_client_context=False,
+            cwd=None):
   """Executes commands on the client.
 
   This function is the only place where commands will be executed
@@ -48,6 +49,7 @@ def Execute(cmd,
     daemon: Start the new process in the background.
     use_client_context: Run this script in the client's context. Defaults to
                         system context.
+    cwd: Current working directory for the command.
 
   Returns:
     A tuple of stdout, stderr, return value and time taken.
@@ -70,14 +72,15 @@ def Execute(cmd,
       except OSError:
         # This only works if the process is running as root.
         pass
-      _Execute(cmd, args, time_limit, use_client_context=use_client_context)
+      _Execute(
+          cmd, args, time_limit, use_client_context=use_client_context, cwd=cwd)
       os._exit(0)  # pylint: disable=protected-access
   else:
     return _Execute(
-        cmd, args, time_limit, use_client_context=use_client_context)
+        cmd, args, time_limit, use_client_context=use_client_context, cwd=cwd)
 
 
-def _Execute(cmd, args, time_limit=-1, use_client_context=False):
+def _Execute(cmd, args, time_limit=-1, use_client_context=False, cwd=None):
   """Executes cmd."""
   run = [cmd]
   run.extend(args)
@@ -94,7 +97,8 @@ def _Execute(cmd, args, time_limit=-1, use_client_context=False):
       stdin=subprocess.PIPE,
       stdout=subprocess.PIPE,
       stderr=subprocess.PIPE,
-      env=env)
+      env=env,
+      cwd=cwd)
 
   alarm = None
   if time_limit > 0:

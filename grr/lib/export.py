@@ -200,20 +200,25 @@ class ExportConverter(object):
         yield result
 
   @staticmethod
-  def GetConvertersByValue(value):
+  def GetConvertersByClass(value_cls):
     """Returns all converters that take given value as an input value."""
     try:
-      return ExportConverter.converters_cache[value.__class__.__name__]
+      return ExportConverter.converters_cache[value_cls.__name__]
     except KeyError:
       results = [
           cls for cls in ExportConverter.classes.itervalues()
-          if cls.input_rdf_type == value.__class__.__name__
+          if cls.input_rdf_type == value_cls.__name__
       ]
       if not results:
         results = [DataAgnosticExportConverter]
 
-      ExportConverter.converters_cache[value.__class__.__name__] = results
+      ExportConverter.converters_cache[value_cls.__name__] = results
       return results
+
+  @staticmethod
+  def GetConvertersByValue(value):
+    """Returns all converters that take given value as an input value."""
+    return ExportConverter.GetConvertersByClass(value.__class__)
 
 
 class AutoExportedProtoStruct(rdf_structs.RDFProtoStruct):
@@ -957,6 +962,7 @@ class GrrMessageConverter(ExportConverter):
     if metadata_to_fetch:
       client_fds = aff4.FACTORY.MultiOpen(
           metadata_to_fetch, mode="r", token=token)
+
       fetched_metadata = [
           GetMetadata(
               client_fd, token=token) for client_fd in client_fds

@@ -6,6 +6,7 @@
 from grr.gui import api_test_lib
 from grr.gui.api_plugins import output_plugin as output_plugin_plugin
 from grr.lib import flags
+from grr.lib import instant_output_plugin
 from grr.lib import output_plugin
 from grr.lib import test_lib
 from grr.lib import utils
@@ -21,10 +22,11 @@ class ApiListOutputPluginDescriptorsHandlerTest(
   handler = output_plugin_plugin.ApiListOutputPluginDescriptorsHandler
 
   def Run(self):
-    with utils.Stubber(output_plugin.OutputPlugin, "classes", {
+    with utils.MultiStubber((output_plugin.OutputPlugin, "classes", {
         "EmailOutputPlugin": email_plugin.EmailOutputPlugin,
-        "CSVOutputPlugin": csv_plugin.CSVOutputPlugin
-    }):
+    }), (instant_output_plugin.InstantOutputPlugin, "classes", {
+        "CSVInstantOutputPlugin": csv_plugin.CSVInstantOutputPlugin
+    })):
       self.Check("GET", "/api/output-plugins/all")
 
 

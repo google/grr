@@ -240,8 +240,7 @@ InfiniteTableController.prototype.tableLoadingElementWasShown_ = function() {
 InfiniteTableController.prototype.onItemsFetched_ = function(
     newlyFetchedItems) {
   this.setFetchedItems_(this.fetchedItems.concat(newlyFetchedItems.items));
-  if (newlyFetchedItems.items.length == 0 ||
-      newlyFetchedItems.items.length < this.pageSize) {
+  if (newlyFetchedItems.items.length == 0) {
     $(this.rootElement).find('tr:has(.table-loading)').remove();
   }
 

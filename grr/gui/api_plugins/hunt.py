@@ -19,10 +19,12 @@ from grr.lib import events
 from grr.lib import flow
 from grr.lib import flow_runner
 from grr.lib import hunts
+from grr.lib import instant_output_plugin
 from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import collects
+from grr.lib.aff4_objects import multi_type_collection
 from grr.lib.aff4_objects import users as aff4_users
 
 from grr.lib.flows.general import export
@@ -226,7 +228,8 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
 
     hunt_list = []
     for hunt in fd.OpenChildren(children=children):
-      if not isinstance(hunt, hunts.GRRHunt):
+      # Legacy hunts may have hunt.context == None: we just want to skip them.
+      if not isinstance(hunt, hunts.GRRHunt) or not hunt.context:
         continue
 
       hunt_list.append(hunt)
@@ -256,7 +259,9 @@ class ApiListHuntsHandler(api_call_handler_base.ApiCallHandler):
     hunt_list = []
     active_children_map = {}
     for hunt in fd.OpenChildren(children=active_children):
-      if not isinstance(hunt, hunts.GRRHunt) or not filter_func(hunt):
+      # Legacy hunts may have hunt.context == None: we just want to skip them.
+      if (not isinstance(hunt, hunts.GRRHunt) or not hunt.context or
+          not filter_func(hunt)):
         continue
       active_children_map[hunt.urn] = hunt
 
@@ -1251,3 +1256,37 @@ class ApiDeleteHuntHandler(api_call_handler_base.ApiCallHandler):
       # Raise standard NotFoundError if the hunt object can't be opened.
       raise HuntNotFoundError("Hunt with id %s could not be found" %
                               args.hunt_id)
+
+
+class ApiGetExportedHuntResultsArgs(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiGetExportedHuntResultsArgs
+
+
+class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
+  """Exports results of a given hunt with an instant output plugin."""
+
+  args_type = ApiGetExportedHuntResultsArgs
+
+  def Handle(self, args, token=None):
+    iop_cls = instant_output_plugin.InstantOutputPlugin
+    plugin_cls = iop_cls.GetPluginClassByPluginName(args.plugin_name)
+
+    hunt_urn = HUNTS_ROOT_PATH.Add(args.hunt_id)
+    try:
+      hunt_fd = aff4.FACTORY.Open(
+          hunt_urn, aff4_type=hunts.GRRHunt, mode="rw", token=token)
+    except aff4.InstantiationError:
+      raise HuntNotFoundError("Hunt with id %s could not be found" %
+                              args.hunt_id)
+
+    output_urn = hunt_fd.GetRunner().multi_type_output_urn
+    output_collection = aff4.FACTORY.Open(
+        output_urn,
+        aff4_type=multi_type_collection.MultiTypeCollection,
+        token=token)
+
+    plugin = plugin_cls(source_urn=hunt_urn, token=token)
+    return api_call_handler_base.ApiBinaryStream(
+        plugin.output_file_name,
+        content_generator=instant_output_plugin.
+        ApplyPluginToMultiTypeCollection(plugin, output_collection))

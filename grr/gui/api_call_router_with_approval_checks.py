@@ -257,6 +257,11 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.ListFlowResults(args, token=token)
 
+  def GetExportedFlowResults(self, args, token=None):
+    self.CheckClientAccess(args.client_id, token=token)
+
+    return self.delegate.GetExportedFlowResults(args, token=token)
+
   def GetFlowResultsExportCommand(self, args, token=None):
     self.CheckClientAccess(args.client_id, token=token)
 
@@ -366,6 +371,11 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     # Everybody can look into hunt's results.
 
     return self.delegate.ListHuntResults(args, token=token)
+
+  def GetExportedHuntResults(self, args, token=None):
+    # Everybody can export hunt's results.
+
+    return self.delegate.GetExportedHuntResults(args, token=token)
 
   def GetHuntResultsExportCommand(self, args, token=None):
     # Everybody can get hunt's export command.

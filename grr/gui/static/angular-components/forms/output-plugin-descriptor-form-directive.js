@@ -37,7 +37,9 @@ grrUi.forms.outputPluginDescriptorFormDirective
     this.outputPluginsDescriptors = {};
 
     angular.forEach(response['data']['items'], function(item) {
-      this.outputPluginsDescriptors[item['name']] = item;
+      if (item['plugin_type'] === 'LEGACY') {
+        this.outputPluginsDescriptors[item['name']] = item;
+      }
     }.bind(this));
 
     this.allowedPluginsNames = Object.keys(

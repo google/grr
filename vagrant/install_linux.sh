@@ -46,15 +46,15 @@ function system_update() {
 
 # Get a more modern version of openssl than is available on lucid.
 function install_openssl() {
-  SSL_VERSION=1.0.2h
-  SSL_SHA256=1d4007e53aad94a5b2002fe045ee7bb0b3d98f1a47f8b2bc851dcd1c74332919
+  SSL_VERSION=1.0.2j
+  SSL_SHA256=e7aff292be21c259c6af26469c7a9b3ba26e9abaaffd325e3dccc9785256c431
   if [ -x "${WGET}" ]; then
     ${WGET} https://www.openssl.org/source/openssl-${SSL_VERSION}.tar.gz
   else
     # wget on CentOS 5.11 and Ubuntu lucid can't establish an SSL connection to
     # openssl.org because everything before TLSv1.1 is explicitly dropped. So
     # we use a HTTP mirror and verify hash.
-    RETRIEVED_HASH=$(wget -q -O - http://mirror.switch.ch/ftp/mirror/openssl/source/openssl-${SSL_VERSION}.tar.gz | tee openssl-${SSL_VERSION}.tar.gz | sha256sum | cut -d' ' -f1)
+    RETRIEVED_HASH=$(wget -q -O - http://artfiles.org/openssl.org/source/openssl-${SSL_VERSION}.tar.gz | tee openssl-${SSL_VERSION}.tar.gz | sha256sum | cut -d' ' -f1)
     if [ "${RETRIEVED_HASH}" != "${SSL_SHA256}" ]; then
       echo "Bad hash for openssl-${SSL_VERSION}.tar.gz, quitting"
       exit 1

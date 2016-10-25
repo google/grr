@@ -19,7 +19,9 @@ from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import flow
 from grr.lib import hunts
+from grr.lib import instant_output_plugin_test
 from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import test_lib
@@ -30,6 +32,7 @@ from grr.lib.flows.general import processes
 from grr.lib.hunts import implementation
 from grr.lib.hunts import process_results
 from grr.lib.hunts import results as hunt_results
+from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -1116,6 +1119,66 @@ class ApiDeleteHuntHandlerRegressionTest(
     replace = {hunt.urn.Basename(): "H:123456"}
 
     self.Check("DELETE", "/api/hunts/%s" % hunt.urn.Basename(), replace=replace)
+
+
+class DummyFlowWithSingleReply(flow.GRRFlow):
+  """Just emits 1 reply."""
+
+  @flow.StateHandler()
+  def Start(self, unused_response=None):
+    self.CallState(next_state="SendSomething")
+
+  @flow.StateHandler()
+  def SendSomething(self, unused_response=None):
+    self.SendReply(rdfvalue.RDFString("oh"))
+
+
+class ApiGetExportedHuntResultsHandlerTest(test_lib.GRRBaseTest,
+                                           standard_test.StandardHuntTestMixin):
+
+  def setUp(self):
+    super(ApiGetExportedHuntResultsHandlerTest, self).setUp()
+
+    self.handler = hunt_plugin.ApiGetExportedHuntResultsHandler()
+
+    self.hunt = hunts.GRRHunt.StartHunt(
+        hunt_name=standard.GenericHunt.__name__,
+        flow_runner_args=rdf_flows.FlowRunnerArgs(
+            flow_name=DummyFlowWithSingleReply.__name__),
+        client_rate=0,
+        token=self.token)
+    self.hunt.Run()
+
+    client_ids = self.SetupClients(5)
+    self.AssignTasksToClients(client_ids=client_ids)
+    client_mock = test_lib.SampleHuntMock()
+    test_lib.TestHuntHelper(client_mock, client_ids, token=self.token)
+
+  def testWorksCorrectlyWithTestOutputPluginOnFlowWithSingleResult(self):
+    result = self.handler.Handle(
+        hunt_plugin.ApiGetExportedHuntResultsArgs(
+            hunt_id=self.hunt.urn.Basename(),
+            plugin_name=instant_output_plugin_test.TestInstantOutputPlugin.
+            plugin_name),
+        token=self.token)
+
+    chunks = list(result.GenerateContent())
+
+    self.assertListEqual(
+        chunks,
+        ["Start: %s" % utils.SmartStr(self.hunt.urn),
+         "Values of type: RDFString",
+         "First pass: oh",
+         "First pass: oh",
+         "First pass: oh",
+         "First pass: oh",
+         "First pass: oh",
+         "Second pass: oh",
+         "Second pass: oh",
+         "Second pass: oh",
+         "Second pass: oh",
+         "Second pass: oh",
+         "Finish: %s" % utils.SmartStr(self.hunt.urn)])  # pyformat: disable
 
 
 def main(argv):
