@@ -22,6 +22,12 @@ grrUi.stats.statsViewDirective.StatsViewController = function(
   this.grrRoutingService_ = grrRoutingService;
 
   /** @type {string} */
+  this.selectionName;
+
+  // TODO(user): Deprecated, remove the following code after statistics are
+  //                migrated...
+
+  /** @type {string} */
   this.selection;
 
   /** @type {boolean} */
@@ -36,11 +42,34 @@ grrUi.stats.statsViewDirective.StatsViewController = function(
 
   this.grrRoutingService_.uiOnParamsChanged(this.scope_, 'selection',
       this.onSelectionChange_.bind(this));
+
+  // TODO(user): ...until this line.
+
+  this.grrRoutingService_.uiOnParamsChanged(
+      this.scope_,
+      ['name'],
+      /** @type {function(?, Object=)} */ (function(_, params) {
+    var selectionName = params['name'];
+
+    if (angular.isDefined(selectionName)) {
+      this.selectionName = selectionName;
+    }
+  }.bind(this)));
+
+  this.scope_.$watch('controller.selectionName', function() {
+    if (angular.isUndefined(this.selectionName)) {
+      return;
+    }
+
+    this.grrRoutingService_.go('stats', {'name' : this.selectionName});
+  }.bind(this));
 };
 var StatsViewController =
     grrUi.stats.statsViewDirective.StatsViewController;
 
 
+// TODO(user): Deprecated, remove the following function after statistics are
+//                migrated...
 /**
  * Handles changes to the selection state param.
  *

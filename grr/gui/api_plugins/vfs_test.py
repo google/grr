@@ -3,6 +3,9 @@
 
 
 
+import StringIO
+import zipfile
+
 from grr.gui import api_test_lib
 
 from grr.gui.api_plugins import vfs as vfs_plugin
@@ -984,6 +987,80 @@ class ApiGetVfsTimelineHandlerRegressionTest(
     self.Check("GET",
                "/api/clients/%s/vfs-timeline/%s" % (self.client_id.Basename(),
                                                     self.folder_path))
+
+
+class ApiGetVfsFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
+                                       VfsTestMixin):
+  """Tests for ApiGetVfsFileArchiveHandler."""
+
+  def setUp(self):
+    super(ApiGetVfsFilesArchiveHandlerTest, self).setUp()
+
+    self.handler = vfs_plugin.ApiGetVfsFilesArchiveHandler()
+    self.client_id = self.SetupClients(1)[0]
+
+    self.CreateFileVersions(self.client_id, "fs/os/c/Downloads/a.txt")
+
+    self.CreateFileVersions(self.client_id, "fs/os/c/b.txt")
+
+  def testGeneratesZipArchiveWhenPathIsNotPassed(self):
+    archive_path1 = "vfs_C_1000000000000000/fs/os/c/Downloads/a.txt"
+    archive_path2 = "vfs_C_1000000000000000/fs/os/c/b.txt"
+
+    result = self.handler.Handle(
+        vfs_plugin.ApiGetVfsFilesArchiveArgs(client_id=self.client_id),
+        token=self.token)
+
+    out_fd = StringIO.StringIO()
+    for chunk in result.GenerateContent():
+      out_fd.write(chunk)
+
+    zip_fd = zipfile.ZipFile(out_fd, "r")
+    self.assertEqual(
+        set(zip_fd.namelist()), set([archive_path1, archive_path2]))
+
+    for path in [archive_path1, archive_path2]:
+      contents = zip_fd.read(path)
+      self.assertEqual(contents, "Goodbye World")
+
+  def testFiltersArchivedFilesByPath(self):
+    archive_path = ("vfs_C_1000000000000000_fs_os_c_Downloads/"
+                    "fs/os/c/Downloads/a.txt")
+
+    result = self.handler.Handle(
+        vfs_plugin.ApiGetVfsFilesArchiveArgs(
+            client_id=self.client_id, file_path="fs/os/c/Downloads"),
+        token=self.token)
+
+    out_fd = StringIO.StringIO()
+    for chunk in result.GenerateContent():
+      out_fd.write(chunk)
+
+    zip_fd = zipfile.ZipFile(out_fd, "r")
+    self.assertEqual(zip_fd.namelist(), [archive_path])
+
+    contents = zip_fd.read(archive_path)
+    self.assertEqual(contents, "Goodbye World")
+
+  def testNonExistentPathGeneratesEmptyArchive(self):
+    result = self.handler.Handle(
+        vfs_plugin.ApiGetVfsFilesArchiveArgs(
+            client_id=self.client_id, file_path="fs/os/blah/blah"),
+        token=self.token)
+
+    out_fd = StringIO.StringIO()
+    for chunk in result.GenerateContent():
+      out_fd.write(chunk)
+
+    zip_fd = zipfile.ZipFile(out_fd, "r")
+    self.assertEqual(zip_fd.namelist(), [])
+
+  def testInvalidPathTriggersException(self):
+    with self.assertRaises(ValueError):
+      self.handler.Handle(
+          vfs_plugin.ApiGetVfsFilesArchiveArgs(
+              client_id=self.client_id, file_path="invalid-prefix/path"),
+          token=self.token)
 
 
 def main(argv):

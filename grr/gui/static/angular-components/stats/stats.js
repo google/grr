@@ -3,6 +3,7 @@
 goog.provide('grrUi.stats.module');
 
 goog.require('grrUi.core.module');
+goog.require('grrUi.stats.reportListingDirective.ReportListingDirective');
 goog.require('grrUi.stats.serverLoadDirective.ServerLoadDirective');
 goog.require('grrUi.stats.serverLoadDirective.ServerLoadIndicatorService');
 goog.require('grrUi.stats.serverLoadGraphSerieDirective.ServerLoadGraphSerieDirective');
@@ -17,6 +18,9 @@ goog.require('grrUi.stats.timeseriesGraphDirective.TimeseriesGraphDirective');
 grrUi.stats.module = angular.module('grrUi.stats', [grrUi.core.module.name]);
 
 
+grrUi.stats.module.directive(
+    grrUi.stats.reportListingDirective.ReportListingDirective.directive_name,
+    grrUi.stats.reportListingDirective.ReportListingDirective);
 grrUi.stats.module.directive(
     grrUi.stats.serverLoadDirective.ServerLoadDirective.directive_name,
     grrUi.stats.serverLoadDirective.ServerLoadDirective);

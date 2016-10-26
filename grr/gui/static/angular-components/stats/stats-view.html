@@ -1,3 +1,7 @@
+<!-- TODO(user): Deprecated, remove the noncanary block after statistics
+                    are migrated. -->
+<grr-noncanary-only>
+
 <div ng-if="controller.loaded">
   <div grr-splitter orientation="vertical" class="rightSplitterContainer">
 
@@ -13,3 +17,22 @@
 
   </div>
 </div>
+
+</grr-noncanary-only>
+<grr-canary-only>
+
+<div grr-splitter orientation="vertical" class="rightSplitterContainer">
+
+  <div grr-splitter-pane id="main_leftPane" class="leftPane">
+    <grr-report-listing selection-name="controller.selectionName">
+    </grr-report-listing>
+  </div>
+
+  <div grr-splitter-pane id="main_rightPane" class="rightPane">
+    Not yet implemented.
+    {{ controller.selectionName || 'The selected plugin' }} will be shown here.
+  </div>
+
+</div>
+
+</grr-canary-only>

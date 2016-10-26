@@ -184,11 +184,6 @@ message FlowRunnerArgs {
       label: HIDDEN,
     }];
 
-  optional ACLToken token = 8 [(sem_type) = {
-      description: "The access token to be used for this request.",
-      label: HIDDEN,
-    }];
-
   optional uint64 cpu_limit = 9 [(sem_type) = {
       description: "A limit on the client cpu seconds used by this flow.",
       label: ADVANCED,
@@ -250,12 +245,6 @@ message FlowRunnerArgs {
       label: ADVANCED
     }];
 
-  optional string creator = 20 [(sem_type) = {
-      description: "The creator of this flow or, if this is a child flow, the "
-                   "creator of the parent.",
-      label: HIDDEN,
-    }];
-
   repeated OutputPluginDescriptor output_plugins = 21 [(sem_type) = {
       description: "Output plugins used for this flow. These plugins will be "
                    "applied to flow results as soon as the flow is completed."
@@ -295,11 +284,6 @@ message HuntRunnerArgs {
       type: "RDFURN",
       label: HIDDEN,
     }, default="H"];
-
-  optional ACLToken token = 8 [(sem_type) = {
-      description: "The access token to be used for this request.",
-      label: HIDDEN,
-    }];
 
   optional uint64 cpu_limit = 9 [(sem_type) = {
       description: "A limit on the client cpu seconds used by this flow.",
@@ -341,17 +325,10 @@ message HuntRunnerArgs {
   //     label: HIDDEN,
   //   }];
 
-  optional bool require_fastpoll = 15 [ default = true, (sem_type) = {
-      description: "This value is passed to the client during CallClient, and "
-                   "by default will cause the client to enter fastpoll after"
-                   "processing the message.",
-      label: ADVANCED
-    }];
-
   optional bool add_foreman_rules = 16 [ default = true, (sem_type) = {
       description: "Should always be true for user-scheduled hunts. Set to "
       "false for system-created hunts that use ManuallyScheduleClients.",
-      label: ADVANCED
+      label: HIDDEN
     }];
 
   optional string crash_alert_email = 17 [ (sem_type) = {
@@ -1559,7 +1536,6 @@ message FileFinderAction {
     STAT = 0 [(description) = "Stat"];
     HASH = 1 [(description) = "Hash"];
     DOWNLOAD = 2 [(description) = "Download"];
-    LIST = 3 [(description) = "List"];
   }
 
   optional Action action_type = 1 [default = STAT, (sem_type) = {

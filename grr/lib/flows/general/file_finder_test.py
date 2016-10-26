@@ -190,10 +190,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
     self.CheckFilesInCollection(expected_files)
 
-    if action in [
-        file_finder.FileFinderAction.Action.STAT,
-        file_finder.FileFinderAction.Action.LIST
-    ]:
+    if action == file_finder.FileFinderAction.Action.STAT:
       self.CheckFilesNotDownloaded(expected_files + non_expected_files)
       self.CheckFilesNotHashed(expected_files + non_expected_files)
     elif action == file_finder.FileFinderAction.Action.DOWNLOAD:
@@ -215,24 +212,6 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     self.RunFlowAndCheckResults(
         action=file_finder.FileFinderAction.Action.STAT,
         expected_files=["auth.log", "dpkg.log", "dpkg_false.log"])
-
-  def testFileFinderListActionRaisesWithConditions(self):
-    match = file_finder.FileFinderContentsLiteralMatchCondition(
-        mode=file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
-        bytes_before=10,
-        bytes_after=10,
-        literal="session opened for user dearjohn")
-
-    literal_condition = file_finder.FileFinderCondition(
-        condition_type=file_finder.FileFinderCondition.Type.
-        CONTENTS_LITERAL_MATCH,
-        contents_literal_match=match)
-
-    # RuntimeError: The LIST FileFinder action doesn't support conditions.
-    with self.assertRaises(RuntimeError):
-      self.RunFlow(
-          action=file_finder.FileFinderAction.Action.LIST,
-          conditions=[literal_condition])
 
   def testFileFinderStat(self):
     files_to_check = [
@@ -276,8 +255,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         expected_files=["auth.log", "dpkg.log", "dpkg_false.log"])
 
   CONDITION_TESTS_ACTIONS = sorted(
-      set(file_finder.FileFinderAction.Action.enum_dict.values()) -
-      {file_finder.FileFinderAction.Action.LIST})
+      set(file_finder.FileFinderAction.Action.enum_dict.values()))
 
   def testLiteralMatchConditionWithDifferentActions(self):
     expected_files = ["auth.log"]

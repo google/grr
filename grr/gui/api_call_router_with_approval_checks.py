@@ -145,6 +145,11 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     return self.delegate.ListFiles(args, token=token)
 
+  def GetVfsFilesArchive(self, args, token=None):
+    self.CheckClientAccess(args.client_id, token=token)
+
+    return self.delegate.GetVfsFilesArchive(args, token=token)
+
   def GetFileDetails(self, args, token=None):
     self.CheckClientAccess(args.client_id, token=token)
 

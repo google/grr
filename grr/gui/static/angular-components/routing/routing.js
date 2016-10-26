@@ -126,7 +126,9 @@ grrUi.routing.module.config(function ($stateProvider, $urlRouterProvider, $urlMa
       }
     })
     .state('stats', {
-      url: '/stats?selection',
+      //TODO(user): Drop the `selection' argument and change this to
+      // slash-colon notation after migration.
+      url: '/stats/?selection&name',
       template: '<grr-stats-view />',
       title: function(params) {
         if (params['selection']) {

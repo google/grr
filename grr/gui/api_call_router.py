@@ -297,6 +297,28 @@ class ApiCallRouter(object):
     raise NotImplementedError()
 
   @Category("Vfs")
+  @ArgsType(api_vfs.ApiGetVfsFilesArchiveArgs)
+  @ResultBinaryStream()
+  @Http("GET", "/api/clients/<client_id>/vfs-files-archive/")
+  @Http("GET", "/api/clients/<client_id>/vfs-files-archive/<path:file_path>")
+  def GetVfsFilesArchive(self, args, token=None):
+    """Get archive with files collected and stored in the VFS of a client."""
+
+    # This method can be called with or without file_path argument.
+    #
+    # If file_path is given, this method will recursively download all the
+    # files within a given directory which have been collected from this
+    # client.
+    #
+    # If file_path is omitted, this method will download all the files
+    # which have been collected from this client.
+    #
+    # Note: this method downloads only the most recent versions of the
+    # files.
+
+    raise NotImplementedError()
+
+  @Category("Vfs")
   @ArgsType(api_vfs.ApiGetFileDetailsArgs)
   @ResultType(api_vfs.ApiGetFileDetailsResult)
   @Http("GET", "/api/clients/<client_id>/vfs-details/<path:file_path>")

@@ -5,6 +5,7 @@ goog.provide('grrUi.core.utils.camelCaseToDashDelimited');
 goog.provide('grrUi.core.utils.getLastPathComponent');
 goog.provide('grrUi.core.utils.stringToList');
 goog.provide('grrUi.core.utils.stripAff4Prefix');
+goog.provide('grrUi.core.utils.upperCaseToTitleCase');
 
 
 /**
@@ -36,6 +37,22 @@ grrUi.core.utils.camelCaseToDashDelimited = function(input) {
         .replace(/^-+/, '') // Removing leading '-'.
         .replace(/-+$/, '') // Removing trailing '-'.
         .toLowerCase();
+};
+
+
+/**
+ * Converts the given uppercase string to title case - capitalizes the first
+ * letter, converts other letters to lowercase, replaces underscores with
+ * spaces.
+ *
+ * Eg "CONSTANT_NAME" -> "Constant name"
+ *
+ * @param {string} input Uppercase string to be converted.
+ * @return {string} Converted string.
+ */
+grrUi.core.utils.upperCaseToTitleCase = function(input) {
+  return (input.charAt(0).toUpperCase() +
+          input.slice(1).toLowerCase()).replace(/_/g, ' ');
 };
 
 

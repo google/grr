@@ -529,6 +529,7 @@ class FlowBase(aff4.AFF4Volume):
       runner_args=None,  # pylint: disable=g-bad-name
       parent_flow=None,
       sync=True,
+      token=None,
       **kwargs):
     """The main factory function for Creating and executing a new flow.
 
@@ -546,6 +547,8 @@ class FlowBase(aff4.AFF4Volume):
          inline. Otherwise we schedule the starting of this flow on another
          worker.
 
+      token: Security credentials token identifying the user.
+
       **kwargs: If args or runner_args are not specified, we construct these
         protobufs from these keywords.
 
@@ -555,7 +558,6 @@ class FlowBase(aff4.AFF4Volume):
     Raises:
       RuntimeError: Unknown or invalid parameters were provided.
     """
-
     # Build the runner args from the keywords.
     if runner_args is None:
       runner_args = rdf_flows.FlowRunnerArgs()
@@ -572,31 +574,26 @@ class FlowBase(aff4.AFF4Volume):
       stats.STATS.IncrementCounter("grr_flow_invalid_flow_count")
       raise RuntimeError("Unable to locate flow %s" % runner_args.flow_name)
 
-    # If no token is specified, use the default token.
-    if not runner_args.HasField("token"):
-      if data_store.default_token is None:
-        raise access_control.UnauthorizedAccess("A token must be specified.")
-
-      runner_args.token = data_store.default_token.Copy()
+    # If no token is specified, raise.
+    if not token:
+      raise access_control.UnauthorizedAccess("A token must be specified.")
 
     # Make sure we are allowed to run this flow. If not, we raise here. We
     # respect SUID (supervisor) if it is already set. SUID cannot be set by the
     # user since it isn't part of the ACLToken proto.
     data_store.DB.security_manager.CheckIfCanStartFlow(
-        runner_args.token,
-        runner_args.flow_name,
-        with_client_id=runner_args.client_id)
+        token, runner_args.flow_name, with_client_id=runner_args.client_id)
 
     flow_cls = GRRFlow.GetPlugin(runner_args.flow_name)
     # If client id was specified and flow doesn't have exemption from ACL
     # checking policy, then check that the user has access to the client
     # where the flow is going to run.
     if flow_cls.ACL_ENFORCED and runner_args.client_id:
-      data_store.DB.security_manager.CheckClientAccess(runner_args.token,
+      data_store.DB.security_manager.CheckClientAccess(token,
                                                        runner_args.client_id)
 
     # For the flow itself we use a supervisor token.
-    token = runner_args.token.SetUID()
+    token = token.SetUID()
 
     # Extend the expiry time of this token indefinitely. Python on Windows only
     # supports dates up to the year 3000.

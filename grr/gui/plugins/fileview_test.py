@@ -25,6 +25,7 @@ from grr.lib.rdfvalues import client as rdf_client
 class FileViewTestBase(test_lib.GRRSeleniumTest):
   pass
 
+
 # A increasing sequence of times.
 TIME_0 = test_lib.FIXTURE_TIME
 TIME_1 = TIME_0 + rdfvalue.Duration("1d")
@@ -242,7 +243,7 @@ class TestFileView(FileViewTestBase):
     # Select a file and start a flow by requesting a newer version.
     self.Click("css=tr:contains(\"a.txt\")")
     self.Click("css=li[heading=Download]")
-    self.Click("css=button:contains(\"Get a new Version\")")
+    self.Click("css=button:contains(\"Collect from the client\")")
 
     # Create a new file version (that would have been created by the flow
     # otherwise) and finish the flow.
@@ -425,7 +426,7 @@ class TestFileView(FileViewTestBase):
 
     # Lets download it.
     self.Click("css=li[heading=Download]")
-    self.Click("css=button:contains(\"Get a new Version\")")
+    self.Click("css=button:contains(\"Collect from the client\")")
 
   def testRefreshDirectoryStartsFlow(self):
     # Open VFS view for client 1.
@@ -496,7 +497,7 @@ class TestFileView(FileViewTestBase):
             check_flow_errors=False):
           pass
 
-  def testUpdateButtonGetsDisabledWhileUpdateIsRunning(self):
+  def testRefreshButtonGetsDisabledWhileUpdateIsRunning(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
 
     self.Click("css=button[id=refresh-dir]:not([disabled])")
@@ -512,7 +513,7 @@ class TestFileView(FileViewTestBase):
     self.WaitUntilNot(self.IsElementPresent,
                       "css=button[id=refresh-dir][disabled]")
 
-  def testUpdateButtonGetsReenabledWhenUpdateEnds(self):
+  def testRefreshButtonGetsReenabledWhenUpdateEnds(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
 
     self.Click("css=button[id=refresh-dir]:not([disabled])")
@@ -527,7 +528,7 @@ class TestFileView(FileViewTestBase):
     self.WaitUntil(self.IsElementPresent,
                    "css=button[id=refresh-dir]:not([disabled])")
 
-  def testSwitchingFoldersWhileUpdatingEnablesUpdateButton(self):
+  def testSwitchingFoldersWhileRefreshingEnablesRefreshButton(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
 
     self.Click("css=button[id=refresh-dir]:not([disabled])")
@@ -542,7 +543,7 @@ class TestFileView(FileViewTestBase):
     self.WaitUntilNot(self.IsElementPresent,
                       "css=button[id=refresh-dir][disabled]")
 
-  def testTreeAndFileListRefreshedWhenUpdateCompletes(self):
+  def testTreeAndFileListRefreshedWhenRefreshCompletes(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
 
     self.Click("css=button[id=refresh-dir]:not([disabled])")
@@ -559,7 +560,8 @@ class TestFileView(FileViewTestBase):
     self.WaitUntil(self.IsElementPresent,
                    "css=#_fs-os-c-TestFolder i.jstree-icon")
 
-  def testTreeAndFileListRefreshedWhenUpdateCompletesWhenSelectionChanged(self):
+  def testTreeAndFileListRefreshedWhenRefreshCompletesWhenSelectionChanged(
+      self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
 
     self.Click("css=button[id=refresh-dir]:not([disabled])")
@@ -579,7 +581,7 @@ class TestFileView(FileViewTestBase):
     self.WaitUntil(self.IsElementPresent,
                    "css=#_fs-os-c-TestFolder i.jstree-icon")
 
-  def testRecursiveUpdateButtonGetsDisabledWhileUpdateIsRunning(self):
+  def testRecursiveRefreshButtonGetsDisabledWhileUpdateIsRunning(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
@@ -600,7 +602,7 @@ class TestFileView(FileViewTestBase):
     self.WaitUntilNot(self.IsElementPresent,
                       "css=button[name=RecursiveRefresh][disabled]")
 
-  def testRecursiveUpdateButtonGetsReenabledWhenUpdateEnds(self):
+  def testRecursiveRefreshButtonGetsReenabledWhenUpdateEnds(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
@@ -619,7 +621,7 @@ class TestFileView(FileViewTestBase):
     self.WaitUntil(self.IsElementPresent,
                    "css=button[name=RecursiveRefresh]:not([disabled])")
 
-  def testSwitchingFoldersReEnablesRecursiveUpdateButton(self):
+  def testSwitchingFoldersReEnablesRecursiveRefreshButton(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
@@ -635,7 +637,7 @@ class TestFileView(FileViewTestBase):
     self.WaitUntilNot(self.IsElementPresent,
                       "css=button[name=RecursiveRefresh][disabled]")
 
-  def testTreeAndFileListRefreshedWhenRecursiveUpdateCompletes(self):
+  def testTreeAndFileListRefreshedWhenRecursiveRefreshCompletes(self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
@@ -737,7 +739,7 @@ class TestFileView(FileViewTestBase):
     # Perform recursive refresh
     self.Click("css=button[name=RecursiveRefresh]:not([disabled])")
 
-    self.WaitUntil(self.IsTextPresent, "Recursive Refresh")
+    self.WaitUntil(self.IsTextPresent, "Recursive Directory Refresh")
     self.WaitUntil(self.IsTextPresent, "Max depth")
 
     self.Type("css=label:contains('Max depth') ~ * input", "423")

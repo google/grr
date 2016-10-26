@@ -269,9 +269,13 @@ class FlowRunner(object):
         logging.info("Plugin %s failed to initialize (%s), ignoring it.",
                      plugin, e)
 
+    parent_creator = None
+    if self.parent_runner:
+      parent_creator = self.parent_runner.context.creator
+
     context = rdf_flows.FlowContext(
         create_time=rdfvalue.RDFDatetime.Now(),
-        creator=args.creator or self.token.username,
+        creator=parent_creator or self.token.username,
         current_state="Start",
         output_plugins_states=output_plugins_states,
         remaining_cpu_quota=args.cpu_limit,
@@ -867,7 +871,6 @@ class FlowRunner(object):
         queue=self.runner_args.queue,
         write_intermediate_results=write_intermediate,
         logs_collection_urn=logs_urn,
-        creator=self.context.creator,
         **kwargs)
 
     self.QueueRequest(state)

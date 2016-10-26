@@ -2086,12 +2086,12 @@ message ApiFile {
   optional Hash hash = 7 [(sem_type) = {
       description: "Hash values of the file."
     }];
-  optional uint64 last_downloaded = 8 [(sem_type) = {
+  optional uint64 last_collected = 8 [(sem_type) = {
       type: "RDFDatetime",
-      description: "Time of last download."
+      description: "Last time file was collected from the client."
     }];
-  optional uint64 last_downloaded_size = 10 [(sem_type) = {
-      description: "Size of the file last time it was downloaded."
+  optional uint64 last_collected_size = 10 [(sem_type) = {
+      description: "Size of the file last time it was collected."
     }];
   // Details of an ApiFile.
   optional ApiAff4ObjectRepresentation details = 9 [(sem_type) = {
@@ -2183,6 +2183,16 @@ message ApiListFilesArgs {
 message ApiListFilesResult {
   repeated ApiFile items = 1 [(sem_type) = {
       description: "The list of files."
+    }];
+}
+
+message ApiGetVfsFilesArchiveArgs {
+  optional string client_id = 1 [(sem_type) = {
+      type: "ClientURN",
+      description: "Client id."
+    }];
+  optional string file_path = 2 [(sem_type) = {
+      description: "File path."
     }];
 }
 

@@ -393,7 +393,6 @@ class HuntRunner(object):
     child_urn = self.hunt_obj.StartFlow(
         base_session_id=base_session_id or self.session_id,
         client_id=client_id,
-        creator=self.context.creator,
         flow_name=flow_name,
         logs_collection_urn=logs_urn,
         notify_to_user=False,
@@ -664,12 +663,6 @@ class HuntRunner(object):
     if self.hunt_obj.Get(self.hunt_obj.Schema.STATE) == "STARTED":
       return
 
-    # Check the permissions for the hunt here. Note that
-    # self.runner_args.token is the original creators's token, while
-    # the aff4 object was created with the caller's token. This check
-    # therefore ensures that the caller to this method has permissions
-    # to start the hunt (not necessarily the original creator of the
-    # hunt).
     data_store.DB.security_manager.CheckHuntAccess(self.hunt_obj.token,
                                                    self.session_id)
 
@@ -1070,8 +1063,12 @@ class GRRHunt(flow.FlowBase):
     """
 
   @classmethod
-  def StartHunt(cls, args=None, runner_args=None, **kwargs):
+  def StartHunt(cls, args=None, runner_args=None, token=None, **kwargs):
     """This class method creates new hunts."""
+    # If no token is specified, raise.
+    if not token:
+      raise access_control.UnauthorizedAccess("A token must be specified.")
+
     # Build the runner args from the keywords.
     if runner_args is None:
       runner_args = rdf_hunts.HuntRunnerArgs()
@@ -1085,10 +1082,7 @@ class GRRHunt(flow.FlowBase):
 
     # Make a new hunt object and initialize its runner.
     hunt_obj = aff4.FACTORY.Create(
-        None,
-        cls.classes[runner_args.hunt_name],
-        mode="w",
-        token=runner_args.token)
+        None, cls.classes[runner_args.hunt_name], mode="w", token=token)
 
     # Hunt is called using keyword args. We construct an args proto from the
     # kwargs..
@@ -1123,12 +1117,12 @@ class GRRHunt(flow.FlowBase):
       flow_name = ""
 
     event = events_lib.AuditEvent(
-        user=runner_args.token.username,
+        user=token.username,
         action="HUNT_CREATED",
         urn=hunt_obj.urn,
         flow_name=flow_name,
         description=runner_args.description)
-    events_lib.Events.PublishEvent("Audit", event, token=runner_args.token)
+    events_lib.Events.PublishEvent("Audit", event, token=token)
 
     return hunt_obj
 

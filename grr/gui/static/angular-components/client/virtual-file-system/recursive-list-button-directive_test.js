@@ -92,7 +92,7 @@ describe('"recursive list directory" button', function() {
       browserTrigger(element.find('button'), 'click');
 
       expect($(document.body).text()).toContain(
-          'Recursive Refresh');
+          'Recursive Directory Refresh');
     });
 
     it('is closed when close button is clicked', function() {
@@ -103,7 +103,7 @@ describe('"recursive list directory" button', function() {
       $timeout.flush();
 
       expect($(document.body).text()).not.toContain(
-          'Recursive Refresh');
+          'Recursive Directory Refresh');
     });
 
     it('is closed when cancel button is clicked', function() {
@@ -114,7 +114,7 @@ describe('"recursive list directory" button', function() {
       $timeout.flush();
 
       expect($(document.body).text()).not.toContain(
-          'Recursive Refresh');
+          'Recursive Directory Refresh');
     });
 
     it('sends an API request when "refresh" is clicked', function() {

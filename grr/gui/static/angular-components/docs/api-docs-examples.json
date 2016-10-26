@@ -633,32 +633,6 @@
                 "age": 0,
                 "type": "EnumNamedValue",
                 "value": "HIGH_PRIORITY"
-              },
-              "token": {
-                "age": 0,
-                "type": "ACLToken",
-                "value": {
-                  "expiry": {
-                    "age": 0,
-                    "type": "RDFDatetime",
-                    "value": 102000000
-                  },
-                  "process": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "GRRAdminUI"
-                  },
-                  "reason": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": ""
-                  },
-                  "username": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "api_test_user"
-                  }
-                }
               }
             }
           },
@@ -693,13 +667,7 @@
           "client_id": "aff4:/C.1000000000000000",
           "flow_name": "ListProcesses",
           "notify_to_user": false,
-          "priority": "HIGH_PRIORITY",
-          "token": {
-            "expiry": 102000000,
-            "process": "GRRAdminUI",
-            "reason": "",
-            "username": "api_test_user"
-          }
+          "priority": "HIGH_PRIORITY"
         },
         "started_at": 42000000,
         "state": "RUNNING",
@@ -1988,22 +1956,6 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GRRVersionBreakDown"
-              },
-              "token": {
-                "age": 0,
-                "type": "ACLToken",
-                "value": {
-                  "reason": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Running tests"
-                  },
-                  "username": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "api_test_user"
-                  }
-                }
               }
             }
           },
@@ -2043,11 +1995,7 @@
         "name": "GRRVersionBreakDown",
         "runner_args": {
           "base_session_id": "aff4:/cron/GRRVersionBreakDown",
-          "flow_name": "GRRVersionBreakDown",
-          "token": {
-            "reason": "Running tests",
-            "username": "api_test_user"
-          }
+          "flow_name": "GRRVersionBreakDown"
         },
         "started_at": 44000000,
         "state": "RUNNING",
@@ -2235,22 +2183,6 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "Interrogate"
-              },
-              "token": {
-                "age": 0,
-                "type": "ACLToken",
-                "value": {
-                  "reason": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Running tests"
-                  },
-                  "username": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "api_test_user"
-                  }
-                }
               }
             }
           },
@@ -2294,11 +2226,7 @@
         "name": "Interrogate",
         "runner_args": {
           "client_id": "aff4:/C.1000000000000000",
-          "flow_name": "Interrogate",
-          "token": {
-            "reason": "Running tests",
-            "username": "api_test_user"
-          }
+          "flow_name": "Interrogate"
         },
         "started_at": 42000000,
         "state": "RUNNING",
@@ -3186,22 +3114,6 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
-              },
-              "token": {
-                "age": 0,
-                "type": "ACLToken",
-                "value": {
-                  "reason": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Running tests"
-                  },
-                  "username": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "api_test_user"
-                  }
-                }
               }
             }
           },
@@ -3284,11 +3196,7 @@
             ]
           },
           "description": "the hunt",
-          "hunt_name": "GenericHunt",
-          "token": {
-            "reason": "Running tests",
-            "username": "api_test_user"
-          }
+          "hunt_name": "GenericHunt"
         },
         "is_robot": false,
         "name": "GenericHunt",
@@ -9010,22 +8918,6 @@
                     "age": 0,
                     "type": "unicode",
                     "value": "GRRVersionBreakDown"
-                  },
-                  "token": {
-                    "age": 0,
-                    "type": "ACLToken",
-                    "value": {
-                      "reason": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "Running tests"
-                      },
-                      "username": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "api_test_user"
-                      }
-                    }
                   }
                 }
               },
@@ -9060,11 +8952,7 @@
             "nested_flows": [],
             "runner_args": {
               "base_session_id": "aff4:/cron/GRRVersionBreakDown",
-              "flow_name": "GRRVersionBreakDown",
-              "token": {
-                "reason": "Running tests",
-                "username": "api_test_user"
-              }
+              "flow_name": "GRRVersionBreakDown"
             },
             "started_at": 44000000,
             "state": "RUNNING",
@@ -9342,12 +9230,12 @@
                 "type": "RDFBool",
                 "value": false
               },
-              "last_downloaded": {
+              "last_collected": {
                 "age": 0,
                 "type": "RDFDatetime",
                 "value": 42000000
               },
-              "last_downloaded_size": {
+              "last_collected_size": {
                 "age": 0,
                 "type": "long",
                 "value": 11
@@ -9378,12 +9266,12 @@
                 "type": "RDFBool",
                 "value": false
               },
-              "last_downloaded": {
+              "last_collected": {
                 "age": 0,
                 "type": "RDFDatetime",
                 "value": 42000000
               },
-              "last_downloaded_size": {
+              "last_collected_size": {
                 "age": 0,
                 "type": "long",
                 "value": 11
@@ -9412,16 +9300,16 @@
         "items": [
           {
             "is_directory": false,
-            "last_downloaded": 42000000,
-            "last_downloaded_size": 11,
+            "last_collected": 42000000,
+            "last_collected_size": 11,
             "name": "bash",
             "path": "fs/tsk/c/bin/bash",
             "type": "VFSMemoryFile"
           },
           {
             "is_directory": false,
-            "last_downloaded": 42000000,
-            "last_downloaded_size": 11,
+            "last_collected": 42000000,
+            "last_collected_size": 11,
             "name": "rbash",
             "path": "fs/tsk/c/bin/rbash",
             "type": "VFSMemoryFile"
@@ -10734,22 +10622,6 @@
                     "age": 0,
                     "type": "unicode",
                     "value": "ListProcesses"
-                  },
-                  "token": {
-                    "age": 0,
-                    "type": "ACLToken",
-                    "value": {
-                      "reason": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "Running tests"
-                      },
-                      "username": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "api_test_user"
-                      }
-                    }
                   }
                 }
               },
@@ -10813,22 +10685,6 @@
                     "age": 0,
                     "type": "unicode",
                     "value": "Interrogate"
-                  },
-                  "token": {
-                    "age": 0,
-                    "type": "ACLToken",
-                    "value": {
-                      "reason": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "Running tests"
-                      },
-                      "username": {
-                        "age": 0,
-                        "type": "unicode",
-                        "value": "api_test_user"
-                      }
-                    }
                   }
                 }
               },
@@ -10863,11 +10719,7 @@
             "nested_flows": [],
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
-              "flow_name": "ListProcesses",
-              "token": {
-                "reason": "Running tests",
-                "username": "api_test_user"
-              }
+              "flow_name": "ListProcesses"
             },
             "started_at": 44000000,
             "state": "RUNNING",
@@ -10882,11 +10734,7 @@
             "nested_flows": [],
             "runner_args": {
               "client_id": "aff4:/C.1000000000000000",
-              "flow_name": "Interrogate",
-              "token": {
-                "reason": "Running tests",
-                "username": "api_test_user"
-              }
+              "flow_name": "Interrogate"
             },
             "started_at": 43000000,
             "state": "RUNNING",
@@ -14958,22 +14806,6 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
-              },
-              "token": {
-                "age": 0,
-                "type": "ACLToken",
-                "value": {
-                  "reason": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Running tests"
-                  },
-                  "username": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "api_test_user"
-                  }
-                }
               }
             }
           },
@@ -15057,11 +14889,7 @@
             ]
           },
           "description": "the hunt",
-          "hunt_name": "GenericHunt",
-          "token": {
-            "reason": "Running tests",
-            "username": "api_test_user"
-          }
+          "hunt_name": "GenericHunt"
         },
         "is_robot": false,
         "name": "GenericHunt",
@@ -15243,22 +15071,6 @@
                 "age": 0,
                 "type": "unicode",
                 "value": "GenericHunt"
-              },
-              "token": {
-                "age": 0,
-                "type": "ACLToken",
-                "value": {
-                  "reason": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "Running tests"
-                  },
-                  "username": {
-                    "age": 0,
-                    "type": "unicode",
-                    "value": "api_test_user"
-                  }
-                }
               }
             }
           },
@@ -15342,11 +15154,7 @@
             ]
           },
           "description": "the hunt",
-          "hunt_name": "GenericHunt",
-          "token": {
-            "reason": "Running tests",
-            "username": "api_test_user"
-          }
+          "hunt_name": "GenericHunt"
         },
         "is_robot": false,
         "name": "GenericHunt",

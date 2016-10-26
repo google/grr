@@ -6,7 +6,7 @@
       <div class="navbar-form pull-left">
 
         <button id="refresh-dir" class="btn btn-default"
-                title="Refresh this directory listing."
+                title="Refresh this directory (sync its listing with the client)"
                 ng-disabled="controller.lastRefreshOperationId"
                 ng-click="controller.startVfsRefreshOperation()">
           <img src="/static/images/stock_refresh.png" class="toolbar_icon" />
@@ -97,9 +97,9 @@
           <td>
             <grr-semantic-value class="pull-left"
                                 value="::item.value.stat.value.st_size"></grr-semantic-value>
-            <span ng-if="::item.value.last_downloaded_size !== undefined" class="pull-right">
+            <span ng-if="::item.value.last_collected_size !== undefined" class="pull-right">
               <i class="fa fa-download"
-                 title="Downloaded ({$ ::item.value.last_downloaded_size.value $} bytes)"
+                 title="Collected ({$ ::item.value.last_collected_size.value $} bytes)"
                  aria-hidden="true">
               </i>
             </span>

@@ -7,17 +7,17 @@
     </span>
   </div>
 
-  <div ng-if="controller.fileDetails.value.last_downloaded">
-    <h4>Last Downloaded</h4>
+  <div ng-if="controller.fileDetails.value.last_collected">
+    <h4>Last Collected</h4>
     <span>
-      <grr-timestamp value="controller.fileDetails.value.last_downloaded" />
+      <grr-timestamp value="controller.fileDetails.value.last_collected" />
     </span>
 
     <h4>Download</h4>
     <p>
       <button class="btn btn-default"
               ng-click="controller.downloadFile()">
-        Download ({$ controller.fileDetails.value.last_downloaded_size.value $} bytes)
+        Download ({$ controller.fileDetails.value.last_collected_size.value $} bytes)
       </button>
     </p>
     <p>
@@ -35,7 +35,7 @@
             ng-disabled="controller.updateInProgress">
       <i class="fa fa-refresh"
          ng-class="{'fa-spin': controller.updateInProgress}"></i>
-      Get a new Version
+      {{ controller.fileDetails.value.last_collected ? 'Re-Collect' : 'Collect' }} from the client
     </button>
   </div>
 

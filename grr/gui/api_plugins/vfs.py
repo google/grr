@@ -2,8 +2,10 @@
 """API handlers for dealing with files in a client's virtual file system."""
 
 import csv
+import os
 import re
 import StringIO
+import zipfile
 
 import logging
 
@@ -84,15 +86,15 @@ class ApiFile(rdf_structs.RDFProtoStruct):
 
     if not self.is_directory:
       try:
-        self.last_downloaded = file_obj.GetContentAge()
+        self.last_collected = file_obj.GetContentAge()
       except AttributeError:
         # Defensive approach - in case file-like object doesn't have
         # GetContentAge defined.
         logging.debug("File-like object %s doesn't have GetContentAge defined.",
                       file_obj.__class__.__name__)
 
-      if self.last_downloaded:
-        self.last_downloaded_size = file_obj.Get(file_obj.Schema.SIZE)
+      if self.last_collected:
+        self.last_collected_size = file_obj.Get(file_obj.Schema.SIZE)
 
     type_obj = file_obj.Get(file_obj.Schema.TYPE)
     if type_obj is not None:
@@ -774,3 +776,80 @@ class ApiGetVfsFileContentUpdateStateHandler(
       result.state = ApiGetVfsFileContentUpdateStateResult.State.RUNNING
 
     return result
+
+
+class ApiGetVfsFilesArchiveArgs(rdf_structs.RDFProtoStruct):
+  """Arguments for GetVfsFilesArchive handler."""
+  protobuf = api_pb2.ApiGetVfsFilesArchiveArgs
+
+
+class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
+  """Streams archive with files collected in the VFS of a client."""
+
+  args_type = ApiGetVfsFilesArchiveArgs
+
+  def _StreamFds(self, archive_generator, prefix, fds, token=None):
+    prev_fd = None
+    for fd, chunk, exception in aff4.AFF4Stream.MultiStream(fds):
+      if exception:
+        logging.exception(exception)
+        continue
+
+      if prev_fd != fd:
+        if prev_fd:
+          yield archive_generator.WriteFileFooter()
+        prev_fd = fd
+
+        components = fd.urn.Split()
+        # Skipping first component: client id.
+        content_path = os.path.join(prefix, *components[1:])
+        # TODO(user): Export meaningful file metadata.
+        st = os.stat_result((0644, 0, 0, 0, 0, 0, fd.size, 0, 0, 0))
+        yield archive_generator.WriteFileHeader(content_path, st=st)
+
+      yield archive_generator.WriteFileChunk(chunk)
+
+    if prev_fd:
+      yield archive_generator.WriteFileFooter()
+
+  def _GenerateContent(self, start_urns, prefix, token=None):
+    archive_generator = utils.StreamingZipGenerator(
+        compression=zipfile.ZIP_DEFLATED)
+    folders_urns = set(start_urns)
+
+    while folders_urns:
+      next_urns = set()
+      for _, children in aff4.FACTORY.MultiListChildren(
+          folders_urns, token=token):
+        for urn in children:
+          next_urns.add(urn)
+
+      download_fds = set()
+      folders_urns = set()
+      for fd in aff4.FACTORY.MultiOpen(next_urns, token=token):
+        if isinstance(fd, aff4.AFF4Stream):
+          download_fds.add(fd)
+        elif "Container" in fd.behaviours:
+          folders_urns.add(fd.urn)
+
+      if download_fds:
+        for chunk in self._StreamFds(
+            archive_generator, prefix, download_fds, token=token):
+          yield chunk
+
+    yield archive_generator.Close()
+
+  def Handle(self, args, token=None):
+    path = args.file_path
+    if not path:
+      start_urns = [args.client_id.Add(p) for p in ROOT_FILES_WHITELIST]
+      prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_", args.client_id.Basename())
+    else:
+      ValidateVfsPath(args.file_path)
+      start_urns = [args.client_id.Add(args.file_path)]
+      prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_",
+                               start_urns[0].Path()).strip("_")
+
+    content_generator = self._GenerateContent(start_urns, prefix, token=token)
+    return api_call_handler_base.ApiBinaryStream(
+        prefix + ".zip", content_generator=content_generator)

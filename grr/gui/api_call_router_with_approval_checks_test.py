@@ -116,8 +116,8 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
         self.router.GetClientLoadStats, "CheckClientAccess", args=args)
 
   ACCESS_CHECKED_METHODS.extend([
-      "CreateVfsRefreshOperation",
       "ListFiles",
+      "GetVfsFilesArchive",
       "GetFileDetails",
       "GetFileText",
       "GetFileBlob",
@@ -133,6 +133,10 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccessTest(
     args = api_vfs.ApiListFilesArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(
         self.router.ListFiles, "CheckClientAccess", args=args)
+
+    args = api_vfs.ApiGetVfsFilesArchiveArgs(client_id=self.client_id)
+    self.CheckMethodIsAccessChecked(
+        self.router.GetVfsFilesArchive, "CheckClientAccess", args=args)
 
     args = api_vfs.ApiGetFileDetailsArgs(client_id=self.client_id)
     self.CheckMethodIsAccessChecked(

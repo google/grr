@@ -213,13 +213,7 @@
           "clientId": "aff4:/C.1000000000000000",
           "flowName": "ListProcesses",
           "notifyToUser": false,
-          "priority": "HIGH_PRIORITY",
-          "token": {
-            "expiry": "102000000",
-            "process": "GRRAdminUI",
-            "reason": "",
-            "username": "api_test_user"
-          }
+          "priority": "HIGH_PRIORITY"
         },
         "startedAt": "42000000",
         "state": "RUNNING",
@@ -653,11 +647,7 @@
         "name": "GRRVersionBreakDown",
         "runnerArgs": {
           "baseSessionId": "aff4:/cron/GRRVersionBreakDown",
-          "flowName": "GRRVersionBreakDown",
-          "token": {
-            "reason": "Running tests",
-            "username": "api_test_user"
-          }
+          "flowName": "GRRVersionBreakDown"
         },
         "startedAt": "44000000",
         "state": "RUNNING",
@@ -752,11 +742,7 @@
         "name": "Interrogate",
         "runnerArgs": {
           "clientId": "aff4:/C.1000000000000000",
-          "flowName": "Interrogate",
-          "token": {
-            "reason": "Running tests",
-            "username": "api_test_user"
-          }
+          "flowName": "Interrogate"
         },
         "startedAt": "42000000",
         "state": "RUNNING",
@@ -1199,11 +1185,7 @@
             ]
           },
           "description": "the hunt",
-          "huntName": "GenericHunt",
-          "token": {
-            "reason": "Running tests",
-            "username": "api_test_user"
-          }
+          "huntName": "GenericHunt"
         },
         "isRobot": false,
         "name": "GenericHunt",
@@ -4354,11 +4336,7 @@
             "name": "GRRVersionBreakDown",
             "runnerArgs": {
               "baseSessionId": "aff4:/cron/GRRVersionBreakDown",
-              "flowName": "GRRVersionBreakDown",
-              "token": {
-                "reason": "Running tests",
-                "username": "api_test_user"
-              }
+              "flowName": "GRRVersionBreakDown"
             },
             "startedAt": "44000000",
             "state": "RUNNING",
@@ -4440,16 +4418,16 @@
         "items": [
           {
             "isDirectory": false,
-            "lastDownloaded": "42000000",
-            "lastDownloadedSize": "11",
+            "lastCollected": "42000000",
+            "lastCollectedSize": "11",
             "name": "bash",
             "path": "fs/tsk/c/bin/bash",
             "type": "VFSMemoryFile"
           },
           {
             "isDirectory": false,
-            "lastDownloaded": "42000000",
-            "lastDownloadedSize": "11",
+            "lastCollected": "42000000",
+            "lastCollectedSize": "11",
             "name": "rbash",
             "path": "fs/tsk/c/bin/rbash",
             "type": "VFSMemoryFile"
@@ -4745,11 +4723,7 @@
             "name": "ListProcesses",
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
-              "flowName": "ListProcesses",
-              "token": {
-                "reason": "Running tests",
-                "username": "api_test_user"
-              }
+              "flowName": "ListProcesses"
             },
             "startedAt": "44000000",
             "state": "RUNNING",
@@ -4765,11 +4739,7 @@
             "name": "Interrogate",
             "runnerArgs": {
               "clientId": "aff4:/C.1000000000000000",
-              "flowName": "Interrogate",
-              "token": {
-                "reason": "Running tests",
-                "username": "api_test_user"
-              }
+              "flowName": "Interrogate"
             },
             "startedAt": "43000000",
             "state": "RUNNING",
