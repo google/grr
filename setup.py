@@ -176,7 +176,7 @@ setup_args = dict(
         "pyaml==15.8.2",
         "pycrypto==2.6.1",
         "python-dateutil==2.5.3",
-        "pytsk3==20160226",
+        "pytsk3==20160721",
         "pytz==2016.4",
         "requests==2.9.1",
         "protobuf==3.0.0",

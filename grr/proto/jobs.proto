@@ -726,6 +726,29 @@ message ListDirRequest {
   optional Iterator iterator = 2;
 };
 
+message UploadPolicy {
+  optional string client_id = 1 [(sem_type) = {type: "ClientURN"}];
+
+  optional string filename = 2
+      [(sem_type) = {description: "The filename to upload under."}];
+
+  optional uint64 expires = 3 [(sem_type) = {
+    type: "RDFDatetimeSeconds",
+    description: "When this upload expires."
+  }];
+};
+
+message UploadFileRequest {
+  optional PathSpec pathspec = 1;
+
+  // Note: This must remain encoded because the hmac below must use the same
+  // message.
+  optional bytes policy = 2
+      [(sem_type) = {description: "An encoded UploadPolicy message."}];
+  optional bytes hmac = 3
+      [(sem_type) = {description: "A HMAC in the encoded policy message."}];
+};
+
 // StatFS client action request
 message StatFSRequest {
   repeated string path_list = 1[(sem_type) = {
@@ -2056,4 +2079,14 @@ message PendingFlowTermination {
 message DumpProcessMemoryRequest {
   optional int32 pid = 1;
   optional bool pause = 2;
+}
+
+message SignaturePart {
+  optional bytes signature = 1 [(sem_type) = {
+    description: "The signature covers the plain text of the encrypted "
+                 "cipher field."
+  }];
+
+  optional bytes encrypted_cipher = 2
+      [(sem_type) = {description: "The encrypted CipherProperties object."}];
 }

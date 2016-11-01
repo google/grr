@@ -957,6 +957,16 @@ message GetFileArgs {
     }];
 }
 
+message UploadFileArgs {
+  repeated PathSpec pathspecs = 1
+      [(sem_type) = {description: "The pathspecs to upload"}];
+
+  optional uint64 duration = 2 [
+    (sem_type) = {type: "Duration", description: "When this upload expires."},
+    default = 604800
+  ];  // 7 Days
+}
+
 // Next field ID: 2
 message GetMBRArgs {
   optional uint64 length = 1 [(sem_type) = {

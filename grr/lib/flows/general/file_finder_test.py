@@ -62,26 +62,27 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     return rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(
         os.path.join(self.base_path, "searching", fname))
 
+  EXPECTED_HASHES = {
+      "auth.log": ("67b8fc07bd4b6efc3b2dce322e8ddf609b540805",
+                   "264eb6ff97fc6c37c5dd4b150cb0a797",
+                   "91c8d6287a095a6fa6437dac50ffe3fe5c5e0d06dff"
+                   "3ae830eedfce515ad6451"),
+      "dpkg.log": ("531b1cfdd337aa1663f7361b2fd1c8fe43137f4a",
+                   "26973f265ce5ecc1f86bc413e65bfc1d",
+                   "48303a1e7ceec679f6d417b819f42779575ffe8eabf"
+                   "9c880d286a1ee074d8145"),
+      "dpkg_false.log": ("a2c9cc03c613a44774ae97ed6d181fe77c13e01b",
+                         "ab48f3548f311c77e75ac69ac4e696df",
+                         "a35aface4b45e3f1a95b0df24efc50e14fbedcaa6a7"
+                         "50ba32358eaaffe3c4fb0")
+  }
+
   def CheckFilesHashed(self, fnames):
     """Checks the returned hashes."""
-    hashes = {
-        "auth.log": ("67b8fc07bd4b6efc3b2dce322e8ddf609b540805",
-                     "264eb6ff97fc6c37c5dd4b150cb0a797",
-                     "91c8d6287a095a6fa6437dac50ffe3fe5c5e0d06dff"
-                     "3ae830eedfce515ad6451"),
-        "dpkg.log": ("531b1cfdd337aa1663f7361b2fd1c8fe43137f4a",
-                     "26973f265ce5ecc1f86bc413e65bfc1d",
-                     "48303a1e7ceec679f6d417b819f42779575ffe8eabf"
-                     "9c880d286a1ee074d8145"),
-        "dpkg_false.log": ("a2c9cc03c613a44774ae97ed6d181fe77c13e01b",
-                           "ab48f3548f311c77e75ac69ac4e696df",
-                           "a35aface4b45e3f1a95b0df24efc50e14fbedcaa6a7"
-                           "50ba32358eaaffe3c4fb0")
-    }
 
     for fname in fnames:
       try:
-        file_hashes = hashes[fname]
+        file_hashes = self.EXPECTED_HASHES[fname]
       except KeyError:
         raise RuntimeError("Can't check unexpected result for correct "
                            "hashes: %s" % fname)
@@ -139,23 +140,35 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
   def CheckReplies(self, replies, action, expected_files):
     reply_count = 0
     for _, reply in replies:
-      if isinstance(reply, file_finder.FileFinderResult):
-        reply_count += 1
-        if action == file_finder.FileFinderAction.Action.STAT:
-          self.assertTrue(reply.stat_entry)
-          self.assertFalse(reply.hash_entry)
-        elif action == file_finder.FileFinderAction.Action.DOWNLOAD:
-          self.assertTrue(reply.stat_entry)
-          self.assertTrue(reply.hash_entry)
-        elif action == file_finder.FileFinderAction.Action.HASH:
-          self.assertTrue(reply.stat_entry)
-          self.assertTrue(reply.hash_entry)
+      self.assertTrue(isinstance(reply, file_finder.FileFinderResult))
+
+      reply_count += 1
+      if action == file_finder.FileFinderAction.Action.STAT:
+        self.assertTrue(reply.stat_entry)
+        self.assertFalse(reply.hash_entry)
+      elif action == file_finder.FileFinderAction.Action.DOWNLOAD:
+        self.assertTrue(reply.stat_entry)
+        self.assertTrue(reply.hash_entry)
+      elif action == file_finder.FileFinderAction.Action.HASH:
+        self.assertTrue(reply.stat_entry)
+        self.assertTrue(reply.hash_entry)
+
+      if action != file_finder.FileFinderAction.Action.STAT:
+        # Check that file's hash is correct.
+        file_basename = reply.stat_entry.pathspec.Basename()
+        try:
+          file_hashes = self.EXPECTED_HASHES[file_basename]
+        except KeyError:
+          raise RuntimeError("Can't check unexpected result for correct "
+                             "hashes: %s" % file_basename)
+
+        self.assertEqual(str(reply.hash_entry.sha1), file_hashes[0])
+        self.assertEqual(str(reply.hash_entry.md5), file_hashes[1])
+        self.assertEqual(str(reply.hash_entry.sha256), file_hashes[2])
+
     self.assertEqual(reply_count, len(expected_files))
 
-  def RunFlow(self,
-              paths=None,
-              conditions=None,
-              action=file_finder.FileFinderAction.Action.STAT):
+  def RunFlow(self, paths=None, conditions=None, action=None):
     send_reply = test_lib.Instrument(flow.GRRFlow, "SendReply")
     with send_reply:
       for s in test_lib.TestFlowHelper(
@@ -164,7 +177,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
           client_id=self.client_id,
           paths=paths or [self.path],
           pathtype=rdf_paths.PathSpec.PathType.OS,
-          action=file_finder.FileFinderAction(action_type=action),
+          action=action,
           conditions=conditions,
           token=self.token):
         self.last_session_id = s
@@ -177,6 +190,9 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
                              expected_files=None,
                              non_expected_files=None,
                              paths=None):
+    if not isinstance(action, file_finder.FileFinderAction):
+      action = file_finder.FileFinderAction(action_type=action)
+    action_type = action.action_type
 
     conditions = conditions or []
     expected_files = expected_files or []
@@ -186,18 +202,20 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
       aff4.FACTORY.Delete(self.FileNameToURN(fname), token=self.token)
 
     results = self.RunFlow(paths=paths, conditions=conditions, action=action)
-    self.CheckReplies(results, action, expected_files)
+    self.CheckReplies(results, action_type, expected_files)
 
     self.CheckFilesInCollection(expected_files)
 
-    if action == file_finder.FileFinderAction.Action.STAT:
+    if action_type == file_finder.FileFinderAction.Action.STAT:
       self.CheckFilesNotDownloaded(expected_files + non_expected_files)
       self.CheckFilesNotHashed(expected_files + non_expected_files)
-    elif action == file_finder.FileFinderAction.Action.DOWNLOAD:
+    elif action_type == file_finder.FileFinderAction.Action.DOWNLOAD:
+      self.CheckFilesHashed(expected_files)
+      self.CheckFilesNotHashed(non_expected_files)
       self.CheckFilesDownloaded(expected_files)
       self.CheckFilesNotDownloaded(non_expected_files)
       # Downloaded files are hashed to allow for deduping.
-    elif action == file_finder.FileFinderAction.Action.HASH:
+    elif action_type == file_finder.FileFinderAction.Action.HASH:
       self.CheckFilesNotDownloaded(expected_files + non_expected_files)
       self.CheckFilesHashed(expected_files)
       self.CheckFilesNotHashed(non_expected_files)
@@ -237,7 +255,9 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     expected_files.append(self.client_id.Add("fs/os/bin"))
 
     results = self.RunFlow(
-        action=file_finder.FileFinderAction.Action.STAT, paths=paths)
+        action=file_finder.FileFinderAction(
+            action_type=file_finder.FileFinderAction.Action.STAT),
+        paths=paths)
 
     stat_entries = [result[1].stat_entry for result in results]
     result_paths = [stat.aff4path for stat in stat_entries]
@@ -480,15 +500,12 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         action_type=file_finder.FileFinderAction.Action.DOWNLOAD)
     action.download.max_size = max(sizes) + 1
 
-    for _ in test_lib.TestFlowHelper(
-        "FileFinder",
-        self.client_mock,
-        client_id=self.client_id,
-        paths=[self.path],
-        pathtype=rdf_paths.PathSpec.PathType.OS,
-        action=action,
-        token=self.token):
-      pass
+    results = self.RunFlow(paths=[self.path], action=action)
+
+    # Even though oversized file wasn't downloaded, it should still be reported
+    # in the results.
+    self.CheckReplies(results, action.action_type,
+                      expected_files + non_expected_files)
 
     self.CheckFilesDownloaded(expected_files)
     self.CheckFilesNotDownloaded(non_expected_files)

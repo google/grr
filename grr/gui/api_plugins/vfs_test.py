@@ -499,11 +499,22 @@ class ApiCreateVfsRefreshOperationHandlerTest(api_test_lib.ApiCallHandlerTest):
     with self.assertRaises(ValueError):
       self.handler.Handle(args, token=self.token)
 
-  def testHandlerStartsFlow(self):
+  def testHandlerRefreshStartsListDirectoryFlow(self):
     test_lib.ClientFixture(self.client_id, token=self.token)
 
     args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
-        client_id=self.client_id, file_path=self.file_path, max_depth=0)
+        client_id=self.client_id, file_path=self.file_path, max_depth=1)
+    result = self.handler.Handle(args, token=self.token)
+
+    # Check returned operation_id to references a ListDirectory flow.
+    flow_obj = aff4.FACTORY.Open(result.operation_id, token=self.token)
+    self.assertEqual(flow_obj.Get(flow_obj.Schema.TYPE), "ListDirectory")
+
+  def testHandlerRefreshStartsRecursiveListDirectoryFlow(self):
+    test_lib.ClientFixture(self.client_id, token=self.token)
+
+    args = vfs_plugin.ApiCreateVfsRefreshOperationArgs(
+        client_id=self.client_id, file_path=self.file_path, max_depth=5)
     result = self.handler.Handle(args, token=self.token)
 
     # Check returned operation_id to references a RecursiveListDirectory flow.

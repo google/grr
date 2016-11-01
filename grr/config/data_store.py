@@ -2,6 +2,7 @@
 """Configuration parameters for the data stores."""
 
 from grr.lib import config_lib
+from grr.lib import rdfvalue
 
 config_lib.DEFINE_integer("Datastore.maximum_blob_size", 15 * 1024 * 1024,
                           "Maximum blob size we may store in the datastore.")
@@ -161,3 +162,56 @@ config_lib.DEFINE_integer(
     5,
     help=("Number of seconds to wait in-between attempts"
           "to reconnect to the database."))
+
+config_lib.DEFINE_string(
+    "CloudBigtable.project_id",
+    default=None,
+    help="The Google cloud project ID which will hold the bigtable.")
+
+config_lib.DEFINE_string(
+    "CloudBigtable.instance_location",
+    default="us-central1-c",
+    help="The google cloud zone for the instance. This needs to be in "
+    "a zone that has bigtable available and ideally the same zone (or at "
+    "least the same region) as the server for performance and billing "
+    "reasons.")
+
+config_lib.DEFINE_string(
+    "CloudBigtable.instance_id",
+    default="grrbigtable",
+    help="The cloud bigtable instance ID.")
+
+config_lib.DEFINE_string(
+    "CloudBigtable.test_project_id",
+    default=None,
+    help="Set this to run the cloud bigtable tests. Note that billing applies! "
+    "Always check your project has deleted the test instances correctly after "
+    "running these tests.")
+
+config_lib.DEFINE_string(
+    "CloudBigtable.instance_name",
+    default="grrbigtable",
+    help="The cloud bigtable instance ID.")
+
+config_lib.DEFINE_semantic(rdfvalue.Duration, "CloudBigtable.retry_interval",
+                           "1s", "Time to wait before first retry.")
+
+config_lib.DEFINE_integer(
+    "CloudBigtable.retry_max_attempts",
+    default=5,
+    help="Maximum number of retries on RPC before we give up.")
+
+config_lib.DEFINE_integer("CloudBigtable.retry_multiplier", 2,
+                          "For each retry, multiply last delay by this value.")
+
+config_lib.DEFINE_string(
+    "CloudBigtable.table_name",
+    default="grrbigtable",
+    help="The cloud bigtable table name.")
+
+config_lib.DEFINE_integer("CloudBigtable.threadpool_size", 100,
+                          "The threadpool size for making"
+                          "parallel RPC calls.")
+
+config_lib.DEFINE_integer(
+    "CloudBigtable.serve_nodes", 3, help=("Number of bigtable serve nodes."))

@@ -76,10 +76,14 @@ setup_args = dict(
     },
     install_requires=[
         "Django==1.8.3",
+        "gcloud[grpc]==0.18.2",
+        # gcloud made a mess of their pins. Just installing the gcloud package
+        # as above should be enough, but sub dependencies require slightly
+        # different version of google-gax. This is a workaround.
+        "google-gax==0.12.5",
         "google-api-python-client==1.4.2",
         "grr-response-core==%s" % VERSION.get("Version", "packagedepends"),
         "grr-response-client==%s" % VERSION.get("Version", "packagedepends"),
-        "oauth2client==1.5.2",
         "pexpect==4.0.1",
         "portpicker==1.1.1",
         "python-crontab==2.0.1",

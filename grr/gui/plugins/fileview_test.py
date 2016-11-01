@@ -434,6 +434,7 @@ class TestFileView(FileViewTestBase):
 
     # Grab the root directory again - should produce an Interrogate flow.
     self.Click("css=button#refresh-dir:not([disabled])")
+
     # Check that the button got disabled.
     self.WaitUntil(self.IsElementPresent,
                    "css=button[id=refresh-dir][disabled]")
@@ -441,8 +442,8 @@ class TestFileView(FileViewTestBase):
     # Go to the flow management screen.
     self.Click("css=a[grrtarget='client.flows']")
 
-    self.Click("css=grr-flows-list tr:contains('RecursiveListDirectory')")
-    self.WaitUntilContains("RecursiveListDirectory", self.GetText,
+    self.Click("css=grr-flows-list tr:contains('ListDirectory')")
+    self.WaitUntilContains("ListDirectory", self.GetText,
                            "css=#main_bottomPane")
     self.WaitUntilContains(
         "/Users/Shared", self.GetText,
@@ -563,8 +564,8 @@ class TestFileView(FileViewTestBase):
   def testTreeAndFileListRefreshedWhenRefreshCompletesWhenSelectionChanged(
       self):
     self.Open("/#/clients/C.0000000000000001/vfs/fs/os/c/")
-
     self.Click("css=button[id=refresh-dir]:not([disabled])")
+
     # Change the selection while the update is in progress.
     self.WaitUntil(self.IsElementPresent,
                    "css=button[id=refresh-dir][disabled]")

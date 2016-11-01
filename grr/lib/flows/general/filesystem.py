@@ -65,6 +65,7 @@ class ListDirectory(flow.GRRFlow):
   @flow.StateHandler()
   def Start(self):
     """Issue a request to list the directory."""
+    self.state.urn = None
     self.CallClient(
         standard_actions.StatFile,
         pathspec=self.args.pathspec,

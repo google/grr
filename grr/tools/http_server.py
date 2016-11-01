@@ -24,6 +24,7 @@ from grr.lib import server_plugins
 from grr.lib import aff4
 from grr.lib import communicator
 from grr.lib import config_lib
+from grr.lib import file_store
 from grr.lib import flags
 from grr.lib import flow
 from grr.lib import front_end
@@ -32,8 +33,11 @@ from grr.lib import rdfvalue
 from grr.lib import startup
 from grr.lib import stats
 from grr.lib import type_info
+from grr.lib import uploads
 from grr.lib import utils
 from grr.lib.flows.general import file_finder
+from grr.lib.flows.general import transfer
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 
 # pylint: disable=g-bad-name
@@ -57,15 +61,15 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
            status=200,
            ctype="application/octet-stream",
            last_modified=0):
-
-    self.wfile.write(("HTTP/1.0 %s\r\n"
-                      "Server: GRR Server\r\n"
-                      "Content-type: %s\r\n"
-                      "Content-Length: %d\r\n"
-                      "Last-Modified: %s\r\n"
-                      "\r\n"
-                      "%s") % (self.statustext[status], ctype, len(data),
-                               self.date_time_string(last_modified), data))
+    data = ("HTTP/1.0 %s\r\n"
+            "Server: GRR Server\r\n"
+            "Content-type: %s\r\n"
+            "Content-Length: %d\r\n"
+            "Last-Modified: %s\r\n"
+            "\r\n"
+            "%s") % (self.statustext[status], ctype, len(data),
+                     self.date_time_string(last_modified), data)
+    self.wfile.write(data)
 
   def do_GET(self):
     """Serve the server pem with GET requests."""
@@ -113,9 +117,101 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       length -= len(data)
     return input_data.getvalue()
 
+  def _CopyBytes(self, infd, outfd, length):
+    """Copy bytes from infd to outfd."""
+
+    while 1:
+      to_read = min(length, self.RECV_BLOCK_SIZE)
+      if to_read == 0:
+        return
+
+      data = infd.read(to_read)
+      if not data:
+        return
+
+      outfd.write(data)
+      length -= len(data)
+
+  def _GetClientPublicKey(self, client_id):
+    # Decrypt the file upon writing it.
+    client_obj = aff4.FACTORY.Open(client_id, token=aff4.FACTORY.root_token)
+    return client_obj.Get(client_obj.Schema.CERT).GetPublicKey()
+
+  def HandleUploads(self):
+    """Receive file uploads from the client."""
+    if self.headers.get("Transfer-Encoding") != "chunked":
+      raise IOError("Only chunked uploads are allowed.")
+
+    # Extract request parameters.
+    client_hmac = self.headers.get("x-grr-hmac")
+    if not client_hmac:
+      raise IOError("HMAC not provided")
+
+    policy = self.headers.get("x-grr-policy")
+    if not policy:
+      raise IOError("Policy not provided")
+
+    client_hmac = client_hmac.decode("base64")
+    serialized_policy = policy.decode("base64")
+
+    # Ensure the HMAC verifies.
+    transfer.GetHMAC().Verify(serialized_policy, client_hmac)
+
+    policy = rdf_client.UploadPolicy.FromSerializedString(serialized_policy)
+    if rdfvalue.RDFDatetime.Now() > policy.expires:
+      raise IOError("Client upload policy is too old.")
+
+    upload_store = file_store.UploadFileStore.GetPlugin(config_lib.CONFIG[
+        "Frontend.upload_store"])()
+
+    with upload_store.open_for_writing(policy.client_id,
+                                       policy.filename) as out_fd:
+      decrypt_fd = uploads.DecryptStream(
+          config_lib.CONFIG["PrivateKeys.server_key"],
+          self._GetClientPublicKey(policy.client_id), out_fd)
+
+      total_size = 0
+
+      # Handle chunked encoding:
+      # https://www.w3.org/Protocols/rfc2616/rfc2616-sec3.html#sec3.6.1
+      while 1:
+        line = self.rfile.readline()
+        # We do not support chunked extensions, just ignore them.
+        chunk_size = int(line.split(";")[0], 16)
+        if chunk_size == 0:
+          break
+
+        # Copy the chunk into the file store.
+        self._CopyBytes(self.rfile, decrypt_fd, chunk_size)
+        total_size += chunk_size
+
+        # Chunk is followed by \r\n.
+        lf = self.rfile.read(2)
+        if lf != "\r\n":
+          raise IOError("Unable to parse chunk.")
+
+      # Skip entity headers.
+      for header in self.rfile.readline():
+        if not header:
+          break
+
+      # The file is all here.
+      self.Send("Success: Uploaded %s" % policy.filename)
+
   def do_POST(self):
     """Process encrypted message bundles."""
-    self.Control()
+    try:
+      if self.path.startswith("/upload/"):
+        self.HandleUploads()
+      else:
+        self.Control()
+
+    except Exception as e:  # pylint: disable=broad-except
+      if flags.FLAGS.debug:
+        pdb.post_mortem()
+
+      logging.error("Had to respond with status 500: %s.", e)
+      self.Send("Error: %s" % e, status=500)
 
   @stats.Counted("frontend_request_count", fields=["http"])
   @stats.Timed("frontend_request_latency", fields=["http"])
@@ -142,7 +238,11 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
           "frontend_active_count", self.active_counter, fields=["http"])
 
     try:
-      length = int(self.headers.getheader("content-length"))
+      content_length = self.headers.getheader("content-length")
+      if not content_length:
+        raise IOError("No content-length header provided.")
+
+      length = int(content_length)
 
       request_comms = rdf_flows.ClientCommunication.FromSerializedString(
           self._GetPOSTData(length))
@@ -182,13 +282,6 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
       # accepted by the client". This is because we can not encrypt for the
       # client appropriately.
       self.Send("Enrollment required", status=406)
-
-    except Exception as e:  # pylint: disable=broad-except
-      if flags.FLAGS.debug:
-        pdb.post_mortem()
-
-      logging.error("Had to respond with status 500: %s.", e)
-      self.Send("Error", status=500)
 
     finally:
       with GRRHTTPServerHandler.active_counter_lock:

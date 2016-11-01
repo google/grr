@@ -7,6 +7,7 @@ import time
 
 from grr.lib import rdfvalue
 from grr.lib import utils
+from grr.lib.rdfvalues import crypto as rdf_crypto
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
@@ -189,7 +190,26 @@ class MessageList(rdf_structs.RDFProtoStruct):
 
 
 class CipherProperties(rdf_structs.RDFProtoStruct):
+  """Contains information about a cipher and keys."""
   protobuf = jobs_pb2.CipherProperties
+
+  @classmethod
+  def GetInializedKeys(cls):
+    result = cls()
+    result.name = "AES128CBC"
+    result.key = rdf_crypto.EncryptionKey().GenerateKey()
+    result.metadata_iv = rdf_crypto.EncryptionKey().GenerateKey()
+    result.hmac_key = rdf_crypto.EncryptionKey().GenerateKey()
+    result.hmac_type = "FULL_HMAC"
+
+    return result
+
+  def GetHMAC(self):
+    return rdf_crypto.HMAC(self.hmac_key.RawBytes())
+
+  def GetCipher(self):
+    if self.name == "AES128CBC":
+      return rdf_crypto.AES128CBCCipher(self.key, self.metadata_iv)
 
 
 class CipherMetadata(rdf_structs.RDFProtoStruct):

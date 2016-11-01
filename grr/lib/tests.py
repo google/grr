@@ -45,6 +45,7 @@ from grr.lib import test_lib
 from grr.lib import threadpool_test
 from grr.lib import throttle_test
 from grr.lib import type_info_test
+from grr.lib import uploads_test
 from grr.lib import utils_test
 
 from grr.lib.aff4_objects import tests
@@ -57,4 +58,6 @@ from grr.lib.hunts import tests
 from grr.lib.local import tests
 from grr.lib.output_plugins import tests
 from grr.lib.rdfvalues import tests
+
+from grr.tools import http_server_test
 # pylint: enable=unused-import

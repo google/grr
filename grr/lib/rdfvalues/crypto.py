@@ -698,17 +698,31 @@ class SymmetricCipher(rdf_structs.RDFProtoStruct):
 class HMAC(object):
   """A wrapper for the cryptography HMAC object."""
 
-  def __init__(self, key):
-    self.key = key
+  def __init__(self, key, use_sha256=False):
+    # We store the raw key from cryptography.io.
+    if isinstance(key, EncryptionKey):
+      key = key.RawBytes()
 
-  def HMAC(self, message, use_sha256=False):
-    """Calculates the HMAC for a given message."""
+    self.key = key
+    self._hmac = self._NewHMAC(use_sha256=use_sha256)
+
+  def _NewHMAC(self, use_sha256=False):
     if use_sha256:
       hash_algorithm = hashes.SHA256()
     else:
       hash_algorithm = hashes.SHA1()
 
-    h = hmac.HMAC(self.key.RawBytes(), hash_algorithm, backend=openssl.backend)
+    return hmac.HMAC(self.key, hash_algorithm, backend=openssl.backend)
+
+  def Update(self, data):
+    self._hmac.update(data)
+
+  def Finalize(self):
+    return self._hmac.finalize()
+
+  def HMAC(self, message, use_sha256=False):
+    """Calculates the HMAC for a given message."""
+    h = self._NewHMAC(use_sha256=use_sha256)
     h.update(message)
     return h.finalize()
 
@@ -722,7 +736,7 @@ class HMAC(object):
     else:
       raise VerificationError("Invalid signature length %d." % siglen)
 
-    h = hmac.HMAC(self.key.RawBytes(), hash_algorithm, backend=openssl.backend)
+    h = hmac.HMAC(self.key, hash_algorithm, backend=openssl.backend)
     h.update(message)
     try:
       h.verify(signature)

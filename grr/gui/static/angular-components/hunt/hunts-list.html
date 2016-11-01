@@ -84,7 +84,8 @@
     </tr>
   </thead>
   <tbody>
-    <tr grr-infinite-table grr-api-items-provider url="controller.huntsUrl"
+    <tr grr-infinite-table page-size="100"
+        grr-api-items-provider url="controller.huntsUrl"
         transform-items="controller.transformItems(items)" trigger-update="controller.triggerUpdate"
         ng-click="controller.selectItem(item)"
         ng-class="{'row-selected': item.value.urn.value == selectedHuntUrn, 'warning': item.value.is_robot.value}"

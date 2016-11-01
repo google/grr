@@ -22,7 +22,6 @@ import logging
 from grr.lib import aff4
 from grr.lib import config_lib
 from grr.lib import data_store
-from grr.lib import rdfvalue
 from grr.lib import utils
 from grr.lib.data_stores import common
 
@@ -836,14 +835,9 @@ class SqliteDataStore(data_store.DataStore):
                      max_records=None,
                      token=None,
                      relaxed_order=False):
+    subject_prefix = self._CleanSubjectPrefix(subject_prefix)
+    after_urn = self._CleanAfterURN(after_urn, subject_prefix)
     self.security_manager.CheckDataStoreAccess(token, [subject_prefix], "rq")
-
-    subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
-    if subject_prefix[-1] != "/":
-      subject_prefix += "/"
-
-    if after_urn:
-      after_urn = str(after_urn)
 
     connection_iter = self.cache.GetPrefix(subject_prefix)
     if relaxed_order:
@@ -956,6 +950,9 @@ class SqliteDataStore(data_store.DataStore):
   def Location(self):
     """Get location of the data store."""
     return self.cache.RootPath()
+
+  def Flush(self):
+    pass
 
   def ChangeLocation(self, location):
     self.cache.ChangePath(location)

@@ -790,6 +790,14 @@ class ListDirRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.ListDirRequest
 
 
+class UploadPolicy(structs.RDFProtoStruct):
+  protobuf = jobs_pb2.UploadPolicy
+
+
+class UploadFileRequest(structs.RDFProtoStruct):
+  protobuf = jobs_pb2.UploadFileRequest
+
+
 class DumpProcessMemoryRequest(structs.RDFProtoStruct):
   protobuf = jobs_pb2.DumpProcessMemoryRequest
 

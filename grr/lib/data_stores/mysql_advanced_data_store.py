@@ -7,6 +7,7 @@ import Queue
 import thread
 import threading
 import time
+from warnings import filterwarnings
 
 
 import MySQLdb
@@ -18,10 +19,15 @@ from grr.lib import data_store
 from grr.lib import rdfvalue
 from grr.lib import utils
 
+# We use INSERT IGNOREs which generate useless duplicate entry warnings.
+filterwarnings("ignore", category=MySQLdb.Warning, message=r"Duplicate entry.*")
+
 
 # pylint: disable=nonstandard-exception
 class Error(data_store.Error):
   """Base class for all exceptions in this module."""
+
+
 # pylint: enable=nonstandard-exception
 
 

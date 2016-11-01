@@ -373,6 +373,11 @@ class HTTPManager(object):
         # By default requests doesn't raise on HTTP error codes.
         result.raise_for_status()
 
+        # Requests does not always raise an exception when an incorrect response
+        # is received. This fixes that behaviour.
+        if not result.ok:
+          raise requests.RequestException(response=result)
+
         return time.time() - now, result
 
       # Catch any exceptions that dont have a code (e.g. socket.error).
@@ -510,9 +515,12 @@ class GRRClientWorker(object):
   # Client sends stats notifications at most every 60 seconds.
   STATS_MIN_SEND_INTERVAL = rdfvalue.Duration("60s")
 
-  def __init__(self):
+  def __init__(self, client=None):
     """Create a new GRRClientWorker."""
     super(GRRClientWorker, self).__init__()
+
+    # A reference to the parent client that owns us.
+    self.client = client
 
     # Queue of messages from the server to be processed.
     self._in_queue = []
@@ -957,8 +965,8 @@ class GRRThreadedWorker(GRRClientWorker, threading.Thread):
   waiting on network latency.
   """
 
-  def __init__(self, start_worker_thread=True):
-    super(GRRThreadedWorker, self).__init__()
+  def __init__(self, start_worker_thread=True, client=None):
+    super(GRRThreadedWorker, self).__init__(client=client)
 
     # This queue should never hit its maximum since the server will throttle
     # messages before this.
@@ -1183,7 +1191,7 @@ class GRRHTTPClient(object):
     if worker:
       self.client_worker = worker
     else:
-      self.client_worker = GRRThreadedWorker()
+      self.client_worker = GRRThreadedWorker(client=self)
 
   def VerifyServerPEM(self, http_object):
     """Check the server PEM for validity.

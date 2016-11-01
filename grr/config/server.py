@@ -158,6 +158,12 @@ config_lib.DEFINE_integer("Frontend.message_expiry_time", 600,
                           "Maximum time messages remain valid within the "
                           "system.")
 
+config_lib.DEFINE_string("Frontend.upload_store", "FileUploadFileStore",
+                         "The implementation of the upload file store.")
+
+config_lib.DEFINE_string("FileUploadFileStore.root_dir", "/tmp/",
+                         "Where to store files uploaded.")
+
 config_lib.DEFINE_string("Server.initialized", False,
                          "True once config_updater initialize has been "
                          "run at least once.")

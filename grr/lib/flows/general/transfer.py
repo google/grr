@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """These flows are designed for high performance transfers."""
 
-
+import hashlib
 import zlib
 
 import logging
@@ -996,3 +996,46 @@ class LoadComponentMixin(object):
     self.Log("Loaded component %s %s",
              responses.First().summary.name, responses.First().summary.version)
     self.CallStateInline(next_state=responses.request_data["next_state"])
+
+
+def GetHMAC():
+  """Return a HMAC object suitable for validating file upload URLs."""
+  # Just get some random string.
+  private_key = config_lib.CONFIG["PrivateKeys.server_key"].SerializeToString()
+
+  hmac_secret = hashlib.sha256(private_key).hexdigest()
+
+  return rdf_crypto.HMAC(hmac_secret)
+
+
+class UploadFileArgs(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.UploadFileArgs
+
+
+class UploadFile(flow.GRRFlow):
+  """Upload the files."""
+
+  category = "/Filesystem/"
+
+  args_type = UploadFileArgs
+
+  @flow.StateHandler()
+  def Start(self):
+    hmac = GetHMAC()
+
+    for pathspec in self.args.pathspecs:
+      policy = rdf_client.UploadPolicy(
+          client_id=self.client_id,
+          filename=pathspec.CollapsePath(),
+          expires=rdfvalue.RDFDatetime.Now() + self.args.duration)
+
+      serialized_policy = policy.SerializeToString()
+
+      self.CallClient(
+          standard_actions.UploadFile,
+          rdf_client.UploadFileRequest(
+              pathspec=pathspec,
+              client_id=self.client_id,
+              policy=serialized_policy,
+              hmac=hmac.HMAC(serialized_policy)),
+          next_state="Upload")

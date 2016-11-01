@@ -11,6 +11,7 @@ from grr.lib import config_lib
 from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -53,6 +54,20 @@ class Interrogate(flow.GRRFlow):
   args_type = InterrogateArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
+  def _OpenClient(self, mode="r"):
+    return aff4.FACTORY.Open(
+        self.client_id,
+        aff4_type=aff4_grr.VFSGRRClient,
+        mode=mode,
+        token=self.token)
+
+  def _CreateClient(self, mode="w"):
+    return aff4.FACTORY.Create(
+        self.client_id,
+        aff4_type=aff4_grr.VFSGRRClient,
+        mode=mode,
+        token=self.token)
+
   @flow.StateHandler()
   def Start(self):
     """Start off all the tests."""
@@ -63,7 +78,7 @@ class Interrogate(flow.GRRFlow):
     # Make sure we always have a VFSDirectory with a pathspec at fs/os
     pathspec = rdf_paths.PathSpec(
         path="/", pathtype=rdf_paths.PathSpec.PathType.OS)
-    urn = self.client.PathspecToURN(pathspec, self.client.urn)
+    urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
     with aff4.FACTORY.Create(
         urn, standard.VFSDirectory, mode="w", token=self.token) as fd:
       fd.Set(fd.Schema.PATHSPEC, pathspec)
@@ -85,25 +100,13 @@ class Interrogate(flow.GRRFlow):
         operating_system_actions.EnumerateFilesystems,
         next_state="EnumerateFilesystems")
 
-  def Load(self):
-    # TODO(user): This is not great. Every time we want to show the
-    # flow in the UI for example, we need to open a sub object. Also,
-    # Load() is called on Flush()... This is slow and unnecessary.
-
-    # Ensure there is a client object
-    self.client = aff4.FACTORY.Open(self.client_id, mode="rw", token=self.token)
-
-  def Save(self):
-    # Make sure the client object is removed and closed
-    if self.client:
-      self.client.Close()
-      self.client = None
-
   @flow.StateHandler()
   def StoreMemorySize(self, responses):
     if not responses.success:
       return
-    self.client.Set(self.client.Schema.MEMORY_SIZE(responses.First()))
+
+    with self._CreateClient() as client:
+      client.Set(client.Schema.MEMORY_SIZE(responses.First()))
 
   @flow.StateHandler()
   def Platform(self, responses):
@@ -113,45 +116,48 @@ class Interrogate(flow.GRRFlow):
 
       # These need to be in separate attributes because they get searched on in
       # the GUI
-      self.client.Set(self.client.Schema.HOSTNAME(response.node))
-      self.client.Set(self.client.Schema.SYSTEM(response.system))
-      self.client.Set(self.client.Schema.OS_RELEASE(response.release))
-      self.client.Set(self.client.Schema.OS_VERSION(response.version))
-      self.client.Set(self.client.Schema.KERNEL(response.kernel))
-      self.client.Set(self.client.Schema.FQDN(response.fqdn))
+      with self._OpenClient(mode="rw") as client:
+        client.Set(client.Schema.HOSTNAME(response.node))
+        client.Set(client.Schema.SYSTEM(response.system))
+        client.Set(client.Schema.OS_RELEASE(response.release))
+        client.Set(client.Schema.OS_VERSION(response.version))
+        client.Set(client.Schema.KERNEL(response.kernel))
+        client.Set(client.Schema.FQDN(response.fqdn))
 
-      # response.machine is the machine value of platform.uname()
-      # On Windows this is the value of:
-      # HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session
-      # Manager\Environment\PROCESSOR_ARCHITECTURE
-      # "AMD64", "IA64" or "x86"
-      self.client.Set(self.client.Schema.ARCH(response.machine))
-      self.client.Set(
-          self.client.Schema.UNAME("%s-%s-%s" % (
-              response.system, response.release, response.version)))
-      self.client.Flush(sync=True)
+        # response.machine is the machine value of platform.uname()
+        # On Windows this is the value of:
+        # HKEY_LOCAL_MACHINE\System\CurrentControlSet\Control\Session
+        # Manager\Environment\PROCESSOR_ARCHITECTURE
+        # "AMD64", "IA64" or "x86"
+        client.Set(client.Schema.ARCH(response.machine))
+        client.Set(
+            client.Schema.UNAME("%s-%s-%s" % (response.system, response.release,
+                                              response.version)))
+
+        # Update the client index
+        aff4.FACTORY.Create(
+            client_index.MAIN_INDEX,
+            aff4_type=client_index.ClientIndex,
+            mode="rw",
+            object_exists=True,
+            token=self.token).AddClient(client)
 
       if response.system == "Windows":
         with aff4.FACTORY.Create(
-            self.client.urn.Add("registry"),
+            self.client_id.Add("registry"),
             standard.VFSDirectory,
             token=self.token) as fd:
           fd.Set(fd.Schema.PATHSPEC,
                  fd.Schema.PATHSPEC(
                      path="/", pathtype=rdf_paths.PathSpec.PathType.REGISTRY))
 
-      # Update the client index
-      aff4.FACTORY.Create(
-          client_index.MAIN_INDEX,
-          aff4_type=client_index.ClientIndex,
-          mode="rw",
-          object_exists=True,
-          token=self.token).AddClient(self.client)
-
+      known_system_type = True
     else:
+      client = self._OpenClient()
+      known_system_type = client.Get(client.Schema.SYSTEM)
       self.Log("Could not retrieve Platform info.")
 
-    if self.client.Get(self.client.Schema.SYSTEM):
+    if known_system_type:
       # We will accept a partial KBInit rather than raise, so pass
       # require_complete=False.
       self.CallFlow(
@@ -166,8 +172,9 @@ class Interrogate(flow.GRRFlow):
   def InstallDate(self, responses):
     if responses.success:
       response = responses.First()
-      install_date = self.client.Schema.INSTALL_DATE(response.integer * 1000000)
-      self.client.Set(install_date)
+      with self._CreateClient() as client:
+        install_date = client.Schema.INSTALL_DATE(response.integer * 1000000)
+        client.Set(install_date)
     else:
       self.Log("Could not get InstallDate")
 
@@ -195,12 +202,13 @@ class Interrogate(flow.GRRFlow):
           store_results_in_aff4=True)
 
     # Update the client index
+    client = self._OpenClient()
     aff4.FACTORY.Create(
         client_index.MAIN_INDEX,
         aff4_type=client_index.ClientIndex,
         mode="rw",
         object_exists=True,
-        token=self.token).AddClient(self.client)
+        token=self.token).AddClient(client)
 
   @flow.StateHandler()
   def ProcessArtifactResponses(self, responses):
@@ -216,30 +224,31 @@ class Interrogate(flow.GRRFlow):
       self.Log("Could not enumerate interfaces: %s" % responses.status)
       return
 
-    interface_list = self.client.Schema.INTERFACES()
-    mac_addresses = []
-    ip_addresses = []
-    for response in responses:
-      interface_list.Append(response)
+    with self._CreateClient() as client:
+      interface_list = client.Schema.INTERFACES()
+      mac_addresses = []
+      ip_addresses = []
+      for response in responses:
+        interface_list.Append(response)
 
-      # Add a hex encoded string for searching
-      if (response.mac_address and
-          response.mac_address != "\x00" * len(response.mac_address)):
-        mac_addresses.append(response.mac_address.human_readable_address)
+        # Add a hex encoded string for searching
+        if (response.mac_address and
+            response.mac_address != "\x00" * len(response.mac_address)):
+          mac_addresses.append(response.mac_address.human_readable_address)
 
-      for address in response.addresses:
-        if address.human_readable_address not in self.FILTERED_IPS:
-          ip_addresses.append(address.human_readable_address)
+        for address in response.addresses:
+          if address.human_readable_address not in self.FILTERED_IPS:
+            ip_addresses.append(address.human_readable_address)
 
-    self.client.Set(self.client.Schema.MAC_ADDRESS("\n".join(mac_addresses)))
-    self.client.Set(self.client.Schema.HOST_IPS("\n".join(ip_addresses)))
-    self.client.Set(self.client.Schema.INTERFACES(interface_list))
+      client.Set(client.Schema.MAC_ADDRESS("\n".join(mac_addresses)))
+      client.Set(client.Schema.HOST_IPS("\n".join(ip_addresses)))
+      client.Set(client.Schema.INTERFACES(interface_list))
 
   @flow.StateHandler()
   def EnumerateFilesystems(self, responses):
     """Store all the local filesystems in the client."""
     if responses.success and len(responses):
-      filesystems = self.client.Schema.FILESYSTEM()
+      filesystems = aff4_grr.VFSGRRClient.SchemaCls.FILESYSTEM()
       for response in responses:
         filesystems.Append(response)
 
@@ -255,7 +264,7 @@ class Interrogate(flow.GRRFlow):
 
           pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
-          urn = self.client.PathspecToURN(pathspec, self.client.urn)
+          urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
           fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
           fd.Set(fd.Schema.PATHSPEC(pathspec))
           fd.Close()
@@ -267,7 +276,7 @@ class Interrogate(flow.GRRFlow):
 
           pathspec.Append(path="/", pathtype=rdf_paths.PathSpec.PathType.TSK)
 
-          urn = self.client.PathspecToURN(pathspec, self.client.urn)
+          urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
           fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
           fd.Set(fd.Schema.PATHSPEC(pathspec))
           fd.Close()
@@ -278,12 +287,13 @@ class Interrogate(flow.GRRFlow):
               path=response.mount_point,
               pathtype=rdf_paths.PathSpec.PathType.OS)
 
-          urn = self.client.PathspecToURN(pathspec, self.client.urn)
-          fd = aff4.FACTORY.Create(urn, standard.VFSDirectory, token=self.token)
-          fd.Set(fd.Schema.PATHSPEC(pathspec))
-          fd.Close()
+          urn = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, self.client_id)
+          with aff4.FACTORY.Create(
+              urn, standard.VFSDirectory, token=self.token) as fd:
+            fd.Set(fd.Schema.PATHSPEC(pathspec))
 
-      self.client.Set(self.client.Schema.FILESYSTEM, filesystems)
+      with self._CreateClient() as client:
+        client.Set(client.Schema.FILESYSTEM, filesystems)
     else:
       self.Log("Could not enumerate file systems.")
 
@@ -292,8 +302,9 @@ class Interrogate(flow.GRRFlow):
     """Obtain some information about the GRR client running."""
     if responses.success:
       response = responses.First()
-      self.client.Set(self.client.Schema.CLIENT_INFO(response))
-      self.client.AddLabels(*response.labels, owner="GRR")
+      with self._OpenClient(mode="rw") as client:
+        client.Set(client.Schema.CLIENT_INFO(response))
+        client.AddLabels(*response.labels, owner="GRR")
     else:
       self.Log("Could not get ClientInfo.")
 
@@ -302,23 +313,26 @@ class Interrogate(flow.GRRFlow):
     """Process client config."""
     if responses.success:
       response = responses.First()
-      self.client.Set(self.client.Schema.GRR_CONFIGURATION(response))
+      with self._CreateClient() as client:
+        client.Set(client.Schema.GRR_CONFIGURATION(response))
 
   @flow.StateHandler()
   def ClientLibraries(self, responses):
     """Process client library information."""
     if responses.success:
       response = responses.First()
-      self.client.Set(self.client.Schema.LIBRARY_VERSIONS(response))
+      with self._CreateClient() as client:
+        client.Set(client.Schema.LIBRARY_VERSIONS(response))
 
   def NotifyAboutEnd(self):
-    self.Notify("Discovery", self.client.urn, "Client Discovery Complete")
+    self.Notify("Discovery", self.client_id, "Client Discovery Complete")
 
   @flow.StateHandler()
   def End(self):
     """Finalize client registration."""
     # Update summary and publish to the Discovery queue.
-    summary = self.client.GetSummary()
+    client = self._OpenClient()
+    summary = client.GetSummary()
     self.Publish("Discovery", summary)
     self.SendReply(summary)
 
@@ -328,4 +342,4 @@ class Interrogate(flow.GRRFlow):
         aff4_type=client_index.ClientIndex,
         mode="rw",
         object_exists=True,
-        token=self.token).AddClient(self.client)
+        token=self.token).AddClient(client)

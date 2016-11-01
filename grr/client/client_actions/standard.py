@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 """Standard actions that happen on the client."""
 
-
+import base64
 import cStringIO as StringIO
 import ctypes
 import gzip
@@ -25,6 +25,7 @@ from grr.client.client_actions import tempfiles
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import rdfvalue
+from grr.lib import uploads
 from grr.lib import utils
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
@@ -683,6 +684,51 @@ class SendFile(actions.ActionPlugin):
     s.close()
 
     self.SendReply(fd.Stat())
+
+
+class UploadFile(actions.ActionPlugin):
+  """Upload a file to the server."""
+  in_rdfvalue = rdf_client.UploadFileRequest
+  out_rdfvalues = [rdf_client.StatEntry]
+
+  BUFFER_SIZE = 1024 * 1024
+
+  def FileGenerator(self, fd):
+    """A Generator of file content."""
+    while 1:
+      data = fd.Read(self.BUFFER_SIZE)
+      if not data:
+        break
+
+      # Ensure we heartbeat while the upload is happening.
+      self.Progress()
+      yield data
+
+  def Run(self, args):
+    file_fd = vfs.VFSOpen(args.pathspec, progress_callback=self.Progress)
+
+    # Gzip the original file.
+    gzip_fd = uploads.GzipWrapper(file_fd)
+
+    # And then encrypt it.
+    server_certificate = rdf_crypto.RDFX509Cert(
+        self.grr_worker.client.server_certificate)
+    fd = uploads.EncryptStream(server_certificate.GetPublicKey(),
+                               config_lib.CONFIG["Client.private_key"], gzip_fd)
+
+    response = self.grr_worker.http_manager.OpenServerEndpoint(
+        u"/upload/",
+        data=self.FileGenerator(fd),
+        headers={
+            "x-grr-hmac": base64.b64encode(args.hmac),
+            "x-grr-policy": base64.b64encode(args.policy),
+        },
+        method="POST")
+
+    if response.code != 200:
+      raise IOError("Unable to upload %s" % args.pathspec.CollapsePath())
+
+    self.SendReply(file_fd.Stat())
 
 
 class StatFS(actions.ActionPlugin):

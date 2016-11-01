@@ -79,7 +79,7 @@
 
       <!-- We need this ng-if to make sure fileListUrl is stable when ApiItemsProvider is called. -->
       <tbody ng-if="controller.fileListUrl">
-        <tr grr-infinite-table
+        <tr grr-infinite-table page-size="1000"
             filter-value="controller.filterValue"
             trigger-update="controller.triggerUpdate"
             grr-api-items-provider

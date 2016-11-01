@@ -172,7 +172,7 @@ FileTableController.prototype.startVfsRefreshOperation = function() {
   var url = 'clients/' + clientId + '/vfs-refresh-operations';
   var refreshOperation = {
     file_path: selectedFolderPath,
-    max_depth: 0,
+    max_depth: 1,
     notify_user: false
   };
 

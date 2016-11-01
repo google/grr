@@ -46,6 +46,7 @@ from grr.lib import access_control
 from grr.lib import blob_store
 from grr.lib import config_lib
 from grr.lib import flags
+from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
@@ -190,6 +191,7 @@ class DataStore(object):
   ALL_TIMESTAMPS = "ALL_TIMESTAMPS"
   NEWEST_TIMESTAMP = "NEWEST_TIMESTAMP"
   TIMESTAMPS = [ALL_TIMESTAMPS, NEWEST_TIMESTAMP]
+  LEASE_ATTRIBUTE = "aff4:lease"
 
   mutation_pool_cls = MutationPool
 
@@ -478,9 +480,9 @@ class DataStore(object):
 
       timestamp: A range of times for consideration (In
           microseconds). Can be a constant such as ALL_TIMESTAMPS or
-          NEWEST_TIMESTAMP or a tuple of ints (start, end).
-
-      limit: The number of subjects to return.
+          NEWEST_TIMESTAMP or a tuple of ints (start, end). Inclusive of both
+          lower and upper bounds.
+      limit: The total number of result values to return.
       token: An ACL token.
 
     Returns:
@@ -541,11 +543,25 @@ class DataStore(object):
                    timestamp=None,
                    limit=None,
                    token=None):
-    """Resolve multiple attributes for a subject."""
+    """Resolve multiple attributes for a subject.
+
+    Results may be in unsorted order.
+
+    Args:
+      subject: The subject to resolve.
+      attributes: The attribute string or list of strings to match. Note this is
+          an exact match, not a regex.
+      timestamp: A range of times for consideration (In
+          microseconds). Can be a constant such as ALL_TIMESTAMPS or
+          NEWEST_TIMESTAMP or a tuple of ints (start, end).
+      limit: The maximum total number of results we return.
+      token: The security token used in this call.
+    """
 
   def ResolveRow(self, subject, **kw):
     return self.ResolvePrefix(subject, "", **kw)
 
+  @abc.abstractmethod
   def Flush(self):
     """Flushes the DataStore."""
 
@@ -563,6 +579,20 @@ class DataStore(object):
     except Exception:  # pylint: disable=broad-except
       pass
 
+  def _CleanSubjectPrefix(self, subject_prefix):
+    subject_prefix = utils.SmartStr(rdfvalue.RDFURN(subject_prefix))
+    if subject_prefix[-1] != "/":
+      subject_prefix += "/"
+    return subject_prefix
+
+  def _CleanAfterURN(self, after_urn, subject_prefix):
+    if after_urn:
+      after_urn = utils.SmartStr(after_urn)
+      if not after_urn.startswith(subject_prefix):
+        raise RuntimeError("after_urn \"%s\" does not begin with prefix \"%s\""
+                           % (after_urn, subject_prefix))
+    return after_urn
+
   @abc.abstractmethod
   def ScanAttributes(self,
                      subject_prefix,
@@ -571,7 +601,7 @@ class DataStore(object):
                      max_records=None,
                      token=None,
                      relaxed_order=False):
-    """Scan for values of an attribute accross a range of rows.
+    """Scan for values of multiple attributes across a range of rows.
 
     Scans rows for values of attribute. Reads the most recent value stored in
     each row.

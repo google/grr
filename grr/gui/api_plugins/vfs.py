@@ -545,15 +545,26 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
     aff4_path = args.client_id.Add(args.file_path)
     fd = aff4.FACTORY.Open(aff4_path, token=token)
 
-    flow_args = filesystem.RecursiveListDirectoryArgs(
-        pathspec=fd.real_pathspec, max_depth=args.max_depth)
+    if args.max_depth == 1:
+      flow_args = filesystem.ListDirectoryArgs(pathspec=fd.real_pathspec)
 
-    flow_urn = flow.GRRFlow.StartFlow(
-        client_id=args.client_id,
-        flow_name="RecursiveListDirectory",
-        args=flow_args,
-        notify_to_user=args.notify_user,
-        token=token)
+      flow_urn = flow.GRRFlow.StartFlow(
+          client_id=args.client_id,
+          flow_name=filesystem.ListDirectory.__name__,
+          args=flow_args,
+          notify_to_user=args.notify_user,
+          token=token)
+
+    else:
+      flow_args = filesystem.RecursiveListDirectoryArgs(
+          pathspec=fd.real_pathspec, max_depth=args.max_depth)
+
+      flow_urn = flow.GRRFlow.StartFlow(
+          client_id=args.client_id,
+          flow_name=filesystem.RecursiveListDirectory.__name__,
+          args=flow_args,
+          notify_to_user=args.notify_user,
+          token=token)
 
     return ApiCreateVfsRefreshOperationResult(operation_id=str(flow_urn))
 
@@ -576,16 +587,14 @@ class ApiGetVfsRefreshOperationStateHandler(
   result_type = ApiGetVfsRefreshOperationStateResult
 
   def Handle(self, args, token=None):
-    try:
-      flow_obj = aff4.FACTORY.Open(
-          args.operation_id,
-          aff4_type=filesystem.RecursiveListDirectory,
-          token=token)
-      complete = not flow_obj.GetRunner().IsRunning()
-    except aff4.InstantiationError:
+    flow_obj = aff4.FACTORY.Open(args.operation_id, token=token)
+
+    if not isinstance(flow_obj, (filesystem.RecursiveListDirectory,
+                                 filesystem.ListDirectory)):
       raise VfsRefreshOperationNotFoundError("Operation with id %s not found" %
                                              args.operation_id)
 
+    complete = not flow_obj.GetRunner().IsRunning()
     result = ApiGetVfsRefreshOperationStateResult()
     if complete:
       result.state = ApiGetVfsRefreshOperationStateResult.State.FINISHED

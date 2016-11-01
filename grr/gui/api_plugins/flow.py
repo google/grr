@@ -679,7 +679,10 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
 
   @staticmethod
   def _GetCreationTime(obj):
-    return obj.context.create_time or obj.Get(obj.Schema.LAST, 0)
+    if obj.context:
+      return obj.context.create_time
+    else:
+      return obj.Get(obj.Schema.LAST, 0)
 
   @staticmethod
   def BuildFlowList(root_urn, count, offset, token=None):

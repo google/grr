@@ -328,6 +328,9 @@ class FakeDataStore(data_store.DataStore):
 
     return result.iteritems()
 
+  def Flush(self):
+    pass
+
   @utils.Synchronized
   def ResolvePrefix(self,
                     subject,

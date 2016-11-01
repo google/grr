@@ -75,8 +75,13 @@ def DBSubjectLockTest(f):
 
 
 class _DataStoreTest(test_lib.GRRBaseTest):
-  """Test the data store abstraction."""
+  """Test the data store abstraction.
+
+  Note that when testing timestamp behavior the cloud bigtable datastore only
+  has ms precision.
+  """
   test_row = "aff4:/row:foo"
+  lease_row = u"aff4:/leasetest"
 
   # This flag controls if tests can also delete data. Some data stores don't
   # support deletion so those tests will fail for them.
@@ -84,16 +89,19 @@ class _DataStoreTest(test_lib.GRRBaseTest):
   # The same applies to locks.
   TEST_DBSUBJECTLOCKS = True
 
+  def _ClearDB(self, subjects):
+    for subject in subjects:
+      data_store.DB.DeleteSubject(subject, token=self.token)
+    data_store.DB.Flush()
+
   def setUp(self):
     super(_DataStoreTest, self).setUp()
     self.InitDatastore()
-
-    data_store.DB.DeleteSubject(self.test_row, token=self.token)
-    for i in range(20):
-      data_store.DB.DeleteSubject("aff4:/row:%s" % i, token=self.token)
-
-    data_store.DB.Flush()
-
+    to_delete = ["aff4:/row:%s" % i for i in range(20)]
+    to_delete.extend(["aff4:/C/%s" % i for i in range(7)])
+    to_delete.extend(
+        [self.test_row, self.lease_row, "aff4:/A/", "aff4:/B/", "aff4:/C/"])
+    self._ClearDB(to_delete)
     self.acls_installed = False
 
   def tearDown(self):
@@ -105,6 +113,10 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
   def DestroyDatastore(self):
     """Destroys custom data store."""
+
+  def _TruncateToMilliseconds(self, timestamp_int):
+    timestamp_int -= (timestamp_int % 1000)
+    return timestamp_int
 
   def testSetResolve(self):
     """Test the Set() and Resolve() methods."""
@@ -146,29 +158,32 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(stored, "hello")
     self.assertEqual(type(stored), str)
 
-    # Test setting values with timestamp.
+  def testMultiSetTimestamps(self):
+    unicode_string = u"this is a uñîcödé string"
     data_store.DB.MultiSet(
         self.test_row,
-        {"aff4:size": [(1, 100)],
-         "aff4:stored": [(unicode_string, 200)]},
+        {"aff4:size": [(1, 1000)],
+         "aff4:stored": [(unicode_string, 2000)]},
         token=self.token)
 
     stored, ts = data_store.DB.Resolve(
         self.test_row, "aff4:size", token=self.token)
     self.assertEqual(stored, 1)
-    self.assertEqual(ts, 100)
+    self.assertEqual(ts, 1000)
 
     stored, ts = data_store.DB.Resolve(
         self.test_row, "aff4:stored", token=self.token)
     self.assertEqual(stored, unicode_string)
-    self.assertEqual(ts, 200)
+    self.assertEqual(ts, 2000)
 
-    # Test giving a broken timestamp definition.
+  def testMultiSetNoneTimestampIsNow(self):
+    unicode_string = u"this is a uñîcödé string"
     start_time = time.time() * 1e6
+    # Test None timestamp is translated to current time.
     data_store.DB.MultiSet(
         self.test_row,
         {"aff4:size": [(1, None)],
-         "aff4:stored": [(unicode_string, 200)]},
+         "aff4:stored": [(unicode_string, 2000)]},
         token=self.token)
     end_time = time.time() * 1e6
     stored, ts = data_store.DB.Resolve(
@@ -180,7 +195,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     stored, ts = data_store.DB.Resolve(
         self.test_row, "aff4:stored", token=self.token)
     self.assertEqual(stored, unicode_string)
-    self.assertEqual(ts, 200)
+    self.assertEqual(ts, 2000)
 
   def testMultiSetAsync(self):
     """Test the async MultiSet() methods."""
@@ -218,19 +233,19 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     # Specify a per element timestamp
     data_store.DB.MultiSet(
         self.test_row,
-        {"aff4:size": [(1, 100)],
-         "aff4:stored": [("2", 200)]},
+        {"aff4:size": [(1, 1000)],
+         "aff4:stored": [("2", 2000)]},
         token=self.token)
 
     stored, ts = data_store.DB.Resolve(
         self.test_row, "aff4:size", token=self.token)
     self.assertEqual(stored, 1)
-    self.assertEqual(ts, 100)
+    self.assertEqual(ts, 1000)
 
     stored, ts = data_store.DB.Resolve(
         self.test_row, "aff4:stored", token=self.token)
     self.assertEqual(stored, "2")
-    self.assertEqual(ts, 200)
+    self.assertEqual(ts, 2000)
 
   def testMultiSet3(self):
     """Test the MultiSet() delete methods."""
@@ -280,18 +295,24 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
   def testMultiSetSetsTimestapWhenReplacing(self):
     data_store.DB.MultiSet(
-        self.test_row, {"aff4:size": [(1, 100)]},
+        self.test_row, {"aff4:size": [(1, 1000)]},
         replace=True,
         token=self.token)
 
     stored, ts = data_store.DB.Resolve(
         self.test_row, "aff4:size", token=self.token)
     self.assertEqual(stored, 1)
-    self.assertEqual(ts, 100)
+    self.assertEqual(ts, 1000)
 
   def testMultiSetRemovesOtherValuesWhenReplacing(self):
+    values = data_store.DB.ResolvePrefix(
+        self.test_row,
+        "aff4:stored",
+        timestamp=data_store.DB.ALL_TIMESTAMPS,
+        token=self.token)
+
     data_store.DB.MultiSet(
-        self.test_row, {"aff4:stored": [("2", 100), ("3", 200)]},
+        self.test_row, {"aff4:stored": [("2", 1000), ("3", 4000)]},
         replace=False,
         token=self.token)
 
@@ -300,11 +321,11 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         "aff4:stored",
         timestamp=data_store.DB.ALL_TIMESTAMPS,
         token=self.token)
-    self.assertListEqual(values, [("aff4:stored", "3", 200),
-                                  ("aff4:stored", "2", 100)])
+    self.assertListEqual(values, [("aff4:stored", "3", 4000),
+                                  ("aff4:stored", "2", 1000)])
 
     data_store.DB.MultiSet(
-        self.test_row, {"aff4:stored": [("4", 150)]},
+        self.test_row, {"aff4:stored": [("4", 3000)]},
         replace=True,
         token=self.token)
     values = data_store.DB.ResolvePrefix(
@@ -312,7 +333,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         "aff4:stored",
         timestamp=data_store.DB.ALL_TIMESTAMPS,
         token=self.token)
-    self.assertListEqual(values, [("aff4:stored", "4", 150)])
+    self.assertListEqual(values, [("aff4:stored", "4", 3000)])
 
   @DeletionTest
   def testDeleteAttributes(self):
@@ -371,7 +392,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
   def CheckLength(self, predicate, l):
     all_attributes = data_store.DB.ResolveMulti(
-        self.test_row, [predicate], timestamp=(0, 500), token=self.token)
+        self.test_row, [predicate], timestamp=(0, 5000), token=self.token)
 
     self.assertEqual(len(list(all_attributes)), l)
 
@@ -388,60 +409,60 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
     data_store.DB.Set(self.test_row,
                       predicate,
-                      "hello100",
-                      timestamp=100,
+                      "hello1000",
+                      timestamp=1000,
                       replace=False,
                       token=self.token)
     data_store.DB.Set(self.test_row,
                       predicate,
-                      "hello200",
-                      timestamp=200,
+                      "hello2000",
+                      timestamp=2000,
                       replace=False,
                       token=self.token)
     data_store.DB.Set(self.test_row,
                       predicate,
-                      "hello300",
-                      timestamp=300,
+                      "hello3000",
+                      timestamp=3000,
                       replace=False,
                       token=self.token)
     data_store.DB.Set(self.test_row,
                       predicate,
-                      "hello400",
-                      timestamp=400,
+                      "hello4000",
+                      timestamp=4000,
                       replace=False,
                       token=self.token)
 
     # Check its there
-    self.CheckLast(predicate, "hello400", 400)
+    self.CheckLast(predicate, "hello4000", 4000)
     self.CheckLength(predicate, 4)
 
-    # Delete timestamps between 0 and 150.
+    # Delete timestamps between 0 and 1500.
     data_store.DB.DeleteAttributes(
         self.test_row, [predicate],
         start=0,
-        end=150,
+        end=1500,
         sync=True,
         token=self.token)
 
-    self.CheckLast(predicate, "hello400", 400)
+    self.CheckLast(predicate, "hello4000", 4000)
     self.CheckLength(predicate, 3)
 
-    # Delete timestamps between 350 and 450.
+    # Delete timestamps between 3000 and 4500.
     data_store.DB.DeleteAttributes(
         self.test_row, [predicate],
-        start=350,
-        end=450,
+        start=3000,
+        end=4500,
         sync=True,
         token=self.token)
 
-    self.CheckLast(predicate, "hello300", 300)
-    self.CheckLength(predicate, 2)
+    self.CheckLast(predicate, "hello2000", 2000)
+    self.CheckLength(predicate, 1)
 
     # Delete everything.
     data_store.DB.DeleteAttributes(
         self.test_row, [predicate],
         start=0,
-        end=500,
+        end=5000,
         sync=True,
         token=self.token)
 
@@ -454,8 +475,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
     data_store.DB.Set(self.test_row,
                       predicate,
-                      "hello100",
-                      timestamp=100,
+                      "hello1000",
+                      timestamp=1000,
                       replace=False,
                       token=self.token)
     data_store.DB.DeleteSubject(self.test_row, token=self.token)
@@ -465,8 +486,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     # This should work with the sync argument too.
     data_store.DB.Set(self.test_row,
                       predicate,
-                      "hello100",
-                      timestamp=100,
+                      "hello1000",
+                      timestamp=1000,
                       replace=False,
                       token=self.token)
     data_store.DB.DeleteSubject(self.test_row, token=self.token, sync=True)
@@ -482,7 +503,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       data_store.DB.Set(row,
                         predicate,
                         "hello%d" % i,
-                        timestamp=100,
+                        timestamp=1000,
                         replace=False,
                         token=self.token)
     data_store.DB.Flush()
@@ -516,13 +537,13 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(subject_names, [u"aff4:/row:3", u"aff4:/row:7"])
 
     rows = []
-    for r in range(5):
+    for r in range(1, 6):
       row_name = "aff4:/prefix_row_%d" % r
       rows.append(row_name)
-      for i in range(5):
-        timestamp = rdfvalue.RDFDatetime(100 + i)
+      for i in range(1, 6):
+        timestamp = rdfvalue.RDFDatetime(1000 * i)
         data_store.DB.Set(row_name,
-                          "metadata:%s" % ("X" * (1 + i)),
+                          "metadata:%s" % ("X" * i),
                           str(i),
                           timestamp=timestamp,
                           token=self.token)
@@ -541,8 +562,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     for row in subjects.values():
       # Those with 3-5 X's.
       self.assertEqual(len(row), 3)
-      self.assertIn((u"metadata:XXX", "2", 102), row)
-      self.assertNotIn((u"metadata:XX", "1", 101), row)
+      self.assertIn((u"metadata:XXX", "3", 3000), row)
+      self.assertNotIn((u"metadata:XX", "2", 2000), row)
 
     # Test unicode subjects.
     unicode_string = u"this is a uñîcödé string"
@@ -563,9 +584,9 @@ class _DataStoreTest(test_lib.GRRBaseTest):
   def _MakeTimestampedRows(self):
     # Make some rows.
     rows = []
-    for i in range(5):
+    for i in range(1, 6):
       row_name = "aff4:/row:%s" % i
-      timestamp = rdfvalue.RDFDatetime(100 + i)
+      timestamp = rdfvalue.RDFDatetime(1000 * i)
       data_store.DB.Set(row_name,
                         "metadata:%s" % i,
                         i,
@@ -573,9 +594,9 @@ class _DataStoreTest(test_lib.GRRBaseTest):
                         token=self.token)
       rows.append(row_name)
 
-    for i in range(5, 10):
+    for i in range(6, 11):
       row_name = "aff4:/row:%s" % i
-      timestamp = rdfvalue.RDFDatetime(100 + i)
+      timestamp = rdfvalue.RDFDatetime(1000 * i)
       data_store.DB.MultiSet(
           row_name, {"metadata:%s" % i: [i]},
           timestamp=timestamp,
@@ -593,6 +614,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self.assertListEqual(sorted(timestamps), sorted(expected_timestamps))
 
   def testMultiResolvePrefixTypePreservation(self):
+    """Check result subjects have same format as original calls."""
     rows = [
         "aff4:/row:str",
         u"aff4:/row:unicode",
@@ -604,7 +626,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
     i = 0
     for row_name in rows:
-      timestamp = rdfvalue.RDFDatetime(100 + i)
+      timestamp = rdfvalue.RDFDatetime(1000 + i)
       data_store.DB.Set(row_name,
                         "metadata:%s" % i,
                         i,
@@ -632,7 +654,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       data_store.DB.Set(subject,
                         predicate1,
                         str(i),
-                        timestamp=i * 100,
+                        timestamp=i * 1000,
                         replace=False,
                         token=self.token)
 
@@ -646,7 +668,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         timestamp=data_store.DB.ALL_TIMESTAMPS,
         token=self.token)
     for result_index, i in enumerate(reversed(range(100))):
-      self.assertEqual(result[result_index], (predicate1, str(i), i * 100))
+      self.assertEqual(result[result_index], (predicate1, str(i), i * 1000))
 
   def testResolvePrefixResultsOrderedInDecreasingTimestampOrder2(self):
     predicate1 = "metadata:predicate1"
@@ -658,7 +680,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       data_store.DB.Set(subject,
                         predicate1,
                         str(i),
-                        timestamp=i * 100,
+                        timestamp=i * 1000,
                         replace=False,
                         token=self.token)
 
@@ -672,7 +694,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         timestamp=data_store.DB.ALL_TIMESTAMPS,
         token=self.token)
     for result_index, i in enumerate(reversed(range(100))):
-      self.assertEqual(result[result_index], (predicate1, str(i), i * 100))
+      self.assertEqual(result[result_index], (predicate1, str(i), i * 1000))
 
   def testResolvePrefixResultsOrderedInDecreasingTimestampOrderPerColumn1(self):
     predicate1 = "metadata:predicate1"
@@ -684,13 +706,13 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       data_store.DB.Set(subject,
                         predicate1,
                         str(i),
-                        timestamp=i * 100,
+                        timestamp=i * 1000,
                         replace=False,
                         token=self.token)
       data_store.DB.Set(subject,
                         predicate2,
                         str(i),
-                        timestamp=i * 100,
+                        timestamp=i * 1000,
                         replace=False,
                         token=self.token)
 
@@ -710,12 +732,12 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     predicate1_results = [r for r in result if r[0] == predicate1]
     for result_index, i in enumerate(reversed(range(100))):
       self.assertEqual(predicate1_results[result_index],
-                       (predicate1, str(i), i * 100))
+                       (predicate1, str(i), i * 1000))
 
     predicate2_results = [r for r in result if r[0] == predicate2]
     for result_index, i in enumerate(reversed(range(100))):
       self.assertEqual(predicate2_results[result_index],
-                       (predicate2, str(i), i * 100))
+                       (predicate2, str(i), i * 1000))
 
   def testResolvePrefixResultsOrderedInDecreasingTimestampOrderPerColumn2(self):
     predicate1 = "metadata:predicate1"
@@ -728,13 +750,13 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       data_store.DB.Set(subject,
                         predicate1,
                         str(i),
-                        timestamp=i * 100,
+                        timestamp=i * 1000,
                         replace=False,
                         token=self.token)
       data_store.DB.Set(subject,
                         predicate2,
                         str(i),
-                        timestamp=i * 100,
+                        timestamp=i * 1000,
                         replace=False,
                         token=self.token)
 
@@ -754,12 +776,12 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     predicate1_results = [r for r in result if r[0] == predicate1]
     for result_index, i in enumerate(reversed(range(100))):
       self.assertEqual(predicate1_results[result_index],
-                       (predicate1, str(i), i * 100))
+                       (predicate1, str(i), i * 1000))
 
     predicate2_results = [r for r in result if r[0] == predicate2]
     for result_index, i in enumerate(reversed(range(100))):
       self.assertEqual(predicate2_results[result_index],
-                       (predicate2, str(i), i * 100))
+                       (predicate2, str(i), i * 1000))
 
   def testScanAttribute(self):
     data_store.DB.Set("aff4:/A", "aff4:foo", "A value", token=self.token)
@@ -767,17 +789,17 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       data_store.DB.Set("aff4:/B/" + str(i),
                         "aff4:foo",
                         "B " + str(i) + " old value",
-                        timestamp=1000,
+                        timestamp=2000,
                         token=self.token)
       data_store.DB.Set("aff4:/B/" + str(i),
                         "aff4:foo",
                         "B " + str(i) + " value",
-                        timestamp=1000,
+                        timestamp=2000,
                         token=self.token)
       data_store.DB.Set("aff4:/B/" + str(i),
                         "aff4:foo",
                         "B " + str(i) + " older value",
-                        timestamp=900,
+                        timestamp=1900,
                         token=self.token,
                         replace=False)
 
@@ -785,13 +807,14 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     data_store.DB.Set("aff4:/B/1.1",
                       "aff4:foo2",
                       "B 1.1 other value",
-                      timestamp=1000,
+                      timestamp=2000,
                       token=self.token)
     data_store.DB.Set("aff4:/C", "aff4:foo", "C value", token=self.token)
+
     values = [(r[1], r[2])
               for r in data_store.DB.ScanAttribute(
                   "aff4:/B", "aff4:foo", token=self.token)]
-    self.assertEqual(values, [(1000, "B " + str(i) + " value")
+    self.assertEqual(values, [(2000, "B " + str(i) + " value")
                               for i in range(1, 10)])
 
     values = [
@@ -902,30 +925,30 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       data_store.DB.Set("aff4:/C/" + str(i),
                         "aff4:foo",
                         "C foo " + str(i) + " value",
-                        timestamp=1000,
+                        timestamp=10000,
                         token=self.token)
       data_store.DB.Set("aff4:/C/" + str(i),
                         "aff4:foo",
                         "C foo " + str(i) + " old value",
-                        timestamp=900,
+                        timestamp=9000,
                         token=self.token,
                         replace=False)
     for i in range(3, 10):
       data_store.DB.Set("aff4:/C/" + str(i),
                         "aff4:bar",
                         "C bar " + str(i) + " value",
-                        timestamp=1500,
+                        timestamp=15000,
                         token=self.token)
       data_store.DB.Set("aff4:/C/" + str(i),
                         "aff4:bar",
                         "C bar " + str(i) + " old value",
-                        timestamp=950,
+                        timestamp=9500,
                         token=self.token,
                         replace=False)
     data_store.DB.Set("aff4:/C/5a",
                       "aff4:baz",
                       "C baz value",
-                      timestamp=980,
+                      timestamp=9800,
                       token=self.token)
 
     results = list(
@@ -935,12 +958,12 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual([s for s, _ in results],
                      ["aff4:/C/" + str(i) for i in range(10)])
 
-    self.assertEqual(results[0][1], {"aff4:foo": (1000, "C foo 0 value")})
+    self.assertEqual(results[0][1], {"aff4:foo": (10000, "C foo 0 value")})
     self.assertEqual(results[5][1], {
-        "aff4:bar": (1500, "C bar 5 value"),
-        "aff4:foo": (1000, "C foo 5 value")
+        "aff4:bar": (15000, "C bar 5 value"),
+        "aff4:foo": (10000, "C foo 5 value")
     })
-    self.assertEqual(results[9][1], {"aff4:bar": (1500, "C bar 9 value")})
+    self.assertEqual(results[9][1], {"aff4:bar": (15000, "C bar 9 value")})
 
     results = list(
         data_store.DB.ScanAttributes(
@@ -958,23 +981,23 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         data_store.DB.MultiResolvePrefix(
             test_rows, ["metadata:"], token=self.token))
 
-    self._CheckResultTimestamps(result, range(100, 110))
+    self._CheckResultTimestamps(result, range(1000, 11000, 1000))
 
     # Now MultiResolve by timestamp.
-
-    timestamp = (rdfvalue.RDFDatetime(103), rdfvalue.RDFDatetime(108))
+    timestamp = (rdfvalue.RDFDatetime(3000), rdfvalue.RDFDatetime(8000))
     result = dict(
         data_store.DB.MultiResolvePrefix(
             test_rows, ["metadata:"], token=self.token, timestamp=timestamp))
 
-    # Timestamp selection is inclusive so we should have 103-108.
-    self._CheckResultTimestamps(result, range(103, 109))
+    # Timestamp selection is inclusive so we should have 3k-8k.
+    self._CheckResultTimestamps(result, range(3000, 9000, 1000))
 
     # Now test timestamped attributes.
     row_name = "aff4:/attribute_test_row"
     attribute_name = "metadata:test_attribute"
     attributes_to_set = {
-        attribute_name: [(i, rdfvalue.RDFDatetime(i)) for i in xrange(100, 110)]
+        attribute_name: [(i, rdfvalue.RDFDatetime(i))
+                         for i in xrange(1000, 11000, 1000)]
     }
     data_store.DB.MultiSet(
         row_name, attributes_to_set, replace=False, token=self.token)
@@ -986,20 +1009,20 @@ class _DataStoreTest(test_lib.GRRBaseTest):
             timestamp=data_store.DB.ALL_TIMESTAMPS,
             token=self.token))
 
-    self._CheckResultTimestamps(result, range(100, 110))
+    self._CheckResultTimestamps(result, range(1000, 11000, 1000))
 
     if self.TEST_DELETION:
       # Delete some of them.
       data_store.DB.DeleteAttributes(
           row_name, [attribute_name],
-          start=rdfvalue.RDFDatetime(102),
-          end=rdfvalue.RDFDatetime(104),
+          start=rdfvalue.RDFDatetime(2000),
+          end=rdfvalue.RDFDatetime(4000),
           token=self.token)
       # Make sure that passing start==end deletes that version.
       data_store.DB.DeleteAttributes(
           row_name, [attribute_name],
-          start=rdfvalue.RDFDatetime(106),
-          end=rdfvalue.RDFDatetime(106),
+          start=rdfvalue.RDFDatetime(6000),
+          end=rdfvalue.RDFDatetime(6000),
           token=self.token)
 
       result = dict(
@@ -1008,7 +1031,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
               timestamp=data_store.DB.ALL_TIMESTAMPS,
               token=self.token))
 
-      expected_timestamps = [100, 101, 105, 107, 108, 109]
+      expected_timestamps = [1000, 5000, 7000, 8000, 9000, 10000]
       self._CheckResultTimestamps(result, expected_timestamps)
 
   @DBSubjectLockTest
@@ -1026,8 +1049,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
           data_store.DB.DBSubjectLock,
           subject,
           token=self.token)
-
       data_store.DB.Set(subject, predicate, "1", token=self.token)
+
     self.assertEqual(
         data_store.DB.Resolve(
             subject, predicate, token=self.token)[0], "1")
@@ -1082,11 +1105,13 @@ class _DataStoreTest(test_lib.GRRBaseTest):
 
   @DBSubjectLockTest
   def testDBSubjectLockLease(self):
-    subject = u"aff4:/leasetest"
     default_lease = config_lib.CONFIG["Datastore.transaction_timeout"]
-    now = 1476142966
+    # This needs to be current time or cloud bigtable server will reply with
+    # deadline exceeded because the RPC is too old.
+    now = int(time.time())
     with test_lib.FakeTime(now):
-      with data_store.DB.DBSubjectLock(subject, token=self.token) as lock:
+      with data_store.DB.DBSubjectLock(
+          self.lease_row, token=self.token) as lock:
         self.assertEqual(lock.CheckLease(), default_lease)
         self.assertTrue(lock.locked)
 
@@ -1100,16 +1125,16 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     # Check setting a custom lease time
     with test_lib.FakeTime(now):
       with data_store.DB.DBSubjectLock(
-          subject, token=self.token, lease_time=5000) as lock:
+          self.lease_row, token=self.token, lease_time=5000) as lock:
         self.assertEqual(lock.CheckLease(), 5000)
 
   @DBSubjectLockTest
   def testDBSubjectLockLeaseExpiryWithExtension(self):
-    subject = u"aff4:/leaseexpiretest"
-    now = 1476142966
-    default_lease = config_lib.CONFIG["Datastore.transaction_timeout"]
+    now = int(time.time())
+    # Cloud Bigtable RPC library doesn't like long, convert to int
+    default_lease = int(config_lib.CONFIG["Datastore.transaction_timeout"])
     with test_lib.FakeTime(now):
-      lock = data_store.DB.DBSubjectLock(subject, token=self.token)
+      lock = data_store.DB.DBSubjectLock(self.lease_row, token=self.token)
       self.assertEqual(lock.expires, int(now + default_lease) * 1e6)
       lock.UpdateLease(2 * default_lease)
       self.assertEqual(lock.expires, int(now + (2 * default_lease)) * 1e6)
@@ -1119,26 +1144,25 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       self.assertRaises(
           data_store.DBSubjectLockError,
           data_store.DB.DBSubjectLock,
-          subject,
+          self.lease_row,
           token=self.token)
 
     # Now it is expired
     with test_lib.FakeTime(now + (2 * default_lease) + 1):
-      data_store.DB.DBSubjectLock(subject, token=self.token)
+      data_store.DB.DBSubjectLock(self.lease_row, token=self.token)
 
   @DBSubjectLockTest
   def testDBSubjectLockLeaseExpiry(self):
-    subject = u"aff4:/leaseexpiretest"
-    now = 1476142966
-    default_lease = config_lib.CONFIG["Datastore.transaction_timeout"]
+    now = int(time.time())
+    default_lease = int(config_lib.CONFIG["Datastore.transaction_timeout"])
     with test_lib.FakeTime(now):
-      lock = data_store.DB.DBSubjectLock(subject, token=self.token)
+      lock = data_store.DB.DBSubjectLock(self.lease_row, token=self.token)
       self.assertEqual(lock.CheckLease(), default_lease)
 
       self.assertRaises(
           data_store.DBSubjectLockError,
           data_store.DB.DBSubjectLock,
-          subject,
+          self.lease_row,
           token=self.token)
 
     # Almost expired
@@ -1146,13 +1170,13 @@ class _DataStoreTest(test_lib.GRRBaseTest):
       self.assertRaises(
           data_store.DBSubjectLockError,
           data_store.DB.DBSubjectLock,
-          subject,
+          self.lease_row,
           token=self.token)
 
     # Expired
     after_expiry = now + default_lease + 1
     with test_lib.FakeTime(after_expiry):
-      lock = data_store.DB.DBSubjectLock(subject, token=self.token)
+      lock = data_store.DB.DBSubjectLock(self.lease_row, token=self.token)
       self.assertEqual(lock.CheckLease(), default_lease)
       self.assertEqual(lock.expires, int((after_expiry + default_lease) * 1e6))
 
@@ -1196,13 +1220,10 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     lock = data_store.DB.DBSubjectLock(subject, token=self.token)
 
     # By mocking out sleep we can ensure all retries are exhausted.
-    with mock.patch.object(time, "sleep", return_value=None) as mock_time:
+    with mock.patch.object(time, "sleep", return_value=None):
       with self.assertRaises(data_store.DBSubjectLockError):
         data_store.DB.LockRetryWrapper(subject, token=self.token)
-      # We slept and retried ten times before giving up
-      self.assertEqual(mock_time.call_count, 10)
 
-    # We never called the callback
     lock.Release()
 
   def testTimestamps(self):
@@ -1240,36 +1261,35 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     """Check that NEWEST_TIMESTAMP works as expected."""
     predicate1 = "metadata:predicate1"
     predicate2 = "metadata:predicate2"
-    subject = "aff4:/test_newest_timestamps"
 
     # Check we can specify a timestamp
-    data_store.DB.Set(subject,
+    data_store.DB.Set(self.test_row,
                       predicate1,
                       "1.1",
-                      timestamp=1000,
+                      timestamp=10000,
                       replace=False,
                       token=self.token)
-    data_store.DB.Set(subject,
+    data_store.DB.Set(self.test_row,
                       predicate1,
                       "1.2",
-                      timestamp=2000,
+                      timestamp=20000,
                       replace=False,
                       token=self.token)
-    data_store.DB.Set(subject,
+    data_store.DB.Set(self.test_row,
                       predicate2,
                       "2.1",
-                      timestamp=1010,
+                      timestamp=11000,
                       replace=False,
                       token=self.token)
-    data_store.DB.Set(subject,
+    data_store.DB.Set(self.test_row,
                       predicate2,
                       "2.2",
-                      timestamp=2020,
+                      timestamp=22000,
                       replace=False,
                       token=self.token)
 
     result = data_store.DB.ResolvePrefix(
-        subject,
+        self.test_row,
         predicate1,
         timestamp=data_store.DB.ALL_TIMESTAMPS,
         token=self.token)
@@ -1279,10 +1299,10 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     self.assertEqual(len(values), 2)
     self.assertListEqual(values, ["1.2", "1.1"])
     times = [x[2] for x in result]
-    self.assertListEqual(times, [2000, 1000])
+    self.assertListEqual(times, [20000, 10000])
 
     result = data_store.DB.ResolvePrefix(
-        subject,
+        self.test_row,
         predicate1,
         timestamp=data_store.DB.NEWEST_TIMESTAMP,
         token=self.token)
@@ -1290,33 +1310,33 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     # Should return 1 result - the most recent.
     self.assertEqual(len(result), 1)
     self.assertEqual(result[0][1], "1.2")
-    self.assertEqual(result[0][2], 2000)
+    self.assertEqual(result[0][2], 20000)
 
     result = list(
         data_store.DB.ResolvePrefix(
-            subject,
+            self.test_row,
             "metadata:",
             timestamp=data_store.DB.ALL_TIMESTAMPS,
             token=self.token))
 
     self.assertEqual(len(result), 4)
     self.assertListEqual([r for r in result if r[0] == "metadata:predicate1"],
-                         [(u"metadata:predicate1", "1.2", 2000),
-                          (u"metadata:predicate1", "1.1", 1000)])
+                         [(u"metadata:predicate1", "1.2", 20000),
+                          (u"metadata:predicate1", "1.1", 10000)])
     self.assertListEqual([r for r in result if r[0] == "metadata:predicate2"],
-                         [(u"metadata:predicate2", "2.2", 2020),
-                          (u"metadata:predicate2", "2.1", 1010)])
+                         [(u"metadata:predicate2", "2.2", 22000),
+                          (u"metadata:predicate2", "2.1", 11000)])
 
     result = list(
         data_store.DB.ResolvePrefix(
-            subject,
+            self.test_row,
             "metadata:",
             timestamp=data_store.DB.NEWEST_TIMESTAMP,
             token=self.token))
 
     # Should only return the latest version.
-    self.assertItemsEqual(result, [(u"metadata:predicate1", "1.2", 2000),
-                                   (u"metadata:predicate2", "2.2", 2020)])
+    self.assertItemsEqual(result, [(u"metadata:predicate1", "1.2", 20000),
+                                   (u"metadata:predicate2", "2.2", 22000)])
 
   @DeletionTest
   def testTimestampEdgeCases(self):
@@ -1324,7 +1344,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     attribute = "metadata:attribute"
     for i in range(4):
       # First TS is 0!
-      timestamp = rdfvalue.RDFDatetime(100 * i)
+      timestamp = rdfvalue.RDFDatetime(1000 * i)
       data_store.DB.MultiSet(
           row, {attribute: [i]},
           timestamp=timestamp,
@@ -1338,7 +1358,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         token=self.token)
 
     self.assertEqual(len(rows), 4)
-    self.assertItemsEqual([r[2] for r in rows], [0, 100, 200, 300])
+    self.assertItemsEqual([r[2] for r in rows], [0, 1000, 2000, 3000])
 
     data_store.DB.DeleteAttributes(
         row, [attribute], start=0, end=0, token=self.token)
@@ -1348,7 +1368,7 @@ class _DataStoreTest(test_lib.GRRBaseTest):
         timestamp=data_store.DB.ALL_TIMESTAMPS,
         token=self.token)
     self.assertEqual(len(rows), 3)
-    self.assertItemsEqual([r[2] for r in rows], [100, 200, 300])
+    self.assertItemsEqual([r[2] for r in rows], [1000, 2000, 3000])
 
   def testResolvePrefix(self):
     predicate = "metadata:predicate"
@@ -1373,9 +1393,11 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     subject = "aff4:/resolve_multi"
 
     predicates = []
+    predicate_values = []
     for i in range(0, 100):
       predicate = "metadata:predicate" + str(i)
       predicates.append(predicate)
+      predicate_values.append("Cell " + predicate)
       data_store.DB.Set(subject,
                         predicate,
                         "Cell " + predicate,
@@ -1389,14 +1411,12 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     ]
 
     self.assertEqual(len(results), 100)
-
-    # Value
-    for i in range(0, 100):
-      self.assertEqual(results[i][1], "Cell " + predicates[i])
-      self.assertEqual(results[i][0], predicates[i])
+    self.assertItemsEqual(predicates, [x[0] for x in results])
+    self.assertItemsEqual(predicate_values, [x[1] for x in results])
 
     # Now try to query for non existent predicates.
     predicates = predicates[:10]
+    predicate_values = predicate_values[:10]
     for i in range(10):
       predicates.append("metadata:not_existing" + str(i))
 
@@ -1407,9 +1427,8 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     ]
 
     self.assertEqual(10, len(results))
-    for i in range(0, 10):
-      self.assertEqual(results[i][1], "Cell " + predicates[i])
-      self.assertEqual(results[i][0], predicates[i])
+    self.assertItemsEqual(predicates[:10], [x[0] for x in results])
+    self.assertItemsEqual(predicate_values, [x[1] for x in results])
 
   def testBlobs(self):
     data = "randomdata" * 50
@@ -1715,7 +1734,6 @@ class _DataStoreTest(test_lib.GRRBaseTest):
     data_store.DB.Resolve(self.test_row, "task:00000001", token=self.token)
 
   def testLimits(self):
-
     # Create 10 rows with 10 attributes each.
     subjects = ["aff4:limittest_%d" % i for i in xrange(10)]
     attributes = ["metadata:limittest_%d" % i for i in xrange(10)]
@@ -2407,7 +2425,7 @@ class DataStoreBenchmarks(test_lib.MicroBenchmarks):
   def StartFlow(self, client_id):
     flow_id = flow.GRRFlow.StartFlow(
         client_id=client_id,
-        flow_name=standard.ListDirectory,
+        flow_name="ListDirectory",
         queue=self.queue,
         pathspec=rdf_paths.PathSpec(
             path="/",

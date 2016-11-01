@@ -51,8 +51,6 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
   def testListDirectory(self):
     """Test that the ListDirectory flow works."""
     client_mock = action_mocks.ListDirectoryClientMock()
-
-    # Deliberately specify incorrect casing for the image name.
     pb = rdf_paths.PathSpec(
         path=os.path.join(self.base_path, "test_img.dd"),
         pathtype=rdf_paths.PathSpec.PathType.OS)
@@ -84,6 +82,23 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
         output_path.Add("test directory"),
         aff4_type=aff4_standard.VFSDirectory,
         token=self.token)
+
+  def testListDirectoryOnNonexistentDir(self):
+    """Test that the ListDirectory flow works."""
+    client_mock = action_mocks.ListDirectoryClientMock()
+    pb = rdf_paths.PathSpec(
+        path=os.path.join(self.base_path, "test_img.dd"),
+        pathtype=rdf_paths.PathSpec.PathType.OS)
+    pb.Append(path="doesnotexist", pathtype=rdf_paths.PathSpec.PathType.TSK)
+
+    with self.assertRaises(RuntimeError):
+      for _ in test_lib.TestFlowHelper(
+          "ListDirectory",
+          client_mock,
+          client_id=self.client_id,
+          pathspec=pb,
+          token=self.token):
+        pass
 
   def testUnicodeListDirectory(self):
     """Test that the ListDirectory flow works on unicode directories."""

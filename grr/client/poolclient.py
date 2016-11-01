@@ -2,7 +2,7 @@
 """This is the GRR client for thread pools."""
 
 
-import pickle
+import base64
 import threading
 import time
 
@@ -66,9 +66,13 @@ def CreateClientPool(n):
 
   # Load previously stored clients.
   try:
-    fd = open(flags.FLAGS.cert_file, "rb")
-    certificates = pickle.load(fd)
-    fd.close()
+    certificates = []
+    with open(flags.FLAGS.cert_file, "rb") as fd:
+      # Certificates are base64-encoded, so that we can use new-lines as
+      # separators.
+      for l in fd:
+        cert = rdf_crypto.RSAPrivateKey(initializer=base64.b64decode(l))
+        certificates.append(cert)
 
     for certificate in certificates:
       clients.append(
@@ -135,7 +139,12 @@ def CreateClientPool(n):
   if not clients_loaded:
     logging.info("Saving certificates.")
     with open(flags.FLAGS.cert_file, "wb") as fd:
-      pickle.dump([x.private_key for x in clients], fd)
+      # We're base64-encoding ceritificates so that we can use new-lines
+      # as separators.
+      b64_certs = [
+          base64.b64encode(x.private_key.SerializeToString()) for x in clients
+      ]
+      fd.write("\n".join(b64_certs))
 
 
 def CheckLocation():
