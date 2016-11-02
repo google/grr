@@ -94,4 +94,4 @@ class ApiDeleteArtifactsHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiDeleteArtifactsArgs
 
   def Handle(self, args, token=None):
-    artifact.DeleteArtifactsFromDatastore(set(args.names), token=token)
+    artifact_registry.DeleteArtifactsFromDatastore(set(args.names), token=token)

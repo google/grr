@@ -1119,12 +1119,14 @@ message ApiReportData {
 
   enum RepresentationType {
     STACK_CHART = 0 [(description) = "Stack chart"];
+    PIE_CHART = 1 [(description) = "Pie chart"];
     //TODO(user): Add the remaining representation types.
   }
 
   optional RepresentationType representation_type = 1;
 
   optional ApiStackChartReportData stack_chart = 2;
+  optional ApiPieChartReportData pie_chart = 3;
 }
 
 message ApiStackChartReportData {
@@ -1133,9 +1135,23 @@ message ApiStackChartReportData {
     }];
 }
 
+message ApiPieChartReportData {
+  repeated ApiReportDataPoint1D data = 1 [(sem_type) = {
+      description: "What the report contains."
+    }];
+}
+
+message ApiReportDataPoint1D {
+  optional float x = 1;
+
+  optional string label = 2 [(sem_type) = {
+      description: "The series is labeled with this string."
+    }];
+}
+
 message ApiReportDataSeries2D {
   optional string label = 1 [(sem_type) = {
-      description: "The series are labeled with this string."
+      description: "The series is labeled with this string."
     }];
 
   repeated ApiReportDataPoint2D points = 2;
@@ -2885,12 +2901,14 @@ message RobotRouterGetFlowFilesArchiveParams {
   optional bool enabled = 1;
 
   repeated string path_globs_blacklist = 2 [(sem_type) = {
+      type: "GlobExpression",
       description: "Only files not matching these globs will be included "
       "into the archive. Blacklist is always applied first. Files not "
       "matching the blacklist should still match the whitelist."
     }];
 
   repeated string path_globs_whitelist = 3 [(sem_type) = {
+      type: "GlobExpression",
       description: "Only files matching these globs will be included into "
       "the archive. Whitelist is applied after the blacklist."
     }];

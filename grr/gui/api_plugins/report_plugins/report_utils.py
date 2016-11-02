@@ -33,3 +33,19 @@ def GetAuditLogFiles(offset, now, token):
 
   return aff4.FACTORY.MultiOpen(
       logs, aff4_type=collects.RDFValueCollection, token=token)
+
+
+def GetAuditLogEntries(offset, now, token):
+  """Return all audit log entries between now-offset and now.
+
+  Args:
+    offset: rdfvalue.Duration how far back to look in time
+    now: rdfvalue.RDFDatetime for current time
+    token: GRR access token
+  Yields:
+    AuditEvents created during the time range
+  """
+  for fd in GetAuditLogFiles(offset, now, token):
+    for event in fd.GenerateItems():
+      if now - offset < event.timestamp < now:
+        yield event

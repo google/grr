@@ -901,7 +901,7 @@ def main(unused_argv):
     artifact_list = flags.FLAGS.artifact
     if not artifact_list:
       raise ValueError("No artifact to delete given.")
-    artifact.DeleteArtifactsFromDatastore(artifact_list, token=token)
+    artifact_registry.DeleteArtifactsFromDatastore(artifact_list, token=token)
     print "Artifacts %s deleted." % artifact_list
 
   elif flags.FLAGS.subparser_name == "download_missing_rekall_profiles":

@@ -5,6 +5,7 @@
 
 import collections
 import glob
+import hashlib
 import os
 
 from grr.client import vfs
@@ -487,31 +488,103 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
           expected_files=expected_files,
           non_expected_files=non_expected_files)
 
-  def testDownloadActionSizeLimit(self):
+  def testDownloadAndHashActionSizeLimitWithSkipPolicy(self):
     expected_files = ["dpkg.log", "dpkg_false.log"]
     non_expected_files = ["auth.log"]
-
     sizes = [
         os.stat(os.path.join(self.fixture_path, f)).st_size
         for f in expected_files
     ]
 
+    hash_action = file_finder.FileFinderAction(
+        action_type=file_finder.FileFinderAction.Action.HASH)
+    hash_action.hash.max_size = max(sizes) + 1
+    hash_action.hash.oversized_file_policy = (
+        file_finder.FileFinderHashActionOptions.OversizedFilePolicy.SKIP)
+
+    download_action = file_finder.FileFinderAction(
+        action_type=file_finder.FileFinderAction.Action.DOWNLOAD)
+    download_action.download.max_size = max(sizes) + 1
+    download_action.download.oversized_file_policy = (
+        file_finder.FileFinderDownloadActionOptions.OversizedFilePolicy.SKIP)
+
+    for action in [hash_action, download_action]:
+      self.RunFlowAndCheckResults(
+          paths=[self.path],
+          action=action,
+          expected_files=expected_files,
+          non_expected_files=non_expected_files)
+
+  def testDownloadAndHashActionSizeLimitWithHashTruncatedPolicy(self):
+    image_path = os.path.join(self.base_path, "test_img.dd")
+    # Read a bit more than a typical chunk (600 * 1024).
+    expected_size = 750 * 1024
+
+    hash_action = file_finder.FileFinderAction(
+        action_type=file_finder.FileFinderAction.Action.HASH)
+    hash_action.hash.max_size = expected_size
+    hash_action.hash.oversized_file_policy = (
+        file_finder.FileFinderHashActionOptions.OversizedFilePolicy.
+        HASH_TRUNCATED)
+
+    download_action = file_finder.FileFinderAction(
+        action_type=file_finder.FileFinderAction.Action.DOWNLOAD)
+    download_action.download.max_size = expected_size
+    download_action.download.oversized_file_policy = (
+        file_finder.FileFinderDownloadActionOptions.OversizedFilePolicy.
+        HASH_TRUNCATED)
+
+    for action in [hash_action, download_action]:
+      results = self.RunFlow(paths=[image_path], action=action)
+
+      urn = rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(image_path)
+      vfs_file = aff4.FACTORY.Open(urn, token=self.token)
+      # Make sure just a VFSFile got written.
+      self.assertTrue(isinstance(vfs_file, aff4_grr.VFSFile))
+
+      expected_data = open(image_path, "rb").read(expected_size)
+      d = hashlib.sha1()
+      d.update(expected_data)
+      expected_hash = d.hexdigest()
+
+      self.assertEqual(vfs_file.Get(vfs_file.Schema.HASH).sha1, expected_hash)
+
+      unused_flow, flow_reply = results[0]
+      self.assertEqual(flow_reply.hash_entry.sha1, expected_hash)
+
+  def testDownloadActionSizeLimitWithDownloadTruncatedPolicy(self):
+    image_path = os.path.join(self.base_path, "test_img.dd")
+
     action = file_finder.FileFinderAction(
         action_type=file_finder.FileFinderAction.Action.DOWNLOAD)
-    action.download.max_size = max(sizes) + 1
+    # Read a bit more than a typical chunk (600 * 1024).
+    expected_size = action.download.max_size = 750 * 1024
+    action.download.oversized_file_policy = (
+        file_finder.FileFinderDownloadActionOptions.OversizedFilePolicy.
+        DOWNLOAD_TRUNCATED)
 
-    results = self.RunFlow(paths=[self.path], action=action)
+    results = self.RunFlow(paths=[image_path], action=action)
 
-    # Even though oversized file wasn't downloaded, it should still be reported
-    # in the results.
-    self.CheckReplies(results, action.action_type,
-                      expected_files + non_expected_files)
+    urn = rdfvalue.RDFURN(self.client_id).Add("/fs/os").Add(image_path)
+    blobimage = aff4.FACTORY.Open(urn, token=self.token)
+    # Make sure a VFSBlobImage got written.
+    self.assertTrue(isinstance(blobimage, aff4_grr.VFSBlobImage))
 
-    self.CheckFilesDownloaded(expected_files)
-    self.CheckFilesNotDownloaded(non_expected_files)
-    # Even though the file is too big to download, we still want the
-    # hash.
-    self.CheckFilesHashed(non_expected_files)
+    self.assertEqual(len(blobimage), expected_size)
+    data = blobimage.read(100 * expected_size)
+    self.assertEqual(len(data), expected_size)
+
+    expected_data = open(image_path, "rb").read(expected_size)
+    self.assertEqual(data, expected_data)
+    hash_obj = blobimage.Get(blobimage.Schema.HASH)
+
+    d = hashlib.sha1()
+    d.update(expected_data)
+    expected_hash = d.hexdigest()
+    self.assertEqual(hash_obj.sha1, expected_hash)
+
+    unused_flow, flow_reply = results[0]
+    self.assertEqual(flow_reply.hash_entry.sha1, expected_hash)
 
   def testSizeAndRegexConditionsWithDifferentActions(self):
     files_over_size_limit = ["auth.log"]

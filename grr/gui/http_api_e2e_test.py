@@ -6,8 +6,11 @@ protocol- and server-independent. Tests in this file test the full GRR server
 stack with regards to the HTTP API.
 """
 
+import hashlib
 import json
 import os
+import StringIO
+import zipfile
 
 import portpicker
 import requests
@@ -299,6 +302,8 @@ router_params:
     enabled: True
   get_flow:
     enabled: True
+  list_flow_results:
+    enabled: True
   get_flow_files_archive:
     enabled: True
     path_globs_whitelist:
@@ -346,11 +351,15 @@ users:
 
     client_ref = self.api.Client(client_id=self.client_id.Basename())
 
-    args = file_finder.FileFinderArgs(paths=[
-        os.path.join(self.base_path, "test_data", "test.plist"),
-        os.path.join(self.base_path, "test_data", "numbers.txt"),
-        os.path.join(self.base_path, "test_data", "numbers.txt.ver2")
-    ]).AsPrimitiveProto()
+    args = file_finder.FileFinderArgs(
+        paths=[
+            os.path.join(self.base_path, "test.plist"),
+            os.path.join(self.base_path, "numbers.txt"),
+            os.path.join(self.base_path, "numbers.txt.ver2")
+        ],
+        action=file_finder.FileFinderAction(
+            action_type=file_finder.FileFinderAction.Action.
+            DOWNLOAD)).AsPrimitiveProto()
     flow_obj = client_ref.CreateFlow(
         name=file_finder.FileFinder.__name__, args=args)
     self.assertEqual(flow_obj.data.state, flow_obj.data.RUNNING)
@@ -368,6 +377,43 @@ users:
     # Refresh flow.
     flow_obj = client_ref.Flow(flow_obj.flow_id).Get()
     self.assertEqual(flow_obj.data.state, flow_obj.data.TERMINATED)
+
+    # Check that we got 3 results (we downloaded 3 files).
+    results = list(flow_obj.ListResults())
+    self.assertEqual(len(results), 3)
+    # We expect results to be FileFinderResult.
+    self.assertEqual(
+        sorted(
+            os.path.basename(r.payload.stat_entry.aff4path) for r in results),
+        sorted(["test.plist", "numbers.txt", "numbers.txt.ver2"]))
+
+    # Now downloads the files archive.
+    zip_stream = StringIO.StringIO()
+    flow_obj.GetFilesArchive().WriteToStream(zip_stream)
+    zip_fd = zipfile.ZipFile(zip_stream)
+
+    # Now check that the archive has only "test.plist" file, as it's the
+    # only file that matches the whitelist (see FILE_FINDER_ROUTER_CONFIG).
+    # There should be 3 items in the archive: the hash of the "test.plist"
+    # file, the symlink to this hash and the MANIFEST file.
+    namelist = zip_fd.namelist()
+    self.assertEqual(len(namelist), 3)
+
+    # First component of every path in the archive is the containing folder,
+    # we should strip it.
+    namelist = [os.path.join(*n.split(os.sep)[1:]) for n in namelist]
+    with open(os.path.join(self.base_path, "test.plist")) as test_plist_fd:
+      test_plist_hash = hashlib.sha256(test_plist_fd.read()).hexdigest()
+    self.assertEqual(
+        sorted([
+            # pyformat: disable
+            os.path.join(self.client_id.Basename(), "fs", "os",
+                         self.base_path.strip("/"), "test.plist"),
+            os.path.join("hashes", test_plist_hash),
+            "MANIFEST"
+            # pyformat: enable
+        ]),
+        sorted(namelist))
 
   def testCheckingArbitraryFlowStateDoesNotWork(self):
     self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %

@@ -319,6 +319,63 @@ supported_os: [Linux]
     arglist = artifact_obj.sources[0].attributes.get("args")
     self.assertEqual(arglist, ["-L", "-v", "-n"])
 
+  def testSystemArtifactOverwrite(self):
+    content = """
+name: WMIActiveScriptEventConsumer
+doc: here's the doc
+sources:
+- type: COMMAND
+  attributes:
+    args: ["-L", "-v", "-n"]
+    cmd: /sbin/iptables
+supported_os: [Linux]
+"""
+    artifact_registry.REGISTRY.ClearRegistry()
+    artifact_registry.REGISTRY.ClearSources()
+    artifact_registry.REGISTRY._CheckDirty()
+
+    # System artifacts come from the test file.
+    self.LoadTestArtifacts()
+
+    # Uploaded files go to this collection.
+    artifact_store_urn = aff4.ROOT_URN.Add("artifact_store")
+    artifact_registry.REGISTRY.AddDatastoreSources([artifact_store_urn])
+
+    # WMIActiveScriptEventConsumer is a system artifact, we can't overwrite it.
+    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
+      artifact.UploadArtifactYamlFile(content, token=self.token)
+
+    # Override the check and upload anyways. This simulates the case
+    # where an artifact ends up shadowing a system artifact somehow -
+    # for example when the system artifact was created after the
+    # artifact was uploaded to the data store for testing.
+    artifact.UploadArtifactYamlFile(
+        content, overwrite_system_artifacts=True, token=self.token)
+
+    # The shadowing artifact is at this point stored in the
+    # collection. On the next full reload of the registry, there will
+    # be an error that we can't overwrite the system artifact. The
+    # artifact should automatically get deleted from the collection to
+    # mitigate the problem.
+    with self.assertRaises(artifact_registry.ArtifactDefinitionError):
+      artifact_registry.REGISTRY._ReloadArtifacts()
+
+    # As stated above, now this should work.
+    artifact_registry.REGISTRY._ReloadArtifacts()
+
+    # Make sure the artifact is now loaded and it's the version from the file.
+    self.assertIn("WMIActiveScriptEventConsumer",
+                  artifact_registry.REGISTRY._artifacts)
+    artifact_obj = artifact_registry.REGISTRY.GetArtifact(
+        "WMIActiveScriptEventConsumer")
+    self.assertTrue(artifact_obj.loaded_from.startswith("file:"))
+
+    # The artifact is gone from the collection.
+    self.assertNotIn(
+        "WMIActiveScriptEventConsumer",
+        aff4.FACTORY.Open(
+            artifact_store_urn, token=self.token))
+
 
 class ArtifactFlowLinuxTest(ArtifactTest):
 

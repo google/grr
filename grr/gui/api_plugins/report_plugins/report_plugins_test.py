@@ -45,11 +45,11 @@ class ReportPluginsTest(test_lib.GRRBaseTest):
     self.assertEqual(desc.requires_time_range, True)
 
 
-def AddFakeAuditLog(description, client=None, token=None):
+def AddFakeAuditLog(description, client=None, user=None, token=None):
   events.Events.PublishEventInline(
       "Audit",
       events.AuditEvent(
-          description=description, client=client),
+          description=description, client=client, user=user),
       token=token)
 
 
@@ -60,8 +60,7 @@ class ReportUtilsTest(test_lib.GRRBaseTest):
     AddFakeAuditLog("Fake audit description bar.", token=self.token)
 
     audit_events = {
-        ev.description:
-            ev
+        ev.description: ev
         for fd in report_utils.GetAuditLogFiles(
             rdfvalue.Duration("1d"),
             rdfvalue.RDFDatetime.Now(),
@@ -149,6 +148,84 @@ class ServerReportPluginsTest(test_lib.GRRBaseTest):
             representation_type=report_plugins.ApiReportData.RepresentationType.
             STACK_CHART,
             stack_chart=report_plugins.ApiStackChartReportData(data=[])))
+
+  def testMostActiveUsersReportPlugin(self):
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/14")):
+      AddFakeAuditLog(
+          "Fake audit description 14 Dec.",
+          "C.123",
+          "User123",
+          token=self.token)
+
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/22")):
+      for _ in xrange(10):
+        AddFakeAuditLog(
+            "Fake audit description 22 Dec.",
+            "C.123",
+            "User123",
+            token=self.token)
+
+      AddFakeAuditLog(
+          "Fake audit description 22 Dec.",
+          "C.456",
+          "User456",
+          token=self.token)
+
+    with test_lib.FakeTime(
+        rdfvalue.RDFDatetime.FromHumanReadable("2012/12/31")):
+      report = server_report_plugins.MostActiveUsersReportPlugin()
+
+      now = rdfvalue.RDFDatetime().Now()
+      month_duration = rdfvalue.Duration("30d")
+
+      api_report_data = report.GetReportData(
+          stats_api.ApiGetReportArgs(
+              name=report.__class__.__name__,
+              start_time=now - month_duration,
+              duration=month_duration),
+          token=self.token)
+
+      # pyformat: disable
+      self.assertEqual(
+          api_report_data,
+          report_plugins.ApiReportData(
+              representation_type=report_plugins.ApiReportData.
+              RepresentationType.PIE_CHART,
+              pie_chart=report_plugins.ApiPieChartReportData(
+                  data=[
+                      report_plugins.ApiReportDataPoint1D(
+                          label="User123",
+                          x=11
+                      ),
+                      report_plugins.ApiReportDataPoint1D(
+                          label="User456",
+                          x=1
+                      )
+                  ]
+              )))
+      # pyformat: enable
+
+  def testMostActiveUsersReportPluginWithNoActivityToReport(self):
+    report = server_report_plugins.MostActiveUsersReportPlugin()
+
+    now = rdfvalue.RDFDatetime().Now()
+    month_duration = rdfvalue.Duration("30d")
+
+    api_report_data = report.GetReportData(
+        stats_api.ApiGetReportArgs(
+            name=report.__class__.__name__,
+            start_time=now - month_duration,
+            duration=month_duration),
+        token=self.token)
+
+    self.assertEqual(
+        api_report_data,
+        report_plugins.ApiReportData(
+            representation_type=report_plugins.ApiReportData.RepresentationType.
+            PIE_CHART,
+            pie_chart=report_plugins.ApiPieChartReportData(data=[])))
 
 
 def main(argv):

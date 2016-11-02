@@ -26,6 +26,14 @@ class ApiStackChartReportData(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiStackChartReportData
 
 
+class ApiPieChartReportData(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiPieChartReportData
+
+
+class ApiReportDataPoint1D(rdf_structs.RDFProtoStruct):
+  protobuf = api_pb2.ApiReportDataPoint1D
+
+
 class ApiReportDataSeries2D(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiReportDataSeries2D
 

@@ -65,6 +65,9 @@ ChartController.prototype.initChart_ = function(data) {
   case 'STACK_CHART':
     this.initStackChart_(data['stack_chart']);
     break;
+  case 'PIE_CHART':
+    this.initPieChart_(data['pie_chart']);
+    break;
   //TODO(user): Implement cases for other chart types.
   default:
     this.errorMsg = 'Unexpected representation type.';
@@ -123,6 +126,64 @@ ChartController.prototype.initStackChart_ = function(stackChartData) {
       this.hoverColor = obj.series.color;
       this.hoverText = obj.series.label + ': ' +
                        (obj.datapoint[1] - obj.datapoint[2]);
+    }
+  }.bind(this));
+
+  this.chartElement_.resize();
+};
+
+/**
+ * Initializes a pie chart.
+ *
+ * @param {Object} pieChartData The data to be displayed.
+ * @private
+ */
+ChartController.prototype.initPieChart_ = function(pieChartData) {
+  if (pieChartData['data'].length == 0) {
+    this.errorMsg = 'No data to display.';
+    return;
+  }
+
+  var specs = pieChartData['data'].map(function(point) {
+    return {
+      label: point['label'],
+      data: point['x']
+    };
+  }.bind(this));
+
+  this.chartElement_.resize(function() {
+    this.chartElement_.html('');
+
+    $.plot($(this.chartElement_), specs, {
+      series: {
+        pie: {
+          show: true,
+          label: {
+            show: true,
+            radius: 0.5,
+            formatter: function(label, series) {
+              return ('<div class="pie-label">' +
+                        label + '<br/>' +
+                        Math.round(series['percent']) + '%' +
+                      '</div>');
+            },
+            background: { opacity: 0.8 }
+          }
+        }
+      },
+      grid: {
+        hoverable: true,
+        clickable: true
+      }
+    });
+  }.bind(this));
+
+  this.chartElement_.bind('plothover', function(event, pos, obj) {
+    if (obj) {
+      var percent = parseFloat(obj.series.percent).toFixed(2);
+      this.hoverColor = obj.series.color;
+      this.hoverText = obj.series.label + ' ' +
+                       obj.series.data[0][1] + ' (' + percent + '%)';
     }
   }.bind(this));
 

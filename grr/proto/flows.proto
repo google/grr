@@ -882,7 +882,7 @@ message GlobArgs {
       label: ADVANCED;
     }];
 
-  optional bool no_file_type_check = 4 [(sem_type) = {
+  optional bool process_non_regular_files = 4 [(sem_type) = {
       description: "Work with all kinds of files - not only with regular ones."
       "NOTE: This is very dangerous and should be used with care, see "
       "MemoryCollector as an example.",
@@ -1520,13 +1520,45 @@ message FileFinderCondition {
   optional FileFinderContentsLiteralMatchCondition contents_literal_match = 7;
 }
 
-// Next field ID: 7
+message FileFinderHashActionOptions {
+  optional uint64 max_size = 1 [(sem_type) = {
+      type: "ByteSize",
+      description: "The maximum size of files we will hash."
+      label: ADVANCED
+    }, default=100000000];
+
+  enum OversizedFilePolicy {
+    SKIP = 0 [(description) = "Skip oversized files"];
+    HASH_TRUNCATED = 1 [(description) = "Hash truncated versions of "
+                        "oversized files"];
+  }
+  optional OversizedFilePolicy oversized_file_policy = 2 [(sem_type) = {
+      description: "What should GRR do with files that are larger than "
+      "max_size."
+      label: ADVANCED
+    }];
+}
+
+// Next field ID: 8
 message FileFinderDownloadActionOptions {
   optional uint64 max_size = 5 [(sem_type) = {
       type: "ByteSize",
       description: "The maximum size of files we will download.",
       label: ADVANCED
     }, default=100000000];
+
+  enum OversizedFilePolicy {
+    SKIP = 0 [(description) = "Skip oversized files"];
+    HASH_TRUNCATED = 1 [(description) = "Hash truncated version of the file "
+                        "(without downloading)"];
+    DOWNLOAD_TRUNCATED = 2 [(description) = "Download truncated version of "
+"the file"];
+  }
+  optional OversizedFilePolicy oversized_file_policy = 7 [(sem_type) = {
+      description: "What should GRR do with files that are larger than "
+      "max_size."
+      label: ADVANCED
+    }];
 
   optional bool use_external_stores = 6 [(sem_type) = {
       description: "If true, look in any defined external file stores for "
@@ -1536,7 +1568,7 @@ message FileFinderDownloadActionOptions {
     }, default=true];
 }
 
-// Next field ID: 3
+// Next field ID: 4
 message FileFinderAction {
   option (semantic) = {
     union_field: "action_type"
@@ -1552,10 +1584,11 @@ message FileFinderAction {
       friendly_name: "Action",
       description: "Action to apply to found files"
     }];
+  optional FileFinderHashActionOptions hash = 3;
   optional FileFinderDownloadActionOptions download = 2;
 }
 
-// Next field ID: 8
+// Next field ID: 9
 message FileFinderArgs {
   repeated string paths = 1 [(sem_type) = {
       type: "GlobExpression",
@@ -1581,12 +1614,12 @@ message FileFinderArgs {
 
   optional FileFinderAction action = 6;
 
-  optional bool no_file_type_check = 7 [(sem_type) = {
-      description: "Work with all kinds of files - not only with regular ones."
-      "NOTE: This is very dangerous and should be used with care, see "
-      "MemoryCollector as an example.",
-      label: HIDDEN,
-    }, default=false];
+  optional bool process_non_regular_files = 7 [(sem_type) = {
+      description: "Look both into regular files and non-regular files "
+      "(devices, named pipes, sockets). NOTE: This is very dangerous and "
+      "should be used with care.",
+      label: ADVANCED,
+    }];
 }
 
 // Next field ID: 4

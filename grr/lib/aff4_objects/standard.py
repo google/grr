@@ -229,6 +229,10 @@ class BlobImage(aff4.AFF4ImageBase):
     self.SetChunksize(fd.chunksize)
     self.index = StringIO.StringIO(fd.index.getvalue())
     self.size = fd.size
+    if fd.IsAttributeSet(fd.Schema.STAT):
+      self.Set(self.Schema.STAT, fd.Get(fd.Schema.STAT))
+    if fd.IsAttributeSet(fd.Schema.CONTENT_LAST):
+      self.Set(self.Schema.CONTENT_LAST, fd.Get(fd.Schema.CONTENT_LAST))
 
   def Flush(self, sync=True):
     if self.content_dirty:
@@ -448,8 +452,7 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
 
   def _ChunkNrsToHashes(self, chunk_nrs):
     chunk_names = {
-        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_nr):
-            chunk_nr
+        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_nr): chunk_nr
         for chunk_nr in chunk_nrs
     }
     res = {}
@@ -607,8 +610,7 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
   def ChunksExist(self, chunk_numbers):
     """Do we have this chunk in the index?"""
     index_urns = {
-        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number):
-            chunk_number
+        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number): chunk_number
         for chunk_number in chunk_numbers
     }
 
@@ -621,8 +623,7 @@ class AFF4SparseImage(aff4.AFF4ImageBase):
 
   def ChunksMetadata(self, chunk_numbers):
     index_urns = {
-        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number):
-            chunk_number
+        self.urn.Add(self.CHUNK_ID_TEMPLATE % chunk_number): chunk_number
         for chunk_number in chunk_numbers
     }
 

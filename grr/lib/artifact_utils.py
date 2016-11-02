@@ -182,7 +182,7 @@ def GetWindowsEnvironmentVariablesMap(knowledge_base):
 
 
 def ExpandWindowsEnvironmentVariables(data_string, knowledge_base):
-  """Take a string and expand any windows environment variables.
+  r"""Take a string and expand any windows environment variables.
 
   Args:
     data_string: A string, e.g. "%SystemRoot%\\LogFiles"
@@ -236,7 +236,7 @@ def ExpandWindowsUserEnvironmentVariables(data_string,
                                           knowledge_base,
                                           sid=None,
                                           username=None):
-  """Take a string and expand windows user environment variables based.
+  r"""Take a string and expand windows user environment variables based.
 
   Args:
     data_string: A string, e.g. "%TEMP%\\LogFiles"

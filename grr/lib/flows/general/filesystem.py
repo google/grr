@@ -575,7 +575,7 @@ class GlobMixin(object):
                    paths,
                    pathtype="OS",
                    root_path=None,
-                   no_file_type_check=False):
+                   process_non_regular_files=False):
     """Starts the Glob.
 
     This is the main entry point for this flow mixin.
@@ -588,8 +588,8 @@ class GlobMixin(object):
       paths: A list of GlobExpression instances.
       pathtype: The pathtype to use for creating pathspecs.
       root_path: A pathspec where to start searching from.
-      no_file_type_check: Work with all kinds of files - not only with regular
-                          ones.
+      process_non_regular_files: Work with all kinds of files - not only with
+          regular ones.
     """
     patterns = []
 
@@ -601,7 +601,7 @@ class GlobMixin(object):
 
     self.state.pathtype = pathtype
     self.state.root_path = root_path
-    self.state.no_file_type_check = no_file_type_check
+    self.state.process_non_regular_files = process_non_regular_files
 
     # Transform the patterns by substitution of client attributes. When the
     # client has multiple values for an attribute, this generates multiple
@@ -825,14 +825,14 @@ class GlobMixin(object):
         # - the last response was a proper directory,
         # - or it was a file (an image) that was explicitly given meaning
         #   no wildcards or groupings,
-        # - or no_file_type_check was set.
+        # - or process_non_regular_files was set.
         #
         # This reduces the number of TSK opens on the client that may
         # sometimes lead to instabilities due to bugs in the library.
 
         if response and (
             not (stat.S_ISDIR(response.st_mode) or not base_wildcard or
-                 self.state.no_file_type_check)):
+                 self.state.process_non_regular_files)):
           continue
 
         if component.path_options == component.Options.RECURSIVE:
@@ -941,7 +941,7 @@ class Glob(GlobMixin, flow.GRRFlow):
         self.args.paths,
         pathtype=self.args.pathtype,
         root_path=self.args.root_path,
-        no_file_type_check=self.args.no_file_type_check)
+        process_non_regular_files=self.args.process_non_regular_files)
 
   def GlobReportMatch(self, stat_response):
     """Called when we've found a matching StatEntry."""

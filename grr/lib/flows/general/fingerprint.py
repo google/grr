@@ -3,7 +3,7 @@
 """Invoke the fingerprint client action on a file."""
 
 
-from grr.client.client_actions import file_fingerprint as file_fingerprint_actions
+from grr.client.client_actions import file_fingerprint
 from grr.lib import aff4
 from grr.lib import flow
 from grr.lib.aff4_objects import aff4_grr
@@ -23,9 +23,13 @@ class FingerprintFileResult(rdf_structs.RDFProtoStruct):
 class FingerprintFileMixin(object):
   """Retrieve all fingerprints of a file."""
 
-  def FingerprintFile(self, pathspec, request_data=None):
+  fingerprint_file_mixin_client_action = file_fingerprint.FingerprintFile
+
+  def FingerprintFile(self, pathspec, max_filesize=None, request_data=None):
     """Launch a fingerprint client action."""
     request = rdf_client.FingerprintRequest(pathspec=pathspec)
+    if max_filesize is not None:
+      request.max_filesize = max_filesize
 
     # Generic hash.
     request.AddRequest(
@@ -46,7 +50,7 @@ class FingerprintFileMixin(object):
         ])
 
     self.CallClient(
-        file_fingerprint_actions.FingerprintFile,
+        self.fingerprint_file_mixin_client_action,
         request,
         next_state="ProcessFingerprint",
         request_data=request_data)

@@ -18,6 +18,7 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import filestore
 # Needed for GetFile pylint: disable=unused-import
+from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import transfer
 # pylint: enable=unused-import
 from grr.lib.rdfvalues import flows as rdf_flows
@@ -141,6 +142,8 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
         token=token)
     worker = test_lib.MockWorker(token=token)
     worker.Simulate()
+
+    return urn
 
   def AddFile(self, path):
     """Add file with a subpath (relative to winexec_img.dd) to the store."""
@@ -395,6 +398,42 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
         filestore.HashFileStore.GetClientsForHashes(
             [hash1, hash2], token=self.token))
     self.assertEqual(len(hits), 2)
+
+  def testAttributesOfFileFoundInHashFileStoreAreSetCorrectly(self):
+    client_ids = self.SetupClients(2)
+
+    filename = os.path.join(self.base_path, "tcpip.sig")
+    pathspec = rdf_paths.PathSpec(
+        pathtype=rdf_paths.PathSpec.PathType.OS, path=filename)
+    urn1 = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, client_ids[0])
+    urn2 = aff4_grr.VFSGRRClient.PathspecToURN(pathspec, client_ids[1])
+
+    for client_id in client_ids:
+      client_mock = action_mocks.FileFinderClientMock()
+      for _ in test_lib.TestFlowHelper(
+          file_finder.FileFinder.__name__,
+          client_mock,
+          token=self.token,
+          client_id=client_id,
+          paths=[filename],
+          action=file_finder.FileFinderAction(
+              action_type=file_finder.FileFinderAction.Action.DOWNLOAD)):
+        pass
+      # Running worker to make sure FileStore.AddFileToStore event is processed
+      # by the worker.
+      worker = test_lib.MockWorker(token=self.token)
+      worker.Simulate()
+
+    fd1 = aff4.FACTORY.Open(urn1, token=self.token)
+    self.assertTrue(isinstance(fd1, aff4_grr.VFSBlobImage))
+
+    fd2 = aff4.FACTORY.Open(urn2, token=self.token)
+    self.assertTrue(isinstance(fd2, filestore.FileStoreImage))
+
+    self.assertEqual(fd1.Get(fd1.Schema.STAT), fd2.Get(fd2.Schema.STAT))
+    self.assertEqual(fd1.Get(fd1.Schema.SIZE), fd2.Get(fd2.Schema.SIZE))
+    self.assertEqual(
+        fd1.Get(fd1.Schema.CONTENT_LAST), fd2.Get(fd2.Schema.CONTENT_LAST))
 
   def testEmptyFileHasNoBackreferences(self):
 

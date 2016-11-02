@@ -226,3 +226,15 @@ class GlobExpressionTest(test_base.RDFValueTestCase):
     self.assertFalse(regex.Match("/foo/bar2/blah.com"))
     self.assertFalse(regex.Match("/foo/c1/c2/c3/bar1/blah.txt/res.txt"))
     self.assertFalse(regex.Match("/foo/c1/c2/c3/bar2/blah.exe/res.exe"))
+
+  def testRegExIsCaseInsensitive(self):
+    glob_expression = rdf_paths.GlobExpression("/foo/**/bar?/*{.txt,.exe}")
+    regex = glob_expression.AsRegEx()
+
+    self.assertTrue(regex.Match("/foo/bar1/blah.txt"))
+    self.assertTrue(regex.Match("/foO/bAr1/blah.txt"))
+    self.assertTrue(regex.Match("/foo/bar1/blah.TXT"))
+
+    self.assertFalse(regex.Match("/foo/bar2/blah.com"))
+    self.assertFalse(regex.Match("/foO/bAr2/blah.com"))
+    self.assertFalse(regex.Match("/foo/bar2/blah.COM"))

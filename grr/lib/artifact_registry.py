@@ -54,6 +54,9 @@ class ArtifactRegistry(object):
       token = access_control.ACLToken(
           username="GRRArtifactRegistry", reason="Managing Artifacts.")
     loaded_artifacts = []
+    # A collection of artifacts that shadow system artifacts and need
+    # to be deleted from the data store.
+    to_delete = []
 
     for artifact_coll_urn in source_urns or set():
       with aff4.FACTORY.Create(
@@ -62,13 +65,26 @@ class ArtifactRegistry(object):
           token=token,
           mode="rw") as artifact_coll:
         for artifact_value in artifact_coll:
-          self.RegisterArtifact(
-              artifact_value,
-              source="datastore:%s" % artifact_coll_urn,
-              overwrite_if_exists=overwrite_if_exists)
-          loaded_artifacts.append(artifact_value)
-          logging.debug("Loaded artifact %s from %s", artifact_value.name,
-                        artifact_coll_urn)
+          try:
+            self.RegisterArtifact(
+                artifact_value,
+                source="datastore:%s" % artifact_coll_urn,
+                overwrite_if_exists=overwrite_if_exists)
+            loaded_artifacts.append(artifact_value)
+            logging.debug("Loaded artifact %s from %s", artifact_value.name,
+                          artifact_coll_urn)
+          except ArtifactDefinitionError as e:
+            if e.message.startswith("System artifact"):
+              to_delete.append(artifact_value.name)
+            else:
+              raise
+
+    if to_delete:
+      DeleteArtifactsFromDatastore(
+          to_delete, reload_artifacts=False, token=token)
+      self._dirty = True
+      raise ArtifactDefinitionError(
+          "Artifacts %s were shadowing system artifacts and had to be deleted.")
 
     # Once all artifacts are loaded we can validate.
     revalidate = True
@@ -836,3 +852,62 @@ class ArtifactDescriptor(structs.RDFProtoStruct):
   """Includes artifact, its JSON source, processors and additional info."""
 
   protobuf = artifact_pb2.ArtifactDescriptor
+
+
+def DeleteArtifactsFromDatastore(artifact_names,
+                                 reload_artifacts=True,
+                                 token=None):
+  """Deletes a list of artifacts from the data store."""
+  artifacts = sorted(
+      REGISTRY.GetArtifacts(reload_datastore_artifacts=reload_artifacts))
+
+  to_delete = set(artifact_names)
+  deps = set()
+  for artifact_obj in artifacts:
+    if artifact_obj.name in to_delete:
+      continue
+
+    if artifact_obj.GetArtifactDependencies() & to_delete:
+      deps.add(str(artifact_obj.name))
+
+  if deps:
+    raise ValueError(
+        "Artifact(s) %s depend(s) on one of the artifacts to delete." %
+        (",".join(deps)))
+
+  with aff4.FACTORY.Create(
+      "aff4:/artifact_store",
+      mode="r",
+      aff4_type=collects.RDFValueCollection,
+      token=token) as store:
+    all_artifacts = list(store)
+
+  filtered_artifacts, found_artifact_names = set(), set()
+  for artifact_value in all_artifacts:
+    if artifact_value.name in to_delete:
+      found_artifact_names.add(artifact_value.name)
+    else:
+      filtered_artifacts.add(artifact_value)
+
+  if len(found_artifact_names) != len(to_delete):
+    not_found = to_delete - found_artifact_names
+    raise ValueError("Artifact(s) to delete (%s) not found." %
+                     ",".join(not_found))
+
+  # TODO(user): this is ugly and error- and race-condition- prone.
+  # We need to store artifacts not in an RDFValueCollection, which is an
+  # append-only object, but in some different way that allows easy
+  # deletion. Possible option - just store each artifact in a separate object
+  # in the same folder.
+  aff4.FACTORY.Delete("aff4:/artifact_store", token=token)
+
+  with aff4.FACTORY.Create(
+      "aff4:/artifact_store",
+      mode="w",
+      aff4_type=collects.RDFValueCollection,
+      token=token) as store:
+    for artifact_value in filtered_artifacts:
+      store.Add(artifact_value)
+
+  for artifact_value in to_delete:
+    REGISTRY.UnregisterArtifact(artifact_value)

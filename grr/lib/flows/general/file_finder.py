@@ -6,6 +6,7 @@
 import stat
 
 from grr.client.client_actions import searching as searching_actions
+from grr.client.client_actions import standard as standard_actions
 from grr.lib import flow
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
@@ -46,6 +47,10 @@ class FileFinderCondition(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderCondition
 
 
+class FileFinderHashActionOptions(rdf_structs.RDFProtoStruct):
+  protobuf = flows_pb2.FileFinderHashActionOptions
+
+
 class FileFinderDownloadActionOptions(rdf_structs.RDFProtoStruct):
   protobuf = flows_pb2.FileFinderDownloadActionOptions
 
@@ -78,6 +83,9 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
   category = "/Filesystem/"
   args_type = FileFinderArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
+
+  # Will be used by FingerprintFileMixin.
+  fingerprint_file_mixin_client_action = standard_actions.HashFile
 
   @classmethod
   def GetDefaultArgs(cls, token=None):
@@ -118,13 +126,27 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
     self.state.sorted_conditions = sorted(
         self.args.conditions, key=self._ConditionWeight)
 
+    # TODO(user): We may change self.args just by accessing self.args.action
+    # (a nested message will be created). Therefore we should be careful
+    # about not modifying self.args: they will be written as FLOW_ARGS attribute
+    # and will be different from what the user has actually passed in.
+    # We need better semantics for RDFStructs - creating a nested field on
+    # read access is totally unexpected.
+    if self.args.HasField("action"):
+      action = self.args.action.Copy()
+    else:
+      action = FileFinderAction()
+
     # This is used by MultiGetFileMixin.
-    self.state.file_size = 1000000000  # 1Gb
+    if action.action_type == FileFinderAction.Action.HASH:
+      self.state.file_size = action.hash.max_size
+    elif action.action_type == FileFinderAction.Action.DOWNLOAD:
+      self.state.file_size = action.download.max_size
 
     if self.args.pathtype in (rdf_paths.PathSpec.PathType.MEMORY,
                               rdf_paths.PathSpec.PathType.REGISTRY):
       # Memory and Registry StatEntries won't pass the file type check.
-      self.args.no_file_type_check = True
+      self.args.process_non_regular_files = True
 
     if self.args.pathtype == rdf_paths.PathSpec.PathType.MEMORY:
       # If pathtype is MEMORY, we're treating provided paths not as globs,
@@ -144,7 +166,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
       self.GlobForPaths(
           self.args.paths,
           pathtype=self.args.pathtype,
-          no_file_type_check=self.args.no_file_type_check)
+          process_non_regular_files=self.args.process_non_regular_files)
 
   def GlobReportMatch(self, response):
     """This method is called by the glob mixin when there is a match."""
@@ -181,7 +203,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
 
   def SizeCondition(self, response, condition_options, condition_index):
     """Applies size condition to responses."""
-    if not (self.args.no_file_type_check or
+    if not (self.args.process_non_regular_files or
             stat.S_ISREG(response.stat_entry.st_mode)):
       return
 
@@ -192,7 +214,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
   def ContentsRegexMatchCondition(self, response, condition_options,
                                   condition_index):
     """Applies contents regex condition to responses."""
-    if not (self.args.no_file_type_check or
+    if not (self.args.process_non_regular_files or
             stat.S_ISREG(response.stat_entry.st_mode)):
       return
 
@@ -216,7 +238,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
   def ContentsLiteralMatchCondition(self, response, condition_options,
                                     condition_index):
     """Applies literal match condition to responses."""
-    if not (self.args.no_file_type_check or
+    if not (self.args.process_non_regular_files or
             stat.S_ISREG(response.stat_entry.st_mode)):
       return
 
@@ -275,28 +297,69 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
       # response.
       self.state.files_found += 1
       self.SendReply(response)
-    elif (self.args.no_file_type_check or
+    elif (self.args.process_non_regular_files or
           stat.S_ISREG(response.stat_entry.st_mode)):
-      # Hashing and downloading only makes sense for regular files. Reply is
-      # sent only when we get file's hash.
+      # Hashing and downloading are only safe for regular files. User has to
+      # explicitly set args.process_non_regular_files to True to make
+      # FileFinder look into non-regular files.
+      # In both cases (regular and non-regular files) max_size limit is applied
+      # (either action.hash.max_size or action.download.max_size, depending on
+      # the action type).
+      # Reply is sent only when we get file's hash.
       self.state.files_found += 1
 
       if action == FileFinderAction.Action.HASH:
-        self.FingerprintFile(
-            response.stat_entry.pathspec,
-            request_data=dict(original_result=response))
+        hash_file = False
+        file_size = response.stat_entry.st_size
+        if file_size > self.args.action.hash.max_size:
+          policy = self.args.action.hash.oversized_file_policy
+          policy_enum = FileFinderHashActionOptions.OversizedFilePolicy
+          if policy == policy_enum.SKIP:
+            self.Log("%s too large to hash, skipping according to SKIP "
+                     "policy. Size=%d",
+                     response.stat_entry.pathspec.CollapsePath(), file_size)
+          elif policy == policy_enum.HASH_TRUNCATED:
+            self.Log("%s too large to hash, hashing its first %d bytes "
+                     "according to HASH_TRUNCATED policy. Size=%d",
+                     response.stat_entry.pathspec.CollapsePath(),
+                     self.args.action.download.max_size, file_size)
+            hash_file = True
+        else:
+          hash_file = True
+
+        if hash_file:
+          self.FingerprintFile(
+              response.stat_entry.pathspec,
+              max_filesize=self.args.action.hash.max_size,
+              request_data=dict(original_result=response))
 
       elif action == FileFinderAction.Action.DOWNLOAD:
+        fetch_file = False
         # If the binary is too large we don't download it, but take a
         # fingerprint instead.
         file_size = response.stat_entry.st_size
         if file_size > self.args.action.download.max_size:
-          self.Log("%s too large to fetch. Size=%d",
-                   response.stat_entry.pathspec.CollapsePath(), file_size)
-          self.FingerprintFile(
-              response.stat_entry.pathspec,
-              request_data=dict(original_result=response))
+          policy = self.args.action.download.oversized_file_policy
+          policy_enum = FileFinderDownloadActionOptions.OversizedFilePolicy
+          if policy == policy_enum.SKIP:
+            self.Log("%s too large to fetch, skipping according to SKIP "
+                     "policy. Size=%d",
+                     response.stat_entry.pathspec.CollapsePath(), file_size)
+          elif policy == policy_enum.HASH_TRUNCATED:
+            self.Log("%s too large to fetch, hashing its first %d bytes "
+                     "according to HASH_TRUNCATED policy. Size=%d",
+                     response.stat_entry.pathspec.CollapsePath(),
+                     self.args.action.download.max_size, file_size)
+            self.FingerprintFile(
+                response.stat_entry.pathspec,
+                max_filesize=self.args.action.download.max_size,
+                request_data=dict(original_result=response))
+          elif policy == "DOWNLOAD_TRUNCATED":
+            fetch_file = True
         else:
+          fetch_file = True
+
+        if fetch_file:
           self.StartFileFetch(
               response.stat_entry.pathspec,
               request_data=dict(original_result=response))
