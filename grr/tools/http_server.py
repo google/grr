@@ -164,12 +164,10 @@ class GRRHTTPServerHandler(BaseHTTPServer.BaseHTTPRequestHandler):
     upload_store = file_store.UploadFileStore.GetPlugin(config_lib.CONFIG[
         "Frontend.upload_store"])()
 
-    with upload_store.open_for_writing(policy.client_id,
-                                       policy.filename) as out_fd:
-      decrypt_fd = uploads.DecryptStream(
-          config_lib.CONFIG["PrivateKeys.server_key"],
-          self._GetClientPublicKey(policy.client_id), out_fd)
-
+    out_fd = upload_store.open_for_writing(policy.client_id, policy.filename)
+    with uploads.DecryptStream(config_lib.CONFIG["PrivateKeys.server_key"],
+                               self._GetClientPublicKey(policy.client_id),
+                               out_fd) as decrypt_fd:
       total_size = 0
 
       # Handle chunked encoding:
