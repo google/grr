@@ -8,7 +8,6 @@ GRR Rapid Response is an incident response framework focused on remote live fore
 [![Build status](https://ci.appveyor.com/api/projects/status/o30jv69p5muc12r5?svg=true)](https://ci.appveyor.com/project/destijl/grr)
 
  * [Quickstart: Fast automated installation](https://github.com/google/grr-doc/blob/master/quickstart.adoc)
- * [Downloads (installation files, client templates)](https://googledrive.com/host/0B1wsLqFoT7i2N3hveC1lSEpHUnM/)
  * [User Manual](https://github.com/google/grr-doc/blob/master/user_manual.adoc)
  * [Blog](http://grr-response.blogspot.com/)
  * [Administration Documentation (Setup and Configuration)](https://github.com/google/grr-doc/blob/master/admin.adoc)
