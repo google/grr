@@ -20,7 +20,6 @@ class BuildConfigTestsBase(test_lib.GRRBaseTest):
       "Client.private_key",
       # Those keys are maybe passphrase protected so we need to skip.
       "PrivateKeys.ca_key",
-      "PrivateKeys.driver_signing_private_key",
       "PrivateKeys.executable_signing_private_key",
       "PrivateKeys.server_key",
   ]

@@ -11,7 +11,6 @@ from grr.gui.api_plugins import user as api_user
 
 from grr.lib import access_control
 from grr.lib import aff4
-from grr.lib import rdfvalue
 
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import user_managers
@@ -37,11 +36,11 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
     return cls.full_access_control_manager
 
   def CheckClientAccess(self, client_id, token=None):
-    self.legacy_manager.CheckClientAccess(token.RealUID(), client_id)
+    self.legacy_manager.CheckClientAccess(token.RealUID(),
+                                          client_id.ToClientURN())
 
   def CheckHuntAccess(self, hunt_id, token=None):
-    hunt_urn = rdfvalue.RDFURN("aff4:/hunts").Add(hunt_id)
-    self.legacy_manager.CheckHuntAccess(token.RealUID(), hunt_urn)
+    self.legacy_manager.CheckHuntAccess(token.RealUID(), hunt_id.ToURN())
 
   def CheckCronJobAccess(self, cron_job_id, token=None):
     cron_job_urn = cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(cron_job_id)
@@ -434,16 +433,12 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
   def ModifyHunt(self, args, token=None):
     # Starting/stopping hunt or modifying its attributes requires an approval.
-    #
-    # TODO(user): introduce a special type for hunt ids and use
-    # to check the correctness of args.hunt_id. Currently args.hunt_id accepts
-    # any URN, whereas we want it to accept only hunt ids, i.e. H:123456.
-    self.CheckHuntAccess(rdfvalue.RDFURN(args.hunt_id).Basename(), token=token)
+    self.CheckHuntAccess(args.hunt_id, token=token)
 
     return self.delegate.ModifyHunt(args, token=token)
 
   def _GetHuntObj(self, hunt_id, token=None):
-    hunt_urn = aff4.ROOT_URN.Add("hunts").Add(hunt_id)
+    hunt_urn = hunt_id.ToURN()
     try:
       return aff4.FACTORY.Open(
           hunt_urn, aff4_type=implementation.GRRHunt, token=token)
@@ -456,27 +451,17 @@ class ApiCallRouterWithApprovalChecksWithoutRobotAccess(
 
     # Hunt's creator is allowed to delete the hunt.
     if token.username != hunt_obj.creator:
-      # TODO(user): introduce a special type for hunt ids and use
-      # to check the correctness of args.hunt_id. Currently args.hunt_id accepts
-      # any URN, whereas we want it to accept only hunt ids, i.e. H:123456.
-      self.CheckHuntAccess(
-          rdfvalue.RDFURN(args.hunt_id).Basename(), token=token)
+      self.CheckHuntAccess(args.hunt_id, token=token)
 
     return self.delegate.DeleteHunt(args, token=token)
 
   def GetHuntFilesArchive(self, args, token=None):
-    # TODO(user): introduce a special type for hunt ids and use
-    # to check the correctness of args.hunt_id. Currently args.hunt_id accepts
-    # any URN, whereas we want it to accept only hunt ids, i.e. H:123456.
-    self.CheckHuntAccess(rdfvalue.RDFURN(args.hunt_id).Basename(), token=token)
+    self.CheckHuntAccess(args.hunt_id, token=token)
 
     return self.delegate.GetHuntFilesArchive(args, token=token)
 
   def GetHuntFile(self, args, token=None):
-    # TODO(user): introduce a special type for hunt ids and use
-    # to check the correctness of args.hunt_id. Currently args.hunt_id accepts
-    # any URN, whereas we want it to accept only hunt ids, i.e. H:123456.
-    self.CheckHuntAccess(rdfvalue.RDFURN(args.hunt_id).Basename(), token=token)
+    self.CheckHuntAccess(args.hunt_id, token=token)
 
     return self.delegate.GetHuntFile(args, token=token)
 

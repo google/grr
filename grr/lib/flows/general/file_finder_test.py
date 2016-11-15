@@ -20,8 +20,8 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import standard as aff4_standard
-from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 
 # pylint:mode=test
@@ -128,7 +128,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
       sorted_output = sorted(
           output, key=lambda x: x.stat_entry.aff4path.Basename())
       for fname, result in zip(sorted(fnames), sorted_output):
-        self.assertTrue(isinstance(result, file_finder.FileFinderResult))
+        self.assertTrue(isinstance(result, rdf_file_finder.FileFinderResult))
         self.assertEqual(result.stat_entry.aff4path.Basename(), fname)
     else:
       # No results expected.
@@ -141,20 +141,20 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
   def CheckReplies(self, replies, action, expected_files):
     reply_count = 0
     for _, reply in replies:
-      self.assertTrue(isinstance(reply, file_finder.FileFinderResult))
+      self.assertTrue(isinstance(reply, rdf_file_finder.FileFinderResult))
 
       reply_count += 1
-      if action == file_finder.FileFinderAction.Action.STAT:
+      if action == rdf_file_finder.FileFinderAction.Action.STAT:
         self.assertTrue(reply.stat_entry)
         self.assertFalse(reply.hash_entry)
-      elif action == file_finder.FileFinderAction.Action.DOWNLOAD:
+      elif action == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:
         self.assertTrue(reply.stat_entry)
         self.assertTrue(reply.hash_entry)
-      elif action == file_finder.FileFinderAction.Action.HASH:
+      elif action == rdf_file_finder.FileFinderAction.Action.HASH:
         self.assertTrue(reply.stat_entry)
         self.assertTrue(reply.hash_entry)
 
-      if action != file_finder.FileFinderAction.Action.STAT:
+      if action != rdf_file_finder.FileFinderAction.Action.STAT:
         # Check that file's hash is correct.
         file_basename = reply.stat_entry.pathspec.Basename()
         try:
@@ -185,14 +185,15 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
     return send_reply.args
 
-  def RunFlowAndCheckResults(self,
-                             conditions=None,
-                             action=file_finder.FileFinderAction.Action.STAT,
-                             expected_files=None,
-                             non_expected_files=None,
-                             paths=None):
-    if not isinstance(action, file_finder.FileFinderAction):
-      action = file_finder.FileFinderAction(action_type=action)
+  def RunFlowAndCheckResults(
+      self,
+      conditions=None,
+      action=rdf_file_finder.FileFinderAction.Action.STAT,
+      expected_files=None,
+      non_expected_files=None,
+      paths=None):
+    if not isinstance(action, rdf_file_finder.FileFinderAction):
+      action = rdf_file_finder.FileFinderAction(action_type=action)
     action_type = action.action_type
 
     conditions = conditions or []
@@ -207,16 +208,16 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
     self.CheckFilesInCollection(expected_files)
 
-    if action_type == file_finder.FileFinderAction.Action.STAT:
+    if action_type == rdf_file_finder.FileFinderAction.Action.STAT:
       self.CheckFilesNotDownloaded(expected_files + non_expected_files)
       self.CheckFilesNotHashed(expected_files + non_expected_files)
-    elif action_type == file_finder.FileFinderAction.Action.DOWNLOAD:
+    elif action_type == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:
       self.CheckFilesHashed(expected_files)
       self.CheckFilesNotHashed(non_expected_files)
       self.CheckFilesDownloaded(expected_files)
       self.CheckFilesNotDownloaded(non_expected_files)
       # Downloaded files are hashed to allow for deduping.
-    elif action_type == file_finder.FileFinderAction.Action.HASH:
+    elif action_type == rdf_file_finder.FileFinderAction.Action.HASH:
       self.CheckFilesNotDownloaded(expected_files + non_expected_files)
       self.CheckFilesHashed(expected_files)
       self.CheckFilesNotHashed(non_expected_files)
@@ -229,7 +230,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
   def testFileFinderStatActionWithoutConditions(self):
     self.RunFlowAndCheckResults(
-        action=file_finder.FileFinderAction.Action.STAT,
+        action=rdf_file_finder.FileFinderAction.Action.STAT,
         expected_files=["auth.log", "dpkg.log", "dpkg_false.log"])
 
   def testFileFinderStat(self):
@@ -256,8 +257,8 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     expected_files.append(self.client_id.Add("fs/os/bin"))
 
     results = self.RunFlow(
-        action=file_finder.FileFinderAction(
-            action_type=file_finder.FileFinderAction.Action.STAT),
+        action=rdf_file_finder.FileFinderAction(
+            action_type=rdf_file_finder.FileFinderAction.Action.STAT),
         paths=paths)
 
     stat_entries = [result[1].stat_entry for result in results]
@@ -267,28 +268,29 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
 
   def testFileFinderDownloadActionWithoutConditions(self):
     self.RunFlowAndCheckResults(
-        action=file_finder.FileFinderAction.Action.DOWNLOAD,
+        action=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
         expected_files=["auth.log", "dpkg.log", "dpkg_false.log"])
 
   def testFileFinderHashActionWithoutConditions(self):
     self.RunFlowAndCheckResults(
-        action=file_finder.FileFinderAction.Action.HASH,
+        action=rdf_file_finder.FileFinderAction.Action.HASH,
         expected_files=["auth.log", "dpkg.log", "dpkg_false.log"])
 
   CONDITION_TESTS_ACTIONS = sorted(
-      set(file_finder.FileFinderAction.Action.enum_dict.values()))
+      set(rdf_file_finder.FileFinderAction.Action.enum_dict.values()))
 
   def testLiteralMatchConditionWithDifferentActions(self):
     expected_files = ["auth.log"]
     non_expected_files = ["dpkg.log", "dpkg_false.log"]
 
-    match = file_finder.FileFinderContentsLiteralMatchCondition(
-        mode=file_finder.FileFinderContentsLiteralMatchCondition.Mode.ALL_HITS,
+    match = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
+        mode=rdf_file_finder.FileFinderContentsLiteralMatchCondition.Mode.
+        ALL_HITS,
         bytes_before=10,
         bytes_after=10,
         literal="session opened for user dearjohn")
-    literal_condition = file_finder.FileFinderCondition(
-        condition_type=file_finder.FileFinderCondition.Type.
+    literal_condition = rdf_file_finder.FileFinderCondition(
+        condition_type=rdf_file_finder.FileFinderCondition.Type.
         CONTENTS_LITERAL_MATCH,
         contents_literal_match=match)
 
@@ -311,13 +313,14 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
                        "session): session opened for user dearjohn by (uid=0")
 
   def testLiteralMatchConditionWithHexEncodedValue(self):
-    match = file_finder.FileFinderContentsLiteralMatchCondition(
-        mode=file_finder.FileFinderContentsLiteralMatchCondition.Mode.FIRST_HIT,
+    match = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
+        mode=rdf_file_finder.FileFinderContentsLiteralMatchCondition.Mode.
+        FIRST_HIT,
         bytes_before=10,
         bytes_after=10,
         literal="\x4D\x5A\x90")
-    literal_condition = file_finder.FileFinderCondition(
-        condition_type=file_finder.FileFinderCondition.Type.
+    literal_condition = rdf_file_finder.FileFinderCondition(
+        condition_type=rdf_file_finder.FileFinderCondition.Type.
         CONTENTS_LITERAL_MATCH,
         contents_literal_match=match)
 
@@ -348,16 +351,15 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     expected_files = ["auth.log"]
     non_expected_files = ["dpkg.log", "dpkg_false.log"]
 
-    regex_condition = file_finder.FileFinderCondition(
+    regex_condition = rdf_file_finder.FileFinderCondition(
         condition_type=(
-            file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
-        contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
-            mode=(
-                file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS
-            ),
-            bytes_before=10,
-            bytes_after=10,
-            regex="session opened for user .*?john"))
+            rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
+        contents_regex_match=(
+            rdf_file_finder.FileFinderContentsRegexMatchCondition(
+                mode="ALL_HITS",
+                bytes_before=10,
+                bytes_after=10,
+                regex="session opened for user .*?john")))
 
     for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(
@@ -380,26 +382,24 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     expected_files = ["auth.log"]
     non_expected_files = ["dpkg.log", "dpkg_false.log"]
 
-    regex_condition1 = file_finder.FileFinderCondition(
+    regex_condition1 = rdf_file_finder.FileFinderCondition(
         condition_type=(
-            file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
-        contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
-            mode=(
-                file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS
-            ),
-            bytes_before=10,
-            bytes_after=10,
-            regex="session opened for user .*?john"))
-    regex_condition2 = file_finder.FileFinderCondition(
+            rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
+        contents_regex_match=(
+            rdf_file_finder.FileFinderContentsRegexMatchCondition(
+                mode="ALL_HITS",
+                bytes_before=10,
+                bytes_after=10,
+                regex="session opened for user .*?john")))
+    regex_condition2 = rdf_file_finder.FileFinderCondition(
         condition_type=(
-            file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
-        contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
-            mode=(
-                file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS
-            ),
-            bytes_before=10,
-            bytes_after=10,
-            regex="format.*should"))
+            rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
+        contents_regex_match=(
+            rdf_file_finder.FileFinderContentsRegexMatchCondition(
+                mode="ALL_HITS",
+                bytes_before=10,
+                bytes_after=10,
+                regex="format.*should")))
 
     for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(
@@ -427,25 +427,21 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     expected_files = ["auth.log"]
     non_expected_files = ["dpkg.log", "dpkg_false.log"]
 
-    regex_condition1 = file_finder.FileFinderCondition(
+    regex_condition1 = rdf_file_finder.FileFinderCondition(
         condition_type=(
-            file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
-        contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
-            mode=(
-                file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS
-            ),
-            bytes_before=10,
-            bytes_after=10,
-            regex="session opened for user .*?john"))
-    regex_condition2 = file_finder.FileFinderCondition(
+            rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
+        contents_regex_match=(
+            rdf_file_finder.FileFinderContentsRegexMatchCondition(
+                mode="ALL_HITS",
+                bytes_before=10,
+                bytes_after=10,
+                regex="session opened for user .*?john")))
+    regex_condition2 = rdf_file_finder.FileFinderCondition(
         condition_type=(
-            file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
-        contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
-            mode=file_finder.FileFinderContentsRegexMatchCondition.Mode.
-            FIRST_HIT,
-            bytes_before=10,
-            bytes_after=10,
-            regex=".*"))
+            rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
+        contents_regex_match=(
+            rdf_file_finder.FileFinderContentsRegexMatchCondition(
+                mode="FIRST_HIT", bytes_before=10, bytes_after=10, regex=".*")))
 
     for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(
@@ -477,9 +473,10 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         for f in expected_files
     ]
 
-    size_condition = file_finder.FileFinderCondition(
-        condition_type=file_finder.FileFinderCondition.Type.SIZE,
-        size=file_finder.FileFinderSizeCondition(max_file_size=max(sizes) + 1))
+    size_condition = rdf_file_finder.FileFinderCondition(
+        condition_type=rdf_file_finder.FileFinderCondition.Type.SIZE,
+        size=rdf_file_finder.FileFinderSizeCondition(
+            max_file_size=max(sizes) + 1))
 
     for action in self.CONDITION_TESTS_ACTIONS:
       self.RunFlowAndCheckResults(
@@ -496,17 +493,16 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         for f in expected_files
     ]
 
-    hash_action = file_finder.FileFinderAction(
-        action_type=file_finder.FileFinderAction.Action.HASH)
+    hash_action = rdf_file_finder.FileFinderAction(
+        action_type=rdf_file_finder.FileFinderAction.Action.HASH)
     hash_action.hash.max_size = max(sizes) + 1
     hash_action.hash.oversized_file_policy = (
-        file_finder.FileFinderHashActionOptions.OversizedFilePolicy.SKIP)
+        rdf_file_finder.FileFinderHashActionOptions.OversizedFilePolicy.SKIP)
 
-    download_action = file_finder.FileFinderAction(
-        action_type=file_finder.FileFinderAction.Action.DOWNLOAD)
+    download_action = rdf_file_finder.FileFinderAction(
+        action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)
     download_action.download.max_size = max(sizes) + 1
-    download_action.download.oversized_file_policy = (
-        file_finder.FileFinderDownloadActionOptions.OversizedFilePolicy.SKIP)
+    download_action.download.oversized_file_policy = "SKIP"
 
     for action in [hash_action, download_action]:
       self.RunFlowAndCheckResults(
@@ -520,18 +516,18 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     # Read a bit more than a typical chunk (600 * 1024).
     expected_size = 750 * 1024
 
-    hash_action = file_finder.FileFinderAction(
-        action_type=file_finder.FileFinderAction.Action.HASH)
+    hash_action = rdf_file_finder.FileFinderAction(
+        action_type=rdf_file_finder.FileFinderAction.Action.HASH)
     hash_action.hash.max_size = expected_size
     hash_action.hash.oversized_file_policy = (
-        file_finder.FileFinderHashActionOptions.OversizedFilePolicy.
+        rdf_file_finder.FileFinderHashActionOptions.OversizedFilePolicy.
         HASH_TRUNCATED)
 
-    download_action = file_finder.FileFinderAction(
-        action_type=file_finder.FileFinderAction.Action.DOWNLOAD)
+    download_action = rdf_file_finder.FileFinderAction(
+        action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)
     download_action.download.max_size = expected_size
     download_action.download.oversized_file_policy = (
-        file_finder.FileFinderDownloadActionOptions.OversizedFilePolicy.
+        rdf_file_finder.FileFinderDownloadActionOptions.OversizedFilePolicy.
         HASH_TRUNCATED)
 
     for action in [hash_action, download_action]:
@@ -555,12 +551,12 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
   def testDownloadActionSizeLimitWithDownloadTruncatedPolicy(self):
     image_path = os.path.join(self.base_path, "test_img.dd")
 
-    action = file_finder.FileFinderAction(
-        action_type=file_finder.FileFinderAction.Action.DOWNLOAD)
+    action = rdf_file_finder.FileFinderAction(
+        action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)
     # Read a bit more than a typical chunk (600 * 1024).
     expected_size = action.download.max_size = 750 * 1024
     action.download.oversized_file_policy = (
-        file_finder.FileFinderDownloadActionOptions.OversizedFilePolicy.
+        rdf_file_finder.FileFinderDownloadActionOptions.OversizedFilePolicy.
         DOWNLOAD_TRUNCATED)
 
     results = self.RunFlow(paths=[image_path], action=action)
@@ -597,17 +593,18 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
         for f in files_over_size_limit
     ]
 
-    size_condition = file_finder.FileFinderCondition(
-        condition_type=file_finder.FileFinderCondition.Type.SIZE,
-        size=file_finder.FileFinderSizeCondition(max_file_size=min(sizes) - 1))
+    size_condition = rdf_file_finder.FileFinderCondition(
+        condition_type=rdf_file_finder.FileFinderCondition.Type.SIZE,
+        size=rdf_file_finder.FileFinderSizeCondition(
+            max_file_size=min(sizes) - 1))
 
-    regex_condition = file_finder.FileFinderCondition(
+    regex_condition = rdf_file_finder.FileFinderCondition(
         condition_type=(
-            file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
-        contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
-            mode=(
-                file_finder.FileFinderContentsRegexMatchCondition.Mode.ALL_HITS
-            ),
+            rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
+        contents_regex_match=rdf_file_finder.
+        FileFinderContentsRegexMatchCondition(
+            mode=(rdf_file_finder.FileFinderContentsRegexMatchCondition.Mode.
+                  ALL_HITS),
             bytes_before=10,
             bytes_after=10,
             regex="session opened for user .*?john"))
@@ -632,9 +629,10 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     non_expected_files = ["auth.log"]
 
     change_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(1444444440)
-    modification_time_condition = file_finder.FileFinderCondition(
-        condition_type=file_finder.FileFinderCondition.Type.MODIFICATION_TIME,
-        modification_time=file_finder.FileFinderModificationTimeCondition(
+    modification_time_condition = rdf_file_finder.FileFinderCondition(
+        condition_type=rdf_file_finder.FileFinderCondition.Type.
+        MODIFICATION_TIME,
+        modification_time=rdf_file_finder.FileFinderModificationTimeCondition(
             min_last_modified_time=change_time))
 
     for action in self.CONDITION_TESTS_ACTIONS:
@@ -649,9 +647,9 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     non_expected_files = ["auth.log"]
 
     change_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(1444444440)
-    access_time_condition = file_finder.FileFinderCondition(
-        condition_type=file_finder.FileFinderCondition.Type.ACCESS_TIME,
-        access_time=file_finder.FileFinderAccessTimeCondition(
+    access_time_condition = rdf_file_finder.FileFinderCondition(
+        condition_type=rdf_file_finder.FileFinderCondition.Type.ACCESS_TIME,
+        access_time=rdf_file_finder.FileFinderAccessTimeCondition(
             min_last_access_time=change_time))
 
     for action in self.CONDITION_TESTS_ACTIONS:
@@ -666,9 +664,10 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     non_expected_files = ["auth.log"]
 
     change_time = rdfvalue.RDFDatetime().FromSecondsFromEpoch(1444444440)
-    inode_change_time_condition = file_finder.FileFinderCondition(
-        condition_type=file_finder.FileFinderCondition.Type.INODE_CHANGE_TIME,
-        inode_change_time=file_finder.FileFinderInodeChangeTimeCondition(
+    inode_change_time_condition = rdf_file_finder.FileFinderCondition(
+        condition_type=rdf_file_finder.FileFinderCondition.Type.
+        INODE_CHANGE_TIME,
+        inode_change_time=rdf_file_finder.FileFinderInodeChangeTimeCondition(
             min_last_inode_change_time=change_time))
 
     for action in self.CONDITION_TESTS_ACTIONS:
@@ -709,13 +708,12 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
                                  test_lib.FakeTestDataVFSHandler):
         paths = ["/var/log/auth.log", "/etc/ssh/sshd_config"]
 
-        literal_condition = file_finder.FileFinderContentsLiteralMatchCondition
-        all_hits = literal_condition.Mode.ALL_HITS
-        literal_condition = file_finder.FileFinderCondition(
-            condition_type=file_finder.FileFinderCondition.Type.
+        cmlc = rdf_file_finder.FileFinderContentsLiteralMatchCondition
+        literal_condition = rdf_file_finder.FileFinderCondition(
+            condition_type=rdf_file_finder.FileFinderCondition.Type.
             CONTENTS_LITERAL_MATCH,
-            contents_literal_match=literal_condition(
-                mode=all_hits,
+            contents_literal_match=cmlc(
+                mode="ALL_HITS",
                 bytes_before=10,
                 bytes_after=10,
                 literal="session opened for user dearjohn"))
@@ -730,7 +728,7 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
               paths=paths,
               pathtype=rdf_paths.PathSpec.PathType.MEMORY,
               conditions=[literal_condition],
-              action=file_finder.FileFinderAction(action_type=action),
+              action=rdf_file_finder.FileFinderAction(action_type=action),
               token=self.token):
             session_id = s
 
@@ -759,14 +757,14 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
                     path=image_path, pathtype="OS", offset=63 * 512)
         }):
 
-      action = file_finder.FileFinderAction.Action.DOWNLOAD
+      action = rdf_file_finder.FileFinderAction.Action.DOWNLOAD
       for _ in test_lib.TestFlowHelper(
           "FileFinder",
           self.client_mock,
           client_id=self.client_id,
           paths=paths,
           pathtype=rdf_paths.PathSpec.PathType.TSK,
-          action=file_finder.FileFinderAction(action_type=action),
+          action=rdf_file_finder.FileFinderAction(action_type=action),
           token=self.token):
         pass
 

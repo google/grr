@@ -8,6 +8,7 @@ import mock
 
 from grr.gui import api_call_handler_base
 from grr.gui import api_call_router_with_approval_checks
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 from grr.gui.api_plugins import vfs as api_vfs
 
@@ -22,7 +23,7 @@ from grr.lib.aff4_objects import standard as aff4_standard
 from grr.lib.rdfvalues import client as rdf_client
 
 
-class FileViewTestBase(test_lib.GRRSeleniumTest):
+class FileViewTestBase(gui_test_lib.GRRSeleniumTest):
   pass
 
 
@@ -168,7 +169,7 @@ class TestFileView(FileViewTestBase):
 
     def FakeDownloadHandle(unused_self, args, token=None):
       _ = token  # Avoid unused variable linter warnings.
-      aff4_path = args.client_id.Add(args.file_path)
+      aff4_path = args.client_id.ToClientURN().Add(args.file_path)
       age = args.timestamp or aff4.NEWEST_TIME
       downloaded_files.append((aff4_path, age))
 

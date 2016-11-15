@@ -18,7 +18,7 @@ from grr.lib import server_plugins
 
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import startup
+from grr.lib import server_startup
 
 
 class ThreadingDjango(SocketServer.ThreadingMixIn, simple_server.WSGIServer):
@@ -30,7 +30,7 @@ def main(_):
   config_lib.CONFIG.AddContext(
       "AdminUI Context",
       "Context applied when running the admin user interface GUI.")
-  startup.Init()
+  server_startup.Init()
 
   if (not os.path.exists(
       os.path.join(config_lib.CONFIG["AdminUI.document_root"],
@@ -85,7 +85,7 @@ def main(_):
 
   sa = server.socket.getsockname()
   logging.info("Serving %s on %s port %d ...", proto, sa[0], sa[1])
-  startup.DropPrivileges()
+  server_startup.DropPrivileges()
 
   server.serve_forever()
 

@@ -2,6 +2,7 @@
 """Test the flow_management interface."""
 
 
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 
 from grr.lib import aff4
@@ -12,7 +13,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.server import foreman as rdf_foreman
 
 
-class TestCrashView(test_lib.GRRSeleniumTest):
+class TestCrashView(gui_test_lib.GRRSeleniumTest):
   """Tests the crash view."""
 
   client_id = rdf_client.ClientURN("C.0000000000000001")

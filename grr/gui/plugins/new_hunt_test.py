@@ -2,6 +2,7 @@
 """Test of "New Hunt" wizard."""
 
 
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 
 from grr.lib import access_control
@@ -16,6 +17,7 @@ from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import foreman as rdf_foreman
@@ -32,7 +34,7 @@ class DummyOutputPlugin(output_plugin.OutputPlugin):
     pass
 
 
-class TestNewHuntWizard(test_lib.GRRSeleniumTest):
+class TestNewHuntWizard(gui_test_lib.GRRSeleniumTest):
   """Test the "new hunt wizard" GUI."""
 
   @staticmethod
@@ -757,7 +759,7 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
 
   def testCopyHuntHandlesLiteralExpressionCorrectly(self):
     """Literals are raw bytes. Testing that raw bytes are processed right."""
-    literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
+    literal_match = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
         literal="foo\x0d\xc8bar")
 
     with self.ACLChecksDisabled():
@@ -766,9 +768,9 @@ class TestNewHuntWizard(test_lib.GRRSeleniumTest):
           description="model hunt",
           flow_runner_args=rdf_flows.FlowRunnerArgs(
               flow_name=file_finder.FileFinder.__name__),
-          flow_args=file_finder.FileFinderArgs(
+          flow_args=rdf_file_finder.FileFinderArgs(
               conditions=[
-                  file_finder.FileFinderCondition(
+                  rdf_file_finder.FileFinderCondition(
                       condition_type="CONTENTS_LITERAL_MATCH",
                       contents_literal_match=literal_match)
               ],

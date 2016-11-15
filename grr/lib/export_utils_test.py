@@ -16,9 +16,9 @@ from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import standard
 from grr.lib.flows.general import collectors
-from grr.lib.flows.general import file_finder
 from grr.lib.hunts import results
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 
 
 class TestExports(test_lib.FlowTestsBaseclass):
@@ -87,7 +87,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
         rdf_client.StatEntry(aff4path=self.out.Add("testfile2")),
         self.client_id)
     fd.AddAsMessage(
-        file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
+        rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
             aff4path=self.out.Add("testfile5"))),
         self.client_id)
     fd.AddAsMessage(
@@ -113,7 +113,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
     fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")))
     fd.Add(rdf_client.StatEntry(aff4path=self.out.Add("testfile2")))
     fd.Add(
-        file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
+        rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
             aff4path=self.out.Add("testfile5"))))
     fd.Add(
         collectors.ArtifactFilesDownloaderResult(
@@ -148,7 +148,7 @@ class TestExports(test_lib.FlowTestsBaseclass):
     fd.Add(rdfvalue.RDFURN(self.out.Add("testfile1")))
     fd.Add(rdf_client.StatEntry(aff4path=self.out.Add("testfile2")))
     fd.Add(
-        file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
+        rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
             aff4path=self.out.Add("testfile5"))))
     fd.Close()
 
@@ -182,10 +182,10 @@ class TestExports(test_lib.FlowTestsBaseclass):
     fd = aff4.FACTORY.Create(
         "aff4:/testcoll", collects.RDFValueCollection, token=self.token)
     fd.Add(
-        file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
+        rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
             aff4path=self.out.Add("testfile5"))))
     fd.Add(
-        file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
+        rdf_file_finder.FileFinderResult(stat_entry=rdf_client.StatEntry(
             aff4path=self.out.Add("testdir1"), st_mode=stat.S_IFDIR)))
     fd.Close()
 

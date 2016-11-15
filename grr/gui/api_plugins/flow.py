@@ -27,6 +27,7 @@ from grr.lib.aff4_objects import sequential_collection
 from grr.lib.aff4_objects import users as aff4_users
 from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
@@ -61,10 +62,14 @@ class ApiFlowId(rdfvalue.RDFString):
                            (utils.SmartStr(self._value), e))
 
   def _FlowIdToUrn(self, flow_id, client_id):
-    return aff4.ROOT_URN.Add(client_id.Basename()).Add("flows").Add(flow_id)
+    return client_id.ToClientURN().Add("flows").Add(flow_id)
 
   def ResolveCronJobFlowURN(self, cron_job_id):
     """Resolve a URN of a flow with this id belonging to a given cron job."""
+    if not self._value:
+      raise ValueError("Can't call ResolveCronJobFlowURN on an empty "
+                       "client id.")
+
     return aff4_cronjobs.CRON_MANAGER.CRON_JOBS_PATH.Add(cron_job_id).Add(
         self._value)
 
@@ -87,7 +92,12 @@ class ApiFlowId(rdfvalue.RDFString):
       token: Credentials token.
     Returns:
       RDFURN pointing to a flow identified by this flow id and client id.
+    Raises:
+      ValueError: if this flow id is not initialized.
     """
+    if not self._value:
+      raise ValueError("Can't call ResolveClientFlowURN on an empty client id.")
+
     components = self.Split()
     if len(components) == 1:
       return self._FlowIdToUrn(self._value, client_id)
@@ -106,6 +116,9 @@ class ApiFlowId(rdfvalue.RDFString):
         return self._FlowIdToUrn(self._value, client_id)
 
   def Split(self):
+    if not self._value:
+      raise ValueError("Can't call Split() on an empty client id.")
+
     return self._value.split("/")
 
 
@@ -455,13 +468,13 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       user.Notify("ArchiveGenerationFinished", None,
                   "Downloaded archive of flow %s from client %s (archived %d "
                   "out of %d items, archive size is %d)" %
-                  (args.flow_id, args.client_id.Basename(),
-                   generator.archived_files, generator.total_files,
-                   generator.output_size), self.__class__.__name__)
+                  (args.flow_id, args.client_id, generator.archived_files,
+                   generator.total_files, generator.output_size),
+                  self.__class__.__name__)
     except Exception as e:
       user.Notify("Error", None,
                   "Archive generation failed for flow %s on client %s: %s" %
-                  (args.flow_id, args.client_id.Basename(), utils.SmartStr(e)),
+                  (args.flow_id, args.client_id, utils.SmartStr(e)),
                   self.__class__.__name__)
       raise
     finally:
@@ -472,7 +485,7 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       return None
 
     client_obj = aff4.FACTORY.Open(
-        client_id, aff4_type=aff4_grr.VFSGRRClient, token=token)
+        client_id.ToClientURN(), aff4_type=aff4_grr.VFSGRRClient, token=token)
 
     blacklist_regexes = []
     for expression in self.path_globs_blacklist:
@@ -501,13 +514,12 @@ class ApiGetFlowFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
         flow_obj, flow_id=args.flow_id)
     description = ("Files downloaded by flow %s (%s) that ran on client %s by "
                    "user %s on %s" % (flow_api_object.name, args.flow_id,
-                                      args.client_id.Basename(),
-                                      flow_api_object.creator,
+                                      args.client_id, flow_api_object.creator,
                                       flow_api_object.started_at))
 
     collection_urn = flow_obj.GetRunner().output_urn
     target_file_prefix = "%s_flow_%s_%s" % (
-        args.client_id.Basename(), flow_obj.runner_args.flow_name,
+        args.client_id, flow_obj.runner_args.flow_name,
         flow_urn.Basename().replace(":", "_"))
 
     collection = aff4.FACTORY.Open(collection_urn, token=token)
@@ -751,7 +763,7 @@ class ApiListFlowsHandler(api_call_handler_base.ApiCallHandler):
     return ApiListFlowsResult(items=BuildList(root_children))
 
   def Handle(self, args, token=None):
-    client_root_urn = args.client_id.Add("flows")
+    client_root_urn = args.client_id.ToClientURN().Add("flows")
 
     return self.BuildFlowList(
         client_root_urn, args.count, args.offset, token=token)
@@ -774,11 +786,7 @@ class ApiStartRobotGetFilesOperationHandler(
 
   def GetClientTarget(self, args, token=None):
     # Find the right client to target using a hostname search.
-    index = aff4.FACTORY.Create(
-        client_index.MAIN_INDEX,
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        token=token)
+    index = client_index.CreateClientIndex(token=token)
 
     client_list = index.LookupClients([args.hostname])
     if not client_list:
@@ -793,14 +801,14 @@ class ApiStartRobotGetFilesOperationHandler(
   def Handle(self, args, token=None):
     client_urn = self.GetClientTarget(args, token=token)
 
-    size_condition = file_finder.FileFinderCondition(
-        condition_type=file_finder.FileFinderCondition.Type.SIZE,
-        size=file_finder.FileFinderSizeCondition(
+    size_condition = rdf_file_finder.FileFinderCondition(
+        condition_type=rdf_file_finder.FileFinderCondition.Type.SIZE,
+        size=rdf_file_finder.FileFinderSizeCondition(
             max_file_size=args.max_file_size))
 
-    file_finder_args = file_finder.FileFinderArgs(
+    file_finder_args = rdf_file_finder.FileFinderArgs(
         paths=args.paths,
-        action=file_finder.FileFinderAction(action_type=args.action),
+        action=rdf_file_finder.FileFinderAction(action_type=args.action),
         conditions=[size_condition])
 
     # Check our flow throttling limits, will raise if there are problems.
@@ -875,14 +883,14 @@ class ApiGetRobotGetFilesOperationStateHandler(
     if len(urn_components) != 3 or urn_components[1] != "flows":
       raise ValueError("Invalid operation id.")
 
-    client_id = rdf_client.ClientURN(urn_components[0])
+    client_urn = rdf_client.ClientURN(urn_components[0])
 
     rdfvalue.SessionID.ValidateID(urn_components[2])
     flow_id = rdfvalue.SessionID(urn_components[2])
 
     # flow_id looks like aff4:/F:ABCDEF12, convert it into a flow urn for
     # the target client.
-    flow_urn = client_id.Add("flows").Add(flow_id.Basename())
+    flow_urn = client_urn.Add("flows").Add(flow_id.Basename())
     try:
       flow_obj = aff4.FACTORY.Open(
           flow_urn, aff4_type=file_finder.FileFinder, token=token)
@@ -929,8 +937,11 @@ class ApiCreateFlowHandler(api_call_handler_base.ApiCallHandler):
     if not flow_name:
       raise RuntimeError("Flow name is not specified.")
 
+    client_urn = None
+    if args.client_id:
+      client_urn = args.client_id.ToClientURN()
     flow_id = flow.GRRFlow.StartFlow(
-        client_id=args.client_id,
+        client_id=client_urn,
         flow_name=flow_name,
         token=token,
         args=args.flow.args,

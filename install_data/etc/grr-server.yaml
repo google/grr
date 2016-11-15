@@ -197,24 +197,6 @@ Commandline Context:
 ConfigUpdater Context:
   ConfigUpdater.old_config: /etc/grr/grr-server.conf
 
-Demo Context:
-  Client.server_urls:
-    - http://%(Frontend.bind_address):%(Frontend.bind_port)/
-
-  Client.poll_max: 5
-
-  # Increase the client memory limit to 4GB.
-  Client.rss_max: 4000
-
-  # Use the FakeDataStore in the demo.
-  Datastore.implementation: FakeDataStore
-
-  Frontend.bind_address: 127.0.0.1
-
-  Frontend.bind_port: 8080
-
-  Logging.filename: "%(Logging.path)/grr-demo.log"
-
 HTTPServer Context:
   Logging.filename: "%(Logging.path)/grr-http-server.log"
 

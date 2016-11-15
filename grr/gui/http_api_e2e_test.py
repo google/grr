@@ -29,6 +29,7 @@ from grr.lib import test_lib
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import processes
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 
 
 class ApiE2ETest(test_lib.GRRBaseTest):
@@ -36,6 +37,7 @@ class ApiE2ETest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(ApiE2ETest, self).setUp()
+    api_auth_manager.APIACLInit.InitApiAuthManager()
 
     self.port = HTTPApiEndToEndTestProgram.server_port
     self.endpoint = "http://localhost:%s" % self.port
@@ -351,14 +353,14 @@ users:
 
     client_ref = self.api.Client(client_id=self.client_id.Basename())
 
-    args = file_finder.FileFinderArgs(
+    args = rdf_file_finder.FileFinderArgs(
         paths=[
             os.path.join(self.base_path, "test.plist"),
             os.path.join(self.base_path, "numbers.txt"),
             os.path.join(self.base_path, "numbers.txt.ver2")
         ],
-        action=file_finder.FileFinderAction(
-            action_type=file_finder.FileFinderAction.Action.
+        action=rdf_file_finder.FileFinderAction(
+            action_type=rdf_file_finder.FileFinderAction.Action.
             DOWNLOAD)).AsPrimitiveProto()
     flow_obj = client_ref.CreateFlow(
         name=file_finder.FileFinder.__name__, args=args)
@@ -432,8 +434,8 @@ users:
     self.InitRouterConfig(self.__class__.FILE_FINDER_ROUTER_CONFIG %
                           self.token.username)
 
-    args = file_finder.FileFinderArgs(
-        action=file_finder.FileFinderAction(action_type="STAT"),
+    args = rdf_file_finder.FileFinderArgs(
+        action=rdf_file_finder.FileFinderAction(action_type="STAT"),
         paths=["tests.plist"]).AsPrimitiveProto()
 
     client_ref = self.api.Client(client_id=self.client_id.Basename())
@@ -463,8 +465,8 @@ users:
     args = []
     for p in ["tests.plist", "numbers.txt", "numbers.txt.ver2"]:
       args.append(
-          file_finder.FileFinderArgs(
-              action=file_finder.FileFinderAction(action_type="STAT"),
+          rdf_file_finder.FileFinderArgs(
+              action=rdf_file_finder.FileFinderAction(action_type="STAT"),
               paths=[p]).AsPrimitiveProto())
 
     client_ref = self.api.Client(client_id=self.client_id.Basename())
@@ -484,8 +486,8 @@ users:
     self.InitRouterConfig(self.__class__.FILE_FINDER_THROTTLED_ROUTER_CONFIG %
                           self.token.username)
 
-    args = file_finder.FileFinderArgs(
-        action=file_finder.FileFinderAction(action_type="STAT"),
+    args = rdf_file_finder.FileFinderArgs(
+        action=rdf_file_finder.FileFinderAction(action_type="STAT"),
         paths=["tests.plist"]).AsPrimitiveProto()
 
     client_ref = self.api.Client(client_id=self.client_id.Basename())

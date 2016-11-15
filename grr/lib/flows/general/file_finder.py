@@ -14,57 +14,8 @@ from grr.lib.flows.general import filesystem
 from grr.lib.flows.general import fingerprint
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
-from grr.lib.rdfvalues import structs as rdf_structs
-from grr.proto import flows_pb2
-
-
-class FileFinderModificationTimeCondition(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderModificationTimeCondition
-
-
-class FileFinderAccessTimeCondition(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderAccessTimeCondition
-
-
-class FileFinderInodeChangeTimeCondition(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderInodeChangeTimeCondition
-
-
-class FileFinderSizeCondition(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderSizeCondition
-
-
-class FileFinderContentsRegexMatchCondition(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderContentsRegexMatchCondition
-
-
-class FileFinderContentsLiteralMatchCondition(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderContentsLiteralMatchCondition
-
-
-class FileFinderCondition(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderCondition
-
-
-class FileFinderHashActionOptions(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderHashActionOptions
-
-
-class FileFinderDownloadActionOptions(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderDownloadActionOptions
-
-
-class FileFinderAction(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderAction
-
-
-class FileFinderArgs(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderArgs
-
-
-class FileFinderResult(rdf_structs.RDFProtoStruct):
-  protobuf = flows_pb2.FileFinderResult
 
 
 class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
@@ -81,7 +32,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
   """
   friendly_name = "File Finder"
   category = "/Filesystem/"
-  args_type = FileFinderArgs
+  args_type = rdf_file_finder.FileFinderArgs
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   # Will be used by FingerprintFileMixin.
@@ -94,7 +45,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
 
   def Initialize(self):
     super(FileFinder, self).Initialize()
-    type_enum = FileFinderCondition.Type
+    type_enum = rdf_file_finder.FileFinderCondition.Type
     # For every condition type we specify a tuple (handle, weight).
     # Conditions will be sorted by weight, so that the ones with the minimal
     # weight will be executed earlier.
@@ -135,12 +86,12 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
     if self.args.HasField("action"):
       action = self.args.action.Copy()
     else:
-      action = FileFinderAction()
+      action = rdf_file_finder.FileFinderAction()
 
     # This is used by MultiGetFileMixin.
-    if action.action_type == FileFinderAction.Action.HASH:
+    if action.action_type == rdf_file_finder.FileFinderAction.Action.HASH:
       self.state.file_size = action.hash.max_size
-    elif action.action_type == FileFinderAction.Action.DOWNLOAD:
+    elif action.action_type == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:
       self.state.file_size = action.download.max_size
 
     if self.args.pathtype in (rdf_paths.PathSpec.PathType.MEMORY,
@@ -160,7 +111,8 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
 
         stat_entry = rdf_client.StatEntry(aff4path=aff4path, pathspec=pathspec)
         self.ApplyCondition(
-            FileFinderResult(stat_entry=stat_entry), condition_index=0)
+            rdf_file_finder.FileFinderResult(stat_entry=stat_entry),
+            condition_index=0)
 
     else:
       self.GlobForPaths(
@@ -172,7 +124,8 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
     """This method is called by the glob mixin when there is a match."""
     super(FileFinder, self).GlobReportMatch(response)
     self.ApplyCondition(
-        FileFinderResult(stat_entry=response), condition_index=0)
+        rdf_file_finder.FileFinderResult(stat_entry=response),
+        condition_index=0)
 
   def ModificationTimeCondition(self, response, condition_options,
                                 condition_index):
@@ -292,7 +245,7 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
     """Applies action specified by user to responses."""
     action = self.args.action.action_type
 
-    if action == FileFinderAction.Action.STAT:
+    if action == rdf_file_finder.FileFinderAction.Action.STAT:
       # If action is STAT, we already have all the data we need to send the
       # response.
       self.state.files_found += 1
@@ -308,17 +261,17 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
       # Reply is sent only when we get file's hash.
       self.state.files_found += 1
 
-      if action == FileFinderAction.Action.HASH:
+      if action == rdf_file_finder.FileFinderAction.Action.HASH:
         hash_file = False
         file_size = response.stat_entry.st_size
         if file_size > self.args.action.hash.max_size:
           policy = self.args.action.hash.oversized_file_policy
-          policy_enum = FileFinderHashActionOptions.OversizedFilePolicy
-          if policy == policy_enum.SKIP:
+          options = rdf_file_finder.FileFinderHashActionOptions
+          if policy == options.OversizedFilePolicy.SKIP:
             self.Log("%s too large to hash, skipping according to SKIP "
                      "policy. Size=%d",
                      response.stat_entry.pathspec.CollapsePath(), file_size)
-          elif policy == policy_enum.HASH_TRUNCATED:
+          elif policy == options.OversizedFilePolicy.HASH_TRUNCATED:
             self.Log("%s too large to hash, hashing its first %d bytes "
                      "according to HASH_TRUNCATED policy. Size=%d",
                      response.stat_entry.pathspec.CollapsePath(),
@@ -333,19 +286,19 @@ class FileFinder(transfer.MultiGetFileMixin, fingerprint.FingerprintFileMixin,
               max_filesize=self.args.action.hash.max_size,
               request_data=dict(original_result=response))
 
-      elif action == FileFinderAction.Action.DOWNLOAD:
+      elif action == rdf_file_finder.FileFinderAction.Action.DOWNLOAD:
         fetch_file = False
         # If the binary is too large we don't download it, but take a
         # fingerprint instead.
         file_size = response.stat_entry.st_size
         if file_size > self.args.action.download.max_size:
           policy = self.args.action.download.oversized_file_policy
-          policy_enum = FileFinderDownloadActionOptions.OversizedFilePolicy
-          if policy == policy_enum.SKIP:
+          options = rdf_file_finder.FileFinderDownloadActionOptions
+          if policy == options.OversizedFilePolicy.SKIP:
             self.Log("%s too large to fetch, skipping according to SKIP "
                      "policy. Size=%d",
                      response.stat_entry.pathspec.CollapsePath(), file_size)
-          elif policy == policy_enum.HASH_TRUNCATED:
+          elif policy == options.OversizedFilePolicy.HASH_TRUNCATED:
             self.Log("%s too large to fetch, hashing its first %d bytes "
                      "according to HASH_TRUNCATED policy. Size=%d",
                      response.stat_entry.pathspec.CollapsePath(),

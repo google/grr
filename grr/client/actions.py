@@ -19,7 +19,6 @@ from grr.lib import rdfvalue
 from grr.lib import registry
 from grr.lib import utils
 from grr.lib.rdfvalues import flows as rdf_flows
-from grr.lib.rdfvalues import protodict as rdf_protodict
 
 # Our first response in the session is this:
 INITIAL_RESPONSE_ID = 1
@@ -322,7 +321,7 @@ class IteratedAction(ActionPlugin):
     self.Iterate(request, client_state)
 
     # Update the iterator client_state from the dict.
-    request.iterator.client_state = rdf_protodict.Dict(client_state)
+    request.iterator.client_state = client_state
 
     # Return the iterator
     self.SendReply(

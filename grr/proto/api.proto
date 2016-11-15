@@ -59,7 +59,7 @@ message ApiSearchClientsResult {
 
 message ApiGetClientArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional uint64 timestamp = 2 [(sem_type) = {
@@ -70,7 +70,7 @@ message ApiGetClientArgs {
 
 message ApiGetClientVersionTimesArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
 }
@@ -84,7 +84,7 @@ message ApiGetClientVersionTimesResult {
 
 message ApiInterrogateClientArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
 }
@@ -114,7 +114,7 @@ message ApiGetInterrogateOperationStateResult {
 
 message ApiGetLastClientIPAddressArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
 }
@@ -140,7 +140,7 @@ message ApiGetLastClientIPAddressResult {
 
 message ApiListClientCrashesArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional int64 offset = 2 [(sem_type) = {
@@ -166,7 +166,7 @@ message ApiListClientCrashesResult {
 
 message ApiGetFlowArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
@@ -177,7 +177,7 @@ message ApiGetFlowArgs {
 
 message ApiCreateFlowArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional ApiFlow flow = 2;
@@ -185,7 +185,7 @@ message ApiCreateFlowArgs {
 
 message ApiCancelFlowArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
@@ -196,7 +196,7 @@ message ApiCancelFlowArgs {
 
 message ApiListFlowRequestsArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
@@ -219,7 +219,7 @@ message ApiListFlowRequestsResult {
 
 message ApiListFlowResultsArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
@@ -249,7 +249,7 @@ message ApiListFlowResultsResult {
 
 message ApiListFlowLogsArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
@@ -279,7 +279,7 @@ message ApiListFlowLogsResult {
 
 message ApiGetFlowResultsExportCommandArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
@@ -296,7 +296,7 @@ message ApiGetFlowResultsExportCommandResult {
 
 message ApiListFlowOutputPluginsArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
@@ -311,7 +311,7 @@ message ApiListFlowOutputPluginsResult {
 
 message ApiListFlowOutputPluginLogsArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
@@ -343,7 +343,7 @@ message ApiListFlowOutputPluginLogsResult {
 
 message ApiListFlowOutputPluginErrorsArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
@@ -379,7 +379,7 @@ message ApiGetFlowFilesArchiveArgs {
   }
 
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
@@ -406,7 +406,7 @@ message ApiListFlowDescriptorsResult {
 
 message ApiListFlowsArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional int64 offset = 2 [(sem_type) = {
@@ -423,7 +423,7 @@ message ApiListFlowsResult {
 
 message ApiAddClientsLabelsArgs {
   repeated string client_ids = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   repeated string labels = 2;
@@ -431,7 +431,7 @@ message ApiAddClientsLabelsArgs {
 
 message ApiRemoveClientsLabelsArgs {
   repeated string client_ids = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   repeated string labels = 2;
@@ -487,12 +487,14 @@ message ApiListHuntsResult {
 
 message ApiGetHuntArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
 }
 
 message ApiGetHuntClientCompletionStatsArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
   optional int64 size = 2 [(sem_type) = {
@@ -511,6 +513,7 @@ message ApiGetHuntClientCompletionStatsResult {
 
 message ApiListHuntLogsArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
   optional int64 offset = 2 [(sem_type) = {
@@ -536,6 +539,7 @@ message ApiListHuntLogsResult {
 
 message ApiListHuntErrorsArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
   optional int64 offset = 2 [(sem_type) = {
@@ -561,6 +565,7 @@ message ApiListHuntErrorsResult {
 
 message ApiListHuntCrashesArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
   optional int64 offset = 2 [(sem_type) = {
@@ -586,6 +591,7 @@ message ApiListHuntCrashesResult {
 
 message ApiListHuntResultsArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
   optional int64 offset = 2 [(sem_type) = {
@@ -612,6 +618,7 @@ message ApiListHuntResultsResult {
 
 message ApiGetHuntResultsExportCommandArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
 };
@@ -624,6 +631,7 @@ message ApiGetHuntResultsExportCommandResult {
 
 message ApiListHuntOutputPluginsArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
 };
@@ -639,6 +647,7 @@ message ApiListHuntOutputPluginsResult {
 
 message ApiListHuntOutputPluginLogsArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
   optional string plugin_id = 2 [(sem_type) = {
@@ -665,6 +674,7 @@ message ApiListHuntOutputPluginLogsResult {
 
 message ApiListHuntOutputPluginErrorsArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
   optional string plugin_id = 2 [(sem_type) = {
@@ -698,7 +708,7 @@ message ApiGetHuntFilesArchiveArgs {
 
   optional string hunt_id = 1 [(sem_type) = {
       description: "Hunt id.",
-      type: "SessionID"
+      type: "ApiHuntId"
     }];
   optional ArchiveFormat archive_format = 3;
 };
@@ -706,10 +716,10 @@ message ApiGetHuntFilesArchiveArgs {
 message ApiGetHuntFileArgs {
   optional string hunt_id = 1 [(sem_type) = {
       description: "Hunt id.",
-      type: "SessionID"
+      type: "ApiHuntId"
     }];
   optional string client_id = 2 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional uint64 timestamp = 3 [(sem_type) = {
@@ -723,6 +733,7 @@ message ApiGetHuntFileArgs {
 
 message ApiGetHuntStatsArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
 };
@@ -741,6 +752,7 @@ message ApiListHuntClientsArgs {
   }
 
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
   optional int64 offset = 2 [(sem_type) = {
@@ -784,7 +796,7 @@ message ApiHuntClientPendingRequest {
 
 message ApiHuntClient {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "The client id."
     }];
   optional string flow_urn = 2 [(sem_type) = {
@@ -834,6 +846,7 @@ message ApiDataObjectKeyValuePair {
 
 message ApiGetHuntContextArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
 };
@@ -863,6 +876,7 @@ message ApiCreateHuntArgs {
 
 message ApiModifyHuntArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
   optional ApiHunt.State state = 2 [(sem_type) = {
@@ -882,6 +896,7 @@ message ApiModifyHuntArgs {
 
 message ApiDeleteHuntArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
 }
@@ -1210,6 +1225,7 @@ message ApiGetConfigOptionArgs {
 
 message ApiCreateHuntApprovalArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
   optional ApiHuntApproval approval = 2;
@@ -1217,6 +1233,7 @@ message ApiCreateHuntApprovalArgs {
 
 message ApiGetHuntApprovalArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
   optional string approval_id = 2 [(sem_type) = {
@@ -1231,6 +1248,7 @@ message ApiGetHuntApprovalArgs {
 
 message ApiGrantHuntApprovalArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
   optional string approval_id = 2 [(sem_type) = {
@@ -1306,7 +1324,7 @@ message ApiListCronJobApprovalsResult {
 
 message ApiCreateClientApprovalArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional ApiClientApproval approval = 2;
@@ -1318,7 +1336,7 @@ message ApiCreateClientApprovalArgs {
 
 message ApiGetClientApprovalArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string approval_id = 2 [(sem_type) = {
@@ -1333,7 +1351,7 @@ message ApiGetClientApprovalArgs {
 
 message ApiGrantClientApprovalArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string approval_id = 2 [(sem_type) = {
@@ -1360,7 +1378,7 @@ message ApiListClientApprovalsArgs {
       description: "Number of approvals to fetch."
     }];
   optional string client_id = 3 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional State state = 4 [(sem_type) = {
@@ -1761,8 +1779,13 @@ message ApiClientApproval {
     }];
 }
 
-// Next id: 18
+// Next id: 19
 message ApiClient {
+  optional string client_id = 18 [(sem_type) = {
+      type: "ApiClientId",
+      description: "Client id."
+    }];
+
   optional string urn = 1 [(sem_type) = {
       type: "ClientURN",
       description: "Client URN."
@@ -1964,7 +1987,7 @@ message ApiHunt {
 
 message ApiHuntResult {
   optional string client_id = 2 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional google.protobuf.Any payload = 3 [(sem_type) = {
@@ -2117,7 +2140,7 @@ message ApiFile {
 
 message ApiGetFileDetailsArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string file_path = 2 [(sem_type) = {
@@ -2175,7 +2198,7 @@ message ApiAff4ObjectAttributeValue {
 
 message ApiListFilesArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string file_path = 2 [(sem_type) = {
@@ -2204,7 +2227,7 @@ message ApiListFilesResult {
 
 message ApiGetVfsFilesArchiveArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string file_path = 2 [(sem_type) = {
@@ -2268,7 +2291,7 @@ message ApiGetFileTextArgs {
     ZLIB_CODEC=51;
   };
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string file_path = 2 [(sem_type) = {
@@ -2306,7 +2329,7 @@ message ApiListKnownEncodingsResult {
 
 message ApiGetFileBlobArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string file_path = 2 [(sem_type) = {
@@ -2326,7 +2349,7 @@ message ApiGetFileBlobArgs {
 
 message ApiGetFileVersionTimesArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string file_path = 2 [(sem_type) = {
@@ -2343,7 +2366,7 @@ message ApiGetFileVersionTimesResult {
 
 message ApiGetFileDownloadCommandArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string file_path = 2 [(sem_type) = {
@@ -2359,7 +2382,7 @@ message ApiGetFileDownloadCommandResult {
 
 message ApiCreateVfsRefreshOperationArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string file_path = 2 [(sem_type) = {
@@ -2375,7 +2398,7 @@ message ApiCreateVfsRefreshOperationArgs {
 
 message ApiGetVfsTimelineArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string file_path = 2 [(sem_type) = {
@@ -2391,7 +2414,7 @@ message ApiGetVfsTimelineResult {
 
 message ApiGetVfsTimelineAsCsvArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string file_path = 2 [(sem_type) = {
@@ -2443,7 +2466,7 @@ message ApiGetVfsRefreshOperationStateResult {
 
 message ApiUpdateVfsFileContentArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string file_path = 2 [(sem_type) = {
@@ -2571,7 +2594,7 @@ message ApiNotificationReference {
 
 message ApiNotificationDiscoveryReference {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "The client this notification is about."
     }];
 }
@@ -2599,7 +2622,7 @@ message ApiNotificationCronReference {
 
 message ApiNotificationFlowReference {
   optional string client_id = 2 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "The client this notification is about."
     }];
   optional string flow_id = 3 [(sem_type) = {
@@ -2614,21 +2637,23 @@ message ApiNotificationVfsReference {
       description: "The cron job this notification is about."
     }];
   optional string client_id = 2 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "The client this notification is about."
     }];
 }
 
 message ApiNotificationClientApprovalReference {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
     }];
   optional string approval_id = 2;
   optional string username = 3;
 }
 
 message ApiNotificationHuntApprovalReference {
-  optional string hunt_id = 1;
+  optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId"
+    }];
   optional string approval_id = 2;
   optional string username = 3;
 }
@@ -2684,7 +2709,7 @@ message ApiClientActionRequest {
 
 message ApiListClientActionRequestsArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional bool fetch_responses = 2 [(sem_type) = {
@@ -2698,7 +2723,7 @@ message ApiListClientActionRequestsResult {
 
 message ApiGetClientLoadStatsArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
 
@@ -2799,7 +2824,7 @@ message ApiGetGrrBinaryArgs {
 
 message ApiGetExportedFlowResultsArgs {
   optional string client_id = 1 [(sem_type) = {
-      type: "ClientURN",
+      type: "ApiClientId",
       description: "Client id."
     }];
   optional string flow_id = 2 [(sem_type) = {
@@ -2813,6 +2838,7 @@ message ApiGetExportedFlowResultsArgs {
 
 message ApiGetExportedHuntResultsArgs {
   optional string hunt_id = 1 [(sem_type) = {
+      type: "ApiHuntId",
       description: "Hunt id."
     }];
   optional string plugin_name = 2 [(sem_type) = {

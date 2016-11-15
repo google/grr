@@ -328,10 +328,6 @@ private_key = -----BEGIN RSA PRIVATE KEY-----
     FoeOujFJcpz8GwIgSRVYE4LcSP24aQMzQDk2GetsfT6EWtc29xBNwXO9XkkCIQCl
     7o5SVqKx1wHOj8gV3/8WHJ61MvAQCAX4o/M8cGkTQQ==
     -----END RSA PRIVATE KEY-----
-driver_signing_public_key = -----BEGIN PUBLIC KEY-----
-    MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCOD
-    QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
-    -----END PUBLIC KEY-----
 executable_signing_public_key = -----BEGIN PUBLIC KEY-----
     MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCOD
     QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
@@ -339,9 +335,7 @@ executable_signing_public_key = -----BEGIN PUBLIC KEY-----
 """)
     errors = conf.Validate(["Client"])
     self.assertItemsEqual(errors.keys(), [])
-    self.assertIsInstance(conf["Client.driver_signing_public_key"],
-                          rdf_crypto.RSAPublicKey)
-    self.assertIsInstance(conf["Client.driver_signing_public_key"],
+    self.assertIsInstance(conf["Client.executable_signing_public_key"],
                           rdf_crypto.RSAPublicKey)
     self.assertIsInstance(conf["Client.private_key"], rdf_crypto.RSAPrivateKey)
 

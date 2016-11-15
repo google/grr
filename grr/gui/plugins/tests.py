@@ -12,8 +12,13 @@ from grr.gui.plugins import cron_view_test
 from grr.gui.plugins import fileview_test
 from grr.gui.plugins import flow_management_test
 from grr.gui.plugins import forms_test
+from grr.gui.plugins import hosttable_test
+from grr.gui.plugins import hunt_archive_test
+from grr.gui.plugins import hunt_control_test
 from grr.gui.plugins import hunt_view_test
 from grr.gui.plugins import inspect_view_test
+from grr.gui.plugins import main_content_view_test
+from grr.gui.plugins import navigator_view_test
 from grr.gui.plugins import new_hunt_test
 from grr.gui.plugins import notifications_test
 from grr.gui.plugins import rekall_viewer_test
@@ -21,3 +26,4 @@ from grr.gui.plugins import searchclient_test
 from grr.gui.plugins import server_load_view_test
 from grr.gui.plugins import settings_view_test
 from grr.gui.plugins import statistics_test
+from grr.gui.plugins import userdashboard_test

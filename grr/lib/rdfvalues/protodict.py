@@ -121,6 +121,8 @@ class Dict(rdf_structs.RDFProtoStruct):
   """
   protobuf = jobs_pb2.Dict
 
+  _values = None
+
   def __init__(self, initializer=None, age=None, **kwarg):
     super(Dict, self).__init__(initializer=None, age=age)
 
@@ -134,7 +136,7 @@ class Dict(rdf_structs.RDFProtoStruct):
 
     # Initialize from another Dict.
     elif isinstance(initializer, Dict):
-      self.SetRawData(initializer.GetRawData())
+      self.FromDict(initializer.ToDict())
       self.age = initializer.age
 
     else:
@@ -142,7 +144,7 @@ class Dict(rdf_structs.RDFProtoStruct):
 
   def ToDict(self):
     result = {}
-    for x in self.dat:
+    for x in self._values.values():
       key = x.k.GetValue()
       result[key] = x.v.GetValue()
       try:
@@ -155,43 +157,37 @@ class Dict(rdf_structs.RDFProtoStruct):
 
   def FromDict(self, dictionary, raise_on_error=True):
     # First clear and then set the dictionary.
-    self.dat = None
+    self._values = {}
     for key, value in dictionary.iteritems():
-      self.dat.Append(
+      self._values[key] = KeyValue(
           k=DataBlob().SetValue(
               key, raise_on_error=raise_on_error),
           v=DataBlob().SetValue(
               value, raise_on_error=raise_on_error))
+    self.dat = self._values.values()
     return self
 
   def __getitem__(self, key):
-    for x in self.dat:
-      if x.k.GetValue() == key:
-        return x.v.GetValue()
-
-    raise KeyError("%s not found" % key)
+    return self._values[key].v.GetValue()
 
   def __contains__(self, key):
-    if self.get(key):
-      return True
-    return False
+    return key in self._values
 
   def GetItem(self, key, default=None):
-    try:
-      return self[key]
-    except KeyError:
-      return default
+    if key in self._values:
+      return self._values[key].v.GetValue()
+    return default
 
   def Items(self):
-    for x in self.dat:
+    for x in self._values.itervalues():
       yield x.k.GetValue(), x.v.GetValue()
 
   def Values(self):
-    for x in self.dat:
+    for x in self._values.itervalues():
       yield x.v.GetValue()
 
   def Keys(self):
-    for x in self.dat:
+    for x in self._values.itervalues():
       yield x.k.GetValue()
 
   get = utils.Proxy("GetItem")
@@ -200,12 +196,11 @@ class Dict(rdf_structs.RDFProtoStruct):
   values = utils.Proxy("Values")
 
   def __delitem__(self, key):
-    for i, x in enumerate(self.dat):
-      if x.k.GetValue() == key:
-        self.dat.Pop(i)
+    self.dat.dirty = True
+    del self._values[key]
 
   def __len__(self):
-    return len(self.dat)
+    return len(self._values)
 
   def SetItem(self, key, value, raise_on_error=True):
     """Alternative to __setitem__ that can ignore errors.
@@ -221,26 +216,52 @@ class Dict(rdf_structs.RDFProtoStruct):
       raise_on_error: if True, raise if we can't serialize.  If False, set the
         key to an error string.
     """
-    del self[key]
-    self.dat.Append(
+    self.dat.dirty = True
+    self._values[key] = KeyValue(
         k=DataBlob().SetValue(
             key, raise_on_error=raise_on_error),
         v=DataBlob().SetValue(
             value, raise_on_error=raise_on_error))
 
   def __setitem__(self, key, value):
-    del self[key]
-    self.dat.Append(k=DataBlob().SetValue(key), v=DataBlob().SetValue(value))
+    self.dat.dirty = True
+    self._values[key] = KeyValue(
+        k=DataBlob().SetValue(key), v=DataBlob().SetValue(value))
 
   def __iter__(self):
-    for x in self.dat:
+    for x in self._values.itervalues():
       yield x.k.GetValue()
 
   def __eq__(self, other):
     if isinstance(other, dict):
       return self.ToDict() == other
+    elif isinstance(other, Dict):
+      return self.ToDict() == other.ToDict()
+    else:
+      return False
 
-    return super(Dict, self).__eq__(other)
+  def GetRawData(self):
+    self.dat = self._values.values()
+    return super(Dict, self).GetRawData()
+
+  def SetRawData(self, raw_data):
+    super(Dict, self).SetRawData(raw_data)
+    self._values = {}
+    for d in self.dat:
+      self._values[d.k.GetValue()] = d
+
+  def SerializeToString(self):
+    self.dat = self._values.values()
+    return super(Dict, self).SerializeToString()
+
+  def ParseFromString(self, value):
+    super(Dict, self).ParseFromString(value)
+    self._values = {}
+    for d in self.dat:
+      self._values[d.k.GetValue()] = d
+
+  def __str__(self):
+    return str(self.ToDict())
 
 
 class AttributedDict(Dict):

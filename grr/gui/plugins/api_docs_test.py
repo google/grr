@@ -3,13 +3,13 @@
 
 
 
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 
 from grr.lib import flags
-from grr.lib import test_lib
 
 
-class TestAPIDocs(test_lib.GRRSeleniumTest):
+class TestAPIDocs(gui_test_lib.GRRSeleniumTest):
   """Tests the API docs UI."""
 
   def testStatsMetricRouteIsShown(self):

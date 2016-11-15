@@ -122,11 +122,7 @@ class CleanInactiveClients(cronjobs.SystemCronFlow):
     exception_label = config_lib.CONFIG[
         "DataRetention.inactive_client_ttl_exception_label"]
 
-    index = aff4.FACTORY.Create(
-        client_index.MAIN_INDEX,
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        token=self.token)
+    index = client_index.CreateClientIndex(token=self.token)
 
     client_urns = index.LookupClients(["."])
 

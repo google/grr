@@ -53,8 +53,12 @@ describe('remove clients labels dialog', function() {
         type: 'ApiClient',
         value: {
           urn: {
-            value: 'C.0000111122223333',
+            value: 'aff4:/C.0000111122223333',
             type: 'RDFURN'
+          },
+          client_id: {
+            value: 'C.0000111122223333',
+            type: 'ApiClientId'
           }
         }
       },
@@ -62,9 +66,13 @@ describe('remove clients labels dialog', function() {
         type: 'ApiClient',
         value: {
           urn: {
-            value: 'C.1111222233334444',
+            value: 'aff4:/C.1111222233334444',
             type: 'RDFURN'
           },
+          client_id: {
+            value: 'C.1111222233334444',
+            type: 'ApiClientId'
+          }
         }
       }
     ];
@@ -78,8 +86,12 @@ describe('remove clients labels dialog', function() {
       type: 'ApiClient',
       value: {
         urn: {
-          value: 'C.0000111122223333',
+          value: 'aff4:/C.0000111122223333',
           type: 'RDFURN'
+        },
+        client_id: {
+          value: 'C.0000111122223333',
+          type: 'ApiClientId'
         },
         labels: [
           {
@@ -99,8 +111,12 @@ describe('remove clients labels dialog', function() {
       type: 'ApiClient',
       value: {
         urn: {
-          value: 'C.1111222233334444',
+          value: 'aff4:/C.1111222233334444',
           type: 'RDFURN'
+        },
+        client_id: {
+          value: 'C.1111222233334444',
+          type: 'ApiClientId'
         },
         labels: [
           {
@@ -123,8 +139,12 @@ describe('remove clients labels dialog', function() {
       type: 'ApiClient',
       value: {
         urn: {
-          value: 'C.0000111122223333',
+          value: 'aff4:/C.0000111122223333',
           type: 'RDFURN'
+        },
+        client_id: {
+          value: 'C.0000111122223333',
+          type: 'ApiClientId'
         },
         labels: [
           {
@@ -144,8 +164,12 @@ describe('remove clients labels dialog', function() {
       type: 'ApiClient',
       value: {
         urn: {
-          value: 'C.1111222233334444',
+          value: 'aff4:/C.1111222233334444',
           type: 'RDFURN'
+        },
+        client_id: {
+          value: 'C.1111222233334444',
+          type: 'ApiClientId'
         },
         labels: [
           {

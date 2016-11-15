@@ -249,6 +249,8 @@ def ReadIntoObject(buff, index, value_obj, length=0):
       # Set the python_format as None so it gets converted lazily on access.
       raw_data[type_info_obj.name] = (None, wire_format, type_info_obj)
 
+  value_obj.SetRawData(raw_data)
+
 
 # pylint: disable=invalid-name
 if _semantic:
@@ -1462,16 +1464,6 @@ class ProtoRDFValue(ProtoType):
   def __str__(self):
     return "<Field %s (Sem Type: %s) of %s: field_number: %s>" % (
         self.name, self.proto_type_name, self.owner.__name__, self.field_number)
-
-
-class AbstractSerlializer(object):
-  """A serializer which parses to/from the intermediate python objects."""
-
-  def SerializeToString(self, value):
-    """Serialize the RDFStruct object into a string."""
-
-  def ParseFromString(self, value_obj, string):
-    """Parse the string and set attributes in the value_obj."""
 
 
 class RDFStructMetaclass(rdfvalue.RDFValueMetaclass):

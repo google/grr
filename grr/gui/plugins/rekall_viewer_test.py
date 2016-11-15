@@ -4,12 +4,12 @@
 
 from grr.client.components.rekall_support import grr_rekall_test
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 from grr.lib import flags
-from grr.lib import test_lib
 
 
-class TestRekallViewer(test_lib.GRRSeleniumTest,
+class TestRekallViewer(gui_test_lib.GRRSeleniumTest,
                        grr_rekall_test.RekallTestSuite):
   """Test the fileview interface."""
 

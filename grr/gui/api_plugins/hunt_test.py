@@ -35,7 +35,43 @@ from grr.lib.hunts import results as hunt_results
 from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
+from grr.lib.rdfvalues import test_base as rdf_test_base
+
+
+class ApiHuntIdTest(rdf_test_base.RDFValueTestCase):
+  """Test for ApiHuntId."""
+
+  rdfvalue_class = hunt_plugin.ApiHuntId
+
+  def GenerateSample(self, number=0):
+    return hunt_plugin.ApiHuntId("H:%d" % number)
+
+  def testRaisesWhenInitializedFromInvalidValues(self):
+    with self.assertRaises(ValueError):
+      hunt_plugin.ApiHuntId("blah")
+
+    with self.assertRaises(ValueError):
+      hunt_plugin.ApiHuntId("H:")
+
+    with self.assertRaises(ValueError):
+      hunt_plugin.ApiHuntId("1234")
+
+    with self.assertRaises(ValueError):
+      hunt_plugin.ApiHuntId("H:1234/foo")
+
+  def testRaisesWhenToURNCalledOnUninitializedValue(self):
+    hunt_id = hunt_plugin.ApiHuntId()
+    with self.assertRaises(ValueError):
+      hunt_id.ToURN()
+
+  def testConvertsToHunttURN(self):
+    hunt_id = hunt_plugin.ApiHuntId("H:1234")
+    hunt_urn = hunt_id.ToURN()
+
+    self.assertEqual(hunt_urn.Basename(), hunt_id)
+    self.assertEqual(hunt_urn, "aff4:/hunts/H:1234")
 
 
 class ApiListHuntsHandlerTest(api_test_lib.ApiCallHandlerTest,
@@ -344,9 +380,9 @@ class ApiGetHuntFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_name="GenericHunt",
         flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
-        flow_args=file_finder.FileFinderArgs(
+        flow_args=rdf_file_finder.FileFinderArgs(
             paths=[os.path.join(self.base_path, "test.plist")],
-            action=file_finder.FileFinderAction(action_type="DOWNLOAD"),),
+            action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),),
         client_rate=0,
         token=self.token)
     self.hunt.Run()
@@ -421,9 +457,9 @@ class ApiGetHuntFileHandlerTest(api_test_lib.ApiCallHandlerTest,
         hunt_name="GenericHunt",
         flow_runner_args=rdf_flows.FlowRunnerArgs(
             flow_name=file_finder.FileFinder.__name__),
-        flow_args=file_finder.FileFinderArgs(
+        flow_args=rdf_file_finder.FileFinderArgs(
             paths=[self.file_path],
-            action=file_finder.FileFinderAction(action_type="DOWNLOAD"),),
+            action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),),
         client_rate=0,
         token=self.token)
     self.hunt.Run()

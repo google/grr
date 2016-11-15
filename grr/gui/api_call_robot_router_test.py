@@ -16,10 +16,11 @@ from grr.lib import test_lib
 
 from grr.lib.flows.general import collectors
 from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 
 
 class AnotherFileFinder(flow.GRRFlow):
-  args_type = file_finder.FileFinderArgs
+  args_type = rdf_file_finder.FileFinderArgs
 
 
 class AnotherArtifactCollector(flow.GRRFlow):
@@ -68,7 +69,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
           api_flow.ApiCreateFlowArgs(
               flow=api_flow.ApiFlow(
                   name=file_finder.FileFinder.__name__,
-                  args=file_finder.FileFinderArgs(paths=[path])),
+                  args=rdf_file_finder.FileFinderArgs(paths=[path])),
               client_id=self.client_id),
           token=self.token)
 
@@ -100,7 +101,7 @@ class ApiCallRobotRouterTest(test_lib.GRRBaseTest):
             api_flow.ApiCreateFlowArgs(
                 flow=api_flow.ApiFlow(
                     name=file_finder.FileFinder.__name__,
-                    args=file_finder.FileFinderArgs(paths=[path])),
+                    args=rdf_file_finder.FileFinderArgs(paths=[path])),
                 client_id=self.client_id),
             token=self.token)
 

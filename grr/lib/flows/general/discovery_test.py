@@ -72,11 +72,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
   def _CheckClientKwIndex(self, keywords, expected_count):
     # Tests that the client index has expected_count results when
     # searched for keywords.
-    index = aff4.FACTORY.Create(
-        client_index.MAIN_INDEX,
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        token=self.token)
+    index = client_index.CreateClientIndex(token=self.token)
     self.assertEqual(len(index.LookupClients(keywords)), expected_count)
 
   def _CheckNotificationsCreated(self):
@@ -153,11 +149,7 @@ class TestClientInterrogate(test_lib.FlowTestsBaseclass):
 
   def _CheckLabelIndex(self):
     """Check that label indexes are updated."""
-    index = aff4.FACTORY.Create(
-        client_index.MAIN_INDEX,
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        token=self.token)
+    index = client_index.CreateClientIndex(token=self.token)
 
     self.assertEqual(
         list(index.LookupClients(["label:Label2"])), [self.client_id])

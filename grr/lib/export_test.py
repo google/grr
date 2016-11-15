@@ -22,14 +22,12 @@ from grr.lib.aff4_objects import collects
 from grr.lib.aff4_objects import filestore
 from grr.lib.checks import checks
 from grr.lib.flows.general import collectors
-# This test calls flows from these files. pylint: disable=unused-import
-from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import transfer
-# pylint: enable=unused-import
 from grr.lib.hunts import results as hunts_results
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import crypto as rdf_crypto
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import protodict as rdf_protodict
@@ -257,7 +255,7 @@ class ExportTest(test_lib.GRRBaseTest):
 
     client_mock = action_mocks.GetFileClientMock()
     for _ in test_lib.TestFlowHelper(
-        "GetFile",
+        transfer.GetFile.__name__,
         client_mock,
         token=self.token,
         client_id=client_id,
@@ -309,7 +307,7 @@ class ExportTest(test_lib.GRRBaseTest):
 
     client_mock = action_mocks.GetFileClientMock()
     for _ in test_lib.TestFlowHelper(
-        "GetFile",
+        transfer.GetFile.__name__,
         client_mock,
         token=self.token,
         client_id=client_id,
@@ -747,7 +745,7 @@ class ExportTest(test_lib.GRRBaseTest):
         st_mtime=1336129892,
         st_ctime=1336129892)
 
-    file_finder_result = file_finder.FileFinderResult(
+    file_finder_result = rdf_file_finder.FileFinderResult(
         stat_entry=stat_entry, matches=[match1, match2])
     metadata = export.ExportedMetadata(client_urn="C.0000000000000001")
 
@@ -807,7 +805,7 @@ class ExportTest(test_lib.GRRBaseTest):
         registry_type="REG_SZ",
         registry_data=data,
         pathspec=rdf_paths.PathSpec(pathtype="REGISTRY"))
-    file_finder_result = file_finder.FileFinderResult(stat_entry=stat_entry)
+    file_finder_result = rdf_file_finder.FileFinderResult(stat_entry=stat_entry)
     metadata = export.ExportedMetadata(client_urn="C.0000000000000001")
     converter = export.FileFinderResultConverter()
     results = list(
@@ -861,9 +859,9 @@ class ExportTest(test_lib.GRRBaseTest):
         pecoff_md5="1dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"),
         pecoff_sha1="1dd6bee591dfcb6d75eb705405302c3eab65e21a".decode("hex"))
 
-    file_finder_result = file_finder.FileFinderResult(
+    file_finder_result = rdf_file_finder.FileFinderResult(
         stat_entry=stat_entry, hash_entry=hash_entry)
-    file_finder_result2 = file_finder.FileFinderResult(
+    file_finder_result2 = rdf_file_finder.FileFinderResult(
         stat_entry=stat_entry2, hash_entry=hash_entry2)
 
     metadata = export.ExportedMetadata(client_urn="C.0000000000000001")
@@ -1348,9 +1346,9 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.assertEqual(len(converted_values), 1)
     self.assertEqual(converted_values[0].__class__.__name__,
                      "RekallExport_foo_bar_sample")
-    self.assertEqual(converted_values[0].offset, "42")
-    self.assertEqual(converted_values[0].hex, "0x0")
-    self.assertEqual(converted_values[0].data, "data")
+    self.assertEqual(converted_values[0].Offset, "42")
+    self.assertEqual(converted_values[0].Hex, "0x0")
+    self.assertEqual(converted_values[0].Data, "data")
 
   def testCurrentSectionNameIsNotExportedWhenNotPresent(self):
     self.renderer.start(plugin_name="sample")
@@ -1405,15 +1403,16 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.assertEqual(len(converted_values), 2)
     self.assertEqual(converted_values[0].__class__.__name__,
                      "RekallExport_foo_bar_sample")
-    self.assertEqual(converted_values[0].offset, "42")
-    self.assertEqual(converted_values[0].hex, "0x0")
-    self.assertEqual(converted_values[0].data, "data")
+
+    self.assertEqual(converted_values[0].Offset, "42")
+    self.assertEqual(converted_values[0].Hex, "0x0")
+    self.assertEqual(converted_values[0].Data, "data")
 
     self.assertEqual(converted_values[1].__class__.__name__,
                      "RekallExport_foo_bar_sample")
-    self.assertEqual(converted_values[1].offset, "43")
-    self.assertEqual(converted_values[1].hex, "0x1")
-    self.assertEqual(converted_values[1].data, "otherdata")
+    self.assertEqual(converted_values[1].Offset, "43")
+    self.assertEqual(converted_values[1].Hex, "0x1")
+    self.assertEqual(converted_values[1].Data, "otherdata")
 
   def testTwoTablesHaveProperSectionNamesSet(self):
     self.renderer.start(plugin_name="sample")
@@ -1592,6 +1591,123 @@ class DynamicRekallResponseConverterTest(test_lib.GRRBaseTest):
     self.assertEqual(converted_values[0].__class__.__name__,
                      "RekallExport_foo_bar2_sample")
     self.assertEqual(converted_values[0].b, "43")
+
+
+class RekallResponseToExportedYaraSignatureMatchConverterTest(
+    test_lib.GRRBaseTest):
+  """Tests for RekallResponseToExportedRekallProcessConverter."""
+
+  def setUp(self):
+    super(RekallResponseToExportedYaraSignatureMatchConverterTest, self).setUp()
+    self.converter = export.RekallResponseToExportedYaraSignatureMatchConverter(
+    )
+
+  def testConvertsCompatibleMessage(self):
+    messages = [[
+        "r", {
+            "HexDump": {
+                "highlights": None,
+                "mro": "HexDumpedString:AttributedString:object",
+                "id": 1435655,
+                "value": "74657374737472696e67"
+            },
+            "Context": {
+                "Process": {
+                    "name":
+                        "Pointer",
+                    "type_name":
+                        "_EPROCESS",
+                    "vm":
+                        "WindowsAMD64PagedMemory",
+                    "mro":
+                        "_EPROCESS:Struct:BaseAddressComparisonMixIn:"
+                        "BaseObject:object",
+                    "Cybox": {
+                        "Parent_PID":
+                            2080,
+                        "Name":
+                            "python.exe",
+                        "Creation_Time": {
+                            "epoch":
+                                1478513999,
+                            "mro":
+                                "WinFileTime:UnixTimeStamp:NativeType:"
+                                "NumericProxyMixIn:BaseObject:object",
+                            "string_value":
+                                "2016-11-07 10:19:59Z",
+                            "id":
+                                1435802
+                        },
+                        "PID":
+                            8108,
+                        "Image_Info": {
+                            "File_Name":
+                                r"\\Device\\HarddiskVolume4\\python_27_amd64"
+                                r"\\files\\python.exe",
+                            "Path":
+                                r"C:\\python_27_amd64\\files\\python.exe",
+                            "type":
+                                "ProcessObj:ImageInfoType",
+                            "Command_Line":
+                                "python  yaratest.py",
+                            "TrustedPath":
+                                r"C:\\python_27_amd64\\files\\python.exe"
+                        },
+                        "type":
+                            "ProcessObj:ProcessObjectType"
+                    },
+                    "offset":
+                        246298002579584,
+                    "id":
+                        1435800
+                },
+                "mro":
+                    "PhysicalAddressContext:object",
+                "phys_offset":
+                    15702315008
+            },
+            "Rule":
+                "SOME_yara_rule",
+            "Offset":
+                42
+        }
+    ]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="handles", json_messages=json.dumps(messages))
+    metadata = export.ExportedMetadata()
+    converted_values = list(
+        self.converter.Convert(
+            metadata, rekall_response, token=self.token))
+
+    self.assertEqual(len(converted_values), 1)
+
+    model_process = export.ExportedRekallProcess(
+        commandline="python  yaratest.py",
+        creation_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1478513999),
+        fullpath=r"C:\\python_27_amd64\\files\\python.exe",
+        name="python.exe",
+        parent_pid=2080,
+        pid=8108,
+        trusted_fullpath=r"C:\\python_27_amd64\\files\\python.exe")
+    model = export.ExportedYaraSignatureMatch(
+        metadata=metadata,
+        process=model_process,
+        rule="SOME_yara_rule",
+        hex_dump="74657374737472696e67")
+
+    self.assertEqual(converted_values[0], model)
+
+  def testIgnoresIncompatibleMessage(self):
+    messages = [["r", {"baseaddress": 0}]]
+
+    rekall_response = rdf_rekall_types.RekallResponse(
+        plugin="handles", json_messages=json.dumps(messages))
+    converted_values = list(
+        self.converter.Convert(
+            export.ExportedMetadata(), rekall_response, token=self.token))
+
+    self.assertEqual(len(converted_values), 0)
 
 
 class RekallResponseToExportedRekallProcessConverterTest(test_lib.GRRBaseTest):

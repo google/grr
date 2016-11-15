@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 """Tests for GRR settings-related views."""
 
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 from grr.gui.api_plugins import config_test as api_config_test
 
@@ -8,7 +9,7 @@ from grr.lib import flags
 from grr.lib import test_lib
 
 
-class TestSettingsView(test_lib.GRRSeleniumTest):
+class TestSettingsView(gui_test_lib.GRRSeleniumTest):
   """Test the settings GUI."""
 
   def testSettingsView(self):
@@ -28,7 +29,7 @@ class TestSettingsView(test_lib.GRRSeleniumTest):
       self.WaitUntil(self.IsTextPresent, "127.0.0.1")
 
 
-class TestManageBinariesView(test_lib.GRRSeleniumTest,
+class TestManageBinariesView(gui_test_lib.GRRSeleniumTest,
                              api_config_test.ApiGrrBinaryTestMixin):
   """Test the Manage Binaries GUI."""
 

@@ -23,9 +23,9 @@ from grr.lib import rekall_profile_server
 
 from grr.lib.aff4_objects import aff4_rekall
 
-from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
@@ -380,8 +380,8 @@ class ListVADBinaries(flow.GRRFlow):
           next_state="HandleDownloadedFiles",
           paths=[rdf_paths.GlobExpression(b.CollapsePath()) for b in binaries],
           pathtype=rdf_paths.PathSpec.PathType.OS,
-          action=file_finder.FileFinderAction(
-              action_type=file_finder.FileFinderAction.Action.DOWNLOAD))
+          action=rdf_file_finder.FileFinderAction(
+              action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD))
     else:
       for b in binaries:
         self.SendReply(b)

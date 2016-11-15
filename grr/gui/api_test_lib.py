@@ -69,6 +69,7 @@ class ApiCallHandlerRegressionTest(test_lib.GRRBaseTest):
 
   def setUp(self):
     super(ApiCallHandlerRegressionTest, self).setUp()
+    api_auth_manager.APIACLInit.InitApiAuthManager()
 
     if not self.__class__.api_method:
       raise ValueError("%s.api_method has to be set." % self.__class__.__name__)

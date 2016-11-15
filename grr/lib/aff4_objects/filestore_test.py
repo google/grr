@@ -17,10 +17,9 @@ from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import filestore
-# Needed for GetFile pylint: disable=unused-import
 from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import transfer
-# pylint: enable=unused-import
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -127,7 +126,7 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
 
     client_mock = action_mocks.GetFileClientMock()
     for _ in test_lib.TestFlowHelper(
-        "GetFile",
+        transfer.GetFile.__name__,
         client_mock,
         token=token,
         client_id=client_id,
@@ -416,8 +415,8 @@ class HashFileStoreTest(test_lib.AFF4ObjectTest):
           token=self.token,
           client_id=client_id,
           paths=[filename],
-          action=file_finder.FileFinderAction(
-              action_type=file_finder.FileFinderAction.Action.DOWNLOAD)):
+          action=rdf_file_finder.FileFinderAction(
+              action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)):
         pass
       # Running worker to make sure FileStore.AddFileToStore event is processed
       # by the worker.

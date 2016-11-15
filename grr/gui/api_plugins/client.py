@@ -41,11 +41,35 @@ class InterrogateOperationNotFoundError(
   """Raised when an interrogate operation could not be found."""
 
 
+class ApiClientId(rdfvalue.RDFString):
+  """Class encapsulating client ids."""
+
+  def __init__(self, initializer=None, age=None):
+    if isinstance(initializer, rdf_client.ClientURN):
+      initializer = initializer.Basename()
+
+    super(ApiClientId, self).__init__(initializer=initializer, age=age)
+
+    # TODO(user): move this to a separate validation method when
+    # common RDFValues validation approach is implemented.
+    if self._value:
+      re_match = aff4_grr.VFSGRRClient.CLIENT_ID_RE.match(self._value)
+      if not re_match:
+        raise ValueError("Invalid client id: %s" % utils.SmartStr(self._value))
+
+  def ToClientURN(self):
+    if not self._value:
+      raise ValueError("Can't call ToClientURN() on an empty client id.")
+
+    return rdf_client.ClientURN(self._value)
+
+
 class ApiClient(rdf_structs.RDFProtoStruct):
   protobuf = api_pb2.ApiClient
 
   def InitFromAff4Object(self, client_obj):
     self.urn = client_obj.urn
+    self.client_id = self.urn.Basename()
 
     self.agent_info = client_obj.Get(client_obj.Schema.CLIENT_INFO)
     self.hardware_info = client_obj.Get(client_obj.Schema.HARDWARE_INFO)
@@ -109,11 +133,7 @@ class ApiSearchClientsHandler(api_call_handler_base.ApiCallHandler):
 
     keywords = shlex.split(args.query)
 
-    index = aff4.FACTORY.Create(
-        client_index.MAIN_INDEX,
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        token=token)
+    index = client_index.CreateClientIndex(token=token)
     result_urns = sorted(
         index.LookupClients(keywords), key=str)[args.offset:args.offset + end]
     result_set = aff4.FACTORY.MultiOpen(result_urns, token=token)
@@ -154,11 +174,7 @@ class ApiLabelsRestrictedSearchClientsHandler(
 
     keywords = shlex.split(args.query)
 
-    index = aff4.FACTORY.Create(
-        client_index.MAIN_INDEX,
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        token=token)
+    index = client_index.CreateClientIndex(token=token)
     all_urns = set()
     for label in self.labels_whitelist:
       label_filter = ["label:" + label] + keywords
@@ -199,7 +215,10 @@ class ApiGetClientHandler(api_call_handler_base.ApiCallHandler):
       age = rdfvalue.RDFDatetime(args.timestamp)
 
     client = aff4.FACTORY.Open(
-        args.client_id, aff4_type=aff4_grr.VFSGRRClient, age=age, token=token)
+        args.client_id.ToClientURN(),
+        aff4_type=aff4_grr.VFSGRRClient,
+        age=age,
+        token=token)
 
     return ApiClient().InitFromAff4Object(client)
 
@@ -220,7 +239,7 @@ class ApiGetClientVersionTimesHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     fd = aff4.FACTORY.Open(
-        args.client_id, mode="r", age=aff4.ALL_TIMES, token=token)
+        args.client_id.ToClientURN(), mode="r", age=aff4.ALL_TIMES, token=token)
 
     type_values = list(fd.GetValuesForAttribute(fd.Schema.TYPE))
     times = sorted([t.age for t in type_values], reverse=True)
@@ -244,7 +263,9 @@ class ApiInterrogateClientHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     flow_urn = flow.GRRFlow.StartFlow(
-        client_id=args.client_id, flow_name="Interrogate", token=token)
+        client_id=args.client_id.ToClientURN(),
+        flow_name="Interrogate",
+        token=token)
 
     return ApiInterrogateClientResult(operation_id=str(flow_urn))
 
@@ -299,7 +320,9 @@ class ApiGetLastClientIPAddressHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     client = aff4.FACTORY.Open(
-        args.client_id, aff4_type=aff4_grr.VFSGRRClient, token=token)
+        args.client_id.ToClientURN(),
+        aff4_type=aff4_grr.VFSGRRClient,
+        token=token)
 
     ip = client.Get(client.Schema.CLIENT_IP)
     status, info = ip_resolver.IP_RESOLVER.RetrieveIPInfo(ip)
@@ -324,7 +347,7 @@ class ApiListClientCrashesHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     try:
       aff4_crashes = aff4.FACTORY.Open(
-          args.client_id.Add("crashes"),
+          args.client_id.ToClientURN().Add("crashes"),
           mode="r",
           aff4_type=collects.PackedVersionedCollection,
           token=token)
@@ -356,13 +379,9 @@ class ApiAddClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
     audit_events = []
 
     try:
-      index = aff4.FACTORY.Create(
-          client_index.MAIN_INDEX,
-          aff4_type=client_index.ClientIndex,
-          mode="rw",
-          token=token)
+      index = client_index.CreateClientIndex(token=token)
       client_objs = aff4.FACTORY.MultiOpen(
-          args.client_ids,
+          [cid.ToClientURN() for cid in args.client_ids],
           aff4_type=aff4_grr.VFSGRRClient,
           mode="rw",
           token=token)
@@ -412,13 +431,9 @@ class ApiRemoveClientsLabelsHandler(api_call_handler_base.ApiCallHandler):
     audit_events = []
 
     try:
-      index = aff4.FACTORY.Create(
-          client_index.MAIN_INDEX,
-          aff4_type=client_index.ClientIndex,
-          mode="rw",
-          token=token)
+      index = client_index.CreateClientIndex(token=token)
       client_objs = aff4.FACTORY.MultiOpen(
-          args.client_ids,
+          [cid.ToClientURN() for cid in args.client_ids],
           aff4_type=aff4_grr.VFSGRRClient,
           mode="rw",
           token=token)
@@ -494,10 +509,10 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
 
   REQUESTS_NUM_LIMIT = 1000
 
-  def _GetRequestResponses(self, manager, client_id, task_id):
+  def _GetRequestResponses(self, manager, client_urn, task_id):
     task_id = "task:%s" % task_id
 
-    request_messages = manager.Query(client_id, task_id=task_id)
+    request_messages = manager.Query(client_urn, task_id=task_id)
     if not request_messages:
       return []
 
@@ -523,7 +538,7 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
     # Passing "limit" argument explicitly, as Query returns just 1 request
     # by default.
     for task in manager.Query(
-        args.client_id, limit=self.__class__.REQUESTS_NUM_LIMIT):
+        args.client_id.ToClientURN(), limit=self.__class__.REQUESTS_NUM_LIMIT):
       request = ApiClientActionRequest(
           task_id=task.task_id,
           task_eta=task.eta,
@@ -531,8 +546,8 @@ class ApiListClientActionRequestsHandler(api_call_handler_base.ApiCallHandler):
           client_action=task.name)
 
       if args.fetch_responses:
-        request.responses = self._GetRequestResponses(manager, args.client_id,
-                                                      task.task_id)
+        request.responses = self._GetRequestResponses(
+            manager, args.client_id.ToClientURN(), task.task_id)
 
       result.items.append(request)
 
@@ -574,7 +589,7 @@ class ApiGetClientLoadStatsHandler(api_call_handler_base.ApiCallHandler):
       start_time = end_time - rdfvalue.Duration("30m")
 
     fd = aff4.FACTORY.Create(
-        args.client_id.Add("stats"),
+        args.client_id.ToClientURN().Add("stats"),
         aff4_type=aff4_stats.ClientStats,
         mode="r",
         token=token,

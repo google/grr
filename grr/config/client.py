@@ -196,18 +196,6 @@ config_lib.DEFINE_semantic(
     "key is usually kept offline and is thus not present in the "
     "configuration file.")
 
-config_lib.DEFINE_semantic(
-    crypto.RSAPublicKey,
-    "Client.driver_signing_public_key",
-    description="public key for verifying driver signing.")
-
-config_lib.DEFINE_semantic(
-    crypto.RSAPrivateKey,
-    "PrivateKeys.driver_signing_private_key",
-    description="Private keys for signing drivers. NOTE: This "
-    "key is usually kept offline and is thus not present in the "
-    "configuration file.")
-
 config_lib.DEFINE_integer("Client.server_serial_number", 0,
                           "Minimal serial number we accept for server cert.")
 

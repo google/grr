@@ -20,12 +20,6 @@ Client.private_key: |
  jzITFeE6mjs3k1I=
  -----END PRIVATE KEY-----
 
-Client.driver_signing_public_key: |
- -----BEGIN PUBLIC KEY-----
- MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCOD
- QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
- -----END PUBLIC KEY-----
-
 Client.executable_signing_public_key: |
  -----BEGIN PUBLIC KEY-----
  MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBAMQpeVjrxmf6nPmsjHjULWhLmquSgTDK
@@ -210,17 +204,6 @@ PrivateKeys.server_key: |
   g8a1Sjjbw2I4rG6Fd/LkOVM52yblU9XIK2kNNHyR+gtf8XEouSODHMRQghSZThJV
   BCsoAki3kAdM9LkAJWvymS8gobZri5nW8rMQioCVnIB3XXQziw3uT1a1MtqjMSdd
   wkPliOT+lNsuHlTcnoW5O9P56XCNH68JXWYpVFTkeMKppNCNkyBqN5hbshE=
-  -----END RSA PRIVATE KEY-----
-
-PrivateKeys.driver_signing_private_key: |
-  -----BEGIN RSA PRIVATE KEY-----
-  MIIBOgIBAAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCODQAI3WluLh0sW7/ro93eo
-  IZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQJAfg37HBZK7bxGB+jOjvrT
-  XzI2Vu7dhqAWouojT357DMKjGvkO+w7r6BmToZkgHRL4Nvh1KJ/APYdWWR+jTwJ3
-  4QIhAOhY/Gx8xs1ngrQLfSK9AWzPeegZK0I9W1UQuLWt7MjHAiEAzMrr2huBFrM0
-  NgTOlWdrKnI/DPDpR3jGfSoUTsAeT9kCIQCzgxzzjKvkQtb+1+mEj1ashNgA9IEx
-  mkoYPOUYqRnKPQIgUV+8UcEmDRgOAfzs/U7HtWkKBqFfgGfMLwXeZeBO6xkCIHGq
-  wDcAa2GW9htKHmv9/Rzg05iAD+FYTsp8Gi2r4icV
   -----END RSA PRIVATE KEY-----
 
 PrivateKeys.executable_signing_private_key: |

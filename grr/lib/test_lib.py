@@ -20,16 +20,10 @@ import tempfile
 import time
 import types
 import unittest
-import urlparse
 
 
 import mock
 import pkg_resources
-
-from selenium.common import exceptions
-from selenium.webdriver.common import action_chains
-from selenium.webdriver.common import keys
-from selenium.webdriver.support import select
 
 import logging
 import unittest
@@ -48,15 +42,10 @@ from grr.client.client_actions import standard
 from grr.client.components.rekall_support import rekall_types as rdf_rekall_types
 from grr.client.vfs_handlers import files
 
-from grr.gui import api_auth_manager
-from grr.gui import api_call_router_with_approval_checks
-from grr.gui import webauth
-
 from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact
-from grr.lib import artifact_registry
 from grr.lib import client_fixture
 from grr.lib import client_index
 from grr.lib import config_lib
@@ -404,7 +393,7 @@ class GRRBaseTest(unittest.TestCase):
       methodName: The test method to run.
     """
     super(GRRBaseTest, self).__init__(methodName=methodName or "__init__")
-    self.base_path = utils.NormalizePath(config_lib.CONFIG["Test.data_dir"])
+    self.base_path = config_lib.CONFIG["Test.data_dir"]
     test_user = "test"
     users.GRRUser.SYSTEM_USERS.add(test_user)
     self.token = access_control.ACLToken(
@@ -415,8 +404,11 @@ class GRRBaseTest(unittest.TestCase):
 
     tmpdir = os.environ.get("TEST_TMPDIR") or config_lib.CONFIG["Test.tmpdir"]
 
-    # Make a temporary directory for test files.
-    self.temp_dir = tempfile.mkdtemp(dir=tmpdir)
+    if platform.system() != "Windows":
+      # Make a temporary directory for test files.
+      self.temp_dir = tempfile.mkdtemp(dir=tmpdir)
+    else:
+      self.temp_dir = tempfile.mkdtemp()
 
     config_lib.CONFIG.SetWriteBack(
         os.path.join(self.temp_dir, "writeback.yaml"))
@@ -442,7 +434,6 @@ class GRRBaseTest(unittest.TestCase):
     aff4_grr.GRRAFF4Init().Run()
     filestore.FileStoreInit().Run()
     hunts_results.ResultQueueInitHook().Run()
-    api_auth_manager.APIACLInit.InitApiAuthManager()
 
     # Stub out the email function
     self.emails_sent = []
@@ -698,11 +689,7 @@ class GRRBaseTest(unittest.TestCase):
 
   def SetupClients(self, nr_clients, system=None, os_version=None, arch=None):
     client_ids = []
-    with aff4.FACTORY.Create(
-        client_index.MAIN_INDEX,
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        token=self.token) as index:
+    with client_index.CreateClientIndex(token=self.token) as index:
 
       for i in range(nr_clients):
         client_id = rdf_client.ClientURN("C.1%015d" % i)
@@ -881,29 +868,6 @@ class FlowTestsBaseclass(GRRBaseTest):
     return aff4.FACTORY.Open(session_id, mode="rw", token=self.token)
 
 
-def SeleniumAction(f):
-  """Decorator to do multiple attempts in case of WebDriverException."""
-
-  @functools.wraps(f)
-  def Decorator(*args, **kwargs):
-    delay = 0.2
-    num_attempts = 15
-    cur_attempt = 0
-    while True:
-      try:
-        return f(*args, **kwargs)
-      except exceptions.WebDriverException as e:
-        logging.warn("Selenium raised %s", utils.SmartUnicode(e))
-
-        cur_attempt += 1
-        if cur_attempt == num_attempts:
-          raise
-
-        time.sleep(delay)
-
-  return Decorator
-
-
 class ConfigOverrider(object):
   """A context to temporarily change config options."""
 
@@ -985,22 +949,6 @@ class ACLChecksDisabledContextManager(object):
   def Start(self):
     self.old_security_manager = data_store.DB.security_manager
     data_store.DB.security_manager = user_managers.NullAccessControlManager()
-
-  def __exit__(self, unused_type, unused_value, unused_traceback):
-    self.Stop()
-
-  def Stop(self):
-    data_store.DB.security_manager = self.old_security_manager
-
-
-class ACLChecksEnabledContextManager(object):
-
-  def __enter__(self):
-    self.Start()
-
-  def Start(self):
-    self.old_security_manager = data_store.DB.security_manager
-    data_store.DB.security_manager = user_managers.FullAccessControlManager()
 
   def __exit__(self, unused_type, unused_value, unused_traceback):
     self.Stop()
@@ -1132,378 +1080,6 @@ class StatsDeltaAssertionContext(object):
     self.test.assertEqual(new_count - self.prev_count, self.delta,
                           "%s (fields=%s) expected to change with delta=%d" %
                           (self.varname, self.fields, self.delta))
-
-
-class GRRSeleniumTest(GRRBaseTest):
-  """Baseclass for selenium UI tests."""
-
-  # Default duration (in seconds) for WaitUntil.
-  duration = 5
-
-  # Time to wait between polls for WaitUntil.
-  sleep_time = 0.2
-
-  # This is the global selenium handle.
-  driver = None
-
-  # Base url of the Admin UI
-  base_url = None
-
-  # Also indicates whether InstallACLChecks() was called during the test.
-  acl_manager = None
-
-  def InstallACLChecks(self):
-    """Installs AccessControlManager and stubs out SendEmail."""
-    # Clear the cache of the approvals-based router.
-    (api_call_router_with_approval_checks.
-     ApiCallRouterWithApprovalChecksWithRobotAccess).ClearCache()
-
-    if self.acl_manager:
-      return
-
-    self.acl_manager = ACLChecksEnabledContextManager()
-    self.acl_manager.Start()
-
-    acrwac = api_call_router_with_approval_checks
-    name = acrwac.ApiCallRouterWithApprovalChecksWithRobotAccess.__name__
-    self.config_override = ConfigOverrider({"API.DefaultRouter": name})
-    self.config_override.Start()
-    # Make sure ApiAuthManager is initialized with this configuration setting.
-    api_auth_manager.APIACLInit.InitApiAuthManager()
-
-  def UninstallACLChecks(self):
-    """Deinstall previously installed ACL checks."""
-    if not self.acl_manager:
-      return
-
-    self.acl_manager.Stop()
-    self.acl_manager = None
-
-    self.config_override.Stop()
-    self.config_override = None
-
-    # Make sure ApiAuthManager is initialized with update configuration
-    # setting (i.e. without overrides).
-    api_auth_manager.APIACLInit.InitApiAuthManager()
-
-  def ACLChecksDisabled(self):
-    return ACLChecksDisabledContextManager()
-
-  def CheckJavascriptErrors(self):
-    for message in self.driver.get_log("browser"):
-      if (message.get("source", "") == "javascript" and
-          message.get("level", "") == "SEVERE"):
-        self.fail("Javascript error ecountered during test: %s" %
-                  message["message"])
-
-  def WaitUntil(self, condition_cb, *args):
-    self.CheckJavascriptErrors()
-
-    for _ in xrange(int(self.duration / self.sleep_time)):
-      try:
-        res = condition_cb(*args)
-        if res:
-          return res
-
-      # The element might not exist yet and selenium could raise here. (Also
-      # Selenium raises Exception not StandardError).
-      except Exception as e:  # pylint: disable=broad-except
-        logging.warn("Selenium raised %s", utils.SmartUnicode(e))
-
-      time.sleep(self.sleep_time)
-
-    raise RuntimeError("condition not met, body is: %s" %
-                       self.driver.find_element_by_tag_name("body").text)
-
-  def _FindElement(self, selector):
-    try:
-      selector_type, effective_selector = selector.split("=", 1)
-    except ValueError:
-      effective_selector = selector
-      selector_type = None
-
-    if selector_type == "css":
-      elems = self.driver.execute_script(
-          "return $(\"" + effective_selector.replace("\"", "\\\"") + "\");")
-      elems = [e for e in elems if e.is_displayed()]
-
-      if not elems:
-        raise exceptions.NoSuchElementException()
-      else:
-        return elems[0]
-
-    elif selector_type == "link":
-      links = self.driver.find_elements_by_partial_link_text(effective_selector)
-      for l in links:
-        if l.text.strip() == effective_selector:
-          return l
-      raise exceptions.NoSuchElementException()
-
-    elif selector_type == "xpath":
-      return self.driver.find_element_by_xpath(effective_selector)
-
-    elif selector_type == "id":
-      return self.driver.find_element_by_id(effective_selector)
-
-    elif selector_type == "name":
-      return self.driver.find_element_by_name(effective_selector)
-
-    elif selector_type is None:
-      if effective_selector.startswith("//"):
-        return self.driver.find_element_by_xpath(effective_selector)
-      else:
-        return self.driver.find_element_by_id(effective_selector)
-    else:
-      raise RuntimeError("unknown selector type %s" % selector_type)
-
-  @SeleniumAction
-  def Open(self, url):
-    self.driver.get(self.base_url + url)
-
-    # Sometimes page doesn't get refreshed if url's path and query haven't
-    # changed, even if fragments part (part after '#' symbol) of the url has
-    # changed. We have to explicitly call Refresh() in such cases.
-    prev_parsed_url = urlparse.urlparse(self.driver.current_url)
-    new_parsed_url = urlparse.urlparse(url)
-    if (prev_parsed_url.path == new_parsed_url.path and
-        prev_parsed_url.query == new_parsed_url.query):
-      self.Refresh()
-
-  @SeleniumAction
-  def Refresh(self):
-    self.driver.refresh()
-
-  @SeleniumAction
-  def Back(self):
-    self.driver.back()
-
-  @SeleniumAction
-  def Forward(self):
-    self.driver.forward()
-
-  def WaitUntilNot(self, condition_cb, *args):
-    self.WaitUntil(lambda: not condition_cb(*args))
-
-  def GetPageTitle(self):
-    return self.driver.title
-
-  def IsElementPresent(self, target):
-    try:
-      self._FindElement(target)
-      return True
-    except exceptions.NoSuchElementException:
-      return False
-
-  def GetCurrentUrlPath(self):
-    url = urlparse.urlparse(self.driver.current_url)
-
-    result = url.path
-    if url.fragment:
-      result += "#" + url.fragment
-
-    return result
-
-  def GetElement(self, target):
-    try:
-      return self._FindElement(target)
-    except exceptions.NoSuchElementException:
-      return None
-
-  def GetVisibleElement(self, target):
-    try:
-      element = self._FindElement(target)
-      if element.is_displayed():
-        return element
-    except exceptions.NoSuchElementException:
-      pass
-
-    return None
-
-  def IsTextPresent(self, text):
-    return self.AllTextsPresent([text])
-
-  def AllTextsPresent(self, texts):
-    body = self.driver.find_element_by_tag_name("body").text
-    for text in texts:
-      if utils.SmartUnicode(text) not in body:
-        return False
-    return True
-
-  def IsVisible(self, target):
-    element = self.GetElement(target)
-    return element and element.is_displayed()
-
-  def FileWasDownloaded(self):
-    new_count = stats.STATS.GetMetricValue(
-        "ui_renderer_latency", fields=["DownloadView"]).count
-
-    result = (new_count - self.prev_download_count) > 0
-    self.prev_download_count = new_count
-    return result
-
-  def GetText(self, target):
-    element = self.WaitUntil(self.GetVisibleElement, target)
-    return element.text.strip()
-
-  def GetValue(self, target):
-    return self.GetAttribute(target, "value")
-
-  def GetAttribute(self, target, attribute):
-    element = self.WaitUntil(self.GetVisibleElement, target)
-    return element.get_attribute(attribute)
-
-  def IsUserNotificationPresent(self, contains_string):
-    self.Click("css=#notification_button")
-    self.WaitUntil(self.IsElementPresent, "css=grr-user-notification-dialog")
-    self.WaitUntilNot(self.IsElementPresent,
-                      "css=grr-user-notification-dialog:contains('Loading...')")
-
-    notifications_text = self.GetText("css=grr-user-notification-dialog")
-    self.Click("css=grr-user-notification-dialog button:contains('Close')")
-
-    return contains_string in notifications_text
-
-  def GetJavaScriptValue(self, js_expression):
-    return self.driver.execute_script(js_expression)
-
-  def _WaitForAjaxCompleted(self):
-    self.WaitUntilEqual(
-        0, self.GetJavaScriptValue,
-        "return $('#ajax_spinner').scope().controller.queue.length")
-
-  @SeleniumAction
-  def Type(self, target, text, end_with_enter=False):
-    element = self.WaitUntil(self.GetVisibleElement, target)
-    element.clear()
-    element.send_keys(text)
-    if end_with_enter:
-      element.send_keys(keys.Keys.ENTER)
-
-    # We experienced that Selenium sometimes swallows the last character of the
-    # text sent. Raising an exception here will just retry in that case.
-    if not end_with_enter:
-      if text != self.GetValue(target):
-        raise exceptions.WebDriverException("Send_keys did not work correctly.")
-
-  @SeleniumAction
-  def Click(self, target):
-    # Selenium clicks elements by obtaining their position and then issuing a
-    # click action in the middle of this area. This may lead to misclicks when
-    # elements are moving. Make sure that they are stationary before issuing
-    # the click action (specifically, using the bootstrap "fade" class that
-    # slides dialogs in is highly discouraged in combination with .Click()).
-
-    # Since Selenium does not know when the page is ready after AJAX calls, we
-    # need to wait for AJAX completion here to be sure that all event handlers
-    # are attached to their respective DOM elements.
-    self._WaitForAjaxCompleted()
-
-    element = self.WaitUntil(self.GetVisibleElement, target)
-    element.click()
-
-  @SeleniumAction
-  def DoubleClick(self, target):
-    # Selenium clicks elements by obtaining their position and then issuing a
-    # click action in the middle of this area. This may lead to misclicks when
-    # elements are moving. Make sure that they are stationary before issuing
-    # the click action (specifically, using the bootstrap "fade" class that
-    # slides dialogs in is highly discouraged in combination with
-    # .DoubleClick()).
-
-    # Since Selenium does not know when the page is ready after AJAX calls, we
-    # need to wait for AJAX completion here to be sure that all event handlers
-    # are attached to their respective DOM elements.
-    self._WaitForAjaxCompleted()
-
-    element = self.WaitUntil(self.GetVisibleElement, target)
-    action_chains.ActionChains(self.driver).double_click(element).perform()
-
-  @SeleniumAction
-  def Select(self, target, label):
-    element = self.WaitUntil(self.GetVisibleElement, target)
-    select.Select(element).select_by_visible_text(label)
-
-  def GetSelectedLabel(self, target):
-    element = self.WaitUntil(self.GetVisibleElement, target)
-    return select.Select(element).first_selected_option.text.strip()
-
-  def IsChecked(self, target):
-    return self.WaitUntil(self.GetVisibleElement, target).is_selected()
-
-  def GetCssCount(self, target):
-    if not target.startswith("css="):
-      raise ValueError("invalid target for GetCssCount: " + target)
-
-    return len(self.driver.find_elements_by_css_selector(target[4:]))
-
-  def WaitUntilEqual(self, target, condition_cb, *args):
-    for _ in xrange(int(self.duration / self.sleep_time)):
-      try:
-        if condition_cb(*args) == target:
-          return True
-
-      # The element might not exist yet and selenium could raise here. (Also
-      # Selenium raises Exception not StandardError).
-      except Exception as e:  # pylint: disable=broad-except
-        logging.warn("Selenium raised %s", utils.SmartUnicode(e))
-
-      time.sleep(self.sleep_time)
-
-    raise RuntimeError("condition not met, body is: %s" %
-                       self.driver.find_element_by_tag_name("body").text)
-
-  def WaitUntilContains(self, target, condition_cb, *args):
-    data = ""
-    target = utils.SmartUnicode(target)
-
-    for _ in xrange(int(self.duration / self.sleep_time)):
-      try:
-        data = condition_cb(*args)
-        if target in data:
-          return True
-
-      # The element might not exist yet and selenium could raise here.
-      except Exception as e:  # pylint: disable=broad-except
-        logging.warn("Selenium raised %s", utils.SmartUnicode(e))
-
-      time.sleep(self.sleep_time)
-
-    raise RuntimeError("condition not met. Got %r" % data)
-
-  def setUp(self):
-    super(GRRSeleniumTest, self).setUp()
-
-    self.prev_download_count = stats.STATS.GetMetricValue(
-        "ui_renderer_latency", fields=["DownloadView"]).count
-
-    self.token.username = "gui_user"
-    webauth.WEBAUTH_MANAGER.SetUserName(self.token.username)
-
-    # Make the user use the advanced gui so we can test it.
-    with aff4.FACTORY.Create(
-        aff4.ROOT_URN.Add("users/%s" % self.token.username),
-        aff4_type=users.GRRUser,
-        mode="w",
-        token=self.token) as user_fd:
-      user_fd.Set(user_fd.Schema.GUI_SETTINGS(mode="ADVANCED"))
-
-    # This creates client fixtures for the UI tests.
-    registry.InitHook.classes["RunTestsInit"]().Run()
-
-    # Clean artifacts sources.
-    artifact_registry.REGISTRY.ClearSources()
-    artifact_registry.REGISTRY.AddDatastoreSources(
-        [aff4.ROOT_URN.Add("artifact_store")])
-
-    self.InstallACLChecks()
-
-  def tearDown(self):
-    self.UninstallACLChecks()
-    super(GRRSeleniumTest, self).tearDown()
-
-  def DoAfterTestCheck(self):
-    super(GRRSeleniumTest, self).DoAfterTestCheck()
-    self.CheckJavascriptErrors()
 
 
 class AFF4ObjectTest(GRRBaseTest):
@@ -2338,11 +1914,8 @@ class ClientFixture(object):
         # sync back its attributes, not run any finalization code.
         aff4_object.Flush()
         if aff4_type == aff4_grr.VFSGRRClient:
-          aff4.FACTORY.Create(
-              client_index.MAIN_INDEX,
-              aff4_type=client_index.ClientIndex,
-              mode="rw",
-              token=self.token).AddClient(aff4_object)
+          index = client_index.CreateClientIndex(token=self.token)
+          index.AddClient(aff4_object)
 
 
 class ClientVFSHandlerFixtureBase(vfs.VFSHandler):

@@ -24,6 +24,18 @@ grrUi.stats.statsViewDirective.StatsViewController = function(
   /** @type {string} */
   this.selectionName;
 
+  /** @type {string} */
+  this.oldSelectionName;
+
+  /** @type {number|null} */
+  this.startTime;
+
+  /** @type {number|null} */
+  this.duration;
+
+  /** @type {string|null} */
+  this.clientLabel;
+
   // TODO(user): Deprecated, remove the following code after statistics are
   //                migrated...
 
@@ -47,26 +59,88 @@ grrUi.stats.statsViewDirective.StatsViewController = function(
 
   this.grrRoutingService_.uiOnParamsChanged(
       this.scope_,
-      ['name'],
-      /** @type {function(?, Object=)} */ (function(_, params) {
-    var selectionName = params['name'];
+      ['name', 'start_time', 'duration', 'client_label'],
+      this.onUrlParamsChange_.bind(this));
 
-    if (angular.isDefined(selectionName)) {
-      this.selectionName = selectionName;
-    }
-  }.bind(this)));
-
-  this.scope_.$watch('controller.selectionName', function() {
-    if (angular.isUndefined(this.selectionName)) {
-      return;
-    }
-
-    this.grrRoutingService_.go('stats', {'name' : this.selectionName});
-  }.bind(this));
+  this.scope_.$watchGroup(
+      ['controller.selectionName',
+       'controller.startTime',
+       'controller.duration',
+       'controller.clientLabel'],
+      this.onControllerParamsChange_.bind(this));
 };
 var StatsViewController =
     grrUi.stats.statsViewDirective.StatsViewController;
 
+
+/**
+ * Handles changes to the url parameters.
+ *
+ * @param {Array<string>} unused_values The param values.
+ * @param {Object=} params The param dict.
+ * @private
+ */
+StatsViewController.prototype.onUrlParamsChange_ = function(
+    unused_values, params) {
+  var selectionName = params['name'];
+  if (angular.isDefined(selectionName)) {
+    this.selectionName = selectionName;
+  }
+
+  var startTimeStr = params['start_time'];
+  if (angular.isDefined(startTimeStr)) {
+    this.startTime = parseInt(startTimeStr, 10);
+  }
+
+  var durationStr = params['duration'];
+  if (angular.isDefined(durationStr)) {
+    this.duration = parseInt(durationStr, 10);
+  }
+
+  var clientLabel = params['client_label'];
+  if (angular.isDefined(clientLabel)) {
+    this.clientLabel = clientLabel;
+  }
+};
+
+/**
+ * Handles changes to controller fields forwarded to reports as scope
+ * parameters.
+ *
+ * @private
+ */
+StatsViewController.prototype.onControllerParamsChange_ = function() {
+  if (angular.isUndefined(this.selectionName)) {
+    return;
+  }
+
+  // Clear the report parameters on different report type selection.
+  if (angular.isDefined(this.oldSelectionName) &&
+      this.oldSelectionName !== this.selectionName) {
+    this.startTime = null;
+    this.duration = null;
+    this.clientLabel = null;
+  }
+  this.oldSelectionName = this.selectionName;
+
+  var urlParams = {
+    name: this.selectionName,
+  };
+
+  if (angular.isDefined(this.startTime)) {
+    urlParams['start_time'] = this.startTime;
+  }
+
+  if (angular.isDefined(this.duration)) {
+    urlParams['duration'] = this.duration;
+  }
+
+  if (angular.isDefined(this.clientLabel)) {
+    urlParams['client_label'] = this.clientLabel;
+  }
+
+  this.grrRoutingService_.go('stats', urlParams);
+};
 
 // TODO(user): Deprecated, remove the following function after statistics are
 //                migrated...

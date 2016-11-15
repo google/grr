@@ -27,26 +27,35 @@
     <span ng-if="controller.reportDesc.type === 'CLIENT'">
       <label class="control-label">Client label</label>
       <div class="controls">
-        Not yet implemented. Client label selector will be here.
+        <select class="form-control select-label"
+                ng-model="controller.modelClientLabel"
+                ng-options="label.name as label.name
+                            for label in controller.labelsList">
+          <option value="">
+            -- All clients --
+          </option>
+        </select>
       </div>
     </span>
 
     <span ng-if="controller.reportDesc.requires_time_range">
       <label class="control-label">Time range start time</label>
       <div class="controls">
-        Not yet implemented. Time range selector will be here.
+        <grr-form-value value="controller.typedStartTime"></grr-form-value>
       </div>
 
       <label class="control-label">Time range duration</label>
       <div class="controls">
-        Not yet implemented. Time range selector will be here.
+        <grr-form-value value="controller.typedDuration"></grr-form-value>
       </div>
     </span>
 
     <div ng-if="controller.reportDesc.type === 'CLIENT' ||
                 controller.reportDesc.requires_time_range"
          class="controls">
-      Not yet implemented. `Show report' button will be here.
+        <button class="btn btn-default" ng-click="controller.refreshReport()">
+          Show report
+        </button>
     </div>
 
     <grr-chart data="controller.reportData"></grr-chart>

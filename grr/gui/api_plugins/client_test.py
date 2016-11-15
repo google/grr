@@ -19,6 +19,41 @@ from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.flows.general import processes
 from grr.lib.hunts import standard_test
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import test_base as rdf_test_base
+
+
+class ApiClientIdTest(rdf_test_base.RDFValueTestCase):
+  """Test for ApiClientId."""
+
+  rdfvalue_class = client_plugin.ApiClientId
+
+  def GenerateSample(self, number=0):
+    return client_plugin.ApiClientId("C.%016d" % number)
+
+  def testRaisesWhenInitializedFromInvalidValues(self):
+    with self.assertRaises(ValueError):
+      client_plugin.ApiClientId("blah")
+
+    with self.assertRaises(ValueError):
+      client_plugin.ApiClientId("C.0")
+
+    with self.assertRaises(ValueError):
+      client_plugin.ApiClientId("C." + "0" * 15)
+
+    with self.assertRaises(ValueError):
+      client_plugin.ApiClientId("C." + "1" * 16 + "/foo")
+
+  def testRaisesWhenToClientURNCalledOnUninitializedValue(self):
+    client_id = client_plugin.ApiClientId()
+    with self.assertRaises(ValueError):
+      client_id.ToClientURN()
+
+  def testConvertsToClientURN(self):
+    client_id = client_plugin.ApiClientId("C." + "1" * 16)
+    client_urn = client_id.ToClientURN()
+
+    self.assertEqual(client_urn.Basename(), client_id)
+    self.assertEqual(client_urn, "aff4:/C." + "1" * 16)
 
 
 class ApiAddClientsLabelsHandlerTest(api_test_lib.ApiCallHandlerTest):
@@ -187,11 +222,7 @@ class ApiLabelsRestrictedSearchClientsHandlerTest(
 
     self.client_ids = self.SetupClients(4)
 
-    index = aff4.FACTORY.Create(
-        client_index.MAIN_INDEX,
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        token=self.token)
+    index = client_index.CreateClientIndex(token=self.token)
 
     def LabelClient(i, label, owner):
       with aff4.FACTORY.Open(

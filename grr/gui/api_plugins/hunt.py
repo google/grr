@@ -74,6 +74,28 @@ class HuntNotDeletableError(Error):
   pass
 
 
+class ApiHuntId(rdfvalue.RDFString):
+  """Class encapsulating client ids."""
+
+  def __init__(self, initializer=None, age=None):
+    super(ApiHuntId, self).__init__(initializer=initializer, age=age)
+
+    # TODO(user): move this to a separate validation method when
+    # common RDFValues validation approach is implemented.
+    if self._value:
+      try:
+        rdfvalue.SessionID.ValidateID(self._value)
+      except ValueError as e:
+        raise ValueError("Invalid hunt id: %s (%s)" %
+                         (utils.SmartStr(self._value), e))
+
+  def ToURN(self):
+    if not self._value:
+      raise ValueError("can't call ToURN() on an empty hunt id.")
+
+    return HUNTS_ROOT_PATH.Add(self._value)
+
+
 class ApiHunt(rdf_structs.RDFProtoStruct):
   """ApiHunt is used when rendering responses.
 
@@ -142,7 +164,8 @@ class ApiHuntResult(rdf_structs.RDFProtoStruct):
     return rdfvalue.RDFValue.classes[self.payload_type]
 
   def InitFromGrrMessage(self, message):
-    self.client_id = message.source
+    if message.source:
+      self.client_id = message.source.Basename()
     self.payload_type = message.payload.__class__.__name__
     self.payload = message.payload
     self.timestamp = message.age
@@ -308,9 +331,7 @@ class ApiGetHuntHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     try:
       hunt = aff4.FACTORY.Open(
-          HUNTS_ROOT_PATH.Add(args.hunt_id),
-          aff4_type=hunts.GRRHunt,
-          token=token)
+          args.hunt_id.ToURN(), aff4_type=hunts.GRRHunt, token=token)
 
       return ApiHunt().InitFromAff4Object(hunt, with_full_summary=True)
     except aff4.InstantiationError:
@@ -334,7 +355,7 @@ class ApiListHuntResultsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     results_collection = aff4.FACTORY.Open(
-        HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Results"), mode="r", token=token)
+        args.hunt_id.ToURN().Add("Results"), mode="r", token=token)
     items = api_call_handler_utils.FilterCollection(results_collection,
                                                     args.offset, args.count,
                                                     args.filter)
@@ -361,7 +382,7 @@ class ApiListHuntCrashesHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     try:
       aff4_crashes = aff4.FACTORY.Open(
-          HUNTS_ROOT_PATH.Add(args.hunt_id).Add("crashes"),
+          args.hunt_id.ToURN().Add("crashes"),
           mode="r",
           aff4_type=collects.PackedVersionedCollection,
           token=token)
@@ -393,7 +414,7 @@ class ApiGetHuntResultsExportCommandHandler(
   result_type = ApiGetHuntResultsExportCommandResult
 
   def Handle(self, args, token=None):
-    results_path = HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Results")
+    results_path = args.hunt_id.ToURN().Add("Results")
 
     export_command_str = " ".join([
         config_lib.CONFIG["AdminUI.export_command"],
@@ -427,7 +448,7 @@ class ApiListHuntOutputPluginsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     metadata = aff4.FACTORY.Create(
-        HUNTS_ROOT_PATH.Add(args.hunt_id).Add("ResultsMetadata"),
+        args.hunt_id.ToURN().Add("ResultsMetadata"),
         mode="r",
         aff4_type=implementation.HuntResultsMetadata,
         token=token)
@@ -458,7 +479,7 @@ class ApiListHuntOutputPluginLogsHandlerBase(
       raise ValueError("collection_name can't be None")
 
     metadata = aff4.FACTORY.Create(
-        HUNTS_ROOT_PATH.Add(args.hunt_id).Add("ResultsMetadata"),
+        args.hunt_id.ToURN().Add("ResultsMetadata"),
         mode="r",
         aff4_type=implementation.HuntResultsMetadata,
         token=token)
@@ -475,9 +496,7 @@ class ApiListHuntOutputPluginLogsHandlerBase(
     # have to do the filtering.
 
     logs_collection = aff4.FACTORY.Open(
-        HUNTS_ROOT_PATH.Add(args.hunt_id).Add(self.collection_name),
-        mode="r",
-        token=token)
+        args.hunt_id.ToURN().Add(self.collection_name), mode="r", token=token)
 
     if len(plugins) == 1:
       total_count = len(logs_collection)
@@ -550,13 +569,13 @@ class ApiListHuntLogsHandler(api_call_handler_base.ApiCallHandler):
     # TODO(user): Use hunt's logs_collection_urn to open logs collection.
     try:
       logs_collection = aff4.FACTORY.Open(
-          HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Logs"),
+          args.hunt_id.ToURN().Add("Logs"),
           aff4_type=flow_runner.FlowLogCollection,
           mode="r",
           token=token)
     except IOError:
       logs_collection = aff4.FACTORY.Create(
-          HUNTS_ROOT_PATH.Add(args.hunt_id).Add("Logs"),
+          args.hunt_id.ToURN().Add("Logs"),
           aff4_type=collects.RDFValueCollection,
           mode="r",
           token=token)
@@ -587,9 +606,7 @@ class ApiListHuntErrorsHandler(api_call_handler_base.ApiCallHandler):
     # TODO(user): Use hunt's logs_collection_urn to open errors collection.
 
     errors_collection = aff4.FACTORY.Open(
-        HUNTS_ROOT_PATH.Add(args.hunt_id).Add("ErrorClients"),
-        mode="r",
-        token=token)
+        args.hunt_id.ToURN().Add("ErrorClients"), mode="r", token=token)
 
     result = api_call_handler_utils.FilterCollection(errors_collection,
                                                      args.offset, args.count,
@@ -645,7 +662,7 @@ class ApiGetHuntClientCompletionStatsHandler(
       target_size = 1000
 
     hunt = aff4.FACTORY.Open(
-        HUNTS_ROOT_PATH.Add(args.hunt_id),
+        args.hunt_id.ToURN(),
         aff4_type=implementation.GRRHunt,
         mode="r",
         token=token)
@@ -762,19 +779,18 @@ class ApiGetHuntFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
       user.Notify("ArchiveGenerationFinished", None,
                   "Downloaded archive of hunt %s results (archived %d "
                   "out of %d items, archive size is %d)" %
-                  (args.hunt_id.Basename(), generator.archived_files,
+                  (args.hunt_id, generator.archived_files,
                    generator.total_files, generator.output_size),
                   self.__class__.__name__)
     except Exception as e:
       user.Notify("Error", None, "Archive generation failed for hunt %s: %s" %
-                  (args.hunt_id.Basename(), utils.SmartStr(e)),
-                  self.__class__.__name__)
+                  (args.hunt_id, utils.SmartStr(e)), self.__class__.__name__)
       raise
     finally:
       user.Close()
 
   def Handle(self, args, token=None):
-    hunt_urn = rdfvalue.RDFURN("aff4:/hunts").Add(args.hunt_id.Basename())
+    hunt_urn = args.hunt_id.ToURN()
     hunt = aff4.FACTORY.Open(hunt_urn, aff4_type=hunts.GRRHunt, token=token)
 
     hunt_api_object = ApiHunt().InitFromAff4Object(hunt)
@@ -844,14 +860,13 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
 
     api_vfs.ValidateVfsPath(args.vfs_path)
 
-    hunt_results_urn = rdfvalue.RDFURN("aff4:/hunts").Add(args.hunt_id.Basename(
-    )).Add("Results")
+    hunt_results_urn = args.hunt_id.ToURN().Add("Results")
     results = aff4.FACTORY.Open(
         hunt_results_urn,
         aff4_type=hunts_results.HuntResultCollection,
         token=token)
 
-    expected_aff4_path = args.client_id.Add(args.vfs_path)
+    expected_aff4_path = args.client_id.ToClientURN().Add(args.vfs_path)
     # TODO(user): should after_tiestamp be strictly less than the desired
     # timestamp.
     timestamp = rdfvalue.RDFDatetime(int(args.timestamp) - 1)
@@ -876,8 +891,7 @@ class ApiGetHuntFileHandler(api_call_handler_base.ApiCallHandler):
           break
 
         return api_call_handler_base.ApiBinaryStream(
-            "%s_%s" % (args.client_id.Basename(),
-                       utils.SmartStr(aff4_path.Basename())),
+            "%s_%s" % (args.client_id, utils.SmartStr(aff4_path.Basename())),
             content_generator=self._GenerateFile(aff4_stream),
             content_length=len(aff4_stream))
       except aff4.InstantiationError:
@@ -908,7 +922,7 @@ class ApiGetHuntStatsHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     """Retrieves the stats for a hunt."""
     hunt = aff4.FACTORY.Open(
-        HUNTS_ROOT_PATH.Add(args.hunt_id), aff4_type=hunts.GRRHunt, token=token)
+        args.hunt_id.ToURN(), aff4_type=hunts.GRRHunt, token=token)
 
     stats = hunt.GetRunner().context.usage_stats
 
@@ -938,8 +952,8 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiListHuntClientsResult
 
   def IncludeRequestInformationInResults(self, hunt_urn, results, token=None):
-    all_clients_urns = [i.client_id for i in results]
-    clients_to_results_map = {i.client_id.Basename(): i for i in results}
+    all_clients_urns = [i.client_id.ToClientURN() for i in results]
+    clients_to_results_map = {i.client_id: i for i in results}
 
     all_flow_urns = hunts.GRRHunt.GetAllSubflowUrns(
         hunt_urn, all_clients_urns, token=token)
@@ -1008,7 +1022,7 @@ class ApiListHuntClientsHandler(api_call_handler_base.ApiCallHandler):
 
   def Handle(self, args, token=None):
     """Retrieves the clients for a hunt."""
-    hunt_urn = HUNTS_ROOT_PATH.Add(args.hunt_id)
+    hunt_urn = args.hunt_id.ToURN()
     hunt = aff4.FACTORY.Open(hunt_urn, aff4_type=hunts.GRRHunt, token=token)
 
     clients_by_status = hunt.GetClientsByStatus()
@@ -1070,7 +1084,7 @@ class ApiGetHuntContextHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     """Retrieves the context for a hunt."""
     hunt = aff4.FACTORY.Open(
-        HUNTS_ROOT_PATH.Add(args.hunt_id), aff4_type=hunts.GRRHunt, token=token)
+        args.hunt_id.ToURN(), aff4_type=hunts.GRRHunt, token=token)
 
     if isinstance(hunt.context, rdf_hunts.HuntContext):  # New style hunt.
       # TODO(user): Hunt state will go away soon, we don't render it anymore.
@@ -1146,7 +1160,7 @@ class ApiModifyHuntHandler(api_call_handler_base.ApiCallHandler):
   result_type = ApiHunt
 
   def Handle(self, args, token=None):
-    hunt_urn = HUNTS_ROOT_PATH.Add(args.hunt_id)
+    hunt_urn = args.hunt_id.ToURN()
     try:
       hunt = aff4.FACTORY.Open(
           hunt_urn, aff4_type=hunts.GRRHunt, mode="rw", token=token)
@@ -1225,7 +1239,7 @@ class ApiDeleteHuntHandler(api_call_handler_base.ApiCallHandler):
   args_type = ApiDeleteHuntArgs
 
   def Handle(self, args, token=None):
-    hunt_urn = HUNTS_ROOT_PATH.Add(args.hunt_id)
+    hunt_urn = args.hunt_id.ToURN()
     try:
       with aff4.FACTORY.Open(
           hunt_urn, aff4_type=implementation.GRRHunt, mode="rw",
@@ -1271,7 +1285,7 @@ class ApiGetExportedHuntResultsHandler(api_call_handler_base.ApiCallHandler):
     iop_cls = instant_output_plugin.InstantOutputPlugin
     plugin_cls = iop_cls.GetPluginClassByPluginName(args.plugin_name)
 
-    hunt_urn = HUNTS_ROOT_PATH.Add(args.hunt_id)
+    hunt_urn = args.hunt_id.ToURN()
     try:
       hunt_fd = aff4.FACTORY.Open(
           hunt_urn, aff4_type=hunts.GRRHunt, mode="rw", token=token)

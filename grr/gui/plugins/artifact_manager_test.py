@@ -5,15 +5,15 @@
 
 import os
 
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import config_lib
 from grr.lib import flags
-from grr.lib import test_lib
 
 
-class TestArtifactManagementRender(test_lib.GRRSeleniumTest):
+class TestArtifactManagementRender(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
   def setUp(self):

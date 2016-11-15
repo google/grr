@@ -3,19 +3,19 @@
 """Test the fileview interface."""
 
 
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 from grr.gui.api_plugins.client import ApiSearchClientsHandler
 
 from grr.lib import aff4
 from grr.lib import flags
 from grr.lib import flow
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.flows.general import discovery
 
 
-class TestNotifications(test_lib.GRRSeleniumTest):
+class TestNotifications(gui_test_lib.GRRSeleniumTest):
   """Test the fileview interface."""
 
   @classmethod

@@ -16,6 +16,7 @@ import collections
 
 from grr.lib import rdfvalue
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import protodict as rdf_protodict
 from grr.lib.rdfvalues import structs
 from grr.lib.rdfvalues import test_base
@@ -42,6 +43,12 @@ class DictTest(test_base.RDFProtoTestCase):
     for k, v in test_dict.items():
       # Test access through getitem.
       self.assertEqual(sample[k], v)
+
+  def testEmbeddedDict(self):
+    state = rdf_flows.RequestState(data=rdf_protodict.Dict({"a": 1}))
+    serialized = state.SerializeToString()
+    deserialized = rdf_flows.RequestState.FromSerializedString(serialized)
+    self.assertEqual(deserialized.data, state.data)
 
   def testIsMapping(self):
     test_dict = rdf_protodict.Dict(a=1)

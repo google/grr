@@ -4,6 +4,7 @@
 
 
 
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 from grr.lib import aff4
 from grr.lib import flags
@@ -14,7 +15,7 @@ from grr.lib.flows.cron import system as cron_system
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
 
 
-class TestCronView(test_lib.GRRSeleniumTest):
+class TestCronView(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
   def AddJobStatus(self, job_urn, status):

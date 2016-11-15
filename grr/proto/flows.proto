@@ -1552,7 +1552,7 @@ message FileFinderDownloadActionOptions {
     HASH_TRUNCATED = 1 [(description) = "Hash truncated version of the file "
                         "(without downloading)"];
     DOWNLOAD_TRUNCATED = 2 [(description) = "Download truncated version of "
-"the file"];
+                            "the file"];
   }
   optional OversizedFilePolicy oversized_file_policy = 7 [(sem_type) = {
       description: "What should GRR do with files that are larger than "
@@ -1568,7 +1568,16 @@ message FileFinderDownloadActionOptions {
     }, default=true];
 }
 
-// Next field ID: 4
+message FileFinderStatActionOptions {
+  optional bool resolve_links = 1 [(sem_type) = {
+      description: "If true, the action will yield stat information for "
+      "link targets, if false, the stat for the link itself will "
+      "be returned.",
+      label: ADVANCED
+    }, default=false];
+}
+
+// Next field ID: 5
 message FileFinderAction {
   option (semantic) = {
     union_field: "action_type"
@@ -1586,6 +1595,7 @@ message FileFinderAction {
     }];
   optional FileFinderHashActionOptions hash = 3;
   optional FileFinderDownloadActionOptions download = 2;
+  optional FileFinderStatActionOptions stat = 4;
 }
 
 // Next field ID: 9
@@ -1620,8 +1630,18 @@ message FileFinderArgs {
       "should be used with care.",
       label: ADVANCED,
     }];
+
+  optional bool follow_links = 8 [(sem_type) = {
+      description: "Should symbolic links be followed in recursive directory"
+      " listings.",
+    }, default = true];
 }
 
+// TODO(user): This needs a bit more structure. There should be one
+// result per action and, if possible, they should be a
+// union_field. Once the file upload is ready, we need to add at least
+// an upload result that indicates the length of the uploaded data and
+// its hashes.
 // Next field ID: 4
 message FileFinderResult {
   optional StatEntry stat_entry = 1;

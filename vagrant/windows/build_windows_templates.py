@@ -139,8 +139,8 @@ class WindowsTemplateBuilder(object):
     return core, client
 
   def InstallGRR(self, path):
-    subprocess.check_call([self.PIP64, "install", "--upgrade", path])
-    subprocess.check_call([self.PIP32, "install", "--upgrade", path])
+    subprocess.check_call([self.PIP64, "install", path])
+    subprocess.check_call([self.PIP32, "install", path])
 
   def BuildTemplates(self):
     """Build client templates.

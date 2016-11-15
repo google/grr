@@ -7,7 +7,7 @@ from grr.lib import flow
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib import throttle
-from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 
 
 class ThrottleTest(test_lib.GRRBaseTest):
@@ -114,9 +114,9 @@ class ThrottleTest(test_lib.GRRBaseTest):
             token=self.token)
 
     # Now try a flow with more complicated args
-    args = file_finder.FileFinderArgs(
+    args = rdf_file_finder.FileFinderArgs(
         paths=["/tmp/1", "/tmp/2"],
-        action=file_finder.FileFinderAction(action_type="STAT"))
+        action=rdf_file_finder.FileFinderAction(action_type="STAT"))
 
     with test_lib.FakeTime(self.BASE_TIME):
       throttler.EnforceLimits(
@@ -131,7 +131,7 @@ class ThrottleTest(test_lib.GRRBaseTest):
           flow_name="FileFinder",
           token=self.token,
           paths=["/tmp/1", "/tmp/2"],
-          action=file_finder.FileFinderAction(action_type="STAT"))
+          action=rdf_file_finder.FileFinderAction(action_type="STAT"))
 
       with self.assertRaises(throttle.ErrorFlowDuplicate):
         throttler.EnforceLimits(
@@ -142,9 +142,9 @@ class ThrottleTest(test_lib.GRRBaseTest):
             token=self.token)
 
       # Different args should succeed.
-      args = file_finder.FileFinderArgs(
+      args = rdf_file_finder.FileFinderArgs(
           paths=["/tmp/1", "/tmp/3"],
-          action=file_finder.FileFinderAction(action_type="STAT"))
+          action=rdf_file_finder.FileFinderAction(action_type="STAT"))
 
       throttler.EnforceLimits(
           self.client_id,

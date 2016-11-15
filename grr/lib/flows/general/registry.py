@@ -17,6 +17,7 @@ from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import find
 # pylint: enable=unused-import
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.path_detection import windows as path_detection_windows
@@ -40,27 +41,27 @@ class RegistryFinder(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
   def ConditionsToFileFinderConditions(self, conditions):
-    ff_condition_type_cls = file_finder.FileFinderCondition.Type
+    ff_condition_type_cls = rdf_file_finder.FileFinderCondition.Type
     result = []
     for c in conditions:
       if c.condition_type == RegistryFinderCondition.Type.MODIFICATION_TIME:
         result.append(
-            file_finder.FileFinderCondition(
+            rdf_file_finder.FileFinderCondition(
                 condition_type=ff_condition_type_cls.MODIFICATION_TIME,
                 modification_time=c.modification_time))
       elif c.condition_type == RegistryFinderCondition.Type.VALUE_LITERAL_MATCH:
         result.append(
-            file_finder.FileFinderCondition(
+            rdf_file_finder.FileFinderCondition(
                 condition_type=ff_condition_type_cls.CONTENTS_LITERAL_MATCH,
                 contents_literal_match=c.value_literal_match))
       elif c.condition_type == RegistryFinderCondition.Type.VALUE_REGEX_MATCH:
         result.append(
-            file_finder.FileFinderCondition(
+            rdf_file_finder.FileFinderCondition(
                 condition_type=ff_condition_type_cls.CONTENTS_REGEX_MATCH,
                 contents_regex_match=c.value_regex_match))
       elif c.condition_type == RegistryFinderCondition.Type.SIZE:
         result.append(
-            file_finder.FileFinderCondition(
+            rdf_file_finder.FileFinderCondition(
                 condition_type=ff_condition_type_cls.SIZE, size=c.size))
       else:
         raise ValueError("Unknown condition type: %s", c.condition_type)
@@ -82,8 +83,8 @@ class RegistryFinder(flow.GRRFlow):
         paths=self.args.keys_paths,
         pathtype=rdf_paths.PathSpec.PathType.REGISTRY,
         conditions=self.ConditionsToFileFinderConditions(self.args.conditions),
-        action=file_finder.FileFinderAction(
-            action_type=file_finder.FileFinderAction.Action.STAT),
+        action=rdf_file_finder.FileFinderAction(
+            action_type=rdf_file_finder.FileFinderAction.Action.STAT),
         next_state="Done")
 
   @flow.StateHandler()

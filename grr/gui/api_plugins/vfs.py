@@ -246,7 +246,10 @@ class ApiGetFileDetailsHandler(api_call_handler_base.ApiCallHandler):
       age = aff4.ALL_TIMES
 
     file_obj = aff4.FACTORY.Open(
-        args.client_id.Add(args.file_path), mode="r", age=age, token=token)
+        args.client_id.ToClientURN().Add(args.file_path),
+        mode="r",
+        age=age,
+        token=token)
 
     return ApiGetFileDetailsResult(file=ApiFile().InitFromAff4Object(
         file_obj, with_details=True))
@@ -277,7 +280,7 @@ class ApiListFilesHandler(api_call_handler_base.ApiCallHandler):
       ValidateVfsPath(args.file_path)
 
     directory = aff4.FACTORY.Open(
-        args.client_id.Add(path), mode="r",
+        args.client_id.ToClientURN().Add(path), mode="r",
         token=token).Upgrade(aff4_standard.VFSDirectory)
 
     if args.directories_only:
@@ -351,7 +354,7 @@ class ApiGetFileTextHandler(api_call_handler_base.ApiCallHandler,
 
     try:
       file_obj = aff4.FACTORY.Open(
-          args.client_id.Add(args.file_path),
+          args.client_id.ToClientURN().Add(args.file_path),
           aff4_type=aff4.AFF4Stream,
           mode="r",
           age=age,
@@ -415,7 +418,7 @@ class ApiGetFileBlobHandler(api_call_handler_base.ApiCallHandler,
 
     try:
       file_obj = aff4.FACTORY.Open(
-          args.client_id.Add(args.file_path),
+          args.client_id.ToClientURN().Add(args.file_path),
           aff4_type=aff4.AFF4Stream,
           mode="r",
           age=age,
@@ -464,7 +467,7 @@ class ApiGetFileVersionTimesHandler(api_call_handler_base.ApiCallHandler):
     ValidateVfsPath(args.file_path)
 
     fd = aff4.FACTORY.Open(
-        args.client_id.Add(args.file_path),
+        args.client_id.ToClientURN().Add(args.file_path),
         mode="r",
         age=aff4.ALL_TIMES,
         token=token)
@@ -492,7 +495,7 @@ class ApiGetFileDownloadCommandHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
-    aff4_path = args.client_id.Add(args.file_path)
+    aff4_path = args.client_id.ToClientURN().Add(args.file_path)
 
     export_command = u" ".join([
         config_lib.CONFIG["AdminUI.export_command"], "--username",
@@ -542,14 +545,14 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
-    aff4_path = args.client_id.Add(args.file_path)
+    aff4_path = args.client_id.ToClientURN().Add(args.file_path)
     fd = aff4.FACTORY.Open(aff4_path, token=token)
 
     if args.max_depth == 1:
       flow_args = filesystem.ListDirectoryArgs(pathspec=fd.real_pathspec)
 
       flow_urn = flow.GRRFlow.StartFlow(
-          client_id=args.client_id,
+          client_id=args.client_id.ToClientURN(),
           flow_name=filesystem.ListDirectory.__name__,
           args=flow_args,
           notify_to_user=args.notify_user,
@@ -560,7 +563,7 @@ class ApiCreateVfsRefreshOperationHandler(api_call_handler_base.ApiCallHandler):
           pathspec=fd.real_pathspec, max_depth=args.max_depth)
 
       flow_urn = flow.GRRFlow.StartFlow(
-          client_id=args.client_id,
+          client_id=args.client_id.ToClientURN(),
           flow_name=filesystem.RecursiveListDirectory.__name__,
           args=flow_args,
           notify_to_user=args.notify_user,
@@ -625,7 +628,7 @@ class ApiGetVfsTimelineHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
-    folder_urn = args.client_id.Add(args.file_path)
+    folder_urn = args.client_id.ToClientURN().Add(args.file_path)
     items = self.GetTimelineItems(folder_urn, token=token)
     return ApiGetVfsTimelineResult(items=items)
 
@@ -712,11 +715,11 @@ class ApiGetVfsTimelineAsCsvHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
-    folder_urn = args.client_id.Add(args.file_path)
+    folder_urn = args.client_id.ToClientURN().Add(args.file_path)
     items = ApiGetVfsTimelineHandler.GetTimelineItems(folder_urn, token=token)
 
     return api_call_handler_base.ApiBinaryStream(
-        "%s_%s_timeline" % (args.client_id.Basename(),
+        "%s_%s_timeline" % (args.client_id,
                             utils.SmartStr(folder_urn.Basename())),
         content_generator=self._GenerateExport(items))
 
@@ -744,7 +747,7 @@ class ApiUpdateVfsFileContentHandler(api_call_handler_base.ApiCallHandler):
   def Handle(self, args, token=None):
     ValidateVfsPath(args.file_path)
 
-    aff4_path = args.client_id.Add(args.file_path)
+    aff4_path = args.client_id.ToClientURN().Add(args.file_path)
     fd = aff4.FACTORY.Open(
         aff4_path, aff4_type=aff4_grr.VFSFile, mode="rw", token=token)
     flow_urn = fd.Update(priority=rdf_flows.GrrMessage.Priority.HIGH_PRIORITY)
@@ -849,13 +852,15 @@ class ApiGetVfsFilesArchiveHandler(api_call_handler_base.ApiCallHandler):
     yield archive_generator.Close()
 
   def Handle(self, args, token=None):
+    client_urn = args.client_id.ToClientURN()
     path = args.file_path
     if not path:
-      start_urns = [args.client_id.Add(p) for p in ROOT_FILES_WHITELIST]
-      prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_", args.client_id.Basename())
+      start_urns = [client_urn.Add(p) for p in ROOT_FILES_WHITELIST]
+      prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_",
+                               utils.SmartStr(args.client_id))
     else:
       ValidateVfsPath(args.file_path)
-      start_urns = [args.client_id.Add(args.file_path)]
+      start_urns = [client_urn.Add(args.file_path)]
       prefix = "vfs_" + re.sub("[^0-9a-zA-Z]", "_",
                                start_urns[0].Path()).strip("_")
 

@@ -4,7 +4,7 @@
 
 # We have to import test_lib first to properly initialize aff4 and rdfvalues.
 # pylint: disable=g-bad-import-order
-from grr.lib import test_lib
+from grr.gui import gui_test_lib
 # pylint: enable=g-bad-import-order
 
 from grr.lib import flow
@@ -22,7 +22,7 @@ class DefaultArgsTestFlow(flow.GRRFlow):
   behaviours = flow.GRRFlow.behaviours + "BASIC"
 
 
-class TestForms(test_lib.GRRSeleniumTest):
+class TestForms(gui_test_lib.GRRSeleniumTest):
   """Tests for NavigatorView (left side bar)."""
 
   def testControlsWithoutDefaultValuesAreCorrectlyDisplayed(self):

@@ -307,6 +307,9 @@ class HashDigest(RDFBytes):
 
   data_store_type = "bytes"
 
+  def HexDigest(self):
+    return self._value.encode("hex")
+
   def __str__(self):
     return self._value.encode("hex")
 

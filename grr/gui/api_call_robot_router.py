@@ -84,7 +84,7 @@ class ApiRobotCreateFlowHandler(api_call_handler_base.ApiCallHandler):
     # Note that runner_args are dropped. From all the arguments We use only
     # the flow name and the arguments.
     flow_id = flow.GRRFlow.StartFlow(
-        client_id=args.client_id,
+        client_id=args.client_id.ToClientURN(),
         flow_name=args.flow.name,
         token=token,
         args=args.flow.args)
@@ -209,7 +209,7 @@ class ApiCallRobotRouter(api_call_router.ApiCallRouter):
           "Creating arbitrary flows (%s) is not allowed." % args.flow.name)
 
     throttler.EnforceLimits(
-        args.client_id,
+        args.client_id.ToClientURN(),
         token.username,
         args.flow.name,
         args.flow.args,

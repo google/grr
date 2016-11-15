@@ -2,6 +2,7 @@
 """Administrative flows for managing the clients state."""
 
 
+import cgi
 import shlex
 import threading
 import time
@@ -26,7 +27,6 @@ from grr.lib import flow
 from grr.lib import queues
 from grr.lib import rdfvalue
 from grr.lib import registry
-from grr.lib import rendering
 from grr.lib import stats
 from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
@@ -658,6 +658,10 @@ P.S. The state of the failing flow was:
 
 </body></html>"""
 
+  def ConvertRDFValueToHTML(self, rdfvalue_obj):
+    raw_str = utils.SmartUnicode(rdfvalue_obj)
+    return "<pre>%s</pre>" % cgi.escape(raw_str)
+
   @flow.EventHandler(allow_client_access=True)
   def ProcessMessage(self, message=None, event=None):
     """Processes this event."""
@@ -720,11 +724,10 @@ P.S. The state of the failing flow was:
       hostname = client.Get(client.Schema.HOSTNAME)
       url = urllib.urlencode((("c", client_id), ("main", "HostInformation")))
 
-      context_html = rendering.FindRendererForObject(flow_obj.context).RawHTML()
-      state_html = rendering.FindRendererForObject(flow_obj.state).RawHTML()
-      args_html = rendering.FindRendererForObject(flow_obj.args).RawHTML()
-      runner_args_html = rendering.FindRendererForObject(
-          flow_obj.runner_args).RawHTML()
+      context_html = self.ConvertRDFValueToHTML(flow_obj.context)
+      state_html = self.ConvertRDFValueToHTML(flow_obj.state)
+      args_html = self.ConvertRDFValueToHTML(flow_obj.args)
+      runner_args_html = self.ConvertRDFValueToHTML(flow_obj.runner_args)
 
       email_alerts.EMAIL_ALERTER.SendEmail(
           email_address,

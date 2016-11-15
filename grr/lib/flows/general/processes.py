@@ -4,7 +4,7 @@
 
 from grr.client.client_actions import standard as standard_actions
 from grr.lib import flow
-from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.proto import flows_pb2
 
@@ -64,8 +64,8 @@ class ListProcesses(flow.GRRFlow):
       self.CallFlow(
           "FileFinder",
           paths=paths_to_fetch,
-          action=file_finder.FileFinderAction(
-              action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
+          action=rdf_file_finder.FileFinderAction(
+              action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD),
           next_state="HandleDownloadedFiles")
 
     else:

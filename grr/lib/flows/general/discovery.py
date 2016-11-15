@@ -135,12 +135,7 @@ class Interrogate(flow.GRRFlow):
                                               response.version)))
 
         # Update the client index
-        aff4.FACTORY.Create(
-            client_index.MAIN_INDEX,
-            aff4_type=client_index.ClientIndex,
-            mode="rw",
-            object_exists=True,
-            token=self.token).AddClient(client)
+        client_index.CreateClientIndex(token=self.token).AddClient(client)
 
       if response.system == "Windows":
         with aff4.FACTORY.Create(
@@ -203,12 +198,7 @@ class Interrogate(flow.GRRFlow):
 
     # Update the client index
     client = self._OpenClient()
-    aff4.FACTORY.Create(
-        client_index.MAIN_INDEX,
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        object_exists=True,
-        token=self.token).AddClient(client)
+    client_index.CreateClientIndex(token=self.token).AddClient(client)
 
   @flow.StateHandler()
   def ProcessArtifactResponses(self, responses):
@@ -337,9 +327,4 @@ class Interrogate(flow.GRRFlow):
     self.SendReply(summary)
 
     # Update the client index
-    aff4.FACTORY.Create(
-        client_index.MAIN_INDEX,
-        aff4_type=client_index.ClientIndex,
-        mode="rw",
-        object_exists=True,
-        token=self.token).AddClient(client)
+    client_index.CreateClientIndex(token=self.token).AddClient(client)

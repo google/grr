@@ -80,7 +80,10 @@ def MakeStatResponse(st, pathspec):
         "st_blksize", "st_rdev"
     ]:
       try:
-        value = long(getattr(st, attr))
+        value = getattr(st, attr)
+        if value is None:
+          continue
+        value = long(value)
         if value < 0:
           value &= 0xFFFFFFFF
 

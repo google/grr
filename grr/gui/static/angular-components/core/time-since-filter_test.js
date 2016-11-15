@@ -1,5 +1,6 @@
 'use strict';
 
+goog.require('grrUi.client.module');
 goog.require('grrUi.core.module');
 goog.require('grrUi.core.timeSinceFilter.TimeSinceFilter');
 goog.require('grrUi.tests.module');

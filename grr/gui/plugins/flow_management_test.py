@@ -5,6 +5,7 @@
 import os
 
 from grr.gui import api_call_handler_utils
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 
 from grr.lib import action_mocks
@@ -90,7 +91,7 @@ class FlowWithOneHashEntryResult(flow.GRRFlow):
     self.SendReply(hash_result)
 
 
-class TestFlowManagement(test_lib.GRRSeleniumTest,
+class TestFlowManagement(gui_test_lib.GRRSeleniumTest,
                          standard_test.StandardHuntTestMixin):
   """Test the flow management GUI."""
 

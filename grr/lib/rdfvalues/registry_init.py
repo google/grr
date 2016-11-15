@@ -10,6 +10,7 @@ from grr.lib.rdfvalues import cronjobs
 from grr.lib.rdfvalues import crypto
 from grr.lib.rdfvalues import data_server
 from grr.lib.rdfvalues import data_store
+from grr.lib.rdfvalues import file_finder
 from grr.lib.rdfvalues import flows
 from grr.lib.rdfvalues import hunts
 from grr.lib.rdfvalues import nsrl

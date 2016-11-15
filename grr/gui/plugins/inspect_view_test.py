@@ -4,6 +4,7 @@
 
 
 
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 
 from grr.lib import flags
@@ -14,7 +15,7 @@ from grr.lib.flows.general import discovery as flow_discovery
 from grr.lib.rdfvalues import client as rdf_client
 
 
-class TestInspectViewBase(test_lib.GRRSeleniumTest):
+class TestInspectViewBase(gui_test_lib.GRRSeleniumTest):
   pass
 
 

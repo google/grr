@@ -1458,12 +1458,65 @@ class DynamicRekallResponseConverter(RekallResponseConverter):
                                    output_class)
 
 
+class ExportedYaraSignatureMatch(rdf_structs.RDFProtoStruct):
+  protobuf = export_pb2.ExportedYaraSignatureMatch
+
+
+class RekallResponseToExportedYaraSignatureMatchConverter(
+    RekallResponseConverter):
+  """Converts free-form RekallResponse to ExportedYaraSignatureMatch."""
+
+  @staticmethod
+  def HandleTableRow(metadata, message):
+    """Handles a table row, converting it if possible."""
+
+    row = message[1]
+    try:
+      row_process = row["Context"]["Process"]
+
+      process_conv_cls = RekallResponseToExportedRekallProcessConverter
+      process = process_conv_cls.EprocessToExportedRekallProcess(row_process)
+
+      result = ExportedYaraSignatureMatch(
+          metadata=metadata,
+          rule=row["Rule"],
+          hex_dump=row["HexDump"]["value"],
+          process=process)
+
+      yield result
+    except KeyError:
+      return
+
+
 class ExportedRekallProcess(rdf_structs.RDFProtoStruct):
   protobuf = export_pb2.ExportedRekallProcess
 
 
 class RekallResponseToExportedRekallProcessConverter(RekallResponseConverter):
   """Converts free-form RekallResponse to ExportedRekallProcess."""
+
+  @staticmethod
+  def EprocessToExportedRekallProcess(eprocess):
+    """Converts Rekall _EPROCESS structure to ExportedRekallProcess."""
+    result = ExportedRekallProcess(
+        pid=eprocess["Cybox"]["PID"],
+        parent_pid=eprocess["Cybox"]["Parent_PID"],
+        name=eprocess["Cybox"]["Name"],
+        creation_time=eprocess["Cybox"]["Creation_Time"]["epoch"] * 1000000)
+
+    commandline = eprocess["Cybox"]["Image_Info"]["Command_Line"]
+    if isinstance(commandline, basestring):
+      result.commandline = commandline
+
+    fullpath = eprocess["Cybox"]["Image_Info"]["Path"]
+    if isinstance(fullpath, basestring):
+      result.fullpath = fullpath
+
+    trusted_fullpath = eprocess["Cybox"]["Image_Info"]["TrustedPath"]
+    if isinstance(trusted_fullpath, basestring):
+      result.trusted_fullpath = trusted_fullpath
+
+    return result
 
   @staticmethod
   def HandleTableRow(metadata, message):
@@ -1473,27 +1526,11 @@ class RekallResponseToExportedRekallProcessConverter(RekallResponseConverter):
     try:
       eprocess = row["_EPROCESS"]
 
-      result = ExportedRekallProcess(
-          metadata=metadata,
-          pid=eprocess["Cybox"]["PID"],
-          parent_pid=eprocess["Cybox"]["Parent_PID"],
-          name=eprocess["Cybox"]["Name"],
-          creation_time=eprocess["Cybox"]["Creation_Time"]["epoch"] * 1000000)
+      process_conv_cls = RekallResponseToExportedRekallProcessConverter
+      result = process_conv_cls.EprocessToExportedRekallProcess(eprocess)
 
       if metadata:
         result.metadata = metadata
-
-      commandline = eprocess["Cybox"]["Image_Info"]["Command_Line"]
-      if isinstance(commandline, basestring):
-        result.commandline = commandline
-
-      fullpath = eprocess["Cybox"]["Image_Info"]["Path"]
-      if isinstance(fullpath, basestring):
-        result.fullpath = fullpath
-
-      trusted_fullpath = eprocess["Cybox"]["Image_Info"]["TrustedPath"]
-      if isinstance(trusted_fullpath, basestring):
-        result.trusted_fullpath = trusted_fullpath
 
       yield result
     except KeyError:

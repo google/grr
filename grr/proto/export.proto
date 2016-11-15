@@ -355,6 +355,16 @@ message ExportedArtifactFilesDownloaderResult {
 
 // Rekall-specific protobufs for reliable exporting of data from plugins.
 
+message ExportedYaraSignatureMatch {
+  optional ExportedMetadata metadata = 1;
+
+  optional ExportedRekallProcess process = 2;
+
+  optional string rule = 3;
+
+  optional string hex_dump = 4;
+}
+
 // Contains the minimum information necessary from a Windows process so
 // correlation with logs can be done easily.
 // Related plugins: pslist

@@ -7,6 +7,7 @@ import re
 import time
 import urlparse
 
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 
 from grr.lib import access_control
@@ -16,7 +17,6 @@ from grr.lib import flags
 from grr.lib import flow
 from grr.lib import hunts
 from grr.lib import rdfvalue
-from grr.lib import test_lib
 from grr.lib import utils
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.aff4_objects import users as aff4_users
@@ -25,7 +25,7 @@ from grr.lib.rdfvalues import client as rdf_client
 from grr.server import foreman as rdf_foreman
 
 
-class TestWorkflowWithoutApprovals(test_lib.GRRSeleniumTest):
+class TestWorkflowWithoutApprovals(gui_test_lib.GRRSeleniumTest):
   """Tests acl policies when approvals system is not used."""
 
   def setUp(self):
@@ -81,7 +81,7 @@ class TestWorkflowWithoutApprovals(test_lib.GRRSeleniumTest):
                       "css=h3:contains('Create a new approval')")
 
 
-class TestACLWorkflow(test_lib.GRRSeleniumTest):
+class TestACLWorkflow(gui_test_lib.GRRSeleniumTest):
   """Tests the access control workflow."""
 
   # Using an Unicode string for the test here would be optimal but Selenium

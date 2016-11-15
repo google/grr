@@ -12,6 +12,7 @@ import zipfile
 import yaml
 
 from grr.gui import api_test_lib
+from grr.gui.api_plugins import client as client_plugin
 from grr.gui.api_plugins import flow as flow_plugin
 
 from grr.lib import action_mocks
@@ -36,6 +37,7 @@ from grr.lib.hunts import standard
 from grr.lib.hunts import standard_test
 from grr.lib.output_plugins import email_plugin
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.lib.rdfvalues import test_base as rdf_test_base
@@ -86,7 +88,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
 
     self.assertEqual(
         flow_id.ResolveClientFlowURN(
-            self.client_urn, token=self.token),
+            client_plugin.ApiClientId(self.client_urn), token=self.token),
         flow_urn)
 
   def testResolvesNestedFlowURN(self):
@@ -107,7 +109,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
                                     .urn.Basename())
     self.assertEqual(
         flow_id.ResolveClientFlowURN(
-            self.client_urn, token=self.token),
+            client_plugin.ApiClientId(self.client_urn), token=self.token),
         children[0].urn)
 
   def _StartHunt(self):
@@ -133,7 +135,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
     flow_id = flow_plugin.ApiFlowId(client_flows_urns[0].Basename())
     self.assertEqual(
         flow_id.ResolveClientFlowURN(
-            self.client_urn, token=self.token),
+            client_plugin.ApiClientId(self.client_urn), token=self.token),
         client_flows_urns[0])
 
   def testResolvesNestedHuntFlowURN(self):
@@ -155,7 +157,7 @@ class ApiFlowIdTest(rdf_test_base.RDFValueTestCase,
                                     nested_flows[0].urn.Basename())
     self.assertEqual(
         flow_id.ResolveClientFlowURN(
-            self.client_urn, token=self.token),
+            client_plugin.ApiClientId(self.client_urn), token=self.token),
         nested_flows[0].urn)
 
 
@@ -747,7 +749,7 @@ class ApiGetFlowFilesArchiveHandlerTest(api_test_lib.ApiCallHandlerTest):
         flow_name=file_finder.FileFinder.__name__,
         client_id=self.client_id,
         paths=[os.path.join(self.base_path, "test.plist")],
-        action=file_finder.FileFinderAction(action_type="DOWNLOAD"),
+        action=rdf_file_finder.FileFinderAction(action_type="DOWNLOAD"),
         token=self.token)
     action_mock = action_mocks.FileFinderClientMock()
     for _ in test_lib.TestFlowHelper(

@@ -16,6 +16,15 @@ from grr.lib.rdfvalues import client as rdf_client
 MAIN_INDEX = rdfvalue.RDFURN("aff4:/client_index")
 
 
+def CreateClientIndex(token=None):
+  return aff4.FACTORY.Create(
+      MAIN_INDEX,
+      aff4_type=ClientIndex,
+      mode="rw",
+      object_exists=True,
+      token=token)
+
+
 class ClientIndex(keyword_index.AFF4KeywordIndex):
   """An index of client machines.
   """
@@ -282,12 +291,7 @@ def GetClientURNsForHostnames(hostnames, token=None):
     A dict with a list of all known GRR client_ids for each hostname.
   """
 
-  index = aff4.FACTORY.Create(
-      MAIN_INDEX,
-      aff4_type=ClientIndex,
-      mode="rw",
-      object_exists=True,
-      token=token)
+  index = CreateClientIndex(token=token)
 
   keywords = set()
   for hostname in hostnames:
@@ -333,12 +337,7 @@ def BulkLabel(label, hostnames, token=None, client_index=None):
       default client index.
   """
   if client_index is None:
-    client_index = aff4.FACTORY.Create(
-        MAIN_INDEX,
-        aff4_type=ClientIndex,
-        mode="rw",
-        object_exists=True,
-        token=token)
+    client_index = CreateClientIndex(token=token)
 
   fqdns = set()
   for hostname in hostnames:

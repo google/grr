@@ -1053,6 +1053,10 @@ message Hash {
   repeated AuthenticodeSignedData signed_data = 6 [(sem_type) = {
       description: "Signed data which may be present in PE files.",
     }];
+
+  optional uint64 num_bytes = 8 [(sem_type) = {
+      description: "The number of bytes used to create the hashes in this message."
+    }];
 }
 
 message AuthenticodeSignedData {
@@ -1239,25 +1243,6 @@ message ExecuteBinaryResponse {
   optional bytes stderr = 3;
   // The time used to execute the cmd, given in microseconds.
   optional int32 time_used = 4;
-}
-
-message DriverInstallTemplate {
-  optional SignedBlob driver = 1;
-  optional string write_path = 2;     // Path to write the driver file to.
-  optional uint32 force_reload = 3;   // Unload/Load if driver already loaded.
-
-  // Windows specific options.
-  optional string driver_name = 6;           // Drivers service name
-  optional string driver_display_name = 7;   // Display name for driver.
-  optional string device_path = 8;   // A path to the raw device.
-
-  // Linux specific options.
-  enum RewriteMode {
-    DISABLE = 0;
-    ENABLE = 1;
-    FORCE = 2;
-  }
-  optional RewriteMode mode = 9 [default = ENABLE];
 }
 
 // This requests the client to encrypt a file and send it to a specified server.

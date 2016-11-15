@@ -12,7 +12,7 @@ from grr.lib import flow
 from grr.lib import flow_utils
 from grr.lib import rdfvalue
 from grr.lib import utils
-from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import structs as rdf_structs
 from grr.parsers import chrome_history
 from grr.parsers import firefox3_history
@@ -73,8 +73,8 @@ class ChromeHistory(flow.GRRFlow):
             "FileFinder",
             paths=[os.path.join(path, fname)],
             pathtype=self.args.pathtype,
-            action=file_finder.FileFinderAction(
-                action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
+            action=rdf_file_finder.FileFinderAction(
+                action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD),
             next_state="ParseFiles")
 
   @flow.StateHandler()
@@ -187,8 +187,8 @@ class FirefoxHistory(flow.GRRFlow):
           "FileFinder",
           paths=[os.path.join(path, "**2", filename)],
           pathtype=self.args.pathtype,
-          action=file_finder.FileFinderAction(
-              action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
+          action=rdf_file_finder.FileFinderAction(
+              action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD),
           next_state="ParseFiles")
 
   @flow.StateHandler()
@@ -322,12 +322,13 @@ class CacheGrep(flow.GRRFlow):
     ]
     usernames = [u.lstrip("\\") for u in usernames]  # Strip \\ if no domain.
 
-    condition = file_finder.FileFinderCondition(
+    condition = rdf_file_finder.FileFinderCondition(
         condition_type=(
-            file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
-        contents_regex_match=file_finder.FileFinderContentsRegexMatchCondition(
+            rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
+        contents_regex_match=rdf_file_finder.
+        FileFinderContentsRegexMatchCondition(
             regex=self.args.data_regex,
-            mode=file_finder.FileFinderContentsRegexMatchCondition.Mode.
+            mode=rdf_file_finder.FileFinderContentsRegexMatchCondition.Mode.
             FIRST_HIT))
 
     for path in self.state.all_paths:
@@ -338,8 +339,8 @@ class CacheGrep(flow.GRRFlow):
             paths=[os.path.join(full_path, "**5")],
             pathtype=self.args.pathtype,
             conditions=[condition],
-            action=file_finder.FileFinderAction(
-                action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
+            action=rdf_file_finder.FileFinderAction(
+                action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD),
             next_state="HandleResults")
 
   @flow.StateHandler()

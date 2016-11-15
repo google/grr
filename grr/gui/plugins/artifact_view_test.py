@@ -5,13 +5,13 @@
 
 import os
 
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 from grr.lib import artifact
 from grr.lib import artifact_registry
 from grr.lib import config_lib
 from grr.lib import flags
 from grr.lib import parsers
-from grr.lib import test_lib
 
 
 class TestCmdProcessor(parsers.CommandParser):
@@ -20,7 +20,7 @@ class TestCmdProcessor(parsers.CommandParser):
   supported_artifacts = ["TestCmdArtifact"]
 
 
-class TestArtifactRender(test_lib.GRRSeleniumTest):
+class TestArtifactRender(gui_test_lib.GRRSeleniumTest):
   """Test the Cron view GUI."""
 
   def _UploadCustomArtifacts(self):

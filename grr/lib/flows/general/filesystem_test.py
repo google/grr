@@ -20,9 +20,9 @@ from grr.lib.aff4_objects import standard as aff4_standard
 # pylint: disable=unused-import
 from grr.lib.flows.general import collectors
 # pylint: enable=unused-import
-from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import filesystem
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -648,8 +648,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
           client_mock,
           client_id=self.client_id,
           paths=["/c/Downloads/*"],
-          action=file_finder.FileFinderAction(
-              action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
+          action=rdf_file_finder.FileFinderAction(
+              action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD),
           token=self.token):
         pass
 
@@ -690,8 +690,8 @@ class TestFilesystem(test_lib.FlowTestsBaseclass):
           client_mock,
           client_id=self.client_id,
           paths=["/c/Downloads/**5"],
-          action=file_finder.FileFinderAction(
-              action_type=file_finder.FileFinderAction.Action.DOWNLOAD),
+          action=rdf_file_finder.FileFinderAction(
+              action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD),
           token=self.token):
         pass
 

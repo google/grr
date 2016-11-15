@@ -127,39 +127,49 @@ class HashFile(actions.ActionPlugin):
   out_rdfvalues = [rdf_client.FingerprintResponse]
 
   _hash_types = {
-      "MD5": hashlib.md5,
-      "SHA1": hashlib.sha1,
-      "SHA256": hashlib.sha256,
+      "md5": hashlib.md5,
+      "sha1": hashlib.sha1,
+      "sha256": hashlib.sha256,
   }
 
-  def Run(self, args):
+  def HashFile(self, hash_types, file_obj, max_length):
     hashers = {}
+    for hash_type in hash_types:
+      hashers[hash_type] = self._hash_types[hash_type]()
+
+    # Only read as many bytes as we were told.
+    bytes_read = 0
+    while bytes_read < max_length:
+      self.Progress()
+      to_read = min(MAX_BUFFER_SIZE, max_length - bytes_read)
+      data = file_obj.read(to_read)
+      if not data:
+        break
+      for hasher in hashers.values():
+        hasher.update(data)
+
+      bytes_read += len(data)
+
+    return hashers, bytes_read
+
+  def Run(self, args):
+    hash_types = set()
     for t in args.tuples:
       for hash_name in t.hashers:
-        hashers[str(hash_name).lower()] = self._hash_types[str(hash_name)]()
+        hash_types.add(str(hash_name).lower())
 
     with vfs.VFSOpen(
         args.pathspec, progress_callback=self.Progress) as file_obj:
-      # Only read as many bytes as we were told.
-      bytes_read = 0
-      while bytes_read < args.max_filesize:
-        self.Progress()
-        to_read = min(MAX_BUFFER_SIZE, args.max_filesize - bytes_read)
-        data = file_obj.Read(to_read)
-        if not data:
-          break
-        for hasher in hashers.values():
-          hasher.update(data)
+      hashers, bytes_read = self.HashFile(hash_types, file_obj,
+                                          args.max_filesize)
 
-        bytes_read += len(data)
+    response = rdf_client.FingerprintResponse(
+        pathspec=file_obj.pathspec,
+        bytes_read=bytes_read,
+        hash=rdf_crypto.Hash(**dict((k, v.digest())
+                                    for k, v in hashers.iteritems())))
 
-      response = rdf_client.FingerprintResponse(
-          pathspec=file_obj.pathspec,
-          bytes_read=bytes_read,
-          hash=rdf_crypto.Hash(**dict((k, v.digest())
-                                      for k, v in hashers.iteritems())))
-
-      self.SendReply(response)
+    self.SendReply(response)
 
 
 class CopyPathToFile(actions.ActionPlugin):

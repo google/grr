@@ -268,7 +268,7 @@ def InstallDriver(kext_path):
   km.dll.CFRelease(kext_url)
   km.dll.CFRelease(cf_kext_path)
   if status is not objc.OS_SUCCESS:
-    raise OSError("Failed to load kext: {0}".format(kext_path))
+    raise OSError("Failed to load kext at {0}: {1}".format(kext_path, status))
 
 
 def UninstallDriver(bundle_name):

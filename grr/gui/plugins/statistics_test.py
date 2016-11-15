@@ -3,17 +3,17 @@
 """Test the statistics viewer."""
 
 
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import flags
-from grr.lib import test_lib
 from grr.lib.aff4_objects import stats as aff4_stats
 from grr.lib.rdfvalues import stats as rdf_stats
 
 
-class TestStats(test_lib.GRRSeleniumTest):
+class TestStats(gui_test_lib.GRRSeleniumTest):
   """Test the statistics interface."""
 
   @staticmethod

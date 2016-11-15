@@ -17,8 +17,8 @@ from grr.lib import utils
 from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import standard
 from grr.lib.flows.general import collectors
-from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 
 BUFFER_SIZE = 16 * 1024 * 1024
@@ -26,13 +26,7 @@ BUFFER_SIZE = 16 * 1024 * 1024
 
 def GetAllClients(token=None):
   """Return a list of all client urns."""
-  index = aff4.FACTORY.Create(
-      client_index.MAIN_INDEX,
-      aff4_type=client_index.ClientIndex,
-      mode="rw",
-      object_exists=True,
-      token=token)
-
+  index = client_index.CreateClientIndex(token=token)
   return index.LookupClients(["."])
 
 
@@ -263,7 +257,7 @@ def DownloadCollection(coll_path,
       urn = grr_message
     elif isinstance(grr_message, rdf_client.StatEntry):
       urn = rdfvalue.RDFURN(grr_message.aff4path)
-    elif isinstance(grr_message, file_finder.FileFinderResult):
+    elif isinstance(grr_message, rdf_file_finder.FileFinderResult):
       urn = rdfvalue.RDFURN(grr_message.stat_entry.aff4path)
     elif isinstance(grr_message, collectors.ArtifactFilesDownloaderResult):
       if grr_message.HasField("downloaded_file"):

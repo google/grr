@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# Copyright 2012 Google Inc. All Rights Reserved.
 """Invoke the fingerprint client action on a file."""
 
 

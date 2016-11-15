@@ -7,7 +7,7 @@ from grr.endtoend_tests import base
 from grr.lib import flow
 from grr.lib import flow_runner
 
-from grr.lib.flows.general import file_finder
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 
@@ -21,14 +21,14 @@ class TestFileFinderOSWindows(base.VFSPathContentIsPE):
   flow = "FileFinder"
   test_output_path = "/fs/os/C:/Windows/System32/notepad.exe"
 
-  sizecondition = file_finder.FileFinderSizeCondition(max_file_size=1000000)
-  filecondition = file_finder.FileFinderCondition(
-      condition_type=file_finder.FileFinderCondition.Type.SIZE,
+  sizecondition = rdf_file_finder.FileFinderSizeCondition(max_file_size=1000000)
+  filecondition = rdf_file_finder.FileFinderCondition(
+      condition_type=rdf_file_finder.FileFinderCondition.Type.SIZE,
       size=sizecondition)
 
-  download = file_finder.FileFinderDownloadActionOptions()
-  action = file_finder.FileFinderAction(
-      action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
+  download = rdf_file_finder.FileFinderDownloadActionOptions()
+  action = rdf_file_finder.FileFinderAction(
+      action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
       download=download)
 
   args = {
@@ -44,9 +44,9 @@ class TestFileFinderTSKWindows(base.VFSPathContentIsPE):
   flow = "FileFinder"
   test_output_path = "/fs/tsk/.*/Windows/System32/notepad.exe"
 
-  download = file_finder.FileFinderDownloadActionOptions()
-  action = file_finder.FileFinderAction(
-      action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
+  download = rdf_file_finder.FileFinderDownloadActionOptions()
+  action = rdf_file_finder.FileFinderAction(
+      action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
       download=download)
 
   args = {
@@ -62,14 +62,14 @@ class TestFileFinderOSLinux(base.VFSPathContentIsELF):
   flow = "FileFinder"
   test_output_path = "/fs/os/bin/ps"
 
-  sizecondition = file_finder.FileFinderSizeCondition(max_file_size=1000000)
-  filecondition = file_finder.FileFinderCondition(
-      condition_type=file_finder.FileFinderCondition.Type.SIZE,
+  sizecondition = rdf_file_finder.FileFinderSizeCondition(max_file_size=1000000)
+  filecondition = rdf_file_finder.FileFinderCondition(
+      condition_type=rdf_file_finder.FileFinderCondition.Type.SIZE,
       size=sizecondition)
 
-  download = file_finder.FileFinderDownloadActionOptions()
-  action = file_finder.FileFinderAction(
-      action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
+  download = rdf_file_finder.FileFinderDownloadActionOptions()
+  action = rdf_file_finder.FileFinderAction(
+      action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
       download=download)
 
   args = {
@@ -86,14 +86,14 @@ class TestFileFinderOSLinuxProc(base.VFSPathContentExists):
   test_output_path = "/fs/os/proc/sys/net/ipv4/ip_forward"
   client_min_version = 3007
 
-  sizecondition = file_finder.FileFinderSizeCondition(max_file_size=1000000)
-  filecondition = file_finder.FileFinderCondition(
-      condition_type=file_finder.FileFinderCondition.Type.SIZE,
+  sizecondition = rdf_file_finder.FileFinderSizeCondition(max_file_size=1000000)
+  filecondition = rdf_file_finder.FileFinderCondition(
+      condition_type=rdf_file_finder.FileFinderCondition.Type.SIZE,
       size=sizecondition)
 
-  download = file_finder.FileFinderDownloadActionOptions()
-  action = file_finder.FileFinderAction(
-      action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
+  download = rdf_file_finder.FileFinderDownloadActionOptions()
+  action = rdf_file_finder.FileFinderAction(
+      action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
       download=download)
 
   args = {
@@ -106,9 +106,9 @@ class TestFileFinderOSLinuxProc(base.VFSPathContentExists):
 class TestFileFinderOSDarwin(base.VFSPathContentIsMachO):
   platforms = ["Darwin"]
   flow = "FileFinder"
-  download = file_finder.FileFinderDownloadActionOptions()
-  action = file_finder.FileFinderAction(
-      action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
+  download = rdf_file_finder.FileFinderDownloadActionOptions()
+  action = rdf_file_finder.FileFinderAction(
+      action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
       download=download)
   args = {"paths": ["/bin/ps"], "action": action}
   test_output_path = "/fs/os/bin/ps"
@@ -121,8 +121,8 @@ class TestFileFinderOSHomedir(base.AutomatedTest):
   """
   platforms = ["Linux", "Darwin", "Windows"]
   flow = "FileFinder"
-  action = file_finder.FileFinderAction(
-      action_type=file_finder.FileFinderAction.Action.STAT)
+  action = rdf_file_finder.FileFinderAction(
+      action_type=rdf_file_finder.FileFinderAction.Action.STAT)
   args = {
       "paths": ["%%users.homedir%%/*"],
       "action": action,
@@ -159,8 +159,8 @@ class UnicodeTestFlow(flow.GRRFlow):
     if not responses.success:
       raise flow.FlowError(responses.status)
 
-    action = file_finder.FileFinderAction(
-        action_type=file_finder.FileFinderAction.Action.DOWNLOAD)
+    action = rdf_file_finder.FileFinderAction(
+        action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD)
 
     paths = [response.dest_path.path for response in responses]
     args = {"paths": paths, "action": action}

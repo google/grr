@@ -12,12 +12,12 @@ from grr.lib import flow_runner
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import sequential_collection
-from grr.lib.flows.general import file_finder
 # pylint: disable=unused-import
 from grr.lib.flows.general import registry
 # pylint: enable=unused-import
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 
 
@@ -36,6 +36,8 @@ class RegistryFlowTest(test_lib.FlowTestsBaseclass):
 
 class TestRegistryFinderFlow(RegistryFlowTest):
   """Tests for the RegistryFinder flow."""
+
+  runkey = "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
 
   def RunFlow(self, keys_paths=None, conditions=None):
     if keys_paths is None:
@@ -142,32 +144,28 @@ class TestRegistryFinderFlow(RegistryFlowTest):
                      rdf_paths.PathSpec.PathType.REGISTRY)
 
   def testFindsNothingIfNothingMatchesLiteralMatchCondition(self):
-    value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
+    vlm = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
         bytes_before=10, bytes_after=10, literal="CanNotFindMe")
 
     session_id = self.RunFlow(
-        [
-            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
-        ], [
+        [self.runkey], [
             registry.RegistryFinderCondition(
                 condition_type=registry.RegistryFinderCondition.Type.
                 VALUE_LITERAL_MATCH,
-                value_literal_match=value_literal_match)
+                value_literal_match=vlm)
         ])
     self.AssertNoResults(session_id)
 
   def testFindsKeyIfItMatchesLiteralMatchCondition(self):
-    value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
+    vlm = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
         bytes_before=10, bytes_after=10, literal="Windows Sidebar\\Sidebar.exe")
 
     session_id = self.RunFlow(
-        [
-            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
-        ], [
+        [self.runkey], [
             registry.RegistryFinderCondition(
                 condition_type=registry.RegistryFinderCondition.Type.
                 VALUE_LITERAL_MATCH,
-                value_literal_match=value_literal_match)
+                value_literal_match=vlm)
         ])
 
     results = self.GetResults(session_id)
@@ -188,13 +186,10 @@ class TestRegistryFinderFlow(RegistryFlowTest):
                      rdf_paths.PathSpec.PathType.REGISTRY)
 
   def testFindsNothingIfRegexMatchesNothing(self):
-    value_regex_match = file_finder.FileFinderContentsRegexMatchCondition(
+    value_regex_match = rdf_file_finder.FileFinderContentsRegexMatchCondition(
         bytes_before=10, bytes_after=10, regex=".*CanNotFindMe.*")
-
     session_id = self.RunFlow(
-        [
-            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
-        ], [
+        [self.runkey], [
             registry.RegistryFinderCondition(
                 condition_type=registry.RegistryFinderCondition.Type.
                 VALUE_REGEX_MATCH,
@@ -203,13 +198,11 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     self.AssertNoResults(session_id)
 
   def testFindsKeyIfItMatchesRegexMatchCondition(self):
-    value_regex_match = file_finder.FileFinderContentsRegexMatchCondition(
+    value_regex_match = rdf_file_finder.FileFinderContentsRegexMatchCondition(
         bytes_before=10, bytes_after=10, regex="Windows.+\\.exe")
 
     session_id = self.RunFlow(
-        [
-            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
-        ], [
+        [self.runkey], [
             registry.RegistryFinderCondition(
                 condition_type=registry.RegistryFinderCondition.Type.
                 VALUE_REGEX_MATCH,
@@ -234,14 +227,12 @@ class TestRegistryFinderFlow(RegistryFlowTest):
                      rdf_paths.PathSpec.PathType.REGISTRY)
 
   def testFindsNothingIfModiciationTimeConditionMatchesNothing(self):
-    modification_time = file_finder.FileFinderModificationTimeCondition(
+    modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
         min_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(0),
         max_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(1))
 
     session_id = self.RunFlow(
-        [
-            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
-        ], [
+        [self.runkey], [
             registry.RegistryFinderCondition(
                 condition_type=registry.RegistryFinderCondition.Type.
                 MODIFICATION_TIME,
@@ -250,16 +241,14 @@ class TestRegistryFinderFlow(RegistryFlowTest):
     self.AssertNoResults(session_id)
 
   def testFindsKeysIfModificationTimeConditionMatches(self):
-    modification_time = file_finder.FileFinderModificationTimeCondition(
+    modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
         min_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(
             1247546054 - 1),
         max_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(
             1247546054 + 1))
 
     session_id = self.RunFlow(
-        [
-            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
-        ], [
+        [self.runkey], [
             registry.RegistryFinderCondition(
                 condition_type=registry.RegistryFinderCondition.Type.
                 MODIFICATION_TIME,
@@ -276,19 +265,17 @@ class TestRegistryFinderFlow(RegistryFlowTest):
         [r for r in results if r.stat_entry.aff4path.Basename() == "MctAdmin"])
 
   def testFindsKeyWithLiteralAndModificationTimeConditions(self):
-    modification_time = file_finder.FileFinderModificationTimeCondition(
+    modification_time = rdf_file_finder.FileFinderModificationTimeCondition(
         min_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(
             1247546054 - 1),
         max_last_modified_time=rdfvalue.RDFDatetime().FromSecondsFromEpoch(
             1247546054 + 1))
 
-    value_literal_match = file_finder.FileFinderContentsLiteralMatchCondition(
+    vlm = rdf_file_finder.FileFinderContentsLiteralMatchCondition(
         bytes_before=10, bytes_after=10, literal="Windows Sidebar\\Sidebar.exe")
 
     session_id = self.RunFlow(
-        [
-            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
-        ], [
+        [self.runkey], [
             registry.RegistryFinderCondition(
                 condition_type=registry.RegistryFinderCondition.Type.
                 MODIFICATION_TIME,
@@ -296,7 +283,7 @@ class TestRegistryFinderFlow(RegistryFlowTest):
             registry.RegistryFinderCondition(
                 condition_type=registry.RegistryFinderCondition.Type.
                 VALUE_LITERAL_MATCH,
-                value_literal_match=value_literal_match)
+                value_literal_match=vlm)
         ])
 
     results = self.GetResults(session_id)
@@ -310,12 +297,10 @@ class TestRegistryFinderFlow(RegistryFlowTest):
   def testSizeCondition(self):
     # There are two values, one is 20 bytes, the other 53.
     session_id = self.RunFlow(
-        [
-            "HKEY_USERS/S-1-5-20/Software/Microsoft/Windows/CurrentVersion/Run/*"
-        ], [
+        [self.runkey], [
             registry.RegistryFinderCondition(
                 condition_type=registry.RegistryFinderCondition.Type.SIZE,
-                size=file_finder.FileFinderSizeCondition(min_file_size=50))
+                size=rdf_file_finder.FileFinderSizeCondition(min_file_size=50))
         ])
     results = self.GetResults(session_id)
     self.assertEqual(len(results), 1)

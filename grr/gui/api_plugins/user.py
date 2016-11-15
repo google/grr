@@ -297,10 +297,10 @@ class ApiClientApprovalArgsBase(rdf_structs.RDFProtoStruct):
   __abstract = True  # pylint: disable=g-bad-name
 
   def BuildSubjectUrn(self):
-    return self.client_id
+    return self.client_id.ToClientURN()
 
   def BuildApprovalObjUrn(self):
-    return aff4.ROOT_URN.Add("ACL").Add(self.client_id.Basename()).Add(
+    return aff4.ROOT_URN.Add("ACL").Add(utils.SmartStr(self.client_id)).Add(
         self.username).Add(self.approval_id)
 
 
@@ -323,7 +323,7 @@ class ApiCreateClientApprovalHandler(ApiCreateApprovalHandlerBase):
 
     if args.keep_client_alive:
       flow.GRRFlow.StartFlow(
-          client_id=args.client_id,
+          client_id=args.client_id.ToClientURN(),
           flow_name=administrative.KeepAlive.__name__,
           duration=3600,
           token=token)
@@ -428,7 +428,7 @@ class ApiHuntApprovalArgsBase(rdf_structs.RDFProtoStruct):
   __abstract = True  # pylint: disable=g-bad-name
 
   def BuildSubjectUrn(self):
-    return aff4.ROOT_URN.Add("hunts").Add(self.hunt_id)
+    return self.hunt_id.ToURN()
 
   def BuildApprovalObjUrn(self):
     return aff4.ROOT_URN.Add("ACL").Add(self.BuildSubjectUrn().Path()).Add(

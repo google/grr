@@ -66,12 +66,7 @@ class CAEnroler(flow.GRRFlow):
     client.Set(client.Schema.CERT, cert)
     client.Set(client.Schema.FIRST_SEEN, rdfvalue.RDFDatetime.Now())
 
-    index = aff4.FACTORY.Create(
-        client_index.MAIN_INDEX,
-        aff4_type=client_index.ClientIndex,
-        object_exists=True,
-        mode="rw",
-        token=self.token)
+    index = client_index.CreateClientIndex(token=self.token)
     index.AddClient(client)
     client.Close(sync=True)
 

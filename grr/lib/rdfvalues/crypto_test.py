@@ -22,8 +22,8 @@ class SignedBlobTest(test_base.RDFValueTestCase):
   def setUp(self):
     super(SignedBlobTest, self).setUp()
     self.private_key = config_lib.CONFIG[
-        "PrivateKeys.driver_signing_private_key"]
-    self.public_key = config_lib.CONFIG["Client.driver_signing_public_key"]
+        "PrivateKeys.executable_signing_private_key"]
+    self.public_key = config_lib.CONFIG["Client.executable_signing_public_key"]
 
   def GenerateSample(self, number=0):
     result = self.rdfvalue_class()
@@ -61,11 +61,17 @@ class SignedBlobTest(test_base.RDFValueTestCase):
     sample.Verify(self.public_key)
 
   def testM2CryptoCompatibility(self):
+    old_driver_signing_public_key = rdf_crypto.RSAPublicKey("""
+-----BEGIN PUBLIC KEY-----
+MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCOD
+QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
+-----END PUBLIC KEY-----
+                                                        """)
     serialized_blob = open(
         os.path.join(self.base_path, "m2crypto/signed_blob"), "rb").read()
     blob = rdf_crypto.SignedBlob.FromSerializedString(serialized_blob)
 
-    self.assertTrue(blob.Verify(self.public_key))
+    self.assertTrue(blob.Verify(old_driver_signing_public_key))
 
 
 class CryptoTestBase(test_lib.GRRBaseTest):
@@ -110,7 +116,7 @@ server_key = -----BEGIN PRIVATE KEY-----
         MIICdwIBADANBgkqhkiG9w0BAQEFAASCAmEwggJdAgEAAoGBAMdgLNxyvDnQsuqp
         jzITFeE6mjs3k1I=
         -----END PRIVATE KEY-----
-driver_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
+executable_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
         MIIBOgIBAAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCODQAI3WluLh0sW7/ro93eo
         -----END RSA PRIVATE KEY-----
 """)
@@ -119,20 +125,28 @@ driver_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
     with self.assertRaises(config_lib.ConfigFormatError):
       config_lib.CONFIG.Get("PrivateKeys.server_key")
     with self.assertRaises(config_lib.ConfigFormatError):
-      config_lib.CONFIG.Get("PrivateKeys.driver_signing_private_key")
+      config_lib.CONFIG.Get("PrivateKeys.executable_signing_private_key")
 
-  def testRSAPublicKey(self):
+  def testRSAPublicKeySuccess(self):
+    config_lib.CONFIG.Initialize(data="""
+[Client]
+executable_signing_public_key = -----BEGIN PUBLIC KEY-----
+    MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCOD
+    QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
+    -----END PUBLIC KEY-----
+""")
+    config_lib.CONFIG.context = []
+
+    errors = config_lib.CONFIG.Validate("Client")
+    self.assertFalse(errors)
+
+  def testRSAPublicKeyFailure(self):
     """Deliberately try to parse an invalid public key."""
     config_lib.CONFIG.Initialize(data="""
 [Client]
 executable_signing_public_key = -----BEGIN PUBLIC KEY-----
         GpJgTFkTIAgX0Ih5lxoFB5TUjUfJFbBkSmKQPRA/IyuLBtCLQgwkTNkCAwEAAQ==
         -----END PUBLIC KEY-----
-
-driver_signing_public_key = -----BEGIN PUBLIC KEY-----
-    MFwwDQYJKoZIhvcNAQEBBQADSwAwSAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCOD
-    QAI3WluLh0sW7/ro93eoIZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQ==
-    -----END PUBLIC KEY-----
 """)
     config_lib.CONFIG.context = []
 
@@ -144,7 +158,7 @@ driver_signing_public_key = -----BEGIN PUBLIC KEY-----
     """Tests parsing an RSA private key."""
     config_lib.CONFIG.Initialize(data="""
 [PrivateKeys]
-driver_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
+executable_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
     MIIBOgIBAAJBALnfFW1FffeKPs5PLUhFOSkNrr9TDCODQAI3WluLh0sW7/ro93eo
     IZ0FbipnTpzGkPpriONbSOXmxWNTo0b9ma8CAwEAAQJAfg37HBZK7bxGB+jOjvrT
     XzI2Vu7dhqAWouojT357DMKjGvkO+w7r6BmToZkgHRL4Nvh1KJ/APYdWWR+jTwJ3
@@ -156,7 +170,7 @@ driver_signing_private_key = -----BEGIN RSA PRIVATE KEY-----
 """)
     config_lib.CONFIG.context = []
     self.assertIsInstance(
-        config_lib.CONFIG.Get("PrivateKeys.driver_signing_private_key"),
+        config_lib.CONFIG.Get("PrivateKeys.executable_signing_private_key"),
         rdf_crypto.RSAPrivateKey)
 
 

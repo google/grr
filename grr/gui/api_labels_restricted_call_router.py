@@ -53,7 +53,8 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
   def CheckClientLabels(self, client_id, token=None):
     has_label = False
     with aff4.FACTORY.Open(
-        client_id, aff4_type=aff4_grr.VFSGRRClient, token=token) as fd:
+        client_id.ToClientURN(), aff4_type=aff4_grr.VFSGRRClient,
+        token=token) as fd:
       for label in fd.GetLabels():
         if (label.name in self.labels_whitelist and
             label.owner in self.labels_owners_whitelist):
@@ -81,7 +82,8 @@ class ApiLabelsRestrictedCallRouter(api_call_router.ApiCallRouter):
 
   def CheckClientApproval(self, client_id, token=None):
     self.CheckClientLabels(client_id, token=token)
-    self.legacy_manager.CheckClientAccess(token.RealUID(), client_id)
+    self.legacy_manager.CheckClientAccess(token.RealUID(),
+                                          client_id.ToClientURN())
 
   # Clients methods.
   # ===============

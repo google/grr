@@ -91,6 +91,11 @@
                   }
                 }
               },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
               "hardware_info": {
                 "age": 42000000,
                 "type": "HardwareInfo",
@@ -176,6 +181,7 @@
           "agent_info": {
             "client_name": "GRR Monitor"
           },
+          "client_id": "C.1000000000000000",
           "hardware_info": {
             "bios_version": "Bios-Version-0",
             "system_manufacturer": "System-Manufacturer-0"
@@ -939,6 +945,11 @@
                   }
                 }
               },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
               "hardware_info": {
                 "age": 42000000,
                 "type": "HardwareInfo",
@@ -1021,6 +1032,7 @@
           "agent_info": {
             "client_name": "GRR Monitor"
           },
+          "client_id": "C.1000000000000000",
           "hardware_info": {
             "bios_version": "Bios-Version-0",
             "system_manufacturer": "System-Manufacturer-0"
@@ -1098,6 +1110,11 @@
                     "value": "GRR Monitor"
                   }
                 }
+              },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000001"
               },
               "hardware_info": {
                 "age": 42000000,
@@ -1181,6 +1198,7 @@
           "agent_info": {
             "client_name": "GRR Monitor"
           },
+          "client_id": "C.1000000000000001",
           "hardware_info": {
             "bios_version": "Bios-Version-1",
             "system_manufacturer": "System-Manufacturer-1"
@@ -1221,6 +1239,11 @@
                 "value": "GRR Monitor"
               }
             }
+          },
+          "client_id": {
+            "age": 0,
+            "type": "ApiClientId",
+            "value": "C.1000000000000000"
           },
           "hardware_info": {
             "age": 42000000,
@@ -1295,6 +1318,7 @@
         "agent_info": {
           "client_name": "GRR Monitor"
         },
+        "client_id": "C.1000000000000000",
         "hardware_info": {
           "bios_version": "Bios-Version-0",
           "system_manufacturer": "System-Manufacturer-0"
@@ -7091,6 +7115,11 @@
                   }
                 }
               },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
               "hardware_info": {
                 "age": 42000000,
                 "type": "HardwareInfo",
@@ -7173,6 +7202,7 @@
           "agent_info": {
             "client_name": "GRR Monitor"
           },
+          "client_id": "C.1000000000000000",
           "hardware_info": {
             "bios_version": "Bios-Version-0",
             "system_manufacturer": "System-Manufacturer-0"
@@ -7485,8 +7515,8 @@
                     "value": {
                       "client_id": {
                         "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
+                        "type": "ApiClientId",
+                        "value": "C.1000000000000000"
                       }
                     }
                   },
@@ -7528,8 +7558,8 @@
                     "value": {
                       "client_id": {
                         "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
+                        "type": "ApiClientId",
+                        "value": "C.1000000000000000"
                       }
                     }
                   },
@@ -7558,7 +7588,7 @@
             "message": "Host-0: <some other message>",
             "reference": {
               "discovery": {
-                "client_id": "aff4:/C.1000000000000000"
+                "client_id": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -7569,7 +7599,7 @@
             "message": "Host-0: <some message>",
             "reference": {
               "discovery": {
-                "client_id": "aff4:/C.1000000000000000"
+                "client_id": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -7609,8 +7639,8 @@
                     "value": {
                       "client_id": {
                         "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
+                        "type": "ApiClientId",
+                        "value": "C.1000000000000000"
                       }
                     }
                   },
@@ -7652,8 +7682,8 @@
                     "value": {
                       "client_id": {
                         "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
+                        "type": "ApiClientId",
+                        "value": "C.1000000000000000"
                       }
                     }
                   },
@@ -7682,7 +7712,7 @@
             "message": "Host-0: <some other message>",
             "reference": {
               "discovery": {
-                "client_id": "aff4:/C.1000000000000000"
+                "client_id": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -7693,7 +7723,7 @@
             "message": "Host-0: <some message>",
             "reference": {
               "discovery": {
-                "client_id": "aff4:/C.1000000000000000"
+                "client_id": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -7733,8 +7763,8 @@
                     "value": {
                       "client_id": {
                         "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
+                        "type": "ApiClientId",
+                        "value": "C.1000000000000000"
                       }
                     }
                   },
@@ -7776,8 +7806,8 @@
                     "value": {
                       "client_id": {
                         "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
+                        "type": "ApiClientId",
+                        "value": "C.1000000000000000"
                       }
                     }
                   },
@@ -7806,7 +7836,7 @@
             "message": "Host-0: <some other message>",
             "reference": {
               "discovery": {
-                "client_id": "aff4:/C.1000000000000000"
+                "client_id": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -7817,7 +7847,7 @@
             "message": "Host-0: <some message>",
             "reference": {
               "discovery": {
-                "client_id": "aff4:/C.1000000000000000"
+                "client_id": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -8245,6 +8275,11 @@
                       }
                     }
                   },
+                  "client_id": {
+                    "age": 0,
+                    "type": "ApiClientId",
+                    "value": "C.1000000000000001"
+                  },
                   "hardware_info": {
                     "age": 42000000,
                     "type": "HardwareInfo",
@@ -8364,6 +8399,11 @@
                       }
                     }
                   },
+                  "client_id": {
+                    "age": 0,
+                    "type": "ApiClientId",
+                    "value": "C.1000000000000000"
+                  },
                   "hardware_info": {
                     "age": 42000000,
                     "type": "HardwareInfo",
@@ -8450,6 +8490,7 @@
               "agent_info": {
                 "client_name": "GRR Monitor"
               },
+              "client_id": "C.1000000000000001",
               "hardware_info": {
                 "bios_version": "Bios-Version-1",
                 "system_manufacturer": "System-Manufacturer-1"
@@ -8485,6 +8526,7 @@
               "agent_info": {
                 "client_name": "GRR Monitor"
               },
+              "client_id": "C.1000000000000000",
               "hardware_info": {
                 "bios_version": "Bios-Version-0",
                 "system_manufacturer": "System-Manufacturer-0"
@@ -8566,6 +8608,11 @@
                         "value": "GRR Monitor"
                       }
                     }
+                  },
+                  "client_id": {
+                    "age": 0,
+                    "type": "ApiClientId",
+                    "value": "C.1000000000000000"
                   },
                   "hardware_info": {
                     "age": 42000000,
@@ -8653,6 +8700,7 @@
               "agent_info": {
                 "client_name": "GRR Monitor"
               },
+              "client_id": "C.1000000000000000",
               "hardware_info": {
                 "bios_version": "Bios-Version-0",
                 "system_manufacturer": "System-Manufacturer-0"
@@ -9372,7 +9420,7 @@
               "doc": {
                 "age": 0,
                 "type": "unicode",
-                "value": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n"
+                "value": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: RDFBool\n      default: 1\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n"
               },
               "friendly_name": {
                 "age": 0,
@@ -9500,7 +9548,7 @@
                 "c:\\windows\\system32\\notepad.*"
               ]
             },
-            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n",
+            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: RDFBool\n      default: 1\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n",
             "friendly_name": "File Finder",
             "name": "FileFinder"
           },
@@ -9584,7 +9632,7 @@
               "doc": {
                 "age": 0,
                 "type": "unicode",
-                "value": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n"
+                "value": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: RDFBool\n      default: 1\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n"
               },
               "friendly_name": {
                 "age": 0,
@@ -9664,7 +9712,7 @@
                 "c:\\windows\\system32\\notepad.*"
               ]
             },
-            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n",
+            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: RDFBool\n      default: 1\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n",
             "friendly_name": "File Finder",
             "name": "FileFinder"
           },
@@ -11019,8 +11067,8 @@
             "value": {
               "client_id": {
                 "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
               },
               "cpu_usage": {
                 "age": 0,
@@ -11104,8 +11152,8 @@
             "value": {
               "client_id": {
                 "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000001"
+                "type": "ApiClientId",
+                "value": "C.1000000000000001"
               },
               "cpu_usage": {
                 "age": 0,
@@ -11189,8 +11237,8 @@
             "value": {
               "client_id": {
                 "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000002"
+                "type": "ApiClientId",
+                "value": "C.1000000000000002"
               },
               "cpu_usage": {
                 "age": 0,
@@ -11274,8 +11322,8 @@
             "value": {
               "client_id": {
                 "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000003"
+                "type": "ApiClientId",
+                "value": "C.1000000000000003"
               },
               "cpu_usage": {
                 "age": 0,
@@ -11359,8 +11407,8 @@
             "value": {
               "client_id": {
                 "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000004"
+                "type": "ApiClientId",
+                "value": "C.1000000000000004"
               },
               "cpu_usage": {
                 "age": 0,
@@ -11397,7 +11445,7 @@
       "type_stripped_response": {
         "items": [
           {
-            "client_id": "aff4:/C.1000000000000000",
+            "client_id": "C.1000000000000000",
             "cpu_usage": {
               "system_cpu_time": 0.0,
               "user_cpu_time": 0.0
@@ -11418,7 +11466,7 @@
             ]
           },
           {
-            "client_id": "aff4:/C.1000000000000001",
+            "client_id": "C.1000000000000001",
             "cpu_usage": {
               "system_cpu_time": 0.0,
               "user_cpu_time": 0.0
@@ -11439,7 +11487,7 @@
             ]
           },
           {
-            "client_id": "aff4:/C.1000000000000002",
+            "client_id": "C.1000000000000002",
             "cpu_usage": {
               "system_cpu_time": 0.0,
               "user_cpu_time": 0.0
@@ -11460,7 +11508,7 @@
             ]
           },
           {
-            "client_id": "aff4:/C.1000000000000003",
+            "client_id": "C.1000000000000003",
             "cpu_usage": {
               "system_cpu_time": 0.0,
               "user_cpu_time": 0.0
@@ -11481,7 +11529,7 @@
             ]
           },
           {
-            "client_id": "aff4:/C.1000000000000004",
+            "client_id": "C.1000000000000004",
             "cpu_usage": {
               "system_cpu_time": 2.0,
               "user_cpu_time": 1.0
@@ -11505,8 +11553,8 @@
             "value": {
               "client_id": {
                 "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000000"
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
               },
               "cpu_usage": {
                 "age": 0,
@@ -11590,8 +11638,8 @@
             "value": {
               "client_id": {
                 "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000001"
+                "type": "ApiClientId",
+                "value": "C.1000000000000001"
               },
               "cpu_usage": {
                 "age": 0,
@@ -11675,8 +11723,8 @@
             "value": {
               "client_id": {
                 "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000002"
+                "type": "ApiClientId",
+                "value": "C.1000000000000002"
               },
               "cpu_usage": {
                 "age": 0,
@@ -11760,8 +11808,8 @@
             "value": {
               "client_id": {
                 "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000003"
+                "type": "ApiClientId",
+                "value": "C.1000000000000003"
               },
               "cpu_usage": {
                 "age": 0,
@@ -11846,7 +11894,7 @@
       "type_stripped_response": {
         "items": [
           {
-            "client_id": "aff4:/C.1000000000000000",
+            "client_id": "C.1000000000000000",
             "cpu_usage": {
               "system_cpu_time": 0.0,
               "user_cpu_time": 0.0
@@ -11867,7 +11915,7 @@
             ]
           },
           {
-            "client_id": "aff4:/C.1000000000000001",
+            "client_id": "C.1000000000000001",
             "cpu_usage": {
               "system_cpu_time": 0.0,
               "user_cpu_time": 0.0
@@ -11888,7 +11936,7 @@
             ]
           },
           {
-            "client_id": "aff4:/C.1000000000000002",
+            "client_id": "C.1000000000000002",
             "cpu_usage": {
               "system_cpu_time": 0.0,
               "user_cpu_time": 0.0
@@ -11909,7 +11957,7 @@
             ]
           },
           {
-            "client_id": "aff4:/C.1000000000000003",
+            "client_id": "C.1000000000000003",
             "cpu_usage": {
               "system_cpu_time": 0.0,
               "user_cpu_time": 0.0
@@ -11945,8 +11993,8 @@
             "value": {
               "client_id": {
                 "age": 0,
-                "type": "ClientURN",
-                "value": "aff4:/C.1000000000000004"
+                "type": "ApiClientId",
+                "value": "C.1000000000000004"
               },
               "cpu_usage": {
                 "age": 0,
@@ -11983,7 +12031,7 @@
       "type_stripped_response": {
         "items": [
           {
-            "client_id": "aff4:/C.1000000000000004",
+            "client_id": "C.1000000000000004",
             "cpu_usage": {
               "system_cpu_time": 2.0,
               "user_cpu_time": 1.0
@@ -14093,8 +14141,8 @@
                     "value": {
                       "client_id": {
                         "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
+                        "type": "ApiClientId",
+                        "value": "C.1000000000000000"
                       }
                     }
                   },
@@ -14136,8 +14184,8 @@
                     "value": {
                       "client_id": {
                         "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
+                        "type": "ApiClientId",
+                        "value": "C.1000000000000000"
                       }
                     }
                   },
@@ -14165,7 +14213,7 @@
             "message": "Host-0: <some message>",
             "reference": {
               "discovery": {
-                "client_id": "aff4:/C.1000000000000000"
+                "client_id": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -14176,7 +14224,7 @@
             "message": "Host-0: <some other message>",
             "reference": {
               "discovery": {
-                "client_id": "aff4:/C.1000000000000000"
+                "client_id": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -14215,8 +14263,8 @@
                     "value": {
                       "client_id": {
                         "age": 0,
-                        "type": "ClientURN",
-                        "value": "aff4:/C.1000000000000000"
+                        "type": "ApiClientId",
+                        "value": "C.1000000000000000"
                       }
                     }
                   },
@@ -14244,7 +14292,7 @@
             "message": "Host-0: <some other message>",
             "reference": {
               "discovery": {
-                "client_id": "aff4:/C.1000000000000000"
+                "client_id": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -15188,6 +15236,11 @@
                   }
                 }
               },
+              "client_id": {
+                "age": 0,
+                "type": "ApiClientId",
+                "value": "C.1000000000000000"
+              },
               "hardware_info": {
                 "age": 42000000,
                 "type": "HardwareInfo",
@@ -15260,6 +15313,7 @@
             "agent_info": {
               "client_name": "GRR Monitor"
             },
+            "client_id": "C.1000000000000000",
             "hardware_info": {
               "bios_version": "Bios-Version-0",
               "system_manufacturer": "System-Manufacturer-0"

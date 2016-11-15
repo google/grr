@@ -17,13 +17,13 @@ from grr.lib import rdfvalue
 from grr.lib import server_stubs
 from grr.lib import utils
 from grr.lib.aff4_objects import collects
-from grr.lib.flows.general import file_finder
 from grr.lib.flows.general import filesystem
 # For AnalyzeClientMemory. pylint: disable=unused-import
 from grr.lib.flows.general import memory as _
 # pylint: enable=unused-import
 from grr.lib.flows.general import transfer
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths
 from grr.lib.rdfvalues import structs as rdf_structs
 # For various parsers use by artifacts. pylint: disable=unused-import
@@ -240,9 +240,10 @@ class ArtifactCollectorFlow(flow.GRRFlow):
               self.state.knowledge_base,
               ignore_errors=self.args.ignore_interpolation_errors))
 
-    action = file_finder.FileFinderAction(
-        action_type=file_finder.FileFinderAction.Action.DOWNLOAD,
-        download=file_finder.FileFinderDownloadActionOptions(max_size=max_size))
+    action = rdf_file_finder.FileFinderAction(
+        action_type=rdf_file_finder.FileFinderAction.Action.DOWNLOAD,
+        download=rdf_file_finder.FileFinderDownloadActionOptions(
+            max_size=max_size))
 
     self.CallFlow(
         "FileFinder",
@@ -304,22 +305,22 @@ class ArtifactCollectorFlow(flow.GRRFlow):
     content_regex_list = self.InterpolateList(
         source.attributes.get("content_regex_list", []))
 
-    regex_condition = file_finder.FileFinderContentsRegexMatchCondition(
+    regex_condition = rdf_file_finder.FileFinderContentsRegexMatchCondition(
         regex=self._CombineRegex(content_regex_list),
         bytes_before=0,
         bytes_after=0,
         mode="ALL_HITS")
 
-    file_finder_condition = file_finder.FileFinderCondition(
+    file_finder_condition = rdf_file_finder.FileFinderCondition(
         condition_type=(
-            file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
+            rdf_file_finder.FileFinderCondition.Type.CONTENTS_REGEX_MATCH),
         contents_regex_match=regex_condition)
 
     self.CallFlow(
         "FileFinder",
         paths=path_list,
         conditions=[file_finder_condition],
-        action=file_finder.FileFinderAction(),
+        action=rdf_file_finder.FileFinderAction(),
         pathtype=pathtype,
         request_data={
             "artifact_name": self.current_artifact_name,

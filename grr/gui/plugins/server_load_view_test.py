@@ -3,6 +3,7 @@
 
 
 
+from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 
 from grr.lib import aff4
@@ -14,7 +15,7 @@ from grr.lib import test_lib
 from grr.lib.aff4_objects import stats_store
 
 
-class TestServerLoadView(test_lib.GRRSeleniumTest):
+class TestServerLoadView(gui_test_lib.GRRSeleniumTest):
   """Tests for ServerLoadView."""
 
   @staticmethod

@@ -11,9 +11,9 @@ from grr.lib import flags
 from grr.lib import parsers
 from grr.lib import test_lib
 from grr.lib import utils
-from grr.lib.flows.general import file_finder
 from grr.lib.rdfvalues import anomaly as rdf_anomaly
 from grr.lib.rdfvalues import client as rdf_client
+from grr.lib.rdfvalues import file_finder as rdf_file_finder
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.parsers import linux_file_parser
 
@@ -173,7 +173,7 @@ user2:x:1001:1001:User2 Name,,,:/home/user
     buf2 = rdf_client.BufferReference(data="user2:x:1000:1000:User2"
                                       " Name,,,:/home/user2:/bin/bash\n")
 
-    ff_result = file_finder.FileFinderResult(matches=[buf1, buf2])
+    ff_result = rdf_file_finder.FileFinderResult(matches=[buf1, buf2])
     out = list(parser.Parse(ff_result, None))
     self.assertEqual(len(out), 2)
     self.assertTrue(isinstance(out[1], rdf_client.User))
@@ -224,7 +224,7 @@ super_group3 (-,user5,) (-,user6,) group1 group2
     buf2 = rdf_client.BufferReference(data="super_group3 (-,user5,) (-,user6,)"
                                       " group1 group2\n")
 
-    ff_result = file_finder.FileFinderResult(matches=[buf1, buf2])
+    ff_result = rdf_file_finder.FileFinderResult(matches=[buf1, buf2])
     with test_lib.ConfigOverrider({
         "Artifacts.netgroup_user_blacklist": ["user2", "user3"]
     }):
@@ -493,14 +493,10 @@ class LinuxDotFileParserTest(test_lib.GRRBaseTest):
     cshrc_stat = rdf_client.StatEntry(pathspec=rdf_paths.PathSpec(
         path="/home/user1/.cshrc", pathtype="OS"))
     bashrc = {
-        r.name:
-            r.vals
+        r.name: r.vals
         for r in parser.Parse(bashrc_stat, bashrc_data, None)
     }
-    cshrc = {
-        r.name: r.vals
-        for r in parser.Parse(cshrc_stat, cshrc_data, None)
-    }
+    cshrc = {r.name: r.vals for r in parser.Parse(cshrc_stat, cshrc_data, None)}
     expected = {
         "PATH": [".", "${HOME}/bin", "$PATH"],
         "PYTHONPATH": [".", "${HOME}/bin", "$PATH", "/path1", "/path2"],

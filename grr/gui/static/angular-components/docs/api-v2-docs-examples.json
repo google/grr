@@ -45,6 +45,7 @@
           "agentInfo": {
             "clientName": "GRR Monitor"
           },
+          "clientId": "C.1000000000000000",
           "hardwareInfo": {
             "biosVersion": "Bios-Version-0",
             "systemManufacturer": "System-Manufacturer-0"
@@ -329,6 +330,7 @@
           "agentInfo": {
             "clientName": "GRR Monitor"
           },
+          "clientId": "C.1000000000000000",
           "hardwareInfo": {
             "biosVersion": "Bios-Version-0",
             "systemManufacturer": "System-Manufacturer-0"
@@ -366,6 +368,7 @@
           "agentInfo": {
             "clientName": "GRR Monitor"
           },
+          "clientId": "C.1000000000000001",
           "hardwareInfo": {
             "biosVersion": "Bios-Version-1",
             "systemManufacturer": "System-Manufacturer-1"
@@ -394,6 +397,7 @@
         "agentInfo": {
           "clientName": "GRR Monitor"
         },
+        "clientId": "C.1000000000000000",
         "hardwareInfo": {
           "biosVersion": "Bios-Version-0",
           "systemManufacturer": "System-Manufacturer-0"
@@ -3844,6 +3848,7 @@
           "agentInfo": {
             "clientName": "GRR Monitor"
           },
+          "clientId": "C.1000000000000000",
           "hardwareInfo": {
             "biosVersion": "Bios-Version-0",
             "systemManufacturer": "System-Manufacturer-0"
@@ -3939,7 +3944,7 @@
             "message": "Host-0: <some other message>",
             "reference": {
               "discovery": {
-                "clientId": "aff4:/C.1000000000000000"
+                "clientId": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -3950,7 +3955,7 @@
             "message": "Host-0: <some message>",
             "reference": {
               "discovery": {
-                "clientId": "aff4:/C.1000000000000000"
+                "clientId": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -3972,7 +3977,7 @@
             "message": "Host-0: <some other message>",
             "reference": {
               "discovery": {
-                "clientId": "aff4:/C.1000000000000000"
+                "clientId": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -3983,7 +3988,7 @@
             "message": "Host-0: <some message>",
             "reference": {
               "discovery": {
-                "clientId": "aff4:/C.1000000000000000"
+                "clientId": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -4005,7 +4010,7 @@
             "message": "Host-0: <some other message>",
             "reference": {
               "discovery": {
-                "clientId": "aff4:/C.1000000000000000"
+                "clientId": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -4016,7 +4021,7 @@
             "message": "Host-0: <some message>",
             "reference": {
               "discovery": {
-                "clientId": "aff4:/C.1000000000000000"
+                "clientId": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -4155,6 +4160,7 @@
               "agentInfo": {
                 "clientName": "GRR Monitor"
               },
+              "clientId": "C.1000000000000001",
               "hardwareInfo": {
                 "biosVersion": "Bios-Version-1",
                 "systemManufacturer": "System-Manufacturer-1"
@@ -4186,6 +4192,7 @@
               "agentInfo": {
                 "clientName": "GRR Monitor"
               },
+              "clientId": "C.1000000000000000",
               "hardwareInfo": {
                 "biosVersion": "Bios-Version-0",
                 "systemManufacturer": "System-Manufacturer-0"
@@ -4227,6 +4234,7 @@
               "agentInfo": {
                 "clientName": "GRR Monitor"
               },
+              "clientId": "C.1000000000000000",
               "hardwareInfo": {
                 "biosVersion": "Bios-Version-0",
                 "systemManufacturer": "System-Manufacturer-0"
@@ -4458,7 +4466,7 @@
                 "c:\\windows\\system32\\notepad.*"
               ]
             },
-            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n",
+            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: RDFBool\n      default: 1\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n",
             "friendlyName": "File Finder",
             "name": "FileFinder"
           },
@@ -4514,7 +4522,7 @@
                 "c:\\windows\\system32\\notepad.*"
               ]
             },
-            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n",
+            "doc": "This flow looks for files matching given criteria and acts on them.\n\n  FileFinder searches for files that match glob expressions.  The \"action\"\n  (e.g. Download) is applied to files that match all given \"conditions\".\n  Matches are then written to the results collection. If there are no\n  \"conditions\" specified, \"action\" is just applied to all found files.\n\n  FileFinder replaces these deprecated flows: FetchFiles, FingerprintFile\n  and SearchFileContent.\n  \n\n  Call Spec:\n    flow.GRRFlow.StartFlow(client_id=client_id, flow_name=\"FileFinder\", paths=paths, pathtype=pathtype, conditions=conditions, action=action, process_non_regular_files=process_non_regular_files, follow_links=follow_links)\n\n  Args:\n    action\n      description: \n      type: FileFinderAction\n      default: None\n\n    conditions\n      description: These conditions will be applied to all files that match the path arguments.\n      type: \n      default: None\n\n    follow_links\n      description: Should symbolic links be followed in recursive directory listings.\n      type: RDFBool\n      default: 1\n\n    paths\n      description: A path to glob that can contain %% expansions.\n      type: \n      default: None\n\n    pathtype\n      description: Path type to glob in.\n      type: EnumNamedValue\n      default: OS\n\n    process_non_regular_files\n      description: Look both into regular files and non-regular files (devices, named pipes, sockets). NOTE: This is very dangerous and should be used with care.\n      type: RDFBool\n      default: 0\n",
             "friendlyName": "File Finder",
             "name": "FileFinder"
           },
@@ -4826,7 +4834,7 @@
       "response": {
         "items": [
           {
-            "clientId": "aff4:/C.1000000000000000",
+            "clientId": "C.1000000000000000",
             "cpuUsage": {
               "systemCpuTime": 0.0,
               "userCpuTime": 0.0
@@ -4847,7 +4855,7 @@
             ]
           },
           {
-            "clientId": "aff4:/C.1000000000000001",
+            "clientId": "C.1000000000000001",
             "cpuUsage": {
               "systemCpuTime": 0.0,
               "userCpuTime": 0.0
@@ -4868,7 +4876,7 @@
             ]
           },
           {
-            "clientId": "aff4:/C.1000000000000002",
+            "clientId": "C.1000000000000002",
             "cpuUsage": {
               "systemCpuTime": 0.0,
               "userCpuTime": 0.0
@@ -4889,7 +4897,7 @@
             ]
           },
           {
-            "clientId": "aff4:/C.1000000000000003",
+            "clientId": "C.1000000000000003",
             "cpuUsage": {
               "systemCpuTime": 0.0,
               "userCpuTime": 0.0
@@ -4910,7 +4918,7 @@
             ]
           },
           {
-            "clientId": "aff4:/C.1000000000000004",
+            "clientId": "C.1000000000000004",
             "cpuUsage": {
               "systemCpuTime": 2.0,
               "userCpuTime": 1.0
@@ -4930,7 +4938,7 @@
       "response": {
         "items": [
           {
-            "clientId": "aff4:/C.1000000000000000",
+            "clientId": "C.1000000000000000",
             "cpuUsage": {
               "systemCpuTime": 0.0,
               "userCpuTime": 0.0
@@ -4951,7 +4959,7 @@
             ]
           },
           {
-            "clientId": "aff4:/C.1000000000000001",
+            "clientId": "C.1000000000000001",
             "cpuUsage": {
               "systemCpuTime": 0.0,
               "userCpuTime": 0.0
@@ -4972,7 +4980,7 @@
             ]
           },
           {
-            "clientId": "aff4:/C.1000000000000002",
+            "clientId": "C.1000000000000002",
             "cpuUsage": {
               "systemCpuTime": 0.0,
               "userCpuTime": 0.0
@@ -4993,7 +5001,7 @@
             ]
           },
           {
-            "clientId": "aff4:/C.1000000000000003",
+            "clientId": "C.1000000000000003",
             "cpuUsage": {
               "systemCpuTime": 0.0,
               "userCpuTime": 0.0
@@ -5025,7 +5033,7 @@
       "response": {
         "items": [
           {
-            "clientId": "aff4:/C.1000000000000004",
+            "clientId": "C.1000000000000004",
             "cpuUsage": {
               "systemCpuTime": 2.0,
               "userCpuTime": 1.0
@@ -5556,7 +5564,7 @@
             "message": "Host-0: <some message>",
             "reference": {
               "discovery": {
-                "clientId": "aff4:/C.1000000000000000"
+                "clientId": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -5567,7 +5575,7 @@
             "message": "Host-0: <some other message>",
             "reference": {
               "discovery": {
-                "clientId": "aff4:/C.1000000000000000"
+                "clientId": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -5588,7 +5596,7 @@
             "message": "Host-0: <some other message>",
             "reference": {
               "discovery": {
-                "clientId": "aff4:/C.1000000000000000"
+                "clientId": "C.1000000000000000"
               },
               "type": "DISCOVERY"
             },
@@ -5720,6 +5728,7 @@
             "agentInfo": {
               "clientName": "GRR Monitor"
             },
+            "clientId": "C.1000000000000000",
             "hardwareInfo": {
               "biosVersion": "Bios-Version-0",
               "systemManufacturer": "System-Manufacturer-0"

@@ -157,7 +157,7 @@ class RekallTests(RekallTestSuite):
     request.plugins = [
         # Run procdump to create one file.
         rdf_rekall_types.PluginRequest(
-            plugin="procdump", args=dict(pid=2860))
+            plugin="procdump", args=dict(pids=[2860]))
     ]
 
     with test_lib.Instrument(transfer.MultiGetFile,
@@ -174,7 +174,7 @@ class RekallTests(RekallTestSuite):
         rdf_rekall_types.PluginRequest(
             plugin="pslist",
             args=dict(
-                pid=[4, 2860], method="PsActiveProcessHead")),
+                pids=[4, 2860], method="PsActiveProcessHead")),
     ]
 
     session_id = self.LaunchRekallPlugin(request)

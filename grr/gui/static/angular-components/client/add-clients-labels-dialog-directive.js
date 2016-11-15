@@ -42,7 +42,7 @@ var AddClientsLabelsDialogController =
 AddClientsLabelsDialogController.prototype.proceed = function() {
   var clients = [];
   angular.forEach(this.scope_['clients'], function(clientObj) {
-    clients.push(clientObj['value']['urn']['value']);
+    clients.push(clientObj['value']['client_id']['value']);
   });
 
   var deferred = this.q_.defer();

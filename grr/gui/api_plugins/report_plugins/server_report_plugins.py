@@ -67,7 +67,7 @@ class MostActiveUsersReportPlugin(report_plugins.ReportPluginBase):
 
   TYPE = report_plugins.ApiReportDescriptor.ReportType.SERVER
   TITLE = "User Breakdown"
-  SUMMARY = "Active user actions in the last week."
+  SUMMARY = "Active user actions."
   REQUIRES_TIME_RANGE = True
 
   def GetReportData(self, get_report_args, token):

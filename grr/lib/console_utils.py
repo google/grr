@@ -14,7 +14,6 @@ import logging
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import client_index
-from grr.lib import config_lib
 from grr.lib import data_store
 from grr.lib import flow
 from grr.lib import rdfvalue
@@ -36,11 +35,7 @@ def FormatISOTime(t):
 def SearchClients(query_str, token=None, limit=1000):
   """Search indexes for clients. Returns list (client, hostname, os version)."""
   client_schema = aff4.AFF4Object.classes["VFSGRRClient"].SchemaCls
-  index = aff4.FACTORY.Create(
-      client_index.MAIN_INDEX,
-      aff4_type=client_index.ClientIndex,
-      mode="rw",
-      token=token)
+  index = client_index.CreateClientIndex(token=token)
 
   client_list = index.LookupClients([query_str])
   result_set = aff4.FACTORY.MultiOpen(client_list, token=token)
@@ -97,21 +92,6 @@ def DownloadDir(aff4_path, output_dir, bufsize=8192, preserve_path=True):
 def GetToken():
   user = getpass.getuser()
   return access_control.ACLToken(username=user)
-
-
-def ListDrivers():
-  """Print a list of drivers in the datastore."""
-  aff4_paths = set()
-  token = GetToken()
-  for client_context in [["Platform:Darwin", "Arch:amd64"],
-                         ["Platform:Windows", "Arch:i386"],
-                         ["Platform:Windows", "Arch:amd64"]]:
-    aff4_paths.update(
-        config_lib.CONFIG.Get("MemoryDriver.aff4_paths",
-                              context=client_context))
-
-  for driver in aff4.FACTORY.MultiOpen(aff4_paths, mode="r", token=token):
-    print driver
 
 
 def OpenClient(client_id=None, token=None):
@@ -481,12 +461,7 @@ def FindClonedClients(token=None):
     A list of clients that report alternating hardware ids.
   """
 
-  index = aff4.FACTORY.Create(
-      client_index.MAIN_INDEX,
-      aff4_type=client_index.ClientIndex,
-      mode="rw",
-      object_exists=True,
-      token=token)
+  index = client_index.CreateClientIndex(token=token)
 
   clients = index.LookupClients(["."])
 
