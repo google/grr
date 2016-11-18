@@ -8,7 +8,6 @@ import StringIO
 import zlib
 
 from requests.packages import urllib3
-from requests.packages.urllib3 import connectionpool
 
 import logging
 
@@ -205,7 +204,7 @@ def _RecCopyFiles(rebalance, server_id, dspath, subpath, pool_cache,
       try:
         pool = pool_cache[key]
       except KeyError:
-        pool = connectionpool.HTTPConnectionPool(addr, port=port)
+        pool = urllib3.connectionpool.HTTPConnectionPool(addr, port=port)
         pool_cache[key] = pool
       logging.info("Need to move %s from %d to %d", key, server_id, where)
       if not _SendFileToServer(pool, path, subpath, comp, rebalance):

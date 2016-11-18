@@ -15,11 +15,12 @@ var MONTH_SECONDS = 30*24*60*60;
 
 // A month ago
 /** @type {number} */
-var DEFAULT_START_TIME = (moment().valueOf() - MONTH_SECONDS * 1000) * 1000;
+var DEFAULT_START_TIME_SECS =
+    Math.ceil(moment().valueOf() / 1000 - MONTH_SECONDS);
 
 // One month
 /** @type {number} */
-var DEFAULT_DURATION = MONTH_SECONDS;
+var DEFAULT_DURATION_SECS = MONTH_SECONDS;
 
 /** @type {string} */
 var DEFAULT_CLIENT_LABEL = '';
@@ -62,16 +63,10 @@ grrUi.stats.reportDirective.ReportController =
   this.reportDesc;
 
   /** @type {number} */
-  this.startTime = DEFAULT_START_TIME;
-
-  /** @type {Object} */
-  this.typedStartTime;
+  this.startTime = DEFAULT_START_TIME_SECS;
 
   /** @type {number} */
-  this.duration = DEFAULT_DURATION;
-
-  /** @type {Object} */
-  this.typedDuration;
+  this.duration = DEFAULT_DURATION_SECS;
 
   /** @type {*} */
   this.labelsList;
@@ -84,28 +79,6 @@ grrUi.stats.reportDirective.ReportController =
 
   this.scope_.$watchGroup(['name', 'startTime', 'duration', 'clientLabel'],
                           this.onParamsChange_.bind(this));
-
-  // TODO(user): Abstract the timerange selection logic to a different
-  //                directive.
-  this.grrReflectionService_.getRDFValueDescriptor('RDFDatetime').then(
-      function(rdfDesc) {
-    this.typedStartTime = angular.copy(rdfDesc['default']);
-    this.typedStartTime['value'] = this.startTime;
-
-    this.scope_.$watch('controller.startTime', function() {
-        this.typedStartTime['value'] = this.startTime;
-    }.bind(this));
-
-    return this.grrReflectionService_.getRDFValueDescriptor('Duration');
-  }.bind(this)).then(function(rdfDesc) {
-    this.typedDuration = angular.copy(rdfDesc['default']);
-    this.typedDuration['value'] = this.duration;
-
-    this.scope_.$watch('controller.duration', function() {
-        this.typedDuration['value'] = this.duration;
-    }.bind(this));
-  }.bind(this));
-
 
   // TODO(user): Labels selector should be abstracted into a separate
   //                component. When that's done it should also be reused
@@ -133,7 +106,7 @@ ReportController.prototype.onParamsChange_ = function() {
     this.startTime = startTime;
   }
   if (startTime === null) {
-    this.startTime = DEFAULT_START_TIME;
+    this.startTime = DEFAULT_START_TIME_SECS;
   }
 
   var duration = this.scope_['duration'];
@@ -141,7 +114,7 @@ ReportController.prototype.onParamsChange_ = function() {
     this.duration = duration;
   }
   if (duration === null) {
-    this.duration = DEFAULT_DURATION;
+    this.duration = DEFAULT_DURATION_SECS;
   }
 
   var clientLabel = this.scope_['clientLabel'];
@@ -163,8 +136,8 @@ ReportController.prototype.onParamsChange_ = function() {
 ReportController.prototype.refreshReport = function() {
   // If the values are different than before, this triggers onParamsChange_
   // which triggers fetchData_.
-  this.scope_['startTime'] = this.typedStartTime['value'];
-  this.scope_['duration'] = this.typedDuration['value'];
+  this.scope_['startTime'] = this.startTime;
+  this.scope_['duration'] = this.duration;
   this.scope_['clientLabel'] = this.modelClientLabel;
 };
 
@@ -182,7 +155,7 @@ ReportController.prototype.fetchData_ = function() {
     var apiUrl = 'stats/reports/' + name;
     var apiParams = {
       start_time: this.startTime,
-      duration: this.duration,
+      duration: this.duration * 1e6,  // conversion to μs
       client_label: this.clientLabel
     };
 

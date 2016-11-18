@@ -20,6 +20,7 @@ goog.require('grrUi.forms.semanticProtoRepeatedFieldFormDirective.SemanticProtoR
 goog.require('grrUi.forms.semanticProtoSingleFieldFormDirective.SemanticProtoSingleFieldFormDirective');
 goog.require('grrUi.forms.semanticProtoUnionFormDirective.SemanticProtoUnionFormDirective');
 goog.require('grrUi.forms.semanticValueFormDirective.SemanticValueFormDirective');
+goog.require('grrUi.forms.timerangeFormDirective.TimerangeFormDirective');
 
 
 /**
@@ -103,6 +104,9 @@ grrUi.forms.module.directive(
     grrUi.forms.semanticValueFormDirective.SemanticValueFormDirective
         .directive_name,
     grrUi.forms.semanticValueFormDirective.SemanticValueFormDirective);
+grrUi.forms.module.directive(
+    grrUi.forms.timerangeFormDirective.TimerangeFormDirective.directive_name,
+    grrUi.forms.timerangeFormDirective.TimerangeFormDirective);
 
 
 grrUi.forms.module.run(function(grrSemanticFormDirectivesRegistryService) {

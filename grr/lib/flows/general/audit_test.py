@@ -10,6 +10,7 @@ from grr.lib import config_lib
 from grr.lib import events
 from grr.lib import flags
 from grr.lib import test_lib
+# This needs to be imported for the audit event listener to be activated.
 # pylint: disable=unused-import
 from grr.lib.flows.general import audit as _
 # pylint: enable=unused-import

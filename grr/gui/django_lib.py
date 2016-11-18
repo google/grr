@@ -2,6 +2,9 @@
 """This file sets up the django environment."""
 
 import os
+import socket
+import threading
+from wsgiref import simple_server
 
 
 import django
@@ -10,6 +13,42 @@ from django.conf import settings
 import logging
 from grr.lib import config_lib
 from grr.lib import registry
+
+
+class DjangoThread(threading.Thread):
+  """A class to run the wsgi server in another thread."""
+
+  keep_running = True
+  daemon = True
+
+  def __init__(self, port, **kwargs):
+    super(DjangoThread, self).__init__(**kwargs)
+    self.base_url = "http://127.0.0.1:%d" % port
+    self.ready_to_serve = threading.Event()
+    self.port = port
+
+  def StartAndWaitUntilServing(self):
+    self.start()
+    if not self.ready_to_serve.wait(60.0):
+      raise RuntimeError("Djangothread did not initialize properly.")
+
+  def run(self):
+    """Run the django server in a thread."""
+    logging.info("Base URL is %s", self.base_url)
+    port = self.port
+    logging.info("Django listening on port %d.", port)
+    try:
+      # Make a simple reference implementation WSGI server
+      server = simple_server.make_server("0.0.0.0", port, GetWSGIHandler())
+    except socket.error as e:
+      raise socket.error("Error while listening on port %d: %s." %
+                         (port, str(e)))
+
+    # We want to notify other threads that we are now ready to serve right
+    # before we enter the serving loop.
+    self.ready_to_serve.set()
+    while self.keep_running:
+      server.handle_request()
 
 
 class DjangoInit(registry.InitHook):

@@ -2,7 +2,11 @@
 """Web authentication classes for the GUI."""
 
 
+# weird django import order for version issues so
+
 from django import http
+# pylint: enable=g-bad-import-order,unused-import
+
 import logging
 
 from grr.lib import access_control
@@ -106,6 +110,7 @@ class NullWebAuthManager(BaseWebAuthManager):
     request.token = access_control.ACLToken(
         username="Testing", reason="Just a test")
     return func(request, *args, **kwargs)
+
 
 # Global to store the configured web auth manager.
 WEBAUTH_MANAGER = None

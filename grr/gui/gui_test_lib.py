@@ -20,24 +20,24 @@ import logging
 
 from grr.gui import api_auth_manager
 from grr.gui import api_call_router_with_approval_checks
-# pylint: disable=unused-import
-from grr.gui import tests_init
-# pylint: enable=unused-import
 from grr.gui import webauth
 
+from grr.lib import access_control
 from grr.lib import action_mocks
 from grr.lib import aff4
 from grr.lib import artifact_registry
+from grr.lib import client_index
 from grr.lib import data_store
 from grr.lib import hunts
 from grr.lib import rdfvalue
-from grr.lib import registry
 from grr.lib import stats
 from grr.lib import utils
+from grr.lib.aff4_objects import aff4_grr
 from grr.lib.aff4_objects import user_managers
 from grr.lib.aff4_objects import users
 from grr.lib.flows.general import transfer
 from grr.lib.hunts import results as hunts_results
+from grr.lib.rdfvalues import client as rdf_client
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 from grr.server import foreman as rdf_foreman
@@ -421,6 +421,21 @@ class GRRSeleniumTest(test_lib.GRRBaseTest):
 
     raise RuntimeError("condition not met. Got %r" % data)
 
+  def _MakeFixtures(self):
+    # Install the mock security manager so we can trap errors in interactive
+    # mode.
+    data_store.DB.security_manager = test_lib.MockSecurityManager()
+    token = access_control.ACLToken(username="test", reason="Make fixtures.")
+    token = token.SetUID()
+
+    for i in range(10):
+      client_id = rdf_client.ClientURN("C.%016X" % i)
+      with aff4.FACTORY.Create(
+          client_id, aff4_grr.VFSGRRClient, mode="rw",
+          token=token) as client_obj:
+        index = client_index.CreateClientIndex(token=token)
+        index.AddClient(client_obj)
+
   def setUp(self):
     super(GRRSeleniumTest, self).setUp()
 
@@ -438,8 +453,7 @@ class GRRSeleniumTest(test_lib.GRRBaseTest):
         token=self.token) as user_fd:
       user_fd.Set(user_fd.Schema.GUI_SETTINGS(mode="ADVANCED"))
 
-    # This creates client fixtures for the UI tests.
-    registry.InitHook.classes["RunTestsInit"]().Run()
+    self._MakeFixtures()
 
     # Clean artifacts sources.
     artifact_registry.REGISTRY.ClearSources()

@@ -10,6 +10,10 @@ from grr.lib import flow
 from grr.lib import maintenance_utils
 from grr.lib import rdfvalue
 from grr.lib import test_lib
+# required for testUserModificationAudit
+# pylint: disable=unused-import
+from grr.lib.flows.general import audit as _
+# pylint: enable=unused-import
 from grr.lib.rdfvalues import flows as rdf_flows
 from grr.lib.rdfvalues import paths as rdf_paths
 

@@ -18,7 +18,7 @@ import requests
 import logging
 
 from grr.gui import api_auth_manager
-from grr.gui import runtests
+from grr.gui import django_lib
 from grr.gui import webauth
 from grr.gui.api_client import api as grr_api
 from grr.lib import action_mocks
@@ -61,7 +61,7 @@ class HTTPApiEndToEndTestProgram(test_lib.GrrTestProgram):
     HTTPApiEndToEndTestProgram.server_port = port
     logging.info("Picked free AdminUI port %d.", port)
 
-    self.trd = runtests.DjangoThread(port)
+    self.trd = django_lib.DjangoThread(port)
     self.trd.StartAndWaitUntilServing()
 
 

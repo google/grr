@@ -58,14 +58,13 @@ class WindowsTemplateBuilder(object):
   # http://www.appveyor.com/docs/installed-software#python
   PYTHON_DIR_64 = r"C:\Python27-x64"
   PYTHON_DIR_32 = r"C:\Python27"
-  PYTHON_BIN64 = os.path.join(PYTHON_DIR_64, "python.exe")
+  VIRTUALENV_PYTHON32 = os.path.join(PYTHON_DIR_32, r"Scripts\python.exe")
+  VIRTUALENV_PYTHON64 = os.path.join(PYTHON_DIR_64, r"Scripts\python.exe")
   VIRTUALENV_BIN64 = os.path.join(PYTHON_DIR_64, r"Scripts\virtualenv.exe")
   VIRTUALENV_BIN32 = os.path.join(PYTHON_DIR_32, r"Scripts\virtualenv.exe")
   BUILDDIR = r"C:\grrbuild"
   VIRTUALENV64 = os.path.join(BUILDDIR, r"PYTHON_64")
   VIRTUALENV32 = os.path.join(BUILDDIR, r"PYTHON_32")
-  VIRTUALENV_ACTIVATE64 = os.path.join(VIRTUALENV64, r"Scripts\activate")
-  VIRTUALENV_ACTIVATE32 = os.path.join(VIRTUALENV32, r"Scripts\activate")
   GRR_CLIENT_BUILD64 = os.path.join(VIRTUALENV64,
                                     r"Scripts\grr_client_build.exe")
   GRR_CLIENT_BUILD32 = os.path.join(VIRTUALENV32,
@@ -95,6 +94,15 @@ class WindowsTemplateBuilder(object):
     subprocess.check_call([self.PIP64, "install", "--upgrade", "virtualenv"])
     subprocess.check_call([self.PIP32, "install", "--upgrade", "virtualenv"])
 
+    # These can be removed once we support pip 9.
+    subprocess.check_call([
+        self.VIRTUALENV_PYTHON32, "-m", "pip", "install", "--upgrade",
+        "pip>=8.1.1,<9"
+    ])
+    subprocess.check_call([
+        self.VIRTUALENV_PYTHON64, "-m", "pip", "install", "--upgrade",
+        "pip>=8.1.1,<9"
+    ])
     os.environ["PROTOC"] = self.PROTOC
 
   def GitCheckoutGRR(self):
@@ -105,8 +113,9 @@ class WindowsTemplateBuilder(object):
   def MakeCoreSdist(self):
     os.chdir(args.grr_src)
     subprocess.check_call([
-        self.PYTHON_BIN64, "setup.py", "sdist", "--dist-dir=%s" % self.BUILDDIR,
-        "--no-make-docs", "--no-make-ui-files", "--no-sync-artifacts"
+        self.VIRTUALENV_BIN64, "setup.py", "sdist", "--formats=zip",
+        "--dist-dir=%s" % self.BUILDDIR, "--no-make-docs", "--no-make-ui-files",
+        "--no-sync-artifacts"
     ])
     return glob.glob(os.path.join(self.BUILDDIR,
                                   "grr-response-core-*.zip")).pop()
@@ -114,7 +123,8 @@ class WindowsTemplateBuilder(object):
   def MakeClientSdist(self):
     os.chdir(os.path.join(args.grr_src, "grr/config/grr-response-client/"))
     subprocess.check_call([
-        self.PYTHON_BIN64, "setup.py", "sdist", "--dist-dir=%s" % self.BUILDDIR
+        self.VIRTUALENV_BIN64, "setup.py", "sdist", "--formats=zip",
+        "--dist-dir=%s" % self.BUILDDIR
     ])
     return glob.glob(os.path.join(self.BUILDDIR,
                                   "grr-response-client-*.zip")).pop()

@@ -12,6 +12,7 @@ from grr.lib import flow
 from grr.lib import queue_manager
 from grr.lib import test_lib
 from grr.lib.flows.general import discovery as flow_discovery
+from grr.lib.flows.general import processes
 from grr.lib.rdfvalues import client as rdf_client
 
 
@@ -27,7 +28,9 @@ class TestClientLoadView(TestInspectViewBase):
       client_id=rdf_client.ClientURN("C.0000000000000001"), token=None):
 
     flow.GRRFlow.StartFlow(
-        client_id=client_id, flow_name="ListProcesses", token=token)
+        client_id=client_id,
+        flow_name=processes.ListProcesses.__name__,
+        token=token)
     with queue_manager.QueueManager(token=token) as manager:
       manager.QueryAndOwn(client_id.Queue(), limit=1, lease_seconds=10000)
 
@@ -47,7 +50,7 @@ class TestClientLoadView(TestInspectViewBase):
 
     flow.GRRFlow.StartFlow(
         client_id=rdf_client.ClientURN("C.0000000000000001"),
-        flow_name="ListProcesses",
+        flow_name=processes.ListProcesses.__name__,
         token=self.token)
 
   def testClientActionIsDisplayedWhenItReceiveByTheClient(self):
@@ -56,7 +59,7 @@ class TestClientLoadView(TestInspectViewBase):
       self.CreateLeasedClientRequest(token=self.token)
 
     self.Open("/#/clients/C.0000000000000001/load-stats")
-    self.WaitUntil(self.IsTextPresent, "ListProcesses")
+    self.WaitUntil(self.IsTextPresent, processes.ListProcesses.__name__)
     self.WaitUntil(self.IsTextPresent, "Task id")
     self.WaitUntil(self.IsTextPresent, "Task eta")
 

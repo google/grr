@@ -3,7 +3,7 @@
 
 
 
-from requests.packages.urllib3 import connectionpool
+from requests.packages import urllib3
 
 from grr.lib import flags
 from grr.lib import test_lib
@@ -67,6 +67,7 @@ def GetMockHTTPConnectionPoolClass(responses_class_value):
       })
 
       return self.responses.pop(0)
+
     # pylint: enable=invalid-name
 
   return MockHTTPConnectionPool
@@ -154,7 +155,8 @@ class MasterTest(test_lib.GRRBaseTest):
 
         pool_class = GetMockHTTPConnectionPoolClass(response_mocks)
 
-        with libutils.Stubber(connectionpool, "HTTPConnectionPool", pool_class):
+        with libutils.Stubber(urllib3.connectionpool, "HTTPConnectionPool",
+                              pool_class):
           m = data_server.StandardDataServer(port,
                                              data_server.DataServerHandler)
           m.handler_cls.NONCE_STORE = auth.NonceStore()

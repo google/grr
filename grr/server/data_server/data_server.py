@@ -15,7 +15,6 @@ from grr.lib import server_plugins
 # pylint: enable=unused-import,g-bad-import-order,g-import-not-at-top
 
 from requests.packages import urllib3
-from requests.packages.urllib3 import connectionpool
 
 import logging
 
@@ -633,7 +632,7 @@ class StandardDataServer(object):
     self.master_addr = loc.hostname
     self.master_port = loc.port
     self.my_port = my_port
-    self.pool = connectionpool.HTTPConnectionPool(
+    self.pool = urllib3.connectionpool.HTTPConnectionPool(
         self.master_addr, port=int(self.master_port), maxsize=1)
     self.registered = False
     self.periodic_fail = 0

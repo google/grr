@@ -81,7 +81,7 @@ class InterpolationError(Error):
   """Raised when a config object failed to interpolate."""
 
   def AddContext(self, message):
-    self.message += " " + message
+    self.message = "%s %s" % (self.message, message)
     self.args = (self.message,)
 
 

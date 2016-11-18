@@ -8,7 +8,6 @@ import urlparse
 
 
 from requests.packages import urllib3
-from requests.packages.urllib3 import connectionpool
 
 import logging
 
@@ -243,7 +242,7 @@ class DataMaster(object):
     self.rebalance_pool = []
     try:
       for serv in self.servers:
-        pool = connectionpool.HTTPConnectionPool(
+        pool = urllib3.connectionpool.HTTPConnectionPool(
             serv.Address(), port=serv.Port())
         self.rebalance_pool.append(pool)
     except urllib3.exceptions.MaxRetryError:
@@ -301,7 +300,7 @@ class DataMaster(object):
       for serv in self.servers[1:]:
         if skip and serv in skip:
           continue
-        pool = connectionpool.HTTPConnectionPool(
+        pool = urllib3.connectionpool.HTTPConnectionPool(
             serv.Address(), port=serv.Port())
         pools.append((serv, pool))
       body = self.mapping.SerializeToString()

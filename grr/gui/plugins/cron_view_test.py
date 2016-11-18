@@ -8,11 +8,24 @@ from grr.gui import gui_test_lib
 from grr.gui import runtests_test
 from grr.lib import aff4
 from grr.lib import flags
+from grr.lib import output_plugin
 from grr.lib import rdfvalue
 from grr.lib import test_lib
 from grr.lib.aff4_objects import cronjobs
 from grr.lib.flows.cron import system as cron_system
+from grr.lib.flows.general import processes
 from grr.lib.rdfvalues import cronjobs as rdf_cronjobs
+
+
+class DummyOutputPlugin(output_plugin.OutputPlugin):
+  """Output plugin that takes processes.ListProcessesArgs and does nothing."""
+
+  name = "dummy"
+  description = "Dummy do do."
+  args_type = processes.ListProcessesArgs
+
+  def ProcessResponses(self, responses):
+    pass
 
 
 class TestCronView(gui_test_lib.GRRSeleniumTest):

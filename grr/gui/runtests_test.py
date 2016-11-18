@@ -8,8 +8,8 @@ from selenium import webdriver
 
 import logging
 
+from grr.gui import django_lib
 from grr.gui import gui_test_lib
-from grr.gui import runtests
 from grr.lib import flags
 from grr.lib import test_lib
 
@@ -22,16 +22,19 @@ class SeleniumTestLoader(test_lib.GRRTestLoader):
 class SeleniumTestProgram(test_lib.GrrTestProgram):
 
   def SetupSelenium(self, port):
-    os.environ.pop("http_proxy", None)
-
-    # This is very expensive to start up - we make it a class attribute so it
-    # can be shared with all the classes.
     gui_test_lib.GRRSeleniumTest.base_url = ("http://localhost:%s" % port)
 
+
+    # pylint: disable=unreachable
+    os.environ.pop("http_proxy", None)
     options = webdriver.ChromeOptions()
     gui_test_lib.GRRSeleniumTest.driver = webdriver.Chrome(
         chrome_options=options)
 
+    # pylint: disable=unused-variable,g-import-not-at-top
+    from grr.gui.plugins import tests
+    # pylint: enable=unused-variable,g-import-not-at-top
+    # pylint: enable=unreachable
 
   def TearDownSelenium(self):
     """Tear down the selenium session."""
@@ -47,7 +50,7 @@ class SeleniumTestProgram(test_lib.GrrTestProgram):
     logging.info("Picked free AdminUI port %d.", port)
 
     # Start up a server in another thread
-    self.trd = runtests.DjangoThread(port)
+    self.trd = django_lib.DjangoThread(port)
     self.trd.StartAndWaitUntilServing()
     self.SetupSelenium(port)
 

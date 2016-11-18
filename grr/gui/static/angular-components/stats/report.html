@@ -39,15 +39,9 @@
     </span>
 
     <span ng-if="controller.reportDesc.requires_time_range">
-      <label class="control-label">Time range start time</label>
-      <div class="controls">
-        <grr-form-value value="controller.typedStartTime"></grr-form-value>
-      </div>
-
-      <label class="control-label">Time range duration</label>
-      <div class="controls">
-        <grr-form-value value="controller.typedDuration"></grr-form-value>
-      </div>
+      <grr-form-timerange start-time-secs="controller.startTime"
+                          duration-secs="controller.duration">
+      </grr-form-timerange>
     </span>
 
     <div ng-if="controller.reportDesc.type === 'CLIENT' ||

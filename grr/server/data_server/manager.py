@@ -9,7 +9,6 @@ import time
 import urlparse
 
 from requests.packages import urllib3
-from requests.packages.urllib3 import connectionpool
 
 # pylint: disable=unused-import,g-bad-import-order
 from grr.client import client_plugins
@@ -38,7 +37,8 @@ class Manager(object):
     loc = urlparse.urlparse(master_location, scheme="http")
     self.addr = loc.hostname
     self.port = int(loc.port)
-    self.pool = connectionpool.HTTPConnectionPool(self.addr, port=self.port)
+    self.pool = urllib3.connectionpool.HTTPConnectionPool(
+        self.addr, port=self.port)
     self.history_path = os.path.expanduser("~/.grr-data-store-manager")
     if os.path.exists(self.history_path):
       readline.read_history_file(self.history_path)
@@ -160,7 +160,8 @@ class Manager(object):
     # Send mapping information to master.
     pool = None
     try:
-      pool = connectionpool.HTTPConnectionPool(self.addr, port=self.port)
+      pool = urllib3.connectionpool.HTTPConnectionPool(
+          self.addr, port=self.port)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to contact master..."
       return
@@ -225,7 +226,8 @@ class Manager(object):
     print "Contacting master about transaction %s..." % transid,
     pool = None
     try:
-      pool = connectionpool.HTTPConnectionPool(self.addr, port=self.port)
+      pool = urllib3.connectionpool.HTTPConnectionPool(
+          self.addr, port=self.port)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to contact master..."
       return
@@ -287,7 +289,8 @@ class Manager(object):
       return
     pool = None
     try:
-      pool = connectionpool.HTTPConnectionPool(self.addr, port=self.port)
+      pool = urllib3.connectionpool.HTTPConnectionPool(
+          self.addr, port=self.port)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to contact master..."
       return
@@ -363,7 +366,8 @@ class Manager(object):
     """Forces the master to sync with the other data servers."""
     pool = None
     try:
-      pool = connectionpool.HTTPConnectionPool(self.addr, port=self.port)
+      pool = urllib3.connectionpool.HTTPConnectionPool(
+          self.addr, port=self.port)
       body = ""
       headers = {"Content-Length": len(body)}
       res = pool.urlopen(
@@ -432,7 +436,8 @@ class Manager(object):
 
     pool = None
     try:
-      pool = connectionpool.HTTPConnectionPool(self.addr, port=self.port)
+      pool = urllib3.connectionpool.HTTPConnectionPool(
+          self.addr, port=self.port)
     except urllib3.exceptions.MaxRetryError:
       print "Unable to contact master..."
       return

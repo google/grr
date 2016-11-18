@@ -24,7 +24,7 @@ from grr.server import foreman as rdf_foreman
 
 
 class DummyOutputPlugin(output_plugin.OutputPlugin):
-  """An output plugin that sends an email for each response received."""
+  """Output plugin that does nothing."""
 
   name = "dummy"
   description = "Dummy do do."

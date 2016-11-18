@@ -14,9 +14,6 @@ from grr.client.client_actions import admin as admin_actions
 from grr.client.client_actions import operating_system as operating_system_actions
 from grr.client.client_actions import standard as standard_actions
 from grr.client.client_actions import tempfiles as tempfiles_actions
-# pylint: disable=unused-import
-from grr.gui import django_lib
-# pylint: enable=unused-import
 from grr.lib import access_control
 from grr.lib import aff4
 from grr.lib import config_lib

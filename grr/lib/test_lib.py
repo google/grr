@@ -83,6 +83,11 @@ from grr.lib.data_stores import fake_data_store as _
 # Importing administrative to import ClientCrashHandler flow that
 # handles ClientCrash events triggered by CrashClientMock.
 from grr.lib.flows.general import administrative as _
+
+# Some tests (TestFileFinderFlow.testTreatsGlobsAsPathsWhenMemoryPathTypeIsUsed,
+# possibly others, expect the auditing system to be active).
+from grr.lib.flows.general import audit as _
+
 from grr.lib.flows.general import ca_enroller
 from grr.lib.flows.general import discovery
 from grr.lib.flows.general import filesystem as _

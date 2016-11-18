@@ -17,6 +17,9 @@ from grr.lib import rdfvalue
 from grr.lib import server_stubs
 from grr.lib import utils
 from grr.lib.aff4_objects import collects
+# For file collection artifacts. pylint: disable=unused-import
+from grr.lib.flows.general import file_finder
+# pylint: enable=unused-import
 from grr.lib.flows.general import filesystem
 # For AnalyzeClientMemory. pylint: disable=unused-import
 from grr.lib.flows.general import memory as _

@@ -7,7 +7,7 @@
 from grr.lib.data_stores import fake_data_store
 
 try:
-  from grr.lib.data_stores import cloud_bigtable_data_store_test
+  from grr.lib.data_stores import cloud_bigtable_data_store
 except ImportError:
   pass
 

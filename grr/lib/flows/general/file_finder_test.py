@@ -681,9 +681,12 @@ class TestFileFinderFlow(test_lib.FlowTestsBaseclass):
     # No need to setup VFS handlers as we're not actually looking at the files,
     # as there's no condition/action specified.
 
+    # Because this creates a very weird flow with basically nothing to do except
+    # run Start() it only works if the audit subsystem is active, which creates
+    # something for the test worker to do, so it processes normally.
     paths = [
-        os.path.join(os.path.dirname(self.fixture_path), "*.log"),
-        os.path.join(os.path.dirname(self.fixture_path), "auth.log")
+        os.path.join(self.fixture_path, "*.log"),
+        os.path.join(self.fixture_path, "auth.log")
     ]
 
     for s in test_lib.TestFlowHelper(
