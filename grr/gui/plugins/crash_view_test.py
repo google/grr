@@ -53,7 +53,8 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
 
     # Choose client 1
     self.Click("css=td:contains('0001')")
-    self.WaitUntil(self.IsTextPresent, "HostC.0000000000000001")
+    self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
+
     self.Click("css=a[grrtarget='client.flows']")
     self.WaitUntil(self.IsTextPresent, "FlowWithOneClientRequest")
 
@@ -65,8 +66,8 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
 
     # Check that "Flow Information" tab displays crash data.
     self.WaitUntil(self.AllTextsPresent, [
-        "CLIENT_CRASH", "aff4:/flows/", ":CrashHandler",
-        "Client killed during transaction"
+        "CLIENT_CRASHED", "aff4:/C.0000000000000001/flows/",
+        "Reason: Client crashed."
     ])
 
     # Check that client crash is present in global crashes list.
@@ -75,11 +76,12 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
 
     # Open the "Advanced" dropdown.
     self.Click("css=li#ManagementAdvanced > a")
+
     self.WaitUntil(self.IsVisible, "css=a:contains('All Clients Crashes')")
     # Check that needed data are displayed.
     self.Click("css=a:contains('All Clients Crashes')")
     self.WaitUntil(self.AllTextsPresent, [
-        "Crash Details", "aff4:/flows/", ":CrashHandler",
+        "Crash Details", "aff4:/C.0000000000000001/flows/", ":CrashHandler",
         "Client killed during transaction"
     ])
 
@@ -152,7 +154,7 @@ class TestCrashView(gui_test_lib.GRRSeleniumTest):
     self.WaitUntilEqual(u"C.0000000000000001", self.GetText,
                         "css=span[type=subject]")
     self.Click("css=td:contains('0001')")
-    self.WaitUntil(self.IsTextPresent, "HostC.0000000000000001")
+    self.WaitUntil(self.IsTextPresent, "C.0000000000000001")
 
     # Open the "Advanced" dropdown.
     self.Click("css=li#HostAdvanced > a")

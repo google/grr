@@ -58,8 +58,6 @@ class WindowsTemplateBuilder(object):
   # http://www.appveyor.com/docs/installed-software#python
   PYTHON_DIR_64 = r"C:\Python27-x64"
   PYTHON_DIR_32 = r"C:\Python27"
-  VIRTUALENV_PYTHON32 = os.path.join(PYTHON_DIR_32, r"Scripts\python.exe")
-  VIRTUALENV_PYTHON64 = os.path.join(PYTHON_DIR_64, r"Scripts\python.exe")
   VIRTUALENV_BIN64 = os.path.join(PYTHON_DIR_64, r"Scripts\virtualenv.exe")
   VIRTUALENV_BIN32 = os.path.join(PYTHON_DIR_32, r"Scripts\virtualenv.exe")
   BUILDDIR = r"C:\grrbuild"
@@ -71,6 +69,9 @@ class WindowsTemplateBuilder(object):
                                     r"Scripts\grr_client_build.exe")
   PIP64 = os.path.join(VIRTUALENV64, r"Scripts\pip.exe")
   PIP32 = os.path.join(VIRTUALENV32, r"Scripts\pip.exe")
+
+  VIRTUALENV_PYTHON32 = os.path.join(VIRTUALENV32, r"Scripts\python.exe")
+  VIRTUALENV_PYTHON64 = os.path.join(VIRTUALENV64, r"Scripts\python.exe")
 
   PROTOC = r"C:\grr_deps\protoc\bin\protoc.exe"
   GIT = r"C:\Program Files\Git\bin\git.exe"
@@ -113,7 +114,7 @@ class WindowsTemplateBuilder(object):
   def MakeCoreSdist(self):
     os.chdir(args.grr_src)
     subprocess.check_call([
-        self.VIRTUALENV_BIN64, "setup.py", "sdist", "--formats=zip",
+        self.VIRTUALENV_PYTHON64, "setup.py", "sdist",
         "--dist-dir=%s" % self.BUILDDIR, "--no-make-docs", "--no-make-ui-files",
         "--no-sync-artifacts"
     ])
@@ -123,7 +124,7 @@ class WindowsTemplateBuilder(object):
   def MakeClientSdist(self):
     os.chdir(os.path.join(args.grr_src, "grr/config/grr-response-client/"))
     subprocess.check_call([
-        self.VIRTUALENV_BIN64, "setup.py", "sdist", "--formats=zip",
+        self.VIRTUALENV_PYTHON64, "setup.py", "sdist",
         "--dist-dir=%s" % self.BUILDDIR
     ])
     return glob.glob(os.path.join(self.BUILDDIR,
