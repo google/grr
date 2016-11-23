@@ -180,7 +180,7 @@ setup_args = dict(
         "pytz==2016.4",
         "requests==2.9.1",
         "protobuf==3.0.0",
-        "Werkzeug==0.11.10",
+        "Werkzeug==0.11.3",
         "wheel==0.29",
         "virtualenv==15.0.3",
     ],
